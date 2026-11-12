@@ -48,11 +48,15 @@ export async function loadRecords(db: DataClient, employeeId: string, domain: Tr
     .eq('employee_id', employeeId)
     .eq('trainings.domain', domain);
   if (error) throw fromDatabaseError(error, 'list sheet training records');
-  return data.map((record): SheetRecord => ({
-    occupation: record.occupation,
-    admission: toAdmission(record),
-    training: toTraining(record.trainings),
-  }));
+  return data.map((record): SheetRecord => {
+    const training = toTraining(record.trainings);
+    return {
+      source: training.source,
+      occupation: record.occupation,
+      admission: toAdmission(record),
+      training,
+    };
+  });
 }
 
 export async function loadTestResults(db: DataClient, employeeId: string, domain: TrainingDomain) {

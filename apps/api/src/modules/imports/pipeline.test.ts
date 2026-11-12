@@ -7,7 +7,6 @@ import {
   type LibraryModule,
   proposalSchema,
   risksProposalSchema,
-  type ThemeDefaults,
 } from '@ssm-usor/import';
 import { strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -143,7 +142,6 @@ class World {
   scanCharges: string[] = [];
   settled: number[] = [];
   creditsCoverPages = true;
-  themeDefaults: ThemeDefaults | null = null;
   parts = new Map<string, LibraryPartRow & Record<string, unknown>>();
   partUsage: { part: string; input: number; cost: number }[] = [];
   partCharges: string[] = [];
@@ -368,7 +366,6 @@ class World {
       }),
       client: async () => null,
       employeeImportClient: async () => this.sheetClient,
-      trainingThemes: async () => () => this.themeDefaults,
       keepPageImage: async (fileId, page, image) => {
         this.pageImages.set(`${fileId}:${page}`, image);
       },
@@ -1539,6 +1536,7 @@ describe('an employee import', () => {
     fields: noFields,
     admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
     trainings: [],
+    handovers: [],
     unreadable: [],
     notes: [],
     ...overrides,
@@ -1583,6 +1581,7 @@ describe('an employee import', () => {
           verifierSignature: 'no_box',
         }),
       ],
+      handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' }],
     }),
     'Fise/Ionescu.pdf (pagina 1)': sheet({
       person: { ...noPerson, lastName: 'Ionescu', firstName: 'Maria' },
@@ -1615,12 +1614,6 @@ describe('an employee import', () => {
       jobPositions: [{ id: positionId, name: 'Vânzător' }],
       workplaces: [],
       employees: [],
-    };
-    world.themeDefaults = {
-      trainerName: 'Elena Marin',
-      trainerJobTitle: 'Administrator',
-      material: 'Tematica',
-      durationMinutes: 90,
     };
     extractor.pdfPageImage.mockClear();
   });
@@ -1704,11 +1697,15 @@ describe('an employee import', () => {
       proposedId: positionId,
     });
     expect(proposal.pages[3]!.rows[0]).toMatchObject({
-      trainerName: 'Elena Marin',
-      trainerJobTitle: 'Administrator',
+      trainerName: null,
+      trainerJobTitle: null,
       material: 'IPSSM',
-      fromThemes: ['trainerName', 'trainerJobTitle'],
+      fromThemes: [],
     });
+    expect(proposal.pages[3]!.handovers).toEqual([
+      { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' },
+    ]);
+    expect(proposal.pages[3]!.rows).toHaveLength(1);
     expect(proposal.pages[2]!.rows[0]!.test).toMatchObject({ test: 'hiring', verified: true });
   });
 

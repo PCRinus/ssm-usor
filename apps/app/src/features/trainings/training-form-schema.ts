@@ -13,8 +13,6 @@ import type {
 } from '@/api/generated/api';
 import { todayIso } from '@/features/employees/employee-format';
 
-const personText = (missing: string) =>
-  z.string().trim().min(1, missing).max(160, 'Cel mult 160 de caractere.');
 const optionalPersonText = z.string().trim().max(160, 'Cel mult 160 de caractere.');
 
 export const trainingFormSchema = z
@@ -31,18 +29,14 @@ export const trainingFormSchema = z
     durationMinutes: z
       .string()
       .trim()
-      .min(1, 'Completează durata, în minute.')
       .refine(
-        (value) => /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 600,
+        (value) =>
+          value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 600),
         'Durata este un număr întreg de minute, între 1 și 600.'
       ),
-    material: z
-      .string()
-      .trim()
-      .min(1, 'Completează materialul predat.')
-      .max(4000, 'Materialul are cel mult 4000 de caractere.'),
-    trainerName: personText('Completează numele instructorului.'),
-    trainerJobTitle: personText('Completează funcția instructorului.'),
+    material: z.string().trim().max(4000, 'Materialul are cel mult 4000 de caractere.'),
+    trainerName: optionalPersonText,
+    trainerJobTitle: optionalPersonText,
     verifierName: optionalPersonText,
     verifierJobTitle: optionalPersonText,
     supplementaryReason: z.union([z.literal(''), z.enum(supplementaryTrainingReasons)]),
@@ -59,6 +53,16 @@ export const trainingFormSchema = z
   .superRefine((values, ctx) => {
     const issue = (path: keyof typeof values, message: string) =>
       ctx.addIssue({ code: 'custom', path: [path], message });
+    // A training from paper holds what its sheet writes (ADR 042); one held in the app names all.
+    if (values.source === 'app') {
+      if (!values.durationMinutes.trim())
+        issue('durationMinutes', 'Completează durata, în minute.');
+      if (!values.material.trim()) issue('material', 'Completează materialul predat.');
+      if (!values.trainerName.trim()) issue('trainerName', 'Completează numele instructorului.');
+      if (!values.trainerJobTitle.trim()) {
+        issue('trainerJobTitle', 'Completează funcția instructorului.');
+      }
+    }
     if (values.phase !== 'introductory_general' && !values.jobPositionId) {
       issue('jobPositionId', 'Alege postul: de el depind participanții și materialul propus.');
     }
@@ -148,10 +152,10 @@ export function toTrainingForm(
     source: training.source,
     jobPositionId,
     employeeIds: training.records.map((record) => record.employee.id),
-    durationMinutes: String(training.durationMinutes),
-    material: training.material,
-    trainerName: training.trainer.name,
-    trainerJobTitle: training.trainer.jobTitle,
+    durationMinutes: training.durationMinutes === null ? '' : String(training.durationMinutes),
+    material: training.material ?? '',
+    trainerName: training.trainer.name ?? '',
+    trainerJobTitle: training.trainer.jobTitle ?? '',
     verifierName: training.verifier?.name ?? '',
     verifierJobTitle: training.verifier?.jobTitle ?? '',
     supplementaryReason: training.supplementaryReason ?? '',
@@ -183,9 +187,12 @@ export function toTrainingRequest(values: TrainingFormValues): TrainingRequest {
     domain: values.domain,
     phase: values.phase,
     heldOn: values.heldOn,
-    durationMinutes: Number(values.durationMinutes),
-    material: values.material.trim(),
-    trainer: { name: values.trainerName.trim(), jobTitle: values.trainerJobTitle.trim() },
+    durationMinutes: values.durationMinutes.trim() ? Number(values.durationMinutes) : null,
+    material: values.material.trim() || null,
+    trainer: {
+      name: values.trainerName.trim() || null,
+      jobTitle: values.trainerJobTitle.trim() || null,
+    },
     verifier,
     supplementaryReason:
       values.phase === 'supplementary' && values.supplementaryReason

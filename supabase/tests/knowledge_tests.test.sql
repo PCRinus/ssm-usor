@@ -1,5 +1,5 @@
 begin;
-select plan(89);
+select plan(91);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -573,9 +573,9 @@ select is(
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select throws_ok(
-  $$ insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, source)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', 'ssm', 'hiring', (select today from day), 'TASSM', 'paper') $$,
-  '23514', null, 'a paper result names its examiner'
+  $$ insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name, source)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', 'ssm', 'hiring', (select today from day), 'TASSM', 'Ana SPECIALIST', 'paper') $$,
+  '23514', null, 'a paper result''s examiner has a name and a function'
 );
 
 select throws_ok(
@@ -778,6 +778,50 @@ select pg_temp.act_as('dddddddd-0000-4000-8000-000000000005');
 select throws_ok(
   $$ select public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000005', 'ssm', 'hiring') $$,
   'TST05', 'test_not_awaiting', 'an unverified hiring test is not taken in the portal'
+);
+
+-- ADR 042: a portal pass names the trainer of the newest introductory general training, or nobody
+-- when that training's paper sheet names no trainer, never an older training's trainer.
+select pg_temp.act_as_postgres();
+
+update public.organizations set fire_safety_technician_name = null
+where id = '11111111-0000-4000-8000-000000000001';
+
+insert into public.trainings (id, organization_id, client_id, domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, source) values
+  ('a1a1a1a1-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'introductory_general', '2025-01-06', 480, 'IPSU', 'Radu VECHI', 'Cadru tehnic PSI', 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'introductory_general', '2026-01-05', null, null, null, null, 'paper'),
+  ('a1a1a1a1-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'su', 'workplace', '2026-01-06', 480, 'IPSU', 'Mihai NOU', 'Cadru tehnic PSI', 'app');
+
+insert into public.training_records (organization_id, client_id, training_id, phase, employee_id, occupation)
+select t.organization_id, t.client_id, t.id, t.phase, 'e1e1e1e1-0000-4000-8000-000000000002', 'Sudor'
+from public.trainings t
+where t.id in ('a1a1a1a1-0000-4000-8000-000000000010', 'a1a1a1a1-0000-4000-8000-000000000011', 'a1a1a1a1-0000-4000-8000-000000000012');
+
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000002');
+
+insert into attempt_ids
+select 'unnamed', (public.start_test_attempt('9e9e9e9e-0000-4000-8000-000000000002', 'su', 'hiring')).id;
+
+select pg_temp.act_as_postgres();
+select pg_temp.keep_key('unnamed');
+select pg_temp.act_as('dddddddd-0000-4000-8000-000000000002');
+
+select count(public.answer_test_attempt(a.id, k.place, k.correct))
+from answer_keys k, attempt_ids a
+where k.name = 'unnamed' and a.name = 'unnamed';
+
+select results_eq(
+  $$ select passed from public.finish_test_attempt((select id from attempt_ids where name = 'unnamed')) $$,
+  $$ values (true) $$,
+  'a fire-safety hiring test is passed in the portal after a paper introductory training without its trainer'
+);
+
+select pg_temp.act_as_postgres();
+
+select results_eq(
+  $$ select examiner_name, examiner_job_title from public.test_results where attempt_id = (select id from attempt_ids where name = 'unnamed') $$,
+  $$ values (null::text, null::text) $$,
+  'and its pass names nobody, not the trainer of an older introductory training'
 );
 
 select * from finish();

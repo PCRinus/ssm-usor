@@ -348,6 +348,35 @@ describe('Instruiri', () => {
     expect(within(records[1]!).queryByTestId('training-record-signed')).toBeNull();
   });
 
+  it('says in words what a training from the paper sheet does not write', async () => {
+    const [first] = trainingRecords().items;
+    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
+      queryResult(
+        trainingRecords({
+          items: [
+            {
+              ...first!,
+              source: 'paper',
+              slots: [],
+              durationMinutes: null,
+              material: null,
+              trainer: { name: null, jobTitle: null },
+            },
+          ],
+        })
+      )
+    );
+    mountPortal(signedIn(), '/instruiri');
+
+    const [record] = await screen.findAllByTestId('training-record');
+    expect(within(record!).getByTestId('training-material-text').textContent).toBe(
+      'Material necompletat pe fișă'
+    );
+    expect(record!.textContent).toContain(
+      'Instructor: nume neînscris pe fișă. Durata necompletată pe fișă.'
+    );
+  });
+
   it('says a training from the paper sheet was transcribed and signed there', async () => {
     const [first, second] = trainingRecords().items;
     vi.mocked(useListPortalTrainingRecords).mockReturnValue(

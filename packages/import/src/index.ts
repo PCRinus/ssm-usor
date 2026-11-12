@@ -31,10 +31,7 @@ export {
   hiringTestRowIds,
   includedByDefault,
   type SheetPageInput,
-  type ThemeDefaults,
-  type ThemeQuery,
   toEmployeeProposal,
-  type TrainingThemes,
 } from './employee-import';
 export {
   type ClientWorkplace,
@@ -55,6 +52,7 @@ export {
   type EmployeeMapping,
   type EmployeePayloadRow,
   matchOf,
+  rowExaminer,
   sheetFilesOf,
   type TestResultPayloadRow,
   toEmployeePayload,

@@ -26,7 +26,12 @@ export function paperForm(domain: SheetDomain) {
   };
 }
 
+export const transcribedNote = 'transcris; semnat pe hârtie';
+export const transcriptionLine =
+  'Rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie. Originalul, cu semnăturile, se păstrează la angajator.';
+
 const unrecorded = {
+  note: '',
   heldOn: '',
   hours: '',
   trainer: '',
@@ -61,6 +66,7 @@ const ssmRecords = {
       material:
         'Conform MISSMIG Art. 1 – 325; Legislația de securitate și sănătate în muncă; Măsuri de acordare a primului ajutor, de prevenire și stingere a incendiilor și evacuarea lucrătorilor.',
       occupation: 'Sudor',
+      note: transcribedNote,
     },
     workplace: {
       ...unrecorded,
@@ -73,7 +79,7 @@ const ssmRecords = {
       place: 'Punct de lucru Str. Fabricii 3 – Atelier, teren',
     },
   },
-  admission: { admittedOn: '06.01.2026', name: 'Ion POP', jobTitle: 'Șef atelier' },
+  admission: { admittedOn: '06.01.2026', name: 'Ion POP', jobTitle: 'Șef atelier', note: '' },
   signers: {
     introductory: { trainer: 'Dan MARIN', verifier: 'Dan MARIN' },
     workplace: { trainer: 'Ion POP', verifier: 'Dan MARIN' },
@@ -95,13 +101,14 @@ const testResults = [
   ),
 ];
 
-const periodicRow = (heldOn: string, material: string) => ({
+const periodicRow = (heldOn: string, material: string, note = '') => ({
   heldOn,
   hours: '1,5',
   occupation: 'Sudor',
   material,
   trainer: 'Ion POP',
   verifier: 'Dan MARIN',
+  note,
 });
 
 function ssmSample(recorded: boolean) {
@@ -112,7 +119,7 @@ function ssmSample(recorded: boolean) {
       client: { legalName: 'S.C. INSTALAȚII TERMICE ȘI SANITARE BANAT CONSTRUCT S.R.L.' },
       employee: { ...identity, authorizations: '', qualification: '', commute: identity.commute },
       hiring: { introductory: unrecorded, workplace: unrecorded },
-      admission: { admittedOn: '', name: '', jobTitle: '' },
+      admission: { admittedOn: '', name: '', jobTitle: '', note: '' },
       periodic: [],
       supplementary: [],
       testResults: [],
@@ -121,6 +128,7 @@ function ssmSample(recorded: boolean) {
         introductory: { trainer: '', verifier: '' },
         workplace: { trainer: '', verifier: '' },
       },
+      transcriptionLine: '',
     };
   }
   return {
@@ -130,7 +138,7 @@ function ssmSample(recorded: boolean) {
     employee: identity,
     ...ssmRecords,
     periodic: [
-      periodicRow('03.04.2026', 'I.P.S.S.M. Art. 1 – 60; IP Sudură Art. 1 – 10'),
+      periodicRow('03.04.2026', 'I.P.S.S.M. Art. 1 – 60; IP Sudură Art. 1 – 10', transcribedNote),
       periodicRow(
         '02.07.2026',
         'I.P.S.S.M. Art. 61 – 120; IP Sudură Art. 11 – 20; utilizarea echipamentului individual de protecție la sudarea în spații închise'
@@ -148,6 +156,7 @@ function ssmSample(recorded: boolean) {
     ],
     testResults,
     blankRows: { periodic: blank(13), supplementary: blank(16), testResults: blank(3) },
+    transcriptionLine,
   };
 }
 
@@ -210,7 +219,7 @@ export function trainingSheetFormSample(domain: SheetDomain) {
   for (const key of Object.keys(form.rows)) form.rows[key] = !['p1', 'p2', 't1'].includes(key);
   return {
     ...data,
-    periodic: data.periodic.slice(0, 2),
+    periodic: data.periodic.slice(0, 2).map((row) => ({ ...row, note: transcribedNote })),
     supplementary: [],
     testResults: domain === 'ssm' ? testResults.slice(0, 1) : [],
     blankRows: { periodic: [], supplementary: [], testResults: [] },

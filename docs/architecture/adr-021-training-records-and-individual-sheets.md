@@ -2,6 +2,7 @@
 
 - Status: proposed
 - Date: 2026-10-16
+- Amended 2026-11-12 by [ADR 042](adr-042-paper-history-as-written.md): a training from paper holds a trainer, a material and a duration only where the paper writes one, and both sheets mark its rows as transcribed; see the notes below.
 
 ## Context
 
@@ -45,6 +46,8 @@ Using the documents machinery was rejected. A revision is a version of a documen
 
 What a sheet prints: the identification block from the employee, the position and the workplace; the hiring trainings from their records, each with its date, duration in hours, trainer and function, material, and the "admis la lucru" block from the workplace record, blank where there is no record yet, so that a sheet printed on the day of hiring is the form the paper flow needs; the periodic table from the periodic and, on the SSM sheet, the supplementary records, each row with the day, the duration in hours, the occupation and the material; the test-results block, the accidents, the sanctions and the medical blocks of the SSM form empty. Under the recorded rows the periodic table prints blank rows to the end of its page, for as long as the signatures are collected on paper: the printed sheet is the signed original and the pen needs somewhere to write. A constant turns the blank rows off when electronic signing ships. Pre-printing the planned sessions of the year as unsigned rows was rejected: a row on the sheet means a training that happened.
 
+(Amended 2026-11-12 by [ADR 042](adr-042-paper-history-as-written.md). A row or hiring block from a paper sheet no longer prints like an unsigned training: its signature cells say _transcris; semnat pe hârtie_, the names stay small under them, and the sheet prints the line on transcribed rows under its title.)
+
 The sheet blocks on two facts only, through the same gap rules as the sets, returned by its own readiness and shown on the employee's page: the commute route on the SSM sheet, and the workplace on both when the client has more than one. Every other empty line prints empty, as the paper form does.
 
 A leaver's sheets are archived, not discarded, as the provider discards the paper ones: the records, the files and the two sheets of a terminated employee stay as they are, printable from _Foști angajați_ for as long as the client exists, and nothing of them is deleted when the employee leaves or the client is archived. No retention period is set; none is prescribed for the sheet itself.
@@ -70,6 +73,8 @@ From the due date, a **training state** per domain: _neinstruit_ while the emplo
 ### History kept on paper comes in as records and as files
 
 A client onboarded with sheets filled by hand gets its history two ways. A training held can be recorded for a past day with the source _de pe fișa de hârtie_, the material and the duration typed, the signatures understood to be on the paper; the minimum for the due dates is the hiring trainings and the last periodic training per employee. And a **client file** ([ADR 013](adr-013-client-files.md)) can be attached to an employee: the photograph or the scan of the paper sheet, uploaded from the employee's page and listed there, and under the client's files with the employee's name. The workers' representative's course certificate of [ADR 010](adr-010-conditional-documents.md) is such a file too. Extracting the rows of a photographed sheet into proposed records is a feature of its own, after the records exist. (Note of 2026-10-27: it is the employee import of [ADR 030](adr-030-import-from-documents.md).) (Note of 2026-10-17: an employee's files are listed on the employee's page only. The client's "Alte documente" lists the client's own files, those of no employee, because the files of every employee there buried the client's own.)
+
+(Amended 2026-11-12 by [ADR 042](adr-042-paper-history-as-written.md). A training from paper holds the trainer, the trainer's function, the material and the duration only where the paper writes them; a training held in the app still requires all four. On both sheets a paper row reads _transcris; semnat pe hârtie_, and a sheet with one prints under its title: "Rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie. Originalul, cu semnăturile, se păstrează la angajator.")
 
 ### A page of the organization's employees, with search
 

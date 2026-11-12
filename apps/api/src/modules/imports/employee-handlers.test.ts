@@ -118,6 +118,7 @@ const page = (
     fields: { ...noFields, ...fields },
     admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
     trainings,
+    handovers: [],
     unreadable: [],
     notes: [],
   },
@@ -158,7 +159,6 @@ const proposalOf = (pages: SheetPageInput[]) =>
   toEmployeeProposal({
     pages,
     client: { jobPositions: [{ id: positionId, name: 'Vânzător' }], workplaces: [], employees: [] },
-    themes: () => null,
     today: '2026-10-31',
   });
 

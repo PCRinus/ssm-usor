@@ -354,10 +354,10 @@ select throws_ok(
 
 select throws_ok(
   $$ select public.apply_employee_import('10000000-0000-4000-8000-000000000001', 0,
-       pg_temp.payload() #- '{test_results,0,examiner_name}' #- '{test_results,0,examiner_job_title}') $$,
+       pg_temp.payload() #- '{test_results,0,examiner_job_title}') $$,
   '23514',
-  'new row for relation "test_results" violates check constraint "test_results_paper_has_examiner"',
-  'a paper test result has its examiner'
+  'new row for relation "test_results" violates check constraint "test_results_examiner_whole"',
+  'a paper test result''s examiner has a name and a function'
 );
 
 select throws_ok(

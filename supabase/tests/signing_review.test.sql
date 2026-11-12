@@ -365,10 +365,10 @@ select pg_temp.sign('9a9a9a9a-0000-4000-8000-000000000009', '5e5e5e5e-0000-4000-
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 select throws_ok(
   $$ select public.save_training(
-       'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'supplementary', '2026-04-10', 60::smallint,
-       'Material', 'Ion POP', 'Șef atelier', 'app',
+       'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'supplementary', '2026-04-10', 'app',
        '[{"employee_id": "e1e1e1e1-0000-4000-8000-000000000002", "occupation": "Sudor"}, {"employee_id": "e1e1e1e1-0000-4000-8000-000000000003", "occupation": "Sudor"}, {"employee_id": "e1e1e1e1-0000-4000-8000-000000000001", "occupation": "Sudor"}]'::jsonb,
-       'a1a1a1a1-0000-4000-8000-000000000001', p_supplementary_reason => 'after_accident') $$,
+       'a1a1a1a1-0000-4000-8000-000000000001', 60::smallint, 'Material', 'Ion POP', 'Șef atelier',
+       p_supplementary_reason => 'after_accident') $$,
   'SIG01', 'record_signed', 'save_training does not move a signed record to another phase'
 );
 

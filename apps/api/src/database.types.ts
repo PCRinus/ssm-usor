@@ -4932,6 +4932,7 @@ export type Database = {
           digest: string;
           domain: Database['public']['Enums']['training_domain'];
           employee_id: string;
+          form_version: number;
           id: string;
           organization_id: string;
           row_capacity: number;
@@ -4948,6 +4949,7 @@ export type Database = {
           digest: string;
           domain: Database['public']['Enums']['training_domain'];
           employee_id: string;
+          form_version?: number;
           id?: string;
           organization_id: string;
           row_capacity: number;
@@ -4964,6 +4966,7 @@ export type Database = {
           digest?: string;
           domain?: Database['public']['Enums']['training_domain'];
           employee_id?: string;
+          form_version?: number;
           id?: string;
           organization_id?: string;
           row_capacity?: number;
@@ -6458,18 +6461,18 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           domain: Database['public']['Enums']['training_domain'];
-          duration_minutes: number;
+          duration_minutes: number | null;
           held_on: string;
           id: string;
-          material: string;
+          material: string | null;
           notes: string | null;
           organization_id: string;
           phase: Database['public']['Enums']['training_phase'];
           source: Database['public']['Enums']['training_source'];
           supplementary_reason: Database['public']['Enums']['supplementary_training_reason'] | null;
           themes_revision_id: string | null;
-          trainer_job_title: string;
-          trainer_name: string;
+          trainer_job_title: string | null;
+          trainer_name: string | null;
           updated_at: string;
           verifier_job_title: string | null;
           verifier_name: string | null;
@@ -6479,10 +6482,10 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           domain: Database['public']['Enums']['training_domain'];
-          duration_minutes: number;
+          duration_minutes?: number | null;
           held_on: string;
           id?: string;
-          material: string;
+          material?: string | null;
           notes?: string | null;
           organization_id: string;
           phase: Database['public']['Enums']['training_phase'];
@@ -6490,8 +6493,8 @@ export type Database = {
           supplementary_reason?:
             Database['public']['Enums']['supplementary_training_reason'] | null;
           themes_revision_id?: string | null;
-          trainer_job_title: string;
-          trainer_name: string;
+          trainer_job_title?: string | null;
+          trainer_name?: string | null;
           updated_at?: string;
           verifier_job_title?: string | null;
           verifier_name?: string | null;
@@ -6501,10 +6504,10 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           domain?: Database['public']['Enums']['training_domain'];
-          duration_minutes?: number;
+          duration_minutes?: number | null;
           held_on?: string;
           id?: string;
-          material?: string;
+          material?: string | null;
           notes?: string | null;
           organization_id?: string;
           phase?: Database['public']['Enums']['training_phase'];
@@ -6512,8 +6515,8 @@ export type Database = {
           supplementary_reason?:
             Database['public']['Enums']['supplementary_training_reason'] | null;
           themes_revision_id?: string | null;
-          trainer_job_title?: string;
-          trainer_name?: string;
+          trainer_job_title?: string | null;
+          trainer_name?: string | null;
           updated_at?: string;
           verifier_job_title?: string | null;
           verifier_name?: string | null;
@@ -8296,16 +8299,16 @@ export type Database = {
           p_attendees: Json;
           p_client_id: string;
           p_domain: Database['public']['Enums']['training_domain'];
-          p_duration_minutes: number;
+          p_duration_minutes?: number;
           p_held_on: string;
-          p_material: string;
+          p_material?: string;
           p_notes?: string;
           p_phase: Database['public']['Enums']['training_phase'];
           p_source: Database['public']['Enums']['training_source'];
           p_supplementary_reason?: Database['public']['Enums']['supplementary_training_reason'];
           p_themes_revision_id?: string;
-          p_trainer_job_title: string;
-          p_trainer_name: string;
+          p_trainer_job_title?: string;
+          p_trainer_name?: string;
           p_training_id?: string;
           p_verifier_job_title?: string;
           p_verifier_name?: string;

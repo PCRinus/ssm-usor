@@ -837,12 +837,18 @@ are kept whatever becomes of the employee: a leaver's sheets stay printable.
 | `phase`                               | `training_phase`: `introductory_general`, `workplace`, `periodic` or `supplementary`.                                                   |
 | `held_on`                             | The day it was held. The API refuses a day after today in Romania.                                                                      |
 | `duration_minutes`, `material`        | 1 to 600 minutes; the material taught as text, 1 to 4000 characters. Kept as saved, whatever the themes they were proposed from become. |
-| `trainer_name`, `trainer_job_title`   | Required, 1 to 160 characters each.                                                                                                     |
+| `trainer_name`, `trainer_job_title`   | 1 to 160 characters each.                                                                                                               |
 | `verifier_name`, `verifier_job_title` | Both or neither: the fire-safety sheet has no verifier's signature.                                                                     |
 | `supplementary_reason`                | `supplementary_training_reason`, one of the cases of H.G. 1425/2006 art. 98; set exactly when the phase is `supplementary`.             |
 | `source`                              | `training_source`: `app`, or `paper` for a training typed from a sheet filled by hand, whose signatures are on the paper.               |
 | `themes_revision_id`                  | The training themes revision the material was proposed from, if any; set null when that revision is deleted.                            |
 | `notes`                               | Optional, up to 2000 characters.                                                                                                        |
+
+A training held in the app names its duration, material, trainer and trainer's function
+(`trainings_app_source_complete`). A training from paper holds what its sheet writes, so any of
+the four may be null: the periodic table of the paper form has no column for the trainer's name
+(ADR 042, migration `20261112160000`). The app shows a missing value in words, and the
+individual training sheet prints its cell blank.
 
 | `training_records` column                                  | Notes                                                                                                                                   |
 | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -856,7 +862,8 @@ to the workplace training; the foreign key carries a change of the training's ph
 records. Members update a training's facts and a record's admission only: a training never
 moves to another client, and a record never to another training or person.
 
-`save_training(...)` records a training and its attendees in one transaction, or with
+`save_training(...)` records a training and its attendees in one transaction (the duration,
+material, trainer and trainer's function are defaulted arguments, null when left out), or with
 `p_training_id` replaces both: the records of attendees left out are deleted, those who stay
 keep their record and its occupation, the new ones get a record, and the one admission given
 is set on every attendee. It runs as the caller and returns null for a client or a training
@@ -972,19 +979,19 @@ never which option is correct; the portal shows an employee their own through th
 A **test result** (`test_results`) is a pass, under a client as the training records are, with
 `employee_id` in any status.
 
-| Column                                | Notes                                                                                                                             |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `domain`, `test`, `taken_on`          | The test and the Romanian day it was passed.                                                                                      |
-| `material`                            | What the sheet prints as the material examined, as "Test de verificare a cunoștințelor la angajare (TASSM)"; 1 to 300 characters. |
-| `grade`                               | `admis` only: a failed test is not recorded.                                                                                      |
-| `examiner_name`, `examiner_job_title` | Both or neither; required on paper. Null on a portal pass the organization had nobody to propose for, until a member names them.  |
-| `source`                              | `test_result_source`: `portal`, exactly when `attempt_id` is set, or `paper`.                                                     |
-| `attempt_id`                          | The passing attempt, unique, by a composite key to the attempt's employee, domain and test.                                       |
+| Column                                | Notes                                                                                                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `domain`, `test`, `taken_on`          | The test and the Romanian day it was passed.                                                                                                                       |
+| `material`                            | What the sheet prints as the material examined, as "Test de verificare a cunoștințelor la angajare (TASSM)"; 1 to 300 characters.                                  |
+| `grade`                               | `admis` only: a failed test is not recorded.                                                                                                                       |
+| `examiner_name`, `examiner_job_title` | Both or neither. Null on a paper result whose sheet names no examiner, and on a portal pass the organization had nobody to propose for, until a member names them. |
+| `source`                              | `test_result_source`: `portal`, exactly when `attempt_id` is set, or `paper`.                                                                                      |
+| `attempt_id`                          | The passing attempt, unique, by a composite key to the attempt's employee, domain and test.                                                                        |
 
 `finish_test_attempt` inserts the portal result, the day being the finish's, with the examiner
 proposed: for fire safety the organization's `fire_safety_technician_name` as "Cadru tehnic
 PSI", else the trainer and job title of the employee's latest introductory general training in
-the domain, which for occupational safety is the specialist. A member records a paper result
+the domain that names both, which for occupational safety is the specialist. A member records a paper result
 (only `source = 'paper'`, for an active client) and updates `taken_on`, `material` and the
 examiner; a portal result changes only in its examiner and is not deleted (`TST06`,
 `result_from_attempt`). Members read their organization's results; the portal shows an employee
@@ -1713,10 +1720,13 @@ refusing a field it does not name (`22023`):
 - The other lists name an employee by the `key` of one of `employees` (`22023` otherwise).
 - A training is held from paper (`source` `paper`), with one record per attendee, at most one
   each (`22023`), carrying the name of the attendee's position as the occupation, as the app's
-  own save does; the admission goes on a workplace record. Its duration is a whole number of
-  minutes from 1 to 600 and its day is not after today in Romania: both are refused as checks
-  of `trainings`, `trainings_duration_range` and `trainings_held_on_past` (`23514`).
-- A test result is a paper one, grade `admis`, with its examiner; a day after today is refused as
+  own save does; the admission goes on a workplace record. Its duration, material, trainer and
+  trainer's function are left out where the sheet does not write them (ADR 042, migration
+  `20261112160000`); a duration given is a whole number of minutes from 1 to 600, and its day is
+  not after today in Romania: both are refused as checks of `trainings`,
+  `trainings_duration_range` and `trainings_held_on_past` (`23514`).
+- A test result is a paper one, grade `admis`, with its examiner, both or neither, left out where
+  the sheet names none; a day after today is refused as
   `test_results_taken_on_past`, and a second hiring result of a domain for the same employee as
   `test_results_hiring_once` (`23514`).
 - A file is one of the import's files, past `uploading`: a client file of the employee in the
@@ -2230,7 +2240,7 @@ typed.
 `storage_path` (starting with the organization, `signed_sheets_path_in_organization`, not valid
 for the older sheets stored under `signed-sheets/`), the `digest` (SHA-256, hex) and
 `version` of the current bytes, the `row_capacity` of periodic rows and the `rows_used`, the highest `p` row taken (a voided row's key is never
-reused), and `certified_at` from its first signature. `signed_sheet_rows` says which
+reused), `certified_at` from its first signature, and `form_version`, the template form it was drawn from: 2 from [ADR 042](architecture/adr-042-paper-history-as-written.md), with the field for the line on transcribed rows and two lines of note per table row, 1 for every sheet stored before and for one drawn from a template without that field, whose rows filled later keep the old note _semnat pe hârtie_ and fill no line; the API reads it from what it drew, never from its own code. `signed_sheet_rows` says which
 `training_record_id` fills which `row_key` of a sheet: `h1` and `h2` for the hiring trainings, `adm`
 for the admission, `p1` and onward for the periodic rows, and `s1` and onward for the occupational
 safety sheet's supplementary table; one row per key and sheet, and one live row per record,

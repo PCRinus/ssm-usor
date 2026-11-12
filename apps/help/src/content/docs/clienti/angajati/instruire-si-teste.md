@@ -37,12 +37,14 @@ topics:
   - id: angajati.semnaturi-instruire
     heading: Semnăturile unei instruiri
 sources:
+  - supabase/migrations/20261112160000_paper_trainings_as_written.sql
   - docs/architecture/adr-006-job-positions.md
   - docs/architecture/adr-039-training-categories-from-job-positions.md
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - docs/architecture/adr-024-knowledge-tests.md
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
+  - docs/architecture/adr-042-paper-history-as-written.md
   - packages/contracts/src/trainings.ts
   - packages/contracts/src/tests.ts
   - packages/contracts/src/job-positions.ts
@@ -127,7 +129,7 @@ Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa SU apar în tabe
 
 ### Instruirile de pe fișa pe hârtie
 
-Pentru un lucrător a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **Preluată de pe fișa pe hârtie**: ziua, durata și materialul ca pe fișă. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …” (vezi „Semnăturile unei instruiri”).
+Pentru un lucrător a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **Preluată de pe fișa pe hârtie**: ziua, durata, materialul și cine a instruit, ca pe fișă. Ce nu e scris pe fișă lași necompletat: o instruire de pe hârtie se salvează și fără durată, material sau instructor, iar în aplicație și în portal vezi în locul lor „necompletată pe fișă”, „necompletat pe fișă” sau „nume neînscris pe fișă”. Pe fișa individuală din aplicație căsuța rămâne goală. O instruire ținută în aplicație are nevoie de toate. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …” (vezi „Semnăturile unei instruiri”).
 
 Ca termenele să fie corecte, sunt de ajuns instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei pe hârtie îl încarci pe tabul **Documente** al lucrătorului.
 
@@ -173,7 +175,7 @@ La **Încercări în portal** vezi fiecare încercare cu scorul ei și dacă a f
 
 ### Rezultatul de pe hârtie
 
-Pentru un lucrător fără portal, tipărește testul din documentele clientului. După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui.
+Pentru un lucrător fără portal, tipărește testul din documentele clientului. După ce l-a completat și l-a promovat, alege **Înregistrează un rezultat de pe hârtie** și completează testul, ziua în care l-a susținut, examinatorul și funcția lui. Pentru un test consemnat pe o fișă veche care nu scrie examinatorul, lasă goale numele și funcția examinatorului: rezultatul se înregistrează fără examinator și apare cu „nume neînscris pe fișă”. Dacă scrii unul dintre ele, îl completezi și pe celălalt.
 
 Butonul apare cât timp testul la angajare e de susținut sau neverificat pe fișă și, în SU, pentru testul anual: oricând după primul test promovat, iar la un lucrător neverificat pe fișă și fără el, pentru testele anuale consemnate pe fișa pe hârtie. Ziua nu poate fi în viitor. Un test nepromovat nu se înregistrează: contează susținerea următoare.
 
@@ -204,6 +206,8 @@ O fișă nu e un document din setul clientului. Se întocmește în momentul în
 - un rând pentru fiecare instruire periodică și, pe fișa SSM, fiecare instruire suplimentară;
 - rânduri goale până la capătul paginii, pentru semnăturile pe hârtie.
 
+O instruire preluată de pe fișa pe hârtie apare pe fișă cu mențiunea „transcris; semnat pe hârtie” în locul semnăturilor, iar numele celor care au instruit și au verificat rămân dedesubt. Cât timp fișa are măcar un astfel de rând, sub titlu scrie: „Rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie. Originalul, cu semnăturile, se păstrează la angajator.” Fișa din aplicație nu înlocuiește fișa pe hârtie: clientul o păstrează în continuare.
+
 ### Ce lipsește pentru fișă
 
 O fișă se întocmește chiar dacă multe câmpuri sunt goale; ele se tipăresc goale. Doar două lipsuri o opresc:
@@ -226,4 +230,4 @@ Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **In
 
 Lucrătorul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
 
-O instruire de pe fișa pe hârtie nu are rubrici de semnat și nu cere nicio semnătură, nici în aplicație, nici în portal: semnăturile ei sunt pe fișa pe hârtie. În locul rubricilor scrie „Semnat pe hârtie: instruit, instructor”, la care se adaugă verificatorul și cel care admite la lucru când instruirea îi are. Pe fișa individuală, rândul ei apare cu mențiunea „semnat pe hârtie”.
+O instruire de pe fișa pe hârtie nu are rubrici de semnat și nu cere nicio semnătură, nici în aplicație, nici în portal: semnăturile ei sunt pe fișa pe hârtie. În locul rubricilor scrie „Semnat pe hârtie: instruit, instructor”, la care se adaugă verificatorul și cel care admite la lucru când instruirea îi are. Pe fișa individuală, rândul ei apare cu mențiunea „transcris; semnat pe hârtie”. O fișă semnată întocmită înainte ca fișele să scrie „transcris” rămâne cum era: rândurile adăugate pe ea mai târziu primesc tot mențiunea „semnat pe hârtie”.

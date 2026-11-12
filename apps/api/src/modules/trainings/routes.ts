@@ -107,7 +107,7 @@ export const createTrainingRoute = createRoute({
   operationId: 'createTraining',
   summary: 'Record a training held with its attendees',
   description:
-    'Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, "admis la lucru", is given to every attendee and only on a workplace training.',
+    'Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, "admis la lucru", is given to every attendee and only on a workplace training. A training held in the app (`source` `app`) names its duration, material and trainer; one typed from paper may leave out any of them its sheet does not write, and the reads then answer them null.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, body: trainingBody },

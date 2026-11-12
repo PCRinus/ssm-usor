@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type EmployeeImportClient, hiringTestRowIds, toEmployeeProposal } from './employee-import';
+import { employeeImportProposalSchema } from './employee-proposal';
 import {
   cnps,
   comanFire,
@@ -17,7 +18,6 @@ import {
   positions,
   row,
   rusuFront,
-  themes,
   today,
   tomaFront,
   tomaPeriodic,
@@ -44,7 +44,6 @@ const propose = (overrides: Partial<EmployeeImportClient> = {}) =>
       otherPhoto
     ),
     client: { ...client, ...overrides },
-    themes,
     today,
   });
 
@@ -78,7 +77,7 @@ describe('toEmployeeProposal', () => {
   });
 
   it('proposes a husband and wife as two people, each with one birth date and one CNP', () => {
-    const proposal = toEmployeeProposal({ pages: moraruUpload(), client, themes, today });
+    const proposal = toEmployeeProposal({ pages: moraruUpload(), client, today });
 
     expect(proposal.people).toHaveLength(2);
     const [husband, wife] = proposal.people;
@@ -114,7 +113,7 @@ describe('toEmployeeProposal', () => {
     expect(toma.fields.firstName.options).toHaveLength(2);
   });
 
-  it('marks the rows: month only, from the themes, unsigned, an unusual duration', () => {
+  it('marks the rows: month only, unsigned, an unusual duration', () => {
     const proposal = propose();
     const rows = rowsOf(proposal, personNamed(proposal, 'Coman').id);
     const periodic = rows.filter((row) => row.domain === 'ssm' && row.phase === 'periodic');
@@ -127,14 +126,92 @@ describe('toEmployeeProposal', () => {
     ]);
     expect(periodic[0]!.flags).toEqual(['unusual_duration']);
     expect(periodic[1]).toMatchObject({
-      material: 'Tematica semestrului',
-      trainerJobTitle: 'Inspector SSM',
-      fromThemes: ['trainerJobTitle', 'material'],
-      flags: ['month_only', 'from_client_themes'],
+      material: null,
+      trainerJobTitle: null,
+      fromThemes: [],
+      flags: ['month_only'],
       proposedIncluded: true,
     });
     expect(periodic[2]).toMatchObject({ flags: ['unsigned'], proposedIncluded: false });
     expect(periodic[3]!.flags).toEqual(['month_only']);
+  });
+
+  it('fills nothing a row does not write: no trainer, function, material or duration', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        comanFront,
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [
+            row({
+              heldOn: '2022-04-11',
+              trainerName: null,
+              trainerJobTitle: null,
+              material: null,
+              durationMinutes: null,
+            }),
+          ],
+        })
+      ),
+      client,
+      today,
+    });
+
+    expect(proposal.pages[1]!.rows[0]).toMatchObject({
+      trainerName: null,
+      trainerJobTitle: null,
+      material: null,
+      durationMinutes: null,
+      fromThemes: [],
+      flags: [],
+    });
+  });
+
+  it('keeps a page’s handover with its day, never as a training, and a person’s days once', () => {
+    const handover = { date: '03.10.22', text: '03.10.22 Preluare CD Safety Core SRL' };
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        comanFront,
+        page({
+          pageKind: 'ssm_periodic',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [row({ heldOn: '2022-04-11' })],
+          handovers: [handover, { date: '2099-01-01', text: 'Preluare' }],
+        }),
+        page({
+          pageKind: 'su_periodic',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [row({ domain: 'su', heldOn: '2023-05-10' })],
+          handovers: [{ date: '2022-10-03', text: 'Preluare CD Safety Core SRL' }],
+        })
+      ),
+      client,
+      today,
+    });
+
+    expect(proposal.pages[1]!.handovers).toEqual([
+      { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' },
+      { date: null, text: 'Preluare' },
+    ]);
+    expect(proposal.pages[1]!.rows).toHaveLength(1);
+    expect(proposal.pages[2]!.handovers).toEqual([
+      { date: '2022-10-03', text: 'Preluare CD Safety Core SRL' },
+    ]);
+  });
+
+  it('reads a page and a proposal kept before the handover was asked as having none', () => {
+    const withoutHandovers = <T>(value: T): T =>
+      JSON.parse(JSON.stringify(value, (key, each) => (key === 'handovers' ? undefined : each)));
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(withoutHandovers(comanFront)),
+      client,
+      today,
+    });
+
+    expect(proposal.pages[0]!.handovers).toEqual([]);
+    expect(
+      employeeImportProposalSchema.parse(withoutHandovers(proposal)).pages[0]!.handovers
+    ).toEqual([]);
   });
 
   it('takes a verifier’s signature on a hiring block for the paper hiring test', () => {
@@ -165,7 +242,6 @@ describe('toEmployeeProposal', () => {
         comanFront
       ),
       client,
-      themes,
       today,
     });
 
@@ -205,7 +281,6 @@ describe('toEmployeeProposal', () => {
     const proposal = toEmployeeProposal({
       pages: pagesOf(comanFront, comanFirePeriodic),
       client,
-      themes,
       today,
     });
     const [periodic] = proposal.pages[1]!.rows;
@@ -247,7 +322,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     }).pages[0]!.rows;
 
@@ -274,7 +348,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     }).pages[0]!.rows;
 
@@ -303,7 +376,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     }).pages[0]!.rows;
 
@@ -323,7 +395,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     }).pages[0]!.rows;
 
@@ -348,7 +419,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     });
 
@@ -371,7 +441,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     });
 
@@ -452,7 +521,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     });
     const [person] = proposal.people;
@@ -491,7 +559,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     });
 
@@ -519,7 +586,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     });
 
@@ -546,7 +612,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     });
 
@@ -563,7 +628,6 @@ describe('toEmployeeProposal', () => {
       toEmployeeProposal({
         pages: pagesOf(page({ ...popFront, fields: { ...popFront.fields, hiredAt } })),
         client: { ...client, employees: [former] },
-        themes,
         today,
       }).people[0]!;
 
@@ -586,7 +650,6 @@ describe('toEmployeeProposal', () => {
         })
       ),
       client,
-      themes,
       today,
     });
 

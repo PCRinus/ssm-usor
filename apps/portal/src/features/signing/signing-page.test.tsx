@@ -60,7 +60,13 @@ const sessionId = '6f0c3e43-0c1b-4f4b-8a1e-0000000005e1';
 type Request = PortalSignatureRequestsResponse['items'][number];
 
 const ownEmployee = { id: employeeId, lastName: 'Pop', firstName: 'Ana' };
-const firstRecord = { ...trainingRecords().items[0]!, employee: ownEmployee };
+const firstRecord = {
+  ...trainingRecords().items[0]!,
+  durationMinutes: 90,
+  material: 'Instrucțiuni proprii pentru utilizarea fierăstrăului circular.',
+  trainer: { name: 'Radu Stan', jobTitle: 'Șef de atelier' },
+  employee: ownEmployee,
+};
 
 function request(id: string, overrides: Partial<Request> = {}): Request {
   return {

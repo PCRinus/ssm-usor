@@ -208,7 +208,8 @@ export const testResultSchema = z.object({
   takenOn: z.iso.date(),
   material: z.string(),
   grade: testGradeSchema,
-  // Null on a portal pass the organization had nobody to propose for, until a member names them.
+  // Null on a portal pass the organization had nobody to propose for, until a member names them,
+  // and on a paper result whose sheet names nobody.
   examiner: z.object({ name: z.string(), jobTitle: z.string() }).nullable(),
   source: testResultSourceSchema,
   attemptId: z.uuid().nullable(),
@@ -226,7 +227,8 @@ export const paperTestResultRequestSchema = z
     // Left out, the test's name and code.
     material: z.string().trim().min(1).max(300).optional(),
     grade: testGradeSchema.default('admis'),
-    examiner: testExaminerSchema,
+    // Left out where the sheet names no examiner (ADR 042).
+    examiner: testExaminerSchema.nullish(),
   })
   .superRefine(testOnItsDomain);
 

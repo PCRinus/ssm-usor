@@ -6,10 +6,17 @@ import { useId, useState } from 'react';
 // Counted rather than measured on the clamped text: two lines hold about this much on a phone.
 const clampedLength = 120;
 
-export function TrainingMaterial({ text }: { text: string }) {
+export function TrainingMaterial({ text }: { text: string | null }) {
   const { t } = useLingui();
   const [expanded, setExpanded] = useState(false);
   const id = useId();
+  if (text === null) {
+    return (
+      <p data-testid="training-material-text" className="text-sm text-muted-foreground">
+        {t`Material necompletat pe fișă`}
+      </p>
+    );
+  }
   const long = text.length > clampedLength || text.includes('\n');
   return (
     <div>

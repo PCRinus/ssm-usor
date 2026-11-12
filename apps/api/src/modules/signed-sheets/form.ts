@@ -11,8 +11,9 @@ import {
   testGradeLabels,
   type TrainingDomain,
   type TrainingPhase,
-  type TrainingSource,
+  transcriptionLineField,
 } from '@ssm-usor/contracts';
+import { unzipSync } from 'fflate';
 
 import { printedDate } from '../documents/context';
 import {
@@ -27,17 +28,36 @@ import {
   type SheetRecord,
   type SheetTestResult,
   type TrainingSheetData,
+  transcribedNote,
+  transcriptionLine,
 } from '../trainings/sheet';
 
 export type SheetTrainingRecord = SheetRecord & {
   id: string;
   employeeId: string;
   domain: TrainingDomain;
-  source: TrainingSource;
 };
 
-export const paperSigned = 'semnat pe hârtie';
+export const signedByHand = 'semnat pe hârtie';
 export const voidedNote = 'anulat';
+
+/**
+ * The template forms a stored sheet can be drawn from, kept with it: `transcribing` carries the
+ * field for the line on transcribed rows and two lines of note in each table row (ADR 042). A
+ * sheet drawn from an earlier template prints its paper rows filled later as it printed its own,
+ * with `signedByHand`.
+ */
+export const sheetForms = { plain: 1, transcribing: 2 } as const;
+
+// The template is the registered one, which a deployment registers apart from the API's code, so
+// the form is read from what was drawn and never assumed from the code.
+export function drawnSheetForm(docx: Uint8Array): number {
+  const xml = unzipSync(docx, { filter: (file) => file.name === 'word/document.xml' })[
+    'word/document.xml'
+  ];
+  const drawn = xml && new TextDecoder().decode(xml).includes(`w:val="${transcriptionLineField}"`);
+  return drawn ? sheetForms.transcribing : sheetForms.plain;
+}
 
 export function rowKindOf(domain: TrainingDomain, phase: TrainingPhase): 'h1' | 'h2' | SheetTable {
   switch (phase) {
@@ -154,6 +174,7 @@ const testBoxes: Record<string, Box> = {
   examiner: { chars: 25, lines: 2 },
 };
 const hiringBoxes: Record<string, Box> = { material: { chars: 57, lines: 7 } };
+const noteBox: Box = { chars: 11, lines: 2 };
 
 function linesAt(text: string, width: number) {
   const lines: string[] = [];
@@ -198,23 +219,39 @@ function boxed(values: Record<string, string>, boxes: Record<string, Box>, rowKe
   );
 }
 
+function noteOf(record: SheetTrainingRecord, byHand: boolean, form: number) {
+  if (record.source === 'paper') {
+    return form >= sheetForms.transcribing ? transcribedNote : signedByHand;
+  }
+  return byHand ? signedByHand : '';
+}
+
 /**
  * `place` is the employee's place of work, which the workplace training prints. `byHand` is true
- * when nobody is asked to sign the record electronically, which the note then says, as it does for
- * a record from paper.
+ * when nobody is asked to sign the record electronically, which the note then says. `form` is the
+ * sheet's (`sheetForms`): on one that transcribes, a record from paper also fills the line on
+ * transcribed rows.
  */
 export function rowValues(
   domain: TrainingDomain,
   rowKey: SheetRowKey,
   record: SheetTrainingRecord,
   place: string,
-  byHand = false
+  {
+    byHand = false,
+    form = sheetForms.transcribing as number,
+  }: { byHand?: boolean; form?: number } = {}
 ): Record<string, string> {
   const { training } = record;
+  const table = tableRowOf(rowKey);
+  const text = noteOf(record, byHand, form);
   const note = {
-    [`${rowKey}_note`]: record.source === 'paper' || byHand ? paperSigned : '',
+    [`${rowKey}_note`]: table && form >= sheetForms.transcribing ? wrapToBox(text, noteBox) : text,
+    ...(record.source === 'paper' && form >= sheetForms.transcribing
+      ? { [transcriptionLineField]: transcriptionLine }
+      : {}),
   };
-  if (tableRowOf(rowKey)) {
+  if (table) {
     return {
       ...boxed(
         {
@@ -232,8 +269,8 @@ export function rowValues(
   const hiring: Record<string, string> = {
     date: printedDate(training.heldOn),
     duration: hoursOf(training.durationMinutes),
-    trainer: training.trainer.name,
-    trainer_job_title: training.trainer.jobTitle,
+    trainer: training.trainer.name ?? '',
+    trainer_job_title: training.trainer.jobTitle ?? '',
     material: materialOf(record),
   };
   if (rowKey === 'h2') {

@@ -24,6 +24,7 @@ import type {
   ProposedSheetPage,
   ProposedSheetPerson,
   ProposedSheetRow,
+  ThemeFillableField,
 } from './employee-proposal';
 import { groupHeldTrainings, type HeldRow } from './held-trainings';
 import { foldText } from './match';
@@ -63,16 +64,19 @@ export interface EmployeePayloadRow {
   terminated_at?: string;
 }
 
-/** A training held, `source` paper, with one record per attendee. */
+/**
+ * A training held, `source` paper, with one record per attendee. What the sheet does not write is
+ * left out (ADR 042).
+ */
 export interface TrainingPayloadRow {
   key: string;
   domain: TrainingDomain;
   phase: TrainingPhase;
   held_on: string;
-  duration_minutes: number;
-  material: string;
-  trainer_name: string;
-  trainer_job_title: string;
+  duration_minutes?: number;
+  material?: string;
+  trainer_name?: string;
+  trainer_job_title?: string;
   // Both or neither.
   verifier_name?: string;
   verifier_job_title?: string;
@@ -86,15 +90,15 @@ export interface TrainingPayloadRow {
   }[];
 }
 
-/** A paper test result, grade `admis`, `source` paper. */
+/** A paper test result, grade `admis`, `source` paper; its examiner both or neither. */
 export interface TestResultPayloadRow {
   employee_key: string;
   domain: TrainingDomain;
   test: KnowledgeTest;
   taken_on: string;
   material: string;
-  examiner_name: string;
-  examiner_job_title: string;
+  examiner_name?: string;
+  examiner_job_title?: string;
 }
 
 /**
@@ -238,14 +242,61 @@ function resolveField(
   };
 }
 
+const sameValue = (a: unknown, b: unknown) =>
+  (typeof a === 'string' ? a.trim() : (a ?? null)) ===
+  (typeof b === 'string' ? b.trim() : (b ?? null));
+
+// A value an older proposal took from the client's themes is no reading of the sheet, so it counts
+// as empty unless the member typed one (ADR 042). The row dialogs saved every field on any edit, so
+// a stored change equal to the themed value is that save, not a value the member typed.
+function reviewedValue(
+  values: RowChange['values'],
+  name: string,
+  proposed: unknown,
+  themed: boolean
+): unknown {
+  if (values && name in values && !(themed && sameValue(values[name], proposed))) {
+    return values[name];
+  }
+  return themed ? null : proposed;
+}
+
 const rowValue = <K extends keyof ProposedSheetRow>(
   row: ProposedSheetRow,
   change: RowChange | undefined,
   name: K
 ) =>
-  (change?.values && name in change.values
-    ? change.values[name]
-    : row[name]) as ProposedSheetRow[K];
+  reviewedValue(
+    change?.values,
+    name,
+    row[name],
+    (row.fromThemes as readonly string[]).includes(name)
+  ) as ProposedSheetRow[K];
+
+/**
+ * The examiner a row's test names, as the member left it: the verifier's box, else the trainer's,
+ * never a trainer an older proposal took from the client's themes.
+ */
+export function rowExaminer(row: ProposedSheetRow, change: RowChange | undefined) {
+  const byVerifier = row.signatures.verifier !== 'no_box' && row.verifierName !== null;
+  const stored = change?.values ?? {};
+  // An examiner is a name and a function together: once the member typed one, the other saved
+  // with it is theirs too, else a function equal to the themed one could never be kept.
+  const typed = (['examinerName', 'examinerJobTitle'] as const).some(
+    (name) => name in stored && !sameValue(stored[name], row.test?.[name] ?? null)
+  );
+  const examiner = (name: 'examinerName' | 'examinerJobTitle', trainer: ThemeFillableField) =>
+    reviewedValue(
+      change?.values,
+      name,
+      row.test?.[name] ?? null,
+      !(typed && name in stored) && !byVerifier && row.fromThemes.includes(trainer)
+    ) as string | null;
+  return {
+    examinerName: examiner('examinerName', 'trainerName'),
+    examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
+  };
+}
 
 const admissionValue = (
   row: ProposedSheetRow,
@@ -573,20 +624,24 @@ export function toEmployeePayload(input: {
       if (!included) {
         if (proposedTest) quality.tests.unticked++;
       } else {
-        const examinerName = (change?.values?.examinerName ?? test.examinerName) as string | null;
-        const examinerJobTitle = (change?.values?.examinerJobTitle ?? test.examinerJobTitle) as
-          string | null;
+        const { examinerName, examinerJobTitle } = rowExaminer(sheetRow, change);
         // A sheet dates its test only by the row it signs, so the row's date as the member left
         // it is the test's.
         const takenOn = filled(heldOn) ? String(heldOn) : null;
         const pastDay = takenOn !== null && isoDate.test(takenOn) && takenOn <= today;
         if (takenOn === null) block(`${path}.test.takenOn`, 'missing');
         else if (!pastDay) block(`${path}.test.takenOn`, 'invalid');
-        if (!filled(examinerName)) block(`${path}.test.examinerName`, 'missing');
-        if (!filled(examinerJobTitle)) block(`${path}.test.examinerJobTitle`, 'missing');
+        // A sheet may name no examiner; one it names has a name and a function.
+        const examinerWhole = filled(examinerName) === filled(examinerJobTitle);
+        if (!examinerWhole) {
+          block(
+            `${path}.test.${filled(examinerName) ? 'examinerJobTitle' : 'examinerName'}`,
+            'missing'
+          );
+        }
         const testKey = `test|${sheetRow.domain}|${test.test}|${takenOn}`;
-        const written = seen.has(testKey);
-        if (pastDay && filled(examinerName) && filled(examinerJobTitle) && !written) {
+        const alreadyWritten = seen.has(testKey);
+        if (pastDay && examinerWhole && !alreadyWritten) {
           seen.add(testKey);
           testResults.push({
             employee_key: person.id,
@@ -594,11 +649,15 @@ export function toEmployeePayload(input: {
             test: test.test,
             taken_on: takenOn,
             material: testResultMaterial(sheetRow.domain, test.test),
-            examiner_name: String(examinerName).trim(),
-            examiner_job_title: String(examinerJobTitle).trim(),
+            ...(filled(examinerName) && filled(examinerJobTitle)
+              ? {
+                  examiner_name: String(examinerName).trim(),
+                  examiner_job_title: String(examinerJobTitle).trim(),
+                }
+              : {}),
           });
         }
-        if (!written) {
+        if (!alreadyWritten) {
           if (change?.test !== undefined && change.test !== proposedTest) quality.tests.changed++;
           else quality.tests.kept++;
         }
@@ -620,13 +679,8 @@ export function toEmployeePayload(input: {
     const trainerJobTitle = value('trainerJobTitle');
     const material = value('material');
     const reason = value('supplementaryReason');
-    const required: [string, unknown][] = [
-      ['heldOn', heldOn],
-      ['durationMinutes', duration],
-      ['trainerName', trainerName],
-      ['trainerJobTitle', trainerJobTitle],
-      ['material', material],
-    ];
+    // A paper training holds what its sheet writes: only its day is needed (ADR 042).
+    const required: [string, unknown][] = [['heldOn', heldOn]];
     if (sheetRow.phase === 'supplementary') required.push(['supplementaryReason', reason]);
     let complete = true;
     for (const [name, each] of required) {
@@ -669,12 +723,12 @@ export function toEmployeePayload(input: {
       domain: sheetRow.domain,
       phase: sheetRow.phase,
       heldOn: String(heldOn),
-      durationMinutes: Number(duration),
-      trainerName: String(trainerName).trim(),
-      trainerJobTitle: String(trainerJobTitle).trim(),
+      durationMinutes: filled(duration) ? Number(duration) : null,
+      trainerName: filled(trainerName) ? String(trainerName).trim() : null,
+      trainerJobTitle: filled(trainerJobTitle) ? String(trainerJobTitle).trim() : null,
       verifierName: hasVerifier ? String(verifierName).trim() : null,
       verifierJobTitle: hasVerifier ? String(verifierJobTitle).trim() : null,
-      material: String(material).trim(),
+      material: filled(material) ? String(material).trim() : null,
       supplementaryReason:
         sheetRow.phase === 'supplementary' ? (reason as SupplementaryTrainingReason) : null,
     });
@@ -705,10 +759,10 @@ export function toEmployeePayload(input: {
       domain: held.domain,
       phase: held.phase,
       held_on: held.heldOn,
-      duration_minutes: held.durationMinutes,
-      material: held.material,
-      trainer_name: held.trainerName,
-      trainer_job_title: held.trainerJobTitle!,
+      duration_minutes: held.durationMinutes ?? undefined,
+      material: held.material ?? undefined,
+      trainer_name: held.trainerName ?? undefined,
+      trainer_job_title: held.trainerJobTitle ?? undefined,
       verifier_name: held.verifierName ?? undefined,
       verifier_job_title: held.verifierJobTitle ?? undefined,
       supplementary_reason: held.supplementaryReason ?? undefined,

@@ -8,6 +8,7 @@
 - Amended 2026-11-11: impersonation is built ahead of the Accounts page, from a list of every organization's members; the database refuses an impersonation without a reason (the agreement promises support access is logged with one) or of an account that is not a member; and the public API has one route of the admin's, `DELETE /me/impersonation`, so the member app's banner can end it.
 - Amended 2026-11-11: during an impersonation the API refuses the admin signing and every email or SMS to another person (`impersonation_refused`), checked by the routes and again at the mail and SMS bindings; he keeps reading, editing, generating, importing and archiving, and the documents he generates print the member, not him.
 - Amended 2026-11-12: the member app's page and the API agree on whom the admin acts as, or the API refuses the request before it reads or writes (`409 identity_changed`), since an impersonation applies to all of the admin's sessions at once; and an expired impersonation is closed at its expiry, without an event.
+- Amended 2026-11-12: an employee import an admin starts while impersonating no longer proposes the member as the trainer of the rows its sheets leave without one; no import proposes any trainer, since it fills nothing the paper sheet does not write ([ADR 042](adr-042-paper-history-as-written.md)). The documents he generates still print the member.
 
 ## Context
 

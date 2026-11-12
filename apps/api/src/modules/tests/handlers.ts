@@ -356,8 +356,8 @@ export const recordPaperTestResult: RouteHandler<
       taken_on: body.takenOn,
       material: body.material ?? testResultMaterial(body.domain, body.test),
       grade: body.grade,
-      examiner_name: body.examiner.name,
-      examiner_job_title: body.examiner.jobTitle,
+      examiner_name: body.examiner?.name ?? null,
+      examiner_job_title: body.examiner?.jobTitle ?? null,
       source: 'paper',
       created_by: c.get('user').id,
     })

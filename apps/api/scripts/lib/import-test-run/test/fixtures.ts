@@ -120,6 +120,7 @@ export function sheetPage(parts: {
     },
     admission: { admittedOn: null, admittedByName: null, admittedByJobTitle: null },
     trainings: parts.trainings ?? [sheetRow({})],
+    handovers: [],
     unreadable: [],
     notes: [],
   };
@@ -151,7 +152,6 @@ export const employeeProposal = (reading: SheetPage): EmployeeImportProposal =>
   toEmployeeProposal({
     pages: [{ id: 'page-1', fileId: photoId, page: null, label: 'Fise/Coman.jpg', reading }],
     client: { jobPositions: [], workplaces: [], employees: [] },
-    themes: () => null,
     today,
   });
 

@@ -34,13 +34,9 @@ import { TrainingSheetReadiness } from '@/features/training-sheets/training-shee
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
+import { TrainerName, TrainingDuration } from './not-on-sheet';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
-import {
-  formatDuration,
-  formatPerson,
-  paperSignedLine,
-  paperTrainingBadge,
-} from './training-format';
+import { formatPerson, paperSignedLine, paperTrainingBadge } from './training-format';
 import { TrainingMaterial } from './training-material';
 import { TrainingStateBadge } from './training-state-badge';
 
@@ -351,7 +347,7 @@ function RecordItem({
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
             <span data-testid="training-record-duration">
-              {formatDuration(training.durationMinutes)}
+              <TrainingDuration minutes={training.durationMinutes} named />
             </span>{' '}
             · {record.occupation}
           </p>
@@ -395,9 +391,11 @@ function RecordItem({
           </div>
         )}
       </div>
-      <TrainingMaterial text={training.material} />
+      <TrainingMaterial text={training.material} named />
       <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-        <RecordFact label="A instruit">{formatPerson(training.trainer)}</RecordFact>
+        <RecordFact label="A instruit">
+          <TrainerName trainer={training.trainer} />
+        </RecordFact>
         {training.verifier && (
           <RecordFact label="A verificat">{formatPerson(training.verifier)}</RecordFact>
         )}
@@ -436,7 +434,10 @@ function RecordItem({
           readOnly={readOnly}
           people={{
             trainee: { name: employeeName, jobTitle: record.occupation },
-            trainer: training.trainer,
+            trainer: {
+              name: training.trainer.name ?? '',
+              jobTitle: training.trainer.jobTitle ?? '',
+            },
             verifier: training.verifier,
             admitter: admission,
           }}

@@ -322,8 +322,9 @@ select throws_ok(
 
 select is(
   public.save_training(
-    'c2c2c2c2-0000-4000-8000-000000000001', 'ssm', 'periodic', '2026-01-10', 60::smallint, 'M', 'T', 'F', 'app',
-    '[{"employee_id": "e2e2e2e2-0000-4000-8000-000000000001", "occupation": "Sudor"}]'
+    'c2c2c2c2-0000-4000-8000-000000000001', 'ssm', 'periodic', '2026-01-10', 'app',
+    '[{"employee_id": "e2e2e2e2-0000-4000-8000-000000000001", "occupation": "Sudor"}]',
+    p_duration_minutes => 60::smallint, p_material => 'M', p_trainer_name => 'T', p_trainer_job_title => 'F'
   ),
   null,
   'saving at a client of another organization saves nothing'
@@ -331,8 +332,9 @@ select is(
 
 select is(
   public.save_training(
-    'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', '2026-01-10', 60::smallint, 'M', 'T', 'F', 'app',
+    'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', '2026-01-10', 'app',
     '[{"employee_id": "e1e1e1e1-0000-4000-8000-000000000004", "occupation": "Sudor"}]',
+    p_duration_minutes => 60::smallint, p_material => 'M', p_trainer_name => 'T', p_trainer_job_title => 'F',
     p_training_id => 'a2a2a2a2-0000-4000-8000-000000000001'
   ),
   null,
@@ -344,8 +346,9 @@ grant all on saved to authenticated;
 
 insert into saved
 select public.save_training(
-  'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', today - 2, 240::smallint, 'Material', 'Ion POP', 'Șef atelier', 'app',
+  'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', today - 2, 'app',
   '[{"employee_id": "e1e1e1e1-0000-4000-8000-000000000004", "occupation": "Sudor"}, {"employee_id": "e1e1e1e1-0000-4000-8000-000000000007", "occupation": "Sudor"}]',
+    p_duration_minutes => 240::smallint, p_material => 'Material', p_trainer_name => 'Ion POP', p_trainer_job_title => 'Șef atelier',
   p_verifier_name => 'Dan MARIN', p_verifier_job_title => 'Inspector SSM',
   p_admitted_on => today - 2, p_admitted_by_name => 'Ion POP', p_admitted_by_job_title => 'Șef atelier'
 ) from day;
@@ -365,8 +368,9 @@ select is(
 
 select is(
   (select public.save_training(
-     'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', today - 1, 120::smallint, 'Altul', 'Ion POP', 'Șef atelier', 'app',
+     'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'periodic', today - 1, 'app',
      '[{"employee_id": "e1e1e1e1-0000-4000-8000-000000000004", "occupation": "Contabil"}, {"employee_id": "e1e1e1e1-0000-4000-8000-000000000002", "occupation": "Contabil"}]',
+    p_duration_minutes => 120::smallint, p_material => 'Altul', p_trainer_name => 'Ion POP', p_trainer_job_title => 'Șef atelier',
      p_training_id => (select id from saved)
    ) from day),
   (select id from saved),

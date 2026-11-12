@@ -11,6 +11,13 @@ export const trainingSourceLabels: Record<TrainingSource, string> = {
 
 export const paperTrainingBadge = 'Transcris de pe fișa pe hârtie';
 
+// What a paper sheet does not write is said in words, never left blank (ADR 042).
+export const notOnSheet = {
+  name: 'nume neînscris pe fișă',
+  material: 'necompletat pe fișă',
+  duration: 'necompletată pe fișă',
+} as const;
+
 // The same slots the API's `recordSlots` gives a training held in the app.
 export function paperSignedLine(record: { verifier: unknown; admission: unknown }) {
   const slots: SignerSlot[] = [

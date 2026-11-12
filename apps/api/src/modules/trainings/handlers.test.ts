@@ -384,6 +384,72 @@ describe('POST /clients/{clientId}/trainings', () => {
     });
   });
 
+  it('records a paper training whose sheet writes no trainer, material or duration', async () => {
+    mockUpstream({
+      trainings: () =>
+        Response.json([
+          {
+            ...trainingRow,
+            phase: 'periodic',
+            source: 'paper',
+            duration_minutes: null,
+            material: null,
+            trainer_name: null,
+            trainer_job_title: null,
+            verifier_name: null,
+            verifier_job_title: null,
+            training_records: [],
+          },
+        ]),
+    });
+    const response = await send('POST', trainingsPath, {
+      ...validBody,
+      phase: 'periodic',
+      durationMinutes: null,
+      material: null,
+      trainer: { name: null, jobTitle: null },
+      verifier: null,
+      admission: null,
+      source: 'paper',
+    });
+    expect(response.status).toBe(201);
+    const { training: saved } = trainingResponseSchema.parse(await response.json());
+    expect(saved).toMatchObject({
+      durationMinutes: null,
+      material: null,
+      trainer: { name: null, jobTitle: null },
+    });
+    const [, init] = calls('/rest/v1/rpc/save_training')[0]!;
+    const body = JSON.parse(String(init?.body));
+    for (const key of [
+      'p_duration_minutes',
+      'p_material',
+      'p_trainer_name',
+      'p_trainer_job_title',
+    ]) {
+      expect(body).not.toHaveProperty(key);
+    }
+  });
+
+  it('refuses a training held in the app without its trainer, material and duration', async () => {
+    mockUpstream({});
+    const response = await send('POST', trainingsPath, {
+      ...validBody,
+      durationMinutes: null,
+      material: null,
+      trainer: { name: null, jobTitle: null },
+    });
+    expect(response.status).toBe(400);
+    const { issues } = apiErrorResponseSchema.parse(await response.json());
+    expect(issues?.map((issue) => issue.path).sort()).toEqual([
+      'durationMinutes',
+      'material',
+      'trainer.jobTitle',
+      'trainer.name',
+    ]);
+    expect(calls('/rest/v1/rpc/save_training')).toHaveLength(0);
+  });
+
   it('refuses a themes revision that is not one of the client themes of the domain', async () => {
     mockUpstream({ revisions: () => Response.json([]) });
     const response = await send('POST', trainingsPath, {

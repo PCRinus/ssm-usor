@@ -100,6 +100,12 @@ const personText = z.string().trim().min(1).max(160);
 
 export const trainingPersonRequestSchema = z.object({ name: personText, jobTitle: personText });
 
+// A paper sheet may not write the trainer's name or function (ADR 042).
+export const trainingTrainerRequestSchema = z.object({
+  name: personText.nullish(),
+  jobTitle: personText.nullish(),
+});
+
 export const trainingAdmissionRequestSchema = z.object({
   admittedOn: z.iso.date(),
   name: personText,
@@ -108,16 +114,17 @@ export const trainingAdmissionRequestSchema = z.object({
 
 /**
  * `admission`, "admis la lucru", is the same for every attendee and belongs to a workplace
- * training only.
+ * training only. A training from paper holds what its sheet gives, so its duration, material and
+ * trainer may be left out; one held in the app names them all (ADR 042).
  */
 export const trainingRequestSchema = z
   .object({
     domain: trainingDomainSchema,
     phase: trainingPhaseSchema,
     heldOn: z.iso.date(),
-    durationMinutes: z.int().min(1).max(600),
-    material: z.string().trim().min(1).max(4000),
-    trainer: trainingPersonRequestSchema,
+    durationMinutes: z.int().min(1).max(600).nullish(),
+    material: z.string().trim().min(1).max(4000).nullish(),
+    trainer: trainingTrainerRequestSchema,
     verifier: trainingPersonRequestSchema.nullish(),
     supplementaryReason: supplementaryTrainingReasonSchema.nullish(),
     source: trainingSourceSchema.default('app'),
@@ -138,6 +145,23 @@ export const trainingRequestSchema = z
       .nullish(),
   })
   .superRefine((body, ctx) => {
+    if (body.source === 'app') {
+      const required: [string[], unknown][] = [
+        [['durationMinutes'], body.durationMinutes],
+        [['material'], body.material],
+        [['trainer', 'name'], body.trainer.name],
+        [['trainer', 'jobTitle'], body.trainer.jobTitle],
+      ];
+      for (const [path, value] of required) {
+        if (value === null || value === undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path,
+            message: 'A training held in the app names its duration, material and trainer.',
+          });
+        }
+      }
+    }
     if (body.phase === 'supplementary' && !body.supplementaryReason) {
       ctx.addIssue({
         code: 'custom',
@@ -186,15 +210,24 @@ export type TrainingRequest = z.infer<typeof trainingRequestSchema>;
 
 const personSchema = z.object({ name: z.string(), jobTitle: z.string() });
 
+// Null where a training from paper has a sheet that does not write it; never on one held in the
+// app (ADR 042).
+export const trainingTrainerSchema = z.object({
+  name: z.string().nullable(),
+  jobTitle: z.string().nullable(),
+});
+
+export type TrainingTrainer = z.infer<typeof trainingTrainerSchema>;
+
 export const trainingSchema = z.object({
   id: z.uuid(),
   clientId: z.uuid(),
   domain: trainingDomainSchema,
   phase: trainingPhaseSchema,
   heldOn: z.iso.date(),
-  durationMinutes: z.int(),
-  material: z.string(),
-  trainer: personSchema,
+  durationMinutes: z.int().nullable(),
+  material: z.string().nullable(),
+  trainer: trainingTrainerSchema,
   verifier: personSchema.nullable(),
   supplementaryReason: supplementaryTrainingReasonSchema.nullable(),
   source: trainingSourceSchema,

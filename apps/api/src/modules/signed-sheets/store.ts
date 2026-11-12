@@ -20,6 +20,8 @@ export type StoredSheet = {
   rowsUsed: number;
   certifiedAt: string | null;
   createdAt: string;
+  /** The template form it was drawn from (`sheetForms`), which rows filled later follow. */
+  form: number;
 };
 
 export type StoredRow = {
@@ -96,7 +98,7 @@ export interface SignedSheetStore {
 }
 
 const sheetColumns =
-  'id, organization_id, client_id, employee_id, domain, sequence, storage_path, digest, version, row_capacity, rows_used, certified_at, created_at';
+  'id, organization_id, client_id, employee_id, domain, sequence, storage_path, digest, version, row_capacity, rows_used, certified_at, created_at, form_version';
 
 const rowColumns =
   'id, signed_sheet_id, row_key, training_record_id, test_result_id, filled_at, voided_at, filled_digest, printed_as_text, void_noted_at';
@@ -120,6 +122,7 @@ type SheetRow = {
   rows_used: number;
   certified_at: string | null;
   created_at: string;
+  form_version: number;
 };
 
 const toSheet = (row: SheetRow): StoredSheet => ({
@@ -136,6 +139,7 @@ const toSheet = (row: SheetRow): StoredSheet => ({
   rowsUsed: row.rows_used,
   certifiedAt: row.certified_at,
   createdAt: row.created_at,
+  form: row.form_version,
 });
 
 type RowRow = {
@@ -358,6 +362,7 @@ export function supabaseSheetStore(db: DataClient): SignedSheetStore {
           digest: sheet.digest,
           row_capacity: sheet.rowCapacity,
           rows_used: sheet.rowsUsed,
+          form_version: sheet.form,
         })
         .select(sheetColumns)
         .single();

@@ -477,6 +477,22 @@ def test_the_ssm_sheet_as_libreoffice_exports_it_collects_two_rows_of_signatures
     assert post('/fill', {'pdf': b64(pdf), 'values': {'h1_date': 'x'}}, 409)['detail'] == 'h1_date'
 
 
+def test_a_transcribed_row_filled_after_the_signatures_keeps_them_valid():
+    pdf = fill(
+        signed_ssm_sheet(),
+        {
+            'p2_date': '03.04.2024',
+            'p2_note': 'transcris;\nsemnat pe hârtie',
+            'transcription_line': 'Rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe '
+            'hârtie. Originalul, cu semnăturile, se păstrează la angajator.',
+        },
+    )
+
+    results = validate(pdf, [authority.pem])
+    assert [r['field'] for r in results] == ['h1_sig_trainee', 'p1_sig_trainee']
+    assert all(r['intact'] and r['modificationsPermitted'] for r in results), results
+
+
 def test_pyhanko_default_policy_still_refuses_the_valid_sheet():
     # When this fails, pyHanko has fixed its in-place appearance check and DIFF_POLICY can go.
     [first, _] = PdfFileReader(BytesIO(signed_ssm_sheet())).embedded_regular_signatures

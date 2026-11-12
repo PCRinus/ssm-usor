@@ -436,10 +436,29 @@ export type RowValues = {
   verifierJobTitle: string | null;
 };
 
+// As `@ssm-usor/import`: a value an older proposal took from the client's themes is no reading
+// of the sheet, so it counts as empty unless the member typed one (ADR 042).
+const sameValue = (a: unknown, b: unknown) =>
+  (typeof a === 'string' ? a.trim() : (a ?? null)) ===
+  (typeof b === 'string' ? b.trim() : (b ?? null));
+
+// The row dialogs saved every field on any edit, so a stored change equal to the themed value is
+// that save, not a value the member typed.
+function reviewedValue(
+  values: Record<string, unknown>,
+  name: string,
+  proposed: unknown,
+  themed: boolean
+) {
+  if (name in values && !(themed && sameValue(values[name], proposed))) return values[name];
+  return themed ? null : proposed;
+}
+
 export function rowValues(changes: Changes, row: SheetRow): RowValues {
-  const values = changes.rows[row.id]?.values ?? {};
+  const values: Record<string, unknown> = changes.rows[row.id]?.values ?? {};
+  const fromThemes: readonly string[] = row.fromThemes;
   const pick = <K extends keyof RowValues>(name: K) =>
-    (name in values ? values[name] : row[name]) as RowValues[K];
+    reviewedValue(values, name, row[name], fromThemes.includes(name)) as RowValues[K];
   return {
     heldOn: pick('heldOn'),
     durationMinutes: pick('durationMinutes'),
@@ -449,6 +468,31 @@ export function rowValues(changes: Changes, row: SheetRow): RowValues {
     supplementaryReason: pick('supplementaryReason'),
     verifierName: pick('verifierName'),
     verifierJobTitle: pick('verifierJobTitle'),
+  };
+}
+
+/**
+ * The examiner a row's test names, as the member left it: the verifier's box, else the trainer's,
+ * never a trainer an older proposal took from the client's themes, as `@ssm-usor/import` reads it.
+ */
+export function examinerValues(changes: Changes, row: SheetRow) {
+  const own: Record<string, unknown> = changes.rows[row.id]?.values ?? {};
+  const byVerifier = row.signatures.verifier !== 'no_box' && row.verifierName !== null;
+  const typed = (['examinerName', 'examinerJobTitle'] as const).some(
+    (name) => name in own && !sameValue(own[name], row.test?.[name] ?? null)
+  );
+  const examiner = (name: 'examinerName' | 'examinerJobTitle', trainer: string) =>
+    reviewedValue(
+      own,
+      name,
+      row.test?.[name] ?? null,
+      !(typed && name in own) &&
+        !byVerifier &&
+        (row.fromThemes as readonly string[]).includes(trainer)
+    ) as string | null;
+  return {
+    examinerName: examiner('examinerName', 'trainerName'),
+    examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
   };
 }
 
@@ -496,12 +540,10 @@ function missingLabel(row: SheetRow, values: RowValues, missing: string[]) {
     : `Completează ${missing.join(', ')} la instruirea ${rowDate(row, values)}`;
 }
 
+// A paper training holds what its sheet writes: its trainer, material and duration may stay
+// empty (ADR 042).
 const rowFieldLabels: Partial<Record<keyof RowValues, string>> = {
   heldOn: 'data',
-  durationMinutes: 'durata',
-  trainerName: 'cine a instruit',
-  trainerJobTitle: 'funcția instructorului',
-  material: 'materialul',
   supplementaryReason: 'motivul',
 };
 
@@ -898,7 +940,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           tag: `Lipsește ${rowFieldLabels[missing[0]!]} la o instruire`,
           tone: 'destructive',
         });
-      } else if (!inMinutesRange(values.durationMinutes)) {
+      } else if (values.durationMinutes !== null && !inMinutesRange(values.durationMinutes)) {
         decisions.push({
           key: `row-${row.id}`,
           anchor: 'trainings',
@@ -918,7 +960,6 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       }
     }
     if (row.test && tested.has(row.id) && testIncluded(changes, row, matched)) {
-      const own = changes.rows[row.id]?.values ?? {};
       const takenOn = values.heldOn;
       // A test on a training row takes the row's date, so the row's own decision answers both.
       if (!dateAsked) {
@@ -940,9 +981,9 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
           });
         }
       }
-      const name = 'examinerName' in own ? own.examinerName : row.test.examinerName;
-      const title = 'examinerJobTitle' in own ? own.examinerJobTitle : row.test.examinerJobTitle;
-      if (!filled(name) || !filled(title)) {
+      const examiner = examinerValues(changes, row);
+      // A sheet may name no examiner; one it names has a name and a function.
+      if (filled(examiner.examinerName) !== filled(examiner.examinerJobTitle)) {
         decisions.push({
           key: `test-${row.id}`,
           anchor: 'trainings',
@@ -954,6 +995,27 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
     }
   }
   return decisions;
+}
+
+const handoverTextLength = 160;
+
+/**
+ * The handovers a new prevention service wrote on the person's pages: the days, each once, oldest
+ * first, and, for a line whose day is not a past one, its text as written, each once.
+ */
+export function handoversOf(context: Pick<ReviewContext, 'proposal' | 'changes'>, person: Person) {
+  const handovers = pagesOf(context, person.id).flatMap((page) => page.handovers ?? []);
+  const texts = handovers.flatMap((handover) => {
+    const text = handover.text.trim().replace(/\s+/g, ' ');
+    if (handover.date || text === '') return [];
+    return [text.length > handoverTextLength ? `${text.slice(0, handoverTextLength - 1)}…` : text];
+  });
+  return {
+    dates: [
+      ...new Set(handovers.flatMap((handover) => (handover.date ? [handover.date] : []))),
+    ].sort(),
+    undated: [...new Set(texts)],
+  };
 }
 
 export function notesOf(context: ReviewContext, person: Person): Note[] {
@@ -976,6 +1038,11 @@ export function notesOf(context: ReviewContext, person: Person): Note[] {
   const placements = new Set(pagesOf(context, person.id).map((page) => page.placement));
   if (placements.has('placed_by_job_title')) add('job_title', 'O pagină pusă după funcție');
   if (placements.has('placed_by_order')) add('order', 'O pagină pusă după ordine');
+  const handovers = handoversOf(context, person);
+  for (const date of handovers.dates) {
+    add(`handover-${date}`, `Preluare consemnată pe fișă: ${formatRoDate(date)}`);
+  }
+  if (handovers.undated.length > 0) add('handover', 'Preluare consemnată pe fișă');
   const former = matched ? formerLeftOn(person) : null;
   if (former !== null) add('leaver', `A plecat din firmă la ${formatRoDate(former)}`);
   else if (resolveField(context, person, 'leftOn').value !== null)
@@ -1295,20 +1362,27 @@ export function trainingsByDomain(
 
 type HeldKeyRow = { domain: string; phase: string } & RowValues;
 
-const heldKey = (row: HeldKeyRow) =>
-  JSON.stringify([
+// As `@ssm-usor/import`'s grouping, which keeps a verifier only when both halves are written.
+const heldKey = (row: HeldKeyRow) => {
+  const verified = filled(row.verifierName) && filled(row.verifierJobTitle);
+  return JSON.stringify([
     row.domain,
     row.phase,
     row.heldOn,
     foldText(row.trainerName ?? ''),
+    foldText(row.trainerJobTitle ?? ''),
+    verified ? foldText(row.verifierName ?? '') : '',
+    verified ? foldText(row.verifierJobTitle ?? '') : '',
     row.durationMinutes,
     foldText(row.material ?? ''),
     row.phase === 'supplementary' ? row.supplementaryReason : null,
   ]);
+};
 
 /**
  * The people a row's training is held with: rows of others the confirm groups with it, as one
- * training held, when domain, phase, date, trainer, duration and material all match.
+ * training held, when domain, phase, date, trainer and their function, verifier, duration and
+ * material all match.
  */
 export function heldWith(context: ReviewContext, personId: string, row: SheetRow) {
   const key = heldKey({ ...row, ...rowValues(context.changes, row) });

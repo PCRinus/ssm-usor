@@ -3,7 +3,7 @@
 
 import { cnpControlDigit } from '@ssm-usor/contracts';
 
-import type { SheetPageInput, TrainingThemes } from '../employee-import';
+import type { SheetPageInput } from '../employee-import';
 import type { ExistingEmployee } from '../employee-match';
 import type { SheetPage, SheetRow } from '../sheet-page';
 
@@ -37,6 +37,7 @@ type PageParts = {
   fields?: Partial<SheetPage['fields']>;
   admission?: Partial<SheetPage['admission']>;
   trainings?: SheetRow[];
+  handovers?: SheetPage['handovers'];
   unreadable?: string[];
   notes?: string[];
 };
@@ -68,6 +69,7 @@ export function page(parts: PageParts): SheetPage {
       ...parts.admission,
     },
     trainings: parts.trainings ?? [],
+    handovers: parts.handovers ?? [],
     unreadable: parts.unreadable ?? [],
     notes: parts.notes ?? [],
   };
@@ -286,16 +288,6 @@ export const popFront = page({
     }),
   ],
 });
-
-export const themes: TrainingThemes = ({ domain, phase }) =>
-  domain === 'ssm' && phase === 'periodic'
-    ? {
-        trainerName: 'Barbu Ionuț',
-        trainerJobTitle: 'Inspector SSM',
-        material: 'Tematica semestrului',
-        durationMinutes: 120,
-      }
-    : null;
 
 export const withControlDigit = (body: string) => `${body}${cnpControlDigit(body)}`;
 

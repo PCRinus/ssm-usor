@@ -20,7 +20,9 @@ import {
   decisionsOf,
   decisionSummary,
   emptyChanges,
+  examinerValues,
   firstToCheck,
+  handoversOf,
   heldWith,
   hiringTestRowIds,
   hubCounts,
@@ -40,7 +42,9 @@ import {
   resolveField,
   type ReviewContext,
   rowIncluded,
+  rowValues,
   type SheetPage,
+  type SheetRow,
   statesOf,
   testIncluded,
   trainingsByDomain,
@@ -251,7 +255,6 @@ describe('what a person still needs', () => {
       'Post de hotărât',
       'CNP cu o cifră necitită',
       'Loc de muncă de ales',
-      'Lipsește cine a instruit la o instruire',
     ]);
   });
 
@@ -382,6 +385,69 @@ describe('what a person still needs', () => {
     );
     expect(tags(context, 'toma')).toEqual(tags(contextOf(), 'toma'));
   });
+
+  it('notes a handover written on the person’s pages, each day once, and follows a moved page', () => {
+    const handover = { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' };
+    const noted = {
+      ...proposal,
+      pages: proposal.pages.map((page) =>
+        page.id === 'p1' || page.id === 'p2'
+          ? { ...page, handovers: [handover, { date: null, text: 'Preluare' }] }
+          : page
+      ),
+    } as unknown as Proposal;
+    const context = { ...contextOf(), proposal: noted };
+
+    expect(handoversOf(context, person('toma'))).toEqual({
+      dates: ['2022-10-03'],
+      undated: ['Preluare'],
+    });
+    expect(notesOf(context, person('toma')).map((note) => note.tag)).toEqual(
+      expect.arrayContaining([
+        'Preluare consemnată pe fișă: 03.10.2022',
+        'Preluare consemnată pe fișă',
+      ])
+    );
+    expect(tags(context, 'toma')).toEqual(tags(contextOf(), 'toma'));
+
+    const moved = withPage(withPage(emptyChanges(), 'p1', 'pop'), 'p2', 'pop');
+    expect(handoversOf({ ...context, changes: moved }, person('toma'))).toEqual({
+      dates: [],
+      undated: [],
+    });
+    expect(handoversOf({ ...context, changes: moved }, person('pop')).dates).toEqual([
+      '2022-10-03',
+    ]);
+  });
+
+  it('shows a handover without a past day by its text, cut short when long', () => {
+    const long = `Preluat de Alfa Prevent SRL ${'conform contractului '.repeat(12)}`;
+    const noted = {
+      ...proposal,
+      pages: proposal.pages.map((page) =>
+        page.id === 'p1'
+          ? {
+              ...page,
+              handovers: [
+                { date: null, text: '  Preluare   Alfa Prevent SRL ' },
+                { date: null, text: 'Preluare Alfa Prevent SRL' },
+                { date: null, text: long },
+              ],
+            }
+          : page
+      ),
+    } as unknown as Proposal;
+    const { dates, undated } = handoversOf({ ...contextOf(), proposal: noted }, person('toma'));
+
+    expect(dates).toEqual([]);
+    expect(undated[0]).toBe('Preluare Alfa Prevent SRL');
+    expect(undated).toHaveLength(2);
+    expect(undated[1]!.length).toBe(160);
+    expect(undated[1]!.endsWith('…')).toBe(true);
+    expect(
+      notesOf({ ...contextOf(), proposal: noted }, person('toma')).map((note) => note.tag)
+    ).toContain('Preluare consemnată pe fișă');
+  });
 });
 
 describe('rows and tests', () => {
@@ -412,6 +478,21 @@ describe('rows and tests', () => {
       values: { trainerName: 'Barbu Ionuț' },
     }));
     expect(heldWith(contextOf(sameDay), 'lazar', row('r6'))).toBe(1);
+  });
+
+  it('keeps apart rows whose trainer’s function or verifier differ', () => {
+    const sameDay = withRow(emptyChanges(), 'r5', () => ({
+      values: { trainerName: 'Barbu Ionuț', trainerJobTitle: 'Administrator' },
+    }));
+    expect(heldWith(contextOf(sameDay), 'lazar', row('r6'))).toBe(0);
+    const verified = withRow(emptyChanges(), 'r5', () => ({
+      values: {
+        trainerName: 'Barbu Ionuț',
+        verifierName: 'Dan Marin',
+        verifierJobTitle: 'Inspector SSM',
+      },
+    }));
+    expect(heldWith(contextOf(verified), 'lazar', row('r6'))).toBe(0);
   });
 });
 
@@ -462,10 +543,7 @@ describe('the people list', () => {
   it('sums up what a person decides on their own pages, not the post decided above', () => {
     const toma = peopleViews(contextOf()).find((view) => view.person.id === 'toma')!;
     expect(toma.decisions.map((decision) => decision.key)).toContain('post');
-    expect(decisionSummary(toma)).toEqual({
-      count: 2,
-      text: 'CNP cu o cifră necitită · Lipsește cine a instruit la o instruire',
-    });
+    expect(decisionSummary(toma)).toEqual({ count: 1, text: 'CNP cu o cifră necitită' });
   });
 
   it('names the values that differ between sheets on one line, each counted', () => {
@@ -581,11 +659,13 @@ describe('the people list', () => {
 
     const unticked = withRow(checked, 'r3', () => ({
       included: true,
-      values: { trainerName: null },
+      values: { heldOn: null },
     }));
     expect(reopened({ ...fixed, changes: unticked }).people.pop?.state).toBeUndefined();
 
-    const given = withPage(checked, 'p2', 'pop');
+    const undatedElsewhere = withRow(checked, 'r5', () => ({ values: { heldOn: null } }));
+    expect(reopened({ ...fixed, changes: undatedElsewhere }).people.pop?.state).toBe('checked');
+    const given = withPage(undatedElsewhere, 'p2', 'pop');
     expect(reopened({ ...fixed, changes: given }).people.pop?.state).toBeUndefined();
 
     const aside = withField(
@@ -745,12 +825,30 @@ describe('the hiring test confirming writes', () => {
   });
 
   it('names a row without a date by its phase', () => {
-    const undated = withRow(emptyChanges(), 'r1', () => ({
-      values: { heldOn: null, material: null },
-    }));
+    const undated = withRow(emptyChanges(), 'r1', () => ({ values: { heldOn: null } }));
     expect(decisionsOf(contextOf(undated), person('toma')).map((each) => each.label)).toContain(
-      'Completează data, materialul la instruirea introductiv-generală'
+      'Completează data instruirii introductiv-generale'
     );
+  });
+
+  it('asks nothing of a row whose sheet writes no trainer, material or duration', () => {
+    const asWritten = withRow(emptyChanges(), 'r2', () => ({
+      values: { trainerName: null, trainerJobTitle: null, material: null, durationMinutes: null },
+    }));
+    expect(
+      decisionsOf(contextOf(asWritten), person('toma')).filter((each) => each.key === 'row-r2')
+    ).toEqual([]);
+  });
+
+  it('asks nothing of a hiring test whose sheet names no examiner, and the function of one named', () => {
+    const unnamed = withRow(emptyChanges(), 'r1', () => ({
+      values: { examinerName: null, examinerJobTitle: null },
+    }));
+    expect(tags(contextOf(unnamed), 'toma')).not.toContain('Lipsește examinatorul unui test');
+    const halfNamed = withRow(emptyChanges(), 'r1', () => ({
+      values: { examinerJobTitle: null },
+    }));
+    expect(tags(contextOf(halfNamed), 'toma')).toContain('Lipsește examinatorul unui test');
   });
 });
 
@@ -1146,5 +1244,72 @@ describe("a person's photos", () => {
       )
     ).toEqual(['elsewhere', 'b']);
     expect(ids(ownedPages(proposalOf(pages), {}, 'ana'))).toEqual(['b', 'a']);
+  });
+});
+
+describe('a value an older reading took from the client’s themes', () => {
+  const themed = sheetRow('t1', {
+    phase: 'introductory_general',
+    trainerName: 'Barbu Ionuț',
+    trainerJobTitle: 'inspector SSM',
+    material: 'Tematica semestrului',
+    durationMinutes: 120,
+    fromThemes: ['trainerName', 'trainerJobTitle', 'material'],
+    flags: ['from_client_themes'],
+    test: {
+      test: 'hiring',
+      takenOn: '2025-02-10',
+      examinerName: 'Barbu Ionuț',
+      examinerJobTitle: 'inspector SSM',
+      verified: true,
+      inApp: false,
+    },
+  }) as unknown as SheetRow;
+
+  it('counts as empty, and as the examiner of the row’s test too', () => {
+    expect(rowValues(emptyChanges(), themed)).toMatchObject({
+      trainerName: null,
+      trainerJobTitle: null,
+      material: null,
+      durationMinutes: 120,
+    });
+    expect(examinerValues(emptyChanges(), themed)).toEqual({
+      examinerName: null,
+      examinerJobTitle: null,
+    });
+  });
+
+  it('unless the member typed one over it', () => {
+    const typed = withRow(emptyChanges(), 't1', () => ({ values: { material: 'Riscuri' } }));
+    expect(rowValues(typed, themed).material).toBe('Riscuri');
+  });
+
+  it('even when a dialog saved it unchanged with a corrected date', () => {
+    const saved = withRow(emptyChanges(), 't1', () => ({
+      values: {
+        heldOn: '2025-02-12',
+        durationMinutes: 120,
+        trainerName: 'Barbu Ionuț',
+        trainerJobTitle: 'inspector SSM',
+        material: 'Tematica semestrului',
+        examinerName: 'Barbu Ionuț',
+        examinerJobTitle: 'inspector SSM',
+      },
+    }));
+    expect(rowValues(saved, themed)).toMatchObject({
+      heldOn: '2025-02-12',
+      trainerName: null,
+      trainerJobTitle: null,
+      material: null,
+      durationMinutes: 120,
+    });
+    expect(examinerValues(saved, themed)).toEqual({ examinerName: null, examinerJobTitle: null });
+    const renamed = withRow(emptyChanges(), 't1', () => ({
+      values: { examinerName: 'Pavel Dan', examinerJobTitle: 'inspector SSM' },
+    }));
+    expect(examinerValues(renamed, themed)).toEqual({
+      examinerName: 'Pavel Dan',
+      examinerJobTitle: 'inspector SSM',
+    });
   });
 });

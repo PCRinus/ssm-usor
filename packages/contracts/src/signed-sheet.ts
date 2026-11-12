@@ -17,6 +17,9 @@ export const testSheetFieldNames = {
 } as const;
 export type SheetSignerSlot = (typeof sheetSignerSlots)[number];
 
+// In no row's locks, so a paper row filled after a signature can still fill it (ADR 042).
+export const transcriptionLineField = 'transcription_line';
+
 /**
  * `h1` the introductory general training, `h2` the workplace training, `adm` its admission
  * block, `p1`… the periodic rows (and on the fire-safety sheet the supplementary ones and the

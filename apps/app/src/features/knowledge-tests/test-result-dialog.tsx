@@ -40,6 +40,7 @@ import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { todayIso } from '@/features/employees/employee-format';
 import { invalidateSignatures } from '@/features/signatures/signature-queries';
+import { notOnSheet } from '@/features/trainings/training-format';
 
 import { invalidateEmployeeTests, testFailure } from './test-format';
 
@@ -50,25 +51,33 @@ export type TestResultTarget =
   | { kind: 'examiner'; result: TestResult }
   | null;
 
-const resultFormSchema = z.object({
-  test: knowledgeTestSchema,
-  takenOn: z
-    .string()
-    .min(1, 'Alege ziua în care a susținut testul.')
-    .refine((value) => value <= todayIso(), 'Ziua testului nu poate fi în viitor.'),
-  examinerName: z
-    .string()
-    .trim()
-    .min(1, 'Scrie numele examinatorului.')
-    .max(160, 'Numele are cel mult 160 de caractere.'),
-  examinerJobTitle: z
-    .string()
-    .trim()
-    .min(1, 'Scrie funcția examinatorului.')
-    .max(160, 'Funcția are cel mult 160 de caractere.'),
-});
+const missingName = 'Scrie numele examinatorului.';
+const missingJobTitle = 'Scrie funcția examinatorului.';
 
-type ResultFormValues = z.infer<typeof resultFormSchema>;
+// A result recorded from paper may name no examiner, as its sheet may not (ADR 042); one named
+// has a name and a function. Naming the examiner of a result asks for both.
+const resultFormSchema = (examinerRequired: boolean) =>
+  z
+    .object({
+      test: knowledgeTestSchema,
+      takenOn: z
+        .string()
+        .min(1, 'Alege ziua în care a susținut testul.')
+        .refine((value) => value <= todayIso(), 'Ziua testului nu poate fi în viitor.'),
+      examinerName: z.string().trim().max(160, 'Numele are cel mult 160 de caractere.'),
+      examinerJobTitle: z.string().trim().max(160, 'Funcția are cel mult 160 de caractere.'),
+    })
+    .superRefine((values, ctx) => {
+      const name = values.examinerName !== '';
+      const jobTitle = values.examinerJobTitle !== '';
+      if (!examinerRequired && name === jobTitle) return;
+      if (!name) ctx.addIssue({ code: 'custom', path: ['examinerName'], message: missingName });
+      if (!jobTitle) {
+        ctx.addIssue({ code: 'custom', path: ['examinerJobTitle'], message: missingJobTitle });
+      }
+    });
+
+type ResultFormValues = z.infer<ReturnType<typeof resultFormSchema>>;
 
 interface Examiner {
   name: string;
@@ -175,8 +184,9 @@ function ResultForm({
   const update = useUpdateTestResult({ request: apiRequest });
   const result = target.kind === 'examiner' ? target.result : null;
   const examiner = result?.examiner ?? proposed;
+  const fromPaper = target.kind === 'paper';
   const form = useForm<ResultFormValues>({
-    resolver: zodResolver(resultFormSchema),
+    resolver: zodResolver(resultFormSchema(!fromPaper)),
     defaultValues: {
       test: result?.test ?? (target.kind === 'paper' ? target.tests[0] : 'hiring'),
       takenOn: result?.takenOn ?? todayIso(),
@@ -192,6 +202,7 @@ function ResultForm({
 
   const onSubmit = form.handleSubmit(async (values) => {
     const examinerValue = { name: values.examinerName, jobTitle: values.examinerJobTitle };
+    const named = values.examinerName !== '';
     try {
       if (result) {
         await update.mutateAsync({
@@ -209,7 +220,7 @@ function ResultForm({
             test: values.test,
             takenOn: values.takenOn,
             grade: 'admis',
-            examiner: examinerValue,
+            examiner: named ? examinerValue : null,
           },
         });
       }
@@ -310,7 +321,7 @@ function ResultForm({
             <Field
               id="test-result-examiner-name"
               label="Examinatorul"
-              mark="required"
+              mark={fromPaper ? 'optional' : 'required'}
               help="angajati.examinator"
               error={errors.examinerName}
             >
@@ -318,6 +329,7 @@ function ResultForm({
                 id="test-result-examiner-name"
                 data-testid="test-result-examiner-name"
                 autoComplete="off"
+                placeholder={fromPaper ? notOnSheet.name : undefined}
                 disabled={busy}
                 aria-invalid={Boolean(errors.examinerName)}
                 aria-describedby={
@@ -329,7 +341,7 @@ function ResultForm({
             <Field
               id="test-result-examiner-job-title"
               label="Funcția"
-              mark="required"
+              mark={fromPaper ? 'optional' : 'required'}
               help="angajati.examinator"
               error={errors.examinerJobTitle}
             >

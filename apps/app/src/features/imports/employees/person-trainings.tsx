@@ -25,6 +25,8 @@ import { type FormEvent, type MouseEvent, type ReactNode, useState } from 'react
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { roCount } from '@/features/employees/employee-format';
+import { notOnSheet } from '@/features/trainings/training-format';
+import { formatRoDate } from '@/lib/dates';
 
 import { Includable } from '../include-switch';
 import { Fact, Facts, SectionHeader, Tag } from '../review-parts';
@@ -32,6 +34,8 @@ import {
   type Changes,
   type Decision,
   type DomainTrainings,
+  examinerValues,
+  handoversOf,
   heldWith,
   isExisting,
   pagesOf,
@@ -62,14 +66,25 @@ const monthYear = new Intl.DateTimeFormat('ro-RO', {
   timeZone: 'UTC',
 });
 
-const trainerText = (values: RowValues) =>
-  [values.trainerName, values.trainerJobTitle].filter(Boolean).join(', ');
+const notWritten = (words: string) => <span className="text-muted-foreground">{words}</span>;
+
+function TrainerText({ values }: { values: RowValues }) {
+  const jobTitle = values.trainerJobTitle ? `, ${values.trainerJobTitle}` : '';
+  if (!values.trainerName) {
+    return (
+      <span>
+        {notWritten(notOnSheet.name)}
+        {jobTitle}
+      </span>
+    );
+  }
+  return <span>{`${values.trainerName}${jobTitle}`}</span>;
+}
 
 function RowTags({ row, included }: { row: SheetRow; included: boolean }) {
   return (
     <>
       {row.flags.includes('month_only') && <Tag tone="muted">Doar luna pe fișă</Tag>}
-      {row.fromThemes.length > 0 && <Tag tone="muted">Din tematica clientului</Tag>}
       {row.flags.includes('unsigned') && !included && <Tag tone="warning">Nesemnat pe fișă</Tag>}
       {row.flags.includes('signature_unclear') && (
         <Tag tone="warning">Semnătura nu se vede clar</Tag>
@@ -137,9 +152,7 @@ function TrainingRow({
       {label}
     </Tag>
   );
-  const trainer = trainerText(values);
-  const gap =
-    values.heldOn === null || values.durationMinutes === null || !trainer || !values.material;
+  const gap = values.heldOn === null;
   return (
     <li
       id={`row-${row.id}`}
@@ -185,14 +198,14 @@ function TrainingRow({
                   {date ?? missing('Data nu se citește')}
                 </span>
                 <span className="flex min-h-6 items-center tabular-nums lg:col-start-3">
-                  {durationLabel(values.durationMinutes) ?? missing('Durata nu se citește')}
+                  {durationLabel(values.durationMinutes) ?? notWritten(notOnSheet.duration)}
                 </span>
               </span>
               {row.phase !== 'periodic' && (
                 <span className="lg:hidden">{trainingPhaseLabels[row.phase]}</span>
               )}
               <span className="flex min-h-6 items-center lg:col-start-4">
-                {trainer || missing('Instructorul nu se citește')}
+                <TrainerText values={values} />
               </span>
               <span className="grid min-w-0 gap-1 lg:col-start-5">
                 <span className="flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1">
@@ -200,7 +213,7 @@ function TrainingRow({
                     {row.phase === 'supplementary' && values.supplementaryReason
                       ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
                       : ''}
-                    {values.material ?? missing('Materialul lipsește')}
+                    {values.material ?? notWritten(notOnSheet.material)}
                   </span>
                   {row.flags.includes('unusual_duration') && included && (
                     <Tag tone="warning">Verifică pe fotografie</Tag>
@@ -268,12 +281,7 @@ function TestLine({
   const included = testIncluded(context.changes, row, matched);
   const inApp = testInApp(row, matched);
   const heldOn = rowValues(context.changes, row).heldOn;
-  const values = context.changes.rows[row.id]?.values ?? {};
-  const examinerName = ('examinerName' in values ? values.examinerName : test.examinerName) as
-    string | null;
-  const examinerTitle = (
-    'examinerJobTitle' in values ? values.examinerJobTitle : test.examinerJobTitle
-  ) as string | null;
+  const { examinerName, examinerJobTitle: examinerTitle } = examinerValues(context.changes, row);
   const name = `Testul la angajare ${label}`;
   const take = (next: boolean) =>
     onChange((current) => withRow(current, row.id, (change) => ({ ...change, test: next })));
@@ -322,10 +330,10 @@ function TestLine({
                 <span className="text-muted-foreground">Testul e deja promovat în aplicație.</span>
               ) : test.verified ? (
                 <span className="text-muted-foreground">
-                  Examinator:{' '}
-                  {[examinerName, examinerTitle].filter(Boolean).join(', ') || 'nu se citește'}.
-                  Semnătura e în rubrica <span className="font-semibold">Verificat</span> a
-                  instruirii {trainingPhaseLabels[row.phase].toLowerCase()}
+                  Examinator: {examinerName ?? notOnSheet.name}
+                  {examinerTitle ? `, ${examinerTitle}` : ''}. Semnătura e în rubrica{' '}
+                  <span className="font-semibold">Verificat</span> a instruirii{' '}
+                  {trainingPhaseLabels[row.phase].toLowerCase()}
                   {heldOn ? ` din ${dateLabel(heldOn)}` : ''}.
                 </span>
               ) : (
@@ -689,8 +697,22 @@ export function PersonTrainings({
   const [editingTest, setEditingTest] = useState<SheetRow | null>(null);
   const pages = pagesOf(context, person.id);
   const domains = trainingsByDomain(context, person.id);
+  const handovers = handoversOf(context, person);
   return (
     <div className="grid scroll-mt-24 gap-5" id="trainings">
+      {handovers.dates.length + handovers.undated.length > 0 && (
+        <div className="grid gap-1 text-sm" data-testid="person-handovers">
+          {handovers.dates.map((date) => (
+            <p key={date}>
+              Pe fișă e consemnată o preluare la {formatRoDate(date)}. Instruirile dinainte au fost
+              făcute sub alt serviciu de prevenire.
+            </p>
+          ))}
+          {handovers.undated.map((text) => (
+            <p key={text}>Pe fișă e consemnată o preluare: „{text}”.</p>
+          ))}
+        </div>
+      )}
       {domains.map((domain) => (
         <DomainSection
           key={domain.domain}
@@ -750,10 +772,10 @@ function TestDialog({
   onClose: () => void;
   onSave: (values: Record<'heldOn' | 'examinerName' | 'examinerJobTitle', string | null>) => void;
 }) {
-  const own = context.changes.rows[row.id]?.values ?? {};
-  const initialName = 'examinerName' in own ? own.examinerName : (row.test?.examinerName ?? null);
-  const initialTitle =
-    'examinerJobTitle' in own ? own.examinerJobTitle : (row.test?.examinerJobTitle ?? null);
+  const { examinerName: initialName, examinerJobTitle: initialTitle } = examinerValues(
+    context.changes,
+    row
+  );
   const [heldOn, setHeldOn] = useState(rowValues(context.changes, row).heldOn ?? '');
   const [examinerName, setExaminerName] = useState(String(initialName ?? ''));
   const [examinerTitle, setExaminerTitle] = useState(String(initialTitle ?? ''));
@@ -784,15 +806,16 @@ function TestDialog({
             <Field id="test-taken-on" label="Data" mark="required" className="sm:col-span-2">
               <DatePicker id="test-taken-on" value={heldOn} onChange={setHeldOn} />
             </Field>
-            <Field id="test-examiner" label="Examinator" mark="required">
+            <Field id="test-examiner" label="Examinator" mark="optional">
               <Input
                 id="test-examiner"
                 value={examinerName}
+                placeholder={notOnSheet.name}
                 maxLength={160}
                 onChange={(event) => setExaminerName(event.target.value)}
               />
             </Field>
-            <Field id="test-examiner-title" label="Funcția examinatorului" mark="required">
+            <Field id="test-examiner-title" label="Funcția examinatorului" mark="optional">
               <Input
                 id="test-examiner-title"
                 value={examinerTitle}
@@ -837,8 +860,7 @@ function AfterImport({
     const last = periodic.at(-1) ?? null;
     const test = domain.hiring.test;
     const tested = test && testIncluded(context.changes, test.row, matched);
-    const own = test ? (context.changes.rows[test.row.id]?.values ?? {}) : {};
-    const examiner = 'examinerName' in own ? own.examinerName : test?.row.test?.examinerName;
+    const examiner = test ? examinerValues(context.changes, test.row).examinerName : null;
     const takenOn = test ? rowValues(context.changes, test.row).heldOn : null;
     const testText =
       test && testInApp(test.row, matched)
@@ -973,7 +995,7 @@ function RowDialog({
             <Field
               id="row-duration"
               label="Durata, în minute"
-              mark="required"
+              mark="optional"
               error={
                 durationInvalid
                   ? { type: 'range', message: 'Scrie un număr de minute între 1 și 600.' }
@@ -984,18 +1006,20 @@ function RowDialog({
                 id="row-duration"
                 inputMode="numeric"
                 value={duration}
+                placeholder={notOnSheet.duration}
                 onChange={(event) => setDuration(event.target.value)}
               />
             </Field>
-            <Field id="row-trainer" label="Instruit de" mark="required">
+            <Field id="row-trainer" label="Instruit de" mark="optional">
               <Input
                 id="row-trainer"
                 value={trainerName}
+                placeholder={notOnSheet.name}
                 maxLength={160}
                 onChange={(event) => setTrainerName(event.target.value)}
               />
             </Field>
-            <Field id="row-trainer-title" label="Funcția instructorului" mark="required">
+            <Field id="row-trainer-title" label="Funcția instructorului" mark="optional">
               <Input
                 id="row-trainer-title"
                 value={trainerJobTitle}
@@ -1019,10 +1043,11 @@ function RowDialog({
                 </NativeSelect>
               </Field>
             )}
-            <Field id="row-material" label="Materialul" mark="required" className="sm:col-span-2">
+            <Field id="row-material" label="Materialul" mark="optional" className="sm:col-span-2">
               <Textarea
                 id="row-material"
                 value={material}
+                placeholder={notOnSheet.material}
                 rows={3}
                 onChange={(event) => setMaterial(event.target.value)}
               />

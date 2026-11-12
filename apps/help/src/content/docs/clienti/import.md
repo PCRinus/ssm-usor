@@ -55,6 +55,7 @@ topics:
   - id: import.problema
     heading: O problemă cu importul
 sources:
+  - supabase/migrations/20261112160000_paper_trainings_as_written.sql
   - docs/architecture/adr-030-import-from-documents.md
   - docs/architecture/adr-041-su-import-questions-and-suggestions.md
   - packages/import/src/means-count.ts
@@ -65,6 +66,7 @@ sources:
   - docs/architecture/adr-037-import-quality-and-alerts.md
   - apps/app/src/features/imports/report-import-button.tsx
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
+  - docs/architecture/adr-042-paper-history-as-written.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - packages/contracts/src/imports.ts
   - packages/contracts/src/billing.ts
@@ -321,7 +323,7 @@ O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrive
 
 **Posturi de lucru** și **Locuri de muncă** arată funcțiile și locurile scrise pe fișe care nu se potrivesc exact cu ale clientului, fiecare cu persoanele care o au. Ce hotărăști acolo se aplică tuturor celor care au același text pe fișă, așa că nu se mai cere la fiecare persoană. Dacă clientul nu are încă niciun post, secțiunea îți spune asta, iar **Adaugă postul** îl creează pe cel scris pe fișe.
 
-În **Persoane**, fiecare rând arată postul, data angajării, câte instruiri și câte fotografii are persoana și, alături, ce are de hotărât pe fișele ei, de exemplu „2 de hotărât: Domiciliul și funcția diferă între fișe · Lipsește data la o instruire”. Semnalările care nu opresc nimic, ca „O pagină pusă după ordine”, apar dedesubt. Un clic pe rând deschide pagina persoanei. Persoanele sunt grupate așa:
+În **Persoane**, fiecare rând arată postul, data angajării, câte instruiri și câte fotografii are persoana și, alături, ce are de hotărât pe fișele ei, de exemplu „2 de hotărât: Domiciliul și funcția diferă între fișe · Lipsește data la o instruire”. Semnalările care nu opresc nimic, ca „O pagină pusă după ordine”, apar dedesubt. Printre ele, „Preluare consemnată pe fișă: 03.10.2022” arată că pe una dintre fișe e scrisă de mână ziua în care un nou serviciu de prevenire a preluat clientul; pe pagina persoanei o vezi deasupra instruirilor, cu precizarea că instruirile dinainte au fost făcute sub alt serviciu de prevenire. Dacă ziua preluării nu se citește întreagă sau e în viitor, nota e doar „Preluare consemnată pe fișă”, iar pe pagina persoanei vezi rândul așa cum e scris pe fișă. Un clic pe rând deschide pagina persoanei. Persoanele sunt grupate așa:
 
 - **Cu ceva de hotărât**: au pe fișele lor ceva de ales sau de completat;
 - **Așteaptă doar postul**: nu au nimic de hotărât pe fișe, doar postul sau locul de muncă hotărât mai sus;
@@ -397,12 +399,11 @@ Când persoana se potrivește cu un fost lucrător al clientului, vezi asta pe p
 
 ### Rândurile de instruire
 
-Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu un clic pe el sau cu creionul lui ori îl scoți oprind comutatorul din dreapta lui. Un rând propus de import se strânge atunci pe loc la felul și data instruirii, cu „Nu e inclusă”; unul propus oprit, de exemplu nesemnat, rămâne deschis, cu motivul. Îl pornești din nou oricând. Testul la angajare și testul anual au și ele comutatorul lor.
+Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul, așa cum le scrie fișa. Ce nu e scris pe fișă rămâne necompletat și nu se ia de nicăieri altundeva: tabelul instruirilor periodice al fișei nu are o rubrică pentru numele instructorului, iar o instruire de acum câțiva ani a fost adesea ținută de alt serviciu de prevenire decât cel de azi. În locul valorii lipsă vezi „nume neînscris pe fișă”, „necompletat pe fișă” sau „necompletată pe fișă”. Dacă știi valoarea, o scrii cu creionul rândului; altfel instruirea se preia așa, fără să oprească nimic. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu un clic pe el sau cu creionul lui ori îl scoți oprind comutatorul din dreapta lui. Un rând propus de import se strânge atunci pe loc la felul și data instruirii, cu „Nu e inclusă”; unul propus oprit, de exemplu nesemnat, rămâne deschis, cu motivul. Îl pornești din nou oricând. Testul la angajare și testul anual au și ele comutatorul lor.
 
 Unele rânduri poartă o etichetă:
 
 - **Doar luna pe fișă**: fișa scrie doar luna și anul; ziua devine prima zi a lunii;
-- **Din tematica clientului**: instructorul, funcția lui sau materialul lipseau de pe fișă și au fost luate din tematica și instructorul clientului;
 - **Nesemnat pe fișă**: rândul e completat, dar rubrica de semnătură e goală; e propus oprit și se preia doar dacă îl pornești;
 - **Semnătura nu se vede clar**: verifică pe fotografie.
 
@@ -415,17 +416,17 @@ O durată scrisă în ore, de exemplu „8 ore” sau „1h30”, e citită în 
 - o instruire SU suplimentară mai scurtă de 15 minute;
 - o dată dinaintea angajării.
 
-Se preiau așa dacă nu le schimbi. O instruire cu data în viitor sau fără o valoare obligatorie trebuie corectată.
+Se preiau așa dacă nu le schimbi. O instruire cu data în viitor, fără dată sau, la cea suplimentară, fără motiv trebuie corectată.
 
-Testul anual SU consemnat în tabelul instruirilor periodice devine un rezultat de test. OMAI 712/2005 cere atât instruirea periodică (art. 21), cât și, anual, o verificare pe bază de teste, consemnată în fișa individuală (art. 30). Un rând care consemnează doar testul devine numai rezultatul testului. Un rând în care testul e scris împreună cu instruirea periodică din aceeași zi, de exemplu cu materialul predat urmat de „Testare”, devine amândouă: instruirea periodică, printre celelalte rânduri, și testul anual, sub ele, fiecare cu comutatorul lui. Dacă aplicația are deja instruirea din acea zi, rândul ei nu mai apare, dar testul scris pe el ți se propune în continuare. Ziua rândului e și a testului, așa că o corectezi o singură dată. Dacă testului nu i s-a citit ziua sau examinatorul, îl ai de completat: alege creionul testului anual.
+Testul anual SU consemnat în tabelul instruirilor periodice devine un rezultat de test. OMAI 712/2005 cere atât instruirea periodică (art. 21), cât și, anual, o verificare pe bază de teste, consemnată în fișa individuală (art. 30). Un rând care consemnează doar testul devine numai rezultatul testului. Un rând în care testul e scris împreună cu instruirea periodică din aceeași zi, de exemplu cu materialul predat urmat de „Testare”, devine amândouă: instruirea periodică, printre celelalte rânduri, și testul anual, sub ele, fiecare cu comutatorul lui. Dacă aplicația are deja instruirea din acea zi, rândul ei nu mai apare, dar testul scris pe el ți se propune în continuare. Ziua rândului e și a testului, așa că o corectezi o singură dată. Dacă testului nu i s-a citit ziua, o ai de completat: alege creionul testului anual. Un test fără examinator scris pe fișă se preia fără examinator, cu „nume neînscris pe fișă”; dacă fișa scrie doar numele sau doar funcția examinatorului, completezi și cealaltă valoare.
 
-**După import** îți arată cum va arăta instruirea lucrătorului în aplicație cu alegerile de acum: starea, ultima instruire periodică și testul la angajare. Rândurile mai multor persoane cu același domeniu, același fel, aceeași zi, același instructor, aceeași durată și același material devin o singură instruire în **Instruiri ținute**, cu toți participanții ei. Altfel devin instruiri separate în aceeași zi.
+**După import** îți arată cum va arăta instruirea lucrătorului în aplicație cu alegerile de acum: starea, ultima instruire periodică și testul la angajare. Rândurile mai multor persoane cu același domeniu, același fel, aceeași zi, același instructor cu aceeași funcție, același verificator, aceeași durată și același material devin o singură instruire în **Instruiri ținute**, cu toți participanții ei. Altfel devin instruiri separate în aceeași zi.
 
 ### Testul la angajare verificat pe fișă
 
 Instruirea la angajare se încheie cu testul. În SSM, rezultatul se consemnează în fișă (HG 1425/2006, art. 89 alin. (1) și (2)); în SU, cei instruiți sunt verificați pe bază de teste la sfârșitul instructajului introductiv general și înainte de admiterea definitivă la lucru (OMAI 712/2005, art. 14 și 20). Pe fișă, cel care a verificat cunoștințele semnează în rubrica „Verificat”. Când semnătura lui se vede, importul înregistrează testul la angajare ca promovat pe hârtie, cu el ca examinator: testul SSM din blocul fișei SSM, testul SU din blocul fișei SU. Testul ia ziua rândului semnat, așa cum o lași după corecturi, și urmează paginile când le muți de la o persoană la alta.
 
-Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Dacă semnătura e pe original, pornește comutatorul de la **Testul la angajare: verificat pe fișă** și completează examinatorul, dacă nu s-a citit. Altfel, lucrătorul ajunge cu testarea în starea **Neverificat pe fișă** (vezi [Starea testării](/clienti/angajati/#starea-testării)), iar rezultatul îl poți înregistra și mai târziu, pe pagina lui.
+Când semnătura nu se vede, vezi „Testul la angajare nu a putut fi verificat pe fișă: semnătura nu se vede clar sau lipsește.” Dacă semnătura e pe original, pornește comutatorul de la **Testul la angajare: verificat pe fișă** și, dacă îl știi, scrie examinatorul care nu s-a citit. Altfel, lucrătorul ajunge cu testarea în starea **Neverificat pe fișă** (vezi [Starea testării](/clienti/angajati/#starea-testării)), iar rezultatul îl poți înregistra și mai târziu, pe pagina lui.
 
 ## Salvarea și cele 14 zile
 
@@ -445,7 +446,7 @@ Lucrătorii apar în lista clientului, cu instruirile, testele și starea lor ca
 
 Fiecare lucrător are pe tabul **Documente** un folder „Fișe importate pe …” cu fotografiile fișelor lui. Dintr-un PDF scanat cu fișele mai multor persoane, fiecare lucrător primește doar paginile lui, ca imagini, iar PDF-ul întreg rămâne o singură dată la fișierele clientului, în **Alte documente**.
 
-Instruirile importate poartă eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …”, cu rubricile semnate pe fișă. Pentru ele nu se cere nicio semnătură, nici în aplicație, nici în portal, iar pe fișa individuală din aplicație apar cu mențiunea „semnat pe hârtie”. Instruirile ținute de acum înainte se semnează ca de obicei.
+Instruirile importate poartă eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …”, cu rubricile semnate pe fișă. Pentru ele nu se cere nicio semnătură, nici în aplicație, nici în portal, iar pe fișa individuală din aplicație apar cu mențiunea „transcris; semnat pe hârtie”. Sub titlul fișei scrie atunci că rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie și că originalul, cu semnăturile, se păstrează la angajator. Instruirile ținute de acum înainte se semnează ca de obicei.
 
 ### Originalele rămân la client
 

@@ -2312,8 +2312,10 @@ export const TrainingListResponseItemsItemPhase = {
 } as const;
 
 export type TrainingListResponseItemsItemTrainer = {
-  name: string;
-  jobTitle: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  jobTitle: string | null;
 };
 
 /**
@@ -2361,8 +2363,10 @@ export type TrainingListResponseItemsItem = {
   domain: TrainingListResponseItemsItemDomain;
   phase: TrainingListResponseItemsItemPhase;
   heldOn: string;
-  durationMinutes: number;
-  material: string;
+  /** @nullable */
+  durationMinutes: number | null;
+  /** @nullable */
+  material: string | null;
   trainer: TrainingListResponseItemsItemTrainer;
   /** @nullable */
   verifier: TrainingListResponseItemsItemVerifier;
@@ -2448,8 +2452,10 @@ export const TrainingResponseTrainingPhase = {
 } as const;
 
 export type TrainingResponseTrainingTrainer = {
-  name: string;
-  jobTitle: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  jobTitle: string | null;
 };
 
 /**
@@ -2523,8 +2529,10 @@ export type TrainingResponseTraining = {
   domain: TrainingResponseTrainingDomain;
   phase: TrainingResponseTrainingPhase;
   heldOn: string;
-  durationMinutes: number;
-  material: string;
+  /** @nullable */
+  durationMinutes: number | null;
+  /** @nullable */
+  material: string | null;
   trainer: TrainingResponseTrainingTrainer;
   /** @nullable */
   verifier: TrainingResponseTrainingVerifier;
@@ -2569,13 +2577,15 @@ export type TrainingRequestTrainer = {
   /**
    * @minLength 1
    * @maxLength 160
+   * @nullable
    */
-  name: string;
+  name?: string | null;
   /**
    * @minLength 1
    * @maxLength 160
+   * @nullable
    */
-  jobTitle: string;
+  jobTitle?: string | null;
 };
 
 /**
@@ -2655,13 +2665,15 @@ export interface TrainingRequest {
   /**
    * @minimum 1
    * @maximum 600
+   * @nullable
    */
-  durationMinutes: number;
+  durationMinutes?: number | null;
   /**
    * @minLength 1
    * @maxLength 4000
+   * @nullable
    */
-  material: string;
+  material?: string | null;
   trainer: TrainingRequestTrainer;
   /** @nullable */
   verifier?: TrainingRequestVerifier;
@@ -2715,8 +2727,10 @@ export const EmployeeTrainingRecordListResponseItemsItemTrainingPhase = {
 } as const;
 
 export type EmployeeTrainingRecordListResponseItemsItemTrainingTrainer = {
-  name: string;
-  jobTitle: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  jobTitle: string | null;
 };
 
 /**
@@ -2758,8 +2772,10 @@ export type EmployeeTrainingRecordListResponseItemsItemTraining = {
   domain: EmployeeTrainingRecordListResponseItemsItemTrainingDomain;
   phase: EmployeeTrainingRecordListResponseItemsItemTrainingPhase;
   heldOn: string;
-  durationMinutes: number;
-  material: string;
+  /** @nullable */
+  durationMinutes: number | null;
+  /** @nullable */
+  material: string | null;
   trainer: EmployeeTrainingRecordListResponseItemsItemTrainingTrainer;
   /** @nullable */
   verifier: EmployeeTrainingRecordListResponseItemsItemTrainingVerifier;
@@ -3511,6 +3527,9 @@ export const PaperTestResultRequestGrade = {
   admis: 'admis',
 } as const;
 
+/**
+ * @nullable
+ */
 export type PaperTestResultRequestExaminer = {
   /**
    * @minLength 1
@@ -3522,7 +3541,7 @@ export type PaperTestResultRequestExaminer = {
    * @maxLength 160
    */
   jobTitle: string;
-};
+} | null;
 
 export interface PaperTestResultRequest {
   domain: PaperTestResultRequestDomain;
@@ -3534,7 +3553,8 @@ export interface PaperTestResultRequest {
    */
   material?: string;
   grade?: PaperTestResultRequestGrade;
-  examiner: PaperTestResultRequestExaminer;
+  /** @nullable */
+  examiner?: PaperTestResultRequestExaminer;
 }
 
 export type UpdateTestResultRequestExaminer = {
@@ -9124,6 +9144,12 @@ export type EmployeeImportReviewProposalPagesItemRowsItem = {
   proposedIncluded: boolean;
 };
 
+export type EmployeeImportReviewProposalPagesItemHandoversItem = {
+  /** @nullable */
+  date: string | null;
+  text: string;
+};
+
 export type EmployeeImportReviewProposalPagesItem = {
   /** @minLength 1 */
   id: string;
@@ -9141,6 +9167,7 @@ export type EmployeeImportReviewProposalPagesItem = {
   personId: string | null;
   placement: EmployeeImportReviewProposalPagesItemPlacement;
   rows: EmployeeImportReviewProposalPagesItemRowsItem[];
+  handovers?: EmployeeImportReviewProposalPagesItemHandoversItem[];
   unreadable: string[];
   notes: string[];
 };
@@ -19763,7 +19790,7 @@ export const getCreateTrainingUrl = (clientId: string) => {
 };
 
 /**
- * Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, "admis la lucru", is given to every attendee and only on a workplace training.
+ * Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, "admis la lucru", is given to every attendee and only on a workplace training. A training held in the app (`source` `app`) names its duration, material and trainer; one typed from paper may leave out any of them its sheet does not write, and the reads then answer them null.
  * @summary Record a training held with its attendees
  */
 export const createTraining = async (
@@ -21767,7 +21794,7 @@ export const getRecordPaperTestResultUrl = (clientId: string, employeeId: string
 };
 
 /**
- * A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.
+ * A test filled in on paper and passed: the day, the examiner, left out where the sheet names none, and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.
  * @summary Record a pass of the printed test
  */
 export const recordPaperTestResult = async (

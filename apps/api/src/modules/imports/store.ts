@@ -4,7 +4,6 @@ import type {
   ExistingClient,
   LibraryModule,
   ProviderIdentity,
-  TrainingThemes,
   Usage,
 } from '@ssm-usor/import';
 
@@ -13,7 +12,7 @@ import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import { creditsStore } from '../credits/store';
 import { importCharges } from '../credits/usage';
-import { clientTrainingThemes, employeeImportClient, importSpecialist } from './employees';
+import { employeeImportClient } from './employees';
 import { type ClientSheets, clientSheetsOf, type RiskLibrary, riskLibraryOf } from './risk-sheets';
 
 type Tables = Database['public']['Tables'];
@@ -123,7 +122,6 @@ export interface ImportStore {
   provider(organizationId: string): Promise<ProviderIdentity>;
   client(clientId: string): Promise<ExistingClient | null>;
   employeeImportClient(clientId: string): Promise<EmployeeImportClient>;
-  trainingThemes(row: ImportRow, today: string): Promise<TrainingThemes>;
   keepPageImage(
     fileId: string,
     page: number,
@@ -359,14 +357,6 @@ export function importStore(admin: AdminClient): ImportStore {
     },
 
     employeeImportClient: (clientId) => employeeImportClient(admin, clientId),
-
-    trainingThemes: async (row, today) =>
-      clientTrainingThemes(admin, {
-        clientId: row.client_id!,
-        organizationId: row.organization_id,
-        specialistUserId: await importSpecialist(admin, row),
-        today,
-      }),
 
     async keepPageImage(fileId, page, image) {
       const { error } = await admin

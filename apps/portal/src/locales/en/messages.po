@@ -634,6 +634,10 @@ msgstr "Your usual way between home and work. An accident on this route, within 
 msgid "Durata"
 msgstr "Duration"
 
+#: src/features/training/training-records-list.tsx
+msgid "Durata necompletată pe fișă"
+msgstr "Duration not filled in on the sheet"
+
 #: src/lib/labels.ts
 msgid "Echipa de evaluare a riscurilor"
 msgstr "Risk evaluation team"
@@ -841,6 +845,14 @@ msgstr "Trainer {name}, {jobTitle}. {duration}."
 msgid "Instructor {name}. {duration}."
 msgstr "Trainer {name}. {duration}."
 
+#: src/features/training/training-records-list.tsx
+msgid "Instructor: nume neînscris pe fișă, {jobTitle}. {duration}."
+msgstr "Trainer: name not written on the sheet, {jobTitle}. {duration}."
+
+#: src/features/training/training-records-list.tsx
+msgid "Instructor: nume neînscris pe fișă. {duration}."
+msgstr "Trainer: name not written on the sheet. {duration}."
+
 #: src/features/training/training-summary.tsx
 msgid "Instruire {label}"
 msgstr "{label} training"
@@ -961,6 +973,10 @@ msgstr "Less"
 #: src/features/my-data/my-data-page.tsx
 msgid "Marca"
 msgstr "Employee no."
+
+#: src/features/training/training-material.tsx
+msgid "Material necompletat pe fișă"
+msgstr "Material not filled in on the sheet"
 
 #: src/features/tests/study-card.tsx
 msgid "Materialul complet, emis pe {issuedOn}."

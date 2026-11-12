@@ -10,6 +10,7 @@ import {
   type TrainingDomain,
   trainingDomainLabels,
   type TrainingPhase,
+  type TrainingSource,
 } from '@ssm-usor/contracts';
 
 import { countOf, runOn, withoutFinalStop } from '../../lib/romanian';
@@ -23,7 +24,13 @@ import { gapRules } from '../documents/gaps';
  */
 export const paperSignatureRows = true;
 
+export const transcribedNote = 'transcris; semnat pe hârtie';
+
+export const transcriptionLine =
+  'Rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie. Originalul, cu semnăturile, se păstrează la angajator.';
+
 export type SheetRecord = Pick<EmployeeTrainingRecord, 'occupation' | 'admission'> & {
+  source: TrainingSource;
   training: Pick<
     EmployeeTrainingRecord['training'],
     | 'phase'
@@ -109,6 +116,7 @@ export type HiringLine = {
   material: string;
   occupation: string;
   place: string;
+  note: string;
 };
 
 export type SheetRow = {
@@ -118,6 +126,7 @@ export type SheetRow = {
   material: string;
   trainer: string;
   verifier: string;
+  note: string;
 };
 
 export type TestResultRow = { date: string; material: string; grade: string; examiner: string };
@@ -139,7 +148,7 @@ export type TrainingSheetData = {
     commute: string;
   };
   hiring: { introductory: HiringLine; workplace: HiringLine };
-  admission: { admittedOn: string; name: string; jobTitle: string };
+  admission: { admittedOn: string; name: string; jobTitle: string; note: string };
   periodic: SheetRow[];
   supplementary: SheetRow[];
   /** Occupational safety only: the fire-safety sheet prints a pass as a periodic row. */
@@ -154,6 +163,7 @@ export type TrainingSheetData = {
     introductory: { trainer: string; verifier: string };
     workplace: { trainer: string; verifier: string };
   };
+  transcriptionLine: string;
   form: SheetForm;
 };
 
@@ -203,8 +213,12 @@ export function missingSheetDataOf(
   return missing;
 }
 
-/** Whole hours as "2", any other duration with one decimal and a comma: "1,5". */
-export function hoursOf(minutes: number) {
+/**
+ * Whole hours as "2", any other duration with one decimal and a comma: "1,5"; blank for a paper
+ * training whose sheet writes none.
+ */
+export function hoursOf(minutes: number | null) {
+  if (minutes === null) return '';
   const tenths = Math.round(minutes / 6);
   return tenths % 10 === 0 ? String(tenths / 10) : `${Math.floor(tenths / 10)},${tenths % 10}`;
 }
@@ -216,6 +230,8 @@ const joined = (separator: string, ...parts: (string | null | undefined)[]) =>
 export const chronological = (a: SheetRecord, b: SheetRecord) =>
   a.training.heldOn.localeCompare(b.training.heldOn) ||
   a.training.createdAt.localeCompare(b.training.createdAt);
+
+const noteOf = (record: SheetRecord) => (record.source === 'paper' ? transcribedNote : '');
 
 // A hiring training recorded twice, after a change of post, prints the later one.
 const latest = (records: SheetRecord[], phase: TrainingPhase) =>
@@ -236,7 +252,8 @@ export const materialOf = (record: SheetRecord) => {
   const reason = record.training.supplementaryReason;
   const taught = text(record.training.material);
   if (!reason) return taught;
-  return `${withoutFinalStop(taught)} (motivul: ${runOn(supplementaryTrainingReasonLabels[reason])})`;
+  const motive = `(motivul: ${runOn(supplementaryTrainingReasonLabels[reason])})`;
+  return taught ? `${withoutFinalStop(taught)} ${motive}` : motive;
 };
 
 function hiringLine(record: SheetRecord | null, place: string): HiringLine {
@@ -249,17 +266,19 @@ function hiringLine(record: SheetRecord | null, place: string): HiringLine {
       material: '',
       occupation: '',
       place,
+      note: '',
     };
   }
   const { training } = record;
   return {
     heldOn: printedDate(training.heldOn),
     hours: hoursOf(training.durationMinutes),
-    trainer: training.trainer.name,
-    trainerJobTitle: training.trainer.jobTitle,
+    trainer: text(training.trainer.name),
+    trainerJobTitle: text(training.trainer.jobTitle),
     material: materialOf(record),
     occupation: record.occupation,
     place,
+    note: noteOf(record),
   };
 }
 
@@ -269,8 +288,8 @@ function signersOf(domain: TrainingDomain, record: SheetRecord | null) {
   if (!record) return { trainer: '', verifier: '' };
   const { trainer, verifier } = record.training;
   return {
-    trainer: trainer.name,
-    verifier: verifier?.name ?? (domain === 'su' ? trainer.name : ''),
+    trainer: text(trainer.name),
+    verifier: verifier?.name ?? (domain === 'su' ? text(trainer.name) : ''),
   };
 }
 
@@ -299,6 +318,7 @@ const testSheetRow = (result: SheetTestResult, occupation: string): SheetRow => 
   material: periodicTestMaterial(result),
   trainer: result.examiner?.name ?? '',
   verifier: '',
+  note: '',
 });
 
 export const chronologicalResults = (a: SheetTestResult, b: SheetTestResult) =>
@@ -309,8 +329,9 @@ const sheetRow = (record: SheetRecord): SheetRow => ({
   hours: hoursOf(record.training.durationMinutes),
   occupation: record.occupation,
   material: materialOf(record),
-  trainer: record.training.trainer.name,
+  trainer: text(record.training.trainer.name),
   verifier: record.training.verifier?.name ?? '',
+  note: noteOf(record),
 });
 
 /**
@@ -361,18 +382,22 @@ function sheetParts(facts: TrainingSheetFacts) {
   const place = placeOfWork(facts);
   const introductory = latest(records, 'introductory_general');
   const workplace = latest(records, 'workplace');
+  const periodicRecords = records.filter(
+    (record) =>
+      record.training.phase === 'periodic' ||
+      (domain === 'su' && record.training.phase === 'supplementary')
+  );
+  const supplementaryRecords =
+    domain === 'ssm' ? records.filter((record) => record.training.phase === 'supplementary') : [];
+  const transcribed = [introductory, workplace, ...periodicRecords, ...supplementaryRecords].some(
+    (record) => record?.source === 'paper'
+  );
   const periodic = [
-    ...records
-      .filter(
-        (record) =>
-          record.training.phase === 'periodic' ||
-          (domain === 'su' && record.training.phase === 'supplementary')
-      )
-      .map((record) => ({
-        day: record.training.heldOn,
-        createdAt: record.training.createdAt,
-        row: sheetRow(record),
-      })),
+    ...periodicRecords.map((record) => ({
+      day: record.training.heldOn,
+      createdAt: record.training.createdAt,
+      row: sheetRow(record),
+    })),
     ...(domain === 'su'
       ? facts.testResults.map((result) => ({
           day: result.takenOn,
@@ -385,13 +410,7 @@ function sheetParts(facts: TrainingSheetFacts) {
     .map(({ row }) => row);
   const testResults =
     domain === 'ssm' ? [...facts.testResults].sort(chronologicalResults).map(testResultRow) : [];
-  const supplementary =
-    domain === 'ssm'
-      ? records
-          .filter((record) => record.training.phase === 'supplementary')
-          .sort(chronological)
-          .map(sheetRow)
-      : [];
+  const supplementary = [...supplementaryRecords].sort(chronological).map(sheetRow);
   const admission = workplace?.admission ?? null;
   return {
     branding: () => facts.branding,
@@ -425,6 +444,7 @@ function sheetParts(facts: TrainingSheetFacts) {
       admittedOn: admission ? printedDate(admission.admittedOn) : '',
       name: admission?.name ?? '',
       jobTitle: admission?.jobTitle ?? '',
+      note: admission && workplace ? noteOf(workplace) : '',
     }),
     periodic: () => periodic,
     supplementary: () => supplementary,
@@ -442,6 +462,7 @@ function sheetParts(facts: TrainingSheetFacts) {
       introductory: signersOf(domain, introductory),
       workplace: signersOf(domain, workplace),
     }),
+    transcriptionLine: () => (transcribed ? transcriptionLine : ''),
     form: () => paperForm(domain),
   };
 }

@@ -592,6 +592,50 @@ describe("an employee's training tabs", () => {
     });
     expect(requests('GET', `${trainingsPath}/proposal`)).toHaveLength(0);
   });
+  it('says in words what a paper sheet does not write, and saves the training so', async () => {
+    const asWritten = training({
+      source: 'paper',
+      durationMinutes: null,
+      material: null,
+      trainer: { name: null, jobTitle: null },
+      verifier: null,
+    });
+    const detail = {
+      training: { ...detailOf([popescu]).training, ...asWritten },
+    };
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () =>
+        Response.json({ items: [{ ...periodicRecord, training: asWritten }] }),
+      [`GET ${trainingsPath}/${trainingId}`]: () => Response.json(detail),
+      [`PUT ${trainingsPath}/${trainingId}`]: () => Response.json(detail),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
+    const user = userEvent.setup();
+    const item = await screen.findByTestId('training-record-item');
+    expect(within(item).getByTestId('training-record-duration').textContent).toBe(
+      'Durata necompletată pe fișă'
+    );
+    expect(within(item).getByTestId('training-material-text').textContent).toBe(
+      'Material necompletat pe fișă'
+    );
+    expect(within(item).getByText('nume neînscris pe fișă')).toBeTruthy();
+
+    await user.click(within(item).getByTestId('training-record-edit'));
+    const dialog = await screen.findByTestId('training-dialog');
+    for (const field of ['training-duration', 'training-material', 'training-trainer-name']) {
+      expect((within(dialog).getByTestId(field) as HTMLInputElement).value).toBe('');
+    }
+    await user.click(within(dialog).getByTestId('training-save'));
+
+    expect(await screen.findByText('Instruirea a fost modificată.')).toBeTruthy();
+    const [saved] = requests('PUT', `${trainingsPath}/${trainingId}`);
+    expect(saved!.body).toMatchObject({
+      source: 'paper',
+      durationMinutes: null,
+      material: null,
+      trainer: { name: null, jobTitle: null },
+    });
+  });
 });
 
 describe("a client's trainings held", () => {
@@ -609,6 +653,30 @@ describe("a client's trainings held", () => {
     const rows = await screen.findAllByTestId('trainings-row');
     expect(within(rows[0]!).getByText('Transcris de pe fișa pe hârtie')).toBeTruthy();
     expect(within(rows[1]!).queryByText('Transcris de pe fișa pe hârtie')).toBeNull();
+  });
+
+  it('says in words what a paper sheet does not write in the list', async () => {
+    mockApi({
+      [`GET ${trainingsPath}`]: () =>
+        Response.json({
+          items: [
+            {
+              ...heldWith(popescu),
+              source: 'paper',
+              durationMinutes: null,
+              material: null,
+              trainer: { name: null, jobTitle: 'Inspector SSM' },
+            },
+          ],
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const [row] = await screen.findAllByTestId('trainings-row');
+    expect(within(row!).getByText('necompletată pe fișă')).toBeTruthy();
+    expect(within(row!).getByText('necompletat pe fișă')).toBeTruthy();
+    expect(within(row!).getByText('nume neînscris pe fișă').parentElement!.textContent).toBe(
+      'nume neînscris pe fișă, Inspector SSM'
+    );
   });
 
   it("is a tab of the client's page, filtered by domain and phase in the URL", async () => {
@@ -1028,6 +1096,25 @@ describe("an employee's knowledge tests", () => {
     expect([...choice.options].map((option) => option.value)).toEqual(['hiring', 'annual']);
   });
 
+  it('says a paper result whose sheet names no examiner has none written', async () => {
+    const tests = employeeTests(
+      testStatus('passed', null, '2026-09-02'),
+      testStatus('passed', null, '2026-09-02')
+    );
+    mockApi({
+      [`GET ${testsPath}`]: () =>
+        Response.json({
+          ...tests,
+          ssm: { ...tests.ssm, results: [{ ...paperResult, examiner: null }] },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
+    const card = within(await screen.findByTestId('employee-tests'));
+    expect((await card.findByTestId('tests-result-examiner')).textContent).toBe(
+      'Examinator: nume neînscris pe fișă'
+    );
+  });
+
   it('lists the results with their source and examiner, and the attempts with their score', async () => {
     const tests = employeeTests(
       testStatus('passed', null, '2026-09-02'),
@@ -1132,6 +1219,29 @@ describe("an employee's knowledge tests", () => {
     await waitFor(() => expect(screen.getByTestId('tests-state').textContent).toBe('Promovat'));
     expect(screen.queryByTestId('tests-record-paper')).toBeNull();
     expect(screen.queryByTestId('tests-gap')).toBeNull();
+  });
+
+  it('records a paper result whose sheet names no examiner', async () => {
+    mockApi({
+      [`GET ${testsPath}`]: () => Response.json(employeeTests(testStatus('pending', 'hiring'))),
+      [`GET ${trainingsPath}/proposal`]: () =>
+        Response.json(proposal({ trainer: { name: 'Dan Marin', jobTitle: null } })),
+      [`POST ${testsPath}/results`]: () =>
+        Response.json({ result: { ...paperResult, examiner: null } }, { status: 201 }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('tests-record-paper'));
+    const dialog = within(await screen.findByTestId('test-result-dialog'));
+    const name = dialog.getByTestId('test-result-examiner-name') as HTMLInputElement;
+    expect(name.placeholder).toBe('nume neînscris pe fișă');
+    await user.clear(name);
+    await user.click(dialog.getByTestId('test-result-submit'));
+    await waitFor(() => expect(screen.queryByTestId('test-result-dialog')).toBeNull());
+    expect(requests('POST', `${testsPath}/results`)[0]!.body).toMatchObject({
+      test: 'hiring',
+      examiner: null,
+    });
   });
 
   it('offers the annual test on paper after a fire-safety pass, and words a refusal', async () => {
