@@ -645,9 +645,8 @@ describe('the person page', () => {
     await screen.findByTestId('person-page');
     expect(screen.getByTestId('person-state').textContent).toBe('De verificat');
     expect(screen.queryByTestId('person-decisions')).toBeNull();
-    expect(screen.getByTestId('person-no-contact').textContent).toBe(
-      'Fără email sau telefon. Îl adaugi când îl inviți în portal.'
-    );
+    expect(screen.getByTestId('person-data-pending').textContent).toBe('Gata de confirmat');
+    expect(screen.getByTestId('person-page').textContent).not.toContain('Fără email');
     await userEvent.setup().click(screen.getByTestId('person-next'));
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe(`${importPath}/lazar`));
     await waitFor(() =>
@@ -827,6 +826,22 @@ describe('the person page', () => {
     expect(label('jobTitle')).toContain('(obligatoriu)');
     expect(label('hiredAt')).toContain('(obligatoriu)');
     expect(label('employeeNumber')).toContain('(opțional)');
+  });
+
+  it('counts what is left in the data card and jumps to the row that asks it', async () => {
+    mockEmployeeImport({ detail: popWith({ cnp: '2710212250545', birthDate: '1971-03-12' }) });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const pending = await screen.findByTestId('person-data-pending');
+    expect(pending.textContent).toBe('1 de hotărât');
+    const row = document.getElementById('field-birthDate')!;
+    expect(row.dataset.tone).toBe('todo');
+    expect(row.textContent).toContain('Data nașterii nu se potrivește cu CNP-ul');
+
+    await user.click(
+      within(screen.getByTestId('person-bar')).getByRole('button', { name: /^1 de hotărât/ })
+    );
+    expect(document.activeElement).toBe(row);
   });
 
   it('counts what is left in the bar, takes the corrected CNP and keeps the person to check', async () => {

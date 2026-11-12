@@ -5,27 +5,35 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { employeeProposal } from '@/test/employee-import-fixture';
 
-import { emptyChanges, type Proposal, statesOf } from './employee-review-model';
+import {
+  decisionsOf,
+  emptyChanges,
+  type Person,
+  type Proposal,
+  statesOf,
+} from './employee-review-model';
 import { dialogRowsFor } from './person-dialog-rows';
 import { PersonData } from './person-fields';
 
 const proposal = employeeProposal() as unknown as Proposal;
 const person = proposal.people.find((each) => each.id === 'pop')!;
 
-function Data() {
+function Data({ who = person }: { who?: Person }) {
   const [current, setCurrent] = useState(emptyChanges);
+  const people = proposal.people.map((each) => (each.id === who.id ? who : each));
+  const context = {
+    proposal: { ...proposal, people },
+    changes: current,
+    states: statesOf(proposal, current),
+    workplaceCount: 2,
+    today: '2026-11-12',
+  };
   return (
     <>
       <PersonData
-        context={{
-          proposal,
-          changes: current,
-          states: statesOf(proposal, current),
-          workplaceCount: 2,
-          today: '2026-11-12',
-        }}
-        person={person}
-        decisions={[]}
+        context={context}
+        person={who}
+        decisions={decisionsOf(context, who)}
         onChange={(mutate) => setCurrent(mutate)}
       />
       <output data-testid="fields">{JSON.stringify(current.people.pop?.fields ?? null)}</output>
@@ -227,5 +235,60 @@ describe('the dialogs that correct the data read from the sheets', () => {
 
     await user.click(row);
     expect(document.activeElement).toBe(screen.getByLabelText(/^Funcția pe fișă/));
+  });
+});
+
+describe('the card of the data read from the sheets', () => {
+  const row = (name: string) => document.getElementById(`field-${name}`)!;
+
+  it('tags a value the member changed, without a pencil, and says what the sheet read', async () => {
+    const user = userEvent.setup();
+    render(<Data />);
+    expect(within(row('lastName')).queryByTestId('edited-tag')).toBeNull();
+
+    await open(user, 'Modifică datele personale');
+    const lastName = screen.getByLabelText(/^Nume/);
+    await user.clear(lastName);
+    await user.type(lastName, 'Popescu');
+    await user.click(screen.getByTestId('person-fields-save'));
+
+    const tag = within(row('lastName')).getByTestId('edited-tag');
+    expect(tag.textContent).toBe('Modificat de tine');
+    expect(tag.querySelector('svg')).toBeNull();
+    expect(within(row('lastName')).getByTestId('person-field-sheet').textContent).toBe(
+      'De pe fișă: Pop'
+    );
+    expect(row('lastName').dataset.tone).toBe('done');
+    expect(within(row('lastName')).getByRole('button', { name: /^Fotografia 1/ })).toBeTruthy();
+  });
+
+  it('asks for a required value missing from the sheets in place of the value', () => {
+    render(<Data who={{ ...person, fields: { ...person.fields, hiredAt: { options: [] } } }} />);
+    expect(row('hiredAt').dataset.tone).toBe('todo');
+    expect(within(row('hiredAt')).getByTestId('person-field-missing').textContent).toBe(
+      'Lipsește de pe fișe. E obligatoriu pentru crearea lucrătorului.'
+    );
+    expect(row('hiredAt').textContent).not.toContain('Completează');
+  });
+
+  it('keeps an empty optional field as a row that says it is not filled in', () => {
+    render(<Data />);
+    expect(row('birthPlace').dataset.tone).toBe('optional');
+    expect(row('birthPlace').textContent).toContain('Necompletat');
+    expect(within(row('birthPlace')).queryByTestId('person-field-missing')).toBeNull();
+    expect(row('jobTitle').dataset.tone).toBe('done');
+  });
+
+  it('opens the whole group from its Modifică button', async () => {
+    const user = userEvent.setup();
+    render(<Data />);
+    const button = within(screen.getByTestId('person-fields-employment')).getByRole('button', {
+      name: 'Modifică datele de angajare',
+    });
+    expect(button.textContent).toBe('Modifică');
+
+    await user.click(button);
+    expect(within(dialog()).getByRole('heading').textContent).toBe('Angajare');
+    expect(rows()).toEqual([['jobTitle'], ['hiredAt', 'leftOn'], ['employeeNumber']]);
   });
 });

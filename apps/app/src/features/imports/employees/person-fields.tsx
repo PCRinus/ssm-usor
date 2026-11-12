@@ -13,7 +13,6 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Pencil } from 'lucide-react';
 import {
   type ComponentProps,
   type FormEvent,
@@ -26,8 +25,11 @@ import {
 
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
+import { EditAction } from '@/components/section-card';
 
-import { EditedTag, Tag } from '../review-parts';
+import { PendingNote, StatusDot, type Tone } from '../library/decision-row';
+import { rowTones } from '../library/row-tones';
+import { EditedTag, RowNote, Tag } from '../review-parts';
 import {
   type Changes,
   type Decision,
@@ -46,6 +48,7 @@ import {
 } from './employee-review-model';
 import { dialogRowsFor } from './person-dialog-rows';
 import { PhotoNumber } from './person-photos';
+import { fieldOfDecision } from './person-sections';
 import {
   compareWithApp,
   dateFields,
@@ -102,6 +105,79 @@ const fieldDecisionKeys = (name: FieldName) => [
   ...(name === 'birthDate' ? ['birthDate'] : []),
 ];
 
+const dataFieldNames: ReadonlySet<string> = new Set(
+  Object.values(groups).flatMap((group) => group.names)
+);
+
+export function DataPending({ decisions }: { decisions: Decision[] }) {
+  const open = decisions.filter((decision) => {
+    const field = fieldOfDecision(decision.key) ?? /^choice-(.+)$/.exec(decision.key)?.[1];
+    return field !== undefined && dataFieldNames.has(field);
+  }).length;
+  return <PendingNote line={open > 0 ? `${open} de hotărât` : null} testId="person-data-pending" />;
+}
+
+type RowTone = Extract<Tone, 'done' | 'todo' | 'optional'>;
+
+// A border would curl along the rounded fill of a hovered or flagged row, so the hairline is a
+// pseudo-element that stops at the content's edges and gives way beside a filled row.
+const rowClass = cn(
+  'relative -mx-2 grid scroll-mt-24 grid-cols-[1.25rem_minmax(0,5.75rem)_minmax(0,1fr)_1.75rem] items-start gap-x-2.5 rounded-md px-2 py-2.5 text-sm outline-none sm:grid-cols-[1.25rem_minmax(0,7rem)_minmax(0,1fr)_1.75rem] sm:gap-x-3',
+  "not-first:before:absolute not-first:before:inset-x-2 not-first:before:top-0 not-first:before:h-px not-first:before:bg-border/70 not-first:before:content-['']",
+  'focus-visible:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:before:hidden [:focus-visible+&]:before:hidden',
+  'data-[tone=todo]:before:hidden [[data-tone=todo]+&]:before:hidden'
+);
+
+function DataRow({
+  name,
+  tone,
+  chip,
+  testId,
+  onEdit,
+  children,
+}: {
+  name: FieldName;
+  tone: RowTone;
+  chip?: ReactNode;
+  testId: string;
+  onEdit?: (name: FieldName) => void;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      id={`field-${name}`}
+      tabIndex={-1}
+      data-testid={testId}
+      data-tone={tone}
+      onClick={
+        onEdit &&
+        ((event) => {
+          if (!(event.target as HTMLElement).closest('button, a')) onEdit(name);
+        })
+      }
+      className={cn(
+        rowClass,
+        rowTones[tone],
+        onEdit && 'cursor-pointer hover:before:hidden [:hover+&]:before:hidden',
+        onEdit && tone !== 'todo' && 'hover:bg-secondary/50'
+      )}
+    >
+      <dt className="col-span-2 grid grid-cols-subgrid items-start">
+        <StatusDot tone={tone} className="mt-0 sm:mt-0" />
+        <span className="font-medium">{fieldTitles[name]}</span>
+      </dt>
+      <dd className="col-span-2 grid grid-cols-subgrid items-start">
+        <div className="grid min-w-0 gap-1">{children}</div>
+        <span className="-mt-0.5 justify-self-end">{chip}</span>
+      </dd>
+    </div>
+  );
+}
+
+const sheetOptionOf = (field: ResolvedField) =>
+  field.options.find((option) => option.value === field.value) ??
+  (field.edited ? field.options[0] : undefined);
+
 function FieldRow({
   context,
   person,
@@ -121,45 +197,75 @@ function FieldRow({
 }) {
   const pages = pagesOf(context, person.id);
   const shown = showValue(name, field.value);
-  const pageId = field.options.find((option) => option.value === field.value)?.pageIds[0];
+  const pageId = field.choice ? undefined : sheetOptionOf(field)?.pageIds[0];
   const keys = fieldDecisionKeys(name);
   const own = decisions.filter((decision) => keys.includes(decision.key));
+  const missing = own.some((decision) => decision.key === `missing-${name}`);
+  const tags = own.filter((decision) => decision.key !== `missing-${name}`);
+  const fromSheet =
+    field.edited && field.options.every((option) => option.value !== field.value)
+      ? field.options.map((option) => showValue(name, option.value)).join('; ')
+      : '';
+  const tone: RowTone =
+    own.length > 0 || field.choice ? 'todo' : shown === null ? 'optional' : 'done';
   return (
-    <div
-      id={`field-${name}`}
-      tabIndex={-1}
-      data-testid="person-field"
-      onClick={(event) => {
-        if (!(event.target as HTMLElement).closest('button, a')) onEdit(name);
-      }}
-      className="-mx-1.5 grid scroll-mt-24 cursor-pointer grid-cols-[minmax(0,8.75rem)_minmax(0,1fr)_auto] items-start gap-3 rounded-md border-t px-1.5 py-2.5 text-sm outline-none first:border-t-0 hover:bg-secondary/50 focus-visible:bg-secondary/60"
+    <DataRow
+      name={name}
+      tone={tone}
+      testId="person-field"
+      onEdit={onEdit}
+      chip={
+        pageId && (
+          <PhotoNumber
+            pages={pages}
+            pageId={pageId}
+            about={`${fieldTitles[name]}: ${shown ?? 'necompletat'}`}
+          />
+        )
+      }
     >
-      <dt className="text-muted-foreground">{fieldTitles[name]}</dt>
-      <dd className="grid min-w-0 gap-1">
-        <span className="flex flex-wrap items-center gap-2 wrap-anywhere">
-          {field.choice ? (
-            <span className="text-muted-foreground">De ales mai sus</span>
-          ) : (
-            (shown ?? <span className="text-muted-foreground">—</span>)
-          )}
+      {field.choice ? (
+        <span className="text-muted-foreground">De ales mai sus</span>
+      ) : missing ? (
+        <span className="font-medium text-destructive" data-testid="person-field-missing">
+          Lipsește de pe fișe. E obligatoriu pentru crearea lucrătorului.
+        </span>
+      ) : shown === null ? (
+        <span className="text-muted-foreground">Necompletat</span>
+      ) : (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-medium wrap-anywhere">{shown}</span>
           {field.edited && <EditedTag />}
         </span>
-        {own.map((decision) => (
-          <Tag key={decision.key} tone="destructive" className="w-fit whitespace-normal">
-            {decision.label}
-          </Tag>
-        ))}
-        {extra}
-      </dd>
-      {pageId ? (
-        <PhotoNumber
-          pages={pages}
-          pageId={pageId}
-          about={`${fieldTitles[name]}: ${shown ?? 'necompletat'}`}
-        />
-      ) : (
-        <span />
       )}
+      {fromSheet && (
+        <RowNote testId="person-field-sheet">
+          <span className="wrap-anywhere">De pe fișă: {fromSheet}</span>
+        </RowNote>
+      )}
+      {tags.map((decision) => (
+        <Tag key={decision.key} tone="destructive" className="w-fit whitespace-normal">
+          {decision.label}
+        </Tag>
+      ))}
+      {extra}
+    </DataRow>
+  );
+}
+
+function GroupHeading({
+  title,
+  label,
+  onEdit,
+}: {
+  title: ReactNode;
+  label?: string;
+  onEdit?: () => void;
+}) {
+  return (
+    <div className="flex min-h-11 items-center justify-between gap-2">
+      <h3 className="text-[15px] font-semibold">{title}</h3>
+      {onEdit && <EditAction aria-label={label} title={label} onClick={onEdit} />}
     </div>
   );
 }
@@ -187,10 +293,7 @@ function FieldGroupBlock({
       id={group}
       data-testid={`person-fields-${group}`}
     >
-      <div className="flex min-h-9 items-center justify-between gap-2">
-        <h3 className="text-[15px] font-semibold">{title}</h3>
-        <EditIcon label={editLabels[group]} onClick={() => setEditing('all')} />
-      </div>
+      <GroupHeading title={title} label={editLabels[group]} onEdit={() => setEditing('all')} />
       <dl>
         {names.map((name) => (
           <FieldRow
@@ -233,19 +336,35 @@ export function PersonData({
   onChange: Update;
   notes?: Partial<Record<FieldName, ReactNode>>;
 }) {
+  const [first, ...rest] = (Object.keys(groups) as FieldGroup[]).map((group) => (
+    <FieldGroupBlock
+      key={group}
+      context={context}
+      person={person}
+      group={group}
+      decisions={decisions}
+      onChange={onChange}
+      notes={notes}
+    />
+  ));
+  return <TwoColumns first={first} rest={rest} />;
+}
+
+function TwoColumns({
+  first,
+  rest,
+  testId,
+}: {
+  first: ReactNode;
+  rest: ReactNode[];
+  testId?: string;
+}) {
   return (
-    <div className="grid gap-y-5 px-5 py-4 lg:grid-cols-3 lg:divide-x lg:[&>*]:px-5 lg:[&>*:first-child]:pl-0 lg:[&>*:last-child]:pr-0">
-      {(Object.keys(groups) as FieldGroup[]).map((group) => (
-        <FieldGroupBlock
-          key={group}
-          context={context}
-          person={person}
-          group={group}
-          decisions={decisions}
-          onChange={onChange}
-          notes={notes}
-        />
-      ))}
+    <div className="@container px-4 pt-2 pb-4 sm:px-5" data-testid={testId}>
+      <div className="grid gap-y-4 @3xl:grid-cols-2 @3xl:gap-x-12">
+        {first}
+        {rest.length > 0 && <div className="grid min-w-0 content-start gap-y-4">{rest}</div>}
+      </div>
     </div>
   );
 }
@@ -554,191 +673,172 @@ export function ExistingComparison({
   const pages = pagesOf(context, person.id);
   const sheetValue = (name: FieldName, field: ResolvedField) =>
     context.changes.people[person.id]?.fields?.[name]?.value ?? field.options[0]?.value ?? null;
-  return (
-    <div
-      className="grid gap-y-5 px-5 py-4 lg:grid-cols-3 lg:divide-x lg:[&>*]:px-5 lg:[&>*:first-child]:pl-0 lg:[&>*:last-child]:pr-0"
-      data-testid="person-existing"
-    >
-      {added.length > 0 && (
-        <div className="grid min-w-0 content-start gap-2">
-          <div className="flex min-h-9 items-center justify-between gap-2">
-            <h3 className="text-[15px] font-semibold">
-              Se adaugă <span className="font-normal text-muted-foreground">{added.length}</span>
-            </h3>
-            <EditIcon
-              label="Modifică ce se adaugă"
-              onClick={() => {
-                setFocus(undefined);
+  const count = (value: number) => (
+    <span className="font-normal text-muted-foreground">{value}</span>
+  );
+  const blocks: ReactNode[] = [];
+  if (added.length > 0) {
+    blocks.push(
+      <div key="added" className="grid min-w-0 content-start gap-1">
+        <GroupHeading
+          title={<>Se adaugă {count(added.length)}</>}
+          label="Modifică ce se adaugă"
+          onEdit={() => {
+            setFocus(undefined);
+            setEditing('added');
+          }}
+        />
+        <p className="pb-1 text-[13px] text-muted-foreground">
+          Lucrătorul nu are încă aceste date în aplicație. Le preluăm de pe fișă.
+        </p>
+        <dl>
+          {added.map(({ name }) => (
+            <FieldRow
+              key={name}
+              context={context}
+              person={person}
+              name={name}
+              field={shownField(context, person, name)}
+              decisions={decisions}
+              onEdit={(name) => {
+                setFocus(name);
                 setEditing('added');
               }}
             />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Lucrătorul nu are încă aceste date în aplicație. Le preluăm de pe fișă.
-          </p>
-          <dl>
-            {added.map(({ name }) => (
-              <FieldRow
+          ))}
+        </dl>
+        {editing === 'added' && (
+          <FieldsDialog
+            context={context}
+            person={person}
+            title="Se adaugă"
+            names={added.map(({ name }) => name)}
+            focus={focus}
+            onClose={() => setEditing(null)}
+            onSave={(values) => onChange((current) => withFields(current, person.id, values))}
+          />
+        )}
+      </div>
+    );
+  }
+  if (differs.length > 0) {
+    blocks.push(
+      <div key="differs" className="grid min-w-0 content-start gap-1">
+        <GroupHeading
+          title={<>Diferă de aplicație {count(differs.length)}</>}
+          label="Modifică ce diferă de aplicație"
+          onEdit={() => {
+            setFocus(undefined);
+            setEditing('differs');
+          }}
+        />
+        {editing === 'differs' && (
+          <FieldsDialog
+            context={context}
+            person={person}
+            title="Diferă de aplicație"
+            names={differs.map(({ name }) => name)}
+            onClose={() => setEditing(null)}
+            onSave={(values) => onChange((current) => withFields(current, person.id, values))}
+          />
+        )}
+        <p className="pb-1 text-[13px] text-muted-foreground">
+          Lucrătorul are deja o valoare, iar fișa scrie alta. Păstrăm valoarea ta dacă nu alegi
+          altfel.
+        </p>
+        <dl>
+          {differs.map(({ name, field }) => {
+            const sheet = sheetValue(name, field);
+            const pageId = field.options.find((option) => option.value === sheet)?.pageIds[0];
+            return (
+              <DataRow
                 key={name}
-                context={context}
-                person={person}
                 name={name}
-                field={shownField(context, person, name)}
-                decisions={decisions}
-                onEdit={(name) => {
-                  setFocus(name);
-                  setEditing('added');
-                }}
-              />
-            ))}
-          </dl>
-          {editing === 'added' && (
-            <FieldsDialog
-              context={context}
-              person={person}
-              title="Se adaugă"
-              names={added.map(({ name }) => name)}
-              focus={focus}
-              onClose={() => setEditing(null)}
-              onSave={(values) => onChange((current) => withFields(current, person.id, values))}
-            />
-          )}
-        </div>
-      )}
-      {differs.length > 0 && (
-        <div className="grid min-w-0 content-start gap-2">
-          <div className="flex min-h-9 items-center justify-between gap-2">
-            <h3 className="text-[15px] font-semibold">
-              Diferă de aplicație{' '}
-              <span className="font-normal text-muted-foreground">{differs.length}</span>
-            </h3>
-            <EditIcon
-              label="Modifică ce diferă de aplicație"
-              onClick={() => {
-                setFocus(undefined);
-                setEditing('differs');
-              }}
-            />
-          </div>
-          {editing === 'differs' && (
-            <FieldsDialog
-              context={context}
-              person={person}
-              title="Diferă de aplicație"
-              names={differs.map(({ name }) => name)}
-              onClose={() => setEditing(null)}
-              onSave={(values) => onChange((current) => withFields(current, person.id, values))}
-            />
-          )}
-          <p className="text-sm text-muted-foreground">
-            Lucrătorul are deja o valoare, iar fișa scrie alta. Păstrăm valoarea ta dacă nu alegi
-            altfel.
-          </p>
-          <dl>
-            {differs.map(({ name, field }) => {
-              const sheet = sheetValue(name, field);
-              const pageId = field.options.find((option) => option.value === sheet)?.pageIds[0];
-              return (
-                <div
-                  key={name}
-                  id={`field-${name}`}
-                  tabIndex={-1}
-                  className="grid scroll-mt-24 grid-cols-[minmax(0,8.75rem)_minmax(0,1fr)_auto] items-start gap-3 border-t py-2.5 text-sm outline-none first:border-t-0 focus-visible:bg-secondary/60"
-                  data-testid="person-existing-differs"
-                >
-                  <dt className="text-muted-foreground">{fieldTitles[name]}</dt>
-                  <dd className="grid gap-1">
-                    {field.replaced ? (
-                      <>
-                        <span>
-                          Devine {showValue(name, sheet)} <Tag tone="info">De pe fișă</Tag>
-                        </span>
-                        <span className="text-muted-foreground">
-                          În aplicație: {showValue(name, field.app)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="link"
-                          size="sm"
-                          className="w-fit px-0"
-                          onClick={() =>
-                            onChange((current) => withField(current, person.id, name, null))
-                          }
-                        >
-                          Păstrează valoarea din aplicație
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span>
-                          Rămâne {showValue(name, field.app)}{' '}
-                          <span className="text-muted-foreground">(din aplicație)</span>{' '}
-                          <Tag tone="muted">Păstrăm valoarea ta</Tag>
-                        </span>
-                        <span className="text-muted-foreground">
-                          Pe fișă: {showValue(name, sheet)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="link"
-                          size="sm"
-                          className="w-fit px-0"
-                          data-testid="person-existing-take-sheet"
-                          onClick={() =>
-                            onChange((current) =>
-                              withField(current, person.id, name, {
-                                ...(field.options[0] ? { option: field.options[0].index } : {}),
-                                replace: true,
-                              })
-                            )
-                          }
-                        >
-                          Folosește valoarea de pe fișă
-                        </Button>
-                      </>
-                    )}
-                  </dd>
-                  {pageId ? (
+                tone="done"
+                testId="person-existing-differs"
+                chip={
+                  pageId && (
                     <PhotoNumber
                       pages={pages}
                       pageId={pageId}
                       about={`${fieldTitles[name]}: ${showValue(name, sheet) ?? 'necompletat'}`}
                     />
-                  ) : (
-                    <span />
-                  )}
-                </div>
-              );
-            })}
-          </dl>
-        </div>
-      )}
-      {same.length > 0 && (
-        <div className="grid min-w-0 content-start gap-1">
-          <h3 className="text-[15px] font-semibold">
-            Rămân la fel <span className="font-normal text-muted-foreground">{same.length}</span>
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {same.map(({ name }) => fieldTitles[name]).join(', ')}: la fel pe fișă și în aplicație.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EditIcon({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon-sm"
-      className="text-muted-foreground"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-    >
-      <Pencil aria-hidden="true" />
-    </Button>
-  );
+                  )
+                }
+              >
+                {field.replaced ? (
+                  <>
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium wrap-anywhere">
+                        Devine {showValue(name, sheet)}
+                      </span>
+                      <Tag tone="info">De pe fișă</Tag>
+                    </span>
+                    <RowNote>
+                      <span className="wrap-anywhere">
+                        În aplicație: {showValue(name, field.app)}
+                      </span>
+                    </RowNote>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto w-fit px-0 py-0.5"
+                      onClick={() =>
+                        onChange((current) => withField(current, person.id, name, null))
+                      }
+                    >
+                      Păstrează valoarea din aplicație
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium wrap-anywhere">
+                        Rămâne {showValue(name, field.app)}{' '}
+                        <span className="font-normal text-muted-foreground">(din aplicație)</span>
+                      </span>
+                      <Tag tone="muted">Păstrăm valoarea ta</Tag>
+                    </span>
+                    <RowNote>
+                      <span className="wrap-anywhere">Pe fișă: {showValue(name, sheet)}</span>
+                    </RowNote>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto w-fit px-0 py-0.5"
+                      data-testid="person-existing-take-sheet"
+                      onClick={() =>
+                        onChange((current) =>
+                          withField(current, person.id, name, {
+                            ...(field.options[0] ? { option: field.options[0].index } : {}),
+                            replace: true,
+                          })
+                        )
+                      }
+                    >
+                      Folosește valoarea de pe fișă
+                    </Button>
+                  </>
+                )}
+              </DataRow>
+            );
+          })}
+        </dl>
+      </div>
+    );
+  }
+  if (same.length > 0) {
+    blocks.push(
+      <div key="same" className="grid min-w-0 content-start gap-1">
+        <GroupHeading title={<>Rămân la fel {count(same.length)}</>} />
+        <p className="text-sm text-muted-foreground">
+          {same.map(({ name }) => fieldTitles[name]).join(', ')}: la fel pe fișă și în aplicație.
+        </p>
+      </div>
+    );
+  }
+  const [first, ...rest] = blocks;
+  return <TwoColumns first={first} rest={rest} testId="person-existing" />;
 }
