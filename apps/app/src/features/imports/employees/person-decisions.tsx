@@ -3,7 +3,14 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { type FormEvent, type ReactNode, useState } from 'react';
+import {
+  type FormEvent,
+  type ReactNode,
+  type RefObject,
+  useId,
+  useImperativeHandle,
+  useState,
+} from 'react';
 
 import { roCount } from '@/features/employees/employee-format';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
@@ -36,45 +43,49 @@ import {
   workplaceStatus,
 } from './employee-review-model';
 import { FieldInput } from './person-fields';
+import { PhotoNumbers } from './person-photos';
+import { showChoice } from './person-sections';
 import { dateFields, fieldProblem, typedValue } from './person-values';
-import { PageButton } from './photo-column';
 import { orderedByClosest, withFields, withTitle, withWorkplace } from './review-changes';
 import { dateLabel } from './review-format';
 import type { Position, Workplace } from './use-review-context';
 
 type Update = (mutate: (current: Changes) => Changes) => void;
 
-export function DecideCard({
+export function DecideRow({
   id,
   title,
+  subtitle,
   tone = 'destructive',
   children,
 }: {
   id: string;
   title: ReactNode;
+  subtitle?: ReactNode;
   tone?: 'destructive' | 'warning';
   children: ReactNode;
 }) {
   return (
-    <section
+    <div
       id={id}
+      role="group"
+      tabIndex={-1}
       aria-labelledby={`${id}-title`}
-      className={cn(
-        'grid scroll-mt-32 gap-3 rounded-xl border-[1.5px] bg-card px-5 py-4',
-        tone === 'destructive' ? 'border-destructive-border' : 'border-warning-border'
-      )}
+      data-tone={tone}
+      className="grid scroll-mt-24 gap-x-5 gap-y-3 border-t px-5 py-4 outline-none first:border-t-0 focus-visible:bg-secondary/60 lg:grid-cols-[11.25rem_minmax(0,1fr)] lg:items-center"
       data-testid={`person-decide-${id}`}
     >
-      <h2 id={`${id}-title`} className="text-base font-semibold">
-        {title}
-      </h2>
-      {children}
-    </section>
+      <div className="grid content-start gap-0.5">
+        <h3 id={`${id}-title`} className="text-[15px] font-semibold">
+          {title}
+        </h3>
+        {subtitle && <p className="text-[13px] text-muted-foreground">{subtitle}</p>}
+      </div>
+      <div className="grid min-w-0 gap-3">{children}</div>
+    </div>
   );
 }
 
-// A button, not a radio: arrow keys move a radio's choice, and a choice here is saved at once,
-// for every person of a title, and closes its card.
 function Option({
   checked,
   onSelect,
@@ -164,65 +175,73 @@ export function PostDecision({
         : withPersonChange(current, person.id, (change) => ({ ...change, jobPositionId: id }))
     );
   const count = group?.personIds.length ?? 1;
-  const heading =
-    group?.match === 'near' ? (
-      <>«{title}» seamănă cu un post al clientului</>
-    ) : title ? (
-      <>«{title}» nu există la client</>
-    ) : (
-      'Fișa nu scrie postul'
-    );
+  const subtitle =
+    group?.match === 'near'
+      ? 'Seamănă cu un post al clientului'
+      : title
+        ? 'Nu există încă la client'
+        : 'Fișa nu scrie postul';
+  const shared =
+    count > 1 ? (
+      <p className="text-[13px] text-muted-foreground">
+        Se aplică tuturor celor {count} persoane cu funcția{' '}
+        <span className="font-semibold text-foreground">{title}</span>: {names.join(', ')}. Funcția
+        de pe fișă se păstrează oricum la fiecare.
+      </p>
+    ) : null;
   return (
-    <DecideCard
+    <DecideRow
       id="post"
       tone={group?.match === 'near' ? 'warning' : 'destructive'}
-      title={
-        <>
-          {heading}
-          {count > 1 && (
-            <span className="font-normal text-muted-foreground">
-              {' '}
-              · {roCount(count, 'persoană', 'persoane')}
-            </span>
-          )}
-        </>
-      }
+      title="Postul"
+      subtitle={subtitle}
     >
-      {count > 1 && (
-        <p className="text-sm">
-          Același post e scris pe fișele a {roCount(count, 'persoană', 'persoane')}:{' '}
-          {personName(context, person)}, {names.join(', ')}. Ce alegi aici se aplică tuturor celor{' '}
-          {count}. Funcția de pe fișă se păstrează oricum la fiecare.
-        </p>
-      )}
-      {decided && <Tag tone="success">Ales</Tag>}
-      <p className="text-sm font-medium">Alege un post existent</p>
-      <div role="group" aria-labelledby="post-title" className="grid gap-2">
-        {orderedByClosest(positions, group?.closestId ?? group?.proposedId ?? null).map(
-          (position) => (
+      {positions.length === 0 ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setAdding(true)}
+            data-testid="person-post-new"
+          >
+            {title ? `Adaugă postul ${title}` : 'Adaugă postul'}
+          </Button>
+          {shared}
+        </div>
+      ) : (
+        <>
+          {shared}
+          {decided && <Tag tone="success">Ales</Tag>}
+          <div role="group" aria-labelledby="post-title" className="grid gap-2">
+            {orderedByClosest(positions, group?.closestId ?? group?.proposedId ?? null).map(
+              (position) => (
+                <Option
+                  key={position.id}
+                  checked={decided && chosen === position.id}
+                  onSelect={() => choose(position.id)}
+                  label={position.name}
+                  tag={
+                    position.id === (group?.closestId ?? group?.proposedId) ? (
+                      <Tag tone="muted">
+                        {group?.match === 'near' ? 'Propus' : 'Cel mai apropiat'}
+                      </Tag>
+                    ) : null
+                  }
+                  detail={positionDetail(position)}
+                  testId="person-post-option"
+                />
+              )
+            )}
             <Option
-              key={position.id}
-              checked={decided && chosen === position.id}
-              onSelect={() => choose(position.id)}
-              label={position.name}
-              tag={
-                position.id === (group?.closestId ?? group?.proposedId) ? (
-                  <Tag tone="muted">{group?.match === 'near' ? 'Propus' : 'Cel mai apropiat'}</Tag>
-                ) : null
-              }
-              detail={positionDetail(position)}
-              testId="person-post-option"
+              checked={false}
+              onSelect={() => setAdding(true)}
+              label={title ? `Adaugă un post nou: ${title}` : 'Adaugă un post nou'}
+              detail="Se deschide fereastra postului, aceeași ca în fila Posturi de lucru. Postul se adaugă la client acum; riscurile și echipamentul le completezi după, pe pagina postului."
+              testId="person-post-new"
             />
-          )
-        )}
-        <Option
-          checked={false}
-          onSelect={() => setAdding(true)}
-          label={title ? `Adaugă un post nou: ${title}` : 'Adaugă un post nou'}
-          detail="Se deschide fereastra postului, aceeași ca în fila Posturi de lucru. Postul se adaugă la client acum; riscurile și echipamentul le completezi după, pe pagina postului."
-          testId="person-post-new"
-        />
-      </div>
+          </div>
+        </>
+      )}
       <JobPositionDialog
         clientId={clientId}
         editing={adding ? 'new' : null}
@@ -230,7 +249,7 @@ export function PostDecision({
         onClose={() => setAdding(false)}
         onSaved={(position) => choose(position.id)}
       />
-    </DecideCard>
+    </DecideRow>
   );
 }
 
@@ -292,12 +311,13 @@ export function CnpDecision({
       return withField(cleared, person.id, 'cnp', null);
     });
   return (
-    <DecideCard
+    <DecideRow
       id="cnp"
-      title={
+      title="CNP-ul"
+      subtitle={
         digit !== null && digit < ordinals.length
-          ? `${ordinals[digit]!.charAt(0).toUpperCase()}${ordinals[digit]!.slice(1)} cifră din CNP nu se citește`
-          : 'CNP-ul de pe fișă nu e valid'
+          ? `${ordinals[digit]!.charAt(0).toUpperCase()}${ordinals[digit]!.slice(1)} cifră nu se citește`
+          : 'Cel de pe fișă nu e valid'
       }
     >
       {written && (
@@ -360,7 +380,7 @@ export function CnpDecision({
           testId="person-cnp-none"
         />
       </div>
-    </DecideCard>
+    </DecideRow>
   );
 }
 
@@ -383,19 +403,18 @@ export function WorkplaceDecision({
     workplaceStatus(context.changes, group) === 'decided';
   const choose = (id: string | null) => onChange((current) => withWorkplace(current, group.id, id));
   return (
-    <DecideCard
+    <DecideRow
       id="workplace"
       tone="warning"
-      title={
-        <>
-          {group.text ? `Locul de muncă «${group.text}»` : 'Fișa nu scrie locul de muncă'}
-          {group.personIds.length > 1 && (
-            <span className="font-normal text-muted-foreground">
-              {' '}
-              · {roCount(group.personIds.length, 'persoană', 'persoane')}
-            </span>
-          )}
-        </>
+      title="Locul de muncă"
+      subtitle={
+        group.text ? (
+          <>
+            Pe fișă: <span className="font-semibold text-foreground">{group.text}</span>
+          </>
+        ) : (
+          'Fișa nu scrie locul de muncă'
+        )
       }
     >
       <p className="text-sm">
@@ -424,7 +443,7 @@ export function WorkplaceDecision({
           label="Fără loc de muncă deocamdată"
         />
       </div>
-    </DecideCard>
+    </DecideRow>
   );
 }
 
@@ -439,6 +458,50 @@ export function FieldChoice({
   name: FieldName;
   onChange: Update;
 }) {
+  const id = `choice-${name}`;
+  const count = resolveField(context, person, name).options.length;
+  return (
+    <DecideRow
+      id={id}
+      title={fieldLabels[name]}
+      subtitle={`Fișele scriu ${roCount(count, 'variantă', 'variante')}`}
+    >
+      <ChoiceCards
+        context={context}
+        person={person}
+        name={name}
+        labelledBy={`${id}-title`}
+        onChange={onChange}
+      />
+    </DecideRow>
+  );
+}
+
+export type OtherCommit = () => 'committed' | 'empty' | 'invalid';
+
+export function ChoiceCards({
+  context,
+  person,
+  name,
+  labelledBy,
+  stacked = false,
+  disabled = false,
+  commitRef,
+  onHighlight,
+  onTyping,
+  onChange,
+}: {
+  context: ReviewContext;
+  person: Person;
+  name: FieldName;
+  labelledBy: string;
+  stacked?: boolean;
+  disabled?: boolean;
+  commitRef?: RefObject<OtherCommit | null>;
+  onHighlight?: (option: { pageIds: string[]; value: string } | null) => void;
+  onTyping?: (typing: boolean) => void;
+  onChange: Update;
+}) {
   const field = resolveField(context, person, name);
   const pages = pagesOf(context, person.id);
   const change = context.changes.people[person.id]?.fields?.[name];
@@ -446,15 +509,12 @@ export function FieldChoice({
   const [other, setOther] = useState(typed === undefined || typed === null ? '' : String(typed));
   const [otherOpen, setOtherOpen] = useState(typed !== undefined);
   const [otherError, setOtherError] = useState<string | null>(null);
-  const id = `choice-${name}`;
-  const inputId = `${id}-other`;
-  const show = (value: string | number) =>
-    name === 'birthDate' || name === 'hiredAt' || name === 'leftOn'
-      ? dateLabel(String(value))
-      : String(value);
+  const group = useId();
+  const inputId = `${group}-other`;
+  const picked = otherOpen ? null : (change?.option ?? null);
+  const anyPicked = otherOpen || picked !== null;
 
-  function submitOther(event: FormEvent) {
-    event.preventDefault();
+  function takeOther() {
     const problem =
       other.trim() === ''
         ? dateFields.has(name)
@@ -462,76 +522,140 @@ export function FieldChoice({
           : 'Scrie valoarea.'
         : fieldProblem(name, other);
     setOtherError(problem);
-    if (problem) return;
+    if (problem) return false;
     onChange((current) => withFields(current, person.id, { [name]: typedValue(name, other) }));
+    return true;
   }
 
+  function submitOther(event: FormEvent) {
+    event.preventDefault();
+    takeOther();
+  }
+
+  useImperativeHandle(commitRef, () => () => {
+    if (!otherOpen) return 'empty';
+    if (other.trim() === '') {
+      if (typed !== undefined) onChange((current) => withField(current, person.id, name, null));
+      return 'empty';
+    }
+    if (typed !== undefined && String(typed) === other.trim()) return 'committed';
+    return takeOther() ? 'committed' : 'invalid';
+  });
+
+  const chosen = field.options.find((option) => option.index === picked);
+  const highlight = (option: (typeof field.options)[number] | undefined) =>
+    onHighlight?.(
+      option ? { pageIds: option.pageIds, value: showChoice(name, option.value) } : null
+    );
+
   return (
-    <DecideCard id={id} title={`${fieldLabels[name]}: fișele scriu valori diferite`}>
-      <div role="group" aria-labelledby={`${id}-title`} className="grid gap-2">
-        {field.options.map((option) => (
-          <Option
+    <div
+      role="radiogroup"
+      aria-labelledby={labelledBy}
+      className={cn('flex min-w-0 gap-2', stacked ? 'flex-col' : 'flex-wrap')}
+      onPointerLeave={() => highlight(chosen)}
+    >
+      {field.options.map((option) => {
+        const checked = picked === option.index;
+        return (
+          <div
             key={option.index}
-            checked={!otherOpen && change?.option === option.index}
-            onSelect={() => {
-              setOtherOpen(false);
-              onChange((current) => withField(current, person.id, name, { option: option.index }));
+            className={cn(choiceCard, stacked && 'w-full justify-between')}
+            data-checked={checked}
+            data-testid="person-choice-option"
+            onPointerEnter={() => highlight(option)}
+          >
+            <label className="flex min-w-0 cursor-pointer items-center gap-2.5 py-2 pr-3 pl-3 text-sm">
+              <input
+                type="radio"
+                name={group}
+                checked={checked}
+                disabled={disabled}
+                onChange={() => {
+                  setOtherOpen(false);
+                  highlight(option);
+                  onChange((current) =>
+                    withField(current, person.id, name, { option: option.index })
+                  );
+                }}
+                className="size-4 shrink-0 cursor-pointer accent-primary"
+              />
+              <span className="min-w-0 wrap-anywhere">{showChoice(name, option.value)}</span>
+            </label>
+            <PhotoNumbers
+              pages={pages}
+              pageIds={option.pageIds}
+              about={`${fieldLabels[name]}: ${showChoice(name, option.value)}`}
+              choice={name}
+              tabIndex={anyPicked && !checked ? -1 : undefined}
+              className="my-2 mr-2 border-l pl-2"
+            />
+          </div>
+        );
+      })}
+      <div
+        className={cn(choiceCard, (otherOpen || stacked) && 'basis-full flex-wrap')}
+        data-checked={otherOpen}
+        onPointerEnter={() => highlight(undefined)}
+      >
+        <label className="flex min-w-0 cursor-pointer items-center gap-2.5 py-2 pr-3 pl-3 text-sm">
+          <input
+            type="radio"
+            name={group}
+            checked={otherOpen}
+            disabled={disabled}
+            onChange={() => {
+              setOtherOpen(true);
+              highlight(undefined);
             }}
-            label={show(option.value)}
-            tag={
-              <span className="flex gap-1">
-                {option.pageIds.map((pageId) => (
-                  <PageButton key={pageId} pages={pages} pageId={pageId} />
-                ))}
-              </span>
-            }
+            className="size-4 shrink-0 cursor-pointer accent-primary"
+            data-testid="person-choice-other"
           />
-        ))}
-        <Option
-          checked={otherOpen}
-          onSelect={() => setOtherOpen(true)}
-          label="Altă valoare"
-          testId="person-choice-other"
-          detail={
-            otherOpen ? (
-              <form
-                className="relative grid gap-1.5 text-foreground"
-                noValidate
-                onSubmit={submitOther}
-              >
-                <span className="flex flex-wrap items-center gap-2">
-                  <label htmlFor={inputId} className="sr-only">
-                    {fieldTitles[name]}
-                  </label>
-                  <FieldInput
-                    id={inputId}
-                    name={name}
-                    value={other}
-                    autoFocus={typed === undefined}
-                    invalid={Boolean(otherError)}
-                    describedBy={otherError ? `${inputId}-error` : undefined}
-                    className="max-w-xs"
-                    onChange={setOther}
-                  />
-                  <Button type="submit" variant="outline" data-testid="person-choice-other-use">
-                    Folosește
-                  </Button>
+          Altă valoare
+        </label>
+        {otherOpen && (
+          <form
+            className="grid basis-full gap-1.5 px-3 pb-3"
+            noValidate
+            onSubmit={submitOther}
+            onFocus={() => onTyping?.(true)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) onTyping?.(false);
+            }}
+          >
+            <fieldset disabled={disabled} className="contents">
+              <span className="flex flex-wrap items-center gap-2">
+                <label htmlFor={inputId} className="sr-only">
+                  {fieldTitles[name]}
+                </label>
+                <FieldInput
+                  id={inputId}
+                  name={name}
+                  value={other}
+                  invalid={Boolean(otherError)}
+                  describedBy={otherError ? `${inputId}-error` : undefined}
+                  className="max-w-xs min-w-0 flex-1"
+                  onChange={setOther}
+                />
+                <Button type="submit" variant="outline" data-testid="person-choice-other-use">
+                  Folosește
+                </Button>
+              </span>
+              {otherError && (
+                <span id={`${inputId}-error`} className="text-[13px] text-destructive">
+                  {otherError}
                 </span>
-                {otherError && (
-                  <span id={`${inputId}-error`} className="text-[13px] text-destructive">
-                    {otherError}
-                  </span>
-                )}
-              </form>
-            ) : (
-              'O scrii tu, dacă niciuna nu e cea corectă.'
-            )
-          }
-        />
+              )}
+            </fieldset>
+          </form>
+        )}
       </div>
-    </DecideCard>
+    </div>
   );
 }
+
+const choiceCard =
+  'flex max-w-full min-w-0 items-center rounded-[10px] border bg-card has-checked:border-primary has-checked:ring-1 has-checked:ring-primary has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50';
 
 export function MatchDecision({
   context,
@@ -567,7 +691,7 @@ export function MatchDecision({
     </Link>
   );
   return (
-    <DecideCard
+    <DecideRow
       id="match"
       title={
         asked
@@ -643,6 +767,6 @@ export function MatchDecision({
           />
         )}
       </div>
-    </DecideCard>
+    </DecideRow>
   );
 }

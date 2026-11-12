@@ -119,7 +119,7 @@ describe('the import action bar', () => {
     {
       name: 'failed save',
       change: { error: 'Nu am putut salva.', conflict: false },
-      label: 'Ultima schimbare nu s-a salvat.',
+      label: 'Ultima schimbare nu s-a salvat. Nu am putut salva.',
       action: 'Salvează din nou',
       callback: 'retry' as const,
     },
@@ -210,5 +210,98 @@ describe('the import action bar', () => {
 
     expect(within(bar).getByRole('button', { name: 'Continuă' })).toBeTruthy();
     expect(bar.style.bottom).toBe('64px');
+  });
+
+  it.each([
+    { name: 'saved', change: {} },
+    { name: 'failed', change: { error: 'Nu am putut salva.' } },
+  ])('lays out a bar without leading content as before ($name)', ({ change }) => {
+    render(<ReviewBar save={{ ...saved(), ...change }} />);
+    expect(
+      screen.getByRole('region', { name: 'Verificarea importului' }).outerHTML
+    ).toMatchSnapshot();
+  });
+});
+
+function PersonBar({ save }: { save: ImportSaveState }) {
+  return (
+    <ImportActionBar
+      label="Verificarea persoanei"
+      save={save}
+      leading={<div role="group" aria-label="Fotografiile persoanei" />}
+      summary={<button type="button">4 de hotărât</button>}
+    >
+      <button type="button">Persoana următoare</button>
+    </ImportActionBar>
+  );
+}
+
+describe('the import action bar with leading content', () => {
+  it('shows the leading content first, the summary above the save status, and the buttons last', () => {
+    render(<PersonBar save={saved()} />);
+    const bar = screen.getByRole('region', { name: 'Verificarea persoanei' });
+    const order = [
+      within(bar).getByRole('group', { name: 'Fotografiile persoanei' }),
+      within(bar).getByRole('button', { name: '4 de hotărât' }),
+      within(bar).getByRole('status'),
+      within(bar).getByRole('button', { name: 'Persoana următoare' }),
+    ];
+    for (const [index, element] of order.entries()) {
+      const next = order[index + 1];
+      if (next)
+        expect(
+          element.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+    }
+    expect(within(bar).getByRole('status').textContent).toBe('Salvat în propunere');
+  });
+
+  it('announces a failed save as an alert and offers to save again beside the summary', async () => {
+    const state = { ...saved(), error: 'Nu am putut salva.' };
+    render(<PersonBar save={state} />);
+    const bar = screen.getByRole('region', { name: 'Verificarea persoanei' });
+    const alert = within(bar).getByRole('alert');
+    expect(alert.textContent).toBe('Ultima schimbare nu s-a salvat. Nu am putut salva.');
+    expect(alert.title).toBe('Nu am putut salva.');
+    const retry = within(bar).getByRole('button', { name: 'Salvează din nou' });
+    expect(retry.parentElement).toBe(
+      within(bar)
+        .getByRole('button', { name: '4 de hotărât' })
+        .closest('[data-testid="import-action-summary"]')!.parentElement
+    );
+    await userEvent.click(retry);
+    expect(state.retry).toHaveBeenCalledOnce();
+    expect(within(bar).getByRole('button', { name: 'Persoana următoare' })).toBeTruthy();
+  });
+
+  it('keeps only the summary and the save status above the phone keyboard', () => {
+    vi.stubGlobal('innerHeight', 844);
+    const viewport = Object.assign(new EventTarget(), { height: 844, width: 390, offsetTop: 0 });
+    vi.stubGlobal('visualViewport', viewport);
+    const media = window.matchMedia('(pointer: coarse)');
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({ ...media, media: query, matches: query === '(pointer: coarse)' }))
+    );
+    render(
+      <main>
+        <label>
+          Altă valoare
+          <input />
+        </label>
+        <PersonBar save={saved()} />
+      </main>
+    );
+    act(() => screen.getByRole('textbox', { name: 'Altă valoare' }).focus());
+    act(() => {
+      viewport.height = 500;
+      viewport.dispatchEvent(new Event('resize'));
+    });
+    const bar = screen.getByRole('region', { name: 'Verificarea persoanei' });
+    expect(bar.dataset.keyboardOpen).toBe('true');
+    expect(within(bar).queryByRole('group', { name: 'Fotografiile persoanei' })).toBeNull();
+    expect(within(bar).queryByRole('button', { name: 'Persoana următoare' })).toBeNull();
+    expect(within(bar).getByRole('button', { name: '4 de hotărât' })).toBeTruthy();
+    expect(within(bar).getByRole('status').textContent).toBe('Salvat în propunere');
   });
 });

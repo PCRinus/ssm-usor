@@ -46,10 +46,12 @@ export function ImportReviewIssues({
 
 export function ImportIssueBadge({
   tone,
+  hint,
   onClick,
   children,
 }: {
   tone: 'warning' | 'destructive';
+  hint?: string;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -58,7 +60,7 @@ export function ImportIssueBadge({
       type="button"
       onClick={onClick}
       className="group inline-flex min-h-11 cursor-pointer items-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-0"
-      title="Mergi la primul bloc care are nevoie de atenție"
+      title={hint ?? 'Mergi la primul bloc care are nevoie de atenție'}
     >
       <Tag
         tone={tone}

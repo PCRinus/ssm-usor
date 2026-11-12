@@ -17,6 +17,7 @@ export function ImportActionBar({
   summary,
   note,
   error,
+  leading,
   children,
   testId = 'import-action-bar',
 }: {
@@ -25,6 +26,7 @@ export function ImportActionBar({
   summary?: ReactNode;
   note?: ReactNode;
   error?: string | null;
+  leading?: ReactNode;
   children: ReactNode;
   testId?: string;
 }) {
@@ -122,9 +124,12 @@ export function ImportActionBar({
         style={{ ...bounds, bottom: keyboard.open ? keyboard.bottom : (bounds?.bottom ?? 0) }}
         className={cn(
           'fixed bottom-0 z-20 grid gap-3 border-t border-sidebar-border bg-sidebar px-5 pt-3 text-sidebar-foreground shadow-[0_-4px_14px_rgb(24_52_46/0.08)] sm:px-8 sm:pt-4 lg:px-10',
+          leading && 'md:pt-2.5',
           keyboard.open
             ? 'pb-3'
-            : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]'
+            : leading
+              ? 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-[calc(0.625rem+env(safe-area-inset-bottom))]'
+              : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]'
         )}
       >
         {error && (
@@ -132,45 +137,72 @@ export function ImportActionBar({
             {error}
           </p>
         )}
-        <div className="grid min-w-0 gap-3 lg:flex lg:items-center lg:justify-between lg:gap-6">
-          <div className="grid min-w-0 gap-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-              {summary && (
-                <div className="text-sm font-semibold" data-testid="import-action-summary">
-                  {summary}
+        {leading ? (
+          <div className="grid min-w-0 gap-2.5 md:flex md:items-center md:gap-6">
+            {!keyboard.open && (
+              <div className="min-w-0 md:flex-[0_1_auto]" data-testid="import-action-leading">
+                {leading}
+              </div>
+            )}
+            <div className="flex min-w-0 items-center justify-between gap-3 md:ml-auto md:shrink-0 md:gap-6">
+              <div className="grid min-w-0 justify-items-start gap-0.5 md:shrink-0 md:border-l md:border-sidebar-border md:pl-6 md:whitespace-nowrap">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  {summary && (
+                    <div className="text-sm font-semibold" data-testid="import-action-summary">
+                      {summary}
+                    </div>
+                  )}
+                  {save && <SaveRecovery save={save} />}
+                </div>
+                {save && <SaveLabel save={save} />}
+                {!keyboard.open && note && (
+                  <span className="text-[13px] text-muted-foreground">{note}</span>
+                )}
+              </div>
+              {!keyboard.open && (
+                <div
+                  className="flex shrink-0 items-center gap-2"
+                  data-testid="import-action-buttons"
+                >
+                  {children}
                 </div>
               )}
-              {save && <ImportSaveStatus save={save} />}
             </div>
-            {!keyboard.open && note && (
-              <span className="text-[13px] text-muted-foreground">{note}</span>
+          </div>
+        ) : (
+          <div className="grid min-w-0 gap-3 lg:flex lg:items-center lg:justify-between lg:gap-6">
+            <div className="grid min-w-0 gap-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                {summary && (
+                  <div className="text-sm font-semibold" data-testid="import-action-summary">
+                    {summary}
+                  </div>
+                )}
+                {save && <ImportSaveStatus save={save} />}
+              </div>
+              {!keyboard.open && note && (
+                <span className="text-[13px] text-muted-foreground">{note}</span>
+              )}
+            </div>
+            {!keyboard.open && (
+              <div
+                className="flex min-w-0 flex-wrap items-center gap-2 max-sm:[&>[data-size=default]]:flex-1 max-sm:[&>*>svg]:shrink-0 sm:shrink-0 sm:justify-end"
+                data-testid="import-action-buttons"
+              >
+                {children}
+              </div>
             )}
           </div>
-          {!keyboard.open && (
-            <div
-              className="flex min-w-0 flex-wrap items-center gap-2 max-sm:[&>[data-size=default]]:flex-1 max-sm:[&>*>svg]:shrink-0 sm:shrink-0 sm:justify-end"
-              data-testid="import-action-buttons"
-            >
-              {children}
-            </div>
-          )}
-        </div>
+        )}
       </section>
     </div>
   );
 }
 
+const saveFailed = (save: ImportSaveState) => save.conflict || Boolean(save.error);
+
 function ImportSaveStatus({ save }: { save: ImportSaveState }) {
-  const failed = save.conflict || Boolean(save.error);
-  const saving = save.saving && !failed;
-  const Icon = failed ? TriangleAlert : saving ? LoaderCircle : Check;
-  const label = save.conflict
-    ? 'Propunerea s-a schimbat. Schimbarea ta nu s-a salvat.'
-    : save.error
-      ? 'Ultima schimbare nu s-a salvat.'
-      : saving
-        ? 'Se salvează…'
-        : 'Salvat în propunere';
+  const failed = saveFailed(save);
   return (
     <div
       data-testid={
@@ -181,27 +213,65 @@ function ImportSaveStatus({ save }: { save: ImportSaveState }) {
         failed ? 'text-destructive' : 'text-muted-foreground'
       )}
     >
-      <span
-        role="status"
-        aria-live="polite"
-        className="flex items-center gap-1.5"
-        data-testid="import-save-status"
-      >
-        <Icon
-          aria-hidden="true"
-          className={cn('size-4 shrink-0', saving && 'animate-spin motion-reduce:animate-none')}
-        />
-        {label}
-      </span>
-      {failed && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={save.conflict ? () => void save.reload() : save.retry}
-        >
-          {save.conflict ? 'Reîncarcă propunerea' : 'Salvează din nou'}
-        </Button>
-      )}
+      <SaveText save={save} role="status" />
+      <SaveRecovery save={save} />
     </div>
+  );
+}
+
+function SaveLabel({ save }: { save: ImportSaveState }) {
+  const failed = saveFailed(save);
+  return (
+    <div
+      data-testid={
+        save.conflict ? 'import-review-conflict' : save.error ? 'import-review-error' : undefined
+      }
+      className={cn('text-[13px]', failed ? 'text-destructive' : 'text-muted-foreground')}
+    >
+      <SaveText key={String(failed)} save={save} role={failed ? 'alert' : 'status'} />
+    </div>
+  );
+}
+
+function SaveText({ save, role }: { save: ImportSaveState; role: 'status' | 'alert' }) {
+  const failed = saveFailed(save);
+  const saving = save.saving && !failed;
+  const Icon = failed ? TriangleAlert : saving ? LoaderCircle : Check;
+  const label = save.conflict
+    ? 'Propunerea s-a schimbat. Schimbarea ta nu s-a salvat.'
+    : save.error
+      ? 'Ultima schimbare nu s-a salvat.'
+      : saving
+        ? 'Se salvează…'
+        : 'Salvat în propunere';
+  const cause = !save.conflict && save.error && save.error !== label ? save.error : null;
+  return (
+    <span
+      role={role}
+      aria-live={role === 'status' ? 'polite' : undefined}
+      title={cause ?? undefined}
+      className="flex items-center gap-1.5"
+      data-testid="import-save-status"
+    >
+      <Icon
+        aria-hidden="true"
+        className={cn('size-4 shrink-0', saving && 'animate-spin motion-reduce:animate-none')}
+      />
+      {label}
+      {cause && <span className="sr-only"> {cause}</span>}
+    </span>
+  );
+}
+
+function SaveRecovery({ save }: { save: ImportSaveState }) {
+  if (!saveFailed(save)) return null;
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={save.conflict ? () => void save.reload() : save.retry}
+    >
+      {save.conflict ? 'Reîncarcă propunerea' : 'Salvează din nou'}
+    </Button>
   );
 }

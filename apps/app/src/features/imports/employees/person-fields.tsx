@@ -1,6 +1,5 @@
 import { bloodGroups, rhFactors } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogBody,
@@ -12,6 +11,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Pencil } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 
 import { DatePicker } from '@/components/date-picker';
@@ -20,6 +20,7 @@ import { Field } from '@/components/form-field';
 import { EditedTag, Tag } from '../review-parts';
 import {
   type Changes,
+  type Decision,
   effectiveCnp,
   type FieldName,
   fieldTitles,
@@ -33,6 +34,7 @@ import {
   type ReviewContext,
   withField,
 } from './employee-review-model';
+import { PhotoNumber } from './person-photos';
 import {
   compareWithApp,
   dateFields,
@@ -41,7 +43,6 @@ import {
   showValue,
   typedValue,
 } from './person-values';
-import { PageButton } from './photo-column';
 import { withFields } from './review-changes';
 
 type Update = (mutate: (current: Changes) => Changes) => void;
@@ -77,61 +78,109 @@ function shownField(context: ReviewContext, person: Person, name: FieldName): Re
   return name === 'cnp' ? { ...field, value: effectiveCnp(context, person) } : field;
 }
 
+const editLabels: Record<FieldGroup, string> = {
+  personal: 'Modifică datele personale',
+  employment: 'Modifică datele de angajare',
+  medical: 'Modifică datele medicale și celelalte',
+};
+
+const fieldDecisionKeys = (name: FieldName) => [
+  `missing-${name}`,
+  `invalid-${name}`,
+  `duplicate-${name}`,
+  ...(name === 'birthDate' ? ['birthDate'] : []),
+];
+
 function FieldRow({
   context,
   person,
   name,
   field,
+  decisions,
   extra,
+  onEdit,
 }: {
   context: ReviewContext;
   person: Person;
   name: FieldName;
   field: ResolvedField;
+  decisions: Decision[];
   extra?: ReactNode;
+  onEdit: (name: FieldName) => void;
 }) {
   const pages = pagesOf(context, person.id);
   const shown = showValue(name, field.value);
   const pageId = field.options.find((option) => option.value === field.value)?.pageIds[0];
+  const keys = fieldDecisionKeys(name);
+  const own = decisions.filter((decision) => keys.includes(decision.key));
   return (
-    <div className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto] items-start gap-3 py-2 text-sm">
+    <div
+      id={`field-${name}`}
+      tabIndex={-1}
+      data-testid="person-field"
+      onClick={(event) => {
+        if (!(event.target as HTMLElement).closest('button, a')) onEdit(name);
+      }}
+      className="-mx-1.5 grid scroll-mt-24 cursor-pointer grid-cols-[minmax(0,8.75rem)_minmax(0,1fr)_auto] items-start gap-3 rounded-md border-t px-1.5 py-2.5 text-sm outline-none first:border-t-0 hover:bg-secondary/50 focus-visible:bg-secondary/60"
+    >
       <dt className="text-muted-foreground">{fieldTitles[name]}</dt>
-      <dd className="grid gap-1">
-        <span className="flex flex-wrap items-center gap-2">
-          {shown ?? <span className="text-muted-foreground">—</span>}
+      <dd className="grid min-w-0 gap-1">
+        <span className="flex flex-wrap items-center gap-2 wrap-anywhere">
+          {field.choice ? (
+            <span className="text-muted-foreground">De ales mai sus</span>
+          ) : (
+            (shown ?? <span className="text-muted-foreground">—</span>)
+          )}
           {field.edited && <EditedTag />}
         </span>
+        {own.map((decision) => (
+          <Tag key={decision.key} tone="destructive" className="w-fit whitespace-normal">
+            {decision.label}
+          </Tag>
+        ))}
         {extra}
       </dd>
-      {pageId ? <PageButton pages={pages} pageId={pageId} /> : <span />}
+      {pageId ? (
+        <PhotoNumber
+          pages={pages}
+          pageId={pageId}
+          about={`${fieldTitles[name]}: ${shown ?? 'necompletat'}`}
+        />
+      ) : (
+        <span />
+      )}
     </div>
   );
 }
 
-export function FieldsCard({
+function FieldGroupBlock({
   context,
   person,
   group,
+  decisions,
   onChange,
   notes,
 }: {
   context: ReviewContext;
   person: Person;
   group: FieldGroup;
+  decisions: Decision[];
   onChange: Update;
   notes?: Partial<Record<FieldName, ReactNode>>;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState<FieldName | 'all' | null>(null);
   const { title, names } = groups[group];
   return (
-    <Card className="gap-1 px-5 py-4" id={group} data-testid={`person-fields-${group}`}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">{title}</h2>
-        <Button type="button" variant="link" size="sm" onClick={() => setEditing(true)}>
-          Schimbă<span className="sr-only"> {title.toLowerCase()}</span>
-        </Button>
+    <div
+      className="grid min-w-0 scroll-mt-24 content-start gap-1"
+      id={group}
+      data-testid={`person-fields-${group}`}
+    >
+      <div className="flex min-h-9 items-center justify-between gap-2">
+        <h3 className="text-[15px] font-semibold">{title}</h3>
+        <EditIcon label={editLabels[group]} onClick={() => setEditing('all')} />
       </div>
-      <dl className="divide-y">
+      <dl>
         {names.map((name) => (
           <FieldRow
             key={name}
@@ -139,7 +188,9 @@ export function FieldsCard({
             person={person}
             name={name}
             field={shownField(context, person, name)}
+            decisions={decisions}
             extra={notes?.[name]}
+            onEdit={setEditing}
           />
         ))}
       </dl>
@@ -149,11 +200,42 @@ export function FieldsCard({
           person={person}
           title={title}
           names={names}
-          onClose={() => setEditing(false)}
+          focus={editing === 'all' ? undefined : editing}
+          onClose={() => setEditing(null)}
           onSave={(values) => onChange((current) => withFields(current, person.id, values))}
         />
       )}
-    </Card>
+    </div>
+  );
+}
+
+export function PersonData({
+  context,
+  person,
+  decisions,
+  onChange,
+  notes,
+}: {
+  context: ReviewContext;
+  person: Person;
+  decisions: Decision[];
+  onChange: Update;
+  notes?: Partial<Record<FieldName, ReactNode>>;
+}) {
+  return (
+    <div className="grid gap-y-5 px-5 py-4 lg:grid-cols-3 lg:divide-x lg:[&>*]:px-5 lg:[&>*:first-child]:pl-0 lg:[&>*:last-child]:pr-0">
+      {(Object.keys(groups) as FieldGroup[]).map((group) => (
+        <FieldGroupBlock
+          key={group}
+          context={context}
+          person={person}
+          group={group}
+          decisions={decisions}
+          onChange={onChange}
+          notes={notes}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -242,6 +324,7 @@ function FieldsDialog({
   person,
   title,
   names,
+  focus,
   onClose,
   onSave,
 }: {
@@ -249,6 +332,7 @@ function FieldsDialog({
   person: Person;
   title: string;
   names: readonly FieldName[];
+  focus?: FieldName;
   onClose: () => void;
   onSave: (values: Partial<Record<FieldName, FieldValue | null>>) => void;
 }) {
@@ -282,7 +366,16 @@ function FieldsDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg" data-testid="person-fields-dialog">
+      <DialogContent
+        className="sm:max-w-lg"
+        data-testid="person-fields-dialog"
+        onOpenAutoFocus={(event) => {
+          const field = focus && document.getElementById(`person-field-${focus}`);
+          if (!field) return;
+          event.preventDefault();
+          field.focus();
+        }}
+      >
         <form onSubmit={submit} noValidate>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -331,34 +424,44 @@ function FieldsDialog({
 export function ExistingComparison({
   context,
   person,
+  decisions,
   onChange,
 }: {
   context: ReviewContext;
   person: Person;
+  decisions: Decision[];
   onChange: Update;
 }) {
   const [editing, setEditing] = useState<'added' | 'differs' | null>(null);
+  const [focus, setFocus] = useState<FieldName | undefined>();
   if (!isExisting(context, person)) return null;
   const { added, differs, same } = compareWithApp(context, person);
   const pages = pagesOf(context, person.id);
   const sheetValue = (name: FieldName, field: ResolvedField) =>
     context.changes.people[person.id]?.fields?.[name]?.value ?? field.options[0]?.value ?? null;
   return (
-    <div className="grid scroll-mt-32 gap-4" id="existing" data-testid="person-existing">
+    <div
+      className="grid gap-y-5 px-5 py-4 lg:grid-cols-3 lg:divide-x lg:[&>*]:px-5 lg:[&>*:first-child]:pl-0 lg:[&>*:last-child]:pr-0"
+      data-testid="person-existing"
+    >
       {added.length > 0 && (
-        <Card className="gap-2 px-5 py-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-semibold">
+        <div className="grid min-w-0 content-start gap-2">
+          <div className="flex min-h-9 items-center justify-between gap-2">
+            <h3 className="text-[15px] font-semibold">
               Se adaugă <span className="font-normal text-muted-foreground">{added.length}</span>
-            </h2>
-            <Button type="button" variant="link" size="sm" onClick={() => setEditing('added')}>
-              Schimbă<span className="sr-only"> ce se adaugă</span>
-            </Button>
+            </h3>
+            <EditIcon
+              label="Modifică ce se adaugă"
+              onClick={() => {
+                setFocus(undefined);
+                setEditing('added');
+              }}
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             Lucrătorul nu are încă aceste date în aplicație. Le preluăm de pe fișă.
           </p>
-          <dl className="divide-y">
+          <dl>
             {added.map(({ name }) => (
               <FieldRow
                 key={name}
@@ -366,6 +469,11 @@ export function ExistingComparison({
                 person={person}
                 name={name}
                 field={shownField(context, person, name)}
+                decisions={decisions}
+                onEdit={(name) => {
+                  setFocus(name);
+                  setEditing('added');
+                }}
               />
             ))}
           </dl>
@@ -375,22 +483,27 @@ export function ExistingComparison({
               person={person}
               title="Se adaugă"
               names={added.map(({ name }) => name)}
+              focus={focus}
               onClose={() => setEditing(null)}
               onSave={(values) => onChange((current) => withFields(current, person.id, values))}
             />
           )}
-        </Card>
+        </div>
       )}
       {differs.length > 0 && (
-        <Card className="gap-2 px-5 py-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-semibold">
+        <div className="grid min-w-0 content-start gap-2">
+          <div className="flex min-h-9 items-center justify-between gap-2">
+            <h3 className="text-[15px] font-semibold">
               Diferă de aplicație{' '}
               <span className="font-normal text-muted-foreground">{differs.length}</span>
-            </h2>
-            <Button type="button" variant="link" size="sm" onClick={() => setEditing('differs')}>
-              Schimbă<span className="sr-only"> ce diferă de aplicație</span>
-            </Button>
+            </h3>
+            <EditIcon
+              label="Modifică ce diferă de aplicație"
+              onClick={() => {
+                setFocus(undefined);
+                setEditing('differs');
+              }}
+            />
           </div>
           {editing === 'differs' && (
             <FieldsDialog
@@ -406,14 +519,16 @@ export function ExistingComparison({
             Lucrătorul are deja o valoare, iar fișa scrie alta. Păstrăm valoarea ta dacă nu alegi
             altfel.
           </p>
-          <dl className="divide-y">
+          <dl>
             {differs.map(({ name, field }) => {
               const sheet = sheetValue(name, field);
               const pageId = field.options.find((option) => option.value === sheet)?.pageIds[0];
               return (
                 <div
                   key={name}
-                  className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto] items-start gap-3 py-2 text-sm"
+                  id={`field-${name}`}
+                  tabIndex={-1}
+                  className="grid scroll-mt-24 grid-cols-[minmax(0,8.75rem)_minmax(0,1fr)_auto] items-start gap-3 border-t py-2.5 text-sm outline-none first:border-t-0 focus-visible:bg-secondary/60"
                   data-testid="person-existing-differs"
                 >
                   <dt className="text-muted-foreground">{fieldTitles[name]}</dt>
@@ -468,23 +583,47 @@ export function ExistingComparison({
                       </>
                     )}
                   </dd>
-                  {pageId ? <PageButton pages={pages} pageId={pageId} /> : <span />}
+                  {pageId ? (
+                    <PhotoNumber
+                      pages={pages}
+                      pageId={pageId}
+                      about={`${fieldTitles[name]}: ${showValue(name, sheet) ?? 'necompletat'}`}
+                    />
+                  ) : (
+                    <span />
+                  )}
                 </div>
               );
             })}
           </dl>
-        </Card>
+        </div>
       )}
       {same.length > 0 && (
-        <Card className="gap-1 px-5 py-4">
-          <h2 className="text-base font-semibold">
+        <div className="grid min-w-0 content-start gap-1">
+          <h3 className="text-[15px] font-semibold">
             Rămân la fel <span className="font-normal text-muted-foreground">{same.length}</span>
-          </h2>
+          </h3>
           <p className="text-sm text-muted-foreground">
             {same.map(({ name }) => fieldTitles[name]).join(', ')}: la fel pe fișă și în aplicație.
           </p>
-        </Card>
+        </div>
       )}
     </div>
+  );
+}
+
+function EditIcon({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      className="text-muted-foreground"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+    >
+      <Pencil aria-hidden="true" />
+    </Button>
   );
 }

@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -91,7 +91,7 @@ type Options = {
   employees?: unknown[];
   clientWorkplaces?: unknown[];
   clientPositions?: unknown[];
-  saveChanges?: () => Response;
+  saveChanges?: () => Response | undefined;
 };
 
 function mockEmployeeImport({
@@ -245,7 +245,7 @@ const saved = (index: number) =>
   bodyOf(`/imports/${importId}/employee-changes`, 'PUT', index) as {
     version: number;
     changes: {
-      people: Record<string, { state?: string; cnpCorrection?: boolean }>;
+      people: Record<string, { state?: string; cnpCorrection?: boolean; fields?: unknown }>;
       jobTitles: Record<string, { jobPositionId: string }>;
       rows: Record<string, { test?: boolean }>;
     };
@@ -716,7 +716,7 @@ describe('the person page', () => {
     expect(
       within(test).getByRole('switch', { name: /^Nu e inclus: Testul anual SSM, la / })
     ).toBeTruthy();
-    expect(within(test).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(within(test).getByRole('button', { name: /^Modifică testul anual din / })).toBeTruthy();
     expect(test.textContent).toContain('promovat pe fișă');
   });
 
@@ -755,7 +755,7 @@ describe('the person page', () => {
     mount(`${importPath}/pop`);
     const row = () => screen.getByTestId('person-training-row');
     await screen.findByTestId('person-page');
-    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(within(row()).getByRole('button', { name: /^Modifică instruirea din / })).toBeTruthy();
 
     await user.click(
       within(row()).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
@@ -767,7 +767,7 @@ describe('the person page', () => {
     await user.click(
       within(row()).getByRole('switch', { name: /^Nu e inclusă: Instruirea periodică din / })
     );
-    expect(within(row()).getByRole('button', { name: /^Schimbă/ })).toBeTruthy();
+    expect(within(row()).getByRole('button', { name: /^Modifică instruirea din / })).toBeTruthy();
     expect(document.activeElement).toBe(
       within(row()).getByRole('switch', { name: /^Inclusă: Instruirea periodică din / })
     );
@@ -811,7 +811,7 @@ describe('the person page', () => {
 
     await user.click(
       within(await screen.findByTestId('person-fields-personal')).getByRole('button', {
-        name: /Schimbă/,
+        name: 'Modifică datele personale',
       })
     );
     expect(label('lastName')).toBe('Nume*(obligatoriu)');
@@ -821,7 +821,7 @@ describe('the person page', () => {
 
     await user.click(
       within(screen.getByTestId('person-fields-employment')).getByRole('button', {
-        name: /Schimbă/,
+        name: 'Modifică datele de angajare',
       })
     );
     expect(label('jobTitle')).toContain('(obligatoriu)');
@@ -829,14 +829,17 @@ describe('the person page', () => {
     expect(label('employeeNumber')).toContain('(opțional)');
   });
 
-  it('names what is left, takes the corrected CNP and keeps the person to check', async () => {
+  it('counts what is left in the bar, takes the corrected CNP and keeps the person to check', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();
     mount(`${importPath}/toma`);
-    const decisions = await screen.findByTestId('person-decisions');
-    await waitFor(() =>
-      expect(within(decisions).getByRole('heading').textContent).toBe('4 lucruri de rezolvat aici')
-    );
+    const bar = await screen.findByTestId('person-bar');
+    expect(
+      await within(bar).findByRole('button', {
+        name: '4 de hotărât',
+        description: 'Mergi la următoarea alegere',
+      })
+    ).toBeTruthy();
     await user.click(
       within(screen.getByTestId('person-decide-cnp')).getByTestId('person-cnp-correction')
     );
@@ -844,45 +847,120 @@ describe('the person page', () => {
       expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1)
     );
     expect(saved(0).changes.people.toma).toEqual({ cnpCorrection: true });
-    expect(screen.getByTestId('person-decisions').textContent).toContain(
-      '3 lucruri de rezolvat aici'
-    );
+    expect(within(bar).getByRole('button', { name: '3 de hotărât' })).toBeTruthy();
 
     await user.click(screen.getByTestId('person-next'));
     await waitFor(() => expect(screen.getByTestId('person-page').dataset.state).toBe('to_check'));
     expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(1);
   });
 
-  it('names each photograph under the sheet by its place and kind, in full on hover', async () => {
-    mockEmployeeImport();
-    mount(`${importPath}/toma`);
-    const strip = within(await screen.findByTestId('person-photos')).getByRole('group');
-    const tiles = within(strip).getAllByRole('button');
-    expect(tiles.map((tile) => tile.textContent)).toEqual(['1. SSM, față', '2. SSM, periodice']);
-    expect(within(tiles[1]!).getByText('2. SSM, periodice').title).toBe('2. SSM, periodice');
-  });
-
-  it('opens the photograph beside the values large, on a click or with its button', async () => {
+  it('moves the focus to each thing left to decide in turn from the badge in the bar', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();
     mount(`${importPath}/toma`);
-    const photos = await screen.findByTestId('person-photos');
-    await user.click(await within(photos).findByTestId('sheet-page-image'));
-    let preview = await screen.findByTestId('photo-preview');
-    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('1 din 2');
+    const bar = await screen.findByTestId('person-bar');
+    const badge = await within(bar).findByRole('button', { name: /^4 de hotărât/ });
+    const visited: string[] = [];
+    for (let step = 0; step < 5; step += 1) {
+      await user.click(badge);
+      visited.push((document.activeElement as HTMLElement).id);
+    }
+    expect(new Set(visited.slice(0, 4)).size).toBe(visited.slice(0, 4).length);
+    expect(visited[4]).toBe(visited[0]);
+    expect(visited).toContain('cnp');
+  });
+
+  it('names the photographs in the bar by place and kind, and opens one large from there', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const strip = await screen.findByTestId('person-strip');
+    const group = within(strip).getByRole('group', { name: 'Fotografiile lui Toma Andrei' });
+    expect(group.getAttribute('aria-description')).toBe(
+      'Subliniate: fotografiile secțiunii de pe ecran'
+    );
+    const frames = within(group).getAllByRole('button');
+    expect(frames.map((frame) => frame.getAttribute('aria-label'))).toEqual([
+      'Fotografia 1 din 2, Fișa SSM, față',
+      'Fotografia 2 din 2, Fișa SSM, periodice',
+    ]);
+    expect(frames[0]!.dataset.ringed).toBe('true');
+
+    await user.click(frames[1]!);
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+    expect(within(preview).getByRole('heading', { level: 2 }).textContent).toBe('Toma Andrei');
+    expect(preview.textContent).toContain('Fotografia 2 din 2, Fișa SSM, periodice, IMG_p2.jpg');
     expect((await within(preview).findByRole<HTMLImageElement>('img')).src).toBe(
-      'https://storage.test/derived/IMG_p1.jpg'
+      'https://storage.test/derived/IMG_p2.jpg'
     );
     expect(within(preview).queryByTestId('photo-enlarge')).toBeNull();
-    await user.click(within(preview).getByTestId('photo-preview-next'));
-    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    expect(within(strip).getAllByRole('button')[1]!.dataset.ringed).toBe('true');
+  });
 
-    within(photos).getByTestId('photo-enlarge').focus();
+  it('steps through the photographs with the arrows and the strip under the large photo', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const [first] = await within(await screen.findByTestId('person-strip')).findAllByRole('button');
+    await user.click(first!);
+    const preview = await screen.findByTestId('photo-preview');
+    const position = () => within(preview).getByTestId('photo-preview-position').textContent;
+    expect(position()).toBe('1 din 2');
+    expect(within(preview).getByTestId('photo-preview-previous')).toHaveProperty('disabled', true);
+    expect(within(preview).getByTestId('photo-preview-next').getAttribute('aria-label')).toBe(
+      'Fotografia următoare'
+    );
+
+    await user.click(within(preview).getByTestId('photo-preview-next'));
+    expect(position()).toBe('2 din 2');
+    const viewerStrip = within(preview).getByTestId('viewer-strip');
+    const frames = within(viewerStrip).getAllByRole('button');
+    expect(frames[1]!.dataset.ringed).toBe('true');
+
+    await user.click(frames[0]!);
+    expect(position()).toBe('1 din 2');
+    expect(frames[0]!.getAttribute('aria-current')).toBe('true');
+    await user.keyboard('{ArrowRight}');
+    expect(position()).toBe('1 din 2');
+    expect(document.activeElement).toBe(frames[1]);
     await user.keyboard('{Enter}');
-    preview = await screen.findByTestId('photo-preview');
-    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+    expect(position()).toBe('2 din 2');
+
+    within(preview).getByRole('button', { name: 'Închide' }).focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(position()).toBe('1 din 2');
+  });
+
+  it('gives the focus back to the photo number that opened the large photo', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const number = within(await screen.findByTestId('person-training-row')).getByTestId(
+      'person-page-button'
+    );
+    await user.click(number);
+    await screen.findByTestId('photo-preview');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    expect(document.activeElement).toBe(number);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('opens the photograph a row was read from with the number beside the row', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const row = await screen.findByTestId('person-training-row');
+    const number = within(row).getByTestId('person-page-button');
+    const total = within(screen.getByTestId('person-strip')).getAllByRole('button').length;
+    await user.click(number);
+    const preview = await screen.findByTestId('photo-preview');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe(
+      `${number.textContent} din ${total}`
+    );
   });
 
   it('takes a value of its own where the sheets disagree, and checks the person with it', async () => {
@@ -917,13 +995,23 @@ describe('the person page', () => {
     const user = userEvent.setup();
     mount(`${importPath}/pop`);
     const card = await screen.findByTestId('person-decide-choice-hiredAt');
-    expect(screen.getByTestId('person-decisions').textContent).toContain(
-      'Data angajării: fișele scriu valori diferite'
-    );
+    expect(within(card).getByRole('heading').textContent).toBe('Data angajării');
+    expect(card.textContent).toContain('Fișele scriu 2 variante');
     await user.click(within(card).getByTestId('person-choice-other'));
-    await user.type(within(card).getByLabelText('Data angajării'), '01.04.2023');
+    await user.type(
+      within(card).getByLabelText('Data angajării', { selector: 'input' }),
+      '01.04.2023'
+    );
     await user.click(within(card).getByTestId('person-choice-other-use'));
-    await waitFor(() => expect(screen.queryByTestId('person-decisions')).toBeNull());
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('person-decisions')).getByTestId('section-status').textContent
+      ).toBe('Gata')
+    );
+    expect(within(card).getByLabelText('Data angajării', { selector: 'input' })).toHaveProperty(
+      'value',
+      '01.04.2023'
+    );
     expect(screen.getByTestId('person-fields-employment').textContent).toContain('01.04.2023');
 
     await user.click(screen.getByTestId('person-next'));
@@ -1006,6 +1094,463 @@ describe('the person page', () => {
     expect(bodyOf(`/imports/${importId}/employee-changes`, 'PUT')).toMatchObject({
       changes: { people: { lazar: { fields: { homeAddress: { option: 0, replace: true } } } } },
     });
+  });
+});
+
+function tomaWithChoices() {
+  const base = employeeDetail();
+  const proposal = base.employees!.proposal;
+  return employeeDetail({
+    employees: {
+      ...base.employees!,
+      proposal: {
+        ...proposal,
+        people: proposal.people.map((each) =>
+          each.id === 'toma'
+            ? {
+                ...each,
+                fields: {
+                  ...each.fields,
+                  homeAddress: {
+                    options: [
+                      { value: 'Str. Morii nr. 4, Cisnădie', pageIds: ['p1'] },
+                      { value: 'Str. Fabricii nr. 21, Sibiu', pageIds: ['p2'] },
+                    ],
+                  },
+                  hiredAt: {
+                    options: [
+                      { value: '2024-08-12', pageIds: ['p1'] },
+                      { value: '2024-08-21', pageIds: ['p2'] },
+                    ],
+                  },
+                },
+              }
+            : each
+        ),
+      },
+    },
+  });
+}
+
+describe('the choices and the bar of the person page', () => {
+  it('keeps a choice answered with the arrow keys on the page, with the focus in it', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const row = await screen.findByTestId('person-decide-choice-homeAddress');
+    await screen.findByTestId('person-decide-workplace');
+    expect(
+      within(screen.getByTestId('person-decisions')).getByTestId('person-decisions-count')
+        .textContent
+    ).toBe('5 alegeri');
+    within(row).getAllByRole('radio')[0]!.focus();
+    await user.keyboard('{ArrowDown}');
+    await waitFor(() =>
+      expect(
+        saved(requestsTo(`/imports/${importId}/employee-changes`, 'PUT').length - 1).changes.people
+          .toma
+      ).toEqual({ fields: { homeAddress: { option: 1 } } })
+    );
+    expect(screen.getByTestId('person-decide-choice-homeAddress')).toBe(row);
+    expect(row.contains(document.activeElement)).toBe(true);
+    expect(
+      within(row).getByRole<HTMLInputElement>('radio', { name: 'Str. Fabricii nr. 21, Sibiu' })
+        .checked
+    ).toBe(true);
+    expect(
+      within(screen.getByTestId('person-decisions')).getByTestId('person-decisions-count')
+        .textContent
+    ).toBe('4 alegeri');
+  });
+
+  it('names a photo number by what it stands beside', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    mount(`${importPath}/toma`);
+    const row = await screen.findByTestId('person-decide-choice-homeAddress');
+    expect(
+      within(row)
+        .getAllByTestId('person-page-button')
+        .map((each) => each.getAttribute('aria-label'))
+    ).toEqual([
+      'Fotografia 1, Domiciliul: Str. Morii nr. 4, Cisnădie',
+      'Fotografia 2, Domiciliul: Str. Fabricii nr. 21, Sibiu',
+    ]);
+    const training = screen.getAllByTestId('person-training-row')[0]!;
+    expect(within(training).getByTestId('person-page-button').getAttribute('aria-label')).toMatch(
+      /^Fotografia \d, Instruire SSM din \d\d\.\d\d\.\d{4}$/
+    );
+  });
+
+  it('goes back to the list from the last person', async () => {
+    mockEmployeeImport();
+    const runtime = mount(`${importPath}/lazar`);
+    const next = await screen.findByTestId('person-next');
+    expect(next.textContent).toBe('Înapoi la listă');
+    expect(next.getAttribute('aria-label')).toBeNull();
+    await userEvent.setup().click(next);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe(importPath));
+  });
+
+  it('names the next person on the bar button', async () => {
+    mockEmployeeImport();
+    mount(`${importPath}/pop`);
+    const next = await screen.findByTestId('person-next');
+    expect(next.textContent).toBe('Persoana următoare');
+    expect(next.getAttribute('aria-label')).toBe('Persoana următoare: Lazăr Radu');
+  });
+
+  it('says in the bar when a change was refused because the proposal changed', async () => {
+    mockEmployeeImport({
+      saveChanges: () =>
+        Response.json(
+          { error: 'conflict', message: 'changed', reason: 'import_changed' },
+          { status: 409 }
+        ),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    await user.click(await screen.findByRole('switch', { name: 'Inclus: Pop Elena' }));
+    const bar = screen.getByTestId('person-bar');
+    await within(bar).findByTestId('import-review-conflict');
+    expect(within(bar).getByRole('alert').textContent).toBe(
+      'Propunerea s-a schimbat. Schimbarea ta nu s-a salvat.'
+    );
+    expect(within(bar).getByRole('button', { name: 'Reîncarcă propunerea' })).toBeTruthy();
+  });
+
+  it('saves a refused change again from the bar', async () => {
+    let refuse = true;
+    mockEmployeeImport({
+      saveChanges: () =>
+        refuse ? Response.json({ error: 'internal', message: 'down' }, { status: 500 }) : undefined,
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    await user.click(await screen.findByRole('switch', { name: 'Inclus: Pop Elena' }));
+    const bar = screen.getByTestId('person-bar');
+    const alert = await within(bar).findByRole('alert');
+    expect(alert.textContent).toMatch(/^Ultima schimbare nu s-a salvat\. ./);
+    expect(alert.title).not.toBe('');
+    refuse = false;
+    await user.click(within(bar).getByRole('button', { name: 'Salvează din nou' }));
+    await waitFor(() =>
+      expect(within(bar).getByRole('status').textContent).toBe('Salvat în propunere')
+    );
+  });
+});
+
+describe('the large photo beside a choice', () => {
+  const lastSaved = () =>
+    saved(requestsTo(`/imports/${importId}/employee-changes`, 'PUT').length - 1).changes.people.toma
+      ?.fields;
+
+  it('picks a value in place, counts it at once and moves on to the next choice', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const row = await screen.findByTestId('person-decide-choice-homeAddress');
+    await user.click(within(row).getAllByTestId('person-page-button')[0]!);
+
+    const preview = await screen.findByTestId('photo-preview');
+    const choice = within(preview).getByTestId('viewer-choice');
+    expect(within(choice).getByRole('heading').textContent).toBe('Domiciliul');
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('1 din 2');
+    expect(within(preview).getByTestId('viewer-underline-caption').textContent).toBe(
+      'Alege o variantă ca să vezi pe ce fotografii apare'
+    );
+    const left = () =>
+      Number.parseInt(within(choice).getByTestId('viewer-decisions-left').textContent!);
+    const before = left();
+    expect(within(choice).queryByTestId('viewer-choice-picked')).toBeNull();
+
+    await user.click(within(choice).getByRole('radio', { name: 'Str. Fabricii nr. 21, Sibiu' }));
+    await waitFor(() => expect(lastSaved()).toEqual({ homeAddress: { option: 1 } }));
+    expect(left()).toBe(before - 1);
+    expect(within(choice).getByTestId('viewer-choice-picked').textContent).toBe('Aleasă');
+    expect(within(preview).getByTestId('viewer-underline-caption').textContent).toBe(
+      'Subliniate: fotografiile unde scrie Str. Fabricii nr. 21, Sibiu'
+    );
+    const frames = within(within(preview).getByTestId('viewer-strip')).getAllByRole('button');
+    expect(frames[1]!.dataset.underlined).toBe('true');
+
+    const next = within(choice).getByTestId('viewer-choice-next');
+    expect(next.textContent).toBe('Mai departe: data angajării');
+    await user.click(next);
+    expect(within(choice).getByRole('heading').textContent).toBe('Data angajării');
+    expect(within(choice).getByTestId('viewer-choice-next').textContent).toBe('Gata, închide');
+
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+  });
+
+  it('moves on from Altă valoare with the value typed, and leaves an empty one open', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const row = await screen.findByTestId('person-decide-choice-hiredAt');
+    await user.click(within(row).getAllByTestId('person-page-button')[0]!);
+    const choice = await screen.findByTestId('viewer-choice');
+    expect(within(choice).getByRole('heading').textContent).toBe('Data angajării');
+
+    await user.click(within(choice).getByTestId('person-choice-other'));
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    expect(within(choice).getByRole('heading').textContent).toBe('Domiciliul');
+    expect(requestsTo(`/imports/${importId}/employee-changes`, 'PUT')).toHaveLength(0);
+
+    await user.click(within(choice).getByTestId('person-choice-other'));
+    await user.type(
+      within(choice).getByLabelText('Domiciliul', { selector: 'input' }),
+      'Str. Viilor nr. 9, Sibiu'
+    );
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByTestId('photo-preview-position').textContent).toBe('1 din 2');
+    const next = within(choice).getByTestId('viewer-choice-next');
+    expect(next.textContent).toBe('Mai departe: data angajării');
+    await user.click(next);
+    await waitFor(() =>
+      expect(lastSaved()).toEqual({ homeAddress: { value: 'Str. Viilor nr. 9, Sibiu' } })
+    );
+    expect(within(choice).getByRole('heading').textContent).toBe('Data angajării');
+  });
+
+  it('lists what cites a photo opened from the strip, and opens a choice or a row from it', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const strip = await screen.findByTestId('person-strip');
+    await user.click(within(strip).getByRole('button', { name: /^Fotografia 2 din 2/ }));
+
+    const citations = await screen.findByTestId('viewer-citations');
+    const items = within(citations).getAllByTestId('viewer-citation');
+    expect(items.map((item) => item.textContent)).toEqual(
+      expect.arrayContaining(['Domiciliul', 'Data angajării'])
+    );
+    expect(items.filter((item) => item.textContent!.startsWith('Instruire SSM, '))).toHaveLength(2);
+
+    await user.click(within(citations).getByRole('button', { name: 'Domiciliul' }));
+    const choice = await screen.findByTestId('viewer-choice');
+    expect(within(choice).getByRole('heading').textContent).toBe('Domiciliul');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+
+    await user.click(within(strip).getByRole('button', { name: /^Fotografia 2 din 2/ }));
+    const rows = within(await screen.findByTestId('viewer-citations')).getAllByTestId(
+      'viewer-citation'
+    );
+    await user.click(rows.find((item) => item.textContent!.startsWith('Instruire SSM, '))!);
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    await waitFor(() => expect(document.activeElement?.id).toBe('row-r2'));
+  });
+});
+
+function tomaWithManyRows() {
+  const detail = tomaWithChoices();
+  const proposal = detail.employees!.proposal;
+  return employeeDetail({
+    employees: {
+      ...detail.employees!,
+      proposal: {
+        ...proposal,
+        pages: proposal.pages.map((page) =>
+          page.id === 'p2'
+            ? {
+                ...page,
+                rows: [
+                  ...page.rows,
+                  sheetRow('r7', { heldOn: '2023-03-01' }),
+                  sheetRow('r8', { heldOn: '2023-09-01' }),
+                  sheetRow('r9', { heldOn: '2024-03-01' }),
+                ],
+              }
+            : page
+        ),
+      },
+    },
+  });
+}
+
+describe('the large photo beside a choice, when saving and with the keyboard', () => {
+  const openHomeAddress = async (user: ReturnType<typeof userEvent.setup>) => {
+    const row = await screen.findByTestId('person-decide-choice-homeAddress');
+    await user.click(within(row).getAllByTestId('person-page-button')[0]!);
+    return screen.findByTestId('viewer-choice');
+  };
+
+  it('announces the value picked and the count left, and moves the focus to the next choice', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const choice = await openHomeAddress(user);
+    const status = within(choice).getByTestId('viewer-choice-status');
+    expect(status.getAttribute('role')).toBe('status');
+    expect(status.textContent).toBe('');
+    await user.click(within(choice).getByRole('radio', { name: 'Str. Fabricii nr. 21, Sibiu' }));
+    await waitFor(() => expect(status.textContent).toMatch(/^Aleasă\. \d+ de hotărât\.$/));
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    expect(document.activeElement).toBe(
+      within(choice).getByRole('heading', { name: 'Data angajării' })
+    );
+  });
+
+  it('shows a refused save beside the choice, without Aleasă, and saves it again', async () => {
+    let refuse = true;
+    mockEmployeeImport({
+      detail: tomaWithChoices(),
+      saveChanges: () =>
+        refuse ? Response.json({ error: 'internal', message: 'down' }, { status: 500 }) : undefined,
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const choice = await openHomeAddress(user);
+    await user.click(within(choice).getByRole('radio', { name: 'Str. Fabricii nr. 21, Sibiu' }));
+    const error = await within(choice).findByTestId('viewer-choice-save-error');
+    expect(error.getAttribute('role')).toBe('alert');
+    expect(error.textContent).toContain('Ultima schimbare nu s-a salvat.');
+    expect(within(choice).queryByTestId('viewer-choice-picked')).toBeNull();
+    refuse = false;
+    await user.click(within(error).getByRole('button', { name: 'Salvează din nou' }));
+    await within(choice).findByTestId('viewer-choice-picked');
+    expect(within(choice).queryByTestId('viewer-choice-save-error')).toBeNull();
+  });
+
+  it('stops the choices when the proposal changed meanwhile, and offers to reload it', async () => {
+    mockEmployeeImport({
+      detail: tomaWithChoices(),
+      saveChanges: () =>
+        Response.json(
+          { error: 'conflict', message: 'changed', reason: 'import_changed' },
+          { status: 409 }
+        ),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const choice = await openHomeAddress(user);
+    await user.click(within(choice).getByRole('radio', { name: 'Str. Fabricii nr. 21, Sibiu' }));
+    const error = await within(choice).findByTestId('viewer-choice-save-error');
+    expect(error.textContent).toContain('Propunerea s-a schimbat. Schimbarea ta nu s-a salvat.');
+    expect(within(error).getByRole('button', { name: 'Reîncarcă propunerea' })).toBeTruthy();
+    for (const radio of within(choice).getAllByRole<HTMLInputElement>('radio'))
+      expect(radio.disabled).toBe(true);
+  });
+
+  it('clears a value typed under Altă valoare when it is emptied before moving on', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const lastFields = () =>
+      saved(requestsTo(`/imports/${importId}/employee-changes`, 'PUT').length - 1).changes.people
+        .toma?.fields;
+    let choice = await openHomeAddress(user);
+    await user.click(within(choice).getByTestId('person-choice-other'));
+    await user.type(
+      within(choice).getByLabelText('Domiciliul', { selector: 'input' }),
+      'Str. Viilor nr. 9, Sibiu'
+    );
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    await waitFor(() =>
+      expect(lastFields()).toEqual({ homeAddress: { value: 'Str. Viilor nr. 9, Sibiu' } })
+    );
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+
+    choice = await openHomeAddress(user);
+    await user.clear(within(choice).getByLabelText('Domiciliul', { selector: 'input' }));
+    await user.click(within(choice).getByTestId('viewer-choice-next'));
+    await waitFor(() => expect(lastFields()).toBeUndefined());
+    expect(within(choice).getByRole('heading', { level: 3 }).textContent).toBe('Data angajării');
+    expect(within(choice).getByTestId('viewer-choice-next').textContent).toBe(
+      'Mai departe: domiciliul'
+    );
+  });
+
+  it('lists only the training rows the page shows, each opening its row', async () => {
+    mockEmployeeImport();
+    const user = userEvent.setup();
+    mount(`${importPath}/lazar`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 1 din 1/,
+      })
+    );
+    const citations = await screen.findByTestId('viewer-citations');
+    const items = within(citations).getAllByTestId('viewer-citation');
+    expect(items.map((item) => item.textContent)).toEqual(['Instruire SSM, 11.08.2025']);
+    await user.click(items[0]!);
+    await waitFor(() => expect(document.activeElement?.id).toBe('row-r6'));
+  });
+
+  it('shows five things on a photo, then the rest on Încă', async () => {
+    mockEmployeeImport({ detail: tomaWithManyRows() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const citations = await screen.findByTestId('viewer-citations');
+    expect(within(citations).getAllByTestId('viewer-citation')).toHaveLength(5);
+    const more = within(citations).getByTestId('viewer-citations-more');
+    expect(more.textContent).toBe('Încă 2: instruirile din 2023–2024');
+    await user.click(more);
+    expect(within(citations).getAllByTestId('viewer-citation')).toHaveLength(7);
+    expect(within(citations).queryByTestId('viewer-citations-more')).toBeNull();
+  });
+
+  it('underlines on the first tap and opens on the second, and opens at once from the keyboard', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const preview = await screen.findByTestId('photo-preview');
+    const item = within(preview).getByRole('button', { name: 'Domiciliul' });
+    await user.pointer({ keys: '[TouchA]', target: item });
+    expect(item.dataset.selected).toBe('true');
+    expect(within(preview).getByTestId('viewer-underline-caption').textContent).toBe(
+      'Subliniate: fotografiile unde apare Domiciliul'
+    );
+    expect(within(preview).queryByTestId('viewer-choice')).toBeNull();
+    await user.pointer({ keys: '[TouchA]', target: item });
+    expect(within(preview).getByTestId('viewer-choice')).toBeTruthy();
+    expect(within(preview).getByTestId('photo-preview-position').textContent).toBe('2 din 2');
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+    await user.click(
+      within(screen.getByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const again = await screen.findByTestId('photo-preview');
+    act(() => within(again).getByRole('button', { name: 'Data angajării' }).focus());
+    expect(within(again).getByTestId('viewer-underline-caption').textContent).toBe(
+      'Subliniate: fotografiile unde apare Data angajării'
+    );
+    await user.keyboard('{Enter}');
+    expect(within(again).getByRole('heading', { name: 'Data angajării' })).toBeTruthy();
+  });
+
+  it('clears the underline when the focus leaves a listed item or the photo changes', async () => {
+    mockEmployeeImport({ detail: tomaWithChoices() });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      within(await screen.findByTestId('person-strip')).getByRole('button', {
+        name: /^Fotografia 2 din 2/,
+      })
+    );
+    const preview = await screen.findByTestId('photo-preview');
+    act(() => within(preview).getByRole('button', { name: 'Domiciliul' }).focus());
+    expect(within(preview).getByTestId('viewer-underline-caption')).toBeTruthy();
+    act(() => within(preview).getByRole('button', { name: 'Închide' }).focus());
+    expect(within(preview).queryByTestId('viewer-underline-caption')).toBeNull();
+    act(() => within(preview).getByRole('button', { name: 'Domiciliul' }).focus());
+    await user.click(within(preview).getByTestId('photo-preview-previous'));
+    expect(within(preview).queryByTestId('viewer-underline-caption')).toBeNull();
   });
 });
 
