@@ -138,6 +138,18 @@ describe('a quoted article', () => {
     expect(spans('(Preluare din Legea 319/2006 – Art. 7) a:', table('Nr. crt.'))).toEqual([0]);
   });
 
+  it('takes the words after a marker alone on its line', () => {
+    const [quote] = quotes(
+      '(Preluare din H.G. 1425/2006 – Art. 98)',
+      'când un lucrător a lipsit peste 30 de zile lucrătoare;',
+      'când au apărut modificări.'
+    );
+    expect(quote).toMatchObject({ lastParagraph: 2 });
+    expect(quote!.text).toBe(
+      'când un lucrător a lipsit peste 30 de zile lucrătoare;\ncând au apărut modificări.'
+    );
+  });
+
   it("stops at the next article of the document's own numbering", () => {
     const [quote] = quotes(
       paragraph('(Preluare din Legea 319/2006 – Art. 7) Angajatorul are obligația:', 1),
