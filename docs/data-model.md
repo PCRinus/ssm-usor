@@ -1240,10 +1240,12 @@ regeneration, layout versions do not. Its `note` says what changed, in Romanian,
 members, at most 500 characters; it is null for the versions registered before ADR 017,
 which all count as corrections. The master copies of the built-in set live in the
 repository, with the kind and note of each file's latest change in its manifest;
-`register_built_in_template_version(type, title, path, hash, kind, note)`, reachable only
-with the secret key, registers one and is idempotent: the same hash is the version it
-already is, with the kind and note it was first registered with, and a new hash becomes the
-next version. Members read templates and have no write policy.
+`register_built_in_template_version(type, title, path, hash, kind, note, resolves)`,
+reachable only with the secret key, registers one and is idempotent: the same hash is the
+version it already is, with the kind, note and changes it was first registered with, and a
+new hash becomes the next version. `resolves` is the manifest's `change.resolves`, one
+`{ act, consolidatedOn }` or a list, and may be left out; only a legal version takes it.
+Members read templates and have no write policy.
 
 **Documents.** Each client has two documentation sets, the occupational safety set and the
 fire-safety set (ADR 016). `client_documents` holds a document type once per client and
@@ -2418,7 +2420,8 @@ republication included, written by the migration `legal_change_outcomes` so that
 environment compares against the same forms. O.U.G. 195/2002 starts at 2026-08-25 instead, so
 that its change of 2026-11-06 stays open. An act never consolidated has none. The job's upsert
 of the act list writes only `name` and `portal_id`, so it never clears the date; the job moves
-it forward only when it resolves a change as no impact.
+it forward when it resolves a change as no impact, and registration moves it to the form a
+new template version quotes.
 
 `legal_changes` holds a **legal change**: a consolidated form newer than both the last one
 seen and `verified_consolidated_on`, which is how the first run reports drift instead of
@@ -2428,8 +2431,16 @@ A form is recorded once per act (unique `act_id`, `consolidated_on`), so the dai
 see it again without repeating it. `resolution` is `open` until it is `no_impact` or
 `template_version`, and `resolved_at` is set exactly when it is not open; `resolved_by_note`
 says why, in Romanian, since members read it on the Legislație page.
-`document_template_versions.resolves_legal_change_id` names the change a template version
-answers.
+A template version answers a change when its manifest entry names it, by act and
+consolidation date, since a change's id differs between environments: registering a new
+legal version with `resolves` sets each change it names to `template_version`, with the
+version's note as `resolved_by_note`, records as resolved a change this environment never
+saw, and moves the act's `verified_consolidated_on` forward to that form, never back. A change
+already resolved keeps its resolution. `template_version_legal_changes` lists every
+(version, change) pair, since a version answers several changes when they reach one template
+before a release, and one change is answered by a version of each template that quotes it.
+`document_template_versions.resolves_legal_change_id` names the first change a version
+answers; a trigger adds whatever sets it, the admin area's link included, to the table.
 
 The job assesses a change by comparing the verified form with the new one, for the units the
 citation index cites, both read from the portal:

@@ -5554,6 +5554,36 @@ export type Database = {
           },
         ];
       };
+      template_version_legal_changes: {
+        Row: {
+          legal_change_id: string;
+          template_version_id: string;
+        };
+        Insert: {
+          legal_change_id: string;
+          template_version_id: string;
+        };
+        Update: {
+          legal_change_id?: string;
+          template_version_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'template_version_legal_changes_legal_change_id_fkey';
+            columns: ['legal_change_id'];
+            isOneToOne: false;
+            referencedRelation: 'legal_changes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'template_version_legal_changes_template_version_id_fkey';
+            columns: ['template_version_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_template_versions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       test_attempt_keys: {
         Row: {
           attempt_id: string;
@@ -8320,6 +8350,7 @@ export type Database = {
         Args: {
           p_kind: string;
           p_note: string;
+          p_resolves?: Json;
           p_sha256: string;
           p_storage_path: string;
           p_title: string;

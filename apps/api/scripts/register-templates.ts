@@ -48,11 +48,16 @@ try {
     bytes: readFileSync(new URL(entry.file, entry.folder)),
     kind: entry.change.kind,
     note: entry.change.note,
+    resolves: entry.change.resolves,
   }));
-  const kinds = new Map(templates.map((template) => [template.typeKey, template.kind]));
+  const byType = new Map(templates.map((template) => [template.typeKey, template]));
   const results = await registerTemplates(client, templates);
   for (const result of results) {
-    const created = result.created ? ` (new, ${kinds.get(result.typeKey)})` : '';
+    const template = byType.get(result.typeKey)!;
+    const resolves = template.resolves?.map((each) => `${each.act} ${each.consolidatedOn}`);
+    const created = result.created
+      ? ` (new, ${template.kind}${resolves?.length ? `, resolves ${resolves.join(', ')}` : ''})`
+      : '';
     console.log(`${result.typeKey}: version ${result.version}${created}`);
   }
   const added = results.filter((result) => result.created).length;

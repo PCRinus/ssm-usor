@@ -100,6 +100,48 @@ describe('registering built-in templates', () => {
   });
 });
 
+describe('a version that resolves legal changes', () => {
+  const entry = (resolves: unknown) => ({
+    typeKey: 'general_training_material',
+    title: 'Material',
+    file: '2.2_general_training_material.docx',
+    change: { kind: 'legal', note: 'Art. 36 alin. (2) în forma în vigoare.', resolves },
+  });
+  const change = { act: 'oug-195-2002', consolidatedOn: '2026-11-06' };
+  const other = { act: 'lege-319-2006', consolidatedOn: '2026-11-10' };
+
+  it('reads one change or a list of them from the manifest as a list', () => {
+    const parsed = manifestSchema.parse({ templates: [entry(change), entry([change, other])] });
+    expect(parsed.templates.map((each) => each.change.resolves)).toEqual([
+      [change],
+      [change, other],
+    ]);
+  });
+
+  it('refuses a change without a date', () => {
+    expect(() => manifestSchema.parse({ templates: [entry({ act: 'oug-195-2002' })] })).toThrow();
+    expect(() => manifestSchema.parse({ templates: [entry([])] })).toThrow();
+  });
+
+  it('passes every change to the database', async () => {
+    const { db, fetchMock } = fixture();
+    fetchMock
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(
+        Response.json([{ template_version_id: 'a', version: 2, created: true }])
+      );
+    const [parsed] = manifestSchema.parse({ templates: [entry([change, other])] }).templates;
+    await registerTemplates(db, [
+      { ...template, kind: 'legal', resolves: parsed!.change.resolves },
+    ]);
+    const [, rpcInit] = fetchMock.mock.calls[1]!;
+    expect(JSON.parse(String(rpcInit?.body))).toMatchObject({
+      p_kind: 'legal',
+      p_resolves: [change, other],
+    });
+  });
+});
+
 describe('the manifest of the document engine', () => {
   it('matches what the registration reads, with keys the database accepts', () => {
     const manifest = manifestSchema.parse(

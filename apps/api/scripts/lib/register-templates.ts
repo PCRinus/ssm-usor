@@ -12,6 +12,11 @@ import type { Database } from '../../src/database.types';
 export const templatesBucket = 'document-templates';
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
+const resolvedChangeSchema = z.object({
+  act: z.string().min(1),
+  consolidatedOn: z.iso.date(),
+});
+
 export const manifestSchema = z.object({
   templates: z.array(
     z.object({
@@ -24,6 +29,10 @@ export const manifestSchema = z.object({
       change: z.object({
         kind: templateVersionKindSchema,
         note: z.string().trim().min(2).max(500),
+        resolves: z
+          .union([resolvedChangeSchema, z.array(resolvedChangeSchema).min(1)])
+          .transform((value) => (Array.isArray(value) ? value : [value]))
+          .optional(),
       }),
     })
   ),
@@ -35,7 +44,10 @@ export type TemplateFile = {
   bytes: Uint8Array;
   kind: TemplateVersionKind;
   note: string;
+  resolves?: ResolvedChange[];
 };
+
+export type ResolvedChange = z.infer<typeof resolvedChangeSchema>;
 
 export function builtInTemplatePath(typeKey: string, sha256: string) {
   return `built-in/${typeKey}/${sha256}.docx`;
@@ -65,6 +77,7 @@ export async function registerTemplates(db: SupabaseClient<Database>, templates:
       p_sha256: sha256,
       p_kind: template.kind,
       p_note: template.note,
+      ...(template.resolves?.length ? { p_resolves: template.resolves } : {}),
     });
     const row = registered.data?.[0];
     if (registered.error || !row) {
