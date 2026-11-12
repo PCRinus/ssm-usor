@@ -151,7 +151,6 @@ export const employeeProposal = (reading: SheetPage): EmployeeImportProposal =>
   toEmployeeProposal({
     pages: [{ id: 'page-1', fileId: photoId, page: null, label: 'Fise/Coman.jpg', reading }],
     client: { jobPositions: [], workplaces: [], employees: [] },
-    themes: () => null,
     today,
   });
 
