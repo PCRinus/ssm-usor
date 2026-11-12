@@ -2,10 +2,13 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiHttpError } from '@/api/http';
+import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 import { employeeTests, noTests, untrained } from '@/test/training-fixture';
 
+import { signingFailure, signingSessionFailure } from './signature-format';
 import { matchSigner } from './signer-match';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -327,6 +330,14 @@ describe('matchSigner', () => {
     ];
     expect(matchSigner('Dan Marin', twins as never, memberId)).toBe(memberId);
     expect(matchSigner('Dan Marin', twins as never, 'someone-else')).toBe('another-member');
+  });
+});
+
+describe('a signing refused while acting as a member', () => {
+  it('says so, both when the code is asked for and when it is used', () => {
+    const refused = new ApiHttpError(403, { reason: 'impersonation_refused' });
+    expect(signingSessionFailure(refused)).toBe(impersonationRefusedMessage);
+    expect(signingFailure(refused, 'Nu am putut semna.')).toBe(impersonationRefusedMessage);
   });
 });
 

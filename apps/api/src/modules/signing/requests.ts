@@ -11,6 +11,7 @@ import { createAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { isImpersonating } from '../../lib/impersonation';
 import { type SmsSender, smsSenderOf } from '../sms-usage/sender';
 import { notifySigner } from './notify';
 import { placeOf, type Signer, signersOfClient, traineeSignerOf } from './signers';
@@ -200,6 +201,9 @@ async function notifySigners(
   directory: Signer[],
   issued: IssuedRow[]
 ) {
+  // The requests stand untold, as when a message fails: an admin acting as a member sends nobody
+  // a message in their name (ADR 038).
+  if (await isImpersonating(c)) return;
   const groups = new Map<string, { signer: Signer; place: 'portal' | 'app'; ids: string[] }>();
   for (const request of issued) {
     if (!request.signer_account_id) continue;

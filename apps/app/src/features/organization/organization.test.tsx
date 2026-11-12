@@ -6,6 +6,7 @@ import type {
   OrganizationAuthorizationsResponse,
   OrganizationCompanyDetailsResponse,
 } from '@/api/generated/api';
+import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -280,6 +281,26 @@ describe('inviting a member', () => {
     expect((await screen.findByTestId('invite-error')).textContent).toMatch(
       /nu a putut fi trimisă pe email/
     );
+  });
+
+  it('gives an impersonation refusal its one reason, in the dialog alone', async () => {
+    mockApi({
+      create: () =>
+        Response.json(
+          { error: 'forbidden', message: 'Forbidden.', reason: 'impersonation_refused' },
+          { status: 403 }
+        ),
+    });
+    mount();
+    const { user, dialog } = await openInviteDialog();
+
+    await user.type(within(dialog).getByTestId('invite-email'), 'ion@example.test');
+    await user.click(within(dialog).getByTestId('invite-submit'));
+
+    expect((await screen.findByTestId('invite-error')).textContent).toBe(
+      impersonationRefusedMessage
+    );
+    expect(screen.getAllByText(impersonationRefusedMessage)).toHaveLength(1);
   });
 });
 

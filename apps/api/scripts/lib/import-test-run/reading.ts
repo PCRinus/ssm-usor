@@ -357,6 +357,7 @@ export async function readAgain(input: ReadAgainInput): Promise<CaseReading> {
       proposal: testCase.type === 'import' ? null : importRecord.proposal,
       files_copied_at: null,
       created_by: testCase.record.context.createdBy,
+      created_at: null,
     },
     files,
     part:

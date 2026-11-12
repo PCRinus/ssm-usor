@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useInviteEmployeeParticipant } from '@/api/generated/api';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import type { ParticipantMessage } from './participant-actions';
 import { participantFailure } from './participant-errors';
@@ -64,7 +65,7 @@ function InviteEmployeeForm({
   onMessage: (message: ParticipantMessage) => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const invite = useInviteEmployeeParticipant({ request: apiRequest });
+  const invite = useInviteEmployeeParticipant({ request: wordingRefusalHere(apiRequest) });
   const refresh = useRefreshParticipants(employee.clientId);
   const smsOff = useSmsOff();
   const smsBlock = employee.phone ? smsBlockOf(employee.phone, smsOff) : null;

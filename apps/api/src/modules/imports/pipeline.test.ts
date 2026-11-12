@@ -174,6 +174,7 @@ class World {
       proposal: null,
       files_copied_at: null,
       created_by: null,
+      created_at: '2026-10-28T09:00:00Z',
       ...row,
     });
   }
@@ -218,7 +219,6 @@ class World {
       this.partUsage.reduce((sum, each) => sum + each.cost, 0);
     const recordRow = {
       failure_reason: null,
-      created_at: '2026-10-28T09:00:00Z',
       started_at: null,
       ready_at: null,
       failed_at: null,

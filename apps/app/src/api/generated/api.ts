@@ -171,7 +171,11 @@ export type MeResponseMembership = {
  */
 export type MeResponseImpersonation = {
   targetMemberId: string;
-  targetOrganizationId: string;
+  /** @nullable */
+  targetOrganizationId: string | null;
+  expiresAt: string;
+  /** @nullable */
+  targetName: string | null;
 } | null;
 
 export type MeResponseSubscriptionPlan =
@@ -16552,6 +16556,75 @@ export function useListMyInvitations<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getEndMyImpersonationUrl = () => {
+  return `/me/impersonation`;
+};
+
+/**
+ * For the banner of the member app, with the admin's own token past the second factor (ADR 038). Answers `204` when no impersonation is active too. An impersonation starts only in the admin app.
+ * @summary End the platform admin's active impersonation
+ */
+export const endMyImpersonation = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getEndMyImpersonationUrl(), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getEndMyImpersonationMutationKey = () => ['endMyImpersonation'] as const;
+
+export const getEndMyImpersonationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof endMyImpersonation>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof endMyImpersonation>>, TError, void, TContext> => {
+  const mutationKey = getEndMyImpersonationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof endMyImpersonation>>, void> = () => {
+    return endMyImpersonation(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EndMyImpersonationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof endMyImpersonation>>
+>;
+
+export type EndMyImpersonationMutationError = ErrorType<ApiErrorResponse>;
+
+/**
+ * @summary End the platform admin's active impersonation
+ */
+export const useEndMyImpersonation = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof endMyImpersonation>>,
+      TError,
+      void,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof endMyImpersonation>>, TError, void, TContext> => {
+  return useMutation(getEndMyImpersonationMutationOptions(options), queryClient);
+};
 
 export const getGetMySetupGuideUrl = () => {
   return `/me/setup`;

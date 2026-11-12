@@ -1,6 +1,13 @@
 import { createRouter } from '../../router';
-import { getMe, getSupportIdentity, listMyInvitations, updateProfile } from './handlers';
 import {
+  endMyImpersonation,
+  getMe,
+  getSupportIdentity,
+  listMyInvitations,
+  updateProfile,
+} from './handlers';
+import {
+  endMyImpersonationRoute,
   listMyInvitationsRoute,
   meRoute,
   supportIdentityRoute,
@@ -11,4 +18,5 @@ export const meRouter = createRouter()
   .openapi(meRoute, getMe)
   .openapi(supportIdentityRoute, getSupportIdentity)
   .openapi(updateProfileRoute, updateProfile)
-  .openapi(listMyInvitationsRoute, listMyInvitations);
+  .openapi(listMyInvitationsRoute, listMyInvitations)
+  .openapi(endMyImpersonationRoute, endMyImpersonation);

@@ -165,8 +165,55 @@ automatically scopes to the target's organization and role. Rows are kept after 
 audit trail, and a partial unique index allows one active impersonation per admin.
 
 Writes made during an impersonation carry the target's organization but the admin's real user
-id in `created_by`. The API routes and the banner for starting and ending impersonations are a
-follow-up; the schema, policies, and pgTAP tests already cover the mechanism.
+id in `created_by`. The admin starts and ends one in the admin app, and ends it from the member
+app too ([admin app](admin.md), [API](api.md#admin-routes)), always with his own token.
+
+The admin acts as the member to reproduce their problem, never in their name towards others: the
+API refuses him signing (a signing session of his own or its code) and every email or SMS to
+another person, such as an invitation, a portal invitation, a signing code or a contract sent to
+a client ([API](api.md#impersonation-refusals)). He keeps reading, editing, generating and
+issuing documents, importing and archiving. A training he saves issues its signature requests
+as the member's save would, and tells no signer. A document generated during an impersonation is
+the member's: its specialist and preparer are the member's profile, and an import he started
+names the member as its trainer, found from the impersonation that was active when it was
+created and only while the member belongs to the import's organization; `created_by` and
+`issued_by` still record the admin. A signature request names only an
+account of the organization or a participant of the client as signer, so never the admin in a
+member's organization, unless he is a member of it in his own right.
+
+Every impersonation has a reason, as the data processing agreement promises support access is
+logged with one: `impersonations_reason_given` refuses a null reason or one of whitespace only,
+for every writer (`20261112130100_impersonation_end_and_reason`). It is not validated, so a row
+written before it stays, and Postgres checks it on every later update of a row, so the same
+migration first ends every open row without a reason, which could otherwise never be ended. Its target must be a member of an
+organization: `impersonations_target_is_member`, a trigger after the row is written, raises
+`IMS02` otherwise, so a portal participant without a membership is never impersonated, and a
+caller the policies already refuse learns nothing about who is a member.
+
+`start_impersonation(target_user_id, reason)` is the admin's one call for starting or switching:
+a security invoker function, so it runs under his token's policies and ADR 033 names him, that
+ends his open impersonation (an expired one never ended included, since the partial unique
+index counts it) and inserts the new one in one transaction. A refused start leaves the open one
+as it was. Ending one alone is an update of `ended_at` on his open row. The trigger stamps the
+end, `least(now(), expires_at)`: a row closed after its expiry, by a later start or an end, ended
+at its expiry, and the audit log records no `impersonation_ended` for it, since natural expiry
+writes no event ([ADR 033](architecture/adr-033-audit-log.md)); one ended before its expiry
+ends now and records the event. So `ended_at - started_at` never exceeds two hours.
+
+`current_impersonation()` returns the caller's impersonation in force now, by the database's
+clock, the one `effective_user_id()` acts on, or no row: a security invoker function, so the
+policies show only an admin's own rows past the second factor. The API reads it for `GET /me`,
+the admin app's active impersonation and the check that a page was built for whom the admin
+acts as.
+
+Two functions only the secret key may run read across organizations for the admin area:
+`admin_list_members(search, limit, offset)` lists every organization member with their email
+and last sign-in from `auth.users`, their name, their organization and role, the organization's
+subscription plan and status when it has one, and the total of the filtered list, ordered by
+organization name, then name or email. `search` matches the email, the name or the
+organization's name, ignoring case and diacritics; null or blank lists everyone.
+`admin_accounts(user_ids)` names the accounts an admin impersonated: email, name, and the
+organization and role while they still have a membership.
 
 The row is the record of the impersonation, so the admin writes it once and then only ends it
 ([ADR 033](architecture/adr-033-audit-log.md)): `authenticated` inserts only `admin_user_id`,

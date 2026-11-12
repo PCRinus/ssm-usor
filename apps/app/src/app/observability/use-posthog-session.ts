@@ -20,6 +20,7 @@ export function usePostHogSession(me: MeResponse | undefined) {
   const email = me?.user.email;
   const targetMemberId = me?.impersonation?.targetMemberId;
   const targetOrganizationId = me?.impersonation?.targetOrganizationId;
+  const impersonating = Boolean(targetMemberId);
   const [client, setClient] = useState<PostHog | null>(null);
   const [supportReady, setSupportReady] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -34,8 +35,9 @@ export function usePostHogSession(me: MeResponse | undefined) {
           stopPostHog(posthog);
           return;
         }
+        // Off until the effect below knows whether this session acts as a member.
+        posthog.stopSessionRecording();
         posthog.opt_in_capturing({ captureEventName: false });
-        posthog.startSessionRecording(true);
         setClient(posthog);
       })
       .catch(() => {});
@@ -52,9 +54,15 @@ export function usePostHogSession(me: MeResponse | undefined) {
     };
   }, [userId, organizationId]);
 
+  // A recording would keep a member organization's pages under the admin's identity.
+  useEffect(() => {
+    if (!client) return;
+    if (impersonating) client.stopSessionRecording();
+    else client.startSessionRecording(true);
+  }, [client, impersonating]);
+
   useEffect(() => {
     if (!client || !userId || !organizationId) return;
-    const impersonating = Boolean(targetMemberId);
     // PostHog names a person by `email` or `name`; with `$email` it shows the bare user id.
     client.identify(userId, {
       name,
@@ -85,6 +93,7 @@ export function usePostHogSession(me: MeResponse | undefined) {
     role,
     name,
     email,
+    impersonating,
     targetMemberId,
     targetOrganizationId,
   ]);

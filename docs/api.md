@@ -49,7 +49,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                                                                                                       |
 | `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                                                                                             |
 | `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                                                                                                 |
-| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "subscription", "smsThisMonth", "creditsThisMonth" }`; null when absent                                                                                        |
+| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "impersonation", "subscription", "smsThisMonth", "creditsThisMonth" }`; null when absent                                                                       |
+| `DELETE /me/impersonation`                                             | Platform admin past the second factor | `204` after ending the caller's active impersonation, or when none is active                                                                                                                       |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
 | `GET /me/setup`                                                        | Verified user with a membership       | The caller's setup guide: the fifteen steps with their state, lock and missing fields, `next`, `clientId`, `ownerName`, `closed`, `finished`                                                       |
@@ -250,7 +251,10 @@ access token in the Authorization header; the publishable API key is not a user 
 (nullable), their profile, and their organization with their role. It answers an account
 without a membership too, with `membership: null`, and never exposes Supabase metadata.
 During an impersonation `membership` is the impersonated user's while `user` and `profile`
-stay the platform admin's own.
+stay the platform admin's own, and some acts are refused him
+([impersonation refusals](#impersonation-refusals)). `impersonation` is set whenever one is in
+force, also when the member has left their organization and `membership` is null, so the
+member app can still show and end it.
 
 Client routes are scoped to the caller's organization. `src/lib/membership.ts` calls the database
 helper `current_membership()` and answers `403 forbidden` when the user has no membership.
@@ -825,6 +829,60 @@ and are protected by row-level security. User-editable `user_metadata` never gra
 New authenticated routes should attach `requireAuth`, `requireMembership` when they touch
 organization data, and `requireOwner` after it for what only an owner may do, then read `c.get('user')`, `c.get('membership')`, and `createDataClient(c)`.
 Transport schemas live in `packages/contracts`.
+
+## Impersonation refusals
+
+### The page and the API agree on whom the admin acts as
+
+An impersonation applies to every tab and window of the admin at once, so a page built before he
+switched member would act on the new one. The member app sends `X-Acting-As` on its requests:
+the member's user id while its page was built for an impersonation, `self` while it was built
+for the admin himself. `requireAuth` (`refuseChangedIdentity` in `src/lib/impersonation.ts`)
+compares it with the impersonation in force, read by the database's clock
+(`current_impersonation()`), before any other middleware or the handler, and answers `409
+conflict` with `reason: identity_changed` when the header names a member and another or none is
+impersonated, or names `self` while one is. A request without the header is not checked:
+`GET /me`, which the page is built from, the portal, the admin app, and scripts. Nor is anyone
+who cannot impersonate: the check reads nothing unless the session is a platform admin's past
+the second factor, by Supabase Auth's answer or by the token's own claims, which
+`effective_user_id()` reads; the read is kept for the rest of the request. The `Admin`
+entrypoint does not check it (`requireAuthForAdmin`). The OpenAPI document adds the `409` to
+every route with bearer authentication, beside the route's own.
+
+### What an admin acting as a member may not do
+
+An admin impersonating a member reproduces their problem; he does not act in their name towards
+others or bind them ([ADR 038](architecture/adr-038-admin-area.md)). These routes answer him
+`403 forbidden` with `reason: impersonation_refused` before they write anything, so no invitation
+is left without its message:
+
+- `POST /organization/invitations` and `POST /organization/invitations/{invitationId}/resend`;
+- `POST /clients/{clientId}/employees/{employeeId}/participant-invitations`,
+  `POST /clients/{clientId}/participant-invitations`,
+  `POST /clients/{clientId}/employee-participant-invitations` and
+  `POST /participant-invitations/{invitationId}/resend`;
+- `POST /clients/{clientId}/service-contract/send`;
+- `POST /me/signing-sessions` and `POST /me/signing-sessions/{sessionId}/sign`.
+
+These routes decide from the membership, which is what the database decided, whoever the token
+still says the caller is: an admin whose role was removed after his token was issued is
+refused too, as long as the database acts as the member.
+
+Any other email or SMS a request would send in a member's name is refused at the sender, with
+the same answer: `src/lib/impersonation.ts` wraps the `MAIL` and `SMS` bindings of every request,
+and a send from a request whose membership is not the caller's own is refused, without a read.
+It does not cover a request without a membership: it acts as the signed-in account, as the
+portal does for an admin who is also a participant, and is not refused. Queues, scheduled work
+and the webhooks get their bindings from the runtime and are not concerned. A training saved
+during an impersonation issues its signature requests and tells no signer, as when a message
+fails. Billing refuses an impersonating admin on its own (`requireOwnerInPerson`), and
+reporting an import answers `import_report_impersonated`.
+
+Everything else stays open to him: reading, editing, generating and issuing documents, imports
+(which spend the organization's credits) and archiving. Documents print the member: the training
+proposal's specialist and the documents' preparer are read from the member's profile, and an
+import he started proposes the member as its trainer, only while they are a member of the
+import's organization.
 
 ## Waitlist
 
@@ -2723,9 +2781,10 @@ The `Admin` entrypoint serves `createAdminApp()` (`src/admin-app.ts`) under `/ad
 through the admin Worker's service binding ([admin app](admin.md)); the public `fetch` does not
 mount it. Every route passes `requireAuth` and `requireAdmin`: the admin claim and an `aal2` token,
 else `401` or `403`. They are plain Hono routes, outside the OpenAPI document, answering the shapes
-of `@ssm-usor/contracts`' `admin-imports.ts`. They read with the secret key
-(`createAdminClient`, which names the admin in `x-audit-actor`) across every organization; the
-module is `modules/admin-imports/`.
+of `@ssm-usor/contracts`' `admin-imports.ts` and `admin-impersonation.ts`. They read with the
+secret key (`createAdminClient`, which names the admin in `x-audit-actor`) across every
+organization, and start and end an impersonation with the admin's own token; the modules are
+`modules/admin-imports/` and `modules/admin-impersonation/`.
 
 | Route                                  | Answer                                                                                                                                                                                                     |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2768,6 +2827,51 @@ part's for a path under `parts/<part>/`, and must be kept; the file must be list
 today's reading and compares each with what the member confirmed, after an estimate and only with
 `--yes`. It reads production data, so only Mircea runs it, from his machine:
 [import-test-runs.md](import-test-runs.md).
+
+### Impersonation
+
+| Route                         | Answer                                                                                                                                                                                               |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /admin/members`          | `{ items, page, pageSize, total }`, by organization then name; `search` (at most 100 characters), `page`, `pageSize` (25, at most 100); `400` otherwise                                              |
+| `GET /admin/impersonation`    | `{ impersonation }`, the admin's impersonation that applies now (not ended, not expired), or null                                                                                                    |
+| `POST /admin/impersonation`   | `201` with the impersonation started from `{ targetUserId, reason }`, after ending the open one; `400`, `409 impersonation_start_in_progress`, or `422` with `target_not_member` or `target_is_self` |
+| `DELETE /admin/impersonation` | `204` after ending the open one, or when none is open                                                                                                                                                |
+| `GET /admin/impersonations`   | `{ items, page, pageSize, total }`, the admin's impersonations, newest first; `page`, `pageSize` (25, at most 100)                                                                                   |
+
+**The members** come from `admin_list_members` with the secret key
+([data model](data-model.md#platform-admins-and-impersonation)). Each item has `userId`, `email`,
+`fullName` (null until named), `organization` (`id`, `name`), `role`, `subscription`
+(`plan`, `status`, or null without one) and `lastSignInAt`. `search` matches the email, the name or
+the organization's name, ignoring case and diacritics.
+
+**An impersonation** is `{ id, target, reason, startedAt, expiresAt, endedAt }`, its `target`
+`{ userId, email, fullName, organization, role }` from `admin_accounts` with the secret key;
+`organization` and `role` are null once the member has left. The rows themselves are read with
+the admin's own token, which the policies limit to his own.
+
+**Starting** takes a `reason` of 1 to 500 characters once trimmed and a `targetUserId`; a body
+that is not that is `400` with `issues`, before the database. The route calls
+`start_impersonation` with the admin's own token, which ends his open impersonation and starts
+the new one in one transaction, so switching member is one request and a refused one changes
+nothing. A target that does not exist or belongs to no organization (`IMS02`) is `422` with
+`reason: target_not_member`; the admin himself is `422` with `target_is_self`. A second start
+racing the first, such as a double click, meets the first's open row
+(`impersonations_active_admin_key`) and is `409` with `impersonation_start_in_progress`. The
+audit log records `impersonation_ended` (unless the one ended had expired) and
+`impersonation_started` with the admin as actor, from the trigger on the row; the route records
+nothing of its own. The impersonation lasts two
+hours. When the member's account cannot be read after the start, the answer is still `201`, its
+`target` with only `userId`, since the impersonation is in force.
+
+**Ending** updates the admin's open row with his own token, here or through the public API's
+`DELETE /me/impersonation` from the member app's banner. The database stamps the end: now, or
+the expiry for a row closed after it, which records no event, so an expired row reads as
+expired (`endedAt` equal to `expiresAt`).
+
+**`me.impersonation`** on the public API's `GET /me` is null unless an impersonation applies:
+then `{ targetMemberId, targetOrganizationId, expiresAt, targetName }`, `targetOrganizationId`
+null once the member has left their organization, `targetName` the member's name, else their
+email, else null when neither could be read.
 
 ## Supabase Auth emails
 
@@ -2862,17 +2966,17 @@ generates the SPA’s TanStack Query client used by the dashboard to call `/me`.
 All responses use `Cache-Control: no-store`. Errors share `{ "error": "…", "message": "…" }`,
 with an optional `reason` where one status covers cases the client words differently:
 
-| Status | Error                 | Meaning                                                                                                                                                    |
-| ------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                                                                            |
-| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.                                                                     |
-| `403`  | `forbidden`           | No organization membership, not an owner where one is required, a read-only organization (`reason: read_only`), or the database policy rejected the write. |
-| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client, employee, workplace, or responsible person.                                      |
-| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, or an invitation conflict.                                                |
-| `422`  | `unprocessable`       | A well-formed request the data refuses, such as a signer who cannot sign the slot.                                                                         |
-| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.                                                            |
-| `500`  | `internal_error`      | Unexpected API failure.                                                                                                                                    |
-| `426`  | `client_outdated`     | The `X-Client-Contract` header names another fingerprint than this build's for that client, or an unknown client.                                          |
+| Status | Error                 | Meaning                                                                                                                                                                                              |
+| ------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400`  | `validation_error`    | Invalid body or query; `issues` lists field paths and messages.                                                                                                                                      |
+| `401`  | `unauthorized`        | Missing, invalid, expired, or rejected bearer token; anonymous users are rejected too.                                                                                                               |
+| `403`  | `forbidden`           | No organization membership, not an owner where one is required, a read-only organization (`reason: read_only`), or the database policy rejected the write.                                           |
+| `404`  | `not_found`           | No matching route, no company registered with the CUI, or no such client, employee, workplace, or responsible person.                                                                                |
+| `409`  | `conflict`            | Duplicate CUI, CNP, or employee number, an employee added to an archived client, an invitation conflict, or a page built for someone other than whom the admin acts as (`reason: identity_changed`). |
+| `422`  | `unprocessable`       | A well-formed request the data refuses, such as a signer who cannot sign the slot.                                                                                                                   |
+| `503`  | `service_unavailable` | Missing/invalid Supabase configuration, timeout, rate limit, or authentication service failure.                                                                                                      |
+| `500`  | `internal_error`      | Unexpected API failure.                                                                                                                                                                              |
+| `426`  | `client_outdated`     | The `X-Client-Contract` header names another fingerprint than this build's for that client, or an unknown client.                                                                                    |
 
 ### The client contract
 
@@ -2905,7 +3009,7 @@ values under a request's timing.
 origins of both, ports 5173 and 5174, instead. `PORTAL_ORIGIN` is the portal's address that
 participant invitations link to, `https://portal.ssmusor.ro` in `wrangler.jsonc` and
 `http://localhost:5174` locally. OPTIONS preflight
-does not require authentication and allows GET, POST, PATCH, and DELETE requests with Authorization, Content-Type and X-Client-Contract headers.
+does not require authentication and allows GET, POST, PATCH, and DELETE requests with Authorization, Content-Type, X-Client-Contract and X-Acting-As headers.
 Cookie credentials are not enabled. CORS controls browser access to responses; bearer
 authentication still applies independently, including to non-browser clients.
 

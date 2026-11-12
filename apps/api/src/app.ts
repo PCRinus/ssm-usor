@@ -1,5 +1,5 @@
 import { Scalar } from '@scalar/hono-api-reference';
-import { type ApiErrorResponse, clientContractHeader } from '@ssm-usor/contracts';
+import { actingAsHeader, type ApiErrorResponse, clientContractHeader } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { createMiddleware } from 'hono/factory';
@@ -8,7 +8,8 @@ import { timing } from 'hono/timing';
 import { checkClientContract } from './lib/client-contract';
 import { allowedOrigins, type ApiEnv, marketingOrigin } from './lib/env';
 import { ApiError, errorStatus, fromEngineError } from './lib/errors';
-import { openApiConfig } from './lib/openapi';
+import { guardMessagesDuringImpersonation } from './lib/impersonation';
+import { documentIdentityConflict, openApiConfig } from './lib/openapi';
 import { authHooksRouter } from './modules/auth-hooks';
 import { billingRouter } from './modules/billing';
 import { fromStripeError } from './modules/billing/stripe';
@@ -105,13 +106,14 @@ export function createApp() {
           c.req.path === '/waitlist' ? [marketingOrigin(c.env)] : allowedOrigins(c.env);
         return allowed.includes(origin) ? origin : null;
       },
-      allowHeaders: ['Authorization', 'Content-Type', clientContractHeader],
+      allowHeaders: ['Authorization', 'Content-Type', clientContractHeader, actingAsHeader],
       exposeHeaders: ['cf-ray', 'Content-Disposition'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       maxAge: 600,
     })
   );
   app.use('*', checkClientContract);
+  app.use('*', guardMessagesDuringImpersonation);
 
   app.route('/', healthRouter);
   app.route('/', meRouter);
@@ -151,6 +153,8 @@ export function createApp() {
     scheme: 'bearer',
     bearerFormat: 'JWT',
   });
+  const document = app.getOpenAPIDocument;
+  app.getOpenAPIDocument = (...args) => documentIdentityConflict(document(...args));
   app.doc('/openapi.json', openApiConfig);
   app.get('/docs', Scalar({ url: '/openapi.json' }));
 

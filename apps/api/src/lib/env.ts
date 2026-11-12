@@ -11,6 +11,7 @@ import type {
 import { z } from 'zod';
 
 import { ApiError } from './errors';
+import type { ImpersonationRow } from './impersonation';
 import type { Membership } from './membership';
 import type { Participation } from './participant';
 
@@ -129,8 +130,12 @@ export type ApiEnv = {
     adminClaim: boolean;
     // The admin claim on a session that passed its second factor (ADR 038).
     platformAdmin: boolean;
+    // A session that effective_user_id() may act on as someone else.
+    mayImpersonate: boolean;
     accessToken: string;
     membership: Membership;
+    // Unset until read; see currentImpersonation.
+    impersonation: ImpersonationRow | null | undefined;
     participations: Participation[];
     readOnlyAllowed: boolean;
   };

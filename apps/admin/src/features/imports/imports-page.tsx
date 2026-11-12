@@ -2,11 +2,8 @@ import {
   type AdminImportListItem,
   adminImportStatusFilters,
   importKinds,
-  pageBounds,
-  pageCount,
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
@@ -22,10 +19,10 @@ import {
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
 import { AdminShell, LoadFailure } from '@/components/admin-shell';
+import { Pager } from '@/components/pager';
 
 import { fetchImports, type ImportsSearch } from './api';
 import {
@@ -281,6 +278,7 @@ export function ImportsPage({ search }: { search: ImportsSearch }) {
           </Table>
           {imports.data && (
             <Pager
+              noun={{ one: 'import', many: 'imports' }}
               page={imports.data.page}
               pageSize={imports.data.pageSize}
               total={imports.data.total}
@@ -295,56 +293,5 @@ export function ImportsPage({ search }: { search: ImportsSearch }) {
         </div>
       )}
     </AdminShell>
-  );
-}
-
-function Pager({
-  disabled,
-  onPage,
-  ...meta
-}: {
-  page: number;
-  pageSize: number;
-  total: number;
-  disabled: boolean;
-  onPage: (page: number) => void;
-}) {
-  const { first, last } = pageBounds(meta);
-  const pages = pageCount(meta);
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
-      <p data-testid="pager-summary" className="text-muted-foreground text-sm tabular-nums">
-        {meta.total === 0
-          ? 'No imports'
-          : `${first}–${last} of ${meta.total} import${meta.total === 1 ? '' : 's'}`}
-      </p>
-      {pages > 1 && (
-        <nav aria-label="Pages" className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            data-testid="pager-previous"
-            disabled={disabled || meta.page <= 1}
-            onClick={() => onPage(meta.page - 1)}
-          >
-            <ChevronLeft aria-hidden="true" />
-            Previous
-          </Button>
-          <span className="text-muted-foreground px-2 text-sm tabular-nums">
-            {meta.page} / {pages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            data-testid="pager-next"
-            disabled={disabled || meta.page >= pages}
-            onClick={() => onPage(meta.page + 1)}
-          >
-            Next
-            <ChevronRight aria-hidden="true" />
-          </Button>
-        </nav>
-      )}
-    </div>
   );
 }
