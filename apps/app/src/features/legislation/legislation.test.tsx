@@ -897,13 +897,15 @@ describe('the Legislație page', () => {
     ]);
   });
 
-  it('says only that a change referring to an amended article is being checked', async () => {
+  it('says a change being checked amended an article the documents refer to', async () => {
     mockApi({ legalChanges: [{ ...roadChange, outcome: 'needs_review' }] });
     mount('/legislatie/modificari');
 
     const change = await screen.findByTestId('legal-change');
     expect(within(change).getByTestId('legal-change-resolution').textContent).toBe('În verificare');
-    expect(within(change).queryByTestId('legal-change-status')).toBeNull();
+    expect(within(change).getByTestId('legal-change-status').textContent).toBe(
+      'Modifică un articol la care trimit documentele.'
+    );
   });
 
   it('names the documents a template version updated, beside its note', async () => {

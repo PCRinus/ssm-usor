@@ -93,6 +93,7 @@ export function changeStatus(change: LegalChangeListResponseItemsItem) {
   if (change.resolution !== 'open') return null;
   if (change.outcome === null) return 'Modificarea este în curs de analiză.';
   if (change.outcome === 'quote_differs') return 'Modifică un text citat în documente.';
+  if (change.outcome === 'needs_review') return 'Modifică un articol la care trimit documentele.';
   return null;
 }
 
