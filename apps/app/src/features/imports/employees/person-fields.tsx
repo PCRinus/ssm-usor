@@ -11,8 +11,10 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import { Textarea } from '@ssm-usor/ui/components/textarea';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { Pencil } from 'lucide-react';
-import { type FormEvent, type ReactNode, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from 'react';
 
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -252,6 +254,54 @@ const lengthLimits: Partial<Record<FieldName, number>> = {
   commuteRoute: 1000,
 };
 
+type DialogRow =
+  | { full: FieldName }
+  | { half: FieldName }
+  | { pair: readonly [FieldName, FieldName]; onPhone?: 'paired' };
+
+const dialogRows: readonly DialogRow[] = [
+  { pair: ['lastName', 'firstName'] },
+  { pair: ['cnp', 'birthDate'] },
+  { full: 'birthPlace' },
+  { full: 'homeAddress' },
+  { full: 'education' },
+  { full: 'qualification' },
+  { full: 'jobTitle' },
+  { pair: ['hiredAt', 'leftOn'] },
+  { half: 'employeeNumber' },
+  { pair: ['bloodGroup', 'rhFactor'], onPhone: 'paired' },
+  { full: 'commuteRoute' },
+  { half: 'commuteMinutes' },
+];
+
+function dialogRowsFor(names: readonly FieldName[]): DialogRow[] {
+  const wanted = new Set(names);
+  const rows: DialogRow[] = [];
+  for (const row of dialogRows) {
+    if (!('pair' in row)) {
+      const name = 'full' in row ? row.full : row.half;
+      if (wanted.delete(name)) rows.push(row);
+      continue;
+    }
+    const kept = row.pair.filter((name) => wanted.delete(name));
+    if (kept.length === 2) rows.push(row);
+    else if (kept[0]) rows.push({ half: kept[0] });
+  }
+  return [...rows, ...[...wanted].map((name) => ({ full: name }))];
+}
+
+const wrappingFields = new Set<FieldName>(['homeAddress', 'jobTitle', 'commuteRoute']);
+
+// Enter saves and a pasted line break becomes a space: these values print inside sentences and
+// table cells of the generated documents.
+const oneLine = (value: string) => value.replace(/\s*[\r\n]+\s*/g, ' ');
+
+function submitOnEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
+  if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+  event.preventDefault();
+  event.currentTarget.form?.requestSubmit();
+}
+
 export function FieldInput({
   id,
   name,
@@ -260,6 +310,7 @@ export function FieldInput({
   invalid,
   describedBy,
   autoFocus,
+  multiline,
   className,
 }: {
   id: string;
@@ -269,6 +320,7 @@ export function FieldInput({
   invalid?: boolean;
   describedBy?: string;
   autoFocus?: boolean;
+  multiline?: boolean;
   className?: string;
 }) {
   if (dateFields.has(name)) {
@@ -304,7 +356,23 @@ export function FieldInput({
       </NativeSelect>
     );
   }
-  return (
+  if (multiline && wrappingFields.has(name)) {
+    return (
+      <Textarea
+        id={id}
+        size="line"
+        value={value}
+        maxLength={lengthLimits[name]}
+        aria-invalid={invalid}
+        aria-describedby={describedBy}
+        autoFocus={autoFocus}
+        className={className}
+        onKeyDown={submitOnEnter}
+        onChange={(event) => onChange(oneLine(event.target.value))}
+      />
+    );
+  }
+  const input = (
     <Input
       id={id}
       value={value}
@@ -313,9 +381,21 @@ export function FieldInput({
       aria-invalid={invalid}
       aria-describedby={describedBy}
       autoFocus={autoFocus}
-      className={className}
+      className={name === 'commuteMinutes' ? 'pr-12' : className}
       onChange={(event) => onChange(event.target.value)}
     />
+  );
+  if (name !== 'commuteMinutes') return input;
+  return (
+    <div className={cn('relative', className)}>
+      {input}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-muted-foreground"
+      >
+        min
+      </span>
+    </div>
   );
 }
 
@@ -364,46 +444,72 @@ function FieldsDialog({
   const mark = (name: FieldName) =>
     !isExisting(context, person) && requiredForNewField(name) ? 'required' : 'optional';
 
+  function field(name: FieldName, subgrid?: 'always' | 'sm') {
+    const id = `person-field-${name}`;
+    const problem = problems[name];
+    return (
+      <Field
+        key={name}
+        id={id}
+        label={fieldTitles[name]}
+        mark={mark(name)}
+        subgrid={subgrid}
+        error={problem ? { type: 'validate', message: problem } : undefined}
+      >
+        <FieldInput
+          id={id}
+          name={name}
+          value={values[name]}
+          invalid={Boolean(problem)}
+          describedBy={problem ? `${id}-error` : undefined}
+          multiline
+          onChange={(next) => set(name, next)}
+        />
+      </Field>
+    );
+  }
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className="sm:max-w-lg"
         data-testid="person-fields-dialog"
         onOpenAutoFocus={(event) => {
-          const field = focus && document.getElementById(`person-field-${focus}`);
-          if (!field) return;
+          const target = focus && document.getElementById(`person-field-${focus}`);
+          if (!target) return;
           event.preventDefault();
-          field.focus();
+          target.focus();
         }}
       >
         <form onSubmit={submit} noValidate>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
-              Ce scrii aici se preia la crearea lucrătorului, în locul valorii citite de pe fișă.
+              Ce scrii aici înlocuiește valoarea citită de pe fișă.
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="mt-4 grid gap-4 sm:grid-cols-2">
-            {names.map((name) => {
-              const id = `person-field-${name}`;
-              const problem = problems[name];
+          <DialogBody className="mt-4 grid gap-4">
+            {dialogRowsFor(names).map((row) => {
+              if ('full' in row) return field(row.full);
+              if ('half' in row) {
+                return (
+                  <div key={row.half} className="grid gap-x-4 sm:grid-cols-2">
+                    {field(row.half)}
+                  </div>
+                );
+              }
+              const subgrid = row.onPhone === 'paired' ? 'always' : 'sm';
               return (
-                <Field
-                  key={name}
-                  id={id}
-                  label={fieldTitles[name]}
-                  mark={mark(name)}
-                  error={problem ? { type: 'validate', message: problem } : undefined}
+                <div
+                  key={row.pair.join('-')}
+                  className={
+                    subgrid === 'always'
+                      ? 'grid grid-cols-2 gap-x-4'
+                      : 'grid gap-x-4 gap-y-4 sm:grid-cols-2 sm:gap-y-0'
+                  }
                 >
-                  <FieldInput
-                    id={id}
-                    name={name}
-                    value={values[name]}
-                    invalid={Boolean(problem)}
-                    describedBy={problem ? `${id}-error` : undefined}
-                    onChange={(next) => set(name, next)}
-                  />
-                </Field>
+                  {row.pair.map((name) => field(name, subgrid))}
+                </div>
               );
             })}
           </DialogBody>

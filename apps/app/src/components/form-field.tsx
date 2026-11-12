@@ -10,14 +10,16 @@ export function FieldMessage({
   id,
   error,
   help,
+  className,
 }: {
   id: string;
   error?: Partial<FieldError>;
   help?: HelpTopic;
+  className?: string;
 }) {
   if (!error) return null;
   return (
-    <p id={id} data-testid={id} role="alert" className="text-sm text-destructive">
+    <p id={id} data-testid={id} role="alert" className={cn('text-sm text-destructive', className)}>
       {error.message}
       {help && (
         <>
@@ -40,6 +42,7 @@ export function Field({
   help,
   error,
   errorHelp,
+  subgrid,
   className,
   children,
 }: {
@@ -52,14 +55,27 @@ export function Field({
   error?: FieldError;
   // The topic of the rule `error` breaks, when it is not plain to see.
   errorHelp?: HelpTopic;
+  // Shares the label, control and message rows of the parent grid with the field beside it, so
+  // both controls stay level when one label wraps or one message shows.
+  subgrid?: 'always' | 'sm';
   className?: string;
   children: ReactNode;
 }) {
+  // Spaced by padding rather than gap: a gap would stay under an empty message row.
+  const rowed = subgrid !== undefined;
   return (
-    <div className={cn('grid min-w-0 content-start gap-2', className)}>
+    <div
+      className={cn(
+        'grid min-w-0 content-start',
+        rowed ? 'gap-y-0' : 'gap-2',
+        subgrid === 'always' && 'row-span-3 grid-rows-subgrid',
+        subgrid === 'sm' && 'sm:row-span-3 sm:grid-rows-subgrid',
+        className
+      )}
+    >
       {/* Inline, so a label too long for its line wraps word by word; the help link never
           goes to a line of its own. */}
-      <div className="text-sm leading-none whitespace-nowrap">
+      <div className={cn('text-sm leading-none whitespace-nowrap', rowed && 'self-end pb-2')}>
         {/* The label names the control for assistive technology but does not act for it: a click
             beside a picker opened its list, and the row is as wide as the field. The help link
             stays outside it, or the label would cancel its click. */}
@@ -85,11 +101,16 @@ export function Field({
       </div>
       {children}
       {hint && !error && (
-        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+        <p id={`${id}-hint`} className={cn('text-xs text-muted-foreground', rowed && 'pt-2')}>
           {hint}
         </p>
       )}
-      <FieldMessage id={`${id}-error`} error={error} help={errorHelp} />
+      <FieldMessage
+        id={`${id}-error`}
+        error={error}
+        help={errorHelp}
+        className={rowed ? 'pt-2' : undefined}
+      />
     </div>
   );
 }
