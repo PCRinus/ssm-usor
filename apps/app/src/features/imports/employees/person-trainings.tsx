@@ -700,12 +700,16 @@ export function PersonTrainings({
   const handovers = handoverDates(context, person);
   return (
     <div className="grid scroll-mt-24 gap-5" id="trainings">
-      {handovers.map((date) => (
-        <p key={date} className="text-sm" data-testid="person-handover">
-          Pe fișă e consemnată o preluare la {formatRoDate(date)}. Instruirile dinainte au fost
-          făcute sub alt serviciu de prevenire.
-        </p>
-      ))}
+      {handovers.length > 0 && (
+        <div className="grid gap-1 text-sm" data-testid="person-handovers">
+          {handovers.map((date) => (
+            <p key={date}>
+              Pe fișă e consemnată o preluare la {formatRoDate(date)}. Instruirile dinainte au fost
+              făcute sub alt serviciu de prevenire.
+            </p>
+          ))}
+        </div>
+      )}
       {domains.map((domain) => (
         <DomainSection
           key={domain.domain}

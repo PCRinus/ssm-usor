@@ -1047,7 +1047,13 @@ describe('the person page', () => {
             ...proposal,
             pages: proposal.pages.map((page) =>
               page.id === 'p3'
-                ? { ...page, handovers: [{ date: '2022-10-03', text: 'Preluare' }] }
+                ? {
+                    ...page,
+                    handovers: [
+                      { date: '2022-10-03', text: 'Preluare' },
+                      { date: '2024-02-01', text: 'Preluare' },
+                    ],
+                  }
                 : page
             ),
           },
@@ -1055,9 +1061,11 @@ describe('the person page', () => {
       }),
     });
     mount(`${importPath}/pop`);
-    expect((await screen.findByTestId('person-handover')).textContent).toBe(
-      'Pe fișă e consemnată o preluare la 03.10.2022. Instruirile dinainte au fost făcute sub alt serviciu de prevenire.'
-    );
+    const handovers = await screen.findByTestId('person-handovers');
+    expect([...handovers.querySelectorAll('p')].map((each) => each.textContent)).toEqual([
+      'Pe fișă e consemnată o preluare la 03.10.2022. Instruirile dinainte au fost făcute sub alt serviciu de prevenire.',
+      'Pe fișă e consemnată o preluare la 01.02.2024. Instruirile dinainte au fost făcute sub alt serviciu de prevenire.',
+    ]);
   });
 
   it('opens the photograph a row was read from with the number beside the row', async () => {
