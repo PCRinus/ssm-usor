@@ -200,6 +200,34 @@ describe('rowValues', () => {
     ).toBe(transcribedNote);
   });
 
+  it('leaves blank what the paper sheet does not write on a transcribed row and block', () => {
+    const missing = {
+      source: 'paper' as const,
+      training: {
+        durationMinutes: null,
+        material: null,
+        trainer: { name: null, jobTitle: null },
+        verifier: null,
+      },
+    };
+    const row = rowValues('ssm', 'p1', sheetRecord('periodic', '2022-04-11', missing), '');
+    expect(row).toMatchObject({ p1_duration: '', p1_material: '' });
+    expect(row.p1_note).toBe('transcris;\nsemnat pe hârtie');
+    const block = rowValues(
+      'ssm',
+      'h1',
+      sheetRecord('introductory_general', '2021-03-01', missing),
+      ''
+    );
+    expect(block).toMatchObject({
+      h1_duration: '',
+      h1_trainer: '',
+      h1_trainer_job_title: '',
+      h1_material: '',
+      h1_note: transcribedNote,
+    });
+  });
+
   it('keeps a sheet drawn up before the transcription form as it was', () => {
     const record = sheetRecord('periodic', '2026-05-18', { source: 'paper' });
     const values = rowValues('ssm', 'p2', record, '', { form: 1 });

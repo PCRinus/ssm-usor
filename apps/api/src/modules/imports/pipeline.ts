@@ -1141,12 +1141,11 @@ async function checkSheets(deps: PipelineDeps, row: ImportRow) {
   if (!row.client_id) throw new ImportFailure(importReasons.failed);
   const files = (await deps.store.listFiles(row.id)).filter((file) => file.state === 'read');
   const today = romanianToday();
-  const [pages, client, themes] = await Promise.all([
+  const [pages, client] = await Promise.all([
     sheetPagesOf(deps, files),
     deps.store.employeeImportClient(row.client_id),
-    deps.store.trainingThemes(row, today),
   ]);
-  const proposal = toEmployeeProposal({ pages, client, themes, today });
+  const proposal = toEmployeeProposal({ pages, client, today });
   const ready = await deps.store.advance(row.id, 'checking', {
     status: 'ready',
     proposal: asJson(proposal),

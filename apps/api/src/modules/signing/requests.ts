@@ -29,7 +29,7 @@ const assignable = ['trainer', 'verifier', 'admitter'] as const;
 const printedName = (body: TrainingRequest, slot: (typeof assignable)[number]) => {
   switch (slot) {
     case 'trainer':
-      return body.trainer.name;
+      return body.trainer.name ?? '';
     case 'verifier':
       return body.verifier?.name ?? '';
     case 'admitter':

@@ -188,8 +188,10 @@ export const PortalTrainingRecordsResponseItemsItemPhase = {
 } as const;
 
 export type PortalTrainingRecordsResponseItemsItemTrainer = {
-  name: string;
-  jobTitle: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  jobTitle: string | null;
 };
 
 /**
@@ -271,8 +273,10 @@ export type PortalTrainingRecordsResponseItemsItem = {
   domain: PortalTrainingRecordsResponseItemsItemDomain;
   phase: PortalTrainingRecordsResponseItemsItemPhase;
   heldOn: string;
-  durationMinutes: number;
-  material: string;
+  /** @nullable */
+  durationMinutes: number | null;
+  /** @nullable */
+  material: string | null;
   trainer: PortalTrainingRecordsResponseItemsItemTrainer;
   /** @nullable */
   verifier: PortalTrainingRecordsResponseItemsItemVerifier;

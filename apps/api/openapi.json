@@ -2924,19 +2924,23 @@
                   "format": "date"
                 },
                 "durationMinutes": {
-                  "type": "integer"
+                  "type": "integer",
+                  "nullable": true
                 },
                 "material": {
-                  "type": "string"
+                  "type": "string",
+                  "nullable": true
                 },
                 "trainer": {
                   "type": "object",
                   "properties": {
                     "name": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "jobTitle": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     }
                   },
                   "required": ["name", "jobTitle"]
@@ -3144,19 +3148,23 @@
                 "format": "date"
               },
               "durationMinutes": {
-                "type": "integer"
+                "type": "integer",
+                "nullable": true
               },
               "material": {
-                "type": "string"
+                "type": "string",
+                "nullable": true
               },
               "trainer": {
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   },
                   "jobTitle": {
-                    "type": "string"
+                    "type": "string",
+                    "nullable": true
                   }
                 },
                 "required": ["name", "jobTitle"]
@@ -3332,11 +3340,13 @@
           },
           "durationMinutes": {
             "type": "integer",
+            "nullable": true,
             "minimum": 1,
             "maximum": 600
           },
           "material": {
             "type": "string",
+            "nullable": true,
             "minLength": 1,
             "maxLength": 4000
           },
@@ -3345,16 +3355,17 @@
             "properties": {
               "name": {
                 "type": "string",
+                "nullable": true,
                 "minLength": 1,
                 "maxLength": 160
               },
               "jobTitle": {
                 "type": "string",
+                "nullable": true,
                 "minLength": 1,
                 "maxLength": 160
               }
-            },
-            "required": ["name", "jobTitle"]
+            }
           },
           "verifier": {
             "type": "object",
@@ -3455,15 +3466,7 @@
             }
           }
         },
-        "required": [
-          "domain",
-          "phase",
-          "heldOn",
-          "durationMinutes",
-          "material",
-          "trainer",
-          "employeeIds"
-        ]
+        "required": ["domain", "phase", "heldOn", "trainer", "employeeIds"]
       },
       "EmployeeTrainingRecordListResponse": {
         "type": "object",
@@ -3521,19 +3524,23 @@
                       "format": "date"
                     },
                     "durationMinutes": {
-                      "type": "integer"
+                      "type": "integer",
+                      "nullable": true
                     },
                     "material": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "trainer": {
                       "type": "object",
                       "properties": {
                         "name": {
-                          "type": "string"
+                          "type": "string",
+                          "nullable": true
                         },
                         "jobTitle": {
-                          "type": "string"
+                          "type": "string",
+                          "nullable": true
                         }
                       },
                       "required": ["name", "jobTitle"]
@@ -4556,6 +4563,7 @@
           },
           "examiner": {
             "type": "object",
+            "nullable": true,
             "properties": {
               "name": {
                 "type": "string",
@@ -4571,7 +4579,7 @@
             "required": ["name", "jobTitle"]
           }
         },
-        "required": ["domain", "test", "takenOn", "examiner"]
+        "required": ["domain", "test", "takenOn"]
       },
       "UpdateTestResultRequest": {
         "type": "object",
@@ -23003,19 +23011,23 @@
                   "format": "date"
                 },
                 "durationMinutes": {
-                  "type": "integer"
+                  "type": "integer",
+                  "nullable": true
                 },
                 "material": {
-                  "type": "string"
+                  "type": "string",
+                  "nullable": true
                 },
                 "trainer": {
                   "type": "object",
                   "properties": {
                     "name": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "jobTitle": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     }
                   },
                   "required": ["name", "jobTitle"]
@@ -28767,7 +28779,7 @@
       "post": {
         "operationId": "createTraining",
         "summary": "Record a training held with its attendees",
-        "description": "Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, \"admis la lucru\", is given to every attendee and only on a workplace training.",
+        "description": "Every attendee gets a training record carrying the name of their job position as the occupation. The attendees are employees of the client in any status, since a record typed from paper may belong to someone who has left. `admission`, \"admis la lucru\", is given to every attendee and only on a workplace training. A training held in the app (`source` `app`) names its duration, material and trainer; one typed from paper may leave out any of them its sheet does not write, and the reads then answer them null.",
         "security": [
           {
             "bearerAuth": []
@@ -30623,7 +30635,7 @@
       "post": {
         "operationId": "recordPaperTestResult",
         "summary": "Record a pass of the printed test",
-        "description": "A test filled in on paper and passed: the day, the examiner and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.",
+        "description": "A test filled in on paper and passed: the day, the examiner, left out where the sheet names none, and the grade, always `admis`; the material defaults to the test's name and code. A hiring result is taken once the domain's hiring training is recorded and before a hiring pass in that domain, otherwise reason `test_not_awaiting`; an annual fire-safety one at any time, since a paper sheet may record annual tests where its hiring one could not be read. The day is not in the future. The result fills its row of the employee's stored signed sheet.",
         "security": [
           {
             "bearerAuth": []

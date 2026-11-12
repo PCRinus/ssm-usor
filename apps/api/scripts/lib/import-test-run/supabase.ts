@@ -67,6 +67,5 @@ export function databaseContext(admin: AdminClient): CaseContext {
   const store = importStore(admin);
   return {
     client: (clientId) => store.client(clientId),
-    trainingThemes: (row, today) => store.trainingThemes(row, today),
   };
 }

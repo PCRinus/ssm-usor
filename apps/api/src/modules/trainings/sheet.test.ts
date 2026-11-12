@@ -255,6 +255,48 @@ describe('buildTrainingSheetData', () => {
     expect(paperHiring.supplementary[0]!.note).toBe(transcribedNote);
   });
 
+  it('leaves blank what a paper training’s sheet does not write', () => {
+    const missing = {
+      durationMinutes: null,
+      material: null,
+      trainer: { name: null, jobTitle: null },
+      verifier: null,
+    };
+    const data = buildTrainingSheetData({
+      ...facts,
+      records: [
+        record('introductory_general', '2021-03-01', missing, null, 'paper'),
+        record('periodic', '2022-04-11', missing, null, 'paper'),
+        record(
+          'supplementary',
+          '2022-05-16',
+          { ...missing, supplementaryReason: 'after_accident' },
+          null,
+          'paper'
+        ),
+      ],
+    });
+    expect(data.hiring.introductory).toMatchObject({
+      heldOn: '01.03.2021',
+      hours: '',
+      trainer: '',
+      trainerJobTitle: '',
+      material: '',
+      note: transcribedNote,
+    });
+    expect(data.signers.introductory).toEqual({ trainer: '', verifier: '' });
+    expect(data.periodic[0]).toMatchObject({
+      hours: '',
+      material: '',
+      trainer: '',
+      verifier: '',
+      note: transcribedNote,
+    });
+    expect(data.supplementary[0]!.material).toBe(
+      '(motivul: reluarea activității după un accident de muncă)'
+    );
+  });
+
   it('leaves the hiring blocks blank before any training, and fills the table pages with blank rows', () => {
     const data = buildTrainingSheetData({ ...facts, records: [] });
     expect(Object.values(data.hiring.introductory).every((value) => value === '')).toBe(true);

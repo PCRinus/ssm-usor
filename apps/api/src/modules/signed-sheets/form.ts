@@ -269,8 +269,8 @@ export function rowValues(
   const hiring: Record<string, string> = {
     date: printedDate(training.heldOn),
     duration: hoursOf(training.durationMinutes),
-    trainer: training.trainer.name,
-    trainer_job_title: training.trainer.jobTitle,
+    trainer: training.trainer.name ?? '',
+    trainer_job_title: training.trainer.jobTitle ?? '',
     material: materialOf(record),
   };
   if (rowKey === 'h2') {

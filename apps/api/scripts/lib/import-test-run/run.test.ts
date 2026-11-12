@@ -64,7 +64,6 @@ const decisionText = [
 
 const context: CaseContext = {
   client: async () => null,
-  trainingThemes: async () => () => null,
 };
 
 const importId = (n: number) => `c1000000-0000-4000-8000-00000000000${n}`;

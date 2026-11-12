@@ -507,6 +507,20 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
     });
   });
 
+  it('records a pass whose sheet names no examiner', async () => {
+    mockUpstream();
+    const response = await request(`${testsPath}/results`, 'POST', {
+      ...paper,
+      examiner: null,
+    });
+    expect(response.status).toBe(201);
+    expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
+      examiner_name: null,
+      examiner_job_title: null,
+      source: 'paper',
+    });
+  });
+
   it("looks for the employee's stored sheet to fill the result's row, with the secret key", async () => {
     mockUpstream({
       results: (init, url) =>

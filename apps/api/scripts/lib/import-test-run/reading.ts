@@ -10,7 +10,6 @@ import {
   readingAnswer,
   sheetPageAnswer,
   sortingAnswer,
-  type TrainingThemes,
   type Usage,
 } from '@ssm-usor/import';
 
@@ -35,7 +34,6 @@ import { type CopySource, type ImportCopyRecord, MissingObjectError, type TestCa
 // Read from the database, never written: what the copy's record does not hold.
 export interface CaseContext {
   client(clientId: string): Promise<ExistingClient | null>;
-  trainingThemes(row: ImportRow, today: string): Promise<TrainingThemes>;
 }
 
 export interface Spent {
@@ -283,7 +281,6 @@ function memoryStore(state: CaseState, context: CaseContext): ImportStore {
     // client's import reads the client its confirm made.
     client: async (clientId) => state.context.existingClient ?? context.client(clientId),
     employeeImportClient: async () => emptyEmployeeClient,
-    trainingThemes: (importRow, today) => context.trainingThemes(importRow, today),
     keepPageImage: async () => {},
     folderCopies: unused('copy a folder'),
     markCopied: unused('copy a folder'),

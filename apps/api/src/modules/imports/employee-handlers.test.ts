@@ -158,7 +158,6 @@ const proposalOf = (pages: SheetPageInput[]) =>
   toEmployeeProposal({
     pages,
     client: { jobPositions: [{ id: positionId, name: 'Vânzător' }], workplaces: [], employees: [] },
-    themes: () => null,
     today: '2026-10-31',
   });
 

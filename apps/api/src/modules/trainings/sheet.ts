@@ -213,8 +213,12 @@ export function missingSheetDataOf(
   return missing;
 }
 
-/** Whole hours as "2", any other duration with one decimal and a comma: "1,5". */
-export function hoursOf(minutes: number) {
+/**
+ * Whole hours as "2", any other duration with one decimal and a comma: "1,5"; blank for a paper
+ * training whose sheet writes none.
+ */
+export function hoursOf(minutes: number | null) {
+  if (minutes === null) return '';
   const tenths = Math.round(minutes / 6);
   return tenths % 10 === 0 ? String(tenths / 10) : `${Math.floor(tenths / 10)},${tenths % 10}`;
 }
@@ -248,7 +252,8 @@ export const materialOf = (record: SheetRecord) => {
   const reason = record.training.supplementaryReason;
   const taught = text(record.training.material);
   if (!reason) return taught;
-  return `${withoutFinalStop(taught)} (motivul: ${runOn(supplementaryTrainingReasonLabels[reason])})`;
+  const motive = `(motivul: ${runOn(supplementaryTrainingReasonLabels[reason])})`;
+  return taught ? `${withoutFinalStop(taught)} ${motive}` : motive;
 };
 
 function hiringLine(record: SheetRecord | null, place: string): HiringLine {
@@ -268,8 +273,8 @@ function hiringLine(record: SheetRecord | null, place: string): HiringLine {
   return {
     heldOn: printedDate(training.heldOn),
     hours: hoursOf(training.durationMinutes),
-    trainer: training.trainer.name,
-    trainerJobTitle: training.trainer.jobTitle,
+    trainer: text(training.trainer.name),
+    trainerJobTitle: text(training.trainer.jobTitle),
     material: materialOf(record),
     occupation: record.occupation,
     place,
@@ -283,8 +288,8 @@ function signersOf(domain: TrainingDomain, record: SheetRecord | null) {
   if (!record) return { trainer: '', verifier: '' };
   const { trainer, verifier } = record.training;
   return {
-    trainer: trainer.name,
-    verifier: verifier?.name ?? (domain === 'su' ? trainer.name : ''),
+    trainer: text(trainer.name),
+    verifier: verifier?.name ?? (domain === 'su' ? text(trainer.name) : ''),
   };
 }
 
@@ -324,7 +329,7 @@ const sheetRow = (record: SheetRecord): SheetRow => ({
   hours: hoursOf(record.training.durationMinutes),
   occupation: record.occupation,
   material: materialOf(record),
-  trainer: record.training.trainer.name,
+  trainer: text(record.training.trainer.name),
   verifier: record.training.verifier?.name ?? '',
   note: noteOf(record),
 });

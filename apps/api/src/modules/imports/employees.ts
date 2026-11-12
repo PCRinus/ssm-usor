@@ -9,17 +9,11 @@ import {
   type EmployeeImportProposal,
   employeeImportProposalSchema,
   type ExistingEmployee,
-  type TrainingThemes,
 } from '@ssm-usor/import';
 
 import type { AdminClient } from '../../lib/admin-db';
-import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
+import { type DataClient, everyRow } from '../../lib/db';
 import { romanianDay } from '../documents/context';
-import {
-  type ClientTrainingFacts,
-  clientTrainingFacts,
-  proposalFromFacts,
-} from '../trainings/client-facts';
 
 type Db = DataClient | AdminClient;
 
@@ -58,7 +52,7 @@ export async function employeeImportClient(
         db
           .from('employees')
           .select(
-            'id, last_name, first_name, cnp, employee_number, birth_date, birth_place, home_address, education, qualification, blood_group, rh_factor, job_title, hired_at, terminated_at, workplace_id, job_position_id, commute_route, commute_minutes, email, phone'
+            'id, last_name, first_name, cnp, employee_number, birth_date, birth_place, home_address, education, qualification, blood_group, rh_factor, job_title, hired_at, terminated_at, workplace_id, commute_route, commute_minutes, email, phone'
           )
           .eq('client_id', clientId)
           .is('archived_at', null)
@@ -94,7 +88,7 @@ export async function employeeImportClient(
       name: workplace.name,
       addressLine: workplace.address_line,
     })),
-    employees: employees.map((employee): ExistingEmployee & { jobPositionId: string | null } => ({
+    employees: employees.map((employee): ExistingEmployee => ({
       id: employee.id,
       lastName: employee.last_name,
       firstName: employee.first_name,
@@ -111,7 +105,6 @@ export async function employeeImportClient(
       hiredAt: employee.hired_at,
       terminatedAt: employee.terminated_at,
       workplaceId: employee.workplace_id,
-      jobPositionId: employee.job_position_id,
       commuteRoute: employee.commute_route,
       commuteMinutes: employee.commute_minutes,
       hasContact: Boolean(employee.email || employee.phone),
@@ -130,66 +123,6 @@ export async function employeeImportClient(
           takenOn: result.taken_on,
         })),
     })),
-  };
-}
-
-// An import an admin started while impersonating a member proposes that member as the trainer,
-// as the member's own import would, while `created_by` keeps the admin (ADR 038).
-export async function importSpecialist(
-  admin: AdminClient,
-  row: { organization_id: string; created_by: string | null; created_at: string | null }
-) {
-  if (!row.created_by || !row.created_at) return row.created_by;
-  const at = new Date(row.created_at).toISOString();
-  const { data, error } = await admin
-    .from('impersonations')
-    .select('target_user_id')
-    .eq('admin_user_id', row.created_by)
-    .lte('started_at', at)
-    .gt('expires_at', at)
-    .or(`ended_at.is.null,ended_at.gt.${at}`)
-    .limit(1)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'impersonation of an import');
-  if (!data) return row.created_by;
-  const member = await admin
-    .from('organization_members')
-    .select('user_id')
-    .eq('user_id', data.target_user_id)
-    .eq('organization_id', row.organization_id)
-    .maybeSingle();
-  if (member.error) throw fromDatabaseError(member.error, 'impersonated member of an import');
-  return member.data ? data.target_user_id : row.created_by;
-}
-
-export async function clientTrainingThemes(
-  db: Db,
-  input: {
-    clientId: string;
-    organizationId: string;
-    specialistUserId: string | null;
-    today: string;
-  }
-): Promise<TrainingThemes> {
-  const facts = await clientTrainingFacts(db, {
-    clientId: input.clientId,
-    organizationId: input.organizationId,
-    specialistUserId: input.specialistUserId,
-  });
-  return themesFromFacts(facts, input.today);
-}
-
-export function themesFromFacts(facts: ClientTrainingFacts, today: string): TrainingThemes {
-  return (query) => {
-    const proposal = proposalFromFacts(facts, { ...query, heldOn: query.heldOn ?? today });
-    // A periodic session is the month's: an undated row has none of its own.
-    const undatedPeriodic = query.heldOn === null && query.phase === 'periodic';
-    return {
-      trainerName: proposal.trainer?.name ?? null,
-      trainerJobTitle: proposal.trainer?.jobTitle ?? null,
-      material: undatedPeriodic ? null : proposal.material,
-      durationMinutes: proposal.durationMinutes,
-    };
   };
 }
 
