@@ -415,6 +415,21 @@ describe('rows and tests', () => {
     }));
     expect(heldWith(contextOf(sameDay), 'lazar', row('r6'))).toBe(1);
   });
+
+  it('keeps apart rows whose trainer’s function or verifier differ', () => {
+    const sameDay = withRow(emptyChanges(), 'r5', () => ({
+      values: { trainerName: 'Barbu Ionuț', trainerJobTitle: 'Administrator' },
+    }));
+    expect(heldWith(contextOf(sameDay), 'lazar', row('r6'))).toBe(0);
+    const verified = withRow(emptyChanges(), 'r5', () => ({
+      values: {
+        trainerName: 'Barbu Ionuț',
+        verifierName: 'Dan Marin',
+        verifierJobTitle: 'Inspector SSM',
+      },
+    }));
+    expect(heldWith(contextOf(verified), 'lazar', row('r6'))).toBe(0);
+  });
 });
 
 describe('the people list', () => {
@@ -1203,5 +1218,34 @@ describe('a value an older reading took from the client’s themes', () => {
   it('unless the member typed one over it', () => {
     const typed = withRow(emptyChanges(), 't1', () => ({ values: { material: 'Riscuri' } }));
     expect(rowValues(typed, themed).material).toBe('Riscuri');
+  });
+
+  it('even when a dialog saved it unchanged with a corrected date', () => {
+    const saved = withRow(emptyChanges(), 't1', () => ({
+      values: {
+        heldOn: '2025-02-12',
+        durationMinutes: 120,
+        trainerName: 'Barbu Ionuț',
+        trainerJobTitle: 'inspector SSM',
+        material: 'Tematica semestrului',
+        examinerName: 'Barbu Ionuț',
+        examinerJobTitle: 'inspector SSM',
+      },
+    }));
+    expect(rowValues(saved, themed)).toMatchObject({
+      heldOn: '2025-02-12',
+      trainerName: null,
+      trainerJobTitle: null,
+      material: null,
+      durationMinutes: 120,
+    });
+    expect(examinerValues(saved, themed)).toEqual({ examinerName: null, examinerJobTitle: null });
+    const renamed = withRow(emptyChanges(), 't1', () => ({
+      values: { examinerName: 'Pavel Dan', examinerJobTitle: 'inspector SSM' },
+    }));
+    expect(examinerValues(renamed, themed)).toEqual({
+      examinerName: 'Pavel Dan',
+      examinerJobTitle: 'inspector SSM',
+    });
   });
 });

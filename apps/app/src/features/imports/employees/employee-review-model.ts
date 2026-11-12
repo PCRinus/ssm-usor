@@ -438,11 +438,27 @@ export type RowValues = {
 
 // As `@ssm-usor/import`: a value an older proposal took from the client's themes is no reading
 // of the sheet, so it counts as empty unless the member typed one (ADR 042).
+const sameValue = (a: unknown, b: unknown) =>
+  (typeof a === 'string' ? a.trim() : (a ?? null)) ===
+  (typeof b === 'string' ? b.trim() : (b ?? null));
+
+// The row dialogs saved every field on any edit, so a stored change equal to the themed value is
+// that save, not a value the member typed.
+function reviewedValue(
+  values: Record<string, unknown>,
+  name: string,
+  proposed: unknown,
+  themed: boolean
+) {
+  if (name in values && !(themed && sameValue(values[name], proposed))) return values[name];
+  return themed ? null : proposed;
+}
+
 export function rowValues(changes: Changes, row: SheetRow): RowValues {
-  const values = changes.rows[row.id]?.values ?? {};
+  const values: Record<string, unknown> = changes.rows[row.id]?.values ?? {};
   const fromThemes: readonly string[] = row.fromThemes;
   const pick = <K extends keyof RowValues>(name: K) =>
-    (name in values ? values[name] : fromThemes.includes(name) ? null : row[name]) as RowValues[K];
+    reviewedValue(values, name, row[name], fromThemes.includes(name)) as RowValues[K];
   return {
     heldOn: pick('heldOn'),
     durationMinutes: pick('durationMinutes'),
@@ -460,21 +476,23 @@ export function rowValues(changes: Changes, row: SheetRow): RowValues {
  * never a trainer an older proposal took from the client's themes, as `@ssm-usor/import` reads it.
  */
 export function examinerValues(changes: Changes, row: SheetRow) {
-  const own = changes.rows[row.id]?.values ?? {};
+  const own: Record<string, unknown> = changes.rows[row.id]?.values ?? {};
   const byVerifier = row.signatures.verifier !== 'no_box' && row.verifierName !== null;
-  const fromThemes = (field: 'trainerName' | 'trainerJobTitle') =>
-    !byVerifier && (row.fromThemes as readonly string[]).includes(field);
+  const typed = (['examinerName', 'examinerJobTitle'] as const).some(
+    (name) => name in own && !sameValue(own[name], row.test?.[name] ?? null)
+  );
+  const examiner = (name: 'examinerName' | 'examinerJobTitle', trainer: string) =>
+    reviewedValue(
+      own,
+      name,
+      row.test?.[name] ?? null,
+      !(typed && name in own) &&
+        !byVerifier &&
+        (row.fromThemes as readonly string[]).includes(trainer)
+    ) as string | null;
   return {
-    examinerName: ('examinerName' in own
-      ? own.examinerName
-      : fromThemes('trainerName')
-        ? null
-        : (row.test?.examinerName ?? null)) as string | null,
-    examinerJobTitle: ('examinerJobTitle' in own
-      ? own.examinerJobTitle
-      : fromThemes('trainerJobTitle')
-        ? null
-        : (row.test?.examinerJobTitle ?? null)) as string | null,
+    examinerName: examiner('examinerName', 'trainerName'),
+    examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
   };
 }
 
@@ -1318,20 +1336,27 @@ export function trainingsByDomain(
 
 type HeldKeyRow = { domain: string; phase: string } & RowValues;
 
-const heldKey = (row: HeldKeyRow) =>
-  JSON.stringify([
+// As `@ssm-usor/import`'s grouping, which keeps a verifier only when both halves are written.
+const heldKey = (row: HeldKeyRow) => {
+  const verified = filled(row.verifierName) && filled(row.verifierJobTitle);
+  return JSON.stringify([
     row.domain,
     row.phase,
     row.heldOn,
     foldText(row.trainerName ?? ''),
+    foldText(row.trainerJobTitle ?? ''),
+    verified ? foldText(row.verifierName ?? '') : '',
+    verified ? foldText(row.verifierJobTitle ?? '') : '',
     row.durationMinutes,
     foldText(row.material ?? ''),
     row.phase === 'supplementary' ? row.supplementaryReason : null,
   ]);
+};
 
 /**
  * The people a row's training is held with: rows of others the confirm groups with it, as one
- * training held, when domain, phase, date, trainer, duration and material all match.
+ * training held, when domain, phase, date, trainer and their function, verifier, duration and
+ * material all match.
  */
 export function heldWith(context: ReviewContext, personId: string, row: SheetRow) {
   const key = heldKey({ ...row, ...rowValues(context.changes, row) });

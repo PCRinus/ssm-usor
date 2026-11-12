@@ -38,18 +38,25 @@ export interface HeldTraining {
   rows: { rowId: string; personId: string }[];
 }
 
+const folded = (value: string | null, fold: (value: string) => string) =>
+  value === null ? null : fold(value);
+
 // A training held has one duration and one material, while the periodic material differs per
 // post, so rows that differ in any of them stay separate trainings held on the same day
-// (Mircea, 2026-10-31). The reason is a column of the training too. A value two rows both lack
-// is the same on both.
+// (Mircea, 2026-10-31). The reason, the trainer's function and the verifier are columns of the
+// training too: rows that differ in them stay apart rather than lend one person's sheet to
+// another's record (ADR 042). A value two rows both lack is the same on both.
 const heldKey = (row: HeldRow) =>
   JSON.stringify([
     row.domain,
     row.phase,
     row.heldOn,
-    row.trainerName === null ? null : foldName(row.trainerName),
+    folded(row.trainerName, foldName),
+    folded(row.trainerJobTitle, foldText),
+    folded(row.verifierName, foldName),
+    folded(row.verifierJobTitle, foldText),
     row.durationMinutes,
-    row.material === null ? null : foldText(row.material),
+    folded(row.material, foldText),
     row.supplementaryReason,
   ]);
 
@@ -77,11 +84,6 @@ export function groupHeldTrainings(rows: readonly HeldRow[]): HeldTraining[] {
     }
     if (known.rows.some((each) => each.personId === row.personId)) continue;
     known.rows.push({ rowId: row.rowId, personId: row.personId });
-    known.trainerJobTitle ??= row.trainerJobTitle;
-    if (known.verifierName === null && row.verifierName !== null) {
-      known.verifierName = row.verifierName;
-      known.verifierJobTitle = row.verifierJobTitle;
-    }
   }
   return [...held.values()];
 }

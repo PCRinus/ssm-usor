@@ -2374,7 +2374,11 @@ trainer's function, material and duration, and a test's examiner, may stay empty
 nothing; a test's examiner named by half blocks the other half. A proposal read before ADR 042
 lists in a row's `fromThemes` the values it took from the client's themes: the review and the
 confirm take them as empty unless the member typed one, and a test's examiner taken from such a
-trainer too.
+trainer too. A stored change equal to the themed value is the row dialog saving every field, not a
+value typed, and counts as empty as well; an examiner half typed over the themed one takes the
+other half saved with it. Rows of several people become one training held only when the domain,
+phase, day, trainer, trainer's function, verifier, duration and material all match, a value both
+rows lack matching; nothing is taken from one row into another's training.
 `PUT /imports/{importId}/employee-changes` saves `{ version, changes }` through the same
 `save_import_changes`, restarting the 14 days; `PUT /imports/{importId}/changes` is a client
 import's. Each refuses the other kind with `409` and `import_wrong_kind`, as sending a set-aside
