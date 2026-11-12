@@ -88,7 +88,7 @@ export function StatusTag({ status }: { status: SectionStatus }) {
 }
 
 export const EditedTag = ({ children = 'Modificat de tine' }: { children?: ReactNode }) => (
-  <Tag tone="muted" icon={<Pencil aria-hidden="true" />} testId="edited-tag">
+  <Tag tone="muted" testId="edited-tag">
     {children}
   </Tag>
 );
