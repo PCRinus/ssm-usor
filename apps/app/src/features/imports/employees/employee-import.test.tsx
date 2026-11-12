@@ -646,7 +646,9 @@ describe('the person page', () => {
     expect(screen.getByTestId('person-state').textContent).toBe('De verificat');
     expect(screen.queryByTestId('person-decisions')).toBeNull();
     expect(screen.getByTestId('person-data-pending').textContent).toBe('Gata de confirmat');
-    expect(screen.getByTestId('person-page').textContent).not.toContain('Fără email');
+    const employeeNumber = document.getElementById('field-employeeNumber')!;
+    expect(employeeNumber.querySelector('dt')!.textContent).toContain('Număr de marcă');
+    expect(employeeNumber.querySelector('dd > div')!.textContent).toBe('Necompletat');
     await userEvent.setup().click(screen.getByTestId('person-next'));
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe(`${importPath}/lazar`));
     await waitFor(() =>

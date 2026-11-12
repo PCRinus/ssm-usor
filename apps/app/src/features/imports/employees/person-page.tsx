@@ -564,12 +564,17 @@ export function EmployeePersonPage({
               icon={UserRound}
               headingId="person-data-title"
               title="Datele de pe fișe"
+              statusBelowOnPhone
               description={
                 existing
                   ? 'Completează lucrătorul din aplicație.'
                   : 'Se preiau la crearea lucrătorului.'
               }
-              status={state === 'set_aside' ? null : <DataPending decisions={decisions} />}
+              status={
+                state === 'set_aside' ? null : (
+                  <DataPending context={context} person={person} decisions={decisions} />
+                )
+              }
             />
           </div>
           {existing ? (

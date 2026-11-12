@@ -8,12 +8,13 @@ import { employeeProposal } from '@/test/employee-import-fixture';
 import {
   decisionsOf,
   emptyChanges,
+  isExisting,
   type Person,
   type Proposal,
   statesOf,
 } from './employee-review-model';
 import { dialogRowsFor } from './person-dialog-rows';
-import { PersonData } from './person-fields';
+import { DataPending, ExistingComparison, PersonData } from './person-fields';
 
 const proposal = employeeProposal() as unknown as Proposal;
 const person = proposal.people.find((each) => each.id === 'pop')!;
@@ -28,18 +29,26 @@ function Data({ who = person }: { who?: Person }) {
     workplaceCount: 2,
     today: '2026-11-12',
   };
+  const decisions = decisionsOf(context, who);
+  const Card = isExisting(context, who) ? ExistingComparison : PersonData;
   return (
     <>
-      <PersonData
+      <DataPending context={context} person={who} decisions={decisions} />
+      <Card
         context={context}
         person={who}
-        decisions={decisionsOf(context, who)}
+        decisions={decisions}
         onChange={(mutate) => setCurrent(mutate)}
       />
-      <output data-testid="fields">{JSON.stringify(current.people.pop?.fields ?? null)}</output>
+      <output data-testid="fields">{JSON.stringify(current.people[who.id]?.fields ?? null)}</output>
     </>
   );
 }
+
+const withFields = (id: string, fields: Partial<Person['fields']>): Person => {
+  const each = proposal.people.find((one) => one.id === id)!;
+  return { ...each, fields: { ...each.fields, ...fields } };
+};
 
 const written = () => JSON.parse(screen.getByTestId('fields').textContent!) as unknown;
 
@@ -290,5 +299,96 @@ describe('the card of the data read from the sheets', () => {
     await user.click(button);
     expect(within(dialog()).getByRole('heading').textContent).toBe('Angajare');
     expect(rows()).toEqual([['jobTitle'], ['hiredAt', 'leftOn'], ['employeeNumber']]);
+  });
+
+  const pending = () => screen.getByTestId('person-data-pending').textContent;
+
+  it('counts a field with two things to decide once', () => {
+    render(
+      <Data
+        who={withFields('pop', {
+          cnp: { options: [{ value: '2710212250545', pageIds: ['p3'] }] },
+          birthDate: { options: [{ value: '12.03.1971', pageIds: ['p3'] }] },
+        })}
+      />
+    );
+    expect(row('birthDate').dataset.tone).toBe('todo');
+    expect(row('birthDate').textContent).toContain('Corectează data nașterii');
+    expect(row('birthDate').textContent).toContain('Data nașterii nu se potrivește cu CNP-ul');
+    expect(pending()).toBe('1 de hotărât');
+  });
+
+  it('marks a field whose sheets disagree as a choice made above, and counts it', () => {
+    render(
+      <Data
+        who={withFields('pop', {
+          hiredAt: {
+            options: [
+              { value: '2023-05-02', pageIds: ['p3'] },
+              { value: '2023-05-04', pageIds: ['p3'] },
+            ],
+          },
+        })}
+      />
+    );
+    expect(row('hiredAt').dataset.tone).toBe('todo');
+    expect(row('hiredAt').textContent).toContain('De ales mai sus');
+    expect(pending()).toBe('1 de hotărât');
+  });
+
+  it('points no photograph at a value the member wrote over sheets that disagree', async () => {
+    const user = userEvent.setup();
+    render(
+      <Data
+        who={withFields('toma', {
+          lastName: {
+            options: [
+              { value: 'Toma', pageIds: ['p1'] },
+              { value: 'Tomescu', pageIds: ['p2'] },
+            ],
+          },
+        })}
+      />
+    );
+    await open(user, 'Modifică datele personale');
+    await user.type(screen.getByLabelText(/^Nume/), 'Tomșa');
+    await user.click(screen.getByTestId('person-fields-save'));
+
+    expect(within(row('lastName')).getByTestId('person-field-sheet').textContent).toBe(
+      'De pe fișă: Toma; Tomescu'
+    );
+    expect(within(row('lastName')).queryByRole('button', { name: /^Fotografia/ })).toBeNull();
+  });
+
+  it('shows an existing worker a value that differs from the app, and takes the sheet on request', async () => {
+    const user = userEvent.setup();
+    render(<Data who={proposal.people.find((each) => each.id === 'lazar')!} />);
+    const address = row('homeAddress');
+    expect(address.dataset.tone).toBe('done');
+    expect(address.textContent).toContain('Rămâne Str. Viitorului nr. 3, Sibiu');
+    expect(address.textContent).toContain('Pe fișă: Str. Fabricii nr. 21, Sibiu');
+    expect(within(address).getByRole('button', { name: /^Fotografia 1/ })).toBeTruthy();
+    expect(pending()).toBe('Gata de confirmat');
+
+    await user.click(within(address).getByTestId('person-existing-take-sheet'));
+    expect(row('homeAddress').textContent).toContain('Devine Str. Fabricii nr. 21, Sibiu');
+  });
+
+  it('leaves out of the count an existing worker’s choice this card shows no row for', () => {
+    render(
+      <Data
+        who={withFields('lazar', {
+          hiredAt: {
+            options: [
+              { value: '2019-04-03', pageIds: ['p4'] },
+              { value: '2019-05-03', pageIds: ['p4'] },
+            ],
+            app: null,
+          },
+        })}
+      />
+    );
+    expect(document.getElementById('field-hiredAt')).toBeNull();
+    expect(pending()).toBe('Gata de confirmat');
   });
 });

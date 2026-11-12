@@ -48,7 +48,6 @@ import {
 } from './employee-review-model';
 import { dialogRowsFor } from './person-dialog-rows';
 import { PhotoNumber } from './person-photos';
-import { fieldOfDecision } from './person-sections';
 import {
   compareWithApp,
   dateFields,
@@ -105,19 +104,41 @@ const fieldDecisionKeys = (name: FieldName) => [
   ...(name === 'birthDate' ? ['birthDate'] : []),
 ];
 
-const dataFieldNames: ReadonlySet<string> = new Set(
-  Object.values(groups).flatMap((group) => group.names)
-);
+type RowTone = Extract<Tone, 'done' | 'todo' | 'optional'>;
 
-export function DataPending({ decisions }: { decisions: Decision[] }) {
-  const open = decisions.filter((decision) => {
-    const field = fieldOfDecision(decision.key) ?? /^choice-(.+)$/.exec(decision.key)?.[1];
-    return field !== undefined && dataFieldNames.has(field);
-  }).length;
+const ownDecisions = (name: FieldName, decisions: Decision[]) => {
+  const keys = fieldDecisionKeys(name);
+  return decisions.filter((decision) => keys.includes(decision.key));
+};
+
+const toneOf = (name: FieldName, field: ResolvedField, own: Decision[]): RowTone =>
+  own.length > 0 || field.choice
+    ? 'todo'
+    : showValue(name, field.value) === null
+      ? 'optional'
+      : 'done';
+
+const rowsShown = (context: ReviewContext, person: Person): FieldName[] => {
+  if (!isExisting(context, person)) return Object.values(groups).flatMap((group) => group.names);
+  const { added, differs } = compareWithApp(context, person);
+  return [...added, ...differs].map(({ name }) => name);
+};
+
+export function DataPending({
+  context,
+  person,
+  decisions,
+}: {
+  context: ReviewContext;
+  person: Person;
+  decisions: Decision[];
+}) {
+  const open = rowsShown(context, person).filter(
+    (name) =>
+      toneOf(name, shownField(context, person, name), ownDecisions(name, decisions)) === 'todo'
+  ).length;
   return <PendingNote line={open > 0 ? `${open} de hotărât` : null} testId="person-data-pending" />;
 }
-
-type RowTone = Extract<Tone, 'done' | 'todo' | 'optional'>;
 
 // A border would curl along the rounded fill of a hovered or flagged row, so the hairline is a
 // pseudo-element that stops at the content's edges and gives way beside a filled row.
@@ -174,9 +195,10 @@ function DataRow({
   );
 }
 
+// A value the member wrote over sheets that disagree came from none of them.
 const sheetOptionOf = (field: ResolvedField) =>
   field.options.find((option) => option.value === field.value) ??
-  (field.edited ? field.options[0] : undefined);
+  (field.edited && field.options.length === 1 ? field.options[0] : undefined);
 
 function FieldRow({
   context,
@@ -198,20 +220,16 @@ function FieldRow({
   const pages = pagesOf(context, person.id);
   const shown = showValue(name, field.value);
   const pageId = field.choice ? undefined : sheetOptionOf(field)?.pageIds[0];
-  const keys = fieldDecisionKeys(name);
-  const own = decisions.filter((decision) => keys.includes(decision.key));
+  const own = ownDecisions(name, decisions);
   const missing = own.some((decision) => decision.key === `missing-${name}`);
-  const tags = own.filter((decision) => decision.key !== `missing-${name}`);
   const fromSheet =
     field.edited && field.options.every((option) => option.value !== field.value)
       ? field.options.map((option) => showValue(name, option.value)).join('; ')
       : '';
-  const tone: RowTone =
-    own.length > 0 || field.choice ? 'todo' : shown === null ? 'optional' : 'done';
   return (
     <DataRow
       name={name}
-      tone={tone}
+      tone={toneOf(name, field, own)}
       testId="person-field"
       onEdit={onEdit}
       chip={
@@ -243,14 +261,18 @@ function FieldRow({
           <span className="wrap-anywhere">De pe fișă: {fromSheet}</span>
         </RowNote>
       )}
-      {tags.map((decision) => (
-        <Tag key={decision.key} tone="destructive" className="w-fit whitespace-normal">
-          {decision.label}
-        </Tag>
-      ))}
+      <DecisionTags decisions={own.filter(({ key }) => key !== `missing-${name}`)} />
       {extra}
     </DataRow>
   );
+}
+
+function DecisionTags({ decisions }: { decisions: Decision[] }) {
+  return decisions.map((decision) => (
+    <Tag key={decision.key} tone="destructive" className="w-fit whitespace-normal">
+      {decision.label}
+    </Tag>
+  ));
 }
 
 function GroupHeading({
@@ -750,11 +772,12 @@ export function ExistingComparison({
           {differs.map(({ name, field }) => {
             const sheet = sheetValue(name, field);
             const pageId = field.options.find((option) => option.value === sheet)?.pageIds[0];
+            const own = ownDecisions(name, decisions);
             return (
               <DataRow
                 key={name}
                 name={name}
-                tone="done"
+                tone={toneOf(name, shownField(context, person, name), own)}
                 testId="person-existing-differs"
                 chip={
                   pageId && (
@@ -822,6 +845,7 @@ export function ExistingComparison({
                     </Button>
                   </>
                 )}
+                <DecisionTags decisions={own} />
               </DataRow>
             );
           })}
