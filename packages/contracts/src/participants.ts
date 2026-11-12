@@ -14,6 +14,7 @@ import {
   trainingDomainSchema,
   trainingPhaseSchema,
   trainingSourceSchema,
+  trainingTrainerSchema,
 } from './trainings';
 
 export const participantKinds = ['employee', 'client_administrator'] as const;
@@ -325,9 +326,10 @@ export const portalTrainingRecordSchema = z.object({
   domain: trainingDomainSchema,
   phase: trainingPhaseSchema,
   heldOn: z.iso.date(),
-  durationMinutes: z.int(),
-  material: z.string(),
-  trainer: portalPersonSchema,
+  // Null where a training from paper has a sheet that does not write it (ADR 042).
+  durationMinutes: z.int().nullable(),
+  material: z.string().nullable(),
+  trainer: trainingTrainerSchema,
   verifier: portalPersonSchema.nullable(),
   supplementaryReason: supplementaryTrainingReasonSchema.nullable(),
   // A training from paper has its signatures on the paper sheet and no slots in the app.

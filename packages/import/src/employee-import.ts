@@ -28,10 +28,9 @@ import {
   type ProposedSheetRow,
   type RowFlagCode,
   type SheetPersonFields,
-  type ThemeFillableField,
   type WorkplaceGroup,
 } from './employee-proposal';
-import { foldText, sameName } from './match';
+import { foldText } from './match';
 import { sheetDate, type SheetPage, type SheetPageKind, type SheetRow } from './sheet-page';
 import { compactCnp, placePages } from './sheet-people';
 import { allCapitals, sentenceCase } from './spelling';
@@ -44,37 +43,16 @@ export interface SheetPageInput {
   reading: SheetPage | null;
 }
 
-export interface ThemeQuery {
-  domain: TrainingDomain;
-  phase: TrainingPhase;
-  heldOn: string | null;
-  jobPositionId: string | null;
-}
-
-export type ThemeDefaults = Partial<{
-  trainerName: string | null;
-  trainerJobTitle: string | null;
-  material: string | null;
-  durationMinutes: number | null;
-}>;
-
-/**
- * What the client's training themes and trainer propose for a training, as the app proposes it
- * for one typed by hand; null when they propose nothing.
- */
-export type TrainingThemes = (query: ThemeQuery) => ThemeDefaults | null;
-
 export interface EmployeeImportClient {
   jobPositions: readonly Named[];
   workplaces: readonly ClientWorkplace[];
-  employees: readonly (ExistingEmployee & { jobPositionId: string | null })[];
+  employees: readonly ExistingEmployee[];
 }
 
 export interface EmployeeImportInput {
   // In the upload's order, which places a page without a name after the one before it.
   pages: readonly SheetPageInput[];
   client: EmployeeImportClient;
-  themes: TrainingThemes;
   // The Romanian day.
   today: string;
 }
@@ -311,13 +289,11 @@ function recordsTraining(row: Pick<SheetRow, 'material'>) {
 
 interface PersonContext {
   hiredAt: string | null;
-  jobPositionId: string | null;
   existing: ExistingEmployee | null;
 }
 
 interface RowBuilder {
   nextId: () => string;
-  themes: TrainingThemes;
   today: string;
 }
 
@@ -379,36 +355,6 @@ function readRow(
       };
       if (parts.includes(null)) flags.push('admission_incomplete');
     }
-  }
-
-  const defaults = builder.themes({
-    domain: proposed.domain,
-    phase: proposed.phase,
-    heldOn: proposed.heldOn,
-    jobPositionId: person.jobPositionId,
-  });
-  if (defaults) {
-    const fill = (field: ThemeFillableField, value: string | number | null | undefined) => {
-      if (value === null || value === undefined || proposed[field] !== null) return;
-      (proposed as Record<ThemeFillableField, string | number | null>)[field] = value;
-      proposed.fromThemes.push(field);
-    };
-    const trainerWasMissing = proposed.trainerName === null;
-    fill('trainerName', text(defaults.trainerName ?? null));
-    // Another trainer's job title is not this one's.
-    if (
-      trainerWasMissing ||
-      (defaults.trainerName &&
-        proposed.trainerName &&
-        sameName(defaults.trainerName, proposed.trainerName))
-    ) {
-      fill('trainerJobTitle', text(defaults.trainerJobTitle ?? null));
-    }
-    if (!testOnly) {
-      fill('material', text(defaults.material ?? null));
-      fill('durationMinutes', defaults.durationMinutes);
-    }
-    if (proposed.fromThemes.length > 0) flags.push('from_client_themes');
   }
 
   flags.push(
@@ -594,7 +540,6 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
     });
     contexts.set(id, {
       hiredAt: (first(fields.hiredAt) as string | null) ?? existing?.hiredAt ?? null,
-      jobPositionId: existing?.jobPositionId ?? null,
       existing,
     });
   }
@@ -612,7 +557,6 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
   for (const group of jobTitles) {
     for (const personId of group.personIds) {
       people.find((person) => person.id === personId)!.jobTitleId = group.id;
-      contexts.get(personId)!.jobPositionId = group.proposedId;
     }
   }
 
@@ -646,7 +590,6 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
   let rowCount = 0;
   const builder: RowBuilder = {
     nextId: () => `row-${++rowCount}`,
-    themes: input.themes,
     today,
   };
   const rowsByPage = new Map<string, ProposedSheetRow[]>();
@@ -670,7 +613,7 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
             readRow(
               row,
               { input: page, reading: page.reading! },
-              { hiredAt: null, jobPositionId: null, existing: null },
+              { hiredAt: null, existing: null },
               builder
             )
           )

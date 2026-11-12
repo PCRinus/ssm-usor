@@ -89,7 +89,8 @@ export type PersonFlag = z.infer<typeof personFlagSchema>;
 export const rowFlagCodes = [
   // Doar luna pe fișă: the first of the month stands for it.
   'month_only',
-  // Din tematica clientului: `fromThemes` names the values.
+  // A proposal read before ADR 042 filled the values `fromThemes` names from the client's themes.
+  // No reading sets it now; the review and the confirm take those values as empty.
   'from_client_themes',
   // Nesemnat pe fișă: the trainee's box is empty.
   'unsigned',
@@ -157,6 +158,9 @@ export const proposedSheetRowSchema = z.object({
       admittedByJobTitle: z.string().nullable(),
     })
     .nullable(),
+  // Always empty on a reading since ADR 042, which fills nothing the sheet does not write. On an
+  // older proposal, values taken from the client's themes, which count as empty unless the member
+  // typed one.
   fromThemes: z.array(z.enum(themeFillableFields)),
   // A row that records a test and no training: the fire-safety annual test.
   testOnly: z.boolean(),

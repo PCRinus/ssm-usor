@@ -17,7 +17,6 @@ import {
   positions,
   row,
   rusuFront,
-  themes,
   today,
   tomaFront,
   tomaPeriodic,
@@ -41,7 +40,7 @@ const noChanges = (): EmployeeImportChanges => ({
 });
 
 function setUp(...readings: Parameters<typeof pagesOf>) {
-  const proposal = toEmployeeProposal({ pages: pagesOf(...readings), client, themes, today });
+  const proposal = toEmployeeProposal({ pages: pagesOf(...readings), client, today });
   const changes = noChanges();
   const check = (...ids: string[]) => {
     for (const id of ids) changes.people[id] = { ...changes.people[id], state: 'checked' };
@@ -264,7 +263,6 @@ describe('toEmployeePayload', () => {
         })
       ),
       client: { ...client, employees: [employee] },
-      themes,
       today,
     });
     const changes = noChanges();
@@ -554,7 +552,6 @@ describe('toEmployeePayload', () => {
     const proposal = toEmployeeProposal({
       pages: pagesOf(rehired),
       client: { ...client, employees: [former] },
-      themes,
       today,
     });
     const pop = proposal.people[0]!.id;
@@ -637,6 +634,82 @@ describe('toEmployeePayload', () => {
     ]);
   });
 
+  it('writes a row that names no trainer, material or duration as the sheet writes it', () => {
+    const { proposal, check, map } = setUp(
+      comanFront,
+      page({
+        pageKind: 'ssm_periodic',
+        trainings: [
+          row({
+            heldOn: '2022-04-11',
+            trainerName: null,
+            trainerJobTitle: null,
+            material: null,
+            durationMinutes: null,
+          }),
+        ],
+      })
+    );
+    check(idOf(proposal, 'Coman'));
+
+    const { payload, blockers } = map();
+
+    expect(blockers).toEqual([]);
+    expect(payload.trainings.find((training) => training.held_on === '2022-04-11')).toEqual({
+      key: expect.any(String),
+      domain: 'ssm',
+      phase: 'periodic',
+      held_on: '2022-04-11',
+      records: [{ employee_key: idOf(proposal, 'Coman') }],
+    });
+  });
+
+  it('leaves out what an older proposal took from the client’s themes, unless the member typed it', () => {
+    const { proposal, changes, check, map } = setUp(comanFront, comanPeriodic);
+    check(idOf(proposal, 'Coman'));
+    const periodic = proposal.pages[1]!.rows[1]!;
+    Object.assign(periodic, {
+      trainerJobTitle: 'Inspector SSM',
+      material: 'Tematica semestrului',
+      fromThemes: ['trainerJobTitle', 'material'],
+      flags: ['month_only', 'from_client_themes'],
+    });
+    const written = () =>
+      map().payload.trainings.find((training) => training.held_on === '2025-01-01');
+
+    expect(written()).not.toHaveProperty('material');
+    expect(written()).not.toHaveProperty('trainer_job_title');
+    expect(written()).toMatchObject({ trainer_name: 'Barbu Ionuț', duration_minutes: 120 });
+
+    changes.rows[periodic.id] = { values: { material: 'Riscuri la cuptor' } };
+    expect(written()).toMatchObject({ material: 'Riscuri la cuptor' });
+  });
+
+  it('writes a paper test whose sheet names no examiner, and never a trainer from the themes', () => {
+    const { proposal, changes, check, map } = setUp(comanFront, comanFire);
+    check(idOf(proposal, 'Coman'));
+    const annual = proposal.pages[1]!.rows.find((each) => each.test?.test === 'annual')!;
+    Object.assign(annual, {
+      trainerName: 'Barbu Ionuț',
+      trainerJobTitle: 'Cadru tehnic PSI',
+      fromThemes: ['trainerName', 'trainerJobTitle'],
+    });
+    Object.assign(annual.test!, {
+      examinerName: 'Barbu Ionuț',
+      examinerJobTitle: 'Cadru tehnic PSI',
+    });
+    const result = () => map().payload.test_results.find((each) => each.test === 'annual');
+
+    expect(map().blockers).toEqual([]);
+    expect(result()).not.toHaveProperty('examiner_name');
+    expect(result()).not.toHaveProperty('examiner_job_title');
+
+    changes.rows[annual.id] = { values: { examinerName: 'Pavel Dan' } };
+    expect(map().blockers).toEqual([
+      { path: `rows.${annual.id}.test.examinerJobTitle`, code: 'missing' },
+    ]);
+  });
+
   it('counts what the member changed, unticked and kept', () => {
     const { proposal, changes, check, map } = setUp(comanFront, comanPeriodic);
     const coman = idOf(proposal, 'Coman');
@@ -663,7 +736,7 @@ describe('the files of a person', () => {
         label: `Fise.pdf (pagina ${index + 1})`,
       })
     );
-    const proposal = toEmployeeProposal({ pages, client, themes, today });
+    const proposal = toEmployeeProposal({ pages, client, today });
     const changes = noChanges();
     const coman = idOf(proposal, 'Coman');
     const toma = idOf(proposal, 'Toma');

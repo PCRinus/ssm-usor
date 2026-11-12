@@ -3,7 +3,7 @@
 
 import { cnpControlDigit } from '@ssm-usor/contracts';
 
-import type { SheetPageInput, TrainingThemes } from '../employee-import';
+import type { SheetPageInput } from '../employee-import';
 import type { ExistingEmployee } from '../employee-match';
 import type { SheetPage, SheetRow } from '../sheet-page';
 
@@ -286,16 +286,6 @@ export const popFront = page({
     }),
   ],
 });
-
-export const themes: TrainingThemes = ({ domain, phase }) =>
-  domain === 'ssm' && phase === 'periodic'
-    ? {
-        trainerName: 'Barbu Ionuț',
-        trainerJobTitle: 'Inspector SSM',
-        material: 'Tematica semestrului',
-        durationMinutes: 120,
-      }
-    : null;
 
 export const withControlDigit = (body: string) => `${body}${cnpControlDigit(body)}`;
 

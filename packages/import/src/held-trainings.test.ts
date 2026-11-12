@@ -40,7 +40,21 @@ describe('groupHeldTrainings', () => {
     ]);
   });
 
+  it('makes one training held of rows that both lack the trainer, the duration and the material', () => {
+    const missing = { trainerName: null, durationMinutes: null, material: null };
+    const held = groupHeldTrainings([
+      row(missing),
+      row({ rowId: 'row-2', personId: 'person-2', ...missing }),
+    ]);
+
+    expect(held).toHaveLength(1);
+    expect(held[0]).toMatchObject({ trainerName: null, durationMinutes: null, material: null });
+  });
+
   it.each([
+    ['missing trainer', { trainerName: null }],
+    ['missing duration', { durationMinutes: null }],
+    ['missing material', { material: null }],
     ['duration', { durationMinutes: 90 }],
     ['material', { material: 'Prim ajutor' }],
     ['trainer', { trainerName: 'Matei Sorin' }],

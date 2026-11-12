@@ -12,12 +12,13 @@ export interface HeldRow {
   domain: TrainingDomain;
   phase: TrainingPhase;
   heldOn: string;
-  durationMinutes: number;
-  trainerName: string;
+  // Null where the sheet does not write it (ADR 042).
+  durationMinutes: number | null;
+  trainerName: string | null;
   trainerJobTitle: string | null;
   verifierName: string | null;
   verifierJobTitle: string | null;
-  material: string;
+  material: string | null;
   supplementaryReason: SupplementaryTrainingReason | null;
 }
 
@@ -27,27 +28,28 @@ export interface HeldTraining {
   domain: TrainingDomain;
   phase: TrainingPhase;
   heldOn: string;
-  durationMinutes: number;
-  trainerName: string;
+  durationMinutes: number | null;
+  trainerName: string | null;
   trainerJobTitle: string | null;
   verifierName: string | null;
   verifierJobTitle: string | null;
-  material: string;
+  material: string | null;
   supplementaryReason: SupplementaryTrainingReason | null;
   rows: { rowId: string; personId: string }[];
 }
 
 // A training held has one duration and one material, while the periodic material differs per
 // post, so rows that differ in any of them stay separate trainings held on the same day
-// (Mircea, 2026-10-31). The reason is a column of the training too.
+// (Mircea, 2026-10-31). The reason is a column of the training too. A value two rows both lack
+// is the same on both.
 const heldKey = (row: HeldRow) =>
   JSON.stringify([
     row.domain,
     row.phase,
     row.heldOn,
-    foldName(row.trainerName),
+    row.trainerName === null ? null : foldName(row.trainerName),
     row.durationMinutes,
-    foldText(row.material),
+    row.material === null ? null : foldText(row.material),
     row.supplementaryReason,
   ]);
 
