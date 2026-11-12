@@ -1,3 +1,4 @@
+import type { RegisterImportFilesResponse } from '@ssm-usor/contracts';
 import { toProposal } from '@ssm-usor/import';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -282,12 +283,28 @@ describe('POST /imports', () => {
 });
 
 describe('POST /imports/{importId}/files', () => {
-  const upload = (uploadPath: string, mimeType = 'application/pdf') => ({
+  const upload = (uploadPath: string, mimeType = 'application/pdf', sha256 = 'b'.repeat(64)) => ({
     uploadPath,
     mimeType,
     sizeBytes: 1000,
-    sha256: 'b'.repeat(64),
+    sha256,
   });
+
+  function registering(known: ReturnType<typeof fileRow>[] = []) {
+    const rows = [...known];
+    mockUpstream(({ url, method, body }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') return Response.json(rows);
+      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
+        const added = (body as { upload_path: string; sha256: string }[]).map((row, index) => {
+          const n = rows.length + index + 1;
+          return fileRow(n, { ...row, storage_path: storagePath(importId, n, 'pdf') });
+        });
+        rows.push(...added);
+        return Response.json(added, { status: 201 });
+      }
+    });
+  }
 
   it('registers the files and says where the browser uploads each', async () => {
     mockUpstream(({ url, method, body }) => {
@@ -305,7 +322,10 @@ describe('POST /imports/{importId}/files', () => {
       }
     });
     const response = await request(`/imports/${importId}/files`, 'POST', {
-      files: [upload('Dosar/Decizia 1.pdf'), upload('Dosar/PSI/Plan.PDF')],
+      files: [
+        upload('Dosar/Decizia 1.pdf'),
+        upload('Dosar/PSI/Plan.PDF', 'application/pdf', 'c'.repeat(64)),
+      ],
     });
 
     expect(response.status).toBe(201);
@@ -324,6 +344,7 @@ describe('POST /imports/{importId}/files', () => {
           storagePath: storagePath(importId, 2, 'pdf'),
         },
       ],
+      skipped: [],
     });
     const insert = callsTo('/rest/v1/import_files', 'POST')[0]!;
     expect(insert.admin).toBe(true);
@@ -439,8 +460,8 @@ describe('POST /imports/{importId}/files', () => {
         );
       }
     });
-    const photo = (path: string) => ({
-      ...upload(path, 'image/jpeg'),
+    const photo = (path: string, sha256 = 'b'.repeat(64)) => ({
+      ...upload(path, 'image/jpeg', sha256),
       sizeBytes: 25 * 1024 * 1024,
     });
 
@@ -450,7 +471,7 @@ describe('POST /imports/{importId}/files', () => {
     expect(accepted.status).toBe(201);
 
     const past = await request(`/imports/${importId}/files`, 'POST', {
-      files: [photo('Fise/IMG_0501.jpg'), photo('Fise/IMG_0502.jpg')],
+      files: [photo('Fise/IMG_0501.jpg'), photo('Fise/IMG_0502.jpg', 'c'.repeat(64))],
     });
     expect(past.status).toBe(422);
     expect(await past.json()).toMatchObject({ reason: 'import_too_large' });
@@ -460,6 +481,75 @@ describe('POST /imports/{importId}/files', () => {
     });
     expect(larger.status).toBe(400);
     expect(callsTo('/rest/v1/import_files', 'POST')).toHaveLength(1);
+  });
+
+  it('skips a file with the bytes of one earlier in the request, keeping the first', async () => {
+    registering();
+    const response = await request(`/imports/${importId}/files`, 'POST', {
+      files: [
+        upload('WhatsApp Image 14.01.34.jpeg', 'image/jpeg'),
+        upload('Dosar/Decizia 1.pdf', 'application/pdf', 'c'.repeat(64)),
+        upload('WhatsApp Image 14.02.06 (5).jpeg', 'image/jpeg'),
+      ],
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as RegisterImportFilesResponse;
+    expect(body.files.map((file) => file.uploadPath)).toEqual([
+      'WhatsApp Image 14.01.34.jpeg',
+      'Dosar/Decizia 1.pdf',
+    ]);
+    expect(body.skipped).toEqual([
+      {
+        uploadPath: 'WhatsApp Image 14.02.06 (5).jpeg',
+        duplicateOf: 'WhatsApp Image 14.01.34.jpeg',
+      },
+    ]);
+    expect(
+      (callsTo('/rest/v1/import_files', 'POST')[0]!.body as { upload_path: string }[]).map(
+        (row) => row.upload_path
+      )
+    ).toEqual(['WhatsApp Image 14.01.34.jpeg', 'Dosar/Decizia 1.pdf']);
+  });
+
+  it('skips a file with the bytes of one an earlier batch registered, inserting nothing when all are copies', async () => {
+    registering();
+    await request(`/imports/${importId}/files`, 'POST', {
+      files: [upload('Dosar/Decizia 1.pdf')],
+    });
+    const response = await request(`/imports/${importId}/files`, 'POST', {
+      files: [upload('Copie/Decizia 1.pdf'), upload('Copie/Decizia 1 (2).pdf')],
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      files: [],
+      skipped: [
+        { uploadPath: 'Copie/Decizia 1.pdf', duplicateOf: 'Dosar/Decizia 1.pdf' },
+        { uploadPath: 'Copie/Decizia 1 (2).pdf', duplicateOf: 'Dosar/Decizia 1.pdf' },
+      ],
+    });
+    expect(callsTo('/rest/v1/import_files', 'POST')).toHaveLength(1);
+  });
+
+  it('counts only the files it registers against the caps', async () => {
+    registering(
+      Array.from({ length: 149 }, (_, index) =>
+        fileRow(index + 1, { sha256: index.toString(16).padStart(64, '0') })
+      )
+    );
+    const response = await request(`/imports/${importId}/files`, 'POST', {
+      files: [
+        upload('Dosar/Copie.pdf', 'application/pdf', '0'.repeat(64)),
+        upload('Dosar/Ultimul.pdf', 'application/pdf', 'c'.repeat(64)),
+      ],
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      files: [{ uploadPath: 'Dosar/Ultimul.pdf' }],
+      skipped: [{ uploadPath: 'Dosar/Copie.pdf', duplicateOf: 'Dosar/Fisier 1.docx' }],
+    });
   });
 });
 

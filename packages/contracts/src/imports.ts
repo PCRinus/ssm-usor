@@ -223,8 +223,17 @@ export const registeredImportFileSchema = z.object({
 
 export type RegisteredImportFile = z.infer<typeof registeredImportFileSchema>;
 
+export const skippedImportFileSchema = z.object({
+  uploadPath: z.string(),
+  // The upload path of the file with the same bytes that the import keeps in its place.
+  duplicateOf: z.string(),
+});
+
+export type SkippedImportFile = z.infer<typeof skippedImportFileSchema>;
+
 export const registerImportFilesResponseSchema = z.object({
   files: z.array(registeredImportFileSchema),
+  skipped: z.array(skippedImportFileSchema),
 });
 
 export type RegisterImportFilesResponse = z.infer<typeof registerImportFilesResponseSchema>;

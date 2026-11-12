@@ -21,6 +21,7 @@ import {
   type ImportUsage,
   isSystemPath,
   sheetFileTypes,
+  type SkippedImportFile,
 } from '@ssm-usor/contracts';
 import {
   type EmployeeImportPayload,
@@ -731,22 +732,24 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
       importErrorReasons.duplicatePath
     );
   }
-  const bytes = [...known, ...files].reduce(
+  const { fresh, skipped } = withoutCopies(files, known);
+  const bytes = [...known, ...fresh].reduce(
     (total, file) => total + ('sizeBytes' in file ? file.sizeBytes : file.size_bytes),
     0
   );
   const limits = importLimits[row.kind];
   if (
-    known.length + files.length > limits.files ||
+    known.length + fresh.length > limits.files ||
     bytes > limits.totalBytes ||
-    files.some((file) => file.sizeBytes > limits.fileBytes)
+    fresh.some((file) => file.sizeBytes > limits.fileBytes)
   ) {
     throw tooLarge(limits);
   }
+  if (fresh.length === 0) return c.json({ files: [], skipped }, 201);
   const { data, error } = await admin
     .from('import_files')
     .insert(
-      files.map((file) => ({
+      fresh.map((file) => ({
         import_id: importId,
         organization_id: c.get('membership').organizationId,
         upload_path: file.uploadPath,
@@ -769,10 +772,31 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
         bucket: 'imports' as const,
         storagePath: file.storage_path,
       })),
+      skipped,
     },
     201
   );
 };
+
+// Every file is charged at the start and read by the model, so a file whose bytes the import
+// holds already is never registered. A unique index cannot hold it: older imports hold copies.
+function withoutCopies<File extends { uploadPath: string; sha256: string }>(
+  files: File[],
+  known: Pick<ImportFileRow, 'upload_path' | 'sha256'>[]
+) {
+  const kept = new Map<string, string>();
+  for (const file of known) if (!kept.has(file.sha256)) kept.set(file.sha256, file.upload_path);
+  const fresh: File[] = [];
+  const skipped: SkippedImportFile[] = [];
+  for (const file of files) {
+    const duplicateOf = kept.get(file.sha256);
+    if (duplicateOf === undefined) {
+      kept.set(file.sha256, file.uploadPath);
+      fresh.push(file);
+    } else skipped.push({ uploadPath: file.uploadPath, duplicateOf });
+  }
+  return { fresh, skipped };
+}
 
 const creditsShort = (short: CreditsShort) =>
   new ApiError(

@@ -16857,9 +16857,24 @@
               },
               "required": ["id", "uploadPath", "bucket", "storagePath"]
             }
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "uploadPath": {
+                  "type": "string"
+                },
+                "duplicateOf": {
+                  "type": "string"
+                }
+              },
+              "required": ["uploadPath", "duplicateOf"]
+            }
           }
         },
-        "required": ["files"]
+        "required": ["files", "skipped"]
       },
       "RegisterImportFilesRequest": {
         "type": "object",
@@ -44222,7 +44237,7 @@
       "post": {
         "operationId": "registerImportFiles",
         "summary": "Register the files the browser is about to upload",
-        "description": "One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). An employee import takes only photographs and PDFs (else `400` with `import_photos_only`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; past the caps of the import's kind, `422` with `import_too_large`: a client import holds at most 150 files and 100 MiB, each at most 20 MiB, an employee import 500 files and 1 GiB, each at most 25 MiB. Registering can be repeated in batches.",
+        "description": "One row per file, while the import is `uploading` (else `409` with `import_not_uploading`). An employee import takes only photographs and PDFs (else `400` with `import_photos_only`). Each answer names the bucket and the path the browser uploads the file to in Supabase Storage with the member's own session; the bucket's policy takes only that path, only while the file is uploading. A file whose SHA-256 is that of a file the import holds, a found sheet or one registered before it in the same request included, is not registered: it gets no row and no path, and is listed under `skipped` with the path of the file it repeats. A path the import already has, or twice in one request, answers `409` with `import_duplicate_path`; an extension that is not the type's, `400` with `import_type_mismatch`; a file the system or Word leaves beside the documents (a name starting `~$` or `._`, `.DS_Store`, anything under `__MACOSX`), `400` with `import_system_file`; past the caps of the import's kind, `422` with `import_too_large`: a client import holds at most 150 files and 100 MiB, each at most 20 MiB, an employee import 500 files and 1 GiB, each at most 25 MiB. Registering can be repeated in batches.",
         "security": [
           {
             "bearerAuth": []
@@ -44251,7 +44266,7 @@
         },
         "responses": {
           "201": {
-            "description": "Where to upload each file",
+            "description": "Where to upload each file, and the files skipped as copies",
             "content": {
               "application/json": {
                 "schema": {
