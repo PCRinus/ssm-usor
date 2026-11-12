@@ -33,6 +33,7 @@ import {
   isExisting,
   leaving,
   matchedName,
+  pagesOf,
   type Person,
   personIncluded,
   personName,
@@ -65,7 +66,6 @@ import {
   groupPhotos,
   nextStop,
   orderedPhotos,
-  ownedPages,
   photoLabel,
   type PhotoSection,
   showChoice,
@@ -150,7 +150,10 @@ export function EmployeePersonPage({
   const person = people[index];
   const { proposal } = context;
   const moved = context.changes.pages;
-  const pages = useMemo(() => ownedPages(proposal, moved, personId), [proposal, moved, personId]);
+  const pages = useMemo(
+    () => pagesOf({ proposal, changes: { pages: moved } }, personId),
+    [proposal, moved, personId]
+  );
   const photos = useMemo(() => stripPhotos(detail, pages), [detail, pages]);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);

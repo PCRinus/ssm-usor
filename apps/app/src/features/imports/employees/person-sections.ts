@@ -6,7 +6,6 @@ import {
   type DomainTrainings,
   type FieldName,
   type Person,
-  type Proposal,
   resolveField,
   type ReviewContext,
   type SheetPage,
@@ -127,57 +126,6 @@ export function nextStop(stops: DecisionStop[], last: string | null) {
   const at = last === null ? -1 : stops.findIndex((stop) => stop.key === last);
   return stops[(at + 1) % stops.length]!;
 }
-
-// The reader tells a sheet's cover from its first page only by the rows: the cover has none.
-// Printed booklets that carry the commute declaration put it on the SSM sheet before or facing
-// the first page, never at the back.
-const readingOrder = [
-  'ssm_cover',
-  'commute_declaration',
-  'ssm_sheet_front',
-  'ssm_periodic',
-  'su_cover',
-  'su_sheet_front',
-  'su_periodic',
-  'other',
-  null,
-] as const;
-
-function readingPlace(page: SheetPage) {
-  if (page.rows.length === 0 && page.kind === 'ssm_sheet_front')
-    return readingOrder.indexOf('ssm_cover');
-  if (page.rows.length === 0 && page.kind === 'su_sheet_front')
-    return readingOrder.indexOf('su_cover');
-  return readingOrder.indexOf(page.kind);
-}
-
-// The dates as read, not as edited, so the photos keep their numbers while the member corrects
-// a date.
-function readingKey(page: SheetPage) {
-  return (
-    page.rows
-      .flatMap((row) => (row.heldOn ? [row.heldOn] : []))
-      .sort()
-      .at(0) ?? '~'
-  );
-}
-
-export const ownedPages = (
-  proposal: Proposal,
-  moved: Record<string, { personId: string | null }>,
-  personId: string
-) =>
-  proposal.pages
-    .filter(
-      (page) =>
-        (moved[page.id] === undefined ? page.personId : moved[page.id]!.personId) === personId
-    )
-    .map((page, index) => ({ page, index, place: readingPlace(page), key: readingKey(page) }))
-    .sort(
-      (a, b) =>
-        a.place - b.place || (a.key === b.key ? 0 : a.key < b.key ? -1 : 1) || a.index - b.index
-    )
-    .map(({ page }) => page);
 
 export const openChoice = (decisions: Decision[], field: FieldName) =>
   decisions.some((decision) => decision.key === `choice-${field}`);

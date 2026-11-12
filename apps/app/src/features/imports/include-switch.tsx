@@ -50,7 +50,8 @@ function IncludeSwitch({
         <span
           className={cn(
             'text-[13px] font-medium whitespace-nowrap text-muted-foreground',
-            included && 'invisible'
+            included && 'invisible',
+            holdWordSpace && 'max-lg:hidden'
           )}
           aria-hidden="true"
           data-testid={`${testId}-word`}
@@ -104,7 +105,8 @@ export function Includable({
   disabled?: boolean;
   testId?: string;
   // Rows that share their columns: the word showing on one row would widen the column and move
-  // every switch and button beside it.
+  // every switch and button beside it. Below lg the room it holds squeezes the row's text into
+  // a narrow column, so there the switch shows the state alone.
   holdWordSpace?: boolean;
   collapsedClassName?: string;
   // The collapsed line when the thing has a look of its own, as an instruction's card.
