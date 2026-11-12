@@ -22146,6 +22146,19 @@
                       "templateFile": {
                         "type": "string"
                       },
+                      "document": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "typeKey": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["typeKey", "title"]
+                      },
                       "citationForm": {
                         "type": "string",
                         "enum": ["quote", "reference"]
@@ -22194,6 +22207,7 @@
                     "required": [
                       "id",
                       "templateFile",
+                      "document",
                       "citationForm",
                       "locator",
                       "unit",

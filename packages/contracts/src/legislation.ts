@@ -80,6 +80,8 @@ export const legalChangePassageStatuses = [
 export const legalChangePassageSchema = z.object({
   id: z.uuid(),
   templateFile: z.string(),
+  // The document type the template makes; null for a file no template manifest lists.
+  document: z.object({ typeKey: z.string(), title: z.string() }).nullable(),
   citationForm: z.enum(['quote', 'reference']),
   // How the template names the passage, "Art. 36 alin. (1) – (3)"; null for a reference.
   locator: z.string().nullable(),

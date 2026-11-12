@@ -14098,6 +14098,14 @@ export type LegalChangeListResponseItemsItemAmendedUnitsItem = {
   amendingAct: string | null;
 };
 
+/**
+ * @nullable
+ */
+export type LegalChangeListResponseItemsItemPassagesItemDocument = {
+  typeKey: string;
+  title: string;
+} | null;
+
 export type LegalChangeListResponseItemsItemPassagesItemCitationForm =
   (typeof LegalChangeListResponseItemsItemPassagesItemCitationForm)[keyof typeof LegalChangeListResponseItemsItemPassagesItemCitationForm];
 
@@ -14127,6 +14135,8 @@ export type LegalChangeListResponseItemsItemPassagesItemHunksItem = {
 export type LegalChangeListResponseItemsItemPassagesItem = {
   id: string;
   templateFile: string;
+  /** @nullable */
+  document: LegalChangeListResponseItemsItemPassagesItemDocument;
   citationForm: LegalChangeListResponseItemsItemPassagesItemCitationForm;
   /** @nullable */
   locator: string | null;

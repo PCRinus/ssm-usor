@@ -230,6 +230,10 @@ describe('GET /legislation/changes', () => {
             {
               id: referred.id,
               templateFile: '2.2_general_training_material.docx',
+              document: {
+                typeKey: 'general_training_material',
+                title: 'Material de instruire introductiv-generală',
+              },
               citationForm: 'reference',
               locator: null,
               unit: 'Art. 6',
@@ -241,6 +245,10 @@ describe('GET /legislation/changes', () => {
             {
               id: quoted.id,
               templateFile: '2.2_general_training_material.docx',
+              document: {
+                typeKey: 'general_training_material',
+                title: 'Material de instruire introductiv-generală',
+              },
               citationForm: 'quote',
               locator: 'Art. 36 alin. (1) – (3)',
               unit: 'Art. 36 alin. (2)',
@@ -300,6 +308,31 @@ describe('GET /legislation/changes', () => {
     await request('/legislation/changes');
     const [list] = searchParams('legal_changes');
     expect(list!.get('select')).not.toMatch(/(^|,)review(,|$)/);
+  });
+
+  it('names the document a passage sits in by its template, and none for a file no template lists', async () => {
+    const firePassage = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000003',
+      template_file: 'fire/2.1_fire_own_instructions.docx',
+    };
+    const unknown = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000004',
+      template_file: 'retired.docx',
+    };
+    mockUpstream({
+      legal_changes: () => Response.json([{ ...assessed, passages: [firePassage, unknown] }]),
+    });
+    const response = await request('/legislation/changes');
+    const { items } = legalChangeListResponseSchema.parse(await response.json());
+    expect(items[0]!.passages.map((passage) => passage.document)).toEqual([
+      {
+        typeKey: 'fire_own_instructions',
+        title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+      },
+      null,
+    ]);
   });
 
   it('answers 401 without a token', async () => {

@@ -11,6 +11,7 @@ import {
   legalCheckRunErrorSchema,
   type LegalCheckRunStatus,
 } from '@ssm-usor/contracts';
+import { templateOfFile } from '@ssm-usor/document-engine/template-files';
 import { z } from 'zod';
 
 import type { Database } from '../../database.types';
@@ -75,6 +76,7 @@ const toPassage = (row: Omit<PassageRow, 'change_id' | 'manifest' | 'article' | 
   legalChangePassageSchema.parse({
     id: row.id,
     templateFile: row.template_file,
+    document: templateOfFile(row.template_file),
     citationForm: row.citation_form,
     locator: row.locator,
     unit: row.unit_label,

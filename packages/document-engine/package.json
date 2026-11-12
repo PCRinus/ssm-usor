@@ -19,6 +19,14 @@
     "./signing": {
       "types": "./dist/signing.d.ts",
       "import": "./dist/signing.js"
+    },
+    "./template-files": {
+      "types": "./dist/template-files.d.ts",
+      "import": "./dist/template-files.js"
+    },
+    "./token-diff": {
+      "types": "./dist/token-diff.d.ts",
+      "import": "./dist/token-diff.js"
     }
   },
   "scripts": {
