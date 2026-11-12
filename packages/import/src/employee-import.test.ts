@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type EmployeeImportClient, hiringTestRowIds, toEmployeeProposal } from './employee-import';
-import { employeeImportProposalSchema, handoverDates } from './employee-proposal';
+import { employeeImportProposalSchema } from './employee-proposal';
 import {
   cnps,
   comanFire,
@@ -194,7 +194,9 @@ describe('toEmployeeProposal', () => {
       { date: null, text: 'Preluare' },
     ]);
     expect(proposal.pages[1]!.rows).toHaveLength(1);
-    expect(handoverDates(proposal.pages)).toEqual(['2022-10-03']);
+    expect(proposal.pages[2]!.handovers).toEqual([
+      { date: '2022-10-03', text: 'Preluare CD Safety Core SRL' },
+    ]);
   });
 
   it('reads a page and a proposal kept before the handover was asked as having none', () => {

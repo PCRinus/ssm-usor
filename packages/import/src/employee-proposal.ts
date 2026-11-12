@@ -195,14 +195,6 @@ export const proposedSheetPageSchema = z.object({
 
 export type ProposedSheetPage = z.infer<typeof proposedSheetPageSchema>;
 
-/** The days of the handovers a person's pages record, each once, oldest first. */
-export function handoverDates(pages: readonly Pick<ProposedSheetPage, 'handovers'>[]): string[] {
-  const dates = pages.flatMap((page) =>
-    (page.handovers ?? []).flatMap((handover) => (handover.date ? [handover.date] : []))
-  );
-  return [...new Set(dates)].sort();
-}
-
 // `name_only`, for a person with no CNP and no birth date, is asked: the member confirms or
 // declines it.
 export const existingMatches = ['cnp', 'name_birth_date', 'name_only'] as const;
