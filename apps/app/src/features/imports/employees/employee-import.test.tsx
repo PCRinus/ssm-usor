@@ -1052,6 +1052,7 @@ describe('the person page', () => {
                     handovers: [
                       { date: '2022-10-03', text: 'Preluare' },
                       { date: '2024-02-01', text: 'Preluare' },
+                      { date: null, text: '10.22 Preluare Alfa Prevent SRL' },
                     ],
                   }
                 : page
@@ -1065,6 +1066,7 @@ describe('the person page', () => {
     expect([...handovers.querySelectorAll('p')].map((each) => each.textContent)).toEqual([
       'Pe fișă e consemnată o preluare la 03.10.2022. Instruirile dinainte au fost făcute sub alt serviciu de prevenire.',
       'Pe fișă e consemnată o preluare la 01.02.2024. Instruirile dinainte au fost făcute sub alt serviciu de prevenire.',
+      'Pe fișă e consemnată o preluare: „10.22 Preluare Alfa Prevent SRL”.',
     ]);
   });
 

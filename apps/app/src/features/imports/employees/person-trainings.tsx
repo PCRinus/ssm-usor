@@ -35,7 +35,7 @@ import {
   type Decision,
   type DomainTrainings,
   examinerValues,
-  handoverDates,
+  handoversOf,
   heldWith,
   isExisting,
   pagesOf,
@@ -697,16 +697,19 @@ export function PersonTrainings({
   const [editingTest, setEditingTest] = useState<SheetRow | null>(null);
   const pages = pagesOf(context, person.id);
   const domains = trainingsByDomain(context, person.id);
-  const handovers = handoverDates(context, person);
+  const handovers = handoversOf(context, person);
   return (
     <div className="grid scroll-mt-24 gap-5" id="trainings">
-      {handovers.length > 0 && (
+      {handovers.dates.length + handovers.undated.length > 0 && (
         <div className="grid gap-1 text-sm" data-testid="person-handovers">
-          {handovers.map((date) => (
+          {handovers.dates.map((date) => (
             <p key={date}>
               Pe fișă e consemnată o preluare la {formatRoDate(date)}. Instruirile dinainte au fost
               făcute sub alt serviciu de prevenire.
             </p>
+          ))}
+          {handovers.undated.map((text) => (
+            <p key={text}>Pe fișă e consemnată o preluare: „{text}”.</p>
           ))}
         </div>
       )}

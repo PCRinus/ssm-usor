@@ -997,18 +997,25 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
   return decisions;
 }
 
+const handoverTextLength = 160;
+
 /**
- * The days a new prevention service wrote on the person's pages that it took the client over,
- * each once, oldest first, as `@ssm-usor/import`'s `handoverDates`.
+ * The handovers a new prevention service wrote on the person's pages: the days, each once, oldest
+ * first, and, for a line whose day is not a past one, its text as written, each once.
  */
-export function handoverDates(
-  context: Pick<ReviewContext, 'proposal' | 'changes'>,
-  person: Person
-) {
-  const dates = pagesOf(context, person.id).flatMap((page) =>
-    (page.handovers ?? []).flatMap((handover) => (handover.date ? [handover.date] : []))
-  );
-  return [...new Set(dates)].sort();
+export function handoversOf(context: Pick<ReviewContext, 'proposal' | 'changes'>, person: Person) {
+  const handovers = pagesOf(context, person.id).flatMap((page) => page.handovers ?? []);
+  const texts = handovers.flatMap((handover) => {
+    const text = handover.text.trim().replace(/\s+/g, ' ');
+    if (handover.date || text === '') return [];
+    return [text.length > handoverTextLength ? `${text.slice(0, handoverTextLength - 1)}…` : text];
+  });
+  return {
+    dates: [
+      ...new Set(handovers.flatMap((handover) => (handover.date ? [handover.date] : []))),
+    ].sort(),
+    undated: [...new Set(texts)],
+  };
 }
 
 export function notesOf(context: ReviewContext, person: Person): Note[] {
@@ -1031,9 +1038,11 @@ export function notesOf(context: ReviewContext, person: Person): Note[] {
   const placements = new Set(pagesOf(context, person.id).map((page) => page.placement));
   if (placements.has('placed_by_job_title')) add('job_title', 'O pagină pusă după funcție');
   if (placements.has('placed_by_order')) add('order', 'O pagină pusă după ordine');
-  for (const date of handoverDates(context, person)) {
+  const handovers = handoversOf(context, person);
+  for (const date of handovers.dates) {
     add(`handover-${date}`, `Preluare consemnată pe fișă: ${formatRoDate(date)}`);
   }
+  if (handovers.undated.length > 0) add('handover', 'Preluare consemnată pe fișă');
   const former = matched ? formerLeftOn(person) : null;
   if (former !== null) add('leaver', `A plecat din firmă la ${formatRoDate(former)}`);
   else if (resolveField(context, person, 'leftOn').value !== null)

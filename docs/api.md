@@ -2250,7 +2250,8 @@ employee import, the sheet page's schema and prompt (`sheetPageAnswer`, `sheetPa
 the grouping of pages into people and the proposal built from them (`toEmployeeProposal`, whose
 pages carry `handovers`, `[{ date, text }]`, the lines by which a new prevention service wrote
 where it took the client over, `date` a past day or null; a proposal stored before them reads
-them as empty, and `handoverDates` gives a person's days from the pages they hold), and
+them as empty; the review shows a person's handovers from the pages they hold, a dated one by
+its day and one without a past day by its text), and
 the proposal with the member's changes (`EmployeeImportChanges` in `packages/contracts`) as
 `apply_employee_import` takes it (`toEmployeePayload`, whose `sheetFilesOf` decides which import
 files become each person's files: a PDF holding several people's pages is a file of each).

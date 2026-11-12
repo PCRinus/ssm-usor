@@ -22,7 +22,7 @@ import {
   emptyChanges,
   examinerValues,
   firstToCheck,
-  handoverDates,
+  handoversOf,
   heldWith,
   hiringTestRowIds,
   hubCounts,
@@ -398,15 +398,55 @@ describe('what a person still needs', () => {
     } as unknown as Proposal;
     const context = { ...contextOf(), proposal: noted };
 
-    expect(handoverDates(context, person('toma'))).toEqual(['2022-10-03']);
-    expect(notesOf(context, person('toma')).map((note) => note.tag)).toContain(
-      'Preluare consemnată pe fișă: 03.10.2022'
+    expect(handoversOf(context, person('toma'))).toEqual({
+      dates: ['2022-10-03'],
+      undated: ['Preluare'],
+    });
+    expect(notesOf(context, person('toma')).map((note) => note.tag)).toEqual(
+      expect.arrayContaining([
+        'Preluare consemnată pe fișă: 03.10.2022',
+        'Preluare consemnată pe fișă',
+      ])
     );
     expect(tags(context, 'toma')).toEqual(tags(contextOf(), 'toma'));
 
     const moved = withPage(withPage(emptyChanges(), 'p1', 'pop'), 'p2', 'pop');
-    expect(handoverDates({ ...context, changes: moved }, person('toma'))).toEqual([]);
-    expect(handoverDates({ ...context, changes: moved }, person('pop'))).toEqual(['2022-10-03']);
+    expect(handoversOf({ ...context, changes: moved }, person('toma'))).toEqual({
+      dates: [],
+      undated: [],
+    });
+    expect(handoversOf({ ...context, changes: moved }, person('pop')).dates).toEqual([
+      '2022-10-03',
+    ]);
+  });
+
+  it('shows a handover without a past day by its text, cut short when long', () => {
+    const long = `Preluat de Alfa Prevent SRL ${'conform contractului '.repeat(12)}`;
+    const noted = {
+      ...proposal,
+      pages: proposal.pages.map((page) =>
+        page.id === 'p1'
+          ? {
+              ...page,
+              handovers: [
+                { date: null, text: '  Preluare   Alfa Prevent SRL ' },
+                { date: null, text: 'Preluare Alfa Prevent SRL' },
+                { date: null, text: long },
+              ],
+            }
+          : page
+      ),
+    } as unknown as Proposal;
+    const { dates, undated } = handoversOf({ ...contextOf(), proposal: noted }, person('toma'));
+
+    expect(dates).toEqual([]);
+    expect(undated[0]).toBe('Preluare Alfa Prevent SRL');
+    expect(undated).toHaveLength(2);
+    expect(undated[1]!.length).toBe(160);
+    expect(undated[1]!.endsWith('…')).toBe(true);
+    expect(
+      notesOf({ ...contextOf(), proposal: noted }, person('toma')).map((note) => note.tag)
+    ).toContain('Preluare consemnată pe fișă');
   });
 });
 
