@@ -60,9 +60,13 @@ The copy is kept as a client file ([ADR 013](adr-013-client-files.md)) with the 
 
 ### 4. A change of the own instructions proposes a supplementary training
 
-When a client's own occupational safety instructions are replaced or changed by issuing them from the app, and the client has employees with a training recorded, the app proposes a supplementary periodic training with the reason _modificarea instrucțiunilor proprii_. This is HG 1425/2006 art. 98 lit. b), and the reason already exists among those of [ADR 021](adr-021-training-records-and-individual-sheets.md) (`rules_changed`). It is a proposal the specialist confirms, never a training recorded by itself.
+When a client's own instructions, the occupational safety ones (IPSSM) or the fire-safety ones (IPSU), are issued from the app and the client has employees with a training recorded, the app compares the new revision with the revision issued before it. The instructions are structured articles with versions ([ADR 034](adr-034-own-instructions-as-app-text.md)), so the comparison is by instruction and by article.
 
-It is occupational safety only. OMAI 712/2005 has no such rule for the fire-safety own instructions (see above), so issuing an IPSU proposes nothing. Screens follow on the canvas.
+- **When it proposes.** Only when an instruction was added or removed, an article was added, removed or moved, or an article's text changed beyond a typo. A changed number, measure or negation always counts. A revision that only fixes typos, spacing, diacritics or the client's identification data proposes nothing. When unsure, it proposes.
+- **What it proposes.** A supplementary periodic training that says what changed. It covers only the workers on the posts that carry the changed instructions, one training per affected post, since the training dialog's rule of one post per training stays.
+- **Who decides.** It is a proposal the specialist confirms, never a training recorded by itself. A member can always record a supplementary training by hand, whatever the app proposes.
+
+For occupational safety the basis is HG 1425/2006 art. 98 lit. b), with the reason _modificarea instrucțiunilor proprii_, which already exists among the reasons of [ADR 021](adr-021-training-records-and-individual-sheets.md) (`rules_changed`). For fire safety there is none: OMAI 712/2005 has no such rule (art. 17¹ and art. 24, see above). Mircea chose on 2026-11-12 to propose it there too, for one rule in both domains and to be on the safe side, so the fire-safety proposal cites no law. Screens follow the design canvas, row 4 of the page "Istoricul pe hârtie".
 
 ### 5. The generated sheet says its paper rows are transcribed
 
@@ -82,8 +86,9 @@ On every sheet the app generates, the on-demand one and the signed one, both dom
 ## What this changes in earlier ADRs
 
 - **ADR 032**: a missing trainer, trainer's function, material or duration is no longer taken from the client's training themes; `from_client_themes` and _Din tematica clientului_ go; a training from paper may hold none of the three; the handover note is a read value shown in the review; who gave the periodic trainings is asked once per import, before and after a handover date.
-- **ADR 021**: a training from paper (`source` paper) holds a trainer, a material and a duration only where the paper writes one; a training held in the app still requires all three. Both sheets mark a paper row as transcribed and print the line under the title. A change of the own occupational safety instructions issued from the app proposes the supplementary training of art. 98 lit. b).
+- **ADR 021**: a training from paper (`source` paper) holds a trainer, a material and a duration only where the paper writes one; a training held in the app still requires all three. Both sheets mark a paper row as transcribed and print the line under the title. A change of the own instructions issued from the app, in either domain, proposes a supplementary training for the posts that carry what changed, under art. 98 lit. b) for occupational safety and by Mircea's choice for fire safety.
 - **ADR 023**: the paper rows of a signed sheet read `transcris; semnat pe hârtie`, its row note field holds two lines, and a field under the title takes the line; a stored sheet records the form it was drawn from and keeps its wording.
+- **ADR 034**: issuing a revision of the own instructions, in either domain, compares it with the revision issued before it, by instruction and by article.
 - **ADR 013**: a client file can be the copy of the own instructions a client's paper trainings cite, with the period it was valid; its shape follows the canvas.
 
 ## What is left out
@@ -91,7 +96,6 @@ On every sheet the app generates, the on-demand one and the signed one, both dom
 - Re-reading the material's article numbers against the instructions the app generates. The material stays as written; the copy of the old instructions is what explains it.
 - A mark telling what a model read from what a member typed (#715, left out by ADR 032). Both are transcriptions from paper and both carry the note.
 - A paper test result printed on the fire-safety sheet's periodic table. It prints as today, since a test row is never signed (ADR 024).
-- A supplementary training for fire safety when the IPSU changes: no act asks for one.
 - Proposing a supplementary training when the instructions change outside the app, in a Word file the specialist issues by hand.
 
 ## Consequences
@@ -111,4 +115,4 @@ Each step is a pull request. Steps 5 to 7 follow the design canvas "Importul luc
 4. The handover note read as a value with its date and shown in the review.
 5. The "who trained" question, once per import, before and after a handover date.
 6. The instructions the sheets refer to: asked for in the employee import and on the client's page, kept as a client file with its period.
-7. The supplementary training proposed when the own occupational safety instructions change.
+7. The supplementary training proposed when the own instructions change, in both domains: the comparison of the new revision with the one issued before it, and the proposal per affected post.
