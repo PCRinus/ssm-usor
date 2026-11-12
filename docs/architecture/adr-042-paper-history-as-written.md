@@ -44,7 +44,12 @@ The import no longer fills a trainer's name or function from the client's traini
 
 A **handover note** (_mențiunea de preluare_), "03.10.22 Preluare <firma>" and its like, becomes a read value of the page with its date, not free text, and the review shows it.
 
-Who gave the periodic trainings is then asked, once per import: one answer for the trainings before the handover date and one for those after it, when a sheet has a handover note; one answer for all of them when none has. This is decided in principle; its screens follow on the design canvas "Importul lucrătorilor".
+Who gave the periodic trainings is then asked **per person**, on the person's page of the review, per domain, and split at that person's handover date when their sheet has one: one answer for the trainings before it and one for those after it. One answer per import was rejected. HG 1425/2006 art. 96(1) has the periodic training given by each worker's own workplace manager, so two workers of one client may have two trainers, and the only evidence is the signature in the photograph, which the person page shows.
+
+- An answer may be offered to the other people of the import who have none, as an explicit, optional step. Nobody's own answer is overwritten by it, and a single row may still differ from the answer.
+- The import's hub only shows who has no answer yet. Nothing blocks the confirm.
+
+Screens follow the design canvas, row 1 of the page "Istoricul pe hârtie".
 
 ### 2. A missing material or duration stays missing
 
@@ -58,13 +63,15 @@ A paper row's material cites the client's own instructions as they were then: "I
 
 The copy is kept as a client file ([ADR 013](adr-013-client-files.md)) with the period it was valid. It is not a legal duty, since no act obliges an employer to keep replaced instructions. It is evidence for an investigation, which reads the sheet against what was taught. Screens follow on the canvas.
 
-### 4. A change of the own instructions proposes a supplementary training
+### 4. Issuing the own instructions again proposes a supplementary training
 
-When a client's own instructions, the occupational safety ones (IPSSM) or the fire-safety ones (IPSU), are issued from the app and the client has employees with a training recorded, the app compares the new revision with the revision issued before it. The instructions are structured articles with versions ([ADR 034](adr-034-own-instructions-as-app-text.md)), so the comparison is by instruction and by article.
+Every time a client's own instructions, the occupational safety ones (IPSSM) or the fire-safety ones (IPSU), are issued again and the client has workers with a training recorded, the app proposes a supplementary periodic training. The first issue from the app counts too: it replaces the instructions the client had on paper.
 
-- **When it proposes.** Only when an instruction was added or removed, an article was added, removed or moved, or an article's text changed beyond a typo. A changed number, measure or negation always counts. A revision that only fixes typos, spacing, diacritics or the client's identification data proposes nothing. When unsure, it proposes.
-- **What it proposes.** A supplementary periodic training that says what changed. It covers only the workers on the posts that carry the changed instructions, one training per affected post, since the training dialog's rule of one post per training stays.
+- **What it proposes.** A notice that lists every post with current workers. Each post is one training, recorded through the existing training dialog, whose rule of one post per training stays.
+- **Closing it.** One answer, _Nu e nevoie de instruire_, closes the notice, for a revision that changed nothing important.
 - **Who decides.** It is a proposal the specialist confirms, never a training recorded by itself. A member can always record a supplementary training by hand, whatever the app proposes.
+
+Comparing the new revision with the one issued before it, so as to propose only for a change of substance and only for the posts it concerns, is deferred to #932 (see "What is left out").
 
 For occupational safety the basis is HG 1425/2006 art. 98 lit. b), with the reason _modificarea instrucțiunilor proprii_, which already exists among the reasons of [ADR 021](adr-021-training-records-and-individual-sheets.md) (`rules_changed`). For fire safety there is none: OMAI 712/2005 has no such rule (art. 17¹ and art. 24, see above). Mircea chose on 2026-11-12 to propose it there too, for one rule in both domains and to be on the safe side, so the fire-safety proposal cites no law. Screens follow the design canvas, row 4 of the page "Istoricul pe hârtie".
 
@@ -85,10 +92,10 @@ On every sheet the app generates, the on-demand one and the signed one, both dom
 
 ## What this changes in earlier ADRs
 
-- **ADR 032**: a missing trainer, trainer's function, material or duration is no longer taken from the client's training themes; `from_client_themes` and _Din tematica clientului_ go; a training from paper may hold none of the three; the handover note is a read value shown in the review; who gave the periodic trainings is asked once per import, before and after a handover date.
-- **ADR 021**: a training from paper (`source` paper) holds a trainer, a material and a duration only where the paper writes one; a training held in the app still requires all three. Both sheets mark a paper row as transcribed and print the line under the title. A change of the own instructions issued from the app, in either domain, proposes a supplementary training for the posts that carry what changed, under art. 98 lit. b) for occupational safety and by Mircea's choice for fire safety.
+- **ADR 032**: a missing trainer, trainer's function, material or duration is no longer taken from the client's training themes; `from_client_themes` and _Din tematica clientului_ go; a training from paper may hold none of the three; the handover note is a read value shown in the review; who gave the periodic trainings is asked per person and per domain, split at that person's handover date, with an optional step that offers an answer to the people who have none.
+- **ADR 021**: a training from paper (`source` paper) holds a trainer, a material and a duration only where the paper writes one; a training held in the app still requires all three. Both sheets mark a paper row as transcribed and print the line under the title. Issuing the own instructions again from the app, in either domain, proposes a supplementary training for every post with current workers, under art. 98 lit. b) for occupational safety and by Mircea's choice for fire safety.
 - **ADR 023**: the paper rows of a signed sheet read `transcris; semnat pe hârtie`, its row note field holds two lines, and a field under the title takes the line; a stored sheet records the form it was drawn from and keeps its wording.
-- **ADR 034**: issuing a revision of the own instructions, in either domain, compares it with the revision issued before it, by instruction and by article.
+- **ADR 034**: issuing a revision of the own instructions, in either domain, while the client has trained workers, brings the notice proposing a supplementary training.
 - **ADR 013**: a client file can be the copy of the own instructions a client's paper trainings cite, with the period it was valid; its shape follows the canvas.
 
 ## What is left out
@@ -97,22 +104,24 @@ On every sheet the app generates, the on-demand one and the signed one, both dom
 - A mark telling what a model read from what a member typed (#715, left out by ADR 032). Both are transcriptions from paper and both carry the note.
 - A paper test result printed on the fire-safety sheet's periodic table. It prints as today, since a test row is never signed (ADR 024).
 - Proposing a supplementary training when the instructions change outside the app, in a Word file the specialist issues by hand.
+- Comparing a newly issued revision of the own instructions with the one issued before it (#932). The instructions are structured articles with versions ([ADR 034](adr-034-own-instructions-as-app-text.md)), so the comparison can go by instruction and by article. It would propose only when an instruction was added or removed, an article was added, removed or moved, or an article's text changed beyond a typo, a changed number, measure or negation always counting, and nothing for a revision that only fixes typos, spacing, diacritics or the client's identification data; when unsure, it would propose. The proposal would say what changed and cover only the workers on the posts that carry the changed instructions. Until then the notice proposes on every issue and lists every post.
 
 ## Consequences
 
 - `trainings.trainer_name`, `trainer_job_title`, `material` and `duration_minutes` become optional for paper trainings, and every place that reads them, the contracts, the app, the portal and the sheets, has an empty value to show.
 - The sheets carry one more template version each. The on-demand sheet's merge data gains a note per row and per hiring block and the line, and the signed sheet gains a field for the line and a taller note field. Sheets stored before keep printing what they printed.
-- The import's review gains the handover note and one question; its screens wait for the canvas.
+- The import's review gains the handover note and, on each person's page, the question of who trained, per domain; the hub counts who has no answer and blocks nothing. Its screens wait for the canvas.
+- Every issue of the own instructions at a client with trained workers brings a notice, a revision that changed nothing important included, until #932 compares revisions; one answer closes it.
 - The help articles on the import and on trainings change with the steps that change what they describe; the step that completes each part carries its `## Actualizări` block.
 
 ## Order of work
 
-Each step is a pull request. Steps 5 to 7 follow the design canvas "Importul lucrătorilor".
+Each step is a pull request. Steps 5 to 7 follow the design canvas, page "Istoricul pe hârtie".
 
 1. This ADR, the notes in ADR 021, ADR 023 and ADR 032, and the glossary in `CONTEXT.md`.
 2. The sheet's wording: the note and the line on both sheets, the on-demand sheet's paper rows marked, the signed sheet's line field and two-line note field, the stored sheet's form recorded; the templates registered as new versions; the help on the sheet.
 3. Paper trainings as written: no fill from the themes; trainer, trainer's function, material and duration optional for a paper source in the database, the contracts and the API; _nume neînscris pe fișă_ and _necompletat pe fișă_ where they are shown.
 4. The handover note read as a value with its date and shown in the review.
-5. The "who trained" question, once per import, before and after a handover date.
+5. The "who trained" question on each person's page, per domain and split at the person's handover date, the optional step offering an answer to the people who have none, and the hub showing who has no answer.
 6. The instructions the sheets refer to: asked for in the employee import and on the client's page, kept as a client file with its period.
-7. The supplementary training proposed when the own instructions change, in both domains: the comparison of the new revision with the one issued before it, and the proposal per affected post.
+7. The supplementary training proposed when the own instructions are issued again, in both domains: the notice listing every post with current workers, one training per post through the existing dialog, and _Nu e nevoie de instruire_. The comparison of revisions follows in #932.
