@@ -160,6 +160,7 @@ function TrainingRow({
         agreement="feminine"
         testId="person-row-include"
         onChange={include}
+        holdWordSpace
         collapsed={(toggle) => (
           <>
             <span className="col-start-2 col-end-[-2] row-start-1 flex min-h-6 items-center text-sm font-medium">
@@ -298,6 +299,7 @@ function TestLine({
         proposed={proposedTestIncluded(row, matched)}
         testId="person-test-include"
         onChange={take}
+        holdWordSpace
         collapsed={(toggle) => (
           <>
             <span className="col-start-2 col-end-[-2] row-start-1 flex min-h-6 items-center font-medium text-muted-foreground">
@@ -426,6 +428,7 @@ function AnnualTest({
         proposed={proposedTestIncluded(row, matched)}
         testId="person-annual-test-include"
         onChange={take}
+        holdWordSpace
         collapsed={(toggle) => (
           <>
             <span className="col-start-2 col-end-[-2] row-start-1 flex min-h-6 items-center font-medium text-muted-foreground">

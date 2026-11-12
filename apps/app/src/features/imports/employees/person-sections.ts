@@ -128,14 +128,46 @@ export function nextStop(stops: DecisionStop[], last: string | null) {
   return stops[(at + 1) % stops.length]!;
 }
 
+const readingOrder: SheetPage['kind'][] = [
+  'ssm_sheet_front',
+  'ssm_periodic',
+  'su_sheet_front',
+  'su_periodic',
+  'commute_declaration',
+  'other',
+  null,
+];
+
+const fronts = new Set<SheetPage['kind']>(['ssm_sheet_front', 'su_sheet_front']);
+
+// The dates as read, not as edited, so the photos keep their numbers while the member corrects
+// a date. A sheet's cover has no rows and opens it; a periodic page with no date read goes last.
+function readingKey(page: SheetPage) {
+  const first = page.rows
+    .flatMap((row) => (row.heldOn ? [row.heldOn] : []))
+    .sort()
+    .at(0);
+  return first ?? (fronts.has(page.kind) ? '' : '~');
+}
+
 export const ownedPages = (
   proposal: Proposal,
   moved: Record<string, { personId: string | null }>,
   personId: string
 ) =>
-  proposal.pages.filter(
-    (page) => (moved[page.id] === undefined ? page.personId : moved[page.id]!.personId) === personId
-  );
+  proposal.pages
+    .filter(
+      (page) =>
+        (moved[page.id] === undefined ? page.personId : moved[page.id]!.personId) === personId
+    )
+    .map((page, index) => ({ page, index, key: readingKey(page) }))
+    .sort(
+      (a, b) =>
+        readingOrder.indexOf(a.page.kind) - readingOrder.indexOf(b.page.kind) ||
+        (a.key === b.key ? 0 : a.key < b.key ? -1 : 1) ||
+        a.index - b.index
+    )
+    .map(({ page }) => page);
 
 export const openChoice = (decisions: Decision[], field: FieldName) =>
   decisions.some((decision) => decision.key === `choice-${field}`);

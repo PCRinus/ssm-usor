@@ -28,6 +28,7 @@ function IncludeSwitch({
   agreement,
   disabled,
   testId,
+  holdWordSpace,
 }: {
   id: string;
   name: string;
@@ -36,6 +37,7 @@ function IncludeSwitch({
   agreement: Agreement;
   disabled: boolean;
   testId: string;
+  holdWordSpace: boolean;
 }) {
   useEffect(() => {
     if (refocus !== id) return;
@@ -44,9 +46,12 @@ function IncludeSwitch({
   }, [id]);
   return (
     <span className="inline-flex shrink-0 items-center gap-2.5">
-      {!included && (
+      {(!included || holdWordSpace) && (
         <span
-          className="text-[13px] font-medium whitespace-nowrap text-muted-foreground"
+          className={cn(
+            'text-[13px] font-medium whitespace-nowrap text-muted-foreground',
+            included && 'invisible'
+          )}
           aria-hidden="true"
           data-testid={`${testId}-word`}
         >
@@ -85,6 +90,7 @@ export function Includable({
   agreement = 'masculine',
   disabled = false,
   testId = 'include-switch',
+  holdWordSpace = false,
   collapsedClassName,
   collapsed,
   children,
@@ -97,6 +103,9 @@ export function Includable({
   agreement?: Agreement;
   disabled?: boolean;
   testId?: string;
+  // Rows that share their columns: the word showing on one row would widen the column and move
+  // every switch and button beside it.
+  holdWordSpace?: boolean;
   collapsedClassName?: string;
   // The collapsed line when the thing has a look of its own, as an instruction's card.
   collapsed?: (toggle: ReactNode) => ReactNode;
@@ -110,6 +119,7 @@ export function Includable({
       agreement={agreement}
       disabled={disabled}
       testId={testId}
+      holdWordSpace={holdWordSpace}
       onChange={onChange}
     />
   );

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Decision } from './employee-review-model';
-import { decisionStops, nextStop, sectionOnScreen } from './person-sections';
+import type { Decision, Proposal, SheetPage } from './employee-review-model';
+import { decisionStops, nextStop, ownedPages, sectionOnScreen } from './person-sections';
 
 const order = ['decisions', 'data', 'trainings-ssm', 'trainings-su'];
 
@@ -64,5 +64,60 @@ describe('the stops of the badge in the bar', () => {
     const stops = decisionStops(['post'].map(decision), elementOf);
     expect(nextStop(stops, 'match')?.key).toBe('post');
     expect(nextStop([], null)).toBeNull();
+  });
+});
+
+describe("a person's photos", () => {
+  const sheet = (id: string, kind: SheetPage['kind'], dates: (string | null)[] = []) =>
+    ({
+      id,
+      kind,
+      personId: 'ana',
+      rows: dates.map((heldOn) => ({ heldOn })),
+    }) as unknown as SheetPage;
+  const proposal = (pages: SheetPage[]) => ({ pages }) as unknown as Proposal;
+  const ids = (pages: SheetPage[]) => pages.map((page) => page.id);
+
+  it('read as the sheets do: each cover, then its pages by their first date', () => {
+    const pages = [
+      sheet('su-2022', 'su_periodic', ['2022-03-01']),
+      sheet('ssm-first', 'ssm_sheet_front', ['2021-05-02']),
+      sheet('ssm-2022', 'ssm_periodic', [null, '2022-09-06', '2022-03-07']),
+      sheet('declaration', 'commute_declaration'),
+      sheet('su-cover', 'su_sheet_front'),
+      sheet('ssm-cover', 'ssm_sheet_front'),
+      sheet('unread', null),
+      sheet('ssm-2021', 'ssm_periodic', ['2021-09-06']),
+      sheet('ssm-blank', 'ssm_periodic', [null]),
+    ];
+    expect(ids(ownedPages(proposal(pages), {}, 'ana'))).toEqual([
+      'ssm-cover',
+      'ssm-first',
+      'ssm-2021',
+      'ssm-2022',
+      'ssm-blank',
+      'su-cover',
+      'su-2022',
+      'declaration',
+      'unread',
+    ]);
+  });
+
+  it('keep the upload order between pages the sheets cannot tell apart, and follow a moved page', () => {
+    const pages = [
+      sheet('b', 'ssm_periodic'),
+      sheet('a', 'ssm_periodic'),
+      { ...sheet('elsewhere', 'ssm_sheet_front'), personId: 'ion' },
+    ];
+    expect(
+      ids(
+        ownedPages(
+          proposal(pages),
+          { elsewhere: { personId: 'ana' }, a: { personId: null } },
+          'ana'
+        )
+      )
+    ).toEqual(['elsewhere', 'b']);
+    expect(ids(ownedPages(proposal(pages), {}, 'ana'))).toEqual(['b', 'a']);
   });
 });
