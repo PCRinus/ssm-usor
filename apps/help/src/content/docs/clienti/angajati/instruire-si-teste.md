@@ -37,6 +37,7 @@ topics:
   - id: angajati.semnaturi-instruire
     heading: Semnăturile unei instruiri
 sources:
+  - supabase/migrations/20261112160000_paper_trainings_as_written.sql
   - docs/architecture/adr-006-job-positions.md
   - docs/architecture/adr-039-training-categories-from-job-positions.md
   - docs/architecture/adr-021-training-records-and-individual-sheets.md
@@ -128,7 +129,7 @@ Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa SU apar în tabe
 
 ### Instruirile de pe fișa pe hârtie
 
-Pentru un lucrător a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **Preluată de pe fișa pe hârtie**: ziua, durata și materialul ca pe fișă. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …” (vezi „Semnăturile unei instruiri”).
+Pentru un lucrător a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **Preluată de pe fișa pe hârtie**: ziua, durata, materialul și cine a instruit, ca pe fișă. Ce nu e scris pe fișă lași necompletat: o instruire de pe hârtie se salvează și fără durată, material sau instructor, iar în aplicație și în portal vezi în locul lor „necompletată pe fișă”, „necompletat pe fișă” sau „nume neînscris pe fișă”. Pe fișa individuală din aplicație căsuța rămâne goală. O instruire ținută în aplicație are nevoie de toate. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …” (vezi „Semnăturile unei instruiri”).
 
 Ca termenele să fie corecte, sunt de ajuns instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei pe hârtie îl încarci pe tabul **Documente** al lucrătorului.
 

@@ -489,7 +489,11 @@ optional `verifier` as `{ name, jobTitle }`, `supplementaryReason` (required for
 for, a supplementary training), `source` (`app` by default, `paper` for history typed from a
 sheet), an optional `themesRevisionId` and `notes`, `employeeIds` and an optional
 `admission: { admittedOn, name, jobTitle }`. The admission, "admis la lucru", is one for every
-attendee and allowed on a workplace training only; a body that breaks a rule answers `400`. A
+attendee and allowed on a workplace training only; a body that breaks a rule answers `400`.
+A training held in the app names its `durationMinutes`, `material` and `trainer` `{ name,
+jobTitle }`; one from paper (`source` `paper`) may send any of them null, or the trainer's
+`name` and `jobTitle` null, where its sheet does not write them (ADR 042), and every read then
+answers them null: the training, the employee's records, the portal's records. A
 day after today in Romania is `400` on `heldOn`; an attendee who is not an employee of the
 client, or one archived as a mistake, `400` on `employeeIds` (a leaver is fine: paper history
 may belong to one); a revision that is not one of the client's training themes of the domain,
@@ -881,8 +885,7 @@ reporting an import answers `import_report_impersonated`.
 Everything else stays open to him: reading, editing, generating and issuing documents, imports
 (which spend the organization's credits) and archiving. Documents print the member: the training
 proposal's specialist and the documents' preparer are read from the member's profile, and an
-import he started proposes the member as its trainer, only while they are a member of the
-import's organization.
+import proposes no trainer of its own (ADR 042).
 
 ## Waitlist
 
@@ -1509,7 +1512,7 @@ The portal's `GET …/tests` carries the same `sheet` on each result. The client
 those passed in both domains, any other state those in it in either, through an inner embed.
 
 **A paper result** is a test filled in on the printed copy and passed: the day (not in the
-future), the examiner, the grade `admis` and the material, by default the test's name and code
+future), the examiner, null or left out where the sheet names none, the grade `admis` and the material, by default the test's name and code
 (`testResultMaterial`). It is taken while the test can be owed, read from the hiring training
 and the results rather than from the state, which a leaver has none of: a hiring result once
 the domain's hiring training is recorded (the introductory general one for occupational safety,
@@ -2238,7 +2241,8 @@ There are two kinds: the client import, from a documentation pack, and the emplo
 photographs of a client's individual training sheets. The module is `modules/imports`: the
 routes, `payload.ts` (a client import's proposal and changes as `apply_client_import` takes
 them), `employees.ts` (what an employee import reads of the client: its posts, workplaces,
-employees with their trainings and passes, and the training themes), `pipeline.ts` (the queue's
+employees with their trainings and passes; never the training themes, since a row keeps empty
+what its page does not write, ADR 042), `pipeline.ts` (the queue's
 steps), `queue.ts` (the consumer) and `cleanup.ts` (the cron). The tables, the bucket and the
 functions are in the [data model](data-model.md#imports-from-documents); the proposals' schemas,
 the prompts, the sorting, the checks and the gateway client are `packages/import`: for the
@@ -2365,7 +2369,12 @@ An employee import's review is in `employees` of `GET /imports/{importId}`, from
 `{ proposal, changes, states }`, the `EmployeeImportProposal`, the member's
 `EmployeeImportChanges`, and each person's state by id (`to_check` unless checked or set aside);
 `proposal`, `changes`, `registeredCompany` and `otherCompanies` are then a client import's and
-empty, and `blockers` are `toEmployeePayload`'s for the people marked checked.
+empty, and `blockers` are `toEmployeePayload`'s for the people marked checked. A row's trainer,
+trainer's function, material and duration, and a test's examiner, may stay empty and block
+nothing; a test's examiner named by half blocks the other half. A proposal read before ADR 042
+lists in a row's `fromThemes` the values it took from the client's themes: the review and the
+confirm take them as empty unless the member typed one, and a test's examiner taken from such a
+trainer too.
 `PUT /imports/{importId}/employee-changes` saves `{ version, changes }` through the same
 `save_import_changes`, restarting the 14 days; `PUT /imports/{importId}/changes` is a client
 import's. Each refuses the other kind with `409` and `import_wrong_kind`, as sending a set-aside
