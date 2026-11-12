@@ -69,6 +69,7 @@ export {
   type PortalOptions,
   portalOptionsFromEnv,
   type PortalPage,
+  portalPauseMs,
   type PortalStatus,
 } from './portal';
 export {

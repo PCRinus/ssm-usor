@@ -25,6 +25,7 @@
     "legislation:check": "node --env-file-if-exists=.env.seed --import tsx scripts/check-legislation.ts",
     "legislation:check:local": "node --import tsx scripts/check-legislation.ts --local",
     "legislation:verify-quotes": "node --import tsx scripts/verify-legislation-quotes.ts",
+    "legislation:compare-forms": "node --import tsx scripts/compare-legislation-forms.ts",
     "oblio:check": "node --import tsx scripts/oblio-check.ts",
     "signing:ca": "node --import tsx scripts/signing-ca.ts",
     "signing:check:local": "node --import tsx scripts/check-signing.ts",
