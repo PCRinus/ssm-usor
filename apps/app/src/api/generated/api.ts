@@ -14060,6 +14060,85 @@ export const LegalChangeListResponseItemsItemResolution = {
   template_version: 'template_version',
 } as const;
 
+/**
+ * @nullable
+ */
+export type LegalChangeListResponseItemsItemOutcome =
+  | (typeof LegalChangeListResponseItemsItemOutcome)[keyof typeof LegalChangeListResponseItemsItemOutcome]
+  | null;
+
+export const LegalChangeListResponseItemsItemOutcome = {
+  no_impact: 'no_impact',
+  quote_differs: 'quote_differs',
+  needs_review: 'needs_review',
+} as const;
+
+export type LegalChangeListResponseItemsItemAmendingActsItem = {
+  name: string;
+  /** @nullable */
+  adoptedOn: string | null;
+};
+
+export type LegalChangeListResponseItemsItemAmendedUnitsItemOperation =
+  (typeof LegalChangeListResponseItemsItemAmendedUnitsItemOperation)[keyof typeof LegalChangeListResponseItemsItemAmendedUnitsItemOperation];
+
+export const LegalChangeListResponseItemsItemAmendedUnitsItemOperation = {
+  modified: 'modified',
+  supplemented: 'supplemented',
+  inserted: 'inserted',
+  repealed: 'repealed',
+  other: 'other',
+} as const;
+
+export type LegalChangeListResponseItemsItemAmendedUnitsItem = {
+  unit: string;
+  operation: LegalChangeListResponseItemsItemAmendedUnitsItemOperation;
+  date: string;
+  /** @nullable */
+  amendingAct: string | null;
+};
+
+export type LegalChangeListResponseItemsItemPassagesItemCitationForm =
+  (typeof LegalChangeListResponseItemsItemPassagesItemCitationForm)[keyof typeof LegalChangeListResponseItemsItemPassagesItemCitationForm];
+
+export const LegalChangeListResponseItemsItemPassagesItemCitationForm = {
+  quote: 'quote',
+  reference: 'reference',
+} as const;
+
+export type LegalChangeListResponseItemsItemPassagesItemStatus =
+  (typeof LegalChangeListResponseItemsItemPassagesItemStatus)[keyof typeof LegalChangeListResponseItemsItemPassagesItemStatus];
+
+export const LegalChangeListResponseItemsItemPassagesItemStatus = {
+  changed: 'changed',
+  added: 'added',
+  repealed: 'repealed',
+  missing: 'missing',
+  uncompared: 'uncompared',
+} as const;
+
+export type LegalChangeListResponseItemsItemPassagesItemHunksItem = {
+  old: string;
+  new: string;
+  before: string;
+  after: string;
+};
+
+export type LegalChangeListResponseItemsItemPassagesItem = {
+  id: string;
+  templateFile: string;
+  citationForm: LegalChangeListResponseItemsItemPassagesItemCitationForm;
+  /** @nullable */
+  locator: string | null;
+  unit: string;
+  status: LegalChangeListResponseItemsItemPassagesItemStatus;
+  /** @nullable */
+  oldText: string | null;
+  /** @nullable */
+  newText: string | null;
+  hunks: LegalChangeListResponseItemsItemPassagesItemHunksItem[];
+};
+
 export type LegalChangeListResponseItemsItem = {
   id: string;
   act: LegalChangeListResponseItemsItemAct;
@@ -14072,6 +14151,15 @@ export type LegalChangeListResponseItemsItem = {
   resolvedAt: string | null;
   /** @nullable */
   resolvedByNote: string | null;
+  /** @nullable */
+  outcome: LegalChangeListResponseItemsItemOutcome;
+  /** @nullable */
+  comparedWith: string | null;
+  /** @nullable */
+  assessedAt: string | null;
+  amendingActs: LegalChangeListResponseItemsItemAmendingActsItem[];
+  amendedUnits: LegalChangeListResponseItemsItemAmendedUnitsItem[];
+  passages: LegalChangeListResponseItemsItemPassagesItem[];
 };
 
 export interface LegalChangeListResponse {
@@ -40366,7 +40454,7 @@ export const getListLegalChangesUrl = () => {
 };
 
 /**
- * Newer consolidated forms of the watched acts, newest first, each with its act and how it was resolved. The same for every organization; not paginated.
+ * Newer consolidated forms of the watched acts, newest first, each with its act, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended and the cited passages it touched, with the law's text before and after. The same for every organization; not paginated.
  * @summary List the legal changes
  */
 export const listLegalChanges = async (

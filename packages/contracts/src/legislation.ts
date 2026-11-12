@@ -34,6 +34,68 @@ export const legalChangeResolutionSchema = z.enum(legalChangeResolutions);
 
 export type LegalChangeResolution = z.infer<typeof legalChangeResolutionSchema>;
 
+export const legalChangeOutcomes = ['no_impact', 'quote_differs', 'needs_review'] as const;
+
+export const legalChangeOutcomeSchema = z.enum(legalChangeOutcomes);
+
+export type LegalChangeOutcome = z.infer<typeof legalChangeOutcomeSchema>;
+
+export const legalAmendingActSchema = z.object({
+  name: z.string(),
+  // When it was adopted; null when the portal's note gives no date.
+  adoptedOn: z.iso.date().nullable(),
+});
+
+export type LegalAmendingAct = z.infer<typeof legalAmendingActSchema>;
+
+export const legalAmendmentOperations = [
+  'modified',
+  'supplemented',
+  'inserted',
+  'repealed',
+  'other',
+] as const;
+
+export const legalAmendedUnitSchema = z.object({
+  // "Art. 36 alin. (2)"; "^" marks a superscript, "Art. 109^2".
+  unit: z.string(),
+  operation: z.enum(legalAmendmentOperations),
+  // When the amendment took effect.
+  date: z.iso.date(),
+  amendingAct: z.string().nullable(),
+});
+
+export type LegalAmendedUnit = z.infer<typeof legalAmendedUnitSchema>;
+
+// `uncompared`: found in both forms but not compared, with no words to read in one of them (a
+// table kept as a picture) or too long; both texts are given.
+export const legalChangePassageStatuses = [
+  'changed',
+  'added',
+  'repealed',
+  'missing',
+  'uncompared',
+] as const;
+
+export const legalChangePassageSchema = z.object({
+  id: z.uuid(),
+  templateFile: z.string(),
+  citationForm: z.enum(['quote', 'reference']),
+  // How the template names the passage, "Art. 36 alin. (1) – (3)"; null for a reference.
+  locator: z.string().nullable(),
+  unit: z.string(),
+  status: z.enum(legalChangePassageStatuses),
+  // The law's text of the unit in the verified form and in the new one; null where the unit is
+  // absent from that form.
+  oldText: z.string().nullable(),
+  newText: z.string().nullable(),
+  hunks: z.array(
+    z.object({ old: z.string(), new: z.string(), before: z.string(), after: z.string() })
+  ),
+});
+
+export type LegalChangePassage = z.infer<typeof legalChangePassageSchema>;
+
 export const legalChangeSchema = z.object({
   id: z.uuid(),
   act: legalActSchema.pick({ id: true, name: true, portalId: true }),
@@ -43,6 +105,15 @@ export const legalChangeSchema = z.object({
   resolution: legalChangeResolutionSchema,
   resolvedAt: z.iso.datetime({ offset: true }).nullable(),
   resolvedByNote: z.string().nullable(),
+  // Null until the daily check has compared the new form with the verified one.
+  outcome: legalChangeOutcomeSchema.nullable(),
+  // The consolidated form the new one was compared with; null for the act as published, and
+  // before the change is assessed.
+  comparedWith: z.iso.date().nullable(),
+  assessedAt: z.iso.datetime({ offset: true }).nullable(),
+  amendingActs: z.array(legalAmendingActSchema),
+  amendedUnits: z.array(legalAmendedUnitSchema),
+  passages: z.array(legalChangePassageSchema),
 });
 
 export type LegalChange = z.infer<typeof legalChangeSchema>;

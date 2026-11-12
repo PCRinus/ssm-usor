@@ -2,7 +2,10 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type LegalAct,
   type LegalActStatus,
+  legalAmendedUnitSchema,
   type LegalChange,
+  type LegalChangeOutcome,
+  legalChangePassageSchema,
   type LegalChangeResolution,
   type LegalCheckRun,
   legalCheckRunErrorSchema,
@@ -21,20 +24,21 @@ import type {
 
 type ActRow = Database['public']['Tables']['legal_acts']['Row'];
 type ChangeRow = Database['public']['Tables']['legal_changes']['Row'];
+type PassageRow = Database['public']['Tables']['legal_change_passages']['Row'];
 type RunRow = Database['public']['Tables']['legal_check_runs']['Row'];
 
 const actColumns =
   'id, name, portal_id, portal_status, verified_consolidated_on, last_consolidated_on, last_amending_act, last_checked_at, checked_by_hand_on';
 const changeColumns =
-  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, act:legal_acts(id, name, portal_id)';
+  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, outcome, compared_with, assessed_at, amending_acts, amended_units, act:legal_acts(id, name, portal_id), passages:legal_change_passages(id, template_file, paragraph, citation_form, locator, unit_label, status, old_text, new_text, hunks)';
 
 const runColumns =
   'id, started_at, finished_at, status, acts_checked, changes_found, acts_skipped, errors';
 
 const collator = new Intl.Collator('ro');
 
-// The casts below are safe: check constraints keep portal_status, resolution and status to these
-// values.
+// The casts below are safe: check constraints keep portal_status, resolution, outcome and status
+// to these values.
 const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
   id: row.id,
   name: row.name,
@@ -47,8 +51,43 @@ const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
   checkedByHandOn: row.checked_by_hand_on,
 });
 
+// The legislation Worker writes these columns; the API reads the fields it shows and drops the rest.
+const storedAmendingActsSchema = z
+  .array(
+    z
+      .object({ name: z.string(), date: z.iso.date().nullable().catch(null) })
+      .transform((act) => ({ name: act.name, adoptedOn: act.date }))
+  )
+  .catch([]);
+const storedAmendedUnitsSchema = z.array(legalAmendedUnitSchema).catch([]);
+const storedHunksSchema = legalChangePassageSchema.shape.hunks.catch([]);
+
+const toPassage = (row: Omit<PassageRow, 'change_id' | 'manifest' | 'article'>) =>
+  legalChangePassageSchema.parse({
+    id: row.id,
+    templateFile: row.template_file,
+    citationForm: row.citation_form,
+    locator: row.locator,
+    unit: row.unit_label,
+    status: row.status,
+    oldText: row.old_text,
+    newText: row.new_text,
+    hunks: storedHunksSchema.parse(row.hunks),
+  });
+
+const passageOrder = (
+  a: Pick<PassageRow, 'template_file' | 'paragraph' | 'unit_label'>,
+  b: Pick<PassageRow, 'template_file' | 'paragraph' | 'unit_label'>
+) =>
+  a.template_file.localeCompare(b.template_file) ||
+  a.paragraph - b.paragraph ||
+  a.unit_label.localeCompare(b.unit_label);
+
 const toChange = (
-  row: Omit<ChangeRow, 'act_id'> & { act: Pick<ActRow, 'id' | 'name' | 'portal_id'> }
+  row: Omit<ChangeRow, 'act_id' | 'review'> & {
+    act: Pick<ActRow, 'id' | 'name' | 'portal_id'>;
+    passages: Omit<PassageRow, 'change_id' | 'manifest' | 'article'>[];
+  }
 ): LegalChange => ({
   id: row.id,
   act: { id: row.act.id, name: row.act.name, portalId: row.act.portal_id },
@@ -58,6 +97,12 @@ const toChange = (
   resolution: row.resolution as LegalChangeResolution,
   resolvedAt: row.resolved_at,
   resolvedByNote: row.resolved_by_note,
+  outcome: row.outcome as LegalChangeOutcome | null,
+  comparedWith: row.compared_with,
+  assessedAt: row.assessed_at,
+  amendingActs: storedAmendingActsSchema.parse(row.amending_acts ?? []),
+  amendedUnits: storedAmendedUnitsSchema.parse(row.amended_units ?? []),
+  passages: [...row.passages].sort(passageOrder).map(toPassage),
 });
 
 export const listLegalActs: RouteHandler<typeof listLegalActsRoute, ApiEnv> = async (c) => {
