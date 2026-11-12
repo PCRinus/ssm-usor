@@ -137,8 +137,9 @@ grant execute on function public.save_training(
   text, text
 ) to authenticated;
 
--- A portal pass names as its examiner the trainer of the newest introductory general training,
--- never one a paper sheet left unnamed: a name without a function would break the examiner's rule.
+-- A portal pass names as its examiner the trainer of the newest introductory general training, or
+-- nobody when that training's sheet names no trainer with a function: an older training's trainer
+-- may be a previous provider's, and a name without a function would break the examiner's rule.
 create or replace function public.finish_test_attempt(
   p_attempt_id uuid,
   p_client_address inet default null,
@@ -220,10 +221,12 @@ begin
       where r.employee_id = attempt.employee_id
         and t.domain = attempt.domain
         and t.phase = 'introductory_general'
-        and t.trainer_name is not null
-        and t.trainer_job_title is not null
       order by t.held_on desc, t.created_at desc
       limit 1;
+      if examiner_name is null or examiner_job_title is null then
+        examiner_name := null;
+        examiner_job_title := null;
+      end if;
     end if;
     insert into public.test_results (
       organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name,
