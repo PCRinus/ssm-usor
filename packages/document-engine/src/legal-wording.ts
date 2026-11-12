@@ -111,7 +111,12 @@ function replaceFolded(
 }
 
 export function normalizeIncoming(line: string) {
-  let text = line
+  return normalizeSpan(line).trim();
+}
+
+/** As `normalizeIncoming`, keeping the space at either end of a piece of a line. */
+export function normalizeSpan(span: string) {
+  let text = span
     .normalize('NFC')
     .replace(/[şŞţŢ]/g, (char) => ({ ş: 'ș', Ş: 'Ș', ţ: 'ț', Ţ: 'Ț' })[char]!)
     .replace(/\^\{?(\d+)\}?/g, (_, digits: string) =>
@@ -120,8 +125,7 @@ export function normalizeIncoming(line: string) {
     .replace(/\s+/g, ' ')
     .replace(/ - /g, ' – ')
     .replace(/ ([,;:.)])/g, '$1')
-    .replace(/\( /g, '(')
-    .trim();
+    .replace(/\( /g, '(');
   for (const [pattern, name] of otherActs) {
     text = replaceFolded(text, pattern, (match) =>
       name(match[1]!, match[2]!.replace(/\./g, ''), match[3]!)
@@ -130,7 +134,7 @@ export function normalizeIncoming(line: string) {
   return text;
 }
 
-interface Token {
+export interface Token {
   text: string;
   /** Set on the act's own name and on "prezenta lege" and its kin. */
   self?: { case: Case | 'any'; named: boolean };
@@ -147,7 +151,7 @@ function actNames(act: ActName) {
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
-function tokens(text: string, act: ActName): Token[] {
+export function wordingTokens(text: string, act: ActName): Token[] {
   const names = actNames(act);
   const references = selfReferences[act.kind];
   const spans: { start: number; end: number; self: NonNullable<Token['self']> }[] = [];
@@ -183,7 +187,7 @@ function tokens(text: string, act: ActName): Token[] {
 const sameSelf = (a: NonNullable<Token['self']>, b: NonNullable<Token['self']>) =>
   a.case === 'any' || b.case === 'any' || a.case === b.case;
 
-const same = (template: Token, incoming: Token) =>
+export const sameWord = (template: Token, incoming: Token) =>
   template.self && incoming.self
     ? sameSelf(template.self, incoming.self)
     : !template.self && !incoming.self && fold(template.text) === fold(incoming.text);
@@ -228,6 +232,73 @@ function matchCase(source: string, target: string) {
   return /^\p{Lu}/u.test(source) ? target[0]!.toUpperCase() + target.slice(1) : target;
 }
 
+interface NewWords {
+  act: ActName;
+  dictionary: Record<string, string>;
+  /** Whether the law's text has diacritics: a word without them is then not listed. */
+  hasDiacritics: boolean;
+  notes: string[];
+  unchecked: Set<string>;
+}
+
+function appendNew(text: string, token: Token, words: NewWords) {
+  const names = actNames(words.act);
+  if (token.self && !token.self.named && refersToArticle(text)) {
+    const name = token.self.case === 'genitive' ? names.genitive : names.nominative;
+    words.notes.push(`"${token.text}" named as "${name}"`);
+    return text + name;
+  }
+  if (!token.self && /^\p{L}+$/u.test(token.text) && !/[ăâîșț]/i.test(token.text)) {
+    const restored = words.dictionary[token.text.toLowerCase()];
+    if (restored) {
+      const spelled = matchCase(token.text, restored);
+      words.notes.push(`"${token.text}" spelled "${spelled}"`);
+      return text + spelled;
+    }
+    if (!words.hasDiacritics) words.unchecked.add(token.text);
+    return text + token.text;
+  }
+  return text + romanianQuote(token.text, text);
+}
+
+function closeNotes(words: NewWords) {
+  if (words.unchecked.size) {
+    words.notes.push(
+      `written without diacritics, words the template lacks: ${[...words.unchecked].join(', ')}`
+    );
+  }
+  return words.notes;
+}
+
+const hasDiacriticsIn = (text: string) =>
+  /[ăâîșțĂÂÎȘȚ]/.test(text.normalize('NFC').replace(/[şţŞŢ]/g, 'ș'));
+
+const newWords = (law: string, { act, dictionary = {} }: WordingContext): NewWords => ({
+  act,
+  dictionary,
+  hasDiacritics: hasDiacriticsIn(law),
+  notes: [],
+  unchecked: new Set(),
+});
+
+/**
+ * Words of the portal's that go after `before` in a template line, in the template's
+ * conventions; `law` is the whole text of the law they come from.
+ */
+export function conformSpan(
+  span: string,
+  before: string,
+  law: string,
+  context: WordingContext
+): LineWording {
+  const words = newWords(law, context);
+  let text = before;
+  for (const token of wordingTokens(normalizeSpan(span), context.act)) {
+    text = appendNew(text, token, words);
+  }
+  return { text: text.slice(before.length), notes: closeNotes(words) };
+}
+
 /**
  * The portal's line in the template's conventions. `template` is the line it replaces, whose
  * spellings, quote marks and names of the act are kept wherever the words are the same.
@@ -235,50 +306,25 @@ function matchCase(source: string, target: string) {
 export function conformLine(
   line: string,
   template: string | null,
-  { act, dictionary = {} }: WordingContext
+  context: WordingContext
 ): LineWording {
-  const notes: string[] = [];
-  const incoming = tokens(normalizeIncoming(line), act);
-  const old = template === null ? [] : tokens(template, act);
-  const names = actNames(act);
-  const hasDiacritics = /[ăâîșțĂÂÎȘȚ]/.test(line.normalize('NFC').replace(/[şţŞŢ]/g, 'ș'));
-  const unchecked = new Set<string>();
+  const words = newWords(line, context);
+  const incoming = wordingTokens(normalizeIncoming(line), context.act);
+  const old = template === null ? [] : wordingTokens(template, context.act);
   let text = '';
-  for (const op of diff(old, incoming, same)) {
+  for (const op of diff(old, incoming, sameWord)) {
     if (op.kind === 'delete') continue;
-    if (op.kind === 'equal') {
-      const kept = op.before.self
-        ? op.before.text
-        : (templateSpelling(op.before.text, op.after.text) ?? op.after.text);
-      if (kept !== op.after.text && !op.before.self && hasDiacritics && /\p{L}/u.test(kept)) {
-        notes.push(`kept the template's "${kept}" where the portal writes "${op.after.text}"`);
-      }
-      text += kept;
+    if (op.kind === 'insert') {
+      text = appendNew(text, op.after, words);
       continue;
     }
-    const token = op.after;
-    if (token.self && !token.self.named && refersToArticle(text)) {
-      const name = token.self.case === 'genitive' ? names.genitive : names.nominative;
-      notes.push(`"${token.text}" named as "${name}"`);
-      text += name;
-    } else if (!token.self && /^\p{L}+$/u.test(token.text) && !/[ăâîșț]/i.test(token.text)) {
-      const restored = dictionary[token.text.toLowerCase()];
-      if (restored) {
-        const spelled = matchCase(token.text, restored);
-        notes.push(`"${token.text}" spelled "${spelled}"`);
-        text += spelled;
-      } else {
-        if (!hasDiacritics) unchecked.add(token.text);
-        text += token.text;
-      }
-    } else {
-      text += romanianQuote(token.text, text);
+    const kept = op.before.self
+      ? op.before.text
+      : (templateSpelling(op.before.text, op.after.text) ?? op.after.text);
+    if (kept !== op.after.text && !op.before.self && words.hasDiacritics && /\p{L}/u.test(kept)) {
+      words.notes.push(`kept the template's "${kept}" where the portal writes "${op.after.text}"`);
     }
+    text += kept;
   }
-  if (unchecked.size) {
-    notes.push(
-      `written without diacritics, words the template lacks: ${[...unchecked].join(', ')}`
-    );
-  }
-  return { text: text.replace(/ {2,}/g, ' ').trim(), notes };
+  return { text: text.replace(/ {2,}/g, ' ').trim(), notes: closeNotes(words) };
 }

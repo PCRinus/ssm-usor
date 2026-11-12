@@ -89,7 +89,7 @@ export function findQuote(source: Uint8Array, citation: QuotedCitation): Citatio
   return found;
 }
 
-function actOf(id: string): ActName {
+export function actOf(id: string): ActName {
   const act = (acts.acts as ActName[]).find((each) => each.id === id);
   if (!act) throw new Error(`${id} is not in legal-acts.json.`);
   return act;
@@ -115,7 +115,7 @@ const labelPattern = new RegExp(
   `^(?:\\((\\d+[${superscriptDigits}]*)\\)|([a-z][${superscriptDigits}]*)\\))`,
   'u'
 );
-const labelOf = (line: string) => {
+export const labelOf = (line: string) => {
   const match = labelPattern.exec(line);
   return match ? (match[1] ?? match[2]!) : null;
 };
@@ -188,28 +188,144 @@ interface PlannedChange extends LineChange {
   nth?: number;
 }
 
+export interface Passage {
+  quote: Citation;
+  act: ActName;
+  quoted: Paragraph[];
+  /** The marker as the paragraph spells it. */
+  marker: string;
+  /** The quote's lines and the paragraph of each, 0 being the marker's. */
+  owners: { offset: number; line: string }[];
+  superscripts: SuperscriptStyle;
+}
+
+export function readPassage(source: Uint8Array, citation: QuotedCitation): Passage {
+  const quote = findQuote(source, citation);
+  const paragraphs = paragraphsOf(documentXml(source));
+  const quoted = paragraphs.slice(quote.paragraph, quote.lastParagraph + 1);
+  const { length } = parseMarker(quoted[0]!.text)!;
+  const firstLine = quoted[0]!.text.slice(length).trim();
+  return {
+    quote,
+    act: actOf(quote.act),
+    quoted,
+    marker: quoted[0]!.text.slice(0, length),
+    owners: quoted.flatMap((paragraph, offset) =>
+      offset === 0 && !firstLine
+        ? []
+        : [{ offset, line: offset === 0 ? firstLine : paragraph.text.trim() }]
+    ),
+    superscripts: superscriptStyle(paragraphs, quoted),
+  };
+}
+
+/**
+ * The passage after the change, line by line: a line of the template carries its paragraph,
+ * `after` null when it is removed; an added line has no paragraph.
+ */
+export interface PassageLine {
+  offset: number | null;
+  before: string | null;
+  after: string | null;
+}
+
+export function planPassage(
+  passage: Passage,
+  lines: PassageLine[],
+  locator: string,
+  notes: string[]
+) {
+  const { quote, quoted, marker } = passage;
+  const plan: QuotePlan = {
+    paragraphs: quoted.map(() => ({ inserted: [] })),
+    superscripts: passage.superscripts,
+  };
+  let markerText = marker;
+  if (locator !== quote.locator) {
+    const span = markerLocatorSpan(marker)!;
+    markerText = marker.slice(0, span.start) + locator + marker.slice(span.end);
+    if (parseMarker(markerText)?.locator !== locator) {
+      throw new Error(`"${locator}" is not a locator a marker can carry.`);
+    }
+    plan.paragraphs[0]!.text = markerText + quoted[0]!.text.slice(marker.length);
+  }
+  const paragraphText = (offset: number, line: string) => {
+    const original = offset === 0 ? quoted[0]!.text.slice(marker.length) : quoted[offset]!.text;
+    const { leading, trailing } = edges(original);
+    return `${offset === 0 ? markerText : ''}${leading || (offset === 0 ? ' ' : '')}${line}${trailing}`;
+  };
+
+  const changes: PlannedChange[] = [];
+  let anchor = 0;
+  for (const line of lines) {
+    if (line.offset === null) {
+      const step = plan.paragraphs[anchor]!;
+      changes.push({
+        kind: 'added',
+        paragraph: -1,
+        before: null,
+        after: line.after,
+        offset: anchor,
+        nth: step.inserted.length,
+      });
+      step.inserted.push(line.after!);
+      continue;
+    }
+    anchor = line.offset;
+    if (line.after === null) {
+      if (line.offset === 0) throw new Error('The marker paragraph cannot lose its line.');
+      plan.paragraphs[line.offset]!.text = null;
+      changes.push({
+        kind: 'removed',
+        paragraph: quote.paragraph + line.offset,
+        before: line.before,
+        after: null,
+        offset: line.offset,
+      });
+    } else if (line.after !== line.before) {
+      plan.paragraphs[line.offset]!.text = paragraphText(line.offset, line.after);
+      changes.push({ kind: 'changed', paragraph: -1, ...line, offset: line.offset });
+    }
+  }
+
+  const position: number[] = [];
+  let at = quote.paragraph;
+  plan.paragraphs.forEach((step, offset) => {
+    position[offset] = at;
+    if (step.text !== null) at += 1;
+    at += step.inserted.length;
+  });
+  const summary: QuoteReplacementSummary = {
+    file: quote.file,
+    act: passage.act.name,
+    locator,
+    changes: changes.map(({ offset, nth, ...change }) => ({
+      ...change,
+      paragraph:
+        change.kind === 'removed'
+          ? change.paragraph
+          : position[offset]! +
+            (nth === undefined ? 0 : (plan.paragraphs[offset]!.text === null ? 0 : 1) + nth),
+    })),
+    notes: locator === quote.locator ? notes : [`the marker now cites ${locator}`, ...notes],
+  };
+  const text = lines.flatMap((line) => (line.after === null ? [] : [line.after])).join('\n');
+  return { plan, quote, summary, text };
+}
+
 export function planQuoteReplacement(
   source: Uint8Array,
   replacement: QuoteReplacement,
   options: QuoteReplacementOptions = {}
 ) {
-  const quote = findQuote(source, replacement.citation);
-  const act = actOf(quote.act);
-  const paragraphs = paragraphsOf(documentXml(source));
-  const quoted = paragraphs.slice(quote.paragraph, quote.lastParagraph + 1);
-  const marker = parseMarker(quoted[0]!.text)!;
-  const firstLine = quoted[0]!.text.slice(marker.length).trim();
-  const owners = quoted.flatMap((paragraph, offset) =>
-    offset === 0 && !firstLine
-      ? []
-      : [{ offset, line: offset === 0 ? firstLine : paragraph.text.trim() }]
-  );
+  const passage = readPassage(source, replacement.citation);
+  const { owners, act } = passage;
   const lines = replacement.lines.map((line) => line.trim()).filter(Boolean);
   if (!lines.length) throw new Error('The new wording has no lines.');
   const pairs = pairLines(
     owners.map((owner) => owner.line),
     lines.map(normalizeIncoming),
-    Boolean(firstLine)
+    owners[0]?.offset === 0
   );
   const ownerOf = new Map([...pairs].map(([owner, line]) => [line, owner]));
 
@@ -225,95 +341,27 @@ export function planQuoteReplacement(
     return wording.text;
   });
 
-  const plan: QuotePlan = {
-    paragraphs: quoted.map(() => ({ inserted: [] })),
-    superscripts: superscriptStyle(paragraphs, quoted),
-  };
-  const oldMarker = quoted[0]!.text.slice(0, marker.length);
-  let markerText = oldMarker;
-  const locator = replacement.locator ?? quote.locator!;
-  if (locator !== quote.locator) {
-    const span = markerLocatorSpan(oldMarker)!;
-    markerText = oldMarker.slice(0, span.start) + locator + oldMarker.slice(span.end);
-    if (parseMarker(markerText)?.locator !== locator) {
-      throw new Error(`"${locator}" is not a locator a marker can carry.`);
-    }
-    plan.paragraphs[0]!.text = markerText + quoted[0]!.text.slice(marker.length);
-  }
-  const paragraphText = (offset: number, line: string) => {
-    const original = offset === 0 ? quoted[0]!.text.slice(marker.length) : quoted[offset]!.text;
-    const { leading, trailing } = edges(original);
-    return `${offset === 0 ? markerText : ''}${leading || (offset === 0 ? ' ' : '')}${line}${trailing}`;
-  };
-
-  const changes: PlannedChange[] = [];
-  let anchor = 0;
+  const passageLines: PassageLine[] = [];
   let next = 0;
   const addUntil = (until: number) => {
     for (; next < until; next += 1) {
-      const step = plan.paragraphs[anchor]!;
-      changes.push({
-        kind: 'added',
-        paragraph: -1,
-        before: null,
-        after: conformed[next]!,
-        offset: anchor,
-        nth: step.inserted.length,
-      });
-      step.inserted.push(conformed[next]!);
+      passageLines.push({ offset: null, before: null, after: conformed[next]! });
     }
   };
   owners.forEach((owner, index) => {
     const line = pairs.get(index);
-    if (line === undefined) {
-      plan.paragraphs[owner.offset]!.text = null;
-      changes.push({
-        kind: 'removed',
-        paragraph: quote.paragraph + owner.offset,
-        before: owner.line,
-        after: null,
-        offset: owner.offset,
-      });
-      return;
+    if (line !== undefined) {
+      addUntil(line);
+      next = line + 1;
     }
-    addUntil(line);
-    anchor = owner.offset;
-    next = line + 1;
-    if (conformed[line] !== owner.line) {
-      plan.paragraphs[owner.offset]!.text = paragraphText(owner.offset, conformed[line]!);
-      changes.push({
-        kind: 'changed',
-        paragraph: -1,
-        before: owner.line,
-        after: conformed[line]!,
-        offset: owner.offset,
-      });
-    }
+    passageLines.push({
+      offset: owner.offset,
+      before: owner.line,
+      after: line === undefined ? null : conformed[line]!,
+    });
   });
   addUntil(lines.length);
-
-  const position: number[] = [];
-  let at = quote.paragraph;
-  plan.paragraphs.forEach((step, offset) => {
-    position[offset] = at;
-    if (step.text !== null) at += 1;
-    at += step.inserted.length;
-  });
-  const summary: QuoteReplacementSummary = {
-    file: quote.file,
-    act: act.name,
-    locator,
-    changes: changes.map(({ offset, nth, ...change }) => ({
-      ...change,
-      paragraph:
-        change.kind === 'removed'
-          ? change.paragraph
-          : position[offset]! +
-            (nth === undefined ? 0 : (plan.paragraphs[offset]!.text === null ? 0 : 1) + nth),
-    })),
-    notes: locator === quote.locator ? notes : [`the marker now cites ${locator}`, ...notes],
-  };
-  return { plan, quote, summary, text: conformed.join('\n') };
+  return planPassage(passage, passageLines, replacement.locator ?? passage.quote.locator!, notes);
 }
 
 export function applyQuotePlan(source: Uint8Array, first: number, plan: QuotePlan) {
@@ -344,16 +392,13 @@ export function applyQuotePlan(source: Uint8Array, first: number, plan: QuotePla
 }
 
 /**
- * Replaces a quoted passage with its current wording, in the template's spelling and
- * formatting. The citation parser must read the new wording back, or nothing is returned: a
- * line that does not read as part of a quote would end it early.
+ * Applies a plan and checks that the citation parser reads `text` back: a line that does not
+ * read as part of a quote would end it early.
  */
-export function replaceQuote(
+export function applyPassage(
   source: Uint8Array,
-  replacement: QuoteReplacement,
-  options: QuoteReplacementOptions = {}
+  { plan, quote, summary, text }: ReturnType<typeof planPassage>
 ) {
-  const { plan, quote, summary, text } = planQuoteReplacement(source, replacement, options);
   if (!summary.changes.length && summary.locator === quote.locator) {
     return { source, plan, quote, summary };
   }
@@ -367,6 +412,15 @@ export function replaceQuote(
     );
   }
   return { source: result, plan, quote: reread, summary };
+}
+
+/** Replaces a quoted passage with its current wording, in the template's spelling and formatting. */
+export function replaceQuote(
+  source: Uint8Array,
+  replacement: QuoteReplacement,
+  options: QuoteReplacementOptions = {}
+) {
+  return applyPassage(source, planQuoteReplacement(source, replacement, options));
 }
 
 const quoteLabel = (line: string) => {
