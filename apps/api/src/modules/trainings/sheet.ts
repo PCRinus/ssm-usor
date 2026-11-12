@@ -24,7 +24,6 @@ import { gapRules } from '../documents/gaps';
  */
 export const paperSignatureRows = true;
 
-/** What a row or block of a training transcribed from a paper sheet says where it is signed. */
 export const transcribedNote = 'transcris; semnat pe hârtie';
 
 export const transcriptionLine =
@@ -117,7 +116,6 @@ export type HiringLine = {
   material: string;
   occupation: string;
   place: string;
-  /** `transcribedNote` for a training from paper, else empty. */
   note: string;
 };
 
@@ -165,7 +163,6 @@ export type TrainingSheetData = {
     introductory: { trainer: string; verifier: string };
     workplace: { trainer: string; verifier: string };
   };
-  /** `transcriptionLine` when the sheet prints a training from paper, else empty. */
   transcriptionLine: string;
   form: SheetForm;
 };
@@ -230,9 +227,9 @@ export const chronological = (a: SheetRecord, b: SheetRecord) =>
   a.training.heldOn.localeCompare(b.training.heldOn) ||
   a.training.createdAt.localeCompare(b.training.createdAt);
 
-// A hiring training recorded twice, after a change of post, prints the later one.
 const noteOf = (record: SheetRecord) => (record.source === 'paper' ? transcribedNote : '');
 
+// A hiring training recorded twice, after a change of post, prints the later one.
 const latest = (records: SheetRecord[], phase: TrainingPhase) =>
   records
     .filter((record) => record.training.phase === phase)

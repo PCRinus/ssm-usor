@@ -310,7 +310,7 @@ export function EmployeeConfirmDialog({
             <Line
               icon={<PenOff className="size-4" />}
               label="Nicio cerere de semnare"
-              detail="Rândurile de pe fișe sunt semnate pe hârtie. Pe fișa individuală din aplicație apar cu mențiunea «semnat pe hârtie»."
+              detail="Rândurile de pe fișe sunt semnate pe hârtie. Pe fișa individuală din aplicație apar cu mențiunea «transcris; semnat pe hârtie»."
             />
             <Line
               icon={<RotateCcw className="size-4" />}
