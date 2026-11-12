@@ -74,6 +74,8 @@ export const sheetPageSchema = z.object({
       verifierSignature: z.enum(verifierSignatureStates),
     })
   ),
+  // A line by which a new prevention service marks where it took the client over; never a row.
+  handovers: z.array(z.object({ date: text, text: z.string() })),
   unreadable: z.array(z.string()),
   notes: z.array(z.string()),
 });

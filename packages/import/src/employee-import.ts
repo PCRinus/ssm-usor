@@ -453,6 +453,16 @@ export function hiringTestRowIds(
   return ids;
 }
 
+// A reading kept before the handover was asked has none.
+function handoversOf(reading: SheetPage, today: string): ProposedSheetPage['handovers'] {
+  return (reading.handovers ?? []).flatMap((handover) => {
+    const written = text(handover.text);
+    const date = sheetDate(handover.date, today);
+    const day = date && !date.monthOnly && date.date <= today ? date.date : null;
+    return written === null && day === null ? [] : [{ date: day, text: written ?? '' }];
+  });
+}
+
 function referenceGroups<G extends { id: string; personIds: string[] }>(
   people: readonly { personId: string; key: string; written: string }[],
   prefix: string,
@@ -627,6 +637,7 @@ export function toEmployeeProposal(input: EmployeeImportInput): EmployeeImportPr
       personId: placement.group === null ? null : personIdOf(placement.group),
       placement: placement.placement,
       rows: rowsByPage.get(page.id) ?? unplacedRows,
+      handovers: page.reading ? handoversOf(page.reading, today) : [],
       unreadable: page.reading?.unreadable.filter((each) => each.trim() !== '') ?? [],
       notes: page.reading?.notes.filter((each) => each.trim() !== '') ?? [],
     };

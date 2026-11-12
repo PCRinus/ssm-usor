@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type EmployeeImportClient, hiringTestRowIds, toEmployeeProposal } from './employee-import';
+import { employeeImportProposalSchema, handoverDates } from './employee-proposal';
 import {
   cnps,
   comanFire,
@@ -164,6 +165,51 @@ describe('toEmployeeProposal', () => {
       fromThemes: [],
       flags: [],
     });
+  });
+
+  it('keeps a page’s handover with its day, never as a training, and a person’s days once', () => {
+    const handover = { date: '03.10.22', text: '03.10.22 Preluare CD Safety Core SRL' };
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        comanFront,
+        page({
+          pageKind: 'ssm_periodic',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [row({ heldOn: '2022-04-11' })],
+          handovers: [handover, { date: '2099-01-01', text: 'Preluare' }],
+        }),
+        page({
+          pageKind: 'su_periodic',
+          person: { lastName: 'Coman', firstName: 'Daniela' },
+          trainings: [row({ domain: 'su', heldOn: '2023-05-10' })],
+          handovers: [{ date: '2022-10-03', text: 'Preluare CD Safety Core SRL' }],
+        })
+      ),
+      client,
+      today,
+    });
+
+    expect(proposal.pages[1]!.handovers).toEqual([
+      { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' },
+      { date: null, text: 'Preluare' },
+    ]);
+    expect(proposal.pages[1]!.rows).toHaveLength(1);
+    expect(handoverDates(proposal.pages)).toEqual(['2022-10-03']);
+  });
+
+  it('reads a page and a proposal kept before the handover was asked as having none', () => {
+    const withoutHandovers = <T>(value: T): T =>
+      JSON.parse(JSON.stringify(value, (key, each) => (key === 'handovers' ? undefined : each)));
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(withoutHandovers(comanFront)),
+      client,
+      today,
+    });
+
+    expect(proposal.pages[0]!.handovers).toEqual([]);
+    expect(
+      employeeImportProposalSchema.parse(withoutHandovers(proposal)).pages[0]!.handovers
+    ).toEqual([]);
   });
 
   it('takes a verifier’s signature on a hiring block for the paper hiring test', () => {

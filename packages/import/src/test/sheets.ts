@@ -37,6 +37,7 @@ type PageParts = {
   fields?: Partial<SheetPage['fields']>;
   admission?: Partial<SheetPage['admission']>;
   trainings?: SheetRow[];
+  handovers?: SheetPage['handovers'];
   unreadable?: string[];
   notes?: string[];
 };
@@ -68,6 +69,7 @@ export function page(parts: PageParts): SheetPage {
       ...parts.admission,
     },
     trainings: parts.trainings ?? [],
+    handovers: parts.handovers ?? [],
     unreadable: parts.unreadable ?? [],
     notes: parts.notes ?? [],
   };

@@ -74,6 +74,27 @@ describe('the sheet page answer', () => {
     expect(page.trainings.map((row) => row.durationMinutes)).toEqual([480, 90]);
   });
 
+  it('reads the handover a new prevention service wrote, its unknown date as unknown', () => {
+    const page = sheetPageAnswer.parse({
+      ...wire,
+      handovers: [
+        { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' },
+        { date: '', text: 'Preluat de Alfa Prevent SRL' },
+      ],
+    });
+
+    expect(page.handovers).toEqual([
+      { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' },
+      { date: null, text: 'Preluat de Alfa Prevent SRL' },
+    ]);
+  });
+
+  it('tells the model a handover line is no training row', () => {
+    expect(sheetPageSystemPrompt).toContain(
+      "It is not a training row: never put it in trainings, and never take its date for a training's."
+    );
+  });
+
   it('refuses an answer outside the schema, which the client then asks again', () => {
     expect(() => sheetPageAnswer.parse({ ...wire, pageKind: 'cover' })).toThrow();
   });

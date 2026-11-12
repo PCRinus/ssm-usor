@@ -186,11 +186,22 @@ export const proposedSheetPageSchema = z.object({
   personId: z.string().nullable(),
   placement: z.enum(pagePlacements),
   rows: z.array(proposedSheetRowSchema),
+  // The handover a new prevention service wrote on the page: `date` null where it is not a past
+  // day. A proposal read before it was asked has none.
+  handovers: z.array(z.object({ date: z.iso.date().nullable(), text: z.string() })).default([]),
   unreadable: z.array(z.string()),
   notes: z.array(z.string()),
 });
 
 export type ProposedSheetPage = z.infer<typeof proposedSheetPageSchema>;
+
+/** The days of the handovers a person's pages record, each once, oldest first. */
+export function handoverDates(pages: readonly Pick<ProposedSheetPage, 'handovers'>[]): string[] {
+  const dates = pages.flatMap((page) =>
+    (page.handovers ?? []).flatMap((handover) => (handover.date ? [handover.date] : []))
+  );
+  return [...new Set(dates)].sort();
+}
 
 // `name_only`, for a person with no CNP and no birth date, is asked: the member confirms or
 // declines it.
