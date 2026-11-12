@@ -52,6 +52,15 @@ export {
   type PortalStatus,
 } from './portal';
 export {
+  actTokenOf,
+  type AlineatDifference,
+  compareTexts,
+  type QuoteChange,
+  type QuoteComparison,
+  type Token,
+  tokenize,
+} from './quotes';
+export {
   type CheckRun,
   describeRun,
   runCutOffAfterMs,
