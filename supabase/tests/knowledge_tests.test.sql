@@ -573,9 +573,9 @@ select is(
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select throws_ok(
-  $$ insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, source)
-     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', 'ssm', 'hiring', (select today from day), 'TASSM', 'paper') $$,
-  '23514', null, 'a paper result names its examiner'
+  $$ insert into public.test_results (organization_id, client_id, employee_id, domain, test, taken_on, material, examiner_name, source)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'e1e1e1e1-0000-4000-8000-000000000002', 'ssm', 'hiring', (select today from day), 'TASSM', 'Ana SPECIALIST', 'paper') $$,
+  '23514', null, 'a paper result''s examiner has a name and a function'
 );
 
 select throws_ok(

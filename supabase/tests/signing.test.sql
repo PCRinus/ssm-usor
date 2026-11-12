@@ -219,8 +219,9 @@ select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 
 select is(
   public.save_training(
-    'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', '2026-01-10', 120::smallint, 'Material', 'Ion POP', 'Șef atelier', 'app',
+    'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', '2026-01-10', 'app',
     '[{"employee_id": "e1e1e1e1-0000-4000-8000-000000000001", "occupation": "Sudor"}, {"employee_id": "e1e1e1e1-0000-4000-8000-000000000002", "occupation": "Sudor"}]',
+    p_duration_minutes => 120::smallint, p_material => 'Material', p_trainer_name => 'Ion POP', p_trainer_job_title => 'Șef atelier',
     p_training_id => 'a1a1a1a1-0000-4000-8000-000000000001',
     p_verifier_name => 'Dan MARIN', p_verifier_job_title => 'Inspector SSM', p_notes => 'Observație',
     p_admitted_on => '2026-01-10', p_admitted_by_name => 'Ion POP', p_admitted_by_job_title => 'Șef atelier'
@@ -235,8 +236,9 @@ select is(
 );
 select throws_ok(
   $$ select public.save_training(
-       'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', '2026-01-10', 120::smallint, 'Material', 'Ion POP', 'Șef atelier', 'app',
+       'c1c1c1c1-0000-4000-8000-000000000001', 'ssm', 'workplace', '2026-01-10', 'app',
        '[{"employee_id": "e1e1e1e1-0000-4000-8000-000000000002", "occupation": "Sudor"}]',
+    p_duration_minutes => 120::smallint, p_material => 'Material', p_trainer_name => 'Ion POP', p_trainer_job_title => 'Șef atelier',
        p_training_id => 'a1a1a1a1-0000-4000-8000-000000000001',
        p_verifier_name => 'Dan MARIN', p_verifier_job_title => 'Inspector SSM',
        p_admitted_on => '2026-01-10', p_admitted_by_name => 'Ion POP', p_admitted_by_job_title => 'Șef atelier') $$,
