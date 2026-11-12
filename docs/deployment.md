@@ -311,13 +311,15 @@ The relay passes each request on to the portal and its answer back unchanged; it
 secrets. Its address is `LEGISLATION_RELAY_ORIGIN` in `wrangler.jsonc`. The other values are set by the
 **Deploy legislation Worker** job from the `production` environment:
 
-| Worker value                      | Kind     | From                                                                                         |
-| --------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`                    | Variable | The `VITE_SUPABASE_URL` variable, as for the API                                             |
-| `SUPABASE_SECRET_KEY`             | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                    |
-| `LEGISLATION_RELAY_CLIENT_ID`     | Secret   | The `LEGISLATION_RELAY_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`         |
-| `LEGISLATION_RELAY_CLIENT_SECRET` | Secret   | The `LEGISLATION_RELAY_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret` |
-| `LEGISLATION_RUN_SECRET`          | Secret   | The `LEGISLATION_RUN_SECRET` secret, optional: the bearer token of `POST /run`               |
+| Worker value                      | Kind     | From                                                                                                |
+| --------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                    | Variable | The `VITE_SUPABASE_URL` variable, as for the API                                                    |
+| `SUPABASE_SECRET_KEY`             | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                           |
+| `LEGISLATION_RELAY_CLIENT_ID`     | Secret   | The `LEGISLATION_RELAY_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`                |
+| `LEGISLATION_RELAY_CLIENT_SECRET` | Secret   | The `LEGISLATION_RELAY_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret`        |
+| `LEGISLATION_RUN_SECRET`          | Secret   | The `LEGISLATION_RUN_SECRET` secret, optional: the bearer token of `POST /run`                      |
+| `DISCORD_LEGISLATION_WEBHOOK`     | Secret   | The `DISCORD_LEGISLATION_WEBHOOK` secret, optional: the [notices](#discord-notices-for-legislation) |
+| `ENVIRONMENT`                     | Variable | The environment's name, `production` or `non-prod`, which the notices carry                         |
 
 The job fails when any of the first four is missing. The service token is created by the homelab
 repository's Terraform, which also sets up the tunnel route and the Access application; copy
@@ -339,10 +341,25 @@ portal; that is wall time, which a cron invocation may spend up to fifteen minut
 the 30-second CPU limit counts only the parsing. It makes about two hundred subrequests, within
 the Workers Paid limit.
 
-A failed run shows three ways: the row in `legal_check_runs` says `failed`, with one error per
+A failed run shows four ways: the row in `legal_check_runs` says `failed`, with one error per
 act it could not read; the invocation is marked failed under the Worker's **Cron Events** in
-the Cloudflare dashboard; and its log, with one line per act, is in the Worker's
-observability logs. A row left `running` is a run that was cut off.
+the Cloudflare dashboard; its log, with one line per act, is in the Worker's
+observability logs; and, with the webhook, it is posted to the environment's
+[Discord channel](#discord-notices-for-legislation). A row left `running` is a run that was cut off.
+
+### Discord notices for legislation
+
+Each environment's Worker posts to its own Discord channel, `#legislatie-prod` and
+`#legislatie-non-prod`, through the GitHub environment secret `DISCORD_LEGISLATION_WEBHOOK`
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). The deploy job uploads it when it is
+set and warns without it; nothing is then posted and the check runs as usual. A run, by the
+cron or by hand, posts each change it records, with the act, its new consolidated form, the
+amending act and the act's page on the portal, and a failed run with the acts it could not read.
+A cron run that did not succeed also looks for the last successful run, and warns when none
+started in the last two days. A cron that never fires posts nothing. The messages are in
+English and carry legislation only, no personal or client data. To set it up, once per
+environment, create a webhook in the channel's **Edit Channel → Integrations → Webhooks**, save
+its URL as the environment's `DISCORD_LEGISLATION_WEBHOOK` secret, and redeploy the Worker.
 
 ### Running the check by hand
 

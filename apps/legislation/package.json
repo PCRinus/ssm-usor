@@ -12,6 +12,7 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@ssm-usor/discord": "workspace:*",
     "@ssm-usor/document-engine": "workspace:*",
     "@ssm-usor/legislation-check": "workspace:*"
   },

@@ -146,7 +146,10 @@ service token of the relay it reads the portal through
 them is missing: without the first two the cron could not even record that it ran, and
 without the token the relay turns away every act. `LEGISLATION_RUN_SECRET`, the bearer token of the
 [run by hand](deployment.md#running-the-check-by-hand), is uploaded when the environment has it;
-without it the job only leaves a notice, and `POST /run` answers `404`.
+without it the job only leaves a notice, and `POST /run` answers `404`. So is
+`DISCORD_LEGISLATION_WEBHOOK`, for the [notices](deployment.md#discord-notices-for-legislation);
+without it the job warns and nothing is posted. The job also sets `ENVIRONMENT`, which the
+notices name.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the
 environment's project with `supabase config push`, after the API, because the Send Email hook it declares

@@ -8,12 +8,15 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import worker, { type LegislationEnv } from './index';
+import { lastSucceededRunStart } from './runs';
 
 vi.mock('@ssm-usor/legislation-check', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ssm-usor/legislation-check')>()),
   runLegislationCheck: vi.fn(),
   runInProgress: vi.fn(),
 }));
+
+vi.mock('./runs', () => ({ lastSucceededRunStart: vi.fn() }));
 
 const env = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_test' };
 const controller = { cron: '17 3 * * *', scheduledTime: 0, type: 'scheduled', noRetry: () => {} };
@@ -33,7 +36,10 @@ beforeEach(() => vi.mocked(runInProgress).mockResolvedValue(null));
 afterEach(() => {
   vi.mocked(runLegislationCheck).mockReset();
   vi.mocked(runInProgress).mockReset();
+  vi.mocked(lastSucceededRunStart).mockReset();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('the daily cron', () => {
@@ -90,6 +96,150 @@ describe('the daily cron', () => {
       /SUPABASE_SECRET_KEY/
     );
     expect(runLegislationCheck).not.toHaveBeenCalled();
+  });
+});
+
+describe('the notices on Discord', () => {
+  const webhook = 'https://discord.example/api/webhooks/1/token';
+  const withWebhook = { ...env, DISCORD_LEGISLATION_WEBHOOK: webhook, ENVIRONMENT: 'non-prod' };
+  const [first, second] = legalActs().filter((act) => act.portalId !== null);
+  const changed = (recorded: boolean): CheckRun['outcomes'][number] => ({
+    act: first!,
+    result: 'checked',
+    portal: {
+      portalId: first!.portalId!,
+      title: first!.title ?? first!.name,
+      status: 'in_force',
+      consolidations: ['2026-11-06'],
+      newestConsolidation: '2026-11-06',
+      amendingActs: ['LEGEA 207/2026'],
+    },
+    change: { consolidatedOn: '2026-11-06', amendingAct: 'LEGEA 207/2026', recorded },
+  });
+  const failedAct: CheckRun['outcomes'][number] = {
+    act: second!,
+    result: 'failed',
+    error: { kind: 'fetch', message: 'fetch failed' },
+  };
+  let discord: ReturnType<typeof vi.fn<typeof fetch>>;
+  const posted = () =>
+    discord.mock.calls.map(([url, init]) => {
+      expect(url).toBe(webhook);
+      return JSON.parse(String(init?.body)) as { content?: string; embeds?: unknown[] };
+    });
+
+  beforeEach(() => {
+    discord = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', discord);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('posts nothing without a webhook, as locally', async () => {
+    vi.mocked(runLegislationCheck).mockResolvedValue({
+      ...run('failed'),
+      outcomes: [changed(true)],
+    });
+    await expect(scheduled(env)).rejects.toThrow();
+    expect(discord).not.toHaveBeenCalled();
+    expect(lastSucceededRunStart).not.toHaveBeenCalled();
+  });
+
+  it('posts a change only the morning it is recorded, and nothing for a quiet run', async () => {
+    vi.mocked(runLegislationCheck).mockResolvedValue({
+      ...run('succeeded'),
+      outcomes: [changed(true)],
+    });
+    await scheduled(withWebhook);
+    expect(posted()).toEqual([
+      expect.objectContaining({
+        content: '📜 **New legal change** · non-prod',
+        embeds: [
+          expect.objectContaining({
+            title: first!.name,
+            url: `https://legislatie.just.ro/Public/DetaliiDocument/${first!.portalId}`,
+          }),
+        ],
+      }),
+    ]);
+
+    discord.mockClear();
+    vi.mocked(runLegislationCheck).mockResolvedValue({
+      ...run('succeeded'),
+      outcomes: [changed(false)],
+    });
+    await scheduled(withWebhook);
+    expect(discord).not.toHaveBeenCalled();
+    expect(lastSucceededRunStart).not.toHaveBeenCalled();
+  });
+
+  it('posts a failed run with its failed acts, and still fails the invocation', async () => {
+    vi.mocked(lastSucceededRunStart).mockResolvedValue(new Date().toISOString());
+    vi.mocked(runLegislationCheck).mockResolvedValue({
+      id: 'r1',
+      status: 'failed',
+      outcomes: [failedAct],
+      errors: [{ act: second!.id, kind: 'fetch', message: 'fetch failed' }],
+    });
+    await expect(scheduled(withWebhook)).rejects.toThrow('The legislation check failed, run r1.');
+    const [message] = posted();
+    expect(posted()).toHaveLength(1);
+    expect(message!.content).toMatch(/^🟡 \*\*Legislation check failed\*\* · non-prod\n/);
+    expect(message!.content).toContain(`${second!.name}: FAILED, fetch failed`);
+  });
+
+  it('posts a run that stopped before it could finish', async () => {
+    vi.mocked(lastSucceededRunStart).mockResolvedValue(new Date().toISOString());
+    vi.mocked(runLegislationCheck).mockRejectedValue(new Error('Could not start the run: timeout'));
+    await expect(scheduled(withWebhook)).rejects.toThrow('Could not start the run: timeout');
+    expect(posted().map((message) => message.content)).toEqual([
+      '🟡 **Legislation check failed** · non-prod\nThe run stopped: Could not start the run: timeout',
+    ]);
+  });
+
+  it('warns when no run has succeeded in two days', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T03:47:30Z') });
+    vi.mocked(runLegislationCheck).mockResolvedValue(run('failed'));
+
+    vi.mocked(lastSucceededRunStart).mockResolvedValue('2026-11-11T03:47:01Z');
+    await expect(scheduled(withWebhook)).rejects.toThrow();
+    expect(posted()).toHaveLength(1);
+
+    discord.mockClear();
+    vi.mocked(lastSucceededRunStart).mockResolvedValue('2026-11-10T03:47:01Z');
+    await expect(scheduled(withWebhook)).rejects.toThrow();
+    expect(posted().at(-1)!.content).toBe(
+      '🔴 **No successful legislation check in two days** · non-prod\nThe last successful run started 2026-11-10T03:47:01Z.'
+    );
+  });
+
+  it('carries on when the run log or Discord cannot be read', async () => {
+    discord.mockRejectedValue(new TypeError('fetch failed'));
+    vi.mocked(lastSucceededRunStart).mockRejectedValue(new Error('Could not look: timeout'));
+    vi.mocked(runLegislationCheck).mockResolvedValue({
+      ...run('failed'),
+      outcomes: [changed(true)],
+    });
+    await expect(scheduled(withWebhook)).rejects.toThrow('The legislation check failed, run r1.');
+    expect(console.error).toHaveBeenCalledWith('Could not look: timeout');
+  });
+
+  it('posts what a run by hand found, before the stream ends', async () => {
+    vi.mocked(runLegislationCheck).mockImplementation(async (_db, _acts, options) => {
+      options?.onStart?.('r1');
+      return { ...run('succeeded'), outcomes: [changed(true)] };
+    });
+    const response = await worker.fetch(
+      new Request('https://legislation.ssmusor.ro/run', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer run-secret' },
+      }) as Parameters<typeof worker.fetch>[0],
+      { ...withWebhook, LEGISLATION_RUN_SECRET: 'run-secret' }
+    );
+    await response.text();
+    expect(posted().map((message) => message.content)).toEqual([
+      '📜 **New legal change** · non-prod',
+    ]);
   });
 });
 
