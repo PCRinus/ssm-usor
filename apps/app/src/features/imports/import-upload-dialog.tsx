@@ -49,14 +49,15 @@ import {
   mergeSelection,
   openPicked,
   type PickedFile,
-  removeFiles,
   removeGroup,
+  removeLoosePhotos,
   type SelectedFile,
   type Selection,
   type SelectionRow,
   selectionRows,
   selectionTotals,
   type SetAsideFile,
+  withCopiesAside,
 } from './upload-selection';
 import { useCreditsBalance } from './use-credits-balance';
 import { useImportDrop } from './use-import-drop';
@@ -95,7 +96,8 @@ function UploadForm({
   onClose: () => void;
   onStarted: (importId: string) => void;
 }) {
-  const [selection, setSelection] = useState<Selection>(emptySelection);
+  const [chosen, setChosen] = useState<Selection>(emptySelection);
+  const selection = withCopiesAside(chosen);
   const [opening, setOpening] = useState(false);
   const [unreadable, setUnreadable] = useState(false);
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -129,7 +131,7 @@ function UploadForm({
     try {
       const added = await openPicked(await picked);
       forgetShort();
-      setSelection((current) => mergeSelection(current, added));
+      setChosen((current) => mergeSelection(current, added));
     } catch {
       setUnreadable(true);
     } finally {
@@ -377,11 +379,11 @@ function UploadForm({
                     removable={choosing}
                     onRemoveGroup={(group) => {
                       forgetShort();
-                      setSelection((current) => removeGroup(current, group));
+                      setChosen((current) => removeGroup(current, group));
                     }}
-                    onRemoveFiles={(keys) => {
+                    onRemovePhotos={() => {
                       forgetShort();
-                      setSelection((current) => removeFiles(current, keys));
+                      setChosen(removeLoosePhotos);
                     }}
                   />
                 )}
@@ -524,12 +526,12 @@ function ChosenList({
   selection,
   removable,
   onRemoveGroup,
-  onRemoveFiles,
+  onRemovePhotos,
 }: {
   selection: Selection;
   removable: boolean;
   onRemoveGroup: (group: string) => void;
-  onRemoveFiles: (keys: string[]) => void;
+  onRemovePhotos: () => void;
 }) {
   const totals = selectionTotals(selection);
   const rows = selectionRows(selection.files);
@@ -553,11 +555,7 @@ function ChosenList({
             key={row.kind === 'photos' ? 'photos' : row.group}
             row={row}
             removable={removable}
-            onRemove={() =>
-              row.kind === 'photos'
-                ? onRemoveFiles(row.files.map((file) => file.key))
-                : onRemoveGroup(row.group)
-            }
+            onRemove={() => (row.kind === 'photos' ? onRemovePhotos() : onRemoveGroup(row.group))}
           />
         ))}
       </ul>
@@ -737,7 +735,9 @@ export function LocalThumb({ file, className }: { file: SelectedFile; className:
   );
 }
 
-const setAsideReasons: Record<SetAsideFile['reason'], string> = {
+export type SetAsideReasons = Record<Exclude<SetAsideFile['reason'], 'duplicate'>, string>;
+
+const setAsideReasons: SetAsideReasons = {
   unsupported: 'tip de fișier pe care nu-l citim',
   too_large: 'are peste 20 MB',
   empty: 'fișierul e gol',
@@ -752,7 +752,7 @@ export function SetAsideList({
 }: {
   setAside: SetAsideFile[];
   systemFiles: string[];
-  reasons?: Record<SetAsideFile['reason'], string>;
+  reasons?: SetAsideReasons;
   title?: string;
 }) {
   if (setAside.length === 0 && systemFiles.length === 0) return null;
@@ -782,7 +782,9 @@ export function SetAsideList({
             <FileX className="mt-0.5 size-4" aria-hidden="true" />
             <span className="wrap-anywhere">
               <span className="font-medium text-foreground">{file.path}</span>,{' '}
-              {reasons[file.reason]}
+              {file.reason === 'duplicate'
+                ? `${isPhoto(file) ? 'aceeași fotografie' : 'același fișier'} ca ${file.duplicateOf}`
+                : reasons[file.reason]}
             </span>
           </li>
         ))}

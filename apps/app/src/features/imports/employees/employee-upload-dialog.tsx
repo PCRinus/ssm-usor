@@ -39,7 +39,12 @@ import {
 } from '../credits-notices';
 import { creditsRefusal, refusalFromApi, usesSentence } from '../import-credits';
 import { formatFileSize, photosLabel } from '../import-format';
-import { LocalThumb, SetAsideList, UploadProgress } from '../import-upload-dialog';
+import {
+  LocalThumb,
+  SetAsideList,
+  type SetAsideReasons,
+  UploadProgress,
+} from '../import-upload-dialog';
 import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-preview-dialog';
 import { pickedFromInput } from '../picked-files';
 import {
@@ -51,7 +56,7 @@ import {
   type SelectedFile,
   type Selection,
   selectionTotals,
-  type SetAsideFile,
+  withCopiesAside,
 } from '../upload-selection';
 import { useCreditsBalance } from '../use-credits-balance';
 import { useImportDrop } from '../use-import-drop';
@@ -65,7 +70,7 @@ const shownThumbs = 15;
 // Far below the caps the meters only repeat the count and size the card already shows.
 const metersFrom = 0.8;
 
-const setAsideReasons: Record<SetAsideFile['reason'], string> = {
+const setAsideReasons: SetAsideReasons = {
   unsupported: 'nu e o fotografie sau o scanare',
   too_large: 'are peste 25 MB, cât primim pentru un fișier. Împarte-l în fișiere mai mici',
   empty: 'fișierul e gol',
@@ -123,7 +128,8 @@ function UploadForm({
   onStarted: (importId: string) => void;
   onImportDocumentation?: () => void;
 }) {
-  const [selection, setSelection] = useState<Selection>(emptySelection);
+  const [chosen, setChosen] = useState<Selection>(emptySelection);
+  const selection = withCopiesAside(chosen);
   const [added, setAdded] = useState<string[] | null>(withFound ? null : []);
   const [opening, setOpening] = useState(false);
   const [unreadable, setUnreadable] = useState(false);
@@ -175,9 +181,9 @@ function UploadForm({
     setOpening(true);
     setUnreadable(false);
     try {
-      const chosen = await openPicked(await picked, 'employees');
+      const added = await openPicked(await picked, 'employees');
       forgetShort();
-      setSelection((current) => mergeSelection(current, chosen));
+      setChosen((current) => mergeSelection(current, added));
     } catch {
       setUnreadable(true);
     } finally {
@@ -441,7 +447,7 @@ function UploadForm({
                     removable={choosing}
                     onRemoveFile={(key) => {
                       forgetShort();
-                      setSelection((current) => removeFiles(current, [key]));
+                      setChosen((current) => removeFiles(current, [key]));
                     }}
                     onRemoveFound={(id) => {
                       forgetShort();
@@ -449,7 +455,7 @@ function UploadForm({
                     }}
                     onClear={() => {
                       forgetShort();
-                      setSelection((current) => ({ ...current, files: [] }));
+                      setChosen((current) => ({ ...current, files: [] }));
                       setAdded([]);
                     }}
                   />

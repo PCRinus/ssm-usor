@@ -99,6 +99,7 @@ describe('shrinking a photograph before it is uploaded', () => {
       mimeType: 'image/png',
       group: 'fise',
       pages: 1,
+      sha256: 'a'.repeat(64),
     };
     const shrunk = await shrinkSelected(file, new Set(['fise/scan.png', 'fise/scan.jpg']));
     expect(shrunk).toMatchObject({

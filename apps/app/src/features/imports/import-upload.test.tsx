@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { strToU8, zipSync } from 'fflate';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { uploadImportObject } from '@/features/imports/import-storage';
+import { sha256Of, uploadImportObject } from '@/features/imports/import-storage';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { summaryOf as subscriptionSummaryOf, trialSubscription } from '@/test/billing-fixture';
 import {
@@ -274,7 +274,7 @@ describe('starting an import from the client list', () => {
 
     await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
-    choose(Array.from({ length: 151 }, (_, index) => new File(['%PDF'], `f${index}.pdf`)));
+    choose(Array.from({ length: 151 }, (_, index) => new File([`%PDF ${index}`], `f${index}.pdf`)));
 
     const over = await screen.findByTestId('import-upload-over');
     expect(over.textContent).toContain('Un import ia cel mult 150 de fișiere și 100 MB');
@@ -358,7 +358,7 @@ describe('starting an import from the client list', () => {
 
     await userEvent.click(await screen.findByTestId('clients-start-import'));
     await screen.findByTestId('import-upload-dialog');
-    choose([new File(['%PDF'], 'a.pdf'), new File(['%PDF'], 'b.pdf')]);
+    choose([new File(['%PDF a'], 'a.pdf'), new File(['%PDF b'], 'b.pdf')]);
     await screen.findByTestId('import-chosen');
     await userEvent.click(screen.getByTestId('import-upload-submit'));
 
@@ -404,11 +404,15 @@ describe('files the API skips as copies of others in the import', () => {
     });
   }
 
+  const heldDecision = async () => ({
+    sha256: await sha256Of(new Blob(['%PDF decizie'])),
+    uploadPath: 'Dosar/Decizie.pdf',
+  });
+
   it('uploads only the files registered, and starts', async () => {
-    mockImportApiSkipping();
+    mockImportApiSkipping([await heldDecision()]);
     const runtime = await uploadFrom('/clienti', [
       new File(['%PDF decizie'], 'Decizie.pdf', { type: 'application/pdf' }),
-      new File(['%PDF decizie'], 'Decizie (1).pdf', { type: 'application/pdf' }),
       new File(['%PDF plan'], 'Plan.pdf', { type: 'application/pdf' }),
     ]);
 
@@ -417,19 +421,14 @@ describe('files the API skips as copies of others in the import', () => {
     );
     expect(vi.mocked(uploadImportObject).mock.calls.map(([path]) => path)).toEqual([
       `org/${importId}/1`,
-      `org/${importId}/2`,
     ]);
     expect(requestsTo(`/imports/${importId}/start`, 'POST')).toHaveLength(1);
   });
 
   it('starts without uploading when every file is a copy of one the import holds', async () => {
-    const bytes = new TextEncoder().encode('%PDF decizie');
-    const sha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('');
-    mockImportApiSkipping([{ sha256, uploadPath: 'Dosar/Decizie.pdf' }]);
+    mockImportApiSkipping([await heldDecision()]);
     const runtime = await uploadFrom('/clienti', [
-      new File([bytes], 'Decizie.pdf', { type: 'application/pdf' }),
+      new File(['%PDF decizie'], 'Decizie.pdf', { type: 'application/pdf' }),
     ]);
 
     await waitFor(() =>
@@ -440,13 +439,13 @@ describe('files the API skips as copies of others in the import', () => {
   });
 
   it('offers no reading without the failed files when the only one registered did not go up', async () => {
-    mockImportApiSkipping();
+    mockImportApiSkipping([await heldDecision()]);
     vi.mocked(uploadImportObject).mockImplementation(async (path) => {
       if (path === `org/${importId}/1`) throw new Error('Network down');
     });
     await uploadFrom('/clienti', [
       new File(['%PDF decizie'], 'Decizie.pdf', { type: 'application/pdf' }),
-      new File(['%PDF decizie'], 'Decizie (1).pdf', { type: 'application/pdf' }),
+      new File(['%PDF plan'], 'Plan.pdf', { type: 'application/pdf' }),
     ]);
 
     const stalled = await screen.findByTestId('import-upload-stalled');
@@ -459,7 +458,7 @@ describe('an upload that does not go through', () => {
   it('lets go of an import none of whose files went up', async () => {
     mockImportApi();
     vi.mocked(uploadImportObject).mockRejectedValue(new Error('Network down'));
-    await uploadFrom('/clienti', [new File(['%PDF'], 'a.pdf'), new File(['%PDF'], 'b.pdf')]);
+    await uploadFrom('/clienti', [new File(['%PDF a'], 'a.pdf'), new File(['%PDF b'], 'b.pdf')]);
 
     const stalled = await screen.findByTestId('import-upload-stalled');
     expect(stalled.textContent).toContain('Niciun fișier nu s-a încărcat.');
@@ -731,5 +730,67 @@ describe('the credits an import uses', () => {
     await waitFor(() => expect(requestsTo('/me').length).toBeGreaterThan(1));
     expect((screen.getByTestId('import-upload-submit') as HTMLButtonElement).disabled).toBe(true);
     expect(runtime.router.state.location.pathname).toBe('/clienti');
+  });
+});
+
+describe('files chosen twice', () => {
+  const photo = (name: string, text: string) => new File([text], name, { type: 'image/jpeg' });
+  const pdf = (name: string, text: string) => new File([text], name, { type: 'application/pdf' });
+  const setAsideLines = (dialog: HTMLElement) =>
+    within(within(dialog).getByTestId('import-set-aside'))
+      .getAllByTestId('import-set-aside-row')
+      .map((row) => row.textContent);
+
+  it('uploads one of identical files and names the others under what is set aside', async () => {
+    mockImportApi([], undefined, meWithCredits());
+    const dialog = await openDialog();
+    choose([
+      zip({
+        'Dosar SSM/Decizie numire.pdf': '%PDF decizie',
+        'Copie/Decizie numire.pdf': '%PDF decizie',
+        'Dosar SSM/Evaluare riscuri.pdf': '%PDF evaluare',
+        'Dosar SSM/plan evacuare.dwg': 'dwg',
+      }),
+      photo('IMG_2031.jpg', 'poza 2031'),
+      photo('IMG_2031 (1).jpg', 'poza 2031'),
+      photo('IMG_2034.jpg', 'poza 2034'),
+    ]);
+
+    const chosen = await within(dialog).findByTestId('import-chosen');
+    expect(chosen.textContent).toContain('4 fișiere alese');
+    expect(chosen.textContent).toContain('Deschisă: 2 fișiere');
+    expect(chosen.textContent).toContain('2 fotografii');
+    expect(setAsideLines(dialog)).toEqual([
+      'dosar-ssm-spicul-auriu.zip/Dosar SSM/plan evacuare.dwg, tip de fișier pe care nu-l citim',
+      'dosar-ssm-spicul-auriu.zip/Dosar SSM/Decizie numire.pdf, același fișier ca dosar-ssm-spicul-auriu.zip/Copie/Decizie numire.pdf',
+      'IMG_2031 (1).jpg, aceeași fotografie ca IMG_2031.jpg',
+    ]);
+    expect((await creditsLine()).textContent).toContain(
+      'Folosește 27 de credite (25 + 2 fotografii)'
+    );
+
+    await userEvent.click(within(dialog).getByTestId('import-upload-submit'));
+    await waitFor(() => expect(requestsTo(`/imports/${importId}/files`, 'POST')).toHaveLength(1));
+    const registered = bodyOf(`/imports/${importId}/files`, 'POST') as {
+      files: { uploadPath: string }[];
+    };
+    expect(registered.files.map((file) => file.uploadPath)).toEqual([
+      'dosar-ssm-spicul-auriu.zip/Copie/Decizie numire.pdf',
+      'dosar-ssm-spicul-auriu.zip/Dosar SSM/Evaluare riscuri.pdf',
+      'IMG_2031.jpg',
+      'IMG_2034.jpg',
+    ]);
+  });
+
+  it('keeps a copy in place of the file taken out', async () => {
+    mockImportApi();
+    const dialog = await openDialog();
+    choose([pdf('Plan.pdf', '%PDF plan'), pdf('Plan (1).pdf', '%PDF plan')]);
+    await within(dialog).findByTestId('import-chosen');
+    expect(setAsideLines(dialog)).toEqual(['Plan (1).pdf, același fișier ca Plan.pdf']);
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Scoate Plan.pdf' }));
+    expect(within(dialog).getByTestId('import-chosen').textContent).toContain('Plan (1).pdf');
+    expect(within(dialog).queryByTestId('import-set-aside')).toBeNull();
   });
 });
