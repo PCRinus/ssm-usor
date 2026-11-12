@@ -1,7 +1,10 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import PizZip from 'pizzip';
 
+import { type PatchProblem, patchQuote, type QuotePatch } from '../src/quote-patch';
 import {
   applyQuotePlan,
   type QuoteReplacement,
@@ -9,22 +12,69 @@ import {
   replaceQuote,
   summaryMarkdown,
 } from '../src/quote-replacement';
-import { type TemplateChange, templateChangeProblems } from '../src/template-change';
+import {
+  nextTemplateChange,
+  type TemplateChange,
+  templateChangeProblems,
+} from '../src/template-change';
 import { decode, paragraphsOf } from '../src/text';
 import { buildCitationIndex, serializeIndex, templateSources } from './template-sources';
 
-export interface LegalQuoteInput extends QuoteReplacement {
-  /** The manifest entry of every template the replacement changes; left as it is without one. */
-  change?: Omit<TemplateChange, 'kind'> & { kind?: 'legal' };
+interface LegalChange {
+  /** The manifest entry of every template the change reaches; left as it is without one. */
+  change?: { note: string; resolves?: TemplateChange['resolves'] };
 }
 
-export interface LegalQuoteResult {
-  /** Paths relative to the templates folder. */
-  written: string[];
-  summary: QuoteReplacementSummary;
-  /** The templates the same change reached through copied-passages.json. */
-  copies: string[];
-  markdown: string;
+/** The whole passage in its current wording: the one-time review of the drift. */
+export type PassageInput = QuoteReplacement & LegalChange;
+/** The law's own change, old words → new words: what the scheduled fix applies. */
+export type PatchInput = QuotePatch & LegalChange;
+export type LegalQuoteInput = PassageInput | PatchInput;
+
+export type LegalQuoteResult =
+  | {
+      status: 'applied';
+      /** Paths relative to the templates folder. */
+      written: string[];
+      summary: QuoteReplacementSummary;
+      /** The templates the same change reached through copied-passages.json. */
+      copies: string[];
+      markdown: string;
+    }
+  | { status: 'needs-review'; problems: PatchProblem[]; markdown: string };
+
+/** A manifest's text at the last release, by its path in the templates folder; null if absent. */
+export type ReleasedManifest = (path: string) => string | null;
+
+const releaseTag = /^\d{4}\.\d{2}\.\d{2}(?:\.\d+)?$/;
+
+// Production registers the templates when a release is deployed, tagged 2026.11.12 or
+// 2026.11.12.2 (deploy-production.yml): an entry that differs from the last tag's is pending.
+export function releasedManifestAt(ref?: string): ReleasedManifest {
+  const cwd = fileURLToPath(new URL('../templates/', import.meta.url));
+  const git = (...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8' });
+  const tag =
+    ref ??
+    git('tag', '--list')
+      .split('\n')
+      .filter((name) => releaseTag.test(name))
+      .sort((a, b) => {
+        const [x, y] = [a, b].map((name) => name.split('.').map(Number));
+        for (let index = 0; index < 4; index += 1) {
+          const difference = (x![index] ?? 0) - (y![index] ?? 0);
+          if (difference) return difference;
+        }
+        return 0;
+      })
+      .at(-1);
+  if (!tag) throw new Error('No release tag to compare the manifests with; pass --released.');
+  return (path) => {
+    try {
+      return git('show', `${tag}:./${path}`);
+    } catch {
+      return null;
+    }
+  };
 }
 
 interface CopiedPassage {
@@ -102,25 +152,72 @@ const manifestOf = (file: string) => {
   return { folder: file.slice(0, slash + 1), name: file.slice(slash + 1) };
 };
 
-export function replaceLegalQuote(templates: URL, input: LegalQuoteInput): LegalQuoteResult {
+function changeOf(
+  manifests: Map<string, string>,
+  released: ReleasedManifest,
+  path: string,
+  change: TemplateChange
+) {
+  const { folder, name } = manifestOf(path);
+  const manifest = `${folder}manifest.json`;
+  const entryOf = (text: string | null | undefined) =>
+    text
+      ? (
+          JSON.parse(text) as { templates: { file: string; change: TemplateChange }[] }
+        ).templates.find((entry) => entry.file === name)?.change
+      : undefined;
+  const current = entryOf(manifests.get(manifest));
+  if (!current) throw new Error(`No manifest entry for ${path}.`);
+  return {
+    manifest,
+    name,
+    change: nextTemplateChange(current, entryOf(released(manifest)), change),
+  };
+}
+
+export function replaceLegalQuote(
+  templates: URL,
+  input: LegalQuoteInput,
+  released: ReleasedManifest = releasedManifestAt()
+): LegalQuoteResult {
   const read = (file: string) => new Uint8Array(readFileSync(new URL(file, templates)));
   const { words: dictionary } = JSON.parse(readFileSync(dictionaryUrl, 'utf8')) as {
     words: Record<string, string>;
   };
+  const acts = JSON.parse(readFileSync(new URL('legal-acts.json', templates), 'utf8')) as {
+    acts: { id: string; name: string }[];
+  };
+  const actIds = new Set(acts.acts.map((act) => act.id));
   let change: TemplateChange | undefined;
   if (input.change) {
     const { note, resolves } = input.change;
     change = resolves ? { kind: 'legal', note, resolves } : { kind: 'legal', note };
-    const acts = JSON.parse(readFileSync(new URL('legal-acts.json', templates), 'utf8')) as {
-      acts: { id: string }[];
-    };
-    const problems = templateChangeProblems(change, new Set(acts.acts.map((act) => act.id)));
+    const problems = templateChangeProblems(change, actIds);
     if (problems.length) throw new Error(`The change cannot be recorded: ${problems.join('; ')}.`);
   }
 
   const file = input.citation.file;
   const original = read(file);
-  const replaced = replaceQuote(original, input, { dictionary });
+  let replaced: ReturnType<typeof replaceQuote>;
+  if ('changes' in input) {
+    const patched = patchQuote(original, input, { dictionary });
+    if (patched.status === 'needs-review') {
+      return {
+        status: 'needs-review',
+        problems: patched.problems,
+        markdown: [
+          `**${file}**: ${acts.acts.find((act) => act.id === input.citation.act)?.name ?? input.citation.act}, ${input.citation.locator} needs a person:`,
+          '',
+          ...patched.problems.map(
+            (problem) => `- ${problem.alineat ? `(${problem.alineat}) ` : ''}${problem.reason}`
+          ),
+        ].join('\n'),
+      };
+    }
+    replaced = patched;
+  } else {
+    replaced = replaceQuote(original, input, { dictionary });
+  }
   const outputs = new Map<string, Uint8Array>();
   if (replaced.source !== original) outputs.set(file, replaced.source);
 
@@ -129,7 +226,7 @@ export function replaceLegalQuote(templates: URL, input: LegalQuoteInput): Legal
   ) as { passages: CopiedPassage[] };
   const quoteStart = replaced.quote.paragraph;
   const quoteEnd = quoteStart + replaced.plan.paragraphs.length - 1;
-  for (const passage of passages) {
+  for (const passage of outputs.size ? passages : []) {
     if (passage.from !== file && passage.template !== file) continue;
     const other = passage.from === file ? passage.template : passage.from;
     const here = copiedPassageRange(original, passage.first, passage.last);
@@ -162,10 +259,17 @@ export function replaceLegalQuote(templates: URL, input: LegalQuoteInput): Legal
 
   const manifests = new Map<string, string>();
   for (const path of change ? outputs.keys() : []) {
-    const { folder, name } = manifestOf(path);
+    const { folder } = manifestOf(path);
     const manifest = `${folder}manifest.json`;
-    const text = manifests.get(manifest) ?? readFileSync(new URL(manifest, templates), 'utf8');
-    manifests.set(manifest, recordChange(text, name, change!));
+    if (!manifests.has(manifest)) {
+      manifests.set(manifest, readFileSync(new URL(manifest, templates), 'utf8'));
+    }
+    const next = changeOf(manifests, released, path, change!);
+    const problems = templateChangeProblems(next.change, actIds);
+    if (problems.length) {
+      throw new Error(`${path}: the change joined to the pending one: ${problems.join('; ')}.`);
+    }
+    manifests.set(manifest, recordChange(manifests.get(manifest)!, next.name, next.change));
   }
 
   for (const [path, bytes] of outputs) writeFileSync(new URL(path, templates), bytes);
@@ -189,5 +293,5 @@ export function replaceLegalQuote(templates: URL, input: LegalQuoteInput): Legal
       ? ['', `The same change in the copy of the passage: ${copies.join(', ')}.`]
       : []),
   ].join('\n');
-  return { written, summary: replaced.summary, copies, markdown };
+  return { status: 'applied', written, summary: replaced.summary, copies, markdown };
 }

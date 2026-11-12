@@ -3,15 +3,21 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import { type LegalQuoteInput, replaceLegalQuote } from './legal-quote';
+import { type LegalQuoteInput, releasedManifestAt, replaceLegalQuote } from './legal-quote';
 
+const usage =
+  'Usage: replace-quote <input.json> [--templates <folder>] [--released <git ref>] [--summary <file.json>]';
 const { values, positionals } = parseArgs({
   allowPositionals: true,
-  options: { templates: { type: 'string' }, summary: { type: 'string' } },
+  options: {
+    templates: { type: 'string' },
+    released: { type: 'string' },
+    summary: { type: 'string' },
+  },
 });
 const [inputPath] = positionals;
 if (!inputPath) {
-  console.error('Usage: replace-quote <input.json> [--templates <folder>] [--summary <file.json>]');
+  console.error(usage);
   process.exit(2);
 }
 
@@ -20,13 +26,18 @@ try {
   const templates = values.templates
     ? pathToFileURL(`${resolve(values.templates)}/`)
     : new URL('../templates/', import.meta.url);
-  const result = replaceLegalQuote(templates, input);
+  const result = replaceLegalQuote(templates, input, releasedManifestAt(values.released));
   if (values.summary) {
     writeFileSync(resolve(values.summary), `${JSON.stringify(result, null, 2)}\n`);
   }
   console.log(result.markdown);
-  console.log(`\nWritten: ${result.written.join(', ') || 'nothing'}`);
-  if (!input.change) console.log('No change given: the manifest entries are as they were.');
+  if (result.status === 'needs-review') {
+    // The scheduled fix opens an issue instead of a pull request on this exit code.
+    process.exitCode = 3;
+  } else {
+    console.log(`\nWritten: ${result.written.join(', ') || 'nothing'}`);
+    if (!input.change) console.log('No change given: the manifest entries are as they were.');
+  }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
