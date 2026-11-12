@@ -26,6 +26,7 @@ import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { roCount } from '@/features/employees/employee-format';
 import { notOnSheet } from '@/features/trainings/training-format';
+import { formatRoDate } from '@/lib/dates';
 
 import { Includable } from '../include-switch';
 import { Fact, Facts, SectionHeader, Tag } from '../review-parts';
@@ -34,6 +35,7 @@ import {
   type Decision,
   type DomainTrainings,
   examinerValues,
+  handoverDates,
   heldWith,
   isExisting,
   pagesOf,
@@ -695,8 +697,15 @@ export function PersonTrainings({
   const [editingTest, setEditingTest] = useState<SheetRow | null>(null);
   const pages = pagesOf(context, person.id);
   const domains = trainingsByDomain(context, person.id);
+  const handovers = handoverDates(context, person);
   return (
     <div className="grid scroll-mt-24 gap-5" id="trainings">
+      {handovers.map((date) => (
+        <p key={date} className="text-sm" data-testid="person-handover">
+          Pe fișă e consemnată o preluare la {formatRoDate(date)}. Instruirile dinainte au fost
+          făcute sub alt serviciu de prevenire.
+        </p>
+      ))}
       {domains.map((domain) => (
         <DomainSection
           key={domain.domain}

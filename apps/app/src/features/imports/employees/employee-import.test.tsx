@@ -1005,6 +1005,61 @@ describe('the person page', () => {
     expect(row.textContent).not.toContain('Din tematica clientului');
   });
 
+  it('says when the sheets record a handover, in the list and above the trainings', async () => {
+    const base = employeeDetail();
+    const proposal = base.employees!.proposal;
+    mockEmployeeImport({
+      detail: employeeDetail({
+        employees: {
+          ...base.employees!,
+          proposal: {
+            ...proposal,
+            pages: proposal.pages.map((page) =>
+              page.id === 'p3'
+                ? {
+                    ...page,
+                    handovers: [
+                      { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' },
+                    ],
+                  }
+                : page
+            ),
+          },
+        },
+      }),
+    });
+    mount(importPath);
+    const hub = await screen.findByTestId('employee-hub');
+    const pop = within(hub)
+      .getAllByTestId('employee-hub-person')
+      .find((each) => each.textContent?.includes('Pop'))!;
+    expect(pop.textContent).toContain('Preluare consemnată pe fișă: 03.10.2022');
+  });
+
+  it('says above the trainings when the sheets record a handover', async () => {
+    const base = employeeDetail();
+    const proposal = base.employees!.proposal;
+    mockEmployeeImport({
+      detail: employeeDetail({
+        employees: {
+          ...base.employees!,
+          proposal: {
+            ...proposal,
+            pages: proposal.pages.map((page) =>
+              page.id === 'p3'
+                ? { ...page, handovers: [{ date: '2022-10-03', text: 'Preluare' }] }
+                : page
+            ),
+          },
+        },
+      }),
+    });
+    mount(`${importPath}/pop`);
+    expect((await screen.findByTestId('person-handover')).textContent).toBe(
+      'Pe fișă e consemnată o preluare la 03.10.2022. Instruirile dinainte au fost făcute sub alt serviciu de prevenire.'
+    );
+  });
+
   it('opens the photograph a row was read from with the number beside the row', async () => {
     mockEmployeeImport();
     const user = userEvent.setup();

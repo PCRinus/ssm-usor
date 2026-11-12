@@ -22,6 +22,7 @@ import {
   emptyChanges,
   examinerValues,
   firstToCheck,
+  handoverDates,
   heldWith,
   hiringTestRowIds,
   hubCounts,
@@ -383,6 +384,29 @@ describe('what a person still needs', () => {
       expect.arrayContaining(['O pagină pusă după funcție', 'O pagină pusă după ordine'])
     );
     expect(tags(context, 'toma')).toEqual(tags(contextOf(), 'toma'));
+  });
+
+  it('notes a handover written on the person’s pages, each day once, and follows a moved page', () => {
+    const handover = { date: '2022-10-03', text: '03.10.22 Preluare CD Safety Core SRL' };
+    const noted = {
+      ...proposal,
+      pages: proposal.pages.map((page) =>
+        page.id === 'p1' || page.id === 'p2'
+          ? { ...page, handovers: [handover, { date: null, text: 'Preluare' }] }
+          : page
+      ),
+    } as unknown as Proposal;
+    const context = { ...contextOf(), proposal: noted };
+
+    expect(handoverDates(context, person('toma'))).toEqual(['2022-10-03']);
+    expect(notesOf(context, person('toma')).map((note) => note.tag)).toContain(
+      'Preluare consemnată pe fișă: 03.10.2022'
+    );
+    expect(tags(context, 'toma')).toEqual(tags(contextOf(), 'toma'));
+
+    const moved = withPage(withPage(emptyChanges(), 'p1', 'pop'), 'p2', 'pop');
+    expect(handoverDates({ ...context, changes: moved }, person('toma'))).toEqual([]);
+    expect(handoverDates({ ...context, changes: moved }, person('pop'))).toEqual(['2022-10-03']);
   });
 });
 

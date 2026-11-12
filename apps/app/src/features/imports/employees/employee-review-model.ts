@@ -997,6 +997,20 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
   return decisions;
 }
 
+/**
+ * The days a new prevention service wrote on the person's pages that it took the client over,
+ * each once, oldest first, as `@ssm-usor/import`'s `handoverDates`.
+ */
+export function handoverDates(
+  context: Pick<ReviewContext, 'proposal' | 'changes'>,
+  person: Person
+) {
+  const dates = pagesOf(context, person.id).flatMap((page) =>
+    (page.handovers ?? []).flatMap((handover) => (handover.date ? [handover.date] : []))
+  );
+  return [...new Set(dates)].sort();
+}
+
 export function notesOf(context: ReviewContext, person: Person): Note[] {
   const notes: Note[] = [];
   const rows = ownRows(context, person.id);
@@ -1017,6 +1031,9 @@ export function notesOf(context: ReviewContext, person: Person): Note[] {
   const placements = new Set(pagesOf(context, person.id).map((page) => page.placement));
   if (placements.has('placed_by_job_title')) add('job_title', 'O pagină pusă după funcție');
   if (placements.has('placed_by_order')) add('order', 'O pagină pusă după ordine');
+  for (const date of handoverDates(context, person)) {
+    add(`handover-${date}`, `Preluare consemnată pe fișă: ${formatRoDate(date)}`);
+  }
   const former = matched ? formerLeftOn(person) : null;
   if (former !== null) add('leaver', `A plecat din firmă la ${formatRoDate(former)}`);
   else if (resolveField(context, person, 'leftOn').value !== null)
