@@ -24,6 +24,14 @@ const byFile = new Map<string, TemplateOfFile>(
   )
 );
 
+const byType = new Map<string, TemplateOfFile>(
+  [...byFile.values()].map((template) => [template.typeKey, template])
+);
+
 export function templateOfFile(file: string): TemplateOfFile | null {
   return byFile.get(file) ?? null;
+}
+
+export function templateOfType(typeKey: string): TemplateOfFile | null {
+  return byType.get(typeKey) ?? null;
 }

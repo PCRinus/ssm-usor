@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { citationIndex } from './citation-index';
-import { templateOfFile } from './template-files';
+import { templateOfFile, templateOfType } from './template-files';
 
 describe('templateOfFile', () => {
   it('names the document type of every file the citation index cites', () => {
@@ -25,5 +25,18 @@ describe('templateOfFile', () => {
 
   it('knows no file outside the manifests', () => {
     expect(templateOfFile('missing.docx')).toBeNull();
+  });
+});
+
+describe('templateOfType', () => {
+  it('names a document type by its key', () => {
+    expect(templateOfType('fire_decision_organization')).toEqual({
+      typeKey: 'fire_decision_organization',
+      title: 'Decizia privind organizarea apărării împotriva incendiilor',
+    });
+  });
+
+  it('knows no type outside the manifests', () => {
+    expect(templateOfType('missing')).toBeNull();
   });
 });

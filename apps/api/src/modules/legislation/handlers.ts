@@ -11,7 +11,7 @@ import {
   legalCheckRunErrorSchema,
   type LegalCheckRunStatus,
 } from '@ssm-usor/contracts';
-import { templateOfFile } from '@ssm-usor/document-engine/template-files';
+import { templateOfFile, templateOfType } from '@ssm-usor/document-engine/template-files';
 import { z } from 'zod';
 
 import type { Database } from '../../database.types';
@@ -31,7 +31,7 @@ type RunRow = Database['public']['Tables']['legal_check_runs']['Row'];
 const actColumns =
   'id, name, portal_id, portal_status, verified_consolidated_on, last_consolidated_on, last_amending_act, last_checked_at, checked_by_hand_on';
 const changeColumns =
-  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, outcome, compared_with, assessed_at, amending_acts, amended_units, act:legal_acts(id, name, portal_id), passages:legal_change_passages(id, template_file, paragraph, citation_form, locator, unit_label, status, old_text, new_text, hunks)';
+  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, outcome, compared_with, assessed_at, amending_acts, amended_units, act:legal_acts(id, name, portal_id), passages:legal_change_passages(id, template_file, type_key, paragraph, citation_form, locator, unit_label, status, old_text, new_text, hunks), versions:document_template_versions(template:document_templates(type_key, title))';
 
 const runColumns =
   'id, started_at, finished_at, status, acts_checked, changes_found, acts_skipped, errors';
@@ -72,11 +72,14 @@ const storedAmendingActsSchema = storedList(
 const storedAmendedUnitsSchema = storedList(legalAmendedUnitSchema);
 const storedHunksSchema = legalChangePassageSchema.shape.hunks.catch([]);
 
-const toPassage = (row: Omit<PassageRow, 'change_id' | 'manifest' | 'article' | 'type_key'>) =>
+type StoredPassage = Omit<PassageRow, 'change_id' | 'manifest' | 'article'>;
+
+const toPassage = (row: StoredPassage) =>
   legalChangePassageSchema.parse({
     id: row.id,
     templateFile: row.template_file,
-    document: templateOfFile(row.template_file),
+    document:
+      (row.type_key ? templateOfType(row.type_key) : null) ?? templateOfFile(row.template_file),
     citationForm: row.citation_form,
     locator: row.locator,
     unit: row.unit_label,
@@ -97,7 +100,8 @@ const passageOrder = (
 const toChange = (
   row: Omit<ChangeRow, 'act_id' | 'review'> & {
     act: Pick<ActRow, 'id' | 'name' | 'portal_id'>;
-    passages: Omit<PassageRow, 'change_id' | 'manifest' | 'article' | 'type_key'>[];
+    passages: StoredPassage[];
+    versions: { template: { type_key: string; title: string } }[];
   }
 ): LegalChange => ({
   id: row.id,
@@ -114,6 +118,14 @@ const toChange = (
   amendingActs: storedAmendingActsSchema.parse(row.amending_acts ?? []),
   amendedUnits: storedAmendedUnitsSchema.parse(row.amended_units ?? []),
   passages: [...row.passages].sort(passageOrder).map(toPassage),
+  updatedDocuments: [
+    ...new Map(
+      row.versions.map(({ template }) => [
+        template.type_key,
+        { typeKey: template.type_key, title: template.title },
+      ])
+    ).values(),
+  ].sort((a, b) => collator.compare(a.title, b.title)),
 });
 
 export const listLegalActs: RouteHandler<typeof listLegalActsRoute, ApiEnv> = async (c) => {

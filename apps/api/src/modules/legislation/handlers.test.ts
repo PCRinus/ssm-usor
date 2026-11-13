@@ -71,11 +71,13 @@ const change = {
   amended_units: null,
   act: { id: 'lege-319-2006', name: 'Legea 319/2006', portal_id: 73772 },
   passages: [],
+  versions: [],
 };
 
 const quoted = {
   id: 'f2f2f2f2-0000-4000-8000-000000000002',
   template_file: '2.2_general_training_material.docx',
+  type_key: 'general_training_material',
   paragraph: 2048,
   citation_form: 'quote',
   locator: 'Art. 36 alin. (1) – (3)',
@@ -258,6 +260,7 @@ describe('GET /legislation/changes', () => {
               hunks: quoted.hunks,
             },
           ],
+          updatedDocuments: [],
         },
         {
           id: 'd1d1d1d1-0000-4000-8000-000000000001',
@@ -274,6 +277,7 @@ describe('GET /legislation/changes', () => {
           amendingActs: [],
           amendedUnits: [],
           passages: [],
+          updatedDocuments: [],
         },
       ],
     });
@@ -281,6 +285,77 @@ describe('GET /legislation/changes', () => {
     expect(list!.get('order')).toBe('seen_at.desc,consolidated_on.desc,id.asc');
     expect(list!.get('select')).toContain('act:legal_acts(id,name,portal_id)');
     expect(list!.get('select')).toContain('passages:legal_change_passages(');
+    expect(list!.get('select')).toContain(
+      'versions:document_template_versions(template:document_templates(type_key,title))'
+    );
+  });
+
+  it('names the documents whose new template versions answer the change, once each', async () => {
+    mockUpstream({
+      legal_changes: () =>
+        Response.json([
+          {
+            ...assessed,
+            resolution: 'template_version',
+            versions: [
+              { template: { type_key: 'protective_equipment_list', title: 'Lista EIP' } },
+              {
+                template: {
+                  type_key: 'general_training_material',
+                  title: 'Material de instruire introductiv-generală',
+                },
+              },
+              { template: { type_key: 'protective_equipment_list', title: 'Lista EIP' } },
+            ],
+          },
+        ]),
+    });
+    const response = await request('/legislation/changes');
+    const { items } = legalChangeListResponseSchema.parse(await response.json());
+    expect(items[0]!.updatedDocuments).toEqual([
+      { typeKey: 'protective_equipment_list', title: 'Lista EIP' },
+      {
+        typeKey: 'general_training_material',
+        title: 'Material de instruire introductiv-generală',
+      },
+    ]);
+  });
+
+  it('names the document a passage sits in by its type, else by its file, and none when neither is known', async () => {
+    const firePassage = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000003',
+      template_file: 'fire/2.1_fire_own_instructions.docx',
+    };
+    const unknown = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000004',
+      template_file: 'retired.docx',
+      type_key: null,
+    };
+    const renamed = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000005',
+      template_file: 'renamed.docx',
+      type_key: 'fire_own_instructions',
+    };
+    mockUpstream({
+      legal_changes: () =>
+        Response.json([
+          { ...assessed, passages: [{ ...firePassage, type_key: null }, unknown, renamed] },
+        ]),
+    });
+    const response = await request('/legislation/changes');
+    const { items } = legalChangeListResponseSchema.parse(await response.json());
+    const fireInstructions = {
+      typeKey: 'fire_own_instructions',
+      title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+    };
+    expect(items[0]!.passages.map((passage) => passage.document)).toEqual([
+      fireInstructions,
+      fireInstructions,
+      null,
+    ]);
   });
 
   it('drops only the stored amending acts and amended units it cannot read', async () => {
@@ -308,31 +383,6 @@ describe('GET /legislation/changes', () => {
     await request('/legislation/changes');
     const [list] = searchParams('legal_changes');
     expect(list!.get('select')).not.toMatch(/(^|,)review(,|$)/);
-  });
-
-  it('names the document a passage sits in by its template, and none for a file no template lists', async () => {
-    const firePassage = {
-      ...quoted,
-      id: 'f2f2f2f2-0000-4000-8000-000000000003',
-      template_file: 'fire/2.1_fire_own_instructions.docx',
-    };
-    const unknown = {
-      ...quoted,
-      id: 'f2f2f2f2-0000-4000-8000-000000000004',
-      template_file: 'retired.docx',
-    };
-    mockUpstream({
-      legal_changes: () => Response.json([{ ...assessed, passages: [firePassage, unknown] }]),
-    });
-    const response = await request('/legislation/changes');
-    const { items } = legalChangeListResponseSchema.parse(await response.json());
-    expect(items[0]!.passages.map((passage) => passage.document)).toEqual([
-      {
-        typeKey: 'fire_own_instructions',
-        title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
-      },
-      null,
-    ]);
   });
 
   it('answers 401 without a token', async () => {

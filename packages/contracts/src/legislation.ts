@@ -116,6 +116,8 @@ export const legalChangeSchema = z.object({
   amendingActs: z.array(legalAmendingActSchema),
   amendedUnits: z.array(legalAmendedUnitSchema),
   passages: z.array(legalChangePassageSchema),
+  // The documents whose new template version answers the change; empty while none does.
+  updatedDocuments: z.array(z.object({ typeKey: z.string(), title: z.string() })),
 });
 
 export type LegalChange = z.infer<typeof legalChangeSchema>;

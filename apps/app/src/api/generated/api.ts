@@ -14149,6 +14149,11 @@ export type LegalChangeListResponseItemsItemPassagesItem = {
   hunks: LegalChangeListResponseItemsItemPassagesItemHunksItem[];
 };
 
+export type LegalChangeListResponseItemsItemUpdatedDocumentsItem = {
+  typeKey: string;
+  title: string;
+};
+
 export type LegalChangeListResponseItemsItem = {
   id: string;
   act: LegalChangeListResponseItemsItemAct;
@@ -14170,6 +14175,7 @@ export type LegalChangeListResponseItemsItem = {
   amendingActs: LegalChangeListResponseItemsItemAmendingActsItem[];
   amendedUnits: LegalChangeListResponseItemsItemAmendedUnitsItem[];
   passages: LegalChangeListResponseItemsItemPassagesItem[];
+  updatedDocuments: LegalChangeListResponseItemsItemUpdatedDocumentsItem[];
 };
 
 export interface LegalChangeListResponse {

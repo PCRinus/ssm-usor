@@ -22217,6 +22217,21 @@
                       "hunks"
                     ]
                   }
+                },
+                "updatedDocuments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "typeKey": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["typeKey", "title"]
+                  }
                 }
               },
               "required": [
@@ -22233,7 +22248,8 @@
                 "assessedAt",
                 "amendingActs",
                 "amendedUnits",
-                "passages"
+                "passages",
+                "updatedDocuments"
               ]
             }
           }
