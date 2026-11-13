@@ -50,9 +50,16 @@ export interface DiscordWebhookOptions {
   maxRetryWaitMs?: number;
 }
 
+const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff;
+
+// A cut between the two halves of an emoji would post a broken character.
+function cutAt(text: string, at: number) {
+  return at > 1 && isHighSurrogate(text.charCodeAt(at - 1)) ? at - 1 : at;
+}
+
 export function clip(text: string, max: number) {
   if (text.length <= max) return text;
-  return max < 1 ? '' : `${text.slice(0, max - 1)}…`;
+  return max < 1 ? '' : `${text.slice(0, cutAt(text, max - 1))}…`;
 }
 
 // Angle brackets keep Discord from fetching a preview of the page, which may sit behind Access.
@@ -86,6 +93,7 @@ export function diffBlock(passages: Passage[]) {
 }
 
 // A code block cut in two is closed and opened again with its language, so each part renders.
+// A fence counts only at the start of a line: backticks anywhere else are the caller's to escape.
 export function splitContent(text: string, max: number = discordLimits.content) {
   const parts: string[] = [];
   let lines: string[] = [];
@@ -108,10 +116,8 @@ export function splitContent(text: string, max: number = discordLimits.content) 
     for (;;) {
       const isFence = rest.trimStart().startsWith(fence);
       const openAfter: string | null = isFence ? (open ? null : rest.trimStart()) : open;
-      const room = Math.max(
-        1,
-        max - length - (lines.length > 0 ? 1 : 0) - (openAfter ? closingFence.length : 0)
-      );
+      const room =
+        max - length - (lines.length > 0 ? 1 : 0) - (openAfter ? closingFence.length : 0);
       if (rest.length <= room) {
         add(rest);
         open = openAfter;
@@ -121,14 +127,20 @@ export function splitContent(text: string, max: number = discordLimits.content) 
         flush();
         continue;
       }
-      add(rest.slice(0, room));
-      rest = rest.slice(room);
+      // Only a fence line about as long as a whole part leaves a fresh part no room: that part
+      // runs over rather than loop forever.
+      const cut = cutAt(rest, Math.max(1, room));
+      add(rest.slice(0, cut));
+      rest = rest.slice(cut);
       flush();
     }
   }
   if (!fresh()) flush();
-  return parts.filter((part) => part.trim() !== '');
+  return parts.filter(hasText);
 }
+
+const hasText = (part: string) =>
+  part.split('\n').some((line) => line.trim() !== '' && !line.trimStart().startsWith(fence));
 
 const fieldSize = (field: DiscordEmbedField) => field.name.length + field.value.length;
 

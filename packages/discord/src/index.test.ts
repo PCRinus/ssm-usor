@@ -7,6 +7,7 @@ import {
   discordLimits,
   discordPayloads,
   discordWebhook,
+  escapeCode,
   noPreview,
   splitContent,
 } from './index';
@@ -31,6 +32,11 @@ describe('clip and noPreview', () => {
     expect(clip('abcd', 1)).toBe('…');
     expect(clip('abcd', 0)).toBe('');
     expect(clip('abcd', -3)).toBe('');
+  });
+
+  it('never cuts an emoji in half', () => {
+    expect(clip('a😀b', 3)).toBe('a…');
+    expect(clip('ab😀', 3)).toBe('ab…');
   });
 
   it('wraps a link in angle brackets', () => {
@@ -96,6 +102,83 @@ describe('splitContent', () => {
     }
     expect(parts[1]!.startsWith('```diff\n')).toBe(true);
     expect(parts.at(-1)!.endsWith('```\nafter')).toBe(true);
+  });
+
+  it('starts a new part rather than add a line to a full one', () => {
+    expect(splitContent(`${'x'.repeat(2_000)}\n\n\n\nnext`).map((part) => part.length)).toEqual([
+      2_000, 7,
+    ]);
+    const diff = diffBlock([
+      { before: 'y'.repeat(1_986), after: '' },
+      { before: '', after: 'z' },
+      { before: '', after: 'w' },
+    ]);
+    for (const part of splitContent(diff)) {
+      expect(part.length).toBeLessThanOrEqual(discordLimits.content);
+    }
+  });
+
+  it('never posts a code block with nothing in it', () => {
+    const parts = splitContent(`\`\`\`diff\n${'a\n'.repeat(1_200)}\`\`\``);
+    expect(parts).toHaveLength(2);
+    for (const part of parts) {
+      expect(part.length).toBeLessThanOrEqual(discordLimits.content);
+      expect(part).toMatch(/^```diff\na\n[^]*a\n```$/);
+    }
+    expect(splitContent('```diff\n\n```')).toEqual([]);
+  });
+
+  it('never cuts an emoji in half', () => {
+    const parts = splitContent(`a${'😀'.repeat(1_500)}`);
+    expect(parts.map((part) => part.length)).toEqual([1_999, 1_002]);
+    for (const part of parts) expect(part).not.toMatch(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/);
+  });
+
+  it('sees a fence only at the start of a line, so the caller escapes backticks elsewhere', () => {
+    const unescaped = splitContent(`intro \`\`\`js\n${'b'.repeat(3_000)}`);
+    expect(unescaped[1]!.startsWith('```')).toBe(false);
+    const escaped = splitContent(`intro ${escapeCode('```js')}\n${'b'.repeat(3_000)}`);
+    for (const part of escaped) expect(part).not.toContain('``');
+  });
+
+  it('keeps every part within the limit, whatever the text', () => {
+    let seed = 7;
+    const random = () => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+      return seed / 2_147_483_648;
+    };
+    const pick = <T>(items: T[]) => items[Math.floor(random() * items.length)]!;
+    const line = () =>
+      pick([
+        () => '',
+        () => '```diff',
+        () => '```',
+        () => '  ```js',
+        () => '😀'.repeat(Math.floor(random() * 1_200)),
+        () => 'w'.repeat(Math.floor(random() * 40)),
+        () => 'v'.repeat(Math.floor(random() * 3_000)),
+        () => `+ ${'p'.repeat(Math.floor(random() * 2_010))}`,
+      ])();
+    const visible = (text: string) =>
+      text
+        .split('\n')
+        .filter((each) => !each.trimStart().startsWith('```'))
+        .join('')
+        .replace(/\s/g, '');
+
+    for (let round = 0; round < 400; round++) {
+      const max = pick([discordLimits.content, 40 + Math.floor(random() * 500)]);
+      const text = Array.from({ length: Math.floor(random() * 60) }, line).join('\n');
+      const parts = splitContent(text, max);
+      for (const part of parts) {
+        expect(part.length).toBeLessThanOrEqual(max);
+        expect(
+          part.split('\n').filter((each) => each.trimStart().startsWith('```')).length % 2
+        ).toBe(0);
+        expect(part).not.toMatch(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/);
+      }
+      expect(visible(parts.join('\n'))).toBe(visible(text));
+    }
   });
 });
 
