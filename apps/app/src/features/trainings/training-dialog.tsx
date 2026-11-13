@@ -76,8 +76,19 @@ import {
 import { notOnSheet, trainingSourceLabels } from './training-format';
 import { type CurrentEmployee, invalidateTrainings, useCurrentEmployees } from './training-queries';
 
+// A training an issue of the own instructions proposes (ADR 042): one post of the proposal's
+// `total`, counted from 1, with the posts still to train after it.
+export interface ProposedTraining {
+  key: string;
+  jobPositionId: string;
+  material: string;
+  number: number;
+  total: number;
+  next: string[];
+}
+
 export type TrainingDialogTarget =
-  | { kind: 'new'; domain: TrainingDomain; phase: TrainingPhase }
+  | { kind: 'new'; domain: TrainingDomain; phase: TrainingPhase; proposed?: ProposedTraining }
   | { kind: 'edit'; trainingId: string };
 
 export interface FixedAttendee {
@@ -105,7 +116,7 @@ export function TrainingDialog({
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
       {target && (
         <TrainingDialogContent
-          key={target.kind === 'edit' ? target.trainingId : 'new'}
+          key={target.kind === 'edit' ? target.trainingId : `new:${target.proposed?.key ?? ''}`}
           clientId={clientId}
           userId={userId}
           target={target}
@@ -233,6 +244,7 @@ function TrainingForm({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const create = useCreateTraining({ request: apiRequest });
   const update = useUpdateTraining({ request: apiRequest });
+  const proposed = target.kind === 'new' ? target.proposed : undefined;
   const fixed =
     fixedAttendee &&
     (!training || training.records.every((record) => record.employee.id === fixedAttendee.id))
@@ -250,15 +262,21 @@ function TrainingForm({
           phase: target.kind === 'new' ? target.phase : 'periodic',
           heldOn: todayIso(),
           source: 'app',
-          jobPositionId: fixed?.jobPosition.id ?? '',
-          employeeIds: fixed ? [fixed.id] : [],
+          jobPositionId: fixed?.jobPosition.id ?? proposed?.jobPositionId ?? '',
+          employeeIds: fixed
+            ? [fixed.id]
+            : proposed
+              ? attendeeOptions(employees, 'supplementary', proposed.jobPositionId).map(
+                  (employee) => employee.id
+                )
+              : [],
           durationMinutes: '',
-          material: '',
+          material: proposed?.material ?? '',
           trainerName: '',
           trainerJobTitle: '',
           verifierName: '',
           verifierJobTitle: '',
-          supplementaryReason: '',
+          supplementaryReason: proposed ? 'rules_changed' : '',
           admittedOn: '',
           admittedByName: '',
           admittedByJobTitle: '',
@@ -272,7 +290,7 @@ function TrainingForm({
   const busy = create.isPending || update.isPending;
   // What was saved stays as it was: only a new training takes the plan's proposal.
   const [typed, setTyped] = useState<ReadonlySet<ProposedField>>(
-    () => new Set(training ? proposedFields : [])
+    () => new Set(training ? proposedFields : proposed ? ['material'] : [])
   );
   const markTyped = (field: ProposedField) =>
     setTyped((current) => (current.has(field) ? current : new Set([...current, field])));
@@ -301,17 +319,17 @@ function TrainingForm({
       enabled: proposing && Boolean(apiRequest.baseUrl),
     },
   });
-  const proposed = proposing ? proposal.data : undefined;
+  const planned = proposing ? proposal.data : undefined;
 
   useEffect(() => {
-    if (!proposed) return;
-    const values = proposedValues(proposed, heldOn);
+    if (!planned) return;
+    const values = proposedValues(planned, heldOn);
     const validate = form.formState.isSubmitted;
     for (const field of proposedFields) {
       if (!typed.has(field)) form.setValue(field, values[field], { shouldValidate: validate });
     }
-    if (!typed.has('material')) form.setValue('themesRevisionId', proposed.themesRevisionId);
-  }, [proposed, heldOn, typed, form]);
+    if (!typed.has('material')) form.setValue('themesRevisionId', planned.themesRevisionId);
+  }, [planned, heldOn, typed, form]);
 
   const candidates = useListSignerCandidates(clientId, {
     request: apiRequest,
@@ -520,7 +538,7 @@ function TrainingForm({
   const durationHint =
     minutes && minutes % 60 === 0 ? `Adică ${minutes / 60} h.` : 'Fișa o tipărește în ore.';
   const missingMaterial =
-    proposed !== undefined && proposed.material === null && !typed.has('material');
+    planned !== undefined && planned.material === null && !typed.has('material');
 
   return (
     <DialogContent data-testid="training-dialog" className="sm:max-w-3xl">
@@ -534,6 +552,13 @@ function TrainingForm({
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5 sm:grid-cols-2">
+          {proposed && (
+            <Notice variant="info" data-testid="training-proposed-step" className="sm:col-span-2">
+              Instruirea {proposed.number} din {proposed.total} propuse după emiterea
+              instrucțiunilor proprii, pentru postul „{position?.name}”.
+              {proposed.next.length > 0 && ` Urmează: ${proposed.next.join(', ')}.`}
+            </Notice>
+          )}
           {attendeeCount > 1 && (
             <Notice variant="info" data-testid="training-shared-notice" className="sm:col-span-2">
               Această instruire are {attendeeCount} participanți; modificarea îi privește pe toți.

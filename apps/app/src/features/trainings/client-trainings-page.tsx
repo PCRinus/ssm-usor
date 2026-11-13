@@ -48,6 +48,7 @@ import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
 import { TrainerName, TrainingDuration } from './not-on-sheet';
+import { SupplementaryTrainingProposals } from './supplementary-training-proposals';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
 import { attendeeCountLabel, paperTrainingBadge } from './training-format';
 import { TrainingMaterial } from './training-material';
@@ -112,6 +113,7 @@ export function ClientTrainingsPage() {
           </Button>
         )}
       </div>
+      <SupplementaryTrainingProposals clientId={clientId} userId={userId} readOnly={readOnly} />
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
           <FilterTabs label="Filtrează după domeniu">
