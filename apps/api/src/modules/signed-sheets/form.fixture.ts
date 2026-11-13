@@ -20,6 +20,8 @@ export const sheetFacts: SheetIdentity = {
     education: 'Liceu',
     authorizations: null,
     commuteRoute: 'Str. Lungă – Str. Fabricii, cu autobuzul 33.',
+    commuteMeans: ['public_transport'],
+    commuteMeansOther: null,
     commuteMinutes: 25,
     workplace: workshop,
     position: { name: 'Sudor', workZone: 'Atelier' },

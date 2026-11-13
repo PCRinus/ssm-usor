@@ -3,6 +3,7 @@ import {
   type FileLinkResponse,
   type MissingSheetData,
   type MissingSheetDataResponse,
+  orderedCommuteMeans,
   type TrainingDomain,
   trainingDomains,
   type TrainingSheetsResponse,
@@ -80,7 +81,7 @@ export async function loadSheetFacts(
     db
       .from('employees')
       .select(
-        'last_name, first_name, employee_number, job_title, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_minutes, job_positions(name, work_zone), client_workplaces!employees_workplace_in_client(id, name)'
+        'last_name, first_name, employee_number, job_title, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, job_positions(name, work_zone), client_workplaces!employees_workplace_in_client(id, name)'
       )
       .eq('id', employeeId)
       .eq('client_id', clientId)
@@ -119,6 +120,8 @@ export async function loadSheetFacts(
       education: row.education,
       authorizations: row.authorizations,
       commuteRoute: row.commute_route,
+      commuteMeans: orderedCommuteMeans(row.commute_means),
+      commuteMeansOther: row.commute_means_other,
       commuteMinutes: row.commute_minutes,
       workplace: row.client_workplaces,
       position: { name: row.job_positions.name, workZone: row.job_positions.work_zone },

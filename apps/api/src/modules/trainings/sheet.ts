@@ -1,5 +1,7 @@
 import {
+  type CommuteMean,
   type EmployeeTrainingRecord,
+  foldText,
   type KnowledgeTest,
   type MissingSheetData,
   sheetRowKeys,
@@ -13,7 +15,7 @@ import {
   type TrainingSource,
 } from '@ssm-usor/contracts';
 
-import { countOf, runOn, withoutFinalStop } from '../../lib/romanian';
+import { countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { printedDate } from '../documents/context';
 import { gapRules } from '../documents/gaps';
 
@@ -96,6 +98,8 @@ export type TrainingSheetFacts = {
     education: string | null;
     authorizations: string | null;
     commuteRoute: string | null;
+    commuteMeans: CommuteMean[];
+    commuteMeansOther: string | null;
     commuteMinutes: number | null;
     workplace: Workplace | null;
     position: { name: string; workZone: string | null };
@@ -226,6 +230,49 @@ export function hoursOf(minutes: number | null) {
 const text = (value: string | null | undefined) => value?.trim() ?? '';
 const joined = (separator: string, ...parts: (string | null | undefined)[]) =>
   parts.map(text).filter(Boolean).join(separator);
+
+const meansPhrases: Record<CommuteMean, string> = {
+  on_foot: 'pe jos',
+  bicycle: 'cu bicicleta sau trotineta',
+  personal_car: 'cu mașina personală',
+  employer_transport: 'cu transportul asigurat de angajator',
+  public_transport: 'cu transportul public',
+};
+
+// The words by which a route typed before the means had a field of their own already names one,
+// as in "Str. Lungă – Str. Fabricii, cu autobuzul 33"; matched on folded text.
+const meansNamedBy: Record<CommuteMean, RegExp> = {
+  on_foot: /\bpe jos\b|\bpieton/,
+  bicycle: /\bbiciclet|\btrotinet/,
+  personal_car: /\bmasin|\bautoturism|\bauto personal/,
+  employer_transport:
+    /\bmicrobuz|\btransport(ul)? (asigurat|organizat)|\b(masina|autocarul) (firmei|societatii|angajatorului)/,
+  public_transport:
+    /\bautobuz|\btramvai|\btroleibuz|\bmetrou|\btren|\bmaxi ?taxi|\bmicrobuz|\btransport(ul)? (public|in comun)/,
+};
+
+const startsWithPreposition = /^(cu|pe|în|prin|la|de)\s/iu;
+
+/**
+ * The means the commute line prints after the route: those the route does not already name, so
+ * that "cu autobuzul 33" is not followed by "cu transportul public".
+ */
+export function commuteMeansPhrase(
+  route: string | null,
+  means: readonly CommuteMean[],
+  other: string | null
+) {
+  const named = foldText(route ?? '');
+  const phrases = means
+    .filter((mean) => !meansNamedBy[mean].test(named))
+    .map((mean) => meansPhrases[mean]);
+  const typed = other?.trim();
+  if (typed && !` ${named} `.includes(` ${foldText(typed)} `)) {
+    const phrase = runOn(typed);
+    phrases.push(startsWithPreposition.test(phrase) ? phrase : `cu ${phrase}`);
+  }
+  return listed(phrases);
+}
 
 export const chronological = (a: SheetRecord, b: SheetRecord) =>
   a.training.heldOn.localeCompare(b.training.heldOn) ||
@@ -432,7 +479,15 @@ function sheetParts(facts: TrainingSheetFacts) {
       authorizations: text(employee.authorizations),
       commute: joined(
         ' ',
-        employee.commuteRoute && withoutFinalStop(employee.commuteRoute.trim()),
+        joined(
+          ', ',
+          employee.commuteRoute && withoutFinalStop(employee.commuteRoute.trim()),
+          commuteMeansPhrase(
+            employee.commuteRoute,
+            employee.commuteMeans,
+            employee.commuteMeansOther
+          )
+        ),
         employee.commuteMinutes ? `(${countOf(employee.commuteMinutes, 'minut', 'minute')})` : null
       ),
     }),
