@@ -28,6 +28,9 @@ describe('clip and noPreview', () => {
   it('cuts a text to its limit with an ellipsis, and leaves a short one alone', () => {
     expect(clip('abcdef', 4)).toBe('abc…');
     expect(clip('abcd', 4)).toBe('abcd');
+    expect(clip('abcd', 1)).toBe('…');
+    expect(clip('abcd', 0)).toBe('');
+    expect(clip('abcd', -3)).toBe('');
   });
 
   it('wraps a link in angle brackets', () => {

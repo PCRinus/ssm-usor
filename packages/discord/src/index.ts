@@ -51,7 +51,8 @@ export interface DiscordWebhookOptions {
 }
 
 export function clip(text: string, max: number) {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  if (text.length <= max) return text;
+  return max < 1 ? '' : `${text.slice(0, max - 1)}…`;
 }
 
 // Angle brackets keep Discord from fetching a preview of the page, which may sit behind Access.
