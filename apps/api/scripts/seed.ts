@@ -140,7 +140,7 @@ try {
     );
     const instructions = await seedInstructionModules(client, organization.id, user.id);
     console.log(
-      `Added ${instructions.modules} instruction modules to the library, applied ${instructions.applied} to posts and ${instructions.fireApplied} fire-safety ones, where none applied.`
+      `Added ${instructions.modules} instruction modules to the library, applied ${instructions.applied} modules to posts and ${instructions.fireApplied} fire-safety modules, where a post had none of the domain.`
     );
     const evaluations = await seedRiskEvaluations(client, organization.id, user.id);
     console.log(

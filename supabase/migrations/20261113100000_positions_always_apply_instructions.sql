@@ -7,9 +7,9 @@ update public.job_positions set needs_instructions = null where needs_instructio
 update public.job_positions set needs_fire_instructions = null where needs_fire_instructions = false;
 
 comment on column public.job_positions.needs_instructions is
-  'Null until the post applies an occupational safety module, which blocks generating 3.2; true while it applies one (ADR 012).';
+  'Null until the post applies an occupational safety module, which blocks generating 3.2; true while it applies one (ADR 012, amendment of 2026-11-13).';
 comment on column public.job_positions.needs_fire_instructions is
-  'Null until the post applies a fire-safety module, which blocks generating the fire-safety set; true while it applies one (ADR 012, amendment of 2026-10-11).';
+  'Null until the post applies a fire-safety module, which blocks generating the fire-safety set; true while it applies one (ADR 012, amendments of 2026-10-11 and 2026-11-13).';
 
 -- The trigger that follows the rows writes these columns as the member, so the update grant
 -- stays; this refuses any value the rows do not imply.
