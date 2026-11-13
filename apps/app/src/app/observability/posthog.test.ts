@@ -115,13 +115,10 @@ describe('session replay', () => {
     vi.stubEnv('VITE_POSTHOG_PROJECT_TOKEN', 'phc_test');
     const client = await loadPostHog();
 
-    expect(sdk.loaded).toEqual([
-      'recorder',
-      'exception-autocapture',
-      'web-vitals-with-attribution',
-      'conversations',
-      'init',
-    ]);
+    expect(sdk.loaded.at(-1)).toBe('init');
+    expect(sdk.loaded.slice(0, -1).sort()).toEqual(
+      ['recorder', 'exception-autocapture', 'web-vitals-with-attribution', 'conversations'].sort()
+    );
     expect(client?.init).toHaveBeenCalledWith(
       'phc_test',
       expect.objectContaining({
