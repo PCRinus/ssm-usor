@@ -9,11 +9,11 @@ alter table public.legal_changes
   -- The consolidated form the new one was compared with; null for the act as published, the
   -- form an act with no verified one is compared with.
   add column compared_with date,
-  -- [{ "name": "Legea 207/2026", "kind", "number", "date", "portalId", "gazette" }], from the
+  -- Objects with name ("Legea 207/2026"), kind, number, date, portalId and gazette, from the
   -- portal's notes in the new form's text.
   add column amending_acts jsonb
     constraint legal_changes_amending_acts_array check (amending_acts is null or jsonb_typeof(amending_acts) = 'array'),
-  -- [{ "unit": "Art. 36 alin. (2)", "subject", "operation", "date", "amendingAct" }].
+  -- Objects with unit ("Art. 36 alin. (2)"), subject, operation, date and amendingAct.
   add column amended_units jsonb
     constraint legal_changes_amended_units_array check (amended_units is null or jsonb_typeof(amended_units) = 'array'),
   -- Why a person should read the change, in English for the platform admin.

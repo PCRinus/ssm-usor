@@ -89,10 +89,12 @@ function database({
   lastSeen,
   verified,
   pending = [],
+  outcomeTaken = false,
 }: {
   lastSeen: string | null;
   verified: string | null;
   pending?: Pending[];
+  outcomeTaken?: boolean;
 }) {
   const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
     const url = new URL(String(input));
@@ -111,6 +113,9 @@ function database({
     if (table === 'legal_changes' && method === 'GET') return Response.json(pending);
     if (table === 'legal_changes' && method === 'POST') {
       return Response.json([{ id: 'c-new' }], { status: 201 });
+    }
+    if (table === 'legal_changes' && method === 'PATCH') {
+      return Response.json(outcomeTaken ? [] : [{ id: url.searchParams.get('id')?.slice(3) }]);
     }
     if (method === 'PATCH' || method === 'DELETE') return new Response(null, { status: 204 });
     if (table === 'legal_change_passages' && method === 'POST') {
@@ -228,6 +233,20 @@ describe('assessing a new form', () => {
       '(verified_consolidated_on.is.null,verified_consolidated_on.lt.2026-11-06)'
     );
     expect(describeOutcome(outcome!)).toMatch(/2026-11-06 resolved, no impact$/);
+  });
+
+  it('leaves the verified form alone when another run already recorded the outcome', async () => {
+    const { db, sent } = database({
+      lastSeen: '2026-08-25',
+      verified: '2026-08-25',
+      outcomeTaken: true,
+    });
+    await check(db, [purpose]);
+
+    expect(sent('legal_changes', 'PATCH')).toHaveLength(1);
+    expect(
+      sent('legal_acts', 'PATCH').filter((update) => 'verified_consolidated_on' in update.body)
+    ).toHaveLength(0);
   });
 
   it('assesses a change recorded on an earlier run that was never assessed', async () => {

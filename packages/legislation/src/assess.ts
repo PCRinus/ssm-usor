@@ -284,11 +284,12 @@ export async function storeAssessment(
     })
     .eq('id', assessment.changeId)
     .eq('resolution', 'open')
-    .is('outcome', null);
+    .is('outcome', null)
+    .select('id');
   if (updated.error) {
     throw new Error(`Could not store the outcome of the change: ${updated.error.message}`);
   }
-  if (!assessment.resolved) return;
+  if (!assessment.resolved || !updated.data?.length) return;
   const advanced = await db
     .from('legal_acts')
     .update({ verified_consolidated_on: assessment.consolidatedOn })
