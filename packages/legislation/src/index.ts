@@ -113,3 +113,4 @@ export {
   runLegislationCheck,
   type RunOptions,
 } from './run';
+export { isStale, staleAfterMs, staleMessage } from './staleness';

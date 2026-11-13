@@ -14,7 +14,10 @@ import {
   describeOutcome,
   describeRun,
   type LegalAct,
+  staleMessage,
 } from '@ssm-usor/legislation-check';
+
+export { isStale, staleAfterMs, staleMessage } from '@ssm-usor/legislation-check';
 
 export type NoticeEnv = {
   DISCORD_LEGISLATION_WEBHOOK?: string;
@@ -38,10 +41,6 @@ const listed = 10;
 function capped(lines: string[], max = listed) {
   return lines.length > max ? [...lines.slice(0, max), `and ${lines.length - max} more`] : lines;
 }
-
-// Two days less an hour: a daily cron fires within minutes of the same time, so the morning
-// after a day without a success is always past it.
-export const staleAfterMs = 47 * 60 * 60 * 1000;
 
 export const portalLink = (portalId: number) =>
   `https://legislatie.just.ro/Public/DetaliiDocument/${portalId}`;
@@ -250,20 +249,6 @@ export function stoppedRunMessage(reason: string, environment: string): DiscordM
     content: `🟡 **Legislation check failed** · ${environment}\nThe run stopped: ${reason}`,
   };
 }
-
-export function staleMessage(lastStart: string | null, environment: string): DiscordMessage {
-  return {
-    content: [
-      `🔴 **No successful legislation check in two days** · ${environment}`,
-      lastStart === null
-        ? 'No run has succeeded in this environment yet.'
-        : `The last successful run started ${lastStart}.`,
-    ].join('\n'),
-  };
-}
-
-export const isStale = (lastStart: string | null, now: number) =>
-  lastStart === null || now - Date.parse(lastStart) > staleAfterMs;
 
 export function legislationNotices(env: NoticeEnv, fetcher?: typeof fetch) {
   const webhook = discordWebhook(env.DISCORD_LEGISLATION_WEBHOOK, {
