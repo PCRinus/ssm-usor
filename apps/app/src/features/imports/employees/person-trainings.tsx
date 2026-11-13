@@ -286,7 +286,6 @@ function TrainingRow({
         agreement="feminine"
         testId="person-row-include"
         onChange={include}
-        holdWordSpace
         collapsed={(toggle) => (
           <>
             <TableCell
@@ -312,10 +311,10 @@ function TrainingRow({
             <TableCell className={cn(dateColumn, 'tabular-nums')}>
               {date ?? missing('Data nu se citește')}
             </TableCell>
-            <TableCell className="tabular-nums">
+            <TableCell className="min-w-24 whitespace-normal tabular-nums">
               {durationLabel(values.durationMinutes) ?? notWritten(notOnSheet.duration)}
             </TableCell>
-            <TableCell className="min-w-44 whitespace-normal">
+            <TableCell className="min-w-36 whitespace-normal">
               <SignerText
                 name={values.trainerName}
                 jobTitle={values.trainerJobTitle}
@@ -323,7 +322,7 @@ function TrainingRow({
               />
             </TableCell>
             {row.domain === 'ssm' && (
-              <TableCell className="min-w-44 whitespace-normal">
+              <TableCell className="min-w-36 whitespace-normal">
                 <SignerText
                   name={values.verifierName}
                   jobTitle={values.verifierJobTitle}
@@ -331,7 +330,7 @@ function TrainingRow({
                 />
               </TableCell>
             )}
-            <TableCell className="min-w-60 whitespace-normal">
+            <TableCell className="min-w-48 whitespace-normal">
               <span className="grid min-w-0 gap-1">
                 {row.phase !== 'periodic' && (
                   <span className="text-[13px] text-muted-foreground">
@@ -687,20 +686,15 @@ function DomainSection({
       </p>
     );
   }
-  const domainPages = new Set(domain.pages.map((page) => page.id));
-  const handoverRows = [
-    ...new Map(
-      domain.pages
-        .flatMap((page) =>
-          (page.handovers ?? []).flatMap((each) =>
-            each.date && domainPages.has(page.id)
-              ? [{ date: each.date, text: each.text.trim(), page }]
-              : []
-          )
-        )
-        .map((each) => [each.date, each])
-    ).values(),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+  const firstHandovers = new Map<string, { date: string; text: string; page: SheetPage }>();
+  for (const page of domain.pages) {
+    for (const each of page.handovers ?? []) {
+      if (each.date && !firstHandovers.has(each.date)) {
+        firstHandovers.set(each.date, { date: each.date, text: each.text.trim(), page });
+      }
+    }
+  }
+  const handoverRows = [...firstHandovers.values()].sort((a, b) => a.date.localeCompare(b.date));
   const periodicRows: ReactNode[] = [];
   let nextHandover = 0;
   for (const { row, page } of domain.periodic) {

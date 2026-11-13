@@ -507,6 +507,7 @@ export function WhoTrainedQuestion({
               type="button"
               variant="outline"
               size="sm"
+              className="h-auto min-h-8 max-w-full py-1.5 text-left whitespace-normal"
               data-testid="who-trained-copy"
               onClick={() => setCopying(true)}
             >
