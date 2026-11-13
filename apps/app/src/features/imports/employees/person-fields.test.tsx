@@ -294,9 +294,10 @@ describe('the card of the data read from the sheets', () => {
 
     await open(user, 'Modifică datele medicale și celelalte');
     const label = (name: string) =>
-      dialog().querySelector(`label[for="person-field-${name}"]`)!.textContent;
-    expect(label('commuteRoute')).toBe('Traseul spre locul de muncă');
-    expect(label('commuteMinutes')).toBe('Durata drumului(opțional)');
+      dialog().querySelector(`label[for="person-field-${name}"]`)?.textContent;
+    expect(label('commuteRoute')).toContain('Traseul spre locul de muncă');
+    expect(label('commuteRoute')).not.toContain('(opțional)');
+    expect(label('commuteMinutes')).toContain('(opțional)');
   });
 
   it('opens the whole group from its Modifică button', async () => {

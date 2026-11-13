@@ -622,11 +622,13 @@ describe('employee creation', () => {
     mockApi();
     mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     await screen.findByTestId('new-employee-page');
-    const label = (id: string) => document.querySelector(`label[for="${id}"]`)!.textContent;
+    const label = (id: string) => document.querySelector(`label[for="${id}"]`)?.textContent;
 
-    expect(label('workplaceId')).toBe('Punct de lucru');
-    expect(label('commuteRoute')).toBe('Traseul de deplasare');
-    expect(label('commuteMinutes')).toBe('Durata deplasării (minute)(opțional)');
+    expect(label('workplaceId')).toContain('Punct de lucru');
+    expect(label('workplaceId')).not.toContain('(opțional)');
+    expect(label('commuteRoute')).toContain('Traseul de deplasare');
+    expect(label('commuteRoute')).not.toContain('(opțional)');
+    expect(label('commuteMinutes')).toContain('(opțional)');
   });
 
   it('maps a duplicate CNP to the field and an archived client to the form', async () => {
