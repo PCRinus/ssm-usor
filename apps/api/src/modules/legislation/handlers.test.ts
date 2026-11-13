@@ -286,7 +286,7 @@ describe('GET /legislation/changes', () => {
     expect(list!.get('select')).toContain('act:legal_acts(id,name,portal_id)');
     expect(list!.get('select')).toContain('passages:legal_change_passages(');
     expect(list!.get('select')).toContain(
-      'versions:document_template_versions!document_template_versions_resolves_legal_change_id_fkey(template:document_templates(type_key,title))'
+      'versions:document_template_versions!template_version_legal_changes(template:document_templates(type_key,title))'
     );
   });
 
