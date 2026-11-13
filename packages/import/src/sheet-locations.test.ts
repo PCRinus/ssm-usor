@@ -129,20 +129,36 @@ describe('sheetLocations', () => {
     ).toEqual(['person.cnp', 'trainings[0]']);
   });
 
-  it('orders inverted corners, clamps to the image and drops degenerate boxes', () => {
+  it('drops a box that reaches outside the image', () => {
+    expect(
+      located([
+        { id: 'person.name', found: true, box_2d: [0, 0, 1000, 1000] },
+        { id: 'person.cnp', found: true, box_2d: [-20, 980, 40, 1000] },
+        { id: 'fields.commuteMinutes', found: true, box_2d: [900, 100, 1001, 200] },
+        { id: 'admission.admittedOn', found: true, box_2d: [100, -1, 200, 300] },
+      ])
+    ).toEqual([{ target: 'person.name', top: 0, left: 0, bottom: 1000, right: 1000 }]);
+  });
+
+  it('drops a box with inverted corners rather than turning it round', () => {
     expect(
       located([
         { id: 'person.name', found: true, box_2d: [130, 600, 100, 200] },
-        { id: 'person.cnp', found: true, box_2d: [-20, 980.4, 40, 1200] },
+        { id: 'person.cnp', found: true, box_2d: [140, 500, 160, 200] },
+        { id: 'fields.birthDate', found: true, box_2d: [300, 300, 300, 500] },
+      ])
+    ).toEqual([]);
+  });
+
+  it('drops a box under 3 thousandths a side and one without four numbers', () => {
+    expect(
+      located([
         { id: 'fields.birthDate', found: true, box_2d: [300, 300, 302, 500] },
-        { id: 'fields.jobTitle', found: true, box_2d: [300, 300, 400, 300] },
-        { id: 'fields.commuteMinutes', found: true, box_2d: [1100, 100, 1200, 200] },
+        { id: 'fields.jobTitle', found: true, box_2d: [300, 300, 400, 302] },
+        { id: 'fields.commuteMinutes', found: true, box_2d: [300, 300, 303, 303] },
         { id: 'admission.admittedOn', found: true, box_2d: [1, 2, 3] },
       ])
-    ).toEqual([
-      { target: 'person.name', top: 100, left: 200, bottom: 130, right: 600 },
-      { target: 'person.cnp', top: 0, left: 980, bottom: 40, right: 1000 },
-    ]);
+    ).toEqual([{ target: 'fields.commuteMinutes', top: 300, left: 300, bottom: 303, right: 303 }]);
   });
 
   it('leaves out what was not found and keeps the first box of a repeated id', () => {
@@ -160,6 +176,11 @@ describe('sheetLocations', () => {
     expect(() => locatingAnswer.parse({ boxes: [] })).toThrow();
     expect(() =>
       locatingAnswer.parse({ locations: [{ id: 'person.name', box_2d: [1, 2, 3, 4] }] })
+    ).toThrow();
+    expect(() =>
+      locatingAnswer.parse({
+        locations: [{ id: 'person.name', found: true, box_2d: [100, 200.5, 130, 600] }],
+      })
     ).toThrow();
   });
 });

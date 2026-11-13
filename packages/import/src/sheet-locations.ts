@@ -168,7 +168,7 @@ export function locatingMessages(imageUrl: string, targets: LocatingTarget[]): C
 }
 
 const locatingSchema = z.object({
-  locations: z.array(z.object({ id: z.string(), found: z.boolean(), box_2d: z.array(z.number()) })),
+  locations: z.array(z.object({ id: z.string(), found: z.boolean(), box_2d: z.array(z.int()) })),
 });
 
 export type LocatingAnswer = z.infer<typeof locatingSchema>;
@@ -217,8 +217,6 @@ export function locatingRequest(
 // A box narrower or lower than this marks a point, not a value.
 const smallestSide = 3;
 
-const scale = (value: number) => Math.min(1000, Math.max(0, Math.round(value)));
-
 // The model may echo more of its target line after the id: "trainings[0] (kind: row)".
 const bareId = (id: string) => /^\s*(?:id:\s*)?([\w.[\]]+)/.exec(id)?.[1] ?? '';
 
@@ -227,16 +225,12 @@ export function sheetLocations(answer: LocatingAnswer, targets: LocatingTarget[]
   for (const location of answer.locations) {
     const id = bareId(location.id);
     if (!location.found || boxes.has(id) || location.box_2d.length !== 4) continue;
-    if (!location.box_2d.every(Number.isFinite)) continue;
-    const [y1, x1, y2, x2] = location.box_2d.map(scale) as [number, number, number, number];
-    const box = {
-      top: Math.min(y1, y2),
-      left: Math.min(x1, x2),
-      bottom: Math.max(y1, y2),
-      right: Math.max(x1, x2),
-    };
-    if (box.bottom - box.top < smallestSide || box.right - box.left < smallestSide) continue;
-    boxes.set(id, box);
+    const [top, left, bottom, right] = location.box_2d as [number, number, number, number];
+    // A box outside the page or upside down is one the model got wrong; clamped or turned the
+    // right way, it would spotlight a place nobody named.
+    const onPage = location.box_2d.every((value) => value >= 0 && value <= 1000);
+    if (!onPage || !(bottom - top >= smallestSide && right - left >= smallestSide)) continue;
+    boxes.set(id, { top, left, bottom, right });
   }
   return targets.flatMap((target) => {
     const box = boxes.get(target.id);
