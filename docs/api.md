@@ -2402,7 +2402,17 @@ lists in a row's `fromThemes` the values it took from the client's themes: the r
 confirm take them as empty unless the member typed one, and a test's examiner taken from such a
 trainer too. A stored change equal to the themed value is the row dialog saving every field, not a
 value typed, and counts as empty as well; an examiner half typed over the themed one takes the
-other half saved with it. Rows of several people become one training held only when the domain,
+other half saved with it. A person's change may carry `whoTrained`, by domain (`ssm`, `su`), the
+member's answer of who gave and who verified the periodic trainings (ADR 042): `trainer` and
+`verifier`, each with `before` and `from`, a `{ name, jobTitle }` for the rows dated before the
+person's handover and for those dated on it or after; with no handover, `from` names every dated
+row. `splitOn` is the handover date an answer copied to someone whose sheets record none splits at,
+and `copiedFrom` the person it was copied from, until the member changes it. `toEmployeePayload`
+fills each non-hiring row of the domain whose sheet names nobody in the slot with the answer for
+its period: a name the sheet writes, a name the member typed on the row (a stored value that
+differs from the reading; an empty text is one cleared on purpose) and an undated row keep their
+own, and a fire-safety row never takes a verifier. Nothing of it blocks; changes stored before it
+have none. Rows of several people become one training held only when the domain,
 phase, day, trainer, trainer's function, verifier, duration and material all match, a value both
 rows lack matching; nothing is taken from one row into another's training.
 `PUT /imports/{importId}/employee-changes` saves `{ version, changes }` through the same

@@ -1548,6 +1548,11 @@ the substances `apply_client_import` writes by `20261111140000_import_substances
 `expensive_alerted_at`, by a `when` on its trigger, as on `import_library_parts` but a report: the
 14 days of a ready import and the 6 hours before a reading part counts as stalled run from it.
 
+An employee import's `changes` also keep, per person and domain, who trained and who verified the
+periodic trainings (`whoTrained`, ADR 042). Only confirming writes them, as the trainings'
+`trainer_name`, `trainer_job_title`, `verifier_name` and `verifier_job_title`, on the rows whose
+sheet names nobody; no column holds them before that.
+
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
 

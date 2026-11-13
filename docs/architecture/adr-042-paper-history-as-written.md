@@ -51,6 +51,14 @@ Who gave the periodic trainings is then asked **per person**, on the person's pa
 
 Screens follow the design canvas, row 1 of the page "Istoricul pe hârtie".
 
+As built on 2026-11-14:
+
+- **Where the answer lives.** In the member's stored changes, as `whoTrained` on the person, by domain; no column and no migration. The confirm expands it per row (`rowSigners` in `@ssm-usor/import`), and the review does the same for what it shows, so changes stored before it stay valid and nothing is written before confirming.
+- **What it names.** The rows of the periodic table, every non-hiring phase (periodic and supplementary), of the domain. A name the sheet writes is never replaced; a name typed on the row with its pencil wins over the answer; an undated row takes neither period. The verifier is asked and written for occupational safety only, since the fire-safety periodic table has no verifier's signature; a verifier is a name and a function together.
+- **The handover date.** The latest dated handover on the person's pages, when they record several. An answer copied to someone whose own sheets record none carries the source's date with it.
+- **When it is asked.** Where a dated periodic row of the domain leaves a role the domain asks unnamed on the sheet. The hub counts the people included who are asked and have no answer.
+- **Departures from the canvas.** The picker is the browser's own list, grouped, with "pe 6 fișe" after the name, instead of a drawn list; the handover line stays above the cards and also takes a row in the periodic table at its date; the window that copies an answer shows the whole answer, both roles and both periods, since the whole answer is copied.
+
 ### 2. A missing material or duration stays missing
 
 Likewise, a missing material or duration is left as it is on paper, _necompletat pe fișă_, and never borrowed from today's themes. This reverses ADR 032's "A missing trainer, trainer's function or material is taken from the client's training themes and trainer, tagged _Din tematica clientului_" for all four values.
