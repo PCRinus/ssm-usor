@@ -55,7 +55,7 @@ function isSameOrigin(address: string) {
 // Replays keep `class` and `style`, or they play as bare HTML. A link to another origin can
 // carry a signed file address and the file's name, so only the app's own addresses stay.
 export function maskReplayAttribute(name: string, value: string, element?: Element) {
-  // A field's value reaches this already through maskInputFn, which keeps the shown fields.
+  // rrweb passes a field's value through maskInputFn and then here, a hidden field's only here.
   if (name === 'value' && element?.matches('input, textarea, select')) {
     return maskReplayInput(value, element);
   }
@@ -100,7 +100,8 @@ export function loadPostHog(): Promise<PostHog | null> {
         // Off until usePostHogSession knows whether the session acts as a member.
         disable_session_recording: true,
         session_recording: {
-          // maskAllInputs leaves a file field's value, which names the chosen file, unmasked.
+          // With maskAllInputs, rrweb ignores maskInputOptions and records a file field's value,
+          // the chosen file's name, as it is.
           maskAllInputs: false,
           maskInputOptions: everyInputType,
           maskInputFn: maskReplayInput,
