@@ -1099,10 +1099,11 @@ with the same composite foreign keys as the equipment entries and a third one ty
 module to the same organization, and the `domain` the module was applied in (`ssm` when not
 given). A position decides about each domain apart: `job_positions.needs_instructions` is the
 occupational safety decision and `needs_fire_instructions` the fire-safety one, each kept in
-step by triggers with the rows of its own domain exactly like the equipment decision: null
-until decided, which blocks generating that set's own instructions (and the whole fire-safety
-set); false when the post needs none beyond the common part; true while it applies modules of
-the domain (`INS01` for false with modules applied, `INS02` for true without). A row whose
+step by triggers with the rows of its own domain: null until the post applies a module of the
+domain, which blocks generating that set's own instructions (and the whole fire-safety set);
+true while it applies one. There is no "needs none", as every post applies at least one module
+of each domain (ADR 012, amendment of 2026-11-13): a check refuses false, and an update by hand
+to any value the rows do not imply is refused (`INS02`). A row whose
 domain is not its module's is refused (`INS06`), and so is changing the domain of a module a
 current position applies (`INS07`); an archived position's rows keep the domain they were
 applied in, since an archived position is never restored. Applying an archived module is

@@ -44,8 +44,6 @@ const welder = {
   activities: 'Sudură electrică',
   training_interval_months: null as number | null,
   needs_protective_equipment: null as boolean | null,
-  needs_instructions: null as boolean | null,
-  needs_fire_instructions: null as boolean | null,
   created_at: '2026-09-20T10:00:00+00:00',
   updated_at: '2026-09-20T10:00:00+00:00',
 };
@@ -155,15 +153,9 @@ describe('GET /clients/{clientId}/job-positions', () => {
     expect(counts!.get('employees.archived_at')).toBe('is.null');
     expect(counts!.get('instructions.domain')).toBe('eq.ssm');
     expect(counts!.get('fire_instructions.domain')).toBe('eq.su');
-    expect(
-      items.map((item) => [
-        item.instructionCount,
-        item.needsFireInstructions,
-        item.fireInstructionCount,
-      ])
-    ).toEqual([
-      [0, null, 0],
-      [1, null, 0],
+    expect(items.map((item) => [item.instructionCount, item.fireInstructionCount])).toEqual([
+      [0, 0],
+      [1, 0],
     ]);
   });
 

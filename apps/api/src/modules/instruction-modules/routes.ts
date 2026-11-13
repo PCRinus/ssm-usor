@@ -12,8 +12,6 @@ import {
   instructionModuleResponseSchema,
   instructionModuleVersionResponseSchema,
   instructionPreviewRequestSchema,
-  instructionsDecisionSchema,
-  jobPositionResponseSchema,
   positionInstructionsQuerySchema,
   positionInstructionsResponseSchema,
   saveInstructionBodyResponseSchema,
@@ -301,12 +299,12 @@ export const listPositionInstructionsRoute = createRoute({
   operationId: 'listPositionInstructions',
   summary: 'List the modules a job position applies in one domain',
   description:
-    'The modules of `domain`, occupational safety by default, by group and title, with the position’s decision for that domain: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules of the domain (ADR 012). A position decides about each domain apart.',
+    'The modules of `domain`, occupational safety by default, by group and title (ADR 012). Every post applies at least one module of each domain; until it does, the documents of that domain cannot be generated.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: positionParams, query: positionInstructionsQuerySchema },
   responses: {
-    200: { description: 'The modules and the decision', content: positionContent },
+    200: { description: 'The modules', content: positionContent },
     400: { description: 'Invalid path or query', content: errorContent },
     404: noSuchJobPosition,
     ...membershipErrors,
@@ -319,7 +317,7 @@ export const applyPositionInstructionsRoute = createRoute({
   operationId: 'applyPositionInstructions',
   summary: 'Set the modules a job position applies in one domain',
   description:
-    'Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. Applying the first module decides that the position needs instructions in that domain; an empty set leaves it undecided again. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).',
+    'Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. An empty set leaves the position without instructions in that domain, which blocks generating its documents. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -334,7 +332,7 @@ export const applyPositionInstructionsRoute = createRoute({
     },
   },
   responses: {
-    200: { description: 'The modules and the decision', content: positionContent },
+    200: { description: 'The modules', content: positionContent },
     400: {
       description:
         'Invalid path or request body, or a module is not in the library or not of the domain',
@@ -367,49 +365,13 @@ export const copyPositionInstructionsRoute = createRoute({
     },
   },
   responses: {
-    200: { description: 'The modules and the decision', content: positionContent },
+    200: { description: 'The modules', content: positionContent },
     400: {
       description: 'Invalid path or request body, or the source is not a position of this client',
       content: errorContent,
     },
     404: noSuchJobPosition,
     409: archivedClient,
-    ...membershipErrors,
-  },
-});
-
-export const decidePositionInstructionsRoute = createRoute({
-  method: 'patch',
-  path: '/clients/{clientId}/job-positions/{jobPositionId}/instructions-decision',
-  operationId: 'decidePositionInstructions',
-  summary: 'Say that a job position needs no module of a domain, or take that back',
-  description:
-    'For `domain`, occupational safety by default: `needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules of the domain are applied is refused (reason `instructions_applied`).',
-  security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
-  request: {
-    params: positionParams,
-    body: {
-      required: true,
-      content: {
-        'application/json': {
-          schema: instructionsDecisionSchema.meta({ id: 'InstructionsDecision' }),
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'The job position after the change',
-      content: {
-        'application/json': {
-          schema: jobPositionResponseSchema.meta({ id: 'JobPositionResponse' }),
-        },
-      },
-    },
-    400: { description: 'Invalid path or request body', content: errorContent },
-    404: noSuchJobPosition,
-    409: { description: 'Modules are applied, or the client is archived', content: errorContent },
     ...membershipErrors,
   },
 });

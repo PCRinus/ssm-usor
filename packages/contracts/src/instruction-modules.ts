@@ -186,9 +186,6 @@ export type PositionInstructionsQuery = z.infer<typeof positionInstructionsQuery
 export const positionInstructionsResponseSchema = z.object({
   domain: instructionDomainSchema,
   items: z.array(appliedInstructionSchema),
-  // The domain's decision: null until decided; false when the post needs none; true while it
-  // applies modules of the domain.
-  needsInstructions: z.boolean().nullable(),
 });
 
 export type PositionInstructionsResponse = z.infer<typeof positionInstructionsResponseSchema>;
@@ -201,24 +198,6 @@ export const applyInstructionsRequestSchema = z.object({
 });
 
 export type ApplyInstructionsRequest = z.infer<typeof applyInstructionsRequestSchema>;
-
-export const instructionStates = ['undecided', 'none', 'applied'] as const;
-
-export type InstructionState = (typeof instructionStates)[number];
-
-export function instructionState(needsInstructions: boolean | null): InstructionState {
-  if (needsInstructions === null) return 'undecided';
-  return needsInstructions ? 'applied' : 'none';
-}
-
-// Applied modules decide "needs instructions" by themselves, so only "needs none" and taking
-// that back are said in words.
-export const instructionsDecisionSchema = z.object({
-  domain: domainOrSsm,
-  needsInstructions: z.boolean().nullable(),
-});
-
-export type InstructionsDecision = z.infer<typeof instructionsDecisionSchema>;
 
 export const copyInstructionsRequestSchema = z.object({
   fromJobPositionId: z.uuid(),
@@ -235,8 +214,6 @@ export const instructionModuleErrorReasons = [
   'instruction_module_archived',
   'instruction_module_domain_applied',
   'instruction_module_other_domain',
-  'instructions_applied',
-  'instructions_decided_by_modules',
 ] as const;
 
 export type InstructionModuleErrorReason = (typeof instructionModuleErrorReasons)[number];

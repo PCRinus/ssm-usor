@@ -265,5 +265,46 @@
         }
       ]
     }
+  },
+  {
+    "title": "Prevenirea incendiilor la locul de muncă",
+    "group": "premises_activity",
+    "domain": "su",
+    "body": {
+      "blocks": [
+        { "kind": "heading", "text": "Domeniul de aplicare" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Prezenta instrucțiune se aplică tuturor lucrătorilor, la orice loc de muncă al angajatorului."
+          ]
+        },
+        { "kind": "heading", "text": "Reguli de prevenire" },
+        {
+          "kind": "article",
+          "paragraphs": ["Fumatul este permis numai în locurile amenajate și marcate pentru fumat."]
+        },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "Nu se supraîncarcă prizele și prelungitoarele, iar aparatele electrice se opresc la plecarea din încăpere."
+          ]
+        },
+        {
+          "kind": "article",
+          "paragraphs": ["Căile de evacuare, ușile și accesul la stingătoare se păstrează libere."]
+        },
+        { "kind": "heading", "text": "Dacă izbucnește un incendiu" },
+        {
+          "kind": "article",
+          "paragraphs": [
+            "La izbucnirea unui incendiu, lucrătorul:",
+            "1. anunță pompierii la 112 și conducătorul locului de muncă;",
+            "2. încearcă stingerea cu mijloacele din dotare numai dacă nu își pune viața în pericol;",
+            "3. părăsește clădirea pe traseul de evacuare afișat și se îndreaptă spre locul de adunare."
+          ]
+        }
+      ]
+    }
   }
 ]

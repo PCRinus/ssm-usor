@@ -45,7 +45,6 @@ const welder = {
   employeeCount: 3,
   needsProtectiveEquipment: true as boolean | null,
   equipmentCount: 2,
-  needsInstructions: true as boolean | null,
   instructionCount: 1,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
@@ -231,7 +230,7 @@ function mockApi({
       return Response.json({ items: [], needsProtectiveEquipment: true });
     }
     if (pathname.endsWith('/instructions')) {
-      return Response.json({ items: [], needsInstructions: true });
+      return Response.json({ items: [] });
     }
     if (pathname === '/risk-factor-suggestions') return suggestions(init, url);
     if (pathname === `/clients/${clientId}/document-details`) {

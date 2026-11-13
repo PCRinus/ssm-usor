@@ -1447,15 +1447,15 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - On a job position's page, after the equipment card, two cards that differ only in their
   title, their domain and their wording: "Instrucțiuni specifice SSM" (`#instructions`) and
   "Instrucțiuni specifice PSI" (`#fire-instructions`), the second deciding the fire-safety
-  modules apart (ADR 012, amendment of 2026-10-11). Each reads `GET …/instructions?domain=`
-  with the same three states as equipment ("De stabilit", "Nu necesită", the count);
+  modules apart (ADR 012, amendments of 2026-10-11 and 2026-11-13). Each reads
+  `GET …/instructions?domain=` and shows "De stabilit" until the post applies a module, then
+  the count; there is no "needs none", as every post applies one of each domain;
   "Alege instrucțiunile" opens the library's modules of its domain
   (`GET /instruction-modules?domain=`) as a checklist by category, the PSI ones under their own
   categories, with a search box and a "Vezi"
   link per module, and saves the set through `PUT …/instructions` with the `domain`; a row's
   cross removes one module the same way; "Copiază de la alt post" adds another position's
-  modules of the domain; "Postul nu necesită instrucțiuni specifice" and "Reia decizia" go
-  through `PATCH …/instructions-decision` with the `domain`. The SSM card keeps the
+  modules of the domain. The SSM card keeps the
   `instructions-*` test ids and the PSI card uses `fire-instructions-*`. The positions table's
   "Instrucțiuni" column shows both states, "SSM" and "PSI" each before its badge, amber while
   undecided, each linking to its card; the row menu has both cards, and the notice above the

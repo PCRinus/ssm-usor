@@ -35,18 +35,18 @@ const fireModulesByTitle: Record<string, string[]> = {
 };
 
 /** Which fixture modules a seeded position applies; office posts apply the office module. */
-export function instructionsFor(jobTitle: string): string[] | 'none' | null {
+export function instructionsFor(jobTitle: string): string[] | null {
   if (modulesByTitle[jobTitle]) return modulesByTitle[jobTitle];
   if (officeJobTitles.includes(jobTitle)) return ['Activități de birou'];
   return null;
 }
 
 /**
- * Which fire-safety fixture modules a seeded position applies. Never undecided: the fire-safety
- * set waits for every position to decide, and the seed completes that set for its clients.
+ * Which fire-safety fixture modules a seeded position applies. Never none: the fire-safety set
+ * waits for every position to apply one, and the seed completes that set for its clients.
  */
-export function fireInstructionsFor(jobTitle: string): string[] | 'none' {
-  return fireModulesByTitle[jobTitle] ?? 'none';
+export function fireInstructionsFor(jobTitle: string): string[] {
+  return fireModulesByTitle[jobTitle] ?? ['Prevenirea incendiilor la locul de muncă'];
 }
 
 export async function readFixtures(): Promise<Fixture[]> {
@@ -94,35 +94,31 @@ async function seedLibrary(db: SeedClient, organizationId: string, createdBy: st
   return { ids, added };
 }
 
-type Decide = (jobTitle: string) => string[] | 'none' | null;
+type ModulesFor = (jobTitle: string) => string[] | null;
 
-// Only positions still undecided are touched, so a rerun leaves alone what was applied or
-// decided by hand.
-async function decidePositions(
+// Only positions that apply nothing yet are touched, so a rerun leaves alone what was applied
+// by hand.
+async function applyToPositions(
   db: SeedClient,
   organizationId: string,
   createdBy: string,
   ids: Map<string, string>,
   domain: Domain,
-  decide: Decide
+  modulesFor: ModulesFor
 ) {
-  const decision = domain === 'su' ? 'needs_fire_instructions' : 'needs_instructions';
+  const applied = domain === 'su' ? 'needs_fire_instructions' : 'needs_instructions';
   const positions = await db
     .from('job_positions')
     .select('id, client_id, name')
     .eq('organization_id', organizationId)
-    .is(decision, null)
+    .is(applied, null)
     .is('archived_at', null);
   if (positions.error) {
     throw new Error(`Could not read job positions: ${positions.error.message}`);
   }
   const rows: Database['public']['Tables']['job_position_instructions']['Insert'][] = [];
-  const needNone: string[] = [];
   for (const position of positions.data) {
-    const titles = decide(position.name);
-    if (titles === 'none') needNone.push(position.id);
-    if (!titles || titles === 'none') continue;
-    for (const title of titles) {
+    for (const title of modulesFor(position.name) ?? []) {
       const moduleId = ids.get(title);
       if (!moduleId) continue;
       rows.push({
@@ -139,15 +135,7 @@ async function decidePositions(
     const { error } = await db.from('job_position_instructions').insert(rows);
     if (error) throw new Error(`Could not seed applied instructions: ${error.message}`);
   }
-  // In chunks: the ids go in the query string, and a few hundred overflow the URI limit.
-  for (let start = 0; start < needNone.length; start += 100) {
-    const { error } = await db
-      .from('job_positions')
-      .update(domain === 'su' ? { needs_fire_instructions: false } : { needs_instructions: false })
-      .in('id', needNone.slice(start, start + 100));
-    if (error) throw new Error(`Could not decide seeded job positions: ${error.message}`);
-  }
-  return { applied: rows.length, decided: needNone.length };
+  return rows.length;
 }
 
 export async function seedInstructionModules(
@@ -156,13 +144,16 @@ export async function seedInstructionModules(
   createdBy: string
 ) {
   const { ids, added } = await seedLibrary(db, organizationId, createdBy);
-  const ssm = await decidePositions(db, organizationId, createdBy, ids, 'ssm', instructionsFor);
-  const su = await decidePositions(db, organizationId, createdBy, ids, 'su', fireInstructionsFor);
   return {
     modules: added,
-    applied: ssm.applied,
-    decided: ssm.decided,
-    fireApplied: su.applied,
-    fireDecided: su.decided,
+    applied: await applyToPositions(db, organizationId, createdBy, ids, 'ssm', instructionsFor),
+    fireApplied: await applyToPositions(
+      db,
+      organizationId,
+      createdBy,
+      ids,
+      'su',
+      fireInstructionsFor
+    ),
   };
 }

@@ -1,5 +1,5 @@
 begin;
-select plan(27);
+select plan(28);
 
 -- Fixtures: two organizations with one member and one client each, positions in each.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -155,9 +155,16 @@ select throws_ok(
 
 select throws_ok(
   $$ update public.job_positions set needs_instructions = false where id = 'f1f1f1f1-0000-4000-8000-000000000001' $$,
-  'INS01',
+  'INS02',
   null,
   '"needs none" is refused while modules are applied'
+);
+
+select throws_ok(
+  $$ update public.job_positions set needs_instructions = null where id = 'f1f1f1f1-0000-4000-8000-000000000001' $$,
+  'INS02',
+  null,
+  '"undecided" is refused while modules are applied'
 );
 
 select throws_ok(
@@ -167,9 +174,11 @@ select throws_ok(
   '"needs instructions" without any is refused'
 );
 
-select lives_ok(
+select throws_ok(
   $$ update public.job_positions set needs_instructions = false where id = 'f1f1f1f1-0000-4000-8000-000000000002' $$,
-  'a position without modules can be decided as needing none'
+  'INS02',
+  null,
+  'a position without modules cannot be said to need none: every post applies one'
 );
 
 select throws_ok(

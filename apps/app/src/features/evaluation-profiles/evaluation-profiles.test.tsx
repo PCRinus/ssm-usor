@@ -46,7 +46,6 @@ const accountant = {
   employeeCount: 2,
   needsProtectiveEquipment: false as boolean | null,
   equipmentCount: 0,
-  needsInstructions: false as boolean | null,
   instructionCount: 0,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',

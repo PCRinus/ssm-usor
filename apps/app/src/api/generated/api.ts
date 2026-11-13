@@ -3658,12 +3658,8 @@ export type JobPositionListResponseItemsItem = {
   needsProtectiveEquipment: boolean | null;
   /** @minimum 0 */
   equipmentCount: number;
-  /** @nullable */
-  needsInstructions: boolean | null;
   /** @minimum 0 */
   instructionCount: number;
-  /** @nullable */
-  needsFireInstructions: boolean | null;
   /** @minimum 0 */
   fireInstructionCount: number;
   createdAt: string;
@@ -3703,12 +3699,8 @@ export type JobPositionResponseJobPosition = {
   needsProtectiveEquipment: boolean | null;
   /** @minimum 0 */
   equipmentCount: number;
-  /** @nullable */
-  needsInstructions: boolean | null;
   /** @minimum 0 */
   instructionCount: number;
-  /** @nullable */
-  needsFireInstructions: boolean | null;
   /** @minimum 0 */
   fireInstructionCount: number;
   createdAt: string;
@@ -4342,8 +4334,6 @@ export type PositionInstructionsResponseItemsItem = {
 export interface PositionInstructionsResponse {
   domain: PositionInstructionsResponseDomain;
   items: PositionInstructionsResponseItemsItem[];
-  /** @nullable */
-  needsInstructions: boolean | null;
 }
 
 export type ApplyInstructionsRequestDomain =
@@ -4371,20 +4361,6 @@ export const CopyInstructionsRequestDomain = {
 export interface CopyInstructionsRequest {
   fromJobPositionId: string;
   domain?: CopyInstructionsRequestDomain;
-}
-
-export type InstructionsDecisionDomain =
-  (typeof InstructionsDecisionDomain)[keyof typeof InstructionsDecisionDomain];
-
-export const InstructionsDecisionDomain = {
-  ssm: 'ssm',
-  su: 'su',
-} as const;
-
-export interface InstructionsDecision {
-  domain?: InstructionsDecisionDomain;
-  /** @nullable */
-  needsInstructions: boolean | null;
 }
 
 export type RiskEvaluationListResponseItemsItemKind =
@@ -24916,7 +24892,7 @@ export const getListPositionInstructionsUrl = (
 };
 
 /**
- * The modules of `domain`, occupational safety by default, by group and title, with the position’s decision for that domain: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules of the domain (ADR 012). A position decides about each domain apart.
+ * The modules of `domain`, occupational safety by default, by group and title (ADR 012). Every post applies at least one module of each domain; until it does, the documents of that domain cannot be generated.
  * @summary List the modules a job position applies in one domain
  */
 export const listPositionInstructions = async (
@@ -25086,7 +25062,7 @@ export const getApplyPositionInstructionsUrl = (clientId: string, jobPositionId:
 };
 
 /**
- * Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. Applying the first module decides that the position needs instructions in that domain; an empty set leaves it undecided again. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).
+ * Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. An empty set leaves the position without instructions in that domain, which blocks generating its documents. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).
  * @summary Set the modules a job position applies in one domain
  */
 export const applyPositionInstructions = async (
@@ -25317,123 +25293,6 @@ export const useCopyPositionInstructions = <
   TContext
 > => {
   return useMutation(getCopyPositionInstructionsMutationOptions(options), queryClient);
-};
-
-export const getDecidePositionInstructionsUrl = (clientId: string, jobPositionId: string) => {
-  return `/clients/${clientId}/job-positions/${jobPositionId}/instructions-decision`;
-};
-
-/**
- * For `domain`, occupational safety by default: `needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules of the domain are applied is refused (reason `instructions_applied`).
- * @summary Say that a job position needs no module of a domain, or take that back
- */
-export const decidePositionInstructions = async (
-  clientId: string,
-  jobPositionId: string,
-  instructionsDecision: InstructionsDecision,
-  options?: Parameters<typeof apiFetch>[1]
-): Promise<JobPositionResponse> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string]
-        )
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-  return apiFetch<JobPositionResponse>(getDecidePositionInstructionsUrl(clientId, jobPositionId), {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(instructionsDecision),
-  });
-};
-
-export const getDecidePositionInstructionsMutationKey = () =>
-  ['decidePositionInstructions'] as const;
-
-export const getDecidePositionInstructionsMutationOptions = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof decidePositionInstructions>>,
-    TError,
-    DecidePositionInstructionsMutationVariables,
-    TContext
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof decidePositionInstructions>>,
-  TError,
-  DecidePositionInstructionsMutationVariables,
-  TContext
-> => {
-  const mutationKey = getDecidePositionInstructionsMutationKey();
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof decidePositionInstructions>>,
-    DecidePositionInstructionsMutationVariables
-  > = (props) => {
-    const { clientId, jobPositionId, data } = props ?? {};
-
-    return decidePositionInstructions(clientId, jobPositionId, data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type DecidePositionInstructionsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof decidePositionInstructions>>
->;
-export type DecidePositionInstructionsMutationBody = InstructionsDecision;
-export type DecidePositionInstructionsMutationError = ErrorType<ApiErrorResponse>;
-export type DecidePositionInstructionsMutationVariables = {
-  clientId: string;
-  jobPositionId: string;
-  data: InstructionsDecision;
-};
-
-/**
- * @summary Say that a job position needs no module of a domain, or take that back
- */
-export const useDecidePositionInstructions = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof decidePositionInstructions>>,
-      TError,
-      DecidePositionInstructionsMutationVariables,
-      TContext
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof decidePositionInstructions>>,
-  TError,
-  DecidePositionInstructionsMutationVariables,
-  TContext
-> => {
-  return useMutation(getDecidePositionInstructionsMutationOptions(options), queryClient);
 };
 
 export const getListRiskEvaluationsUrl = (clientId: string) => {

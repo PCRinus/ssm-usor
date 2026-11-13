@@ -106,7 +106,7 @@ describe('the built-in templates', () => {
         workZone: position.workZone ? null : 'Atelier',
         needsProtectiveEquipment: false,
         equipment: [],
-        needsInstructions: false,
+        needsInstructions: true,
         instructions: [],
       })),
     riskEvaluations: facts.riskEvaluations.map((evaluation) => ({

@@ -98,9 +98,11 @@ O instrucțiune din bibliotecă se aplică la mai mulți clienți. Dacă textul 
 
 ## Aplicarea la posturi
 
-Pe pagina unui post, cardurile **Instrucțiuni specifice SSM** și **Instrucțiuni specifice SU** arată ce instrucțiuni privesc postul. Cu **Alege instrucțiunile** bifezi instrucțiunile din bibliotecă, cu **Copiază de la alt post** le iei de la un post asemănător, iar dacă postul nu are nevoie de nimic dincolo de partea comună, alegi **Postul nu necesită instrucțiuni specifice**.
+Pe pagina unui post, cardurile **Instrucțiuni specifice SSM** și **Instrucțiuni specifice SU** arată ce instrucțiuni privesc postul. Cu **Alege instrucțiunile** bifezi instrucțiunile din bibliotecă, iar cu **Copiază de la alt post** le iei de la un post asemănător.
 
-Un post nedecis oprește generarea instrucțiunilor proprii ale clientului: documentul are nevoie să știe ce anexează pentru fiecare post.
+Fiecare post are cel puțin o instrucțiune specifică SSM și una SU. Instruirea la locul de muncă cuprinde prevederile instrucțiunilor proprii elaborate pentru locul de muncă sau postul de lucru (H.G. 1425/2006, art. 93 alin. (2) lit. b)), iar instructajul specific locului de muncă în domeniul situațiilor de urgență îi arată fiecărui salariat cauzele de incendiu ale locului lui de muncă și măsurile de prevenire (Ordinul MAI 712/2005, art. 16 și 17).
+
+Un post fără instrucțiuni SSM oprește generarea instrucțiunilor proprii ale clientului, iar unul fără instrucțiuni SU oprește documentele SU: fiecare document are nevoie să știe ce anexează pentru fiecare post.
 
 ## Unde se tipărește
 

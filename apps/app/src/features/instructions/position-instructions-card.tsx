@@ -33,7 +33,6 @@ import {
   getListPositionInstructionsQueryKey,
   useApplyPositionInstructions,
   useCopyPositionInstructions,
-  useDecidePositionInstructions,
   useListInstructionModuleChoices,
   useListJobPositions,
   useListPositionInstructions,
@@ -50,8 +49,8 @@ import { useSavedToast } from '@/features/missing-data/saved-toast';
 import {
   type AppliedInstruction,
   byGroup,
-  domainDecision,
   groupLabels,
+  instructionCountOf,
   instructionStateLabel,
   moduleCountLabel,
 } from './instruction-schema';
@@ -60,10 +59,8 @@ const domainCopy = {
   ssm: {
     title: 'Instrucțiuni specifice SSM',
     testId: 'instructions',
-    specific: 'instrucțiuni specifice',
-    none: 'Postul nu necesită instrucțiuni specifice dincolo de partea comună. Instrucțiunile proprii nu anexează nimic pentru el.',
     undecided:
-      'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul, sau spui că nu necesită.',
+      'Instrucțiunile proprii nu se pot genera până nu alegi ce instrucțiuni din bibliotecă privesc postul.',
     pickTitle: (name: string) => `Instrucțiunile postului „${name}”`,
     pickDescription:
       'Bifează instrucțiunile din bibliotecă care privesc postul. Instrucțiunile proprii ale clientului le anexează, iar tematica de instruire le citează.',
@@ -77,10 +74,8 @@ const domainCopy = {
   su: {
     title: 'Instrucțiuni specifice SU',
     testId: 'fire-instructions',
-    specific: 'instrucțiuni specifice SU',
-    none: 'Postul nu necesită instrucțiuni specifice SU dincolo de partea comună. Instrucțiunile proprii SU nu anexează nimic pentru el.',
     undecided:
-      'Documentele SU nu se pot genera până nu alegi ce instrucțiuni SU din bibliotecă privesc postul, sau spui că nu necesită.',
+      'Documentele SU nu se pot genera până nu alegi ce instrucțiuni SU din bibliotecă privesc postul.',
     pickTitle: (name: string) => `Instrucțiunile SU ale postului „${name}”`,
     pickDescription:
       'Bifează instrucțiunile SU din bibliotecă care privesc postul. Instrucțiunile proprii SU ale clientului le anexează, iar tematica de instruire SU le citează.',
@@ -95,9 +90,6 @@ const domainCopy = {
 
 const failureMessage = (cause: unknown, fallback: string) => {
   const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  if (body?.reason === 'instructions_applied') {
-    return 'Postul aplică instrucțiuni; scoate-le înainte să spui că nu necesită.';
-  }
   if (body?.reason === 'instruction_module_archived') {
     return 'O instrucțiune aleasă a fost arhivată între timp. Alege din nou.';
   }
@@ -131,7 +123,6 @@ export function PositionInstructionsCard({
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const savedToast = useSavedToast();
   const words = domainCopy[domain];
   const testId = (suffix: string) => `${words.testId}-${suffix}`;
   const params = { domain };
@@ -141,7 +132,6 @@ export function PositionInstructionsCard({
       queryKey: [...getListPositionInstructionsQueryKey(clientId, position.id, params), userId],
     },
   });
-  const decide = useDecidePositionInstructions({ request: apiRequest });
   const apply = useApplyPositionInstructions({ request: apiRequest });
   const [picking, setPicking] = useState(false);
   const [copying, setCopying] = useState(false);
@@ -157,27 +147,6 @@ export function PositionInstructionsCard({
         predicate: ({ queryKey }) => String(queryKey[0]).startsWith('/instruction-modules'),
       }),
     ]);
-
-  async function decideNone(needsInstructions: false | null) {
-    setError(null);
-    try {
-      await decide.mutateAsync({
-        clientId,
-        jobPositionId: position.id,
-        data: { domain, needsInstructions },
-      });
-      savedToast(
-        needsInstructions === false
-          ? `Am notat că postul nu necesită ${words.specific}.`
-          : 'Decizia a fost reluată.'
-      );
-    } catch (cause) {
-      setError(
-        failureMessage(cause, 'Nu am putut salva decizia. Verifică conexiunea și încearcă din nou.')
-      );
-    }
-    await refresh();
-  }
 
   async function remove(item: AppliedInstruction) {
     setError(null);
@@ -202,11 +171,9 @@ export function PositionInstructionsCard({
     await refresh();
   }
 
-  const decision =
-    instructions.data?.needsInstructions ?? domainDecision(position, domain).needsInstructions;
   const items = instructions.data?.items ?? [];
 
-  const pickAction = !readOnly && decision !== false && (
+  const pickAction = !readOnly && (
     <Button variant="tonal" size="sm" data-testid={testId('pick')} onClick={() => setPicking(true)}>
       <ListChecks aria-hidden="true" />
       Alege instrucțiunile
@@ -237,13 +204,10 @@ export function PositionInstructionsCard({
           {instructions.data && (
             <DecisionBadge
               className="ml-3 align-middle"
-              decision={decision}
+              decision={items.length > 0 || null}
               data-testid={testId('state')}
             >
-              {instructionStateLabel({
-                needsInstructions: decision,
-                instructionCount: items.length,
-              })}
+              {instructionStateLabel(items.length)}
             </DecisionBadge>
           )}
         </span>
@@ -272,26 +236,6 @@ export function PositionInstructionsCard({
         >
           Nu am putut încărca instrucțiunile postului.
         </Notice>
-      ) : decision === false ? (
-        <Notice
-          variant="info"
-          data-testid={testId('none')}
-          action={
-            !readOnly && (
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid={testId('undecide')}
-                disabled={decide.isPending}
-                onClick={() => void decideNone(null)}
-              >
-                Reia decizia
-              </Button>
-            )
-          }
-        >
-          {words.none}
-        </Notice>
       ) : items.length === 0 ? (
         <EmptyState
           data-testid={testId('empty')}
@@ -300,15 +244,6 @@ export function PositionInstructionsCard({
             !readOnly && (
               <>
                 {pickAction}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  data-testid={testId('decide-none')}
-                  disabled={decide.isPending}
-                  onClick={() => void decideNone(false)}
-                >
-                  Postul nu necesită instrucțiuni specifice
-                </Button>
                 {copyAction}
               </>
             )
@@ -595,7 +530,6 @@ function CopyInstructionsDialog({
   const savedToast = useSavedToast();
   const words = domainCopy[domain];
   const testId = (suffix: string) => `${words.testId}-${suffix}`;
-  const countOf = (candidate: JobPosition) => domainDecision(candidate, domain).instructionCount;
   const positions = useListJobPositions(clientId, {
     request: apiRequest,
     query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
@@ -604,7 +538,7 @@ function CopyInstructionsDialog({
   const [source, setSource] = useState('');
   const [error, setError] = useState<string | null>(null);
   const sources = (positions.data?.items ?? []).filter(
-    (candidate) => candidate.id !== position.id && countOf(candidate) > 0
+    (candidate) => candidate.id !== position.id && instructionCountOf(candidate, domain) > 0
   );
 
   async function copyModules() {
@@ -653,7 +587,7 @@ function CopyInstructionsDialog({
                 <NativeSelectOption value="">Alege un post…</NativeSelectOption>
                 {sources.map((candidate) => (
                   <NativeSelectOption key={candidate.id} value={candidate.id}>
-                    {`${candidate.name} (${moduleCountLabel(countOf(candidate)).toLowerCase()})`}
+                    {`${candidate.name} (${moduleCountLabel(instructionCountOf(candidate, domain)).toLowerCase()})`}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>

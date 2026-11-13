@@ -64,27 +64,16 @@ export function articleCountLabel(count: number) {
   return tens === 0 || tens >= 20 ? `${count} de articole` : `${count} articole`;
 }
 
-export function instructionStateLabel(
-  position: Pick<JobPosition, 'needsInstructions' | 'instructionCount'>
-) {
-  if (position.needsInstructions === null) return 'De stabilit';
-  if (position.needsInstructions === false) return 'Nu necesită';
-  return moduleCountLabel(position.instructionCount).toLowerCase().replace(/^o /, '1 ');
+export function instructionStateLabel(instructionCount: number) {
+  if (instructionCount === 0) return 'De stabilit';
+  return moduleCountLabel(instructionCount).toLowerCase().replace(/^o /, '1 ');
 }
 
-export function domainDecision(
-  position: Pick<
-    JobPosition,
-    'needsInstructions' | 'instructionCount' | 'needsFireInstructions' | 'fireInstructionCount'
-  >,
+export function instructionCountOf(
+  position: Pick<JobPosition, 'instructionCount' | 'fireInstructionCount'>,
   domain: InstructionDomain
 ) {
-  return domain === 'ssm'
-    ? { needsInstructions: position.needsInstructions, instructionCount: position.instructionCount }
-    : {
-        needsInstructions: position.needsFireInstructions,
-        instructionCount: position.fireInstructionCount,
-      };
+  return domain === 'ssm' ? position.instructionCount : position.fireInstructionCount;
 }
 
 export const moduleFormSchema = z.object({

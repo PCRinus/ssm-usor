@@ -141,10 +141,8 @@ const welder = {
   employeeCount: 3,
   needsProtectiveEquipment: true,
   equipmentCount: 2,
-  needsInstructions: true as boolean | null,
   instructionCount: 1,
-  needsFireInstructions: false as boolean | null,
-  fireInstructionCount: 0,
+  fireInstructionCount: 1,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
 };
@@ -152,9 +150,7 @@ const fitter = {
   ...welder,
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Lăcătuș mecanic',
-  needsInstructions: null,
   instructionCount: 0,
-  needsFireInstructions: null,
   fireInstructionCount: 0,
 };
 
@@ -173,12 +169,12 @@ function mockApi({
   modules = [offices, ladders, hotWork] as (typeof ladders)[],
   archived = [] as (typeof ladders)[],
   instructions = {
-    [welder.id]: { items: [applied(ladders)], needsInstructions: true },
-    [fitter.id]: { items: [], needsInstructions: null },
+    [welder.id]: { items: [applied(ladders)] },
+    [fitter.id]: { items: [] },
   } as Record<string, unknown>,
   fireInstructions = {
-    [welder.id]: { items: [], needsInstructions: false },
-    [fitter.id]: { items: [], needsInstructions: null },
+    [welder.id]: { items: [applied(hotWork)] },
+    [fitter.id]: { items: [] },
   } as Record<string, unknown>,
   update = ((init, url) =>
     Response.json({
@@ -189,15 +185,8 @@ function mockApi({
     const items = [offices, ladders, hotWork]
       .filter((module) => moduleIds.includes(module.id))
       .map(applied);
-    return Response.json({ items, needsInstructions: items.length > 0 ? true : null });
+    return Response.json({ items });
   }) as Route,
-  decide = ((init, url) =>
-    Response.json({
-      jobPosition: {
-        ...(url.pathname.includes(fitter.id) ? fitter : welder),
-        ...JSON.parse(String(init?.body)),
-      },
-    })) as Route,
   saveBody = ((init) =>
     Response.json({
       module: { ...ladders, version: { ...version, number: 3 } },
@@ -299,14 +288,11 @@ function mockApi({
         : Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
     }
     const instructionsMatch = pathname.match(
-      /\/job-positions\/([^/]+)\/instructions(?:\/(copy))?$|\/job-positions\/([^/]+)\/instructions-decision$/
+      /\/job-positions\/([^/]+)\/instructions(?:\/(copy))?$/
     );
     if (instructionsMatch) {
-      const positionId = instructionsMatch[1] ?? instructionsMatch[3]!;
-      if (pathname.endsWith('/instructions-decision')) return decide(init, url);
-      if (instructionsMatch[2] === 'copy') {
-        return Response.json({ items: [applied(ladders)], needsInstructions: true });
-      }
+      const positionId = instructionsMatch[1]!;
+      if (instructionsMatch[2] === 'copy') return Response.json({ items: [applied(ladders)] });
       if (method === 'PUT') return apply(init, url);
       return Response.json(
         (url.searchParams.get('domain') === 'su' ? fireInstructions : instructions)[positionId]
@@ -1303,7 +1289,7 @@ describe("a job position's instructions", () => {
     ).toEqual(['1 instrucțiune', 'De stabilit']);
     expect(
       rows.map((row) => within(row).getByTestId('job-position-fire-instructions').textContent)
-    ).toEqual(['Nu necesită', 'De stabilit']);
+    ).toEqual(['1 instrucțiune', 'De stabilit']);
     expect(
       within(rows[1]!).getByTestId('job-position-fire-instructions').getAttribute('href')
     ).toBe(`${positionsPage}/${fitter.id}#fire-instructions`);
@@ -1347,47 +1333,22 @@ describe("a job position's instructions", () => {
         { domain: 'su', moduleIds: [hotWork.id] },
       ])
     );
-
-    mockApi({ fireInstructions: { [fitter.id]: { items: [], needsInstructions: false } } });
-    await user.click(screen.getByTestId('fire-instructions-pick'));
-    await user.click(await screen.findByRole('button', { name: 'Renunță' }));
-    await user.click(screen.getByTestId('fire-instructions-decide-none'));
-    await waitFor(() =>
-      expect(bodies(`${positionsPath}/${fitter.id}/instructions-decision`, 'PATCH')).toEqual([
-        { domain: 'su', needsInstructions: false },
-      ])
-    );
-    expect((await screen.findByTestId('fire-instructions-none')).textContent).toContain(
-      'nu necesită instrucțiuni specifice SU'
-    );
     expect(screen.getByTestId('instructions-empty')).toBeTruthy();
   });
 
-  it('records that a post needs none, and takes it back', async () => {
+  it('offers no way out of choosing: every post applies at least one instruction of each domain', async () => {
     mockApi();
     mount(`${positionsPage}/${fitter.id}`);
-    const user = userEvent.setup();
-    const empty = await screen.findByTestId('instructions-empty');
-    expect(empty.textContent).toContain('nu se pot genera');
-    expect(
-      within(empty)
-        .getAllByRole('button')
-        .map((button) => button.dataset.testid)
-    ).toEqual(['instructions-pick', 'instructions-decide-none', 'instructions-copy']);
+    for (const prefix of ['instructions', 'fire-instructions']) {
+      const empty = await screen.findByTestId(`${prefix}-empty`);
+      expect(empty.textContent).toContain('nu se pot genera');
+      expect(
+        within(empty)
+          .getAllByRole('button')
+          .map((button) => button.dataset.testid)
+      ).toEqual([`${prefix}-pick`, `${prefix}-copy`]);
+    }
     expect(screen.getAllByTestId('instructions-pick')).toHaveLength(1);
-    mockApi({ instructions: { [fitter.id]: { items: [], needsInstructions: false } } });
-    await user.click(screen.getByTestId('instructions-decide-none'));
-    await waitFor(() =>
-      expect(bodies(`${positionsPath}/${fitter.id}/instructions-decision`, 'PATCH')).toEqual([
-        { domain: 'ssm', needsInstructions: false },
-      ])
-    );
-    expect((await screen.findByTestId('instructions-none')).textContent).toContain(
-      'nu necesită instrucțiuni'
-    );
-    mockApi();
-    await user.click(screen.getByTestId('instructions-undecide'));
-    await screen.findByTestId('instructions-empty');
   });
 
   it('picks modules from the library and replaces the set', async () => {
@@ -1430,18 +1391,9 @@ describe('labels', () => {
     expect(moduleCountLabel(1)).toBe('O instrucțiune');
     expect(moduleCountLabel(3)).toBe('3 instrucțiuni');
     expect(moduleCountLabel(21)).toBe('21 de instrucțiuni');
-    expect(instructionStateLabel({ needsInstructions: null, instructionCount: 0 })).toBe(
-      'De stabilit'
-    );
-    expect(instructionStateLabel({ needsInstructions: false, instructionCount: 0 })).toBe(
-      'Nu necesită'
-    );
-    expect(instructionStateLabel({ needsInstructions: true, instructionCount: 1 })).toBe(
-      '1 instrucțiune'
-    );
-    expect(instructionStateLabel({ needsInstructions: true, instructionCount: 20 })).toBe(
-      '20 de instrucțiuni'
-    );
+    expect(instructionStateLabel(0)).toBe('De stabilit');
+    expect(instructionStateLabel(1)).toBe('1 instrucțiune');
+    expect(instructionStateLabel(20)).toBe('20 de instrucțiuni');
   });
 });
 

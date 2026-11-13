@@ -143,7 +143,7 @@ export const facts: DocumentFacts = {
       trainingIntervalMonths: null,
       needsProtectiveEquipment: false,
       needsInstructions: true,
-      needsFireInstructions: false,
+      needsFireInstructions: true,
       instructions: [
         {
           moduleId: 'a0a0a0a0-0000-4000-8000-000000000002',

@@ -627,10 +627,12 @@ test("from 10 employees the set includes the decision on the workers' representa
   await positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-open').click();
   await page.getByTestId('equipment-decide-none').click();
   await expect(page.getByTestId('equipment-none')).toBeVisible();
-  await page.getByTestId('instructions-decide-none').click();
-  await expect(page.getByTestId('instructions-none')).toBeVisible();
-  await page.getByTestId('fire-instructions-decide-none').click();
-  await expect(page.getByTestId('fire-instructions-none')).toBeVisible();
+  for (const card of ['instructions', 'fire-instructions']) {
+    await page.getByTestId(`${card}-copy`).click();
+    await page.getByTestId(`${card}-copy-source`).selectOption({ index: 1 });
+    await page.getByTestId(`${card}-copy-confirm`).click();
+    await expect(page.getByTestId(`${card}-state`)).toHaveText('1 instrucțiune');
+  }
   await page
     .getByRole('navigation', { name: 'breadcrumb' })
     .getByRole('link', { name: 'Posturi de lucru' })
@@ -640,7 +642,7 @@ test("from 10 employees the set includes the decision on the workers' representa
   ).toHaveText('Nu necesită');
   await expect(
     positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-fire-instructions')
-  ).toHaveText('Nu necesită');
+  ).toHaveText('1 instrucțiune');
   await expect(
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-fire-instructions')
   ).toHaveText('1 instrucțiune');
