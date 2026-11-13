@@ -40,9 +40,11 @@ export function loadPostHog(): Promise<PostHog | null> {
 
   clientPromise ??= Promise.all([
     import('posthog-js'),
-    // Content blockers refuse the recorder PostHog would fetch from /static/, and the SDK
-    // fetches nothing once this has defined it.
+    // Content blockers refuse the scripts PostHog would fetch from /static/, and the SDK fetches
+    // none whose code is already defined.
     import('posthog-js/dist/posthog-recorder'),
+    import('posthog-js/dist/exception-autocapture'),
+    import('posthog-js/dist/web-vitals-with-attribution'),
   ])
     .then(([{ default: posthog }]) => {
       posthog.init(token, {
