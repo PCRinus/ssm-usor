@@ -59,6 +59,10 @@ export function maskReplayAttribute(name: string, value: string, element?: Eleme
   if (name === 'value' && element?.matches('input, textarea, select')) {
     return maskReplayInput(value, element);
   }
+  // The replayer picks a select's option by its value, so a shown select keeps its options'.
+  if (name === 'value' && element?.matches('option')) {
+    return maskReplayInput(value, element.closest('select'));
+  }
   const masked = textAttributes.has(name) || (addressAttributes.has(name) && !isSameOrigin(value));
   return masked ? '*'.repeat(value.length) : value;
 }

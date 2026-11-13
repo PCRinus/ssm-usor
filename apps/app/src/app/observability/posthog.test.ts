@@ -186,6 +186,16 @@ describe('session replay', () => {
     expect(maskReplayAttribute('value', 'Ion Pop', unmarked)).toBe('*******');
     expect(maskReplayAttribute('value', 'Ion Pop', option)).toBe('*******');
     expect(maskReplayAttribute('data-value', 'Ion Pop', shown)).toBe('*******');
+    const shownSelect = document.createElement('select');
+    shownSelect.setAttribute(Object.keys(replayShow)[0]!, '');
+    const shownOption = document.createElement('option');
+    shownSelect.append(shownOption);
+    const maskedSelect = document.createElement('select');
+    const maskedOption = document.createElement('option');
+    maskedSelect.append(maskedOption);
+    document.body.append(shownSelect, maskedSelect);
+    expect(maskReplayAttribute('value', 'periodic', shownOption)).toBe('periodic');
+    expect(maskReplayAttribute('value', 'Ion Pop', maskedOption)).toBe('*******');
     document.body.replaceChildren();
   });
 });
