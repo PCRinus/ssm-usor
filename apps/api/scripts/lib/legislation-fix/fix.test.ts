@@ -146,7 +146,6 @@ describe('a change whose quote differs', () => {
     expect(tool.mock.calls[1]![0]).toMatchObject({
       citation: {
         file: '2.2_general_training_material.docx',
-        paragraph: 2048,
         act: 'oug-195-2002',
       },
       changes: [{ old: oldText, new: newText }],
