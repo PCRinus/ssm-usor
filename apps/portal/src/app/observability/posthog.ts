@@ -27,8 +27,8 @@ function isSameOrigin(address: string) {
   }
 }
 
-// As in the app: replays keep `class` and `style`, or they play as bare HTML, and a link to
-// another origin can carry a signed file address and the file's name.
+// Replays keep `class` and `style`, or they play as bare HTML. A link to another origin can
+// carry a signed file address and the file's name, so only the portal's own addresses stay.
 export function maskReplayAttribute(name: string, value: string) {
   const masked = textAttributes.has(name) || (addressAttributes.has(name) && !isSameOrigin(value));
   return masked ? '*'.repeat(value.length) : value;
