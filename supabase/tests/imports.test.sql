@@ -1,5 +1,5 @@
 begin;
-select plan(114);
+select plan(115);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -736,6 +736,11 @@ select lives_ok(
   'and another page''s'
 );
 
+select lives_ok(
+  $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000002', 'locating', 2400, 0, 900, 0.002) $$,
+  'and where a page writes what was read from it'
+);
+
 select throws_ok(
   $$ select public.record_import_usage('10000000-0000-4000-8000-000000000001', null, 'checking', 1, 0, 1, 0.01) $$,
   '22023',
@@ -747,14 +752,15 @@ select results_eq(
   $$ select i.input_tokens, i.cached_input_tokens, i.output_tokens, i.cost_usd, f.input_tokens, f.cost_usd
      from public.imports i join public.import_files f on f.import_id = i.id
      where f.id = 'f0000000-0000-4000-8000-000000000002' $$,
-  $$ values (125000::bigint, 81000::bigint, 9750::bigint, 0.127::numeric, 5000::bigint, 0.007::numeric) $$,
+  $$ values (127400::bigint, 81000::bigint, 10650::bigint, 0.129::numeric, 7400::bigint, 0.009::numeric) $$,
   'the import counts them all, the photograph its own'
 );
 
 select is(
   (select usage_by_step from public.imports where id = '10000000-0000-4000-8000-000000000001'),
   '{"reading": {"input_tokens": 120000, "cached_input_tokens": 80000, "output_tokens": 9000, "cost_usd": 0.12},
-    "scanning": {"input_tokens": 5000, "cached_input_tokens": 1000, "output_tokens": 750, "cost_usd": 0.007}}'::jsonb,
+    "scanning": {"input_tokens": 5000, "cached_input_tokens": 1000, "output_tokens": 750, "cost_usd": 0.007},
+    "locating": {"input_tokens": 2400, "cached_input_tokens": 0, "output_tokens": 900, "cost_usd": 0.002}}'::jsonb,
   'and each step apart'
 );
 
@@ -1012,7 +1018,7 @@ select results_eq(
 
 select results_eq(
   $$ select input_tokens, cost_usd, client_id is not null from public.imports where id = '10000000-0000-4000-8000-000000000001' $$,
-  $$ values (125000::bigint, 0.127::numeric, true) $$,
+  $$ values (127400::bigint, 0.129::numeric, true) $$,
   'and so do the import''s counts and cost'
 );
 

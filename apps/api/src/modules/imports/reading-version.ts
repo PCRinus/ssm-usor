@@ -2,6 +2,7 @@ import type { ImportKind, ImportLibraryPart } from '@ssm-usor/contracts';
 import {
   instructionsModel,
   instructionsRequest,
+  locatingModel,
   readingAnswer,
   readingModel,
   readingSystemPrompt,
@@ -49,7 +50,7 @@ function readerInputs(reader: Reader): { models: Record<string, string>; texts: 
       };
     case 'employees':
       return {
-        models: { scanning: readingModel },
+        models: { scanning: readingModel, locating: locatingModel },
         texts: [sheetPageSystemPrompt, sheetPageAnswer.jsonSchema],
       };
     case 'risk_evaluations': {
