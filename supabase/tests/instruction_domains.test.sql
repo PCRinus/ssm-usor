@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(17);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -99,7 +99,7 @@ select is(
 
 select throws_ok(
   $$ update public.job_positions set needs_fire_instructions = false where id = 'f1f1f1f1-0000-4000-8000-000000000001' $$,
-  'INS01',
+  'INS02',
   null,
   '"needs none" for fire safety is refused while a fire-safety module is applied'
 );
@@ -111,15 +111,11 @@ select throws_ok(
   '"needs fire-safety modules" without any is refused'
 );
 
-select lives_ok(
+select throws_ok(
   $$ update public.job_positions set needs_fire_instructions = false where id = 'f1f1f1f1-0000-4000-8000-000000000002' $$,
-  'a position decides that it needs no fire-safety module'
-);
-
-select is(
-  (select needs_instructions from public.job_positions where id = 'f1f1f1f1-0000-4000-8000-000000000002'),
+  'INS02',
   null,
-  'and stays undecided about the occupational safety ones'
+  'no position needs no fire-safety module'
 );
 
 delete from public.job_position_instructions
@@ -131,9 +127,11 @@ select is(
   'removing the last fire-safety module reopens only the fire-safety question'
 );
 
-select lives_ok(
+select throws_ok(
   $$ update public.job_positions set needs_fire_instructions = false where id = 'f1f1f1f1-0000-4000-8000-000000000001' $$,
-  'a position that applies occupational safety modules can need no fire-safety one'
+  'INS02',
+  null,
+  'a position that applies occupational safety modules still needs a fire-safety one'
 );
 
 select lives_ok(

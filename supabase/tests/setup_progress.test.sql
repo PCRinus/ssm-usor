@@ -48,7 +48,7 @@ insert into public.client_workplaces (id, organization_id, client_id, name, crea
   ('a0a0a0a0-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Depozit', 'aaaaaaaa-0000-4000-8000-000000000001');
 
 insert into public.job_positions (id, organization_id, client_id, name, needs_protective_equipment, needs_instructions, needs_fire_instructions, created_by) values
-  ('b1b1b1b1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Sudor', true, true, false, 'bbbbbbbb-0000-4000-8000-000000000001');
+  ('b1b1b1b1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Sudor', true, true, true, 'bbbbbbbb-0000-4000-8000-000000000001');
 
 insert into public.employees (id, organization_id, client_id, job_position_id, last_name, first_name, job_title, hired_at, created_by) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'b1b1b1b1-0000-4000-8000-000000000001', 'Marin', 'Dan', 'Sudor', '2025-01-01', 'bbbbbbbb-0000-4000-8000-000000000001');
@@ -385,7 +385,7 @@ select results_eq(
 
 reset role;
 insert into public.job_positions (organization_id, client_id, name, needs_protective_equipment, needs_instructions, needs_fire_instructions) values
-  ('33333333-0000-4000-8000-000000000003', 'c3c3c3c3-0000-4000-8000-000000000004', 'Contabil', false, false, false);
+  ('33333333-0000-4000-8000-000000000003', 'c3c3c3c3-0000-4000-8000-000000000004', 'Contabil', false, true, true);
 insert into public.client_responsible_persons (organization_id, client_id, full_name, job_title, roles) values
   ('33333333-0000-4000-8000-000000000003', 'c3c3c3c3-0000-4000-8000-000000000004', 'Ana Vlad', 'Administrator',
    '{workplace_manager,first_aid,risk_evaluation_team,imminent_danger,fire_safety_coordinator,fire_intervention_leader}');

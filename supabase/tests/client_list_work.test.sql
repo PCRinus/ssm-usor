@@ -26,9 +26,9 @@ insert into public.clients (id, organization_id, legal_name, cui, stage, created
 
 insert into public.job_positions (id, organization_id, client_id, name, needs_protective_equipment, needs_instructions, archived_at) values
   ('f1f1f1f1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Done', false, true, null),
-  ('f1f1f1f1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Equipment undecided', null, false, null),
+  ('f1f1f1f1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Equipment undecided', null, true, null),
   ('f1f1f1f1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Instructions undecided', true, null, null),
-  ('f1f1f1f1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Not evaluated', false, false, null),
+  ('f1f1f1f1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Not evaluated', false, true, null),
   ('f1f1f1f1-0000-4000-8000-000000000005', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Archived', null, null, now());
 
 insert into public.job_positions (id, organization_id, client_id, name, needs_protective_equipment, needs_instructions) values

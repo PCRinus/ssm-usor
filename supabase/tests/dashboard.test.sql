@@ -35,7 +35,7 @@ insert into public.client_responsible_persons (organization_id, client_id, full_
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Fost Responsabil', 'Operator', '{first_aid}', now());
 
 insert into public.job_positions (id, organization_id, client_id, name, staff_category, needs_protective_equipment, needs_instructions, needs_fire_instructions, archived_at) values
-  ('b1b1b1b1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Sudor', 'execution', true, true, false, null),
+  ('b1b1b1b1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Sudor', 'execution', true, true, true, null),
   ('b1b1b1b1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Instructions undecided', 'execution', false, null, null, null),
   ('b1b1b1b1-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Archived undecided', 'execution', null, null, null, now()),
   ('b1b1b1b1-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000003', 'Sudor', 'execution', null, null, null, null),
