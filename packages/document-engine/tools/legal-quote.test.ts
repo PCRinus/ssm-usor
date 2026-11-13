@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -17,6 +17,7 @@ import {
   type PassageInput,
   type PatchInput,
   type ReleasedManifest,
+  releasedManifestAt,
   replaceLegalQuote,
 } from './legal-quote';
 import { buildCitationIndex, templateSources } from './template-sources';
@@ -297,6 +298,85 @@ describe('a quote replaced in a templates folder', () => {
     expect(filesOf(root)).toEqual(before);
   });
 
+  it('writes nothing, and says so, when the quote holds none of what changed', () => {
+    const root = folder();
+    const before = filesOf(root);
+    const result = replace(root, {
+      changes: [
+        { old: '(3) Pasagerii poartă centura.', new: '(3) Pasagerii poartă centura mereu.' },
+      ],
+      change,
+    });
+    expect(result).toEqual({
+      status: 'nothing-to-apply',
+      notes: ['(3) not changed; the template does not quote it'],
+      markdown: [
+        '**source.docx**: O.U.G. 195/2002, Art. 36 alin. (1), (2): nothing to apply, the quote holds none of what changed:',
+        '',
+        '- (3) not changed; the template does not quote it',
+      ].join('\n'),
+    });
+    expect(filesOf(root)).toEqual(before);
+  });
+
+  it('refuses a template outside the folder or no manifest lists, and writes nothing', () => {
+    const root = folder();
+    writeFileSync(join(root, 'stray.docx'), readFileSync(join(root, 'source.docx')));
+    const before = filesOf(root);
+    const citation = citationIn(root);
+    for (const file of ['../source.docx', join(root, 'source.docx'), 'fire/../source.docx']) {
+      expect(() =>
+        replaceLegalQuote(pathToFileURL(`${root}/`), { ...patch, citation: { ...citation, file } })
+      ).toThrow('is not a path in the templates folder');
+    }
+    expect(() =>
+      replaceLegalQuote(pathToFileURL(`${root}/`), {
+        ...patch,
+        citation: { ...citation, file: 'stray.docx' },
+      })
+    ).toThrow('stray.docx is not a template a manifest lists');
+    expect(filesOf(root)).toEqual(before);
+  });
+
+  it('writes no template when the index of the folder cannot be built', () => {
+    const root = folder();
+    writeFileSync(
+      join(root, 'other/manifest.json'),
+      JSON.stringify({ templates: [{ typeKey: 'missing', file: 'missing.docx' }] })
+    );
+    const before = filesOf(root);
+    expect(() => replace(root, { ...patch, change })).toThrow();
+    expect(filesOf(root)).toEqual(before);
+  });
+
+  it("replaces the change of the template's own entry, wherever the entry names its file", () => {
+    const root = folder();
+    const manifest = `{
+  "templates": [
+    {
+      "change": { "kind": "correction", "note": "Prima versiune." },
+      "originals": ["Decizia 6"],
+      "typeKey": "fire_copy",
+      "file": "copy.docx"
+    },
+    {
+      "file": "other.docx",
+      "change": { "kind": "correction", "note": "Alta." }
+    }
+  ]
+}
+`;
+    writeFileSync(join(root, 'fire/manifest.json'), manifest);
+    writeFileSync(join(root, 'fire/other.docx'), readFileSync(join(root, 'source.docx')));
+    applied(replace(root, { ...patch, change }));
+    expect(readFileSync(join(root, 'fire/manifest.json'), 'utf8')).toBe(
+      manifest.replace(
+        '"change": { "kind": "correction", "note": "Prima versiune." }',
+        `"change": ${JSON.stringify({ kind: 'legal', ...change }, null, 2).replace(/\n/g, '\n      ')}`
+      )
+    );
+  });
+
   describe('the change a template not yet released already carries', () => {
     const released = (root: string, change: object) => {
       const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
@@ -343,6 +423,54 @@ describe('a quote replaced in a templates folder', () => {
         resolves: [pending.resolves, change.resolves],
       });
     });
+  });
+});
+
+describe('the manifests at the last release', () => {
+  const repository = () => {
+    const root = temporaryFolder();
+    const git = (...args: string[]) =>
+      execFileSync(
+        'git',
+        ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', ...args],
+        {
+          cwd: root,
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }
+      );
+    git('init', '--quiet');
+    mkdirSync(join(root, 'templates'));
+    writeFileSync(join(root, 'templates/manifest.json'), '{ "templates": [] }\n');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'templates');
+    return { templates: join(root, 'templates'), git };
+  };
+
+  it('looks the release up only when a manifest is asked for', () => {
+    const { templates } = repository();
+    const released = releasedManifestAt(undefined, templates);
+    expect(() => released('manifest.json')).toThrow('No release tag');
+  });
+
+  it('reads a manifest at the latest release, and none where the release had none', () => {
+    const { templates, git } = repository();
+    git('tag', '2026.11.02');
+    writeFileSync(join(templates, 'manifest.json'), '{ "templates": [1] }\n');
+    git('commit', '--quiet', '-am', 'released');
+    git('tag', '2026.11.12');
+    writeFileSync(join(templates, 'manifest.json'), '{ "templates": [2] }\n');
+    git('commit', '--quiet', '-am', 'not released');
+    git('tag', 'v9');
+    const released = releasedManifestAt(undefined, templates);
+    expect(released('manifest.json')).toBe('{ "templates": [1] }\n');
+    expect(released('fire/manifest.json')).toBeNull();
+  });
+
+  it("fails with git's own words on a release it cannot read", () => {
+    const { templates } = repository();
+    expect(() => releasedManifestAt('2020.01.01', templates)('manifest.json')).toThrow(
+      /git ls-tree .* failed: .*2020\.01\.01/
+    );
   });
 });
 

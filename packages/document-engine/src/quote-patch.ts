@@ -26,6 +26,11 @@ import { textHunks } from './token-diff';
 export interface AlineatEdit {
   old: string | null;
   new: string | null;
+  /**
+   * The law's unit, "Art. 13 alin. (2) lit. b)": the alineat a letter belongs to. Without it,
+   * the unit is read from the label the text opens with and from the marker's locator.
+   */
+  unit?: string;
 }
 
 /** Each `old` with the words around the change that find it in the template. */
@@ -51,7 +56,9 @@ export interface PatchProblem {
 
 export type PatchResult =
   | ({ status: 'applied' } & ReturnType<typeof applyPassage>)
-  | { status: 'needs-review'; problems: PatchProblem[] };
+  | { status: 'needs-review'; problems: PatchProblem[] }
+  /** Every change fell outside what the quote holds: the notes say where each went. */
+  | { status: 'nothing-to-apply'; notes: string[] };
 
 type Located = Token & { start: number; end: number };
 
@@ -76,8 +83,8 @@ interface Anchor {
 
 /**
  * Where a change of the law's text sits among the template's lines: its old words between the
- * same words as in the law, found once. Words around are added until they are found once; old
- * words found nowhere, or still found more than once, need a person.
+ * same words as in the law. Words around are added until the law holds them once; the template
+ * must then hold them once too, or a person decides.
  */
 function anchorHunk(
   lawOld: string,
@@ -92,30 +99,44 @@ function anchorHunk(
   const inside = words(law.filter((t) => t.start >= start && t.end <= end));
   const before = words(law.filter((t) => t.end <= start));
   const after = words(law.filter((t) => t.start >= end));
+  const lawWords = words(law);
   const templates = lines.map((line) => words(locate(wordingTokens(line, passage.act))));
+  const patternOf = (n: number) => [
+    ...before.slice(Math.max(0, before.length - n)),
+    ...inside,
+    ...after.slice(0, n),
+  ];
+  const occurrences = (tokens: Token[], pattern: Token[]) => {
+    const at: number[] = [];
+    for (let index = 0; index + pattern.length <= tokens.length; index += 1) {
+      if (pattern.every((token, offset) => sameWord(tokens[index + offset]!, token))) {
+        at.push(index);
+      }
+    }
+    return at;
+  };
 
   const most = Math.max(before.length, after.length);
   let found: { line: number; at: number; n: number }[] = [];
   let many = 0;
+  let inLaw = 1;
+  let heldOnce = false;
   for (let n = wholeContext ? most : Math.min(1, most); n <= most; n += 1) {
-    const pattern = [
-      ...before.slice(Math.max(0, before.length - n)),
-      ...inside,
-      ...after.slice(0, n),
-    ];
-    found = [];
-    templates.forEach((tokens, line) => {
-      for (let at = 0; at + pattern.length <= tokens.length; at += 1) {
-        if (pattern.every((token, index) => sameWord(tokens[at + index]!, token))) {
-          found.push({ line, at, n });
-        }
-      }
-    });
-    if (found.length <= 1) break;
-    many = found.length;
+    const pattern = patternOf(n);
+    found = templates.flatMap((tokens, line) =>
+      occurrences(tokens, pattern).map((at) => ({ line, at, n }))
+    );
+    if (found.length > 1) many = found.length;
+    if (found.length === 1) heldOnce = true;
+    if (!found.length) break;
+    inLaw = occurrences(lawWords, pattern).length;
+    if (found.length === 1 && inLaw === 1) break;
   }
   if (found.length > 1 || (!found.length && many)) {
     return `the old words are in the template ${Math.max(many, found.length)} times`;
+  }
+  if (!found.length && heldOnce) {
+    return `the old words are in the law ${inLaw} times, and the template does not hold the words around them that tell which`;
   }
   if (!found.length) return "the template's passage does not hold the old words";
 
@@ -141,24 +162,113 @@ function anchorHunk(
 const superscriptValue = (text: string) =>
   [...text].reduce((value, char) => value * 10 + superscriptDigits.indexOf(char), 0);
 
-/** An alineat's or letter's place: (1) < (1¹) < (1²) < (2); a) < a¹) < b). */
-function place(label: string | null) {
+/** An alineat's or letter's rank: (1) < (1¹) < (1²) < (2); a) < a¹) < b). */
+function rank(label: string | null) {
   const match = new RegExp(`^(\\d+|[a-z])([${superscriptDigits}]*)$`, 'u').exec(label ?? '');
   if (!match) return null;
   const base = /\d/.test(match[1]!) ? Number(match[1]) : match[1]!.charCodeAt(0) - 96;
   return { base, sup: superscriptValue(match[2]!) };
 }
 
+const compareRanks = (a: string | null, b: string | null) => {
+  const [x, y] = [rank(a), rank(b)];
+  if (!x || !y) return (x ? 1 : 0) - (y ? 1 : 0);
+  return x.base - y.base || x.sup - y.sup;
+};
+
 // A label says which alineat comes right before it, (1²) after (1¹), (2) after some (1), and
 // which may come right after it; the law's own list of alineate is not at hand.
-function between(previous: string | null, label: string, next: string | null) {
-  const [a, b, c] = [place(previous), place(label), place(next)];
-  if (!a || !b || !c) return false;
-  const precedes = b.sup > 0 ? a.base === b.base && a.sup === b.sup - 1 : a.base === b.base - 1;
-  const follows =
-    (c.base === b.base && c.sup === b.sup + 1) || (c.base === b.base + 1 && c.sup === 0);
-  return precedes && follows;
+function precedes(previous: string | null, label: string) {
+  const [a, b] = [rank(previous), rank(label)];
+  if (!a || !b) return false;
+  return b.sup > 0 ? a.base === b.base && a.sup === b.sup - 1 : a.base === b.base - 1;
 }
+function follows(label: string, next: string | null) {
+  const [b, c] = [rank(label), rank(next)];
+  if (!b || !c) return false;
+  return (c.base === b.base && c.sup === b.sup + 1) || (c.base === b.base + 1 && c.sup === 0);
+}
+
+/**
+ * Where a line of the quote, or a unit of the law, sits. A letter's alineat is undefined where
+ * it is not known; null for both is the whole of an article.
+ */
+interface Place {
+  alineat: string | null | undefined;
+  letter: string | null;
+}
+
+const isAlineat = (label: string) => /^\d/.test(label);
+const supers = `[${superscriptDigits}]*`;
+
+/** The alineate and letters a marker names; null where it names none, quoting them all. */
+interface Scope {
+  alineate: { labels: string[]; range: boolean } | null;
+  letters: string[] | null;
+}
+
+function scopeOf(locator: string): Scope {
+  const alineate = new RegExp(`alin\\. ((?:\\(\\d+${supers}\\)(?:, | și | ?– ?)?)+)`, 'u').exec(
+    locator
+  )?.[1];
+  const letters = new RegExp(`lit\\. ((?:[a-z]${supers}\\)(?:, | și )?)+)`, 'u').exec(locator)?.[1];
+  return {
+    alineate: alineate
+      ? {
+          labels: [...alineate.matchAll(new RegExp(`\\((\\d+${supers})\\)`, 'gu'))].map(
+            (match) => match[1]!
+          ),
+          range: alineate.includes('–'),
+        }
+      : null,
+    letters: letters
+      ? [...letters.matchAll(new RegExp(`([a-z]${supers})\\)`, 'gu'))].map((match) => match[1]!)
+      : null,
+  };
+}
+
+function covers(scope: Scope, unit: Place) {
+  const { alineate, letters } = scope;
+  if (unit.alineat && alineate) {
+    const named = alineate.range
+      ? compareRanks(alineate.labels[0]!, unit.alineat) <= 0 &&
+        compareRanks(unit.alineat, alineate.labels.at(-1)!) <= 0
+      : alineate.labels.includes(unit.alineat);
+    if (!named) return false;
+  }
+  return !unit.letter || !letters || letters.includes(unit.letter);
+}
+
+function placesOf(lines: (string | null)[], scope: Scope): Place[] {
+  let alineat = scope.alineate?.labels.length === 1 ? scope.alineate.labels[0]! : null;
+  let letter = scope.letters?.length === 1 ? scope.letters[0]! : null;
+  return lines.map((line) => {
+    const label = line === null ? null : labelOf(line);
+    if (label && isAlineat(label)) {
+      alineat = label;
+      letter = null;
+    } else if (label) letter = label;
+    return { alineat, letter };
+  });
+}
+
+function unitOf(given: string | undefined, text: string, scope: Scope): Place {
+  if (given !== undefined) {
+    return {
+      alineat: new RegExp(`alin\\. \\((\\d+${supers})\\)`, 'u').exec(given)?.[1] ?? null,
+      letter: new RegExp(`lit\\. ([a-z]${supers})\\)`, 'u').exec(given)?.[1] ?? null,
+    };
+  }
+  const label = labelOf(text);
+  if (label === null) return { alineat: null, letter: null };
+  if (isAlineat(label)) return { alineat: label, letter: null };
+  const alineat = scope.alineate?.labels.length === 1 ? scope.alineate.labels[0] : undefined;
+  return { alineat, letter: label };
+}
+
+const holds = (line: Place, unit: Place) =>
+  (unit.alineat === undefined || line.alineat === unit.alineat) &&
+  (unit.letter === null || line.letter === unit.letter);
 
 /**
  * Applies the law's own change, old words → new words, to a quote, and only where the quote
@@ -172,6 +282,7 @@ export function patchQuote(
 ): PatchResult {
   const passage = readPassage(source, patch.citation);
   const context = { act: passage.act, dictionary: options.dictionary };
+  const scope = scopeOf(passage.quote.locator!);
   const lines: PassageLine[] = passage.owners.map((owner) => ({
     offset: owner.offset,
     before: owner.line,
@@ -185,6 +296,11 @@ export function patchQuote(
     alineat: string | null;
   })[] = [];
   const noted = (label: string | null, note: string) => (label ? `(${label}) ${note}` : note);
+  const placesNow = () =>
+    placesOf(
+      lines.map((line) => line.before ?? line.after),
+      scope
+    );
 
   const anchorIn = (
     oldText: string,
@@ -214,6 +330,43 @@ export function patchQuote(
       });
     }
   };
+
+  /** The template's lines that hold the unit, none when it quotes none; why, when it cannot tell. */
+  const linesOf = (unit: Place): PassageLine[] | string => {
+    const quoted = lines.filter((line) => line.before !== null);
+    if (unit.alineat === null && unit.letter === null) return quoted;
+    const places = placesNow();
+    const held = lines.filter((line, index) => line.before !== null && holds(places[index]!, unit));
+    const label = unit.letter ?? unit.alineat;
+    const heads = held.filter((line) => labelOf(line.before!) === label);
+    if (heads.length > 1) return `the template quotes (${label}) ${heads.length} times`;
+    if (held.length) return held;
+    // A quote of one line whose label the provider left out, under a marker that names the unit.
+    const [only] = quoted;
+    return quoted.length === 1 && labelOf(only!.before!) === null && covers(scope, unit)
+      ? [only!]
+      : [];
+  };
+
+  const insertionPoint = (unit: Place): number | string | null => {
+    const places = placesNow();
+    const label = (unit.letter ?? unit.alineat)!;
+    const byLetter = unit.letter !== null;
+    const key = (at: Place) => (byLetter ? at.letter : at.alineat);
+    const inUnit = (at: Place | undefined) =>
+      at !== undefined && (!byLetter || unit.alineat === undefined || at.alineat === unit.alineat);
+    const points = places.flatMap((here, index) => {
+      const next = places[index + 1];
+      if (!inUnit(here) || !precedes(key(here) ?? null, label)) return [];
+      if (!inUnit(next) || (byLetter && next!.alineat !== here.alineat)) return [];
+      return follows(label, key(next!) ?? null) ? [index + 1] : [];
+    });
+    if (points.length > 1)
+      return `the template quotes the place of (${label}) ${points.length} times`;
+    return points[0] ?? null;
+  };
+
+  const additions: { change: AlineatEdit; text: string; unit: Place }[] = [];
 
   for (const change of patch.changes) {
     if ('hunks' in change) {
@@ -245,37 +398,69 @@ export function patchQuote(
 
     const oldText = change.old === null ? null : normalizeIncoming(change.old);
     const newText = change.new === null ? null : normalizeIncoming(change.new);
-    const label = labelOf(oldText ?? newText ?? '');
+    const unit = unitOf(change.unit, oldText ?? newText ?? '', scope);
+    const label = unit.letter ?? unit.alineat ?? null;
     const problem = (reason: string) =>
       problems.push({ alineat: label, old: change.old, new: change.new, reason });
-    const quoted = lines.find((line) => line.before !== null && labelOf(line.before) === label);
+    const unquoted = (note: string) => {
+      const cited = (scope.alineate !== null || scope.letters !== null) && covers(scope, unit);
+      if (cited) problem('the marker cites it, but the quote holds no line of it');
+      else notes.push(noted(label, note));
+    };
 
     if (oldText === null && newText === null) {
       problem('the change has neither an old nor a new text');
     } else if (oldText === null) {
-      const at = lines.findIndex(
-        (line, index) =>
-          line.before !== null &&
-          between(labelOf(line.before), label ?? '', labelOf(lines[index + 1]?.before ?? ''))
-      );
       if (label === null) problem('an added alineat must open with its number or letter');
-      else if (at === -1) {
-        notes.push(noted(label, 'not added: the template does not quote the alineate around it'));
-      } else {
-        const wording = conformLine(newText!, null, context);
-        notes.push(...wording.notes.map((note) => noted(label, note)));
-        lines.splice(at + 1, 0, { offset: null, before: null, after: wording.text });
-      }
+      else additions.push({ change, text: newText!, unit });
     } else if (newText === null) {
-      if (label === null) problem('a repealed alineat must open with its number or letter');
-      else if (!quoted) notes.push(noted(label, 'repealed; the template does not quote it'));
-      else if (quoted.offset === 0) problem('the repealed alineat shares the marker paragraph');
-      else quoted.after = null;
+      const targets =
+        label === null ? 'a repealed alineat must open with its number or letter' : linesOf(unit);
+      if (typeof targets === 'string') problem(targets);
+      else if (!targets.length) unquoted('repealed; the template does not quote it');
+      else if (targets.some((line) => line.offset === 0)) {
+        problem('the repealed alineat shares the marker paragraph');
+      } else if (targets.length === lines.filter((line) => line.before !== null).length) {
+        problem('the change repeals all the quote holds');
+      } else for (const line of targets) line.after = null;
     } else {
-      const targets = quoted ? [quoted] : lines.filter((line) => line.before !== null);
-      for (const hunk of textHunks(oldText, newText)) {
-        anchorIn(oldText, hunk, targets, newText, false, problem);
+      const targets = linesOf(unit);
+      if (typeof targets === 'string') problem(targets);
+      else if (!targets.length) unquoted('not changed; the template does not quote it');
+      else {
+        for (const hunk of textHunks(oldText, newText)) {
+          anchorIn(oldText, hunk, targets, newText, false, problem);
+        }
       }
+    }
+  }
+
+  // Lines a patch adds are the neighbours of the next it adds: (1²) goes after the (1¹) added.
+  additions.sort(
+    (a, b) =>
+      compareRanks(a.unit.alineat ?? null, b.unit.alineat ?? null) ||
+      compareRanks(a.unit.letter, b.unit.letter)
+  );
+  for (const { change, text, unit } of additions) {
+    const label = (unit.letter ?? unit.alineat)!;
+    const at = insertionPoint(unit);
+    if (typeof at === 'string') {
+      problems.push({ alineat: label, old: change.old, new: change.new, reason: at });
+    } else if (at === null) {
+      if (covers(scope, unit)) {
+        problems.push({
+          alineat: label,
+          old: change.old,
+          new: change.new,
+          reason: 'it falls within the quote, but not between two lines the template quotes',
+        });
+      } else {
+        notes.push(noted(label, 'not added: the template does not quote the alineate around it'));
+      }
+    } else {
+      const wording = conformLine(text, null, context);
+      notes.push(...wording.notes.map((note) => noted(label, note)));
+      lines.splice(at, 0, { offset: null, before: null, after: wording.text });
     }
   }
 
@@ -310,5 +495,8 @@ export function patchQuote(
 
   if (problems.length) return { status: 'needs-review', problems };
   const planned = planPassage(passage, lines, patch.locator ?? passage.quote.locator!, notes);
+  if (!planned.summary.changes.length && planned.summary.locator === passage.quote.locator) {
+    return { status: 'nothing-to-apply', notes: planned.summary.notes };
+  }
   return { status: 'applied', ...applyPassage(source, planned) };
 }

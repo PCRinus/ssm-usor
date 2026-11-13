@@ -44,11 +44,11 @@ const quote = () =>
 const patch = (changes: QuotePatch['changes'], locator?: string) =>
   patchQuote(source, { citation: quote(), changes, ...(locator ? { locator } : {}) });
 const xmlOf = (result: ReturnType<typeof patchQuote>) => {
-  if (result.status !== 'applied') throw new Error(JSON.stringify(result.problems));
+  if (result.status !== 'applied') throw new Error(JSON.stringify(result));
   return new PizZip(result.source).file('word/document.xml')!.asText();
 };
 const quotedText = (result: ReturnType<typeof patchQuote>) => {
-  if (result.status !== 'applied') throw new Error(JSON.stringify(result.problems));
+  if (result.status !== 'applied') throw new Error(JSON.stringify(result));
   return result.quote.text!;
 };
 
@@ -198,5 +198,167 @@ describe("the law's own change applied to a quote", () => {
       },
     ]);
     expect(result.status).toBe('needs-review');
+  });
+
+  describe('a change found by the unit it belongs to', () => {
+    const plain = (text: string) => `<w:p>${run(normal, text)}</w:p>`;
+    const quoteOf = (locator: string, ...lines: string[]) => {
+      const passage = docx([
+        plain(`(Preluare din Legea 319/2006 – ${locator})`),
+        ...lines.map(plain),
+        plain('Capitolul IV'),
+      ]);
+      const citation = templateCitations({
+        manifest: 'ssm',
+        file: 'test.docx',
+        typeKey: 'test',
+        source: passage,
+      }).filter((each) => each.form === 'quote')[0]!;
+      return (changes: QuotePatch['changes']) => patchQuote(passage, { citation, changes });
+    };
+    const lettered = quoteOf(
+      'Art. 13 alin. (1) – (2)',
+      '(1) Angajatorul asigură:',
+      'a) instruirea lucrătorilor;',
+      'b) echipamentul de protecție.',
+      '(2) Lucrătorii au obligația:',
+      'a) să respecte instrucțiunile;',
+      'b) să poarte echipamentul.'
+    );
+
+    it('leaves an alineat the quote does not hold, though another has the same words', () => {
+      const result = quoteOf(
+        'Art. 13 alin. (1) – (2)',
+        '(1) Angajatorul comunică în termen de 30 de zile lucrătoare inspectoratului.',
+        '(2) Lucrătorii sunt instruiți.'
+      )([
+        {
+          old: '(3) Raportul se depune în termen de 30 de zile la inspectorat.',
+          new: '(3) Raportul se depune în termen de 60 de zile la inspectorat.',
+        },
+      ]);
+      expect(result).toEqual({
+        status: 'nothing-to-apply',
+        notes: ['(3) not changed; the template does not quote it'],
+      });
+    });
+
+    it('repeals the letter of the alineat the unit names', () => {
+      const result = lettered([
+        { old: 'b) să poarte echipamentul.', new: null, unit: 'Art. 13 alin. (2) lit. b)' },
+      ]);
+      expect(quotedText(result).split('\n')).toEqual([
+        '(1) Angajatorul asigură:',
+        'a) instruirea lucrătorilor;',
+        'b) echipamentul de protecție.',
+        '(2) Lucrătorii au obligația:',
+        'a) să respecte instrucțiunile;',
+      ]);
+    });
+
+    it("changes a letter within the alineat's own lines, the law giving the alineat whole", () => {
+      const result = lettered([
+        {
+          old: '(2) Lucrătorii au obligația:\na) să respecte instrucțiunile;\nb) să poarte echipamentul.',
+          new: '(2) Lucrătorii au obligația:\na) să respecte instrucțiunile;\nb) să poarte echipamentul omologat.',
+          unit: 'Art. 13 alin. (2)',
+        },
+      ]);
+      expect(quotedText(result).split('\n').at(-1)).toBe('b) să poarte echipamentul omologat.');
+    });
+
+    it('changes the one line of a quote whose label the provider left out', () => {
+      const result = quoteOf(
+        'Art. 13',
+        'Angajatorul comunică în termen de 30 de zile inspectoratului.'
+      )([
+        {
+          old: '(1) Angajatorul comunică în termen de 30 de zile inspectoratului.',
+          new: '(1) Angajatorul comunică în termen de 60 de zile inspectoratului.',
+        },
+      ]);
+      expect(quotedText(result)).toBe(
+        'Angajatorul comunică în termen de 60 de zile inspectoratului.'
+      );
+    });
+
+    it('needs a person for a letter two alineate of the quote have', () => {
+      expect(lettered([{ old: 'b) să poarte echipamentul.', new: null }])).toEqual({
+        status: 'needs-review',
+        problems: [
+          {
+            alineat: 'b',
+            old: 'b) să poarte echipamentul.',
+            new: null,
+            reason: 'the template quotes (b) 2 times',
+          },
+        ],
+      });
+    });
+
+    it('adds a letter after the one before it in its own alineat', () => {
+      const result = lettered([
+        { old: null, new: 'a¹) să participe la instruire;', unit: 'Art. 13 alin. (2) lit. a¹)' },
+      ]);
+      expect(quotedText(result).split('\n').slice(3)).toEqual([
+        '(2) Lucrătorii au obligația:',
+        'a) să respecte instrucțiunile;',
+        'a¹) să participe la instruire;',
+        'b) să poarte echipamentul.',
+      ]);
+    });
+
+    it('adds alineate after the ones the same change adds', () => {
+      const result = quoteOf(
+        'Art. 13 alin. (1) – (2)',
+        '(1) Angajatorul comunică inspectoratului.',
+        '(2) Lucrătorii sunt instruiți.'
+      )([
+        { old: null, new: '(1²) Al doilea text nou adăugat.' },
+        { old: null, new: '(1¹) Primul text nou adăugat.' },
+      ]);
+      expect(quotedText(result).split('\n')).toEqual([
+        '(1) Angajatorul comunică inspectoratului.',
+        '(1¹) Primul text nou adăugat.',
+        '(1²) Al doilea text nou adăugat.',
+        '(2) Lucrătorii sunt instruiți.',
+      ]);
+    });
+
+    it('needs a person for an alineat added within the quote that it cannot place', () => {
+      const result = quoteOf(
+        'Art. 13 alin. (1) – (3)',
+        '(1) Angajatorul comunică inspectoratului.',
+        '(3) Lucrătorii sunt instruiți.'
+      )([{ old: null, new: '(2¹) Text nou.' }]);
+      expect(result).toEqual({
+        status: 'needs-review',
+        problems: [
+          {
+            alineat: '2¹',
+            old: null,
+            new: '(2¹) Text nou.',
+            reason: 'it falls within the quote, but not between two lines the template quotes',
+          },
+        ],
+      });
+    });
+
+    it('needs a person when the template holds the old words once and the law twice', () => {
+      const result = quoteOf(
+        'Art. 13 alin. (1)',
+        '(1) Muncitorii sunt instruiți la angajare. Ucenicii se instruiesc la angajare.'
+      )([
+        {
+          old: '(1) Muncitorii sunt instruiți la angajare. Ucenicii sunt instruiți la angajare.',
+          new: '(1) Muncitorii sunt instruiți la angajare. Ucenicii sunt evaluați la angajare.',
+        },
+      ]);
+      expect(result.status).toBe('needs-review');
+      if (result.status !== 'needs-review') return;
+      expect(result.problems[0]!.reason).toBe(
+        'the old words are in the law 2 times, and the template does not hold the words around them that tell which: "instruiți" → "evaluați"'
+      );
+    });
   });
 });

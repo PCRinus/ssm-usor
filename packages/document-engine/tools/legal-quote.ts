@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import PizZip from 'pizzip';
@@ -41,39 +41,60 @@ export type LegalQuoteResult =
       copies: string[];
       markdown: string;
     }
-  | { status: 'needs-review'; problems: PatchProblem[]; markdown: string };
+  | { status: 'needs-review'; problems: PatchProblem[]; markdown: string }
+  /** The law changed only what the quote does not hold: nothing was written. */
+  | { status: 'nothing-to-apply'; notes: string[]; markdown: string };
 
 /** A manifest's text at the last release, by its path in the templates folder; null if absent. */
 export type ReleasedManifest = (path: string) => string | null;
 
-const releaseTag = /^\d{4}\.\d{2}\.\d{2}(?:\.\d+)?$/;
+const releaseTagPattern = /^\d{4}\.\d{2}\.\d{2}(?:\.\d+)?$/;
 
 // Production registers the templates when a release is deployed, tagged 2026.11.12 or
 // 2026.11.12.2 (deploy-production.yml): an entry that differs from the last tag's is pending.
-export function releasedManifestAt(ref?: string): ReleasedManifest {
-  const cwd = fileURLToPath(new URL('../templates/', import.meta.url));
-  const git = (...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8' });
-  const tag =
-    ref ??
-    git('tag', '--list')
-      .split('\n')
-      .filter((name) => releaseTag.test(name))
-      .sort((a, b) => {
-        const [x, y] = [a, b].map((name) => name.split('.').map(Number));
-        for (let index = 0; index < 4; index += 1) {
-          const difference = (x![index] ?? 0) - (y![index] ?? 0);
-          if (difference) return difference;
-        }
-        return 0;
-      })
-      .at(-1);
-  if (!tag) throw new Error('No release tag to compare the manifests with; pass --released.');
-  return (path) => {
+// The tag is looked up on the first manifest asked for, so a change with no manifest entry to
+// write needs no tag.
+export function releasedManifestAt(
+  ref?: string,
+  folder = fileURLToPath(new URL('../templates/', import.meta.url))
+): ReleasedManifest {
+  const git = (...args: string[]) => {
     try {
-      return git('show', `${tag}:./${path}`);
-    } catch {
-      return null;
+      return execFileSync('git', args, {
+        cwd: folder,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      const stderr = String((error as { stderr?: unknown }).stderr ?? '').trim();
+      throw new Error(`git ${args.join(' ')} failed${stderr ? `: ${stderr}` : '.'}`, {
+        cause: error,
+      });
     }
+  };
+  let tag: string | undefined;
+  const releaseTag = () => {
+    tag ??=
+      ref ??
+      git('tag', '--list')
+        .split('\n')
+        .filter((name) => releaseTagPattern.test(name))
+        .sort((a, b) => {
+          const [x, y] = [a, b].map((name) => name.split('.').map(Number));
+          for (let index = 0; index < 4; index += 1) {
+            const difference = (x![index] ?? 0) - (y![index] ?? 0);
+            if (difference) return difference;
+          }
+          return 0;
+        })
+        .at(-1);
+    if (!tag) throw new Error('No release tag to compare the manifests with; pass --released.');
+    return tag;
+  };
+  return (path) => {
+    const at = releaseTag();
+    if (!git('ls-tree', '--name-only', at, '--', path).trim()) return null;
+    return git('show', `${at}:./${path}`);
   };
 }
 
@@ -116,35 +137,66 @@ export function copiedPassageRange(source: Uint8Array, first: string, last: stri
   return { start: body[start]!.index, end: body[end]!.index, texts: body.slice(start, end + 1) };
 }
 
+/** Where each value of a JSON text is, by its path: ".templates.3.change". */
+function jsonSpans(text: string) {
+  const spans = new Map<string, { start: number; end: number }>();
+  let at = 0;
+  const space = () => {
+    while (/\s/.test(text[at] ?? '')) at += 1;
+  };
+  const string = () => {
+    const start = at;
+    for (at += 1; text[at] !== '"'; at += text[at] === '\\' ? 2 : 1) {
+      if (at >= text.length) throw new Error('A manifest string is not closed.');
+    }
+    at += 1;
+    return JSON.parse(text.slice(start, at)) as string;
+  };
+  const value = (path: string) => {
+    space();
+    const start = at;
+    const close = { '{': '}', '[': ']' }[text[at] as '{' | '['];
+    if (close) {
+      at += 1;
+      for (let index = 0; ; index += 1) {
+        space();
+        if (text[at] === close) break;
+        let key = String(index);
+        if (close === '}') {
+          key = string();
+          space();
+          at += 1;
+        }
+        value(`${path}.${key}`);
+        space();
+        if (text[at] === ',') at += 1;
+      }
+      at += 1;
+    } else if (text[at] === '"') string();
+    else while (at < text.length && !/[\s,}\]]/.test(text[at]!)) at += 1;
+    spans.set(path, { start, end: at });
+  };
+  value('');
+  return spans;
+}
+
+// The rest of the manifest keeps its own layout, which Prettier set; only the entry's change is
+// written anew, in the layout Prettier keeps for an object that opens on its own line.
 function recordChange(manifestText: string, file: string, change: TemplateChange) {
   const manifest = JSON.parse(manifestText) as { templates: { file: string; change: unknown }[] };
-  const entry = manifest.templates.find((each) => each.file === file);
-  if (!entry) throw new Error(`No manifest entry for ${file}.`);
-  entry.change = change;
-  const rewritten = `${JSON.stringify(manifest, null, 2)}\n`;
-
-  // The rest of the manifest keeps its own layout, which Prettier set; only the entry's change
-  // is written anew.
-  const fileAt = manifestText.indexOf(`"file": ${JSON.stringify(file)}`);
-  const key = fileAt === -1 ? -1 : manifestText.indexOf('"change":', fileAt);
-  if (key === -1) return rewritten;
-  const open = manifestText.indexOf('{', key);
-  let depth = 0;
-  let inString = false;
-  let close = open;
-  for (; close < manifestText.length; close += 1) {
-    const char = manifestText[close]!;
-    if (inString) {
-      if (char === '\\') close += 1;
-      else if (char === '"') inString = false;
-    } else if (char === '"') inString = true;
-    else if (char === '{') depth += 1;
-    else if (char === '}' && --depth === 0) break;
-  }
-  const indent = /[^\S\n]*$/.exec(manifestText.slice(0, key))![0];
+  const index = manifest.templates.findIndex((each) => each.file === file);
+  if (index === -1) throw new Error(`No manifest entry for ${file}.`);
+  manifest.templates[index]!.change = change;
+  const span = jsonSpans(manifestText).get(`.templates.${index}.change`);
+  if (!span) throw new Error(`The manifest entry of ${file} has no change to replace.`);
+  const lineStart = manifestText.lastIndexOf('\n', span.start) + 1;
+  const indent = /^[^\S\n]*/.exec(manifestText.slice(lineStart))![0];
   const value = JSON.stringify(change, null, 2).replace(/\n/g, `\n${indent}`);
-  const text = manifestText.slice(0, open) + value + manifestText.slice(close + 1);
-  return JSON.stringify(JSON.parse(text)) === JSON.stringify(manifest) ? text : rewritten;
+  const text = manifestText.slice(0, span.start) + value + manifestText.slice(span.end);
+  if (JSON.stringify(JSON.parse(text)) !== JSON.stringify(manifest)) {
+    throw new Error(`The change of ${file} could not be written into its manifest entry.`);
+  }
+  return text;
 }
 
 const manifestOf = (file: string) => {
@@ -175,12 +227,46 @@ function changeOf(
   };
 }
 
+// Each file is written beside its target first and renamed over it once all are written: a
+// failure while writing leaves the folder as it was, not a template without its index.
+function writeAll(templates: URL, files: Map<string, Uint8Array | string>) {
+  const staged: [string, string][] = [];
+  try {
+    for (const [path, contents] of files) {
+      const target = fileURLToPath(new URL(path, templates));
+      const temporary = `${target}.${process.pid}.tmp`;
+      staged.push([temporary, target]);
+      writeFileSync(temporary, contents);
+    }
+  } catch (error) {
+    for (const [temporary] of staged) rmSync(temporary, { force: true });
+    throw error;
+  }
+  for (const [temporary, target] of staged) renameSync(temporary, target);
+}
+
+const unsafePath = (file: string) =>
+  file.startsWith('/') ||
+  file.includes('\\') ||
+  /^[a-z]+:/i.test(file) ||
+  file.split('/').some((part) => part === '' || part === '.' || part === '..');
+
 export function replaceLegalQuote(
   templates: URL,
   input: LegalQuoteInput,
   released: ReleasedManifest = releasedManifestAt()
 ): LegalQuoteResult {
-  const read = (file: string) => new Uint8Array(readFileSync(new URL(file, templates)));
+  const file = input.citation.file;
+  if (typeof file !== 'string' || unsafePath(file)) {
+    throw new Error(`${JSON.stringify(file)} is not a path in the templates folder.`);
+  }
+  const sources = templateSources(templates);
+  const originals = new Map(sources.map((source) => [source.file, source.source]));
+  const read = (path: string) => {
+    const bytes = originals.get(path);
+    if (!bytes) throw new Error(`${path} is not a template a manifest lists.`);
+    return bytes;
+  };
   const { words: dictionary } = JSON.parse(readFileSync(dictionaryUrl, 'utf8')) as {
     words: Record<string, string>;
   };
@@ -196,8 +282,8 @@ export function replaceLegalQuote(
     if (problems.length) throw new Error(`The change cannot be recorded: ${problems.join('; ')}.`);
   }
 
-  const file = input.citation.file;
   const original = read(file);
+  const heading = `**${file}**: ${acts.acts.find((act) => act.id === input.citation.act)?.name ?? input.citation.act}, ${input.citation.locator}`;
   let replaced: ReturnType<typeof replaceQuote>;
   if ('changes' in input) {
     const patched = patchQuote(original, input, { dictionary });
@@ -206,11 +292,22 @@ export function replaceLegalQuote(
         status: 'needs-review',
         problems: patched.problems,
         markdown: [
-          `**${file}**: ${acts.acts.find((act) => act.id === input.citation.act)?.name ?? input.citation.act}, ${input.citation.locator} needs a person:`,
+          `${heading} needs a person:`,
           '',
           ...patched.problems.map(
             (problem) => `- ${problem.alineat ? `(${problem.alineat}) ` : ''}${problem.reason}`
           ),
+        ].join('\n'),
+      };
+    }
+    if (patched.status === 'nothing-to-apply') {
+      return {
+        status: 'nothing-to-apply',
+        notes: patched.notes,
+        markdown: [
+          `${heading}: nothing to apply, the quote holds none of what changed:`,
+          '',
+          ...patched.notes.map((note) => `- ${note}`),
         ].join('\n'),
       };
     }
@@ -272,19 +369,16 @@ export function replaceLegalQuote(
     manifests.set(manifest, recordChange(manifests.get(manifest)!, next.name, next.change));
   }
 
-  for (const [path, bytes] of outputs) writeFileSync(new URL(path, templates), bytes);
-  const written = [...outputs.keys()];
-  if (written.length) {
-    writeFileSync(
-      new URL('citations.json', templates),
-      serializeIndex(buildCitationIndex(templateSources(templates)))
+  const files = new Map<string, Uint8Array | string>(outputs);
+  if (outputs.size) {
+    const index = buildCitationIndex(
+      sources.map((source) => ({ ...source, source: outputs.get(source.file) ?? source.source }))
     );
-    written.push('citations.json');
+    files.set('citations.json', serializeIndex(index));
   }
-  for (const [manifest, text] of manifests) {
-    writeFileSync(new URL(manifest, templates), text);
-    written.push(manifest);
-  }
+  for (const [manifest, text] of manifests) files.set(manifest, text);
+  writeAll(templates, files);
+  const written = [...files.keys()];
 
   const copies = [...outputs.keys()].filter((path) => path !== file);
   const markdown = [
