@@ -1,37 +1,35 @@
 ---
-import BillingToggle from '../../components/site/BillingToggle.astro';
 import PaymentFacts from '../../components/site/PaymentFacts.astro';
 import PlanCards from '../../components/site/PlanCards.astro';
 import {
-  addOns,
   billing,
   type Cell,
   comingSoon,
   compare,
+  defaultPeriod,
   enterprise,
-  monthlyPrice,
-  pricedPlans,
+  eur,
+  perMonth,
   pricingCta,
   pricingLinks,
   pricingPage,
+  steppedPlans,
 } from '../../components/site/pricing';
 import { jsonForScript, pricingStructuredData } from '../../components/site/structuredData';
 import FluxLayout from '../../layouts/FluxLayout.astro';
 
 const structuredData = jsonForScript(pricingStructuredData(Astro.site ?? Astro.url));
-const [start] = pricedPlans;
 const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' : 'text');
 ---
 
 <FluxLayout title={pricingPage.title} description={pricingPage.description} current="/preturi/">
   <script slot="head" type="application/ld+json" set:html={structuredData} />
-  <div class="page" data-billing-scope data-billing="monthly">
+  <div class="page" data-billing-scope data-billing={defaultPeriod}>
     <div class="wrap">
       <header class="head">
         <span class="eyebrow">{pricingPage.eyebrow}</span>
         <h1>{pricingPage.heading}</h1>
         <p class="intro">{pricingPage.intro}</p>
-        <BillingToggle placement="pricing_page" />
       </header>
 
       <section class="cards" id="planuri" aria-label="Planuri">
@@ -50,29 +48,14 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
         </p>
       </section>
 
-      <div class="extras">
-        <section class="addons" aria-labelledby="addons-title">
-          <h2 id="addons-title">{addOns.title}</h2>
-          {addOns.items.map((item) => (
-            <div class="addon">
-              <span>
-                {item.label}
-                {item.hint && <span class="hint">{item.hint}</span>}
-              </span>
-              <strong>{item.price}</strong>
-            </div>
+      <section class="soon" aria-labelledby="soon-title">
+        <h2 id="soon-title">{comingSoon.title}</h2>
+        <ul>
+          {comingSoon.items.map((item) => (
+            <li>{item}</li>
           ))}
-          <p class="note">{addOns.note}</p>
-        </section>
-        <section class="soon" aria-labelledby="soon-title">
-          <h2 id="soon-title">{comingSoon.title}</h2>
-          <ul>
-            {comingSoon.items.map((item) => (
-              <li>{item}</li>
-            ))}
-          </ul>
-        </section>
-      </div>
+        </ul>
+      </section>
 
       <section class="compare" id="compara" aria-labelledby="compare-title">
         <h2 id="compare-title">{compare.title}</h2>
@@ -83,24 +66,22 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
                 <th scope="col" class="what">
                   {compare.firstColumn}
                 </th>
-                {pricedPlans.map((plan, index) => (
-                  <th scope="col" class:list={['plancol', { hl: index === 0 }]}>
+                {steppedPlans.map((plan) => (
+                  <th scope="col" class="plancol">
                     <div class="colhead">
-                      {plan.badge ? (
-                        <span class="badge">{plan.badge}</span>
-                      ) : (
-                        <span class="badge-space" />
-                      )}
                       <span class="name">{plan.name}</span>
                       <span class="price">
+                        <span class="from">{compare.from}</span>
                         <span class="amt">
-                          <span class="when-monthly">{monthlyPrice(plan, 'monthly')}</span>
-                          <span class="when-annual">{monthlyPrice(plan, 'annual')}</span>
+                          <span class="when-monthly">{eur(plan.firstPrice)}</span>
+                          <span class="when-annual">
+                            {eur(perMonth(plan.firstPrice, 'annual'))}
+                          </span>
                         </span>
                         <span class="per">{billing.perMonth}</span>
                       </span>
                       <a
-                        class:list={['colcta', { filled: plan === start }]}
+                        class="colcta"
                         href={pricingCta.href}
                         data-track="cta_clicked"
                         data-track-prop-target="notify"
@@ -114,9 +95,11 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
                 ))}
                 <th scope="col" class="plancol">
                   <div class="colhead">
-                    <span class="badge-space"></span>
-                    <span class="name">Enterprise</span>
+                    <span class="name">{enterprise.name}</span>
                     <span class="price">
+                      <span class="from" aria-hidden="true">
+                        &nbsp;
+                      </span>
                       <span class="amt ask">{compare.enterpriseAsk}</span>
                       <span class="per">{enterprise.askNote}</span>
                     </span>
@@ -144,8 +127,8 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
                 {group.rows.map((row) => (
                   <tr class="row">
                     <th scope="row">{row.label}</th>
-                    {row.cells.map((cell, index) => (
-                      <td class:list={{ hl: index === 0 }}>
+                    {row.cells.map((cell) => (
+                      <td>
                         {cellKind(cell) === 'yes' && (
                           <svg
                             width="20"
@@ -242,56 +225,19 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     font-weight: 600;
   }
 
-  .extras {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-  }
-  .extras h2 {
-    font-family: var(--sans);
-    font-size: 18px;
-    letter-spacing: 0;
-    line-height: 1.4;
-  }
-  .addons,
   .soon {
     display: flex;
     flex-direction: column;
     gap: 14px;
     padding: 28px;
+    border: 1px dashed #b9c4bd;
     border-radius: 18px;
   }
-  .addons {
-    background: var(--lime-soft);
-  }
-  .addon {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 16px;
-  }
-  .addon:not(:last-of-type) {
-    padding-bottom: 12px;
-    border-bottom: 1px solid #c9dba3;
-  }
-  .addon > span {
-    display: flex;
-    flex-direction: column;
-  }
-  .hint {
-    color: var(--moss);
-    font-size: 14px;
-  }
-  .addon strong {
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-  .note {
-    color: var(--moss);
-    font-size: 14px;
-  }
-  .soon {
-    border: 1px dashed #b9c4bd;
+  .soon h2 {
+    font-family: var(--sans);
+    font-size: 18px;
+    letter-spacing: 0;
+    line-height: 1.4;
   }
   .soon ul {
     display: flex;
@@ -344,27 +290,12 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     padding: 28px 20px;
     border-left: 1px solid var(--line);
     text-align: left;
-    /* A badge that wraps grows upwards, so names, prices and buttons stay level across columns. */
     vertical-align: bottom;
-  }
-  .plancol.hl {
-    background: var(--lime-soft);
   }
   .colhead {
     display: flex;
     flex-direction: column;
     gap: 6px;
-  }
-  .badge {
-    align-self: flex-start;
-    padding: 2px 10px;
-    border-radius: 999px;
-    background: var(--lime);
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .badge-space {
-    height: 21px;
   }
   .name {
     font-family: var(--display);
@@ -376,6 +307,12 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     flex-wrap: wrap;
     align-items: baseline;
     gap: 6px;
+  }
+  .from {
+    flex-basis: 100%;
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 500;
   }
   .amt {
     font-family: var(--display);
@@ -407,14 +344,6 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     font-weight: 600;
     text-decoration: none;
   }
-  .colcta.filled {
-    background: var(--ink);
-    color: #fff;
-  }
-  .colcta.filled:hover {
-    background: var(--moss);
-    color: #fff;
-  }
   .group {
     padding: 22px 24px 10px;
     border-top: 1px solid var(--line);
@@ -437,9 +366,6 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     padding: 14px 20px;
     border-left: 1px solid #eef1ee;
     vertical-align: middle;
-  }
-  .row td.hl {
-    background: #f6f9ee;
   }
   .row svg {
     display: block;
@@ -507,7 +433,6 @@ const cellKind = (cell: Cell) => (cell === true ? 'yes' : cell === false ? 'no' 
     .compare h2 {
       font-size: 28px;
     }
-    .addons,
     .soon {
       padding: 24px 20px;
     }

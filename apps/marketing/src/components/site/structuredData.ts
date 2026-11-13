@@ -1,24 +1,28 @@
 import { type Faq, faq, links, page } from './copy';
 import { legalEntity } from './legal';
-import { pricedPlans, pricingLinks, pricingPage } from './pricing';
+import { monthlyAt, paidYearly, pricingLinks, pricingPage, steppedPlans, steps } from './pricing';
 
 function offers(site: URL) {
   const url = new URL(pricingLinks.page, site).href;
-  const price = (value: number, duration: string) => ({
+  const price = (value: number, duration: string, workers: number) => ({
     '@type': 'UnitPriceSpecification',
     price: value,
     priceCurrency: 'EUR',
     billingDuration: duration,
     valueAddedTaxIncluded: false,
+    eligibleQuantity: { '@type': 'QuantitativeValue', maxValue: workers, unitText: 'lucrători' },
   });
-  return pricedPlans.map((plan) => ({
+  return steppedPlans.map((plan) => ({
     '@type': 'Offer',
     name: plan.name,
     description: plan.who,
     url,
-    price: plan.monthly,
+    price: plan.firstPrice,
     priceCurrency: 'EUR',
-    priceSpecification: [price(plan.monthly, 'P1M'), price(plan.annual, 'P1Y')],
+    priceSpecification: steps(plan).flatMap((step) => [
+      price(monthlyAt(plan, step), 'P1M', step),
+      price(paidYearly(monthlyAt(plan, step)), 'P1Y', step),
+    ]),
   }));
 }
 

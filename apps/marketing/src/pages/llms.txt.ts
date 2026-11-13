@@ -2,13 +2,20 @@ import type { APIRoute } from 'astro';
 
 import { faq, footer, hero, links, nav, navHref, page, steps } from '../components/site/copy';
 import {
-  addOns,
+  aiCredits,
   calculator,
+  count,
   enterprise,
   eur,
-  pricedPlans,
+  monthlyAt,
+  paidYearly,
+  perMonth,
   pricingLinks,
   pricingPage,
+  smsCodes,
+  steppedPlans,
+  steps as planSteps,
+  welcomeCredits,
 } from '../components/site/pricing';
 
 function llmsTxt(site: URL): string {
@@ -21,26 +28,28 @@ function llmsTxt(site: URL): string {
     `- [${calculator.heading}](${url(pricingLinks.calculator)})`,
     ...footer.legal.map((item) => `- [${item.label}](${url(item.href)})`),
   ];
-  const questions = faq.items.map((item) => `### ${item.q}\n\n${item.a}`);
-  const planBlock = (heading: string, lead: string | undefined, lines: { text: string }[]) =>
-    [heading, ...(lead ? [`  ${lead}`] : []), ...lines.map((line) => `  - ${line.text}`)].join(
-      '\n'
-    );
+  const planBlock = (heading: string, lines: { text: string }[]) =>
+    [heading, ...lines.map((line) => `  - ${line.text}`)].join('\n');
+  const stepLine = (plan: (typeof steppedPlans)[number], step: number) => {
+    const monthly = monthlyAt(plan, step);
+    return {
+      text: `Până la ${count(step, 'lucrători')}: ${eur(monthly)} + TVA pe lună, sau ${eur(perMonth(monthly, 'annual'))} pe lună plătit anual (${eur(paidYearly(monthly))} + TVA pe an); ${count(smsCodes(step), 'coduri SMS')} și ${count(aiCredits(step), 'credite AI')} pe lună, ${count(welcomeCredits(step), 'credite AI')} de bun venit.`,
+    };
+  };
   const plans = [
-    ...pricedPlans.map((plan) =>
-      planBlock(
-        `- ${plan.name}: ${eur(plan.monthly)} + TVA pe lună sau ${eur(plan.annual)} + TVA pe an. ${plan.who}`,
-        plan.lead,
-        plan.lines
-      )
+    ...steppedPlans.map((plan) =>
+      planBlock(`- ${plan.name}: ${plan.who}`, [
+        ...planSteps(plan).map((step) => stepLine(plan, step)),
+        ...plan.lines,
+      ])
     ),
     planBlock(
-      `- ${enterprise.name}: ${enterprise.ask.toLowerCase()}. ${enterprise.who}`,
-      enterprise.lead,
+      `- ${enterprise.name}: ${calculator.enterpriseAsk.toLowerCase()}. ${enterprise.who}`,
       enterprise.lines
     ),
-    ...addOns.items.map((item) => `- ${item.label}: ${item.price}`),
   ];
+  const questions = faq.items.map((item) => `### ${item.q}\n\n${item.a}`);
+  const pricingQuestions = pricingPage.faq.map((item) => `### ${item.q}\n\n${item.a}`);
 
   return (
     [
@@ -48,7 +57,7 @@ function llmsTxt(site: URL): string {
       `> ${page.description}`,
       hero.lede,
       `${steps.title}\n\n${stepLines.join('\n')}`,
-      `## Prețuri\n\n${pricingPage.intro} ${pricingPage.footnote}\n\n${plans.join('\n')}`,
+      `## Prețuri\n\n${pricingPage.intro} ${pricingPage.footnote}\n\n${plans.join('\n')}\n\n${pricingQuestions.join('\n\n')}`,
       `Contact: ${links.email}`,
       `## Pagini\n\n${pageLinks.join('\n')}`,
       `## ${faq.title}\n\n${questions.join('\n\n')}`,

@@ -9,14 +9,17 @@ export interface PlanLine {
   bold?: string;
 }
 
-export interface PricedPlan {
+export interface SteppedPlan {
   id: 'start' | 'profesional';
   name: string;
   who: string;
-  badge?: string;
-  monthly: number;
-  annual: number;
-  lead?: string;
+  users: number;
+  firstStep: number;
+  stepSize: number;
+  lastStep: number;
+  firstPrice: number;
+  /** Added to the monthly price for each step above the first. */
+  stepPrice: number;
   lines: PlanLine[];
 }
 
@@ -26,17 +29,18 @@ export interface QuotedPlan {
   who: string;
   ask: string;
   askNote: string;
-  lead: string;
   lines: PlanLine[];
 }
 
 const quoteSubject = encodeURIComponent('Ofertă Enterprise SSM Ușor');
 
+export const trialDays = 14;
+
 export const pricingCta = {
   label: 'Anunță-mă când se deschid conturile',
   short: 'Anunță-mă',
   href: '/#cont',
-  note: 'La lansare: 30 de zile gratuite, fără card.',
+  note: `La lansare: ${trialDays} zile gratuite, fără card.`,
   quote: 'Cere o ofertă',
   quoteHref: `mailto:${links.email}?subject=${quoteSubject}`,
   quoteNote: 'Îți răspundem cu o ofertă pe email.',
@@ -49,36 +53,43 @@ export const billing = {
   perMonth: '+ TVA pe lună',
 };
 
-export const start: PricedPlan = {
+export const defaultPeriod: BillingPeriod = 'annual';
+
+export const start: SteppedPlan = {
   id: 'start',
   name: 'Start',
-  who: 'Pentru specialistul care lucrează singur.',
-  badge: 'Pentru specialiștii independenți',
-  monthly: 39,
-  annual: 390,
+  who: 'Tot ce îți trebuie ca să ții la zi SSM și SU pentru toți clienții tăi.',
+  users: 3,
+  firstStep: 250,
+  stepSize: 250,
+  lastStep: 750,
+  firstPrice: 39,
+  stepPrice: 20,
   lines: [
-    { text: 'Oricâți clienți', bold: 'Oricâți clienți' },
-    { text: 'Până la 250 de lucrători la clienții tăi', bold: '250 de lucrători' },
-    { text: 'Documentele SSM și SU, completate din datele clientului' },
-    { text: 'Fișe de instruire semnate de lucrători pe telefon' },
-    { text: 'Clientul vede instruirile și fișele lucrătorilor, fără să te sune' },
-    { text: 'Un utilizator; al doilea costă 15 € pe lună' },
+    { text: 'Oricâți clienți' },
+    { text: '3 utilizatori' },
+    { text: 'Documente SSM și SU din datele clientului' },
+    { text: 'Fișe de instruire semnate pe telefon' },
+    { text: 'Clientul vede instruirile fără să te sune' },
   ],
 };
 
-export const profesional: PricedPlan = {
+export const profesional: SteppedPlan = {
   id: 'profesional',
   name: 'Profesional',
-  who: 'Pentru firmele cu o echipă de specialiști.',
-  monthly: 149,
-  annual: 1490,
-  lead: 'Tot ce include Start, plus:',
+  who: 'Pentru firma care crește: clienți noi, munca împărțită, ajutor mai repede.',
+  users: 10,
+  firstStep: 500,
+  stepSize: 500,
+  lastStep: 5000,
+  firstPrice: 89,
+  stepPrice: 30,
   lines: [
-    { text: 'Până la 1.500 de lucrători la clienții tăi', bold: '1.500 de lucrători' },
-    { text: '3 utilizatori, apoi 15 € pe lună pentru fiecare', bold: '3 utilizatori' },
+    { text: 'Tot ce include Start' },
+    { text: '10 utilizatori' },
     { text: 'Fiecare coleg își vede clienții lui' },
-    { text: 'Documente fără marca SSM Ușor' },
-    { text: 'Suport prioritar, cu răspuns în aceeași zi lucrătoare' },
+    { text: 'Oferte și contracte pentru clienți noi' },
+    { text: 'Suport în aceeași zi lucrătoare' },
   ],
 };
 
@@ -86,18 +97,57 @@ export const enterprise: QuotedPlan = {
   id: 'enterprise',
   name: 'Enterprise',
   who: 'Pentru firmele mari de servicii externe.',
-  ask: 'Ofertă personalizată',
-  askNote: 'După mărimea firmei tale',
-  lead: 'Tot ce include Profesional, plus:',
+  ask: 'Ofertă',
+  askNote: 'după mărimea firmei tale',
   lines: [
-    { text: 'Peste 1.500 de lucrători și oricâți utilizatori' },
-    { text: 'Te ajutăm să-ți aduci clienții existenți' },
-    { text: 'Autentificare unică cu contul firmei, la cerere' },
-    { text: 'Acord de prelucrare a datelor după cerințele firmei tale' },
+    { text: 'Tot ce include Profesional' },
+    { text: 'Oricâți lucrători și utilizatori' },
+    { text: 'Te ajutăm să-ți aduci clienții' },
+    { text: 'Autentificare cu contul firmei' },
+    { text: 'Acord de date după cerințele tale' },
   ],
 };
 
-export const pricedPlans = [start, profesional];
+export const steppedPlans = [start, profesional];
+
+export const maxWorkers = profesional.lastStep;
+export const maxUsers = profesional.users;
+
+export function steps(plan: SteppedPlan): number[] {
+  const result: number[] = [];
+  for (let step = plan.firstStep; step <= plan.lastStep; step += plan.stepSize) result.push(step);
+  return result;
+}
+
+/** The smallest step that covers `workers`, or undefined past the plan's last step. */
+export function stepFor(plan: SteppedPlan, workers: number): number | undefined {
+  return steps(plan).find((step) => step >= workers);
+}
+
+export function monthlyAt(plan: SteppedPlan, step: number): number {
+  return plan.firstPrice + (plan.stepPrice * (step - plan.firstStep)) / plan.stepSize;
+}
+
+/** What a month costs when paid in the given period: annual pays ten months for twelve, rounded down. */
+export function perMonth(monthly: number, period: BillingPeriod): number {
+  return period === 'monthly' ? monthly : Math.floor((monthly * 10) / 12);
+}
+
+export function paidYearly(monthly: number): number {
+  return perMonth(monthly, 'annual') * 12;
+}
+
+export const smsCodes = (step: number) => step / 5;
+export const aiCredits = (step: number) => 2 * step + 250;
+export const welcomeCredits = (step: number) => Math.min(10 * step, 10_000);
+
+export const extras = { sms: 0.1, credits: 1.5, creditsPer: 100 };
+
+/** The pricing section's slider: every step of either plan, then null for past the last one. */
+export const workerStops: (number | null)[] = [
+  ...[...new Set(steppedPlans.flatMap(steps))].sort((a, b) => a - b),
+  null,
+];
 
 const whole = new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 0 });
 const cents = new Intl.NumberFormat('ro-RO', {
@@ -109,22 +159,120 @@ export function eur(value: number): string {
   return `${(Number.isInteger(value) ? whole : cents).format(value)} €`;
 }
 
-export function monthlyPrice(plan: PricedPlan, period: BillingPeriod): string {
-  return eur(period === 'monthly' ? plan.monthly : Math.round((plan.annual / 12) * 100) / 100);
+export const num = (n: number) => whole.format(n);
+
+/** Romanian puts "de" between a number and its noun from 20 up, unless the last two digits are 01–19. */
+function de(n: number): string {
+  const rest = n % 100;
+  return n >= 20 && (rest === 0 || rest >= 20) ? ' de ' : ' ';
 }
 
-export function annualNote(plan: PricedPlan): string {
-  return `Plătit o dată pe an: ${eur(plan.annual)} + TVA`;
+export function count(n: number, noun: string): string {
+  return `${num(n)}${de(n)}${noun}`;
 }
 
-export const addOns = {
-  title: 'Ai mai mulți clienți? Adaugi doar ce-ți lipsește.',
-  items: [
-    { label: '50 de lucrători în plus', hint: 'aproximativ 15 clienți mici', price: '15 € / lună' },
-    { label: 'Un coleg în plus', price: '15 € / lună' },
-  ],
-  note: 'Dacă treci de limită, lucrezi mai departe cu tot ce ai. Îți propunem un pachet, iar după o lună, ca să adaugi lucrători noi, îl adaugi întâi.',
+const keep = (text: string) => text.replaceAll(' ', '\u00a0');
+const extraLine = `Extra, doar dacă le pornești: ${keep(`${eur(extras.sms)} / SMS`)} · ${keep(`${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')}`)}`;
+const overText = `Peste ${count(maxWorkers, 'lucrători')}, îți facem o ofertă.`;
+
+export const pricingSection = {
+  title: 'Un abonament pentru tot portofoliul, nu pentru fiecare client.',
+  intro:
+    'Plătești după câți lucrători au clienții tăi, în total. Orice plan include documentele SSM și SU, instruirile, testele și semnăturile lucrătorilor.',
+  calculator: 'Calculează cât plătești',
+  compare: 'Compară planurile',
+  workers: 'Lucrători la clienții tăi:',
+  recommended: 'Recomandat',
+  aiLink: 'credite AI',
+  aiHref: '/#ai',
+  terms:
+    'Prețurile sunt în euro, fără TVA. Peste ce e inclus plătești doar dacă pornești tu plata pentru extra.',
+  enterpriseAllowance: `Peste ${count(maxWorkers, 'lucrători')} sau peste ${maxUsers} utilizatori`,
+  enterpriseExtra: 'Coduri SMS și credite AI după nevoie',
 };
+
+export const defaultStop = workerStops.indexOf(500);
+
+export function stopLabel(stop: number | null): string {
+  return stop === null ? `${num(maxWorkers)}+` : num(stop);
+}
+
+export function workersShort(stop: number | null): string {
+  return stop === null ? `peste ${num(maxWorkers)}` : num(stop);
+}
+
+export function workersText(stop: number | null): string {
+  return stop === null ? `Peste ${count(maxWorkers, 'lucrători')}` : count(stop, 'lucrători');
+}
+
+export type Allowance = { text: string } | { before: string; after: string };
+
+export interface CardState {
+  id: SteppedPlan['id'] | QuotedPlan['id'];
+  recommended: boolean;
+  dim: boolean;
+  price: string;
+  yearly: string;
+  allowance: Allowance;
+  extra: string;
+}
+
+function included(step: number): Allowance {
+  const credits = aiCredits(step);
+  return {
+    before: `${count(smsCodes(step), 'coduri SMS')} și ${num(credits)}${de(credits)}`,
+    after: ' pe lună',
+  };
+}
+
+function pricedCard(
+  plan: SteppedPlan,
+  step: number,
+  period: BillingPeriod,
+  state: Pick<CardState, 'recommended' | 'dim'> & { note?: string }
+): CardState {
+  const monthly = monthlyAt(plan, step);
+  return {
+    id: plan.id,
+    recommended: state.recommended,
+    dim: state.dim,
+    price: eur(perMonth(monthly, period)),
+    yearly: period === 'annual' ? `plătit anual: ${eur(paidYearly(monthly))} + TVA` : '',
+    allowance: state.note ? { text: state.note } : included(step),
+    extra: state.note ? '' : extraLine,
+  };
+}
+
+export function cardStates(workers: number | null, period: BillingPeriod): CardState[] {
+  const startStep = workers === null ? undefined : stepFor(start, workers);
+  const profStep = workers === null ? undefined : stepFor(profesional, workers);
+  const recommended = startStep ? 'start' : profStep ? 'profesional' : 'enterprise';
+  return [
+    pricedCard(start, startStep ?? start.lastStep, period, {
+      recommended: recommended === 'start',
+      dim: !startStep,
+      note: startStep
+        ? undefined
+        : workers === null
+          ? overText
+          : `Pentru ${count(workers, 'lucrători')}, alege ${profesional.name}.`,
+    }),
+    pricedCard(profesional, profStep ?? profesional.lastStep, period, {
+      recommended: recommended === 'profesional',
+      dim: !profStep,
+      note: profStep ? undefined : overText,
+    }),
+    {
+      id: enterprise.id,
+      recommended: recommended === 'enterprise',
+      dim: false,
+      price: enterprise.ask,
+      yearly: '',
+      allowance: { text: pricingSection.enterpriseAllowance },
+      extra: pricingSection.enterpriseExtra,
+    },
+  ];
+}
 
 export const paymentFacts = {
   label: 'Plata și factura',
@@ -152,9 +300,19 @@ export interface CompareRow {
   cells: [Cell, Cell, Cell];
 }
 
+function stepList(plan: SteppedPlan, format: (step: number) => string): string {
+  const all = steps(plan).map(format);
+  return all.length <= 3
+    ? `${all.slice(0, -1).join(', ')} sau ${all.at(-1)}`
+    : `de la ${all[0]} la ${all.at(-1)}`;
+}
+
+const extrasCell = `${keep(`${eur(extras.sms)} / SMS`)}, ${keep(`${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')}`)}`;
+
 export const compare = {
   title: 'Compară planurile',
   firstColumn: 'Ce primești',
+  from: 'de la',
   enterpriseAsk: 'La cerere',
   included: 'inclus',
   notIncluded: 'nu este inclus',
@@ -162,19 +320,18 @@ export const compare = {
     {
       title: 'Mărime',
       rows: [
-        { label: 'Clienți și oferte', cells: ['Oricâți', 'Oricâți', 'Oricâți'] },
+        { label: 'Clienți', cells: ['Oricâți', 'Oricâți', 'Oricâți'] },
         {
           label: 'Lucrători la clienții tăi',
-          cells: ['Până la 250', 'Până la 1.500', 'După nevoie'],
+          cells: [
+            stepList(start, num),
+            `${stepList(profesional, num)}, din ${num(profesional.stepSize)} în ${num(profesional.stepSize)}`,
+            `Peste ${num(maxWorkers)}`,
+          ],
         },
         {
-          label: 'Lucrători în plus',
-          cells: ['15 € pentru 50, până la 600', '40 € pentru 500', 'În ofertă'],
-        },
-        { label: 'Utilizatori', cells: ['1', '3', 'După nevoie'] },
-        {
-          label: 'Utilizator în plus',
-          cells: ['15 € pe lună, doar unul', '15 € pe lună fiecare', 'În ofertă'],
+          label: 'Utilizatori',
+          cells: [String(start.users), String(profesional.users), `Peste ${maxUsers}`],
         },
       ],
     },
@@ -185,6 +342,10 @@ export const compare = {
         { label: 'Documentele pentru situații de urgență', cells: [true, true, true] },
         { label: 'Evaluarea riscurilor pe posturi', cells: [true, true, true] },
         { label: 'Instrucțiunile tale proprii, incluse în documente', cells: [true, true, true] },
+        {
+          label: 'Oferte și contracte pentru firmele care nu îți sunt încă clienți',
+          cells: [false, true, true],
+        },
         { label: 'Documente fără marca SSM Ușor', cells: [false, true, true] },
       ],
     },
@@ -194,19 +355,40 @@ export const compare = {
         { label: 'Instruiri la zi și fișe individuale', cells: [true, true, true] },
         { label: 'Teste de verificare', cells: [true, true, true] },
         { label: 'Semnătură electronică avansată', cells: ['Inclusă', 'Inclusă', 'Inclusă'] },
+        { label: 'Clientul vede instruirile și fișele lucrătorilor', cells: [true, true, true] },
+      ],
+    },
+    {
+      title: 'Coduri SMS și credite AI',
+      rows: [
         {
           label: 'Coduri de semnare prin SMS, pe lună',
-          cells: ['50, apoi 0,10 € fiecare', '300, apoi 0,10 € fiecare', 'După nevoie'],
-        },
-        {
-          label: 'Credite pentru importul din documente și fișe',
           cells: [
-            '300 pe lună + 2.500 la prima plată',
-            '1.500 pe lună + 10.000 la prima plată',
+            `Unul la 5 lucrători: ${stepList(start, (step) => num(smsCodes(step)))}`,
+            `Unul la 5 lucrători: ${stepList(profesional, (step) => num(smsCodes(step)))}`,
             'După nevoie',
           ],
         },
-        { label: 'Clientul vede instruirile și fișele lucrătorilor', cells: [true, true, true] },
+        {
+          label: 'Credite AI, pe lună',
+          cells: [
+            `2 la fiecare lucrător, plus 250: ${stepList(start, (step) => num(aiCredits(step)))}`,
+            `2 la fiecare lucrător, plus 250: ${stepList(profesional, (step) => num(aiCredits(step)))}`,
+            'După nevoie',
+          ],
+        },
+        {
+          label: 'Credite AI de bun venit, o dată, la prima plată',
+          cells: [
+            `10 la fiecare lucrător: ${stepList(start, (step) => num(welcomeCredits(step)))}`,
+            `10 la fiecare lucrător, cel mult ${num(welcomeCredits(Infinity))}`,
+            'În ofertă',
+          ],
+        },
+        {
+          label: 'Peste ce e inclus, doar dacă pornești plata pentru extra',
+          cells: [extrasCell, extrasCell, 'În ofertă'],
+        },
       ],
     },
     {
@@ -229,14 +411,14 @@ export const compare = {
   ] satisfies { title: string; rows: CompareRow[] }[],
 };
 
+const fromPrices = `Start de la ${eur(start.firstPrice)}, Profesional de la ${eur(profesional.firstPrice)}`;
+
 export const pricingPage = {
-  title: 'Prețuri: program SSM și SU de la 39 € pe lună | SSM Ușor',
-  description:
-    'Start 39 €, Profesional 149 € pe lună + TVA, cu oricâți clienți. Prețul depinde de câți lucrători au clienții tăi. La lansare: 30 de zile gratuite.',
+  title: `Prețuri: program SSM și SU de la ${eur(start.firstPrice)} pe lună | SSM Ușor`,
+  description: `${fromPrices} pe lună + TVA, cu oricâți clienți. Prețul depinde de câți lucrători au clienții tăi. La lansare: ${trialDays} zile gratuite.`,
   eyebrow: 'Prețuri',
-  heading: 'Toți clienții tăi, de la 39 € pe lună',
-  intro:
-    'Prețul depinde de câți lucrători au clienții tăi, în total. Orice plan include documentele SSM și SU, instruirile, testele și semnăturile lucrătorilor.',
+  heading: `Toți clienții tăi, de la ${eur(start.firstPrice)} pe lună`,
+  intro: `Plătești după câți lucrători au clienții tăi, în total: ${fromPrices} + TVA pe lună. Orice plan include documentele SSM și SU, instruirile, testele și semnăturile lucrătorilor.`,
   calculatorPrompt: 'Nu știi ce plan ți se potrivește?',
   calculatorLink: 'Calculează cât plătești',
   footnote: 'Prețurile sunt în euro, fără TVA.',
@@ -246,30 +428,26 @@ export const pricingPage = {
       a: 'Numărăm lucrătorii activi ai tuturor clienților tăi activi. Foștii lucrători, ofertele și clienții arhivați nu se numără.',
     },
     {
-      q: 'Ce se întâmplă dacă trec de limită?',
-      a: 'Lucrezi mai departe cu tot ce ai. Îți arătăm pachetul de lucrători în plus al planului tău (50 pe Start, 500 pe Profesional); dacă după o lună nu l-ai adăugat, nu mai poți adăuga lucrători noi până nu o faci sau arhivezi clienții cu care nu mai lucrezi.',
+      q: 'Ce se întâmplă dacă trec de numărul de lucrători al planului?',
+      a: `Treci pe treapta următoare: pe Start, din ${num(start.stepSize)} în ${num(start.stepSize)} până la ${count(start.lastStep, 'lucrători')}, apoi pe Profesional; pe Profesional, din ${num(profesional.stepSize)} în ${num(profesional.stepSize)} până la ${num(maxWorkers)}. Ce ai lucrat nu se blochează niciodată. Dacă după o lună ai tot mai mulți lucrători decât treapta ta, nu mai poți adăuga lucrători noi până nu treci pe treapta următoare sau arhivezi clienții cu care nu mai lucrezi.`,
     },
     {
       q: 'Pot încerca înainte să plătesc?',
-      a: 'Da. Ai 30 de zile cu tot ce include Profesional, fără card; în această perioadă codurile se trimit pe email, iar SMS-urile pornesc când alegi un plan. Pentru import ai 300 de credite pe toată perioada, iar creditele de bun venit vin la prima plată. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.',
+      a: `Da. Ai ${trialDays} zile cu tot ce include Profesional, fără card. În această perioadă codurile de semnare se trimit pe email, iar SMS-urile pornesc când alegi un plan. Ai 300 de credite AI pe toată perioada, iar creditele de bun venit vin la prima plată. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.`,
     },
     {
-      q: 'Ce sunt creditele pentru import?',
-      a: 'Cu ele aduci clienții și lucrătorii în aplicație din documentația și fișele pe care le ai deja. Documentele unui client folosesc 25 de credite, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul. Creditele lunii nu trec în luna următoare. Creditele de bun venit, 2.500 pe Start și 10.000 pe Profesional, le primești o dată, la prima plată, și nu expiră. Dacă ai nevoie de mai multe, ne scrii și ți le adăugăm.',
+      q: 'Ce sunt creditele AI?',
+      a: `Cu ele, inteligența artificială citește documentația și fișele pe care le ai deja, iar tu verifici ce a citit înainte să se salveze. Documentele unui client folosesc 25 de credite AI, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul. Planul include în fiecare lună 2 credite AI pentru fiecare lucrător al treptei tale, plus 250; cele nefolosite nu trec în luna următoare. La prima plată primești, o singură dată, credite de bun venit care nu expiră: 10 pentru fiecare lucrător al treptei, cel mult ${num(welcomeCredits(Infinity))}.`,
+    },
+    {
+      q: 'Cum funcționează plata pentru extra?',
+      a: `E oprită până o pornești tu. Fără ea, când se termină ce include luna, codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Dacă o pornești, alegi o limită pe lună și plătești doar ce folosești peste ce e inclus, până la limita ta: ${eur(extras.sms)} pentru un cod prin SMS și ${eur(extras.credits)} pentru ${count(extras.creditsPer, 'credite AI')}.`,
     },
     {
       q: 'Pot renunța oricând?',
       a: 'Da. Abonamentul rămâne activ până la sfârșitul perioadei plătite, fără penalizări. După aceea ai încă 30 de zile în care vezi și descarci tot, în Word și PDF; apoi datele se șterg.',
     },
   ],
-};
-
-export const pricingSection = {
-  title: 'Un abonament pentru tot portofoliul, nu pentru fiecare client.',
-  intro:
-    'Prețul depinde de câți lucrători au clienții tăi, în total. Documentele SSM și SU, instruirile, testele și semnăturile sunt incluse în orice plan.',
-  calculator: 'Calculează cât plătești',
-  compare: 'Compară planurile',
 };
 
 export const pricingLinks = {
@@ -279,107 +457,152 @@ export const pricingLinks = {
 };
 
 export interface Quote {
-  plan: PricedPlan;
-  total: number;
+  plan: SteppedPlan | QuotedPlan;
+  step?: number;
+  /** The plan's monthly price at `step`, before any annual discount. */
+  monthly?: number;
+  perMonth?: number;
+  yearly?: number;
   lines: { label: string; value: string }[];
   advice: string;
-}
-
-/** Romanian puts "de" between a number and its noun from 20 up, unless the last two digits are 01–19. */
-export function count(n: number, noun: string): string {
-  const rest = n % 100;
-  return `${n.toLocaleString('ro-RO')}${n >= 20 && (rest === 0 || rest >= 20) ? ' de ' : ' '}${noun}`;
-}
-
-export function quote(employees: number, members: number): Quote {
-  const startPacks = Math.ceil(Math.max(0, employees - 250) / 50);
-  const startMembers = Math.max(0, members - 1);
-  const startTotal = start.monthly + 15 * startPacks + 15 * startMembers;
-  const startFits = employees <= 600 && members <= 2;
-  const profPacks = employees > 1500 ? Math.ceil((employees - 1500) / 500) : 0;
-  const profMembers = Math.max(0, members - 3);
-  const profTotal = profesional.monthly + 40 * profPacks + 15 * profMembers;
-  const packs = (n: number, size: number) =>
-    `${n === 1 ? 'Un pachet' : `${n} pachete`} de ${size} de lucrători`;
-
-  if (startFits && startTotal <= profTotal) {
-    const lines = [{ label: 'Start, până la 250 de lucrători', value: eur(start.monthly) }];
-    if (startPacks) lines.push({ label: packs(startPacks, 50), value: eur(15 * startPacks) });
-    if (startMembers) lines.push({ label: 'Un coleg în plus', value: eur(15) });
-    return {
-      plan: start,
-      total: startTotal,
-      lines,
-      advice:
-        profTotal - startTotal <= 20
-          ? 'Ești aproape de Profesional: la același preț ai până la 1.500 de lucrători și trei utilizatori.'
-          : 'Plătești mai mult doar când treci de numărul de lucrători inclus.',
-    };
-  }
-
-  const lines = [
-    { label: 'Profesional, până la 1.500 de lucrători', value: eur(profesional.monthly) },
-  ];
-  if (profPacks) lines.push({ label: packs(profPacks, 500), value: eur(40 * profPacks) });
-  if (profMembers) {
-    lines.push({
-      label: `${profMembers === 1 ? 'Un utilizator' : `${profMembers} utilizatori`} în plus`,
-      value: eur(15 * profMembers),
-    });
-  }
-  let advice = 'Profesional te costă la fel sau mai puțin decât Start cu pachete.';
-  if (!startFits) {
-    advice =
-      members > 2
-        ? 'Start acoperă cel mult doi utilizatori, așa că o echipă merge pe Profesional.'
-        : 'Start acoperă cel mult 600 de lucrători. Profesional are 1.500 incluși.';
-  }
-  return { plan: profesional, total: profTotal, lines, advice };
 }
 
 export const calculator = {
   title: 'Calculator de preț | SSM Ușor',
   description:
-    'Află cât plătești pentru SSM Ușor după câți lucrători au clienții tăi și câte persoane folosesc aplicația. Prețuri în euro, fără TVA.',
+    'Află ce plan ți se potrivește și cât plătești pentru SSM Ușor, după câți lucrători au clienții tăi și câte persoane lucrează în cont. Prețuri în euro, fără TVA.',
   back: '← Prețuri',
   heading: 'Calculează cât plătești',
   intro:
-    'Oricâți clienți. Prețul depinde doar de câți lucrători au clienții tăi, în total, și de câte persoane folosesc aplicația.',
+    'Oricâți clienți. Prețul depinde de câți lucrători au clienții tăi, în total, și de câte persoane lucrează în cont.',
   employees: 'Câți lucrători au clienții tăi, în total?',
   minEmployees: 50,
-  maxEmployees: 2000,
+  stepEmployees: 50,
+  /** One step past the last plan step stands for "more than that". */
+  maxEmployees: maxWorkers + 50,
+  overEmployees: `Peste ${num(maxWorkers)}`,
   /** About 3.5 employees per client among the small firms our first testers serve. */
   employeesPerClient: 3.5,
   examples: 'Exemple',
   presets: [
-    { label: 'La început · 90 de lucrători', employees: 90, members: 1 },
-    { label: '70 de clienți mici · 250 de lucrători', employees: 250, members: 1 },
-    { label: '100 de clienți · 350 de lucrători', employees: 350, members: 1 },
-    { label: '100 de clienți, cu un coleg · 350 de lucrători', employees: 350, members: 2 },
-    { label: 'Firmă cu 3 specialiști · 1.000 de lucrători', employees: 1000, members: 3 },
+    { label: `La început, ${count(100, 'lucrători')}`, employees: 100, members: 1 },
+    { label: `70 de clienți mici, ${count(250, 'lucrători')}`, employees: 250, members: 1 },
+    { label: `Cu doi colegi, ${count(600, 'lucrători')}`, employees: 600, members: 3 },
+    { label: `5 specialiști, ${count(1200, 'lucrători')}`, employees: 1200, members: 5 },
+    {
+      label: `Firmă mare, peste ${count(maxWorkers, 'lucrători')}`,
+      employees: maxWorkers + 50,
+      members: 8,
+    },
   ],
-  members: 'Câte persoane folosesc aplicația, cu tot cu tine?',
-  maxMembers: 10,
+  members: 'Câte persoane lucrează în cont, cu tot cu tine?',
+  /** One more than Profesional's users stands for "more than that". */
+  maxMembers: maxUsers + 1,
   fewer: 'O persoană mai puțin',
   more: 'O persoană în plus',
+  period: 'Cum plătești?',
   best: 'Planul potrivit:',
-  terms: 'Prețurile sunt în euro, fără TVA. Anual: două luni gratuite.',
+  enterpriseAsk: 'Ofertă personalizată',
+  terms: 'Prețurile sunt în euro, fără TVA.',
   summaries: [
     {
-      title: 'Start · 39 € + TVA pe lună',
-      text: 'Până la 250 de lucrători la clienții tăi, apoi 15 € pentru fiecare 50. Un utilizator; al doilea costă 15 € pe lună.',
+      title: `Start, de la ${eur(start.firstPrice)} + TVA pe lună`,
+      text: `${stepList(start, num)} de lucrători: ${stepList(start, (step) => eur(monthlyAt(start, step)))}. ${start.users} utilizatori.`,
     },
     {
-      title: 'Profesional · 149 € + TVA pe lună',
-      text: 'Până la 1.500 de lucrători și 3 utilizatori. Fiecare coleg își vede clienții lui.',
+      title: `Profesional, de la ${eur(profesional.firstPrice)} + TVA pe lună`,
+      text: `${steps(profesional)
+        .slice(0, 3)
+        .map((step, i) =>
+          keep(
+            `${i === 0 ? count(step, 'lucrători') : num(step)} ${eur(monthlyAt(profesional, step))}`
+          )
+        )
+        .join(
+          ', '
+        )}, apoi ${eur(profesional.stepPrice)} pentru fiecare ${num(profesional.stepSize)} în plus, până la ${num(maxWorkers)}. ${profesional.users} utilizatori.`,
     },
   ],
   enterprise: {
-    title: 'Enterprise · ofertă personalizată',
-    text: 'Pentru firmele mari de servicii externe.',
+    title: 'Enterprise, ofertă personalizată',
+    text: `Peste ${count(maxWorkers, 'lucrători')} sau peste ${maxUsers} utilizatori.`,
   },
+  extra: `Dacă într-o lună folosești mai mult decât e inclus, codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Poți porni plata pentru extra, cu o limită lunară aleasă de tine: ${eur(extras.sms)} pentru un SMS și ${eur(extras.credits)} pentru ${count(extras.creditsPer, 'credite AI')}.`,
 };
 
+export function membersLabel(members: number): string {
+  return members > maxUsers ? `peste ${maxUsers}` : String(members);
+}
+
+export function employeesLabel(employees: number): string {
+  return employees > maxWorkers ? calculator.overEmployees : num(employees);
+}
+
+export function employeesText(employees: number): string {
+  return workersText(employees > maxWorkers ? null : employees);
+}
+
+export function quote(employees: number, members: number, period: BillingPeriod): Quote {
+  const employeesOver = employees > maxWorkers;
+  const membersOver = members > maxUsers;
+  const startStep = stepFor(start, employees);
+  const profStep = stepFor(profesional, employees);
+
+  if (employeesOver || membersOver || profStep === undefined) {
+    return {
+      plan: enterprise,
+      lines: [
+        {
+          label: 'Lucrători',
+          value: employeesOver ? `peste ${num(maxWorkers)}` : `până la ${num(profStep!)}`,
+        },
+        { label: 'Utilizatori', value: membersLabel(members) },
+        { label: 'Coduri SMS și credite AI', value: 'după nevoie' },
+      ],
+      advice: employeesOver
+        ? `Peste ${count(maxWorkers, 'lucrători')} îți facem o ofertă după mărimea firmei tale.`
+        : `Peste ${maxUsers} utilizatori îți facem o ofertă după mărimea echipei tale.`,
+    };
+  }
+
+  const onStart = startStep !== undefined && members <= start.users;
+  const plan = onStart ? start : profesional;
+  const step = onStart ? startStep : profStep;
+  const monthly = monthlyAt(plan, step);
+  const lines = [
+    {
+      label: `${plan.name}, până la ${count(step, 'lucrători')}`,
+      value: eur(perMonth(monthly, period)),
+    },
+    { label: 'Utilizatori incluși', value: String(plan.users) },
+    { label: 'Coduri de semnare prin SMS, pe lună', value: num(smsCodes(step)) },
+    { label: 'Credite AI, pe lună', value: num(aiCredits(step)) },
+    { label: 'Credite AI de bun venit, la prima plată', value: num(welcomeCredits(step)) },
+  ];
+  if (period === 'annual')
+    lines.push({ label: 'Plătit o dată pe an', value: eur(paidYearly(monthly)) });
+
+  let advice: string;
+  if (onStart) {
+    advice = `Rămâi la același preț până la ${count(step, 'lucrători')}. Dacă vrei ${profesional.users} utilizatori sau oferte pentru firmele care nu îți sunt încă clienți, ${profesional.name} costă ${eur(perMonth(monthlyAt(profesional, profStep), period))} pe lună.`;
+  } else if (startStep !== undefined) {
+    advice = `${start.name} are cel mult ${start.users} utilizatori, așa că o echipă de ${members} merge pe ${profesional.name}.`;
+  } else {
+    advice = `${start.name} acoperă până la ${count(start.lastStep, 'lucrători')}. Pe ${profesional.name} rămâi la același preț până la ${count(step, 'lucrători')}.`;
+  }
+
+  return {
+    plan,
+    step,
+    monthly,
+    perMonth: perMonth(monthly, period),
+    yearly: period === 'annual' ? paidYearly(monthly) : undefined,
+    lines,
+    advice,
+  };
+}
+
 export function clientsHint(employees: number): string {
+  if (employees > maxWorkers) return 'îți facem o ofertă';
   return `aproximativ ${count(Math.max(1, Math.round(employees / calculator.employeesPerClient)), 'clienți mici')}`;
 }

@@ -1,168 +1,416 @@
 ---
+import BillingToggle from './BillingToggle.astro';
 import PlanLine from './PlanLine.astro';
-import { annualNote, billing, enterprise, monthlyPrice, pricedPlans, pricingCta } from './pricing';
+import {
+  billing,
+  cardStates,
+  defaultPeriod,
+  defaultStop,
+  enterprise,
+  pricingCta,
+  pricingSection,
+  steppedPlans,
+  stopLabel,
+  workersShort,
+  workersText,
+  workerStops,
+} from './pricing';
 
 interface Props {
   placement: string;
 }
 
 const { placement } = Astro.props;
+const stop = workerStops[defaultStop];
+const states = cardStates(stop, defaultPeriod);
+const plans = [...steppedPlans, enterprise];
+const last = workerStops.length - 1;
+const sliderId = `workers-${placement}`;
 ---
 
-<div class="plans">
-  {pricedPlans.map((plan, index) => (
-    <article class:list={['plan', { top: index === 0 }]}>
-      {plan.badge && <span class="badge">{plan.badge}</span>}
-      <div>
-        <h3>{plan.name}</h3>
-        <p class="who">{plan.who}</p>
-      </div>
-      <div>
-        <p class="price">
-          <span class="amt">
-            <span class="when-monthly">{monthlyPrice(plan, 'monthly')}</span>
-            <span class="when-annual">{monthlyPrice(plan, 'annual')}</span>
+<div class="pricing" data-plan-cards={placement}>
+  <div class="control">
+    <BillingToggle placement={placement} />
+    <div class="slide">
+      <label for={sliderId}>
+        {pricingSection.workers} <b data-workers>{workersShort(stop)}</b>
+      </label>
+      <input
+        id={sliderId}
+        class="range"
+        type="range"
+        min="0"
+        max={last}
+        step="1"
+        value={defaultStop}
+        disabled
+        aria-valuetext={workersText(stop)}
+        style={`--at: ${defaultStop / last}`}
+      />
+      <div class="stops" aria-hidden="true">
+        {workerStops.map((value, index) => (
+          <span
+            class:list={{ on: index === defaultStop, minor: index % 2 === 1 }}
+            style={`--at: ${index / last}`}
+          >
+            {stopLabel(value)}
           </span>
-          <span class="per">{billing.perMonth}</span>
-        </p>
-        <p class="sub">
-          <span class="when-annual">{annualNote(plan)}</span>
-        </p>
-      </div>
-      <div class="cta">
-        <a
-          href={pricingCta.href}
-          data-track="cta_clicked"
-          data-track-prop-target="notify"
-          data-track-prop-placement={placement}
-          data-track-prop-plan={plan.id}
-        >
-          {pricingCta.label}
-        </a>
-        <small>{pricingCta.note}</small>
-      </div>
-      {plan.lead && <p class="lead">{plan.lead}</p>}
-      <ul class:list={{ first: !plan.lead }}>
-        {plan.lines.map((line) => (
-          <PlanLine line={line} />
         ))}
-      </ul>
-    </article>
-  ))}
-  <article class="plan">
-    <div>
-      <h3>{enterprise.name}</h3>
-      <p class="who">{enterprise.who}</p>
+      </div>
     </div>
-    <div>
-      <p class="price">
-        <span class="ask">{enterprise.ask}</span>
-      </p>
-      <p class="sub">{enterprise.askNote}</p>
-    </div>
-    <div class="cta">
-      <a
-        href={pricingCta.quoteHref}
-        data-track="cta_clicked"
-        data-track-prop-target="quote"
-        data-track-prop-placement={placement}
-        data-track-prop-plan={enterprise.id}
-      >
-        {pricingCta.quote}
-      </a>
-      <small>{pricingCta.quoteNote}</small>
-    </div>
-    <p class="lead">{enterprise.lead}</p>
-    <ul>
-      {enterprise.lines.map((line) => (
-        <PlanLine line={line} />
-      ))}
-    </ul>
-  </article>
+  </div>
+
+  <div class="plans">
+    {plans.map((plan, index) => {
+      const state = states[index]!;
+      const quoted = plan.id === enterprise.id;
+      const allowance = state.allowance;
+      return (
+        <article
+          class:list={['plan', { top: state.recommended, dim: state.dim }]}
+          data-plan={plan.id}
+        >
+          <span class="badge" hidden={!state.recommended}>
+            {pricingSection.recommended}
+          </span>
+          <div class="head">
+            <h3>{plan.name}</h3>
+            <p class="who">{plan.who}</p>
+          </div>
+          <p class="pricebox">
+            <span class:list={['amt', { ask: quoted }]} data-price>
+              {state.price}
+            </span>
+            <span class="per">{quoted ? enterprise.askNote : billing.perMonth}</span>
+            <span class="yr" data-yearly>
+              {state.yearly}
+            </span>
+          </p>
+          <div class="allow">
+            <p class="stepq" data-allowance>
+              {'text' in allowance ? (
+                allowance.text
+              ) : (
+                <>
+                  {allowance.before}
+                  <a class="ailink" href={pricingSection.aiHref}>
+                    {pricingSection.aiLink}
+                  </a>
+                  {allowance.after}
+                </>
+              )}
+            </p>
+            <p class="xtra" data-extra>
+              {state.extra}
+            </p>
+          </div>
+          <ul>
+            {plan.lines.map((line) => (
+              <PlanLine line={line} />
+            ))}
+          </ul>
+          <div class="cta">
+            <a
+              href={quoted ? pricingCta.quoteHref : pricingCta.href}
+              data-track="cta_clicked"
+              data-track-prop-target={quoted ? 'quote' : 'notify'}
+              data-track-prop-placement={placement}
+              data-track-prop-plan={plan.id}
+            >
+              {quoted ? pricingCta.quote : pricingCta.label}
+            </a>
+            <small>{quoted ? pricingCta.quoteNote : pricingCta.note}</small>
+          </div>
+        </article>
+      );
+    })}
+  </div>
+  <p class="terms">{pricingSection.terms}</p>
 </div>
 
+<script>
+  import { track } from '../../lib/analytics';
+  import {
+    type BillingPeriod,
+    cardStates,
+    pricingSection,
+    workersShort,
+    workersText,
+    workerStops,
+  } from './pricing';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-plan-cards]')) {
+    const scope = root.closest<HTMLElement>('[data-billing-scope]');
+    const range = root.querySelector<HTMLInputElement>('input.range')!;
+    const labels = [...root.querySelectorAll<HTMLElement>('.stops span')];
+    const cards = [...root.querySelectorAll<HTMLElement>('[data-plan]')];
+    const last = workerStops.length - 1;
+    let used = false;
+    range.disabled = false;
+
+    const render = () => {
+      const index = Number(range.value);
+      const stop = workerStops[index]!;
+      const period = (scope?.dataset.billing ?? 'annual') as BillingPeriod;
+      root.querySelector('[data-workers]')!.textContent = workersShort(stop);
+      range.setAttribute('aria-valuetext', workersText(stop));
+      range.style.setProperty('--at', String(index / last));
+      labels.forEach((label, at) => label.classList.toggle('on', at === index));
+      cardStates(stop, period).forEach((state, at) => {
+        const card = cards[at]!;
+        card.classList.toggle('top', state.recommended);
+        card.classList.toggle('dim', state.dim);
+        card.querySelector<HTMLElement>('.badge')!.hidden = !state.recommended;
+        card.querySelector('[data-price]')!.textContent = state.price;
+        card.querySelector('[data-yearly]')!.textContent = state.yearly;
+        card.querySelector('[data-extra]')!.textContent = state.extra;
+        const allowance = card.querySelector('[data-allowance]')!;
+        if ('text' in state.allowance) {
+          allowance.textContent = state.allowance.text;
+        } else {
+          const link = document.createElement('a');
+          link.className = 'ailink';
+          link.href = pricingSection.aiHref;
+          link.textContent = pricingSection.aiLink;
+          allowance.replaceChildren(state.allowance.before, link, state.allowance.after);
+        }
+      });
+    };
+
+    range.addEventListener('input', () => {
+      render();
+      if (used) return;
+      used = true;
+      track('pricing_workers_changed', { placement: root.dataset.planCards! });
+    });
+    scope?.addEventListener('billing-change', render);
+    render();
+  }
+</script>
+
 <style>
+  .control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    width: min(620px, 100%);
+    margin: 0 auto 56px;
+  }
+  .slide {
+    width: 100%;
+  }
+  label {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--ink-2);
+    font-size: 14px;
+    text-align: center;
+  }
+  label b {
+    color: var(--ink);
+  }
+  /* The filled part of the track is the input's own background, not the track's: Chrome and
+     Safari have no pseudo-element for it, and Firefox's ::-moz-range-progress would draw it twice.
+     --at is the position from 0 to 1; the thumb's centre runs 10 px in from each end. */
+  .range {
+    --fill: calc(10px + (100% - 20px) * var(--at));
+    display: block;
+    width: 100%;
+    height: 4px;
+    margin: 8px 0;
+    border-radius: 999px;
+    background: linear-gradient(
+      to right,
+      var(--ink) 0,
+      var(--ink) var(--fill),
+      var(--line) var(--fill),
+      var(--line) 100%
+    );
+    cursor: pointer;
+    appearance: none;
+  }
+  .range::-webkit-slider-runnable-track {
+    height: 4px;
+    background: transparent;
+  }
+  .range::-moz-range-track {
+    height: 4px;
+    background: transparent;
+  }
+  .range::-webkit-slider-thumb {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    margin-top: -8px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: #fff;
+    appearance: none;
+  }
+  .range::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    background: #fff;
+  }
+  .range:focus-visible {
+    outline: 3px solid var(--lime);
+    outline-offset: 8px;
+  }
+  .stops {
+    position: relative;
+    height: 20px;
+    margin-top: 14px;
+    color: var(--muted-ink);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stops span {
+    position: absolute;
+    top: 0;
+    left: calc(10px + (100% - 20px) * var(--at));
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .stops span.on {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
   .plans {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* Cards share five rows: heading, price, button, lead line, list. Start has no lead line, so
-       its list spans the last two; the flexible last row absorbs that height. Only the first band
-       is flexible, since repeated fr rows would all grow to the same height. */
-    grid-template-rows: auto auto auto auto 1fr;
-    gap: 20px;
+    grid-template-rows: auto auto auto 1fr auto;
+    gap: 0 20px;
   }
   .plan {
     position: relative;
     display: grid;
     grid-row: span 5;
     grid-template-rows: subgrid;
-    padding: 32px 28px;
+    padding: 44px 32px 32px;
     border: 1px solid var(--line);
     border-radius: 18px;
     background: #fff;
+    text-align: center;
+    transition: opacity 0.2s;
   }
   .plan.top {
     border: 2px solid var(--ink);
+    padding: 43px 31px 31px;
+  }
+  .plan.dim {
+    opacity: 0.42;
   }
   .badge {
     position: absolute;
-    top: -14px;
-    left: 28px;
-    padding: 4px 12px;
+    top: -13px;
+    left: 50%;
+    padding: 3px 12px;
     border-radius: 999px;
     background: var(--lime);
     font-size: 13px;
     font-weight: 600;
     line-height: 1.4;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+  .badge[hidden] {
+    display: none;
   }
   h3 {
     font-family: var(--display);
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+    letter-spacing: -0.01em;
   }
   .who {
-    margin-top: 6px;
-    color: var(--ink-2);
-    font-size: 16px;
-  }
-  .price {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 8px;
-  }
-  .amt {
-    font-family: var(--display);
-    font-size: 52px;
-    font-variant-numeric: tabular-nums;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1;
-  }
-  .ask {
-    font-family: var(--display);
-    font-size: 34px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 52px;
-  }
-  .per {
-    color: var(--ink-2);
-    font-size: 15px;
-  }
-  .sub {
-    /* Holds the annual note's line while monthly is selected, so the buttons stay put on toggle. */
-    min-height: 1lh;
-    margin-top: 4px;
+    max-width: 30ch;
+    min-height: 2lh;
+    margin: 8px auto 0;
     color: var(--ink-2);
     font-size: 14px;
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+  .pricebox {
+    margin-top: 40px;
+  }
+  .amt {
+    display: block;
+    font-family: var(--display);
+    font-size: 60px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+  .amt.ask {
+    font-size: 40px;
+    line-height: 60px;
+  }
+  .per {
+    display: block;
+    margin-top: 10px;
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+  .yr {
+    display: block;
+    min-height: 1lh;
+    color: var(--muted-ink);
+    font-size: 14px;
+  }
+  .allow {
+    margin: 28px 0;
+    padding: 28px 0;
+    border-block: 1px solid var(--line);
+  }
+  .stepq {
+    font-size: 16px;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .stepq :global(.ailink) {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+  .stepq :global(.ailink:hover) {
+    text-decoration-color: var(--ink);
+  }
+  .xtra {
+    min-height: 1lh;
+    text-wrap: balance;
+    margin-top: 4px;
+    color: var(--muted-ink);
+    font-size: 13px;
+  }
+  ul {
+    display: grid;
+    gap: 11px;
+    align-content: start;
+    text-align: left;
+  }
+  ul :global(li) {
+    grid-template-columns: 18px 1fr;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  ul :global(svg) {
+    width: 18px;
+    height: 18px;
   }
   .cta {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    padding-top: 32px;
   }
   .cta a {
     display: flex;
@@ -188,55 +436,62 @@ const { placement } = Astro.props;
   .top .cta a:hover {
     background: var(--moss);
   }
-  .cta a:focus-visible {
+  .cta a:focus-visible,
+  .stepq :global(.ailink:focus-visible) {
     outline: 3px solid var(--lime);
     outline-offset: 2px;
   }
   .cta small {
     color: var(--ink-2);
     font-size: 13px;
-    text-align: center;
   }
-  .lead {
-    padding-top: 20px;
-    border-top: 1px solid var(--line);
+  .terms {
+    max-width: 68ch;
+    margin: 28px auto 0;
     color: var(--ink-2);
     font-size: 14px;
-    font-weight: 600;
+    text-align: center;
   }
-  ul {
-    display: grid;
-    gap: 12px;
-    align-content: start;
-  }
-  ul.first {
-    grid-row: span 2;
-    padding-top: 20px;
-    border-top: 1px solid var(--line);
-  }
+
   @media (max-width: 941px) {
     .plans {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .plan:last-child {
-      grid-column: 1 / -1;
-    }
-  }
-  @media (max-width: 631px) {
-    .plans {
       grid-template-columns: minmax(0, 1fr);
+      row-gap: 28px;
+    }
+    .plan {
+      row-gap: 0;
+    }
+    .who {
+      min-height: 0;
     }
   }
   @media (max-width: 760px) {
+    .control {
+      margin-bottom: 44px;
+    }
+    .slide {
+      padding-inline: 14px;
+    }
+    .stops span.minor {
+      display: none;
+    }
     .plan {
-      padding: 28px 20px;
+      padding: 40px 22px 26px;
+    }
+    .plan.top {
+      padding: 39px 21px 25px;
     }
     .amt {
-      font-size: 44px;
+      font-size: 52px;
     }
-    .ask {
-      font-size: 28px;
-      line-height: 44px;
+    .amt.ask {
+      font-size: 34px;
+      line-height: 52px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plan {
+      transition: none;
     }
   }
 </style>
