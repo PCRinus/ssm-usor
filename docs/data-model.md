@@ -2467,7 +2467,7 @@ with their change. Members read them, nobody signed in writes them, and the job 
 with the secret key.
 
 **The admin's writes** ([ADR 017](architecture/adr-017-legislation-monitoring.md), amended
-2026-11-12; `20261113140000_admin_legislation`) are three security definer functions, the only
+2026-11-12; `20261114210000_admin_legislation`) are three security definer functions, the only
 writes to the legislation data besides the job's. They run with the admin's own token, so only
 `authenticated` may execute them, and each first asks `is_platform_admin()`: the admin claim and
 an `aal2` token, else `42501`. Each records its own named event in `audit.events`, in the same
