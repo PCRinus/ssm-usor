@@ -1,21 +1,28 @@
 import {
+  answerPeriod,
+  type AnswerRole,
+  answerSplit,
   bloodGroups,
   type CommuteMean,
   decodeCnp,
   type EmployeeImportChanges,
   type EmployeeImportFieldName,
   employeeImportFieldNames,
+  handoverDay,
   type ImportBlocker,
   isValidCnp,
   type KnowledgeTest,
   parseCommuteMeansKey,
   rhFactors,
+  rowSigner,
   sameHomeAddress,
   type SupplementaryTrainingReason,
   supplementaryTrainingReasons,
   testResultMaterial,
   type TrainingDomain,
   type TrainingPhase,
+  typedOnRow,
+  type WhoTrainedAnswer,
 } from '@ssm-usor/contracts';
 
 import { hiringTestRowIds, includedByDefault } from './employee-import';
@@ -311,6 +318,38 @@ export function rowExaminer(row: ProposedSheetRow, change: RowChange | undefined
   };
 }
 
+const signerFields = {
+  trainer: ['trainerName', 'trainerJobTitle'],
+  verifier: ['verifierName', 'verifierJobTitle'],
+} as const;
+
+/**
+ * A row's trainer and verifier as confirming writes them: typed on the row, read off the sheet,
+ * or, on a periodic row the sheet names nobody on, the person's answer for the row's period.
+ */
+export function rowSigners(
+  row: ProposedSheetRow,
+  change: RowChange | undefined,
+  answer: WhoTrainedAnswer | undefined,
+  handover: string | null
+) {
+  const period = answerPeriod(rowValue(row, change, 'heldOn'), answerSplit(handover, answer));
+  const signer = (role: AnswerRole) => {
+    const [name, jobTitle] = signerFields[role];
+    return rowSigner({
+      domain: row.domain,
+      phase: row.phase,
+      role,
+      name: rowValue(row, change, name),
+      jobTitle: rowValue(row, change, jobTitle),
+      typed: typedOnRow(change?.values, row, signerFields[role], row.fromThemes),
+      period,
+      answer,
+    });
+  };
+  return { trainer: signer('trainer'), verifier: signer('verifier') };
+}
+
 const admissionValue = (
   row: ProposedSheetRow,
   change: RowChange | undefined,
@@ -594,8 +633,9 @@ export function toEmployeePayload(input: {
       rows.map((each) => ({ ...each, heldOn: rowValue(each, changes.rows[each.id], 'heldOn') }))
     );
     const seen = new Set<string>();
+    const handover = handoverDay(ownPages);
     for (const sheetRow of rows) {
-      addRow(sheetRow, person, existing, seen, hiringTests);
+      addRow(sheetRow, person, existing, seen, hiringTests, handover);
     }
   }
 
@@ -604,7 +644,8 @@ export function toEmployeePayload(input: {
     person: ProposedSheetPerson,
     existing: ExistingEmployee | undefined,
     seen: Set<string>,
-    hiringTests: ReadonlySet<string>
+    hiringTests: ReadonlySet<string>,
+    handover: string | null
   ) {
     const change = changes.rows[sheetRow.id];
     const path = `rows.${sheetRow.id}`;
@@ -696,8 +737,12 @@ export function toEmployeePayload(input: {
     else quality.rows.kept++;
 
     const duration = value('durationMinutes');
-    const trainerName = value('trainerName');
-    const trainerJobTitle = value('trainerJobTitle');
+    const { trainer, verifier } = rowSigners(
+      sheetRow,
+      change,
+      changes.people[person.id]?.whoTrained?.[sheetRow.domain],
+      handover
+    );
     const material = value('material');
     const reason = value('supplementaryReason');
     // A paper training holds what its sheet writes: only its day is needed (ADR 042).
@@ -735,9 +780,7 @@ export function toEmployeePayload(input: {
     if (seen.has(key)) return;
     seen.add(key);
 
-    const verifierName = value('verifierName');
-    const verifierJobTitle = value('verifierJobTitle');
-    const hasVerifier = filled(verifierName) && filled(verifierJobTitle);
+    const hasVerifier = filled(verifier.name) && filled(verifier.jobTitle);
     heldRows.push({
       rowId: sheetRow.id,
       personId: person.id,
@@ -745,10 +788,10 @@ export function toEmployeePayload(input: {
       phase: sheetRow.phase,
       heldOn: String(heldOn),
       durationMinutes: filled(duration) ? Number(duration) : null,
-      trainerName: filled(trainerName) ? String(trainerName).trim() : null,
-      trainerJobTitle: filled(trainerJobTitle) ? String(trainerJobTitle).trim() : null,
-      verifierName: hasVerifier ? String(verifierName).trim() : null,
-      verifierJobTitle: hasVerifier ? String(verifierJobTitle).trim() : null,
+      trainerName: filled(trainer.name) ? trainer.name.trim() : null,
+      trainerJobTitle: filled(trainer.jobTitle) ? trainer.jobTitle.trim() : null,
+      verifierName: hasVerifier ? verifier.name!.trim() : null,
+      verifierJobTitle: hasVerifier ? verifier.jobTitle!.trim() : null,
       material: filled(material) ? String(material).trim() : null,
       supplementaryReason:
         sheetRow.phase === 'supplementary' ? (reason as SupplementaryTrainingReason) : null,

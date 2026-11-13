@@ -831,6 +831,189 @@ describe('toEmployeePayload', () => {
     ]);
   });
 
+  describe('who trained, asked per person', () => {
+    const unnamed = (heldOn: string) =>
+      row({ heldOn, trainerName: null, trainerJobTitle: null, durationMinutes: 120 });
+    const handedOver = page({
+      pageKind: 'ssm_periodic',
+      trainings: [unnamed('2022-05-16'), unnamed('2022-11-14'), unnamed('2023-05-15')],
+      handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare SSM Expert Vest' }],
+    });
+    const vasile = { name: 'Iordache Vasile', jobTitle: 'Șef de șantier' };
+    const pavel = { name: 'Pavel Mihai', jobTitle: 'Specialist SSM' };
+    const andreea = { name: 'Andreea Ionescu', jobTitle: 'Specialist SSM' };
+    const signers = (payload: ReturnType<typeof toEmployeePayload>['payload']) =>
+      Object.fromEntries(
+        payload.trainings
+          .filter((training) => training.phase === 'periodic')
+          .map((training) => [
+            training.held_on,
+            [training.trainer_name ?? null, training.verifier_name ?? null],
+          ])
+      );
+
+    it('names the periodic rows each side of the handover with that side’s answer', () => {
+      const { proposal, changes, check, map } = setUp(comanFront, handedOver);
+      const coman = idOf(proposal, 'Coman');
+      check(coman);
+      changes.people[coman]!.whoTrained = {
+        ssm: {
+          trainer: { before: vasile, from: vasile },
+          verifier: { before: pavel, from: andreea },
+        },
+      };
+
+      const { payload, blockers } = map();
+
+      expect(blockers).toEqual([]);
+      expect(signers(payload)).toEqual({
+        '2022-05-16': ['Iordache Vasile', 'Pavel Mihai'],
+        '2022-11-14': ['Iordache Vasile', 'Andreea Ionescu'],
+        '2023-05-15': ['Iordache Vasile', 'Andreea Ionescu'],
+      });
+      expect(payload.trainings.find((training) => training.held_on === '2022-05-16')).toMatchObject(
+        { trainer_job_title: 'Șef de șantier', verifier_job_title: 'Specialist SSM' }
+      );
+    });
+
+    it('takes the one answer for every dated row when the sheets record no handover', () => {
+      const { proposal, changes, check, map } = setUp(
+        comanFront,
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [unnamed('2022-05-16'), unnamed('2023-05-15')],
+        })
+      );
+      const coman = idOf(proposal, 'Coman');
+      check(coman);
+      changes.people[coman]!.whoTrained = { ssm: { trainer: { before: pavel, from: vasile } } };
+
+      expect(signers(map().payload)).toEqual({
+        '2022-05-16': ['Iordache Vasile', null],
+        '2023-05-15': ['Iordache Vasile', null],
+      });
+    });
+
+    it('splits a copied answer at the handover date copied with it', () => {
+      const { proposal, changes, check, map } = setUp(
+        comanFront,
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [unnamed('2022-05-16'), unnamed('2023-05-15')],
+        })
+      );
+      const coman = idOf(proposal, 'Coman');
+      check(coman);
+      changes.people[coman]!.whoTrained = {
+        ssm: { trainer: { before: pavel, from: vasile }, splitOn: '2022-10-03' },
+      };
+
+      expect(signers(map().payload)).toEqual({
+        '2022-05-16': ['Pavel Mihai', null],
+        '2023-05-15': ['Iordache Vasile', null],
+      });
+    });
+
+    it('keeps a name the sheet writes, a name typed on the row, and an undated row as written', () => {
+      const { proposal, changes, check, map } = setUp(
+        comanFront,
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [
+            row({ heldOn: '2022-05-16', trainerName: 'Barbu Ionuț' }),
+            unnamed('2022-11-14'),
+            unnamed('2023-05-15'),
+          ],
+          handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare' }],
+        })
+      );
+      const coman = idOf(proposal, 'Coman');
+      check(coman);
+      const typed = proposal.pages[1]!.rows[1]!;
+      changes.rows[typed.id] = {
+        values: { trainerName: 'Crăciun Dorin', trainerJobTitle: 'Administrator' },
+      };
+      changes.people[coman]!.whoTrained = { ssm: { trainer: { before: vasile, from: vasile } } };
+
+      expect(signers(map().payload)).toEqual({
+        '2022-05-16': ['Barbu Ionuț', null],
+        '2022-11-14': ['Crăciun Dorin', null],
+        '2023-05-15': ['Iordache Vasile', null],
+      });
+    });
+
+    it('fills a row a dialog saved with the sheet’s empty name, and none the member cleared', () => {
+      const { proposal, changes, check, map } = setUp(comanFront, handedOver);
+      const coman = idOf(proposal, 'Coman');
+      check(coman);
+      const [saved, cleared] = proposal.pages[1]!.rows;
+      changes.rows[saved!.id] = { values: { durationMinutes: 90, trainerName: null } };
+      changes.rows[cleared!.id] = { values: { trainerName: '', trainerJobTitle: '' } };
+      changes.people[coman]!.whoTrained = { ssm: { trainer: { before: vasile, from: vasile } } };
+
+      expect(signers(map().payload)).toEqual({
+        '2022-05-16': ['Iordache Vasile', null],
+        '2022-11-14': [null, null],
+        '2023-05-15': ['Iordache Vasile', null],
+      });
+    });
+
+    it('names no verifier on a fire-safety row, nor on the hiring rows', () => {
+      const { proposal, changes, check, map } = setUp(
+        comanFront,
+        page({
+          pageKind: 'su_periodic',
+          trainings: [
+            row({ domain: 'su', heldOn: '2023-06-12', trainerName: null, trainerJobTitle: null }),
+          ],
+        })
+      );
+      const coman = idOf(proposal, 'Coman');
+      check(coman);
+      changes.people[coman]!.whoTrained = {
+        ssm: { verifier: { from: pavel } },
+        su: { trainer: { from: vasile }, verifier: { from: pavel } },
+      };
+
+      const trainings = map().payload.trainings;
+
+      expect(trainings.find((training) => training.domain === 'su')).toMatchObject({
+        trainer_name: 'Iordache Vasile',
+      });
+      expect(trainings.find((training) => training.domain === 'su')).not.toHaveProperty(
+        'verifier_name'
+      );
+      expect(trainings.some((training) => training.verifier_name === 'Pavel Mihai')).toBe(false);
+    });
+
+    it('makes one training held of two people answered with the same names', () => {
+      const shared = (lastName: string, firstName: string) =>
+        page({
+          pageKind: 'ssm_periodic',
+          person: { lastName, firstName },
+          trainings: [unnamed('2023-05-15')],
+        });
+      const { proposal, changes, check, map } = setUp(
+        comanFront,
+        shared('Coman', 'Daniela'),
+        tomaFront,
+        shared('Toma', 'Andrei Mihai')
+      );
+      const coman = idOf(proposal, 'Coman');
+      const toma = idOf(proposal, 'Toma');
+      check(coman, toma);
+      changes.jobTitles[proposal.jobTitles[1]!.id] = { jobPositionId: positions[2]!.id };
+      for (const id of [coman, toma]) {
+        changes.people[id]!.whoTrained = { ssm: { trainer: { from: vasile } } };
+      }
+
+      const may = map().payload.trainings.filter((training) => training.held_on === '2023-05-15');
+
+      expect(may).toHaveLength(1);
+      expect(may[0]!.records).toHaveLength(2);
+    });
+  });
+
   it('counts what the member changed, unticked and kept', () => {
     const { proposal, changes, check, map } = setUp(comanFront, comanPeriodic);
     const coman = idOf(proposal, 'Coman');

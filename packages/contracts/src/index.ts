@@ -66,6 +66,7 @@ export * from './training-categories';
 export * from './training-sheets';
 export * from './trainings';
 export * from './waitlist';
+export * from './who-trained';
 
 export const leadApplicationSchema = z.object({
   email: z.email(),
