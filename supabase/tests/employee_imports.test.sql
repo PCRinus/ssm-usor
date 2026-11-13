@@ -1,5 +1,5 @@
 begin;
-select plan(52);
+select plan(54);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -58,6 +58,7 @@ returns jsonb language sql as $$
       { "key": "p3", "id": "ee000000-0000-4000-8000-000000000001", "replace": ["job_title"],
         "birth_place": "Cluj-Napoca", "home_address": "Str. Lungă 1, Iași",
         "residence_address": "Str. Florilor 5, Timișoara",
+        "commute_means": ["on_foot", "public_transport"], "commute_means_other": "Tren",
         "job_title": "Vânzător principal", "hired_at": "2019-01-01" }
     ],
     "trainings": [
@@ -448,6 +449,20 @@ select results_eq(
      where id = 'ee000000-0000-4000-8000-000000000001' $$,
   $$ values ('Iași', 'Str. Lungă 1, Iași', 'Str. Florilor 5, Timișoara', 'Vânzător principal', '2020-01-10'::date) $$,
   'the existing employee keeps their values, gains the empty ones and takes the one replaced'
+);
+
+select results_eq(
+  $$ select commute_means, commute_means_other from public.employees
+     where id = 'ee000000-0000-4000-8000-000000000001' $$,
+  $$ values ('{on_foot,public_transport}'::text[], 'Tren') $$,
+  'the existing employee gains the means of transport, an empty list counting as none'
+);
+
+select results_eq(
+  $$ select commute_means from public.employees where last_name = 'Popescu' and first_name = 'Ion'
+     and client_id = 'cccccccc-0000-4000-8000-000000000001' $$,
+  $$ values ('{}'::text[]) $$,
+  'a new employee without means of transport has none'
 );
 
 select results_eq(

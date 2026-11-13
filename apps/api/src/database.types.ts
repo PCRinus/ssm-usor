@@ -1730,6 +1730,8 @@ export type Database = {
           blood_group: string | null;
           client_id: string;
           cnp: string | null;
+          commute_means: string[];
+          commute_means_other: string | null;
           commute_minutes: number | null;
           commute_route: string | null;
           contract_number: string | null;
@@ -1799,6 +1801,8 @@ export type Database = {
           blood_group?: string | null;
           client_id: string;
           cnp?: string | null;
+          commute_means?: string[];
+          commute_means_other?: string | null;
           commute_minutes?: number | null;
           commute_route?: string | null;
           contract_number?: string | null;
@@ -1833,6 +1837,8 @@ export type Database = {
           blood_group?: string | null;
           client_id?: string;
           cnp?: string | null;
+          commute_means?: string[];
+          commute_means_other?: string | null;
           commute_minutes?: number | null;
           commute_route?: string | null;
           contract_number?: string | null;
@@ -8185,6 +8191,8 @@ export type Database = {
           blood_group: string | null;
           client_id: string;
           cnp: string | null;
+          commute_means: string[];
+          commute_means_other: string | null;
           commute_minutes: number | null;
           commute_route: string | null;
           contract_number: string | null;
