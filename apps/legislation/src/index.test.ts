@@ -129,6 +129,7 @@ describe('the notices on Discord', () => {
     });
 
   beforeEach(() => {
+    vi.mocked(lastSucceededRunStart).mockResolvedValue(new Date().toISOString());
     discord = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', discord);
     vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -170,11 +171,9 @@ describe('the notices on Discord', () => {
     });
     await scheduled(withWebhook);
     expect(discord).not.toHaveBeenCalled();
-    expect(lastSucceededRunStart).not.toHaveBeenCalled();
   });
 
   it('posts a failed run with its failed acts, and still fails the invocation', async () => {
-    vi.mocked(lastSucceededRunStart).mockResolvedValue(new Date().toISOString());
     vi.mocked(runLegislationCheck).mockResolvedValue({
       id: 'r1',
       status: 'failed',
@@ -189,7 +188,6 @@ describe('the notices on Discord', () => {
   });
 
   it('posts a run that stopped before it could finish', async () => {
-    vi.mocked(lastSucceededRunStart).mockResolvedValue(new Date().toISOString());
     vi.mocked(runLegislationCheck).mockRejectedValue(new Error('Could not start the run: timeout'));
     await expect(scheduled(withWebhook)).rejects.toThrow('Could not start the run: timeout');
     expect(posted().map((message) => message.content)).toEqual([
@@ -197,20 +195,39 @@ describe('the notices on Discord', () => {
     ]);
   });
 
-  it('warns when no run has succeeded in two days', async () => {
+  it('warns before a run when none has succeeded in two days, as after one the platform killed', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T03:47:30Z') });
-    vi.mocked(runLegislationCheck).mockResolvedValue(run('failed'));
+    vi.mocked(runLegislationCheck).mockResolvedValue(run('succeeded'));
 
     vi.mocked(lastSucceededRunStart).mockResolvedValue('2026-11-11T03:47:01Z');
-    await expect(scheduled(withWebhook)).rejects.toThrow();
-    expect(posted()).toHaveLength(1);
+    await scheduled(withWebhook);
+    expect(discord).not.toHaveBeenCalled();
 
-    discord.mockClear();
     vi.mocked(lastSucceededRunStart).mockResolvedValue('2026-11-10T03:47:01Z');
+    await scheduled(withWebhook);
+    expect(posted().map((message) => message.content)).toEqual([
+      '🔴 **No successful legislation check in two days** · non-prod\nThe last successful run started 2026-11-10T03:47:01Z.',
+    ]);
+  });
+
+  it('warns on a morning it skips, too', async () => {
+    vi.mocked(lastSucceededRunStart).mockResolvedValue('2026-10-01T03:47:01Z');
+    vi.mocked(runInProgress).mockResolvedValue({ id: 'r0', started_at: new Date().toISOString() });
+    await scheduled(withWebhook);
+    expect(runLegislationCheck).not.toHaveBeenCalled();
+    expect(posted().map((message) => message.content)).toEqual([
+      expect.stringMatching(/^🔴 \*\*No successful legislation check in two days\*\*/),
+    ]);
+  });
+
+  it('warns once in a run that fails as well', async () => {
+    vi.mocked(lastSucceededRunStart).mockResolvedValue(null);
+    vi.mocked(runLegislationCheck).mockResolvedValue(run('failed'));
     await expect(scheduled(withWebhook)).rejects.toThrow();
-    expect(posted().at(-1)!.content).toBe(
-      '🔴 **No successful legislation check in two days** · non-prod\nThe last successful run started 2026-11-10T03:47:01Z.'
-    );
+    expect(posted().map((message) => message.content)).toEqual([
+      expect.stringMatching(/^🔴 .*\nNo run has succeeded in this environment yet\.$/),
+      expect.stringMatching(/^🟡 \*\*Legislation check failed\*\*/),
+    ]);
   });
 
   it('carries on when the run log or Discord cannot be read', async () => {

@@ -39,8 +39,9 @@ async function check(db: LegislationClient, env: LegislationEnv, options: RunOpt
 
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-// Only a run that did not succeed looks back: the check that should have warned is the one
-// that failed, and a cron that never fires at all is seen by nothing here.
+// Every cron run looks back before it starts: a run the platform killed (wall time, CPU,
+// memory) never posts its own failure, so the next morning is the first to see it. A cron that
+// never fires at all is seen by nothing here.
 async function warnIfStale(db: LegislationClient, notices: Notices) {
   if (!notices.enabled) return;
   try {
@@ -136,10 +137,10 @@ export default {
 
   async scheduled(_controller, env) {
     const notices = legislationNotices(env);
-    let db: LegislationClient | undefined;
     let run: CheckRun;
     try {
-      db = connect(env);
+      const db = connect(env);
+      await warnIfStale(db, notices);
       const running = await runInProgress(db);
       if (running) {
         console.log(`Run ${running.id} is still running, since ${running.started_at}; skipped.`);
@@ -148,16 +149,12 @@ export default {
       run = await check(db, env);
     } catch (error) {
       await notices.stopped(messageOf(error));
-      if (db) await warnIfStale(db, notices);
       throw error;
     }
     console.log(describeRun(run));
     await notices.ran(run);
     // The run log carries the failure to the app; throwing also marks the invocation failed
     // in Cloudflare's cron events.
-    if (run.status === 'failed') {
-      await warnIfStale(db, notices);
-      throw new Error(`The legislation check failed, run ${run.id}.`);
-    }
+    if (run.status === 'failed') throw new Error(`The legislation check failed, run ${run.id}.`);
   },
 } satisfies ExportedHandler<LegislationEnv>;
