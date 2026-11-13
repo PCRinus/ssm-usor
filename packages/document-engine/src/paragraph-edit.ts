@@ -22,6 +22,7 @@ interface Run {
   properties: string;
   items: Item[];
   superscript: boolean;
+  inHyperlink: boolean;
 }
 
 type Part = { kind: 'raw'; xml: string } | { kind: 'run'; run: Run };
@@ -38,10 +39,10 @@ const superscriptMark = '<w:vertAlign w:val="superscript"/>';
 const superscriptOnly = new RegExp(`^[${superscriptDigits}]+$`, 'u');
 const superscriptPieces = new RegExp(`[${superscriptDigits}]+|[^${superscriptDigits}]+`, 'gu');
 
-function parseRun(xml: string): Run {
+function parseRun(xml: string, inHyperlink: boolean): Run {
   const open = /^<w:r(?=[\s>])[^>]*>/.exec(xml)![0];
   const inner = xml.slice(open.length, -'</w:r>'.length);
-  const properties = /^<w:rPr>[\s\S]*?<\/w:rPr>/.exec(inner)?.[0] ?? '';
+  const properties = /^<w:rPr\/>|^<w:rPr>[\s\S]*?<\/w:rPr>/.exec(inner)?.[0] ?? '';
   const content = inner.slice(properties.length);
   const items: Item[] = [];
   let last = 0;
@@ -55,15 +56,30 @@ function parseRun(xml: string): Run {
     last = match.index + match[0].length;
   }
   if (last < content.length) items.push({ kind: 'other', xml: content.slice(last) });
-  return { xml, open, properties, items, superscript: properties.includes(superscriptMark) };
+  return {
+    xml,
+    open,
+    properties,
+    items,
+    superscript: properties.includes(superscriptMark),
+    inHyperlink,
+  };
 }
 
 function parseParagraph(xml: string): Part[] {
   const parts: Part[] = [];
   let last = 0;
+  let links = 0;
+  const raw = (text: string) => {
+    for (const tag of text.matchAll(/<(\/?)w:hyperlink\b[^>]*?(\/?)>/g)) {
+      if (tag[1]) links -= 1;
+      else if (!tag[2]) links += 1;
+    }
+    parts.push({ kind: 'raw', xml: text });
+  };
   for (const match of xml.matchAll(runPattern)) {
-    if (match.index > last) parts.push({ kind: 'raw', xml: xml.slice(last, match.index) });
-    parts.push({ kind: 'run', run: parseRun(match[0]) });
+    if (match.index > last) raw(xml.slice(last, match.index));
+    parts.push({ kind: 'run', run: parseRun(match[0], links > 0) });
     last = match.index + match[0].length;
   }
   parts.push({ kind: 'raw', xml: xml.slice(last) });
@@ -85,10 +101,12 @@ const storedText = (text: string, superscript: boolean) =>
 // CT_RPr is a sequence: vertAlign goes after the size, underline and shading and before the
 // language, or Word reports the file as damaged.
 const afterVertAlign = /<w:(?:rtl|cs|em|lang|eastAsianLayout|specVanish|oMath)\b/;
+const vertAlign = /<w:vertAlign\b[^>]*\/>/;
 
 function withSuperscript(properties: string, superscript: boolean) {
   if (!superscript) return properties.replace(superscriptMark, '');
-  if (!properties) return `<w:rPr>${superscriptMark}</w:rPr>`;
+  if (!properties || properties === '<w:rPr/>') return `<w:rPr>${superscriptMark}</w:rPr>`;
+  if (vertAlign.test(properties)) return properties.replace(vertAlign, superscriptMark);
   const next = afterVertAlign.exec(properties);
   const at = next ? next.index : properties.length - '</w:rPr>'.length;
   return properties.slice(0, at) + superscriptMark + properties.slice(at);
@@ -141,6 +159,10 @@ function serializeRun(run: Run, segments: Map<TextItem, Segment[]>, removedTabs:
     .join('');
 }
 
+// Words written into a run inside an insertion, a deletion or a run whose formatting change is
+// tracked would read as part of that revision.
+const tracked = /<w:(?:ins|del|moveFrom|moveTo|rPrChange)\b/;
+
 interface Owner {
   run: Run;
   item: Item;
@@ -171,6 +193,11 @@ export function rewriteParagraph(
     }
   }
   if (before === text) return xml;
+  if (tracked.test(xml.replace(/<w:pPr>[\s\S]*?<\/w:pPr>/, ''))) {
+    throw new Error(
+      `The paragraph "${before.slice(0, 60)}" holds tracked changes; accept or reject them in Word first.`
+    );
+  }
   // A paragraph's text outside a run's w:t, a field's result in a w:fldSimple for one, would
   // be read but could not be edited here.
   if (before !== (paragraphsOf(xml)[0]?.text ?? '')) {
@@ -201,9 +228,14 @@ export function rewriteParagraph(
     if (!pieces.length) return;
     const main = pieces.find((piece) => !isSuperscript(piece)) ?? pieces[0]!;
     const replaced = start < end ? textOwner(start, 1) : undefined;
+    // New words beside a link go outside it: inside, they would become part of the link.
     const around = [textOwner(start - 1, -1), textOwner(end, 1)]
       .filter((owner) => owner !== undefined)
-      .sort((a, b) => runLength(b.run) - runLength(a.run));
+      .sort(
+        (a, b) =>
+          Number(a.run.inHyperlink) - Number(b.run.inHyperlink) ||
+          runLength(b.run) - runLength(a.run)
+      );
     const candidates = [...(replaced ? [replaced] : []), ...around];
     const target = candidates.find((owner) => fits(owner.run, main)) ?? candidates[0];
     if (!target) {
@@ -252,7 +284,11 @@ export function rewriteParagraph(
     )
     .join('');
   if (unplaced) {
-    const mark = /<w:pPr>[\s\S]*?(<w:rPr>[\s\S]*?<\/w:rPr>)[\s\S]*?<\/w:pPr>/.exec(xml)?.[1] ?? '';
+    // Revision marks belong to the paragraph mark: a run's formatting may not carry them.
+    const untracked = xml.replace(/<w:(pPrChange|rPrChange)\b[\s\S]*?<\/w:\1>/g, '');
+    const mark = (
+      /<w:pPr>[\s\S]*?(<w:rPr>[\s\S]*?<\/w:rPr>)[\s\S]*?<\/w:pPr>/.exec(untracked)?.[1] ?? ''
+    ).replace(/<w:(?:ins|del|moveFrom|moveTo)\b[^>]*\/>/g, '');
     rewritten = rewritten.replace(
       /<\/w:p>$/,
       `<w:r>${mark}${textElement('<w:t>', unplaced, false)}</w:r></w:p>`

@@ -131,4 +131,56 @@ describe('a paragraph rewritten', () => {
       '<w:p><w:r>' + normal + '<w:t>a)</w:t><w:tab/><w:t>să poarte cască;</w:t></w:r></w:p>'
     );
   });
+
+  it('replaces the vertical alignment a run already sets with the superscript', () => {
+    const baseline = '<w:rPr><w:sz w:val="20"/><w:vertAlign w:val="baseline"/></w:rPr>';
+    expect(rewriteParagraph(paragraph(run(baseline, 'art. 30')), 'art. 30¹', 'runs')).toBe(
+      paragraph(
+        run(baseline, 'art. 30'),
+        run('<w:rPr><w:sz w:val="20"/><w:vertAlign w:val="superscript"/></w:rPr>', '1')
+      )
+    );
+  });
+
+  it('writes the words added after a link outside it', () => {
+    const linked = paragraph(
+      run(normal, 'conform '),
+      `<w:hyperlink r:id="rId5">${run(normal, 'Legii 319/2006 privind securitatea')}</w:hyperlink>`,
+      run(normal, '.')
+    );
+    expect(
+      rewriteParagraph(linked, 'conform Legii 319/2006 privind securitatea și sănătatea în muncă.')
+    ).toBe(
+      paragraph(
+        run(normal, 'conform '),
+        `<w:hyperlink r:id="rId5">${run(normal, 'Legii 319/2006 privind securitatea')}</w:hyperlink>`,
+        run(normal, ' și sănătatea în muncă.')
+      )
+    );
+  });
+
+  it('refuses a paragraph with tracked changes', () => {
+    const tracked = paragraph(
+      run(normal, 'Lucrătorul poartă '),
+      `<w:ins w:id="1" w:author="A" w:date="2026-01-01T00:00:00Z">${run(normal, 'casca')}</w:ins>`
+    );
+    expect(() => rewriteParagraph(tracked, 'Lucrătorul poartă cască')).toThrow(
+      'holds tracked changes'
+    );
+    const changed = paragraph(
+      run(
+        '<w:rPr><w:b/><w:rPrChange w:id="2" w:author="A"><w:rPr><w:i/></w:rPr></w:rPrChange></w:rPr>',
+        'casca'
+      )
+    );
+    expect(() => rewriteParagraph(changed, 'cască')).toThrow('holds tracked changes');
+  });
+
+  it("gives words in an empty paragraph its mark's formatting, without its revision marks", () => {
+    const empty =
+      '<w:p><w:pPr><w:rPr><w:ins w:id="3" w:author="A" w:date="2026-01-01T00:00:00Z"/><w:b/></w:rPr></w:pPr></w:p>';
+    expect(rewriteParagraph(empty, 'Text nou')).toBe(
+      '<w:p><w:pPr><w:rPr><w:ins w:id="3" w:author="A" w:date="2026-01-01T00:00:00Z"/><w:b/></w:rPr></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Text nou</w:t></w:r></w:p>'
+    );
+  });
 });
