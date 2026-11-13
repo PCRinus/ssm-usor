@@ -10,9 +10,10 @@ import {
   noImpactNote,
   readableUnit,
 } from './assess';
-import { checkLegislation, describeOutcome, type LegalAct } from './check';
+import { checkLegislation, describeOutcome, type LegalAct, summarize } from './check';
 import type { LegislationDatabase } from './database';
 import { type PortalAct, PortalError } from './portal';
+import { describeRun, runLegislationCheck } from './run';
 
 const fixture = (name: string) =>
   readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8');
@@ -74,6 +75,15 @@ const definitions: IndexedCitation = {
   text: null,
 };
 
+const today = Date.parse('2026-11-13T03:17:00Z');
+const recently = '2026-11-12T03:17:00Z';
+const longAgo = '2026-11-08T03:17:00Z';
+
+const unreachable = new PortalError('https://relay/Public/DetaliiDocument/312713 answered 403.', {
+  kind: 'http_status',
+  status: 403,
+});
+
 const newest = (newestConsolidation: string): PortalAct => ({
   portalId: 41006,
   title: 'ORDONANȚĂ DE URGENȚĂ nr. 195 din 12 decembrie 2002',
@@ -83,18 +93,20 @@ const newest = (newestConsolidation: string): PortalAct => ({
   amendingActs: ['LEGE 207 03/11/2026'],
 });
 
-type Pending = { id: string; act_id: string; consolidated_on: string };
+type Pending = { id: string; act_id: string; consolidated_on: string; seen_at: string };
 
 function database({
   lastSeen,
   verified,
   pending = [],
   outcomeTaken = false,
+  advanceFails = false,
 }: {
   lastSeen: string | null;
   verified: string | null;
   pending?: Pending[];
   outcomeTaken?: boolean;
+  advanceFails?: boolean;
 }) {
   const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
     const url = new URL(String(input));
@@ -116,6 +128,18 @@ function database({
     }
     if (table === 'legal_changes' && method === 'PATCH') {
       return Response.json(outcomeTaken ? [] : [{ id: url.searchParams.get('id')?.slice(3) }]);
+    }
+    if (table === 'legal_acts' && method === 'PATCH' && advanceFails) {
+      const body = JSON.parse(String(init?.body));
+      if ('verified_consolidated_on' in body) {
+        return Response.json(
+          { message: 'canceling statement due to statement timeout' },
+          { status: 500 }
+        );
+      }
+    }
+    if (table === 'legal_check_runs' && method === 'POST') {
+      return Response.json({ id: 'r1' }, { status: 201 });
     }
     if (method === 'PATCH' || method === 'DELETE') return new Response(null, { status: 204 });
     if (table === 'legal_change_passages' && method === 'POST') {
@@ -253,7 +277,9 @@ describe('assessing a new form', () => {
     const { db, sent } = database({
       lastSeen: '2026-11-06',
       verified: '2026-08-25',
-      pending: [{ id: 'c-old', act_id: roads.id, consolidated_on: '2026-11-06' }],
+      pending: [
+        { id: 'c-old', act_id: roads.id, consolidated_on: '2026-11-06', seen_at: recently },
+      ],
     });
     const [outcome] = await check(db, [helmet]);
 
@@ -269,43 +295,166 @@ describe('assessing a new form', () => {
     });
   });
 
-  it('leaves a change unassessed, and the act failed, when a form cannot be read', async () => {
+  it('leaves a change unassessed when a form cannot be read, the act checked and the run not failed', async () => {
     const { db, sent } = database({ lastSeen: '2026-08-25', verified: '2026-08-25' });
-    const [outcome] = await checkLegislation(db, [roads], {
+    const run = await runLegislationCheck(db, [roads], {
       readAct: async () => newest('2026-11-06'),
       readForm: async () => {
-        throw new PortalError('https://relay/Public/DetaliiDocument/312713 answered 403.', {
-          kind: 'http_status',
-          status: 403,
-        });
+        throw unreachable;
       },
       citations: [helmet],
       pauseMs: 0,
     });
 
+    const [outcome] = run.outcomes;
     expect(outcome).toMatchObject({
-      result: 'failed',
-      error: {
+      result: 'checked',
+      change: { id: 'c-new', consolidatedOn: '2026-11-06', recorded: true },
+      assessments: [],
+      assessmentError: {
         kind: 'http_status',
         status: 403,
         message:
           'Could not assess its change: https://relay/Public/DetaliiDocument/312713 answered 403.',
       },
-      change: { id: 'c-new', consolidatedOn: '2026-11-06', recorded: true },
-      assessments: [],
     });
+    expect(run.status).toBe('succeeded');
+    expect(describeRun(run)).toContain(
+      'NEW CHANGE 2026-11-06; ASSESSMENT FAILED, Could not assess its change: https://relay/Public/DetaliiDocument/312713 answered 403.'
+    );
+    expect(describeRun(run)).toContain(
+      '1 acts: 1 checked, 1 new change, 0 failed, 0 skipped. 1 act with a change that could not be assessed.'
+    );
     expect(sent('legal_changes', 'PATCH')).toHaveLength(0);
     expect(sent('legal_acts', 'PATCH')[0]!.body).toMatchObject({
       last_consolidated_on: '2026-11-06',
     });
   });
 
+  it('leaves a change that failed for three days to a person, and assesses the newer ones', async () => {
+    const { db, sent } = database({
+      lastSeen: '2026-11-06',
+      verified: '2026-08-25',
+      pending: [
+        { id: 'c-stuck', act_id: roads.id, consolidated_on: '2026-09-10', seen_at: longAgo },
+        { id: 'c-old', act_id: roads.id, consolidated_on: '2026-11-06', seen_at: longAgo },
+      ],
+    });
+    const [outcome] = await checkLegislation(db, [roads], {
+      readAct: async () => newest('2026-11-06'),
+      readForm: async (portalId, on) => {
+        if (on === '2026-09-10') throw unreachable;
+        return defaultReadForm(portal)(portalId, on);
+      },
+      citations: [helmet],
+      pauseMs: 0,
+      now: () => today,
+    });
+
+    const [stuck, old] = sent('legal_changes', 'PATCH');
+    expect(stuck!.url.searchParams.get('id')).toBe('eq.c-stuck');
+    expect(stuck!.body).toMatchObject({
+      outcome: 'needs_review',
+      compared_with: null,
+      review: [
+        'The check could not assess it in any run since 2026-11-08: https://relay/Public/DetaliiDocument/312713 answered 403.',
+      ],
+    });
+    expect(old!.url.searchParams.get('id')).toBe('eq.c-old');
+    expect(old!.body).toMatchObject({ outcome: 'quote_differs' });
+    expect(outcome).toMatchObject({
+      result: 'checked',
+      assessments: [
+        { changeId: 'c-stuck', outcome: 'needs_review', compared: false },
+        { changeId: 'c-old', outcome: 'quote_differs' },
+      ],
+    });
+    expect(outcome).not.toHaveProperty('assessmentError');
+  });
+
+  it('tries a change that failed for less than three days again on the next run', async () => {
+    const { db, sent } = database({
+      lastSeen: '2026-11-06',
+      verified: '2026-08-25',
+      pending: [
+        { id: 'c-stuck', act_id: roads.id, consolidated_on: '2026-09-10', seen_at: recently },
+        { id: 'c-old', act_id: roads.id, consolidated_on: '2026-11-06', seen_at: recently },
+      ],
+    });
+    const [outcome] = await checkLegislation(db, [roads], {
+      readAct: async () => newest('2026-11-06'),
+      readForm: async () => {
+        throw unreachable;
+      },
+      citations: [helmet],
+      pauseMs: 0,
+      now: () => today,
+    });
+    expect(sent('legal_changes', 'PATCH')).toHaveLength(0);
+    expect(outcome).toMatchObject({ result: 'checked', assessments: [] });
+    expect(outcome).toHaveProperty('assessmentError');
+  });
+
+  it('reports a change resolved when only advancing the verified form failed', async () => {
+    const { db } = database({ lastSeen: '2026-08-25', verified: '2026-08-25', advanceFails: true });
+    const [outcome] = await check(db, [purpose]);
+    expect(outcome).toMatchObject({
+      result: 'checked',
+      assessments: [{ changeId: 'c-new', outcome: 'no_impact', resolved: true }],
+      warnings: [
+        'Could not advance the verified form to 2026-11-06: canceling statement due to statement timeout',
+      ],
+    });
+    expect(outcome).not.toHaveProperty('assessmentError');
+    expect(describeOutcome(outcome!)).toMatch(
+      /2026-11-06 resolved, no impact; warning: Could not advance the verified form to 2026-11-06/
+    );
+  });
+
+  it('leaves the changes past the run’s time for assessing to the next run', async () => {
+    const { db, sent } = database({ lastSeen: '2026-08-25', verified: '2026-08-25' });
+    let clock = today;
+    const outcomes = await checkLegislation(db, [roads], {
+      readAct: async () => newest('2026-11-06'),
+      citations: [helmet],
+      portal,
+      pauseMs: 0,
+      assessForMs: 60_000,
+      now: () => (clock += 61_000),
+    });
+    expect(sent('legal_changes', 'PATCH')).toHaveLength(0);
+    expect(outcomes[0]).toMatchObject({
+      result: 'checked',
+      assessments: [],
+      deferred: ['2026-11-06'],
+    });
+    expect(summarize(outcomes)).toMatch(
+      /NEW CHANGE 2026-11-06; 2026-11-06 left for the next run, out of time\n.*skipped\. 1 change left for the next run, out of time\.$/
+    );
+  });
+
+  it('names the open changes no newer than the verified form, which it leaves alone', async () => {
+    const { db, sent } = database({
+      lastSeen: '2026-11-06',
+      verified: '2026-11-06',
+      pending: [
+        { id: 'c-old', act_id: roads.id, consolidated_on: '2026-08-25', seen_at: recently },
+      ],
+    });
+    const [outcome] = await check(db, [helmet]);
+    expect(sent('legal_changes', 'PATCH')).toHaveLength(0);
+    expect(outcome).toMatchObject({ result: 'checked', assessments: [], passed: ['2026-08-25'] });
+    expect(describeOutcome(outcome!)).toMatch(
+      /; 2026-08-25 open but no newer than the verified form, not assessed$/
+    );
+  });
+
   it('refuses to compare a form the portal no longer lists', async () => {
     const { db, sent } = database({ lastSeen: '2026-08-25', verified: '2026-08-25' });
     const [outcome] = await check(db, [helmet], '2026-11-07');
     expect(outcome).toMatchObject({
-      result: 'failed',
-      error: { message: expect.stringMatching(/has no form of 2026-11-07 to compare/) },
+      result: 'checked',
+      assessmentError: { message: expect.stringMatching(/has no form of 2026-11-07 to compare/) },
     });
     expect(sent('legal_changes', 'PATCH')).toHaveLength(0);
   });

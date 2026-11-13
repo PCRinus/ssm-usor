@@ -11,6 +11,7 @@ import {
   failedRunMessage,
   isStale,
   legislationNotices,
+  notAssessedMessage,
   staleMessage,
   stoppedRunMessage,
 } from './notices';
@@ -194,10 +195,11 @@ describe('the messages', () => {
         },
         {
           act: safety,
-          result: 'failed',
-          error: { kind: 'fetch', message: 'Could not assess its change: fetch failed' },
+          result: 'checked',
+          portal: portal(safety, '2026-11-10'),
           change: { id: 'c9', consolidatedOn: '2026-11-10', amendingAct: null, recorded: true },
           assessments: [],
+          assessmentError: { kind: 'fetch', message: 'Could not assess its change: fetch failed' },
         },
       ],
     });
@@ -337,6 +339,46 @@ describe('the messages', () => {
     const lines = failedRunMessage({ ...run, outcomes: failed }, 'production').content!.split('\n');
     expect(lines.filter((line) => line.includes('FAILED'))).toHaveLength(10);
     expect(lines.at(-2)).toBe('and 3 more');
+  });
+
+  it('lists the acts whose earlier changes were not assessed, or left for the next run', () => {
+    const outcomes: CheckRun['outcomes'] = [
+      {
+        act: safety,
+        result: 'checked',
+        portal: portal(safety, '2026-11-10'),
+        change: null,
+        assessments: [],
+        assessmentError: { kind: 'fetch', message: 'Could not assess its change: fetch failed' },
+      },
+      {
+        act: roads,
+        result: 'checked',
+        portal: portal(roads, '2026-11-06'),
+        change: { id: 'c1', consolidatedOn: '2026-11-06', amendingAct: null, recorded: true },
+        assessments: [],
+        assessmentError: { kind: 'fetch', message: 'Could not assess its change: fetch failed' },
+      },
+      {
+        act: fire,
+        result: 'checked',
+        portal: portal(fire, '2026-10-25'),
+        change: null,
+        assessments: [],
+        deferred: ['2026-10-25'],
+      },
+    ];
+    expect(notAssessedMessage({ ...run, status: 'succeeded', outcomes }, 'production')).toEqual({
+      content: [
+        '🟡 **Legal changes not assessed** · production',
+        'The next run tries again; a change that fails for three days is left to review.',
+        '```',
+        'legea-319-2006     Legea 319/2006: in force, consolidated 2026-11-10; no change; ASSESSMENT FAILED, Could not assess its change: fetch failed',
+        'legea-307-2006     Legea 307/2006: in force, consolidated 2026-10-25; no change; 2026-10-25 left for the next run, out of time',
+        '```',
+      ].join('\n'),
+    });
+    expect(notAssessedMessage(run, 'production')).toBeNull();
   });
 
   it('says why a run stopped', () => {

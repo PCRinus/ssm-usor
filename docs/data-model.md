@@ -2443,10 +2443,16 @@ citation index cites, both read from the portal:
 | `review`        | Why a person should read it, in English for the platform admin: a referred unit amended, a cited unit repealed, missing or not compared, a note against a text that reads the same, a republication. Members cannot select it. |
 
 A change with no impact is resolved in the same run, with a note naming the amended units, and
-its act's `verified_consolidated_on` moves to its form. The other two stay open. A run that
-cannot read a form leaves `outcome` null and fails the act; the next run assesses every open
-change whose outcome is null, oldest first. The outcome is written after the passages, so a
-run that stops in between leaves the change unassessed.
+its act's `verified_consolidated_on` moves to its form; a run that records the outcome but
+cannot move the form logs a warning, and the change stays resolved. The other two stay open. A
+run that cannot read a form leaves `outcome` null and the act's later changes for the next run,
+which assesses every open change whose outcome is null, oldest first; the act still counts as
+checked and the run does not fail for it. A change whose assessment still fails three days after
+`seen_at` is recorded as `needs_review`, the failure in `review`, so it never blocks the act's
+newer changes. A run assesses for ten minutes at most and leaves the rest for the next one, and
+an open change no newer than `verified_consolidated_on` is never assessed, only named in the
+run's log. The outcome is written after the passages, so a run that stops in between leaves the
+change unassessed.
 
 `legal_change_passages` holds one row per cited unit a change touched, per citation:
 `manifest`, `template_file` and `paragraph` (as the citation index counts it), `citation_form`
@@ -2471,7 +2477,7 @@ throws, so the Legislație page can warn when the latest run failed or is too ol
 | `errors`        | Null when nothing failed; otherwise `[{ "act", "message" }]`, one per act whose page could not be read, `act` null when the run itself failed. |
 
 A run that read some pages and not others is `failed`; the acts it did read are saved all the
-same.
+same. A change the run could not assess fails neither the act nor the run.
 
 ## Dashboard
 

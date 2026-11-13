@@ -368,7 +368,8 @@ outcome, the amending acts, the amended units and the act's page on the portal. 
 for each change gives the law's old and new text of every unit a template quotes that changed,
 only the changed words with a few around them for a long unit, with the templates that quote it,
 and the reasons to review. The changes resolved as no impact are one post, a line each. A new
-change that could not be assessed is posted as such, and a failed run with the acts it could not
+change that could not be assessed is posted as such, the other acts with a change not assessed
+or left for the next run in a post of their own, and a failed run with the acts it could not
 read, ten at most. Every cron run, before it starts and also on a morning it skips, looks
 for the last successful run and warns when none started in the last two days, so a run the
 platform cut off is reported the next morning. A cron that never fires posts nothing. The

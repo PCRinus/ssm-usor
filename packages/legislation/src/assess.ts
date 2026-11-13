@@ -57,7 +57,35 @@ export type ChangeAssessment = {
   passages: ChangePassage[];
 };
 
-export type PendingChange = { id: string; consolidatedOn: string; backfilled: boolean };
+export type PendingChange = {
+  id: string;
+  consolidatedOn: string;
+  backfilled: boolean;
+  seenAt: string;
+};
+
+// A change whose assessment has failed for this long is left to a person, so that an act the
+// check cannot compare never blocks the act's newer changes.
+export const assessmentRetryMs = 3 * 24 * 60 * 60 * 1000;
+
+export function unassessed(change: PendingChange, reason: string): ChangeAssessment {
+  return {
+    changeId: change.id,
+    consolidatedOn: change.consolidatedOn,
+    comparedWith: null,
+    compared: false,
+    backfilled: change.backfilled,
+    outcome: 'needs_review',
+    resolved: false,
+    note: null,
+    amendingActs: [],
+    amendedUnits: [],
+    review: [
+      `The check could not assess it in any run since ${change.seenAt.slice(0, 10)}: ${reason}`,
+    ],
+    passages: [],
+  };
+}
 
 export type ReadForm = (
   portalId: number,
@@ -232,13 +260,14 @@ export async function assessChange({
 }
 
 // The outcome is written last: a run that stops before it leaves the change unassessed, and the
-// next run assesses it again from the start.
+// next run assesses it again from the start. Once it is written the change is assessed, whatever
+// follows: a verified form that could not be advanced comes back as a warning.
 export async function storeAssessment(
   db: LegislationClient,
   actId: string,
   assessment: ChangeAssessment,
   now = new Date().toISOString()
-) {
+): Promise<{ advanced: boolean; warning: string | null }> {
   const cleared = await db
     .from('legal_change_passages')
     .delete()
@@ -289,7 +318,7 @@ export async function storeAssessment(
   if (updated.error) {
     throw new Error(`Could not store the outcome of the change: ${updated.error.message}`);
   }
-  if (!assessment.resolved || !updated.data?.length) return;
+  if (!assessment.resolved || !updated.data?.length) return { advanced: false, warning: null };
   const advanced = await db
     .from('legal_acts')
     .update({ verified_consolidated_on: assessment.consolidatedOn })
@@ -298,14 +327,18 @@ export async function storeAssessment(
       `verified_consolidated_on.is.null,verified_consolidated_on.lt.${assessment.consolidatedOn}`
     );
   if (advanced.error) {
-    throw new Error(`Could not advance the verified form of the act: ${advanced.error.message}`);
+    return {
+      advanced: false,
+      warning: `Could not advance the verified form to ${assessment.consolidatedOn}: ${advanced.error.message}`,
+    };
   }
+  return { advanced: true, warning: null };
 }
 
 export async function pendingChanges(db: LegislationClient) {
   const found = await db
     .from('legal_changes')
-    .select('id, act_id, consolidated_on')
+    .select('id, act_id, consolidated_on, seen_at')
     .eq('resolution', 'open')
     .is('outcome', null)
     .order('consolidated_on');
@@ -315,7 +348,12 @@ export async function pendingChanges(db: LegislationClient) {
   const byAct = new Map<string, PendingChange[]>();
   for (const row of found.data) {
     const list = byAct.get(row.act_id) ?? [];
-    list.push({ id: row.id, consolidatedOn: row.consolidated_on, backfilled: true });
+    list.push({
+      id: row.id,
+      consolidatedOn: row.consolidated_on,
+      backfilled: true,
+      seenAt: row.seen_at,
+    });
     byAct.set(row.act_id, list);
   }
   return byAct;

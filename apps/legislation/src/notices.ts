@@ -50,8 +50,8 @@ export const environmentOf = (env: NoticeEnv) => env.ENVIRONMENT?.trim() || 'loc
 
 export function changesOf(run: CheckRun): ChangeNotice[] {
   return run.outcomes.flatMap((outcome: ActOutcome): ChangeNotice[] => {
-    if (outcome.result === 'skipped') return [];
-    const assessments = outcome.assessments ?? [];
+    if (outcome.result !== 'checked') return [];
+    const { assessments } = outcome;
     const notices: ChangeNotice[] = assessments.map((assessment) => ({
       act: outcome.act,
       consolidatedOn: assessment.consolidatedOn,
@@ -71,7 +71,7 @@ export function changesOf(run: CheckRun): ChangeNotice[] {
         consolidatedOn: change.consolidatedOn,
         amendingAct: change.amendingAct,
         assessment: null,
-        ...(outcome.result === 'failed' && { notAssessed: outcome.error.message }),
+        ...(outcome.assessmentError && { notAssessed: outcome.assessmentError.message }),
       });
     }
     return notices;
@@ -225,6 +225,25 @@ export function failedRunMessage(run: CheckRun, environment: string): DiscordMes
   };
 }
 
+// The acts whose changes the run read but could not assess, or left for the next run; a new
+// change among them is already in the run's message as not assessed.
+export function notAssessedMessage(run: CheckRun, environment: string): DiscordMessage | null {
+  const lines = run.outcomes.flatMap((outcome) =>
+    outcome.result === 'checked' &&
+    ((outcome.assessmentError && !outcome.change?.recorded) || outcome.deferred?.length)
+      ? [describeOutcome(outcome)]
+      : []
+  );
+  if (lines.length === 0) return null;
+  return {
+    content: [
+      `🟡 **Legal changes not assessed** · ${environment}`,
+      'The next run tries again; a change that fails for three days is left to review.',
+      codeBlock(capped(lines).join('\n')),
+    ].join('\n'),
+  };
+}
+
 export function stoppedRunMessage(reason: string, environment: string): DiscordMessage {
   return {
     content: `🟡 **Legislation check failed** · ${environment}\nThe run stopped: ${reason}`,
@@ -263,6 +282,8 @@ export function legislationNotices(env: NoticeEnv, fetcher?: typeof fetch) {
         if (details) await webhook.send(details);
       }
       if (resolved.length > 0) await webhook.send(resolvedMessage(resolved, environment));
+      const notAssessed = notAssessedMessage(run, environment);
+      if (notAssessed) await webhook.send(notAssessed);
       if (run.status === 'failed') await webhook.send(failedRunMessage(run, environment));
     },
     async stopped(reason: string) {
