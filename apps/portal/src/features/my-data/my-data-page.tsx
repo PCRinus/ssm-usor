@@ -59,6 +59,9 @@ function MyData({ participantId }: { participantId: string }) {
           <Facts>
             <Fact label={t`Data și locul nașterii`}>{birth || null}</Fact>
             <Fact label={t`Domiciliu`}>{employee.homeAddress}</Fact>
+            {employee.residenceAddress && (
+              <Fact label={t`Adresa unde locuiești`}>{employee.residenceAddress}</Fact>
+            )}
             <Fact label={t`Grupa sanguină`}>{blood || null}</Fact>
             <Fact label={t`Studii`}>{employee.education}</Fact>
             <Fact label={t`Calificare`}>{employee.qualification}</Fact>

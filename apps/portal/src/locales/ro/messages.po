@@ -203,6 +203,10 @@ msgstr "Adresa de email nu pare scrisă corect."
 msgid "Adresa nu duce nicăieri în portal."
 msgstr "Adresa nu duce nicăieri în portal."
 
+#: src/features/my-data/my-data-page.tsx
+msgid "Adresa unde locuiești"
+msgstr "Adresa unde locuiești"
+
 #: src/features/participation/privacy-notice.tsx
 msgid "Ai acces la portal pentru <0>{clientName}</0>."
 msgstr "Ai acces la portal pentru <0>{clientName}</0>."

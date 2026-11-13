@@ -500,6 +500,7 @@ describe('Datele mele', () => {
     expect(fact('Data și locul nașterii')).toBe('4 mai 1990, Timișoara');
     expect(fact('Grupa sanguină')).toBe('A(II), Rh pozitiv');
     expect(fact('Autorizații')).toBe('Necompletat');
+    expect(within(data).queryByText('Adresa unde locuiești')).toBeNull();
     expect(fact('Ruta')).toBe('Pe jos, pe strada Lungă');
     expect(fact('Durata')).toBe('15 minute');
     expect(data.textContent).toContain('accident de muncă');
@@ -512,6 +513,18 @@ describe('Datele mele', () => {
     expect(within(correction).getByRole('link', { name: '0722 000 111' })).toHaveProperty(
       'href',
       'tel:0722000111'
+    );
+  });
+
+  it('shows where the worker lives when the specialist wrote an address apart from the domicile', async () => {
+    const data = employeeData();
+    data.employee.residenceAddress = 'Str. Florilor 9, Timișoara';
+    vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(data));
+    mountPortal(signedIn(), '/datele-mele');
+
+    const facts = await screen.findByTestId('my-data');
+    expect(within(facts).getByText('Adresa unde locuiești').nextElementSibling?.textContent).toBe(
+      'Str. Florilor 9, Timișoara'
     );
   });
 
