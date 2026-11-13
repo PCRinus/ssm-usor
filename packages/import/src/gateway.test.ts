@@ -105,12 +105,24 @@ describe('createModelClient', () => {
     expect(result.attempts).toBe(1);
   });
 
-  it('posts a Gemini request to the Workers AI catalog, without a reasoning effort', async () => {
+  it('posts a Gemini request to the unified endpoint as Google AI Studio, without a reasoning effort', async () => {
     const { client, requests } = fakeGateway(() =>
-      completion(`\`\`\`json\n${JSON.stringify(answer)}\n\`\`\``, {
-        prompt: 2400,
-        cached: 0,
-        completion: 900,
+      Response.json({
+        id: 'recorded',
+        object: 'chat.completion',
+        model: 'gemini-3.1-flash-lite',
+        choices: [
+          {
+            index: 0,
+            finish_reason: 'stop',
+            message: {
+              role: 'assistant',
+              content: `\`\`\`json\n${JSON.stringify(answer)}\n\`\`\``,
+              extra_content: { google: { thought_signature: 'c2lnbmF0dXJl' } },
+            },
+          },
+        ],
+        usage: { prompt_tokens: 2400, completion_tokens: 900, total_tokens: 3300 },
       })
     );
     const result = await client.complete({
@@ -122,11 +134,11 @@ describe('createModelClient', () => {
     });
 
     const [{ url, init }] = requests as [(typeof requests)[number]];
-    expect(url).toBe('https://gateway.example/v1/account/import/workers-ai/v1/chat/completions');
+    expect(url).toBe('https://gateway.example/v1/account/import/compat/chat/completions');
     expect(new Headers(init.headers).get('cf-aig-authorization')).toBe('Bearer gateway-token');
     const body = JSON.parse(init.body as string);
     expect(body).toMatchObject({
-      model: 'google/gemini-3.1-flash-lite',
+      model: 'google-ai-studio/gemini-3.1-flash-lite',
       max_completion_tokens: 16_000,
       response_format: { type: 'json_schema', json_schema: { name: 'import_sorting' } },
     });
@@ -137,7 +149,7 @@ describe('createModelClient', () => {
     expect(result.cost).toBeCloseTo((2400 * 0.25 + 900 * 1.5) / 1e6, 12);
   });
 
-  it('retries a Gemini request the catalog could not serve, on the same route', async () => {
+  it('retries a Gemini request the gateway could not serve, on the same route', async () => {
     const { client, requests } = fakeGateway(
       () => new Response('unavailable', { status: 503 }),
       () => completion(answer)
@@ -147,8 +159,8 @@ describe('createModelClient', () => {
       attempts: 1,
     });
     expect(requests.map((each) => each.url)).toEqual([
-      'https://gateway.example/v1/account/import/workers-ai/v1/chat/completions',
-      'https://gateway.example/v1/account/import/workers-ai/v1/chat/completions',
+      'https://gateway.example/v1/account/import/compat/chat/completions',
+      'https://gateway.example/v1/account/import/compat/chat/completions',
     ]);
   });
 

@@ -111,14 +111,16 @@ function usageOf(body: ChatCompletion): Usage {
   };
 }
 
-// Gemini is reached through the gateway's Workers AI catalog, which bills it on the Cloudflare
-// account and speaks OpenAI's chat completions.
+// Gemini goes through the gateway's unified endpoint named as Google AI Studio, the Gemini API
+// whose paid terms the legal pages cite; the Workers AI catalog does not say which Google backend
+// serves it (ADR 043).
 const routes: Record<ModelProvider, { path: string; model: (id: ModelId) => string }> = {
   openai: { path: 'openai/chat/completions', model: (id) => id },
-  google: { path: 'workers-ai/v1/chat/completions', model: (id) => `google/${id}` },
+  google: { path: 'compat/chat/completions', model: (id) => `google-ai-studio/${id}` },
 };
 
-// The Workers AI catalog sometimes wraps the JSON it was asked for in a Markdown code fence.
+// Gemini wrapped the JSON it was asked for in a Markdown code fence when it was reached through
+// the Workers AI catalog; one answer on the unified endpoint is too few to rule that out there.
 const unfenced = (content: string) =>
   content
     .trim()
