@@ -691,6 +691,10 @@ safety sheet, and `employee.workplace` on both when the client has more than one
 workplace and the employee has none. Everything else prints empty when it is empty, and a
 leaver's sheets are drawn up too.
 
+`commute` prints the route, then the means of transport the route does not name already, then
+the duration: "Str. Lungă – Str. Fabricii, pe jos și cu transportul public (25 de minute)"
+([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md), amended 2026-11-13).
+
 `src/templates.test.ts` holds both templates to `tools/training-sheet-samples.ts`, the sample
 merge data in this shape: every placeholder has a value, every loop closes, every blank row
 item prints one row, the test results print with none, two and five passes in five rows, and the

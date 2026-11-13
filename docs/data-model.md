@@ -730,6 +730,7 @@ stay a one-line comparison like on `clients`.
 | `qualification`, `education`                | Optional free text the individual training sheets print (calificarea, studiile), up to 160 characters each.                                                       |
 | `authorizations`                            | Optional free text (autorizații: "ISCIR" and the like), up to 500 characters.                                                                                     |
 | `commute_route`, `commute_minutes`          | Optional: the commute (traseul de deplasare) as free text up to 1000 characters, and its duration, 1 to 600 minutes.                                              |
+| `commute_means`, `commute_means_other`      | The means of transport: codes among `on_foot`, `bicycle`, `personal_car`, `employer_transport`, `public_transport`, and one typed apart, up to 120 characters.    |
 | `archived_at`                               | Soft delete for rows entered by mistake; a leaver is a status change, not an archive.                                                                             |
 
 Both unique indexes are partial on `archived_at is null`, so archiving a mistaken row releases
@@ -1703,7 +1704,8 @@ refusing a field it does not name (`22023`):
   "employees": [{ "key", "id", "replace", "job_position_id", "workplace_id", "last_name",
     "first_name", "cnp", "employee_number", "birth_date", "birth_place", "home_address",
     "residence_address", "education", "qualification", "blood_group", "rh_factor", "job_title",
-    "hired_at", "commute_route", "commute_minutes", "status", "terminated_at" }],
+    "hired_at", "commute_route", "commute_means", "commute_means_other", "commute_minutes",
+    "status", "terminated_at" }],
   "trainings": [{ "key", "domain", "phase", "held_on", "duration_minutes", "material",
     "trainer_name", "trainer_job_title", "verifier_name", "verifier_job_title",
     "supplementary_reason", "records": [{ "employee_key", "admitted_on", "admitted_by_name",

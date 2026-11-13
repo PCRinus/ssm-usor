@@ -436,7 +436,9 @@ replaces what was entered about a person with the same body and rules as `POST`;
 The facts the individual training sheets print
 ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) ride on the same
 bodies, all optional: `workplaceId`, `qualification` and `education` (up to 160 characters),
-`authorizations` (up to 500), `commuteRoute` (up to 1000) and `commuteMinutes` (an integer from 1
+`authorizations` (up to 500), `commuteRoute` (up to 1000), `commuteMeans` (codes among `on_foot`,
+`bicycle`, `personal_car`, `employer_transport` and `public_transport`, stored once each in that
+order; left out, none), `commuteMeansOther` (up to 120) and `commuteMinutes` (an integer from 1
 to 600). `residenceAddress` (up to 240), where the person lives when it is not the domicile, rides
 along too, though no sheet prints it. A `workplaceId` that is archived, belongs to another client or is a registered office
 where no activity takes place (ADR 041) answers `400` with an issue on `workplaceId`, as for a
