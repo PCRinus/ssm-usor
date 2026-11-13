@@ -208,6 +208,40 @@ describe('buildTrainingSheetData', () => {
     );
   });
 
+  it('takes a street or a place for no means, and an employer vehicle for neither a car nor public transport', () => {
+    expect(commuteMeansPhrase('Str. Mașinilor – poarta fabricii', ['personal_car'], null)).toBe(
+      'cu mașina personală'
+    );
+    expect(
+      commuteMeansPhrase('Str. Trenului – zona pietonală', ['on_foot', 'public_transport'], null)
+    ).toBe('pe jos și cu transportul public');
+    expect(
+      commuteMeansPhrase('Cu microbuzul firmei până la poartă', ['public_transport'], null)
+    ).toBe('cu transportul public');
+    expect(
+      commuteMeansPhrase('Cu mașina firmei, pe DN 69', ['personal_car', 'employer_transport'], null)
+    ).toBe('cu mașina personală');
+    expect(commuteMeansPhrase('Str. Lungă, cu mașina', ['personal_car'], null)).toBe('');
+    expect(
+      commuteMeansPhrase('Tramvaiul 4: Piața Unirii – Fabricii', ['public_transport'], null)
+    ).toBe('');
+  });
+
+  it('prints a means typed apart that repeats a chosen one only once, and keeps no stray comma', () => {
+    expect(commuteMeansPhrase('Str. Lungă', ['on_foot'], 'Pe jos')).toBe('pe jos');
+    expect(commuteMeansPhrase('Str. Lungă', [], 'in tren')).toBe('in tren');
+    expect(
+      buildTrainingSheetData({
+        ...facts,
+        employee: {
+          ...facts.employee,
+          commuteRoute: 'Str. Lungă – Str. Fabricii,',
+          commuteMeans: ['public_transport'],
+        },
+      }).employee.commute
+    ).toBe('Str. Lungă – Str. Fabricii, cu transportul public (25 de minute)');
+  });
+
   it('writes the means typed apart as it reads after the route, unless the route names it', () => {
     expect(commuteMeansPhrase('Str. Lungă – Str. Fabricii', [], 'Motocicleta')).toBe(
       'cu motocicleta'

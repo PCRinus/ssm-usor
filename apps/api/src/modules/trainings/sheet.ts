@@ -1,5 +1,6 @@
 import {
   type CommuteMean,
+  commuteMeanLabels,
   type EmployeeTrainingRecord,
   foldText,
   type KnowledgeTest,
@@ -240,18 +241,26 @@ const meansPhrases: Record<CommuteMean, string> = {
 };
 
 // The words by which a route typed before the means had a field of their own already names one,
-// as in "Str. Lungă – Str. Fabricii, cu autobuzul 33"; matched on folded text.
+// as in "Str. Lungă – Str. Fabricii, cu autobuzul 33", or as the import writes it, "Autobuz 33: …";
+// matched on folded text. A vehicle counts only after "cu" or at the start, so a street such as
+// "Str. Mașinilor" or "Str. Trenului" names none, and one the employer provides ("mașina
+// firmei") names neither the person's own car nor public transport.
+const employers = '(?:firmei|societatii|angajatorului|de serviciu|serviciului)';
+const vehicle = (words: string) =>
+  new RegExp(`(?:^|\\bcu (?:o |un )?)(?:${words})\\w*(?!\\w|\\s+${employers})`);
 const meansNamedBy: Record<CommuteMean, RegExp> = {
-  on_foot: /\bpe jos\b|\bpieton/,
-  bicycle: /\bbiciclet|\btrotinet/,
-  personal_car: /\bmasin|\bautoturism|\bauto personal/,
-  employer_transport:
-    /\bmicrobuz|\btransport(ul)? (asigurat|organizat)|\b(masina|autocarul) (firmei|societatii|angajatorului)/,
-  public_transport:
-    /\bautobuz|\btramvai|\btroleibuz|\bmetrou|\btren|\bmaxi ?taxi|\bmicrobuz|\btransport(ul)? (public|in comun)/,
+  on_foot: /(?:^|\b)pe jos\b|\bca pieton\b/,
+  bicycle: vehicle('biciclet|trotinet'),
+  personal_car: new RegExp(`${vehicle('masin|autoturism').source}|\\bauto personal`),
+  employer_transport: new RegExp(
+    `(?:^|\\bcu )(?:masin|autoturism|microbuz|autocar|autobuz)\\w*\\s+${employers}|\\btransport(?:ul)? (?:asigurat|organizat)`
+  ),
+  public_transport: new RegExp(
+    `${vehicle('autobuz|tramvai|troleibuz|metrou|tren|maxi ?taxi|microbuz').source}|\\btransport(?:ul)? (?:public|in comun)`
+  ),
 };
 
-const startsWithPreposition = /^(cu|pe|în|prin|la|de)\s/iu;
+const startsWithPreposition = /^(cu|pe|în|in|prin|la|de)\s/iu;
 
 /**
  * The means the commute line prints after the route: those the route does not already name, so
@@ -267,7 +276,13 @@ export function commuteMeansPhrase(
     .filter((mean) => !meansNamedBy[mean].test(named))
     .map((mean) => meansPhrases[mean]);
   const typed = other?.trim();
-  if (typed && !` ${named} `.includes(` ${foldText(typed)} `)) {
+  const typedFolded = foldText(typed ?? '');
+  const ticked = means.some(
+    (mean) =>
+      foldText(meansPhrases[mean]) === typedFolded ||
+      foldText(commuteMeanLabels[mean]) === typedFolded
+  );
+  if (typed && !ticked && !` ${named} `.includes(` ${typedFolded} `)) {
     const phrase = runOn(typed);
     phrases.push(startsWithPreposition.test(phrase) ? phrase : `cu ${phrase}`);
   }
@@ -481,7 +496,7 @@ function sheetParts(facts: TrainingSheetFacts) {
         ' ',
         joined(
           ', ',
-          employee.commuteRoute && withoutFinalStop(employee.commuteRoute.trim()),
+          employee.commuteRoute?.trim().replace(/[\s.,;:]+$/u, ''),
           commuteMeansPhrase(
             employee.commuteRoute,
             employee.commuteMeans,
