@@ -20,8 +20,8 @@
       "title": "Decizia privind responsabilii cu instruirea",
       "file": "1.1_decision_training.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „proces-verbal de luare de cunoștință” în titlu și în articolul despre persoanele nou numite, iar în textul procesului-verbal „decizia … nr. …” cu numele firmei și „nr.” cu literă mică, ca în deciziile PSI."
+        "kind": "legal",
+        "note": "Citatele din legislație au fost aduse la forma în vigoare: cazurile instruirii periodice suplimentare (H.G. 1425/2006 art. 98) apar ca citat, iar fraza despre conținutul instruirii suplimentare stă după citatul art. 100, ca text al deciziei."
       }
     },
     {
@@ -92,8 +92,8 @@
       "title": "Material de instruire introductiv-generală",
       "file": "2.2_general_training_material.docx",
       "change": {
-        "kind": "correction",
-        "note": "Ghilimeaua de închidere din „în centrul pieptului” este cea românească, ca în restul documentului."
+        "kind": "legal",
+        "note": "Citatele din legislație au fost aduse la forma în vigoare: intervalele instruirii periodice (H.G. 1425/2006 art. 96), revizuirea evaluării riscurilor (art. 15), evenimentele din străinătate (art. 112), concediul de risc maternal (O.U.G. 158/2005 art. 31), cerințele pentru locurile de muncă (H.G. 1091/2006 anexa 2) și panourile de avertizare (H.G. 971/2006, fără panoul „Materiale nocive sau iritante”); cuvintele lipsă au fost refăcute."
       }
     },
     {
@@ -116,8 +116,8 @@
       "title": "Instrucțiuni proprii de securitate și sănătate în muncă",
       "file": "3.2_own_instructions.docx",
       "change": {
-        "kind": "correction",
-        "note": "Capitolul III: în locul testării anuale (TPSSM), verificarea instruirii periodice de către șeful ierarhic și, prin sondaj, de către angajator/ lucrătorul desemnat/ serviciul extern de prevenire și protecție, conform H.G. 1425/2006 – Art. 96."
+        "kind": "legal",
+        "note": "Citatele din legislație au fost aduse la forma în vigoare: fișa de instruire (H.G. 1425/2006 art. 81 și 81¹), intervalele instruirii periodice (art. 96), durata minimă a instruirii (art. 80¹), concediul de risc maternal (O.U.G. 158/2005 art. 31) și echipamentele de protecție (H.G. 1048/2006 art. 3); textele despre MISSMIG și IPSSM nu mai sunt numerotate ca alineate ale legii."
       }
     },
     {
@@ -176,8 +176,8 @@
       "title": "Lista internă de dotare cu echipament individual de protecție",
       "file": "6_protective_equipment_list.docx",
       "change": {
-        "kind": "correction",
-        "note": "Corecturi de limbă: „Am luat cunoștință” în blocul de predare-primire."
+        "kind": "legal",
+        "note": "Citatul din Legea 319/2006 art. 12 numește litera b), singura pe care o preia."
       }
     },
     {
@@ -260,8 +260,8 @@
       "title": "Material de informare a angajatorului",
       "file": "11_employer_briefing.docx",
       "change": {
-        "kind": "correction",
-        "note": "Lista documentelor predate nu mai cuprinde testul de verificare periodică (TPSSM), scos din set."
+        "kind": "legal",
+        "note": "Citatele din legislație au fost aduse la forma în vigoare: intervalele instruirii periodice (H.G. 1425/2006 art. 96), durata instruirii la locul de muncă (art. 92), revizuirea evaluării riscurilor (art. 15), comunicarea evenimentelor (Legea 319/2006 art. 26 și 27) și reprezentanții lucrătorilor (H.G. 1425/2006 art. 53); cuvintele lipsă au fost refăcute."
       }
     },
     {
