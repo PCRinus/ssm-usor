@@ -433,26 +433,41 @@ change, it regenerates `citations.json`, writes the manifest change
 `{ kind: 'legal', note, resolves: { act, consolidatedOn } }`, asks the model for the note and
 for a reading of the template's own sentences that restate the rule (listed in the pull
 request, never applied), commits on the branch `legislation/<act>-<consolidated on>` and opens
-a pull request labelled `legislation`. A quote the tool cannot change, and a change whose
-outcome is "needs review", get an issue with the same label instead. Each is posted to
-`#legislatie-prod` with the replacement of our text as a diff and the link. A change that
-already has a pull request or an issue, open or closed, or that a manifest already resolves
-(merged, waiting for a release), is skipped. Merging is the sign-off; the deploy after it
-registers the new versions, which resolves the change in each environment
-([data model](data-model.md#legislation)). The run also posts the Worker's warning when no
-check succeeded in two days and the Worker's own failed run did not already say so.
+a pull request labelled `legislation`. An act with several open forms gets one pull request,
+for the newest form whose quote differs: the check compared it with the verified form, so its
+change covers the older forms, which its manifest change resolves as well. A model or gateway
+failure leaves a plain note and no reading, and the pull request says so. A quote the tool
+cannot change or that holds none of what changed, a passage the check could not compare, a
+note that does not fit beside the template's change pending since the last release, and a
+change whose outcome is "needs review" get an issue with the same label instead. Each is posted
+to `#legislatie-prod` with the replacement of our text as a diff and the link. A change whose
+pull request is open or merged, whose issue is open, or that a manifest already resolves
+(merged, waiting for a release), is skipped. One whose pull request was closed unmerged, or
+whose issue was closed, is skipped too, and named every Monday in `#legislatie-prod` while it
+stays open. Merging is the sign-off; the deploy after it registers the new versions, which
+resolves the change in each environment ([data model](data-model.md#legislation)). The run also
+posts the Worker's warning when no check succeeded in two days and the Worker's own failed run
+did not already say so.
 
 By hand, **Actions → Legislation fix → Run workflow** on `main` takes `dry_run`, which prints the
 pull requests, issues and Discord messages in the log and opens, pushes and posts nothing, and
-`change`, one act (`oug-195-2002`) or one form of it (`oug-195-2002-2026-11-06`). From a laptop,
-`pnpm legislation:fix --local --dry-run` does the same against the local stack, and
-`SUPABASE_URL` and `SUPABASE_SECRET_KEY` point it at a hosted one.
+`change`, one act (`oug-195-2002`) or one form of it (`oug-195-2002-2026-11-06`). A change named
+this way is answered again even when its pull request or issue was closed, on the branch
+`legislation/<act>-<consolidated on>-2` (or the next free number) when the old one is taken. A
+dry run still asks the model, which is paid, about a cent per change. From a laptop,
+`pnpm legislation:fix --local --dry-run --no-model` does the same against the local stack
+without the model, and `SUPABASE_URL` and `SUPABASE_SECRET_KEY` point it at a hosted one.
 
 The pull request is opened, and its branch pushed, with the token of the GitHub App
 `LEGISLATION_APP_ID`, because one opened with the workflow's own token starts no CI. The App is
-installed on this repository only, with **Contents** and **Pull requests** read and write; the
-workflow's own token, with `issues: write`, opens the issues and creates the label. Commits are
-the App's, as `<app slug>[bot]`.
+installed on this repository only, with **Contents**, **Pull requests** and **Issues** read and
+write; the token the workflow makes asks for contents and pull requests only. The checkout keeps
+no credentials, and the App's token reaches git only for the calls to GitHub (the branch's
+current commit and the push), through a credential helper that reads it from that call's
+environment. The push replaces the change's branch only if it is still where the run saw it.
+The workflow's own token, with `issues: write` and `pull-requests: read`, opens the issues,
+creates the label and reads whether a pull request is open, merged or closed. Commits are the
+App's, as `<app slug>[bot]`.
 
 | Name                          | Kind                  | Value                                                                       |
 | ----------------------------- | --------------------- | --------------------------------------------------------------------------- |

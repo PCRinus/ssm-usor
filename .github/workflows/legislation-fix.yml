@@ -17,7 +17,7 @@ on:
         type: boolean
         default: false
       change:
-        description: Only this change, by its act (oug-195-2002) or its act and form (oug-195-2002-2026-11-06)
+        description: Only this change, by its act (oug-195-2002) or its act and form (oug-195-2002-2026-11-06); answers it again if its pull request or issue was closed
         type: string
         required: false
 
@@ -25,6 +25,8 @@ permissions:
   contents: read
   # The issues, and the label they share with the pull requests.
   issues: write
+  # Whether a change's pull request is open, merged or closed.
+  pull-requests: read
 
 concurrency:
   group: legislation-fix
@@ -65,11 +67,12 @@ jobs:
         run: echo "id=$(gh api "/users/${SLUG}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
 
       # The whole history with its tags: a template change not yet released joins the new one,
-      # and the release is the newest date tag.
+      # and the release is the newest date tag. No credentials stay in the checkout: the App's
+      # token reaches git only for the push, so the build and the scripts never hold it.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Commit as the App
         env:
