@@ -288,6 +288,17 @@ describe('the card of the data read from the sheets', () => {
     expect(row('jobTitle').dataset.tone).toBe('done');
   });
 
+  it('does not call the commute route optional in its dialog, which the SSM sheet needs', async () => {
+    const user = userEvent.setup();
+    render(<Data who={withFields('pop', { commuteRoute: { options: [] } })} />);
+
+    await open(user, 'Modifică datele medicale și celelalte');
+    const label = (name: string) =>
+      dialog().querySelector(`label[for="person-field-${name}"]`)!.textContent;
+    expect(label('commuteRoute')).toBe('Traseul spre locul de muncă');
+    expect(label('commuteMinutes')).toBe('Durata drumului(opțional)');
+  });
+
   it('opens the whole group from its Modifică button', async () => {
     const user = userEvent.setup();
     render(<Data />);

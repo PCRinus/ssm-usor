@@ -618,6 +618,16 @@ describe('employee creation', () => {
     });
   });
 
+  it('does not call the commute route optional, which the SSM sheet needs, but its duration', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    await screen.findByTestId('new-employee-page');
+    const label = (id: string) => document.querySelector(`label[for="${id}"]`)!.textContent;
+
+    expect(label('commuteRoute')).toBe('Traseul de deplasare');
+    expect(label('commuteMinutes')).toBe('Durata deplasării (minute)(opțional)');
+  });
+
   it('maps a duplicate CNP to the field and an archived client to the form', async () => {
     let attempts = 0;
     mockApi({
