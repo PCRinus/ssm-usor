@@ -43,6 +43,7 @@ const sliderId = `workers-${placement}`;
         max={last}
         step="1"
         value={defaultStop}
+        disabled
         aria-valuetext={workersText(stop)}
         style={`--at: ${defaultStop / last}`}
       />
@@ -145,6 +146,7 @@ const sliderId = `workers-${placement}`;
     const cards = [...root.querySelectorAll<HTMLElement>('[data-plan]')];
     const last = workerStops.length - 1;
     let used = false;
+    range.disabled = false;
 
     const render = () => {
       const index = Number(range.value);
@@ -281,8 +283,6 @@ const sliderId = `workers-${placement}`;
   .plans {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* Cards share five rows (heading, price, allowance, list, button) so the rules and buttons
-       line up whatever wraps; the list's row takes the spare height. */
     grid-template-rows: auto auto auto 1fr auto;
     gap: 0 20px;
   }

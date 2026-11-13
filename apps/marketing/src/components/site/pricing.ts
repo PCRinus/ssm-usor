@@ -538,6 +538,10 @@ export function employeesLabel(employees: number): string {
   return employees > maxWorkers ? calculator.overEmployees : num(employees);
 }
 
+export function employeesText(employees: number): string {
+  return workersText(employees > maxWorkers ? null : employees);
+}
+
 export function quote(employees: number, members: number, period: BillingPeriod): Quote {
   const employeesOver = employees > maxWorkers;
   const membersOver = members > maxUsers;

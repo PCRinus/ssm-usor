@@ -6,6 +6,7 @@ import {
   clientsHint,
   defaultPeriod,
   employeesLabel,
+  employeesText,
   enterprise,
   eur,
   membersLabel,
@@ -49,7 +50,7 @@ const quoted = initial.plan.id === enterprise.id;
               step={calculator.stepEmployees}
               value={employees}
               aria-describedby="employees-hint"
-              aria-valuetext={employeesLabel(employees)}
+              aria-valuetext={employeesText(employees)}
             />
             <div class="scale" id="employees-hint">
               <span>{calculator.minEmployees.toLocaleString('ro-RO')}</span>
@@ -181,6 +182,7 @@ const quoted = initial.plan.id === enterprise.id;
     calculator,
     clientsHint,
     employeesLabel,
+    employeesText,
     enterprise,
     eur,
     membersLabel,
@@ -204,7 +206,7 @@ const quoted = initial.plan.id === enterprise.id;
     const result = quote(employees, members, period);
     const quoted = result.plan.id === enterprise.id;
     field('employees-label').textContent = employeesLabel(employees);
-    range.setAttribute('aria-valuetext', employeesLabel(employees));
+    range.setAttribute('aria-valuetext', employeesText(employees));
     field('clients-hint').textContent = clientsHint(employees);
     field('members').textContent = membersLabel(members);
     field('plan').textContent = result.plan.name;
@@ -366,7 +368,6 @@ const quoted = initial.plan.id === enterprise.id;
     font: 500 14px/1.2 var(--sans);
     cursor: pointer;
   }
-  /* A long label breaks after the comma, never in the middle of the employee count. */
   .presets button span {
     white-space: nowrap;
   }
