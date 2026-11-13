@@ -1065,6 +1065,7 @@ describe('the switches and what confirming writes', () => {
             birthDate: null,
             birthPlace: null,
             homeAddress: 'Str. Viitorului nr. 3, Sibiu',
+            residenceAddress: null,
             education: null,
             qualification: null,
             bloodGroup: null,

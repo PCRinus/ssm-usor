@@ -13,6 +13,7 @@ const fieldTargets: Record<FieldName, string> = {
   birthDate: 'fields.birthDate',
   birthPlace: 'fields.birthPlace',
   homeAddress: 'fields.homeAddress',
+  residenceAddress: 'fields.residenceAddress',
   education: 'fields.education',
   qualification: 'fields.qualification',
   bloodGroup: 'fields.bloodGroup',
