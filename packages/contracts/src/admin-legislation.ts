@@ -71,13 +71,15 @@ export const adminLegalAmendedUnitSchema = z.object({
 
 export type AdminLegalAmendedUnit = z.infer<typeof adminLegalAmendedUnitSchema>;
 
-export const adminLegalChangePassageSchema = legalChangePassageSchema.extend({
-  manifest: z.string(),
-  // Null for a passage stored before the type was, whose template no version can answer.
-  typeKey: z.string().nullable(),
-  paragraph: z.int().min(0),
-  article: z.string().nullable(),
-});
+export const adminLegalChangePassageSchema = legalChangePassageSchema
+  .omit({ document: true })
+  .extend({
+    manifest: z.string(),
+    // Null for a passage stored before the type was, whose template no version can answer.
+    typeKey: z.string().nullable(),
+    paragraph: z.int().min(0),
+    article: z.string().nullable(),
+  });
 
 export type AdminLegalChangePassage = z.infer<typeof adminLegalChangePassageSchema>;
 
