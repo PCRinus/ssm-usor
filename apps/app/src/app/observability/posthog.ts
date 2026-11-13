@@ -3,6 +3,38 @@ import { z } from 'zod';
 
 let clientPromise: Promise<PostHog | null> | null = null;
 
+const textAttributes = new Set([
+  'title',
+  'alt',
+  'aria-label',
+  'aria-description',
+  'aria-valuetext',
+  'aria-placeholder',
+  'placeholder',
+  'label',
+  'value',
+  'data-value',
+  'download',
+  'srcdoc',
+]);
+
+const addressAttributes = new Set(['href', 'src']);
+
+function isSameOrigin(address: string) {
+  try {
+    return new URL(address, window.location.href).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+// Replays keep `class` and `style`, or they play as bare HTML. A link to another origin can
+// carry a signed file address and the file's name, so only the app's own addresses stay.
+export function maskReplayAttribute(name: string, value: string) {
+  const masked = textAttributes.has(name) || (addressAttributes.has(name) && !isSameOrigin(value));
+  return masked ? '*'.repeat(value.length) : value;
+}
+
 export function loadPostHog(): Promise<PostHog | null> {
   const token = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim();
   if (!token) return Promise.resolve(null);
@@ -39,7 +71,7 @@ export function loadPostHog(): Promise<PostHog | null> {
         session_recording: {
           maskAllInputs: true,
           maskTextSelector: '*',
-          maskAllElementAttributes: true,
+          maskAttributeFn: maskReplayAttribute,
           recordBody: false,
           recordHeaders: false,
           captureJsonLd: false,
