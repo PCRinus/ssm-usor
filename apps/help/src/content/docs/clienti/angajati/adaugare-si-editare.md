@@ -133,6 +133,8 @@ Numărul intern al lucrătorului la client, cel din evidența de personal, dacă
 
 Postul spune ce muncă face lucrătorul, deci ce riscuri are, ce echipament primește și cât de des se instruiește. De post depind categoria de personal și intervalul instruirii periodice.
 
+Postul e felul muncii, nu locul ei: de exemplu „Activități de birou”, „Vânzător” sau „Șofer”. Toți lucrătorii care fac aceeași muncă, cu aceleași riscuri, ocupă același post, chiar dacă în contract au funcții diferite: contabilul și secretara pot ocupa amândoi postul „Activități de birou”. Adresa unde lucrează e [punctul de lucru](#punctul-de-lucru), un câmp separat.
+
 Alegi postul din posturile clientului. Lângă fiecare vezi categoria de personal și câți lucrători îl ocupă. Dacă postul nu e în listă, alege **Adaugă un post nou…**: îl creezi pe loc și formularul îl alege.
 
 Dacă postul ales a fost arhivat între timp, vezi sub câmp „Postul ales nu mai există la acest client. Alege altul.”
@@ -173,13 +175,13 @@ Alegi țara din listă, România fiind prima, și scrii numărul. Merge și „0
 
 ## Datele pentru fișa de instruire
 
-Câmpurile din această secțiune sunt opționale în formular și apar pe fișele individuale de instruire. Un câmp gol se tipărește gol, ca pe formularul pe hârtie, cu două excepții: traseul de deplasare pentru fișa SSM și punctul de lucru la un client cu mai multe puncte. Fără ele, fișa nu se poate întocmi (vezi [Ce lipsește pentru fișă](/clienti/angajati/instruire-si-teste/)).
+Poți salva lucrătorul fără câmpurile din această secțiune; ele apar pe fișele individuale de instruire. Un câmp gol se tipărește gol, ca pe formularul pe hârtie, cu două excepții: traseul de deplasare pentru fișa SSM și punctul de lucru la un client cu mai multe puncte. Fără ele, fișa nu se poate întocmi (vezi [Ce lipsește pentru fișă](/clienti/angajati/instruire-si-teste/)).
 
 ### Punctul de lucru
 
 Unde lucrează lucrătorul, dintre punctele de lucru ale clientului. Când adaugi un lucrător la un client cu un singur punct de lucru activ, acesta e ales automat; îl poți șterge dacă nu e cel bun.
 
-La un client cu mai multe puncte de lucru active, fișele cer punctul de lucru, pentru că „Locul de muncă” de pe fișă tipărește punctul de lucru împreună cu zona de lucru a postului, de exemplu „Str. Fabricii 3 – Atelier”.
+La un client cu mai multe puncte de lucru active, fișele cer punctul de lucru, pentru că „Locul de muncă” de pe fișă tipărește punctul de lucru împreună cu zona de lucru a postului, de exemplu „Str. Fabricii 3 – Atelier”. De aceea formularul nu-l marchează nici obligatoriu, nici opțional: poți salva lucrătorul fără el, dar la un astfel de client fișele lui nu se pot întocmi până nu-l alegi.
 
 Fișa obiectivului din setul SU numără lucrătorii fiecărei clădiri, de exemplu „Clădirea 1 (Sediu) – 4; Clădirea 2 (Atelier) – 9”, când fiecare lucrător are ales un punct de lucru care e clădire. Dacă un lucrător nu are punct de lucru, lucrează pe un șantier sau la un sediu unde nu se desfășoară activitate, fișa tipărește doar numărul total și lasă numărul pe clădiri de completat.
 
@@ -218,7 +220,7 @@ Drumul obișnuit de acasă la locul de muncă și înapoi, cu mijlocul de transp
 
 Fișa SSM îl cere: fără traseu, nu se poate întocmi. Contează pentru că un accident petrecut în timpul și pe traseul normal de la domiciliu la locul de muncă și înapoi, fără abateri nejustificate, e accident de muncă (Legea 319/2006, art. 30 alin. (1) lit. g) și alin. (2)), iar traseul declarat e cel cu care se compară o cercetare.
 
-Nu e obligatoriu în formular, pentru că rar îl știi când introduci un lucrător nou. Completează-l înainte de prima instruire: lucrătorul semnează fișa pe pagina care tipărește traseul.
+Poți salva lucrătorul și fără traseu, pentru că rar îl știi când îl introduci prima dată. Formularul nu-l marchează nici obligatoriu, nici opțional: fișa SSM îl cere. Completează-l înainte de prima instruire: lucrătorul semnează fișa pe pagina care tipărește traseul.
 
 ### Durata deplasării
 

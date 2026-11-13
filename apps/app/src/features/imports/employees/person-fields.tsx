@@ -593,8 +593,11 @@ function FieldsDialog({
 
   const set = (name: FieldName, value: string) =>
     setValues((current) => ({ ...current, [name]: value }));
-  const mark = (name: FieldName) =>
-    !isExisting(context, person) && requiredForNewField(name) ? 'required' : 'optional';
+  const mark = (name: FieldName) => {
+    if (!isExisting(context, person) && requiredForNewField(name)) return 'required';
+    // The worker is created without a route, but their SSM sheet cannot be drawn up without one.
+    return name === 'commuteRoute' ? undefined : 'optional';
+  };
 
   function field(name: FieldName, subgrid?: 'always' | 'sm') {
     const id = `person-field-${name}`;

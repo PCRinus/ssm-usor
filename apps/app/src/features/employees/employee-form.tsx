@@ -316,13 +316,12 @@ export function EmployeeForm({
 
           <FormSection
             title="Fișa de instruire"
-            description="Opționale; apar pe fișa de instruire."
+            description="Apar pe fișa de instruire. Poți salva și fără ele."
             help="angajati.date-fisa"
           >
             <Field
               id="workplaceId"
               label="Punct de lucru"
-              mark="optional"
               help="angajati.punct-de-lucru"
               error={errors.workplaceId}
               className="sm:col-span-2"
@@ -501,7 +500,6 @@ export function EmployeeForm({
             <Field
               id="commuteRoute"
               label="Traseul de deplasare"
-              mark="optional"
               hint="De acasă la locul de muncă, cu mijlocul de transport."
               help="angajati.traseu"
               error={errors.commuteRoute}

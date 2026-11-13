@@ -618,6 +618,19 @@ describe('employee creation', () => {
     });
   });
 
+  it('does not call the workplace or the commute route optional, which the sheets need, but the duration', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    await screen.findByTestId('new-employee-page');
+    const label = (id: string) => document.querySelector(`label[for="${id}"]`)?.textContent;
+
+    expect(label('workplaceId')).toContain('Punct de lucru');
+    expect(label('workplaceId')).not.toContain('(opțional)');
+    expect(label('commuteRoute')).toContain('Traseul de deplasare');
+    expect(label('commuteRoute')).not.toContain('(opțional)');
+    expect(label('commuteMinutes')).toContain('(opțional)');
+  });
+
   it('maps a duplicate CNP to the field and an archived client to the form', async () => {
     let attempts = 0;
     mockApi({
