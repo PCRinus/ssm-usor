@@ -193,18 +193,19 @@ export const sameWord = (template: Token, incoming: Token) =>
     : !template.self && !incoming.self && fold(template.text) === fold(incoming.text);
 
 /**
- * The template's spelling of a word the portal writes with fewer diacritics or other quote
- * marks; null where the portal adds or changes a diacritic, which makes it another word:
- * "casca" in the template, "cască" in the portal.
+ * The template's spelling of a word the portal writes with other quote marks, or without the
+ * diacritics of a line that has none; null where the portal adds, changes or drops a diacritic
+ * in a line with diacritics, which makes it another word: "casca" in the template, "cască" in
+ * the portal; "o măsură" in the template, "măsura" in the portal.
  */
-function templateSpelling(template: string, incoming: string) {
+function templateSpelling(template: string, incoming: string, portalHasDiacritics: boolean) {
   if (template === incoming) return template;
   const a = [...template];
   const b = [...incoming];
   if (a.length !== b.length) return null;
   for (let index = 0; index < a.length; index += 1) {
     if (a[index] === b[index]) continue;
-    if (isMarked(a[index]!) && !isMarked(b[index]!)) continue;
+    if (!portalHasDiacritics && isMarked(a[index]!) && !isMarked(b[index]!)) continue;
     if (fold(a[index]!) === '"' || fold(a[index]!) === ' ') continue;
     return null;
   }
@@ -320,9 +321,14 @@ export function conformLine(
     }
     const kept = op.before.self
       ? op.before.text
-      : (templateSpelling(op.before.text, op.after.text) ?? op.after.text);
-    if (kept !== op.after.text && !op.before.self && words.hasDiacritics && /\p{L}/u.test(kept)) {
-      words.notes.push(`kept the template's "${kept}" where the portal writes "${op.after.text}"`);
+      : (templateSpelling(op.before.text, op.after.text, words.hasDiacritics) ?? op.after.text);
+    if (
+      kept !== op.before.text &&
+      !op.before.self &&
+      templateSpelling(op.before.text, op.after.text, false) !== null &&
+      /\p{L}/u.test(kept)
+    ) {
+      words.notes.push(`took the portal's "${kept}" where the template wrote "${op.before.text}"`);
     }
     text += kept;
   }

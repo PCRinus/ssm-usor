@@ -48,16 +48,16 @@ describe("the portal's wording in the templates' conventions", () => {
     ).toBe('(2) Persoanele au obligația să poarte pe cap cască de protecție omologată.');
   });
 
-  it("keeps the template's word, and says so, where a line with diacritics lacks them in one word", () => {
+  it("takes the portal's word, and says so, where a line with diacritics lacks one the template has", () => {
     expect(
       conformLine(
-        'Trecerea frontiera de stat se face numai prin punctele stabilite în lege.',
-        'Trecerea frontieră de stat se face numai prin punctele stabilite în lege.',
-        roadCode
+        '(1) Angajatorul ia măsura de protecție colectivă.',
+        '(1) Angajatorul ia o măsură de protecție.',
+        safetyLaw
       )
     ).toEqual({
-      text: 'Trecerea frontieră de stat se face numai prin punctele stabilite în lege.',
-      notes: [`kept the template's "frontieră" where the portal writes "frontiera"`],
+      text: '(1) Angajatorul ia măsura de protecție colectivă.',
+      notes: [`took the portal's "măsura" where the template wrote "măsură"`],
     });
   });
 
