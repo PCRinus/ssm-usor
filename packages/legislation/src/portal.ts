@@ -57,10 +57,10 @@ const entities: Record<string, string> = {
 
 export function decodeEntities(value: string) {
   return value.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (entity, name: string) => {
-    if (name.startsWith('#x') || name.startsWith('#X'))
-      return String.fromCodePoint(parseInt(name.slice(2), 16));
-    if (name.startsWith('#')) return String.fromCodePoint(parseInt(name.slice(1), 10));
-    return entities[name.toLowerCase()] ?? entity;
+    if (!name.startsWith('#')) return entities[name.toLowerCase()] ?? entity;
+    const hex = name[1] === 'x' || name[1] === 'X';
+    const code = parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10);
+    return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
   });
 }
 

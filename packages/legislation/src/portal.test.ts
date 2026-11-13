@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  decodeEntities,
   describeAct,
   fetchPortalAct,
   parseActions,
@@ -266,5 +267,13 @@ describe('choosing the way to the portal from the environment', () => {
     expect(() =>
       portalOptionsFromEnv({ ...relay, LEGISLATION_RELAY_ORIGIN: 'https://legislatie.just.ro/' })
     ).toThrow(/set LEGISLATION_RELAY_ORIGIN/);
+  });
+});
+
+describe('decodeEntities', () => {
+  it('reads named and numeric entities and keeps one past Unicode as written', () => {
+    expect(decodeEntities('&#238;n &#351;i &#x21B; &amp; &#x110000; &#9999999;')).toBe(
+      'în şi ț & &#x110000; &#9999999;'
+    );
   });
 });
