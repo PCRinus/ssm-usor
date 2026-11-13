@@ -52,6 +52,15 @@ describe("a template version's change", () => {
     expect(nextTemplateChange(pending, undefined, legal)).toEqual(pending);
   });
 
+  it('takes a note that is only part of one already pending', () => {
+    expect(
+      nextTemplateChange({ kind: 'correction', note: 'Fix Y.' }, undefined, {
+        kind: 'correction',
+        note: 'Fix',
+      })
+    ).toEqual({ kind: 'correction', note: 'Fix Y; Fix' });
+  });
+
   it('may resolve several changes of acts, each of an act on the list', () => {
     const acts = new Set(['oug-195-2002', 'lege-319-2006']);
     expect(templateChangeProblems({ ...legal, resolves: [roadCode, safetyLaw] }, acts)).toEqual([]);

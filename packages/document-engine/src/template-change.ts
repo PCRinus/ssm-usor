@@ -75,7 +75,8 @@ export function nextTemplateChange(
       resolvedBy(each).map(({ act, consolidatedOn }) => [act, consolidatedOn]),
     ]);
   if (released && key(current) === key(released)) return change;
-  const notes = current.note.includes(change.note.trim())
+  const sentence = (note: string) => note.trim().replace(/[.;]$/, '');
+  const notes = current.note.split(/;\s+/).map(sentence).includes(sentence(change.note))
     ? current.note
     : `${current.note.trim().replace(/[.;]$/, '')}; ${change.note.trim()}`;
   const resolved = [...resolvedBy(current), ...resolvedBy(change)].filter(
