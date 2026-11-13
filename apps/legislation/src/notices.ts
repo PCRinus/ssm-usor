@@ -79,6 +79,7 @@ export function changesOf(run: CheckRun): ChangeNotice[] {
 }
 
 const outcomeLabels = {
+  no_impact: 'No impact',
   quote_differs: 'Quote differs',
   needs_review: 'Needs review',
 } as const;
@@ -113,7 +114,7 @@ const embedColor = (change: ChangeNotice) =>
 export function changeEmbed(change: ChangeNotice): DiscordEmbed {
   const { assessment } = change;
   const outcome = assessment
-    ? outcomeLabels[assessment.outcome as keyof typeof outcomeLabels]
+    ? outcomeLabels[assessment.outcome]
     : change.notAssessed
       ? `Not assessed: ${change.notAssessed} The next run tries again.`
       : 'Not assessed';
