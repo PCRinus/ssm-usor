@@ -1,5 +1,6 @@
 import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { type CommuteMean, orderedCommuteMeans } from '@ssm-usor/contracts';
 import { Navigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
@@ -40,6 +41,17 @@ function MyData({ participantId }: { participantId: string }) {
     .join(', ');
   const rh = employee.rhFactor && (employee.rhFactor === '+' ? t`Rh pozitiv` : t`Rh negativ`);
   const minutes = employee.commuteMinutes;
+  const meanLabels: Record<CommuteMean, string> = {
+    on_foot: t`Pe jos`,
+    bicycle: t`Bicicletă sau trotinetă`,
+    personal_car: t`Mașina personală`,
+    employer_transport: t`Transport asigurat de angajator`,
+    public_transport: t`Transport public`,
+  };
+  const means = [
+    ...orderedCommuteMeans(employee.commuteMeans).map((mean) => meanLabels[mean]),
+    ...(employee.commuteMeansOther ? [employee.commuteMeansOther] : []),
+  ];
   const blood = [employee.bloodGroup, rh].filter(Boolean).join(', ');
 
   return (
@@ -75,6 +87,7 @@ function MyData({ participantId }: { participantId: string }) {
         >
           <Facts>
             <Fact label={t`Ruta`}>{employee.commuteRoute}</Fact>
+            {means.length > 0 && <Fact label={t`Mijloace de transport`}>{means.join(', ')}</Fact>}
             <Fact label={t`Durata`}>
               {minutes === null
                 ? null

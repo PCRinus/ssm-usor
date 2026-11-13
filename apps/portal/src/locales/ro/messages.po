@@ -339,6 +339,10 @@ msgstr "Așteaptă semnătura: {people}."
 msgid "Autorizații"
 msgstr "Autorizații"
 
+#: src/features/my-data/my-data-page.tsx
+msgid "Bicicletă sau trotinetă"
+msgstr "Bicicletă sau trotinetă"
+
 #: src/features/signing/signing-page.tsx
 msgid "Bifează ce vrei să semnezi. Îți trimitem un cod, iar codul semnează doar ce ai bifat."
 msgstr "Bifează ce vrei să semnezi. Îți trimitem un cod, iar codul semnează doar ce ai bifat."
@@ -978,6 +982,10 @@ msgstr "Mai puțin"
 msgid "Marca"
 msgstr "Marca"
 
+#: src/features/my-data/my-data-page.tsx
+msgid "Mașina personală"
+msgstr "Mașina personală"
+
 #: src/features/training/training-material.tsx
 msgid "Material necompletat pe fișă"
 msgstr "Material necompletat pe fișă"
@@ -993,6 +1001,10 @@ msgstr "Materialul de instruire nu este emis încă; îl găsești aici după ce
 #: src/routes/__root.tsx
 msgid "Mergi la pagina principală"
 msgstr "Mergi la pagina principală"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Mijloace de transport"
+msgstr "Mijloace de transport"
 
 #: src/lib/labels.ts
 msgid "Modificarea prevederilor de securitate și sănătate în muncă sau a instrucțiunilor proprii"
@@ -1189,6 +1201,10 @@ msgstr "Pașii semnării"
 #: src/features/training/training-sheets.tsx
 msgid "PDF-ul de mai sus e o copie de citire. Semnăturile se verifică pe fișele originale:"
 msgstr "PDF-ul de mai sus e o copie de citire. Semnăturile se verifică pe fișele originale:"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Pe jos"
+msgstr "Pe jos"
 
 #: src/lib/labels.ts
 msgid "Pericol grav și iminent"
@@ -1679,6 +1695,14 @@ msgstr "Tot textul"
 #: src/features/training/training-records-list.tsx
 msgid "Transcris de pe fișa pe hârtie. Semnat pe hârtie."
 msgstr "Transcris de pe fișa pe hârtie. Semnat pe hârtie."
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Transport asigurat de angajator"
+msgstr "Transport asigurat de angajator"
+
+#: src/features/my-data/my-data-page.tsx
+msgid "Transport public"
+msgstr "Transport public"
 
 #: src/features/home/home-page.tsx
 msgid "Traseu de deplasare"

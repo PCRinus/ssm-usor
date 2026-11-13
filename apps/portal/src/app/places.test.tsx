@@ -502,6 +502,7 @@ describe('Datele mele', () => {
     expect(fact('Autorizații')).toBe('Necompletat');
     expect(within(data).queryByText('Adresa unde locuiești')).toBeNull();
     expect(fact('Ruta')).toBe('Pe jos, pe strada Lungă');
+    expect(fact('Mijloace de transport')).toBe('Pe jos');
     expect(fact('Durata')).toBe('15 minute');
     expect(data.textContent).toContain('accident de muncă');
 
@@ -528,9 +529,23 @@ describe('Datele mele', () => {
     );
   });
 
+  it('lists the means of transport by name, the one typed apart last', async () => {
+    const data = employeeData();
+    data.employee.commuteMeans = ['public_transport', 'on_foot'];
+    data.employee.commuteMeansOther = 'Bacul de pe Mureș';
+    vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(data));
+    mountPortal(signedIn(), '/datele-mele');
+
+    const facts = await screen.findByTestId('my-data');
+    expect(within(facts).getByText('Mijloace de transport').nextElementSibling?.textContent).toBe(
+      'Pe jos, Transport public, Bacul de pe Mureș'
+    );
+  });
+
   it('marks an empty commute as not filled, since the SSM sheet needs it', async () => {
     const data = employeeData();
     data.employee.commuteRoute = null;
+    data.employee.commuteMeans = [];
     data.employee.commuteMinutes = 25;
     vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(data));
     mountPortal(signedIn(), '/datele-mele');
@@ -538,6 +553,7 @@ describe('Datele mele', () => {
     const facts = await screen.findByTestId('my-data');
     expect(within(facts).getByText('Ruta').nextElementSibling?.textContent).toBe('Necompletat');
     expect(within(facts).getByText('Durata').nextElementSibling?.textContent).toBe('25 de minute');
+    expect(within(facts).queryByText('Mijloace de transport')).toBeNull();
   });
 });
 

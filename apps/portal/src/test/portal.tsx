@@ -200,6 +200,8 @@ export function employeeData(): PortalEmployeeDataResponse {
       education: 'Liceu',
       authorizations: null,
       commuteRoute: 'Pe jos, pe strada Lungă',
+      commuteMeans: ['on_foot'],
+      commuteMeansOther: null,
       commuteMinutes: 15,
     },
     training: trainingRecords().training,
