@@ -42,7 +42,13 @@ export function alertText(message: AlertMessage, environment: string, adminOrigi
 }
 
 export function alertSender(env: ApiEnv['Bindings'], fetcher?: typeof fetch): AlertSender {
-  const webhook = discordWebhook(env.DISCORD_ALERTS_WEBHOOK, { fetcher, what: 'An alert' });
+  const webhook = discordWebhook(env.DISCORD_ALERTS_WEBHOOK, {
+    fetcher,
+    what: 'An alert',
+    // Alerts are sent from waitUntil, whose 30 seconds after the response are shared by every
+    // alert of the request: a post that waits for a long rate limit would starve the others.
+    maxRetryWaitMs: 2_000,
+  });
   const environment = environmentOf(env);
   const adminOrigin = env.ADMIN_ORIGIN?.trim().replace(/\/+$/, '') || undefined;
   return {

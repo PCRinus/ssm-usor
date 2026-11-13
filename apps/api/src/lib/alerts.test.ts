@@ -81,6 +81,16 @@ describe('alertSender', () => {
     expect(JSON.parse(String(fetcher.mock.calls[0]![1]?.body)).content).toContain('· local');
   });
 
+  it('drops a post Discord holds back past two seconds', async () => {
+    const fetcher = vi.fn<typeof fetch>(
+      async () => new Response(null, { status: 429, headers: { 'Retry-After': '2.5' } })
+    );
+    expect(await alertSender({ DISCORD_ALERTS_WEBHOOK: webhook }, fetcher).send(message)).toBe(
+      false
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it('never throws: a refused or failed post is logged and dropped', async () => {
     const refused = alertSender(
       { DISCORD_ALERTS_WEBHOOK: webhook },
