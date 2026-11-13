@@ -314,7 +314,7 @@ describe('a client without job positions', () => {
 
 describe('the chosen photographs', () => {
   const photo = (name: string, type = 'image/jpeg') =>
-    new File([new Uint8Array(2000)], name, { type });
+    new File([name, new Uint8Array(2000)], name, { type });
 
   async function choose(files: File[]) {
     mockUpload({ found: () => foundOf([]) });
@@ -384,6 +384,37 @@ describe('the chosen photographs', () => {
     await userEvent.click(within(preview).getByTestId('photo-preview-remove'));
     await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
     expect(within(dialog).queryByTestId('employee-upload-chosen')).toBeNull();
+  });
+
+  it('reads a photograph chosen twice once, and takes the copy out with the one kept', async () => {
+    const sheet = (name: string, text: string) => new File([text], name, { type: 'image/jpeg' });
+    const dialog = await choose([
+      sheet('WhatsApp Image 2026-11-07 at 14.01.34.jpeg', 'fișa Popescu'),
+      sheet('WhatsApp Image 2026-11-07 at 14.02.06 (5).jpeg', 'fișa Popescu'),
+      sheet('WhatsApp Image 2026-11-07 at 14.02.06.jpeg', 'fișa Ionescu'),
+    ]);
+    expect(chosenTitle(dialog)).toBe('2 fotografii de citit');
+    expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
+      'Folosește 2 credite, unul pe fotografie.'
+    );
+    const aside = within(dialog).getByTestId('import-set-aside');
+    expect(within(aside).getByRole('heading').textContent).toBe('Puse deoparte, nu le citim');
+    expect(within(aside).getByTestId('import-set-aside-row').textContent).toBe(
+      'WhatsApp Image 2026-11-07 at 14.02.06 (5).jpeg, aceeași fotografie ca WhatsApp Image 2026-11-07 at 14.01.34.jpeg'
+    );
+
+    await userEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Scoate WhatsApp Image 2026-11-07 at 14.01.34.jpeg',
+      })
+    );
+    expect(chosenTitle(dialog)).toBe('O fotografie de citit');
+    expect(
+      within(dialog).queryByRole('button', {
+        name: 'Deschide WhatsApp Image 2026-11-07 at 14.02.06 (5).jpeg',
+      })
+    ).toBeNull();
+    expect(within(dialog).queryByTestId('import-set-aside')).toBeNull();
   });
 
   it('gives a sheet from the documentation back to the offer it came from', async () => {

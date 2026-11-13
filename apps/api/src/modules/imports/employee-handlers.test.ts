@@ -706,11 +706,22 @@ describe('POST /imports/{importId}/files for an employee import', () => {
         );
       }
     });
-    const sheet = { sizeBytes: 10, sha256: 'a'.repeat(64) };
     const response = await request(`/imports/${importId}/files`, 'POST', {
       files: [
-        { uploadPath: 'Fise/toate.pdf', mimeType: 'application/pdf', pages: 14, ...sheet },
-        { uploadPath: 'Fise/1.jpg', mimeType: 'image/jpeg', pages: 3, ...sheet },
+        {
+          uploadPath: 'Fise/toate.pdf',
+          mimeType: 'application/pdf',
+          pages: 14,
+          sizeBytes: 10,
+          sha256: 'a'.repeat(64),
+        },
+        {
+          uploadPath: 'Fise/1.jpg',
+          mimeType: 'image/jpeg',
+          pages: 3,
+          sizeBytes: 10,
+          sha256: 'b'.repeat(64),
+        },
       ],
     });
 
@@ -718,6 +729,54 @@ describe('POST /imports/{importId}/files for an employee import', () => {
     expect(callsTo('/rest/v1/import_files', 'POST')[0]!.body).toEqual([
       expect.objectContaining({ upload_path: 'Fise/toate.pdf', declared_pages: 14 }),
       expect.objectContaining({ upload_path: 'Fise/1.jpg', declared_pages: null }),
+    ]);
+  });
+
+  it('skips a photograph with the bytes of a found sheet the import took', async () => {
+    const found = fileRow(1, {
+      state: 'uploaded',
+      upload_path: 'Din documentația importată pe 12.10.2026/Dosar/Fise/Poza 1.jpg',
+      sha256: '1'.repeat(64),
+      source_file_id: foundRow(1).id,
+    });
+    mockUpstream(({ url, method, body }) => {
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ status: 'uploading', proposal: null, changes: null }));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') {
+        return Response.json([found]);
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
+        return Response.json(
+          (body as { upload_path: string }[]).map((row) => ({
+            id: fileId(2),
+            upload_path: row.upload_path,
+            storage_path: storagePath(importId, 2, 'jpg'),
+          })),
+          { status: 201 }
+        );
+      }
+    });
+    const photo = (uploadPath: string, sha256: string) => ({
+      uploadPath,
+      mimeType: 'image/jpeg',
+      sizeBytes: 2001,
+      sha256,
+    });
+    const response = await request(`/imports/${importId}/files`, 'POST', {
+      files: [
+        photo('WhatsApp Image 14.01.34.jpeg', '1'.repeat(64)),
+        photo('WhatsApp Image 14.03.10.jpeg', '2'.repeat(64)),
+      ],
+    });
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      files: [{ uploadPath: 'WhatsApp Image 14.03.10.jpeg' }],
+      skipped: [{ uploadPath: 'WhatsApp Image 14.01.34.jpeg', duplicateOf: found.upload_path }],
+    });
+    expect(callsTo('/rest/v1/import_files', 'POST')[0]!.body).toEqual([
+      expect.objectContaining({ upload_path: 'WhatsApp Image 14.03.10.jpeg' }),
     ]);
   });
 });
@@ -795,6 +854,77 @@ describe('starting an employee import', () => {
       p_allowance: 300,
       p_previous_start: null,
     });
+  });
+
+  it('charges only the files registered, not the copies skipped', async () => {
+    const rows: Record<string, unknown>[] = [];
+    mockUpstream(({ url, method, body }) => {
+      if (url.pathname === '/rest/v1/subscriptions') return Response.json([trial]);
+      if (url.pathname === '/rest/v1/rpc/charge_credits') {
+        return Response.json({ charged: 5, refused: false, balance: null, gift_left: 0 });
+      }
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
+        return Response.json([{ id: importId }]);
+      }
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ status: 'uploading', proposal: null, changes: null }));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'GET') return Response.json(rows);
+      if (url.pathname === '/rest/v1/import_files' && method === 'POST') {
+        const added = (body as Record<string, unknown>[]).map((row, index) => {
+          const n = rows.length + index + 1;
+          return fileRow(n, {
+            ...row,
+            state: 'uploading',
+            storage_path: storagePath(importId, n, 'x'),
+          });
+        });
+        rows.push(...added);
+        return Response.json(added, { status: 201 });
+      }
+      if (url.pathname === '/rest/v1/import_files') return new Response(null, { status: 204 });
+      if (url.pathname === '/storage/v1/object/list/imports') {
+        return Response.json(
+          rows.map((row) => ({
+            name: (row.storage_path as string).split('/').at(-1),
+            metadata: { size: row.size_bytes },
+          }))
+        );
+      }
+    });
+    const photo = (uploadPath: string, sha256: string) => ({
+      uploadPath,
+      mimeType: 'image/jpeg',
+      sizeBytes: 1000,
+      sha256,
+    });
+    const sheets = {
+      uploadPath: 'Fise/toate.pdf',
+      mimeType: 'application/pdf',
+      sizeBytes: 3000,
+      sha256: 'c'.repeat(64),
+      pages: 3,
+    };
+    await request(`/imports/${importId}/files`, 'POST', {
+      files: [
+        photo('Fise/IMG_0001.jpg', 'a'.repeat(64)),
+        photo('Fise/IMG_0001 (2).jpg', 'a'.repeat(64)),
+        photo('Fise/IMG_0002.jpg', 'b'.repeat(64)),
+      ],
+    });
+    await request(`/imports/${importId}/files`, 'POST', {
+      files: [sheets, { ...sheets, uploadPath: 'Copie/toate.pdf' }],
+    });
+
+    const response = await request(`/imports/${importId}/start`, 'POST');
+
+    expect(response.status).toBe(200);
+    expect(callsTo('/rest/v1/rpc/charge_credits')[0]!.body).toMatchObject({ p_credits: 5 });
+    expect(sent.map((message) => message.type === 'prepare' && message.fileId)).toEqual([
+      fileId(1),
+      fileId(2),
+      fileId(3),
+    ]);
   });
 
   it('refuses to start an import its credits do not cover, a trial without a plan never renewing', async () => {

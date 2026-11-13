@@ -65,6 +65,7 @@ sources:
   - docs/architecture/adr-039-training-categories-from-job-positions.md
   - docs/architecture/adr-037-import-quality-and-alerts.md
   - apps/app/src/features/imports/report-import-button.tsx
+  - apps/app/src/features/imports/upload-selection.ts
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - docs/architecture/adr-042-paper-history-as-written.md
   - docs/architecture/adr-023-advanced-electronic-signature.md
@@ -167,7 +168,7 @@ Dacă un import se oprește înainte să fie gata de verificat, primești înapo
 
 ## Importul unui client din documente
 
-Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră.
+Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră. Un fișier ales de două ori, chiar sub alt nume sau din alt folder, se încarcă, se citește și se socotește o singură dată: copia apare la „Puse deoparte, nu se încarcă”, cu fișierul pe care îl repetă. Când scoți un fișier, îi scoți și copiile.
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, apoi confirmi. Cu **Vezi în document**, lângă fiecare valoare, deschizi locul din document de unde a fost luată. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 
@@ -299,7 +300,7 @@ Fotografiezi fișele individuale de instruire pe hârtie ale fiecărui lucrător
 
 O pagină pe fotografie, întreagă, dreaptă și clară, cu rubricile de semnătură vizibile. Ordinea nu contează: după citire, aplicația grupează paginile pe persoane. Ține însă toate paginile unei persoane în același import.
 
-Poți încărca fotografii JPG, PNG și HEIC, PDF-uri scanate, un folder sau o arhivă ZIP. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră; o arhivă 7z sau RAR o dezarhivezi întâi și tragi folderul. Ce nu e fotografie sau PDF e pus deoparte și nu se încarcă. Fotografiile le micșorăm înainte de încărcare, ca să urce mai repede.
+Poți încărca fotografii JPG, PNG și HEIC, PDF-uri scanate, un folder sau o arhivă ZIP. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră; o arhivă 7z sau RAR o dezarhivezi întâi și tragi folderul. Ce nu e fotografie sau PDF e pus deoparte și nu se încarcă. O fotografie sau un PDF ales de două ori, chiar sub alt nume, se încarcă, se citește și se socotește o singură dată: copia apare la „Puse deoparte, nu le citim”, cu fișierul pe care îl repetă. Când scoți un fișier, îi scoți și copiile. Fotografiile le micșorăm înainte de încărcare, ca să urce mai repede.
 
 Fotografiile alese le vezi în fereastră ca miniaturi. Un clic pe una o deschide mare, ca să verifici că fișa se citește; treci la următoarea cu butoanele de jos sau cu săgețile tastaturii. O fotografie greșită sau în plus o scoți cu semnul x din colțul miniaturii, care apare când treci cu mouse-ul peste ea și se vede mereu pe telefon, ori cu **Scoate fotografia** din fotografia deschisă. Numărul fotografiilor și totalurile se actualizează pe loc, iar o fișă găsită în documentație, odată scoasă, îți rămâne oferită cu **Adaugă-le**. PDF-urile și, în cele mai multe browsere, fotografiile HEIC nu se pot arăta înainte de încărcare, dar se citesc la fel ca celelalte.
 

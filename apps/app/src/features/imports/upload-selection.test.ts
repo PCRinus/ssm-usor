@@ -5,9 +5,13 @@ import {
   addToSelection,
   cleanPath,
   emptySelection,
+  keptFirst,
+  removeFiles,
   removeGroup,
+  removeLoosePhotos,
   selectionRows,
   selectionTotals,
+  withCopiesAside,
 } from './upload-selection';
 
 const blob = (text = 'x', type = '') => new Blob([text], { type });
@@ -92,11 +96,11 @@ describe('choosing the files of an import', () => {
 
   it('keeps a folder whole, groups loose photographs and lists loose documents on their own', async () => {
     const selection = await addToSelection(emptySelection, [
-      { path: 'Acte PSI/Registru.pdf', blob: blob() },
-      { path: 'Acte PSI/2021/Decizie.PDF', blob: blob() },
-      { path: 'Contract 2019.pdf', blob: blob() },
-      { path: 'IMG_2041.HEIC', blob: blob() },
-      { path: 'IMG_2042.jpg', blob: blob() },
+      { path: 'Acte PSI/Registru.pdf', blob: blob('Registru.pdf') },
+      { path: 'Acte PSI/2021/Decizie.PDF', blob: blob('Decizie.PDF') },
+      { path: 'Contract 2019.pdf', blob: blob('Contract 2019.pdf') },
+      { path: 'IMG_2041.HEIC', blob: blob('IMG_2041.HEIC') },
+      { path: 'IMG_2042.jpg', blob: blob('IMG_2042.jpg') },
     ]);
 
     expect(selectionRows(selection.files)).toMatchObject([
@@ -345,5 +349,107 @@ describe('choosing the photographs of an employee import', () => {
     expect(
       selectionTotals(selection, 'employees', { count: 0, pages: 0, bytes: 2 * 1024 ** 3 })
     ).toMatchObject({ overBytes: true });
+  });
+});
+
+describe('files chosen twice', () => {
+  const keptOf = (...paths: string[]) => paths.map((path) => ({ path })).sort(keptFirst)[0]!.path;
+
+  it('keeps the name without a copy mark, then the shorter path, then the first in the list', () => {
+    expect(
+      keptOf(
+        'WhatsApp Image 2026-11-07 at 14.02.06 (5).jpeg',
+        'WhatsApp Image 2026-11-07 at 14.01.34.jpeg'
+      )
+    ).toBe('WhatsApp Image 2026-11-07 at 14.01.34.jpeg');
+    expect(keptOf('IMG_2031 (1).jpg', 'IMG_2031.jpg')).toBe('IMG_2031.jpg');
+    expect(keptOf('IMG_2031 (2).jpg', 'IMG_2031 (1).jpg')).toBe('IMG_2031 (1).jpg');
+    expect(keptOf('Dosar SSM/Decizie numire.pdf', 'Copie/Decizie numire.pdf')).toBe(
+      'Dosar SSM/Decizie numire.pdf'
+    );
+    expect(keptOf('Fișe (1)/Plan.pdf', 'Fișe/Plan.pdf')).toBe('Fișe/Plan.pdf');
+    expect(keptOf('Fișe (2025)/Plan.pdf', 'Arhiva veche/Plan.pdf')).toBe('Fișe (2025)/Plan.pdf');
+    expect(keptOf('Dosar/Plan.pdf', 'Copii/Plan.pdf')).toBe('Copii/Plan.pdf');
+    expect(keptOf('Plan - Copy.pdf', 'Plan.pdf')).toBe('Plan.pdf');
+    expect(keptOf('Plan - copie.pdf', 'Plan nou.pdf')).toBe('Plan nou.pdf');
+    expect(keptOf('Plan COPY.pdf', 'Plan 2.pdf')).toBe('Plan 2.pdf');
+    expect(keptOf('Plan copie.docx', 'Fișe/Plan.docx')).toBe('Fișe/Plan.docx');
+  });
+
+  it('sets the copies aside with the path of the file kept, and counts only the kept', async () => {
+    const chosen = await addToSelection(emptySelection, [
+      {
+        path: 'Construct Grup.zip',
+        blob: zip({
+          'Dosar SSM/Decizie numire.pdf': 'decizie',
+          'Copie/Decizie numire.pdf': 'decizie',
+          'Dosar SSM/Evaluare riscuri 2025.pdf': 'evaluare',
+        }),
+      },
+      { path: 'IMG_2031.jpg', blob: blob('poza 2031') },
+      { path: 'IMG_2031 (1).jpg', blob: blob('poza 2031') },
+      { path: 'IMG_2031 (2).jpg', blob: blob('poza 2031') },
+      { path: 'IMG_2034.jpg', blob: blob('poza 2034') },
+    ]);
+    const selection = withCopiesAside(chosen);
+
+    expect(selection.files.map((file) => file.path)).toEqual([
+      'Construct Grup.zip/Dosar SSM/Decizie numire.pdf',
+      'Construct Grup.zip/Dosar SSM/Evaluare riscuri 2025.pdf',
+      'IMG_2031.jpg',
+      'IMG_2034.jpg',
+    ]);
+    expect(selection.setAside).toMatchObject([
+      {
+        path: 'Construct Grup.zip/Copie/Decizie numire.pdf',
+        reason: 'duplicate',
+        duplicateOf: 'Construct Grup.zip/Dosar SSM/Decizie numire.pdf',
+        mimeType: 'application/pdf',
+      },
+      { path: 'IMG_2031 (1).jpg', reason: 'duplicate', duplicateOf: 'IMG_2031.jpg' },
+      { path: 'IMG_2031 (2).jpg', reason: 'duplicate', duplicateOf: 'IMG_2031.jpg' },
+    ]);
+    expect(selectionTotals(selection)).toMatchObject({
+      count: 4,
+      bytes: 'decizie'.length + 'evaluare'.length + 2 * 'poza 2031'.length,
+    });
+  });
+
+  it('takes the copies out with the file taken out', async () => {
+    const chosen = await addToSelection(
+      emptySelection,
+      [
+        { path: 'WhatsApp Image 2026-11-07 at 14.01.34.jpeg', blob: blob('fișa 1') },
+        { path: 'WhatsApp Image 2026-11-07 at 14.02.06 (5).jpeg', blob: blob('fișa 1') },
+        { path: 'WhatsApp Image 2026-11-07 at 14.02.06.jpeg', blob: blob('fișa 2') },
+      ],
+      'employees'
+    );
+    const kept = withCopiesAside(chosen).files[0]!;
+    expect(kept.path).toBe('WhatsApp Image 2026-11-07 at 14.01.34.jpeg');
+
+    const without = withCopiesAside(removeFiles(chosen, [kept.key]));
+    expect(without.files.map((file) => file.path)).toEqual([
+      'WhatsApp Image 2026-11-07 at 14.02.06.jpeg',
+    ]);
+    expect(without.setAside).toEqual([]);
+    expect(selectionTotals(without, 'employees').pages).toBe(1);
+  });
+
+  it('takes the copies of loose photographs out with them, wherever they are', async () => {
+    const chosen = await addToSelection(emptySelection, [
+      { path: 'IMG_2031.jpg', blob: blob('poza 2031') },
+      { path: 'IMG_2031 (1).jpg', blob: blob('poza 2031') },
+      { path: 'IMG_2034.jpg', blob: blob('poza 2034') },
+      { path: 'Fișe/IMG_2034 (1).jpg', blob: blob('poza 2034') },
+    ]);
+    expect(withCopiesAside(chosen).setAside.map((file) => file.path)).toEqual([
+      'Fișe/IMG_2034 (1).jpg',
+      'IMG_2031 (1).jpg',
+    ]);
+
+    const left = withCopiesAside(removeLoosePhotos(chosen));
+    expect(left.files).toEqual([]);
+    expect(left.setAside).toEqual([]);
   });
 });

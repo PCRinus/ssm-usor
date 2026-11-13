@@ -8,6 +8,7 @@ import {
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
+import { sha256Of } from './import-storage';
 import { comparePaths } from './path-order';
 import { zipNameFixes } from './zip-names';
 
@@ -28,15 +29,19 @@ export type SelectedFile = {
   group: string;
   // The pages a PDF holds, each read on its own in an employee import; 1 for a photograph.
   pages: number;
+  // Of the bytes as chosen, before an employee import shrinks a photograph.
+  sha256: string;
 };
 
 export type SetAsideFile = {
   key: string;
   path: string;
   name: string;
-  reason: 'unsupported' | 'too_large' | 'empty' | 'name_too_long';
   group: string;
-};
+} & (
+  | { reason: 'unsupported' | 'too_large' | 'empty' | 'name_too_long' }
+  | { reason: 'duplicate'; duplicateOf: string; mimeType: ImportFileType }
+);
 
 export type Selection = {
   files: SelectedFile[];
@@ -153,7 +158,17 @@ function sortOne(
     into.setAside.push({ key: nextKey(), path, name, reason: reason ?? 'unsupported', group });
     return;
   }
-  into.files.push({ key: nextKey(), path, name, blob, size: blob.size, mimeType, group, pages: 1 });
+  into.files.push({
+    key: nextKey(),
+    path,
+    name,
+    blob,
+    size: blob.size,
+    mimeType,
+    group,
+    pages: 1,
+    sha256: '',
+  });
 }
 
 async function openZips(kind: ImportKind, zips: Zip[], into: Selection) {
@@ -265,9 +280,10 @@ export async function openPicked(picked: PickedFile[], kind: ImportKind = 'clien
       added
     );
   }
-  if (kind === 'employees') {
-    for (const file of added.files) {
-      if (file.mimeType === 'application/pdf') file.pages = await countPdfPages(file.blob);
+  for (const file of added.files) {
+    file.sha256 = await sha256Of(file.blob);
+    if (kind === 'employees' && file.mimeType === 'application/pdf') {
+      file.pages = await countPdfPages(file.blob);
     }
   }
   added.files.sort(byPath);
@@ -311,16 +327,73 @@ export const addToSelection = async (
   kind: ImportKind = 'client'
 ) => mergeSelection(current, await openPicked(picked, kind));
 
+// A copy set aside is the same content, so it goes with the file taken out instead of taking
+// its place.
+function withoutFiles(selection: Selection, gone: (file: SelectedFile) => boolean): Selection {
+  const hashes = new Set(selection.files.filter(gone).map((file) => file.sha256));
+  hashes.delete('');
+  return {
+    ...selection,
+    files: selection.files.filter((file) => !gone(file) && !hashes.has(file.sha256)),
+  };
+}
+
 export const removeGroup = (selection: Selection, group: string): Selection => ({
-  ...selection,
-  files: selection.files.filter((file) => file.group !== group),
+  ...withoutFiles(selection, (file) => file.group === group),
   setAside: selection.setAside.filter((file) => file.group !== group),
 });
 
-export const removeFiles = (selection: Selection, keys: string[]): Selection => ({
-  ...selection,
-  files: selection.files.filter((file) => !keys.includes(file.key)),
-});
+export const removeFiles = (selection: Selection, keys: string[]): Selection =>
+  withoutFiles(selection, (file) => keys.includes(file.key));
+
+export const removeLoosePhotos = (selection: Selection): Selection =>
+  withoutFiles(selection, (file) => file.path === file.group && isPhoto(file));
+
+// Two digits at most, so a year in brackets, as in "Fișe (2025)", is not a copy's number.
+const copyMark = /(?: \([1-9]\d?\)| - cop(?:y|ie)| cop(?:y|ie))$/i;
+
+const copyFolder = /^cop(?:y|ie)(?: \([1-9]\d?\))?$/i;
+
+const isMarkedCopy = (path: string) => {
+  const folders = path.split('/');
+  const name = folders.pop()!.replace(/\.[^.]+$/, '');
+  return (
+    copyMark.test(name) ||
+    folders.some((folder) => copyFolder.test(folder) || copyMark.test(folder))
+  );
+};
+
+// A computer or a phone marks the copy it makes, so "IMG_2031.jpg" is the original of
+// "IMG_2031 (1).jpg" though the list puts it second; a person names the folder of copies "Copie".
+export const keptFirst = (a: { path: string }, b: { path: string }) =>
+  Number(isMarkedCopy(a.path)) - Number(isMarkedCopy(b.path)) ||
+  a.path.length - b.path.length ||
+  comparePaths(a.path, b.path);
+
+// Each identical file would be uploaded, read and charged again.
+export function withCopiesAside(selection: Selection): Selection {
+  const kept = new Map<string, SelectedFile>();
+  for (const file of [...selection.files].sort(keptFirst)) {
+    if (!kept.has(file.sha256)) kept.set(file.sha256, file);
+  }
+  const copies: SetAsideFile[] = selection.files
+    .filter((file) => kept.get(file.sha256) !== file)
+    .map((file) => ({
+      key: file.key,
+      path: file.path,
+      name: file.name,
+      group: file.group,
+      reason: 'duplicate',
+      duplicateOf: kept.get(file.sha256)!.path,
+      mimeType: file.mimeType,
+    }));
+  if (copies.length === 0) return selection;
+  return {
+    ...selection,
+    files: selection.files.filter((file) => kept.get(file.sha256) === file),
+    setAside: [...selection.setAside, ...copies.sort(byPath)],
+  };
+}
 
 export function selectionTotals(
   selection: Selection,
