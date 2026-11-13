@@ -1427,13 +1427,19 @@ describe('consumeImportDeadLetters', () => {
     });
   });
 
-  it('lets a page every delivery failed to locate go, failing nothing', async () => {
+  it('lets a page every delivery failed to locate go, failing and changing nothing', async () => {
     world.addImport({ kind: 'employees', status: 'ready' });
     const id = world.addFile(longScan, 0, 'read');
+    const store = world.store();
+    const advance = vi.spyOn(store, 'advance');
+    const updateFile = vi.spyOn(store, 'updateFile');
     const locate = dead({ type: 'locate', importId, fileId: id, page: 1 });
-    await consumeImportDeadLetters({ messages: [locate] }, {}, deps());
+    await consumeImportDeadLetters({ messages: [locate] }, {}, deps({ store }));
 
     expect(locate.ack).toHaveBeenCalled();
+    expect(locate.retry).not.toHaveBeenCalled();
+    expect(advance).not.toHaveBeenCalled();
+    expect(updateFile).not.toHaveBeenCalled();
     expect(world.imports.get(importId)!.status).toBe('ready');
     expect(world.fileAt(longScan.path).state).toBe('read');
   });
@@ -1757,8 +1763,8 @@ describe('an employee import', () => {
     expect(locating).toHaveLength(4);
     for (const request of locating) {
       expect(request).toMatchObject({
-        url: 'https://gateway.example/v1/account/ssm-usor/workers-ai/v1/chat/completions',
-        model: 'google/gemini-3.1-flash-lite',
+        url: 'https://gateway.example/v1/account/ssm-usor/compat/chat/completions',
+        model: 'google-ai-studio/gemini-3.1-flash-lite',
         metadata: JSON.stringify({ organizationId, importId }),
       });
       expect(request.text).not.toContain('Fise/');
@@ -1794,6 +1800,91 @@ describe('an employee import', () => {
         { target: 'handovers[0]', top: 300, left: 80, bottom: 340, right: 600 },
       ]),
     });
+  });
+
+  it('sends the pages to be located only once the review has opened, in one batch', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    const batches: string[][] = [];
+    const pipeline = deps();
+    const sendBatch = pipeline.queue!.sendBatch;
+    pipeline.queue!.sendBatch = async (messages) => {
+      batches.push([...messages].map((message) => message.body.type));
+      await sendBatch(messages);
+    };
+    const outcomes = await drain(pipeline);
+
+    const types = outcomes.map((outcome) => outcome.type);
+    expect(types.indexOf('locate')).toBeGreaterThan(types.lastIndexOf('check'));
+    expect(types.filter((type) => type === 'locate')).toHaveLength(4);
+    expect(batches.filter((batch) => batch.includes('locate'))).toEqual([
+      ['locate', 'locate', 'locate', 'locate'],
+    ]);
+    expect(locationObjects()).toHaveLength(4);
+
+    world.send({ type: 'check', importId });
+    expect(await drain(pipeline)).toEqual([{ type: 'check', outcome: 'ack', attempts: 1 }]);
+  });
+
+  it('sends no page to be located that was not read', async () => {
+    model = (request) =>
+      request.text.includes('=== FILE: Fise/Popescu 2.jpg ===')
+        ? new Response('too large', { status: 413 })
+        : sheetModel(sheetAnswers)(request);
+    startEmployees(sheetFiles);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.filter((outcome) => outcome.type === 'locate')).toHaveLength(3);
+    expect(world.objects.has(locationsPathOf(world.fileAt('Fise/Popescu 2.jpg'), 1))).toBe(false);
+  });
+
+  it('opens the review all the same when the pages cannot be sent to be located', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    const pipeline = deps();
+    const sendBatch = pipeline.queue!.sendBatch;
+    pipeline.queue!.sendBatch = async (messages) => {
+      if ([...messages].some((message) => message.body.type === 'locate')) {
+        throw new Error('Queue is down');
+      }
+      await sendBatch(messages);
+    };
+    const outcomes = await drain(pipeline);
+
+    expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
+    expect(outcomes.some((outcome) => outcome.type === 'locate')).toBe(false);
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(locationObjects()).toEqual([]);
+  });
+
+  it('acks a locate the gateway could not answer on its last delivery, failing and changing nothing', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    await drain(deps());
+    const photo = world.fileAt('Fise/Popescu 1.jpg');
+    world.objects.delete(locationsPathOf(photo, 1));
+    model = (request) =>
+      request.name === 'locations'
+        ? new Response('busy', { status: 503 })
+        : sheetModel(sheetAnswers)(request);
+    const store = world.store();
+    const advance = vi.spyOn(store, 'advance');
+    const updateFile = vi.spyOn(store, 'updateFile');
+    const message = {
+      id: 'locate',
+      body: { type: 'locate', importId, fileId: photo.id, page: 1 },
+      attempts: lastDelivery,
+      ack: vi.fn(),
+      retry: vi.fn(),
+    } satisfies QueueMessage;
+    await consumeImportBatch({ messages: [message] }, {}, deps({ store }));
+
+    expect(message.ack).toHaveBeenCalled();
+    expect(message.retry).not.toHaveBeenCalled();
+    expect(advance).not.toHaveBeenCalled();
+    expect(updateFile).not.toHaveBeenCalled();
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.objects.has(locationsPathOf(photo, 1))).toBe(false);
   });
 
   it('locates a page once, and stores nothing for an import that ended', async () => {

@@ -885,7 +885,6 @@ export async function scanPages(
         encoder.encode(JSON.stringify(reading)),
         'application/json'
       );
-      if (row.kind === 'employees' && reading !== null) await sendLocate(deps, row, file, page);
     }
     await finishScan(deps, row, file);
   } catch (error) {
@@ -938,18 +937,6 @@ function sheetPageReader(deps: PipelineDeps, row: ImportRow, file: ImportFileRow
       throw error;
     }
   };
-}
-
-// Where a page writes what was read from it only helps the review, so nothing waits on it and
-// nothing fails with it.
-async function sendLocate(deps: PipelineDeps, row: ImportRow, file: ImportFileRow, page: number) {
-  try {
-    await deps.queue?.send({ type: 'locate', importId: row.id, fileId: file.id, page });
-  } catch (error) {
-    console.error(
-      `Page ${page} of file ${file.id} of import ${row.id} was not sent to be located: ${describe(error)}`
-    );
-  }
 }
 
 // An ended import's folder is removed days later; a page located after that would outlive it.
@@ -1232,7 +1219,26 @@ async function checkSheets(deps: PipelineDeps, row: ImportRow) {
     reading_flags: asJson(employeeReadingFlags(await deps.store.listFiles(row.id), proposal)),
     ready_at: new Date().toISOString(),
   });
-  if (ready) await alertImport(deps, row.id, null, ['read']);
+  if (!ready) return;
+  await sendLocates(deps, row, pages);
+  await alertImport(deps, row.id, null, ['read']);
+}
+
+// Sent only once the review has opened, so that locating never takes the queue's slots from the
+// steps the review waits for (ADR 043). A page left unlocated opens without its spotlight, so a
+// failed send fails nothing.
+async function sendLocates(deps: PipelineDeps, row: ImportRow, pages: SheetPageInput[]) {
+  const messages = pages.flatMap((page): ImportMessage[] =>
+    page.reading === null
+      ? []
+      : [{ type: 'locate', importId: row.id, fileId: page.fileId, page: page.page ?? 1 }]
+  );
+  if (messages.length === 0 || !deps.queue) return;
+  try {
+    await sendAll(deps.queue, messages);
+  } catch (error) {
+    console.error(`The pages of import ${row.id} were not sent to be located: ${describe(error)}`);
+  }
 }
 
 export async function copyFolder(deps: PipelineDeps, importId: string) {
