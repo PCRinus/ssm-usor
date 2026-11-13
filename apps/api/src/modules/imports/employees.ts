@@ -52,7 +52,7 @@ export async function employeeImportClient(
         db
           .from('employees')
           .select(
-            'id, last_name, first_name, cnp, employee_number, birth_date, birth_place, home_address, education, qualification, blood_group, rh_factor, job_title, hired_at, terminated_at, workplace_id, commute_route, commute_minutes, email, phone'
+            'id, last_name, first_name, cnp, employee_number, birth_date, birth_place, home_address, residence_address, education, qualification, blood_group, rh_factor, job_title, hired_at, terminated_at, workplace_id, commute_route, commute_minutes, email, phone'
           )
           .eq('client_id', clientId)
           .is('archived_at', null)
@@ -97,6 +97,7 @@ export async function employeeImportClient(
       birthDate: employee.birth_date,
       birthPlace: employee.birth_place,
       homeAddress: employee.home_address,
+      residenceAddress: employee.residence_address,
       education: employee.education,
       qualification: employee.qualification,
       bloodGroup: employee.blood_group,

@@ -597,6 +597,51 @@ describe('toEmployeeProposal', () => {
     ]);
   });
 
+  it('proposes a residence a page writes apart from the domicile, never the domicile again', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'commute_declaration',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: {
+            homeAddress: 'Mun. Lugoj, jud. Timiș, str. Horea, nr. 12',
+            residenceAddress: 'Timișoara, str. Florilor nr. 5',
+          },
+        }),
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: {
+            homeAddress: 'Lugoj, str. Horea nr. 12',
+            residenceAddress: 'Str. Horea, nr. 12, Lugoj',
+          },
+        })
+      ),
+      client,
+      today,
+    });
+
+    expect(proposal.people[0]!.fields.residenceAddress.options).toEqual([
+      { value: 'Timișoara, str. Florilor nr. 5', pageIds: ['page-1'] },
+    ]);
+  });
+
+  it('reads a proposal stored before the residence was read as one without it', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(page({ pageKind: 'ssm_sheet_front', person: { lastName: 'Marin' } })),
+      client,
+      today,
+    });
+    const stored = structuredClone(proposal) as unknown as {
+      people: { fields: Record<string, unknown> }[];
+    };
+    delete stored.people[0]!.fields.residenceAddress;
+
+    expect(employeeImportProposalSchema.parse(stored).people[0]!.fields.residenceAddress).toEqual({
+      options: [],
+    });
+  });
+
   it('groups a name written surname last with the same person, matched once', () => {
     const proposal = toEmployeeProposal({
       pages: pagesOf(

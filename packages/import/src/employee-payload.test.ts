@@ -494,6 +494,20 @@ describe('toEmployeePayload', () => {
     expect(map().payload.employees[0]!.replace).toBeUndefined();
   });
 
+  it('writes the residence the sheet gives apart from the domicile', () => {
+    const { proposal, check, map } = setUp({
+      ...comanFront,
+      fields: { ...comanFront.fields, residenceAddress: 'Str. Morilor nr. 4, Cisnădie' },
+    });
+    const coman = idOf(proposal, 'Coman');
+    check(coman);
+
+    expect(map().payload.employees[0]).toMatchObject({
+      home_address: 'Str. Fabricii nr. 21, Sibiu',
+      residence_address: 'Str. Morilor nr. 4, Cisnădie',
+    });
+  });
+
   it('blocks a second person proposed as the employee another one completes', () => {
     const { proposal, check, map } = setUp(popFront, comanFront);
     const pop = idOf(proposal, 'Pop');

@@ -87,6 +87,7 @@ export interface ExistingEmployee {
   birthDate: string | null;
   birthPlace: string | null;
   homeAddress: string | null;
+  residenceAddress: string | null;
   education: string | null;
   qualification: string | null;
   bloodGroup: string | null;

@@ -46,6 +46,7 @@ const fieldLabels: Record<keyof SheetPage['fields'], string> = {
   birthDate: 'data nașterii',
   birthPlace: 'locul nașterii',
   homeAddress: 'domiciliul',
+  residenceAddress: 'adresa unde locuiește, diferită de domiciliu',
   education: 'studii',
   qualification: 'calificarea',
   bloodGroup: 'grupa sanguină',

@@ -92,15 +92,17 @@ type FieldValue = string | number;
 const nonAscii = (value: FieldValue) =>
   typeof value === 'number' ? 0 : (value.match(/[^\p{ASCII}]/gu)?.length ?? 0);
 
+const addressFields = new Set<EmployeeImportFieldName>(['homeAddress', 'residenceAddress']);
+
 const sameValue = (name: EmployeeImportFieldName, a: FieldValue, b: FieldValue) =>
   typeof a === 'number' || typeof b === 'number'
     ? a === b
-    : name === 'homeAddress'
+    : addressFields.has(name)
       ? sameHomeAddress(a, b)
       : foldText(a) === foldText(b);
 
 function fuller(name: EmployeeImportFieldName, value: FieldValue, than: FieldValue) {
-  if (name === 'homeAddress' && typeof value === 'string' && typeof than === 'string') {
+  if (addressFields.has(name) && typeof value === 'string' && typeof than === 'string') {
     const detail = homeAddressDetail(value) - homeAddressDetail(than);
     if (detail !== 0) return detail > 0;
   }
@@ -217,6 +219,13 @@ function personFields(pages: readonly ReadPage[], today: string) {
       flags.push({ code: 'blood_group_not_read', detail: bloodGroup!.trim() });
     }
   }
+  // A residence equal to the domicile is the domicile read twice, not a second address.
+  fields.residenceAddress.options = fields.residenceAddress.options.filter(
+    (residence) =>
+      !fields.homeAddress.options.some((home) =>
+        sameHomeAddress(String(home.value), String(residence.value))
+      )
+  );
   // The value most pages give comes first, so one page's misread name loses to the others.
   for (const field of Object.values(fields)) {
     field.options.sort((a, b) => b.pageIds.length - a.pageIds.length);
@@ -236,6 +245,7 @@ const appValues = (
   birthDate: employee.birthDate,
   birthPlace: employee.birthPlace,
   homeAddress: employee.homeAddress,
+  residenceAddress: employee.residenceAddress,
   education: employee.education,
   qualification: employee.qualification,
   bloodGroup: employee.bloodGroup,

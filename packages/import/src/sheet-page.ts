@@ -39,6 +39,7 @@ export const sheetPageSchema = z.object({
     birthDate: text,
     birthPlace: text,
     homeAddress: text,
+    residenceAddress: text,
     education: text,
     qualification: text,
     bloodGroup: text,
