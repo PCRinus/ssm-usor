@@ -31,6 +31,8 @@ const sharedWorker = () => {
 
 const openingPage = (source: ImportSourceResponse) => source.page ?? source.match?.page ?? 1;
 
+const boxKey = (box: SpotBox | null) => box && `${box.top} ${box.left} ${box.bottom} ${box.right}`;
+
 // Each answer carries a link signed anew, so the PDF is held by its file: stepping to another
 // passage in it only turns to its page and moves the mark.
 export default function PdfSourceView({
@@ -57,11 +59,15 @@ export default function PdfSourceView({
   const pdf = loaded?.fileId === fileId ? loaded.pdf : null;
   const held = pdf !== null;
   const failed = failedUrl === url;
-  const [opened, setOpened] = useState(source);
+  // The same page asked again, for its boxes or a fresh link, must not undo a turn of page; another
+  // page or passage still turns to its own.
+  const opening = `${fileId} ${openingPage(source)} ${quote}`;
+  const [opened, setOpened] = useState(opening);
   const [pageNumber, setPageNumber] = useState(openingPage(source));
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const [whole, setWhole] = useState(false);
-  const spotted = useRef<SpotBox | null>(null);
+  const [lit, setLit] = useState(boxKey(spot));
+  const spotted = useRef<string | null>(null);
   const centring = useRef(false);
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -73,9 +79,13 @@ export default function PdfSourceView({
   const reportProgress = useEffectEvent((loaded: number, total: number) =>
     onProgress?.(loaded, total)
   );
-  if (opened !== source) {
-    setOpened(source);
+  if (opened !== opening) {
+    setOpened(opening);
     setPageNumber(openingPage(source));
+  }
+  if (lit !== boxKey(spot)) {
+    setLit(boxKey(spot));
+    setWhole(false);
   }
   const shownSpot = pageNumber === openingPage(source) ? spot : null;
 
@@ -126,14 +136,16 @@ export default function PdfSourceView({
     const room = scroller.current.clientWidth - 32;
     const roomHeight = scroller.current.clientHeight - 32;
     const view = scroller.current;
+    // Coming back to the spot's page zooms to it again.
+    if (!shownSpot) spotted.current = null;
     void pdf
       .getPage(pageNumber)
       .then(async (pdfPage) => {
         if (cancelled) return;
         const natural = pdfPage.getViewport({ scale: 1 });
         const fitScale = Math.max(0.5, Math.min(2, room / natural.width));
-        if (shownSpot && spotted.current !== shownSpot) {
-          spotted.current = shownSpot;
+        if (shownSpot && spotted.current !== boxKey(shownSpot)) {
+          spotted.current = boxKey(shownSpot);
           centring.current = true;
           const near = spotZoom({
             box: shownSpot,
