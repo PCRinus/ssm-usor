@@ -61,6 +61,7 @@ export type LegislationTables = {
       paragraph: number;
       status: string;
       template_file: string;
+      type_key: string | null;
       unit_label: string;
     };
     Insert: {
@@ -76,6 +77,7 @@ export type LegislationTables = {
       paragraph: number;
       status: string;
       template_file: string;
+      type_key?: string | null;
       unit_label: string;
     };
     Update: {
@@ -91,6 +93,7 @@ export type LegislationTables = {
       paragraph?: number;
       status?: string;
       template_file?: string;
+      type_key?: string | null;
       unit_label?: string;
     };
     Relationships: [

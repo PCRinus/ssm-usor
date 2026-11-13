@@ -71,7 +71,7 @@ const storedAmendingActsSchema = storedList(
 const storedAmendedUnitsSchema = storedList(legalAmendedUnitSchema);
 const storedHunksSchema = legalChangePassageSchema.shape.hunks.catch([]);
 
-const toPassage = (row: Omit<PassageRow, 'change_id' | 'manifest' | 'article'>) =>
+const toPassage = (row: Omit<PassageRow, 'change_id' | 'manifest' | 'article' | 'type_key'>) =>
   legalChangePassageSchema.parse({
     id: row.id,
     templateFile: row.template_file,
@@ -95,7 +95,7 @@ const passageOrder = (
 const toChange = (
   row: Omit<ChangeRow, 'act_id' | 'review'> & {
     act: Pick<ActRow, 'id' | 'name' | 'portal_id'>;
-    passages: Omit<PassageRow, 'change_id' | 'manifest' | 'article'>[];
+    passages: Omit<PassageRow, 'change_id' | 'manifest' | 'article' | 'type_key'>[];
   }
 ): LegalChange => ({
   id: row.id,

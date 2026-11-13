@@ -3629,6 +3629,7 @@ export type Database = {
           paragraph: number;
           status: string;
           template_file: string;
+          type_key: string | null;
           unit_label: string;
         };
         Insert: {
@@ -3644,6 +3645,7 @@ export type Database = {
           paragraph: number;
           status: string;
           template_file: string;
+          type_key?: string | null;
           unit_label: string;
         };
         Update: {
@@ -3659,6 +3661,7 @@ export type Database = {
           paragraph?: number;
           status?: string;
           template_file?: string;
+          type_key?: string | null;
           unit_label?: string;
         };
         Relationships: [
@@ -7168,6 +7171,31 @@ export type Database = {
           user_id: string;
         }[];
       };
+      admin_link_legal_change: {
+        Args: { p_change_id: string; p_template_version_id: string };
+        Returns: {
+          act_id: string;
+          amended_units: Json | null;
+          amending_act: string | null;
+          amending_acts: Json | null;
+          assessed_at: string | null;
+          compared_with: string | null;
+          consolidated_on: string;
+          id: string;
+          outcome: string | null;
+          resolution: string;
+          resolved_at: string | null;
+          resolved_by_note: string | null;
+          review: Json | null;
+          seen_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'legal_changes';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       admin_list_imports: {
         Args: {
           p_has_copy?: boolean;
@@ -7214,6 +7242,53 @@ export type Database = {
           total: number;
           user_id: string;
         }[];
+      };
+      admin_record_verified_form: {
+        Args: { p_act_id: string; p_consolidated_on: string };
+        Returns: {
+          checked_by_hand_on: string | null;
+          created_at: string;
+          id: string;
+          last_amending_act: string | null;
+          last_checked_at: string | null;
+          last_consolidated_on: string | null;
+          name: string;
+          portal_id: number | null;
+          portal_status: string | null;
+          updated_at: string;
+          verified_consolidated_on: string | null;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'legal_acts';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      admin_resolve_legal_change_no_impact: {
+        Args: { p_change_id: string; p_note: string };
+        Returns: {
+          act_id: string;
+          amended_units: Json | null;
+          amending_act: string | null;
+          amending_acts: Json | null;
+          assessed_at: string | null;
+          compared_with: string | null;
+          consolidated_on: string;
+          id: string;
+          outcome: string | null;
+          resolution: string;
+          resolved_at: string | null;
+          resolved_by_note: string | null;
+          review: Json | null;
+          seen_at: string;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'legal_changes';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       answer_test_attempt: {
         Args: {

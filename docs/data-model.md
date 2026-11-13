@@ -232,13 +232,13 @@ table that say nothing about a person, such as a state, a role or a stage, the `
 values in `details`. Never the value of a personal field: the event says `cnp` changed, not what
 it was. ADR 033 lists the audited tables and the kept columns, and why the others are left out.
 
-| Column                  | Notes                                                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `action`                | `insert`, `update`, `delete`, or a named event: `impersonation_started`, `impersonation_ended`, `client_deleted`, `import_copy_opened`, `import_copy_file_opened`. |
-| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL.              |
-| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                                        |
-| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                                        |
-| `transaction_id`        | Groups the events of one request.                                                                                                                                  |
+| Column                  | Notes                                                                                                                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`                | `insert`, `update`, `delete`, or a named event: `impersonation_started`, `impersonation_ended`, `client_deleted`, `import_copy_opened`, `import_copy_file_opened`, `legal_change_resolved`, `legal_act_verified`. |
+| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL.                                                             |
+| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                                                                                       |
+| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                                                                                       |
+| `transaction_id`        | Groups the events of one request.                                                                                                                                                                                 |
 
 `audit.record_changes()` runs as three statement-level triggers (`audit_insert`, `audit_update`,
 `audit_delete`) per audited table, with transition tables, so a bulk statement writes its events
@@ -2403,15 +2403,15 @@ writes with the secret key, run by the cron of the legislation Worker
 keyed by its id there (`lege-319-2006`). `pnpm legislation:check` writes `name` and
 `portal_id` from the file, then what it read on the portal:
 
-| Column                     | Notes                                                                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                   |
-| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                          |
-| `verified_consolidated_on` | The consolidated form the templates were verified against. Recorded by migration; the job advances it.  |
-| `last_consolidated_on`     | The newest consolidated form seen.                                                                      |
-| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`). |
-| `last_checked_at`          | The last time the page was read.                                                                        |
-| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                        |
+| Column                     | Notes                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                                        |
+| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                                               |
+| `verified_consolidated_on` | The consolidated form the templates were verified against. Recorded by migration; the job and the platform admin advance it. |
+| `last_consolidated_on`     | The newest consolidated form seen.                                                                                           |
+| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`).                      |
+| `last_checked_at`          | The last time the page was read.                                                                                             |
+| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                                             |
 
 `verified_consolidated_on` starts as each act's newest form on the portal on 2026-11-13, a
 republication included, written by the migration `legal_change_outcomes` so that a new or wiped
@@ -2460,9 +2460,29 @@ change unassessed.
 `unit_label`, `status` (`changed`, `added`, `repealed`, `missing`, or `uncompared` for a unit in
 both forms with no words to read in one of them or too long to compare), the law's `old_text` and
 `new_text` of the unit, each present as the status requires, and `hunks`, the words that
-changed with a few around them. A citation records a unit once per change, and the rows go
+changed with a few around them, and `type_key`, the document type of the template the
+citation is in, which says which template versions can answer the change (null only for a
+passage stored before the column and in no file the index of 2026-11-13 lists). A citation records a unit once per change, and the rows go
 with their change. Members read them, nobody signed in writes them, and the job writes them
 with the secret key.
+
+**The admin's writes** ([ADR 017](architecture/adr-017-legislation-monitoring.md), amended
+2026-11-12; `20261113140000_admin_legislation`) are three security definer functions, the only
+writes to the legislation data besides the job's. They run with the admin's own token, so only
+`authenticated` may execute them, and each first asks `is_platform_admin()`: the admin claim and
+an `aal2` token, else `42501`. Each records its own named event in `audit.events`, in the same
+transaction, with the admin as `actor_id`, `source` `user` and no organization or
+impersonation; the generic audit triggers do not cover the legislation tables, whose daily writes
+are the job's.
+
+| Function                                                  | What it does                                                                                                                                                                                                                                                                                                                                                    | Event                                                                                                                                 |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin_resolve_legal_change_no_impact(change_id, note)`   | Resolves an open change as `no_impact` with the trimmed note (2 to 500 characters, else `22023`), which members read, and moves the act's `verified_consolidated_on` up to the change's form, as the job does                                                                                                                                                   | `legal_change_resolved`, `legal_changes`, the change; `{ resolution, act_id, consolidated_on, verified_consolidated_on: [old, new] }` |
+| `admin_link_legal_change(change_id, template_version_id)` | Resolves an open change as `template_version`: the version's `resolves_legal_change_id` names it, `resolved_by_note` takes the version's note, and the verified form moves up as above. The version is built-in, registered after the change was seen, not `layout`, answers no other change, and is of a type one of the change's passages names; else `LGA02` | `legal_change_resolved`, with `template_version_id`, `type_key` and `version` too                                                     |
+| `admin_record_verified_form(act_id, consolidated_on)`     | Sets the act's `verified_consolidated_on` to a form no later than `last_consolidated_on` (`LGA03` otherwise, and for an act with no form seen). Its open changes stay open                                                                                                                                                                                      | `legal_act_verified`, `legal_acts`, no row id; `{ act_id, verified_consolidated_on: [old, new] }`                                     |
+
+A change that does not exist, or an act not watched, is `P0002`; a change already resolved is
+`LGA01`. Nothing reopens a resolved change.
 
 `legal_check_runs` logs every run of the check, because a cron that fails tells nobody. A run
 inserts its row as `running` when it starts and updates it when it ends, even when the check
