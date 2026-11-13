@@ -402,6 +402,7 @@ export function PreviewImage({
     <>
       <div className="h-full overflow-auto p-3 sm:p-4">
         <img
+          data-no-replay
           ref={blobRef}
           src={typeof source === 'string' ? source : undefined}
           alt={alt}

@@ -178,6 +178,7 @@ function PhotoView({
     <>
       <div ref={scroller} className="relative h-full overflow-auto p-3">
         <img
+          data-no-replay
           ref={image}
           src={url}
           alt={`Fotografia ${name}`}

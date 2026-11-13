@@ -35,8 +35,6 @@ export function usePostHogSession(me: MeResponse | undefined) {
           stopPostHog(posthog);
           return;
         }
-        // Off until the effect below knows whether this session acts as a member.
-        posthog.stopSessionRecording();
         posthog.opt_in_capturing({ captureEventName: false });
         setClient(posthog);
       })

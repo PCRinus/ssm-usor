@@ -1,7 +1,23 @@
 import type { PostHog } from 'posthog-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { captureAsMember, openSupportChat, sendPendingEvents, stopPostHog } from './posthog';
+import {
+  captureAsMember,
+  loadPostHog,
+  maskReplayAttribute,
+  openSupportChat,
+  sendPendingEvents,
+  stopPostHog,
+} from './posthog';
+
+const { sdk } = vi.hoisted(() => ({ sdk: { loaded: [] as string[] } }));
+vi.mock('posthog-js', () => ({
+  default: { init: vi.fn(() => sdk.loaded.push('init')) },
+}));
+vi.mock('posthog-js/dist/posthog-recorder', () => {
+  sdk.loaded.push('recorder');
+  return {};
+});
 
 afterEach(() => {
   document.getElementById('ph-conversations-widget-container')?.remove();
@@ -79,5 +95,63 @@ describe('PostHog Support adapter', () => {
 
     stopPostHog(client);
     expect(calls).toEqual(['hide', 'clearIdentity', 'reset', 'stopRecording', 'optOut']);
+  });
+});
+
+describe('session replay', () => {
+  it('starts PostHog with its recorder already defined, and recording off', async () => {
+    vi.stubEnv('VITE_POSTHOG_PROJECT_TOKEN', 'phc_test');
+    const client = await loadPostHog();
+
+    expect(sdk.loaded).toEqual(['recorder', 'init']);
+    expect(client?.init).toHaveBeenCalledWith(
+      'phc_test',
+      expect.objectContaining({
+        disable_session_recording: true,
+        session_recording: expect.objectContaining({
+          maskTextSelector: '*',
+          maskAttributeFn: maskReplayAttribute,
+          blockSelector: '[data-no-replay]',
+        }),
+      })
+    );
+    expect(vi.mocked(client!.init).mock.calls[0]![1]!.session_recording).not.toHaveProperty(
+      'maskAllElementAttributes'
+    );
+  });
+
+  it.each([
+    ['title', 'Brutăria Popescu SRL'],
+    ['alt', 'Fotografia fisa-ion-pop.jpg'],
+    ['aria-label', 'Deschide Ion Pop'],
+    ['aria-valuetext', 'Ion Pop'],
+    ['placeholder', 'Ion Pop'],
+    ['value', 'Ion Pop'],
+    ['data-value', 'Ion Pop'],
+    ['download', 'Fișa Ion Pop.pdf'],
+  ])('masks %s, which can carry a name', (name, value) => {
+    expect(maskReplayAttribute(name, value)).toBe('*'.repeat(value.length));
+  });
+
+  it.each([
+    ['class', 'flex items-center gap-3 border-b bg-card'],
+    ['style', '--sidebar-width: 16rem;'],
+    ['id', 'nav-section-clients'],
+    ['role', 'dialog'],
+    ['type', 'button'],
+    ['data-state', 'open'],
+    ['href', '/clienti/4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d'],
+    ['href', 'http://localhost:5173/assets/index-DMOD9hrb.css'],
+    ['src', '/brand/logo.png'],
+  ])('keeps %s %s, which the replay needs to look like the page', (name, value) => {
+    expect(maskReplayAttribute(name, value)).toBe(value);
+  });
+
+  it.each([
+    'https://api.ssmusor.ro/files/download?source=https%3A%2F%2Fstorage%2Fsign%3Ftoken%3Dabc&name=Fi%C8%99a%20Ion%20Pop.pdf',
+    'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+  ])('masks an address outside the app: %s', (value) => {
+    expect(maskReplayAttribute('href', value)).toBe('*'.repeat(value.length));
+    expect(maskReplayAttribute('src', value)).toBe('*'.repeat(value.length));
   });
 });

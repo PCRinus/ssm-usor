@@ -230,7 +230,7 @@ export default function PdfSourceView({
     <>
       <div ref={scroller} className="h-full overflow-auto p-4" data-testid="source-pdf">
         <div ref={page} className="import-pdf-page relative mx-auto bg-white shadow-sm">
-          <canvas ref={canvas} className="block" />
+          <canvas data-no-replay ref={canvas} className="block" />
           <div ref={textLayer} className="textLayer" />
           {shownSpot && pdf && (
             <Spotlight box={shownSpot} dimmed={!whole} className="inset-0 size-full" />
