@@ -105,7 +105,7 @@ The Action needs no portal access: the Worker stored the law's text of both form
 
 (Amended 2026-11-13.) A change is answered once. One with an open or merged pull request, or an open issue, found by its branch or by a marker in the body, is skipped, and so is one that a manifest on main already resolves, until a release registers it. One whose pull request or issue was closed is skipped too, and listed on Mondays, until it is named in the workflow's `change` input, which answers it again, on a new branch when its pull request was closed.
 
-(Amended 2026-11-13.) The GitHub App's token is minted for contents and pull requests and never stays in the checkout: in git it reaches only the `git push` and `ls-remote` that talk to GitHub, and otherwise only opens and labels the pull request. The issues are opened with the Action's own token.
+(Amended 2026-11-13.) The GitHub App's token is minted for contents, pull requests and issues (labelling a pull request goes through the issues endpoint) and never stays in the checkout: in git it reaches only the `git push` and `ls-remote` that talk to GitHub, and otherwise only opens and labels the pull request. The issues are opened with the Action's own token.
 
 **The drift that exists is fixed once, by hand.** The comparison of every quote with the current law, kept as the script `legislation:verify-quotes`, gave the list of 84 for a one-time review. That review brings the real drift up to date. It narrows markers that name more than they quote, and it keeps the provider's rewording and the adapted quotes. The provider signs off on the review's pull request. After it, every act's verified form is its current one.
 
@@ -164,13 +164,13 @@ Regenerating a document type for every client behind it is one action on the pag
 6. The Legislație page, read-only, with the documents behind.
 7. The queue and bulk regeneration from the page.
 8. The resolution steps of the Worker: the text comparison, the model's proposal, the pull request and the issue it falls back to. (Amended 2026-11-12, replaced by 8a–8g.)
-   1. Reading the full text, earlier forms and the portal's notes; the comparison of two forms for the units the index cites; a check of every quote against today's text.
-   2. The engine's tool that applies a law's change to a quoted passage in a template and its copies.
-   3. The one-time review of the quotes that differ from today's law.
-   4. The outcome and passages stored per change, verified forms recorded for every act, and changes with no impact resolved by the Worker.
-   5. Discord messages from the Worker, per environment.
-   6. The admin area's Legislație page.
-   7. `legislation-fix.yml`: the replacement, the model's note and reading, the pull request and its Discord message, and the registration that links a version to its change. Its first run answers O.U.G. 195/2002 art. 36 alin. (2).
+   - 8a. Reading the full text, earlier forms and the portal's notes; the comparison of two forms for the units the index cites; a check of every quote against today's text.
+   - 8b. The engine's tool that applies a law's change to a quoted passage in a template and its copies.
+   - 8c. The one-time review of the quotes that differ from today's law.
+   - 8d. The outcome and passages stored per change, verified forms recorded for every act, and changes with no impact resolved by the Worker.
+   - 8e. Discord messages from the Worker, per environment.
+   - 8f. The admin area's Legislație page.
+   - 8g. `legislation-fix.yml`: the replacement, the model's note and reading, the pull request and its Discord message, and the registration that links a version to its change. Its first run answers O.U.G. 195/2002 art. 36 alin. (2).
 
 ## Open
 

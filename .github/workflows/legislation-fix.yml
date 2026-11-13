@@ -57,6 +57,7 @@ jobs:
           private-key: ${{ secrets.LEGISLATION_APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
+          permission-issues: write
 
       - name: Find the App's user
         id: app-user
