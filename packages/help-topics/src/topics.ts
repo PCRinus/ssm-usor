@@ -119,6 +119,10 @@ export const helpTopics = {
     path: '/clienti/angajati/instruire-si-teste/',
     anchor: 'instruirile-de-pe-fișa-pe-hârtie',
   },
+  'angajati.instruire-dupa-emitere': {
+    path: '/clienti/angajati/instruire-si-teste/',
+    anchor: 'după-emiterea-instrucțiunilor-proprii',
+  },
   'angajati.instruire-suplimentara': {
     path: '/clienti/angajati/instruire-si-teste/',
     anchor: 'instruirea-periodică-suplimentară',
