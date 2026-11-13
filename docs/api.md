@@ -541,6 +541,28 @@ as the themes have it; the specialist verifies every occupational safety trainin
 a fire-safety one; the trainer of a workplace training admits to work. A `jobPositionId` of
 another client is `400`.
 
+| Route                                                                            | Access                          | Response                                                                   |
+| -------------------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------- |
+| `GET /clients/{clientId}/supplementary-training-proposals`                       | Verified user with a membership | `{ "items": [ … ] }`, the open ones, occupational safety first             |
+| `POST /clients/{clientId}/supplementary-training-proposals/{revisionId}/dismiss` | Verified user with a membership | `204`, closed with who closed it; `404` when none of that revision is open |
+
+Issuing the own instructions, `own_instructions` or `fire_own_instructions`, proposes a
+supplementary training when the client then has a current worker with a training recorded in
+that domain ([ADR 042](architecture/adr-042-paper-history-as-written.md), decision 4): the
+database keeps the proposal with the issued revision, so issuing itself answers as before.
+`GET …/supplementary-training-proposals` lists the open ones: not closed, of the revision in
+force (a newer issue replaces the proposal of the one it supersedes), and with a post still to
+train. Each carries `revisionId`, `domain`, `documentTitle`, `revision`, `documentDate` (the date
+the revision carries, else its issue day in Romania), `issuedAt`, `firstIssue` (no earlier
+revision of the document was issued) and `posts`: every position of the client with current
+workers, most workers first, `{ jobPositionId, name, workerCount, recordedOn }`. `recordedOn` is
+the Romanian day of the first supplementary training with the reason `rules_changed` in the
+domain recorded since the issue that a current worker of the post attended, null while there is
+none; a proposal whose every post has one is left out. Nothing records a training by itself: the
+app opens the usual training dialog filled for the post. `POST …/{revisionId}/dismiss` closes an
+open proposal, "Nu e nevoie de instruire", recording who and when (the platform admin during an
+impersonation); one that is not open answers `404`, an archived client `409`.
+
 The two individual training sheets
 ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) are built on demand
 and never stored, until signing starts: from then on the sheet of that employee and domain is
