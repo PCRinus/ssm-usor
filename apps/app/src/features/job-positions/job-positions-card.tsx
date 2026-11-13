@@ -42,8 +42,8 @@ import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import {
-  domainDecision,
   domainLabels,
+  instructionCountOf,
   instructionStateLabel,
   positionCountLabel,
 } from '@/features/instructions/instruction-schema';
@@ -270,8 +270,8 @@ export function JobPositionsCard({
                               ? positionSections.instructions
                               : positionSections.fireInstructions
                           }
-                          decision={domainDecision(position, domain).needsInstructions}
-                          label={instructionStateLabel(domainDecision(position, domain))}
+                          decision={instructionCountOf(position, domain) > 0 || null}
+                          label={instructionStateLabel(instructionCountOf(position, domain))}
                           testId={
                             domain === 'ssm'
                               ? 'job-position-instructions'
@@ -461,8 +461,8 @@ const namesShown = 5;
 
 function UndecidedNotice({ clientId, positions }: { clientId: string; positions: JobPosition[] }) {
   const equipment = positions.filter((position) => position.needsProtectiveEquipment === null);
-  const instructions = positions.filter((position) => position.needsInstructions === null);
-  const fireInstructions = positions.filter((position) => position.needsFireInstructions === null);
+  const instructions = positions.filter((position) => position.instructionCount === 0);
+  const fireInstructions = positions.filter((position) => position.fireInstructionCount === 0);
   if (equipment.length === 0 && instructions.length === 0 && fireInstructions.length === 0) {
     return null;
   }

@@ -36,7 +36,6 @@ const welder = {
   employeeCount: 3,
   needsProtectiveEquipment: true as boolean | null,
   equipmentCount: 2,
-  needsInstructions: null as boolean | null,
   instructionCount: 0,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
@@ -50,7 +49,6 @@ const fitter = {
   employeeCount: 0,
   needsProtectiveEquipment: null,
   equipmentCount: 0,
-  needsInstructions: null as boolean | null,
   instructionCount: 0,
 };
 
@@ -131,7 +129,7 @@ function mockApi({
     }
     if (pathname.endsWith('/protective-equipment')) return decide(init, url);
     if (pathname.endsWith('/instructions')) {
-      return Response.json({ items: [], needsInstructions: null });
+      return Response.json({ items: [] });
     }
     if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
     throw new Error(`Unexpected request: ${method} ${pathname}`);

@@ -36,10 +36,8 @@ const barista = {
   employeeCount: 3,
   needsProtectiveEquipment: true as boolean | null,
   equipmentCount: 2,
-  needsInstructions: null as boolean | null,
   instructionCount: 0,
-  needsFireInstructions: false as boolean | null,
-  fireInstructionCount: 0,
+  fireInstructionCount: 1,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
 };
@@ -54,9 +52,8 @@ const manager = {
   employeeCount: 0,
   needsProtectiveEquipment: null,
   equipmentCount: 0,
-  needsInstructions: null as boolean | null,
   instructionCount: 0,
-  needsFireInstructions: null as boolean | null,
+  fireInstructionCount: 0,
 };
 
 const listPath = `/clients/${clientId}/job-positions`;
@@ -94,7 +91,7 @@ function mockApi({
     if (pathname.startsWith(`${listPath}/`))
       return method === 'DELETE' ? remove(init) : update(init);
     if (pathname.endsWith('/instructions')) {
-      return Response.json({ items: [], needsInstructions: null });
+      return Response.json({ items: [] });
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
@@ -174,7 +171,6 @@ describe("a client's job positions", () => {
       name: 'Casier',
       needsProtectiveEquipment: false,
       equipmentCount: 0,
-      needsInstructions: true,
       instructionCount: 3,
     };
     const cook = {
@@ -182,7 +178,6 @@ describe("a client's job positions", () => {
       id: '4a2e3d5c-6b7f-4a8b-9c0d-1e2f3a4b5c6d',
       name: 'Bucătar',
       equipmentCount: 20,
-      needsInstructions: true,
       instructionCount: 1,
     };
     mockApi({ items: [barista, manager, cashier, cook] });
@@ -283,7 +278,7 @@ describe("a client's job positions", () => {
   });
 
   it('asks for nothing once every position has decided', async () => {
-    mockApi({ items: [{ ...barista, needsInstructions: false }] });
+    mockApi({ items: [{ ...barista, instructionCount: 2 }] });
     mount();
     await screen.findAllByTestId('job-position-row');
     expect(screen.queryByTestId('job-positions-undecided')).toBeNull();
