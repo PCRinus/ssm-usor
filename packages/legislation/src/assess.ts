@@ -11,7 +11,12 @@ import { assessImpact, type Impact, type ImpactOutcome } from './impact';
 import type { CitedPassage } from './locator';
 import { pause, PortalError, type PortalOptions, portalPauseMs } from './portal';
 
-export type IndexedCitation = CitedPassage & { manifest: string; file: string; paragraph: number };
+export type IndexedCitation = CitedPassage & {
+  manifest: string;
+  file: string;
+  typeKey: string;
+  paragraph: number;
+};
 
 export type AmendedUnit = {
   // "Art. 36 alin. (2)", as the citations label a unit.
@@ -26,6 +31,7 @@ export type AmendedUnit = {
 export type ChangePassage = {
   manifest: string;
   file: string;
+  typeKey: string;
   paragraph: number;
   form: CitedPassage['form'];
   locator: string | null;
@@ -122,6 +128,7 @@ export function passagesOf(impact: Impact<IndexedCitation>): ChangePassage[] {
                 {
                   manifest: result.citation.manifest,
                   file: result.citation.file,
+                  typeKey: result.citation.typeKey,
                   paragraph: result.citation.paragraph,
                   form: result.citation.form,
                   locator: result.citation.locator,
@@ -281,6 +288,7 @@ export async function storeAssessment(
         change_id: assessment.changeId,
         manifest: passage.manifest,
         template_file: passage.file,
+        type_key: passage.typeKey,
         paragraph: passage.paragraph,
         citation_form: passage.form,
         locator: passage.locator,

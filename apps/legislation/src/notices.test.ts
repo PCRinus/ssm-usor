@@ -82,6 +82,7 @@ const quoteDiffers: ChangeAssessment = {
     {
       manifest: 'ssm',
       file: '2.2_general_training_material.docx',
+      typeKey: 'general_training_material',
       paragraph: 2048,
       form: 'quote',
       locator: 'Art. 36 alin. (1) – (3)',
@@ -95,6 +96,7 @@ const quoteDiffers: ChangeAssessment = {
     {
       manifest: 'ssm',
       file: '2.2_general_training_material.docx',
+      typeKey: 'general_training_material',
       paragraph: 1970,
       form: 'reference',
       locator: null,

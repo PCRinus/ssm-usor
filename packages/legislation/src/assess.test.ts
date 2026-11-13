@@ -52,6 +52,7 @@ const portal = {
 const helmet: IndexedCitation = {
   manifest: 'ssm',
   file: '2.2_general_training_material.docx',
+  typeKey: 'general_training_material',
   paragraph: 2048,
   form: 'quote',
   act: roads.id,
@@ -193,6 +194,7 @@ describe('assessing a new form', () => {
       expect.objectContaining({
         change_id: 'c-new',
         template_file: '2.2_general_training_material.docx',
+        type_key: 'general_training_material',
         paragraph: 2048,
         citation_form: 'quote',
         locator: 'Art. 36 alin. (2)',
