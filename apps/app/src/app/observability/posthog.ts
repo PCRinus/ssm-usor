@@ -29,6 +29,8 @@ export function loadPostHog(): Promise<PostHog | null> {
           capture_console_errors: false,
         },
         enable_recording_console_log: false,
+        // Off until usePostHogSession knows whether the session acts as a member.
+        disable_session_recording: true,
         session_recording: {
           maskAllInputs: true,
           maskTextSelector: '*',
