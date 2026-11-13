@@ -121,13 +121,15 @@ const M = legalEntity.filled ? 'span' : 'mark';
       putem diagnostica probleme, îmbunătăți funcțiile și răspunde solicitărilor. La sesiuni de
       impersonare, marcăm acțiunile administratorului separat. Înregistrările arată ecranele
       platformei și datele de lucru ale organizației, de exemplu posturile, locurile de muncă și
-      denumirile firmelor client. Mascăm în ele datele persoanelor afișate (nume, CNP, date de
-      naștere, date de contact și adrese, din care rămâne doar forma), valorile scrise în câmpuri,
-      în afară de câmpurile cu datele organizației, și atributele elementelor care pot conține date
-      personale, iar fotografiile și paginile PDF încărcate la import nu apar în ele; nu colectăm
-      prin acestea corpul sau antetele cererilor de rețea. Totuși, adresele URL și mesajele pe care
-      ni le trimiți pot conține informații pe care le-ai inclus acolo. Temei: interesul legitim de a
-      menține și îmbunătăți serviciul și de a acorda asistență.
+      denumirile firmelor client. Textul scris liber în câmpurile organizației, de exemplu
+      observațiile la un factor de risc sau textul unei instrucțiuni, apare așa cum a fost scris,
+      deci arată și ce ai trecut acolo. Mascăm datele persoanelor afișate (nume, CNP, date de
+      naștere, date de contact și adresele, din care rămâne doar forma), valorile scrise în
+      celelalte câmpuri și atributele elementelor care pot conține date personale, iar fotografiile
+      și paginile PDF încărcate la import nu apar în ele; nu colectăm prin acestea corpul sau
+      antetele cererilor de rețea. Totuși, adresele URL și mesajele pe care ni le trimiți pot
+      conține informații pe care le-ai inclus acolo. Temei: interesul legitim de a menține și
+      îmbunătăți serviciul și de a acorda asistență.
     </li>
     <li>
       <strong>Analiză și erori în portalul lucrătorilor.</strong> După ce un lucrător sau un
@@ -257,7 +259,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
       luni de la încheierea importului și se șterge mai devreme dacă serviciul extern își închide
       contul;
     </li>
-    <li>înregistrările sesiunilor în PostHog: ținta noastră este 30 de zile;</li>
+    <li>înregistrările sesiunilor în PostHog: 30 de zile;</li>
     <li>evenimentele de analiză și erorile în PostHog: ținta noastră este 12 luni;</li>
     <li>conversațiile de asistență rezolvate: ținta noastră este 12 luni de la încheiere.</li>
   </ul>
