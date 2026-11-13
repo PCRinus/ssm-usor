@@ -6959,19 +6959,6 @@
       "manifest": "ssm",
       "file": "2.2_general_training_material.docx",
       "typeKey": "general_training_material",
-      "paragraph": 1670,
-      "lastParagraph": 1670,
-      "block": null,
-      "form": "reference",
-      "act": "hg-259-2022",
-      "article": null,
-      "locator": null,
-      "text": null
-    },
-    {
-      "manifest": "ssm",
-      "file": "2.2_general_training_material.docx",
-      "typeKey": "general_training_material",
       "paragraph": 1671,
       "lastParagraph": 1671,
       "block": null,
@@ -12137,9 +12124,9 @@
       "lastParagraph": 258,
       "block": null,
       "form": "quote",
-      "act": "hg-767-2016",
-      "article": null,
-      "locator": "pct. 5",
+      "act": "hg-1425-2006",
+      "article": "96",
+      "locator": "Art. 96 alin. (2)",
       "text": "(2) Intervalul dintre două instruiri periodice și periodicitatea verificării instruirii vor fi stabilite prin programul de instruire-testare elaborat la nivelul întreprinderii și/ sau unității potrivit prevederilor art. 15 alin. (1) pct. 8 din H.G. 1425/2006, în funcție de condițiile locului de muncă și/ sau postului de lucru."
     },
     {
