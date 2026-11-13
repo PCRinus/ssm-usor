@@ -6,6 +6,7 @@ export const risksModel = 'gpt-6.1-terra';
 export const safetySheetModel = 'gpt-6.1-terra';
 export const similarityModel = 'gpt-6-luna';
 export const locatingModel = 'gemini-3.1-flash-lite';
+export const legislationFixModel = 'gpt-6.1-terra';
 
 export type ModelId =
   | typeof sortingModel
@@ -14,7 +15,8 @@ export type ModelId =
   | typeof risksModel
   | typeof safetySheetModel
   | typeof similarityModel
-  | typeof locatingModel;
+  | typeof locatingModel
+  | typeof legislationFixModel;
 
 export type ModelProvider = 'openai' | 'google';
 

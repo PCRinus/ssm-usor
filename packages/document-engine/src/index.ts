@@ -37,4 +37,4 @@ export {
   type TestSheetFacts,
   testSheetTypeKey,
 } from './test-sheet';
-export { documentText } from './text';
+export { documentText, paragraphsOf } from './text';
