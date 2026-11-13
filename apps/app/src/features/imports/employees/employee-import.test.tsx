@@ -483,16 +483,29 @@ describe('the people hub', () => {
     ).toEqual(['Magazin Str. Lungă 5', 'Laborator producție']);
   });
 
-  it('shows the cost of reading the photographs when the API serves it', async () => {
+  it('shows the cost of reading and locating the photographs when the API serves it', async () => {
     const scanning = { costUsd: 0.1, inputTokens: 41000, cachedInputTokens: 0, outputTokens: 9800 };
+    const locating = {
+      costUsd: 0.02,
+      inputTokens: 38000,
+      cachedInputTokens: 0,
+      outputTokens: 1200,
+    };
     mockEmployeeImport({
       detail: employeeDetail({
-        usage: { ...scanning, readCharacters: null, bySteps: { scanning } },
+        usage: {
+          costUsd: 0.12,
+          inputTokens: 79000,
+          cachedInputTokens: 0,
+          outputTokens: 11000,
+          readCharacters: null,
+          bySteps: { scanning, locating },
+        },
       }),
     });
     mount(importPath);
     expect((await screen.findByTestId('import-usage')).textContent).toBe(
-      'Depanare: cost 0,10\u00a0$ · 41.000 tokeni intrare (0 din cache) · 9.800 ieșire · scanare 0,10\u00a0$'
+      'Depanare: cost 0,12\u00a0$ · 79.000 tokeni intrare (0 din cache) · 11.000 ieșire · scanare 0,10\u00a0$, localizare 0,02\u00a0$'
     );
   });
 
