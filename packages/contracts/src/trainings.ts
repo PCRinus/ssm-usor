@@ -382,3 +382,44 @@ export const trainingProposalSchema = z.object({
 });
 
 export type TrainingProposal = z.infer<typeof trainingProposalSchema>;
+
+export const supplementaryTrainingProposalPostSchema = z.object({
+  jobPositionId: z.uuid(),
+  name: z.string(),
+  workerCount: z.int().min(1),
+  // The Romanian day a supplementary training for the post was recorded since the issue; null
+  // while none is.
+  recordedOn: z.iso.date().nullable(),
+});
+
+export type SupplementaryTrainingProposalPost = z.infer<
+  typeof supplementaryTrainingProposalPostSchema
+>;
+
+/**
+ * An issue of a client's own instructions, IPSSM or IPSU, proposing a supplementary training for
+ * every post with current workers, one training per post (ADR 042, decision 4).
+ */
+export const supplementaryTrainingProposalSchema = z.object({
+  revisionId: z.uuid(),
+  domain: trainingDomainSchema,
+  documentTitle: z.string(),
+  revision: z.int().min(1),
+  // No earlier revision of the document was issued: this one replaces the instructions the client
+  // had on paper.
+  firstIssue: z.boolean(),
+  // The date the issued revision carries, which the material of the training cites.
+  documentDate: z.iso.date(),
+  issuedAt: z.iso.datetime({ offset: true }),
+  posts: z.array(supplementaryTrainingProposalPostSchema),
+});
+
+export type SupplementaryTrainingProposal = z.infer<typeof supplementaryTrainingProposalSchema>;
+
+export const supplementaryTrainingProposalListResponseSchema = z.object({
+  items: z.array(supplementaryTrainingProposalSchema),
+});
+
+export type SupplementaryTrainingProposalListResponse = z.infer<
+  typeof supplementaryTrainingProposalListResponseSchema
+>;

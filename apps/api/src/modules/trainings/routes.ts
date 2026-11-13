@@ -3,6 +3,7 @@ import {
   employeeTrainingRecordListResponseSchema,
   listEmployeeTrainingRecordsQuerySchema,
   listTrainingsQuerySchema,
+  supplementaryTrainingProposalListResponseSchema,
   trainingListResponseSchema,
   trainingProposalQuerySchema,
   trainingProposalSchema,
@@ -17,6 +18,7 @@ import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openap
 const clientParams = z.object({ clientId: z.uuid() });
 const trainingParams = clientParams.extend({ trainingId: z.uuid() });
 const employeeParams = clientParams.extend({ employeeId: z.uuid() });
+const proposalParams = clientParams.extend({ revisionId: z.uuid() });
 
 const noSuchClient = {
   description: 'The client does not exist in the organization',
@@ -207,6 +209,58 @@ export const listEmployeeTrainingRecordsRoute = createRoute({
     400: { description: 'Invalid path or query', content: errorContent },
     404: {
       description: 'The employee does not exist under this client in the organization',
+      content: errorContent,
+    },
+    ...membershipErrors,
+  },
+});
+
+export const listSupplementaryTrainingProposalsRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/supplementary-training-proposals',
+  operationId: 'listSupplementaryTrainingProposals',
+  summary: "List the supplementary trainings proposed by issuing a client's own instructions",
+  description:
+    'An issue of the own instructions, the occupational safety ones (IPSSM) or the fire-safety ones (IPSU), proposes a supplementary training when the client then had a current worker with a training recorded in that domain (ADR 042). Listed while it is open: its revision is the one in force, nobody closed it, and a post with current workers has had no supplementary training with the reason `rules_changed` in the domain recorded since the issue. Each lists every post with current workers, most workers first, with the day such a training was recorded for it, null while none was; occupational safety first. `firstIssue` is set when no earlier revision of the document was issued.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams },
+  responses: {
+    200: {
+      description: 'The open proposals',
+      content: {
+        'application/json': {
+          schema: supplementaryTrainingProposalListResponseSchema.meta({
+            id: 'SupplementaryTrainingProposalListResponse',
+          }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const dismissSupplementaryTrainingProposalRoute = createRoute({
+  method: 'post',
+  path: '/clients/{clientId}/supplementary-training-proposals/{revisionId}/dismiss',
+  operationId: 'dismissSupplementaryTrainingProposal',
+  summary: 'Close a proposed supplementary training: no training is needed',
+  description:
+    'For a revision that changed nothing important. Records who closed it and when; nothing is recorded as a training.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: proposalParams },
+  responses: {
+    204: { description: 'Closed' },
+    400: { description: 'Invalid path', content: errorContent },
+    404: {
+      description: 'The client has no open proposal of that revision',
+      content: errorContent,
+    },
+    409: {
+      description: 'The client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
