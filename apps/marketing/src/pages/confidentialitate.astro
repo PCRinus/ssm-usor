@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale lucrătorilor clienților lor."
-  updated="13 noiembrie 2026"
+  updated="14 noiembrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -119,12 +119,15 @@ const M = legalEntity.filled ? 'span' : 'mark';
       tehnice despre cererile de rețea, înregistrări ale sesiunii și mesajele trimise prin
       „Raportează o problemă”. Asociem aceste date cu utilizatorul, rolul și organizația sa ca să
       putem diagnostica probleme, îmbunătăți funcțiile și răspunde solicitărilor. La sesiuni de
-      impersonare, marcăm acțiunile administratorului separat. Mascăm în înregistrări conținutul
-      text, câmpurile introduse și atributele elementelor care pot conține date personale, iar
-      fotografiile și paginile PDF încărcate la import nu apar în ele; nu colectăm prin acestea
-      corpul sau antetele cererilor de rețea. Totuși, adresele URL și mesajele pe care ni le trimiți
-      pot conține informații pe care le-ai inclus acolo. Temei: interesul legitim de a menține și
-      îmbunătăți serviciul și de a acorda asistență.
+      impersonare, marcăm acțiunile administratorului separat. Înregistrările arată ecranele
+      platformei și datele de lucru ale organizației, de exemplu posturile, locurile de muncă și
+      denumirile firmelor client. Mascăm în ele datele persoanelor afișate (nume, CNP, date de
+      naștere, date de contact și adrese, din care rămâne doar forma), valorile scrise în câmpuri,
+      în afară de câmpurile cu datele organizației, și atributele elementelor care pot conține date
+      personale, iar fotografiile și paginile PDF încărcate la import nu apar în ele; nu colectăm
+      prin acestea corpul sau antetele cererilor de rețea. Totuși, adresele URL și mesajele pe care
+      ni le trimiți pot conține informații pe care le-ai inclus acolo. Temei: interesul legitim de a
+      menține și îmbunătăți serviciul și de a acorda asistență.
     </li>
     <li>
       <strong>Analiză și erori în portalul lucrătorilor.</strong> După ce un lucrător sau un
