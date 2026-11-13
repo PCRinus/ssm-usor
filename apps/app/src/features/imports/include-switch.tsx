@@ -103,7 +103,6 @@ export function Includable({
   name: string;
   included: boolean;
   proposed: boolean;
-  // The name is a person's, which the session replay masks.
   personal?: boolean;
   onChange: (included: boolean) => void;
   agreement?: Agreement;

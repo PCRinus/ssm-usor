@@ -23,6 +23,9 @@ export interface DatePickerProps {
   required?: boolean;
   testId?: string;
   className?: string;
+  // A person's date, such as a birth date: the session replay leaves the calendar out, since its
+  // grid would place the chosen day even with every digit masked.
+  personal?: boolean;
 }
 
 // The form only ever sees ISO dates: an unfinished or impossible text reports an empty value,
@@ -40,6 +43,7 @@ export function DatePicker({
   required,
   testId,
   className,
+  personal = false,
 }: DatePickerProps) {
   const [text, setText] = useState(() => formatRoDate(value));
   const [open, setOpen] = useState(false);
@@ -95,7 +99,11 @@ export function DatePicker({
             <CalendarIcon aria-hidden="true" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-auto p-0">
+        <PopoverContent
+          align="end"
+          className="w-auto p-0"
+          {...(personal && { 'data-no-replay': '' })}
+        >
           <Calendar
             mode="single"
             required

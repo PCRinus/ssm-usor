@@ -346,6 +346,7 @@ export function TrainingScheduleFields({
                 <NativeSelect
                   id={ids.firstMonth}
                   data-testid={ids.firstMonth}
+                  {...replayShow}
                   disabled={disabled}
                   value={firstMonth === null ? '' : String(firstMonth)}
                   aria-invalid={Boolean(errors.firstMonth)}

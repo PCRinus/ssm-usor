@@ -22,6 +22,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { CalendarCheck, FileImage, GraduationCap, Pencil } from 'lucide-react';
 import { type FormEvent, type MouseEvent, type ReactNode, useState } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
@@ -1056,6 +1057,7 @@ function RowDialog({
               <Field id="row-reason" label="Motivul" mark="required" className="sm:col-span-2">
                 <NativeSelect
                   id="row-reason"
+                  {...replayShow}
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                 >

@@ -16,6 +16,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useUpdateSmsCap } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
@@ -115,6 +116,7 @@ function SmsCapForm({
           <NativeSelect
             id="sms-cap-factor"
             data-testid="sms-cap-factor"
+            {...replayShow}
             value={String(factor)}
             disabled={update.isPending}
             onChange={(event) => setFactor(Number(event.target.value))}

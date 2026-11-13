@@ -469,6 +469,25 @@ describe('what a session replay of the data read from the sheets shows', () => {
     expect(replayedText(label)).toBe(label.textContent);
   });
 
+  it('shows the listed means of transport and keeps only the shape of one typed apart', () => {
+    render(
+      <Data
+        who={withFields('pop', {
+          commuteMeans: {
+            options: [
+              {
+                value: commuteMeansKey({ means: ['public_transport'], other: 'Trotinetă' })!,
+                pageIds: ['p3'],
+              },
+            ],
+          },
+        })}
+      />
+    );
+
+    expect(replayedText(value('commuteMeans'))).toBe('Transport public, Xxxxxxxxx');
+  });
+
   it('masks what is typed about the person in its dialog, and shows the job', async () => {
     const user = userEvent.setup();
     render(<Data />);

@@ -518,7 +518,6 @@ export type Decision = {
     | 'existing'
     | 'trainings';
   label: string;
-  // The label names another person, so the session replay masks it.
   namesPerson?: boolean;
   tag: string;
   // A near post or workplace to confirm, rather than a gap.

@@ -15,12 +15,7 @@ import { dateLabel } from './review-format';
 
 export const dateFields = new Set<FieldName>(['birthDate', 'hiredAt', 'leftOn']);
 
-const shapedFields = new Set<FieldName>([
-  'homeAddress',
-  'residenceAddress',
-  'commuteRoute',
-  'commuteMeans',
-]);
+const shapedFields = new Set<FieldName>(['homeAddress', 'residenceAddress', 'commuteRoute']);
 const shownFields = new Set<FieldName>(['jobTitle', 'hiredAt', 'leftOn', 'commuteMinutes']);
 
 // How the session replay treats a value read from a sheet: the job and its dates show, an

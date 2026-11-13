@@ -56,7 +56,6 @@ export function ItemEditDialog({
 }: {
   title: ReactNode;
   fields: ItemDialogField[];
-  // The item is a person: what is typed and quoted stays masked in the session replay.
   personal?: boolean;
   values: Record<string, unknown>;
   aside?: ReactNode;

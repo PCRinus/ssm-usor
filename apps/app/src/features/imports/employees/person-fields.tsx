@@ -48,6 +48,7 @@ import {
   type ReviewContext,
   withField,
 } from './employee-review-model';
+import { FieldValueText } from './field-value-text';
 import { dialogRowsFor } from './person-dialog-rows';
 import { PhotoNumber } from './person-photos';
 import {
@@ -258,8 +259,8 @@ function FieldRow({
         <span className="text-muted-foreground">Necompletat</span>
       ) : (
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-medium wrap-anywhere" {...fieldReplay(name)}>
-            {shown}
+          <span className="font-medium wrap-anywhere">
+            <FieldValueText name={name} text={shown} />
           </span>
           {field.edited && <EditedTag />}
         </span>
@@ -267,7 +268,7 @@ function FieldRow({
       {fromSheet && (
         <RowNote testId="person-field-sheet">
           <span className="wrap-anywhere">
-            De pe fișă: <span {...fieldReplay(name)}>{fromSheet}</span>
+            De pe fișă: <FieldValueText name={name} text={fromSheet} />
           </span>
         </RowNote>
       )}
@@ -491,6 +492,7 @@ export function FieldInput({
       <DatePicker
         id={id}
         value={value}
+        personal={name === 'birthDate'}
         invalid={invalid}
         describedBy={describedBy}
         className={className}
@@ -827,14 +829,14 @@ export function ExistingComparison({
                   <>
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-medium wrap-anywhere">
-                        Devine <span {...fieldReplay(name)}>{showValue(name, sheet)}</span>
+                        Devine <FieldValueText name={name} text={showValue(name, sheet)} />
                       </span>
                       <Tag tone="info">De pe fișă</Tag>
                     </span>
                     <RowNote>
                       <span className="wrap-anywhere">
                         În aplicație:{' '}
-                        <span {...fieldReplay(name)}>{showValue(name, field.app)}</span>
+                        <FieldValueText name={name} text={showValue(name, field.app)} />
                       </span>
                     </RowNote>
                     <Button
@@ -853,14 +855,14 @@ export function ExistingComparison({
                   <>
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-medium wrap-anywhere">
-                        Rămâne <span {...fieldReplay(name)}>{showValue(name, field.app)}</span>{' '}
+                        Rămâne <FieldValueText name={name} text={showValue(name, field.app)} />{' '}
                         <span className="font-normal text-muted-foreground">(din aplicație)</span>
                       </span>
                       <Tag tone="muted">Păstrăm valoarea ta</Tag>
                     </span>
                     <RowNote>
                       <span className="wrap-anywhere">
-                        Pe fișă: <span {...fieldReplay(name)}>{showValue(name, sheet)}</span>
+                        Pe fișă: <FieldValueText name={name} text={showValue(name, sheet)} />
                       </span>
                     </RowNote>
                     <Button

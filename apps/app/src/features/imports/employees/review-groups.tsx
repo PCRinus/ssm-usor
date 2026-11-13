@@ -4,6 +4,7 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { BriefcaseBusiness, Check, Info, MapPin, UsersRound } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Masked } from '@/components/replay';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
 
@@ -150,6 +151,7 @@ function ChoosePosition({
           <span className="flex gap-2">
             <NativeSelect
               id={`post-${group.id}`}
+              {...replayShow}
               size="sm"
               value={chosen}
               onChange={(event) => setChosen(event.target.value)}

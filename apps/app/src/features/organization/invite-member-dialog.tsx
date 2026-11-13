@@ -20,6 +20,7 @@ import {
   useCreateInvitation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -126,6 +127,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             <NativeSelect
               id="invite-role"
               data-testid="invite-role"
+              {...replayShow}
               disabled={busy}
               aria-describedby="invite-role-hint"
               {...form.register('role')}

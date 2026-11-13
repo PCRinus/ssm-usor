@@ -37,7 +37,7 @@ import {
   type TrainingListResponseItemsItem,
   useListTrainings,
 } from '@/api/generated/api';
-import { replayMask } from '@/app/observability/replay-masking';
+import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { Notice } from '@/components/notice';
@@ -133,6 +133,7 @@ export function ClientTrainingsPage() {
           <NativeSelect
             aria-label="Tipul instruirii"
             data-testid="trainings-filter-phase"
+            {...replayShow}
             className="w-full sm:w-60"
             value={phase ?? ''}
             onChange={(event) =>

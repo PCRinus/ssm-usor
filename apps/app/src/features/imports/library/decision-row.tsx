@@ -88,7 +88,6 @@ export function DecisionRow({
   // Field names such as "Periodicitate SU, tehnico-administrativ" wrap in the narrow column.
   wide?: boolean;
   top?: boolean;
-  // The row decides a person's data: the session replay masks all but its label.
   personal?: boolean;
   children: ReactNode;
 }) {

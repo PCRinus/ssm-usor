@@ -13,7 +13,6 @@ export interface DataTableColumnMeta {
   cellClassName?: string;
   // Width of the placeholder shown while the first page loads.
   skeletonClassName?: string;
-  // The cell shows a person's data, so the session replay masks it.
   personal?: boolean;
 }
 

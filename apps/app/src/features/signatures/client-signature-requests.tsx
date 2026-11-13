@@ -16,6 +16,7 @@ import {
 } from '@/api/generated/api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 import { formatDate, roCount } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
@@ -131,7 +132,11 @@ export function ClientSignatureRequests({
                     <span className="text-muted-foreground">·</span>
                     <Badge variant="outline">{signerSlotLabels[request.slot]}</Badge>
                     <span data-testid="client-signature-request-signer">
-                      {request.signer?.name ?? 'Semnatar care nu mai are acces'}
+                      {request.signer ? (
+                        <Masked>{request.signer.name}</Masked>
+                      ) : (
+                        'Semnatar care nu mai are acces'
+                      )}
                     </span>
                     <span className="text-muted-foreground">
                       · cerută pe{' '}

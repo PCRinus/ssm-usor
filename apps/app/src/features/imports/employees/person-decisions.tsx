@@ -43,10 +43,11 @@ import {
   workplaceOf,
   workplaceStatus,
 } from './employee-review-model';
+import { FieldValueText } from './field-value-text';
 import { FieldInput } from './person-fields';
 import { PhotoNumbers } from './person-photos';
 import { showChoice } from './person-sections';
-import { dateFields, fieldProblem, fieldReplay, typedValue } from './person-values';
+import { dateFields, fieldProblem, typedValue } from './person-values';
 import { orderedByClosest, withFields, withTitle, withWorkplace } from './review-changes';
 import { dateLabel } from './review-format';
 import type { Position, Workplace } from './use-review-context';
@@ -581,8 +582,8 @@ export function ChoiceCards({
                 }}
                 className="size-4 shrink-0 cursor-pointer accent-primary"
               />
-              <span className="min-w-0 wrap-anywhere" {...fieldReplay(name)}>
-                {showChoice(name, option.value)}
+              <span className="min-w-0 wrap-anywhere">
+                <FieldValueText name={name} text={showChoice(name, option.value)} />
               </span>
             </label>
             <PhotoNumbers

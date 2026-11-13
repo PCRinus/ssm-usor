@@ -22,10 +22,10 @@ import {
   useUpdateClientFile,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
-import { Masked } from '@/components/replay';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 
 import { archivedMessage, type ClientFile } from './client-file-format';
@@ -168,11 +168,13 @@ function RenameForm({
 export function DeleteClientFileDialog({
   clientId,
   file,
+  personal,
   onClose,
   onError,
 }: {
   clientId: string;
   file: ClientFile | null;
+  personal: boolean;
   onClose: () => void;
   onError: (message: string) => void;
 }) {
@@ -182,7 +184,9 @@ export function DeleteClientFileDialog({
   async function deleteFile(target: ClientFile) {
     try {
       await remove.mutateAsync({ clientId, fileId: target.id });
-      toast.success(maskPeople`„${target.name}” a fost șters.`);
+      toast.success(
+        personal ? maskPeople`„${target.name}” a fost șters.` : `„${target.name}” a fost șters.`
+      );
     } catch (cause) {
       onError(
         changeFailure(
@@ -203,8 +207,10 @@ export function DeleteClientFileDialog({
           <DialogHeader>
             <DialogTitle>Ștergi fișierul?</DialogTitle>
             <DialogDescription className="wrap-anywhere">
-              <Masked className="font-medium text-foreground">{file.name}</Masked> se șterge
-              definitiv și nu mai poate fi recuperat.
+              <span className="font-medium text-foreground" {...(personal && replayMask)}>
+                {file.name}
+              </span>{' '}
+              se șterge definitiv și nu mai poate fi recuperat.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-2">

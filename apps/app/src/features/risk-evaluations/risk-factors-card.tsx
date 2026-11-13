@@ -21,6 +21,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal, Plus, TriangleAlert } from 'lucide-react';
 import { type KeyboardEvent, type ReactNode, useId, useState } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -278,6 +279,7 @@ function FactorList({
             id={`${baseId}-sort`}
             size="sm"
             data-testid="risk-factors-sort"
+            {...replayShow}
             value={sortValue(sort)}
             onChange={(event) => setSort(parseSortValue(event.target.value))}
           >

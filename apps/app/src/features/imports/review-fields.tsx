@@ -392,6 +392,7 @@ function FieldEditor({
           <NativeSelect
             id={id}
             className="w-full"
+            {...(!personalPaths.has(path) && replayShow)}
             autoFocus
             aria-describedby={describedBy}
             {...form.register(key)}

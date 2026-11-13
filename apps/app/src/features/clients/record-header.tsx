@@ -19,7 +19,6 @@ export function RecordHeader({
 }: {
   icon: LucideIcon;
   title: string;
-  // The title is a person's name, which the session replay masks.
   personal?: boolean;
   facts: ReactNode;
   actions?: ReactNode;

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Segmented } from '@/components/segmented';
 import { articleCountLabel, groupLabels } from '@/features/instructions/instruction-schema';
 
@@ -281,6 +282,7 @@ export function InstructionRow({
                   <NativeSelect
                     id={`${id}-category`}
                     data-testid="library-instruction-category"
+                    {...replayShow}
                     value={row.category}
                     autoFocus
                     onBlur={() => setChangingCategory(false)}

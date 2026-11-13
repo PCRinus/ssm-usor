@@ -80,7 +80,7 @@ import { SheetPageView } from './sheet-page-view';
 import { type ShowPage, ShowPageContext, ViewedPhotoContext } from './show-page';
 import { fieldTarget } from './spot-targets';
 import { positionName, useReviewContext } from './use-review-context';
-import { type Highlight, PhotoCitations, ViewerChoice } from './viewer-aside';
+import { type Highlight, PhotoCitations, ViewerChoice, WrittenCaption } from './viewer-aside';
 
 const stateLabels: Record<PersonState, { label: string; tone: 'info' | 'success' | 'muted' }> = {
   to_check: { label: 'De verificat', tone: 'info' },
@@ -261,7 +261,7 @@ export function EmployeePersonPage({
     return option
       ? {
           photos: option.pageIds,
-          caption: `Subliniate: fotografiile unde scrie ${showChoice(field, option.value)}`,
+          caption: <WrittenCaption field={field} value={showChoice(field, option.value)} />,
         }
       : null;
   };

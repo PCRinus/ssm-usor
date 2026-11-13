@@ -7,6 +7,7 @@ import {
 } from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
 
+import { maskPeople } from '@/components/mask-people';
 import type {
   AuthorizationsFocus,
   OrganizationCompanyFocus,
@@ -284,19 +285,21 @@ export function lockReason(
   if (lock !== 'needs-organization-data') return lockReasons[lock];
   if (isOwner) return 'Completează întâi datele firmei și cadrul tehnic PSI.';
   return ownerName
-    ? `Așteaptă datele firmei de la admin, ${ownerName}.`
+    ? maskPeople`Așteaptă datele firmei de la admin, ${ownerName}.`
     : 'Așteaptă datele firmei de la un admin.';
 }
 
 export const ownerOnlyNote = (ownerName: string | null) =>
-  ownerName ? `Doar adminul poate completa · ${ownerName}` : 'Doar un admin poate completa';
+  ownerName
+    ? maskPeople`Doar adminul poate completa · ${ownerName}`
+    : 'Doar un admin poate completa';
 
 export function doneNote(
   id: SetupStepId,
   { ownerName, canDo }: { ownerName: string | null; canDo: boolean }
 ) {
   if (id === 'professional-title') return 'Apare pe documente';
-  if (organizationSteps.has(id) && !canDo && ownerName) return `Făcut de ${ownerName}`;
+  if (organizationSteps.has(id) && !canDo && ownerName) return maskPeople`Făcut de ${ownerName}`;
   return 'Gata';
 }
 

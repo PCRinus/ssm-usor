@@ -41,6 +41,7 @@ import {
   useRemoveEquipmentEntry,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
@@ -451,6 +452,7 @@ function CopyEquipmentDialog({
               <NativeSelect
                 id="equipment-copy-source"
                 data-testid="equipment-copy-source"
+                {...replayShow}
                 value={source}
                 disabled={copy.isPending || positions.isPending}
                 onChange={(event) => setSource(event.target.value)}

@@ -15,6 +15,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, File as FileIcon, FileUp, Upload, X } from 'lucide-react';
 import { type FormEvent, useRef, useState } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 
@@ -180,6 +181,7 @@ function UploadForm({
                 <ChosenFileRow
                   key={entry.key}
                   entry={entry}
+                  personal={Boolean(employee)}
                   removable={choosing}
                   onRemove={() => remove(entry.key)}
                 />
@@ -248,10 +250,12 @@ function UploadForm({
 
 function ChosenFileRow({
   entry,
+  personal,
   removable,
   onRemove,
 }: {
   entry: ChosenFile;
+  personal: boolean;
   removable: boolean;
   onRemove: () => void;
 }) {
@@ -272,7 +276,9 @@ function ChosenFileRow({
       <div className="flex items-start gap-3">
         <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div className="grid min-w-0 flex-1 gap-0.5">
-          <span className="text-sm font-medium wrap-anywhere">{file.name}</span>
+          <span className="text-sm font-medium wrap-anywhere" {...(personal && replayMask)}>
+            {file.name}
+          </span>
           {details.length > 0 && (
             <span className="text-xs text-muted-foreground">{details.join(' · ')}</span>
           )}

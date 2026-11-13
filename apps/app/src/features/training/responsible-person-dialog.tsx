@@ -35,6 +35,7 @@ import {
   type WorkplaceListResponse,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field, FieldMessage, personalError } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -375,6 +376,7 @@ function ResponsiblePersonForm({
               <NativeSelect
                 id="responsible-workplace"
                 data-testid="responsible-workplace"
+                {...replayShow}
                 disabled={busy}
                 aria-invalid={Boolean(errors.workplaceId)}
                 aria-describedby={

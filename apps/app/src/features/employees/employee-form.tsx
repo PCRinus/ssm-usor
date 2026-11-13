@@ -368,6 +368,7 @@ export function EmployeeForm({
                 render={({ field }) => (
                   <DatePicker
                     id="birthDate"
+                    personal
                     testId="employee-birth-date"
                     value={field.value}
                     onChange={field.onChange}

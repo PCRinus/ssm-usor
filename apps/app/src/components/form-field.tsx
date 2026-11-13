@@ -8,7 +8,6 @@ import { replayMask } from '@/app/observability/replay-masking';
 
 import { HelpLink } from './help-link';
 
-// The error type of a message that names a person, which the session replay masks.
 export const personalError = 'personal';
 
 export function FieldMessage({

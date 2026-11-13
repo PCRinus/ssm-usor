@@ -84,7 +84,6 @@ export function SearchCombobox({
   // A row above the items until something is typed, for an entry that cannot be chosen yet and
   // says where to complete it.
   note?: ReactNode;
-  // The labels are people's names: the session replay masks them, and what is typed to find one.
   personal?: boolean;
 }) {
   const [open, setOpen] = useState(false);

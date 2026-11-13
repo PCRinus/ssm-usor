@@ -1694,7 +1694,6 @@ export const changesOf = (changes: ImportDetail['changes']): Changes => ({
   items: (changes?.items ?? {}) as Changes['items'],
 });
 
-// Fields that hold a person's data, which the session replay masks.
 export const personalPaths = new Set([
   'client.legalRepresentativeName',
   'client.contactName',

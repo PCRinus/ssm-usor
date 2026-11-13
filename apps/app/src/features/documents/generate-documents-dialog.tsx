@@ -24,6 +24,7 @@ import {
   useGetDocumentReadiness,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -315,6 +316,7 @@ function GenerateDocumentsForm({
                 <Input
                   id="generate-first-number"
                   data-testid="generate-first-number"
+                  {...replayShow}
                   inputMode="numeric"
                   autoComplete="off"
                   disabled={busy}
@@ -338,6 +340,7 @@ function GenerateDocumentsForm({
                   <Input
                     id="generate-period"
                     data-testid="generate-period"
+                    {...replayShow}
                     inputMode="numeric"
                     autoComplete="off"
                     disabled={busy}

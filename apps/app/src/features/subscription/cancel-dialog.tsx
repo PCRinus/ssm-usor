@@ -22,6 +22,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useCancelSubscription } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from './billing-errors';
@@ -155,6 +156,7 @@ function CancelForm({
           <NativeSelect
             id="cancel-reason"
             data-testid="cancel-reason"
+            {...replayShow}
             value={reason}
             disabled={cancel.isPending}
             onChange={(event) => {
