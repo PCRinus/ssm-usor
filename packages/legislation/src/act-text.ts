@@ -63,7 +63,6 @@ const skippedClasses = new Set([
   'S_PUB',
   'S_EMT_TTL',
   'S_EMT_BDY',
-  'S_PRE',
 ]);
 
 const inlineLabels: Partial<Record<UnitKind, RegExp>> = {
@@ -76,6 +75,9 @@ const inlineLabels: Partial<Record<UnitKind, RegExp>> = {
 // effect: "Art. 2 a fost modificat de pct. 1 al art. I din HOTĂRÂREA nr. 359 din 20 mai 2015 …".
 const undatedNote =
   /^(?:Art\.|Articolul|Alin\.|Alineatul|Lit\.|Litera|Pct\.|Punctul|Anexa|Partea|Titlul|Capitolul|Sec[țţ]iunea|Paragraful|Textul|Denumirea)[\s\S]*? a fost \p{L}+ (?:de|prin)\b[\s\S]*MONITORUL OFICIAL/u;
+
+// A line of a table's frame, "┌────┬───┐" or "------", holds no words of the act.
+const rule = /^(?=[^\p{L}\p{N}]*$)[^\p{L}\p{N}]*(?:[\u2500-\u257f]|-{3})/u;
 
 type Element = {
   className: string | null;
@@ -91,7 +93,8 @@ function spanTree(html: string): Element {
   const root: Element = { className: null, hidden: false, children: [], links: [] };
   const stack = [root];
   const tokens = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>|([^<]+)|</g;
-  for (const token of html.matchAll(tokens)) {
+  const markup = html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
+  for (const token of markup.matchAll(tokens)) {
     const current = stack.at(-1)!;
     if (token[4] !== undefined) {
       current.children.push(decodeEntities(token[4]));
@@ -159,19 +162,27 @@ function unitLabel(kind: UnitKind, title: string) {
     case 'point':
       return text.replace(/\.$/, '');
     case 'annex':
-      return (
-        /(\d+[A-Z]?)\s*$/.exec(text)?.[1] ??
-        text.replace(/^(?:Anexa|ANEXA)\s*(?:nr\.|Nr\.)?\s*/, '')
-      );
+      return /(\d+[A-Z]?)\s*$/.exec(text)?.[1] ?? text.replace(/^anex[aăe]\s*(?:nr\.)?\s*/iu, '');
     default:
       return text;
   }
 }
 
+// An annex titled only "Anexa" is named by its place among the act's untitled annexes, its own
+// annex documents included, or its articles would pass for the act's own.
+type Untitled = { count: number };
+
+const untitledName = (untitled: Untitled) => {
+  untitled.count += 1;
+  return untitled.count === 1 ? 'Anexa' : `Anexa (${untitled.count})`;
+};
+
 class Reader {
   readonly notes: AmendmentNote[] = [];
   readonly references: ActText['references'] = [];
   private readonly stack: ActUnit[] = [];
+
+  constructor(private readonly untitled: Untitled) {}
 
   path(): UnitPath {
     const path: UnitPath = { annex: null, article: null, alineat: null, letter: null, point: null };
@@ -193,9 +204,13 @@ class Reader {
       if (typeof child === 'string' || child.hidden) continue;
       if (child.className === `${prefix}_TTL`) unit.label = unitLabel(kind, plainText(child));
       else if (child.className === `${prefix}_DEN`) unit.heading = tidy(plainText(child)) || null;
-      else if (child.className === `${prefix}_BDY`) this.body(child, unit.content);
+      else if (child.className === `${prefix}_BDY`) {
+        if (kind === 'annex' && !unit.label) unit.label = untitledName(this.untitled);
+        this.body(child, unit.content);
+      }
     }
     this.stack.pop();
+    if (kind === 'annex' && !unit.label) unit.label = untitledName(this.untitled);
     const [first] = unit.content;
     // Older forms leave the title empty and start the body with the label, and mark an alineat
     // "(1)" as a letter.
@@ -216,7 +231,7 @@ class Reader {
     let line = '';
     const flush = () => {
       const text = tidy(line);
-      if (text && !/^-{3,}$/.test(text)) content.push(text);
+      if (text && !rule.test(text)) content.push(text);
       line = '';
     };
     const walk = (node: Element) => {
@@ -288,7 +303,18 @@ export function hasActText(html: string) {
   return /class="S_(?:ART|ANX|ALN|PCT)"/.test(html);
 }
 
-export function parseActText(html: string, portalId: number): ActText {
+// The form's text fills its own container; the page's other forms, its "fișă act" and its footer
+// follow it.
+const afterText = ['id="div_Formerepublicate"', 'id="fisa_act_container"', 'id="footer_wrapper"'];
+
+function textEnd(html: string, from: number) {
+  const ends = afterText.map((marker) => html.indexOf(marker, from)).filter((at) => at >= 0);
+  if (ends.length === 0) return html.length;
+  const end = Math.min(...ends);
+  return Math.max(from, html.lastIndexOf('<', end));
+}
+
+function readActText(html: string, portalId: number, untitled: Untitled): ActText {
   const start = html.indexOf('<span class="S_DEN"');
   if (start < 0) throw new PortalError(`Page ${portalId} has no act heading (S_DEN).`);
   // The act's heading, its issuer and its gazette come before the hidden "fișă act" lists, the
@@ -296,8 +322,8 @@ export function parseActText(html: string, portalId: number): ActText {
   const lists = html.indexOf('id="fisaact"', start);
   const split = lists < 0 ? start : html.lastIndexOf('<span', lists);
   const title = tidy(headingText(spanTree(html.slice(start, split))));
-  const root = spanTree(html.slice(split));
-  const reader = new Reader();
+  const root = spanTree(html.slice(split, textEnd(html, split)));
+  const reader = new Reader(untitled);
   const content: (string | ActUnit)[] = [];
   reader.body(root, content);
   return {
@@ -306,6 +332,10 @@ export function parseActText(html: string, portalId: number): ActText {
     notes: reader.notes,
     references: reader.references,
   };
+}
+
+export function parseActText(html: string, portalId: number): ActText {
+  return readActText(html, portalId, { count: 0 });
 }
 
 // A page too large for the portal to show inline, the Criminal Code's, links its text from the
@@ -348,10 +378,13 @@ export function formOn(forms: ConsolidatedForm[], date: string) {
 
 export type FetchedActText = {
   portalId: number;
-  // The page of the form read, the act's own for its newest form.
+  // The page of the form read, the act's own for its newest form and for the act as published.
   formPortalId: number;
-  // Null for an act never consolidated, read as published.
+  // Null for the act as published.
   consolidatedOn: string | null;
+  kind: 'published' | ConsolidatedForm['kind'];
+  // Every consolidated and republished form the portal lists for the act, newest first.
+  forms: ConsolidatedForm[];
   source: 'page' | 'afis';
   url: string;
   annexUrls: string[];
@@ -367,14 +400,20 @@ const annexHeading = (title: string) =>
       .replace(/\s+din \d{1,2} \p{L}+ \d{4}/u, ' ')
   ) || null;
 
-async function readAnnexes(text: ActText, origin: string, options: PortalOptions) {
+async function readAnnexes(
+  text: ActText,
+  untitled: Untitled,
+  origin: string,
+  options: PortalOptions
+) {
   const urls: string[] = [];
   for (const reference of text.references) {
     const holder = reference.unit;
     if (holder?.kind !== 'annex') continue;
     await pause(options.pauseMs ?? portalPauseMs);
     const url = new URL(`/Public/DetaliiDocumentAfis/${reference.portalId}`, origin).href;
-    const annex = parseActText(await (await request(url, {}, options)).text(), reference.portalId);
+    const page = await (await request(url, {}, options)).text();
+    const annex = readActText(page, reference.portalId, untitled);
     holder.heading ??= annexHeading(annex.title);
     holder.content.push(...annex.content);
     for (const note of annex.notes) {
@@ -388,9 +427,10 @@ async function readAnnexes(text: ActText, origin: string, options: PortalOptions
 
 async function readText(page: string, pageUrl: string, pageId: number, options: PortalOptions) {
   const origin = options.origin ?? portalOrigin;
+  const untitled: Untitled = { count: 0 };
   if (hasActText(page)) {
-    const text = parseActText(page, pageId);
-    const annexUrls = await readAnnexes(text, origin, options);
+    const text = readActText(page, pageId, untitled);
+    const annexUrls = await readAnnexes(text, untitled, origin, options);
     return { source: 'page' as const, url: pageUrl, annexUrls, text };
   }
   const afisId = textLink(page);
@@ -403,13 +443,48 @@ async function readText(page: string, pageUrl: string, pageId: number, options: 
   if (!hasActText(afis)) {
     throw new PortalError(`The text ${afisId} of page ${pageId} holds no articles.`);
   }
-  const text = parseActText(afis, afisId);
-  const annexUrls = await readAnnexes(text, origin, options);
+  const text = readActText(afis, afisId, untitled);
+  const annexUrls = await readAnnexes(text, untitled, origin, options);
   return { source: 'afis' as const, url: afisUrl, annexUrls, text };
 }
 
+// The list of forms is on every page of an amended act; a page that offers it and lists none was
+// not read right, and its text could be of any form.
+function formsOf(page: string, portalId: number) {
+  const forms = parseConsolidations(page);
+  if (forms.length === 0 && /id="(?:istoric_fa|Formaconsolidata)"/.test(page)) {
+    throw new PortalError(`Page ${portalId} offers consolidated forms but lists none.`);
+  }
+  return forms;
+}
+
+// The act's own page with this query holds the act as published; without it, the newest form. A
+// republication's link carries the same query to its republished text.
+export async function fetchPublishedForm(
+  portalId: number,
+  options: PortalOptions = {}
+): Promise<FetchedActText> {
+  const origin = options.origin ?? portalOrigin;
+  const pageUrl = new URL(`/Public/DetaliiDocument/${portalId}?isFormaDeBaza=True`, origin).href;
+  const page = await (await request(pageUrl, {}, options)).text();
+  const forms = formsOf(page, portalId);
+  // The page read is the one form the list does not link; the act as published is not in it.
+  if (forms.some((form) => form.path === null)) {
+    throw new PortalError(`Page ${portalId} gave a consolidated form for the act as published.`);
+  }
+  return {
+    portalId,
+    formPortalId: portalId,
+    consolidatedOn: null,
+    kind: 'published',
+    forms,
+    ...(await readText(page, pageUrl, portalId, options)),
+  };
+}
+
 // Every form's page lists the act's other forms, each with a page of its own, so the act's page is
-// read first even for an earlier form.
+// read first even for an earlier form. A date before every consolidated form gives the act as
+// published.
 export async function fetchActForm(
   portalId: number,
   on: string | null,
@@ -418,16 +493,29 @@ export async function fetchActForm(
   const origin = options.origin ?? portalOrigin;
   const pageUrl = new URL(`/Public/DetaliiDocument/${portalId}`, origin).href;
   const page = await (await request(pageUrl, {}, options)).text();
-  const forms = parseConsolidations(page);
-  const form = on === null ? (forms[0] ?? null) : formOn(forms, on);
-  if (on !== null && !form && forms.length > 0) {
-    throw new PortalError(`Act ${portalId} has no consolidated form on or before ${on}.`);
-  }
-  if (!form?.path) {
+  const forms = formsOf(page, portalId);
+  if (forms.length === 0) {
     return {
       portalId,
       formPortalId: portalId,
-      consolidatedOn: form?.date ?? null,
+      consolidatedOn: null,
+      kind: 'published',
+      forms,
+      ...(await readText(page, pageUrl, portalId, options)),
+    };
+  }
+  const form = on === null ? forms[0]! : formOn(forms, on);
+  if (!form) {
+    await pause(options.pauseMs ?? portalPauseMs);
+    return fetchPublishedForm(portalId, options);
+  }
+  if (!form.path) {
+    return {
+      portalId,
+      formPortalId: portalId,
+      consolidatedOn: form.date,
+      kind: form.kind,
+      forms,
       ...(await readText(page, pageUrl, portalId, options)),
     };
   }
@@ -439,6 +527,8 @@ export async function fetchActForm(
     portalId,
     formPortalId: formId,
     consolidatedOn: form.date,
+    kind: form.kind,
+    forms,
     ...(await readText(formPage, formUrl, formId, options)),
   };
 }
@@ -475,9 +565,10 @@ export const isRepealed = (unit: ActUnit) =>
     (item) => typeof item === 'string' && /^abrogat[ăae]?\s*[.;,]?$/i.test(item.trim())
   );
 
-export function unitLines(unit: ActUnit, { heading = false } = {}): string[] {
+// The templates quote an article without its marginal title; `everyHeading` keeps every one.
+export function unitLines(unit: ActUnit, { heading = false, everyHeading = false } = {}): string[] {
   const lines: string[] = [];
-  if (heading && unit.heading) lines.push(unit.heading);
+  if ((heading || everyHeading) && unit.heading) lines.push(unit.heading);
   const prefix = !unit.label
     ? ''
     : unit.kind === 'alineat'
@@ -495,7 +586,10 @@ export function unitLines(unit: ActUnit, { heading = false } = {}): string[] {
       if (isRepealed(item)) continue;
       if (first && prefix) lines.push(prefix.trim());
       lines.push(
-        ...unitLines(item, { heading: item.kind !== 'article' && item.kind !== 'alineat' })
+        ...unitLines(item, {
+          heading: item.kind !== 'article' && item.kind !== 'alineat',
+          everyHeading,
+        })
       );
     }
     first = false;

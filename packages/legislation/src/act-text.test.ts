@@ -6,6 +6,7 @@ import {
   type ActUnit,
   fetchActForm,
   fetchActText,
+  fetchPublishedForm,
   formOn,
   hasActText,
   parseActText,
@@ -130,6 +131,58 @@ describe('reading the consolidated text of an act', () => {
     );
   });
 
+  it('reads the text the portal keeps preformatted, tables and forms, without their frames', () => {
+    const html = roadCode.replace(
+      'baston de culoare alba.',
+      'baston de culoare alba.<span class="S_PRE"><span class="S_PAR">┌────┬──────┐</span>' +
+        '<span class="S_PAR">│Nr. │Culoare│</span><span class="S_PAR">├────┼──────┤</span>' +
+        '<span class="S_PAR">│ 1. │Roșu &times; 2 │</span><span class="S_PAR">------</span>' +
+        '<span class="S_PAR">└────┴──────┘</span></span>'
+    );
+    expect(unitLines(article(html, '35')).slice(-2)).toEqual([
+      '│Nr. │Culoare│',
+      '│ 1. │Roșu × 2 │',
+    ]);
+  });
+
+  it("leaves out the page's scripts and everything after the form's text", () => {
+    const html = roadCode
+      .replace(
+        'baston de culoare alba.',
+        'baston de culoare alba.<script>if (navigator.appVersion) { $("#x").hide(); }</script>'
+      )
+      .concat(
+        '<div id="div_Formerepublicate"></div><div id="footer_wrapper">Copyright © Ministerul Justiției</div>'
+      );
+    const text = parseActText(html, 41006);
+    const all = unitLines({
+      kind: 'block',
+      label: '',
+      heading: null,
+      content: text.content,
+      notes: [],
+    });
+    expect(all.some((line) => /navigator|Copyright/.test(line))).toBe(false);
+    expect(unitLines(article(html, '35')).at(-1)).toMatch(/baston de culoare alba\.$/);
+  });
+
+  it('names an annex titled only "Anexa" by its place among such annexes', () => {
+    const annex = (title: string, body: string) =>
+      `<span class="S_ANX"><span class="S_ANX_TTL">${title}</span><span class="S_ANX_BDY">${body}</span></span>`;
+    const text = parseActText(
+      `<span class="S_DEN">ORDIN</span><div id="fisaact"></div>` +
+        annex('ANEXĂ', 'Norme') +
+        annex('ANEXA nr. 1', 'Formular') +
+        annex('Anexa', 'Model'),
+      1
+    );
+    expect(text.content.map((unit) => typeof unit !== 'string' && unit.label)).toEqual([
+      'Anexa',
+      '1',
+      'Anexa (2)',
+    ]);
+  });
+
   it('tells a page without the text and finds where the text is', () => {
     expect(hasActText(criminalCodePage)).toBe(false);
     expect(textLink(criminalCodePage)).toBe(314314);
@@ -140,7 +193,8 @@ describe('reading the consolidated text of an act', () => {
 describe('fetching the consolidated text of an act', () => {
   const respond = (pages: Record<string, string>) =>
     vi.fn<typeof fetch>(async (input) => {
-      const path = new URL(String(input)).pathname;
+      const url = new URL(String(input));
+      const path = url.pathname + url.search;
       return pages[path] === undefined
         ? new Response('', { status: 302 })
         : new Response(pages[path], { status: 200 });
@@ -187,7 +241,7 @@ describe('fetching the consolidated text of an act', () => {
       'https://legislatie.just.ro/Public/DetaliiDocumentAfis/252029',
     ]);
     const [match] = unitsOf(fetched.text, 'article', '98');
-    expect(match?.annex).toBe('Anexă');
+    expect(match?.annex).toBe('Anexa');
     expect(match?.ancestors[0]?.heading).toMatch(/^NORME METODOLOGICE/);
   });
 
@@ -270,11 +324,48 @@ describe('fetching the consolidated text of an act', () => {
     });
   });
 
-  it('fails for a date before every consolidated form', async () => {
-    const fetchMock = respond({ '/Public/DetaliiDocument/41006': roadCode });
+  const published = roadCode.replace(
+    /<a title='Consolidarea din 06\.11\.2026'[^>]*>/,
+    "<a title='Consolidarea din 06.11.2026' href='~/../../../Public/DetaliiDocument/315458'>"
+  );
+
+  it('reads the act as published, for a date before every consolidated form', async () => {
+    const fetchMock = respond({
+      '/Public/DetaliiDocument/41006': roadCode,
+      '/Public/DetaliiDocument/41006?isFormaDeBaza=True': published,
+    });
+    const fetched = await fetchActForm(41006, '2020-01-01', { fetch: fetchMock, pauseMs: 0 });
+    expect(fetched).toMatchObject({
+      formPortalId: 41006,
+      consolidatedOn: null,
+      kind: 'published',
+      url: 'https://legislatie.just.ro/Public/DetaliiDocument/41006?isFormaDeBaza=True',
+    });
+    expect(fetched.forms.map((form) => form.date)).toEqual(['2026-11-06', '2026-08-25']);
+  });
+
+  it('refuses a page given for the act as published that holds a consolidated form', async () => {
+    const fetchMock = respond({ '/Public/DetaliiDocument/41006?isFormaDeBaza=True': roadCode });
+    await expect(fetchPublishedForm(41006, { fetch: fetchMock, pauseMs: 0 })).rejects.toThrow(
+      /consolidated form for the act as published/
+    );
+  });
+
+  it('reads an act never consolidated from its own page, for any date', async () => {
+    const page = signsDecision
+      .replace(/<a title='(?:Consolidarea|Republicarea)[^>]*>/g, '')
+      .replace(/id="(?:istoric_fa|Formaconsolidata)"/g, '');
+    const fetchMock = respond({ '/Public/DetaliiDocument/74127': page });
+    const fetched = await fetchActForm(74127, '2026-01-01', { fetch: fetchMock, pauseMs: 0 });
+    expect(fetched).toMatchObject({ consolidatedOn: null, kind: 'published', forms: [] });
+  });
+
+  it('fails on a page that offers consolidated forms and lists none it can read', async () => {
+    const page = roadCode.replaceAll("<a title='Consolidarea din", "<a title='Forma din");
+    const fetchMock = respond({ '/Public/DetaliiDocument/41006': page });
     await expect(
-      fetchActForm(41006, '2020-01-01', { fetch: fetchMock, pauseMs: 0 })
-    ).rejects.toThrow(/no consolidated form on or before 2020-01-01/);
+      fetchActForm(41006, '2026-10-01', { fetch: fetchMock, pauseMs: 0 })
+    ).rejects.toThrow(/offers consolidated forms but lists none/);
   });
 
   it('fails on a page with neither the text nor a link to it', async () => {
