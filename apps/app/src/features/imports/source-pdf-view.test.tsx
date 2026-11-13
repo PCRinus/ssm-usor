@@ -63,6 +63,7 @@ const source = {
   text: null,
   pages: [{ number: 1, text: 'Contract de prestări servicii' }],
   match: null,
+  locations: null,
   expiresInSeconds: 300,
 } satisfies ImportSourceResponse;
 

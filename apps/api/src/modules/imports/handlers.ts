@@ -17,6 +17,7 @@ import {
   type ImportLimits,
   importLimits,
   type ImportSourceResponse,
+  importSourceResponseSchema,
   type ImportSummary,
   type ImportUsage,
   isSystemPath,
@@ -72,7 +73,9 @@ import {
 import {
   characterCount,
   describe,
+  isImage,
   loadPrepared,
+  pageLocationsPathOf,
   type PreparedPages,
   sendAll,
   startCreditsOf,
@@ -257,12 +260,31 @@ export async function findImport(db: DataClient, importId: string) {
   return data;
 }
 
-// The source needs only to know the import is the caller's; the detail's columns carry the whole
-// proposal.
-async function importExists(db: DataClient, importId: string) {
-  const { data, error } = await db.from('imports').select('id').eq('id', importId).maybeSingle();
+// The source needs only the import's kind and to know it is the caller's; the detail's columns
+// carry the whole proposal.
+async function importKindOf(db: DataClient, importId: string) {
+  const { data, error } = await db.from('imports').select('kind').eq('id', importId).maybeSingle();
   if (error) throw fromDatabaseError(error, 'find import');
   if (!data) throw notFound();
+  return data.kind;
+}
+
+// The member's own store may read only the objects a file's row names, so this read takes the
+// secret key's, for a page of a file the member's row query has just returned. A page not
+// located, or whose object cannot be read, is shown without its spotlight.
+async function storedLocations(
+  objects: ReturnType<typeof createAdminFileStore>,
+  path: string
+): Promise<ImportSourceResponse['locations']> {
+  try {
+    const stored = JSON.parse(new TextDecoder().decode(await objects.readImportObject(path))) as {
+      locations?: unknown;
+    };
+    const locations = importSourceResponseSchema.shape.locations.safeParse(stored.locations);
+    return locations.success ? locations.data : null;
+  } catch {
+    return null;
+  }
 }
 
 const wrongKind = () => conflict('This import is of another kind.', importErrorReasons.wrongKind);
@@ -357,7 +379,14 @@ function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_
       ? (row.usage_by_step as Record<string, UsageColumns | null | undefined>)
       : {};
   const bySteps: ImportUsage['bySteps'] = {};
-  for (const step of ['sorting', 'reading', 'scanning', 'instructions', 'risks'] as const) {
+  for (const step of [
+    'sorting',
+    'reading',
+    'scanning',
+    'locating',
+    'instructions',
+    'risks',
+  ] as const) {
     const usage = steps[step];
     if (usage && typeof usage === 'object') bySteps[step] = modelUsage(usage);
   }
@@ -1103,7 +1132,7 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
   const { importId } = c.req.valid('param');
   const { file: named, quote, near } = c.req.valid('query');
   const db = createDataClient(c);
-  const [, files] = await Promise.all([importExists(db, importId), listFilesOf(db, importId)]);
+  const [kind, files] = await Promise.all([importKindOf(db, importId), listFilesOf(db, importId)]);
   const paged = /^(.*) \(pagina (\d+)\)$/.exec(named);
   const exact = files.find((file) => file.upload_path === named);
   const file = exact ?? (paged ? files.find((each) => each.upload_path === paged[1]) : undefined);
@@ -1118,7 +1147,8 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
 
   // A scan page is shown as its image, which no text marks.
   const readable = file.text_path && !file.mime_type.startsWith('image/') && page === null;
-  const [content, originalUrl, derivedUrl] = await Promise.all([
+  const sheetPage = kind === 'employees' ? (page ?? (isImage(file) ? 1 : null)) : null;
+  const [content, originalUrl, derivedUrl, locations] = await Promise.all([
     readable
       ? store
           .readImportObject(file.text_path ?? textPathOf(file))
@@ -1126,6 +1156,9 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
       : null,
     store.importObjectLink(file.storage_path, expiresInSeconds),
     file.derived_path ? store.importObjectLink(file.derived_path, expiresInSeconds) : null,
+    sheetPage === null
+      ? null
+      : storedLocations(createAdminFileStore(c), pageLocationsPathOf(file, sheetPage)),
   ]);
 
   let text: string | null = null;
@@ -1163,6 +1196,7 @@ export const getImportSource: RouteHandler<typeof getImportSourceRoute, ApiEnv> 
       text,
       pages,
       match,
+      locations,
       expiresInSeconds,
     },
     200

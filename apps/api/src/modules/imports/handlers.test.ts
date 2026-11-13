@@ -1659,6 +1659,7 @@ describe('GET /imports/{importId}/source', () => {
         { number: 2, text: 'Administratorul, dl. Vasilescu Andrei, numește' },
       ],
       match: { page: 2, start: 17, end: 37, parts: [{ start: 17, end: 37 }] },
+      locations: null,
     });
     expect(String((body.original as { url: string }).url)).toContain(
       storagePath(importId, 1, 'pdf')
@@ -1722,7 +1723,7 @@ describe('GET /imports/{importId}/source', () => {
       },
     });
     expect(calls.find((call) => call.url.pathname === '/rest/v1/imports')?.url.search).toContain(
-      'select=id'
+      'select=kind'
     );
   });
 
