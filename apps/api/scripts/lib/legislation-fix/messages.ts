@@ -30,6 +30,19 @@ const portalPage = (portalId: number) =>
 
 export const markerOf = (change: OpenChange) => `<!-- legislation-change: ${changeKey(change)} -->`;
 
+const markersOf = (change: OpenChange, older: OpenChange[]) =>
+  [change, ...older].map(markerOf).join('\n');
+
+export const resolvesOf = (change: OpenChange, older: OpenChange[]) =>
+  [...older, change].map((each) => ({ act: each.act.id, consolidatedOn: each.consolidatedOn }));
+
+const olderLine = (older: OpenChange[]) =>
+  older.length
+    ? [
+        `- Also resolves the older open ${older.length > 1 ? 'forms' : 'form'} of ${older.map((each) => each.consolidatedOn).join(', ')}: this form was compared with the verified one, so its change covers ${older.length > 1 ? 'theirs' : 'its'}.`,
+      ]
+    : [];
+
 const formOf = (change: OpenChange) => `${change.act.name}, form of ${change.consolidatedOn}`;
 
 const linked = (name: string, portalId: number | null) =>
@@ -48,18 +61,19 @@ const lawDiff = (passages: ChangePassage[]) =>
     )
   );
 
-function lawSection(change: OpenChange, title: string | null) {
+function lawSection(change: OpenChange, title: string | null, older: OpenChange[]) {
   const changed = change.passages.filter((passage) => passage.status !== 'missing');
   return [
     "## The law's change",
     '',
     `- Act: ${linked(change.act.name, change.act.portalId)}${title ? `, ${title}` : ''}`,
-    `- Consolidated form of ${change.consolidatedOn}, compared with ${change.comparedWith ?? 'no verified form'}`,
+    `- Consolidated form of ${change.consolidatedOn}, compared with ${change.comparedWith ? `the verified form of ${change.comparedWith}` : 'the act as published'}`,
     `- Amending ${change.amendingActs.length > 1 ? 'acts' : 'act'}: ${
       change.amendingActs.map((act) => linked(act.name, act.portalId)).join(', ') ||
       'not named by the portal'
     }`,
     `- Amended units: ${change.amendedUnits.join(', ') || 'none named'}`,
+    ...olderLine(older),
     ...(changed.length ? ['', lawDiff(changed)] : []),
   ];
 }
@@ -80,14 +94,28 @@ export function updateItem(change: OpenChange, documents: string[], units: strin
   return `În ${named}, ${unitText} din ${change.act.name} ${cited.length > 1 ? 'sunt citate' : 'este citat'} în forma în vigoare${by}.`;
 }
 
+function sentencesOfOurs(reading: Reading, edits: string[]) {
+  if (reading.failed) {
+    return `${reading.model} failed (${reading.failed}): the note is the plain one, and no sentence of ours was read. Read the templates around the quote by hand.`;
+  }
+  if (reading.model === null) {
+    return 'No model was asked. Read the templates around the quote by hand.';
+  }
+  return edits.length
+    ? `Proposed by ${reading.model}, **not applied**. Apply by hand on this branch the ones that are right:\n\n${edits.join('\n')}`
+    : `${reading.model} found no sentence of the templates' own that restates the changed rule.`;
+}
+
 export function pullBody({
   change,
+  older = [],
   title,
   quotes,
   reading,
   documents,
 }: {
   change: OpenChange;
+  older?: OpenChange[];
   title: string | null;
   quotes: AppliedQuote[];
   reading: Reading;
@@ -110,10 +138,10 @@ export function pullBody({
       `- **${edit.file}** ¶${edit.paragraph}\n  - now: ${edit.current}\n  - proposed: ${edit.proposed}\n  - why: ${edit.reason}`
   );
   return [
-    markerOf(change),
+    markersOf(change, older),
     `Answers the legal change of **${formOf(change)}**, found by the daily legislation check and applied by \`legislation-fix.yml\` (ADR 017).`,
     '',
-    ...lawSection(change, title),
+    ...lawSection(change, title, older),
     '',
     '## Our text',
     '',
@@ -126,11 +154,7 @@ export function pullBody({
     '',
     '## Sentences of ours that restate the rule',
     '',
-    reading.model === null
-      ? 'No model was asked: AI_GATEWAY_URL and AI_GATEWAY_TOKEN are not set. Read the templates around the quote by hand.'
-      : edits.length
-        ? `Proposed by ${reading.model}, **not applied**. Apply by hand on this branch the ones that are right:\n\n${edits.join('\n')}`
-        : `${reading.model} found no sentence of the templates' own that restates the changed rule.`,
+    sentencesOfOurs(reading, edits),
     '',
     ...(toRead.length || references.length
       ? [
@@ -163,13 +187,16 @@ export function issueTitle(change: OpenChange) {
 
 export function issueBody({
   change,
+  older = [],
   title,
   problems,
 }: {
   change: OpenChange;
+  older?: OpenChange[];
   title: string | null;
   problems: Problem[];
 }) {
+  const resolves = resolvesOf(change, older);
   const why = [
     ...problems.flatMap((problem) =>
       problem.reasons.map((reason) => `- ${problem.file}, ${problem.locator}: ${reason}`)
@@ -181,18 +208,18 @@ export function issueBody({
       `- ${passage.template_file} ¶${passage.paragraph}, ${passage.citation_form} ${passage.locator ?? passage.unit_label}: ${passage.unit_label} ${passage.status}`
   );
   return [
-    markerOf(change),
+    markersOf(change, older),
     `The legal change of **${formOf(change)}** was not answered by a pull request: ${
       change.outcome === 'needs_review'
         ? 'the templates refer to an amended unit without quoting it, or cite one that is gone.'
-        : "the law's old words are not in our passage as they are in the law, so the tool changed nothing."
+        : "the tool could not apply the law's change to our text as it is, so it changed nothing."
     }`,
     '',
     '## Why',
     '',
     ...(why.length ? why : ['- No reason was recorded.']),
     '',
-    ...lawSection(change, title),
+    ...lawSection(change, title, older),
     '',
     '## Passages',
     '',
@@ -200,7 +227,7 @@ export function issueBody({
     '',
     '## What to do',
     '',
-    `- If our text must change, change the templates by hand (\`pnpm --filter @ssm-usor/document-engine replace-quote\` takes the law's change or the whole passage) with the manifest change \`{ "kind": "legal", "note": "…", "resolves": { "act": "${change.act.id}", "consolidatedOn": "${change.consolidatedOn}" } }\`, and say \`Closes\` this issue in the pull request.`,
+    `- If our text must change, change the templates by hand (\`pnpm --filter @ssm-usor/document-engine replace-quote\` takes the law's change or the whole passage) with the manifest change \`{ "kind": "legal", "note": "…", "resolves": ${JSON.stringify(resolves.length > 1 ? resolves : resolves[0])} }\`, and say \`Closes\` this issue in the pull request.`,
     "- If nothing of ours changes, resolve the change as no impact on the admin area's Legislație page and close this issue.",
     '',
   ].join('\n');
@@ -243,13 +270,15 @@ export function pullMessage({
         ourDiff(quote),
       ]),
       `**Note:** ${reading.note}`,
-      reading.model === null
-        ? '**Sentences of ours:** not read, no model configured.'
-        : edits.length
-          ? ['**Sentences of ours to change** (proposed, not applied):', ...capped(edits)].join(
-              '\n'
-            )
-          : '**Sentences of ours:** none restates the rule.',
+      reading.failed
+        ? `**Sentences of ours:** not read, the model failed: ${clip(reading.failed, 200)}`
+        : reading.model === null
+          ? '**Sentences of ours:** not read, no model was asked.'
+          : edits.length
+            ? ['**Sentences of ours to change** (proposed, not applied):', ...capped(edits)].join(
+                '\n'
+              )
+            : '**Sentences of ours:** none restates the rule.',
     ].join('\n'),
   };
 }
@@ -293,6 +322,28 @@ export function failedMessage(
     content: [
       header('🟡', 'Legislation fix failed', change, environment),
       codeBlock(clip(reason, 1_500)),
+    ].join('\n'),
+  };
+}
+
+export interface LeftOpen {
+  change: OpenChange;
+  closed: { kind: 'pull' | 'issue'; url: string };
+}
+
+// Weekly: a change whose pull request was closed unmerged, or whose issue was closed, is no
+// longer answered every morning, and would otherwise stay open unseen.
+export function leftOpenMessage(left: LeftOpen[], environment: string): DiscordMessage {
+  return {
+    content: [
+      `🔔 **Legal changes still open after their answer was closed** · ${environment}`,
+      ...capped(
+        left.map(
+          ({ change, closed }) =>
+            `- ${formOf(change)}: ${closed.kind === 'pull' ? 'pull request' : 'issue'} ${noPreview(closed.url)} was closed${closed.kind === 'pull' ? ' unmerged' : ''}.`
+        )
+      ),
+      "Answer one again with the Legislation fix workflow's change input, or resolve it on the admin area's Legislație page.",
     ].join('\n'),
   };
 }

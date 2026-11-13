@@ -9,6 +9,8 @@ import { z } from 'zod';
 import type { Candidate } from './candidates';
 
 export const noteMaxLength = 300;
+export const proposedMaxLength = 1_000;
+export const reasonMaxLength = 300;
 
 export interface ReadingInput {
   key: string;
@@ -32,9 +34,11 @@ export interface ProposedEdit {
 export interface Reading {
   note: string;
   edits: ProposedEdit[];
-  // In USD; null when no model was asked.
+  // In USD; null when no model was asked or it failed.
   cost: number | null;
   model: string | null;
+  // Why the model gave no answer: the note is then the plain one, and no sentence was read.
+  failed?: string;
 }
 
 const answerSchema = z.object({
@@ -97,33 +101,58 @@ export function fallbackNote(input: Pick<ReadingInput, 'act' | 'units' | 'amendi
 const readable = (label: string) =>
   (label.charAt(0).toLowerCase() + label.slice(1)).replaceAll('Art.', 'art.');
 const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-const clipNote = (text: string) =>
-  text.length > noteMaxLength ? `${text.slice(0, noteMaxLength - 1)}…` : text;
+const clipped = (text: string, max: number) =>
+  text.length > max ? `${text.slice(0, max - 1)}…` : text;
+const clipNote = (text: string) => clipped(text, noteMaxLength);
+const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+// The note becomes the manifest's change and a quoted line of the pull request, above the
+// Actualizări block that the release reads: a heading, a line break, code or markup the model
+// wrote could break the block or the page that shows the note.
+const unsafeNote = /[\r\n#`<>]/;
+
+export function modelNote(answer: string, input: Parameters<typeof fallbackNote>[0]) {
+  const note = answer.trim().replace(/^[„"]|[”"]$/g, '');
+  if (unsafeNote.test(note)) return fallbackNote(input);
+  const line = oneLine(note);
+  return line.length >= 2 && line.length <= noteMaxLength ? line : fallbackNote(input);
+}
 
 export async function readChange(model: ModelClient | null, input: ReadingInput): Promise<Reading> {
   if (!model) return { note: fallbackNote(input), edits: [], cost: null, model: null };
-  const completion = await model.complete({
-    model: legislationFixModel,
-    messages: readingMessages(input),
-    answer: readingAnswer,
-    reasoningEffort: 'medium',
-    maxCompletionTokens: 8_000,
-    metadata: { reading: 'legislation_fix', change: input.key },
-  });
-  const note = completion.value.note.trim().replace(/^[„"]|[”"]$/g, '');
+  const completion = await model
+    .complete({
+      model: legislationFixModel,
+      messages: readingMessages(input),
+      answer: readingAnswer,
+      reasoningEffort: 'medium',
+      maxCompletionTokens: 8_000,
+      metadata: { reading: 'legislation_fix', change: input.key },
+    })
+    .catch((error: unknown) => (error instanceof Error ? error : new Error(String(error))));
+  if (completion instanceof Error) {
+    return {
+      note: fallbackNote(input),
+      edits: [],
+      cost: null,
+      model: legislationFixModel,
+      failed: clipped(oneLine(completion.message), reasonMaxLength),
+    };
+  }
 
   return {
-    note: note.length >= 2 && note.length <= noteMaxLength ? note : fallbackNote(input),
+    note: modelNote(completion.value.note, input),
     edits: completion.value.edits.flatMap((edit) => {
       const candidate = input.candidates[edit.candidate - 1];
-      return candidate && edit.proposed.trim() && edit.proposed.trim() !== candidate.text
+      const proposed = oneLine(edit.proposed);
+      return candidate && proposed && proposed !== candidate.text
         ? [
             {
               file: candidate.file,
               paragraph: candidate.paragraph,
               current: candidate.text,
-              proposed: edit.proposed.trim(),
-              reason: edit.reason.trim(),
+              proposed: clipped(proposed, proposedMaxLength),
+              reason: clipped(oneLine(edit.reason), reasonMaxLength),
             },
           ]
         : [];

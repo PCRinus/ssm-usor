@@ -5,14 +5,16 @@ export const legislationLabel = {
 };
 
 export interface Found {
+  kind: 'pull' | 'issue';
   number: number;
   url: string;
-  state: string;
+  state: 'open' | 'closed' | 'merged';
 }
 
 export interface GitHub {
   pullForBranch(branch: string): Promise<Found | null>;
-  issueByMarker(marker: string): Promise<Found | null>;
+  /** The labelled pull requests and issues whose body holds the marker, newest first. */
+  answersByMarker(marker: string): Promise<Found[]>;
   ensureLabel(): Promise<void>;
   openPull(input: { title: string; branch: string; base: string; body: string }): Promise<Found>;
   openIssue(input: { title: string; body: string }): Promise<Found>;
@@ -36,7 +38,12 @@ export function createGitHub({
   const [owner] = repository.split('/');
   async function call<T>(
     path: string,
-    { method = 'GET', body, as = token }: { method?: string; body?: unknown; as?: string } = {}
+    {
+      method = 'GET',
+      body,
+      as = token,
+      missing = false,
+    }: { method?: string; body?: unknown; as?: string; missing?: boolean } = {}
   ): Promise<{ status: number; data: T }> {
     const response = await fetcher(`https://api.github.com/repos/${repository}${path}`, {
       method,
@@ -50,18 +57,31 @@ export function createGitHub({
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(30_000),
     });
-    if (response.status === 404 && method === 'GET') return { status: 404, data: null as T };
+    if (response.status === 404 && missing) return { status: 404, data: null as T };
     if (!response.ok) {
       const text = (await response.text()).slice(0, 300);
       throw new Error(`GitHub answered ${response.status} to ${method} ${path}: ${text}`);
     }
     return { status: response.status, data: (await response.json()) as T };
   }
-  type Item = { number: number; html_url: string; state: string; body: string | null };
-  const found = (item: Item): Found => ({
+  type Item = {
+    number: number;
+    html_url: string;
+    state: string;
+    body: string | null;
+    merged_at?: string | null;
+    pull_request?: { merged_at?: string | null };
+  };
+  const found = (item: Item, kind: Found['kind']): Found => ({
+    kind,
     number: item.number,
     url: item.html_url,
-    state: item.state,
+    state:
+      (item.merged_at ?? item.pull_request?.merged_at)
+        ? 'merged'
+        : item.state === 'open'
+          ? 'open'
+          : 'closed',
   });
 
   return {
@@ -69,22 +89,25 @@ export function createGitHub({
       const { data } = await call<Item[]>(
         `/pulls?head=${encodeURIComponent(`${owner}:${branch}`)}&state=all&per_page=1`
       );
-      return data?.[0] ? found(data[0]) : null;
+      return data[0] ? found(data[0], 'pull') : null;
     },
-    async issueByMarker(marker) {
+    async answersByMarker(marker) {
+      const answers: Found[] = [];
       for (let page = 1; page <= 10; page++) {
-        const { data } = await call<(Item & { pull_request?: unknown })[]>(
-          `/issues?labels=${legislationLabel.name}&state=all&per_page=100&page=${page}`
+        const { data: items } = await call<Item[]>(
+          `/issues?labels=${legislationLabel.name}&state=all&sort=created&direction=desc&per_page=100&page=${page}`
         );
-        const items = data ?? [];
-        const match = items.find((item) => !item.pull_request && item.body?.includes(marker));
-        if (match) return found(match);
-        if (items.length < 100) return null;
+        for (const item of items) {
+          if (item.body?.includes(marker)) {
+            answers.push(found(item, item.pull_request ? 'pull' : 'issue'));
+          }
+        }
+        if (items.length < 100) break;
       }
-      return null;
+      return answers;
     },
     async ensureLabel() {
-      const { status } = await call(`/labels/${legislationLabel.name}`);
+      const { status } = await call(`/labels/${legislationLabel.name}`, { missing: true });
       if (status === 404) await call('/labels', { method: 'POST', body: legislationLabel });
     },
     async openPull({ title, branch, base, body }) {
@@ -99,14 +122,14 @@ export function createGitHub({
         as: appToken,
         body: { labels: [legislationLabel.name] },
       });
-      return found(data);
+      return found(data, 'pull');
     },
     async openIssue({ title, body }) {
       const { data } = await call<Item>('/issues', {
         method: 'POST',
         body: { title, body, labels: [legislationLabel.name] },
       });
-      return found(data);
+      return found(data, 'issue');
     },
   };
 }

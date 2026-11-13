@@ -16,10 +16,12 @@ import { gitAt, replaceQuoteTool, templatesAt } from './lib/legislation-fix/work
 import { localSupabase } from './lib/supabase-cli';
 
 // legislation-fix.yml runs this every morning after production's legislation check (ADR 017):
-//   pnpm legislation:fix [--change <act>[-<YYYY-MM-DD>]] [--dry-run] [--local]
+//   pnpm legislation:fix [--change <act>[-<YYYY-MM-DD>]] [--dry-run] [--local] [--no-model]
 // --dry-run applies each fix to the working tree, prints the pull request, the issues and the
 // Discord payloads, then restores the templates; it pushes, opens and posts nothing, and only
-// reads from GitHub when GITHUB_TOKEN is set.
+// reads from GitHub when GITHUB_TOKEN is set. It still asks the model, which is paid, unless
+// --no-model is given. --change answers the change again when its pull request or issue was
+// closed.
 
 const root = new URL('../../../', import.meta.url);
 
@@ -29,6 +31,7 @@ try {
       'dry-run': { type: 'boolean', default: false },
       local: { type: 'boolean', default: false },
       change: { type: 'string' },
+      'no-model': { type: 'boolean', default: false },
     },
   });
   const dryRun = values['dry-run'];
@@ -59,7 +62,7 @@ try {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
   const model =
-    env.AI_GATEWAY_URL && env.AI_GATEWAY_TOKEN
+    !values['no-model'] && env.AI_GATEWAY_URL && env.AI_GATEWAY_TOKEN
       ? createModelClient({ baseUrl: env.AI_GATEWAY_URL, token: env.AI_GATEWAY_TOKEN })
       : null;
   const acts = legalActs();
@@ -70,7 +73,7 @@ try {
       runs: () => readRuns(db),
       templates: templatesAt(new URL('packages/document-engine/templates/', root)),
       tool: replaceQuoteTool,
-      git: gitAt(root),
+      git: gitAt(root, { pushToken: env.LEGISLATION_APP_TOKEN }),
       github: env.GITHUB_TOKEN
         ? createGitHub({
             repository: env.GITHUB_REPOSITORY,
@@ -86,7 +89,12 @@ try {
       log: (text) => console.log(text),
       now: () => Date.now(),
     },
-    { dryRun, environment: env.ENVIRONMENT, only: changeFilter(values.change) }
+    {
+      dryRun,
+      environment: env.ENVIRONMENT,
+      only: changeFilter(values.change),
+      redo: Boolean(values.change?.trim()),
+    }
   );
 
   const count = (action: string) =>
@@ -98,7 +106,13 @@ try {
         ', '
       )}${report.stale ? '; no successful legislation check in two days' : ''}; model $${report.cost.toFixed(4)}.`
   );
-  if (!model) console.log('No model was asked: AI_GATEWAY_URL and AI_GATEWAY_TOKEN are not set.');
+  if (!model) {
+    console.log(
+      values['no-model']
+        ? 'No model was asked: --no-model.'
+        : 'No model was asked: AI_GATEWAY_URL and AI_GATEWAY_TOKEN are not set.'
+    );
+  }
   if (count('failed') > 0) process.exitCode = 1;
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'The legislation fix failed.');

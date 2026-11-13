@@ -3,22 +3,40 @@ import type { ModelClient } from '@ssm-usor/import';
 import { isStale, staleMessage } from '@ssm-usor/legislation-check';
 
 import { candidateParagraphs } from './candidates';
-import { branchOf, changeKey, type OpenChange, type RunsSeen } from './changes';
-import type { GitHub } from './github';
+import {
+  type Answer,
+  answersOf,
+  branchOf,
+  changeKey,
+  type OpenChange,
+  type RunsSeen,
+} from './changes';
+import type { Found, GitHub } from './github';
 import {
   type AppliedQuote,
   failedMessage,
   issueBody,
   issueMessage,
   issueTitle,
+  type LeftOpen,
+  leftOpenMessage,
   markerOf,
   type Problem,
   pullBody,
   pullMessage,
   pullTitle,
+  resolvesOf,
 } from './messages';
 import { readChange, type Reading } from './model';
-import type { Git, IndexedQuote, PatchInput, QuoteTool, Templates } from './workspace';
+import {
+  type Git,
+  type IndexedQuote,
+  type PatchInput,
+  PendingChangeError,
+  type QuoteTool,
+  type Templates,
+  type ToolResult,
+} from './workspace';
 
 export interface FixDependencies {
   changes: () => Promise<OpenChange[]>;
@@ -39,12 +57,14 @@ export interface FixOptions {
   dryRun: boolean;
   environment: string;
   only: (change: OpenChange) => boolean;
+  // A change named by hand is answered again when its pull request or issue was closed.
+  redo: boolean;
 }
 
 export type ChangeResult =
   | { key: string; action: 'pull'; url: string | null; reading: Reading }
   | { key: string; action: 'issue'; url: string | null }
-  | { key: string; action: 'skipped'; reason: string }
+  | { key: string; action: 'skipped'; reason: string; closed?: LeftOpen['closed'] }
   | { key: string; action: 'failed'; reason: string };
 
 export interface FixReport {
@@ -64,6 +84,8 @@ export function deadManDue(runs: RunsSeen, now: number) {
     runs.latest?.status === 'failed' && now - Date.parse(runs.latest.startedAt) < toldWithin
   );
 }
+
+const monday = 1;
 
 interface CitedPassages {
   citation: IndexedQuote | null;
@@ -106,7 +128,11 @@ const inputOf = (
     locator: citation.locator,
     text: citation.text,
   },
-  changes: passages.map((passage) => ({ old: passage.old_text, new: passage.new_text })),
+  changes: passages.map((passage) => ({
+    old: passage.old_text,
+    new: passage.new_text,
+    unit: passage.unit_label,
+  })),
   ...(change ? { change } : {}),
 });
 
@@ -125,6 +151,16 @@ function probe(change: OpenChange, groups: CitedPassages[], tool: QuoteTool): Pr
       });
       continue;
     }
+    const uncompared = passages.filter((passage) => passage.status === 'uncompared');
+    if (uncompared.length) {
+      problems.push({
+        ...where,
+        reasons: uncompared.map(
+          (passage) => `the check could not compare ${passage.unit_label} between the two forms`
+        ),
+      });
+      continue;
+    }
     const missing = passages.filter((passage) => passage.status === 'missing');
     if (missing.length) {
       problems.push({
@@ -140,6 +176,13 @@ function probe(change: OpenChange, groups: CitedPassages[], tool: QuoteTool): Pr
         reasons: result.problems.map(
           (problem) => `${problem.alineat ? `(${problem.alineat}) ` : ''}${problem.reason}`
         ),
+      });
+    } else if (result.status === 'nothing-to-apply') {
+      problems.push({
+        ...where,
+        reasons: result.notes.length
+          ? result.notes.map((note) => `nothing to apply: ${note}`)
+          : ['nothing to apply: the quote holds none of what changed'],
       });
     } else {
       applied.push({
@@ -182,30 +225,65 @@ export async function runLegislationFix(
   const stale = deadManDue(runs, deps.now());
   if (stale) await post(staleMessage(runs.lastSucceededStart, options.environment));
 
-  const changes = (await deps.changes()).filter(options.only);
-  if (!changes.length) {
+  const answers = answersOf(await deps.changes()).filter((answer) =>
+    [answer.change, ...answer.older].some(options.only)
+  );
+  if (!answers.length) {
     log('No open legal change needs a pull request or an issue.');
     return { results, stale, cost };
   }
   git.assertClean();
   const base = git.currentBranch();
   if (github && !options.dryRun) await github.ensureLabel();
+  const leftOpen: LeftOpen[] = [];
 
-  async function answered(change: OpenChange) {
-    if (deps.templates.resolves(change.act.id, change.consolidatedOn)) {
-      return 'a manifest on this branch already resolves it; registration after the next release does';
+  type Decision =
+    { kind: 'skip'; reason: string; closed?: Found } | { kind: 'answer'; branch: string };
+
+  const named = (found: Found) => (found.kind === 'pull' ? 'pull request' : 'issue');
+
+  async function unusedBranch(change: OpenChange) {
+    for (let suffix = 2; suffix <= 20; suffix++) {
+      const branch = `${branchOf(change)}-${suffix}`;
+      if (git.remoteHead(branch) === null && !(await github!.pullForBranch(branch))) return branch;
     }
-    if (!github) return null;
-    const pull = await github.pullForBranch(branchOf(change));
-    if (pull) return `pull request ${pull.url} (${pull.state}) answers it`;
-    const issue = await github.issueByMarker(markerOf(change));
-    if (issue) return `issue ${issue.url} (${issue.state}) answers it`;
-    return null;
+    throw new Error(`${branchOf(change)}-2 to -20 are all taken; delete the old branches.`);
   }
 
-  async function openIssue(change: OpenChange, problems: Problem[]) {
+  async function decide(change: OpenChange): Promise<Decision> {
+    if (deps.templates.resolves(change.act.id, change.consolidatedOn)) {
+      return {
+        kind: 'skip',
+        reason:
+          'a manifest on this branch already resolves it; registration after the next release does',
+      };
+    }
+    if (!github) return { kind: 'answer', branch: branchOf(change) };
+    const pull = await github.pullForBranch(branchOf(change));
+    const found = [...(pull ? [pull] : []), ...(await github.answersByMarker(markerOf(change)))];
+    const live = found.find((each) => each.state !== 'closed');
+    if (live) {
+      return { kind: 'skip', reason: `${named(live)} ${live.url} (${live.state}) answers it` };
+    }
+    const closed = found[0];
+    if (closed && !options.redo) {
+      return {
+        kind: 'skip',
+        reason: `${named(closed)} ${closed.url} was closed; name the change to answer it again`,
+        closed,
+      };
+    }
+    return {
+      kind: 'answer',
+      branch: found.some((each) => each.kind === 'pull')
+        ? await unusedBranch(change)
+        : branchOf(change),
+    };
+  }
+
+  async function openIssue({ change, older }: Answer, problems: Problem[]) {
     const title = issueTitle(change);
-    const body = issueBody({ change, title: deps.actTitle(change.act.id), problems });
+    const body = issueBody({ change, older, title: deps.actTitle(change.act.id), problems });
     let url: string | null = null;
     if (options.dryRun) {
       log(`\n--- Issue: ${title} ---\n${body}`);
@@ -217,7 +295,13 @@ export async function runLegislationFix(
     results.push({ key: changeKey(change), action: 'issue', url });
   }
 
-  async function openPull(change: OpenChange, groups: CitedPassages[], probed: AppliedQuote[]) {
+  async function openPull(
+    answer: Answer,
+    branch: string,
+    groups: CitedPassages[],
+    probed: AppliedQuote[]
+  ) {
+    const { change, older } = answer;
     const files = [...new Set(probed.flatMap((quote) => [quote.file, ...quote.copies]))];
     const quotes = deps.templates.citations().filter((each) => each.form === 'quote');
     const changedUnits = groups.flatMap(({ passages }) =>
@@ -245,11 +329,32 @@ export async function runLegislationFix(
     cost += reading.cost ?? 0;
 
     git.restore();
-    const resolves = { act: change.act.id, consolidatedOn: change.consolidatedOn };
+    const resolves = resolvesOf(change, older);
     const applied: AppliedQuote[] = [];
     const written = new Set<string>();
     for (const { citation, passages } of groups) {
-      const result = deps.tool(inputOf(citation!, passages, { note: reading.note, resolves }));
+      let result: ToolResult;
+      try {
+        result = deps.tool(
+          inputOf(citation!, passages, {
+            note: reading.note,
+            resolves: resolves.length > 1 ? resolves : resolves[0]!,
+          })
+        );
+      } catch (error) {
+        if (!(error instanceof PendingChangeError)) throw error;
+        git.restore();
+        await openIssue(answer, [
+          {
+            file: citation!.file,
+            locator: citation!.locator ?? passages[0]!.unit_label,
+            reasons: [
+              `the template's change pending since the last release cannot take this note as well: ${error.message}`,
+            ],
+          },
+        ]);
+        return;
+      }
       if (result.status !== 'applied') {
         throw new Error(`${citation!.file}: applied on the first pass and not on the second.`);
       }
@@ -267,6 +372,7 @@ export async function runLegislationFix(
     const title = pullTitle(change);
     const body = pullBody({
       change,
+      older,
       title: deps.actTitle(change.act.id),
       quotes: applied,
       reading,
@@ -274,13 +380,15 @@ export async function runLegislationFix(
     });
     let url: string | null = null;
     if (options.dryRun) {
-      log(`\n--- Pull request: ${title} ---\nFiles: ${[...written].join(', ')}\n\n${body}`);
+      log(
+        `\n--- Pull request: ${title} ---\nBranch: ${branch}\nFiles: ${[...written].join(', ')}\n\n${body}`
+      );
       git.restore();
     } else {
-      const branch = branchOf(change);
+      const expected = git.remoteHead(branch);
       try {
         git.commit(branch, [...written], title);
-        git.push(branch);
+        git.push(branch, expected);
       } finally {
         git.restore();
         git.switchTo(base);
@@ -294,31 +402,40 @@ export async function runLegislationFix(
     results.push({ key: changeKey(change), action: 'pull', url, reading });
   }
 
-  for (const change of changes) {
+  for (const answer of answers) {
+    const { change, older } = answer;
     const key = changeKey(change);
     try {
-      const skip = await answered(change);
-      if (skip) {
-        log(`${key}: skipped, ${skip}.`);
-        results.push({ key, action: 'skipped', reason: skip });
-        continue;
+      const decision = await decide(change);
+      if (decision.kind === 'skip') {
+        log(`${key}: skipped, ${decision.reason}.`);
+        results.push({
+          key,
+          action: 'skipped',
+          reason: decision.reason,
+          ...(decision.closed && {
+            closed: { kind: decision.closed.kind, url: decision.closed.url },
+          }),
+        });
+        if (decision.closed) {
+          leftOpen.push({
+            change,
+            closed: { kind: decision.closed.kind, url: decision.closed.url },
+          });
+        }
+      } else if (change.outcome === 'needs_review') {
+        await openIssue(answer, []);
+      } else {
+        const groups = citedPassages(change, deps.templates.citations());
+        let probed: Probe;
+        try {
+          probed = probe(change, groups, deps.tool);
+        } finally {
+          git.restore();
+        }
+        if (probed.problems.length) await openIssue(answer, probed.problems);
+        else await openPull(answer, decision.branch, groups, probed.applied);
       }
-      if (change.outcome === 'needs_review') {
-        await openIssue(change, []);
-        continue;
-      }
-      const groups = citedPassages(change, deps.templates.citations());
-      let probed: Probe;
-      try {
-        probed = probe(change, groups, deps.tool);
-      } finally {
-        git.restore();
-      }
-      if (probed.problems.length) {
-        await openIssue(change, probed.problems);
-        continue;
-      }
-      await openPull(change, groups, probed.applied);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       log(`${key}: failed, ${reason}`);
@@ -326,6 +443,15 @@ export async function runLegislationFix(
       git.restore();
       await post(failedMessage(change, reason, options.environment));
     }
+    for (const each of older) {
+      const reason = `the answer to the form of ${change.consolidatedOn} resolves it too`;
+      log(`${changeKey(each)}: ${reason}.`);
+      results.push({ key: changeKey(each), action: 'skipped', reason });
+    }
+  }
+
+  if (leftOpen.length && new Date(deps.now()).getUTCDay() === monday) {
+    await post(leftOpenMessage(leftOpen, options.environment));
   }
   return { results, stale, cost };
 }

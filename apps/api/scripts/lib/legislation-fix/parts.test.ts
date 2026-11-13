@@ -2,7 +2,7 @@ import PizZip from 'pizzip';
 import { describe, expect, it, vi } from 'vitest';
 
 import { candidateParagraphs, stemsOf } from './candidates';
-import { branchOf, changeFilter, toOpenChange } from './changes';
+import { answersOf, branchOf, changeFilter, toOpenChange } from './changes';
 import { createGitHub } from './github';
 
 function docx(paragraphs: string[]) {
@@ -117,18 +117,83 @@ describe('GitHub', () => {
     });
   });
 
-  it('finds an issue by its marker and leaves pull requests out', async () => {
+  it('finds the pull requests and issues that hold a marker, a merged pull request as merged', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json([
-        { number: 1, html_url: 'p', state: 'open', body: 'marker', pull_request: {} },
+        {
+          number: 1,
+          html_url: 'p',
+          state: 'closed',
+          body: 'marker',
+          pull_request: { merged_at: '2026-11-12T10:00:00Z' },
+        },
+        { number: 3, html_url: 'q', state: 'closed', body: 'marker', pull_request: {} },
         { number: 2, html_url: 'i', state: 'closed', body: 'x marker y' },
+        { number: 4, html_url: 'o', state: 'open', body: 'another' },
       ])
     );
     const github = createGitHub({ repository: 'PCRinus/ssm-usor', token: 't', fetcher });
-    await expect(github.issueByMarker('marker')).resolves.toEqual({
-      number: 2,
-      url: 'i',
-      state: 'closed',
+    await expect(github.answersByMarker('marker')).resolves.toEqual([
+      { kind: 'pull', number: 1, url: 'p', state: 'merged' },
+      { kind: 'pull', number: 3, url: 'q', state: 'closed' },
+      { kind: 'issue', number: 2, url: 'i', state: 'closed' },
+    ]);
+  });
+
+  it('fails when GitHub cannot find the repository, rather than reading it as no pull request', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementation(() =>
+        Promise.resolve(new Response('{"message":"Not Found"}', { status: 404 }))
+      );
+    const github = createGitHub({ repository: 'PCRinus/ssm-usor', token: 't', fetcher });
+    await expect(github.pullForBranch('legislation/x')).rejects.toThrow(/GitHub answered 404/);
+    await expect(github.answersByMarker('marker')).rejects.toThrow(/GitHub answered 404/);
+  });
+});
+
+describe('the answers to open changes', () => {
+  const form = (consolidatedOn: string, outcome: 'quote_differs' | 'needs_review') =>
+    toOpenChange({
+      id: '0fd0fd0f-0000-4000-8000-000000000195',
+      act_id: 'oug-195-2002',
+      consolidated_on: consolidatedOn,
+      compared_with: '2026-08-25',
+      amending_act: null,
+      outcome,
+      amending_acts: [],
+      amended_units: [],
+      review: [],
+      act: { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portal_id: 41006 },
+      passages: [],
     });
+
+  it('answer the newest form whose quote differs, resolving the older forms with it', () => {
+    const answers = answersOf([
+      form('2026-10-01', 'needs_review'),
+      form('2026-11-06', 'quote_differs'),
+      form('2026-10-20', 'quote_differs'),
+      form('2026-11-10', 'needs_review'),
+    ]);
+    expect(
+      answers.map(({ change, older }) => [
+        change.consolidatedOn,
+        older.map((each) => each.consolidatedOn),
+      ])
+    ).toEqual([
+      ['2026-11-06', ['2026-10-01', '2026-10-20']],
+      ['2026-11-10', []],
+    ]);
+  });
+
+  it('answer each form on its own when none has a quote that differs', () => {
+    expect(
+      answersOf([form('2026-10-01', 'needs_review'), form('2026-11-06', 'needs_review')]).map(
+        ({ change, older }) => [change.consolidatedOn, older.length]
+      )
+    ).toEqual([
+      ['2026-10-01', 0],
+      ['2026-11-06', 0],
+    ]);
   });
 });

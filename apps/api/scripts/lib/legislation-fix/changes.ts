@@ -19,7 +19,7 @@ export const passageSchema = z.object({
   citation_form: z.enum(['quote', 'reference']),
   locator: z.string().nullable(),
   unit_label: z.string(),
-  status: z.enum(['changed', 'added', 'repealed', 'missing']),
+  status: z.enum(['changed', 'added', 'repealed', 'missing', 'uncompared']),
   old_text: z.string().nullable(),
   new_text: z.string().nullable(),
 });
@@ -124,6 +124,39 @@ export function changeFilter(value: string | undefined) {
   const [, act, on] = match;
   return (change: Pick<OpenChange, 'act' | 'consolidatedOn'>) =>
     change.act.id === act && (on === undefined || change.consolidatedOn === on);
+}
+
+export interface Answer {
+  change: OpenChange;
+  /** The act's older open forms, which the answer resolves as well. */
+  older: OpenChange[];
+}
+
+/**
+ * The open changes to answer. Of an act with several open forms only the newest whose quote
+ * differs gets a pull request: the check compared it with the verified form, so its law diff
+ * covers the older forms, which its manifest change resolves with it. A newer form that needs
+ * review still gets its own issue.
+ */
+export function answersOf(changes: OpenChange[]): Answer[] {
+  const byAct = new Map<string, OpenChange[]>();
+  for (const change of changes) {
+    byAct.set(change.act.id, [...(byAct.get(change.act.id) ?? []), change]);
+  }
+  return [...byAct.values()].flatMap((forms) => {
+    const ordered = [...forms].sort((a, b) => a.consolidatedOn.localeCompare(b.consolidatedOn));
+    const lead = [...ordered].reverse().find((change) => change.outcome === 'quote_differs');
+    if (!lead) return ordered.map((change) => ({ change, older: [] }));
+    return [
+      {
+        change: lead,
+        older: ordered.filter((change) => change.consolidatedOn < lead.consolidatedOn),
+      },
+      ...ordered
+        .filter((change) => change.consolidatedOn > lead.consolidatedOn)
+        .map((change) => ({ change, older: [] })),
+    ];
+  });
 }
 
 export const changeKey = (change: Pick<OpenChange, 'act' | 'consolidatedOn'>) =>
