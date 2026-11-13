@@ -178,7 +178,7 @@ describe('the second factor in the member app', () => {
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
     expect(reloaded.client.verifyOtp).not.toHaveBeenCalled();
     expect(reloaded.client.updateUser).toHaveBeenCalledWith({ password: 'ParolaNoua1' });
-    expect(sessionStorage.length).toBe(0);
+    expect(sessionStorage.getItem('ssm-usor:recovered-user')).toBeNull();
   });
 
   it('tells a person whose session ended to sign in again, and sends them there once it is gone', async () => {

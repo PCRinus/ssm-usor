@@ -18,6 +18,18 @@ vi.mock('posthog-js/dist/posthog-recorder', () => {
   sdk.loaded.push('recorder');
   return {};
 });
+vi.mock('posthog-js/dist/exception-autocapture', () => {
+  sdk.loaded.push('exception-autocapture');
+  return {};
+});
+vi.mock('posthog-js/dist/web-vitals-with-attribution', () => {
+  sdk.loaded.push('web-vitals-with-attribution');
+  return {};
+});
+vi.mock('posthog-js/dist/conversations', () => {
+  sdk.loaded.push('conversations');
+  return {};
+});
 
 afterEach(() => {
   document.getElementById('ph-conversations-widget-container')?.remove();
@@ -103,7 +115,10 @@ describe('session replay', () => {
     vi.stubEnv('VITE_POSTHOG_PROJECT_TOKEN', 'phc_test');
     const client = await loadPostHog();
 
-    expect(sdk.loaded).toEqual(['recorder', 'init']);
+    expect(sdk.loaded.at(-1)).toBe('init');
+    expect(sdk.loaded.slice(0, -1).sort()).toEqual(
+      ['recorder', 'exception-autocapture', 'web-vitals-with-attribution', 'conversations'].sort()
+    );
     expect(client?.init).toHaveBeenCalledWith(
       'phc_test',
       expect.objectContaining({
