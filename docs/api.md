@@ -217,10 +217,9 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /instruction-modules/{moduleId}/body`                             | Verified user with a membership       | `{ "module", "body", "changed" }`, the body stored as the next version unless its text is unchanged                                                                                                |
 | `GET /instruction-modules/{moduleId}/versions/{versionId}`             | Verified user with a membership       | `{ "version": { … }, "body": { … } }`                                                                                                                                                              |
 | `GET /instruction-modules/{moduleId}/download`                         | Verified user with a membership       | The current version, or `?versionId=`, as the annex it prints, a `.docx`                                                                                                                           |
-| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ], "needsInstructions" }`, one domain's modules and decision; `?domain=`                                                                                                 |
+| `GET …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | `{ "domain", "items": [ … ] }`, one domain's modules; `?domain=`                                                                                                                                   |
 | `PUT …/job-positions/{jobPositionId}/instructions`                     | Verified user with a membership       | The same, after replacing the set of `domain` with `moduleIds`                                                                                                                                     |
 | `POST …/job-positions/{jobPositionId}/instructions/copy`               | Verified user with a membership       | The same, after adding another position's modules of `domain`                                                                                                                                      |
-| `PATCH …/job-positions/{jobPositionId}/instructions-decision`          | Verified user with a membership       | `{ "jobPosition": { … } }` after saying the post needs none of `domain` (`false`) or taking back (`null`)                                                                                          |
 | `GET /clients/{clientId}/risk-evaluations`                             | Verified user with a membership       | `{ "items": [ … ] }`, the client's evaluations without factors, with counts and global levels                                                                                                      |
 | `POST /clients/{clientId}/risk-evaluations`                            | Verified user with a membership       | `201 { "evaluation": { … } }` for a position, the sensitive groups or another named one                                                                                                            |
 | `PUT /clients/{clientId}/sensitive-groups-state`                       | Verified user with a membership       | `{ "state" }` after setting `undecided` or `none`; `none` is `409` while the sensitive groups are evaluated                                                                                        |
@@ -648,21 +647,18 @@ dated today, for the Word viewer while a module is written; it stores nothing an
 read-only access. Inside a client's documents, an annex prints as the binder does through
 `GET /documents/{documentId}/revisions/{revisionId}/annexes/{number}`.
 
-A job position decides about each domain apart, and every route below takes the `domain` it
-is about, `ssm` when left out (`?domain=` on `GET`, in the body otherwise); the other domain's
-modules and decision are never touched. A position applies modules through `GET`/`PUT
+A job position applies modules of each domain apart, at least one of each (ADR 012, amendment
+of 2026-11-13), and every route below takes the `domain` it is about, `ssm` when left out
+(`?domain=` on `GET`, in the body otherwise); the other domain's modules are never touched. A position applies modules through `GET`/`PUT
 …/instructions`: `PUT` takes `moduleIds` and replaces the domain's set, adding first so a swap
-never passes through "undecided"; the first module applied decides "needs instructions" for
-the domain by itself, an empty set leaves the position undecided again, an archived module
+never passes through "undecided"; an empty set leaves the position undecided again, which
+blocks the domain's documents, an archived module
 answers `409` with `instruction_module_archived`, a module of the other domain `400` with
 `instruction_module_other_domain`, naming it, and a module not in the library `400` on
 `moduleIds`. `POST …/instructions/copy` adds another position's modules of the domain, with
-`400` on `fromJobPositionId` for the position itself or one of another client. `PATCH
-…/instructions-decision` takes `needsInstructions: false` or `null`; `true` answers `400` with
-the reason `instructions_decided_by_modules`, and `false` while modules of the domain are
-applied `409` with `instructions_applied`. Job positions carry `needsInstructions` and
-`instructionCount` for the occupational safety modules and `needsFireInstructions` and
-`fireInstructionCount` for the fire-safety ones in every response.
+`400` on `fromJobPositionId` for the position itself or one of another client. Job positions
+carry `instructionCount` for the occupational safety modules and `fireInstructionCount` for the
+fire-safety ones in every response; a count of zero is a position still undecided.
 
 Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)) belong to the client.
 `POST …/risk-evaluations` takes a `kind`: `job_position` with a `jobPositionId` (a current
