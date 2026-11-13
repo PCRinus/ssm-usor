@@ -132,7 +132,7 @@ declare
   v_verified date;
 begin
   if not public.is_platform_admin() then
-    raise exception 'Only a platform admin resolves a legal change.' using errcode = '42501';
+    raise exception 'Only a platform admin links a legal change to a template version.' using errcode = '42501';
   end if;
 
   select * into v_change from public.legal_changes where id = p_change_id for update;
