@@ -1,4 +1,4 @@
-import { bloodGroups, rhFactors } from '@ssm-usor/contracts';
+import { bloodGroups, commuteMeansKey, parseCommuteMeansKey, rhFactors } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -26,6 +26,7 @@ import {
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { EditAction } from '@/components/section-card';
+import { CommuteMeansCombobox } from '@/features/employees/commute-means-combobox';
 
 import { PendingNote, StatusDot, type Tone } from '../library/decision-row';
 import { rowTones } from '../library/row-tones';
@@ -82,7 +83,7 @@ const groups = {
   },
   medical: {
     title: 'Medical și alte date',
-    names: ['bloodGroup', 'rhFactor', 'commuteRoute', 'commuteMinutes'],
+    names: ['bloodGroup', 'rhFactor', 'commuteRoute', 'commuteMeans', 'commuteMinutes'],
   },
 } as const satisfies Record<string, { title: string; names: readonly FieldName[] }>;
 
@@ -510,6 +511,18 @@ export function FieldInput({
           </NativeSelectOption>
         ))}
       </NativeSelect>
+    );
+  }
+  if (name === 'commuteMeans') {
+    return (
+      <CommuteMeansCombobox
+        id={id}
+        testId={id}
+        value={(value && parseCommuteMeansKey(value)) || { means: [], other: null }}
+        onChange={(next) => onChange(commuteMeansKey(next) ?? '')}
+        invalid={invalid}
+        describedBy={describedBy}
+      />
     );
   }
   if (multiline && wrappingFields.has(name)) {

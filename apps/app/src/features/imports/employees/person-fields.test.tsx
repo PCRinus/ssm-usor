@@ -1,3 +1,4 @@
+import { commuteMeansKey } from '@ssm-usor/contracts';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -99,7 +100,12 @@ describe('the dialogs that correct the data read from the sheets', () => {
     await user.click(screen.getByRole('button', { name: 'Renunță' }));
 
     await open(user, 'Modifică datele medicale și celelalte');
-    expect(rows()).toEqual([['bloodGroup', 'rhFactor'], ['commuteRoute'], ['commuteMinutes']]);
+    expect(rows()).toEqual([
+      ['bloodGroup', 'rhFactor'],
+      ['commuteRoute'],
+      ['commuteMeans'],
+      ['commuteMinutes'],
+    ]);
     expect(dialog().textContent).toContain('Ce scrii aici înlocuiește valoarea citită de pe fișă.');
   });
 
@@ -300,6 +306,39 @@ describe('the card of the data read from the sheets', () => {
     expect(label('commuteRoute')).toContain('Traseul spre locul de muncă');
     expect(label('commuteRoute')).not.toContain('(opțional)');
     expect(label('commuteMinutes')).toContain('(opțional)');
+  });
+
+  it('shows the means of transport by their names and corrects them in the same picker as the form', async () => {
+    const user = userEvent.setup();
+    render(
+      <Data
+        who={withFields('pop', {
+          commuteMeans: {
+            options: [
+              {
+                value: commuteMeansKey({ means: ['public_transport'], other: null })!,
+                pageIds: ['p3'],
+              },
+            ],
+          },
+        })}
+      />
+    );
+    expect(row('commuteMeans').textContent).toContain('Transport public');
+
+    await open(user, 'Modifică datele medicale și celelalte');
+    const picker = screen.getByLabelText(/^Mijloace de transport/);
+    expect(picker.textContent).toBe('Transport public');
+    await user.click(picker);
+    await user.click(await screen.findByTestId('person-field-commuteMeans-on_foot'));
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByTestId('person-fields-save'));
+
+    expect(written()).toEqual({
+      commuteMeans: {
+        value: commuteMeansKey({ means: ['on_foot', 'public_transport'], other: null }),
+      },
+    });
   });
 
   it('opens the whole group from its Modifică button', async () => {
