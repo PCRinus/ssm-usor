@@ -102,8 +102,14 @@ export const adminLegalChangeDetailSchema = adminLegalChangeListItemSchema
     passages: z.array(adminLegalChangePassageSchema),
     resolvingVersion: adminTemplateVersionSchema.nullable(),
     // The versions that can answer an open change: of a template its passages name, registered
-    // after it was seen, not layout, answering no other change. Empty once it is resolved.
+    // after it was seen, not layout, with a note, answering no other change. Empty once it is
+    // resolved.
     candidateVersions: z.array(adminTemplateVersionSchema),
+    // Open, not assessed and after the act's verified form: the daily check will assess it, and
+    // it cannot be resolved before.
+    awaitingAssessment: z.boolean(),
+    // The act's open changes of an earlier form, oldest first, which are resolved before this one.
+    olderOpenChanges: z.array(z.object({ id: z.uuid(), consolidatedOn: z.iso.date() })),
   });
 
 export type AdminLegalChangeDetail = z.infer<typeof adminLegalChangeDetailSchema>;
@@ -162,4 +168,8 @@ export const adminLegislationErrorReasons = {
   formNotSeen: 'form_not_seen',
   // 422: a change of the act at or before the date is still open; it is resolved first.
   openChangesAtOrBefore: 'open_changes_at_or_before',
+  // 422: the daily check has yet to assess the change.
+  changeNotAssessed: 'change_not_assessed',
+  // 422: a change of the act of an earlier form is still open; it is resolved first.
+  olderChangeOpen: 'older_change_open',
 } as const;

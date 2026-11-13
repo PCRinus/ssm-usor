@@ -76,6 +76,7 @@ const changeRow = {
   resolved_at: null,
   resolved_by_note: null,
   act,
+  verified: { verified_consolidated_on: '2026-08-25' },
   amended_units: [
     {
       unit: 'Art. 36 alin. (2)',
@@ -143,6 +144,8 @@ let user: typeof admin | typeof member = admin;
 let change: Record<string, unknown> | null = changeRow;
 let rpcError: { code: string; message: string } | null = null;
 let runs: unknown[] = [];
+let listed: unknown[] = [];
+let older: unknown[] = [];
 
 function mockUpstream() {
   fetchMock.mockImplementation(async (input, init) => {
@@ -171,16 +174,17 @@ function mockUpstream() {
       return Response.json(changeRow);
     }
     if (path === '/rest/v1/legal_changes' && params.get('select')?.includes('passages:')) {
-      return Response.json([{ ...changeRow, passages: [{ count: 2 }] }]);
+      const from = Number(params.get('offset') ?? 0);
+      return Response.json(listed.slice(from, from + Number(params.get('limit'))));
+    }
+    if (path === '/rest/v1/legal_changes' && params.get('consolidated_on')?.startsWith('lt.')) {
+      return Response.json(older);
     }
     if (path === '/rest/v1/legal_changes' && params.get('id')) {
       return single ? Response.json(change) : Response.json(change ? [change] : []);
     }
     if (path === '/rest/v1/legal_changes' && method === 'HEAD') {
       return new Response(null, { status: 200, headers: { 'Content-Range': '*/0' } });
-    }
-    if (path === '/rest/v1/legal_changes') {
-      return Response.json([{ act_id: act.id }, { act_id: act.id }]);
     }
     if (path === '/rest/v1/legal_change_passages') {
       return Response.json([
@@ -201,8 +205,14 @@ function mockUpstream() {
     }
     if (path === '/rest/v1/legal_acts') {
       return Response.json([
-        { ...actRow, id: 'lege-319-2006', name: 'Legea 319/2006', portal_id: 73772 },
-        actRow,
+        {
+          ...actRow,
+          id: 'lege-319-2006',
+          name: 'Legea 319/2006',
+          portal_id: 73772,
+          open: [{ count: 0 }],
+        },
+        { ...actRow, open: [{ count: 2 }] },
       ]);
     }
     if (path === '/rest/v1/legal_check_runs') {
@@ -244,6 +254,8 @@ beforeEach(() => {
   change = changeRow;
   rpcError = null;
   runs = [runRow(3), runRow(2), runRow(1)];
+  listed = [{ ...changeRow, passages: [{ count: 2 }] }];
+  older = [];
   mockUpstream();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -302,6 +314,20 @@ describe('GET /admin/legislation/changes', () => {
     expect(read!.url.searchParams.get('order')).toBe('seen_at.desc,consolidated_on.desc,id.asc');
   });
 
+  it('reads every change past the thousand rows the database answers at once', async () => {
+    listed = Array.from({ length: 1001 }, () => ({ ...changeRow, passages: [{ count: 0 }] }));
+
+    const list = adminLegalChangeListSchema.parse(
+      await (await request('/admin/legislation/changes?status=open')).json()
+    );
+
+    expect(list.items).toHaveLength(1001);
+    expect(restCalls().map((call) => call.url.searchParams.get('offset'))).toEqual(['0', '1000']);
+    expect(restCalls().every((call) => call.url.searchParams.get('resolution') === 'eq.open')).toBe(
+      true
+    );
+  });
+
   it('reads the resolved and the unassessed changes', async () => {
     await request('/admin/legislation/changes?status=resolved&outcome=unassessed');
 
@@ -357,8 +383,49 @@ describe('GET /admin/legislation/changes/:id', () => {
       'template.type_key': 'in.(general_training_material)',
       resolves_legal_change_id: 'is.null',
       kind: 'neq.layout',
+      note: 'not.is.null',
       created_at: `gt.${changeRow.seen_at}`,
     });
+    expect(detail.awaitingAssessment).toBe(false);
+    expect(detail.olderOpenChanges).toEqual([]);
+  });
+
+  it('names the act’s older open changes, oldest first, which are resolved before it', async () => {
+    older = [{ id: 'd1d1d1d1-0000-4000-8000-000000000002', consolidated_on: '2026-10-30' }];
+
+    const detail = adminLegalChangeDetailSchema.parse(
+      await (await request(`/admin/legislation/changes/${changeId}`)).json()
+    );
+
+    expect(detail.olderOpenChanges).toEqual([
+      { id: 'd1d1d1d1-0000-4000-8000-000000000002', consolidatedOn: '2026-10-30' },
+    ]);
+    const read = restCalls().find((call) => call.url.searchParams.has('consolidated_on'))!;
+    expect(Object.fromEntries(read.url.searchParams)).toMatchObject({
+      act_id: `eq.${act.id}`,
+      resolution: 'eq.open',
+      consolidated_on: `lt.${changeRow.consolidated_on}`,
+      order: 'consolidated_on.asc,id.asc',
+    });
+  });
+
+  it.each([
+    ['after the verified form', '2026-08-25', true],
+    ['at or before the verified form, which the check never assesses', '2026-11-06', false],
+    ['of an act with no verified form', null, true],
+  ])('is awaiting the check while not assessed %s', async (_, verifiedOn, awaiting) => {
+    change = {
+      ...changeRow,
+      outcome: null,
+      assessed_at: null,
+      verified: { verified_consolidated_on: verifiedOn },
+    };
+
+    const detail = adminLegalChangeDetailSchema.parse(
+      await (await request(`/admin/legislation/changes/${changeId}`)).json()
+    );
+
+    expect(detail.awaitingAssessment).toBe(awaiting);
   });
 
   it('offers no version for a resolved change', async () => {
@@ -411,6 +478,8 @@ describe('POST /admin/legislation/changes/:id/no-impact', () => {
 
   it.each([
     ['LGA01', 409, 'legal_change_not_open'],
+    ['LGA05', 422, 'change_not_assessed'],
+    ['LGA06', 422, 'older_change_open'],
     ['P0002', 404, undefined],
     ['42501', 403, undefined],
   ])('answers the database’s %s with %i', async (code, status, reason) => {
@@ -442,8 +511,12 @@ describe('POST /admin/legislation/changes/:id/template-version', () => {
     });
   });
 
-  it('answers a version that cannot answer the change with 422', async () => {
-    rpcError = { code: 'LGA02', message: 'refused' };
+  it.each([
+    ['LGA02', 'template_version_cannot_answer'],
+    ['LGA05', 'change_not_assessed'],
+    ['LGA06', 'older_change_open'],
+  ])('answers the database’s %s with 422 %s', async (code, reason) => {
+    rpcError = { code, message: 'refused' };
 
     const response = await request(`/admin/legislation/changes/${changeId}/template-version`, {
       method: 'POST',
@@ -451,9 +524,19 @@ describe('POST /admin/legislation/changes/:id/template-version', () => {
     });
 
     expect(response.status).toBe(422);
-    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
-      'template_version_cannot_answer'
-    );
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(reason);
+  });
+
+  it('does not read an invalid parameter as a note, which the link has none of', async () => {
+    rpcError = { code: '22023', message: 'invalid' };
+
+    const response = await request(`/admin/legislation/changes/${changeId}/template-version`, {
+      method: 'POST',
+      body: JSON.stringify({ templateVersionId: versionId }),
+    });
+
+    expect(response.status).toBe(500);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues).toBeUndefined();
   });
 });
 
@@ -467,7 +550,11 @@ describe('GET /admin/legislation/acts', () => {
       ['Legea 319/2006', 0],
       ['O.U.G. 195/2002', 2],
     ]);
-    expect(restCalls().every((call) => call.secret)).toBe(true);
+    const [read] = restCalls();
+    expect(restCalls()).toHaveLength(1);
+    expect(read!.secret).toBe(true);
+    expect(read!.url.searchParams.get('select')).toContain('open:legal_changes(count)');
+    expect(read!.url.searchParams.get('open.resolution')).toBe('eq.open');
   });
 });
 

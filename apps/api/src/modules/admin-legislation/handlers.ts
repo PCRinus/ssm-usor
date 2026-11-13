@@ -27,7 +27,7 @@ import { z } from 'zod';
 
 import type { Database } from '../../database.types';
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
-import { createDataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 
@@ -163,20 +163,23 @@ function changeIdOf(c: Context<ApiEnv>) {
 
 export async function listChanges(c: Context<ApiEnv>) {
   const query = parsed(adminLegalChangeListQuerySchema, c.req.query());
-  let request = createAdminClient(c)
-    .from('legal_changes')
-    .select(`${changeColumns}, passages:legal_change_passages(count)`)
-    .order('seen_at', { ascending: false })
-    .order('consolidated_on', { ascending: false })
-    .order('id');
-  if (query.status === 'open') request = request.eq('resolution', 'open');
-  if (query.status === 'resolved') request = request.neq('resolution', 'open');
-  if (query.outcome === 'unassessed') request = request.is('outcome', null);
-  else if (query.outcome) request = request.eq('outcome', query.outcome);
-  const { data, error } = await request;
-  if (error) throw fromDatabaseError(error, 'list legal changes');
+  const db = createAdminClient(c);
+  const page = (from: number, to: number) => {
+    let request = db
+      .from('legal_changes')
+      .select(`${changeColumns}, passages:legal_change_passages(count)`)
+      .order('seen_at', { ascending: false })
+      .order('consolidated_on', { ascending: false })
+      .order('id');
+    if (query.status === 'open') request = request.eq('resolution', 'open');
+    if (query.status === 'resolved') request = request.neq('resolution', 'open');
+    if (query.outcome === 'unassessed') request = request.is('outcome', null);
+    else if (query.outcome) request = request.eq('outcome', query.outcome);
+    return request.range(from, to);
+  };
+  const rows = await everyRow(page, 'list legal changes');
   return c.json({
-    items: data.map((row): AdminLegalChangeListItem => ({
+    items: rows.map((row): AdminLegalChangeListItem => ({
       ...summaryOf(row),
       passageCount: row.passages[0]?.count ?? 0,
     })),
@@ -192,17 +195,34 @@ async function candidatesOf(db: AdminClient, change: ChangeSummaryRow, typeKeys:
     .in('template.type_key', typeKeys)
     .is('resolves_legal_change_id', null)
     .neq('kind', 'layout')
+    .not('note', 'is', null)
     .gt('created_at', change.seen_at)
     .order('created_at', { ascending: false });
   if (error) throw fromDatabaseError(error, 'list the versions that can answer a legal change');
   return data.map(toVersion);
 }
 
+async function olderOpenChangesOf(db: AdminClient, change: ChangeSummaryRow) {
+  if (change.resolution !== 'open') return [];
+  const { data, error } = await db
+    .from('legal_changes')
+    .select('id, consolidated_on')
+    .eq('act_id', change.act_id)
+    .eq('resolution', 'open')
+    .lt('consolidated_on', change.consolidated_on)
+    .order('consolidated_on')
+    .order('id');
+  if (error) throw fromDatabaseError(error, 'list the older open changes of a legal change');
+  return data.map((row) => ({ id: row.id, consolidatedOn: row.consolidated_on }));
+}
+
 async function detailOf(db: AdminClient, id: string) {
   const [change, passages, resolving] = await Promise.all([
     db
       .from('legal_changes')
-      .select(`${changeColumns}, amended_units, review`)
+      .select(
+        `${changeColumns}, amended_units, review, verified:legal_acts(verified_consolidated_on)`
+      )
       .eq('id', id)
       .maybeSingle(),
     db
@@ -220,13 +240,23 @@ async function detailOf(db: AdminClient, id: string) {
   const typeKeys = [
     ...new Set(passages.data.flatMap((passage) => (passage.type_key ? [passage.type_key] : []))),
   ];
+  const verifiedOn = change.data.verified.verified_consolidated_on;
+  const [candidateVersions, olderOpenChanges] = await Promise.all([
+    candidatesOf(db, change.data, typeKeys),
+    olderOpenChangesOf(db, change.data),
+  ]);
   return adminLegalChangeDetailSchema.parse({
     ...summaryOf(change.data),
     amendedUnits: storedAmendedUnitsSchema.parse(change.data.amended_units ?? []),
     review: storedReviewSchema.parse(change.data.review ?? []),
     passages: [...passages.data].sort(passageOrder).map(toPassage),
     resolvingVersion: resolving.data[0] ? toVersion(resolving.data[0]) : null,
-    candidateVersions: await candidatesOf(db, change.data, typeKeys),
+    candidateVersions,
+    awaitingAssessment:
+      change.data.resolution === 'open' &&
+      change.data.outcome === null &&
+      (verifiedOn === null || change.data.consolidated_on > verifiedOn),
+    olderOpenChanges,
   });
 }
 
@@ -266,10 +296,20 @@ function writeRefusal(error: { code?: string | null; message?: string }, context
         undefined,
         adminLegislationErrorReasons.openChangesAtOrBefore
       );
-    case '22023':
-      return new ApiError('validation_error', undefined, [
-        { path: 'note', message: 'The note has 2 to 500 characters.' },
-      ]);
+    case 'LGA05':
+      return new ApiError(
+        'unprocessable',
+        'The daily check has not assessed the legal change yet.',
+        undefined,
+        adminLegislationErrorReasons.changeNotAssessed
+      );
+    case 'LGA06':
+      return new ApiError(
+        'unprocessable',
+        'An older change of the act is still open. Resolve it first.',
+        undefined,
+        adminLegislationErrorReasons.olderChangeOpen
+      );
   }
   return fromDatabaseError(error, context);
 }
@@ -283,6 +323,11 @@ export async function resolveNoImpact(c: Context<ApiEnv>) {
     p_change_id: id,
     p_note: body.note,
   });
+  if (error?.code === '22023') {
+    throw new ApiError('validation_error', undefined, [
+      { path: 'note', message: 'The note has 2 to 500 characters.' },
+    ]);
+  }
   if (error) throw writeRefusal(error, 'resolve legal change as no impact');
   return c.json(await detailOf(createAdminClient(c), id));
 }
@@ -315,17 +360,13 @@ const toAct = (
 });
 
 export async function listActs(c: Context<ApiEnv>) {
-  const db = createAdminClient(c);
-  const [acts, open] = await Promise.all([
-    db.from('legal_acts').select(actColumns),
-    db.from('legal_changes').select('act_id').eq('resolution', 'open'),
-  ]);
-  if (acts.error) throw fromDatabaseError(acts.error, 'list legal acts');
-  if (open.error) throw fromDatabaseError(open.error, 'count open legal changes');
-  const counts = new Map<string, number>();
-  for (const row of open.data) counts.set(row.act_id, (counts.get(row.act_id) ?? 0) + 1);
-  const items = acts.data
-    .map((row) => toAct(row, counts.get(row.id) ?? 0))
+  const { data, error } = await createAdminClient(c)
+    .from('legal_acts')
+    .select(`${actColumns}, open:legal_changes(count)`)
+    .eq('open.resolution', 'open');
+  if (error) throw fromDatabaseError(error, 'list legal acts');
+  const items = data
+    .map(({ open, ...row }) => toAct(row, open[0]?.count ?? 0))
     .sort((a, b) => collator.compare(a.name, b.name) || a.id.localeCompare(b.id));
   return c.json({ items } satisfies AdminLegalActList);
 }
