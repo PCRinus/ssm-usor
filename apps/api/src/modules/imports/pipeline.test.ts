@@ -1890,6 +1890,27 @@ describe('an employee import', () => {
     expect(world.objects.has(locationsPathOf(photo, 1))).toBe(false);
   });
 
+  it('locates a page read before the residence and the means of transport were asked for', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    await drain(deps());
+    const photo = world.fileAt('Fise/Popescu 1.jpg');
+    const readingPath = photo.storage_path.replace(/\.[a-z]+$/, '.page-1.json');
+    const reading = JSON.parse(strFromU8(world.objects.get(readingPath)!)) as {
+      fields: Record<string, unknown>;
+    };
+    delete reading.fields.residenceAddress;
+    delete reading.fields.commuteMeans;
+    delete reading.fields.commuteMeansOther;
+    world.objects.set(readingPath, strToU8(JSON.stringify(reading)));
+    world.objects.delete(locationsPathOf(photo, 1));
+
+    world.send({ type: 'locate', importId, fileId: photo.id, page: 1 });
+    await drain(deps());
+
+    expect(world.objects.has(locationsPathOf(photo, 1))).toBe(true);
+  });
+
   it('locates a page once, and stores nothing for an import that ended', async () => {
     model = sheetModel(sheetAnswers);
     startEmployees(sheetFiles);

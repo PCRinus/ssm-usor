@@ -949,6 +949,23 @@ async function locating(deps: PipelineDeps, importId: string) {
 
 // The image located is the one read and the one the viewer shows, so the boxes line up with what
 // the member sees (ADR 043).
+// A page read before the residence and the means of transport were asked for has neither; it is
+// still located, as a page that names none.
+function withFieldsAddedLater(reading: unknown) {
+  if (!reading || typeof reading !== 'object' || !('fields' in reading)) return reading;
+  const fields = reading.fields as Record<string, unknown> | null;
+  if (!fields || typeof fields !== 'object') return reading;
+  return {
+    ...reading,
+    fields: {
+      residenceAddress: null,
+      commuteMeans: [],
+      commuteMeansOther: null,
+      ...fields,
+    },
+  };
+}
+
 export async function locatePage(
   deps: PipelineDeps,
   importId: string,
@@ -966,7 +983,9 @@ export async function locatePage(
   if (names.has(name(target)) || !names.has(name(readingPath))) return;
   const reading = sheetPageSchema
     .nullable()
-    .safeParse(JSON.parse(decoder.decode(await deps.objects.read(readingPath))));
+    .safeParse(
+      withFieldsAddedLater(JSON.parse(decoder.decode(await deps.objects.read(readingPath))))
+    );
   if (!reading.success || reading.data === null) return;
   const targets = locatingTargets(reading.data);
   if (targets.length === 0) return;
