@@ -254,6 +254,7 @@ export function discordWebhook(
           return post(payload, true);
         }
       }
+      if (!response.bodyUsed) await response.body?.cancel().catch(() => {});
       if (!response.ok) {
         console.error(`${what} was not posted: Discord answered ${response.status}.`);
         return false;

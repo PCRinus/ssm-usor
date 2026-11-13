@@ -324,3 +324,21 @@ describe('discordWebhook', () => {
     expect(console.error).toHaveBeenLastCalledWith('A message was not posted: fetch failed.');
   });
 });
+
+describe('a refused post', () => {
+  it('releases the response body before giving up', async () => {
+    let cancelled = false;
+    const body = new ReadableStream({
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const webhook = discordWebhook('https://discord.example/hook', {
+      fetcher: () => Promise.resolve(new Response(body, { status: 400 })),
+    });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await webhook.send({ content: 'x' })).toBe(false);
+    expect(cancelled).toBe(true);
+    errors.mockRestore();
+  });
+});
