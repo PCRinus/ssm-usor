@@ -1561,6 +1561,17 @@ export type EmployeeResponseEmployeeWorkplace = {
   name: string;
 } | null;
 
+export type EmployeeResponseEmployeeCommuteMeansItem =
+  (typeof EmployeeResponseEmployeeCommuteMeansItem)[keyof typeof EmployeeResponseEmployeeCommuteMeansItem];
+
+export const EmployeeResponseEmployeeCommuteMeansItem = {
+  on_foot: 'on_foot',
+  bicycle: 'bicycle',
+  personal_car: 'personal_car',
+  employer_transport: 'employer_transport',
+  public_transport: 'public_transport',
+} as const;
+
 /**
  * @nullable
  */
@@ -1776,6 +1787,9 @@ export type EmployeeResponseEmployee = {
   authorizations: string | null;
   /** @nullable */
   commuteRoute: string | null;
+  commuteMeans: EmployeeResponseEmployeeCommuteMeansItem[];
+  /** @nullable */
+  commuteMeansOther: string | null;
   /** @nullable */
   commuteMinutes: number | null;
   createdAt: string;
@@ -1812,6 +1826,17 @@ export type CreateEmployeeRequestRhFactor =
 export const CreateEmployeeRequestRhFactor = {
   '+': '+',
   '-': '-',
+} as const;
+
+export type CreateEmployeeRequestCommuteMeansItem =
+  (typeof CreateEmployeeRequestCommuteMeansItem)[keyof typeof CreateEmployeeRequestCommuteMeansItem];
+
+export const CreateEmployeeRequestCommuteMeansItem = {
+  on_foot: 'on_foot',
+  bicycle: 'bicycle',
+  personal_car: 'personal_car',
+  employer_transport: 'employer_transport',
+  public_transport: 'public_transport',
 } as const;
 
 export interface CreateEmployeeRequest {
@@ -1915,6 +1940,17 @@ export interface CreateEmployeeRequest {
    */
   commuteRoute?: string | null;
   /**
+   * @maxItems 20
+   * @nullable
+   */
+  commuteMeans?: CreateEmployeeRequestCommuteMeansItem[] | null;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  commuteMeansOther?: string | null;
+  /**
    * @minimum 1
    * @maximum 600
    * @nullable
@@ -1944,6 +1980,17 @@ export type UpdateEmployeeRequestRhFactor =
 export const UpdateEmployeeRequestRhFactor = {
   '+': '+',
   '-': '-',
+} as const;
+
+export type UpdateEmployeeRequestCommuteMeansItem =
+  (typeof UpdateEmployeeRequestCommuteMeansItem)[keyof typeof UpdateEmployeeRequestCommuteMeansItem];
+
+export const UpdateEmployeeRequestCommuteMeansItem = {
+  on_foot: 'on_foot',
+  bicycle: 'bicycle',
+  personal_car: 'personal_car',
+  employer_transport: 'employer_transport',
+  public_transport: 'public_transport',
 } as const;
 
 export interface UpdateEmployeeRequest {
@@ -2046,6 +2093,17 @@ export interface UpdateEmployeeRequest {
    * @nullable
    */
   commuteRoute?: string | null;
+  /**
+   * @maxItems 20
+   * @nullable
+   */
+  commuteMeans?: UpdateEmployeeRequestCommuteMeansItem[] | null;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   * @nullable
+   */
+  commuteMeansOther?: string | null;
   /**
    * @minimum 1
    * @maximum 600
@@ -8990,6 +9048,13 @@ export type EmployeeImportReviewChangesPeopleFieldsCommuteRoute = {
   replace?: boolean;
 };
 
+export type EmployeeImportReviewChangesPeopleFieldsCommuteMeans = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
 export type EmployeeImportReviewChangesPeopleFieldsCommuteMinutes = {
   /** @minimum 0 */
   option?: number;
@@ -9015,6 +9080,7 @@ export type EmployeeImportReviewChangesPeopleFields = {
   leftOn?: EmployeeImportReviewChangesPeopleFieldsLeftOn;
   workplace?: EmployeeImportReviewChangesPeopleFieldsWorkplace;
   commuteRoute?: EmployeeImportReviewChangesPeopleFieldsCommuteRoute;
+  commuteMeans?: EmployeeImportReviewChangesPeopleFieldsCommuteMeans;
   commuteMinutes?: EmployeeImportReviewChangesPeopleFieldsCommuteMinutes;
 };
 
@@ -9423,6 +9489,22 @@ export type EmployeeImportReviewProposalPeopleItemFieldsCommuteRoute = {
   app?: string | null;
 };
 
+export type EmployeeImportReviewProposalPeopleItemFieldsCommuteMeansOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsCommuteMeans = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsCommuteMeansOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
 export type EmployeeImportReviewProposalPeopleItemFieldsCommuteMinutesOptionsItem = {
   value: number;
   /** @minItems 1 */
@@ -9453,6 +9535,7 @@ export type EmployeeImportReviewProposalPeopleItemFields = {
   leftOn: EmployeeImportReviewProposalPeopleItemFieldsLeftOn;
   workplace: EmployeeImportReviewProposalPeopleItemFieldsWorkplace;
   commuteRoute: EmployeeImportReviewProposalPeopleItemFieldsCommuteRoute;
+  commuteMeans?: EmployeeImportReviewProposalPeopleItemFieldsCommuteMeans;
   commuteMinutes: EmployeeImportReviewProposalPeopleItemFieldsCommuteMinutes;
 };
 
@@ -11460,6 +11543,13 @@ export type SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteRoute = {
   replace?: boolean;
 };
 
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteMeans = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
 export type SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteMinutes = {
   /** @minimum 0 */
   option?: number;
@@ -11485,6 +11575,7 @@ export type SaveEmployeeImportChangesRequestChangesPeopleFields = {
   leftOn?: SaveEmployeeImportChangesRequestChangesPeopleFieldsLeftOn;
   workplace?: SaveEmployeeImportChangesRequestChangesPeopleFieldsWorkplace;
   commuteRoute?: SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteRoute;
+  commuteMeans?: SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteMeans;
   commuteMinutes?: SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteMinutes;
 };
 

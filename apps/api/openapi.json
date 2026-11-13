@@ -2136,6 +2136,23 @@
                 "type": "string",
                 "nullable": true
               },
+              "commuteMeans": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "on_foot",
+                    "bicycle",
+                    "personal_car",
+                    "employer_transport",
+                    "public_transport"
+                  ]
+                }
+              },
+              "commuteMeansOther": {
+                "type": "string",
+                "nullable": true
+              },
               "commuteMinutes": {
                 "type": "integer",
                 "nullable": true
@@ -2319,6 +2336,8 @@
               "education",
               "authorizations",
               "commuteRoute",
+              "commuteMeans",
+              "commuteMeansOther",
               "commuteMinutes",
               "createdAt",
               "updatedAt",
@@ -2453,6 +2472,27 @@
             "minLength": 1,
             "maxLength": 1000
           },
+          "commuteMeans": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "on_foot",
+                "bicycle",
+                "personal_car",
+                "employer_transport",
+                "public_transport"
+              ]
+            },
+            "maxItems": 20
+          },
+          "commuteMeansOther": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
+          },
           "commuteMinutes": {
             "type": "integer",
             "nullable": true,
@@ -2584,6 +2624,27 @@
             "nullable": true,
             "minLength": 1,
             "maxLength": 1000
+          },
+          "commuteMeans": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "on_foot",
+                "bicycle",
+                "personal_car",
+                "employer_transport",
+                "public_transport"
+              ]
+            },
+            "maxItems": 20
+          },
+          "commuteMeansOther": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 120
           },
           "commuteMinutes": {
             "type": "integer",
@@ -15681,6 +15742,32 @@
                           },
                           "additionalProperties": false
                         },
+                        "commuteMeans": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
                         "commuteMinutes": {
                           "type": "object",
                           "properties": {
@@ -16661,6 +16748,40 @@
                               "nullable": true,
                               "minLength": 1
                             }
+                          },
+                          "required": ["options"]
+                        },
+                        "commuteMeans": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "default": {
+                            "options": []
                           },
                           "required": ["options"]
                         },
@@ -17741,6 +17862,32 @@
                           "additionalProperties": false
                         },
                         "commuteRoute": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "commuteMeans": {
                           "type": "object",
                           "properties": {
                             "option": {
@@ -23571,6 +23718,23 @@
                 "type": "string",
                 "nullable": true
               },
+              "commuteMeans": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "on_foot",
+                    "bicycle",
+                    "personal_car",
+                    "employer_transport",
+                    "public_transport"
+                  ]
+                }
+              },
+              "commuteMeansOther": {
+                "type": "string",
+                "nullable": true
+              },
               "commuteMinutes": {
                 "type": "integer",
                 "nullable": true
@@ -23594,6 +23758,8 @@
               "education",
               "authorizations",
               "commuteRoute",
+              "commuteMeans",
+              "commuteMeansOther",
               "commuteMinutes"
             ]
           },

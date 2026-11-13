@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
+import { commuteMeanSchema, commuteMeansOtherMaxLength } from './commute-means';
 import { listQuerySchema, listSearchSchema, pageSchema } from './list';
 import { phoneSchema } from './phone';
 import { employeeTestsSchema, testStateFilterSchema } from './tests';
@@ -61,6 +62,9 @@ export const createEmployeeRequestSchema = z
     education: optionalText(1, 160),
     authorizations: optionalText(1, 500),
     commuteRoute: optionalText(1, 1000),
+    // Left out, none; repeated codes count once.
+    commuteMeans: z.array(commuteMeanSchema).max(20).nullish(),
+    commuteMeansOther: optionalText(1, commuteMeansOtherMaxLength),
     commuteMinutes: z.number().int().min(1).max(600).nullish(),
   })
   .superRefine((body, ctx) => {
@@ -147,6 +151,9 @@ export const employeeSchema = z.object({
   education: z.string().nullable(),
   authorizations: z.string().nullable(),
   commuteRoute: z.string().nullable(),
+  // In the list's order.
+  commuteMeans: z.array(commuteMeanSchema),
+  commuteMeansOther: z.string().nullable(),
   commuteMinutes: z.number().int().nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),

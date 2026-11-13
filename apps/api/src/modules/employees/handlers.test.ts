@@ -68,6 +68,8 @@ const employeeRow = {
   education: null,
   authorizations: null,
   commute_route: null,
+  commute_means: [],
+  commute_means_other: null,
   commute_minutes: null,
   training_status: {
     ssm_state: 'due',
@@ -131,6 +133,8 @@ const employeeListRow = Object.fromEntries(
         'education',
         'authorizations',
         'commute_route',
+        'commute_means',
+        'commute_means_other',
         'commute_minutes',
         'contract_number',
       ].includes(key)
@@ -471,6 +475,8 @@ describe('POST /clients/{clientId}/employees', () => {
       education: null,
       authorizations: null,
       commute_route: null,
+      commute_means: [],
+      commute_means_other: null,
       commute_minutes: null,
       created_by: user.id,
     });
@@ -765,6 +771,8 @@ describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
       education: null,
       authorizations: null,
       commute_route: null,
+      commute_means: [],
+      commute_means_other: null,
       commute_minutes: null,
     });
     // Status, leave date and archive are not this route's to touch.
@@ -893,6 +901,8 @@ describe('training sheet fields on employees (ADR 021)', () => {
     education: 'Școala profesională',
     authorizations: 'ISCIR',
     commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+    commuteMeans: ['public_transport', 'on_foot', 'public_transport'],
+    commuteMeansOther: ' Trotineta firmei ',
     commuteMinutes: 35,
   };
   const sent = (method: 'POST' | 'PATCH') =>
@@ -919,6 +929,8 @@ describe('training sheet fields on employees (ADR 021)', () => {
       education: 'Școala profesională',
       authorizations: 'ISCIR',
       commute_route: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+      commute_means: ['on_foot', 'public_transport'],
+      commute_means_other: 'Trotineta firmei',
       commute_minutes: 35,
     };
     mockUpstream({
@@ -933,6 +945,8 @@ describe('training sheet fields on employees (ADR 021)', () => {
       education: 'Școala profesională',
       authorizations: 'ISCIR',
       commute_route: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+      commute_means: ['on_foot', 'public_transport'],
+      commute_means_other: 'Trotineta firmei',
       commute_minutes: 35,
     });
     const lookup = new URL(String(calls('/rest/v1/client_workplaces')[0]![0])).searchParams;
@@ -945,6 +959,8 @@ describe('training sheet fields on employees (ADR 021)', () => {
       workplace: { id: workplaceId, name: 'Punct de lucru Str. Fabricii 3' },
       qualification: 'Sudor autorizat',
       commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+      commuteMeans: ['on_foot', 'public_transport'],
+      commuteMeansOther: 'Trotineta firmei',
       commuteMinutes: 35,
     });
   });
