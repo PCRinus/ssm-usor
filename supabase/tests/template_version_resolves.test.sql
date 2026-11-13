@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(26);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -16,7 +16,8 @@ on conflict (id) do update set verified_consolidated_on = excluded.verified_cons
 
 insert into public.legal_changes (id, act_id, consolidated_on, outcome, assessed_at, compared_with) values
   ('d1d1d1d1-0000-4000-8000-000000000001', 'oug-195-2002', '2030-02-01', 'quote_differs', now(), '2030-01-01'),
-  ('d1d1d1d1-0000-4000-8000-000000000002', 'lege-319-2006', '2030-03-01', 'quote_differs', now(), '2030-01-01');
+  ('d1d1d1d1-0000-4000-8000-000000000002', 'lege-319-2006', '2030-03-01', 'quote_differs', now(), '2030-01-01'),
+  ('d1d1d1d1-0000-4000-8000-000000000004', 'lege-319-2006', '2030-02-15', 'quote_differs', now(), '2030-01-01');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -70,15 +71,30 @@ select is(
 select results_eq(
   $$ select version, created from public.register_built_in_template_version(
        'resolves_test', 'Material', 'built-in/resolves_test/2.docx', repeat('2', 64), 'legal', 'Altă notă.',
-       '[{"act": "lege-319-2006", "consolidatedOn": "2030-03-01"}]') $$,
+       '[{"act": "lege-319-2006", "consolidatedOn": "2030-02-15"}]') $$,
   $$ values (2, false) $$,
-  'a file registered again keeps what it came with'
+  'a file registered again is the version it already is'
+);
+
+select results_eq(
+  $$ select kind, note from public.document_template_versions where sha256 = repeat('2', 64) $$,
+  $$ values ('legal', 'Art. 36 alin. (2) din O.U.G. 195/2002 citat în forma în vigoare.') $$,
+  'and keeps the kind and note it came with'
+);
+
+select results_eq(
+  $$ select resolution, resolved_by_note from public.legal_changes
+     where id = 'd1d1d1d1-0000-4000-8000-000000000004' $$,
+  $$ values ('template_version', 'Art. 36 alin. (2) din O.U.G. 195/2002 citat în forma în vigoare.') $$,
+  'but still resolves the changes its manifest names, with the version''s note'
 );
 
 select is(
-  (select resolution from public.legal_changes where id = 'd1d1d1d1-0000-4000-8000-000000000002'),
-  'open',
-  'so the same file resolves nothing new'
+  (select count(*) from public.template_version_legal_changes l
+   join public.document_template_versions tv on tv.id = l.template_version_id
+   where tv.sha256 = repeat('2', 64)),
+  2::bigint,
+  'and is linked to them'
 );
 
 select results_eq(

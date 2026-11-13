@@ -79,6 +79,8 @@ declare
   v_template_id uuid;
   v_version_id uuid;
   v_version integer;
+  v_note text;
+  v_created boolean;
   v_resolves jsonb;
   v_each jsonb;
   v_act_id text;
@@ -102,23 +104,25 @@ begin
   on conflict (type_key) where organization_id is null do update set title = excluded.title
   returning id into v_template_id;
 
-  -- A file already registered keeps the kind, note and changes it came with: they describe what
-  -- changed in that file, and a later manifest describes a later one.
-  select tv.id, tv.version into v_version_id, v_version
+  -- A file already registered keeps the kind and note it came with: they describe what changed
+  -- in that file, and a later manifest describes a later one. The changes a manifest names are
+  -- still resolved by it: a file can already quote a form whose change was recorded after it
+  -- was registered, or a manifest can name an older form along with the one the file answers.
+  select tv.id, tv.version, tv.note into v_version_id, v_version, v_note
   from public.document_template_versions tv
   where tv.template_id = v_template_id and tv.sha256 = p_sha256;
-  if found then
-    return query select v_version_id, v_version, false;
-    return;
+  v_created := not found;
+
+  if v_created then
+    select coalesce(max(tv.version), 0) + 1 into v_version
+    from public.document_template_versions tv
+    where tv.template_id = v_template_id;
+
+    insert into public.document_template_versions (template_id, version, storage_path, sha256, kind, note)
+    values (v_template_id, v_version, p_storage_path, p_sha256, p_kind, p_note)
+    returning id into v_version_id;
   end if;
-
-  select coalesce(max(tv.version), 0) + 1 into v_version
-  from public.document_template_versions tv
-  where tv.template_id = v_template_id;
-
-  insert into public.document_template_versions (template_id, version, storage_path, sha256, kind, note)
-  values (v_template_id, v_version, p_storage_path, p_sha256, p_kind, p_note)
-  returning id into v_version_id;
+  v_note := coalesce(v_note, p_note);
 
   for v_each in select value from jsonb_array_elements(v_resolves) loop
     v_act_id := v_each ->> 'act';
@@ -136,11 +140,11 @@ begin
 
     -- An environment that never saw the form records it as answered.
     insert into public.legal_changes (act_id, consolidated_on, resolution, resolved_at, resolved_by_note)
-    values (v_act_id, v_on, 'template_version', now(), p_note)
+    values (v_act_id, v_on, 'template_version', now(), v_note)
     on conflict (act_id, consolidated_on) do nothing;
 
     update public.legal_changes
-    set resolution = 'template_version', resolved_at = now(), resolved_by_note = p_note
+    set resolution = 'template_version', resolved_at = now(), resolved_by_note = v_note
     where act_id = v_act_id and consolidated_on = v_on and resolution = 'open';
 
     select id into v_change_id
@@ -162,12 +166,12 @@ begin
       and (verified_consolidated_on is null or verified_consolidated_on < v_on);
   end loop;
 
-  return query select v_version_id, v_version, true;
+  return query select v_version_id, v_version, v_created;
 end;
 $$;
 
 comment on function public.register_built_in_template_version(text, text, text, text, text, text, jsonb) is
-  'Registers a built-in template file as its template''s next version, or returns the version its hash already is. A new legal version resolves the changes p_resolves names, recording any this environment never saw, and advances each act''s verified form. 22023 for a resolves that is not an object or list of { act, consolidatedOn }, or that a version not legal names; P0002 for an act not watched.';
+  'Registers a built-in template file as its template''s next version, or returns the version its hash already is, with its kind and note. A legal version, new or already registered, resolves the changes p_resolves names, links them to it, recording any this environment never saw, and advances each act''s verified form. 22023 for a resolves that is not an object or list of { act, consolidatedOn }, or that a version not legal names; P0002 for an act not watched.';
 
 revoke all on function public.register_built_in_template_version(text, text, text, text, text, text, jsonb) from public, anon, authenticated;
 grant execute on function public.register_built_in_template_version(text, text, text, text, text, text, jsonb) to service_role;

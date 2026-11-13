@@ -1242,9 +1242,10 @@ which all count as corrections. The master copies of the built-in set live in th
 repository, with the kind and note of each file's latest change in its manifest;
 `register_built_in_template_version(type, title, path, hash, kind, note, resolves)`,
 reachable only with the secret key, registers one and is idempotent: the same hash is the
-version it already is, with the kind, note and changes it was first registered with, and a
-new hash becomes the next version. `resolves` is the manifest's `change.resolves`, one
-`{ act, consolidatedOn }` or a list, and may be left out; only a legal version takes it.
+version it already is, with the kind and note it was first registered with, and a new hash
+becomes the next version. `resolves` is the manifest's `change.resolves`, one
+`{ act, consolidatedOn }` or a list, and may be left out; only a legal version takes it, and it
+resolves the changes it names whether the version is new or already registered.
 Members read templates and have no write policy.
 
 **Documents.** Each client has two documentation sets, the occupational safety set and the
@@ -2432,8 +2433,8 @@ see it again without repeating it. `resolution` is `open` until it is `no_impact
 `template_version`, and `resolved_at` is set exactly when it is not open; `resolved_by_note`
 says why, in Romanian, since members read it on the Legislație page.
 A template version answers a change when its manifest entry names it, by act and
-consolidation date, since a change's id differs between environments: registering a new
-legal version with `resolves` sets each change it names to `template_version`, with the
+consolidation date, since a change's id differs between environments: registering a legal
+version with `resolves`, new or already registered, sets each change it names to `template_version`, with the
 version's note as `resolved_by_note`, records as resolved a change this environment never
 saw, and moves the act's `verified_consolidated_on` forward to that form, never back. A change
 already resolved keeps its resolution. `template_version_legal_changes` lists every
