@@ -13,12 +13,14 @@ export function PhotoNumber({
   pageId,
   about,
   choice,
+  spot,
   tabIndex,
 }: {
   pages: SheetPage[];
   pageId: string;
   about: string;
   choice?: FieldName;
+  spot?: string | null;
   tabIndex?: number;
 }) {
   const show = use(ShowPageContext);
@@ -29,7 +31,7 @@ export function PhotoNumber({
     <button
       type="button"
       tabIndex={tabIndex}
-      onClick={() => show(pageId, choice)}
+      onClick={() => show(pageId, { choice, spot })}
       aria-label={`Fotografia ${index + 1}, ${about}`}
       aria-current={viewed === pageId || undefined}
       data-testid="person-page-button"
@@ -82,7 +84,7 @@ export function PhotoNumbers({
         <button
           type="button"
           tabIndex={tabIndex}
-          onClick={() => more && show(more, choice)}
+          onClick={() => more && show(more, { choice })}
           aria-label={`${rest.length === 1 ? 'Încă o fotografie' : `Încă ${rest.length} fotografii`}, ${about}: ${rest.map((pageId) => pageIndex(pages, pageId) + 1).join(', ')}`}
           data-testid="person-page-more"
           className={cn(

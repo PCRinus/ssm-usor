@@ -2,33 +2,55 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { LoaderCircle } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
+import {
+  lazy,
+  type RefObject,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
 import { importErrorMessage } from '../import-format';
 import { sourceQuery, viewerChunks } from '../source-query';
+import { centreOn, placeIn, type SpotBox, spotZoom } from '../spot-zoom';
+import { Spotlight, SpotlightToggle } from '../spotlight';
 import { ZoomBar } from '../zoom-bar';
 import type { SheetPage } from './employee-review-model';
 import { pageFileName } from './review-format';
+import { spotBox } from './spot-targets';
 
 const PdfSourceView = lazy(viewerChunks.pdf);
+
+// An import locates its pages once it is ready, so a page opened before then is asked for again
+// the next time it opens.
+const notLocated = (answer: ImportSourceResponse) => answer.locations === null;
 
 export function SheetPageView({
   importId,
   page,
+  spot = null,
   className,
   onEnlarge,
 }: {
   importId: string;
   page: SheetPage;
+  spot?: string | null;
   className?: string;
   onEnlarge?: () => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
-  const query = useQuery(sourceQuery(importId, { file: page.label }, apiRequest, queryClient));
+  const query = useQuery(
+    sourceQuery(importId, { file: page.label }, apiRequest, queryClient, notLocated)
+  );
+  const locations = query.data?.locations ?? null;
+  const box = useMemo(() => spotBox(locations, spot), [locations, spot]);
   return (
     <div
       className={cn('relative overflow-hidden rounded-lg bg-muted/60', className)}
@@ -50,37 +72,105 @@ export function SheetPageView({
             key={query.data.fileId}
             source={query.data}
             quote={null}
+            spot={box}
             onShown={() => undefined}
             onNotFound={() => undefined}
             onEnlarge={onEnlarge}
           />
         </Suspense>
       ) : (
-        <PhotoView source={query.data} name={pageFileName(page)} onEnlarge={onEnlarge} />
+        <PhotoView
+          key={box ? `${box.top} ${box.left} ${box.bottom} ${box.right}` : 'whole'}
+          source={query.data}
+          name={pageFileName(page)}
+          spot={box}
+          onEnlarge={onEnlarge}
+        />
       )}
     </div>
   );
 }
 
+type Frame = { left: number; top: number; width: number; height: number };
+
+function useImageFrame(
+  scroller: RefObject<HTMLDivElement | null>,
+  image: RefObject<HTMLImageElement | null>
+) {
+  const [frame, setFrame] = useState<Frame | null>(null);
+  useEffect(() => {
+    const room = scroller.current;
+    const shown = image.current;
+    if (!room || !shown) return;
+    const measure = () => {
+      if (shown.naturalWidth === 0) return;
+      setFrame(placeIn(room, shown));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(room);
+    observer.observe(shown);
+    shown.addEventListener('load', measure);
+    return () => {
+      observer.disconnect();
+      shown.removeEventListener('load', measure);
+    };
+  }, [scroller, image]);
+  return frame;
+}
+
 function PhotoView({
   source,
   name,
+  spot,
   onEnlarge,
 }: {
   source: ImportSourceResponse;
   name: string;
+  spot: SpotBox | null;
   onEnlarge?: () => void;
 }) {
-  const [zoom, setZoom] = useState<number | 'fit'>('fit');
+  const [view, setView] = useState<{ zoom: number | 'fit'; centre: boolean }>({
+    zoom: 'fit',
+    centre: false,
+  });
+  const [whole, setWhole] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
+  const image = useRef<HTMLImageElement>(null);
+  const frame = useImageFrame(scroller, image);
   const url = source.derived?.url ?? source.original.url;
+  const { zoom } = view;
+
+  useLayoutEffect(() => {
+    if (view.centre && spot && scroller.current && image.current) {
+      centreOn(scroller.current, image.current, spot);
+    }
+  }, [view, spot]);
+
+  const bringIntoView = (shown: HTMLImageElement) => {
+    const room = scroller.current;
+    if (!spot || !room) return;
+    const style = getComputedStyle(room);
+    const width = room.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const height =
+      room.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    const page = { width: shown.naturalWidth, height: shown.naturalHeight };
+    const fitWidth = Math.min(width, (height * page.width) / page.height, page.width);
+    setView({
+      zoom: spotZoom({ box: spot, page, room: { width, height }, unit: width, fitWidth }) ?? 'fit',
+      centre: true,
+    });
+  };
+
   return (
     <>
-      <div className="h-full overflow-auto p-3">
+      <div ref={scroller} className="relative h-full overflow-auto p-3">
         <img
+          ref={image}
           src={url}
           alt={`Fotografia ${name}`}
           data-testid="sheet-page-image"
           onClick={onEnlarge}
+          onLoad={(event) => bringIntoView(event.currentTarget)}
           className={cn(
             'mx-auto block bg-card shadow-sm',
             zoom === 'fit' && 'max-h-full max-w-full object-contain',
@@ -88,8 +178,22 @@ function PhotoView({
           )}
           style={zoom === 'fit' ? undefined : { width: `${zoom * 100}%`, maxWidth: 'none' }}
         />
+        {spot && (
+          <Spotlight
+            box={spot}
+            dimmed={!whole}
+            size={frame}
+            style={frame ?? { inset: 0, visibility: 'hidden' }}
+          />
+        )}
       </div>
-      <ZoomBar zoom={zoom} onZoom={setZoom} fit onEnlarge={onEnlarge} />
+      <ZoomBar
+        zoom={zoom}
+        onZoom={(next) => setView({ zoom: next, centre: false })}
+        fit
+        onEnlarge={onEnlarge}
+        above={spot && <SpotlightToggle whole={whole} onWhole={setWhole} />}
+      />
     </>
   );
 }

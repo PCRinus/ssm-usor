@@ -15,6 +15,8 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { ImportSourceResponse } from '@/api/generated/api';
 
 import { markQuote, pageQuotes } from './source-match';
+import { centreOn, type SpotBox, spotZoom } from './spot-zoom';
+import { Spotlight, SpotlightToggle } from './spotlight';
 import { ZoomBar } from './zoom-bar';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
@@ -34,6 +36,7 @@ const openingPage = (source: ImportSourceResponse) => source.page ?? source.matc
 export default function PdfSourceView({
   source,
   quote,
+  spot = null,
   onNotFound,
   onShown,
   onProgress,
@@ -41,6 +44,7 @@ export default function PdfSourceView({
 }: {
   source: ImportSourceResponse;
   quote: string | null;
+  spot?: SpotBox | null;
   onNotFound: () => void;
   onShown: () => void;
   onProgress?: (loaded: number, total: number) => void;
@@ -56,6 +60,9 @@ export default function PdfSourceView({
   const [opened, setOpened] = useState(source);
   const [pageNumber, setPageNumber] = useState(openingPage(source));
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
+  const [whole, setWhole] = useState(false);
+  const spotted = useRef<SpotBox | null>(null);
+  const centring = useRef(false);
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const textLayer = useRef<HTMLDivElement>(null);
@@ -70,6 +77,7 @@ export default function PdfSourceView({
     setOpened(source);
     setPageNumber(openingPage(source));
   }
+  const shownSpot = pageNumber === openingPage(source) ? spot : null;
 
   const currentUrl = useEffectEvent(() => url);
   // A load is started once for the file and again only after one failed: the next passage's new
@@ -116,12 +124,30 @@ export default function PdfSourceView({
     const layer = textLayer.current;
     const target = page.current;
     const room = scroller.current.clientWidth - 32;
+    const roomHeight = scroller.current.clientHeight - 32;
+    const view = scroller.current;
     void pdf
       .getPage(pageNumber)
       .then(async (pdfPage) => {
         if (cancelled) return;
         const natural = pdfPage.getViewport({ scale: 1 });
-        const scale = zoom === 'fit' ? Math.max(0.5, Math.min(2, room / natural.width)) : zoom;
+        const fitScale = Math.max(0.5, Math.min(2, room / natural.width));
+        if (shownSpot && spotted.current !== shownSpot) {
+          spotted.current = shownSpot;
+          centring.current = true;
+          const near = spotZoom({
+            box: shownSpot,
+            page: natural,
+            room: { width: room, height: roomHeight },
+            unit: natural.width,
+            fitWidth: fitScale * natural.width,
+          });
+          if (near !== null && near !== zoom) {
+            setZoom(near);
+            return;
+          }
+        }
+        const scale = zoom === 'fit' ? fitScale : zoom;
         const viewport = pdfPage.getViewport({ scale });
         const ratio = window.devicePixelRatio || 1;
         const element = canvas.current!;
@@ -132,6 +158,10 @@ export default function PdfSourceView({
         target.style.width = `${viewport.width}px`;
         target.style.height = `${viewport.height}px`;
         target.style.setProperty('--total-scale-factor', String(scale));
+        if (centring.current && shownSpot) {
+          centring.current = false;
+          centreOn(view, target, shownSpot);
+        }
         // A canvas takes one render at a time, so the one this effect replaces is cancelled first.
         rendering = pdfPage.render({
           canvas: element,
@@ -171,7 +201,7 @@ export default function PdfSourceView({
       rendering?.cancel();
       text?.cancel();
     };
-  }, [pdf, url, pageNumber, zoom, quote, source]);
+  }, [pdf, url, pageNumber, zoom, quote, source, shownSpot]);
 
   useEffect(() => {
     if (failed) reportShown();
@@ -190,6 +220,9 @@ export default function PdfSourceView({
         <div ref={page} className="import-pdf-page relative mx-auto bg-white shadow-sm">
           <canvas ref={canvas} className="block" />
           <div ref={textLayer} className="textLayer" />
+          {shownSpot && pdf && (
+            <Spotlight box={shownSpot} dimmed={!whole} className="inset-0 size-full" />
+          )}
         </div>
       </div>
       {pdf && (
@@ -217,7 +250,13 @@ export default function PdfSourceView({
           </Button>
         </div>
       )}
-      <ZoomBar zoom={zoom} onZoom={setZoom} fit onEnlarge={onEnlarge} />
+      <ZoomBar
+        zoom={zoom}
+        onZoom={setZoom}
+        fit
+        onEnlarge={onEnlarge}
+        above={shownSpot && pdf && <SpotlightToggle whole={whole} onWhole={setWhole} />}
+      />
     </>
   );
 }
