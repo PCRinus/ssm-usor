@@ -72,6 +72,7 @@ export function loadPostHog(): Promise<PostHog | null> {
           maskAllInputs: true,
           maskTextSelector: '*',
           maskAttributeFn: maskReplayAttribute,
+          blockSelector: '[data-no-replay]',
           recordBody: false,
           recordHeaders: false,
           captureJsonLd: false,

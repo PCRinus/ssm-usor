@@ -456,6 +456,7 @@ function ImageSourceView({
     <>
       <div className="h-full overflow-auto p-4" data-testid="source-image">
         <img
+          data-no-replay
           src={url}
           alt={`Fotografia ${source.fileName}`}
           onLoad={onShown}

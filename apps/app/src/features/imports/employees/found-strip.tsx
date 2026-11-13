@@ -9,6 +9,7 @@ export function FoundThumb({ clientId, sheet }: { clientId: string; sheet: Found
   if (drawable && url) {
     return (
       <img
+        data-no-replay
         src={url}
         alt=""
         loading="lazy"

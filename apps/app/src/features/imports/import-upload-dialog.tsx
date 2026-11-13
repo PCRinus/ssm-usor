@@ -714,6 +714,7 @@ export function LocalThumb({ file, className }: { file: SelectedFile; className:
   if (previewable) {
     return (
       <img
+        data-no-replay
         alt=""
         className={cn('shrink-0 rounded-md bg-secondary object-cover', className)}
         ref={(image) => {

@@ -16,6 +16,7 @@ export function ImportThumbnail({
   if (drawable && url) {
     return (
       <img
+        data-no-replay
         src={url}
         alt=""
         loading="lazy"
