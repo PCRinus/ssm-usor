@@ -1,4 +1,12 @@
-import { addUsage, costOf, type ModelId, noUsage, type Usage } from './models';
+import {
+  addUsage,
+  costOf,
+  type ModelId,
+  type ModelProvider,
+  modelProviders,
+  noUsage,
+  type Usage,
+} from './models';
 import type { ChatMessage } from './prompts';
 import type { AnswerFormat } from './wire';
 
@@ -17,7 +25,8 @@ export interface CompletionRequest<T> {
   model: ModelId;
   messages: ChatMessage[];
   answer: AnswerFormat<T>;
-  reasoningEffort: ReasoningEffort;
+  // Left out, the model reasons as much as it does by default.
+  reasoningEffort?: ReasoningEffort;
   // Reasoning tokens count toward it.
   maxCompletionTokens: number;
   // `part` names the library part a request reads for (ADR 034), as `instructions_ssm`;
@@ -102,15 +111,32 @@ function usageOf(body: ChatCompletion): Usage {
   };
 }
 
+// Gemini goes through the gateway's unified endpoint named as Google AI Studio, the Gemini API
+// whose paid terms the legal pages cite; the Workers AI catalog does not say which Google backend
+// serves it (ADR 043).
+const routes: Record<ModelProvider, { path: string; model: (id: ModelId) => string }> = {
+  openai: { path: 'openai/chat/completions', model: (id) => id },
+  google: { path: 'compat/chat/completions', model: (id) => `google-ai-studio/${id}` },
+};
+
+// Gemini wrapped the JSON it was asked for in a Markdown code fence when it was reached through
+// the Workers AI catalog; one answer on the unified endpoint is too few to rule that out there.
+const unfenced = (content: string) =>
+  content
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '');
+
 const defaultSleep = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
 export function createModelClient(options: GatewayOptions) {
   const fetchImpl = options.fetch ?? fetch;
   const sleep = options.sleep ?? defaultSleep;
-  const url = `${options.baseUrl.replace(/\/+$/, '')}/openai/chat/completions`;
+  const baseUrl = options.baseUrl.replace(/\/+$/, '');
 
   async function post(
+    url: string,
     body: unknown,
     metadata: CompletionRequest<unknown>['metadata'],
     spent: { usage: Usage; cost: number }
@@ -164,8 +190,10 @@ export function createModelClient(options: GatewayOptions) {
 
   return {
     async complete<T>(request: CompletionRequest<T>): Promise<Completion<T>> {
+      const route = routes[modelProviders[request.model]];
+      const url = `${baseUrl}/${route.path}`;
       const body = {
-        model: request.model,
+        model: route.model(request.model),
         messages: request.messages,
         response_format: {
           type: 'json_schema',
@@ -183,7 +211,7 @@ export function createModelClient(options: GatewayOptions) {
       let cost = 0;
       let problem = '';
       for (let attempt = 1; attempt <= answerAttempts; attempt++) {
-        const completion = await post(body, request.metadata, { usage, cost });
+        const completion = await post(url, body, request.metadata, { usage, cost });
         const attemptUsage = usageOf(completion);
         usage = addUsage(usage, attemptUsage);
         cost += costOf(request.model, attemptUsage);
@@ -199,7 +227,7 @@ export function createModelClient(options: GatewayOptions) {
           );
         }
         try {
-          const value = request.answer.parse(JSON.parse(choice.message?.content ?? ''));
+          const value = request.answer.parse(JSON.parse(unfenced(choice.message?.content ?? '')));
           return { value, usage, cost, attempts: attempt };
         } catch (error) {
           problem = error instanceof Error ? error.message.slice(0, 500) : String(error);

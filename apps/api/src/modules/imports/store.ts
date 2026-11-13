@@ -69,7 +69,7 @@ export type LibraryPartRow = Pick<
 export type LibraryPartUpdate = Tables['import_library_parts']['Update'];
 
 export type ImportUpdate = Tables['imports']['Update'];
-export type ImportStep = 'sorting' | 'reading' | 'scanning';
+export type ImportStep = 'sorting' | 'reading' | 'scanning' | 'locating';
 export type ImportFileUpdate = Tables['import_files']['Update'];
 
 const importColumns =

@@ -170,7 +170,12 @@ const dollars = new Intl.NumberFormat('ro-RO', {
 });
 const cost = (usd: number) => `${dollars.format(usd)}\u00a0$`;
 
-const stepLabels = { sorting: 'sortare', reading: 'citire', scanning: 'scanare' } as const;
+const stepLabels = {
+  sorting: 'sortare',
+  reading: 'citire',
+  scanning: 'scanare',
+  locating: 'localizare',
+} as const;
 
 export function usageLine(usage: ImportUsage) {
   const parts = [
@@ -181,7 +186,7 @@ export function usageLine(usage: ImportUsage) {
   if (usage.readCharacters !== null) {
     parts.push(`${count.format(usage.readCharacters)} caractere citite`);
   }
-  const steps = (['sorting', 'reading', 'scanning'] as const).flatMap((step) => {
+  const steps = (['sorting', 'reading', 'scanning', 'locating'] as const).flatMap((step) => {
     const stepUsage = usage.bySteps[step];
     return stepUsage ? [`${stepLabels[step]} ${cost(stepUsage.costUsd)}`] : [];
   });

@@ -40,14 +40,16 @@ export function sourceQuery(
   importId: string,
   params: GetImportSourceParams,
   apiRequest: ApiRequestOptions,
-  queryClient: QueryClient
+  queryClient: QueryClient,
+  askAgain?: (answer: ImportSourceResponse) => boolean
 ) {
   const queryKey = getGetImportSourceQueryKey(importId, params);
   return getGetImportSourceQueryOptions(importId, params, {
     request: apiRequest,
     query: {
       queryKey,
-      staleTime: (cached) => linkLife(cached.state.data),
+      staleTime: (cached) =>
+        cached.state.data && askAgain?.(cached.state.data) ? 0 : linkLife(cached.state.data),
       // The cache keeps the longest time it was given, so the fallback stays the floor.
       gcTime: linkLife(queryClient.getQueryData<ImportSourceResponse>(queryKey)),
       refetchOnWindowFocus: false,

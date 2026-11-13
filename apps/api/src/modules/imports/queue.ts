@@ -32,6 +32,7 @@ import {
   importReasons,
   isExtractorUnavailable,
   isTransient,
+  locatePage,
   type PipelineDeps,
   prepareFile,
   readImport,
@@ -88,6 +89,7 @@ export const importMessageSchema = z.discriminatedUnion('type', [
     attempt: z.int().min(1),
   }),
   z.object({ type: z.literal('read-risks'), importId, attempt: z.int().min(1) }),
+  z.object({ type: z.literal('locate'), importId, fileId: z.uuid(), page: z.int().min(1) }),
 ]);
 
 export type QueueMessage = {
@@ -152,6 +154,8 @@ export function runStep(deps: PipelineDeps, message: ImportMessage, messageId: s
       return readInstructions(deps, message.importId, message.part, message.attempt, messageId);
     case 'read-risks':
       return readRiskEvaluations(deps, message.importId, message.attempt, messageId);
+    case 'locate':
+      return locatePage(deps, message.importId, message.fileId, message.page);
   }
 }
 
@@ -205,6 +209,9 @@ export async function recordFailure(deps: PipelineDeps, message: ImportMessage, 
         message.attempt,
         riskFailureReason(error)
       );
+      return;
+    case 'locate':
+      // A page left unlocated is only shown without its spotlight.
       return;
   }
 }

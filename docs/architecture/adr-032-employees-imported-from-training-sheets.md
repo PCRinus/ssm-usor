@@ -7,6 +7,7 @@
 - Amended 2026-11-11: a masculine and feminine given name and a different birth date keep two people apart, and pages with no identifier are placed after the others, by the post they write first; see the amendment below.
 - Amended 2026-11-11: a periodic row that also records the fire-safety annual test becomes both a training and an annual result; the SU sheet's admission is the hire date only where no other page gives one; see the amendment below.
 - Amended 2026-11-12 by [ADR 042](adr-042-paper-history-as-written.md): a missing trainer, trainer's function, material or duration is no longer taken from the client's training themes (`from_client_themes` goes), the handover note on a sheet is read with its date, and the review asks on each person's page who gave the periodic trainings; see the note below.
+- Amended 2026-11-13 by [ADR 043](adr-043-photo-value-highlight.md): each sheet page read is also located, by a Gemini 3.1 Flash-Lite request of its own that is not charged in credits and that the review never waits for, so a page opened from a value's badge spotlights where the value is written.
 
 ## Context
 

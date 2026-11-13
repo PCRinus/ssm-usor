@@ -96,6 +96,7 @@ const sourceWith = (url: string) =>
     text: 'Manusi',
     pages: null,
     match: null,
+    locations: null,
     expiresInSeconds: 300,
   }) satisfies ImportSourceResponse;
 

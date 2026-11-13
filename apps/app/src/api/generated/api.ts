@@ -8596,6 +8596,7 @@ export type ImportUsageBySteps = {
   sorting?: ImportModelUsage;
   reading?: ImportModelUsage;
   scanning?: ImportModelUsage;
+  locating?: ImportModelUsage;
   instructions?: ImportModelUsage;
   risks?: ImportModelUsage;
 };
@@ -11220,6 +11221,30 @@ export type ImportSourceResponseMatch = {
   parts: ImportSourceResponseMatchPartsItem[];
 } | null;
 
+export type ImportSourceResponseLocationsItem = {
+  target: string;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  top: number;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  left: number;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  bottom: number;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  right: number;
+};
+
 export interface ImportSourceResponse {
   fileId: string;
   uploadPath: string;
@@ -11238,6 +11263,8 @@ export interface ImportSourceResponse {
   pages: ImportSourceResponsePagesItem[] | null;
   /** @nullable */
   match: ImportSourceResponseMatch;
+  /** @nullable */
+  locations: ImportSourceResponseLocationsItem[] | null;
   expiresInSeconds: number;
 }
 

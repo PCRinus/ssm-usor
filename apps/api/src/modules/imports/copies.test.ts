@@ -218,6 +218,18 @@ describe('keepCopy', () => {
     ]);
   });
 
+  it("copies where a page writes its values beside the page's reading, under its file", async () => {
+    objects = [`${fileId}.jpg`, `${fileId}.page-1.json`, `${fileId}.page-1.locations.json`];
+    await keepCopy(deps(), importId, null);
+
+    expect(calls).toContain(
+      `copy ${folder}/${fileId}.page-1.locations.json -> ${folder}/files/${fileId}.page-1.locations.json`
+    );
+    expect(json(`${folder}/record.json`).files[0].objects).toContain(
+      `files/${fileId}.page-1.locations.json`
+    );
+  });
+
   it('writes what the import was, what the reading was given, how each file was sorted, the proposal and the changes, and its counts', async () => {
     await keepCopy(deps(), importId, null);
 

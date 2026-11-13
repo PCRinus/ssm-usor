@@ -24,6 +24,8 @@ import {
   type FileTriage,
   GatewayError,
   libraryFiles,
+  locatingRequest,
+  locatingTargets,
   lookUpRegistrations,
   ModelAnswerError,
   type ModelClient,
@@ -34,10 +36,12 @@ import {
   readingMessages,
   readingModel,
   setAsideKinds,
+  sheetLocations,
   type SheetPage,
   sheetPageAnswer,
   type SheetPageInput,
   sheetPageMessages,
+  sheetPageSchema,
   sortFiles,
   sortingAnswer,
   sortingMessages,
@@ -243,6 +247,9 @@ const pageReadingPathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: numb
   `${basePathOf(file)}.page-${page}.json`;
 
 const pageReadingName = /^[0-9a-f-]{36}\.page-\d+\.json$/;
+
+export const pageLocationsPathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: number) =>
+  `${basePathOf(file)}.page-${page}.locations.json`;
 
 // import_folder_copies in the database names a page's image the same way.
 const pageImagePathOf = (file: Pick<ImportFileRow, 'storage_path'>, page: number) =>
@@ -932,6 +939,66 @@ function sheetPageReader(deps: PipelineDeps, row: ImportRow, file: ImportFileRow
   };
 }
 
+// An ended import's folder is removed days later; a page located after that would outlive it.
+const locatingStatuses = new Set<ImportStatus>(['reading', 'checking', 'ready']);
+
+async function locating(deps: PipelineDeps, importId: string) {
+  const row = await deps.store.getImport(importId);
+  return row?.kind === 'employees' && locatingStatuses.has(row.status) ? row : null;
+}
+
+// The image located is the one read and the one the viewer shows, so the boxes line up with what
+// the member sees (ADR 043).
+export async function locatePage(
+  deps: PipelineDeps,
+  importId: string,
+  fileId: string,
+  page: number
+) {
+  const row = await locating(deps, importId);
+  if (!row) return;
+  const file = (await deps.store.listFiles(importId)).find((each) => each.id === fileId);
+  if (!file) return;
+  const names = new Set(await deps.objects.list(folderOf(row)));
+  const name = (path: string) => path.slice(path.lastIndexOf('/') + 1);
+  const target = pageLocationsPathOf(file, page);
+  const readingPath = pageReadingPathOf(file, page);
+  if (names.has(name(target)) || !names.has(name(readingPath))) return;
+  const reading = sheetPageSchema
+    .nullable()
+    .safeParse(JSON.parse(decoder.decode(await deps.objects.read(readingPath))));
+  if (!reading.success || reading.data === null) return;
+  const targets = locatingTargets(reading.data);
+  if (targets.length === 0) return;
+  const image = await pageImage(deps, file);
+  const picture = isImage(file)
+    ? await image(page)
+    : { bytes: await deps.objects.read(pageImagePathOf(file, page)), type: 'image/jpeg' };
+  let answer;
+  try {
+    answer = await ask(
+      deps,
+      row,
+      file.id,
+      'locating',
+      locatingRequest(dataUrl(picture.bytes, picture.type), targets)
+    );
+  } catch (error) {
+    if (isTransient(error)) throw error;
+    console.error(
+      `Page ${page} of file ${file.id} of import ${row.id} was not located: ${describe(error)}`
+    );
+    return;
+  }
+  if (!(await locating(deps, importId))) return;
+  const locations = sheetLocations(answer, targets);
+  await deps.objects.create(
+    target,
+    encoder.encode(JSON.stringify({ locations })),
+    'application/json'
+  );
+}
+
 async function readPageNumbers(deps: PipelineDeps, row: ImportRow, file: ImportFileRow) {
   const prefix = `${file.id}.page-`;
   return new Set(
@@ -1152,7 +1219,26 @@ async function checkSheets(deps: PipelineDeps, row: ImportRow) {
     reading_flags: asJson(employeeReadingFlags(await deps.store.listFiles(row.id), proposal)),
     ready_at: new Date().toISOString(),
   });
-  if (ready) await alertImport(deps, row.id, null, ['read']);
+  if (!ready) return;
+  await sendLocates(deps, row, pages);
+  await alertImport(deps, row.id, null, ['read']);
+}
+
+// Sent only once the review has opened, so that locating never takes the queue's slots from the
+// steps the review waits for (ADR 043). A page left unlocated opens without its spotlight, so a
+// failed send fails nothing.
+async function sendLocates(deps: PipelineDeps, row: ImportRow, pages: SheetPageInput[]) {
+  const messages = pages.flatMap((page): ImportMessage[] =>
+    page.reading === null
+      ? []
+      : [{ type: 'locate', importId: row.id, fileId: page.fileId, page: page.page ?? 1 }]
+  );
+  if (messages.length === 0 || !deps.queue) return;
+  try {
+    await sendAll(deps.queue, messages);
+  } catch (error) {
+    console.error(`The pages of import ${row.id} were not sent to be located: ${describe(error)}`);
+  }
 }
 
 export async function copyFolder(deps: PipelineDeps, importId: string) {

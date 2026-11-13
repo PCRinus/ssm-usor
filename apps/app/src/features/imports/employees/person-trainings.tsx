@@ -57,6 +57,7 @@ import {
 import { PhotoNumber, PhotoNumbers } from './person-photos';
 import { domainPhotos, trainingSectionId } from './person-sections';
 import { dateLabel, durationLabel, trainingsLabel } from './review-format';
+import { admissionTarget, rowTarget } from './spot-targets';
 
 type Update = (mutate: (current: Changes) => Changes) => void;
 
@@ -190,6 +191,7 @@ function TrainingRow({
                 pages={pages}
                 pageId={page.id}
                 about={`Instruire ${trainingDomainLabels[row.domain]} din ${date ?? 'data necitită'}`}
+                spot={rowTarget(page, row.id)}
               />
             </span>
             <span className="col-start-2 row-start-1 grid min-w-0 gap-0.5 text-sm lg:contents">
@@ -320,7 +322,12 @@ function TestLine({
         {(toggle) => (
           <>
             <span className="col-start-1 row-start-1 flex">
-              <PhotoNumber pages={pages} pageId={page.id} about={name} />
+              <PhotoNumber
+                pages={pages}
+                pageId={page.id}
+                about={name}
+                spot={rowTarget(page, row.id)}
+              />
             </span>
             <span className="col-start-2 col-end-[-3] row-start-1 grid min-w-0 gap-1">
               <span className="flex min-h-6 items-center font-semibold">
@@ -383,6 +390,7 @@ function Admission({ row, page, pages }: { row: SheetRow; page: SheetPage; pages
           pages={pages}
           pageId={page.id}
           about={`Admis la lucru la ${dateLabel(admission.admittedOn)}`}
+          spot={admissionTarget}
         />
       </span>
       <span className="col-start-2 col-end-[-1] row-start-1 flex min-h-6 items-center">
@@ -449,7 +457,12 @@ function AnnualTest({
         {(toggle) => (
           <>
             <span className="col-start-1 row-start-1 flex">
-              <PhotoNumber pages={pages} pageId={page.id} about={name} />
+              <PhotoNumber
+                pages={pages}
+                pageId={page.id}
+                about={name}
+                spot={rowTarget(page, row.id)}
+              />
             </span>
             <span className="col-start-2 col-end-[-3] row-start-1 grid min-w-0 gap-1">
               <span className="flex min-h-6 items-center">

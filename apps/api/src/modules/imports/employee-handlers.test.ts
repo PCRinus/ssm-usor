@@ -1489,24 +1489,90 @@ describe('POST /imports/{importId}/confirm for an employee import', () => {
 });
 
 describe('the other routes of an employee import', () => {
-  it('serves the converted photograph of a page as its source', async () => {
+  const located = [
+    { target: 'person.name', top: 52, left: 431, bottom: 108, right: 818 },
+    { target: 'trainings[0].heldOn', top: 367, left: 144, bottom: 471, right: 175 },
+  ];
+
+  function sourceUpstream(files: unknown[], locations: (path: string) => Response) {
     mockUpstream(({ url, method }) => {
-      if (url.pathname === '/rest/v1/imports') return Response.json({ id: importId });
-      if (url.pathname === '/rest/v1/import_files') return Response.json([fileRow(1)]);
+      if (url.pathname === '/rest/v1/imports') return Response.json({ kind: 'employees' });
+      if (url.pathname === '/rest/v1/import_files') return Response.json(files);
       if (url.pathname.startsWith('/storage/v1/object/sign/imports/') && method === 'POST') {
         return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
       }
+      if (url.pathname.endsWith('.locations.json')) return locations(url.pathname);
     });
+  }
+
+  it('serves the converted photograph of a page as its source, with where its values are written', async () => {
+    sourceUpstream([fileRow(1)], () => Response.json({ locations: located }));
     const response = await request(
       `/imports/${importId}/source?file=${encodeURIComponent('Fise/Poza 1.jpg')}`
     );
     const body = (await response.json()) as { derived: { url: string; mimeType: string } };
 
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ fileId: fileId(1), page: null, text: null, pages: null });
+    expect(body).toMatchObject({
+      fileId: fileId(1),
+      page: null,
+      text: null,
+      pages: null,
+      locations: located,
+    });
     expect(body.derived.mimeType).toBe('image/jpeg');
     expect(body.derived.url).toContain(storagePath(importId, 1, 'jpeg'));
-    expect(calls.some((call) => call.url.pathname.endsWith('.json'))).toBe(false);
+    const read = calls.filter((call) => call.url.pathname.endsWith('.json'));
+    expect(read.map((call) => [call.method, call.admin])).toEqual([
+      ['POST', true],
+      ['GET', false],
+    ]);
+    for (const call of read) {
+      expect(call.url.pathname).toContain(`${fileId(1)}.page-1.locations.json`);
+    }
+  });
+
+  it("reads a PDF page's locations by its number, and none for the whole PDF", async () => {
+    const pdf = fileRow(2, {
+      upload_path: 'Fise/Dosar.pdf',
+      mime_type: 'application/pdf',
+      storage_path: storagePath(importId, 2, 'pdf'),
+      text_path: null,
+      derived_path: null,
+    });
+    const read: string[] = [];
+    sourceUpstream([pdf], (path) => {
+      read.push(path);
+      return Response.json({ locations: located });
+    });
+    const page = await request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Fise/Dosar.pdf (pagina 3)')}`
+    );
+    expect(await page.json()).toMatchObject({ page: 3, locations: located });
+    expect(read).toEqual([expect.stringContaining(`${fileId(2)}.page-3.locations.json`)]);
+
+    const whole = await request(
+      `/imports/${importId}/source?file=${encodeURIComponent('Fise/Dosar.pdf')}`
+    );
+    expect(await whole.json()).toMatchObject({ page: null, locations: null });
+    expect(read).toHaveLength(1);
+  });
+
+  it('serves a page with no locations, or locations it cannot read, without them', async () => {
+    const answers = [
+      () => new Response('not found', { status: 400 }),
+      () => new Response('{"locations": [', { status: 200 }),
+      () => Response.json({ locations: [{ target: 'person.name', top: -5 }] }),
+      () => Response.json(located),
+    ];
+    for (const answer of answers) {
+      sourceUpstream([fileRow(1)], answer);
+      const response = await request(
+        `/imports/${importId}/source?file=${encodeURIComponent('Fise/Poza 1.jpg')}`
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ fileId: fileId(1), locations: null });
+    }
   });
 
   it('sends no file set aside back to be read, which only a client import does', async () => {

@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { getDocument } from 'pdfjs-dist';
 import { StrictMode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
 
@@ -63,6 +64,7 @@ const source = {
   text: null,
   pages: [{ number: 1, text: 'Contract de prestări servicii' }],
   match: null,
+  locations: null,
   expiresInSeconds: 300,
 } satisfies ImportSourceResponse;
 
@@ -248,5 +250,90 @@ describe('the PDF viewer', () => {
       'PDF-ul nu a putut fi deschis aici.'
     );
     await waitFor(() => expect(onShown).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('the spotlight on an employee PDF page', () => {
+  const sheetPage = { ...source, page: 2, pages: null };
+  const birthDate = { top: 100, left: 100, bottom: 130, right: 250 };
+  const address = { top: 200, left: 100, bottom: 240, right: 700 };
+  const spotlight = () => screen.queryByTestId('spotlight');
+  const zoom = () => screen.getByTestId('source-zoom').textContent;
+  const view = (props: { source?: ImportSourceResponse; spot?: typeof birthDate | null }) => (
+    <PdfSourceView
+      source={sheetPage}
+      quote={null}
+      spot={birthDate}
+      onNotFound={() => {}}
+      onShown={() => {}}
+      {...props}
+    />
+  );
+
+  beforeEach(() => {
+    vi.mocked(getDocument).mockImplementation(
+      () => loadingTask('loads') as unknown as ReturnType<typeof getDocument>
+    );
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('lights the value on its page only, and zooms to it again on coming back', async () => {
+    const user = userEvent.setup();
+    render(view({}));
+    await screen.findByText('Pagina 2 din 2');
+    await waitFor(() => expect(zoom()).toBe('300%'));
+    expect(spotlight()?.dataset.box).toBe('100 100 130 250');
+
+    await user.click(screen.getByRole('button', { name: 'Potrivește în fereastră' }));
+    await user.click(screen.getByRole('button', { name: 'Pagina anterioară' }));
+    expect(screen.getByText('Pagina 1 din 2')).toBeTruthy();
+    expect(spotlight()).toBeNull();
+    expect(zoom()).toBe('Potrivit');
+
+    await user.click(screen.getByRole('button', { name: 'Pagina următoare' }));
+    await waitFor(() => expect(zoom()).toBe('300%'));
+    expect(spotlight()?.dataset.box).toBe('100 100 130 250');
+  });
+
+  it('dims the page again when the spot moves to another value', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(view({}));
+    const toggle = await screen.findByRole('button', { name: 'Luminează tot' });
+    await user.click(toggle);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(spotlight()?.dataset.dimmed).toBe('false');
+
+    rerender(view({ spot: address }));
+    expect(screen.getByRole('button', { name: 'Luminează tot' }).getAttribute('aria-pressed')).toBe(
+      'false'
+    );
+    expect(spotlight()?.dataset.box).toBe('200 100 240 700');
+    expect(spotlight()?.dataset.dimmed).toBe('true');
+  });
+
+  it('stays on the page the member turned to when the page is asked again', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(view({ spot: null }));
+    await screen.findByText('Pagina 2 din 2');
+    await user.click(screen.getByRole('button', { name: 'Pagina anterioară' }));
+
+    rerender(
+      view({
+        source: {
+          ...sheetPage,
+          original: { ...sheetPage.original, url: `${source.original.url}?2` },
+        },
+      })
+    );
+    expect(screen.getByText('Pagina 1 din 2')).toBeTruthy();
+    expect(spotlight()).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Pagina următoare' }));
+    await waitFor(() => expect(zoom()).toBe('300%'));
+    expect(spotlight()?.dataset.box).toBe('100 100 130 250');
+    expect(vi.mocked(getDocument)).toHaveBeenCalledTimes(1);
   });
 });

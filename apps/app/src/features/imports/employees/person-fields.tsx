@@ -57,6 +57,7 @@ import {
   typedValue,
 } from './person-values';
 import { withFields } from './review-changes';
+import { fieldTarget } from './spot-targets';
 
 type Update = (mutate: (current: Changes) => Changes) => void;
 
@@ -238,6 +239,7 @@ function FieldRow({
             pages={pages}
             pageId={pageId}
             about={`${fieldTitles[name]}: ${shown ?? 'necompletat'}`}
+            spot={fieldTarget(name)}
           />
         )
       }
@@ -785,6 +787,7 @@ export function ExistingComparison({
                       pages={pages}
                       pageId={pageId}
                       about={`${fieldTitles[name]}: ${showValue(name, sheet) ?? 'necompletat'}`}
+                      spot={fieldTarget(name)}
                     />
                   )
                 }

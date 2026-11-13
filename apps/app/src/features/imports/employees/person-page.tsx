@@ -75,7 +75,8 @@ import {
 import { PersonTrainings } from './person-trainings';
 import { dateLabel, pageKindLabel, pagesPhotosLabel, trainingsLabel } from './review-format';
 import { SheetPageView } from './sheet-page-view';
-import { ShowPageContext, ViewedPhotoContext } from './show-page';
+import { type ShowPage, ShowPageContext, ViewedPhotoContext } from './show-page';
+import { fieldTarget } from './spot-targets';
 import { positionName, useReviewContext } from './use-review-context';
 import { type Highlight, PhotoCitations, ViewerChoice } from './viewer-aside';
 
@@ -88,6 +89,7 @@ const stateLabels: Record<PersonState, { label: string; tone: 'info' | 'success'
 type Viewer = {
   photo: string;
   mode: { kind: 'photo' } | { kind: 'choice'; field: FieldName; queue: FieldName[] };
+  spot: { pageId: string; target: string } | null;
 };
 
 const stripDescription = 'Subliniate: fotografiile secțiunii de pe ecran';
@@ -262,7 +264,7 @@ export function EmployeePersonPage({
       : null;
   };
 
-  const showPage = (pageId: string, choice?: FieldName) => {
+  const showPage: ShowPage = (pageId, { choice, spot } = {}) => {
     if (viewer === null && document.activeElement instanceof HTMLElement)
       opener.current = document.activeElement;
     setOpened({ section, photo: pageId });
@@ -277,10 +279,26 @@ export function EmployeePersonPage({
             field: choice,
             queue: queue.includes(choice) ? queue : [...queue, choice],
           },
+          spot: null,
         };
       }
-      return { photo: pageId, mode: current?.mode ?? { kind: 'photo' } };
+      return {
+        photo: pageId,
+        mode: current?.mode ?? { kind: 'photo' },
+        spot: spot ? { pageId, target: spot } : null,
+      };
     });
+  };
+
+  const spotOn = (pageId: string) => {
+    if (viewer?.mode.kind === 'choice') {
+      const { field } = viewer.mode;
+      const cited = resolveField(context, person, field).options.some((option) =>
+        option.pageIds.includes(pageId)
+      );
+      return cited ? fieldTarget(field) : null;
+    }
+    return viewer?.spot?.pageId === pageId ? viewer.spot.target : null;
   };
 
   const openChoiceInViewer = (field: FieldName) => {
@@ -292,7 +310,7 @@ export function EmployeePersonPage({
       (viewer && cited.includes(viewer.photo) ? viewer.photo : null) ??
       orderedPhotos(pages, chosen?.pageIds ?? cited)[0] ??
       viewer?.photo;
-    if (photo) showPage(photo, field);
+    if (photo) showPage(photo, { choice: field });
   };
 
   const closeViewer = () => {
@@ -626,7 +644,7 @@ export function EmployeePersonPage({
                 photos={photos}
                 ringed={ringed}
                 underlined={sectionUnderlines(sectionPhotos, pages.length)}
-                onOpen={showPage}
+                onOpen={(pageId) => showPage(pageId)}
                 label={`Fotografiile lui ${name}`}
                 description={stripDescription}
                 testId="person-strip"
@@ -666,7 +684,12 @@ export function EmployeePersonPage({
               name,
               detail: viewerDetail(pages, page),
               view: (
-                <SheetPageView importId={detail.id} page={page} className="h-full rounded-none" />
+                <SheetPageView
+                  importId={detail.id}
+                  page={page}
+                  spot={spotOn(page.id)}
+                  className="h-full rounded-none"
+                />
               ),
             }))}
             current={viewer?.photo ?? null}

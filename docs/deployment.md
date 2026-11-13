@@ -129,12 +129,18 @@ release still goes out, with the first item as its headline. To set it up once:
 ### The same gateway for imports from documents
 
 Imports from documents ([ADR 030](architecture/adr-030-import-from-documents.md)) reach OpenAI's
-models through the same gateway, from the API Worker. The deploy workflow uploads the repository
-variable `AI_GATEWAY_URL` and the secret `AI_GATEWAY_TOKEN` to the API Worker of both
+models through the same gateway, from the API Worker, and an employee import asks Gemini 3.1
+Flash-Lite where each value is written on a page
+([ADR 043](architecture/adr-043-photo-value-highlight.md)). The deploy workflow uploads the
+repository variable `AI_GATEWAY_URL` and the secret `AI_GATEWAY_TOKEN` to the API Worker of both
 environments when they are set; without them, creating or starting an import answers `503` with
 the reason `import_unavailable`, and everything else works. Once, by hand:
 
-1. Keep the variable `AI_GATEWAY_URL` above; the API appends `/openai/chat/completions` to it.
+1. Keep the variable `AI_GATEWAY_URL` above. The API appends `/openai/chat/completions` to it for
+   OpenAI's models, and `/compat/chat/completions` for Gemini, which it names
+   `google-ai-studio/gemini-3.1-flash-lite`: the gateway's unified endpoint, which speaks the same
+   chat completions and sends the request to Google AI Studio, the Gemini API. It needs nothing
+   set up on the gateway, and was checked working on it on 2026-11-14.
 2. The token above only runs the gateway, which is all the API needs, so the same secret
    `AI_GATEWAY_TOKEN` serves both. A token of its own for the API, say `ssm-usor-api-import`, is
    the alternative when the two should be rotated apart: then the secret moves to the
@@ -142,9 +148,10 @@ the reason `import_unavailable`, and everything else works. Once, by hand:
    over the repository's.
 3. On the gateway's **Settings**, keep log collection on and set log retention to 30 days, as
    ADR 030 promises in the data processing agreement.
-4. OpenAI is paid from the same credits (Unified Billing): no OpenAI account or key is needed.
-   A client costs about $0.13; watch the gateway's analytics, filtered by the request metadata
-   `organizationId`, for the cost per organization.
+4. OpenAI and Gemini are paid from the same credits (Unified Billing): no OpenAI or Google
+   account or key is needed. A client costs about $0.13, and locating a sheet page about $0.0015;
+   watch the gateway's analytics, filtered by the request metadata `organizationId`, for the cost
+   per organization.
 5. Run **Deploy production** or merge to `main`, which uploads both to the API Worker.
 
 The API's import also needs the extractor in `apps/pdf` (the `EXTRACTOR` binding), which the PDF

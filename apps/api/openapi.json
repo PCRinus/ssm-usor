@@ -15119,6 +15119,9 @@
               "scanning": {
                 "$ref": "#/components/schemas/ImportModelUsage"
               },
+              "locating": {
+                "$ref": "#/components/schemas/ImportModelUsage"
+              },
               "instructions": {
                 "$ref": "#/components/schemas/ImportModelUsage"
               },
@@ -17112,6 +17115,39 @@
             },
             "required": ["page", "start", "end", "parts"]
           },
+          "locations": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string"
+                },
+                "top": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "left": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "bottom": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "right": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                }
+              },
+              "required": ["target", "top", "left", "bottom", "right"]
+            }
+          },
           "expiresInSeconds": {
             "type": "integer"
           }
@@ -17126,6 +17162,7 @@
           "text",
           "pages",
           "match",
+          "locations",
           "expiresInSeconds"
         ]
       },

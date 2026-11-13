@@ -603,6 +603,8 @@ export const importUsageSchema = importModelUsageSchema
       sorting: importModelUsageSchema.optional(),
       reading: importModelUsageSchema.optional(),
       scanning: importModelUsageSchema.optional(),
+      // Where an employee import's pages write what was read from them (ADR 043).
+      locating: importModelUsageSchema.optional(),
       // The library parts' readings and their comparisons with the library (ADR 034).
       instructions: importModelUsageSchema.optional(),
       // The risk evaluations' readings (ADR 036).
@@ -780,6 +782,21 @@ export const importSourceResponseSchema = z.object({
       ...span.shape,
       parts: z.array(span).min(1),
     })
+    .nullable(),
+  // An employee import's page: where it writes each value read from it, in thousandths of the
+  // page image's height (top, bottom) and width (left, right). `target` names the value by its
+  // place in the page's reading, as `trainings[0].heldOn`. Null for another import's file, or a
+  // page not located yet.
+  locations: z
+    .array(
+      z.object({
+        target: z.string(),
+        top: z.int().min(0).max(1000),
+        left: z.int().min(0).max(1000),
+        bottom: z.int().min(0).max(1000),
+        right: z.int().min(0).max(1000),
+      })
+    )
     .nullable(),
   expiresInSeconds: z.int(),
 });

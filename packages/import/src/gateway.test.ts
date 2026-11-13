@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createModelClient, GatewayError, ModelAnswerError } from './gateway';
-import { costOf, readingModel, sortingModel } from './models';
+import { costOf, locatingModel, readingModel, sortingModel } from './models';
 import { sortingMessages } from './prompts';
 import { sortingAnswer } from './sorting';
 import { provider } from './test/fixtures';
@@ -103,6 +103,65 @@ describe('createModelClient', () => {
     expect(result.usage).toEqual({ input: 1000, cachedInput: 200, output: 300 });
     expect(result.cost).toBeCloseTo((1000 * 0.1 + 200 * 0.01 + 300 * 0.5) / 1e6, 12);
     expect(result.attempts).toBe(1);
+  });
+
+  it('posts a Gemini request to the unified endpoint as Google AI Studio, without a reasoning effort', async () => {
+    const { client, requests } = fakeGateway(() =>
+      Response.json({
+        id: 'recorded',
+        object: 'chat.completion',
+        model: 'gemini-3.1-flash-lite',
+        choices: [
+          {
+            index: 0,
+            finish_reason: 'stop',
+            message: {
+              role: 'assistant',
+              content: `\`\`\`json\n${JSON.stringify(answer)}\n\`\`\``,
+              extra_content: { google: { thought_signature: 'c2lnbmF0dXJl' } },
+            },
+          },
+        ],
+        usage: { prompt_tokens: 2400, completion_tokens: 900, total_tokens: 3300 },
+      })
+    );
+    const result = await client.complete({
+      model: locatingModel,
+      messages: request.messages,
+      answer: request.answer,
+      maxCompletionTokens: request.maxCompletionTokens,
+      metadata: request.metadata,
+    });
+
+    const [{ url, init }] = requests as [(typeof requests)[number]];
+    expect(url).toBe('https://gateway.example/v1/account/import/compat/chat/completions');
+    expect(new Headers(init.headers).get('cf-aig-authorization')).toBe('Bearer gateway-token');
+    const body = JSON.parse(init.body as string);
+    expect(body).toMatchObject({
+      model: 'google-ai-studio/gemini-3.1-flash-lite',
+      max_completion_tokens: 16_000,
+      response_format: { type: 'json_schema', json_schema: { name: 'import_sorting' } },
+    });
+    expect(body).not.toHaveProperty('reasoning_effort');
+
+    expect(result.value.files[0]).toMatchObject({ kind: 'decision' });
+    expect(result.usage).toEqual({ input: 2400, cachedInput: 0, output: 900 });
+    expect(result.cost).toBeCloseTo((2400 * 0.25 + 900 * 1.5) / 1e6, 12);
+  });
+
+  it('retries a Gemini request the gateway could not serve, on the same route', async () => {
+    const { client, requests } = fakeGateway(
+      () => new Response('unavailable', { status: 503 }),
+      () => completion(answer)
+    );
+
+    await expect(client.complete({ ...request, model: locatingModel })).resolves.toMatchObject({
+      attempts: 1,
+    });
+    expect(requests.map((each) => each.url)).toEqual([
+      'https://gateway.example/v1/account/import/compat/chat/completions',
+      'https://gateway.example/v1/account/import/compat/chat/completions',
+    ]);
   });
 
   it('retries 429 and 5xx with backoff, then answers', async () => {

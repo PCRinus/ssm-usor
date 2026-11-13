@@ -297,8 +297,9 @@ function memoryStore(state: CaseState, context: CaseContext): ImportStore {
   };
 }
 
-// Messages past the reading: the copy, the alerts and the folder's copy for a confirm.
-const afterReading = new Set<ImportMessage['type']>(['keep', 'ended', 'copy']);
+// Messages the reading does not wait on: the copy, the alerts, the folder's copy for a confirm,
+// and where a page writes what was read from it, which a test run does not compare.
+const afterReading = new Set<ImportMessage['type']>(['keep', 'ended', 'copy', 'locate']);
 const maxSteps = 5_000;
 
 export interface CaseReading {

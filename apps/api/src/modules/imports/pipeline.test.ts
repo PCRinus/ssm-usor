@@ -8,7 +8,7 @@ import {
   proposalSchema,
   risksProposalSchema,
 } from '@ssm-usor/import';
-import { strToU8, zipSync } from 'fflate';
+import { strFromU8, strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AlertMessage } from '../../lib/alerts';
@@ -605,7 +605,10 @@ const defaultModel: Recorded = ({ name, text, images }) => {
 let world: World;
 let model: Recorded;
 let modelRequests: {
+  url: string;
+  model: string;
   name: string;
+  text: string;
   images: string[];
   metadata: string | null;
   maxTokens: number;
@@ -694,8 +697,9 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
       baseUrl: 'https://gateway.example/v1/account/ssm-usor',
       token: 'gateway-token',
       sleep: async () => {},
-      fetch: async (_input, init) => {
+      fetch: async (input, init) => {
         const body = JSON.parse(String(init?.body)) as {
+          model: string;
           response_format: { json_schema: { name: string } };
           max_completion_tokens: number;
           reasoning_effort: string;
@@ -714,7 +718,10 @@ function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
           images: parts.flatMap((part) => (part.image_url ? [part.image_url.url] : [])),
         };
         modelRequests.push({
+          url: String(input),
+          model: body.model,
           name: request.name,
+          text: request.text,
           images: request.images,
           metadata: new Headers(init?.headers).get('cf-aig-metadata'),
           maxTokens: body.max_completion_tokens,
@@ -1419,6 +1426,23 @@ describe('consumeImportDeadLetters', () => {
       failure_reason: importReasons.failed,
     });
   });
+
+  it('lets a page every delivery failed to locate go, failing and changing nothing', async () => {
+    world.addImport({ kind: 'employees', status: 'ready' });
+    const id = world.addFile(longScan, 0, 'read');
+    const store = world.store();
+    const advance = vi.spyOn(store, 'advance');
+    const updateFile = vi.spyOn(store, 'updateFile');
+    const locate = dead({ type: 'locate', importId, fileId: id, page: 1 });
+    await consumeImportDeadLetters({ messages: [locate] }, {}, deps({ store }));
+
+    expect(locate.ack).toHaveBeenCalled();
+    expect(locate.retry).not.toHaveBeenCalled();
+    expect(advance).not.toHaveBeenCalled();
+    expect(updateFile).not.toHaveBeenCalled();
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.fileAt(longScan.path).state).toBe('read');
+  });
 });
 
 describe('cleanUpImports', () => {
@@ -1593,9 +1617,18 @@ describe('an employee import', () => {
     }),
   };
 
+  const located = (text: string) => ({
+    locations: [...text.matchAll(/^- id: (\S+)/gm)].map((match, index) => ({
+      id: match[1]!,
+      found: true,
+      box_2d: [100 + index * 50, 80, 140 + index * 50, 600],
+    })),
+  });
+
   const sheetModel =
     (answers: Record<string, unknown>): Recorded =>
     ({ name, text }) => {
+      if (name === 'locations') return located(text);
       if (name !== 'sheet_page') throw new Error(`Unexpected request ${name}`);
       const label = Object.keys(answers).find((each) => text.includes(`=== FILE: ${each} ===`));
       return label === undefined ? { unexpected: true } : answers[label];
@@ -1633,9 +1666,10 @@ describe('an employee import', () => {
     expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
     const imported = world.imports.get(importId)!;
     expect(imported.status).toBe('ready');
-    expect(modelRequests).toHaveLength(4);
+    const readings = modelRequests.filter((request) => request.name === 'sheet_page');
+    expect(readings).toHaveLength(4);
     expect(
-      modelRequests.every(
+      readings.every(
         (request) =>
           request.name === 'sheet_page' &&
           request.effort === 'medium' &&
@@ -1653,6 +1687,10 @@ describe('an employee import', () => {
         `scanning ${pdf.id}`,
         `scanning ${photo.id}`,
         `scanning ${second.id}`,
+        `locating ${pdf.id}`,
+        `locating ${pdf.id}`,
+        `locating ${photo.id}`,
+        `locating ${second.id}`,
       ].sort()
     );
     expect(extractor.pdfPageImage).toHaveBeenCalledTimes(2);
@@ -1667,7 +1705,7 @@ describe('an employee import', () => {
       [`${pdf.id}:2`]: { sizeBytes: pageImage.length, sha256: await sha256(pageImage) },
     });
     expect(
-      modelRequests.filter((request) =>
+      readings.filter((request) =>
         request.images.includes(`data:image/jpeg;base64,${btoa('upright jpeg-popescu-1')}`)
       )
     ).toHaveLength(1);
@@ -1709,6 +1747,204 @@ describe('an employee import', () => {
     expect(proposal.pages[2]!.rows[0]!.test).toMatchObject({ test: 'hiring', verified: true });
   });
 
+  const locationsPathOf = (file: ImportFileRow, page: number) =>
+    file.storage_path.replace(/\.[a-z]+$/, `.page-${page}.locations.json`);
+  const locationObjects = () =>
+    [...world.objects.keys()].filter((path) => path.endsWith('.locations.json'));
+
+  it('locates each page read, from the image its reading was made from, apart from the reading', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    await drain(deps());
+
+    const pdf = world.fileAt('Fise/Ionescu.pdf');
+    const photo = world.fileAt('Fise/Popescu 1.jpg');
+    const locating = modelRequests.filter((request) => request.name === 'locations');
+    expect(locating).toHaveLength(4);
+    for (const request of locating) {
+      expect(request).toMatchObject({
+        url: 'https://gateway.example/v1/account/ssm-usor/compat/chat/completions',
+        model: 'google-ai-studio/gemini-3.1-flash-lite',
+        metadata: JSON.stringify({ organizationId, importId }),
+      });
+      expect(request.text).not.toContain('Fise/');
+    }
+    expect(extractor.pdfPageImage).toHaveBeenCalledTimes(2);
+    const imageOf = (bytes: string) => `data:image/jpeg;base64,${btoa(bytes)}`;
+    expect(locating.filter((request) => request.images[0] === imageOf('jpeg-page'))).toHaveLength(
+      2
+    );
+    expect(
+      locating.filter((request) => request.images[0] === imageOf('upright jpeg-popescu-1'))
+    ).toHaveLength(1);
+
+    const stored = (path: string) => JSON.parse(strFromU8(world.objects.get(path)!)) as unknown;
+    expect(stored(locationsPathOf(pdf, 2))).toEqual({
+      locations: [{ target: 'person.name', top: 100, left: 80, bottom: 140, right: 600 }],
+    });
+    const { locations } = stored(locationsPathOf(photo, 1)) as { locations: { target: string }[] };
+    expect(locations.map((location) => location.target)).toEqual([
+      'person.name',
+      'fields.jobTitle',
+      'fields.hiredAt',
+      'trainings[0]',
+      'trainings[0].heldOn',
+      'trainings[0].durationMinutes',
+      'trainings[0].trainerName',
+      'trainings[0].material',
+    ]);
+    expect(
+      stored(locationsPathOf(world.fileAt('Fise/Popescu 2.jpg'), 1)) as { locations: unknown[] }
+    ).toMatchObject({
+      locations: expect.arrayContaining([
+        { target: 'handovers[0]', top: 300, left: 80, bottom: 340, right: 600 },
+      ]),
+    });
+  });
+
+  it('sends the pages to be located only once the review has opened, in one batch', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    const batches: string[][] = [];
+    const pipeline = deps();
+    const sendBatch = pipeline.queue!.sendBatch;
+    pipeline.queue!.sendBatch = async (messages) => {
+      batches.push([...messages].map((message) => message.body.type));
+      await sendBatch(messages);
+    };
+    const outcomes = await drain(pipeline);
+
+    const types = outcomes.map((outcome) => outcome.type);
+    expect(types.indexOf('locate')).toBeGreaterThan(types.lastIndexOf('check'));
+    expect(types.filter((type) => type === 'locate')).toHaveLength(4);
+    expect(batches.filter((batch) => batch.includes('locate'))).toEqual([
+      ['locate', 'locate', 'locate', 'locate'],
+    ]);
+    expect(locationObjects()).toHaveLength(4);
+
+    world.send({ type: 'check', importId });
+    expect(await drain(pipeline)).toEqual([{ type: 'check', outcome: 'ack', attempts: 1 }]);
+  });
+
+  it('sends no page to be located that was not read', async () => {
+    model = (request) =>
+      request.text.includes('=== FILE: Fise/Popescu 2.jpg ===')
+        ? new Response('too large', { status: 413 })
+        : sheetModel(sheetAnswers)(request);
+    startEmployees(sheetFiles);
+    const outcomes = await drain(deps());
+
+    expect(outcomes.filter((outcome) => outcome.type === 'locate')).toHaveLength(3);
+    expect(world.objects.has(locationsPathOf(world.fileAt('Fise/Popescu 2.jpg'), 1))).toBe(false);
+  });
+
+  it('opens the review all the same when the pages cannot be sent to be located', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    const pipeline = deps();
+    const sendBatch = pipeline.queue!.sendBatch;
+    pipeline.queue!.sendBatch = async (messages) => {
+      if ([...messages].some((message) => message.body.type === 'locate')) {
+        throw new Error('Queue is down');
+      }
+      await sendBatch(messages);
+    };
+    const outcomes = await drain(pipeline);
+
+    expect(outcomes.every((outcome) => outcome.outcome === 'ack')).toBe(true);
+    expect(outcomes.some((outcome) => outcome.type === 'locate')).toBe(false);
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(locationObjects()).toEqual([]);
+  });
+
+  it('acks a locate the gateway could not answer on its last delivery, failing and changing nothing', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    await drain(deps());
+    const photo = world.fileAt('Fise/Popescu 1.jpg');
+    world.objects.delete(locationsPathOf(photo, 1));
+    model = (request) =>
+      request.name === 'locations'
+        ? new Response('busy', { status: 503 })
+        : sheetModel(sheetAnswers)(request);
+    const store = world.store();
+    const advance = vi.spyOn(store, 'advance');
+    const updateFile = vi.spyOn(store, 'updateFile');
+    const message = {
+      id: 'locate',
+      body: { type: 'locate', importId, fileId: photo.id, page: 1 },
+      attempts: lastDelivery,
+      ack: vi.fn(),
+      retry: vi.fn(),
+    } satisfies QueueMessage;
+    await consumeImportBatch({ messages: [message] }, {}, deps({ store }));
+
+    expect(message.ack).toHaveBeenCalled();
+    expect(message.retry).not.toHaveBeenCalled();
+    expect(advance).not.toHaveBeenCalled();
+    expect(updateFile).not.toHaveBeenCalled();
+    expect(world.imports.get(importId)!.status).toBe('ready');
+    expect(world.objects.has(locationsPathOf(photo, 1))).toBe(false);
+  });
+
+  it('locates a page once, and stores nothing for an import that ended', async () => {
+    model = sheetModel(sheetAnswers);
+    startEmployees(sheetFiles);
+    await drain(deps());
+    const photo = world.fileAt('Fise/Popescu 1.jpg');
+    const asked = modelRequests.length;
+
+    world.send({ type: 'locate', importId, fileId: photo.id, page: 1 });
+    await drain(deps());
+    expect(modelRequests).toHaveLength(asked);
+
+    world.objects.delete(locationsPathOf(photo, 1));
+    world.imports.get(importId)!.status = 'confirmed';
+    world.send({ type: 'locate', importId, fileId: photo.id, page: 1 });
+    expect(await drain(deps())).toEqual([{ type: 'locate', outcome: 'ack', attempts: 1 }]);
+    expect(modelRequests).toHaveLength(asked);
+
+    world.imports.get(importId)!.status = 'ready';
+    model = (request) => {
+      world.imports.get(importId)!.status = 'abandoned';
+      return sheetModel(sheetAnswers)(request);
+    };
+    world.send({ type: 'locate', importId, fileId: photo.id, page: 1 });
+    await drain(deps());
+    expect(modelRequests).toHaveLength(asked + 1);
+    expect(world.objects.has(locationsPathOf(photo, 1))).toBe(false);
+  });
+
+  it.each([
+    [
+      'refuses',
+      () =>
+        Response.json({
+          choices: [{ finish_reason: 'stop', message: { content: null, refusal: 'No.' } }],
+          usage: { prompt_tokens: 10, completion_tokens: 1 },
+        }),
+    ],
+    ['is turned down by the gateway', () => new Response('too large', { status: 413 })],
+    ['answers outside the schema', () => completion({ boxes: [] })],
+    ['is busy on every delivery', () => new Response('busy', { status: 503 })],
+  ])(
+    'reads the import as before when the locating model %s, keeping no boxes',
+    async (_, answer) => {
+      model = (request) =>
+        request.name === 'locations' ? answer() : sheetModel(sheetAnswers)(request);
+      startEmployees(sheetFiles);
+      const outcomes = await drain(deps());
+
+      expect(
+        outcomes.every((outcome) => outcome.type === 'locate' || outcome.outcome === 'ack')
+      ).toBe(true);
+      expect(world.imports.get(importId)!.status).toBe('ready');
+      for (const spec of sheetFiles) expect(world.fileAt(spec.path).state).toBe('read');
+      expect(locationObjects()).toEqual([]);
+      expect(world.sent).toEqual([]);
+    }
+  );
+
   it('places a nameless page after the page numbered before it, not after the name sorted before it', async () => {
     const scans: FileSpec[] = [
       { path: 'Fise/Scan 1.jpg', mime: 'image/jpeg', bytes: strToU8('jpeg-scan-1') },
@@ -1745,6 +1981,8 @@ describe('an employee import', () => {
     const imported = world.imports.get(importId)!;
     expect(imported.status).toBe('ready');
     expect(world.fileAt('Fise/Popescu 2.jpg').state).toBe('read');
+    expect(locationObjects()).toHaveLength(3);
+    expect(world.objects.has(locationsPathOf(world.fileAt('Fise/Popescu 2.jpg'), 1))).toBe(false);
     const proposal = employeeImportProposalSchema.parse(imported.proposal);
     expect(proposal.pages[3]).toMatchObject({
       kind: null,

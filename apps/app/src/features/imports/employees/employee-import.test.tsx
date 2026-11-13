@@ -92,7 +92,10 @@ type Options = {
   clientWorkplaces?: unknown[];
   clientPositions?: unknown[];
   saveChanges?: () => Response | undefined;
+  locations?: Record<string, Location[]>;
 };
+
+type Location = { target: string; top: number; left: number; bottom: number; right: number };
 
 function mockEmployeeImport({
   detail = employeeDetail(),
@@ -105,6 +108,7 @@ function mockEmployeeImport({
   clientWorkplaces = workplaces,
   clientPositions = positions,
   saveChanges,
+  locations = {},
 }: Options = {}) {
   let version = detail.version;
   let confirmedHere: unknown[] = [];
@@ -138,6 +142,7 @@ function mockEmployeeImport({
         text: null,
         pages: null,
         match: null,
+        locations: locations[file] ?? null,
         expiresInSeconds: 300,
       });
     }
@@ -483,16 +488,29 @@ describe('the people hub', () => {
     ).toEqual(['Magazin Str. Lungă 5', 'Laborator producție']);
   });
 
-  it('shows the cost of reading the photographs when the API serves it', async () => {
+  it('shows the cost of reading and locating the photographs when the API serves it', async () => {
     const scanning = { costUsd: 0.1, inputTokens: 41000, cachedInputTokens: 0, outputTokens: 9800 };
+    const locating = {
+      costUsd: 0.02,
+      inputTokens: 38000,
+      cachedInputTokens: 0,
+      outputTokens: 1200,
+    };
     mockEmployeeImport({
       detail: employeeDetail({
-        usage: { ...scanning, readCharacters: null, bySteps: { scanning } },
+        usage: {
+          costUsd: 0.12,
+          inputTokens: 79000,
+          cachedInputTokens: 0,
+          outputTokens: 11000,
+          readCharacters: null,
+          bySteps: { scanning, locating },
+        },
       }),
     });
     mount(importPath);
     expect((await screen.findByTestId('import-usage')).textContent).toBe(
-      'Depanare: cost 0,10\u00a0$ · 41.000 tokeni intrare (0 din cache) · 9.800 ieșire · scanare 0,10\u00a0$'
+      'Depanare: cost 0,12\u00a0$ · 79.000 tokeni intrare (0 din cache) · 11.000 ieșire · scanare 0,10\u00a0$, localizare 0,02\u00a0$'
     );
   });
 
@@ -1937,5 +1955,211 @@ describe('confirming', () => {
       'La Lazăr Radu, data angajării lipsește.',
       'La Lazăr Radu, e de spus dacă e același lucrător din aplicație.',
     ]);
+  });
+});
+
+describe('the spotlight on a photo opened from a value', () => {
+  const box = (target: string, top: number, left: number) => ({
+    target,
+    top,
+    left,
+    bottom: top + 40,
+    right: left + 300,
+  });
+  const locations = {
+    'IMG_p1.jpg': [
+      box('person.name', 120, 200),
+      box('fields.birthDate', 180, 520),
+      box('fields.homeAddress', 240, 200),
+    ],
+    'IMG_p2.jpg': [
+      box('fields.homeAddress', 300, 100),
+      box('trainings[0]', 400, 50),
+      box('trainings[1]', 460, 50),
+    ],
+  };
+  const spotlight = async () => {
+    const image = await within(await screen.findByTestId('photo-preview')).findByTestId(
+      'sheet-page-image'
+    );
+    return image.parentElement!.querySelector<SVGElement>('[data-testid="spotlight"]');
+  };
+
+  it('lights up the value of a field opened from its photo number', async () => {
+    mockEmployeeImport({ locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(await screen.findByRole('button', { name: /^Fotografia 1, Data nașterii:/ }));
+    const shown = await spotlight();
+    expect(shown?.dataset.box).toBe('180 520 220 820');
+    expect(shown?.dataset.dimmed).toBe('true');
+  });
+
+  it('lights up the whole name for the given name', async () => {
+    mockEmployeeImport({ locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(await screen.findByRole('button', { name: /^Fotografia 1, Prenume:/ }));
+    expect((await spotlight())?.dataset.box).toBe('120 200 160 500');
+  });
+
+  it("lights up a choice's value on each option's photo", async () => {
+    mockEmployeeImport({ detail: tomaWithChoices(), locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const row = await screen.findByTestId('person-decide-choice-homeAddress');
+    await user.click(within(row).getAllByTestId('person-page-button')[1]!);
+    expect((await spotlight())?.dataset.box).toBe('300 100 340 400');
+
+    const strip = within(screen.getByTestId('photo-preview')).getByTestId('viewer-strip');
+    await user.click(within(strip).getByRole('button', { name: /^Fotografia 1 din 2/ }));
+    await waitFor(async () => expect((await spotlight())?.dataset.box).toBe('240 200 280 500'));
+  });
+
+  it('lights up the whole row of a training, by its place on the page', async () => {
+    mockEmployeeImport({ locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      await screen.findByRole('button', { name: 'Fotografia 2, Instruire SSM din 11.08.2025' })
+    );
+    expect((await spotlight())?.dataset.box).toBe('460 50 500 350');
+  });
+
+  it('lights up the row of a hiring test', async () => {
+    mockEmployeeImport({
+      locations: {
+        ...locations,
+        'IMG_p1.jpg': [...locations['IMG_p1.jpg'], box('trainings[0]', 600, 40)],
+      },
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(
+      await screen.findByRole('button', { name: 'Fotografia 1, Testul la angajare SSM' })
+    );
+    expect((await spotlight())?.dataset.box).toBe('600 40 640 340');
+  });
+
+  it('lights up the row of an annual test', async () => {
+    const annualTest = sheetRow('r9', {
+      heldOn: '2025-03-04',
+      testOnly: true,
+      test: unsignedAnnualTest.test,
+    });
+    mockEmployeeImport({
+      detail: popWith({}, [annualTest]),
+      locations: { 'IMG_p3.jpg': [box('trainings[0]', 300, 40), box('trainings[1]', 360, 40)] },
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    await user.click(
+      await screen.findByRole('button', { name: /^Fotografia 1, Testul anual SSM, la / })
+    );
+    expect((await spotlight())?.dataset.box).toBe('360 40 400 340');
+  });
+
+  it('lights up the day of admission to work', async () => {
+    const workplace = sheetRow('r9', {
+      phase: 'workplace',
+      heldOn: '2023-05-02',
+      durationMinutes: 480,
+      admission: {
+        admittedOn: '2023-05-03',
+        admittedByName: 'Barbu Ionuț',
+        admittedByJobTitle: 'inspector SSM',
+      },
+    });
+    mockEmployeeImport({
+      detail: popWith({}, [workplace]),
+      locations: {
+        'IMG_p3.jpg': [box('trainings[1]', 360, 40), box('admission.admittedOn', 420, 600)],
+      },
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    await user.click(
+      await screen.findByRole('button', { name: /^Fotografia 1, Admis la lucru la / })
+    );
+    expect((await spotlight())?.dataset.box).toBe('420 600 460 900');
+  });
+
+  it('lights up a value located after its photo was first opened', async () => {
+    const located: Record<string, Location[]> = {};
+    mockEmployeeImport({ locations: located });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const birthDate = /^Fotografia 1, Data nașterii:/;
+    await user.click(await screen.findByRole('button', { name: birthDate }));
+    expect(await spotlight()).toBeNull();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+
+    located['IMG_p1.jpg'] = locations['IMG_p1.jpg'];
+    await user.click(screen.getByRole('button', { name: birthDate }));
+    await waitFor(async () => expect((await spotlight())?.dataset.box).toBe('180 520 220 820'));
+  });
+
+  it('lights the value again on going back to its own photo', async () => {
+    mockEmployeeImport({ locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(await screen.findByRole('button', { name: /^Fotografia 1, Data nașterii:/ }));
+    expect((await spotlight())?.dataset.box).toBe('180 520 220 820');
+    await user.keyboard('{ArrowRight}');
+    await waitFor(() =>
+      expect(screen.getByTestId('photo-preview-position').textContent).toBe('2 din 2')
+    );
+    expect(await spotlight()).toBeNull();
+
+    await user.keyboard('{ArrowLeft}');
+    await waitFor(() =>
+      expect(screen.getByTestId('photo-preview-position').textContent).toBe('1 din 2')
+    );
+    expect((await spotlight())?.dataset.box).toBe('180 520 220 820');
+  });
+
+  it('shows a photo opened from the strip, or moved to in the viewer, as it is', async () => {
+    mockEmployeeImport({ locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    const strip = await screen.findByTestId('person-strip');
+    await user.click(within(strip).getByRole('button', { name: /^Fotografia 1 din 2/ }));
+    expect(await spotlight()).toBeNull();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('photo-preview')).toBeNull());
+
+    await user.click(screen.getByRole('button', { name: /^Fotografia 1, Data nașterii:/ }));
+    expect(await spotlight()).not.toBeNull();
+    await user.keyboard('{ArrowRight}');
+    await waitFor(() =>
+      expect(screen.getByTestId('photo-preview-position').textContent).toBe('2 din 2')
+    );
+    expect(await spotlight()).toBeNull();
+  });
+
+  it('opens a photo with no box for the value as it is, saying nothing', async () => {
+    mockEmployeeImport({ locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(await screen.findByRole('button', { name: /^Fotografia 1, CNP:/ }));
+    const preview = await screen.findByTestId('photo-preview');
+    expect(await spotlight()).toBeNull();
+    expect(within(preview).queryByTestId('spotlight-whole')).toBeNull();
+  });
+
+  it('lights the whole photo with a toggle, and dims it again', async () => {
+    mockEmployeeImport({ locations });
+    const user = userEvent.setup();
+    mount(`${importPath}/toma`);
+    await user.click(await screen.findByRole('button', { name: /^Fotografia 1, Data nașterii:/ }));
+    const shown = await spotlight();
+    const toggle = screen.getByRole('button', { name: 'Luminează tot' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    await user.click(toggle);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(shown?.dataset.dimmed).toBe('false');
+    await user.click(toggle);
+    expect(shown?.dataset.dimmed).toBe('true');
   });
 });

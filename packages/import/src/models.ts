@@ -5,6 +5,7 @@ export const instructionsModel = 'gpt-6.1-terra';
 export const risksModel = 'gpt-6.1-terra';
 export const safetySheetModel = 'gpt-6.1-terra';
 export const similarityModel = 'gpt-6-luna';
+export const locatingModel = 'gemini-3.1-flash-lite';
 
 export type ModelId =
   | typeof sortingModel
@@ -12,7 +13,16 @@ export type ModelId =
   | typeof instructionsModel
   | typeof risksModel
   | typeof safetySheetModel
-  | typeof similarityModel;
+  | typeof similarityModel
+  | typeof locatingModel;
+
+export type ModelProvider = 'openai' | 'google';
+
+export const modelProviders: Record<ModelId, ModelProvider> = {
+  'gpt-6.1-terra': 'openai',
+  'gpt-6-luna': 'openai',
+  'gemini-3.1-flash-lite': 'google',
+};
 
 export interface Usage {
   // Input tokens not read from the provider's cache; those are `cachedInput`.
@@ -28,7 +38,7 @@ interface Rates {
   output: number;
 }
 
-// USD per million tokens at list price. Both models price the whole request higher once its
+// USD per million tokens at list price. Both GPT models price the whole request higher once its
 // prompt passes 272,000 tokens. The cached-input rates of GPT-6 Luna are the ones the evaluation
 // used on 2026-10-26.
 export const modelRates: Record<ModelId, (promptTokens: number) => Rates> = {
@@ -40,6 +50,7 @@ export const modelRates: Record<ModelId, (promptTokens: number) => Rates> = {
     promptTokens > 272_000
       ? { input: 0.2, cachedInput: 0.02, output: 0.75 }
       : { input: 0.1, cachedInput: 0.01, output: 0.5 },
+  'gemini-3.1-flash-lite': () => ({ input: 0.25, cachedInput: 0.025, output: 1.5 }),
 };
 
 export function costOf(model: ModelId, usage: Usage) {
