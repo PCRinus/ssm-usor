@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Acord de prelucrare a datelor"
   description="Condițiile în care SSM Ușor prelucrează date personale în numele serviciilor externe de prevenire și protecție, conform articolului 28 din GDPR."
-  updated="7 noiembrie 2026"
+  updated="13 noiembrie 2026"
 >
   <p>
     Acest acord face parte din <a href="/termeni/">Termenii și condițiile</a> Platformei SSM Ușor și
@@ -57,7 +57,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
       documentelor și evidențelor de securitate și sănătate în muncă, la comanda Furnizorului. Când
       un utilizator al Furnizorului importă documentele unui client, Platforma le citește cu un
       model de inteligență artificială și propune datele firmei și ale lucrătorilor; nimic nu se
-      salvează în evidențe până nu confirmă utilizatorul.
+      salvează în evidențe până nu confirmă utilizatorul. La importul fișelor de instruire,
+      Platforma arată și locul de pe fotografie unde e scrisă fiecare valoare citită.
     </li>
     <li>
       <strong>Îmbunătățirea Platformei:</strong> Furnizorul ne autorizează să folosim datele pe care
@@ -139,7 +140,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <ul>
     <li>
       Cloudflare, Inc.: găzduirea și livrarea Platformei și, prin Cloudflare AI Gateway,
-      transmiterea documentelor importate către OpenAI, cu jurnalele cererilor păstrate 30 de zile;
+      transmiterea documentelor importate către OpenAI și Google, cu jurnalele cererilor păstrate 30
+      de zile;
     </li>
     <li>Supabase, Inc.: autentificare și bază de date, cu stocare în Uniunea Europeană;</li>
     <li>
@@ -158,6 +160,14 @@ const M = legalEntity.filled ? 'span' : 'mark';
       documentelor și a fotografiilor de fișe pe care Furnizorul le importă, ca să propună datele
       firmei client și ale lucrătorilor. OpenAI nu folosește aceste date pentru antrenarea modelelor
       și le poate păstra cel mult 30 de zile, pentru depistarea abuzurilor.
+    </li>
+    <li>
+      Google LLC, din Statele Unite, la care fotografiile ajung prin Cloudflare AI Gateway: găsirea
+      pe fotografiile fișelor de instruire pe care Furnizorul le importă a locului unde e scrisă
+      fiecare valoare citită. Google primește fotografia și valorile citite de pe ea, nu folosește
+      aceste date pentru îmbunătățirea produselor sale, le poate păstra cel mult 55 de zile, pentru
+      depistarea abuzurilor, și le poate prelucra în orice țară în care Google sau agenții săi au
+      facilități.
     </li>
   </ul>
   <p>

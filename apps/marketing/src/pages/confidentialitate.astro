@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Politica de confidențialitate"
   description="Cum prelucrează SSM Ușor datele personale ale vizitatorilor, ale furnizorilor și ale lucrătorilor clienților lor."
-  updated="7 noiembrie 2026"
+  updated="13 noiembrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -81,9 +81,12 @@ const M = legalEntity.filled ? 'span' : 'mark';
       <strong>Importul din documente.</strong> Când serviciul extern importă documentele existente
       ale unei firme client sau fotografiile fișelor de instruire, textul și imaginile lor, cu
       datele lucrătorilor din ele (inclusiv CNP-ul și grupa sanguină), sunt citite de un model de
-      inteligență artificială al OpenAI, care propune datele firmei și ale lucrătorilor.
-      Specialistul verifică propunerea și nimic nu se salvează până nu o confirmă. Prelucrăm aceste
-      date tot ca persoană împuternicită a serviciului extern.
+      inteligență artificială al OpenAI, care propune datele firmei și ale lucrătorilor. La importul
+      fișelor de instruire, fiecare fotografie, împreună cu valorile citite de pe ea, ajunge și la
+      un model de inteligență artificială al Google, care găsește pe fotografie locul unde e scrisă
+      fiecare valoare, ca specialistul să o poată verifica ușor. Specialistul verifică propunerea și
+      nimic nu se salvează până nu o confirmă. Prelucrăm aceste date tot ca persoană împuternicită a
+      serviciului extern.
     </li>
     <li>
       <strong>Îmbunătățirea platformei.</strong> Serviciul extern ne autorizează, prin Acordul de
@@ -137,7 +140,8 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <p>
     Nu folosim datele din platformă pentru publicitate și nu le folosim pentru antrenarea unor
     modele de inteligență artificială, nici copiile pentru îmbunătățirea importului. Nici OpenAI nu
-    folosește pentru antrenare datele trimise la import.
+    folosește pentru antrenare datele trimise la import, iar Google nu le folosește pentru
+    îmbunătățirea produselor sale.
   </p>
 
   <h2>4. Cookie-uri</h2>
@@ -162,7 +166,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
   <ul>
     <li>
       găzduire și livrare a site-ului și a platformei, precum și transmiterea documentelor importate
-      către OpenAI, prin Cloudflare AI Gateway: Cloudflare, Inc.;
+      către OpenAI și Google, prin Cloudflare AI Gateway: Cloudflare, Inc.;
     </li>
     <li>autentificare și bază de date: Supabase, Inc., cu stocare în Uniunea Europeană;</li>
     <li>
@@ -182,6 +186,12 @@ const M = legalEntity.filled ? 'span' : 'mark';
       citirea documentelor importate de serviciul extern: OpenAI, în Statele Unite, care nu
       folosește datele pentru antrenarea modelelor și le poate păstra cel mult 30 de zile, pentru
       depistarea abuzurilor;
+    </li>
+    <li>
+      găsirea pe fotografiile fișelor de instruire importate a locului unde e scrisă fiecare valoare
+      citită: Google LLC, din Statele Unite, care nu folosește datele pentru îmbunătățirea
+      produselor sale, le poate păstra cel mult 55 de zile, pentru depistarea abuzurilor, și le
+      poate prelucra în orice țară în care Google sau agenții săi au facilități;
     </li>
     <li>
       plata abonamentului cu cardul: Stripe Payments Europe, Limited, din Irlanda, care primește
