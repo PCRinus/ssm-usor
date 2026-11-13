@@ -31,7 +31,7 @@ type RunRow = Database['public']['Tables']['legal_check_runs']['Row'];
 const actColumns =
   'id, name, portal_id, portal_status, verified_consolidated_on, last_consolidated_on, last_amending_act, last_checked_at, checked_by_hand_on';
 const changeColumns =
-  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, outcome, compared_with, assessed_at, amending_acts, amended_units, act:legal_acts(id, name, portal_id), passages:legal_change_passages(id, template_file, type_key, paragraph, citation_form, locator, unit_label, status, old_text, new_text, hunks), versions:document_template_versions(template:document_templates(type_key, title))';
+  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, outcome, compared_with, assessed_at, amending_acts, amended_units, act:legal_acts(id, name, portal_id), passages:legal_change_passages(id, template_file, type_key, paragraph, citation_form, locator, unit_label, status, old_text, new_text, hunks), versions:document_template_versions!document_template_versions_resolves_legal_change_id_fkey(template:document_templates(type_key, title))';
 
 const runColumns =
   'id, started_at, finished_at, status, acts_checked, changes_found, acts_skipped, errors';
