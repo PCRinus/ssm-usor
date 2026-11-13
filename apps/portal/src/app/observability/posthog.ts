@@ -2,12 +2,49 @@ import type { PostHog } from 'posthog-js';
 
 let clientPromise: Promise<PostHog | null> | null = null;
 
+const textAttributes = new Set([
+  'title',
+  'alt',
+  'aria-label',
+  'aria-description',
+  'aria-valuetext',
+  'aria-placeholder',
+  'placeholder',
+  'label',
+  'value',
+  'data-value',
+  'download',
+  'srcdoc',
+]);
+
+const addressAttributes = new Set(['href', 'src']);
+
+function isSameOrigin(address: string) {
+  try {
+    return new URL(address, window.location.href).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+// As in the app: replays keep `class` and `style`, or they play as bare HTML, and a link to
+// another origin can carry a signed file address and the file's name.
+export function maskReplayAttribute(name: string, value: string) {
+  const masked = textAttributes.has(name) || (addressAttributes.has(name) && !isSameOrigin(value));
+  return masked ? '*'.repeat(value.length) : value;
+}
+
 export function loadPostHog(): Promise<PostHog | null> {
   const token = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim();
   if (!token) return Promise.resolve(null);
 
-  clientPromise ??= import('posthog-js')
-    .then(({ default: posthog }) => {
+  clientPromise ??= Promise.all([
+    import('posthog-js'),
+    // Content blockers refuse the recorder PostHog would fetch from /static/, and the SDK
+    // fetches nothing once this has defined it.
+    import('posthog-js/dist/posthog-recorder'),
+  ])
+    .then(([{ default: posthog }]) => {
       posthog.init(token, {
         // PostHog's managed proxy on our domain, as in the app: Firefox's tracking protection
         // blocks PostHog's own hosts.
@@ -33,7 +70,7 @@ export function loadPostHog(): Promise<PostHog | null> {
         session_recording: {
           maskAllInputs: true,
           maskTextSelector: '*',
-          maskAllElementAttributes: true,
+          maskAttributeFn: maskReplayAttribute,
           recordBody: false,
           recordHeaders: false,
           captureJsonLd: false,
