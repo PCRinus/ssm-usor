@@ -15,6 +15,7 @@ api:
     - 'patches/**'
   - 'apps/api/**'
   - 'packages/contracts/**'
+  - 'packages/discord/**'
   - 'packages/document-engine/**'
   - 'packages/import/**'
   - 'packages/legislation/**'
@@ -71,6 +72,7 @@ legislation:
   - 'apps/legislation/**'
   - 'packages/legislation/**'
   - 'packages/document-engine/**'
+  - 'packages/discord/**'
 marketing:
   - *shared
   - *ui

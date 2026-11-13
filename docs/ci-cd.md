@@ -25,6 +25,12 @@ The daily legislation check is not a workflow: it is the cron trigger of the
 `ssm-usor-legislation` Worker (`apps/legislation`), deployed like the mail Worker; non-prod's
 copy runs half an hour after production's. A scheduled Action ran it at first and was dropped, because GitHub's scheduler delays
 and skips runs where Cloudflare's fires on time.
+The fix that follows a change is a workflow, `.github/workflows/legislation-fix.yml`
+(**Legislation fix**), scheduled at 04:30 UTC and started by hand from `main`: it opens a pull
+request or an issue for each of production's open legal changes, and its pull requests run this
+CI like any other because the legislation GitHub App opens them. A late or skipped schedule only
+delays a fix that waits for a review anyway. See the
+[deployment guide](deployment.md#the-fix-workflow).
 
 ## Change selection
 
@@ -146,7 +152,10 @@ service token of the relay it reads the portal through
 them is missing: without the first two the cron could not even record that it ran, and
 without the token the relay turns away every act. `LEGISLATION_RUN_SECRET`, the bearer token of the
 [run by hand](deployment.md#running-the-check-by-hand), is uploaded when the environment has it;
-without it the job only leaves a notice, and `POST /run` answers `404`.
+without it the job only leaves a notice, and `POST /run` answers `404`. So is
+`DISCORD_LEGISLATION_WEBHOOK`, for the [notices](deployment.md#discord-notices-for-legislation);
+without it the job warns and nothing is posted. The job also sets `ENVIRONMENT`, which the
+notices name.
 
 When `supabase/config.toml` or a migration changes, a last job applies the file to the
 environment's project with `supabase config push`, after the API, because the Send Email hook it declares

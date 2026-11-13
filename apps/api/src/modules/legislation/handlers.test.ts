@@ -64,7 +64,72 @@ const change = {
   resolution: 'open',
   resolved_at: null,
   resolved_by_note: null,
+  outcome: null,
+  compared_with: null,
+  assessed_at: null,
+  amending_acts: null,
+  amended_units: null,
   act: { id: 'lege-319-2006', name: 'Legea 319/2006', portal_id: 73772 },
+  passages: [],
+  versions: [],
+};
+
+const quoted = {
+  id: 'f2f2f2f2-0000-4000-8000-000000000002',
+  template_file: '2.2_general_training_material.docx',
+  type_key: 'general_training_material',
+  paragraph: 2048,
+  citation_form: 'quote',
+  locator: 'Art. 36 alin. (1) – (3)',
+  unit_label: 'Art. 36 alin. (2)',
+  status: 'changed',
+  old_text: '(2) … să poarte casca de protecție omologată.',
+  new_text: '(2) … să poarte pe cap cască de protecție omologată.',
+  hunks: [
+    { old: 'casca', new: 'pe cap cască', before: 'să poarte', after: 'de protecție omologată.' },
+  ],
+};
+const referred = {
+  ...quoted,
+  id: 'f2f2f2f2-0000-4000-8000-000000000001',
+  paragraph: 22,
+  citation_form: 'reference',
+  locator: null,
+  unit_label: 'Art. 6',
+  old_text: 'Art. 6 …',
+  new_text: 'Art. 6 … 47^1. …',
+  hunks: [],
+};
+
+const assessed = {
+  ...change,
+  id: 'd1d1d1d1-0000-4000-8000-000000000002',
+  consolidated_on: '2026-11-06',
+  amending_act: null,
+  outcome: 'quote_differs',
+  compared_with: '2026-08-25',
+  assessed_at: '2026-11-13T03:18:00+00:00',
+  amending_acts: [
+    {
+      kind: 'LEGEA',
+      number: '207',
+      date: '2026-11-03',
+      name: 'Legea 207/2026',
+      portalId: null,
+      gazette: { number: '905', date: '2026-11-04' },
+    },
+  ],
+  amended_units: [
+    {
+      unit: 'Art. 36 alin. (2)',
+      subject: 'Alineatul (2), Articolul 36',
+      operation: 'modified',
+      date: '2026-11-06',
+      amendingAct: 'Legea 207/2026',
+    },
+  ],
+  act: { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portal_id: 41006 },
+  passages: [quoted, referred],
 };
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -137,11 +202,66 @@ describe('GET /legislation/acts', () => {
 
 describe('GET /legislation/changes', () => {
   it('lists the changes newest first, each with its act', async () => {
-    mockUpstream({ legal_changes: () => Response.json([change]) });
+    mockUpstream({ legal_changes: () => Response.json([assessed, change]) });
     const response = await request('/legislation/changes');
     expect(response.status).toBe(200);
     expect(legalChangeListResponseSchema.parse(await response.json())).toEqual({
       items: [
+        {
+          id: 'd1d1d1d1-0000-4000-8000-000000000002',
+          act: { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portalId: 41006 },
+          seenAt: '2026-10-07T04:00:05+00:00',
+          consolidatedOn: '2026-11-06',
+          amendingAct: null,
+          resolution: 'open',
+          resolvedAt: null,
+          resolvedByNote: null,
+          outcome: 'quote_differs',
+          comparedWith: '2026-08-25',
+          assessedAt: '2026-11-13T03:18:00+00:00',
+          amendingActs: [{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }],
+          amendedUnits: [
+            {
+              unit: 'Art. 36 alin. (2)',
+              operation: 'modified',
+              date: '2026-11-06',
+              amendingAct: 'Legea 207/2026',
+            },
+          ],
+          passages: [
+            {
+              id: referred.id,
+              templateFile: '2.2_general_training_material.docx',
+              document: {
+                typeKey: 'general_training_material',
+                title: 'Material de instruire introductiv-generală',
+              },
+              citationForm: 'reference',
+              locator: null,
+              unit: 'Art. 6',
+              status: 'changed',
+              oldText: 'Art. 6 …',
+              newText: 'Art. 6 … 47^1. …',
+              hunks: [],
+            },
+            {
+              id: quoted.id,
+              templateFile: '2.2_general_training_material.docx',
+              document: {
+                typeKey: 'general_training_material',
+                title: 'Material de instruire introductiv-generală',
+              },
+              citationForm: 'quote',
+              locator: 'Art. 36 alin. (1) – (3)',
+              unit: 'Art. 36 alin. (2)',
+              status: 'changed',
+              oldText: '(2) … să poarte casca de protecție omologată.',
+              newText: '(2) … să poarte pe cap cască de protecție omologată.',
+              hunks: quoted.hunks,
+            },
+          ],
+          updatedDocuments: [],
+        },
         {
           id: 'd1d1d1d1-0000-4000-8000-000000000001',
           act: { id: 'lege-319-2006', name: 'Legea 319/2006', portalId: 73772 },
@@ -151,12 +271,118 @@ describe('GET /legislation/changes', () => {
           resolution: 'open',
           resolvedAt: null,
           resolvedByNote: null,
+          outcome: null,
+          comparedWith: null,
+          assessedAt: null,
+          amendingActs: [],
+          amendedUnits: [],
+          passages: [],
+          updatedDocuments: [],
         },
       ],
     });
     const [list] = searchParams('legal_changes');
     expect(list!.get('order')).toBe('seen_at.desc,consolidated_on.desc,id.asc');
     expect(list!.get('select')).toContain('act:legal_acts(id,name,portal_id)');
+    expect(list!.get('select')).toContain('passages:legal_change_passages(');
+    expect(list!.get('select')).toContain(
+      'versions:document_template_versions!template_version_legal_changes(template:document_templates(type_key,title))'
+    );
+  });
+
+  it('names the documents whose new template versions answer the change, once each', async () => {
+    mockUpstream({
+      legal_changes: () =>
+        Response.json([
+          {
+            ...assessed,
+            resolution: 'template_version',
+            versions: [
+              { template: { type_key: 'protective_equipment_list', title: 'Lista EIP' } },
+              {
+                template: {
+                  type_key: 'general_training_material',
+                  title: 'Material de instruire introductiv-generală',
+                },
+              },
+              { template: { type_key: 'protective_equipment_list', title: 'Lista EIP' } },
+            ],
+          },
+        ]),
+    });
+    const response = await request('/legislation/changes');
+    const { items } = legalChangeListResponseSchema.parse(await response.json());
+    expect(items[0]!.updatedDocuments).toEqual([
+      { typeKey: 'protective_equipment_list', title: 'Lista EIP' },
+      {
+        typeKey: 'general_training_material',
+        title: 'Material de instruire introductiv-generală',
+      },
+    ]);
+  });
+
+  it('names the document a passage sits in by its type, else by its file, and none when neither is known', async () => {
+    const firePassage = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000003',
+      template_file: 'fire/2.1_fire_own_instructions.docx',
+    };
+    const unknown = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000004',
+      template_file: 'retired.docx',
+      type_key: null,
+    };
+    const renamed = {
+      ...quoted,
+      id: 'f2f2f2f2-0000-4000-8000-000000000005',
+      template_file: 'renamed.docx',
+      type_key: 'fire_own_instructions',
+    };
+    mockUpstream({
+      legal_changes: () =>
+        Response.json([
+          { ...assessed, passages: [{ ...firePassage, type_key: null }, unknown, renamed] },
+        ]),
+    });
+    const response = await request('/legislation/changes');
+    const { items } = legalChangeListResponseSchema.parse(await response.json());
+    const fireInstructions = {
+      typeKey: 'fire_own_instructions',
+      title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+    };
+    expect(items[0]!.passages.map((passage) => passage.document)).toEqual([
+      fireInstructions,
+      fireInstructions,
+      null,
+    ]);
+  });
+
+  it('drops only the stored amending acts and amended units it cannot read', async () => {
+    mockUpstream({
+      legal_changes: () =>
+        Response.json([
+          {
+            ...assessed,
+            amending_acts: [{ kind: 'LEGEA' }, ...assessed.amending_acts],
+            amended_units: [
+              ...assessed.amended_units,
+              { ...assessed.amended_units[0], operation: 'renumbered' },
+            ],
+          },
+        ]),
+    });
+    const response = await request('/legislation/changes');
+    const [item] = legalChangeListResponseSchema.parse(await response.json()).items;
+    expect(item!.amendingActs).toEqual([{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }]);
+    expect(item!.amendedUnits.map((unit) => unit.unit)).toEqual(['Art. 36 alin. (2)']);
+  });
+
+  it('never asks for the reasons to review, which members cannot read', async () => {
+    mockUpstream({ legal_changes: () => Response.json([change]) });
+    await request('/legislation/changes');
+    const [list] = searchParams('legal_changes');
+    expect(list!.get('select')).not.toMatch(/(^|,)review(,|$)/);
   });
 
   it('answers 401 without a token', async () => {

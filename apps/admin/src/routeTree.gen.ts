@@ -16,6 +16,10 @@ import { Route as SignInRouteImport } from './routes/sign-in';
 import { Route as VerifyRouteImport } from './routes/verify';
 import { Route as ImportsIndexRouteImport } from './routes/imports/index';
 import { Route as ImportsIdRouteImport } from './routes/imports/$id';
+import { Route as LegislationIndexRouteImport } from './routes/legislation/index';
+import { Route as LegislationActsRouteImport } from './routes/legislation/acts';
+import { Route as LegislationRunsRouteImport } from './routes/legislation/runs';
+import { Route as LegislationChangesIdRouteImport } from './routes/legislation/changes.$id';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +56,26 @@ const ImportsIdRoute = ImportsIdRouteImport.update({
   path: '/imports/$id',
   getParentRoute: () => rootRouteImport,
 } as any);
+const LegislationIndexRoute = LegislationIndexRouteImport.update({
+  id: '/legislation/',
+  path: '/legislation/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const LegislationActsRoute = LegislationActsRouteImport.update({
+  id: '/legislation/acts',
+  path: '/legislation/acts',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const LegislationRunsRoute = LegislationRunsRouteImport.update({
+  id: '/legislation/runs',
+  path: '/legislation/runs',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const LegislationChangesIdRoute = LegislationChangesIdRouteImport.update({
+  id: '/legislation/changes/$id',
+  path: '/legislation/changes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -60,7 +84,11 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute;
   '/verify': typeof VerifyRoute;
   '/imports/$id': typeof ImportsIdRoute;
+  '/legislation/acts': typeof LegislationActsRoute;
+  '/legislation/runs': typeof LegislationRunsRoute;
   '/imports/': typeof ImportsIndexRoute;
+  '/legislation/': typeof LegislationIndexRoute;
+  '/legislation/changes/$id': typeof LegislationChangesIdRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -69,7 +97,11 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute;
   '/verify': typeof VerifyRoute;
   '/imports/$id': typeof ImportsIdRoute;
+  '/legislation/acts': typeof LegislationActsRoute;
+  '/legislation/runs': typeof LegislationRunsRoute;
   '/imports': typeof ImportsIndexRoute;
+  '/legislation': typeof LegislationIndexRoute;
+  '/legislation/changes/$id': typeof LegislationChangesIdRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -79,7 +111,11 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute;
   '/verify': typeof VerifyRoute;
   '/imports/$id': typeof ImportsIdRoute;
+  '/legislation/acts': typeof LegislationActsRoute;
+  '/legislation/runs': typeof LegislationRunsRoute;
   '/imports/': typeof ImportsIndexRoute;
+  '/legislation/': typeof LegislationIndexRoute;
+  '/legislation/changes/$id': typeof LegislationChangesIdRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -90,7 +126,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/verify'
     | '/imports/$id'
-    | '/imports/';
+    | '/legislation/acts'
+    | '/legislation/runs'
+    | '/imports/'
+    | '/legislation/'
+    | '/legislation/changes/$id';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
@@ -99,7 +139,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/verify'
     | '/imports/$id'
-    | '/imports';
+    | '/legislation/acts'
+    | '/legislation/runs'
+    | '/imports'
+    | '/legislation'
+    | '/legislation/changes/$id';
   id:
     | '__root__'
     | '/'
@@ -108,7 +152,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/verify'
     | '/imports/$id'
-    | '/imports/';
+    | '/legislation/acts'
+    | '/legislation/runs'
+    | '/imports/'
+    | '/legislation/'
+    | '/legislation/changes/$id';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -118,7 +166,11 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute;
   VerifyRoute: typeof VerifyRoute;
   ImportsIdRoute: typeof ImportsIdRoute;
+  LegislationActsRoute: typeof LegislationActsRoute;
+  LegislationRunsRoute: typeof LegislationRunsRoute;
   ImportsIndexRoute: typeof ImportsIndexRoute;
+  LegislationIndexRoute: typeof LegislationIndexRoute;
+  LegislationChangesIdRoute: typeof LegislationChangesIdRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +224,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImportsIdRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/legislation/': {
+      id: '/legislation/';
+      path: '/legislation';
+      fullPath: '/legislation/';
+      preLoaderRoute: typeof LegislationIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/legislation/acts': {
+      id: '/legislation/acts';
+      path: '/legislation/acts';
+      fullPath: '/legislation/acts';
+      preLoaderRoute: typeof LegislationActsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/legislation/runs': {
+      id: '/legislation/runs';
+      path: '/legislation/runs';
+      fullPath: '/legislation/runs';
+      preLoaderRoute: typeof LegislationRunsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/legislation/changes/$id': {
+      id: '/legislation/changes/$id';
+      path: '/legislation/changes/$id';
+      fullPath: '/legislation/changes/$id';
+      preLoaderRoute: typeof LegislationChangesIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -182,7 +262,11 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   VerifyRoute: VerifyRoute,
   ImportsIdRoute: ImportsIdRoute,
+  LegislationActsRoute: LegislationActsRoute,
+  LegislationRunsRoute: LegislationRunsRoute,
   ImportsIndexRoute: ImportsIndexRoute,
+  LegislationIndexRoute: LegislationIndexRoute,
+  LegislationChangesIdRoute: LegislationChangesIdRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -22077,6 +22077,161 @@
                 "resolvedByNote": {
                   "type": "string",
                   "nullable": true
+                },
+                "outcome": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["no_impact", "quote_differs", "needs_review", null]
+                },
+                "comparedWith": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date"
+                },
+                "assessedAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
+                },
+                "amendingActs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "adoptedOn": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date"
+                      }
+                    },
+                    "required": ["name", "adoptedOn"]
+                  }
+                },
+                "amendedUnits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "unit": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": ["modified", "supplemented", "inserted", "repealed", "other"]
+                      },
+                      "date": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "amendingAct": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": ["unit", "operation", "date", "amendingAct"]
+                  }
+                },
+                "passages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "templateFile": {
+                        "type": "string"
+                      },
+                      "document": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "typeKey": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["typeKey", "title"]
+                      },
+                      "citationForm": {
+                        "type": "string",
+                        "enum": ["quote", "reference"]
+                      },
+                      "locator": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "unit": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["changed", "added", "repealed", "missing", "uncompared"]
+                      },
+                      "oldText": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "newText": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "hunks": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "old": {
+                              "type": "string"
+                            },
+                            "new": {
+                              "type": "string"
+                            },
+                            "before": {
+                              "type": "string"
+                            },
+                            "after": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["old", "new", "before", "after"]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "templateFile",
+                      "document",
+                      "citationForm",
+                      "locator",
+                      "unit",
+                      "status",
+                      "oldText",
+                      "newText",
+                      "hunks"
+                    ]
+                  }
+                },
+                "updatedDocuments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "typeKey": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["typeKey", "title"]
+                  }
                 }
               },
               "required": [
@@ -22087,7 +22242,14 @@
                 "amendingAct",
                 "resolution",
                 "resolvedAt",
-                "resolvedByNote"
+                "resolvedByNote",
+                "outcome",
+                "comparedWith",
+                "assessedAt",
+                "amendingActs",
+                "amendedUnits",
+                "passages",
+                "updatedDocuments"
               ]
             }
           }
@@ -48081,7 +48243,7 @@
       "get": {
         "operationId": "listLegalChanges",
         "summary": "List the legal changes",
-        "description": "Newer consolidated forms of the watched acts, newest first, each with its act and how it was resolved. The same for every organization; not paginated.",
+        "description": "Newer consolidated forms of the watched acts, newest first, each with its act, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended and the cited passages it touched, with the law's text before and after. The same for every organization; not paginated.",
         "security": [
           {
             "bearerAuth": []

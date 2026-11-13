@@ -1,3 +1,5 @@
+import { clip, discordLimits, discordWebhook, noPreview } from '@ssm-usor/discord';
+
 import type { ApiEnv } from './env';
 
 /** 🔴 for what support acts on now, 🟡 for what it looks at this week. */
@@ -25,56 +27,32 @@ const marks: Record<AlertMessage['severity'], string> = {
   summary: '📋',
 };
 
-// Discord refuses a message's content past 2,000 characters.
-const maxContent = 2_000;
-
 export const environmentOf = (env: ApiEnv['Bindings']) => env.ENVIRONMENT?.trim() || 'local';
 
 export function alertText(message: AlertMessage, environment: string, adminOrigin?: string) {
-  // Angle brackets keep Discord from fetching a preview of a page behind Access.
-  const link = adminOrigin && message.adminPath ? `\n<${adminOrigin}${message.adminPath}>` : '';
+  const link =
+    adminOrigin && message.adminPath ? `\n${noPreview(`${adminOrigin}${message.adminPath}`)}` : '';
   const text = [
     `${marks[message.severity]} **${message.title}** · ${environment}`,
     ...message.lines,
   ]
     .join('\n')
     .trim();
-  const room = maxContent - link.length;
-  return `${text.length > room ? `${text.slice(0, room - 1)}…` : text}${link}`;
+  return `${clip(text, discordLimits.content - link.length)}${link}`;
 }
 
-export function alertSender(
-  env: ApiEnv['Bindings'],
-  fetcher: typeof fetch = (input, init) => fetch(input, init)
-): AlertSender {
-  const webhook = env.DISCORD_ALERTS_WEBHOOK?.trim();
+export function alertSender(env: ApiEnv['Bindings'], fetcher?: typeof fetch): AlertSender {
+  const webhook = discordWebhook(env.DISCORD_ALERTS_WEBHOOK, {
+    fetcher,
+    what: 'An alert',
+    // Alerts are sent from waitUntil, whose 30 seconds after the response are shared by every
+    // alert of the request: a post that waits for a long rate limit would starve the others.
+    maxRetryWaitMs: 2_000,
+  });
   const environment = environmentOf(env);
   const adminOrigin = env.ADMIN_ORIGIN?.trim().replace(/\/+$/, '') || undefined;
   return {
-    enabled: Boolean(webhook),
-    async send(message) {
-      if (!webhook) return false;
-      try {
-        const response = await fetcher(webhook, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: alertText(message, environment, adminOrigin),
-            allowed_mentions: { parse: [] },
-          }),
-          signal: AbortSignal.timeout(5_000),
-        });
-        if (!response.ok) {
-          console.error(`An alert was not posted: Discord answered ${response.status}.`);
-          return false;
-        }
-        return true;
-      } catch (error) {
-        console.error(
-          `An alert was not posted: ${error instanceof Error ? error.message.slice(0, 200) : 'unknown error'}.`
-        );
-        return false;
-      }
-    },
+    enabled: webhook.enabled,
+    send: (message) => webhook.send({ content: alertText(message, environment, adminOrigin) }),
   };
 }

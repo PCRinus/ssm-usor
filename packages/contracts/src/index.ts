@@ -9,6 +9,7 @@ import { subscriptionSummarySchema } from './subscriptions';
 
 export * from './admin-impersonation';
 export * from './admin-imports';
+export * from './admin-legislation';
 export * from './banks';
 export * from './billing';
 export * from './caen';

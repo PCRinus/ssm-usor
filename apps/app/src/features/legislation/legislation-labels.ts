@@ -1,6 +1,8 @@
 import type {
   DocumentsBehindResponseItemsItemNewestVersionKind,
   LegalActListResponseItemsItemPortalStatus,
+  LegalChangeListResponseItemsItem,
+  LegalChangeListResponseItemsItemAmendedUnitsItemOperation,
   LegalChangeListResponseItemsItemResolution,
 } from '@/api/generated/api';
 
@@ -58,4 +60,40 @@ export function countOf(count: number, one: string, many: string) {
   if (count === 1) return `1 ${one}`;
   const tens = count % 100;
   return count >= 20 && (tens === 0 || tens >= 20) ? `${count} de ${many}` : `${count} ${many}`;
+}
+
+const superscriptDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+
+// The portal writes "Art. 109^2" for art. 109², in a unit's name and in the law's text alike.
+export const withSuperscripts = (text: string) =>
+  text.replace(/\^(\d+)/g, (_, digits: string) =>
+    [...digits].map((digit) => superscriptDigits[Number(digit)]).join('')
+  );
+
+export const unitLabel = (unit: string) => withSuperscripts(unit).replace(/^Art\./, 'art.');
+
+// Nouns, not participles: a participle would have to agree with "art.", "lit." or "anexa".
+export const operationLabels: Record<
+  LegalChangeListResponseItemsItemAmendedUnitsItemOperation,
+  string
+> = {
+  modified: 'Modificări',
+  supplemented: 'Completări',
+  inserted: 'Introduceri',
+  repealed: 'Abrogări',
+  other: 'Alte schimbări',
+};
+
+export function listOf(items: string[]) {
+  return items.length <= 1
+    ? (items[0] ?? '')
+    : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
+}
+
+export function changeStatus(change: LegalChangeListResponseItemsItem) {
+  if (change.resolution !== 'open') return null;
+  if (change.outcome === null) return 'Modificarea nu a fost încă analizată.';
+  if (change.outcome === 'quote_differs') return 'Modifică un text citat în documente.';
+  if (change.outcome === 'needs_review') return 'Modifică un articol la care trimit documentele.';
+  return null;
 }

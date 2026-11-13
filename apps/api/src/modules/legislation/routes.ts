@@ -37,7 +37,7 @@ export const listLegalChangesRoute = createRoute({
   operationId: 'listLegalChanges',
   summary: 'List the legal changes',
   description:
-    'Newer consolidated forms of the watched acts, newest first, each with its act and how it was resolved. The same for every organization; not paginated.',
+    "Newer consolidated forms of the watched acts, newest first, each with its act, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended and the cited passages it touched, with the law's text before and after. The same for every organization; not paginated.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   responses: {

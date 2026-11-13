@@ -9,6 +9,7 @@ import {
   knowledgeTestData,
   knowledgeTestTemplates,
 } from '../tools/knowledge-test-samples';
+import { templatesUrl } from '../tools/template-sources';
 import {
   testResult,
   trainingSheetFormSample,
@@ -18,9 +19,9 @@ import {
 } from '../tools/training-sheet-samples';
 import { annexTemplate } from './annex-template';
 import { renderDocument, templatePlaceholders } from './render';
+import { templateChangeProblems } from './template-change';
 import { documentText } from './text';
 
-const templatesUrl = new URL('../templates/', import.meta.url);
 const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
 const documentTextOf = (paragraph: string) =>
   [...paragraph.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((match) => match[1]).join('');
@@ -1616,21 +1617,21 @@ describe('manifest', () => {
   });
 });
 
-// The database's bounds for a version's note (ADR 017): a note out of them would fail only
-// when the templates are registered, after the merge.
 describe.each(['', 'other/', 'fire/'])(
   'the change of each template in %smanifest.json',
   (folder) => {
     const manifest = JSON.parse(
       readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')
-    ) as { templates: { typeKey: string; change?: { kind?: string; note?: string } }[] };
+    ) as { templates: { typeKey: string; change?: unknown }[] };
+    const acts = JSON.parse(readFileSync(new URL('legal-acts.json', templatesUrl), 'utf8')) as {
+      acts: { id: string }[];
+    };
+    const actIds = new Set(acts.acts.map((act) => act.id));
 
     it.each(manifest.templates.map((entry) => [entry.typeKey, entry.change] as const))(
-      '%s says what kind of change it was, in a note',
+      '%s says what kind of change it was, in a note, and which change of an act it resolves',
       (_typeKey, change) => {
-        expect(['legal', 'correction', 'layout']).toContain(change?.kind);
-        expect(change?.note?.trim().length).toBeGreaterThanOrEqual(2);
-        expect(change?.note?.trim().length).toBeLessThanOrEqual(500);
+        expect(templateChangeProblems(change, actIds)).toEqual([]);
       }
     );
   }

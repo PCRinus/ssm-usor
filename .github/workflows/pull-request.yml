@@ -181,8 +181,8 @@ jobs:
         run: pnpm --filter @ssm-usor/app exec playwright install-deps chromium
 
       # The API's e2e server imports these packages from their build output.
-      - name: Build the contracts, the document engine and the import package
-        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build
+      - name: Build the packages the API imports from their build output
+        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import --filter @ssm-usor/discord build
 
       # The builds the flows serve bake in the local stack's address and publishable key. Both
       # are the pinned CLI's defaults, so the builds need not wait for the stack, which the step

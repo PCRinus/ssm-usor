@@ -2,7 +2,7 @@ import type { CurrentUser } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import { ChevronRight, FileStack, type LucideIcon, UsersRound } from 'lucide-react';
+import { ChevronRight, FileStack, type LucideIcon, Scale, UsersRound } from 'lucide-react';
 
 import { apiFetch, isRefusedByApi } from '@/api/http';
 import { AdminShell } from '@/components/admin-shell';
@@ -71,6 +71,13 @@ export function HomePage() {
           title="Members"
           description="Every organization’s members, to act as one of them for support"
         />
+        <HomeCard
+          to="/legislation"
+          testId="home-legislation"
+          icon={Scale}
+          title="Legislation"
+          description="Changes of the cited acts, their outcomes and resolution, the watched acts and the check’s runs"
+        />
       </div>
     </AdminShell>
   );
@@ -83,7 +90,7 @@ function HomeCard({
   title,
   description,
 }: {
-  to: '/imports' | '/members';
+  to: '/imports' | '/members' | '/legislation';
   testId: string;
   icon: LucideIcon;
   title: string;

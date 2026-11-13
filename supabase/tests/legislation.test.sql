@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(46);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -17,10 +17,20 @@ insert into public.organization_members (user_id, organization_id, role) values
 
 insert into public.legal_acts (id, name, portal_id, portal_status, last_consolidated_on) values
   ('lege-319-2006', 'Legea 319/2006', 73772, 'in_force', '2021-07-25'),
-  ('omai-163-2007', 'OMAI 163/2007', null, null, null);
+  ('omai-163-2007', 'OMAI 163/2007', null, null, null)
+on conflict (id) do update set portal_status = excluded.portal_status, last_consolidated_on = excluded.last_consolidated_on;
+
+select set_config('test.acts', (select count(*)::text from public.legal_acts), true);
 
 insert into public.legal_changes (id, act_id, consolidated_on, amending_act) values
   ('d1d1d1d1-0000-4000-8000-000000000001', 'lege-319-2006', '2021-07-25', 'LEGE 208 21/07/2021');
+
+insert into public.legal_change_passages
+  (id, change_id, manifest, template_file, paragraph, citation_form, locator, article, unit_label, status, old_text, new_text, hunks)
+values
+  ('f1f1f1f1-0000-4000-8000-000000000001', 'd1d1d1d1-0000-4000-8000-000000000001', 'ssm', '2.2_general_training_material.docx', 2048,
+   'quote', 'Art. 7 alin. (1)', '7', 'Art. 7 alin. (1)', 'changed', '(1) vechi', '(1) nou',
+   '[{"old": "vechi", "new": "nou", "before": "(1)", "after": ""}]');
 
 insert into public.legal_check_runs (id, started_at, finished_at, status, acts_checked, changes_found, acts_skipped, errors) values
   ('e1e1e1e1-0000-4000-8000-000000000001', '2026-10-07 03:17:00+00', '2026-10-07 03:21:00+00', 'failed', 1, 1, 1,
@@ -51,6 +61,72 @@ select throws_ok(
   '23514',
   null,
   'a resolved change has the time it was resolved'
+);
+
+select throws_ok(
+  $$ update public.legal_changes set outcome = 'irrelevant', assessed_at = now() $$,
+  '23514',
+  null,
+  'a change has no impact, a quote that differs, or needs review'
+);
+
+select throws_ok(
+  $$ update public.legal_changes set outcome = 'needs_review' $$,
+  '23514',
+  null,
+  'an assessed change has the time it was assessed'
+);
+
+select throws_ok(
+  $$ update public.legal_changes set compared_with = '2021-07-25' $$,
+  '23514',
+  null,
+  'a change is compared with an earlier form'
+);
+
+select throws_ok(
+  $$ update public.legal_changes set review = '{"reason": "x"}' $$,
+  '23514',
+  null,
+  'the reasons to review a change are a list'
+);
+
+select throws_ok(
+  $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status, old_text)
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', 'a.docx', 1, 'quote', 'Art. 1', 'changed', 'vechi') $$,
+  '23514',
+  null,
+  'a changed unit has its text before and after'
+);
+
+select throws_ok(
+  $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status)
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', 'a.docx', 1, 'quote', 'Art. 1', 'unchanged') $$,
+  '23514',
+  null,
+  'a passage is changed, added, repealed, missing or uncompared'
+);
+
+select throws_ok(
+  $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status, old_text)
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', 'a.docx', 1, 'quote', 'Anexa', 'uncompared', 'vechi') $$,
+  '23514',
+  null,
+  'a passage not compared keeps the law''s text of both forms'
+);
+
+select throws_ok(
+  $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status, old_text, new_text)
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', '2.2_general_training_material.docx', 2048, 'quote', 'Art. 7 alin. (1)', 'changed', 'a', 'b') $$,
+  '23505',
+  null,
+  'a citation records a unit once per change'
+);
+
+select fk_ok(
+  'public', 'legal_change_passages', 'change_id',
+  'public', 'legal_changes', 'id',
+  'a passage belongs to a change'
 );
 
 select throws_ok(
@@ -109,8 +185,42 @@ select throws_ok(
   'a member cannot change a run'
 );
 
-select is((select count(*) from public.legal_acts), 2::bigint, 'a member reads every watched act');
+select is((select count(*) from public.legal_acts), current_setting('test.acts')::bigint, 'a member reads every watched act');
 select is((select count(*) from public.legal_changes), 1::bigint, 'a member reads the legal changes');
+select lives_ok(
+  $$ select outcome, compared_with, amending_acts, amended_units, assessed_at from public.legal_changes $$,
+  'a member reads the outcome of a change'
+);
+
+select throws_ok(
+  $$ select review from public.legal_changes $$,
+  '42501',
+  null,
+  'a member cannot read the reasons to review, the platform admin''s'
+);
+select is((select old_text from public.legal_change_passages), '(1) vechi', 'a member reads the passages of the changes');
+
+select throws_ok(
+  $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status)
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', 'a.docx', 1, 'reference', 'Art. 1', 'missing') $$,
+  '42501',
+  null,
+  'a member cannot add a passage'
+);
+
+select throws_ok(
+  $$ update public.legal_change_passages set new_text = 'altceva' $$,
+  '42501',
+  null,
+  'a member cannot change a passage'
+);
+
+select throws_ok(
+  $$ update public.legal_changes set outcome = 'no_impact', assessed_at = now() $$,
+  '42501',
+  null,
+  'a member cannot record an outcome'
+);
 
 select throws_ok(
   $$ insert into public.legal_acts (id, name) values ('lege-1-2000', 'Legea 1/2000') $$,
@@ -149,6 +259,7 @@ select pg_temp.act_as('cccccccc-0000-4000-8000-000000000003');
 select is((select count(*) from public.legal_acts), 0::bigint, 'an account without an organization reads no act');
 select is((select count(*) from public.legal_changes), 0::bigint, 'an account without an organization reads no change');
 select is((select count(*) from public.legal_check_runs), 0::bigint, 'an account without an organization reads no run');
+select is((select count(*) from public.legal_change_passages), 0::bigint, 'an account without an organization reads no passage');
 
 reset role;
 set local role anon;
@@ -167,6 +278,13 @@ select throws_ok(
   'anonymous callers cannot read the runs'
 );
 
+select throws_ok(
+  $$ select count(*) from public.legal_change_passages $$,
+  '42501',
+  null,
+  'anonymous callers cannot read the passages'
+);
+
 reset role;
 set local role service_role;
 
@@ -182,9 +300,33 @@ select lives_ok(
 );
 
 select lives_ok(
-  $$ update public.legal_changes set resolution = 'no_impact', resolved_at = now(), resolved_by_note = 'Nicio citare atinsă.'
+  $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status, new_text)
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', 'a.docx', 1, 'reference', 'Art. 1^1', 'added', 'Art. 1^1 nou') $$,
+  'the secret key stores a passage'
+);
+
+select lives_ok(
+  $$ insert into public.legal_change_passages (change_id, manifest, template_file, paragraph, citation_form, unit_label, status, old_text, new_text)
+     values ('d1d1d1d1-0000-4000-8000-000000000001', 'ssm', 'a.docx', 2, 'quote', 'Anexa', 'uncompared', 'vechi', 'nou') $$,
+  'the secret key stores a passage it could not compare'
+);
+
+select lives_ok(
+  $$ update public.legal_changes set outcome = 'no_impact', assessed_at = now(), compared_with = '2021-05-06',
+       amending_acts = '[]', amended_units = '[]', review = '[]',
+       resolution = 'no_impact', resolved_at = now(), resolved_by_note = 'Nicio citare atinsă.'
      where id = 'd1d1d1d1-0000-4000-8000-000000000001' $$,
-  'the secret key resolves a change'
+  'the secret key records the outcome and resolves a change'
+);
+
+reset role;
+
+delete from public.legal_changes where id = 'd1d1d1d1-0000-4000-8000-000000000001';
+
+select is(
+  (select count(*) from public.legal_change_passages where change_id = 'd1d1d1d1-0000-4000-8000-000000000001'),
+  0::bigint,
+  'the passages go with their change'
 );
 
 select * from finish();

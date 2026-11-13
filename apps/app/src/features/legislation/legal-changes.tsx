@@ -5,12 +5,23 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { Scale } from 'lucide-react';
 
-import { getListLegalChangesQueryKey, useListLegalChanges } from '@/api/generated/api';
+import {
+  getListLegalChangesQueryKey,
+  type LegalChangeListResponseItemsItem as LegalChange,
+  useListLegalChanges,
+} from '@/api/generated/api';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
 
-import { formatDayOf, portalPage, resolutionLabels } from './legislation-labels';
+import { AmendedUnits, ChangedPassages } from './legal-change-details';
+import {
+  changeStatus,
+  formatDayOf,
+  listOf,
+  portalPage,
+  resolutionLabels,
+} from './legislation-labels';
 
 export function LegalChanges({ userId }: { userId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -83,24 +94,52 @@ export function LegalChanges({ userId }: { userId: string }) {
                     {resolutionLabels[change.resolution]}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Forma consolidată din {formatRoDate(change.consolidatedOn)}
-                  {change.amendingAct && `, după ${change.amendingAct}`}. Găsită pe{' '}
-                  {formatDayOf(change.seenAt)}.
-                </p>
-                {change.resolution !== 'open' && change.resolvedByNote && (
-                  <p
-                    data-testid="legal-change-note"
-                    className="max-w-prose border-l-2 border-primary/50 pl-3 text-sm leading-relaxed"
-                  >
-                    {change.resolvedByNote}
-                  </p>
-                )}
+                <ChangeView change={change} />
               </li>
             ))}
           </ul>
         )}
       </div>
     </section>
+  );
+}
+
+function ChangeView({ change }: { change: LegalChange }) {
+  const amendedBy =
+    change.amendingActs.length > 0
+      ? listOf(change.amendingActs.map((act) => act.name))
+      : change.amendingAct;
+  const status = changeStatus(change);
+  const documents = change.updatedDocuments.map((document) => document.title);
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        Forma consolidată din {formatRoDate(change.consolidatedOn)}
+        {amendedBy && `, după ${amendedBy}`}. Găsită pe {formatDayOf(change.seenAt)}.
+      </p>
+      <AmendedUnits change={change} />
+      {status && (
+        <p data-testid="legal-change-status" className="text-sm">
+          {status}
+        </p>
+      )}
+      {change.resolution !== 'open' && change.resolvedByNote && (
+        <p
+          data-testid="legal-change-note"
+          className="max-w-prose border-l-2 border-primary/50 pl-3 text-sm leading-relaxed"
+        >
+          {change.resolvedByNote}
+        </p>
+      )}
+      {documents.length > 0 && (
+        <p data-testid="legal-change-documents" className="text-sm">
+          <span className="text-muted-foreground">
+            {documents.length === 1 ? 'Șablon nou pentru' : 'Șabloane noi pentru'}:
+          </span>{' '}
+          {listOf(documents)}
+        </p>
+      )}
+      <ChangedPassages passages={change.passages} />
+    </>
   );
 }

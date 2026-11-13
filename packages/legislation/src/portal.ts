@@ -1,7 +1,7 @@
 export const portalOrigin = 'https://legislatie.just.ro';
 export const portalUserAgent =
   'ssm-usor-legislation-check/1.0 (+https://github.com/PCRinus/ssm-usor)';
-export const portalPauseMs = 2_000;
+export const portalPauseMs = 2_500;
 
 // Wall time, not CPU time: a Worker's cron handler may wait minutes in all, while its CPU limit
 // counts only the parsing.
@@ -46,24 +46,82 @@ export class PortalError extends Error {
   }
 }
 
-const entities: Record<string, string> = {
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  apos: "'",
-  nbsp: ' ',
-};
+const entities = new Map<string, string>(
+  Object.entries({
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: ' ',
+    shy: '',
+    times: '×',
+    divide: '÷',
+    plusmn: '±',
+    minus: '−',
+    le: '≤',
+    ge: '≥',
+    ne: '≠',
+    deg: '°',
+    micro: 'µ',
+    sup1: '¹',
+    sup2: '²',
+    sup3: '³',
+    frac12: '½',
+    frac14: '¼',
+    frac34: '¾',
+    permil: '‰',
+    ndash: '–',
+    mdash: '—',
+    hellip: '…',
+    bull: '•',
+    middot: '·',
+    laquo: '«',
+    raquo: '»',
+    bdquo: '„',
+    ldquo: '“',
+    rdquo: '”',
+    lsquo: '‘',
+    rsquo: '’',
+    sbquo: '‚',
+    sect: '§',
+    para: '¶',
+    copy: '©',
+    reg: '®',
+    trade: '™',
+    euro: '€',
+    Acirc: 'Â',
+    acirc: 'â',
+    Icirc: 'Î',
+    icirc: 'î',
+    Abreve: 'Ă',
+    abreve: 'ă',
+    Scedil: 'Ş',
+    scedil: 'ş',
+    Tcedil: 'Ţ',
+    tcedil: 'ţ',
+  })
+);
+
+// Named entities are case-sensitive, &Acirc; is not &acirc;, but pages write &NBSP; and &AMP; too.
+const caseless = new Set(['amp', 'lt', 'gt', 'quot', 'apos', 'nbsp']);
+
+export function decodeEntities(value: string) {
+  return value.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z][a-z0-9]*);/gi, (entity, name: string) => {
+    if (!name.startsWith('#')) {
+      const lower = name.toLowerCase();
+      return (
+        entities.get(name) ?? (caseless.has(lower) ? entities.get(lower) : undefined) ?? entity
+      );
+    }
+    const hex = name[1] === 'x' || name[1] === 'X';
+    const code = parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10);
+    return code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+  });
+}
 
 function text(html: string) {
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (entity, name: string) => {
-      if (name.startsWith('#x') || name.startsWith('#X'))
-        return String.fromCodePoint(parseInt(name.slice(2), 16));
-      if (name.startsWith('#')) return String.fromCodePoint(parseInt(name.slice(1), 10));
-      return entities[name.toLowerCase()] ?? entity;
-    })
+  return decodeEntities(html.replace(/<[^>]*>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -87,7 +145,10 @@ export function parseActPage(html: string, portalId: number): PortalPage {
   if (!title) throw new PortalError(`Page ${portalId} has no act heading (S_DEN).`);
 
   const dates = new Set<string>();
-  for (const match of html.matchAll(/title='Consolidarea din (\d{2})\.(\d{2})\.(\d{4})'/g)) {
+  // A republication is a form like a consolidation; H.G. 1048/2006's newest is one.
+  for (const match of html.matchAll(
+    /title='(?:Consolidarea|Republicarea) din (\d{2})\.(\d{2})\.(\d{4})'/g
+  )) {
     const date = isoDate(match[1]!, match[2]!, match[3]!);
     if (!date) throw new PortalError(`Page ${portalId} lists an impossible date: ${match[0]}.`);
     dates.add(date);
@@ -199,7 +260,7 @@ export function portalOptionsFromEnv(env: PortalEnv): Pick<PortalOptions, 'origi
   };
 }
 
-async function request(
+export async function request(
   url: string,
   init: RequestInit,
   { fetch: fetchImpl = fetch, headers }: PortalOptions

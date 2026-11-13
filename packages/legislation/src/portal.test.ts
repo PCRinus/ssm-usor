@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  decodeEntities,
   describeAct,
   fetchPortalAct,
   parseActions,
@@ -38,6 +39,18 @@ describe('reading an act page of the Portal Legislativ', () => {
     const page = parseActPage(fixture('hg-1425-2006.html'), 76337);
     expect(page.title).toMatch(/^HOTĂRÂRE nr\. 1\.425 din 11 octombrie 2006 pentru aprobarea/);
     expect(page.consolidations).toEqual(['2022-03-07', '2016-10-21', '2011-12-27', '2010-09-27']);
+  });
+
+  it('counts a republication among the forms, as H.G. 1048/2006 was republished last', () => {
+    const page = lawPage.replace(
+      "<a title='Consolidarea din 25.07.2021'",
+      "<a title='Republicarea din 06.04.2022' style='color:red'>Republicarea 1</a>" +
+        "<a title='Consolidarea din 25.07.2021'"
+    );
+    expect(parseActPage(page, 73772).consolidations.slice(0, 2)).toEqual([
+      '2022-04-06',
+      '2021-07-25',
+    ]);
   });
 
   it('reads an act never consolidated, whose page has no "Forme act" section', () => {
@@ -266,5 +279,19 @@ describe('choosing the way to the portal from the environment', () => {
     expect(() =>
       portalOptionsFromEnv({ ...relay, LEGISLATION_RELAY_ORIGIN: 'https://legislatie.just.ro/' })
     ).toThrow(/set LEGISLATION_RELAY_ORIGIN/);
+  });
+});
+
+describe('decodeEntities', () => {
+  it('reads named and numeric entities and keeps one past Unicode as written', () => {
+    expect(decodeEntities('&#238;n &#351;i &#x21B; &amp; &#x110000; &#9999999;')).toBe(
+      'în şi ț & &#x110000; &#9999999;'
+    );
+  });
+
+  it('reads the named entities the portal writes in tables and keeps unknown ones', () => {
+    expect(decodeEntities('2&times;3 &Acirc;&acirc; &NBSP;&ndash; &constructor; &bogus;')).toBe(
+      '2×3 Ââ  – &constructor; &bogus;'
+    );
   });
 });

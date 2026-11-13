@@ -12,9 +12,21 @@
       "types": "./dist/citation-index.d.ts",
       "import": "./dist/citation-index.js"
     },
+    "./quotes": {
+      "types": "./dist/quote-replacement.d.ts",
+      "import": "./dist/quote-replacement.js"
+    },
     "./signing": {
       "types": "./dist/signing.d.ts",
       "import": "./dist/signing.js"
+    },
+    "./template-files": {
+      "types": "./dist/template-files.d.ts",
+      "import": "./dist/template-files.js"
+    },
+    "./token-diff": {
+      "types": "./dist/token-diff.d.ts",
+      "import": "./dist/token-diff.js"
     }
   },
   "scripts": {
@@ -25,6 +37,7 @@
     "import-templates": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/import_templates.py",
     "preview": "tsx tools/preview.ts",
     "citations": "tsx tools/citations.ts",
+    "replace-quote": "tsx tools/replace-legal-quote.ts",
     "build-covers": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_covers.py",
     "build-contract": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_contract.py",
     "build-annex": "docker run --rm --entrypoint python3 -v \"$PWD:/work\" gotenberg/gotenberg:8 /work/tools/import/build_annex.py",

@@ -122,6 +122,12 @@ export function parseMarker(text: string): Marker | null {
   };
 }
 
+/** Where a marker's locator is written in `text`, as the marker spells it. */
+export function markerLocatorSpan(text: string): { start: number; end: number } | null {
+  const span = new RegExp(marker.source, 'du').exec(text)?.indices?.groups?.locator;
+  return span ? { start: span[0], end: span[1] } : null;
+}
+
 export function readsLikeArticle(text: string) {
   return opensLikeArticle.test(text.trimStart());
 }
@@ -142,11 +148,14 @@ function continuesQuote(
   paragraph: Paragraph,
   previous: Paragraph,
   start: Paragraph,
-  inTable: (paragraph: Paragraph) => boolean
+  inTable: (paragraph: Paragraph) => boolean,
+  bareMarker: boolean
 ) {
   const text = paragraph.text.trim();
   if (!text || text.startsWith(markerPrefix) || heading.test(text)) return false;
   if (inTable(paragraph) && !inTable(start)) return false;
+  // A marker alone on its line is followed by the article's first words.
+  if (bareMarker && previous === start) return true;
   const own = numberingOf(start.xml);
   const numbering = numberingOf(paragraph.xml);
   if (own && own.level === '0' && numbering?.numId === own.numId && numbering.level === '0') {
@@ -211,7 +220,7 @@ export function templateCitations(template: TemplateSource): Citation[] {
       let last = index;
       while (
         last + 1 < paragraphs.length &&
-        continuesQuote(paragraphs[last + 1]!, paragraphs[last]!, paragraph, inTable)
+        continuesQuote(paragraphs[last + 1]!, paragraphs[last]!, paragraph, inTable, !lines[0])
       ) {
         last += 1;
         lines.push(paragraphs[last]!.text.trim());

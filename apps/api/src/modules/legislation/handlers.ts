@@ -2,12 +2,16 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type LegalAct,
   type LegalActStatus,
+  legalAmendedUnitSchema,
   type LegalChange,
+  type LegalChangeOutcome,
+  legalChangePassageSchema,
   type LegalChangeResolution,
   type LegalCheckRun,
   legalCheckRunErrorSchema,
   type LegalCheckRunStatus,
 } from '@ssm-usor/contracts';
+import { templateOfFile, templateOfType } from '@ssm-usor/document-engine/template-files';
 import { z } from 'zod';
 
 import type { Database } from '../../database.types';
@@ -21,20 +25,21 @@ import type {
 
 type ActRow = Database['public']['Tables']['legal_acts']['Row'];
 type ChangeRow = Database['public']['Tables']['legal_changes']['Row'];
+type PassageRow = Database['public']['Tables']['legal_change_passages']['Row'];
 type RunRow = Database['public']['Tables']['legal_check_runs']['Row'];
 
 const actColumns =
   'id, name, portal_id, portal_status, verified_consolidated_on, last_consolidated_on, last_amending_act, last_checked_at, checked_by_hand_on';
 const changeColumns =
-  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, act:legal_acts(id, name, portal_id)';
+  'id, seen_at, consolidated_on, amending_act, resolution, resolved_at, resolved_by_note, outcome, compared_with, assessed_at, amending_acts, amended_units, act:legal_acts(id, name, portal_id), passages:legal_change_passages(id, template_file, type_key, paragraph, citation_form, locator, unit_label, status, old_text, new_text, hunks), versions:document_template_versions!template_version_legal_changes(template:document_templates(type_key, title))';
 
 const runColumns =
   'id, started_at, finished_at, status, acts_checked, changes_found, acts_skipped, errors';
 
 const collator = new Intl.Collator('ro');
 
-// The casts below are safe: check constraints keep portal_status, resolution and status to these
-// values.
+// The casts below are safe: check constraints keep portal_status, resolution, outcome and status
+// to these values.
 const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
   id: row.id,
   name: row.name,
@@ -47,8 +52,57 @@ const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
   checkedByHandOn: row.checked_by_hand_on,
 });
 
+// The legislation Worker writes these columns; the API reads the fields it shows and drops the
+// rest, and an element it cannot read, not the whole list.
+const storedList = <T extends z.ZodType>(item: T) =>
+  z
+    .array(z.unknown())
+    .catch([])
+    .transform((items) =>
+      items.flatMap((each) => {
+        const parsed = item.safeParse(each);
+        return parsed.success ? [parsed.data as z.output<T>] : [];
+      })
+    );
+const storedAmendingActsSchema = storedList(
+  z
+    .object({ name: z.string(), date: z.iso.date().nullable().catch(null) })
+    .transform((act) => ({ name: act.name, adoptedOn: act.date }))
+);
+const storedAmendedUnitsSchema = storedList(legalAmendedUnitSchema);
+const storedHunksSchema = legalChangePassageSchema.shape.hunks.catch([]);
+
+type StoredPassage = Omit<PassageRow, 'change_id' | 'manifest' | 'article'>;
+
+const toPassage = (row: StoredPassage) =>
+  legalChangePassageSchema.parse({
+    id: row.id,
+    templateFile: row.template_file,
+    document:
+      (row.type_key ? templateOfType(row.type_key) : null) ?? templateOfFile(row.template_file),
+    citationForm: row.citation_form,
+    locator: row.locator,
+    unit: row.unit_label,
+    status: row.status,
+    oldText: row.old_text,
+    newText: row.new_text,
+    hunks: storedHunksSchema.parse(row.hunks),
+  });
+
+const passageOrder = (
+  a: Pick<PassageRow, 'template_file' | 'paragraph' | 'unit_label'>,
+  b: Pick<PassageRow, 'template_file' | 'paragraph' | 'unit_label'>
+) =>
+  a.template_file.localeCompare(b.template_file) ||
+  a.paragraph - b.paragraph ||
+  a.unit_label.localeCompare(b.unit_label);
+
 const toChange = (
-  row: Omit<ChangeRow, 'act_id'> & { act: Pick<ActRow, 'id' | 'name' | 'portal_id'> }
+  row: Omit<ChangeRow, 'act_id' | 'review'> & {
+    act: Pick<ActRow, 'id' | 'name' | 'portal_id'>;
+    passages: StoredPassage[];
+    versions: { template: { type_key: string; title: string } }[];
+  }
 ): LegalChange => ({
   id: row.id,
   act: { id: row.act.id, name: row.act.name, portalId: row.act.portal_id },
@@ -58,6 +112,20 @@ const toChange = (
   resolution: row.resolution as LegalChangeResolution,
   resolvedAt: row.resolved_at,
   resolvedByNote: row.resolved_by_note,
+  outcome: row.outcome as LegalChangeOutcome | null,
+  comparedWith: row.compared_with,
+  assessedAt: row.assessed_at,
+  amendingActs: storedAmendingActsSchema.parse(row.amending_acts ?? []),
+  amendedUnits: storedAmendedUnitsSchema.parse(row.amended_units ?? []),
+  passages: [...row.passages].sort(passageOrder).map(toPassage),
+  updatedDocuments: [
+    ...new Map(
+      row.versions.map(({ template }) => [
+        template.type_key,
+        { typeKey: template.type_key, title: template.title },
+      ])
+    ).values(),
+  ].sort((a, b) => collator.compare(a.title, b.title)),
 });
 
 export const listLegalActs: RouteHandler<typeof listLegalActsRoute, ApiEnv> = async (c) => {

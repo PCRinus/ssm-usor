@@ -171,6 +171,7 @@ export {
   addUsage,
   costOf,
   instructionsModel,
+  legislationFixModel,
   locatingModel,
   type ModelId,
   type ModelProvider,

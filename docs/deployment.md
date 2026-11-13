@@ -183,7 +183,10 @@ it; alerts are then skipped and the rest works. Once, by hand, for each environm
 A message names the rule, the environment, the import's kind and id, the organization's id, the
 counts that tripped the rule and the cost, never a name, a value or a file name, so Discord is
 not a sub-processor. Whoever holds the URL can post to the channel: rotate it from the same
-Discord page when it leaks.
+Discord page when it leaks. A Worker secret outlives the GitHub secret: to stop the alerts,
+delete both, the Worker's with
+`pnpm --filter @ssm-usor/api exec wrangler secret delete DISCORD_ALERTS_WEBHOOK`, adding
+`--env non-prod` for non-prod.
 
 The request goes to the gateway's Anthropic endpoint unchanged, so the model, the effort and the
 structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`, and the
@@ -302,7 +305,8 @@ no `workers.dev` address. Wrangler creates the hostname's DNS record and certifi
 as for `api.ssmusor.ro`, with the same token's **Zone → Workers Routes → Edit**; do not create
 a record for it by hand.
 
-It reads every watched act on the Portal Legislativ, records newer consolidated forms, and
+It reads every watched act on the Portal Legislativ, records newer consolidated forms, assesses
+each against the form the templates were verified against, resolves those with no impact, and
 logs each run in `legal_check_runs` ([data model](data-model.md#legislation)). The portal
 refuses requests from Cloudflare's network, so the Worker reads it through a relay on
 Mircea's home server, reached through his Cloudflare Tunnel at
@@ -311,13 +315,15 @@ The relay passes each request on to the portal and its answer back unchanged; it
 secrets. Its address is `LEGISLATION_RELAY_ORIGIN` in `wrangler.jsonc`. The other values are set by the
 **Deploy legislation Worker** job from the `production` environment:
 
-| Worker value                      | Kind     | From                                                                                         |
-| --------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`                    | Variable | The `VITE_SUPABASE_URL` variable, as for the API                                             |
-| `SUPABASE_SECRET_KEY`             | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                    |
-| `LEGISLATION_RELAY_CLIENT_ID`     | Secret   | The `LEGISLATION_RELAY_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`         |
-| `LEGISLATION_RELAY_CLIENT_SECRET` | Secret   | The `LEGISLATION_RELAY_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret` |
-| `LEGISLATION_RUN_SECRET`          | Secret   | The `LEGISLATION_RUN_SECRET` secret, optional: the bearer token of `POST /run`               |
+| Worker value                      | Kind     | From                                                                                                |
+| --------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                    | Variable | The `VITE_SUPABASE_URL` variable, as for the API                                                    |
+| `SUPABASE_SECRET_KEY`             | Secret   | The `SUPABASE_SECRET_KEY` secret: the cron writes past row-level security                           |
+| `LEGISLATION_RELAY_CLIENT_ID`     | Secret   | The `LEGISLATION_RELAY_CLIENT_ID` secret, sent to the relay as `CF-Access-Client-Id`                |
+| `LEGISLATION_RELAY_CLIENT_SECRET` | Secret   | The `LEGISLATION_RELAY_CLIENT_SECRET` secret, sent to the relay as `CF-Access-Client-Secret`        |
+| `LEGISLATION_RUN_SECRET`          | Secret   | The `LEGISLATION_RUN_SECRET` secret, optional: the bearer token of `POST /run`                      |
+| `DISCORD_LEGISLATION_WEBHOOK`     | Secret   | The `DISCORD_LEGISLATION_WEBHOOK` secret, optional: the [notices](#discord-notices-for-legislation) |
+| `ENVIRONMENT`                     | Variable | The environment's name, `production` or `non-prod`, which the notices carry                         |
 
 The job fails when any of the first four is missing. The service token is created by the homelab
 repository's Terraform, which also sets up the tunnel route and the Access application; copy
@@ -337,12 +343,43 @@ since the Worker refuses to send the token to the portal itself.
 A run takes about four minutes, most of it the two-second pause between requests to the
 portal; that is wall time, which a cron invocation may spend up to fifteen minutes of, while
 the 30-second CPU limit counts only the parsing. It makes about two hundred subrequests, within
-the Workers Paid limit.
+the Workers Paid limit. Assessing a change reads two forms of the act in full, three to six
+more requests through the relay, among them earlier forms' pages
+(`/Public/DetaliiDocument/<id>`, a republication's with the query `?isFormaDeBaza=True`) and
+full texts (`/Public/DetaliiDocumentAfis/<id>`). The largest, the Fiscal Code's two texts of
+7.6 MB each, took 0.3–0.4 s of CPU and under 60 MB of heap to compare, measured in Node on
+2026-11-13, so the default limits hold and `wrangler.jsonc` sets none.
 
-A failed run shows three ways: the row in `legal_check_runs` says `failed`, with one error per
+A failed run shows four ways: the row in `legal_check_runs` says `failed`, with one error per
 act it could not read; the invocation is marked failed under the Worker's **Cron Events** in
-the Cloudflare dashboard; and its log, with one line per act, is in the Worker's
-observability logs. A row left `running` is a run that was cut off.
+the Cloudflare dashboard; its log, with one line per act, is in the Worker's
+observability logs; and, with the webhook, it is posted to the environment's
+[Discord channel](#discord-notices-for-legislation). A row left `running` is a run that was cut off.
+
+### Discord notices for legislation
+
+Each environment's Worker posts to its own Discord channel, `#legislatie-prod` and
+`#legislatie-non-prod`, through the GitHub environment secret `DISCORD_LEGISLATION_WEBHOOK`
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). The deploy job uploads it when it is
+set and warns without it; nothing is then posted and the check runs as usual. A run, by the
+cron or by hand, posts the changes it assesses, new or recorded on an earlier day, ten to a
+message, each with the act, its new consolidated form, the form it was compared with, the
+outcome, the amending acts, the amended units and the act's page on the portal. After it, a post
+for each change gives the law's old and new text of every unit a template quotes that changed,
+only the changed words with a few around them for a long unit, with the templates that quote it,
+and the reasons to review. The changes resolved as no impact are one post, a line each. A new
+change that could not be assessed is posted as such, the other acts with a change not assessed
+or left for the next run in a post of their own, and a failed run with the acts it could not
+read, ten at most. Every cron run, before it starts and also on a morning it skips, looks
+for the last successful run and warns when none started in the last two days, so a run the
+platform cut off is reported the next morning. A cron that never fires posts nothing. The
+messages are in English and carry legislation only, no personal or client data. To set it up,
+once per environment, create a webhook in the channel's **Edit Channel → Integrations →
+Webhooks**, save its URL as the environment's `DISCORD_LEGISLATION_WEBHOOK` secret, and
+redeploy the Worker. A Worker secret outlives the GitHub secret: to stop the notices, delete
+both, the Worker's with
+`pnpm --filter @ssm-usor/legislation exec wrangler secret delete DISCORD_LEGISLATION_WEBHOOK`,
+adding `--env non-prod` for non-prod.
 
 ### Running the check by hand
 
@@ -383,6 +420,67 @@ the GitHub secret: to turn `/run` off again, delete both, the Worker's with
 To run the check from a laptop instead, run `pnpm legislation:check`
 ([local development](local-development.md#legislation-check)); it does the same work and logs
 its run in the same table.
+
+### The fix workflow
+
+`.github/workflows/legislation-fix.yml` (**Legislation fix**) answers production's open legal
+changes every day at 04:30 UTC, an hour after production's check, and when started by hand from
+`main` ([ADR 017](architecture/adr-017-legislation-monitoring.md)). It runs
+`pnpm legislation:fix` in the `production` environment. For a change whose quoted text differs,
+the engine's `replace-quote` applies the law's old words → new words to each quoting template
+and its copies, only where the template still holds the old words. When every quote took the
+change, it regenerates `citations.json`, writes the manifest change
+`{ kind: 'legal', note, resolves: { act, consolidatedOn } }`, asks the model for the note and
+for a reading of the template's own sentences that restate the rule (listed in the pull
+request, never applied), commits on the branch `legislation/<act>-<consolidated on>` and opens
+a pull request labelled `legislation`. An act with several open forms gets one pull request,
+for the newest form whose quote differs: the check compared it with the verified form, so its
+change covers the older forms, which its manifest change resolves as well. A model or gateway
+failure leaves a plain note and no reading, and the pull request says so. A quote the tool
+cannot change or that holds none of what changed, a passage the check could not compare, a
+note that does not fit beside the template's change pending since the last release, and a
+change whose outcome is "needs review" get an issue with the same label instead. Each is posted
+to `#legislatie-prod` with the replacement of our text as a diff and the link. A change whose
+pull request is open or merged, whose issue is open, or that a manifest already resolves
+(merged, waiting for a release), is skipped. One whose pull request was closed unmerged, or
+whose issue was closed, is skipped too, and named every Monday in `#legislatie-prod` while it
+stays open. Merging is the sign-off; the deploy after it registers the new versions, which
+resolves the change in each environment ([data model](data-model.md#legislation)). The run also
+posts the Worker's warning when no check succeeded in two days and the Worker's own failed run
+did not already say so.
+
+By hand, **Actions → Legislation fix → Run workflow** on `main` takes `dry_run`, which prints the
+pull requests, issues and Discord messages in the log and opens, pushes and posts nothing, and
+`change`, one act (`oug-195-2002`) or one form of it (`oug-195-2002-2026-11-06`). A change named
+this way is answered again even when its pull request or issue was closed, on the branch
+`legislation/<act>-<consolidated on>-2` (or the next free number) when the old one is taken. A
+dry run still asks the model, which is paid, about a cent per change. From a laptop,
+`pnpm legislation:fix --local --dry-run --no-model` does the same against the local stack
+without the model, and `SUPABASE_URL` and `SUPABASE_SECRET_KEY` point it at a hosted one.
+
+The pull request is opened, and its branch pushed, with the token of the GitHub App
+`LEGISLATION_APP_ID`, because one opened with the workflow's own token starts no CI. The App is
+installed on this repository only, with **Contents**, **Pull requests** and **Issues** read and
+write; the token the workflow makes asks for contents and pull requests only. The checkout keeps
+no credentials, and the App's token reaches git only for the calls to GitHub (the branch's
+current commit and the push), through a credential helper that reads it from that call's
+environment. The push replaces the change's branch only if it is still where the run saw it.
+The workflow's own token, with `issues: write` and `pull-requests: read`, opens the issues,
+creates the label and reads whether a pull request is open, merged or closed. Commits are the
+App's, as `<app slug>[bot]`.
+
+| Name                          | Kind                  | Value                                                                       |
+| ----------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `LEGISLATION_APP_ID`          | Repository variable   | The App's id                                                                |
+| `LEGISLATION_APP_PRIVATE_KEY` | Repository secret     | A private key of the App, the whole `.pem`                                  |
+| `VITE_SUPABASE_URL`           | `production` variable | Production's Supabase URL, as the deploy uses it                            |
+| `SUPABASE_SECRET_KEY`         | `production` secret   | Production's secret key: reads the changes and the run log                  |
+| `DISCORD_LEGISLATION_WEBHOOK` | `production` secret   | Optional: without it nothing is posted                                      |
+| `AI_GATEWAY_URL`              | Repository variable   | Optional, the [gateway](#ai-gateway-for-the-update-draft) the imports use   |
+| `AI_GATEWAY_TOKEN`            | Repository secret     | Optional: without the pair the note is a plain sentence and nothing is read |
+
+The model is the imports' reading model, GPT-6.1 Terra, at medium effort: one request per change,
+which costs about a cent.
 
 ## Local development and preview
 

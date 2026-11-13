@@ -24,7 +24,7 @@ need to copy the example. Wrangler reads `.dev.vars` from the API workspace; res
 changing these values. Do not put the API configuration in the repository root `.env`.
 
 ```bash
-pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine --filter @ssm-usor/import build
+pnpm --filter @ssm-usor/contracts --filter @ssm-usor/discord --filter @ssm-usor/document-engine --filter @ssm-usor/import --filter @ssm-usor/legislation-check build
 pnpm dev:api
 ```
 
@@ -127,7 +127,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /organization/authorizations`                                     | Verified user with a membership       | `{ "authorizations": { … } }`: the certificate of authorization, the fire-safety technician and authorization                                                                                      |
 | `PUT /organization/authorizations`                                     | Owner                                 | The authorizations after replacing them                                                                                                                                                            |
 | `GET /legislation/acts`                                                | Verified user with a membership       | `{ "items": [ … ] }`, the watched acts by name with what the portal showed; not paginated                                                                                                          |
-| `GET /legislation/changes`                                             | Verified user with a membership       | `{ "items": [ … ] }`, legal changes newest first, each with its `act`; not paginated                                                                                                               |
+| `GET /legislation/changes`                                             | Verified user with a membership       | `{ "items": [ … ] }`, legal changes newest first, each with its `act`, `passages` and `updatedDocuments`; not paginated                                                                            |
 | `GET /legislation/runs/latest`                                         | Verified user with a membership       | `{ "run": { … } }`, the run of the daily check that started last, or `{ "run": null }`                                                                                                             |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, the employee they also are (`legalRepresentativeEmployeeId`, `legalRepresentativeEmployee`) or null, and the training schedule |
 | `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                                                                                                                          |
@@ -2706,7 +2706,7 @@ copy of it is incomplete (below). After it, one message sums up the previous UTC
 library part for 12 months, to improve the reading, and tells support on Discord when one goes
 wrong. The module's `copies.ts`, `import-alerts.ts`, `reading-flags.ts`, `reading-version.ts`,
 `records.ts` (the reads they need, with the secret key) and `report-handlers.ts`, and
-`lib/alerts.ts` (the webhook).
+`lib/alerts.ts` (the alert's text, posted through the shared `@ssm-usor/discord` webhook sender).
 
 **When a copy is written.** An import's copy when it ends: confirmed (`ended` after
 `apply_client_import` or `apply_employee_import`), abandoned (after `abandon_import`), or failed by
@@ -2798,10 +2798,11 @@ The `Admin` entrypoint serves `createAdminApp()` (`src/admin-app.ts`) under `/ad
 through the admin Worker's service binding ([admin app](admin.md)); the public `fetch` does not
 mount it. Every route passes `requireAuth` and `requireAdmin`: the admin claim and an `aal2` token,
 else `401` or `403`. They are plain Hono routes, outside the OpenAPI document, answering the shapes
-of `@ssm-usor/contracts`' `admin-imports.ts` and `admin-impersonation.ts`. They read with the
-secret key (`createAdminClient`, which names the admin in `x-audit-actor`) across every
-organization, and start and end an impersonation with the admin's own token; the modules are
-`modules/admin-imports/` and `modules/admin-impersonation/`.
+of `@ssm-usor/contracts`' `admin-imports.ts`, `admin-impersonation.ts` and `admin-legislation.ts`.
+They read with the secret key (`createAdminClient`, which names the admin in `x-audit-actor`)
+across every organization, and start and end an impersonation and change the legislation data
+with the admin's own token; the modules are `modules/admin-imports/`,
+`modules/admin-impersonation/` and `modules/admin-legislation/`.
 
 | Route                                  | Answer                                                                                                                                                                                                     |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2844,6 +2845,34 @@ part's for a path under `parts/<part>/`, and must be kept; the file must be list
 today's reading and compares each with what the member confirmed, after an estimate and only with
 `--yes`. It reads production data, so only Mircea runs it, from his machine:
 [import-test-runs.md](import-test-runs.md).
+
+### Legislation
+
+| Route                                                   | Answer                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /admin/legislation/changes`                        | `{ items }`, newest seen first, not paginated; `status` (`open` or `resolved`), `outcome` (an outcome or `unassessed`); `400` for an unknown filter                                                                                                                                 |
+| `GET /admin/legislation/changes/{id}`                   | The change with `amendedUnits`, `review`, `passages`, `resolvingVersion`, `candidateVersions`, `awaitingAssessment` and `olderOpenChanges`; `404` for a change that does not exist or an id that is not a UUID                                                                      |
+| `POST /admin/legislation/changes/{id}/no-impact`        | The change read again, after `admin_resolve_legal_change_no_impact` with `{ note }`; `400` for a note not of 2 to 500 characters, `404`, `409 legal_change_not_open`, `422 change_not_assessed`, `422 older_change_open`                                                            |
+| `POST /admin/legislation/changes/{id}/template-version` | The change read again, after `admin_link_legal_change` with `{ templateVersionId }`; `400`, `404`, `409 legal_change_not_open`, `422 template_version_cannot_answer`, `422 change_not_assessed`, `422 older_change_open`                                                            |
+| `GET /admin/legislation/acts`                           | `{ items }`, the watched acts by name, each as the members' list has it plus `openChanges`                                                                                                                                                                                          |
+| `PUT /admin/legislation/acts/{id}/verified-form`        | The act after `admin_record_verified_form` with `{ consolidatedOn }`; `400` for a date that is not one, `404`, `422 form_not_seen` for a date after the last form seen or an act with none, `422 open_changes_at_or_before` while a change of the act at or before the date is open |
+| `GET /admin/legislation/runs`                           | `{ items, page, pageSize, total }`, the runs of the daily check, newest first; `page`, `pageSize` (25, at most 100)                                                                                                                                                                 |
+
+**A change** in the list has its `act` (`id`, `name`, `portalId`), `seenAt`, `consolidatedOn`,
+`comparedWith`, `outcome`, `assessedAt`, `amendingAct` (the portal's guess from the list of
+actions), `amendingActs` (`name`, `adoptedOn`, `portalId`), `resolution`, `resolvedAt`,
+`resolvedByNote` and `passageCount`. The detail adds `amendedUnits` (`unit`, `subject`,
+`operation`, `date`, `amendingAct`), `review` (English, for the admin only), `passages` as the
+members' list has them plus `manifest`, `typeKey`, `paragraph` and `article`, in template order,
+`resolvingVersion`, the version whose `resolves_legal_change_id` names it, and, while it is open,
+`candidateVersions`: the built-in versions of the types its passages name, registered after it was
+seen, not `layout`, with a note and answering no other change, newest first. A version is `{ id,
+typeKey, title, version, kind, note, createdAt }`. `awaitingAssessment` is true while the change
+is open, not assessed and after the act's verified form, and `olderOpenChanges` lists the act's
+open changes of an earlier form, `{ id, consolidatedOn }`, oldest first: the database refuses to
+resolve the change while either holds (`422 change_not_assessed`, `422 older_change_open`). The writes go with the admin's own token; the database
+refuses anyone else (`403`) and records each in the audit log
+([data model](data-model.md#legislation)).
 
 ### Impersonation
 

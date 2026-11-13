@@ -34,12 +34,15 @@ export interface CompletionRequest<T> {
   // reading outside an import has no `importId` and names what it reads and for which client
   // instead (ADR 030).
   metadata: {
-    organizationId: string;
+    // Absent only for the legislation fix, which reads for no organization and names the legal
+    // change instead.
+    organizationId?: string;
     importId?: string;
     part?: string;
     purpose?: 'test-run';
-    reading?: 'safety_sheet';
+    reading?: 'safety_sheet' | 'legislation_fix';
     clientId?: string;
+    change?: string;
   };
 }
 

@@ -232,13 +232,13 @@ table that say nothing about a person, such as a state, a role or a stage, the `
 values in `details`. Never the value of a personal field: the event says `cnp` changed, not what
 it was. ADR 033 lists the audited tables and the kept columns, and why the others are left out.
 
-| Column                  | Notes                                                                                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `action`                | `insert`, `update`, `delete`, or a named event: `impersonation_started`, `impersonation_ended`, `client_deleted`, `import_copy_opened`, `import_copy_file_opened`. |
-| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL.              |
-| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                                        |
-| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                                        |
-| `transaction_id`        | Groups the events of one request.                                                                                                                                  |
+| Column                  | Notes                                                                                                                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`                | `insert`, `update`, `delete`, or a named event: `impersonation_started`, `impersonation_ended`, `client_deleted`, `import_copy_opened`, `import_copy_file_opened`, `legal_change_resolved`, `legal_act_verified`. |
+| `actor_id`              | The account that acted: `auth.uid()` on a user's token; on the secret key, the account the API names in `x-audit-actor`; null for the service or SQL.                                                             |
+| `impersonating_user_id` | The member the actor was acting as during an impersonation.                                                                                                                                                       |
+| `source`                | `user`, `api` (secret key with an actor), `service` (secret key without one) or `database`.                                                                                                                       |
+| `transaction_id`        | Groups the events of one request.                                                                                                                                                                                 |
 
 `audit.record_changes()` runs as three statement-level triggers (`audit_insert`, `audit_update`,
 `audit_delete`) per audited table, with transition tables, so a bulk statement writes its events
@@ -1240,10 +1240,13 @@ regeneration, layout versions do not. Its `note` says what changed, in Romanian,
 members, at most 500 characters; it is null for the versions registered before ADR 017,
 which all count as corrections. The master copies of the built-in set live in the
 repository, with the kind and note of each file's latest change in its manifest;
-`register_built_in_template_version(type, title, path, hash, kind, note)`, reachable only
-with the secret key, registers one and is idempotent: the same hash is the version it
-already is, with the kind and note it was first registered with, and a new hash becomes the
-next version. Members read templates and have no write policy.
+`register_built_in_template_version(type, title, path, hash, kind, note, resolves)`,
+reachable only with the secret key, registers one and is idempotent: the same hash is the
+version it already is, with the kind and note it was first registered with, and a new hash
+becomes the next version. `resolves` is the manifest's `change.resolves`, one
+`{ act, consolidatedOn }` or a list, and may be left out; only a legal version takes it, and it
+resolves the changes it names whether the version is new or already registered.
+Members read templates and have no write policy.
 
 **Documents.** Each client has two documentation sets, the occupational safety set and the
 fire-safety set (ADR 016). `client_documents` holds a document type once per client and
@@ -2394,7 +2397,7 @@ both `anon` and `authenticated` are revoked, so only the API's secret key reache
 ## Legislation
 
 The legal acts the built-in templates cite are watched on the Portal Legislativ
-([ADR 017](architecture/adr-017-legislation-monitoring.md)). The three tables belong to no
+([ADR 017](architecture/adr-017-legislation-monitoring.md)). The four tables belong to no
 organization: every member reads every row, nobody signed in writes, and the daily check
 writes with the secret key, run by the cron of the legislation Worker
 ([deployment](deployment.md#legislation-worker)) or by `pnpm legislation:check`.
@@ -2403,24 +2406,98 @@ writes with the secret key, run by the cron of the legislation Worker
 keyed by its id there (`lege-319-2006`). `pnpm legislation:check` writes `name` and
 `portal_id` from the file, then what it read on the portal:
 
-| Column                     | Notes                                                                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                   |
-| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                          |
-| `verified_consolidated_on` | The consolidated form the templates were verified against. Set by hand; the job never writes it.        |
-| `last_consolidated_on`     | The newest consolidated form seen.                                                                      |
-| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`). |
-| `last_checked_at`          | The last time the page was read.                                                                        |
-| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                        |
+| Column                     | Notes                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                                        |
+| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                                               |
+| `verified_consolidated_on` | The consolidated form the templates were verified against. Recorded by migration; the job and the platform admin advance it. |
+| `last_consolidated_on`     | The newest consolidated form seen.                                                                                           |
+| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`).                      |
+| `last_checked_at`          | The last time the page was read.                                                                                             |
+| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                                             |
 
-`legal_changes` holds a **legal change**: a consolidated form newer than the last one seen, or
-newer than `verified_consolidated_on`, which is how the first run reports drift instead of
-taking today's form as the baseline. Without either date the first form seen is the baseline.
+`verified_consolidated_on` starts as each act's newest form on the portal on 2026-11-13, a
+republication included, written by the migration `legal_change_outcomes` so that a new or wiped
+environment compares against the same forms. O.U.G. 195/2002 starts at 2026-08-25 instead, so
+that its change of 2026-11-06 stays open. An act never consolidated has none. The job's upsert
+of the act list writes only `name` and `portal_id`, so it never clears the date; the job moves
+it forward when it resolves a change as no impact, and registration moves it to the form a
+new template version quotes.
+
+`legal_changes` holds a **legal change**: a consolidated form newer than both the last one
+seen and `verified_consolidated_on`, which is how the first run reports drift instead of
+taking today's form as the baseline. Without either date the first form seen is the baseline,
+except for an act read before as never consolidated, whose first consolidation is a change.
 A form is recorded once per act (unique `act_id`, `consolidated_on`), so the daily run can
 see it again without repeating it. `resolution` is `open` until it is `no_impact` or
 `template_version`, and `resolved_at` is set exactly when it is not open; `resolved_by_note`
-says why. `document_template_versions.resolves_legal_change_id` names the change a template
-version answers.
+says why, in Romanian, since members read it on the Legislație page.
+A template version answers a change when its manifest entry names it, by act and
+consolidation date, since a change's id differs between environments: registering a legal
+version with `resolves`, new or already registered, sets each change it names to `template_version`, with the
+version's note as `resolved_by_note`, records as resolved a change this environment never
+saw, and moves the act's `verified_consolidated_on` forward to that form, never back. A change
+already resolved keeps its resolution. `template_version_legal_changes` lists every
+(version, change) pair, since a version answers several changes when they reach one template
+before a release, and one change is answered by a version of each template that quotes it.
+`document_template_versions.resolves_legal_change_id` names the first change a version
+answers; a trigger adds whatever sets it, the admin area's link included, to the table.
+
+The job assesses a change by comparing the verified form with the new one, for the units the
+citation index cites, both read from the portal:
+
+| Column          | Notes                                                                                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `outcome`       | `no_impact`, `quote_differs` or `needs_review`; null until assessed. `assessed_at` is set exactly when it is not null.                                                                                                         |
+| `compared_with` | The verified form it was compared with, earlier than `consolidated_on`; null for the act as published, which an act with no verified form is compared with.                                                                    |
+| `amending_acts` | The acts the portal's notes in the new text name, `[{ name, kind, number, date, portalId, gazette }]`; more exact than `amending_act`.                                                                                         |
+| `amended_units` | The units those notes say were amended since the verified form, `[{ unit, subject, operation, date, amendingAct }]`.                                                                                                           |
+| `review`        | Why a person should read it, in English for the platform admin: a referred unit amended, a cited unit repealed, missing or not compared, a note against a text that reads the same, a republication. Members cannot select it. |
+
+A change with no impact is resolved in the same run, with a note naming the amended units, and
+its act's `verified_consolidated_on` moves to its form; a run that records the outcome but
+cannot move the form logs a warning, and the change stays resolved. The other two stay open. A
+run that cannot read a form leaves `outcome` null and the act's later changes for the next run,
+which assesses every open change whose outcome is null, oldest first; the act still counts as
+checked and the run does not fail for it. A change whose assessment still fails three days after
+`seen_at` is recorded as `needs_review`, the failure in `review`, so it never blocks the act's
+newer changes. A run assesses for ten minutes at most and leaves the rest for the next one, and
+an open change no newer than `verified_consolidated_on` is never assessed, only named in the
+run's log. The outcome is written after the passages, so a run that stops in between leaves the
+change unassessed.
+
+`legal_change_passages` holds one row per cited unit a change touched, per citation:
+`manifest`, `template_file` and `paragraph` (as the citation index counts it), `citation_form`
+(`quote` or `reference`), the template's `locator`, the `article` of a reference,
+`unit_label`, `status` (`changed`, `added`, `repealed`, `missing`, or `uncompared` for a unit in
+both forms with no words to read in one of them or too long to compare), the law's `old_text` and
+`new_text` of the unit, each present as the status requires, and `hunks`, the words that
+changed with a few around them, and `type_key`, the document type of the template the
+citation is in, which says which template versions can answer the change (null only for a
+passage stored before the column and in no file the index of 2026-11-13 lists). A citation records a unit once per change, and the rows go
+with their change. Members read them, nobody signed in writes them, and the job writes them
+with the secret key.
+
+**The admin's writes** ([ADR 017](architecture/adr-017-legislation-monitoring.md), amended
+2026-11-12; `20261114210000_admin_legislation`) are three security definer functions, the only
+writes to the legislation data besides the job's. They run with the admin's own token, so only
+`authenticated` may execute them, and each first asks `is_platform_admin()`: the admin claim and
+an `aal2` token, else `42501`. Each records its own named event in `audit.events`, in the same
+transaction, with the admin as `actor_id`, `source` `user` and no organization or
+impersonation; the generic audit triggers do not cover the legislation tables, whose daily writes
+are the job's.
+
+| Function                                                  | What it does                                                                                                                                                                                                                                                                                                                                                                | Event                                                                                                                                 |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin_resolve_legal_change_no_impact(change_id, note)`   | Resolves an open change as `no_impact` with the trimmed note (2 to 500 characters, else `22023`), which members read, and moves the act's `verified_consolidated_on` up to the change's form, as the job does                                                                                                                                                               | `legal_change_resolved`, `legal_changes`, the change; `{ resolution, act_id, consolidated_on, verified_consolidated_on: [old, new] }` |
+| `admin_link_legal_change(change_id, template_version_id)` | Resolves an open change as `template_version`: the version's `resolves_legal_change_id` names it, `resolved_by_note` takes the version's note, and the verified form moves up as above. The version is built-in, registered after the change was seen, not `layout`, has a note, answers no other change, and is of a type one of the change's passages names; else `LGA02` | `legal_change_resolved`, with `template_version_id`, `type_key` and `version` too                                                     |
+| `admin_record_verified_form(act_id, consolidated_on)`     | Sets the act's `verified_consolidated_on` to a form no later than `last_consolidated_on` (`LGA03` otherwise, and for an act with no form seen), and refuses one while a change of the act at or before it is open (`LGA04`), which the job would never assess again. A form before the current verified one is allowed: it corrects a wrong one                             | `legal_act_verified`, `legal_acts`, no row id; `{ act_id, verified_consolidated_on: [old, new] }`                                     |
+
+A change that does not exist, or an act not watched, is `P0002`; a change already resolved is
+`LGA01`. Nothing reopens a resolved change. Both resolving functions refuse a change the job has
+yet to assess, open with no outcome and after the act's verified form (`LGA05`), and a change
+while an older one of the act is open (`LGA06`): resolving moves the verified form past the older
+one, which the job would then never assess.
 
 `legal_check_runs` logs every run of the check, because a cron that fails tells nobody. A run
 inserts its row as `running` when it starts and updates it when it ends, even when the check
@@ -2435,7 +2512,7 @@ throws, so the Legislație page can warn when the latest run failed or is too ol
 | `errors`        | Null when nothing failed; otherwise `[{ "act", "message" }]`, one per act whose page could not be read, `act` null when the run itself failed. |
 
 A run that read some pages and not others is `failed`; the acts it did read are saved all the
-same.
+same. A change the run could not assess fails neither the act nor the run.
 
 ## Dashboard
 

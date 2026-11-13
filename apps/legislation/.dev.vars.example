@@ -12,3 +12,9 @@ LEGISLATION_RELAY_ORIGIN=https://legislatie.just.ro
 
 # Serves POST /run on the local Worker; any value, sent as `Authorization: Bearer <value>`.
 # LEGISLATION_RUN_SECRET=local-run-secret
+
+# Changes, failed runs and two days without a successful run go to a Discord channel's webhook
+# (ADR 017); without it nothing is posted. Never production's channel here.
+# DISCORD_LEGISLATION_WEBHOOK=https://discord.com/api/webhooks/<id>/<token>
+# Names the environment in those messages; `local` without it.
+# ENVIRONMENT=non-prod
