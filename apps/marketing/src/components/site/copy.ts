@@ -176,9 +176,9 @@ export interface TrainingSheet {
 }
 
 export const importSection = {
-  title: 'Încarci dosarul vechi. Nu scrii nimic de la capăt.',
+  title: 'Încarci dosarul vechi. Inteligența artificială îl citește, tu verifici.',
   intro:
-    'Încarci documentația unui client și fotografiile fișelor de instruire. Datele firmei, posturile și lucrătorii intră în aplicație cu instruirile lor, iar tu verifici totul înainte să se salveze.',
+    'Încarci documentația unui client și fotografiile fișelor de instruire. Inteligența artificială le citește și îți propune datele firmei, posturile și lucrătorii, cu instruirile lor. Nu se salvează nimic până nu verifici și confirmi.',
   stageLabel: 'Fișele de instruire de pe hârtie devin lista de lucrători din aplicație',
   shotAlt:
     'Lucrătorii unui client, creați din fișele de instruire, cu instruirile SSM și SU și testele de pe fișe',
@@ -186,12 +186,12 @@ export const importSection = {
     {
       mark: 'documents',
       title: 'Clientul, din documentația lui',
-      text: 'Datele firmei, punctele de lucru, posturile și persoanele cu atribuții, preluate din dosarul pe care îl ai.',
+      text: 'Inteligența artificială citește dosarul și îți propune datele firmei, punctele de lucru, posturile și persoanele cu atribuții.',
     },
     {
       mark: 'sheets',
       title: 'Lucrătorii, din fișele de instruire',
-      text: 'Fotografiezi fișele de pe hârtie, în orice ordine. Fiecare lucrător apare cu instruirile și testele lui.',
+      text: 'Fotografiezi fișele în orice ordine. Scrisul de mână e citit și pus pe lucrători, cu instruirile și testele fiecăruia.',
     },
     {
       mark: 'kept',
@@ -200,11 +200,11 @@ export const importSection = {
     },
     {
       mark: 'review',
-      title: 'Tu ai ultimul cuvânt',
-      text: 'Vezi de unde vine fiecare valoare și o corectezi înainte să confirmi.',
+      title: 'Tu verifici fiecare valoare',
+      text: 'Lângă fiecare valoare vezi pasajul din document sau locul de pe fotografie din care a fost citită. O corectezi, apoi confirmi.',
     },
   ] satisfies { mark: ImportMarkName; title: string; text: string }[],
-  note: 'La prima plată primești credite pentru importul clienților pe care îi ai deja.',
+  note: 'Citirile se plătesc în credite AI: dosarul unui client folosește în jur de 70, o pagină fotografiată dintr-o fișă, unul. Fiecare plan include credite AI în fiecare lună, iar la prima plată primești credite de bun venit.',
   sheet: {
     unit: 'Unitatea',
     company: 'Brutăria Spicul Auriu SRL',

@@ -6,7 +6,7 @@ import { screens } from './screens';
 import TrainingSheets from './TrainingSheets.astro';
 ---
 
-<section class="sec" id="import">
+<section class="sec" id="ai">
   <div class="wrap">
     <h2>{importSection.title}</h2>
     <p class="intro">{importSection.intro}</p>
@@ -38,6 +38,8 @@ import TrainingSheets from './TrainingSheets.astro';
 <style>
   .sec {
     padding: 0 0 104px;
+    /* Clears the sticky header when the pricing cards link here. */
+    scroll-margin-top: 108px;
   }
   h2 {
     max-width: 22ch;
