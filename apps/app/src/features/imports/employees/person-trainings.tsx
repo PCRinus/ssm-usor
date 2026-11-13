@@ -1,7 +1,9 @@
 import {
+  type NameSource,
   type SupplementaryTrainingReason,
   supplementaryTrainingReasonLabels,
   supplementaryTrainingReasons,
+  type TrainingDomain,
   trainingDomainLabels,
   trainingPhaseLabels,
 } from '@ssm-usor/contracts';
@@ -17,6 +19,14 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ssm-usor/ui/components/table';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { CalendarCheck, FileImage, GraduationCap, Pencil } from 'lucide-react';
@@ -38,6 +48,7 @@ import {
   type Decision,
   type DomainTrainings,
   examinerValues,
+  handoverOf,
   handoversOf,
   heldWith,
   isExisting,
@@ -52,6 +63,7 @@ import {
   rowValues,
   type SheetPage,
   type SheetRow,
+  signedValues,
   testInApp,
   testIncluded,
   trainingsByDomain,
@@ -61,6 +73,8 @@ import { PhotoNumber, PhotoNumbers } from './person-photos';
 import { domainPhotos, trainingSectionId } from './person-sections';
 import { dateLabel, durationLabel, trainingsLabel } from './review-format';
 import { admissionTarget, rowTarget } from './spot-targets';
+import { unansweredDomains } from './who-trained-model';
+import { ChosenMark, RowEditedMark, WhoTrainedQuestion } from './who-trained-question';
 
 type Update = (mutate: (current: Changes) => Changes) => void;
 
@@ -72,20 +86,24 @@ const monthYear = new Intl.DateTimeFormat('ro-RO', {
 
 const notWritten = (words: string) => <span className="text-muted-foreground">{words}</span>;
 
-function TrainerText({ values }: { values: RowValues }) {
-  const jobTitle = values.trainerJobTitle ? `, ${values.trainerJobTitle}` : '';
-  if (!values.trainerName) {
-    return (
-      <span>
-        {notWritten(notOnSheet.name)}
-        {jobTitle}
-      </span>
-    );
-  }
+function SignerText({
+  name,
+  jobTitle,
+  from,
+}: {
+  name: string | null;
+  jobTitle: string | null;
+  from: NameSource | null;
+}) {
+  const title = jobTitle ? `, ${jobTitle}` : '';
   return (
-    <span>
-      <Masked>{values.trainerName}</Masked>
-      {jobTitle}
+    <span className="grid min-w-0 gap-px">
+      <span className="wrap-anywhere">
+        {name ? <Masked>{name}</Masked> : notWritten(notOnSheet.name)}
+        {title}
+      </span>
+      {from === 'answer' && <ChosenMark />}
+      {from === 'row' && <RowEditedMark />}
     </span>
   );
 }
@@ -127,7 +145,91 @@ const editTarget = (event: MouseEvent) =>
   !(event.target as HTMLElement).closest('button, a, input, textarea, select, label');
 
 const rowLine =
-  'col-span-full grid scroll-mt-24 grid-cols-subgrid items-start gap-y-1 border-t px-5 py-2.5 outline-none focus-visible:bg-secondary/60';
+  'grid scroll-mt-24 grid-cols-[1.75rem_minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 border-t px-5 py-2.5 outline-none focus-visible:bg-secondary/60';
+
+// On a phone the table scrolls sideways under the photo and the date, which stay put.
+const photoColumn = 'w-13 min-w-13 max-sm:sticky max-sm:left-0 max-sm:z-10 max-sm:bg-card';
+const dateColumn = 'max-sm:sticky max-sm:left-13 max-sm:z-10 max-sm:bg-card';
+
+const columnCount = (domain: TrainingDomain) => (domain === 'ssm' ? 8 : 7);
+
+function TrainingsTable({
+  domain,
+  label,
+  children,
+}: {
+  domain: TrainingDomain;
+  label: string;
+  children: ReactNode;
+}) {
+  const head = 'h-9 text-[12.5px] text-muted-foreground';
+  return (
+    <Table aria-label={label} className="border-t">
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          <TableHead scope="col" className={cn(head, photoColumn)}>
+            Foto
+          </TableHead>
+          <TableHead scope="col" className={cn(head, dateColumn)}>
+            Data
+          </TableHead>
+          <TableHead scope="col" className={head}>
+            Durata
+          </TableHead>
+          <TableHead scope="col" className={head}>
+            A instruit
+          </TableHead>
+          {domain === 'ssm' && (
+            <TableHead scope="col" className={head}>
+              A verificat
+            </TableHead>
+          )}
+          <TableHead scope="col" className={head}>
+            Materialul predat
+          </TableHead>
+          <TableHead scope="col" className={head}>
+            <span className="sr-only">Modifică</span>
+          </TableHead>
+          <TableHead scope="col" className={head}>
+            Inclusă
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>{children}</TableBody>
+    </Table>
+  );
+}
+
+function HandoverRow({
+  domain,
+  date,
+  text,
+  page,
+  pages,
+}: {
+  domain: TrainingDomain;
+  date: string;
+  text: string;
+  page: SheetPage;
+  pages: SheetPage[];
+}) {
+  return (
+    <TableRow className="bg-muted/40 hover:bg-muted/40" data-testid="person-handover-row">
+      <TableCell className={cn(photoColumn, 'max-sm:bg-muted')}>
+        <PhotoNumber pages={pages} pageId={page.id} about={`Preluare la ${dateLabel(date)}`} />
+      </TableCell>
+      <TableCell className={cn(dateColumn, 'tabular-nums max-sm:bg-muted')}>
+        {dateLabel(date)}
+      </TableCell>
+      <TableCell
+        colSpan={columnCount(domain) - 2}
+        className="text-[13px] whitespace-normal text-muted-foreground"
+      >
+        preluare consemnată pe fișă: „{text}”
+      </TableCell>
+    </TableRow>
+  );
+}
 
 function TrainingRow({
   context,
@@ -135,6 +237,7 @@ function TrainingRow({
   row,
   page,
   pages,
+  handover,
   decision,
   onEdit,
   onChange,
@@ -144,12 +247,13 @@ function TrainingRow({
   row: SheetRow;
   page: SheetPage;
   pages: SheetPage[];
+  handover: string | null;
   decision: Decision | undefined;
   onEdit: (row: SheetRow) => void;
   onChange: Update;
 }) {
   const matched = isExisting(context, person);
-  const values = rowValues(context.changes, row);
+  const values = signedValues(context, person.id, row, handover);
   const included = rowIncluded(context.changes, row, matched);
   const date = values.heldOn ? dateLabel(values.heldOn) : null;
   const name = `Instruirea ${trainingPhaseLabels[row.phase].toLowerCase()} din ${date ?? 'data necitită'}`;
@@ -163,12 +267,12 @@ function TrainingRow({
   );
   const gap = values.heldOn === null;
   return (
-    <li
+    <TableRow
       id={`row-${row.id}`}
       tabIndex={-1}
       className={cn(
-        rowLine,
-        included ? 'cursor-pointer hover:bg-secondary/50' : 'text-muted-foreground'
+        'scroll-mt-24 outline-none focus-visible:bg-secondary/60',
+        included ? 'cursor-pointer' : 'text-muted-foreground'
       )}
       data-testid="person-training-row"
       data-included={included}
@@ -185,46 +289,60 @@ function TrainingRow({
         holdWordSpace
         collapsed={(toggle) => (
           <>
-            <span className="col-start-2 col-end-[-2] row-start-1 flex min-h-6 items-center text-sm font-medium">
+            <TableCell
+              colSpan={columnCount(row.domain) - 1}
+              className="text-sm font-medium whitespace-normal"
+            >
               {name}
-            </span>
-            <span className="col-start-[-2] row-start-1 flex h-6 items-center">{toggle}</span>
+            </TableCell>
+            <TableCell>{toggle}</TableCell>
           </>
         )}
       >
         {(toggle) => (
           <>
-            <span className="col-start-1 row-start-1 flex">
+            <TableCell className={photoColumn}>
               <PhotoNumber
                 pages={pages}
                 pageId={page.id}
                 about={`Instruire ${trainingDomainLabels[row.domain]} din ${date ?? 'data necitită'}`}
                 spot={rowTarget(page, row.id)}
               />
-            </span>
-            <span className="col-start-2 row-start-1 grid min-w-0 gap-0.5 text-sm lg:contents">
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 lg:contents">
-                <span className="flex min-h-6 items-center font-semibold tabular-nums lg:col-start-2 lg:font-normal">
-                  {date ?? missing('Data nu se citește')}
-                </span>
-                <span className="flex min-h-6 items-center tabular-nums lg:col-start-3">
-                  {durationLabel(values.durationMinutes) ?? notWritten(notOnSheet.duration)}
-                </span>
-              </span>
-              {row.phase !== 'periodic' && (
-                <span className="lg:hidden">{trainingPhaseLabels[row.phase]}</span>
-              )}
-              <span className="flex min-h-6 items-center lg:col-start-4">
-                <TrainerText values={values} />
-              </span>
-              <span className="grid min-w-0 gap-1 lg:col-start-5">
-                <span className="flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-muted-foreground lg:text-foreground">
+            </TableCell>
+            <TableCell className={cn(dateColumn, 'tabular-nums')}>
+              {date ?? missing('Data nu se citește')}
+            </TableCell>
+            <TableCell className="tabular-nums">
+              {durationLabel(values.durationMinutes) ?? notWritten(notOnSheet.duration)}
+            </TableCell>
+            <TableCell className="min-w-44 whitespace-normal">
+              <SignerText
+                name={values.trainerName}
+                jobTitle={values.trainerJobTitle}
+                from={values.trainerFrom}
+              />
+            </TableCell>
+            {row.domain === 'ssm' && (
+              <TableCell className="min-w-44 whitespace-normal">
+                <SignerText
+                  name={values.verifierName}
+                  jobTitle={values.verifierJobTitle}
+                  from={values.verifierFrom}
+                />
+              </TableCell>
+            )}
+            <TableCell className="min-w-60 whitespace-normal">
+              <span className="grid min-w-0 gap-1">
+                {row.phase !== 'periodic' && (
+                  <span className="text-[13px] text-muted-foreground">
+                    {trainingPhaseLabels[row.phase]}
                     {row.phase === 'supplementary' && values.supplementaryReason
-                      ? `${supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? ''}. `
+                      ? `, ${(supplementaryTrainingReasonLabels[values.supplementaryReason as SupplementaryTrainingReason] ?? '').toLowerCase()}`
                       : ''}
-                    {values.material ?? notWritten(notOnSheet.material)}
                   </span>
+                )}
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>{values.material ?? notWritten(notOnSheet.material)}</span>
                   {row.flags.includes('unusual_duration') && included && (
                     <Tag tone="warning">Verifică pe fotografie</Tag>
                   )}
@@ -237,20 +355,18 @@ function TrainingRow({
                 </span>
                 {note && <span className="text-[13px] text-muted-foreground">{note}</span>}
               </span>
-            </span>
-            <span className="col-start-3 row-start-1 flex lg:col-start-6">
+            </TableCell>
+            <TableCell>
               <EditRowButton
                 label={`Modifică instruirea din ${date ?? 'data necitită'}`}
                 onClick={() => onEdit(row)}
               />
-            </span>
-            <span className="col-start-4 row-start-1 flex h-7 items-center lg:col-start-7">
-              {toggle}
-            </span>
+            </TableCell>
+            <TableCell>{toggle}</TableCell>
           </>
         )}
       </Includable>
-    </li>
+    </TableRow>
   );
 }
 
@@ -514,6 +630,7 @@ function DomainSection({
   onEdit,
   onEditTest,
   onChange,
+  clientId,
 }: {
   context: ReviewContext;
   person: Person;
@@ -523,8 +640,11 @@ function DomainSection({
   onEdit: (row: SheetRow) => void;
   onEditTest: (row: SheetRow) => void;
   onChange: Update;
+  clientId: string;
 }) {
   const [showInApp, setShowInApp] = useState(false);
+  const handover = handoverOf(context, person.id);
+  const unanswered = unansweredDomains(context, person.id).includes(domain.domain);
   const label = trainingDomainLabels[domain.domain];
   const matched = isExisting(context, person);
   const all = [...domain.hiring.rows, ...domain.periodic];
@@ -567,12 +687,62 @@ function DomainSection({
       </p>
     );
   }
+  const domainPages = new Set(domain.pages.map((page) => page.id));
+  const handoverRows = [
+    ...new Map(
+      domain.pages
+        .flatMap((page) =>
+          (page.handovers ?? []).flatMap((each) =>
+            each.date && domainPages.has(page.id)
+              ? [{ date: each.date, text: each.text.trim(), page }]
+              : []
+          )
+        )
+        .map((each) => [each.date, each])
+    ).values(),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+  const periodicRows: ReactNode[] = [];
+  let nextHandover = 0;
+  for (const { row, page } of domain.periodic) {
+    const heldOn = rowValues(context.changes, row).heldOn;
+    while (
+      heldOn !== null &&
+      nextHandover < handoverRows.length &&
+      handoverRows[nextHandover]!.date <= heldOn
+    ) {
+      const shown = handoverRows[nextHandover++]!;
+      periodicRows.push(
+        <HandoverRow
+          key={`handover-${shown.date}`}
+          domain={domain.domain}
+          date={shown.date}
+          text={shown.text}
+          page={shown.page}
+          pages={pages}
+        />
+      );
+    }
+    periodicRows.push(
+      <TrainingRow
+        key={row.id}
+        context={context}
+        person={person}
+        row={row}
+        page={page}
+        pages={pages}
+        handover={handover}
+        decision={rowDecision(row.id)}
+        onEdit={onEdit}
+        onChange={onChange}
+      />
+    );
+  }
   return shell(
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-x-3 pb-1 lg:grid-cols-[auto_max-content_max-content_fit-content(18rem)_minmax(0,1fr)_auto_auto]">
+    <div className="pb-1">
       {domain.hiring.rows.length > 0 && (
         <>
-          <h3 className="col-span-full px-5 pt-3 pb-2 text-sm font-semibold">La angajare</h3>
-          <ul className="col-span-full grid grid-cols-subgrid">
+          <h3 className="px-5 pt-3 pb-2 text-sm font-semibold">La angajare</h3>
+          <TrainingsTable domain={domain.domain} label={`Instruire ${label} la angajare`}>
             {domain.hiring.rows.map(({ row, page }) => (
               <TrainingRow
                 key={row.id}
@@ -581,12 +751,13 @@ function DomainSection({
                 row={row}
                 page={page}
                 pages={pages}
+                handover={handover}
                 decision={rowDecision(row.id)}
                 onEdit={onEdit}
                 onChange={onChange}
               />
             ))}
-          </ul>
+          </TrainingsTable>
           {workplaceRow && (
             <Admission row={workplaceRow.row} page={workplaceRow.page} pages={pages} />
           )}
@@ -605,7 +776,7 @@ function DomainSection({
       )}
       {domain.periodic.length > 0 && (
         <>
-          <h3 className="col-span-full border-t px-5 pt-3 pb-2 text-sm font-semibold first:border-t-0">
+          <h3 className="border-t px-5 pt-3 pb-2 text-sm font-semibold first:border-t-0">
             Instruire periodică{' '}
             <span className="font-normal text-muted-foreground tabular-nums">
               {domain.periodic.length === 1
@@ -613,21 +784,18 @@ function DomainSection({
                 : roCount(domain.periodic.length, 'rând', 'rânduri')}
             </span>
           </h3>
-          <ul className="col-span-full grid grid-cols-subgrid">
-            {domain.periodic.map(({ row, page }) => (
-              <TrainingRow
-                key={row.id}
-                context={context}
-                person={person}
-                row={row}
-                page={page}
-                pages={pages}
-                decision={rowDecision(row.id)}
-                onEdit={onEdit}
-                onChange={onChange}
-              />
-            ))}
-          </ul>
+          <WhoTrainedQuestion
+            context={context}
+            person={person}
+            domain={domain.domain}
+            pages={pages}
+            clientId={clientId}
+            onChange={onChange}
+          />
+          <div className="h-3.5" />
+          <TrainingsTable domain={domain.domain} label={`Instruire ${label} periodică`}>
+            {periodicRows}
+          </TrainingsTable>
         </>
       )}
       {domain.annualTests.map(({ row, page }) => (
@@ -645,7 +813,7 @@ function DomainSection({
       ))}
       {domain.inApp.length > 0 && (
         <div
-          className="col-span-full grid gap-1 border-t px-5 py-2.5 text-sm"
+          className="grid gap-1 border-t px-5 py-2.5 text-sm"
           data-testid="person-trainings-in-app"
         >
           <p className="flex flex-wrap items-baseline gap-x-2">
@@ -679,7 +847,7 @@ function DomainSection({
           )}
         </div>
       )}
-      <p className="col-span-full border-t px-5 py-3 text-[13px] text-muted-foreground">
+      <p className="border-t px-5 py-3 text-[13px] text-muted-foreground">
         Rândurile sunt transcrise de pe fișa pe hârtie, iar originalul rămâne la client. Nu cerem
         semnături pentru ele: pe fișa din aplicație apar ca semnate pe hârtie.
       </p>
@@ -699,6 +867,11 @@ function DomainSection({
           shown={domain.pages.length}
         />
       </span>
+      {unanswered && (
+        <span className="text-muted-foreground" data-testid="person-trainings-unanswered">
+          {domain.domain === 'ssm' ? 'Nume nealese la periodice' : 'Nume neales la periodice'}
+        </span>
+      )}
     </Facts>
   );
 }
@@ -707,11 +880,13 @@ export function PersonTrainings({
   context,
   person,
   decisions,
+  clientId,
   onChange,
 }: {
   context: ReviewContext;
   person: Person;
   decisions: Decision[];
+  clientId: string;
   onChange: Update;
 }) {
   const [editing, setEditing] = useState<SheetRow | null>(null);
@@ -745,13 +920,14 @@ export function PersonTrainings({
           onEdit={setEditing}
           onEditTest={setEditingTest}
           onChange={onChange}
+          clientId={clientId}
         />
       ))}
       <AfterImport context={context} person={person} domains={domains} />
       {editing && (
         <RowDialog
           row={editing}
-          values={rowValues(context.changes, editing)}
+          values={signedValues(context, person.id, editing)}
           onClose={() => setEditing(null)}
           onSave={(values) =>
             onChange((current) =>
@@ -989,11 +1165,17 @@ function RowDialog({
   function submit(event: FormEvent) {
     event.preventDefault();
     if (durationInvalid) return;
+    const trainerTyped =
+      text(trainerName) !== text(values.trainerName ?? '') ||
+      text(trainerJobTitle) !== text(values.trainerJobTitle ?? '');
     onSave({
       heldOn: heldOn || null,
       durationMinutes: duration === '' ? null : Number(duration),
-      trainerName: text(trainerName),
-      trainerJobTitle: text(trainerJobTitle),
+      // Saved only when typed, so the row keeps following the person's answer otherwise; an empty
+      // text, not null, is a name cleared on purpose.
+      ...(trainerTyped
+        ? { trainerName: trainerName.trim(), trainerJobTitle: trainerJobTitle.trim() }
+        : {}),
       material: text(material),
       ...(row.phase === 'supplementary' ? { supplementaryReason: reason || null } : {}),
     });

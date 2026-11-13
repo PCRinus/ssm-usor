@@ -10,6 +10,7 @@ import {
   employeeDetail,
   importId,
   positions,
+  sellerId,
   sheetRow,
   workplaces,
 } from '@/test/employee-import-fixture';
@@ -93,6 +94,8 @@ type Options = {
   clientPositions?: unknown[];
   saveChanges?: () => Response | undefined;
   locations?: Record<string, Location[]>;
+  responsible?: unknown[];
+  members?: unknown[];
 };
 
 type Location = { target: string; top: number; left: number; bottom: number; right: number };
@@ -109,6 +112,8 @@ function mockEmployeeImport({
   clientPositions = positions,
   saveChanges,
   locations = {},
+  responsible = [],
+  members = [],
 }: Options = {}) {
   let version = detail.version;
   let confirmedHere: unknown[] = [];
@@ -162,6 +167,10 @@ function mockEmployeeImport({
       return Response.json({ items: clientWorkplaces });
     }
     if (url.pathname === `/clients/${clientId}/found-sheets`) return Response.json(found);
+    if (url.pathname === `/clients/${clientId}/responsible-persons`) {
+      return Response.json({ items: responsible });
+    }
+    if (url.pathname === '/organization/members') return Response.json({ items: members });
     if (/^\/clients\/[^/]+\/imports\/[^/]+\/portal-invitees$/.test(url.pathname)) {
       return Response.json({ items: invitees });
     }
@@ -2161,5 +2170,290 @@ describe('the spotlight on a photo opened from a value', () => {
     expect(shown?.dataset.dimmed).toBe('false');
     await user.click(toggle);
     expect(shown?.dataset.dimmed).toBe('true');
+  });
+});
+
+describe('who trained and who verified the periodic trainings', () => {
+  const vasile = {
+    id: 'c1000000-0000-4000-8000-000000000001',
+    clientId,
+    employeeId: null,
+    fullName: 'Iordache Vasile',
+    jobTitle: 'Șef de șantier',
+    employeeJobTitle: null,
+    roles: ['workplace_manager'],
+    workplaceId: null,
+    createdAt: '2026-09-17T10:00:00+00:00',
+    updatedAt: '2026-09-17T10:00:00+00:00',
+  };
+  const andreea = {
+    userId: 'd1000000-0000-4000-8000-000000000001',
+    email: 'andreea@example.ro',
+    fullName: 'Andreea Ionescu',
+    professionalTitle: 'Specialist SSM',
+    role: 'admin',
+    joinedAt: '2026-09-17T10:00:00+00:00',
+  };
+  const iordache = { name: 'Iordache Vasile', jobTitle: 'Șef de șantier' };
+
+  function handedOver(changes: unknown = null) {
+    const base = employeeDetail();
+    const proposal = base.employees!.proposal;
+    return employeeDetail({
+      employees: {
+        ...base.employees!,
+        changes,
+        proposal: {
+          ...proposal,
+          pages: proposal.pages.map((page) =>
+            page.id === 'p3'
+              ? {
+                  ...page,
+                  rows: [
+                    sheetRow('r3', {
+                      heldOn: '2022-05-16',
+                      trainerName: null,
+                      trainerJobTitle: null,
+                    }),
+                    sheetRow('r8', {
+                      heldOn: '2023-05-15',
+                      trainerName: null,
+                      trainerJobTitle: null,
+                    }),
+                  ],
+                  handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare SSM Expert Vest' }],
+                }
+              : page
+          ),
+        },
+      },
+    });
+  }
+
+  const putCount = () => requestsTo(`/imports/${importId}/employee-changes`, 'PUT').length;
+  const savedPeople = (index = putCount() - 1) =>
+    (
+      bodyOf(`/imports/${importId}/employee-changes`, 'PUT', index) as {
+        changes: { people: Record<string, { whoTrained?: Record<string, unknown> }> };
+      }
+    ).changes.people;
+
+  it('gives the trainings tables their column headings and the handover its row', async () => {
+    mockEmployeeImport({ detail: handedOver() });
+    mount(`${importPath}/pop`);
+    const ssm = await screen.findByTestId('person-trainings-ssm');
+    expect(
+      within(within(ssm).getByRole('table'))
+        .getAllByRole('columnheader')
+        .map((each) => each.textContent)
+    ).toEqual([
+      'Foto',
+      'Data',
+      'Durata',
+      'A instruit',
+      'A verificat',
+      'Materialul predat',
+      'Modifică',
+      'Inclusă',
+    ]);
+    expect(within(ssm).getByTestId('person-handover-row').textContent).toContain(
+      'preluare consemnată pe fișă: „03.10.22 Preluare SSM Expert Vest”'
+    );
+  });
+
+  it('asks once per worker, each side of the handover, and names the rows left unnamed', async () => {
+    mockEmployeeImport({ detail: handedOver(), responsible: [vasile], members: [andreea] });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const question = await screen.findByTestId('who-trained-ssm');
+    expect(within(question).getByRole('heading').textContent).toBe(
+      'Cine a instruit și cine a verificat?'
+    );
+    const ssm = screen.getByTestId('person-trainings-ssm');
+    expect(within(ssm).getByTestId('person-trainings-unanswered').textContent).toBe(
+      'Nume nealese la periodice'
+    );
+    const trainer = () => within(question).getByTestId('who-trained-trainer');
+    expect(trainer().dataset.tone).toBe('optional');
+    expect(trainer().textContent).toContain('Până la 03.10.2022nume neînscris pe fișă');
+
+    await user.click(within(question).getByRole('button', { name: 'Alege: a instruit' }));
+    const before = within(trainer()).getByLabelText<HTMLSelectElement>('Până la 3 octombrie 2022');
+    const after = within(trainer()).getByLabelText<HTMLSelectElement>('De la 3 octombrie 2022');
+    expect(before.value).toBe('');
+    expect(
+      within(after).queryByRole('option', { name: 'Același om ca înainte de preluare' })
+    ).toBeNull();
+    await user.selectOptions(before, 'Iordache Vasile, Șef de șantier');
+    await waitFor(() => expect(putCount()).toBe(1));
+    expect(savedPeople().pop?.whoTrained).toEqual({ ssm: { trainer: { before: iordache } } });
+    expect(within(after).getAllByRole('option')[0]!.textContent).toBe(
+      'Același om ca înainte de preluare'
+    );
+    await user.selectOptions(after, 'Același om ca înainte de preluare');
+    await user.click(within(trainer()).getByRole('button', { name: 'Gata' }));
+
+    expect(trainer().dataset.tone).toBe('done');
+    expect(within(trainer()).getAllByText('ales de tine')).toHaveLength(2);
+    const rows = within(ssm).getAllByTestId('person-training-row');
+    expect(rows.map((row) => within(row).queryAllByText('ales de tine').length)).toEqual([1, 1]);
+    expect(rows[1]!.textContent).toContain('Iordache Vasile, Șef de șantier');
+    expect(within(ssm).queryByTestId('person-trainings-unanswered')).toBeNull();
+  });
+
+  it('opens one role at a time and wants a verifier typed with a function', async () => {
+    mockEmployeeImport({ detail: handedOver() });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const question = await screen.findByTestId('who-trained-ssm');
+    await user.click(within(question).getByRole('button', { name: 'Alege: a instruit' }));
+    await user.click(within(question).getByRole('button', { name: 'Alege: a verificat' }));
+    expect(within(question).getAllByRole('button', { name: 'Gata' })).toHaveLength(1);
+    const verifier = () => within(question).getByTestId('who-trained-verifier');
+
+    await user.selectOptions(
+      within(verifier()).getByLabelText('De la 3 octombrie 2022'),
+      'Alt nume…'
+    );
+    await user.type(
+      within(verifier()).getByRole('textbox', {
+        name: 'A verificat, de la 3 octombrie 2022: numele',
+      }),
+      'Pavel Mihai'
+    );
+    await user.click(within(verifier()).getByRole('button', { name: 'Gata' }));
+    expect(verifier().textContent).toContain('Scrie numele și funcția celui care a verificat.');
+    await user.type(
+      within(verifier()).getByRole('textbox', {
+        name: 'A verificat, de la 3 octombrie 2022: funcția',
+      }),
+      'Specialist SSM'
+    );
+    await user.click(within(verifier()).getByRole('button', { name: 'Gata' }));
+
+    await waitFor(() =>
+      expect(savedPeople().pop?.whoTrained).toEqual({
+        ssm: { verifier: { from: { name: 'Pavel Mihai', jobTitle: 'Specialist SSM' } } },
+      })
+    );
+    expect(verifier().dataset.tone).toBe('done');
+  });
+
+  it('keeps a name the member typed on a row, marked as changed there', async () => {
+    mockEmployeeImport({
+      detail: handedOver({
+        people: {
+          pop: { whoTrained: { ssm: { trainer: { before: iordache, from: iordache } } } },
+        },
+        rows: {
+          r8: { values: { trainerName: 'Crăciun Dorin', trainerJobTitle: 'Administrator' } },
+        },
+      }),
+    });
+    mount(`${importPath}/pop`);
+    const ssm = await screen.findByTestId('person-trainings-ssm');
+    const rows = within(ssm).getAllByTestId('person-training-row');
+    expect(rows[0]!.textContent).toContain('ales de tine');
+    expect(rows[1]!.textContent).toContain('Crăciun Dorin, Administrator');
+    expect(rows[1]!.textContent).toContain('schimbat de tine pe acest rând');
+  });
+
+  it('keeps a row following the answer when its other values are corrected', async () => {
+    mockEmployeeImport({
+      detail: handedOver({
+        people: { pop: { whoTrained: { ssm: { trainer: { before: iordache } } } } },
+      }),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const ssm = await screen.findByTestId('person-trainings-ssm');
+    await user.click(
+      within(within(ssm).getAllByTestId('person-training-row')[0]!).getByRole('button', {
+        name: /^Modifică instruirea din /,
+      })
+    );
+    const dialog = await screen.findByTestId('person-row-dialog');
+    expect(within(dialog).getByLabelText<HTMLInputElement>(/^Instruit de/).value).toBe(
+      'Iordache Vasile'
+    );
+    await user.clear(within(dialog).getByLabelText(/^Durata/));
+    await user.type(within(dialog).getByLabelText(/^Durata/), '90');
+    await user.click(within(dialog).getByTestId('person-row-save'));
+    await waitFor(() => expect(putCount()).toBe(1));
+    const rows = (
+      bodyOf(`/imports/${importId}/employee-changes`, 'PUT', 0) as {
+        changes: { rows: Record<string, { values?: Record<string, unknown> }> };
+      }
+    ).changes.rows;
+    expect(rows.r3?.values).not.toHaveProperty('trainerName');
+    expect(rows.r3?.values?.durationMinutes).toBe(90);
+  });
+
+  it('uses the same answer for the workers of the same post, never one with their own', async () => {
+    const answer = { trainer: { from: iordache } };
+    mockEmployeeImport({
+      detail: handedOver({
+        people: { pop: { whoTrained: { ssm: answer } }, toma: { jobPositionId: sellerId } },
+      }),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const question = await screen.findByTestId('who-trained-ssm');
+    expect(question.textContent).toContain(
+      'La ceilalți 2 nu se schimbă nimic până nu îi alegi tu.'
+    );
+    await user.click(within(question).getByTestId('who-trained-copy'));
+    const dialog = await screen.findByTestId('who-trained-others');
+    expect(within(dialog).getByRole('checkbox', { name: /^Toma Andrei/ }).dataset.state).toBe(
+      'checked'
+    );
+    expect(within(dialog).getByRole('checkbox', { name: /^Lazăr Radu/ }).dataset.state).toBe(
+      'unchecked'
+    );
+    expect(dialog.textContent).toContain('Același post, Vânzător');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Folosește la un lucrător' }));
+    await waitFor(() => expect(putCount()).toBe(1));
+    expect(savedPeople().toma?.whoTrained).toEqual({
+      ssm: { ...answer, splitOn: '2022-10-03', copiedFrom: 'pop' },
+    });
+    expect(savedPeople().lazar).toBeUndefined();
+    expect(screen.getByTestId('who-trained-ssm').textContent).toContain(
+      'Folosit și la un lucrător.'
+    );
+  });
+
+  it('shows who received an answer from whom, and lets them change it', async () => {
+    const answer = { trainer: { from: iordache } };
+    mockEmployeeImport({
+      detail: handedOver({
+        people: {
+          pop: { whoTrained: { ssm: answer } },
+          toma: { whoTrained: { ssm: { ...answer, copiedFrom: 'pop' } } },
+        },
+      }),
+    });
+    mount(`${importPath}/toma`);
+    const question = await screen.findByTestId('who-trained-ssm');
+    expect(within(question).getByTestId('who-trained-trainer').textContent).toContain(
+      'ales de tine pentru un lucrător, la Pop Elena'
+    );
+    expect(within(question).getByRole('button', { name: 'Schimbă: a instruit' })).toBeTruthy();
+  });
+
+  it('shows on the hub, in grey, who has no answer, and blocks nothing', async () => {
+    mockEmployeeImport({ detail: handedOver() });
+    mount(importPath);
+    const hub = await screen.findByTestId('employee-hub');
+    expect(within(hub).getByTestId('employee-hub-who-trained').textContent).toBe(
+      'La 3 din 3 lucrători nu e ales cine a instruit la periodice. Nu oprește importul.Mergi la primul'
+    );
+    const pop = within(hub)
+      .getAllByTestId('employee-hub-person')
+      .find((each) => each.textContent?.includes('Pop'))!;
+    expect(within(pop).getByTestId('employee-hub-person-known').textContent).toBe(
+      'Nume nealese la periodice · Preluare consemnată pe fișă: 03.10.2022'
+    );
+    expect(pop.querySelector('.text-warning-foreground')).toBeNull();
   });
 });

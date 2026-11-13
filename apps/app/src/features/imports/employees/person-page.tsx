@@ -638,6 +638,7 @@ export function EmployeePersonPage({
           context={context}
           person={person}
           decisions={decisions}
+          clientId={clientId}
           onChange={review.update}
         />
         <ImportActionBar

@@ -1,14 +1,21 @@
 import {
+  answerPeriod,
+  answerSplit,
   bloodGroups,
   decodeCnp,
+  handoverDay,
   isValidCnp,
+  type NameSource,
   parseCommuteMeansKey,
   rhFactors,
+  rowSigner,
   sameHomeAddress,
   type TrainingDomain,
   trainingDomainLabels,
   type TrainingPhase,
   trainingPhaseLabels,
+  typedOnRow,
+  type WhoTrainedAnswer,
 } from '@ssm-usor/contracts';
 
 import type {
@@ -498,6 +505,67 @@ export function examinerValues(changes: Changes, row: SheetRow) {
   return {
     examinerName: examiner('examinerName', 'trainerName'),
     examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
+  };
+}
+
+export const handoverOf = (
+  context: Pick<ReviewContext, 'proposal' | 'changes'>,
+  personId: string
+) => handoverDay(pagesOf(context, personId));
+
+export const answerOf = (
+  changes: Changes,
+  personId: string,
+  domain: TrainingDomain
+): WhoTrainedAnswer | undefined => changes.people[personId]?.whoTrained?.[domain];
+
+export type SignedValues = RowValues & {
+  trainerFrom: NameSource | null;
+  verifierFrom: NameSource | null;
+};
+
+const signerFields = {
+  trainer: ['trainerName', 'trainerJobTitle'],
+  verifier: ['verifierName', 'verifierJobTitle'],
+} as const;
+
+/**
+ * A row's values with the trainer and verifier confirming writes, as `@ssm-usor/import`: typed on
+ * the row, read off the sheet, or the person's answer for the row's period.
+ */
+export function signedValues(
+  context: Pick<ReviewContext, 'proposal' | 'changes'>,
+  personId: string,
+  row: SheetRow,
+  handover = handoverOf(context, personId)
+): SignedValues {
+  const values = rowValues(context.changes, row);
+  const answer = answerOf(context.changes, personId, row.domain);
+  const period = answerPeriod(values.heldOn, answerSplit(handover, answer));
+  const stored = context.changes.rows[row.id]?.values;
+  const signer = (role: 'trainer' | 'verifier') => {
+    const [name, jobTitle] = signerFields[role];
+    return rowSigner({
+      domain: row.domain,
+      phase: row.phase,
+      role,
+      name: values[name],
+      jobTitle: values[jobTitle],
+      typed: typedOnRow(stored, row, signerFields[role], row.fromThemes),
+      period,
+      answer,
+    });
+  };
+  const trainer = signer('trainer');
+  const verifier = signer('verifier');
+  return {
+    ...values,
+    trainerName: trainer.name,
+    trainerJobTitle: trainer.jobTitle,
+    verifierName: verifier.name,
+    verifierJobTitle: verifier.jobTitle,
+    trainerFrom: trainer.source,
+    verifierFrom: verifier.source,
   };
 }
 
@@ -1400,16 +1468,17 @@ const heldKey = (row: HeldKeyRow) => {
  * material all match.
  */
 export function heldWith(context: ReviewContext, personId: string, row: SheetRow) {
-  const key = heldKey({ ...row, ...rowValues(context.changes, row) });
+  const key = heldKey({ ...row, ...signedValues(context, personId, row) });
   const others = new Set<string>();
   for (const person of context.proposal.people) {
     if (person.id === personId || stateOf(context, person.id) === 'set_aside') continue;
     const matched = isExisting(context, person);
+    const handover = handoverOf(context, person.id);
     const match = ownRows(context, person.id).some(
       ({ row: each }) =>
         !each.testOnly &&
         rowIncluded(context.changes, each, matched) &&
-        heldKey({ ...each, ...rowValues(context.changes, each) }) === key
+        heldKey({ ...each, ...signedValues(context, person.id, each, handover) }) === key
     );
     if (match) others.add(person.id);
   }
@@ -1481,6 +1550,7 @@ export function confirmSummary(context: ReviewContext) {
     for (const page of pages) files.add(page.fileId);
     const matched = isExisting(context, person);
     const tested = testedRows(context, person.id);
+    const handover = handoverOf(context, person.id);
     for (const { row } of ownRows(context, person.id)) {
       if (
         row.test?.test === 'hiring' &&
@@ -1490,7 +1560,7 @@ export function confirmSummary(context: ReviewContext) {
         tests[row.domain] += 1;
       }
       if (row.testOnly || !rowIncluded(context.changes, row, matched)) continue;
-      const values = rowValues(context.changes, row);
+      const values = signedValues(context, person.id, row, handover);
       const own = `${row.domain}|${row.phase}|${values.heldOn}`;
       if (seen.has(own)) continue;
       seen.add(own);

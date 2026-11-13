@@ -389,6 +389,10 @@ export const helpTopics = {
   },
   'import.angajati': { path: '/clienti/import/', anchor: 'importul-lucrătorilor-din-fișe' },
   'import.ce-fotografiezi': { path: '/clienti/import/', anchor: 'ce-fotografiezi' },
+  'import.cine-a-instruit': {
+    path: '/clienti/import/',
+    anchor: 'cine-a-instruit-și-cine-a-verificat',
+  },
   'import.citire': { path: '/clienti/import/', anchor: 'citirea-fișelor' },
   'import.client': { path: '/clienti/import/', anchor: 'importul-unui-client-din-documente' },
   'import.cnp': { path: '/clienti/import/', anchor: 'cnp-ul-de-pe-fișă' },
