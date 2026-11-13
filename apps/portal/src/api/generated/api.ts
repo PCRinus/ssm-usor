@@ -422,6 +422,8 @@ export type PortalEmployeeDataResponseEmployee = {
   /** @nullable */
   homeAddress: string | null;
   /** @nullable */
+  residenceAddress: string | null;
+  /** @nullable */
   birthDate: string | null;
   /** @nullable */
   birthPlace: string | null;

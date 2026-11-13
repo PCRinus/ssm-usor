@@ -89,7 +89,7 @@ function inStates<Q extends { or(filters: string, options: { referencedTable: st
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns =
-  `${employeeListColumns}, cnp, birth_date, birth_place, home_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes, contract_number` as const;
+  `${employeeListColumns}, cnp, birth_date, birth_place, home_address, residence_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes, contract_number` as const;
 
 type EmployeeListRow = Pick<
   EmployeeRow,
@@ -155,6 +155,7 @@ export function toEmployee(
     birthDate: row.birth_date,
     birthPlace: row.birth_place,
     homeAddress: row.home_address,
+    residenceAddress: row.residence_address,
     // The database constrains both to the shared lists.
     bloodGroup: row.blood_group as Employee['bloodGroup'],
     rhFactor: row.rh_factor as Employee['rhFactor'],
@@ -341,6 +342,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
       birth_date: body.birthDate ?? null,
       birth_place: body.birthPlace ?? null,
       home_address: body.homeAddress ?? null,
+      residence_address: body.residenceAddress ?? null,
       blood_group: body.bloodGroup ?? null,
       rh_factor: body.rhFactor ?? null,
       notes: body.notes ?? null,
@@ -478,6 +480,7 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
       birth_date: body.birthDate ?? null,
       birth_place: body.birthPlace ?? null,
       home_address: body.homeAddress ?? null,
+      residence_address: body.residenceAddress ?? null,
       blood_group: body.bloodGroup ?? null,
       rh_factor: body.rhFactor ?? null,
       notes: body.notes ?? null,

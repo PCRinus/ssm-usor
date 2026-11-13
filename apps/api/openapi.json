@@ -2088,6 +2088,10 @@
                 "type": "string",
                 "nullable": true
               },
+              "residenceAddress": {
+                "type": "string",
+                "nullable": true
+              },
               "bloodGroup": {
                 "type": "string",
                 "nullable": true,
@@ -2306,6 +2310,7 @@
               "birthDate",
               "birthPlace",
               "homeAddress",
+              "residenceAddress",
               "bloodGroup",
               "rhFactor",
               "notes",
@@ -2392,6 +2397,12 @@
             "maxLength": 160
           },
           "homeAddress": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "residenceAddress": {
             "type": "string",
             "nullable": true,
             "minLength": 1,
@@ -2518,6 +2529,12 @@
             "maxLength": 160
           },
           "homeAddress": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "residenceAddress": {
             "type": "string",
             "nullable": true,
             "minLength": 1,
@@ -15404,6 +15421,32 @@
                           },
                           "additionalProperties": false
                         },
+                        "residenceAddress": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
                         "education": {
                           "type": "object",
                           "properties": {
@@ -16305,6 +16348,40 @@
                               "nullable": true,
                               "minLength": 1
                             }
+                          },
+                          "required": ["options"]
+                        },
+                        "residenceAddress": {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "value": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pageIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "minItems": 1
+                                  }
+                                },
+                                "required": ["value", "pageIds"]
+                              }
+                            },
+                            "app": {
+                              "type": "string",
+                              "nullable": true,
+                              "minLength": 1
+                            }
+                          },
+                          "default": {
+                            "options": []
                           },
                           "required": ["options"]
                         },
@@ -17404,6 +17481,32 @@
                           "additionalProperties": false
                         },
                         "homeAddress": {
+                          "type": "object",
+                          "properties": {
+                            "option": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "nullable": true
+                                }
+                              ]
+                            },
+                            "replace": {
+                              "type": "boolean"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "residenceAddress": {
                           "type": "object",
                           "properties": {
                             "option": {
@@ -23429,6 +23532,10 @@
                 "type": "string",
                 "nullable": true
               },
+              "residenceAddress": {
+                "type": "string",
+                "nullable": true
+              },
               "birthDate": {
                 "type": "string",
                 "nullable": true,
@@ -23478,6 +23585,7 @@
               "workplace",
               "hiredAt",
               "homeAddress",
+              "residenceAddress",
               "birthDate",
               "birthPlace",
               "bloodGroup",

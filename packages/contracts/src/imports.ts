@@ -491,6 +491,7 @@ export const employeeImportFieldNames = [
   'birthDate',
   'birthPlace',
   'homeAddress',
+  'residenceAddress',
   'education',
   'qualification',
   'bloodGroup',
