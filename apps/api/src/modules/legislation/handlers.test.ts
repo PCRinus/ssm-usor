@@ -275,6 +275,33 @@ describe('GET /legislation/changes', () => {
     expect(list!.get('select')).toContain('passages:legal_change_passages(');
   });
 
+  it('drops only the stored amending acts and amended units it cannot read', async () => {
+    mockUpstream({
+      legal_changes: () =>
+        Response.json([
+          {
+            ...assessed,
+            amending_acts: [{ kind: 'LEGEA' }, ...assessed.amending_acts],
+            amended_units: [
+              ...assessed.amended_units,
+              { ...assessed.amended_units[0], operation: 'renumbered' },
+            ],
+          },
+        ]),
+    });
+    const response = await request('/legislation/changes');
+    const [item] = legalChangeListResponseSchema.parse(await response.json()).items;
+    expect(item!.amendingActs).toEqual([{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }]);
+    expect(item!.amendedUnits.map((unit) => unit.unit)).toEqual(['Art. 36 alin. (2)']);
+  });
+
+  it('never asks for the reasons to review, which members cannot read', async () => {
+    mockUpstream({ legal_changes: () => Response.json([change]) });
+    await request('/legislation/changes');
+    const [list] = searchParams('legal_changes');
+    expect(list!.get('select')).not.toMatch(/(^|,)review(,|$)/);
+  });
+
   it('answers 401 without a token', async () => {
     const response = await createApp().request('/legislation/changes', {}, env);
     expect(response.status).toBe(401);

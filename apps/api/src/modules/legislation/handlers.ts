@@ -51,15 +51,24 @@ const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
   checkedByHandOn: row.checked_by_hand_on,
 });
 
-// The legislation Worker writes these columns; the API reads the fields it shows and drops the rest.
-const storedAmendingActsSchema = z
-  .array(
-    z
-      .object({ name: z.string(), date: z.iso.date().nullable().catch(null) })
-      .transform((act) => ({ name: act.name, adoptedOn: act.date }))
-  )
-  .catch([]);
-const storedAmendedUnitsSchema = z.array(legalAmendedUnitSchema).catch([]);
+// The legislation Worker writes these columns; the API reads the fields it shows and drops the
+// rest, and an element it cannot read, not the whole list.
+const storedList = <T extends z.ZodType>(item: T) =>
+  z
+    .array(z.unknown())
+    .catch([])
+    .transform((items) =>
+      items.flatMap((each) => {
+        const parsed = item.safeParse(each);
+        return parsed.success ? [parsed.data as z.output<T>] : [];
+      })
+    );
+const storedAmendingActsSchema = storedList(
+  z
+    .object({ name: z.string(), date: z.iso.date().nullable().catch(null) })
+    .transform((act) => ({ name: act.name, adoptedOn: act.date }))
+);
+const storedAmendedUnitsSchema = storedList(legalAmendedUnitSchema);
 const storedHunksSchema = legalChangePassageSchema.shape.hunks.catch([]);
 
 const toPassage = (row: Omit<PassageRow, 'change_id' | 'manifest' | 'article'>) =>
