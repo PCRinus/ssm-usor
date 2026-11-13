@@ -1749,6 +1749,7 @@ export type Database = {
           organization_id: string;
           phone: string | null;
           qualification: string | null;
+          residence_address: string | null;
           rh_factor: string | null;
           status: Database['public']['Enums']['employee_status'];
           terminated_at: string | null;
@@ -1817,6 +1818,7 @@ export type Database = {
           organization_id: string;
           phone?: string | null;
           qualification?: string | null;
+          residence_address?: string | null;
           rh_factor?: string | null;
           status?: Database['public']['Enums']['employee_status'];
           terminated_at?: string | null;
@@ -1850,6 +1852,7 @@ export type Database = {
           organization_id?: string;
           phone?: string | null;
           qualification?: string | null;
+          residence_address?: string | null;
           rh_factor?: string | null;
           status?: Database['public']['Enums']['employee_status'];
           terminated_at?: string | null;
@@ -8201,6 +8204,7 @@ export type Database = {
           organization_id: string;
           phone: string | null;
           qualification: string | null;
+          residence_address: string | null;
           rh_factor: string | null;
           status: Database['public']['Enums']['employee_status'];
           terminated_at: string | null;
