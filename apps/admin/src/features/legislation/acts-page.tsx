@@ -126,6 +126,9 @@ function VerifiedForm({ act, onClose }: { act: AdminLegalAct; onClose: () => voi
   });
   const last = act.lastConsolidatedOn;
   const outOfRange = Boolean(date && last && date > last);
+  const movesBack = Boolean(
+    date && act.verifiedConsolidatedOn && date < act.verifiedConsolidatedOn
+  );
   const blocking = date
     ? (openChanges.data ?? []).filter((change) => change.consolidatedOn <= date)
     : [];
@@ -174,6 +177,12 @@ function VerifiedForm({ act, onClose }: { act: AdminLegalAct; onClose: () => voi
                 ? `No later than ${formatDay(last)}, the last form the check has seen.`
                 : 'A form the portal lists for this act, no later than the last one seen.'}
             </p>
+            {movesBack && !outOfRange && (
+              <p data-testid="verified-form-moves-back" className="text-sm">
+                This is before the form verified now, {formatDay(act.verifiedConsolidatedOn)}: use
+                it to correct a wrong verified form. The next new form is compared with it.
+              </p>
+            )}
           </div>
         ) : (
           <ErrorNotice testId="verified-form-unseen">

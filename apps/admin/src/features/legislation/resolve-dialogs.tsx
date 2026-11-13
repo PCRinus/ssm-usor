@@ -38,19 +38,42 @@ function refusalOf(error: Error) {
   if (body?.reason === adminLegislationErrorReasons.versionCannotAnswer) {
     return 'This version can no longer answer the change: it may answer another one by now.';
   }
+  if (body?.reason === adminLegislationErrorReasons.olderChangeOpen) {
+    return 'An older change of this act is still open. Resolve it first: the page now lists it.';
+  }
+  if (body?.reason === adminLegislationErrorReasons.changeNotAssessed) {
+    return 'The daily check has not assessed this change yet. Resolve it once it has.';
+  }
   if (body?.error === 'validation_error') {
     return `The note needs ${minLegalChangeNoteLength} to ${maxLegalChangeNoteLength} characters.`;
   }
   return 'The change could not be saved. Check the connection and try again.';
 }
 
-function useResolved(change: AdminLegalChangeDetail, onDone: () => void) {
+function useResolve(
+  change: AdminLegalChangeDetail,
+  write: () => Promise<AdminLegalChangeDetail>,
+  onDone: () => void
+) {
   const queryClient = useQueryClient();
-  return (detail: AdminLegalChangeDetail) => {
-    queryClient.setQueryData([...legislationKey, 'change', change.id], detail);
-    void refreshLegislation(queryClient);
-    onDone();
-  };
+  return useMutation({
+    mutationFn: write,
+    onSuccess: (detail) => {
+      queryClient.setQueryData([...legislationKey, 'change', change.id], detail);
+      void refreshLegislation(queryClient);
+      onDone();
+    },
+    onError: (error) => {
+      const body =
+        error instanceof ApiHttpError ? (error.body as ApiErrorResponse | undefined) : null;
+      if (
+        body?.reason === adminLegislationErrorReasons.olderChangeOpen ||
+        body?.reason === adminLegislationErrorReasons.changeNotAssessed
+      ) {
+        void queryClient.invalidateQueries({ queryKey: [...legislationKey, 'change', change.id] });
+      }
+    },
+  });
 }
 
 export function NoImpactDialog({
@@ -81,11 +104,11 @@ function NoImpactForm({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const [note, setNote] = useState('');
   const [tried, setTried] = useState(false);
-  const resolved = useResolved(change, onClose);
-  const saving = useMutation({
-    mutationFn: () => resolveNoImpact(change.id, note.trim(), apiRequest),
-    onSuccess: resolved,
-  });
+  const saving = useResolve(
+    change,
+    () => resolveNoImpact(change.id, note.trim(), apiRequest),
+    onClose
+  );
   const short = note.trim().length < minLegalChangeNoteLength;
   const noteError = tried && short ? 'Write the note members will read.' : undefined;
 
@@ -170,11 +193,11 @@ function LinkForm({
   onClose: () => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const resolved = useResolved(change, onClose);
-  const linking = useMutation({
-    mutationFn: () => linkTemplateVersion(change.id, version.id, apiRequest),
-    onSuccess: resolved,
-  });
+  const linking = useResolve(
+    change,
+    () => linkTemplateVersion(change.id, version.id, apiRequest),
+    onClose
+  );
 
   return (
     <form

@@ -124,9 +124,14 @@ words struck and the added ones marked. While the change is open it can be resol
   characters. The act's verified form moves to the change's, as when the check resolves one
   itself.
 - **Resolve by this version** lists the built-in template versions that can answer it: of a type
-  its passages name, registered after it was seen, not a layout version and answering no other
-  change. Members then read the version's note under the change, and the verified form moves as
-  above.
+  its passages name, registered after it was seen, not a layout version, with a note and
+  answering no other change. Members then read the version's note under the change, and the
+  verified form moves as above.
+
+Both stay unavailable while the daily check has yet to assess the change (one at or before the
+verified form, which the check never assesses, can be resolved), and while an older change of the
+act is open, which the page lists with links: resolving moves the verified form past the older
+one, which the check would then never assess, so the act's changes are resolved oldest first.
 
 Once resolved, the page shows how, when, by which version, and the note. A change resolved by
 mistake cannot be reopened here: resolving moved the act's verified form, which the next
@@ -138,7 +143,9 @@ last form seen), when the check last read it, when someone read it by hand, and 
 open changes. Every column sorts (`?sort=verified&order=desc`). **Record** sets the verified form
 to a date no later than the last form seen. While a change of the act at or before that date is
 open, the dialog lists it with a link and refuses the date: the daily check never assesses a
-change at or before the verified form again, so it would stay open for good.
+change at or before the verified form again, so it would stay open for good. A date before the
+form verified now is allowed, and the dialog says so: it is how a wrong verified form is
+corrected, and the next new form is compared with it.
 
 **Runs** (`/legislation/runs`) lists the check's runs, newest first, 25 to a page: when each
 started and ended, its status, the acts checked and skipped, the changes found, and its errors,

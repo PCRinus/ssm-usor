@@ -90,6 +90,9 @@ function VersionLine({ version }: { version: AdminTemplateVersion }) {
   );
 }
 
+const blockedNotice =
+  'rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200';
+
 function Resolution({ change }: { change: AdminLegalChangeDetail }) {
   const [noImpact, setNoImpact] = useState(false);
   const [linking, setLinking] = useState<AdminTemplateVersion | null>(null);
@@ -124,6 +127,8 @@ function Resolution({ change }: { change: AdminLegalChangeDetail }) {
     );
   }
 
+  const blocked = change.awaitingAssessment || change.olderOpenChanges.length > 0;
+
   return (
     <Section
       title="Resolve"
@@ -131,6 +136,37 @@ function Resolution({ change }: { change: AdminLegalChangeDetail }) {
       description="Members see this change as “în verificare” until it is resolved."
     >
       <div className="space-y-4">
+        {change.awaitingAssessment && (
+          <p data-testid="change-awaiting-assessment" className={blockedNotice}>
+            The daily check has not assessed this change yet. Resolve it once the check has compared
+            it with the verified form and found its passages.
+          </p>
+        )}
+        {change.olderOpenChanges.length > 0 && (
+          <div data-testid="change-older-open" className={`space-y-1 ${blockedNotice}`}>
+            <p>
+              Resolve{' '}
+              {change.olderOpenChanges.length === 1
+                ? 'the older open change'
+                : 'the older open changes'}{' '}
+              of this act first: resolving this one moves the verified form to its form, and the
+              daily check never looks again at a change at or before the verified form.
+            </p>
+            <ul className="list-disc pl-5">
+              {change.olderOpenChanges.map((older) => (
+                <li key={older.id}>
+                  <Link
+                    to="/legislation/changes/$id"
+                    params={{ id: older.id }}
+                    className="underline underline-offset-4"
+                  >
+                    Form of {formatDay(older.consolidatedOn)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
             Nothing the templates cite changed in a way that matters: resolve it with a note.
@@ -139,6 +175,7 @@ function Resolution({ change }: { change: AdminLegalChangeDetail }) {
             variant="outline"
             className="shrink-0"
             data-testid="mark-no-impact"
+            disabled={blocked}
             onClick={() => setNoImpact(true)}
           >
             Mark as no impact
@@ -166,6 +203,7 @@ function Resolution({ change }: { change: AdminLegalChangeDetail }) {
                     variant="outline"
                     size="sm"
                     className="shrink-0"
+                    disabled={blocked}
                     onClick={() => setLinking(version)}
                   >
                     Resolve by this version

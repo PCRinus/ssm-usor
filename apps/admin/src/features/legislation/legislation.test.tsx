@@ -95,7 +95,11 @@ const detail: AdminLegalChangeDetail = {
   ],
   resolvingVersion: null,
   candidateVersions: [version],
+  awaitingAssessment: false,
+  olderOpenChanges: [],
 };
+
+const olderChangeId = 'd1d1d1d1-0000-4000-8000-000000000003';
 
 const acts: AdminLegalActList = {
   items: [
@@ -153,6 +157,7 @@ const runs: AdminLegalCheckRunList = {
 
 const fetchMock = vi.fn<typeof fetch>();
 let current: AdminLegalChangeDetail = detail;
+let refusal: string | null = null;
 
 const requests = () =>
   fetchMock.mock.calls
@@ -167,12 +172,23 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
   current = detail;
+  refusal = null;
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
     const method = init?.method ?? 'GET';
     if (url.pathname === '/api/impersonation') return Response.json({ impersonation: null });
     if (url.pathname === '/api/me') return Response.json({ id: 'user-1', email: 'm@example.ro' });
     if (url.pathname === '/api/legislation/changes') return Response.json(list);
+    if (refusal && method === 'POST') {
+      current =
+        refusal === 'older_change_open'
+          ? { ...detail, olderOpenChanges: [{ id: olderChangeId, consolidatedOn: '2026-10-30' }] }
+          : { ...detail, awaitingAssessment: true };
+      return Response.json(
+        { error: 'unprocessable', message: 'Refused.', reason: refusal },
+        { status: 422 }
+      );
+    }
     if (url.pathname === `/api/legislation/changes/${changeId}/no-impact` && method === 'POST') {
       const { note } = JSON.parse(String(init?.body)) as { note: string };
       current = {
@@ -340,6 +356,62 @@ describe('a legal change', () => {
   });
 });
 
+describe('a legal change that cannot be resolved yet', () => {
+  it('lists the act’s older open changes and offers no way to resolve it before them', async () => {
+    current = {
+      ...detail,
+      olderOpenChanges: [
+        { id: olderChangeId, consolidatedOn: '2026-10-30' },
+        { id: 'd1d1d1d1-0000-4000-8000-000000000004', consolidatedOn: '2026-11-02' },
+      ],
+    };
+    mountAdmin(`/legislation/changes/${changeId}`);
+
+    const older = await screen.findByTestId('change-older-open');
+    expect(older.textContent).toContain('Resolve the older open changes of this act first');
+    expect(
+      within(older).getByRole('link', { name: 'Form of 30 Oct 2026' }).getAttribute('href')
+    ).toBe(`/legislation/changes/${olderChangeId}`);
+    expect(screen.getByTestId<HTMLButtonElement>('mark-no-impact').disabled).toBe(true);
+    const candidate = screen.getByTestId('candidate-version');
+    expect(
+      within(candidate).getByRole<HTMLButtonElement>('button', { name: 'Resolve by this version' })
+        .disabled
+    ).toBe(true);
+  });
+
+  it('waits for the daily check to assess it', async () => {
+    current = { ...detail, outcome: null, assessedAt: null, awaitingAssessment: true };
+    mountAdmin(`/legislation/changes/${changeId}`);
+
+    expect((await screen.findByTestId('change-awaiting-assessment')).textContent).toContain(
+      'has not assessed this change yet'
+    );
+    expect(screen.getByTestId<HTMLButtonElement>('mark-no-impact').disabled).toBe(true);
+    expect(screen.queryByTestId('change-older-open')).toBeNull();
+  });
+
+  it.each([
+    ['older_change_open', 'An older change of this act is still open', 'change-older-open'],
+    ['change_not_assessed', 'has not assessed this change yet', 'change-awaiting-assessment'],
+  ])(
+    'explains the database’s %s refusal and reads the change again',
+    async (reason, words, notice) => {
+      refusal = reason;
+      mountAdmin(`/legislation/changes/${changeId}`);
+      const user = userEvent.setup();
+      await user.click(await screen.findByTestId('mark-no-impact'));
+      const dialog = await screen.findByTestId('no-impact-dialog');
+      await user.type(within(dialog).getByTestId('no-impact-note'), 'Fără impact asupra textelor.');
+      await user.click(within(dialog).getByTestId('no-impact-submit'));
+
+      expect((await within(dialog).findByTestId('no-impact-error')).textContent).toContain(words);
+      await screen.findByTestId(notice);
+      expect(screen.getByTestId<HTMLButtonElement>('mark-no-impact').disabled).toBe(true);
+    }
+  );
+});
+
 describe('the watched acts', () => {
   it('lists the acts, sorts them by a column and records a verified form no later than the last seen', async () => {
     const runtime = mountAdmin('/legislation/acts');
@@ -389,6 +461,23 @@ describe('the watched acts', () => {
 });
 
 describe('the verified form', () => {
+  it('says a date before the form verified now corrects it', async () => {
+    mountAdmin('/legislation/acts');
+    const rows = await screen.findAllByTestId('legal-act-row');
+    const user = userEvent.setup();
+    await user.click(within(rows[1]!).getByTestId('record-verified-form'));
+    const dialog = await screen.findByTestId('verified-form-dialog');
+    expect(within(dialog).queryByTestId('verified-form-moves-back')).toBeNull();
+
+    const input = within(dialog).getByTestId('verified-form-date');
+    await user.clear(input);
+    await user.type(input, '2026-08-01');
+
+    expect(within(dialog).getByTestId('verified-form-moves-back').textContent).toContain(
+      'before the form verified now, 25 Aug 2026'
+    );
+  });
+
   it('says to resolve the act’s open changes first when the database refuses the form', async () => {
     mountAdmin('/legislation/acts');
     const rows = await screen.findAllByTestId('legal-act-row');
