@@ -16,6 +16,7 @@ import {
   useCopyRiskFactors,
   useListRiskEvaluations,
 } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
@@ -111,6 +112,7 @@ export function CopyRiskFactorsDialog({
               <NativeSelect
                 id="risk-factors-copy-source"
                 data-testid="risk-factors-copy-source"
+                {...replayShow}
                 value={source}
                 disabled={copy.isPending || evaluations.isPending}
                 onChange={(event) => setSource(event.target.value)}

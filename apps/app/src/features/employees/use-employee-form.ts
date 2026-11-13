@@ -16,6 +16,7 @@ import {
   useUpdateEmployee,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { maskPeople } from '@/components/mask-people';
 import { useAuth } from '@/features/auth/auth-context';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { type IssueTarget, setApiIssues } from '@/lib/api-issues';
@@ -129,7 +130,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         });
       } else {
         // The list it returns to is sorted and paged, so the new row may not be in sight.
-        toast.success(`${values.lastName} ${values.firstName} a fost adăugat.`);
+        toast.success(maskPeople`${values.lastName} ${values.firstName} a fost adăugat.`);
         await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
       }
     } catch (cause) {

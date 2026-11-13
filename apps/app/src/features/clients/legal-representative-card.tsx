@@ -108,14 +108,18 @@ export function LegalRepresentativeCard({
         </p>
       ) : (
         <FactList>
-          <Fact label="Nume și prenume" testId="legal-representative-name">
+          <Fact label="Nume și prenume" testId="legal-representative-name" replay="mask">
             {details.data.documentDetails.legalRepresentativeName}
           </Fact>
           <Fact label="Funcția" testId="legal-representative-role">
             {details.data.documentDetails.legalRepresentativeRole}
           </Fact>
           {details.data.documentDetails.legalRepresentativeEmployee && (
-            <Fact label="Și lucrător al firmei" testId="legal-representative-employee">
+            <Fact
+              label="Și lucrător al firmei"
+              testId="legal-representative-employee"
+              replay="mask"
+            >
               {formatEmployeeName(details.data.documentDetails.legalRepresentativeEmployee)},{' '}
               {details.data.documentDetails.legalRepresentativeEmployee.jobTitle}
             </Fact>

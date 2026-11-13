@@ -46,7 +46,7 @@ export function leadColumns(
     helper.display({
       id: 'contact',
       header: 'Persoană de contact',
-      meta: { skeletonClassName: 'w-40' },
+      meta: { skeletonClassName: 'w-40', personal: true },
       cell: ({ row }) => {
         const { contactName, contactEmail, contactPhone } = row.original;
         const reach = contactEmail ?? contactPhone;

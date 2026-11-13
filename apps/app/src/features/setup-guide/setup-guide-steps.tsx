@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@ssm-usor/ui/components
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Check, ChevronDown, ChevronUp, Hourglass, Lock } from 'lucide-react';
-import { useId, useRef, useState } from 'react';
+import { type ReactNode, useId, useRef, useState } from 'react';
 
 import type { SetupGuide, SetupStep } from '@/api/generated/api';
 
@@ -51,7 +51,7 @@ const linkRowClass = (phone: boolean) =>
     'outline-none hover:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/50'
   );
 
-function TwoLines({ label, note }: { label: string; note: string }) {
+function TwoLines({ label, note }: { label: string; note: ReactNode }) {
   return (
     <span className="flex min-w-0 flex-col">
       <span>{label}</span>
@@ -162,7 +162,7 @@ function NextCard({ step, label, context }: RowProps) {
   );
 }
 
-function LockedRow({ step, label, reason }: { step: SetupStep; label: string; reason: string }) {
+function LockedRow({ step, label, reason }: { step: SetupStep; label: string; reason: ReactNode }) {
   const { phone } = useSetupGuide();
   if (phone) {
     return (

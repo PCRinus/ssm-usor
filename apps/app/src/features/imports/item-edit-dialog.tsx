@@ -12,6 +12,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { type FormEvent, type ReactNode, useState } from 'react';
 
+import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 
 export type ItemDialogField = {
@@ -51,9 +52,11 @@ export function ItemEditDialog({
   aside,
   onSave,
   onClose,
+  personal = false,
 }: {
-  title: string;
+  title: ReactNode;
   fields: ItemDialogField[];
+  personal?: boolean;
   values: Record<string, unknown>;
   aside?: ReactNode;
   onSave: (values: Record<string, Value>) => void;
@@ -166,6 +169,7 @@ export function ItemEditDialog({
                     <NativeSelect
                       id={id}
                       data-testid={id}
+                      {...(!personal && replayShow)}
                       className="w-full"
                       value={String(value ?? '')}
                       aria-invalid={Boolean(error)}
@@ -185,6 +189,7 @@ export function ItemEditDialog({
                     <Input
                       id={id}
                       data-testid={id}
+                      {...(!personal && replayShow)}
                       type={field.kind === 'date' ? 'date' : 'text'}
                       inputMode={field.kind === 'number' ? 'numeric' : undefined}
                       value={String(value ?? '')}
@@ -196,7 +201,7 @@ export function ItemEditDialog({
                 </Field>
               );
             })}
-            {aside}
+            {aside && personal ? <div {...replayMask}>{aside}</div> : aside}
           </DialogBody>
           <DialogFooter className="mt-6">
             <Button type="button" variant="ghost" onClick={onClose}>

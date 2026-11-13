@@ -26,6 +26,7 @@ import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 import { roCount } from '@/features/employees/employee-format';
@@ -783,7 +784,7 @@ function ChosenThumb({
           </button>
         )}
       </span>
-      <span className="max-w-full truncate text-[11.5px] text-muted-foreground">{label}</span>
+      <Masked className="max-w-full truncate text-[11.5px] text-muted-foreground">{label}</Masked>
     </li>
   );
 }

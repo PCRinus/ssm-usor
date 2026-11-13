@@ -20,6 +20,7 @@ import {
   type ImportListResponseItemsItem,
   useListImports,
 } from '@/api/generated/api';
+import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
 import { roCount } from '@/features/employees/employee-format';
 import { useBulkInvite } from '@/features/participants/use-bulk-invite';
@@ -405,7 +406,9 @@ function ImportedNoticeCard({
               </li>
             )}
             {notice && notice.noCommute.length > 0 && (
-              <li>Mai lipsește traseul de deplasare la {joinNames(notice.noCommute)}.</li>
+              <li>
+                Mai lipsește traseul de deplasare la <Masked>{joinNames(notice.noCommute)}</Masked>.
+              </li>
             )}
           </ul>
         </div>

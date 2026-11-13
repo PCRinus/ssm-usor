@@ -2,7 +2,7 @@ import { trainingDomainLabels } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { ArrowRight, Check, ChevronRight } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { roCount } from '@/features/employees/employee-format';
 
@@ -20,13 +20,22 @@ import {
   type SheetRow,
   trainingsByDomain,
 } from './employee-review-model';
+import { FieldValueText } from './field-value-text';
 import { ChoiceCards, type OtherCommit } from './person-decisions';
 import { nextChoice } from './person-sections';
 import { dateLabel } from './review-format';
 
 type Update = Parameters<typeof ChoiceCards>[0]['onChange'];
 
-export type Highlight = { photos: string[]; caption: string };
+export type Highlight = { photos: string[]; caption: ReactNode };
+
+export function WrittenCaption({ field, value }: { field: FieldName; value: string }) {
+  return (
+    <>
+      Subliniate: fotografiile unde scrie <FieldValueText name={field} text={value} />
+    </>
+  );
+}
 
 const lowerLabel = (label: string) =>
   label.charAt(1) === label.charAt(1).toUpperCase()
@@ -157,7 +166,7 @@ export function ViewerChoice({
               option
                 ? {
                     photos: option.pageIds,
-                    caption: `Subliniate: fotografiile unde scrie ${option.value}`,
+                    caption: <WrittenCaption field={field} value={option.value} />,
                   }
                 : null
             )

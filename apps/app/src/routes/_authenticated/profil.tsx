@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 
 import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -131,6 +132,7 @@ function ProfileForm({ me }: { me: MeResponse }) {
               <Input
                 id="profile-professional-title"
                 data-testid="profile-professional-title"
+                {...replayShow}
                 autoComplete="organization-title"
                 disabled={busy}
                 aria-invalid={Boolean(errors.professionalTitle)}

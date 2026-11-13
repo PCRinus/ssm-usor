@@ -5,6 +5,8 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Pencil, Plus } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 
+import { replayMask, replayShape } from '@/app/observability/replay-masking';
+
 import { HelpLink } from './help-link';
 
 type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
@@ -79,18 +81,25 @@ export function Fact({
   label,
   wide = false,
   testId,
+  replay,
   children,
 }: {
   label: string;
   wide?: boolean;
   testId?: string;
+  replay?: 'mask' | 'shape';
   children?: ReactNode;
 }) {
   const empty = children === null || children === undefined || children === '';
   return (
     <div className={cn('grid min-w-0 content-start gap-1', wide && 'sm:col-span-full')}>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd data-testid={testId} className="font-medium wrap-anywhere">
+      <dd
+        data-testid={testId}
+        className="font-medium wrap-anywhere"
+        {...(replay === 'mask' && replayMask)}
+        {...(replay === 'shape' && replayShape)}
+      >
         {empty ? <span className="font-normal text-muted-foreground">—</span> : children}
       </dd>
     </div>

@@ -1,3 +1,4 @@
+import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
 
 import { photosLabel } from '../import-format';
@@ -51,23 +52,38 @@ export function hideHere(importId: string) {
 }
 
 export function importedSentence(notice: EmployeesImported) {
-  const parts = [
-    `Azi, din ${photosLabel(notice.photos)}, cu ${roCount(notice.trainingsHeld, 'instruire ținută', 'instruiri ținute')}.`,
-  ];
   const completed =
-    notice.completed.length === 1
-      ? `${notice.completed[0]} a fost completat`
-      : notice.completed.length > 1
-        ? `${joinNames(notice.completed)} au fost completați`
-        : null;
+    notice.completed.length === 1 ? (
+      <>
+        <Masked>{notice.completed[0]}</Masked> a fost completat
+      </>
+    ) : notice.completed.length > 1 ? (
+      <>
+        <Masked>{joinNames(notice.completed)}</Masked> au fost completați
+      </>
+    ) : null;
   const leavers =
-    notice.leavers.length === 1
-      ? `${notice.leavers[0]} e la Foști lucrători`
-      : notice.leavers.length > 1
-        ? `${joinNames(notice.leavers)} sunt la Foști lucrători`
-        : null;
-  if (completed && leavers) parts.push(`${completed}, iar ${leavers}.`);
-  else if (completed ?? leavers) parts.push(`${completed ?? leavers}.`);
-  parts.push('Fișele pe hârtie rămân originalul, la client.');
-  return parts.join(' ');
+    notice.leavers.length === 1 ? (
+      <>
+        <Masked>{notice.leavers[0]}</Masked> e la Foști lucrători
+      </>
+    ) : notice.leavers.length > 1 ? (
+      <>
+        <Masked>{joinNames(notice.leavers)}</Masked> sunt la Foști lucrători
+      </>
+    ) : null;
+  return (
+    <>
+      {`Azi, din ${photosLabel(notice.photos)}, cu ${roCount(notice.trainingsHeld, 'instruire ținută', 'instruiri ținute')}.`}
+      {completed && leavers ? (
+        <>
+          {' '}
+          {completed}, iar {leavers}.
+        </>
+      ) : (
+        (completed ?? leavers) && <> {completed ?? leavers}.</>
+      )}{' '}
+      Fișele pe hârtie rămân originalul, la client.
+    </>
+  );
 }

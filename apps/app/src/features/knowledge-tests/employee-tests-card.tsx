@@ -19,6 +19,7 @@ import {
   useGetEmployeeTests,
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 import { formatDate } from '@/features/employees/employee-format';
 import { formatDay } from '@/features/participants/participant-format';
@@ -227,7 +228,9 @@ function TestsBody({
                     <p data-testid="tests-result-examiner">
                       <span className="text-muted-foreground">Examinator: </span>
                       {result.examiner ? (
-                        `${result.examiner.name}, ${result.examiner.jobTitle}`
+                        <>
+                          <Masked>{result.examiner.name}</Masked>, {result.examiner.jobTitle}
+                        </>
                       ) : (
                         <span className="text-muted-foreground">
                           {result.source === 'paper' ? notOnSheet.name : 'nenumit încă'}

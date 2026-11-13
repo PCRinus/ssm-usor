@@ -60,6 +60,7 @@ import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
@@ -188,7 +189,7 @@ function ContractTrail({
       testId: 'contract-sent',
       detail: lastSend ? (
         <span data-testid="contract-last-send">
-          Revizia {lastSend.revision} a fost trimisă la {lastSend.sentTo} pe{' '}
+          Revizia {lastSend.revision} a fost trimisă la <Masked>{lastSend.sentTo}</Masked> pe{' '}
           {formatRoDate(lastSend.sentAt.slice(0, 10))}.
         </span>
       ) : (
@@ -648,7 +649,7 @@ function ServiceContractBody({
             <Fact label="Semnează pentru client" testId="contract-signer">
               {saved.clientRepresentative.name && (
                 <>
-                  {saved.clientRepresentative.name}
+                  <Masked>{saved.clientRepresentative.name}</Masked>
                   {saved.clientRepresentative.role && (
                     <span className="block font-normal text-muted-foreground">
                       {saved.clientRepresentative.role}

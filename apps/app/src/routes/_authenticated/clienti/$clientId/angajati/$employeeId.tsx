@@ -28,7 +28,7 @@ export const Route = createFileRoute('/_authenticated/clienti/$clientId/angajati
           },
         })
       );
-      return { crumb: formatEmployeeName(employee) };
+      return { crumb: formatEmployeeName(employee), crumbIsPersonal: true };
     } catch (cause) {
       if (cause instanceof ApiHttpError && cause.status === 404) throw notFound();
       throw cause;

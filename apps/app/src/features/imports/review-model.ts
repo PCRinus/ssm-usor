@@ -1693,3 +1693,10 @@ export const changesOf = (changes: ImportDetail['changes']): Changes => ({
   fields: (changes?.fields ?? {}) as Changes['fields'],
   items: (changes?.items ?? {}) as Changes['items'],
 });
+
+export const personalPaths = new Set([
+  'client.legalRepresentativeName',
+  'client.contactName',
+  'client.contactEmail',
+  'client.contactPhone',
+]);

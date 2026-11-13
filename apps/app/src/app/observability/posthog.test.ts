@@ -9,6 +9,7 @@ import {
   sendPendingEvents,
   stopPostHog,
 } from './posthog';
+import { maskReplayInput, maskReplayText, replayShow } from './replay-masking';
 
 const { sdk } = vi.hoisted(() => ({ sdk: { loaded: [] as string[] } }));
 vi.mock('posthog-js', () => ({
@@ -124,7 +125,11 @@ describe('session replay', () => {
       expect.objectContaining({
         disable_session_recording: true,
         session_recording: expect.objectContaining({
+          maskAllInputs: false,
+          maskInputOptions: expect.objectContaining({ text: true, file: true, password: true }),
+          maskInputFn: maskReplayInput,
           maskTextSelector: '*',
+          maskTextFn: maskReplayText,
           maskAttributeFn: maskReplayAttribute,
           blockSelector: '[data-no-replay]',
         }),
@@ -168,5 +173,29 @@ describe('session replay', () => {
   ])('masks an address outside the app: %s', (value) => {
     expect(maskReplayAttribute('href', value)).toBe('*'.repeat(value.length));
     expect(maskReplayAttribute('src', value)).toBe('*'.repeat(value.length));
+  });
+
+  it("keeps a field's value only where the field shows", () => {
+    const shown = document.createElement('input');
+    shown.setAttribute(Object.keys(replayShow)[0]!, '');
+    const unmarked = document.createElement('input');
+    const option = document.createElement('div');
+    document.body.append(shown, unmarked, option);
+
+    expect(maskReplayAttribute('value', 'Sudor', shown)).toBe('Sudor');
+    expect(maskReplayAttribute('value', 'Ion Pop', unmarked)).toBe('*******');
+    expect(maskReplayAttribute('value', 'Ion Pop', option)).toBe('*******');
+    expect(maskReplayAttribute('data-value', 'Ion Pop', shown)).toBe('*******');
+    const shownSelect = document.createElement('select');
+    shownSelect.setAttribute(Object.keys(replayShow)[0]!, '');
+    const shownOption = document.createElement('option');
+    shownSelect.append(shownOption);
+    const maskedSelect = document.createElement('select');
+    const maskedOption = document.createElement('option');
+    maskedSelect.append(maskedOption);
+    document.body.append(shownSelect, maskedSelect);
+    expect(maskReplayAttribute('value', 'periodic', shownOption)).toBe('periodic');
+    expect(maskReplayAttribute('value', 'Ion Pop', maskedOption)).toBe('*******');
+    document.body.replaceChildren();
   });
 });

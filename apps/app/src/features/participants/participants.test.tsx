@@ -8,6 +8,7 @@ import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { smsUsage } from '@/test/billing-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { fullText } from '@/test/text';
 import { noTests, untrained } from '@/test/training-fixture';
 
 import { participantFailure } from './participant-errors';
@@ -240,7 +241,9 @@ describe("the employee's portal access", () => {
       expect(requests(invitePath, 'POST')).toEqual([{ channel: 'sms', address: '+40721000000' }])
     );
     await waitFor(() => expect(screen.queryByTestId('participant-invite-dialog')).toBeNull());
-    expect(await screen.findByText('Invitația a fost trimisă pe +40721000000.')).toBeTruthy();
+    expect(
+      await screen.findByText(fullText('Invitația a fost trimisă pe +40721000000.'))
+    ).toBeTruthy();
     expect((await within(card).findByTestId('participant-invitation-text')).textContent).toContain(
       'Invitat pe ion.popescu@example.com prin email la'
     );
@@ -394,7 +397,7 @@ describe("the employee's portal access", () => {
       expect(requests(`/participant-invitations/${invitationId}/resend`, 'POST')).toHaveLength(1)
     );
     expect(
-      await screen.findByText('Am retrimis invitația pe ion.popescu@example.com.')
+      await screen.findByText(fullText('Am retrimis invitația pe ion.popescu@example.com.'))
     ).toBeTruthy();
   });
 
@@ -590,7 +593,7 @@ describe("the client's Portal tab", () => {
       ])
     );
     expect(
-      await screen.findByText('Invitația a fost trimisă pe ion.popescu@example.com.')
+      await screen.findByText(fullText('Invitația a fost trimisă pe ion.popescu@example.com.'))
     ).toBeTruthy();
   });
 
@@ -627,7 +630,9 @@ describe("the client's Portal tab", () => {
         { channel: 'email', address: 'office@veloce.ro', fullName: 'Maria Popescu' },
       ])
     );
-    expect(await screen.findByText('Invitația a fost trimisă pe office@veloce.ro.')).toBeTruthy();
+    expect(
+      await screen.findByText(fullText('Invitația a fost trimisă pe office@veloce.ro.'))
+    ).toBeTruthy();
   });
 
   it('puts an address the API refuses under the address', async () => {

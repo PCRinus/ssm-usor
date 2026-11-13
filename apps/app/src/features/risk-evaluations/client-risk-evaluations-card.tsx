@@ -18,6 +18,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { getListRiskEvaluationsQueryKey, useListRiskEvaluations } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -287,7 +288,13 @@ function AddEvaluationForm({ clientId, onClose }: { clientId: string; onClose: (
 
   return (
     <DialogContent data-testid="client-risk-evaluation-dialog" className="sm:max-w-md">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={pending} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={pending}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>Adaugă o fișă de evaluare</DialogTitle>
           <DialogDescription>

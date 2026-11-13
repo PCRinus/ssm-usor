@@ -47,6 +47,7 @@ import {
   useUpdateTraining,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -542,6 +543,7 @@ function TrainingForm({
             <NativeSelect
               id="training-domain"
               data-testid="training-domain"
+              {...replayShow}
               disabled={busy}
               {...form.register('domain')}
             >
@@ -556,6 +558,7 @@ function TrainingForm({
             <NativeSelect
               id="training-phase"
               data-testid="training-phase"
+              {...replayShow}
               disabled={busy}
               {...form.register('phase', {
                 onChange: (event: { target: { value: TrainingPhase } }) =>
@@ -599,6 +602,7 @@ function TrainingForm({
             <NativeSelect
               id="training-source"
               data-testid="training-source"
+              {...replayShow}
               disabled={busy}
               aria-describedby="training-source-hint"
               {...form.register('source')}
@@ -625,6 +629,7 @@ function TrainingForm({
             <NativeSelect
               id="training-position"
               data-testid="training-position"
+              {...replayShow}
               disabled={busy}
               aria-invalid={Boolean(errors.jobPositionId)}
               aria-describedby={
@@ -664,6 +669,7 @@ function TrainingForm({
                 id="training-attendees"
                 data-testid="training-fixed-attendee"
                 className="rounded-md border bg-muted/40 px-3 py-2.5 text-sm font-medium"
+                {...replayMask}
               >
                 {formatEmployeeName(fixed)}
               </p>
@@ -713,6 +719,7 @@ function TrainingForm({
               <NativeSelect
                 id="training-reason"
                 data-testid="training-reason"
+                {...replayShow}
                 disabled={busy}
                 aria-invalid={Boolean(errors.supplementaryReason)}
                 aria-describedby={errors.supplementaryReason ? 'training-reason-error' : undefined}
@@ -742,6 +749,7 @@ function TrainingForm({
             <Input
               id="training-duration"
               data-testid="training-duration"
+              {...replayShow}
               placeholder={fromPaper ? notOnSheet.duration : undefined}
               inputMode="numeric"
               autoComplete="off"
@@ -763,6 +771,7 @@ function TrainingForm({
             <Textarea
               id="training-material"
               data-testid="training-material"
+              {...replayShow}
               placeholder={fromPaper ? notOnSheet.material : undefined}
               rows={4}
               disabled={busy}

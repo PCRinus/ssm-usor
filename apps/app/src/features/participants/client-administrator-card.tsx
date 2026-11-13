@@ -2,6 +2,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import type { Client } from '@/features/clients/client-form-schema';
@@ -67,7 +68,9 @@ export function ClientAdministratorCard({
               data-testid="client-administrator-row"
               className="grid gap-2 py-4 first:pt-0 last:pb-0"
             >
-              <h3 className="text-sm font-semibold">{participant.fullName}</h3>
+              <h3 className="text-sm font-semibold" {...replayMask}>
+                {participant.fullName}
+              </h3>
               <ParticipantStatus
                 participant={participant}
                 kindShown={false}
@@ -81,7 +84,9 @@ export function ClientAdministratorCard({
               data-testid="client-administrator-row"
               className="grid gap-2 py-4 first:pt-0 last:pb-0"
             >
-              <h3 className="text-sm font-semibold">{invitation.fullName}</h3>
+              <h3 className="text-sm font-semibold" {...replayMask}>
+                {invitation.fullName}
+              </h3>
               <InvitationStatus
                 invitation={invitation}
                 readOnly={readOnly}

@@ -9,6 +9,8 @@ import type {
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { replayedInput, replayedText } from '@/test/replay';
+import { fullText } from '@/test/text';
 
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' };
 
@@ -374,7 +376,7 @@ describe('managing members', () => {
 
     await user.click(await screen.findByTestId('member-switch-role'));
 
-    expect(await screen.findByText('ion@example.test este acum admin.')).toBeTruthy();
+    expect(await screen.findByText(fullText('ion@example.test este acum admin.'))).toBeTruthy();
     const [, init] = requests('/organization/members/user-two', 'PATCH')[0]!;
     expect(JSON.parse(init?.body as string)).toEqual({ role: 'owner' });
     await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));
@@ -393,7 +395,7 @@ describe('managing members', () => {
     await user.click(within(dialog).getByTestId('member-remove-confirm'));
 
     expect(
-      await screen.findByText('ion@example.test nu mai face parte din organizație.')
+      await screen.findByText(fullText('ion@example.test nu mai face parte din organizație.'))
     ).toBeTruthy();
     expect(requests('/organization/members/user-two', 'DELETE')).toHaveLength(1);
     await waitFor(() => expect(screen.queryByTestId('member-remove-dialog')).toBeNull());
@@ -834,5 +836,34 @@ describe('authorizations', () => {
     mount('/organizatie/abilitari?focus=fire-safety-technician');
     const input = await screen.findByTestId('authorizations-fireSafetyTechnicianCertificate');
     await waitFor(() => expect(document.activeElement).toBe(input));
+  });
+});
+
+describe('what a session replay of the organization shows', () => {
+  it('masks the team’s names, emails and the signed-in account, and shows the roles', async () => {
+    mockApi();
+    mount();
+    const rows = await screen.findAllByTestId('member-row');
+
+    expect(replayedText(within(rows[0]!).getByText('Ana Popescu'))).toBe('*** *******');
+    expect(replayedText(within(rows[0]!).getByText('Admin'))).toBe('Admin');
+    expect(replayedText(within(rows[1]!).getByText('ion@example.test'))).toBe('****************');
+    const pending = await screen.findByTestId('invitation-row');
+    expect(replayedText(within(pending).getByText('maria@example.test'))).not.toContain('maria');
+    expect(replayedText(screen.getByTestId('account-name'))).toBe('*** *******');
+    expect(replayedText(screen.getByTestId('account-organization'))).toBe('Protect SSM');
+  });
+
+  it('shows what is typed in the company’s own fields, and masks the people in them', async () => {
+    mockApi();
+    mount('/organizatie/date-firma');
+    const name = await screen.findByTestId<HTMLInputElement>('company-legalName');
+
+    expect(replayedInput(name)).toBe('S.C. PROTECT SSM S.R.L.');
+    expect(replayedInput(screen.getByTestId<HTMLInputElement>('company-iban'))).toBe(
+      'RO49 AAAA 1B31 0075 9384 0000'
+    );
+    const representative = screen.getByTestId<HTMLInputElement>('company-legalRepresentativeName');
+    expect(replayedInput(representative)).toBe('*'.repeat(representative.value.length));
   });
 });

@@ -34,6 +34,7 @@ import {
 import { FileLinkButton } from '@/components/file-link-button';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
@@ -451,9 +452,16 @@ function AgreementChangeDialog({
           <DialogHeader>
             <DialogTitle>{copy.title}</DialogTitle>
             <DialogDescription>
-              {change === 'withdrawn'
-                ? `${formatEmployeeName(employee)} a cerut în scris să semneze din nou de mână. De la înregistrare, fișele lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. ${electronic ? 'Actul adițional semnat electronic și semnăturile de până acum rămân la dosar.' : 'Fișele semnate până acum rămân valabile.'}`
-                : `Contractul de muncă al lui ${formatEmployeeName(employee)} cuprinde clauza privind semnarea electronică, așa că nu mai este nevoie de un act adițional separat.`}
+              {change === 'withdrawn' ? (
+                <>
+                  {maskPeople`${formatEmployeeName(employee)} a cerut în scris să semneze din nou de mână. De la înregistrare, fișele lui se semnează pe hârtie, iar cererile de semnare electronică în așteptare se anulează. `}
+                  {electronic
+                    ? 'Actul adițional semnat electronic și semnăturile de până acum rămân la dosar.'
+                    : 'Fișele semnate până acum rămân valabile.'}
+                </>
+              ) : (
+                maskPeople`Contractul de muncă al lui ${formatEmployeeName(employee)} cuprinde clauza privind semnarea electronică, așa că nu mai este nevoie de un act adițional separat.`
+              )}
             </DialogDescription>
           </DialogHeader>
           {error && (

@@ -7,6 +7,7 @@ import { Ban, PenLine } from 'lucide-react';
 import { useState } from 'react';
 
 import type { RecordSignaturesResponseSlotsItem } from '@/api/generated/api';
+import { Masked } from '@/components/replay';
 import { formatDay } from '@/features/participants/participant-format';
 
 import {
@@ -22,16 +23,20 @@ type Slot = RecordSignaturesResponseSlotsItem;
 function SlotDetail({ slot }: { slot: Slot }) {
   switch (slot.state) {
     case 'pending':
-      return <>{slot.signer?.name ?? 'Semnatar care nu mai are acces'}</>;
+      return slot.signer ? (
+        <Masked>{slot.signer.name}</Masked>
+      ) : (
+        <>Semnatar care nu mai are acces</>
+      );
     case 'signed':
       return (
         <>
-          {slot.signerName}
+          <Masked>{slot.signerName}</Masked>
           {slot.signedAt && <span className="tabular-nums"> · {formatDay(slot.signedAt)}</span>}
         </>
       );
     case 'paper':
-      return <>{slot.signerName}</>;
+      return <Masked>{slot.signerName}</Masked>;
     case 'void':
       return slot.voidReason ? <>Motiv: {voidReasonLabel(slot.voidReason)}</> : null;
     case 'unassigned':

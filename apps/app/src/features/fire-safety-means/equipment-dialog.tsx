@@ -30,6 +30,7 @@ import {
   useCreateFireEquipment,
   useUpdateFireEquipment,
 } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -184,7 +185,13 @@ function EquipmentForm({
 
   return (
     <DialogContent data-testid="fire-equipment-dialog" className="sm:max-w-2xl">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>{unit ? 'Modifică echipamentul' : 'Adaugă echipament'}</DialogTitle>
           <DialogDescription>

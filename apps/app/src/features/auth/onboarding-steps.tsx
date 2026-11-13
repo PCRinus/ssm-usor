@@ -18,6 +18,7 @@ import {
   useUpdateProfile,
 } from '@/api/generated/api';
 import { captureAsMember } from '@/app/observability/posthog';
+import { replayShow } from '@/app/observability/replay-masking';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -347,6 +348,7 @@ function SignatoryForm({ me, saved }: { me: Member; saved: CompanyDetails }) {
             <Input
               id="onboarding-representative-role"
               data-testid="onboarding-representative-role"
+              {...replayShow}
               className="h-11"
               autoComplete="off"
               disabled={isSubmitting}
@@ -370,6 +372,7 @@ function SignatoryForm({ me, saved }: { me: Member; saved: CompanyDetails }) {
             <Input
               id="onboarding-professional-title"
               data-testid="onboarding-professional-title"
+              {...replayShow}
               className="h-11"
               autoComplete="organization-title"
               disabled={isSubmitting}
@@ -497,6 +500,7 @@ function ContractForm({ me, saved }: { me: Member; saved: CompanyDetails }) {
           <Input
             id="onboarding-iban"
             data-testid="onboarding-iban"
+            {...replayShow}
             className="h-11"
             autoComplete="off"
             disabled={isSubmitting}
@@ -524,6 +528,7 @@ function ContractForm({ me, saved }: { me: Member; saved: CompanyDetails }) {
           <Input
             id="onboarding-bank"
             data-testid="onboarding-bank"
+            {...replayShow}
             className="h-11"
             autoComplete="off"
             disabled={isSubmitting}

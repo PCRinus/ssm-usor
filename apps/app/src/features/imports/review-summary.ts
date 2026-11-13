@@ -8,8 +8,10 @@ import {
   MapPin,
   UserRound,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { maskPeople } from '@/components/mask-people';
 
 import { filesLabel } from './import-format';
 import {
@@ -361,7 +363,7 @@ export function blockerLinks(proposal: Proposal, changes: Changes, blockers: Blo
   return blockers.map((blocker) => blockerLink(proposal, changes, blocker));
 }
 
-export type ConfirmLine = { label: string; count?: number; detail: string; icon: string };
+export type ConfirmLine = { label: string; count?: number; detail: ReactNode; icon: string };
 
 export function confirmLines(
   proposal: Proposal,
@@ -448,7 +450,7 @@ export function confirmLines(
       icon: 'users',
       count: employees.length,
       label: employees.length === 1 ? 'lucrător' : 'lucrători',
-      detail: `${names}. Ceilalți lucrători îi imporți după, din fișe.`,
+      detail: maskPeople`${names}. Ceilalți lucrători îi imporți după, din fișe.`,
     });
   }
   if (fireMeans + installations > 0) {

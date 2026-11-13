@@ -25,6 +25,7 @@ import {
   splitImport,
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 
 import { AbandonImportDialog } from './abandon-import-dialog';
 import { refundedSentence } from './import-credits';
@@ -359,7 +360,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
             {forEmployees.map((file) => (
               <li key={file.id} className="grid w-20 gap-1">
                 <ImportThumbnail importId={detail.id} file={file} className="h-24 w-20" />
-                <span className="truncate text-xs text-muted-foreground">{file.fileName}</span>
+                <Masked className="truncate text-xs text-muted-foreground">{file.fileName}</Masked>
               </li>
             ))}
           </ul>

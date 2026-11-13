@@ -17,7 +17,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import {
   getListOrganizationMembersQueryKey,
@@ -26,6 +26,8 @@ import {
   useRemoveMember,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { maskPeople } from '@/components/mask-people';
+import { Masked } from '@/components/replay';
 
 import { roleLabels } from './labels';
 
@@ -33,7 +35,7 @@ type Member = OrganizationMemberListResponse['items'][number];
 
 function actionMessage(cause: unknown, name: string) {
   if (cause instanceof ApiHttpError) {
-    if (cause.status === 404) return `${name} nu mai face parte din organizație.`;
+    if (cause.status === 404) return maskPeople`${name} nu mai face parte din organizație.`;
     if (cause.status === 403) return 'Doar adminii organizației pot gestiona membrii.';
     if (cause.status === 401) {
       return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
@@ -48,7 +50,7 @@ export function MemberActions({
   onError,
 }: {
   member: Member;
-  onError: (message: string | null) => void;
+  onError: (message: ReactNode) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const changeRole = useChangeMemberRole({ request: apiRequest });
@@ -66,7 +68,12 @@ export function MemberActions({
     onError(null);
     try {
       await changeRole.mutateAsync({ userId: member.userId, data: { role: otherRole } });
-      toast.success(`${name} este acum ${roleLabels[otherRole].toLowerCase()}.`);
+      toast.success(
+        <>
+          {maskPeople`${name} este acum `}
+          {roleLabels[otherRole].toLowerCase()}.
+        </>
+      );
     } catch (cause) {
       onError(actionMessage(cause, name));
     }
@@ -77,7 +84,7 @@ export function MemberActions({
     onError(null);
     try {
       await remove.mutateAsync({ userId: member.userId });
-      toast.success(`${name} nu mai face parte din organizație.`);
+      toast.success(maskPeople`${name} nu mai face parte din organizație.`);
     } catch (cause) {
       onError(actionMessage(cause, name));
     }
@@ -118,9 +125,9 @@ export function MemberActions({
           <DialogHeader>
             <DialogTitle>Elimini membrul din organizație?</DialogTitle>
             <DialogDescription>
-              <span className="font-medium text-foreground">{name}</span> nu va mai avea acces la
-              clienții și lucrătorii organizației. Contul și datele introduse până acum rămân, iar
-              dacă te răzgândești poți trimite o nouă invitație.
+              <Masked className="font-medium text-foreground">{name}</Masked> nu va mai avea acces
+              la clienții și lucrătorii organizației. Contul și datele introduse până acum rămân,
+              iar dacă te răzgândești poți trimite o nouă invitație.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-2">

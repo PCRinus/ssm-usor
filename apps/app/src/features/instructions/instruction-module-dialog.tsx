@@ -22,6 +22,7 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { type ApiErrorResponse, useUpdateInstructionModule } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -118,7 +119,13 @@ function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: (
 
   return (
     <DialogContent data-testid="instruction-module-dialog" className="sm:max-w-lg">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>Modifică instrucțiunea</DialogTitle>
           <DialogDescription>

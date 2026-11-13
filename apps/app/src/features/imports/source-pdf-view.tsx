@@ -13,6 +13,7 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
 
 import { markQuote, pageQuotes } from './source-match';
 import { centreOn, type SpotBox, spotZoom } from './spot-zoom';
@@ -228,7 +229,12 @@ export default function PdfSourceView({
   }
   return (
     <>
-      <div ref={scroller} className="h-full overflow-auto p-4" data-testid="source-pdf">
+      <div
+        ref={scroller}
+        className="h-full overflow-auto p-4"
+        data-testid="source-pdf"
+        {...replayMask}
+      >
         <div ref={page} className="import-pdf-page relative mx-auto bg-white shadow-sm">
           <canvas data-no-replay ref={canvas} className="block" />
           <div ref={textLayer} className="textLayer" />

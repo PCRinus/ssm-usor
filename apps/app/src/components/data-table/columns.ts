@@ -13,6 +13,7 @@ export interface DataTableColumnMeta {
   cellClassName?: string;
   // Width of the placeholder shown while the first page loads.
   skeletonClassName?: string;
+  personal?: boolean;
 }
 
 // Server-side tables: the API pages and sorts, the table only renders and reports

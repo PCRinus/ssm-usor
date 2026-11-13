@@ -1,6 +1,7 @@
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 
+import { Masked } from '@/components/replay';
 import { endImpersonationBeforeSignOut } from '@/features/impersonation/end-before-sign-out';
 
 import { useAuth } from './auth-context';
@@ -39,7 +40,7 @@ export function SignedInAs({ email }: { email: string | null }) {
 
   return (
     <p className="text-center text-sm text-muted-foreground">
-      Autentificat ca {email}.{' '}
+      Autentificat ca <Masked>{email}</Masked>.{' '}
       <button
         type="button"
         data-testid="onboarding-sign-out"

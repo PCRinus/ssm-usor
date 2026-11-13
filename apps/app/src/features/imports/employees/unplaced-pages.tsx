@@ -14,6 +14,8 @@ import { CalendarCheck, ChevronRight, FileText, Image as ImageIcon } from 'lucid
 import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
+import { Masked } from '@/components/replay';
 
 import { PhotoPreviewDialog } from '../photo-preview-dialog';
 import { Fact, Facts, SectionHeader, StatusTag, Tag } from '../review-parts';
@@ -186,7 +188,9 @@ function UnplacedRow({
         {!decided ? (
           <Tag tone="warning">De atribuit</Tag>
         ) : person ? (
-          <Tag tone="success">La {personName(context, person)}</Tag>
+          <Tag tone="success">
+            La <Masked>{personName(context, person)}</Masked>
+          </Tag>
         ) : (
           <Tag tone="muted">Lăsată deoparte</Tag>
         )}
@@ -319,7 +323,7 @@ function UnplacedContent({
               >
                 <NativeSelectOption value="">Alege persoana…</NativeSelectOption>
                 {context.proposal.people.map((person) => (
-                  <NativeSelectOption key={person.id} value={person.id}>
+                  <NativeSelectOption key={person.id} value={person.id} {...replayMask}>
                     {personName(context, person)}
                   </NativeSelectOption>
                 ))}

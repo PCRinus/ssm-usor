@@ -11,7 +11,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@ssm-usor/ui
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { FileUp, Upload } from 'lucide-react';
-import { type MouseEvent, useState } from 'react';
+import { type MouseEvent, type ReactNode, useState } from 'react';
 
 import {
   type ClientFileListResponse,
@@ -20,6 +20,7 @@ import {
   useListClientFiles,
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
@@ -70,7 +71,9 @@ export function ClientFilesCard({
   const [renaming, setRenaming] = useState<ClientFile | null>(null);
   const [deleting, setDeleting] = useState<ClientFile | null>(null);
   const [switching, setSwitching] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
+  const fileName = (file: { name: string }) =>
+    employee ? <Masked>{file.name}</Masked> : file.name;
   const drop = useFileDrop((dropped) => {
     if (dropped.length > 0) setUploading(dropped);
   });
@@ -95,7 +98,9 @@ export function ClientFilesCard({
       ? refreshed.data.items.find((item) => item.id === file.id)
       : undefined;
     if (!fresh) {
-      setError(`Nu am putut deschide „${file.name}”. Verifică conexiunea și încearcă din nou.`);
+      setError(
+        <>Nu am putut deschide „{fileName(file)}”. Verifică conexiunea și încearcă din nou.</>
+      );
       return;
     }
     const { href, disposition } = addressOf(fresh, how);
@@ -137,12 +142,13 @@ export function ClientFilesCard({
     try {
       await setClientFileOwnersOnly(client.id, file.id, { ownersOnly }, apiRequest);
       toast.success(
-        ownersOnly
-          ? `„${file.name}” este acum vizibil doar pentru admini.`
-          : `„${file.name}” este acum vizibil pentru toată echipa.`
+        <>
+          „{fileName(file)}” este acum vizibil{' '}
+          {ownersOnly ? 'doar pentru admini' : 'pentru toată echipa'}.
+        </>
       );
     } catch {
-      toast.error(`Nu am putut schimba cine vede „${file.name}”. Încearcă din nou.`);
+      toast.error(<>Nu am putut schimba cine vede „{fileName(file)}”. Încearcă din nou.</>);
     }
     setSwitching((current) => current.filter((id) => id !== file.id));
     await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) });
@@ -156,6 +162,7 @@ export function ClientFilesCard({
       key={file.id}
       file={file}
       depth={depth}
+      personal={Boolean(employee)}
       changeable={file.canChange && !readOnly}
       showOwnersOnly={!lead}
       canSwitch={isOwner && !lead && !readOnly}
@@ -315,6 +322,7 @@ export function ClientFilesCard({
       <DeleteClientFileDialog
         clientId={client.id}
         file={deleting}
+        personal={Boolean(employee)}
         onClose={() => setDeleting(null)}
         onError={setError}
       />

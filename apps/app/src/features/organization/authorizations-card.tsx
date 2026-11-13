@@ -13,6 +13,7 @@ import {
   useUpdateOrganizationAuthorizations,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
@@ -101,6 +102,13 @@ export function AuthorizationsCard({
 
 type TextField = Exclude<keyof AuthorizationsFormValues, 'authorizationCertificateDate'>;
 
+const shownInReplay = new Set<TextField>([
+  'authorizationCertificateNumber',
+  'authorizationCertificateIssuer',
+  'fireSafetyAuthorization',
+  'riskEvaluatorTitle',
+]);
+
 function AuthorizationsForm({
   saved,
   userId,
@@ -162,6 +170,7 @@ function AuthorizationsForm({
           disabled={locked}
           aria-invalid={Boolean(errors[name])}
           aria-describedby={errors[name] ? `${id}-error` : options.hint ? `${id}-hint` : undefined}
+          {...(shownInReplay.has(name) && replayShow)}
           {...form.register(name)}
         />
       </Field>

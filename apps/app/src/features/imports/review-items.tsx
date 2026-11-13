@@ -41,6 +41,8 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
+import { Masked } from '@/components/replay';
 import { WorkplaceDialog, type WorkplaceDraft } from '@/features/clients/workplace-dialog';
 import { emptyWorkplaceForm, type WorkplaceFormValues } from '@/features/clients/workplace-schema';
 import { warningBadge } from '@/features/documents/pack-styles';
@@ -269,13 +271,15 @@ function NameChoice({ state, context }: { state: ItemState; context: ItemsContex
               />
             }
           >
-            {spelling.value}
+            <Masked>{spelling.value}</Masked>
           </PickOption>
         ))}
       </PickList>
     </div>
   );
 }
+
+const personalLists = new Set<ItemList>(['responsiblePersons', 'employees']);
 
 const switchIdOf = (state: ItemState) => `include-${state.list}-${state.item.id}`;
 
@@ -311,6 +315,7 @@ function ItemRow({
   decidedElsewhere?: string[];
 }) {
   const prefix = `${state.list}.${state.index}`;
+  const personal = personalLists.has(state.list);
   const blockers = context.blockers.filter(
     (blocker) => blocker.path === prefix || blocker.path.startsWith(`${prefix}.`)
   );
@@ -335,7 +340,9 @@ function ItemRow({
           {ordinal}
         </span>
       )}
-      <span className="min-w-0 text-sm font-medium wrap-anywhere">{title}</span>
+      <span className="min-w-0 text-sm font-medium wrap-anywhere" {...(personal && replayMask)}>
+        {title}
+      </span>
     </span>
   );
   const row = (toggle?: ReactNode) => (
@@ -381,6 +388,7 @@ function ItemRow({
               <div key={field} className="mt-1 grid gap-1">
                 <span className="text-[13px] font-medium">{itemSpellingLabel(field)}</span>
                 <SpellingChoice
+                  personal={personal}
                   label={itemSpellingLabel(field)}
                   corrected={value}
                   written={written}
@@ -428,6 +436,7 @@ function ItemRow({
         <Includable
           id={switchIdOf(state)}
           name={title}
+          personal={personal}
           included={state.included}
           proposed={state.proposed}
           agreement={agreement}
@@ -1076,7 +1085,15 @@ function useItemDialog(context: ItemsContext) {
   );
   const dialog = editing && (
     <ItemEditDialog
-      title={`Modifică: ${itemName(editing.state.list, editing.state.values)}`}
+      title={
+        <>
+          Modifică:{' '}
+          <span {...(personalLists.has(editing.state.list) && replayMask)}>
+            {itemName(editing.state.list, editing.state.values)}
+          </span>
+        </>
+      }
+      personal={personalLists.has(editing.state.list)}
       fields={editing.fields}
       values={editing.state.values}
       aside={quoteAside(editing.state.item.sources, () =>

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
 
 import { Includable } from '../include-switch';
 import { Fact, Facts, SectionHeader, StatusTag, Tag } from '../review-parts';
@@ -136,6 +137,7 @@ function PersonRow({
       <Includable
         id={`include-hub-${person.id}`}
         name={view.name}
+        personal
         included={view.included}
         proposed={proposedPersonIncluded(context, person)}
         testId="employee-hub-include"
@@ -158,6 +160,7 @@ function PersonRow({
                   params={{ clientId, importId: detail.id, personId: person.id }}
                   className="w-fit max-w-full truncate text-[15px] font-semibold underline-offset-[3px] outline-none group-hover/row:underline after:absolute after:inset-0 after:content-[''] focus-visible:underline focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
                   data-testid="employee-hub-person-link"
+                  {...replayMask}
                 >
                   {view.name}
                 </Link>

@@ -17,6 +17,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useMarkPaperSignature, useVoidRecordSignatures } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 
@@ -134,6 +135,7 @@ function PaperSignatureForm({
             <NativeSelect
               id="paper-signature-slot"
               data-testid="paper-signature-slot"
+              {...replayShow}
               value={slot}
               disabled={busy}
               onChange={(event) => changeSlot(event.target.value as SignerSlot)}

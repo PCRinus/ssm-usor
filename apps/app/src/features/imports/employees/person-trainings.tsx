@@ -22,8 +22,11 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { CalendarCheck, FileImage, GraduationCap, Pencil } from 'lucide-react';
 import { type FormEvent, type MouseEvent, type ReactNode, useState } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
+import { maskPeople } from '@/components/mask-people';
+import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
 import { notOnSheet } from '@/features/trainings/training-format';
 import { formatRoDate } from '@/lib/dates';
@@ -79,7 +82,12 @@ function TrainerText({ values }: { values: RowValues }) {
       </span>
     );
   }
-  return <span>{`${values.trainerName}${jobTitle}`}</span>;
+  return (
+    <span>
+      <Masked>{values.trainerName}</Masked>
+      {jobTitle}
+    </span>
+  );
 }
 
 function RowTags({ row, included }: { row: SheetRow; included: boolean }) {
@@ -96,7 +104,7 @@ function RowTags({ row, included }: { row: SheetRow; included: boolean }) {
 
 function rowNote(row: SheetRow, values: RowValues, included: boolean, who: string) {
   if (row.flags.includes('unsigned') && !included) {
-    return `Rândul e completat, dar rubrica semnăturii lui ${who} e goală. Nu-l preluăm decât dacă îl incluzi.`;
+    return maskPeople`Rândul e completat, dar rubrica semnăturii lui ${who} e goală. Nu-l preluăm decât dacă îl incluzi.`;
   }
   if (!included) return null;
   const notes: string[] = [];
@@ -337,7 +345,7 @@ function TestLine({
                 <span className="text-muted-foreground">Testul e deja promovat în aplicație.</span>
               ) : test.verified ? (
                 <span className="text-muted-foreground">
-                  Examinator: {examinerName ?? notOnSheet.name}
+                  Examinator: {examinerName ? <Masked>{examinerName}</Masked> : notOnSheet.name}
                   {examinerTitle ? `, ${examinerTitle}` : ''}. Semnătura e în rubrica{' '}
                   <span className="font-semibold">Verificat</span> a instruirii{' '}
                   {trainingPhaseLabels[row.phase].toLowerCase()}
@@ -554,8 +562,8 @@ function DomainSection({
   if (domain.pages.length === 0) {
     return shell(
       <p className="px-5 py-4 text-sm text-muted-foreground">
-        Printre fotografii nu e nicio fișă {label} a lui {personName(context, person)}. Dacă are
-        una, o aduci cu un import nou.
+        Printre fotografii nu e nicio fișă {label} a lui{' '}
+        <Masked>{personName(context, person)}</Masked>. Dacă are una, o aduci cu un import nou.
       </p>
     );
   }
@@ -876,13 +884,18 @@ function AfterImport({
     const examiner = test ? examinerValues(context.changes, test.row).examinerName : null;
     const takenOn = test ? rowValues(context.changes, test.row).heldOn : null;
     const testText =
-      test && testInApp(test.row, matched)
-        ? 'Promovat, deja în aplicație'
-        : tested
-          ? `Promovat, verificat pe fișă${takenOn ? ` la ${dateLabel(takenOn)}` : ''}${examiner ? ` de ${examiner}` : ''}`
-          : domain.hiring.rows.length > 0
-            ? 'Neverificat pe fișă'
-            : 'Fără test';
+      test && testInApp(test.row, matched) ? (
+        'Promovat, deja în aplicație'
+      ) : tested ? (
+        <>
+          {`Promovat, verificat pe fișă${takenOn ? ` la ${dateLabel(takenOn)}` : ''}`}
+          {examiner && maskPeople` de ${examiner}`}
+        </>
+      ) : domain.hiring.rows.length > 0 ? (
+        'Neverificat pe fișă'
+      ) : (
+        'Fără test'
+      );
     return { domain, included, last, testText };
   });
   const latest = columns
@@ -1044,6 +1057,7 @@ function RowDialog({
               <Field id="row-reason" label="Motivul" mark="required" className="sm:col-span-2">
                 <NativeSelect
                   id="row-reason"
+                  {...replayShow}
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                 >

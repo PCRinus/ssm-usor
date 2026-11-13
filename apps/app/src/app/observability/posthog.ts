@@ -1,6 +1,8 @@
 import type { PostHog } from 'posthog-js';
 import { z } from 'zod';
 
+import { maskReplayInput, maskReplayText } from './replay-masking';
+
 let clientPromise: Promise<PostHog | null> | null = null;
 
 const textAttributes = new Set([
@@ -18,6 +20,28 @@ const textAttributes = new Set([
   'srcdoc',
 ]);
 
+const everyInputType = Object.fromEntries(
+  [
+    'color',
+    'date',
+    'datetime-local',
+    'email',
+    'file',
+    'month',
+    'number',
+    'password',
+    'range',
+    'search',
+    'select',
+    'tel',
+    'text',
+    'textarea',
+    'time',
+    'url',
+    'week',
+  ].map((type) => [type, true])
+);
+
 const addressAttributes = new Set(['href', 'src']);
 
 function isSameOrigin(address: string) {
@@ -30,7 +54,15 @@ function isSameOrigin(address: string) {
 
 // Replays keep `class` and `style`, or they play as bare HTML. A link to another origin can
 // carry a signed file address and the file's name, so only the app's own addresses stay.
-export function maskReplayAttribute(name: string, value: string) {
+export function maskReplayAttribute(name: string, value: string, element?: Element) {
+  // rrweb passes a field's value through maskInputFn and then here, a hidden field's only here.
+  if (name === 'value' && element?.matches('input, textarea, select')) {
+    return maskReplayInput(value, element);
+  }
+  // The replayer picks a select's option by its value, so a shown select keeps its options'.
+  if (name === 'value' && element?.matches('option')) {
+    return maskReplayInput(value, element.closest('select'));
+  }
   const masked = textAttributes.has(name) || (addressAttributes.has(name) && !isSameOrigin(value));
   return masked ? '*'.repeat(value.length) : value;
 }
@@ -72,8 +104,15 @@ export function loadPostHog(): Promise<PostHog | null> {
         // Off until usePostHogSession knows whether the session acts as a member.
         disable_session_recording: true,
         session_recording: {
-          maskAllInputs: true,
+          // With maskAllInputs, rrweb ignores maskInputOptions and records a file field's value,
+          // the chosen file's name, as it is.
+          maskAllInputs: false,
+          maskInputOptions: everyInputType,
+          maskInputFn: maskReplayInput,
+          // rrweb calls maskTextFn only for text under maskTextSelector, and every text needs
+          // the check for a CNP, an email address or a phone number.
           maskTextSelector: '*',
+          maskTextFn: maskReplayText,
           maskAttributeFn: maskReplayAttribute,
           blockSelector: '[data-no-replay]',
           recordBody: false,

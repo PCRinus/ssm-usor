@@ -26,6 +26,7 @@ import {
   getListInstructionModuleChoicesQueryKey,
   useListInstructionModuleChoices,
 } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 
@@ -152,7 +153,7 @@ function StartContent({
 
   return (
     <DialogContent data-testid="instruction-start-dialog" className="sm:max-w-lg">
-      <form ref={formRef} onSubmit={(event) => void submit(event)} noValidate>
+      <form {...replayShow} ref={formRef} onSubmit={(event) => void submit(event)} noValidate>
         <DialogHeader>
           <DialogTitle>
             {editing ? 'Titlu, categorie și domeniu' : 'Scrie o instrucțiune'}

@@ -108,6 +108,7 @@ export function ResponsiblePersonCombobox({
       onChange={onChange}
       onBlur={onBlur}
       filter={nameFilter}
+      personal
       placeholder="Alege sau scrie un nume"
       searchPlaceholder="Numele persoanei"
       emptyMessage="Scrie numele persoanei care răspunde."

@@ -21,7 +21,9 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { getImportSource, type ImportSourceResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { PagePlaceholder } from '@/features/documents/editor-placeholder';
 
 import { endSentence, filesLabel, importErrorMessage } from './import-format';
@@ -163,8 +165,11 @@ function SourceContent({
     >
       <div className="grid gap-3 border-b px-5 pt-4 pb-3 pr-12">
         <DialogTitle className="text-lg leading-snug">
-          Sursa: {request.title}
-          {current.label && ` — ${current.label}`}
+          Sursa:{' '}
+          <Masked>
+            {request.title}
+            {current.label && ` — ${current.label}`}
+          </Masked>
         </DialogTitle>
         <DialogDescription asChild>
           <div className="flex flex-wrap gap-1.5 text-xs">
@@ -174,7 +179,7 @@ function SourceContent({
               ) : (
                 <FileText className="size-3.5" aria-hidden="true" />
               )}
-              {source?.fileName ?? requestFileName(current.file)}
+              <Masked>{source?.fileName ?? requestFileName(current.file)}</Masked>
             </span>
             {kind && (
               <span className="rounded-md bg-secondary px-2 py-0.5 font-medium text-secondary-foreground">
@@ -206,7 +211,7 @@ function SourceContent({
           >
             <dt className="text-muted-foreground">Am citit</dt>
             <dd>
-              <q>{current.quote}</q>
+              <q {...replayMask}>{current.quote}</q>
             </dd>
             <dt className="text-muted-foreground">Pe imagine</dt>
             <dd className="text-muted-foreground">
@@ -222,7 +227,7 @@ function SourceContent({
         {(matchMissing || notFound) && (
           <Notice variant="warning" data-testid="source-not-found">
             {notFound ?? 'Nu am găsit pasajul în fișier, așa că nu e marcat.'} Am citit:{' '}
-            <q>{current.quote}</q>
+            <q {...replayMask}>{current.quote}</q>
           </Notice>
         )}
       </div>

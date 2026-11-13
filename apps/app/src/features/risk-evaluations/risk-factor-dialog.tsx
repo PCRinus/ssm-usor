@@ -34,6 +34,7 @@ import {
   type ListRiskFactorSuggestionsField,
   useListRiskFactorSuggestions,
 } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -672,6 +673,7 @@ function RiskFactorForm({
 
   return (
     <form
+      {...replayShow}
       ref={formRef}
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}

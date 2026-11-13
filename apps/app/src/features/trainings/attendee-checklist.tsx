@@ -4,6 +4,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 
+import { Masked } from '@/components/replay';
 import { normalizeSearch } from '@/lib/normalize-search';
 
 export interface AttendeeOption {
@@ -113,7 +114,7 @@ export function AttendeeChecklist({
                   }
                 />
                 <label htmlFor={checkboxId} className="min-w-0 text-sm">
-                  <span className="font-medium">{option.name}</span>
+                  <Masked className="font-medium">{option.name}</Masked>
                   {option.detail && (
                     <span className="ml-2 text-xs text-muted-foreground">{option.detail}</span>
                   )}

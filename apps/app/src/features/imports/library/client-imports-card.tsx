@@ -3,6 +3,7 @@ import { Check, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
+import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 
 import { filesLabel } from '../import-format';
@@ -61,8 +62,25 @@ function ImportRow({ item, now }: { item: ImportListResponseItemsItem; now: numb
           aria-hidden="true"
         />
         <span className="text-sm text-muted-foreground">
-          <span className="@2xl:hidden">{[who, files].filter(Boolean).join(' · ')}</span>
-          <span className="hidden @2xl:inline">{who ? `${who} · ${how}` : capitalized(how)}</span>
+          <span className="@2xl:hidden">
+            {who ? (
+              <>
+                <Masked>{who}</Masked>
+                {files && ` · ${files}`}
+              </>
+            ) : (
+              files
+            )}
+          </span>
+          <span className="hidden @2xl:inline">
+            {who ? (
+              <>
+                <Masked>{who}</Masked> · {how}
+              </>
+            ) : (
+              capitalized(how)
+            )}
+          </span>
         </span>
         <span className="hidden text-sm text-muted-foreground tabular-nums @2xl:inline">
           {capitalized(files)}

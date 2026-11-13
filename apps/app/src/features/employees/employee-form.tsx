@@ -7,6 +7,7 @@ import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { Link } from '@tanstack/react-router';
 import { Controller } from 'react-hook-form';
 
+import { replayMask, replayShape } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
@@ -73,7 +74,13 @@ export function EmployeeForm({
     <div data-testid={employee ? 'edit-employee-page' : 'new-employee-page'} className="space-y-7">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">
-          {employee ? `Modifică: ${formatEmployeeName(employee)}` : 'Lucrător nou'}
+          {employee ? (
+            <>
+              Modifică: <span {...replayMask}>{formatEmployeeName(employee)}</span>
+            </>
+          ) : (
+            'Lucrător nou'
+          )}
         </h1>
       </div>
       <form
@@ -361,6 +368,7 @@ export function EmployeeForm({
                 render={({ field }) => (
                   <DatePicker
                     id="birthDate"
+                    personal
                     testId="employee-birth-date"
                     value={field.value}
                     onChange={field.onChange}
@@ -398,6 +406,7 @@ export function EmployeeForm({
               <Input
                 id="homeAddress"
                 data-testid="employee-home-address"
+                {...replayShape}
                 className="h-11"
                 {...register('homeAddress')}
                 autoComplete="off"
@@ -416,6 +425,7 @@ export function EmployeeForm({
               <Input
                 id="residenceAddress"
                 data-testid="employee-residence-address"
+                {...replayShape}
                 className="h-11"
                 {...register('residenceAddress')}
                 autoComplete="off"
@@ -527,6 +537,7 @@ export function EmployeeForm({
               <Textarea
                 id="commuteRoute"
                 data-testid="employee-commute-route"
+                {...replayShape}
                 rows={3}
                 {...register('commuteRoute')}
                 disabled={isSaving}

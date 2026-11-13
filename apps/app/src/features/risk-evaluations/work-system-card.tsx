@@ -5,6 +5,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useForm } from 'react-hook-form';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
@@ -178,6 +179,7 @@ function WorkSystemForm({
 
   return (
     <form
+      {...replayShow}
       ref={formRef}
       data-testid="work-system-form"
       onSubmit={(event) => void onSubmit(event)}

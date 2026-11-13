@@ -5,7 +5,7 @@ import {
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -385,9 +385,11 @@ describe('the steps', () => {
   });
 
   it('names the owner a specialist waits for', () => {
-    expect(
+    const { container } = render(
       lockReason('needs-organization-data', { ownerName: 'Ioana Popescu', isOwner: false })
-    ).toBe('Așteaptă datele firmei de la admin, Ioana Popescu.');
+    );
+    expect(container.textContent).toBe('Așteaptă datele firmei de la admin, Ioana Popescu.');
+    expect(container.querySelector('[data-replay-mask]')?.textContent).toBe('Ioana Popescu');
     expect(lockReason('needs-organization-data', { ownerName: null, isOwner: false })).toBe(
       'Așteaptă datele firmei de la un admin.'
     );

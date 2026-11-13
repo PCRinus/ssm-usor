@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { fullText } from '@/test/text';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
@@ -725,7 +726,9 @@ describe('client responsible persons', () => {
 
     await user.click(within(dialog).getByTestId('responsible-archive-confirm'));
     await waitFor(() => expect(requests(itemPath, 'DELETE')).toHaveLength(1));
-    expect(await screen.findByText('Paolo-Antonio Luca a fost scos din listă.')).toBeTruthy();
+    expect(
+      await screen.findByText(fullText('Paolo-Antonio Luca a fost scos din listă.'))
+    ).toBeTruthy();
   });
 
   it('shows an archived client the list without add or row actions', async () => {

@@ -6,6 +6,8 @@ import {
   missingSheetData,
 } from '@ssm-usor/contracts';
 import { createMemoryHistory } from '@tanstack/react-router';
+import { render } from '@testing-library/react';
+import { createElement, Fragment } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { createAppRouter } from '@/app/router';
@@ -330,9 +332,13 @@ describe('the rows of the generation form', () => {
       undecidedJobPositions: [],
       canEditOrganization: true,
     });
-    expect(group!.rows[0]!.detail).toBe(
+    const { container } = render(createElement(Fragment, null, group!.rows[0]!.detail));
+    expect(container.textContent).toBe(
       '„Talos Florin” are același nume ca reprezentantul legal al clientului, „Florin TALOȘ”.'
     );
+    expect(
+      Array.from(container.querySelectorAll('[data-replay-mask]'), (name) => name.textContent)
+    ).toEqual(['Talos Florin', 'Florin TALOȘ']);
   });
 
   it('say why a post is needed in the words of the set that asks for it', () => {

@@ -20,6 +20,7 @@ import {
   useCreateFireMaintenanceItem,
   useUpdateFireMaintenanceItem,
 } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -145,7 +146,13 @@ function MaintenanceItemForm({
 
   return (
     <DialogContent data-testid="fire-maintenance-dialog" className="sm:max-w-2xl">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>
             {item ? 'Modifică verificarea' : 'Adaugă o verificare periodică'}

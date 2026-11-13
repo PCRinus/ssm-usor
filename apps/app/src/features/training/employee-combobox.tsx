@@ -100,6 +100,7 @@ export function EmployeeCombobox({
         } else onSelect(options.find((employee) => employee.id === choice) ?? null);
       }}
       filter={employeeFilter}
+      personal
       placeholder={employees.isPending ? 'Se încarcă lucrătorii…' : 'Alege un lucrător'}
       searchPlaceholder="Numele sau funcția"
       emptyMessage="Niciun lucrător cu acest nume."

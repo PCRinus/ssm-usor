@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { fullText } from '@/test/text';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const client = {
@@ -592,7 +593,9 @@ describe('changing a client file', () => {
     await waitFor(() =>
       expect(requests(`${filesPath}/${certificate.id}`, 'DELETE')).toHaveLength(1)
     );
-    expect(await screen.findByText('„Certificat de înregistrare” a fost șters.')).toBeTruthy();
+    expect(
+      await screen.findByText(fullText('„Certificat de înregistrare” a fost șters.'))
+    ).toBeTruthy();
   });
 
   it('is a real link for every file: a PDF shown in a tab of its own, a spreadsheet downloaded', async () => {

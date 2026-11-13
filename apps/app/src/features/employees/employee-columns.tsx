@@ -33,6 +33,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
       meta: {
         cellClassName: 'font-medium',
         skeletonClassName: 'w-40',
+        personal: true,
       },
       cell: ({ row, getValue }) => (
         <>
@@ -64,7 +65,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
     helper.display({
       id: 'contact',
       header: 'Contact',
-      meta: { cellClassName: 'max-w-56 text-sm', skeletonClassName: 'w-40' },
+      meta: { cellClassName: 'max-w-56 text-sm', skeletonClassName: 'w-40', personal: true },
       cell: ({ row }) => {
         const { email, phone } = row.original;
         if (!email && !phone) return '—';

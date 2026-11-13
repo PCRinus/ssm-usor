@@ -12,6 +12,8 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
 
+import { replayMask, replayShow } from '@/app/observability/replay-masking';
+
 import { comboboxTriggerClass } from './combobox-trigger';
 
 export interface ComboboxItem {
@@ -46,6 +48,7 @@ export function SearchCombobox({
   describedBy,
   descriptionClassName,
   note,
+  personal = false,
 }: {
   id: string;
   testId: string;
@@ -81,6 +84,7 @@ export function SearchCombobox({
   // A row above the items until something is typed, for an entry that cannot be chosen yet and
   // says where to complete it.
   note?: ReactNode;
+  personal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -90,6 +94,7 @@ export function SearchCombobox({
   const [insideDialog, setInsideDialog] = useState(false);
   const selected = [...items, ...(section?.items ?? [])].find((item) => item.value === value);
   const candidate = unknownValue?.(search) ?? null;
+  const labelReplay = personal ? replayMask : {};
 
   function choose(next: string) {
     onChange(next);
@@ -109,6 +114,7 @@ export function SearchCombobox({
             'font-medium tabular-nums',
             item.description ? 'shrink-0' : 'min-w-0 flex-1'
           )}
+          {...labelReplay}
         >
           {item.label}
         </span>
@@ -158,6 +164,7 @@ export function SearchCombobox({
                   'font-medium tabular-nums',
                   selected?.description || renderUnknown ? 'shrink-0' : 'truncate'
                 )}
+                {...labelReplay}
               >
                 {selected?.label ?? value}
               </span>
@@ -180,6 +187,7 @@ export function SearchCombobox({
             placeholder={searchPlaceholder}
             value={search}
             onValueChange={setSearch}
+            {...(personal ? replayMask : replayShow)}
           />
           <CommandList className="max-h-72">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -206,7 +214,11 @@ export function SearchCombobox({
               {candidate && (
                 <CommandItem value={candidate} onSelect={() => choose(candidate)}>
                   <span className="font-medium">
-                    {unknownLabel} „<span className="tabular-nums">{candidate}</span>”
+                    {unknownLabel} „
+                    <span className="tabular-nums" {...labelReplay}>
+                      {candidate}
+                    </span>
+                    ”
                   </span>
                   <span className="text-muted-foreground">{renderUnknown?.(candidate)}</span>
                 </CommandItem>
@@ -233,7 +245,11 @@ export function SearchCombobox({
                     }}
                   >
                     <Plus aria-hidden="true" />
-                    {typeof action.label === 'string' ? action.label : action.label(search.trim())}
+                    <span {...labelReplay}>
+                      {typeof action.label === 'string'
+                        ? action.label
+                        : action.label(search.trim())}
+                    </span>
                   </CommandItem>
                 </CommandGroup>
               </>

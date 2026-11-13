@@ -1,6 +1,8 @@
 import type { TrainingTrainer } from '@ssm-usor/contracts';
 import type { ReactNode } from 'react';
 
+import { Masked } from '@/components/replay';
+
 import { formatDuration, notOnSheet } from './training-format';
 
 export function NotOnSheet({ children }: { children: ReactNode }) {
@@ -21,7 +23,21 @@ export function TrainerName({ trainer }: { trainer: TrainingTrainer }) {
       </>
     );
   }
-  return <>{`${trainer.name}${jobTitle}`}</>;
+  return (
+    <>
+      <Masked>{trainer.name}</Masked>
+      {jobTitle}
+    </>
+  );
+}
+
+export function PersonWithTitle({ person }: { person: { name: string; jobTitle: string } }) {
+  return (
+    <>
+      <Masked>{person.name}</Masked>
+      {person.jobTitle && `, ${person.jobTitle}`}
+    </>
+  );
 }
 
 // `named` where no column heading says what the value is.

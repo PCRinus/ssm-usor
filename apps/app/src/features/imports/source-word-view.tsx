@@ -12,6 +12,7 @@ import {
 import { type RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
 import { findLine, passageHits, passageParts } from './source-match';
@@ -148,7 +149,12 @@ export default function WordSourceView({
   }
   if (!bytes) return null;
   return (
-    <div ref={host} className="flex h-full min-h-0 flex-col" data-testid="source-word">
+    <div
+      ref={host}
+      className="flex h-full min-h-0 flex-col"
+      data-testid="source-word"
+      {...replayMask}
+    >
       <DocxEditor
         document={bytes}
         mode="view"

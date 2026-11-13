@@ -50,6 +50,7 @@ import {
   useState,
 } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { scrollAndPoint } from '@/features/missing-data/focus';
 
@@ -125,6 +126,7 @@ function ArticleText({
       name={name}
       data-no-keep={name ? undefined : ''}
       data-testid="instruction-article-text"
+      {...replayShow}
       rows={2}
       className={cn(
         'min-h-20 leading-relaxed',
@@ -549,6 +551,7 @@ export function InstructionBlocks({
                   id={fieldId(heading.id)}
                   aria-label="Titlul secțiunii"
                   data-testid="instruction-heading-text"
+                  {...replayShow}
                   className="-ml-2.5 h-10 flex-1 basis-40 border-transparent bg-transparent px-2.5 text-lg font-semibold tracking-tight shadow-none hover:border-input focus-visible:bg-background md:text-lg dark:bg-transparent"
                   placeholder="De exemplu: Înainte de începerea lucrului"
                   value={heading.text}

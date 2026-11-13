@@ -1,5 +1,6 @@
 import type { MeResponse } from '@/api/generated/api';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
+import { Masked } from '@/components/replay';
 import { SignedInAs } from '@/features/auth/onboarding-frame';
 
 import { ImpersonationBanner } from './impersonation-banner';
@@ -10,7 +11,17 @@ function copyFor(me: MeResponse, ended: boolean) {
   if (me.impersonation) {
     return {
       title: 'Membrul nu mai face parte dintr-o organizație',
-      description: `${me.impersonation.targetName ?? 'Membrul ca care acționezi'} nu mai face parte din nicio organizație, așa că nu ai ce vedea în contul lui. Încheie acțiunea cu butonul „Încheie” de mai sus sau alege alt membru în zona de administrare.`,
+      description: (
+        <>
+          {me.impersonation.targetName ? (
+            <Masked>{me.impersonation.targetName}</Masked>
+          ) : (
+            'Membrul ca care acționezi'
+          )}{' '}
+          nu mai face parte din nicio organizație, așa că nu ai ce vedea în contul lui. Încheie
+          acțiunea cu butonul „Încheie” de mai sus sau alege alt membru în zona de administrare.
+        </>
+      ),
     };
   }
   return {

@@ -23,6 +23,7 @@ import {
   useRevokeInvitation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
 
@@ -120,7 +121,9 @@ export function InvitationsCard({ userId }: { userId: string }) {
             <TableBody>
               {invitations.data.items.map((invitation) => (
                 <TableRow key={invitation.id} data-testid="invitation-row">
-                  <TableCell className="font-medium break-all">{invitation.email}</TableCell>
+                  <TableCell className="font-medium break-all" {...replayMask}>
+                    {invitation.email}
+                  </TableCell>
                   <TableCell>{roleLabels[invitation.role]}</TableCell>
                   <TableCell>
                     {invitation.status === 'expired' ? (

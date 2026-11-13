@@ -7,6 +7,8 @@ import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store
 import { formatRoDate } from '@/lib/dates';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { replayedInput, replayedText } from '@/test/replay';
+import { fullText } from '@/test/text';
 import { employeeTests, noTests, untrained } from '@/test/training-fixture';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -569,7 +571,7 @@ describe('employee creation', () => {
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
     expect(runtime.router.state.location.pathname).toBe(employeesPage);
-    expect(await screen.findByText('Popescu Ion a fost adăugat.')).toBeTruthy();
+    expect(await screen.findByText(fullText('Popescu Ion a fost adăugat.'))).toBeTruthy();
     await screen.findByTestId('employees-row');
     const [, init] = requests(employeesPath, 'POST')[0]!;
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
@@ -1218,7 +1220,9 @@ describe('employee status changes', () => {
     });
     await user.click(screen.getByTestId('employees-filter-terminated'));
     await screen.findByTestId('employees-row');
-    expect(await screen.findByText('Popescu Ion a fost trecut la foști lucrători.')).toBeTruthy();
+    expect(
+      await screen.findByText(fullText('Popescu Ion a fost trecut la foști lucrători.'))
+    ).toBeTruthy();
   });
 
   it('picks the leave date from the calendar', async () => {
@@ -1312,7 +1316,9 @@ describe('employee status changes', () => {
     expect(JSON.parse(String(requests(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
       status: 'active',
     });
-    expect(await screen.findByText('Popescu Ion este din nou lucrător actual.')).toBeTruthy();
+    expect(
+      await screen.findByText(fullText('Popescu Ion este din nou lucrător actual.'))
+    ).toBeTruthy();
   });
 
   it('explains a reactivation refused because a current employee has the CNP', async () => {
@@ -1803,5 +1809,74 @@ describe('employee editing', () => {
     );
     expect(screen.queryByTestId('employee-form-error')).toBeNull();
     await waitFor(() => expect(requests(positionsPath).length).toBeGreaterThan(positionLoads));
+  });
+});
+
+describe('what a session replay of the employees shows', () => {
+  const detailPage = `${employeesPage}/${sampleEmployee.id}`;
+  const recorded = {
+    ...createdEmployee,
+    homeAddress: 'Str. Mihai Eminescu nr. 12, ap. 3',
+    residenceAddress: 'Bl. A4, sc. B, Iași',
+    workplace: { id: workshop.id, name: workshop.name },
+    commuteRoute: 'Str. Lungă 5 – autobuzul 24',
+    commuteMeans: ['public_transport'],
+    commuteMeansOther: 'Trotinetă',
+  };
+
+  it('masks the name and contact in a list row, and shows the post', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, employeesPage);
+    const row = await screen.findByTestId('employees-row');
+
+    expect(replayedText(within(row).getByText('Popescu Ion'))).toBe('******* ***');
+    expect(replayedText(within(row).getByText('ion.popescu@example.com'))).not.toContain('popescu');
+    expect(replayedText(within(row).getByText('0721 000 000'))).toBe('**** *** ***');
+    expect(replayedText(within(row).getByText('Sudor'))).toBe('Sudor');
+  });
+
+  it('masks the person on their page, keeps the shape of the addresses and shows the work', async () => {
+    mockApi({ detail: () => Response.json({ employee: recorded }) });
+    mountApp(authFixture(makeSession()).client, detailPage);
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Popescu Ion' });
+
+    expect(replayedText(heading)).toBe('******* ***');
+    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
+    expect(replayedText(within(breadcrumb).getByText('Popescu Ion'))).toBe('******* ***');
+    expect(replayedText(within(breadcrumb).getByText('OMV PETROM SA'))).toBe('OMV PETROM SA');
+    expect(replayedText(screen.getByTestId('employee-cnp-value'))).not.toMatch(/\d/);
+    expect(replayedText(screen.getByText('1 ian. 1990'))).toBe('* **** ****');
+    expect(replayedText(screen.getByText('Str. Mihai Eminescu nr. 12, ap. 3'))).toBe(
+      'Str. Xxxxx Xxxxxxxx nr. 00, ap. 0'
+    );
+    expect(replayedText(screen.getByText('Str. Lungă 5 – autobuzul 24'))).toBe(
+      'Str. Xxxxx 0 – xxxxxxxxx 00'
+    );
+    expect(replayedText(screen.getByText('Trotinetă'))).toBe('Xxxxxxxxx');
+    expect(replayedText(screen.getByTestId('employee-job-position'))).toBe('Sudor');
+    expect(replayedText(screen.getByText('Atelier Str. Fabricii 3'))).toBe(
+      'Atelier Str. Fabricii 3'
+    );
+    expect(replayedText(screen.getByText('Post de lucru', { selector: 'dt' }))).toBe(
+      'Post de lucru'
+    );
+  });
+
+  it('masks what is typed about the person and keeps the shape of the addresses', async () => {
+    mockApi({ detail: () => Response.json({ employee: recorded }) });
+    mountApp(authFixture(makeSession()).client, `${detailPage}/editare`);
+    const lastName = await screen.findByTestId<HTMLInputElement>('employee-last-name');
+
+    expect(replayedInput(lastName)).toBe('*******');
+    expect(replayedInput(screen.getByTestId<HTMLInputElement>('employee-cnp'))).toBe(
+      '*************'
+    );
+    expect(replayedInput(screen.getByTestId<HTMLInputElement>('employee-home-address'))).toBe(
+      'Str. Xxxxx Xxxxxxxx nr. 00, ap. 0'
+    );
+    expect(replayedInput(screen.getByTestId<HTMLTextAreaElement>('employee-commute-route'))).toBe(
+      'Str. Xxxxx 0 – xxxxxxxxx 00'
+    );
+    expect(replayedText(screen.getByRole('heading', { level: 1 }))).toBe('Modifică: ******* ***');
   });
 });

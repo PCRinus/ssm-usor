@@ -25,6 +25,7 @@ import {
 
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
+import { Masked } from '@/components/replay';
 import { EditAction } from '@/components/section-card';
 import { CommuteMeansCombobox } from '@/features/employees/commute-means-combobox';
 
@@ -47,12 +48,14 @@ import {
   type ReviewContext,
   withField,
 } from './employee-review-model';
+import { FieldValueText } from './field-value-text';
 import { dialogRowsFor } from './person-dialog-rows';
 import { PhotoNumber } from './person-photos';
 import {
   compareWithApp,
   dateFields,
   fieldProblem,
+  fieldReplay,
   rhLabels,
   showValue,
   typedValue,
@@ -256,13 +259,17 @@ function FieldRow({
         <span className="text-muted-foreground">Necompletat</span>
       ) : (
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-medium wrap-anywhere">{shown}</span>
+          <span className="font-medium wrap-anywhere">
+            <FieldValueText name={name} text={shown} />
+          </span>
           {field.edited && <EditedTag />}
         </span>
       )}
       {fromSheet && (
         <RowNote testId="person-field-sheet">
-          <span className="wrap-anywhere">De pe fișă: {fromSheet}</span>
+          <span className="wrap-anywhere">
+            De pe fișă: <FieldValueText name={name} text={fromSheet} />
+          </span>
         </RowNote>
       )}
       <DecisionTags decisions={own.filter(({ key }) => key !== `missing-${name}`)} />
@@ -274,7 +281,7 @@ function FieldRow({
 function DecisionTags({ decisions }: { decisions: Decision[] }) {
   return decisions.map((decision) => (
     <Tag key={decision.key} tone="destructive" className="w-fit whitespace-normal">
-      {decision.label}
+      {decision.namesPerson ? <Masked>{decision.label}</Masked> : decision.label}
     </Tag>
   ));
 }
@@ -485,6 +492,7 @@ export function FieldInput({
       <DatePicker
         id={id}
         value={value}
+        personal={name === 'birthDate'}
         invalid={invalid}
         describedBy={describedBy}
         className={className}
@@ -530,6 +538,7 @@ export function FieldInput({
       <OneLineTextarea
         id={id}
         value={value}
+        {...fieldReplay(name)}
         maxLength={lengthLimits[name]}
         aria-invalid={invalid}
         aria-describedby={describedBy}
@@ -544,6 +553,7 @@ export function FieldInput({
     <Input
       id={id}
       value={value}
+      {...fieldReplay(name)}
       inputMode={name === 'commuteMinutes' || name === 'cnp' ? 'numeric' : undefined}
       maxLength={lengthLimits[name]}
       aria-invalid={invalid}
@@ -819,13 +829,14 @@ export function ExistingComparison({
                   <>
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-medium wrap-anywhere">
-                        Devine {showValue(name, sheet)}
+                        Devine <FieldValueText name={name} text={showValue(name, sheet)} />
                       </span>
                       <Tag tone="info">De pe fișă</Tag>
                     </span>
                     <RowNote>
                       <span className="wrap-anywhere">
-                        În aplicație: {showValue(name, field.app)}
+                        În aplicație:{' '}
+                        <FieldValueText name={name} text={showValue(name, field.app)} />
                       </span>
                     </RowNote>
                     <Button
@@ -844,13 +855,15 @@ export function ExistingComparison({
                   <>
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-medium wrap-anywhere">
-                        Rămâne {showValue(name, field.app)}{' '}
+                        Rămâne <FieldValueText name={name} text={showValue(name, field.app)} />{' '}
                         <span className="font-normal text-muted-foreground">(din aplicație)</span>
                       </span>
                       <Tag tone="muted">Păstrăm valoarea ta</Tag>
                     </span>
                     <RowNote>
-                      <span className="wrap-anywhere">Pe fișă: {showValue(name, sheet)}</span>
+                      <span className="wrap-anywhere">
+                        Pe fișă: <FieldValueText name={name} text={showValue(name, sheet)} />
+                      </span>
                     </RowNote>
                     <Button
                       type="button"
