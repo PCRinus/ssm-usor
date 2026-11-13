@@ -11,7 +11,10 @@ import { useAuth } from './auth-context';
 
 const patience = 3_000;
 
-export function SignOutButton(props: Omit<ComponentProps<typeof Button>, 'onClick'>) {
+export function SignOutButton({
+  labelClassName,
+  ...props
+}: Omit<ComponentProps<typeof Button>, 'onClick'> & { labelClassName?: string }) {
   const { auth } = useAuth();
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const [busy, setBusy] = useState(false);
@@ -45,7 +48,7 @@ export function SignOutButton(props: Omit<ComponentProps<typeof Button>, 'onClic
         {...props}
       >
         <LogOut aria-hidden="true" />
-        Sign out
+        <span className={labelClassName}>Sign out</span>
       </Button>
       {failed && (
         <ErrorNotice testId="sign-out-error">

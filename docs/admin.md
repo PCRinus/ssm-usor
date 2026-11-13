@@ -8,18 +8,23 @@ carry for members: no PostHog, no Lingui, no help links, no Actualizări block. 
 
 ## Pages
 
-| Route          | What                                                                                                              |
-| -------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `/sign-in`     | Email and password, with the Turnstile check Supabase Auth's CAPTCHA asks for                                     |
-| `/enrol`       | The first sign-in: the QR code and key of a new authenticator (TOTP), then its first code                         |
-| `/verify`      | Every later sign-in: a code from the authenticator                                                                |
-| `/`            | "Signed in as …", links to Imports and Members; "This account has no admin access" when the API says `403`        |
-| `/imports`     | Every organization's imports, newest first, with filters ([below](#the-imports-page))                             |
-| `/imports/$id` | One import: its row, flags, quality, reports, library parts and its improvement copy ([below](#the-imports-page)) |
-| `/members`     | Every organization's members, to start an impersonation, and the admin's recent ones ([below](#the-members-page)) |
+| Route                      | What                                                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `/sign-in`                 | Email and password, with the Turnstile check Supabase Auth's CAPTCHA asks for                                           |
+| `/enrol`                   | The first sign-in: the QR code and key of a new authenticator (TOTP), then its first code                               |
+| `/verify`                  | Every later sign-in: a code from the authenticator                                                                      |
+| `/`                        | "Signed in as …", links to Imports, Members and Legislation; "This account has no admin access" when the API says `403` |
+| `/imports`                 | Every organization's imports, newest first, with filters ([below](#the-imports-page))                                   |
+| `/imports/$id`             | One import: its row, flags, quality, reports, library parts and its improvement copy ([below](#the-imports-page))       |
+| `/members`                 | Every organization's members, to start an impersonation, and the admin's recent ones ([below](#the-members-page))       |
+| `/legislation`             | The legal changes of the cited acts, to resolve them ([below](#the-legislation-page))                                   |
+| `/legislation/changes/$id` | One change: its passages old → new and how it is resolved ([below](#the-legislation-page))                              |
+| `/legislation/acts`        | The watched acts, to record the form each was verified against ([below](#the-legislation-page))                         |
+| `/legislation/runs`        | The runs of the daily check ([below](#the-legislation-page))                                                            |
 
-The signed-in pages share a top bar with the logo, **Home**, **Imports**, **Members** and
-**Sign out** (on a phone the logo stands for **Home**), and, while an impersonation is active,
+The signed-in pages share a top bar with the logo, **Home**, **Imports**, **Members**,
+**Legislation** and **Sign out** (on a phone the logo stands for **Home** and **Sign out** is its
+icon alone), and, while an impersonation is active,
 the strip [below](#the-active-impersonation-strip).
 
 Each route sends the session where it stands: no session to `/sign-in`, a session whose token is
@@ -97,6 +102,49 @@ member, the organization (or "No longer a member"), the reason, when it started,
 ended, expired or is active. It expired when it ran past its end with nobody ending it, whether
 the row is still open or the API closed it at its expiry, such as at the next start (`endedAt`
 equal to `expiresAt`, [API](api.md#impersonation)); it ended only when it was ended before then.
+
+## The Legislation page
+
+[ADR 017](architecture/adr-017-legislation-monitoring.md)'s page for the platform admin, the only
+place in the product that writes the legislation data besides the daily check. Three tabs:
+
+**Changes** (`/legislation`) lists every legal change, newest seen first: the act, the form and
+the verified one it was compared with, the outcome (**No impact**, **Quote differs**, **Needs
+review**, or **Not assessed**) with its number of passages, the amending acts, the resolution with
+the note members read, and when it was seen and assessed. Filters for open or resolved and for the
+outcome live in the address (`?status=open&outcome=quote_differs`). A row opens the change.
+
+**A change** (`/legislation/changes/<id>`) shows the act with its page on the portal, the forms,
+the amending acts (linked to their own pages when the portal's note named them), the amended units
+and the reasons to review it, in English. Each passage shows the template file, its type, where the
+template quotes or names the unit, and the law's text old → new as one paragraph, the removed
+words struck and the added ones marked. While the change is open it can be resolved two ways:
+
+- **Mark as no impact** asks for the note members read under the change, in Romanian, 2 to 500
+  characters. The act's verified form moves to the change's, as when the check resolves one
+  itself.
+- **Resolve by this version** lists the built-in template versions that can answer it: of a type
+  its passages name, registered after it was seen, not a layout version and answering no other
+  change. Members then read the version's note under the change, and the verified form moves as
+  above.
+
+Once resolved, the page shows how, when, by which version, and the note. A change resolved by
+mistake cannot be reopened here: resolving moved the act's verified form, which the next
+comparison starts from, and the form before it is kept only in the audit log.
+
+**Watched acts** (`/legislation/acts`) lists every act with its page on the portal, its status,
+the last form seen with the acts that amended it, the verified form (in amber when older than the
+last form seen), when the check last read it, when someone read it by hand, and a badge for its
+open changes. Every column sorts (`?sort=verified&order=desc`). **Record** sets the verified form
+to a date no later than the last form seen; the act's open changes stay open.
+
+**Runs** (`/legislation/runs`) lists the check's runs, newest first, 25 to a page: when each
+started and ended, its status, the acts checked and skipped, the changes found, and its errors,
+which open to the act, the kind and the message of each.
+
+Every write goes with the admin's own token to a database function that refuses anyone but a
+platform admin past the second factor, and records a `legal_change_resolved` or
+`legal_act_verified` event in the audit log ([data model](data-model.md#legislation)).
 
 ## The active impersonation strip
 

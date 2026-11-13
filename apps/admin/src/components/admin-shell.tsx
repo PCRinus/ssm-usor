@@ -9,7 +9,7 @@ import { SignOutButton } from '@/features/auth/sign-out-button';
 import { ImpersonationStrip } from '@/features/impersonation/impersonation-strip';
 
 const navLink =
-  'rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground';
+  'shrink-0 rounded-md px-2 py-2 text-sm font-medium sm:px-3 text-muted-foreground hover:bg-muted hover:text-foreground';
 
 export function AdminShell({
   testId,
@@ -32,7 +32,7 @@ export function AdminShell({
               <img src="/brand/favicon.png" alt="" width={28} height={28} className="size-7" />
               <span className="sr-only font-semibold sm:not-sr-only">SSM Ușor admin</span>
             </Link>
-            <nav aria-label="Admin" className="flex items-center">
+            <nav aria-label="Admin" className="flex min-w-0 items-center overflow-x-auto">
               <Link
                 to="/"
                 className={cn(navLink, 'hidden sm:block')}
@@ -57,9 +57,17 @@ export function AdminShell({
               >
                 Members
               </Link>
+              <Link
+                to="/legislation"
+                data-testid="nav-legislation"
+                className={navLink}
+                activeProps={{ className: 'text-foreground bg-muted' }}
+              >
+                Legislation
+              </Link>
             </nav>
           </div>
-          <SignOutButton size="sm" />
+          <SignOutButton size="sm" className="shrink-0" labelClassName="sr-only sm:not-sr-only" />
         </div>
       </header>
       <ImpersonationStrip width={width} />
