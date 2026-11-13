@@ -421,6 +421,52 @@ To run the check from a laptop instead, run `pnpm legislation:check`
 ([local development](local-development.md#legislation-check)); it does the same work and logs
 its run in the same table.
 
+### The fix workflow
+
+`.github/workflows/legislation-fix.yml` (**Legislation fix**) answers production's open legal
+changes every day at 04:30 UTC, an hour after production's check, and when started by hand from
+`main` ([ADR 017](architecture/adr-017-legislation-monitoring.md)). It runs
+`pnpm legislation:fix` in the `production` environment. For a change whose quoted text differs,
+the engine's `replace-quote` applies the law's old words → new words to each quoting template
+and its copies, only where the template still holds the old words. When every quote took the
+change, it regenerates `citations.json`, writes the manifest change
+`{ kind: 'legal', note, resolves: { act, consolidatedOn } }`, asks the model for the note and
+for a reading of the template's own sentences that restate the rule (listed in the pull
+request, never applied), commits on the branch `legislation/<act>-<consolidated on>` and opens
+a pull request labelled `legislation`. A quote the tool cannot change, and a change whose
+outcome is "needs review", get an issue with the same label instead. Each is posted to
+`#legislatie-prod` with the replacement of our text as a diff and the link. A change that
+already has a pull request or an issue, open or closed, or that a manifest already resolves
+(merged, waiting for a release), is skipped. Merging is the sign-off; the deploy after it
+registers the new versions, which resolves the change in each environment
+([data model](data-model.md#legislation)). The run also posts the Worker's warning when no
+check succeeded in two days and the Worker's own failed run did not already say so.
+
+By hand, **Actions → Legislation fix → Run workflow** on `main` takes `dry_run`, which prints the
+pull requests, issues and Discord messages in the log and opens, pushes and posts nothing, and
+`change`, one act (`oug-195-2002`) or one form of it (`oug-195-2002-2026-11-06`). From a laptop,
+`pnpm legislation:fix --local --dry-run` does the same against the local stack, and
+`SUPABASE_URL` and `SUPABASE_SECRET_KEY` point it at a hosted one.
+
+The pull request is opened, and its branch pushed, with the token of the GitHub App
+`LEGISLATION_APP_ID`, because one opened with the workflow's own token starts no CI. The App is
+installed on this repository only, with **Contents** and **Pull requests** read and write; the
+workflow's own token, with `issues: write`, opens the issues and creates the label. Commits are
+the App's, as `<app slug>[bot]`.
+
+| Name                          | Kind                  | Value                                                                       |
+| ----------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `LEGISLATION_APP_ID`          | Repository variable   | The App's id                                                                |
+| `LEGISLATION_APP_PRIVATE_KEY` | Repository secret     | A private key of the App, the whole `.pem`                                  |
+| `VITE_SUPABASE_URL`           | `production` variable | Production's Supabase URL, as the deploy uses it                            |
+| `SUPABASE_SECRET_KEY`         | `production` secret   | Production's secret key: reads the changes and the run log                  |
+| `DISCORD_LEGISLATION_WEBHOOK` | `production` secret   | Optional: without it nothing is posted                                      |
+| `AI_GATEWAY_URL`              | Repository variable   | Optional, the [gateway](#ai-gateway-for-the-update-draft) the imports use   |
+| `AI_GATEWAY_TOKEN`            | Repository secret     | Optional: without the pair the note is a plain sentence and nothing is read |
+
+The model is the imports' reading model, GPT-6.1 Terra, at medium effort: one request per change,
+which costs about a cent.
+
 ## Local development and preview
 
 For normal landing-page work, use Astro's development server for the fastest feedback loop:

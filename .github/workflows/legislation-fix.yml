@@ -1,0 +1,106 @@
+name: Legislation fix
+
+# Every morning an hour after production's legislation check (03:17 UTC), and by hand: answers
+# each of production's open legal changes (ADR 017). A change whose quoted text differs gets a
+# pull request that applies the law's change to the templates; one the tool cannot apply, and
+# one that needs review, get an issue. Both are posted to production's legislation channel.
+# Merging the pull request is the provider's sign-off, and the registration after the deploy
+# resolves the change. Only production's changes are answered: the templates are shared, and
+# non-prod's detections serve to compare the two analyses.
+on:
+  schedule:
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print the pull requests, issues and Discord messages, and open or post nothing
+        type: boolean
+        default: false
+      change:
+        description: Only this change, by its act (oug-195-2002) or its act and form (oug-195-2002-2026-11-06)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  # The issues, and the label they share with the pull requests.
+  issues: write
+
+concurrency:
+  group: legislation-fix
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    name: Answer the open legal changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Check the branch
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::The legislation fix runs from main only, not from $GITHUB_REF."
+            exit 1
+          fi
+
+      # A pull request opened, or a branch pushed, with this workflow's own token starts no
+      # workflow, so the fix would reach review without CI.
+      - name: Create the legislation App's token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.LEGISLATION_APP_ID }}
+          private-key: ${{ secrets.LEGISLATION_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Find the App's user
+        id: app-user
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SLUG: ${{ steps.app-token.outputs.app-slug }}
+        shell: bash
+        run: echo "id=$(gh api "/users/${SLUG}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+
+      # The whole history with its tags: a template change not yet released joins the new one,
+      # and the release is the newest date tag.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Commit as the App
+        env:
+          SLUG: ${{ steps.app-token.outputs.app-slug }}
+          USER_ID: ${{ steps.app-user.outputs.id }}
+        shell: bash
+        run: |
+          git config user.name "${SLUG}[bot]"
+          git config user.email "${USER_ID}+${SLUG}[bot]@users.noreply.github.com"
+
+      - uses: ./.github/actions/setup
+
+      - name: Build the API's workspace packages
+        run: pnpm --filter "@ssm-usor/api^..." build
+
+      # The inputs reach the script as environment variables, never spliced into the command.
+      - name: Answer the changes
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DISCORD_LEGISLATION_WEBHOOK: ${{ secrets.DISCORD_LEGISLATION_WEBHOOK }}
+          AI_GATEWAY_URL: ${{ vars.AI_GATEWAY_URL }}
+          AI_GATEWAY_TOKEN: ${{ secrets.AI_GATEWAY_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          LEGISLATION_APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          ENVIRONMENT: production
+          DRY_RUN: ${{ inputs.dry_run }}
+          CHANGE: ${{ inputs.change }}
+        shell: bash
+        run: |
+          args=()
+          if [[ "$DRY_RUN" == true ]]; then args+=(--dry-run); fi
+          if [[ -n "$CHANGE" ]]; then args+=(--change "$CHANGE"); fi
+          pnpm --filter @ssm-usor/api legislation:fix "${args[@]}"
