@@ -171,7 +171,10 @@ export {
   addUsage,
   costOf,
   instructionsModel,
+  locatingModel,
   type ModelId,
+  type ModelProvider,
+  modelProviders,
   modelRates,
   noUsage,
   readingModel,
@@ -212,6 +215,19 @@ export * from './risks-request';
 export * from './risks-rows';
 export { risksProposalSchema } from './risks-schema';
 export * from './safety-sheet';
+export {
+  type LocatingAnswer,
+  locatingAnswer,
+  locatingMessages,
+  locatingOutputTokens,
+  locatingRequest,
+  locatingSystemPrompt,
+  type LocatingTarget,
+  locatingTargets,
+  type SheetLocation,
+  sheetLocations,
+  type SheetLocationTarget,
+} from './sheet-locations';
 export {
   type SheetDate,
   sheetDate,
