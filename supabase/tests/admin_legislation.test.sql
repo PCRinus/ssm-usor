@@ -1,5 +1,5 @@
 begin;
-select plan(35);
+select plan(38);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now()
@@ -16,6 +16,7 @@ insert into public.legal_acts (id, name, portal_id, portal_status, verified_cons
   ('oug-195-2002', 'O.U.G. 195/2002', 41006, 'in_force', '2026-08-25', '2026-11-06'),
   ('lege-227-2015', 'Legea 227/2015', 171280, 'in_force', '2026-10-25', '2026-10-25'),
   ('lege-319-2006', 'Legea 319/2006', 73772, 'in_force', '2021-07-25', '2021-07-25'),
+  ('lege-53-2003', 'Legea 53/2003', 41625, 'in_force', '2026-04-27', '2026-10-30'),
   ('omai-163-2007', 'OMAI 163/2007', null, null, null, null)
 on conflict (id) do update set
   verified_consolidated_on = excluded.verified_consolidated_on,
@@ -24,7 +25,8 @@ on conflict (id) do update set
 insert into public.legal_changes (id, act_id, seen_at, consolidated_on, outcome, assessed_at, compared_with) values
   ('d1d1d1d1-0000-4000-8000-0000000000c1', 'oug-195-2002', '2026-10-31 03:20+00', '2026-10-30', 'quote_differs', now(), '2026-08-25'),
   ('d1d1d1d1-0000-4000-8000-0000000000c2', 'lege-227-2015', '2026-10-19 03:20+00', '2026-10-18', 'needs_review', now(), '2026-08-01'),
-  ('d1d1d1d1-0000-4000-8000-0000000000c3', 'lege-319-2006', '2026-11-10 03:20+00', '2026-11-09', 'quote_differs', now(), '2021-07-25');
+  ('d1d1d1d1-0000-4000-8000-0000000000c3', 'lege-319-2006', '2026-11-10 03:20+00', '2026-11-09', 'quote_differs', now(), '2021-07-25'),
+  ('d1d1d1d1-0000-4000-8000-0000000000d4', 'lege-53-2003', '2026-10-01 03:20+00', '2026-09-30', 'needs_review', now(), '2026-04-27');
 
 insert into public.legal_change_passages (change_id, manifest, template_file, type_key, paragraph, citation_form, unit_label, status, old_text, new_text) values
   ('d1d1d1d1-0000-4000-8000-0000000000c1', 'ssm', '2.2_general_training_material.docx', 'test_material', 2048, 'quote', 'Art. 36 alin. (2)', 'changed', 'casca', 'pe cap cască'),
@@ -217,6 +219,18 @@ select throws_ok(
   $$ select public.admin_record_verified_form('lege-1-1900', '2020-01-01') $$,
   'P0002', null, 'an act that is not watched has no form to record'
 );
+select throws_ok(
+  $$ select public.admin_record_verified_form('lege-53-2003', '2026-09-30') $$,
+  'LGA04', null, 'a form at an open change of the act is not recorded while it is open'
+);
+select throws_ok(
+  $$ select public.admin_record_verified_form('lege-53-2003', '2026-10-30') $$,
+  'LGA04', null, 'a form after an open change of the act is not recorded while it is open'
+);
+select lives_ok(
+  $$ select public.admin_record_verified_form('lege-53-2003', '2026-09-29') $$,
+  'a form before the act''s open changes is recorded'
+);
 select lives_ok(
   $$ select public.admin_record_verified_form('lege-319-2006', '2021-05-06') $$,
   'the admin records an earlier form as the verified one'
@@ -230,7 +244,7 @@ select is(
   'the act has the form the admin recorded'
 );
 select results_eq(
-  $$ select action, table_name, actor_id, details from audit.events where action = 'legal_act_verified' $$,
+  $$ select action, table_name, actor_id, details from audit.events where action = 'legal_act_verified' and details ->> 'act_id' = 'lege-319-2006' $$,
   $$ values ('legal_act_verified'::text, 'legal_acts'::text, 'eeeeeeee-0000-4000-8000-0000000000c1'::uuid,
        '{"act_id": "lege-319-2006", "verified_consolidated_on": ["2021-07-25", "2021-05-06"]}'::jsonb) $$,
   'recording a verified form is in the audit log with the form before and after'

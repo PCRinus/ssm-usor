@@ -259,6 +259,13 @@ function writeRefusal(error: { code?: string | null; message?: string }, context
         undefined,
         adminLegislationErrorReasons.formNotSeen
       );
+    case 'LGA04':
+      return new ApiError(
+        'unprocessable',
+        'A change of the act at or before this form is still open.',
+        undefined,
+        adminLegislationErrorReasons.openChangesAtOrBefore
+      );
     case '22023':
       return new ApiError('validation_error', undefined, [
         { path: 'note', message: 'The note has 2 to 500 characters.' },

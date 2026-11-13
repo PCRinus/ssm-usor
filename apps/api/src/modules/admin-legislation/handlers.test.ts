@@ -507,6 +507,20 @@ describe('PUT /admin/legislation/acts/:id/verified-form', () => {
     expect(unseen.status).toBe(422);
     expect(apiErrorResponseSchema.parse(await unseen.json()).reason).toBe('form_not_seen');
   });
+
+  it('refuses a form while a change of the act at or before it is open', async () => {
+    rpcError = { code: 'LGA04', message: 'refused' };
+
+    const response = await request('/admin/legislation/acts/oug-195-2002/verified-form', {
+      method: 'PUT',
+      body: JSON.stringify({ consolidatedOn: '2026-11-06' }),
+    });
+
+    expect(response.status).toBe(422);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
+      'open_changes_at_or_before'
+    );
+  });
 });
 
 describe('GET /admin/legislation/runs', () => {

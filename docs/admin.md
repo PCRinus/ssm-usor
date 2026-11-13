@@ -136,7 +136,9 @@ comparison starts from, and the form before it is kept only in the audit log.
 the last form seen with the acts that amended it, the verified form (in amber when older than the
 last form seen), when the check last read it, when someone read it by hand, and a badge for its
 open changes. Every column sorts (`?sort=verified&order=desc`). **Record** sets the verified form
-to a date no later than the last form seen; the act's open changes stay open.
+to a date no later than the last form seen. While a change of the act at or before that date is
+open, the dialog lists it with a link and refuses the date: the daily check never assesses a
+change at or before the verified form again, so it would stay open for good.
 
 **Runs** (`/legislation/runs`) lists the check's runs, newest first, 25 to a page: when each
 started and ended, its status, the acts checked and skipped, the changes found, and its errors,

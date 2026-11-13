@@ -197,6 +197,12 @@ beforeEach(() => {
     }
     if (url.pathname === `/api/legislation/changes/${changeId}`) return Response.json(current);
     if (url.pathname === '/api/legislation/acts') return Response.json(acts);
+    if (url.pathname === '/api/legislation/acts/lege-319-2006/verified-form') {
+      return Response.json(
+        { error: 'unprocessable', message: 'Open.', reason: 'open_changes_at_or_before' },
+        { status: 422 }
+      );
+    }
     if (url.pathname.endsWith('/verified-form')) {
       return Response.json({ ...acts.items[0], verifiedConsolidatedOn: '2026-11-06' });
     }
@@ -361,22 +367,39 @@ describe('the watched acts', () => {
     const input = within(dialog).getByTestId<HTMLInputElement>('verified-form-date');
     expect(input.value).toBe('2026-11-06');
     expect(input.max).toBe('2026-11-06');
-    expect(within(dialog).getByTestId('verified-form-open-changes').textContent).toContain(
-      'Its open change stays open'
-    );
+    const blocking = await within(dialog).findByTestId('verified-form-open-changes');
+    expect(
+      within(blocking).getByRole('link', { name: 'Form of 6 Nov 2026' }).getAttribute('href')
+    ).toBe(`/legislation/changes/${changeId}`);
+    const submit = within(dialog).getByTestId<HTMLButtonElement>('verified-form-submit');
+    expect(submit.disabled).toBe(true);
     await user.clear(input);
     await user.type(input, '2026-12-01');
-    expect(within(dialog).getByTestId<HTMLButtonElement>('verified-form-submit').disabled).toBe(
-      true
-    );
+    expect(submit.disabled).toBe(true);
     await user.clear(input);
-    await user.type(input, '2026-11-06');
-    await user.click(within(dialog).getByTestId('verified-form-submit'));
+    await user.type(input, '2026-11-05');
+    expect(within(dialog).queryByTestId('verified-form-open-changes')).toBeNull();
+    await user.click(submit);
 
     await waitFor(() => expect(screen.queryByTestId('verified-form-dialog')).toBeNull());
     const put = requests().find((call) => call.method === 'PUT')!;
     expect(put.url.pathname).toBe('/api/legislation/acts/oug-195-2002/verified-form');
-    expect(put.body).toEqual({ consolidatedOn: '2026-11-06' });
+    expect(put.body).toEqual({ consolidatedOn: '2026-11-05' });
+  });
+});
+
+describe('the verified form', () => {
+  it('says to resolve the act’s open changes first when the database refuses the form', async () => {
+    mountAdmin('/legislation/acts');
+    const rows = await screen.findAllByTestId('legal-act-row');
+    const user = userEvent.setup();
+    await user.click(within(rows[0]!).getByTestId('record-verified-form'));
+    const dialog = await screen.findByTestId('verified-form-dialog');
+    await user.click(within(dialog).getByTestId('verified-form-submit'));
+
+    expect((await within(dialog).findByTestId('verified-form-error')).textContent).toContain(
+      'still open. Resolve it first.'
+    );
   });
 });
 

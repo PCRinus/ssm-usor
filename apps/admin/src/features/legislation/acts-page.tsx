@@ -40,6 +40,7 @@ import {
   type ActSortKey,
   type ActsSearch,
   fetchActs,
+  fetchChanges,
   legislationKey,
   recordVerifiedForm,
   refreshLegislation,
@@ -89,6 +90,9 @@ function refusalOf(error: Error) {
   if (body?.reason === adminLegislationErrorReasons.formNotSeen) {
     return 'The check has not seen a form of that date or later. Choose a date no later than the last form seen.';
   }
+  if (body?.reason === adminLegislationErrorReasons.openChangesAtOrBefore) {
+    return 'A change of this act at or before that date is still open. Resolve it first.';
+  }
   if (body?.error === 'validation_error') return 'Choose a date.';
   return 'The form could not be recorded. Check the connection and try again.';
 }
@@ -114,12 +118,22 @@ function VerifiedForm({ act, onClose }: { act: AdminLegalAct; onClose: () => voi
       onClose();
     },
   });
+  const openChanges = useQuery({
+    queryKey: [...legislationKey, 'changes', { status: 'open' }],
+    queryFn: ({ signal }) => fetchChanges({ status: 'open' }, { ...apiRequest, signal }),
+    enabled: act.openChanges > 0,
+    select: (data) => data.items.filter((change) => change.act.id === act.id),
+  });
   const last = act.lastConsolidatedOn;
   const outOfRange = Boolean(date && last && date > last);
+  const blocking = date
+    ? (openChanges.data ?? []).filter((change) => change.consolidatedOn <= date)
+    : [];
+  const unknown = act.openChanges > 0 && !openChanges.data;
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (date && !outOfRange) saving.mutate();
+    if (date && !outOfRange && blocking.length === 0 && !unknown) saving.mutate();
   }
 
   return (
@@ -166,17 +180,31 @@ function VerifiedForm({ act, onClose }: { act: AdminLegalAct; onClose: () => voi
             The check has not read a consolidated form of this act yet, so there is none to record.
           </ErrorNotice>
         )}
-        {act.openChanges > 0 && (
-          <p data-testid="verified-form-open-changes" className="text-sm">
-            {act.openChanges === 1
-              ? 'Its open change stays open'
-              : `Its ${act.openChanges} open changes stay open`}
-            : resolve {act.openChanges === 1 ? 'it' : 'them'} on the{' '}
-            <Link to="/legislation" search={{ status: 'open' }} className="underline">
-              Changes
-            </Link>{' '}
-            tab.
-          </p>
+        {blocking.length > 0 && (
+          <div data-testid="verified-form-open-changes" className="space-y-1 text-sm">
+            <p>
+              Resolve {blocking.length === 1 ? 'this open change' : 'these open changes'} of the act
+              first: the daily check never looks again at a change at or before the verified form.
+            </p>
+            <ul className="list-disc pl-5">
+              {blocking.map((change) => (
+                <li key={change.id}>
+                  <Link
+                    to="/legislation/changes/$id"
+                    params={{ id: change.id }}
+                    className="underline underline-offset-4"
+                  >
+                    Form of {formatDay(change.consolidatedOn)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {openChanges.isError && (
+          <ErrorNotice testId="verified-form-changes-error">
+            The act’s open changes could not be read. Close this and try again.
+          </ErrorNotice>
         )}
         {saving.error && (
           <ErrorNotice testId="verified-form-error">{refusalOf(saving.error)}</ErrorNotice>
@@ -189,7 +217,9 @@ function VerifiedForm({ act, onClose }: { act: AdminLegalAct; onClose: () => voi
         <Button
           type="submit"
           data-testid="verified-form-submit"
-          disabled={saving.isPending || !last || !date || outOfRange}
+          disabled={
+            saving.isPending || !last || !date || outOfRange || unknown || blocking.length > 0
+          }
         >
           {saving.isPending ? 'Saving…' : 'Record'}
         </Button>

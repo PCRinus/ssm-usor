@@ -160,4 +160,6 @@ export const adminLegislationErrorReasons = {
   versionCannotAnswer: 'template_version_cannot_answer',
   // 422: the date is after the newest form seen on the portal, or the act has none.
   formNotSeen: 'form_not_seen',
+  // 422: a change of the act at or before the date is still open; it is resolved first.
+  openChangesAtOrBefore: 'open_changes_at_or_before',
 } as const;

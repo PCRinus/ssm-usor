@@ -6,6 +6,7 @@
 --   LGA01  the change is not open
 --   LGA02  the template version cannot answer the change
 --   LGA03  the form was not seen on the portal
+--   LGA04  an open change of the act is at or before the form
 
 alter table audit.events drop constraint events_action_known;
 alter table audit.events add constraint events_action_known check (
@@ -219,6 +220,14 @@ begin
   if p_consolidated_on is null or v_act.last_consolidated_on is null or p_consolidated_on > v_act.last_consolidated_on then
     raise exception 'The form was not seen on the portal.' using errcode = 'LGA03';
   end if;
+  -- The daily check never assesses a change at or before the verified form again, so one left
+  -- open there would stay open for good.
+  if exists (
+    select 1 from public.legal_changes c
+    where c.act_id = p_act_id and c.resolution = 'open' and c.consolidated_on <= p_consolidated_on
+  ) then
+    raise exception 'An open change of the act is at or before the form.' using errcode = 'LGA04';
+  end if;
 
   v_previous := v_act.verified_consolidated_on;
   update public.legal_acts set verified_consolidated_on = p_consolidated_on
@@ -239,7 +248,7 @@ end;
 $$;
 
 comment on function public.admin_record_verified_form(text, date) is
-  'Records the consolidated form p_consolidated_on as the one the templates were verified against for act p_act_id (ADR 017), for a platform admin past the second factor (ADR 038). The form is no newer than the last one seen on the portal. 42501 for anyone else, P0002 for no such act, LGA03 for a form not seen.';
+  'Records the consolidated form p_consolidated_on as the one the templates were verified against for act p_act_id (ADR 017), for a platform admin past the second factor (ADR 038). The form is no newer than the last one seen on the portal. 42501 for anyone else, P0002 for no such act, LGA03 for a form not seen, LGA04 while a change of the act at or before it is open.';
 
 revoke all on function public.admin_resolve_legal_change_no_impact(uuid, text) from public, anon, service_role;
 revoke all on function public.admin_link_legal_change(uuid, uuid) from public, anon, service_role;
