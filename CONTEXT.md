@@ -262,6 +262,8 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Source** (_sursa_): the file and the passage a proposed value came from, shown in the file itself. ADR 030. Avoid: evidence, citation (which is a template quoting a legal act).
 
+**Spotlight**: on a sheet photo opened from a value's page badge in the employee import's review, the photo dimmed but for the box where the value is written, outlined in lime. The box comes from **locating** the page, a request of its own after the page's reading, never charged in credits; a page not located opens unmarked. ADR 043. Avoid: highlight, which is the marked passage in a Word file or a PDF, and box or coordinates in what members read.
+
 **Possibly from another client** (_posibil de la alt client_): a proposed value found only in passages copied from another company's documents, proposed unticked. ADR 030. Avoid: wrong data, error.
 
 **Import folder** (_dosar importat_): the files of a confirmed import in "Alte documente", grouped under the day of the import with the upload's folders. ADR 030. Avoid: archive, which is what an archived client is.

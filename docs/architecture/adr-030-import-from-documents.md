@@ -8,6 +8,7 @@
 - Amended 2026-11-07: a new client's name defaults to ANAF's where ANAF registers the CUI under another name than the documents give, and a spelling correction is a choice with the document's spelling; see "Decision".
 - Amended by [ADR 041](adr-041-su-import-questions-and-suggestions.md) (accepted 2026-11-10): the means several files give are counted once, the assembly point and the smoking place are confirmed by the member, the substances are proposed, and the model drafts suggested values for a workplace's fire-safety card.
 - Amended 2026-11-11, [below](#amendment-2026-11-11-a-reading-outside-an-import): a product's safety data sheet is read in the substance dialog, outside any import, with its values checked by their codes and charged in credits of its own kind.
+- Amended 2026-11-13 by [ADR 043](adr-043-photo-value-highlight.md): in the employee import, a sheet page opened from a value spotlights where the value is written, located by Gemini 3.1 Flash-Lite in a request of its own, so a photograph is no longer always unmarked; Google LLC joins the sub-processors.
 
 ## Context
 
