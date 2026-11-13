@@ -6,7 +6,8 @@ const signerName = z.string().trim().min(1).max(160);
 
 export const answeredPersonSchema = z
   .object({ name: signerName, jobTitle: signerName.nullable() })
-  .strict();
+  .strict()
+  .meta({ id: 'WhoTrainedPerson' });
 
 export type AnsweredPerson = z.infer<typeof answeredPersonSchema>;
 
@@ -14,7 +15,8 @@ export type AnsweredPerson = z.infer<typeof answeredPersonSchema>;
 // With no handover date, `from` names them all.
 const answerPeriodsSchema = z
   .object({ before: answeredPersonSchema.optional(), from: answeredPersonSchema.optional() })
-  .strict();
+  .strict()
+  .meta({ id: 'WhoTrainedPeriods' });
 
 export type AnswerPeriods = z.infer<typeof answerPeriodsSchema>;
 
@@ -28,7 +30,8 @@ export const whoTrainedAnswerSchema = z
     // The person whose answer this is a copy of, until the member changes it.
     copiedFrom: z.string().min(1).max(80).optional(),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'WhoTrainedAnswer' });
 
 export type WhoTrainedAnswer = z.infer<typeof whoTrainedAnswerSchema>;
 

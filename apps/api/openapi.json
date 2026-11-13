@@ -15885,6 +15885,17 @@
                       "type": "string",
                       "nullable": true,
                       "format": "uuid"
+                    },
+                    "whoTrained": {
+                      "type": "object",
+                      "properties": {
+                        "ssm": {
+                          "$ref": "#/components/schemas/WhoTrainedAnswer"
+                        },
+                        "su": {
+                          "$ref": "#/components/schemas/WhoTrainedAnswer"
+                        }
+                      }
                     }
                   },
                   "additionalProperties": false
@@ -17065,6 +17076,57 @@
         },
         "required": ["changes", "states", "proposal"]
       },
+      "WhoTrainedAnswer": {
+        "type": "object",
+        "properties": {
+          "trainer": {
+            "$ref": "#/components/schemas/WhoTrainedPeriods"
+          },
+          "verifier": {
+            "$ref": "#/components/schemas/WhoTrainedPeriods"
+          },
+          "splitOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "copiedFrom": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        },
+        "additionalProperties": false
+      },
+      "WhoTrainedPeriods": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/WhoTrainedPerson"
+          },
+          "from": {
+            "$ref": "#/components/schemas/WhoTrainedPerson"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WhoTrainedPerson": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "jobTitle": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": ["name", "jobTitle"],
+        "additionalProperties": false
+      },
       "ImportInference": {
         "type": "string",
         "enum": ["no_posts_in_category", "ssm_training_schedule", "office_work"]
@@ -18030,6 +18092,17 @@
                       "type": "string",
                       "nullable": true,
                       "format": "uuid"
+                    },
+                    "whoTrained": {
+                      "type": "object",
+                      "properties": {
+                        "ssm": {
+                          "$ref": "#/components/schemas/WhoTrainedAnswer"
+                        },
+                        "su": {
+                          "$ref": "#/components/schemas/WhoTrainedAnswer"
+                        }
+                      }
                     }
                   },
                   "additionalProperties": false

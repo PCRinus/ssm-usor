@@ -8749,6 +8749,36 @@ export const EmployeeImportReviewChangesPeopleState = {
   set_aside: 'set_aside',
 } as const;
 
+export interface WhoTrainedPerson {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   * @nullable
+   */
+  jobTitle: string | null;
+}
+
+export interface WhoTrainedPeriods {
+  before?: WhoTrainedPerson;
+  from?: WhoTrainedPerson;
+}
+
+export interface WhoTrainedAnswer {
+  trainer?: WhoTrainedPeriods;
+  verifier?: WhoTrainedPeriods;
+  splitOn?: string;
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  copiedFrom?: string;
+}
+
 /**
  * @nullable
  */
@@ -9117,6 +9147,11 @@ export type EmployeeImportReviewChangesPeopleFields = {
   commuteMinutes?: EmployeeImportReviewChangesPeopleFieldsCommuteMinutes;
 };
 
+export type EmployeeImportReviewChangesPeopleWhoTrained = {
+  ssm?: WhoTrainedAnswer;
+  su?: WhoTrainedAnswer;
+};
+
 export type EmployeeImportReviewChangesPeople = {
   [key: string]: {
     state?: EmployeeImportReviewChangesPeopleState;
@@ -9127,6 +9162,7 @@ export type EmployeeImportReviewChangesPeople = {
     jobPositionId?: string;
     /** @nullable */
     workplaceId?: string | null;
+    whoTrained?: EmployeeImportReviewChangesPeopleWhoTrained;
   };
 };
 
@@ -11612,6 +11648,11 @@ export type SaveEmployeeImportChangesRequestChangesPeopleFields = {
   commuteMinutes?: SaveEmployeeImportChangesRequestChangesPeopleFieldsCommuteMinutes;
 };
 
+export type SaveEmployeeImportChangesRequestChangesPeopleWhoTrained = {
+  ssm?: WhoTrainedAnswer;
+  su?: WhoTrainedAnswer;
+};
+
 export type SaveEmployeeImportChangesRequestChangesPeople = {
   [key: string]: {
     state?: SaveEmployeeImportChangesRequestChangesPeopleState;
@@ -11622,6 +11663,7 @@ export type SaveEmployeeImportChangesRequestChangesPeople = {
     jobPositionId?: string;
     /** @nullable */
     workplaceId?: string | null;
+    whoTrained?: SaveEmployeeImportChangesRequestChangesPeopleWhoTrained;
   };
 };
 
