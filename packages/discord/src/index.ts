@@ -203,13 +203,22 @@ export function discordPayloads(message: DiscordMessage): DiscordPayload[] {
   return messages.map((each) => ({ ...each, allowed_mentions: { parse: [] } }));
 }
 
+const secondsToWait = (value: unknown) => {
+  const seconds = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return typeof seconds === 'number' && Number.isFinite(seconds) && seconds >= 0
+    ? seconds * 1_000
+    : null;
+};
+
 async function retryAfterMs(response: Response) {
-  const header = response.headers.get('Retry-After');
-  if (header !== null && Number.isFinite(Number(header))) return Number(header) * 1_000;
+  const fromHeader = secondsToWait(response.headers.get('Retry-After'));
+  if (fromHeader !== null) {
+    await response.body?.cancel().catch(() => {});
+    return fromHeader;
+  }
   try {
     const body: unknown = await response.json();
-    const seconds = (body as { retry_after?: unknown } | null)?.retry_after;
-    return typeof seconds === 'number' ? seconds * 1_000 : null;
+    return secondsToWait((body as { retry_after?: unknown } | null)?.retry_after);
   } catch {
     return null;
   }

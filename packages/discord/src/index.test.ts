@@ -278,6 +278,26 @@ describe('discordWebhook', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
+  it('waits only for a time Discord gave, from the header or else the body', async () => {
+    const limited = (headers: HeadersInit) =>
+      Response.json({ retry_after: 60 }, { status: 429, headers });
+    for (const header of ['', ' ', '-1', 'soon']) {
+      const fetcher = vi.fn<typeof fetch>(async () => limited({ 'Retry-After': header }));
+      expect(await discordWebhook(webhook, { fetcher }).send({ content: 'hello' })).toBe(false);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('lets go of the body of a post it was told to retry', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream({ cancel });
+    const fetcher = vi.fn<typeof fetch>(
+      async () => new Response(body, { status: 429, headers: { 'Retry-After': '60' } })
+    );
+    await discordWebhook(webhook, { fetcher }).send({ content: 'hello' });
+    expect(cancel).toHaveBeenCalled();
+  });
+
   it('never throws: a refused or failed post is logged and the rest dropped', async () => {
     const refused = vi.fn<typeof fetch>(async () => new Response('bad', { status: 400 }));
     const long = { content: `${'a'.repeat(1_500)}\n${'b'.repeat(1_500)}` };
