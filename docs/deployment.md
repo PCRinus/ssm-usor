@@ -183,7 +183,10 @@ it; alerts are then skipped and the rest works. Once, by hand, for each environm
 A message names the rule, the environment, the import's kind and id, the organization's id, the
 counts that tripped the rule and the cost, never a name, a value or a file name, so Discord is
 not a sub-processor. Whoever holds the URL can post to the channel: rotate it from the same
-Discord page when it leaks.
+Discord page when it leaks. A Worker secret outlives the GitHub secret: to stop the alerts,
+delete both, the Worker's with
+`pnpm --filter @ssm-usor/api exec wrangler secret delete DISCORD_ALERTS_WEBHOOK`, adding
+`--env non-prod` for non-prod.
 
 The request goes to the gateway's Anthropic endpoint unchanged, so the model, the effort and the
 structured output are set in `packages/release-notes/scripts/draft.ts` and `claude.ts`, and the
@@ -353,13 +356,18 @@ Each environment's Worker posts to its own Discord channel, `#legislatie-prod` a
 `#legislatie-non-prod`, through the GitHub environment secret `DISCORD_LEGISLATION_WEBHOOK`
 ([ADR 017](architecture/adr-017-legislation-monitoring.md)). The deploy job uploads it when it is
 set and warns without it; nothing is then posted and the check runs as usual. A run, by the
-cron or by hand, posts each change it records, with the act, its new consolidated form, the
-amending act and the act's page on the portal, and a failed run with the acts it could not read.
-A cron run that did not succeed also looks for the last successful run, and warns when none
-started in the last two days. A cron that never fires posts nothing. The messages are in
-English and carry legislation only, no personal or client data. To set it up, once per
-environment, create a webhook in the channel's **Edit Channel → Integrations → Webhooks**, save
-its URL as the environment's `DISCORD_LEGISLATION_WEBHOOK` secret, and redeploy the Worker.
+cron or by hand, posts the changes it records, ten to a message, each with the act, its new
+consolidated form, the amending act and the act's page on the portal, and a failed run with the
+acts it could not read. Every cron run, before it starts and also on a morning it skips, looks
+for the last successful run and warns when none started in the last two days, so a run the
+platform cut off is reported the next morning. A cron that never fires posts nothing. The
+messages are in English and carry legislation only, no personal or client data. To set it up,
+once per environment, create a webhook in the channel's **Edit Channel → Integrations →
+Webhooks**, save its URL as the environment's `DISCORD_LEGISLATION_WEBHOOK` secret, and
+redeploy the Worker. A Worker secret outlives the GitHub secret: to stop the notices, delete
+both, the Worker's with
+`pnpm --filter @ssm-usor/legislation exec wrangler secret delete DISCORD_LEGISLATION_WEBHOOK`,
+adding `--env non-prod` for non-prod.
 
 ### Running the check by hand
 
