@@ -82,6 +82,7 @@ export const employeeFormSchema = z
     birthDate: z.string().regex(/^([0-9]{4}-[0-9]{2}-[0-9]{2})?$/, 'Alege o dată validă.'),
     birthPlace: optionalText(160, 'Locul nașterii poate avea cel mult 160 de caractere.'),
     homeAddress: optionalText(240, 'Domiciliul poate avea cel mult 240 de caractere.'),
+    residenceAddress: optionalText(240, 'Adresa poate avea cel mult 240 de caractere.'),
     bloodGroup: z
       .string()
       .refine(
@@ -144,6 +145,7 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   birthDate: '',
   birthPlace: '',
   homeAddress: '',
+  residenceAddress: '',
   bloodGroup: '',
   rhFactor: '',
   notes: '',
@@ -172,6 +174,7 @@ export function toEmployeeForm(employee: Employee): EmployeeFormValues {
     birthDate: employee.birthDate ?? '',
     birthPlace: employee.birthPlace ?? '',
     homeAddress: employee.homeAddress ?? '',
+    residenceAddress: employee.residenceAddress ?? '',
     bloodGroup: employee.bloodGroup ?? '',
     rhFactor: employee.rhFactor ?? '',
     notes: employee.notes ?? '',
@@ -207,6 +210,7 @@ export function toCreateEmployeeRequest(values: EmployeeFormValues): CreateEmplo
     birthDate: textOrNull(values.birthDate),
     birthPlace: textOrNull(values.birthPlace),
     homeAddress: textOrNull(values.homeAddress),
+    residenceAddress: textOrNull(values.residenceAddress),
     bloodGroup: values.bloodGroup ? (values.bloodGroup as BloodGroup) : null,
     rhFactor: values.rhFactor ? (values.rhFactor as RhFactor) : null,
     notes: textOrNull(values.notes),

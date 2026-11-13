@@ -139,6 +139,9 @@ export function EmployeePage() {
           <Fact label="Domiciliu" wide>
             {employee.homeAddress}
           </Fact>
+          <Fact label="Adresa unde locuiește" wide>
+            {employee.residenceAddress}
+          </Fact>
           <Fact label="Grupa sanguină">{blood}</Fact>
           <Fact label="Calificarea">{employee.qualification}</Fact>
           <Fact label="Studiile">{employee.education}</Fact>
