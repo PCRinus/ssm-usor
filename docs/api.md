@@ -437,7 +437,8 @@ The facts the individual training sheets print
 ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) ride on the same
 bodies, all optional: `workplaceId`, `qualification` and `education` (up to 160 characters),
 `authorizations` (up to 500), `commuteRoute` (up to 1000) and `commuteMinutes` (an integer from 1
-to 600). A `workplaceId` that is archived, belongs to another client or is a registered office
+to 600). `residenceAddress` (up to 240), where the person lives when it is not the domicile, rides
+along too, though no sheet prints it. A `workplaceId` that is archived, belongs to another client or is a registered office
 where no activity takes place (ADR 041) answers `400` with an issue on `workplaceId`, as for a
 job position. `POST` without one gives the employee the client's only active workplace where
 activity takes place when it has exactly one, and none otherwise; `PUT` without the key keeps the

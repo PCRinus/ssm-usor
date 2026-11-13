@@ -10,6 +10,7 @@ const dialogRows: readonly DialogRow[] = [
   { pair: ['cnp', 'birthDate'] },
   { full: 'birthPlace' },
   { full: 'homeAddress' },
+  { full: 'residenceAddress' },
   { full: 'education' },
   { full: 'qualification' },
   { full: 'jobTitle' },

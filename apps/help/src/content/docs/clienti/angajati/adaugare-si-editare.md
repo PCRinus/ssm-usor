@@ -76,6 +76,7 @@ sources:
   - supabase/migrations/20261016200000_employee_sheet_fields.sql
   - supabase/migrations/20261018160000_employee_contract_number.sql
   - supabase/migrations/20261101191000_employee_identifiers_per_employment.sql
+  - supabase/migrations/20261115100000_employee_residence_address.sql
 ---
 
 Formularul lucrătorului e același când adaugi pe cineva și când corectezi ce ai scris despre el. Doar cinci câmpuri sunt obligatorii; restul le completezi când le afli. Ce lipsește îți cere aplicația abia acolo unde e nevoie de el, de obicei la fișa de instruire.
@@ -201,6 +202,8 @@ CNP-urile care încep cu 7, 8 sau 9, atribuite străinilor, nu spun secolul naș
 ### Locul nașterii și domiciliul
 
 Așa cum vrei să apară pe fișă: localitatea și județul pentru locul nașterii, adresa completă pentru domiciliu. Cel mult 160 și, respectiv, 240 de caractere.
+
+**Adresa unde locuiește** e opțională: o completezi doar când lucrătorul nu locuiește la domiciliul din buletin, de exemplu când stă cu chirie în orașul unde lucrează. Cel mult 240 de caractere. Nu se tipărește pe fișe: modelul fișei de instruire individuale SSM are doar rubrica „Domiciliul” (HG 1425/2006, normele metodologice, anexa nr. 11), iar fișa SU tipărește tot domiciliul. O vezi pe pagina lucrătorului, iar lucrătorul o vede în portal, la **Datele mele**.
 
 ### Grupa sanguină și Rh
 

@@ -92,6 +92,7 @@ export const fieldLabels: Record<FieldName, string> = {
   birthDate: 'Data nașterii',
   birthPlace: 'Locul nașterii',
   homeAddress: 'Domiciliul',
+  residenceAddress: 'Adresa unde locuiește',
   education: 'Studiile',
   qualification: 'Calificarea',
   bloodGroup: 'Grupa sanguină',
@@ -112,6 +113,7 @@ export const fieldTitles: Record<FieldName, string> = {
   birthDate: 'Data nașterii',
   birthPlace: 'Locul nașterii',
   homeAddress: 'Domiciliul',
+  residenceAddress: 'Adresa unde locuiește',
   education: 'Studii',
   qualification: 'Calificarea',
   bloodGroup: 'Grupa sanguină',
@@ -200,7 +202,7 @@ export type ResolvedField = {
 export const differs = (name: FieldName, a: FieldValue, b: FieldValue) =>
   typeof a === 'number' || typeof b === 'number'
     ? Number(a) !== Number(b)
-    : name === 'homeAddress'
+    : name === 'homeAddress' || name === 'residenceAddress'
       ? !sameHomeAddress(a, b)
       : foldText(String(a)) !== foldText(String(b));
 
@@ -579,6 +581,7 @@ const textLimits: Partial<Record<FieldName, [number, number]>> = {
   employeeNumber: [1, 40],
   birthPlace: [1, 160],
   homeAddress: [1, 240],
+  residenceAddress: [1, 240],
   education: [1, 160],
   qualification: [1, 160],
   jobTitle: [2, 160],

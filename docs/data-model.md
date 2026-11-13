@@ -723,6 +723,7 @@ stay a one-line comparison like on `clients`.
 | `hired_at`                                  | Required; drives the introductory training deadline. Tenure is computed, never stored.                                                                            |
 | `status`, `terminated_at`                   | `active` or `terminated`; the date is required exactly when terminated.                                                                                           |
 | `birth_date`, `birth_place`, `home_address` | Optional fields of the individual training sheet. The birth date must agree with the CNP.                                                                         |
+| `residence_address`                         | Optional, up to 240 characters: where the person lives when it is not the domicile. No sheet prints it; annex 11 has only the domicile.                           |
 | `blood_group`, `rh_factor`                  | Optional, constrained to `0(I)`, `A(II)`, `B(III)`, `AB(IV)` and `+`, `-`.                                                                                        |
 | `notes`                                     | Free text, up to 2000 characters.                                                                                                                                 |
 | `workplace_id`                              | Optional: the workplace the person works at, by a composite foreign key on `(workplace_id, client_id)` to `client_workplaces (id, client_id)`. ADR 021.           |
@@ -1701,8 +1702,8 @@ refusing a field it does not name (`22023`):
 {
   "employees": [{ "key", "id", "replace", "job_position_id", "workplace_id", "last_name",
     "first_name", "cnp", "employee_number", "birth_date", "birth_place", "home_address",
-    "education", "qualification", "blood_group", "rh_factor", "job_title", "hired_at",
-    "commute_route", "commute_minutes", "status", "terminated_at" }],
+    "residence_address", "education", "qualification", "blood_group", "rh_factor", "job_title",
+    "hired_at", "commute_route", "commute_minutes", "status", "terminated_at" }],
   "trainings": [{ "key", "domain", "phase", "held_on", "duration_minutes", "material",
     "trainer_name", "trainer_job_title", "verifier_name", "verifier_job_title",
     "supplementary_reason", "records": [{ "employee_key", "admitted_on", "admitted_by_name",

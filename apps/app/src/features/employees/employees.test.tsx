@@ -54,6 +54,7 @@ const createdEmployee = {
   birthDate: '1990-01-01',
   birthPlace: null,
   homeAddress: null,
+  residenceAddress: null,
   bloodGroup: null,
   rhFactor: null,
   notes: null,
@@ -585,6 +586,7 @@ describe('employee creation', () => {
       birthDate: '1990-01-01',
       birthPlace: null,
       homeAddress: null,
+      residenceAddress: null,
       bloodGroup: 'A(II)',
       rhFactor: '+',
       notes: null,
@@ -615,6 +617,7 @@ describe('employee creation', () => {
       birthDate: null,
       bloodGroup: null,
       contractNumber: null,
+      residenceAddress: null,
     });
   });
 
@@ -629,6 +632,26 @@ describe('employee creation', () => {
     expect(label('commuteRoute')).toContain('Traseul de deplasare');
     expect(label('commuteRoute')).not.toContain('(opțional)');
     expect(label('commuteMinutes')).toContain('(opțional)');
+  });
+
+  it('asks right after the domicile, as optional, where the worker lives when it differs', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    await screen.findByTestId('new-employee-page');
+    const label = (id: string) => document.querySelector(`label[for="${id}"]`)!;
+
+    expect(label('residenceAddress').textContent).toContain('Adresa unde locuiește');
+    expect(label('residenceAddress').textContent).toContain('(opțional)');
+    expect(
+      label('homeAddress').compareDocumentPosition(label('residenceAddress')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.getByTestId('employee-residence-address').getAttribute('aria-describedby')).toBe(
+      'residenceAddress-hint'
+    );
+    expect(document.getElementById('residenceAddress-hint')?.textContent).toBe(
+      'Dacă diferă de domiciliul din buletin.'
+    );
   });
 
   it('maps a duplicate CNP to the field and an archived client to the form', async () => {
@@ -740,6 +763,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
   const editPage = `${detailPage}/editare`;
   const withSheet = {
     ...createdEmployee,
+    residenceAddress: 'Str. Florilor 9, Timișoara',
     workplace: { id: workshop.id, name: workshop.name },
     qualification: 'Sudor autorizat',
     education: 'Școala profesională',
@@ -767,6 +791,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     await user.type(screen.getByTestId('employee-qualification'), 'Sudor autorizat');
     await user.type(screen.getByTestId('employee-education'), 'Școala profesională');
     await user.type(screen.getByTestId('employee-authorizations'), 'ISCIR');
+    await user.type(screen.getByTestId('employee-residence-address'), 'Str. Florilor 9, Timișoara');
     await user.type(
       screen.getByTestId('employee-commute-route'),
       'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24'
@@ -779,6 +804,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       qualification: 'Sudor autorizat',
       education: 'Școala profesională',
       authorizations: 'ISCIR',
+      residenceAddress: 'Str. Florilor 9, Timișoara',
       commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
       commuteMinutes: 35,
     });
@@ -908,6 +934,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       'Data nașterii',
       'Locul nașterii',
       'Domiciliu',
+      'Adresa unde locuiește',
       'Grupa sanguină',
       'Calificarea',
       'Studiile',
@@ -920,6 +947,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(within(section).getByText('Sudor autorizat')).toBeTruthy();
     expect(within(section).getByText('Școala profesională')).toBeTruthy();
     expect(within(section).getByText('ISCIR')).toBeTruthy();
+    expect(within(section).getByText('Str. Florilor 9, Timișoara')).toBeTruthy();
     expect(
       within(section).getByText('Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24')
     ).toBeTruthy();
@@ -935,6 +963,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       within(section).getByText(label, { selector: 'dt' }).nextElementSibling?.textContent;
     for (const label of [
       'Punct de lucru',
+      'Adresa unde locuiește',
       'Calificarea',
       'Studiile',
       'Autorizații',
@@ -1508,6 +1537,7 @@ describe('employee editing', () => {
     birthDate: '1990-01-01',
     birthPlace: null,
     homeAddress: null,
+    residenceAddress: null,
     bloodGroup: null,
     rhFactor: null,
     notes: null,

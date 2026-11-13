@@ -106,6 +106,7 @@ export function sheetPage(parts: {
       birthDate: '1985-06-15',
       birthPlace: 'Sibiu',
       homeAddress: null,
+      residenceAddress: null,
       education: null,
       qualification: null,
       bloodGroup: null,

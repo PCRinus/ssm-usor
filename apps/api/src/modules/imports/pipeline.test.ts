@@ -1542,6 +1542,7 @@ describe('an employee import', () => {
     birthDate: null,
     birthPlace: null,
     homeAddress: null,
+    residenceAddress: null,
     education: null,
     qualification: null,
     bloodGroup: null,

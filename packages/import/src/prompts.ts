@@ -178,6 +178,7 @@ Rules:
 - Dates as YYYY-MM-DD. A date written with only a month and a year is YYYY-MM, never a day you chose, and a note says so.
 - Durations in minutes (hours × 60).
 - fields: hiredAt is the hire date ("data angajării") where the page writes one, else the day the person was admitted to work ("admis la lucru"); leftOn the day employment ended, where the sheet records it; workplace the place of work as written ("locul de muncă"); bloodGroup as written, with its Rh when written together ("A II Rh+"); rhFactor only when written apart.
+- residenceAddress: only an address the page gives apart from the domicile ("domiciliul") as where the person actually lives ("reședința", "adresa de reședință", "locuiește în …"); empty when the page writes only the domicile. Never copy the domicile into it.
 - jobTitle is the post ("funcția"), and a periodic table's "Specialitatea" column too; qualification only what is written under "calificarea". Posts, qualifications, workplaces and job titles are written in sentence case with Romanian diacritics ("Sudor", "Consilier juridic"), whatever the capitals on paper.
 - commuteRoute: the route as the declaration writes it, after the means of transport where it names one ("Autobuz 33: Piața Unirii - Calea Aradului - poarta fabricii").
 - admission: "admis la lucru" on a sheet's first page: the day, and the name and job title of who admitted the person.

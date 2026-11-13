@@ -191,6 +191,7 @@ export function employeeData(): PortalEmployeeDataResponse {
       workplace: 'Atelierul din Lugoj',
       hiredAt: '2024-02-15',
       homeAddress: 'Str. Lungă 5, Lugoj',
+      residenceAddress: null,
       birthDate: '1990-05-04',
       birthPlace: 'Timișoara',
       bloodGroup: 'A(II)',

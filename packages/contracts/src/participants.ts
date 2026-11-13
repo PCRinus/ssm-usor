@@ -351,8 +351,8 @@ export const portalTrainingRecordsResponseSchema = z.object({
 export type PortalTrainingRecordsResponse = z.infer<typeof portalTrainingRecordsResponseSchema>;
 
 /**
- * _Datele mele_: what the individual training sheets print about the person, never the CNP or
- * the specialist's notes.
+ * _Datele mele_: what the individual training sheets print about the person, and where they live
+ * when it is not their domicile; never the CNP or the specialist's notes.
  */
 export const portalEmployeeDataSchema = z.object({
   employee: z.object({
@@ -364,6 +364,7 @@ export const portalEmployeeDataSchema = z.object({
     workplace: z.string().nullable(),
     hiredAt: z.iso.date(),
     homeAddress: z.string().nullable(),
+    residenceAddress: z.string().nullable(),
     birthDate: z.iso.date().nullable(),
     birthPlace: z.string().nullable(),
     bloodGroup: bloodGroupSchema.nullable(),

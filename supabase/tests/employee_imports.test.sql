@@ -57,6 +57,7 @@ returns jsonb language sql as $$
         "hired_at": "2018-01-08", "status": "terminated", "terminated_at": "2022-06-30" },
       { "key": "p3", "id": "ee000000-0000-4000-8000-000000000001", "replace": ["job_title"],
         "birth_place": "Cluj-Napoca", "home_address": "Str. Lungă 1, Iași",
+        "residence_address": "Str. Florilor 5, Timișoara",
         "job_title": "Vânzător principal", "hired_at": "2019-01-01" }
     ],
     "trainings": [
@@ -443,9 +444,9 @@ select is(
 );
 
 select results_eq(
-  $$ select birth_place, home_address, job_title, hired_at from public.employees
+  $$ select birth_place, home_address, residence_address, job_title, hired_at from public.employees
      where id = 'ee000000-0000-4000-8000-000000000001' $$,
-  $$ values ('Iași', 'Str. Lungă 1, Iași', 'Vânzător principal', '2020-01-10'::date) $$,
+  $$ values ('Iași', 'Str. Lungă 1, Iași', 'Str. Florilor 5, Timișoara', 'Vânzător principal', '2020-01-10'::date) $$,
   'the existing employee keeps their values, gains the empty ones and takes the one replaced'
 );
 

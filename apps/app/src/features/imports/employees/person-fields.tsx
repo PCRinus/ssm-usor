@@ -71,6 +71,7 @@ const groups = {
       'birthDate',
       'birthPlace',
       'homeAddress',
+      'residenceAddress',
       'education',
       'qualification',
     ],
@@ -400,13 +401,19 @@ const lengthLimits: Partial<Record<FieldName, number>> = {
   employeeNumber: 40,
   birthPlace: 160,
   homeAddress: 240,
+  residenceAddress: 240,
   education: 160,
   qualification: 160,
   jobTitle: 160,
   commuteRoute: 1000,
 };
 
-const wrappingFields = new Set<FieldName>(['homeAddress', 'jobTitle', 'commuteRoute']);
+const wrappingFields = new Set<FieldName>([
+  'homeAddress',
+  'residenceAddress',
+  'jobTitle',
+  'commuteRoute',
+]);
 
 // Enter saves and a pasted line break becomes a space: these values print inside sentences and
 // table cells of the generated documents.

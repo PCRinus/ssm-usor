@@ -88,6 +88,7 @@ describe('the dialogs that correct the data read from the sheets', () => {
       ['cnp', 'birthDate'],
       ['birthPlace'],
       ['homeAddress'],
+      ['residenceAddress'],
       ['education'],
       ['qualification'],
     ]);
@@ -121,12 +122,13 @@ describe('the dialogs that correct the data read from the sheets', () => {
     expect(fieldOf('homeAddress').className).not.toContain('subgrid');
   });
 
-  it('writes the address, the job title and the route in fields that wrap, the rest on one line', async () => {
+  it('writes the addresses, the job title and the route in fields that wrap, the rest on one line', async () => {
     const user = userEvent.setup();
     render(<Data />);
 
     await open(user, 'Modifică datele personale');
     expect(screen.getByLabelText(/^Domiciliul/).tagName).toBe('TEXTAREA');
+    expect(screen.getByLabelText(/^Adresa unde locuiește/).tagName).toBe('TEXTAREA');
     expect(screen.getByLabelText(/^Locul nașterii/).tagName).toBe('INPUT');
     await user.click(screen.getByRole('button', { name: 'Renunță' }));
 

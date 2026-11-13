@@ -1759,6 +1759,8 @@ export type EmployeeResponseEmployee = {
   /** @nullable */
   homeAddress: string | null;
   /** @nullable */
+  residenceAddress: string | null;
+  /** @nullable */
   bloodGroup: EmployeeResponseEmployeeBloodGroup;
   /** @nullable */
   rhFactor: EmployeeResponseEmployeeRhFactor;
@@ -1870,6 +1872,12 @@ export interface CreateEmployeeRequest {
    * @nullable
    */
   homeAddress?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   * @nullable
+   */
+  residenceAddress?: string | null;
   /** @nullable */
   bloodGroup?: CreateEmployeeRequestBloodGroup;
   /** @nullable */
@@ -1996,6 +2004,12 @@ export interface UpdateEmployeeRequest {
    * @nullable
    */
   homeAddress?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 240
+   * @nullable
+   */
+  residenceAddress?: string | null;
   /** @nullable */
   bloodGroup?: UpdateEmployeeRequestBloodGroup;
   /** @nullable */
@@ -8906,6 +8920,13 @@ export type EmployeeImportReviewChangesPeopleFieldsHomeAddress = {
   replace?: boolean;
 };
 
+export type EmployeeImportReviewChangesPeopleFieldsResidenceAddress = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
 export type EmployeeImportReviewChangesPeopleFieldsEducation = {
   /** @minimum 0 */
   option?: number;
@@ -8984,6 +9005,7 @@ export type EmployeeImportReviewChangesPeopleFields = {
   birthDate?: EmployeeImportReviewChangesPeopleFieldsBirthDate;
   birthPlace?: EmployeeImportReviewChangesPeopleFieldsBirthPlace;
   homeAddress?: EmployeeImportReviewChangesPeopleFieldsHomeAddress;
+  residenceAddress?: EmployeeImportReviewChangesPeopleFieldsResidenceAddress;
   education?: EmployeeImportReviewChangesPeopleFieldsEducation;
   qualification?: EmployeeImportReviewChangesPeopleFieldsQualification;
   bloodGroup?: EmployeeImportReviewChangesPeopleFieldsBloodGroup;
@@ -9257,6 +9279,22 @@ export type EmployeeImportReviewProposalPeopleItemFieldsHomeAddress = {
   app?: string | null;
 };
 
+export type EmployeeImportReviewProposalPeopleItemFieldsResidenceAddressOptionsItem = {
+  /** @minLength 1 */
+  value: string;
+  /** @minItems 1 */
+  pageIds: string[];
+};
+
+export type EmployeeImportReviewProposalPeopleItemFieldsResidenceAddress = {
+  options: EmployeeImportReviewProposalPeopleItemFieldsResidenceAddressOptionsItem[];
+  /**
+   * @minLength 1
+   * @nullable
+   */
+  app?: string | null;
+};
+
 export type EmployeeImportReviewProposalPeopleItemFieldsEducationOptionsItem = {
   /** @minLength 1 */
   value: string;
@@ -9405,6 +9443,7 @@ export type EmployeeImportReviewProposalPeopleItemFields = {
   birthDate: EmployeeImportReviewProposalPeopleItemFieldsBirthDate;
   birthPlace: EmployeeImportReviewProposalPeopleItemFieldsBirthPlace;
   homeAddress: EmployeeImportReviewProposalPeopleItemFieldsHomeAddress;
+  residenceAddress?: EmployeeImportReviewProposalPeopleItemFieldsResidenceAddress;
   education: EmployeeImportReviewProposalPeopleItemFieldsEducation;
   qualification: EmployeeImportReviewProposalPeopleItemFieldsQualification;
   bloodGroup: EmployeeImportReviewProposalPeopleItemFieldsBloodGroup;
@@ -11351,6 +11390,13 @@ export type SaveEmployeeImportChangesRequestChangesPeopleFieldsHomeAddress = {
   replace?: boolean;
 };
 
+export type SaveEmployeeImportChangesRequestChangesPeopleFieldsResidenceAddress = {
+  /** @minimum 0 */
+  option?: number;
+  value?: string | number | null;
+  replace?: boolean;
+};
+
 export type SaveEmployeeImportChangesRequestChangesPeopleFieldsEducation = {
   /** @minimum 0 */
   option?: number;
@@ -11429,6 +11475,7 @@ export type SaveEmployeeImportChangesRequestChangesPeopleFields = {
   birthDate?: SaveEmployeeImportChangesRequestChangesPeopleFieldsBirthDate;
   birthPlace?: SaveEmployeeImportChangesRequestChangesPeopleFieldsBirthPlace;
   homeAddress?: SaveEmployeeImportChangesRequestChangesPeopleFieldsHomeAddress;
+  residenceAddress?: SaveEmployeeImportChangesRequestChangesPeopleFieldsResidenceAddress;
   education?: SaveEmployeeImportChangesRequestChangesPeopleFieldsEducation;
   qualification?: SaveEmployeeImportChangesRequestChangesPeopleFieldsQualification;
   bloodGroup?: SaveEmployeeImportChangesRequestChangesPeopleFieldsBloodGroup;

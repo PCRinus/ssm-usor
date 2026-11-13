@@ -49,6 +49,8 @@ export const createEmployeeRequestSchema = z
     birthDate: z.iso.date().nullish(),
     birthPlace: optionalText(1, 160),
     homeAddress: optionalText(1, 240),
+    // Where the person lives when it is not their domicile; no sheet prints it.
+    residenceAddress: optionalText(1, 240),
     bloodGroup: bloodGroupSchema.nullish(),
     rhFactor: rhFactorSchema.nullish(),
     notes: optionalText(1, 2000),
@@ -136,6 +138,7 @@ export const employeeSchema = z.object({
   birthDate: z.iso.date().nullable(),
   birthPlace: z.string().nullable(),
   homeAddress: z.string().nullable(),
+  residenceAddress: z.string().nullable(),
   bloodGroup: bloodGroupSchema.nullable(),
   rhFactor: rhFactorSchema.nullable(),
   notes: z.string().nullable(),

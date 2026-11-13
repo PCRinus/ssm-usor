@@ -48,6 +48,8 @@ export const sheetPersonFieldsSchema = z.object({
   birthDate: dateField,
   birthPlace: textField,
   homeAddress: textField,
+  // Proposals stored before the field was read have none.
+  residenceAddress: textField.default({ options: [] }),
   education: textField,
   qualification: textField,
   bloodGroup: personField(z.enum(bloodGroups)),

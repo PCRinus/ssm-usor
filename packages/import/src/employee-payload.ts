@@ -52,6 +52,7 @@ export interface EmployeePayloadRow {
   birth_date?: string;
   birth_place?: string;
   home_address?: string;
+  residence_address?: string;
   education?: string;
   qualification?: string;
   blood_group?: string;
@@ -148,6 +149,7 @@ const columns: Record<Exclude<EmployeeImportFieldName, 'workplace' | 'leftOn'>, 
   birthDate: 'birth_date',
   birthPlace: 'birth_place',
   homeAddress: 'home_address',
+  residenceAddress: 'residence_address',
   education: 'education',
   qualification: 'qualification',
   bloodGroup: 'blood_group',
@@ -165,6 +167,7 @@ const textLimits: Partial<Record<EmployeeImportFieldName, [number, number]>> = {
   employeeNumber: [1, 40],
   birthPlace: [1, 160],
   homeAddress: [1, 240],
+  residenceAddress: [1, 240],
   education: [1, 160],
   qualification: [1, 160],
   jobTitle: [2, 160],
@@ -191,7 +194,7 @@ function allowed(name: EmployeeImportFieldName, value: Value): boolean {
 const differs = (name: EmployeeImportFieldName, a: Value, b: Value) =>
   typeof a === 'number' || typeof b === 'number'
     ? Number(a) !== Number(b)
-    : name === 'homeAddress'
+    : name === 'homeAddress' || name === 'residenceAddress'
       ? !sameHomeAddress(a, b)
       : foldText(a) !== foldText(b);
 

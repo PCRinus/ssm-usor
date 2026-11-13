@@ -50,7 +50,7 @@ const trainingStatusColumns =
 
 const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, source, created_at), signature_requests!signature_requests_record_of_client(${requestColumns}), training_signatures!training_signatures_record_of_client(${signatureColumns})`;
 
-const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
+const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, residence_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
 
 const employeeListColumns =
   `id, last_name, first_name, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}, ${testStatusColumns}` as const;
@@ -255,6 +255,7 @@ export const getPortalEmployeeData: RouteHandler<
         workplace: row.client_workplaces?.name ?? null,
         hiredAt: row.hired_at,
         homeAddress: row.home_address,
+        residenceAddress: row.residence_address,
         birthDate: row.birth_date,
         birthPlace: row.birth_place,
         bloodGroup: row.blood_group as PortalEmployeeData['employee']['bloodGroup'],

@@ -404,6 +404,24 @@ export function EmployeeForm({
               />
             </Field>
             <Field
+              id="residenceAddress"
+              label="Adresa unde locuiește"
+              mark="optional"
+              hint="Dacă diferă de domiciliul din buletin."
+              help="angajati.domiciliu"
+              error={errors.residenceAddress}
+              className="sm:col-span-2"
+            >
+              <Input
+                id="residenceAddress"
+                data-testid="employee-residence-address"
+                className="h-11"
+                {...register('residenceAddress')}
+                autoComplete="off"
+                {...control('residenceAddress', true)}
+              />
+            </Field>
+            <Field
               id="bloodGroup"
               label="Grupa sanguină"
               mark="optional"

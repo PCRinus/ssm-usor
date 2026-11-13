@@ -27,6 +27,7 @@ const emptyFields = {
   birthDate: none,
   birthPlace: none,
   homeAddress: none,
+  residenceAddress: none,
   education: none,
   qualification: none,
   bloodGroup: none,
