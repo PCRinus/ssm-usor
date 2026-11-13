@@ -2798,10 +2798,11 @@ The `Admin` entrypoint serves `createAdminApp()` (`src/admin-app.ts`) under `/ad
 through the admin Worker's service binding ([admin app](admin.md)); the public `fetch` does not
 mount it. Every route passes `requireAuth` and `requireAdmin`: the admin claim and an `aal2` token,
 else `401` or `403`. They are plain Hono routes, outside the OpenAPI document, answering the shapes
-of `@ssm-usor/contracts`' `admin-imports.ts` and `admin-impersonation.ts`. They read with the
-secret key (`createAdminClient`, which names the admin in `x-audit-actor`) across every
-organization, and start and end an impersonation with the admin's own token; the modules are
-`modules/admin-imports/` and `modules/admin-impersonation/`.
+of `@ssm-usor/contracts`' `admin-imports.ts`, `admin-impersonation.ts` and `admin-legislation.ts`.
+They read with the secret key (`createAdminClient`, which names the admin in `x-audit-actor`)
+across every organization, and start and end an impersonation and change the legislation data
+with the admin's own token; the modules are `modules/admin-imports/`,
+`modules/admin-impersonation/` and `modules/admin-legislation/`.
 
 | Route                                  | Answer                                                                                                                                                                                                     |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2844,6 +2845,31 @@ part's for a path under `parts/<part>/`, and must be kept; the file must be list
 today's reading and compares each with what the member confirmed, after an estimate and only with
 `--yes`. It reads production data, so only Mircea runs it, from his machine:
 [import-test-runs.md](import-test-runs.md).
+
+### Legislation
+
+| Route                                                   | Answer                                                                                                                                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /admin/legislation/changes`                        | `{ items }`, newest seen first, not paginated; `status` (`open` or `resolved`), `outcome` (an outcome or `unassessed`); `400` for an unknown filter                                        |
+| `GET /admin/legislation/changes/{id}`                   | The change with `amendedUnits`, `review`, `passages`, `resolvingVersion` and `candidateVersions`; `404` for a change that does not exist or an id that is not a UUID                       |
+| `POST /admin/legislation/changes/{id}/no-impact`        | The change read again, after `admin_resolve_legal_change_no_impact` with `{ note }`; `400` for a note not of 2 to 500 characters, `404`, `409 legal_change_not_open`                       |
+| `POST /admin/legislation/changes/{id}/template-version` | The change read again, after `admin_link_legal_change` with `{ templateVersionId }`; `400`, `404`, `409 legal_change_not_open`, `422 template_version_cannot_answer`                       |
+| `GET /admin/legislation/acts`                           | `{ items }`, the watched acts by name, each as the members' list has it plus `openChanges`                                                                                                 |
+| `PUT /admin/legislation/acts/{id}/verified-form`        | The act after `admin_record_verified_form` with `{ consolidatedOn }`; `400` for a date that is not one, `404`, `422 form_not_seen` for a date after the last form seen or an act with none |
+| `GET /admin/legislation/runs`                           | `{ items, page, pageSize, total }`, the runs of the daily check, newest first; `page`, `pageSize` (25, at most 100)                                                                        |
+
+**A change** in the list has its `act` (`id`, `name`, `portalId`), `seenAt`, `consolidatedOn`,
+`comparedWith`, `outcome`, `assessedAt`, `amendingAct` (the portal's guess from the list of
+actions), `amendingActs` (`name`, `adoptedOn`, `portalId`), `resolution`, `resolvedAt`,
+`resolvedByNote` and `passageCount`. The detail adds `amendedUnits` (`unit`, `subject`,
+`operation`, `date`, `amendingAct`), `review` (English, for the admin only), `passages` as the
+members' list has them plus `manifest`, `typeKey`, `paragraph` and `article`, in template order,
+`resolvingVersion`, the version whose `resolves_legal_change_id` names it, and, while it is open,
+`candidateVersions`: the built-in versions of the types its passages name, registered after it was
+seen, not `layout` and answering no other change, newest first. A version is `{ id, typeKey,
+title, version, kind, note, createdAt }`. The writes go with the admin's own token; the database
+refuses anyone else (`403`) and records each in the audit log
+([data model](data-model.md#legislation)).
 
 ### Impersonation
 

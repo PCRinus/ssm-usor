@@ -13,6 +13,15 @@ import {
   startImpersonation,
 } from './modules/admin-impersonation/handlers';
 import { getImport, getImportFileLink, listImports } from './modules/admin-imports/handlers';
+import {
+  getChange,
+  linkTemplateVersion,
+  listActs,
+  listChanges,
+  listRuns,
+  recordVerifiedForm,
+  resolveNoImpact,
+} from './modules/admin-legislation/handlers';
 
 // Served only by the Admin entrypoint, which the admin Worker reaches through a service binding;
 // the public `fetch` never mounts it (ADR 038). No CORS: the browser calls the admin Worker's
@@ -34,6 +43,13 @@ export function createAdminApp() {
   app.post('/impersonation', startImpersonation);
   app.delete('/impersonation', endImpersonation);
   app.get('/impersonations', listImpersonations);
+  app.get('/legislation/changes', listChanges);
+  app.get('/legislation/changes/:id', getChange);
+  app.post('/legislation/changes/:id/no-impact', resolveNoImpact);
+  app.post('/legislation/changes/:id/template-version', linkTemplateVersion);
+  app.get('/legislation/acts', listActs);
+  app.put('/legislation/acts/:id/verified-form', recordVerifiedForm);
+  app.get('/legislation/runs', listRuns);
 
   app.notFound((c) =>
     c.json(
