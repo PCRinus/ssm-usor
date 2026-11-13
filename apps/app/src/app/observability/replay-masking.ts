@@ -73,10 +73,12 @@ export function shapeOf(text: string) {
 
 const asterisks = (text: string) => text.replace(/\S/g, '*');
 
+// The edges refuse a digit across one separator, so a longer number, such as an IBAN or a
+// document number, is never masked in part.
 const personalPatterns = [
-  /(?<!\d)[1-9]\d{12}(?!\d)/g,
+  /(?<!\d[ -]?)[1-9](?:[ -]?\d){12}(?![ -]?\d)/g,
   /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu,
-  /(?<![\d+])(?:\+40|0040|0)[\s.-]?(?:\(0\)[\s.-]?)?[237](?:[\s.-]?\d){8}(?!\d)/g,
+  /(?<![\d+/])(?:(?:\+|00)40[ .\-/]?(?:\(0\)[ .\-/]?)?|\(0|0)[237](?:[ .\-/)]{0,2}\d){8}(?![ .\-/]?\d)/g,
 ];
 
 // Names have no pattern; the markers carry them. This catches a CNP, an email address or a
