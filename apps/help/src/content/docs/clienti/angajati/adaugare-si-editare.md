@@ -44,6 +44,8 @@ topics:
     heading: Autorizațiile
   - id: angajati.traseu
     heading: Traseul de deplasare
+  - id: angajati.mijloace-de-transport
+    heading: Mijloacele de transport
   - id: angajati.durata-deplasarii
     heading: Durata deplasării
   - id: angajati.observatii
@@ -77,6 +79,9 @@ sources:
   - supabase/migrations/20261018160000_employee_contract_number.sql
   - supabase/migrations/20261101191000_employee_identifiers_per_employment.sql
   - supabase/migrations/20261115100000_employee_residence_address.sql
+  - supabase/migrations/20261115110000_employee_commute_means.sql
+  - packages/contracts/src/commute-means.ts
+  - apps/app/src/features/employees/commute-means-combobox.tsx
 ---
 
 Formularul lucrătorului e același când adaugi pe cineva și când corectezi ce ai scris despre el. Doar cinci câmpuri sunt obligatorii; restul le completezi când le afli. Ce lipsește îți cere aplicația abia acolo unde e nevoie de el, de obicei la fișa de instruire.
@@ -219,11 +224,27 @@ Autorizațiile cerute de munca lui, de exemplu ISCIR sau electrician autorizat A
 
 ### Traseul de deplasare
 
-Drumul obișnuit de acasă la locul de muncă și înapoi, cu mijlocul de transport, de exemplu „Str. Florilor 5 – Str. Fabricii 3, cu autobuzul 12”. Cel mult 1000 de caractere.
+Drumul obișnuit de acasă la locul de muncă și înapoi, de exemplu „Str. Florilor 5 – Str. Fabricii 3”. Cel mult 1000 de caractere. Cu ce merge lucrătorul alegi alături, la [Mijloacele de transport](#mijloacele-de-transport).
 
 Fișa SSM îl cere: fără traseu, nu se poate întocmi. Contează pentru că un accident petrecut în timpul și pe traseul normal de la domiciliu la locul de muncă și înapoi, fără abateri nejustificate, e accident de muncă (Legea 319/2006, art. 30 alin. (1) lit. g) și alin. (2)), iar traseul declarat e cel cu care se compară o cercetare.
 
 Poți salva lucrătorul și fără traseu, pentru că rar îl știi când îl introduci prima dată. Formularul nu-l marchează nici obligatoriu, nici opțional: fișa SSM îl cere. Completează-l înainte de prima instruire: lucrătorul semnează fișa pe pagina care tipărește traseul.
+
+### Mijloacele de transport
+
+Cu ce ajunge lucrătorul de acasă la locul de muncă. Alegi din listă unul sau mai multe, pentru că un drum le combină adesea, de exemplu **Pe jos** și **Transport public**:
+
+- **Pe jos**;
+- **Bicicletă sau trotinetă**;
+- **Mașina personală**;
+- **Transport asigurat de angajator**: mașina, microbuzul sau autobuzul pus la dispoziție de angajator;
+- **Transport public**: autobuz, tramvai, troleibuz, metrou, tren.
+
+Dacă mijlocul nu e în listă, scrie-l în căsuța de căutare și alege **Adaugă „…”**. Poți adăuga un singur mijloc scris de tine, de cel mult 120 de caractere; unul scris după el îl înlocuiește. Scrie-l cum vrei să se citească după traseu: „motocicleta” se tipărește „cu motocicleta”.
+
+Câmpul e opțional, iar fișa nu-l cere. Fișa SSM tipărește mijloacele pe rândul traseului, după traseu și înaintea duratei: „Str. Florilor 5 – Str. Fabricii 3, pe jos și cu transportul public (25 de minute)”. Un mijloc pe care traseul îl numește deja nu se tipărește a doua oară: la traseul „Str. Florilor 5 – Str. Fabricii 3, cu autobuzul 12”, **Transport public** nu mai adaugă nimic.
+
+Transportul asigurat de angajator schimbă cine cercetează un accident pe drum: de cercetarea accidentului de circulație produs pe drumurile publice, urmat de incapacitate temporară de muncă, răspunde angajatorul care a organizat transportul (HG 1425/2006, normele metodologice, art. 116 alin. (7)).
 
 ### Durata deplasării
 

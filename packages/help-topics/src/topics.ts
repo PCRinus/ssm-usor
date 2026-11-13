@@ -138,6 +138,10 @@ export const helpTopics = {
   },
   'angajati.lista': { path: '/clienti/angajati/', anchor: 'lista-lucrătorilor' },
   'angajati.marca': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'marca' },
+  'angajati.mijloace-de-transport': {
+    path: '/clienti/angajati/adaugare-si-editare/',
+    anchor: 'mijloacele-de-transport',
+  },
   'angajati.modificare': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'modificarea-datelor',
