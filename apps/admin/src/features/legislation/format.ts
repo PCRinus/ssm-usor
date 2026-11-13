@@ -48,6 +48,7 @@ export const passageStatusLabels: Record<LegalChangePassage['status'], string> =
   added: 'Added',
   repealed: 'Repealed',
   missing: 'Missing from both forms',
+  uncompared: 'Could not be compared',
 };
 
 export const versionKindLabels: Record<TemplateVersionKind, string> = {

@@ -244,10 +244,17 @@ function PassageCard({ passage }: { passage: AdminLegalChangePassage }) {
           </span>
         </Fact>
       </dl>
-      <div className="bg-muted/40 mt-3 rounded-md p-3" lang="ro">
-        <p className="text-muted-foreground mb-1 text-xs">The law’s text, old → new</p>
-        <WordDiff before={passage.oldText} after={passage.newText} testId="passage-diff" />
-      </div>
+      {passage.status === 'uncompared' ? (
+        <p className="text-muted-foreground mt-3 text-sm">
+          The check could not compare this unit’s text, which is empty or too long to compare. Read
+          it on the portal.
+        </p>
+      ) : (
+        <div className="bg-muted/40 mt-3 rounded-md p-3" lang="ro">
+          <p className="text-muted-foreground mb-1 text-xs">The law’s text, old → new</p>
+          <WordDiff before={passage.oldText} after={passage.newText} testId="passage-diff" />
+        </div>
+      )}
     </article>
   );
 }

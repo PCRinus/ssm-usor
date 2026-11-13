@@ -314,6 +314,19 @@ describe('a legal change', () => {
     );
   });
 
+  it('says a passage the check could not compare was not compared, with no diff', async () => {
+    current = {
+      ...detail,
+      passages: detail.passages.map((passage) => ({ ...passage, status: 'uncompared' as const })),
+    };
+    mountAdmin(`/legislation/changes/${changeId}`);
+
+    const passage = await screen.findByTestId('change-passage');
+    expect(passage.textContent).toContain('Could not be compared');
+    expect(passage.textContent).toContain('The check could not compare this unit’s text');
+    expect(within(passage).queryByTestId('passage-diff')).toBeNull();
+  });
+
   it('is marked as no impact with a note members read', async () => {
     mountAdmin(`/legislation/changes/${changeId}`);
     const user = userEvent.setup();
