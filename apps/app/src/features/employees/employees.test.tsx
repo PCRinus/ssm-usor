@@ -618,12 +618,13 @@ describe('employee creation', () => {
     });
   });
 
-  it('does not call the commute route optional, which the SSM sheet needs, but its duration', async () => {
+  it('does not call the workplace or the commute route optional, which the sheets need, but the duration', async () => {
     mockApi();
     mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
     await screen.findByTestId('new-employee-page');
     const label = (id: string) => document.querySelector(`label[for="${id}"]`)!.textContent;
 
+    expect(label('workplaceId')).toBe('Punct de lucru');
     expect(label('commuteRoute')).toBe('Traseul de deplasare');
     expect(label('commuteMinutes')).toBe('Durata deplasării (minute)(opțional)');
   });

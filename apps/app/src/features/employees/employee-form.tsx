@@ -322,7 +322,6 @@ export function EmployeeForm({
             <Field
               id="workplaceId"
               label="Punct de lucru"
-              mark="optional"
               help="angajati.punct-de-lucru"
               error={errors.workplaceId}
               className="sm:col-span-2"
