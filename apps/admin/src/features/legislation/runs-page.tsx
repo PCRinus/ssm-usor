@@ -40,14 +40,15 @@ function Errors({ run }: { run: LegalCheckRun }) {
     return <span className="text-muted-foreground">None</span>;
   }
   const count = run.errors.length;
+  const acts = [...new Set(run.errors.map((error) => error.act ?? 'the run'))];
   return (
     <details data-testid="run-errors" className="max-w-md">
       <summary className="cursor-pointer text-sm">
         {count} error{count === 1 ? '' : 's'}
         <span className="text-muted-foreground">
           {' '}
-          · {[...new Set(run.errors.map((error) => error.act ?? 'the run'))].slice(0, 3).join(', ')}
-          {count > 3 && '…'}
+          · {acts.slice(0, 3).join(', ')}
+          {acts.length > 3 && '…'}
         </span>
       </summary>
       <ul className="mt-2 space-y-2 text-xs">
