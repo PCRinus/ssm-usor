@@ -1584,7 +1584,7 @@
       "act": "lege-319-2006",
       "article": "25",
       "locator": "Art. 25",
-      "text": "(1) Măsurile prevăzute la art. 24 din Legea 319/2006 vor fi stabilite astfel încât fiecare lucrător să poată beneficia de supravegherea sănătății la intervale regulate.\n(2) Supravegherea sănătății lucrătorilor este asigurată prin medicii de medicină a muncii."
+      "text": "(1) Măsurile prevăzute la art. 24 din Legea 319/2006 vor fi stabilite astfel încât fiecare lucrător să poată beneficia de supravegherea sănătății la intervale regulate.\n(2) Supravegherea sănătății lucrătorilor este asigurată prin medicii de medicina a muncii."
     },
     {
       "manifest": "ssm",
@@ -2595,7 +2595,7 @@
       "lastParagraph": 524,
       "block": null,
       "form": "reference",
-      "act": "hg-1425-2006",
+      "act": "hg-1091-2006",
       "article": null,
       "locator": null,
       "text": null
@@ -3040,7 +3040,7 @@
       "act": "hg-971-2006",
       "article": null,
       "locator": "Anexa 4",
-      "text": "Cerințe minime privind identificarea și localizarea echipamentelor destinate prevenirii și stingerii incendiilor.\n(1) Prezenta anexă se aplică echipamentului destinat exclusiv prevenirii și stingerii incendiilor.\n(2) Echipamentele folosite la prevenirea și stingerea incendiilor trebuie identificate prin utilizarea unei anumite culori pentru echipament și prin amplasarea unui panou de localizare și/ sau prin utilizarea unei culori specifice pentru locul unde se află echipamentele respective ori punctele de acces la acestea.\n(3) Aceste echipamente se identifică prin culoarea roșie. Suprafața roșie trebuie să fie suficient de mare pentru a permite identificarea rapidă a echipamentului.\n(4) Panourile prevăzute la anexa nr. 2, punctul 3.5 din H.G. 971/2006 trebuie utilizate pentru a marca localizarea acestor echipamente."
+      "text": "Cerințe minime privind identificarea și localizarea echipamentelor destinate prevenirii și stingerii incendiilor.\n(1) Prezenta anexă se aplică echipamentului destinat exclusiv prevenirii și stingerii incendiilor.\n(2) Echipamentele folosite la prevenirea și stingerea incendiilor trebuie identificate prin utilizarea unei anumite culori pentru echipament și prin amplasarea unui panou de localizare și/ sau prin utilizarea unei culori specifice pentru locul unde se află echipamentele respective ori punctele de acces la acestea.\n(3) Aceste echipamente se identifică prin culoarea roșie. Suprafața roșie trebuie să fie suficient de mare pentru a permite identificarea rapidă a echipamentului.\n(4) Panourile prevăzute la pct. 3.5 din anexa nr. 2 din H.G. 971/2006 trebuie utilizate pentru a marca localizarea acestor echipamente."
     },
     {
       "manifest": "ssm",
@@ -6889,19 +6889,6 @@
       "article": "92",
       "locator": "Art. 92",
       "text": "(1) Durata instruirii la locul de muncă depinde de riscurile pentru securitate și sănătate în muncă, precum și de măsurile și activitățile de prevenire și protecție la nivelul fiecărui loc de muncă, post de lucru și/ sau fiecărei funcții exercitate.\n(2) Durata instruirii la locul de muncă se stabilește de către angajator, împreună cu:\na) conducătorul locului de muncă respectiv; sau\nb) lucrătorul desemnat; sau\nc) serviciul intern de prevenire și protecție; sau\nd) serviciul extern de prevenire și protecție."
-    },
-    {
-      "manifest": "ssm",
-      "file": "2.2_general_training_material.docx",
-      "typeKey": "general_training_material",
-      "paragraph": 1655,
-      "lastParagraph": 1655,
-      "block": null,
-      "form": "reference",
-      "act": "hg-767-2016",
-      "article": null,
-      "locator": null,
-      "text": null
     },
     {
       "manifest": "ssm",
@@ -12128,19 +12115,6 @@
       "article": "92",
       "locator": "Art. 92",
       "text": "(1) Durata instruirii la locul de muncă depinde de riscurile pentru securitate și sănătate în muncă, precum și de măsurile și activitățile de prevenire și protecție la nivelul fiecărui loc de muncă, post de lucru și/ sau fiecărei funcții exercitate.\n(2) Durata instruirii la locul de muncă se stabilește de către angajator, împreună cu:\nconducătorul locului de muncă respectiv; sau\nlucrătorul desemnat; sau\nserviciul intern de prevenire și protecție; sau\nserviciul extern de prevenire și protecție."
-    },
-    {
-      "manifest": "ssm",
-      "file": "11_employer_briefing.docx",
-      "typeKey": "employer_briefing",
-      "paragraph": 250,
-      "lastParagraph": 250,
-      "block": null,
-      "form": "reference",
-      "act": "hg-767-2016",
-      "article": null,
-      "locator": null,
-      "text": null
     },
     {
       "manifest": "ssm",
