@@ -392,7 +392,7 @@ export const faq = {
     },
     {
       q: 'Cât costă?',
-      a: 'De la 39 € + TVA pe lună, cu oricâți clienți. Prețul depinde de câți lucrători au clienții tăi în total; detaliile sunt pe pagina de prețuri.',
+      a: 'Start de la 39 €, Profesional de la 89 € + TVA pe lună, cu oricâți clienți. Prețul depinde de câți lucrători au clienții tăi în total; detaliile sunt pe pagina de prețuri.',
       link: { text: 'pagina de prețuri', href: '/preturi/' },
     },
   ] satisfies Faq[],

@@ -1,10 +1,14 @@
 ---
+import BillingToggle from '../../components/site/BillingToggle.astro';
 import {
   billing,
   calculator,
   clientsHint,
+  defaultPeriod,
+  employeesLabel,
   enterprise,
   eur,
+  membersLabel,
   pricingCta,
   pricingLinks,
   quote,
@@ -13,11 +17,12 @@ import FluxLayout from '../../layouts/FluxLayout.astro';
 
 const employees = 250;
 const members = 1;
-const initial = quote(employees, members);
+const initial = quote(employees, members, defaultPeriod);
+const quoted = initial.plan.id === enterprise.id;
 ---
 
 <FluxLayout title={calculator.title} description={calculator.description} current="/preturi/">
-  <section class="calc" data-calculator>
+  <section class="calc" data-calculator data-billing-scope data-billing={defaultPeriod}>
     <div class="wrap">
       <header class="head">
         <a class="back" href={pricingLinks.page}>
@@ -33,7 +38,7 @@ const initial = quote(employees, members);
             <div class="labelrow">
               <label for="employees">{calculator.employees}</label>
               <output for="employees" class="count" data-employees-label>
-                {employees.toLocaleString('ro-RO')}
+                {employeesLabel(employees)}
               </output>
             </div>
             <input
@@ -41,16 +46,17 @@ const initial = quote(employees, members);
               type="range"
               min={calculator.minEmployees}
               max={calculator.maxEmployees}
-              step="10"
+              step={calculator.stepEmployees}
               value={employees}
               aria-describedby="employees-hint"
+              aria-valuetext={employeesLabel(employees)}
             />
             <div class="scale" id="employees-hint">
               <span>{calculator.minEmployees.toLocaleString('ro-RO')}</span>
               <span class="hint" data-clients-hint>
                 {clientsHint(employees)}
               </span>
-              <span>{calculator.maxEmployees.toLocaleString('ro-RO')}</span>
+              <span>{calculator.overEmployees}</span>
             </div>
           </div>
 
@@ -66,9 +72,9 @@ const initial = quote(employees, members);
                     preset.employees === employees && preset.members === members ? 'true' : 'false'
                   }
                 >
-                  {preset.label.split(' · ').map((part, index) => (
+                  {preset.label.split(', ').map((part, index) => (
                     <>
-                      {index > 0 && ' · '}
+                      {index > 0 && ', '}
                       <span>{part}</span>
                     </>
                   ))}
@@ -77,7 +83,7 @@ const initial = quote(employees, members);
             </div>
           </div>
 
-          <div class="members">
+          <div class="splitrow">
             <span id="members-label" class="label">
               {calculator.members}
             </span>
@@ -86,24 +92,31 @@ const initial = quote(employees, members);
                 −
               </button>
               <span aria-live="polite" data-members>
-                {members}
+                {membersLabel(members)}
               </span>
               <button type="button" data-step="1" aria-label={calculator.more}>
                 +
               </button>
             </div>
           </div>
+
+          <div class="splitrow">
+            <span class="label">{calculator.period}</span>
+            <BillingToggle placement="calculator" />
+          </div>
         </div>
 
-        <div class="result">
-          <span class="best">
+        <div class="result" aria-live="polite">
+          <p class="best">
             {calculator.best} <span data-plan>{initial.plan.name}</span>
-          </span>
+          </p>
           <p class="total">
-            <span class="amt" data-total>
-              {eur(initial.total)}
+            <span class:list={['amt', { ask: quoted }]} data-total>
+              {quoted ? calculator.enterpriseAsk : eur(initial.perMonth!)}
             </span>
-            <span class="per">{billing.perMonth}</span>
+            <span class="per" data-per hidden={quoted}>
+              {billing.perMonth}
+            </span>
           </p>
           <ul data-lines>
             {initial.lines.map((line) => (
@@ -118,16 +131,17 @@ const initial = quote(employees, members);
           </p>
           <a
             class="cta"
-            href={pricingCta.href}
+            href={quoted ? pricingCta.quoteHref : pricingCta.href}
             data-track="cta_clicked"
-            data-track-prop-target="notify"
+            data-track-prop-target={quoted ? 'quote' : 'notify'}
             data-track-prop-placement="calculator"
             data-track-prop-plan={initial.plan.id}
           >
-            {pricingCta.label}
+            {quoted ? pricingCta.quote : pricingCta.label}
           </a>
           <span class="terms">
-            {pricingCta.note} {calculator.terms}
+            <span data-cta-note>{quoted ? pricingCta.quoteNote : pricingCta.note}</span>{' '}
+            {calculator.terms}
           </span>
         </div>
       </div>
@@ -156,12 +170,23 @@ const initial = quote(employees, members);
           </span>
         </div>
       </div>
+      <p class="extra">{calculator.extra}</p>
     </div>
   </section>
 </FluxLayout>
 
 <script>
-  import { calculator, clientsHint, eur, quote } from '../../components/site/pricing';
+  import {
+    type BillingPeriod,
+    calculator,
+    clientsHint,
+    employeesLabel,
+    enterprise,
+    eur,
+    membersLabel,
+    pricingCta,
+    quote,
+  } from '../../components/site/pricing';
   import { track } from '../../lib/analytics';
 
   const root = document.querySelector<HTMLElement>('[data-calculator]')!;
@@ -171,16 +196,22 @@ const initial = quote(employees, members);
   const field = <T extends HTMLElement>(name: string) => root.querySelector<T>(`[data-${name}]`)!;
 
   let employees = Number(range.value);
-  let members = Number(field('members').textContent);
+  let members = 1;
   let used = false;
 
   const render = () => {
-    const result = quote(employees, members);
-    field('employees-label').textContent = employees.toLocaleString('ro-RO');
+    const period = (root.dataset.billing ?? 'annual') as BillingPeriod;
+    const result = quote(employees, members, period);
+    const quoted = result.plan.id === enterprise.id;
+    field('employees-label').textContent = employeesLabel(employees);
+    range.setAttribute('aria-valuetext', employeesLabel(employees));
     field('clients-hint').textContent = clientsHint(employees);
-    field('members').textContent = String(members);
+    field('members').textContent = membersLabel(members);
     field('plan').textContent = result.plan.name;
-    field('total').textContent = eur(result.total);
+    const total = field('total');
+    total.textContent = quoted ? calculator.enterpriseAsk : eur(result.perMonth!);
+    total.classList.toggle('ask', quoted);
+    field('per').hidden = quoted;
     field('advice').textContent = result.advice;
     field('lines').replaceChildren(
       ...result.lines.map((line) => {
@@ -194,7 +225,11 @@ const initial = quote(employees, members);
         return item;
       })
     );
+    cta.href = quoted ? pricingCta.quoteHref : pricingCta.href;
+    cta.textContent = quoted ? pricingCta.quote : pricingCta.label;
+    cta.dataset.trackPropTarget = quoted ? 'quote' : 'notify';
     cta.dataset.trackPropPlan = result.plan.id;
+    field('cta-note').textContent = quoted ? pricingCta.quoteNote : pricingCta.note;
     for (const preset of presets) {
       const on =
         Number(preset.dataset.presetEmployees) === employees &&
@@ -228,6 +263,7 @@ const initial = quote(employees, members);
       changed('members');
     });
   }
+  root.addEventListener('billing-change', render);
 </script>
 
 <style>
@@ -330,7 +366,7 @@ const initial = quote(employees, members);
     font: 500 14px/1.2 var(--sans);
     cursor: pointer;
   }
-  /* A long label breaks after the dot, never in the middle of the employee count. */
+  /* A long label breaks after the comma, never in the middle of the employee count. */
   .presets button span {
     white-space: nowrap;
   }
@@ -339,7 +375,7 @@ const initial = quote(employees, members);
     background: var(--ink);
     color: #fff;
   }
-  .members {
+  .splitrow {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -367,7 +403,7 @@ const initial = quote(employees, members);
     cursor: pointer;
   }
   .stepper span {
-    min-width: 44px;
+    min-width: 72px;
     font-size: 18px;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
@@ -393,10 +429,8 @@ const initial = quote(employees, members);
   }
   .best {
     color: var(--lime);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
   .total {
     display: flex;
@@ -411,6 +445,13 @@ const initial = quote(employees, members);
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1;
+  }
+  .amt.ask {
+    font-size: 40px;
+    line-height: 1.1;
+  }
+  .per[hidden] {
+    display: none;
   }
   .per,
   .advice,
@@ -463,7 +504,7 @@ const initial = quote(employees, members);
 
   .summaries {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
   }
   .summary {
@@ -478,6 +519,17 @@ const initial = quote(employees, members);
   .summary span {
     color: var(--ink-2);
     font-size: 15px;
+  }
+  .extra {
+    max-width: 76ch;
+    color: var(--ink-2);
+    font-size: 15px;
+  }
+
+  @media (max-width: 941px) {
+    .summaries {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   @media (max-width: 760px) {
@@ -496,6 +548,9 @@ const initial = quote(employees, members);
     }
     .amt {
       font-size: 56px;
+    }
+    .amt.ask {
+      font-size: 36px;
     }
   }
 </style>

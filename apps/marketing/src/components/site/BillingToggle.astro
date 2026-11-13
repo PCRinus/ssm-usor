@@ -1,5 +1,5 @@
 ---
-import { billing } from './pricing';
+import { billing, defaultPeriod } from './pricing';
 
 interface Props {
   placement: string;
@@ -9,11 +9,19 @@ const { placement } = Astro.props;
 ---
 
 <div class="billing" role="group" aria-label={billing.label} data-billing-toggle={placement}>
-  <button type="button" data-period="monthly" aria-pressed="true">
-    {billing.monthly}
-  </button>
-  <button type="button" data-period="annual" aria-pressed="false">
+  <button
+    type="button"
+    data-period="annual"
+    aria-pressed={defaultPeriod === 'annual' ? 'true' : 'false'}
+  >
     {billing.annual}
+  </button>
+  <button
+    type="button"
+    data-period="monthly"
+    aria-pressed={defaultPeriod === 'monthly' ? 'true' : 'false'}
+  >
+    {billing.monthly}
   </button>
 </div>
 
@@ -29,6 +37,7 @@ const { placement } = Astro.props;
         if (!scope || scope.dataset.billing === period) return;
         scope.dataset.billing = period;
         for (const other of buttons) other.setAttribute('aria-pressed', String(other === button));
+        scope.dispatchEvent(new Event('billing-change'));
         track('billing_period_changed', { period, placement: group.dataset.billingToggle! });
       });
     }
