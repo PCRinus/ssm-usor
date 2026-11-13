@@ -99,15 +99,19 @@ export function splitContent(text: string, max: number = discordLimits.content) 
   let lines: string[] = [];
   let length = 0;
   let open: string | null = null;
+  // Fences and blank lines alone would post an empty code block.
+  let filled = false;
 
-  const add = (line: string) => {
+  const add = (line: string, text = line.trim() !== '' && !line.trimStart().startsWith(fence)) => {
     length += (lines.length > 0 ? 1 : 0) + line.length;
     lines.push(line);
+    filled ||= text;
   };
   const flush = () => {
-    parts.push(`${lines.join('\n')}${open ? closingFence : ''}`);
+    if (filled) parts.push(`${lines.join('\n')}${open ? closingFence : ''}`);
     lines = [];
     length = 0;
+    filled = false;
     if (open) add(open);
   };
   const fresh = () => lines.length === (open ? 1 : 0);
@@ -129,18 +133,15 @@ export function splitContent(text: string, max: number = discordLimits.content) 
       }
       // Only a fence line about as long as a whole part leaves a fresh part no room: that part
       // runs over rather than loop forever.
-      const cut = cutAt(rest, Math.max(1, room));
-      add(rest.slice(0, cut));
-      rest = rest.slice(cut);
+      const piece = rest.slice(0, cutAt(rest, Math.max(1, room)));
+      add(piece, piece.trim() !== '');
+      rest = rest.slice(piece.length);
       flush();
     }
   }
   if (!fresh()) flush();
-  return parts.filter(hasText);
+  return parts;
 }
-
-const hasText = (part: string) =>
-  part.split('\n').some((line) => line.trim() !== '' && !line.trimStart().startsWith(fence));
 
 const fieldSize = (field: DiscordEmbedField) => field.name.length + field.value.length;
 

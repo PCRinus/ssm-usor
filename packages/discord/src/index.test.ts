@@ -126,6 +126,12 @@ describe('splitContent', () => {
       expect(part).toMatch(/^```diff\na\n[^]*a\n```$/);
     }
     expect(splitContent('```diff\n\n```')).toEqual([]);
+    expect(splitContent(`a\n${' '.repeat(4_500)}`)).toEqual(['a']);
+  });
+
+  it('keeps a fence line longer than a whole message', () => {
+    const parts = splitContent(`\`\`\`${'y'.repeat(2_500)}\nabc\n\`\`\``);
+    expect(parts.join('').replaceAll(/[`\n]/g, '')).toBe(`${'y'.repeat(2_500)}abc`);
   });
 
   it('never cuts an emoji in half', () => {
