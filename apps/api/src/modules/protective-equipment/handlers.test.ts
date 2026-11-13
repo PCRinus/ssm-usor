@@ -47,8 +47,6 @@ const welder = {
   activities: null,
   training_interval_months: null,
   needs_protective_equipment: true,
-  needs_instructions: null,
-  needs_fire_instructions: null,
   created_at: '2026-09-20T10:00:00+00:00',
   updated_at: '2026-09-20T10:00:00+00:00',
 };

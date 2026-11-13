@@ -144,9 +144,7 @@ function mockUpstream(
     if (url.pathname === '/rest/v1/job_positions') {
       return (
         handlers.positions?.(init, url) ??
-        Response.json([
-          { id: managerId, needs_protective_equipment: null, needs_instructions: null },
-        ])
+        Response.json([{ id: managerId, needs_protective_equipment: null }])
       );
     }
     if (url.pathname === '/rest/v1/risk_evaluations') {

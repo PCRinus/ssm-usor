@@ -3,7 +3,6 @@ import {
   applyPositionInstructions,
   copyPositionInstructions,
   createInstructionModule,
-  decidePositionInstructions,
   downloadInstructionModule,
   getInstructionModule,
   getInstructionModuleVersion,
@@ -18,7 +17,6 @@ import {
   applyPositionInstructionsRoute,
   copyPositionInstructionsRoute,
   createInstructionModuleRoute,
-  decidePositionInstructionsRoute,
   downloadInstructionModuleRoute,
   getInstructionModuleRoute,
   getInstructionModuleVersionRoute,
@@ -43,5 +41,4 @@ export const instructionModulesRouter = createRouter()
   .openapi(downloadInstructionModuleRoute, downloadInstructionModule)
   .openapi(listPositionInstructionsRoute, listPositionInstructions)
   .openapi(applyPositionInstructionsRoute, applyPositionInstructions)
-  .openapi(copyPositionInstructionsRoute, copyPositionInstructions)
-  .openapi(decidePositionInstructionsRoute, decidePositionInstructions);
+  .openapi(copyPositionInstructionsRoute, copyPositionInstructions);

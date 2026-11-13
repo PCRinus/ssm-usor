@@ -1517,7 +1517,7 @@ describe('the annexes of the fire-safety own instructions', () => {
       ...facts,
       jobPositions: facts.jobPositions.map((position) => ({
         ...position,
-        needsFireInstructions: false,
+        needsFireInstructions: true,
         instructions: position.instructions.filter((module) => module.domain === 'ssm'),
       })),
     });

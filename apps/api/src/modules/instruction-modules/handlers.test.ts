@@ -5,7 +5,6 @@ import {
   instructionModuleListResponseSchema,
   instructionModuleResponseSchema,
   instructionModuleVersionResponseSchema,
-  jobPositionResponseSchema,
   positionInstructionsResponseSchema,
   saveInstructionBodyResponseSchema,
   textHash,
@@ -114,21 +113,6 @@ const organization = {
   fire_safety_technician_name: 'Mihai STANCU',
 };
 
-const welder = {
-  id: welderId,
-  client_id: clientId,
-  name: 'Sudor',
-  staff_category: 'execution',
-  work_zone: 'Atelier',
-  activities: null,
-  training_interval_months: null,
-  needs_protective_equipment: true,
-  needs_instructions: true,
-  needs_fire_instructions: null as boolean | null,
-  created_at: '2026-09-20T10:00:00+00:00',
-  updated_at: '2026-09-20T10:00:00+00:00',
-};
-
 const applied = (module: typeof ladders) => ({
   module_id: module.id,
   instruction_modules: {
@@ -197,30 +181,7 @@ function mockUpstream(
     if (url.pathname === '/rest/v1/job_positions') {
       const custom = handlers.positions?.(init, url);
       if (custom) return custom;
-      const select = url.searchParams.get('select') ?? '';
-      if (select.includes('employees(count)')) {
-        return Response.json([
-          {
-            id: welderId,
-            employees: [{ count: 3 }],
-            job_position_equipment: [{ count: 2 }],
-            instructions: [{ count: 1 }],
-            fire_instructions: [{ count: 0 }],
-          },
-        ]);
-      }
-      if (init?.method === 'PATCH') return Response.json(welder);
-      if (select === 'needs_instructions,needs_fire_instructions') {
-        return Response.json({ needs_instructions: true, needs_fire_instructions: null });
-      }
-      return Response.json([
-        {
-          id: welderId,
-          needs_protective_equipment: true,
-          needs_instructions: true,
-          needs_fire_instructions: null,
-        },
-      ]);
+      return Response.json([{ id: welderId, needs_protective_equipment: true }]);
     }
     throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
   });
@@ -759,23 +720,22 @@ describe('POST /instruction-modules/preview', () => {
 const instructionsPath = `/clients/${clientId}/job-positions/${welderId}/instructions`;
 
 describe('GET …/instructions', () => {
-  it('lists the applied modules with the decision', async () => {
+  it('lists the applied modules', async () => {
     mockUpstream();
     const response = await request(instructionsPath);
     expect(response.status).toBe(200);
     const body = positionInstructionsResponseSchema.parse(await response.json());
     expect(body.domain).toBe('ssm');
     expect(body.items.map((item) => item.title)).toEqual(['Scări metalice']);
-    expect(body.needsInstructions).toBe(true);
     const listed = calls('/rest/v1/job_position_instructions', 'GET')[0]![0];
     expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.ssm');
   });
 
-  it("lists the fire-safety modules with the position's fire-safety decision", async () => {
+  it('lists the fire-safety modules apart', async () => {
     mockUpstream({ applied: (init) => (isGet(init) ? Response.json([]) : undefined) });
     const response = await request(`${instructionsPath}?domain=su`);
     const body = positionInstructionsResponseSchema.parse(await response.json());
-    expect([body.domain, body.items, body.needsInstructions]).toEqual(['su', [], null]);
+    expect([body.domain, body.items]).toEqual(['su', []]);
     const listed = calls('/rest/v1/job_position_instructions', 'GET')[0]![0];
     expect(new URL(String(listed)).searchParams.get('domain')).toBe('eq.su');
   });
@@ -808,21 +768,15 @@ describe('PUT …/instructions', () => {
     expect(removed.searchParams.get('domain')).toBe('eq.ssm');
   });
 
-  it('applies fire-safety modules as the fire-safety decision, leaving the other alone', async () => {
-    mockUpstream({
-      applied: (init) => (isGet(init) ? Response.json([]) : undefined),
-      positions: (init, url) =>
-        url.searchParams.get('select') === 'needs_instructions,needs_fire_instructions'
-          ? Response.json({ needs_instructions: true, needs_fire_instructions: true })
-          : undefined,
-    });
+  it('applies fire-safety modules, leaving the other domain alone', async () => {
+    mockUpstream({ applied: (init) => (isGet(init) ? Response.json([]) : undefined) });
     const response = await request(instructionsPath, 'PUT', {
       domain: 'su',
       moduleIds: [hotWorkId],
     });
     expect(response.status).toBe(200);
     const body = positionInstructionsResponseSchema.parse(await response.json());
-    expect([body.domain, body.needsInstructions]).toEqual(['su', true]);
+    expect(body.domain).toBe('su');
     expect(sent('/rest/v1/job_position_instructions', 'POST')).toEqual([
       expect.objectContaining({ module_id: hotWorkId, domain: 'su' }),
     ]);
@@ -890,75 +844,5 @@ describe('POST …/instructions/copy', () => {
       fromJobPositionId: welderId,
     });
     expect(response.status).toBe(400);
-  });
-});
-
-describe('PATCH …/instructions-decision', () => {
-  it('marks the position as needing none and returns it with its counts', async () => {
-    mockUpstream({
-      positions: (init) =>
-        init?.method === 'PATCH'
-          ? Response.json({ ...welder, needs_instructions: false })
-          : undefined,
-    });
-    const response = await request(
-      `/clients/${clientId}/job-positions/${welderId}/instructions-decision`,
-      'PATCH',
-      { needsInstructions: false }
-    );
-    expect(response.status).toBe(200);
-    const { jobPosition } = jobPositionResponseSchema.parse(await response.json());
-    expect([jobPosition.needsInstructions, jobPosition.instructionCount]).toEqual([false, 1]);
-    expect(sent('/rest/v1/job_positions', 'PATCH')).toEqual({ needs_instructions: false });
-  });
-
-  it('marks the position as needing no fire-safety module apart', async () => {
-    mockUpstream({
-      positions: (init) =>
-        init?.method === 'PATCH'
-          ? Response.json({ ...welder, needs_fire_instructions: false })
-          : undefined,
-    });
-    const response = await request(
-      `/clients/${clientId}/job-positions/${welderId}/instructions-decision`,
-      'PATCH',
-      { domain: 'su', needsInstructions: false }
-    );
-    expect(response.status).toBe(200);
-    const { jobPosition } = jobPositionResponseSchema.parse(await response.json());
-    expect([jobPosition.needsInstructions, jobPosition.needsFireInstructions]).toEqual([
-      true,
-      false,
-    ]);
-    expect(sent('/rest/v1/job_positions', 'PATCH')).toEqual({ needs_fire_instructions: false });
-  });
-
-  it('refuses "needs instructions" in words', async () => {
-    mockUpstream();
-    const response = await request(
-      `/clients/${clientId}/job-positions/${welderId}/instructions-decision`,
-      'PATCH',
-      { needsInstructions: true }
-    );
-    expect(response.status).toBe(400);
-    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
-      'instructions_decided_by_modules'
-    );
-  });
-
-  it('refuses "needs none" while modules are applied', async () => {
-    mockUpstream({
-      positions: (init) =>
-        init?.method === 'PATCH'
-          ? Response.json({ code: 'INS01', message: 'applied' }, { status: 409 })
-          : undefined,
-    });
-    const response = await request(
-      `/clients/${clientId}/job-positions/${welderId}/instructions-decision`,
-      'PATCH',
-      { needsInstructions: false }
-    );
-    expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('instructions_applied');
   });
 });

@@ -137,9 +137,9 @@ export type DocumentFacts = {
     trainingIntervalMonths: number | null;
     /** Null until decided; false when the post needs none; true while it has entries (ADR 011). */
     needsProtectiveEquipment: boolean | null;
-    /** Null until decided; false when the post needs none; true while it applies modules (ADR 012). */
+    /** Null until the post applies a module, which every post must; then true (ADR 012). */
     needsInstructions: boolean | null;
-    /** The same for the fire-safety modules, decided apart (ADR 012, amendment of 2026-10-11). */
+    /** The same for the fire-safety modules (ADR 012, amendment of 2026-10-11). */
     needsFireInstructions: boolean | null;
     /** The instruction modules the post applies, of both domains, each with its current version. */
     instructions: {

@@ -26,14 +26,12 @@ type JobPositionRow = Pick<
   | 'activities'
   | 'training_interval_months'
   | 'needs_protective_equipment'
-  | 'needs_instructions'
-  | 'needs_fire_instructions'
   | 'created_at'
   | 'updated_at'
 >;
 
 export const jobPositionColumns =
-  'id, client_id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, needs_instructions, needs_fire_instructions, created_at, updated_at';
+  'id, client_id, name, staff_category, work_zone, activities, training_interval_months, needs_protective_equipment, created_at, updated_at';
 
 export type JobPositionCounts = {
   employees: number;
@@ -63,9 +61,7 @@ export const toJobPosition = (
   employeeCount: counts.employees,
   needsProtectiveEquipment: row.needs_protective_equipment,
   equipmentCount: counts.equipment,
-  needsInstructions: row.needs_instructions,
   instructionCount: counts.instructions,
-  needsFireInstructions: row.needs_fire_instructions,
   fireInstructionCount: counts.fireInstructions,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -93,7 +89,7 @@ const nameTaken = () =>
 export async function findJobPosition(db: DataClient, clientId: string, jobPositionId: string) {
   const { data, error } = await db
     .from('job_positions')
-    .select('id, needs_protective_equipment, needs_instructions, needs_fire_instructions')
+    .select('id, needs_protective_equipment')
     .eq('id', jobPositionId)
     .eq('client_id', clientId)
     .is('archived_at', null)

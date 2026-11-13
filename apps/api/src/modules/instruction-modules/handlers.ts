@@ -23,17 +23,11 @@ import { ApiError } from '../../lib/errors';
 import { renderInstructionAnnex } from '../documents/annexes';
 import { printedDate, romanianDay } from '../documents/context';
 import { fileNameOf } from '../documents/documents';
-import {
-  findJobPosition,
-  jobPositionColumns,
-  jobPositionCounts,
-  toJobPosition,
-} from '../job-positions/handlers';
+import { findJobPosition } from '../job-positions/handlers';
 import type {
   applyPositionInstructionsRoute,
   copyPositionInstructionsRoute,
   createInstructionModuleRoute,
-  decidePositionInstructionsRoute,
   downloadInstructionModuleRoute,
   getInstructionModuleRoute,
   getInstructionModuleVersionRoute,
@@ -490,29 +484,6 @@ async function listApplied(db: DataClient, jobPositionId: string, domain: Instru
     .sort(byGroupAndTitle);
 }
 
-const decisionColumns = {
-  ssm: 'needs_instructions',
-  su: 'needs_fire_instructions',
-} as const satisfies Record<
-  InstructionDomain,
-  keyof Database['public']['Tables']['job_positions']['Row']
->;
-
-const decisionOf = (
-  position: { needs_instructions: boolean | null; needs_fire_instructions: boolean | null },
-  domain: InstructionDomain
-) => position[decisionColumns[domain]];
-
-async function readDecision(db: DataClient, jobPositionId: string, domain: InstructionDomain) {
-  const { data, error } = await db
-    .from('job_positions')
-    .select('needs_instructions, needs_fire_instructions')
-    .eq('id', jobPositionId)
-    .single();
-  if (error) throw fromDatabaseError(error, 'read instructions decision');
-  return decisionOf(data, domain);
-}
-
 const notInLibrary = () =>
   new ApiError('validation_error', 'A module is not in the library.', [
     { path: 'moduleIds', message: 'Choose modules from the library.' },
@@ -581,9 +552,9 @@ export const listPositionInstructions: RouteHandler<
   const { clientId, jobPositionId } = c.req.valid('param');
   const { domain } = c.req.valid('query');
   const db = createDataClient(c);
-  const position = await findJobPosition(db, clientId, jobPositionId);
+  await findJobPosition(db, clientId, jobPositionId);
   const items = await listApplied(db, jobPositionId, domain);
-  return c.json({ domain, items, needsInstructions: decisionOf(position, domain) }, 200);
+  return c.json({ domain, items }, 200);
 };
 
 export const applyPositionInstructions: RouteHandler<
@@ -613,10 +584,7 @@ export const applyPositionInstructions: RouteHandler<
     if (error) throw fromDatabaseError(error, 'remove applied instructions');
   }
   const items = await listApplied(db, jobPositionId, domain);
-  return c.json(
-    { domain, items, needsInstructions: await readDecision(db, jobPositionId, domain) },
-    200
-  );
+  return c.json({ domain, items }, 200);
 };
 
 export const copyPositionInstructions: RouteHandler<
@@ -652,48 +620,5 @@ export const copyPositionInstructions: RouteHandler<
     .map((item) => item.moduleId);
   await apply(db, actorOf(c), clientId, jobPositionId, domain, added);
   const items = await listApplied(db, jobPositionId, domain);
-  return c.json(
-    { domain, items, needsInstructions: await readDecision(db, jobPositionId, domain) },
-    200
-  );
-};
-
-export const decidePositionInstructions: RouteHandler<
-  typeof decidePositionInstructionsRoute,
-  ApiEnv
-> = async (c) => {
-  const { clientId, jobPositionId } = c.req.valid('param');
-  const { needsInstructions, domain } = c.req.valid('json');
-  if (needsInstructions === true) {
-    throw new ApiError(
-      'validation_error',
-      'Applying a module says that the position needs instructions.',
-      [{ path: 'needsInstructions', message: 'Apply a module instead.' }],
-      'instructions_decided_by_modules'
-    );
-  }
-  const db = createDataClient(c);
-  await findJobPosition(db, clientId, jobPositionId);
-  const { data, error } = await db
-    .from('job_positions')
-    .update(
-      domain === 'su'
-        ? { needs_fire_instructions: needsInstructions }
-        : { needs_instructions: needsInstructions }
-    )
-    .eq('id', jobPositionId)
-    .eq('client_id', clientId)
-    .select(jobPositionColumns)
-    .single();
-  if (error?.code === 'INS01') {
-    throw new ApiError(
-      'conflict',
-      'The position applies modules; remove them before saying it needs none.',
-      undefined,
-      'instructions_applied'
-    );
-  }
-  if (error) throw fromDatabaseError(error, 'decide instructions');
-  const counts = await jobPositionCounts(db, clientId, jobPositionId);
-  return c.json({ jobPosition: toJobPosition(data, counts.get(jobPositionId)) }, 200);
+  return c.json({ domain, items }, 200);
 };

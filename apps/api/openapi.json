@@ -4704,17 +4704,9 @@
                   "type": "integer",
                   "minimum": 0
                 },
-                "needsInstructions": {
-                  "type": "boolean",
-                  "nullable": true
-                },
                 "instructionCount": {
                   "type": "integer",
                   "minimum": 0
-                },
-                "needsFireInstructions": {
-                  "type": "boolean",
-                  "nullable": true
                 },
                 "fireInstructionCount": {
                   "type": "integer",
@@ -4740,9 +4732,7 @@
                 "employeeCount",
                 "needsProtectiveEquipment",
                 "equipmentCount",
-                "needsInstructions",
                 "instructionCount",
-                "needsFireInstructions",
                 "fireInstructionCount",
                 "createdAt",
                 "updatedAt"
@@ -4799,17 +4789,9 @@
                 "type": "integer",
                 "minimum": 0
               },
-              "needsInstructions": {
-                "type": "boolean",
-                "nullable": true
-              },
               "instructionCount": {
                 "type": "integer",
                 "minimum": 0
-              },
-              "needsFireInstructions": {
-                "type": "boolean",
-                "nullable": true
               },
               "fireInstructionCount": {
                 "type": "integer",
@@ -4835,9 +4817,7 @@
               "employeeCount",
               "needsProtectiveEquipment",
               "equipmentCount",
-              "needsInstructions",
               "instructionCount",
-              "needsFireInstructions",
               "fireInstructionCount",
               "createdAt",
               "updatedAt"
@@ -5818,13 +5798,9 @@
               },
               "required": ["moduleId", "title", "group", "archivedAt"]
             }
-          },
-          "needsInstructions": {
-            "type": "boolean",
-            "nullable": true
           }
         },
-        "required": ["domain", "items", "needsInstructions"]
+        "required": ["domain", "items"]
       },
       "ApplyInstructionsRequest": {
         "type": "object",
@@ -5859,21 +5835,6 @@
           }
         },
         "required": ["fromJobPositionId"]
-      },
-      "InstructionsDecision": {
-        "type": "object",
-        "properties": {
-          "domain": {
-            "type": "string",
-            "enum": ["ssm", "su"],
-            "default": "ssm"
-          },
-          "needsInstructions": {
-            "type": "boolean",
-            "nullable": true
-          }
-        },
-        "required": ["needsInstructions"]
       },
       "RiskEvaluationListResponse": {
         "type": "object",
@@ -33575,7 +33536,7 @@
       "get": {
         "operationId": "listPositionInstructions",
         "summary": "List the modules a job position applies in one domain",
-        "description": "The modules of `domain`, occupational safety by default, by group and title, with the position’s decision for that domain: `needsInstructions` is null until decided, false when the post needs none beyond the common part, true while it applies modules of the domain (ADR 012). A position decides about each domain apart.",
+        "description": "The modules of `domain`, occupational safety by default, by group and title (ADR 012). Every post applies at least one module of each domain; until it does, the documents of that domain cannot be generated.",
         "security": [
           {
             "bearerAuth": []
@@ -33613,7 +33574,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The modules and the decision",
+            "description": "The modules",
             "content": {
               "application/json": {
                 "schema": {
@@ -33697,7 +33658,7 @@
       "put": {
         "operationId": "applyPositionInstructions",
         "summary": "Set the modules a job position applies in one domain",
-        "description": "Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. Applying the first module decides that the position needs instructions in that domain; an empty set leaves it undecided again. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).",
+        "description": "Replaces the set of `domain`, occupational safety by default, and leaves the other domain’s as it is. An empty set leaves the position without instructions in that domain, which blocks generating its documents. A module of the other domain is refused (reason `instruction_module_other_domain`), and so is an archived module (reason `instruction_module_archived`).",
         "security": [
           {
             "bearerAuth": []
@@ -33735,7 +33696,7 @@
         },
         "responses": {
           "200": {
-            "description": "The modules and the decision",
+            "description": "The modules",
             "content": {
               "application/json": {
                 "schema": {
@@ -33859,7 +33820,7 @@
         },
         "responses": {
           "200": {
-            "description": "The modules and the decision",
+            "description": "The modules",
             "content": {
               "application/json": {
                 "schema": {
@@ -33910,130 +33871,6 @@
           },
           "409": {
             "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected API error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "A dependency is temporarily unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/clients/{clientId}/job-positions/{jobPositionId}/instructions-decision": {
-      "patch": {
-        "operationId": "decidePositionInstructions",
-        "summary": "Say that a job position needs no module of a domain, or take that back",
-        "description": "For `domain`, occupational safety by default: `needsInstructions: false` says the post needs none beyond the common part; `null` reopens the question. `true` is decided by applying a module and is refused here (reason `instructions_decided_by_modules`); `false` while modules of the domain are applied is refused (reason `instructions_applied`).",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "clientId",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "jobPositionId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InstructionsDecision"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The job position after the change",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/JobPositionResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid path or request body",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "A valid user access token is required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The account is not a member of an organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The job position does not exist under this client",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Modules are applied, or the client is archived; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

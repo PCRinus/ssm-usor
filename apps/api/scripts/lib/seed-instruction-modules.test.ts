@@ -9,12 +9,12 @@ describe('the fixture modules', () => {
     for (const fixture of fixtures)
       expect(categoryFitsDomain(fixture.group, fixture.domain)).toBe(true);
     const titles = fixtures.map((fixture) => fixture.title);
-    for (const title of ['Zidar', 'Agent curățenie', 'Gestionar', 'Contabil'].flatMap(
-      (job) => (instructionsFor(job) as string[]) ?? []
-    )) {
+    for (const title of ['Zidar', 'Agent curățenie', 'Gestionar', 'Contabil'].flatMap((job) => [
+      ...(instructionsFor(job) ?? []),
+      ...fireInstructionsFor(job),
+    ])) {
       expect(titles).toContain(title);
     }
-    expect(titles).toContain('Lucrul cu foc deschis');
   });
 });
 
@@ -30,9 +30,9 @@ describe('instructionsFor', () => {
 });
 
 describe('fireInstructionsFor', () => {
-  it('gives the trades that work with flame the hot-work module and decides every other post', () => {
+  it('gives the trades that work with flame the hot-work module and every other post the general one', () => {
     expect(fireInstructionsFor('Sudor')).toEqual(['Lucrul cu foc deschis']);
-    expect(fireInstructionsFor('Contabil')).toBe('none');
-    expect(fireInstructionsFor('Astronaut')).toBe('none');
+    expect(fireInstructionsFor('Contabil')).toEqual(['Prevenirea incendiilor la locul de muncă']);
+    expect(fireInstructionsFor('Astronaut')).toEqual(['Prevenirea incendiilor la locul de muncă']);
   });
 });

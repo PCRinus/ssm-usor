@@ -720,7 +720,7 @@ describe('the merge context', () => {
       ...facts,
       jobPositions: facts.jobPositions.map((position) => ({
         ...position,
-        needsInstructions: false,
+        needsInstructions: true,
         instructions: [],
       })),
     });
