@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(40);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now()
@@ -26,7 +26,8 @@ insert into public.legal_changes (id, act_id, seen_at, consolidated_on, outcome,
   ('d1d1d1d1-0000-4000-8000-0000000000c1', 'oug-195-2002', '2026-10-31 03:20+00', '2026-10-30', 'quote_differs', now(), '2026-08-25'),
   ('d1d1d1d1-0000-4000-8000-0000000000c2', 'lege-227-2015', '2026-10-19 03:20+00', '2026-10-18', 'needs_review', now(), '2026-08-01'),
   ('d1d1d1d1-0000-4000-8000-0000000000c3', 'lege-319-2006', '2026-11-10 03:20+00', '2026-11-09', 'quote_differs', now(), '2021-07-25'),
-  ('d1d1d1d1-0000-4000-8000-0000000000d4', 'lege-53-2003', '2026-10-01 03:20+00', '2026-09-30', 'needs_review', now(), '2026-04-27');
+  ('d1d1d1d1-0000-4000-8000-0000000000d4', 'lege-53-2003', '2026-10-01 03:20+00', '2026-09-30', 'needs_review', now(), '2026-04-27'),
+  ('d1d1d1d1-0000-4000-8000-0000000000e5', 'omai-163-2007', '2026-11-02 03:20+00', '2026-11-01', 'needs_review', now(), null);
 
 insert into public.legal_change_passages (change_id, manifest, template_file, type_key, paragraph, citation_form, unit_label, status, old_text, new_text) values
   ('d1d1d1d1-0000-4000-8000-0000000000c1', 'ssm', '2.2_general_training_material.docx', 'test_material', 2048, 'quote', 'Art. 36 alin. (2)', 'changed', 'casca', 'pe cap cască'),
@@ -260,6 +261,21 @@ select is(
   (select type_key from public.legal_change_passages where change_id = 'd1d1d1d1-0000-4000-8000-0000000000c1'),
   'test_material',
   'a member reads the template a passage is in'
+);
+
+select pg_temp.act_as('eeeeeeee-0000-4000-8000-0000000000c1');
+select public.admin_resolve_legal_change_no_impact('d1d1d1d1-0000-4000-8000-0000000000e5', 'Nimic citat nu s-a schimbat.');
+reset role;
+
+select is(
+  (select verified_consolidated_on from public.legal_acts where id = 'omai-163-2007'),
+  '2026-11-01'::date,
+  'resolving a change of an act with no verified form records the change''s form as verified'
+);
+select is(
+  (select details -> 'verified_consolidated_on' from audit.events where row_id = 'd1d1d1d1-0000-4000-8000-0000000000e5'),
+  '[null, "2026-11-01"]'::jsonb,
+  'the audit event keeps the verified form before (none) and after'
 );
 
 select * from finish();
