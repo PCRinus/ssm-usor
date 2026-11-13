@@ -1,4 +1,9 @@
-import { codeBlock, type DiscordMessage, discordWebhook } from '@ssm-usor/discord';
+import {
+  codeBlock,
+  type DiscordEmbed,
+  type DiscordMessage,
+  discordWebhook,
+} from '@ssm-usor/discord';
 import {
   type CheckRun,
   describeOutcome,
@@ -19,8 +24,8 @@ export type ChangeNotice = {
 
 const colors = { change: 0x2f6fde } as const;
 
-// Two days less an hour: a daily cron fires within minutes of the same time, so the second
-// morning without a success is always past it.
+// Two days less an hour: a daily cron fires within minutes of the same time, so the morning
+// after a day without a success is always past it.
 export const staleAfterMs = 47 * 60 * 60 * 1000;
 
 export const portalLink = (portalId: number) =>
@@ -42,21 +47,26 @@ export function changesOf(run: CheckRun): ChangeNotice[] {
   );
 }
 
-export function changeMessage(change: ChangeNotice, environment: string): DiscordMessage {
+export function changeEmbed(change: ChangeNotice): DiscordEmbed {
   return {
-    content: `📜 **New legal change** · ${environment}`,
-    embeds: [
-      {
-        title: change.act.name,
-        ...(change.act.portalId !== null && { url: portalLink(change.act.portalId) }),
-        ...(change.act.title && { description: change.act.title }),
-        color: colors.change,
-        fields: [
-          { name: 'Consolidated on', value: change.consolidatedOn, inline: true },
-          { name: 'Amending act', value: change.amendingAct ?? '—', inline: true },
-        ],
-      },
+    title: change.act.name,
+    ...(change.act.portalId !== null && { url: portalLink(change.act.portalId) }),
+    ...(change.act.title && { description: change.act.title }),
+    color: colors.change,
+    fields: [
+      { name: 'Consolidated on', value: change.consolidatedOn, inline: true },
+      { name: 'Amending act', value: change.amendingAct ?? '—', inline: true },
     ],
+  };
+}
+
+// One message for all of a run's changes, which Discord gets ten embeds to a post: a post per
+// change would hit its rate limit on a morning with many, as the first run in an environment.
+export function changesMessage(changes: ChangeNotice[], environment: string): DiscordMessage {
+  const heading = changes.length === 1 ? 'New legal change' : `${changes.length} new legal changes`;
+  return {
+    content: `📜 **${heading}** · ${environment}`,
+    embeds: changes.map(changeEmbed),
   };
 }
 
@@ -100,7 +110,8 @@ export function legislationNotices(env: NoticeEnv, fetcher?: typeof fetch) {
   return {
     enabled: webhook.enabled,
     async ran(run: CheckRun) {
-      for (const change of changesOf(run)) await webhook.send(changeMessage(change, environment));
+      const changes = changesOf(run);
+      if (changes.length > 0) await webhook.send(changesMessage(changes, environment));
       if (run.status === 'failed') await webhook.send(failedRunMessage(run, environment));
     },
     async stopped(reason: string) {

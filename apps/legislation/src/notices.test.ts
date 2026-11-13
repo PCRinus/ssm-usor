@@ -3,7 +3,7 @@ import type { CheckRun, LegalAct, PortalAct } from '@ssm-usor/legislation-check'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  changeMessage,
+  changesMessage,
   changesOf,
   failedRunMessage,
   isStale,
@@ -79,7 +79,7 @@ describe('the messages', () => {
   it('names a change with its act, form, amending act and portal page', () => {
     const [change] = changesOf(run);
     expect(changesOf(run)).toHaveLength(1);
-    expect(discordPayloads(changeMessage(change!, 'production'))).toEqual([
+    expect(discordPayloads(changesMessage([change!], 'production'))).toEqual([
       {
         content: '📜 **New legal change** · production',
         embeds: [
@@ -97,7 +97,7 @@ describe('the messages', () => {
         allowed_mentions: { parse: [] },
       },
     ]);
-    const unnamed = changeMessage({ ...change!, amendingAct: null }, 'non-prod');
+    const unnamed = changesMessage([{ ...change!, amendingAct: null }], 'non-prod');
     expect(unnamed.content).toBe('📜 **New legal change** · non-prod');
     expect(unnamed.embeds![0]!.fields![1]).toEqual({
       name: 'Amending act',
@@ -165,6 +165,35 @@ describe('legislationNotices', () => {
       '📜 **New legal change** · local',
       expect.stringMatching(/^🟡 \*\*Legislation check failed\*\* · local\n/),
     ]);
+  });
+
+  it('posts a morning of many changes ten to a message', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 204 }));
+    const recorded = (index: number): CheckRun['outcomes'][number] => ({
+      act: { ...roads, id: `act-${index}`, name: `Act ${index}` },
+      result: 'checked',
+      portal: portal(roads, '2026-11-06'),
+      change: { consolidatedOn: '2026-11-06', amendingAct: null, recorded: true },
+    });
+    await legislationNotices(
+      { DISCORD_LEGISLATION_WEBHOOK: 'https://discord.example/w', ENVIRONMENT: 'production' },
+      fetcher
+    ).ran({
+      ...run,
+      status: 'succeeded',
+      outcomes: Array.from({ length: 23 }, (_, i) => recorded(i)),
+      errors: [],
+    });
+    const posts = fetcher.mock.calls.map(([, init]) => JSON.parse(String(init?.body)));
+    expect(posts.map((post) => post.embeds.length)).toEqual([10, 10, 3]);
+    expect(posts.map((post) => post.content)).toEqual([
+      '📜 **23 new legal changes** · production',
+      undefined,
+      undefined,
+    ]);
+    expect(
+      posts.flatMap((post) => post.embeds.map((embed: { title: string }) => embed.title))
+    ).toEqual(Array.from({ length: 23 }, (_, i) => `Act ${i}`));
   });
 
   it('carries on when Discord fails', async () => {
