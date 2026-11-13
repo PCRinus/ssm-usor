@@ -146,6 +146,7 @@ let rpcError: { code: string; message: string } | null = null;
 let runs: unknown[] = [];
 let listed: unknown[] = [];
 let older: unknown[] = [];
+let answering: unknown[] = [];
 
 function mockUpstream() {
   fetchMock.mockImplementation(async (input, init) => {
@@ -200,7 +201,7 @@ function mockUpstream() {
       ]);
     }
     if (path === '/rest/v1/document_template_versions') {
-      if (params.get('resolves_legal_change_id')?.startsWith('eq.')) return Response.json([]);
+      if (params.get('answers.legal_change_id')?.startsWith('eq.')) return Response.json(answering);
       return Response.json([versionRow]);
     }
     if (path === '/rest/v1/legal_acts') {
@@ -256,6 +257,7 @@ beforeEach(() => {
   runs = [runRow(3), runRow(2), runRow(1)];
   listed = [{ ...changeRow, passages: [{ count: 2 }] }];
   older = [];
+  answering = [];
   mockUpstream();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -367,7 +369,7 @@ describe('GET /admin/legislation/changes/:id', () => {
       oldText: helmetOld,
       newText: helmetNew,
     });
-    expect(detail.resolvingVersion).toBeNull();
+    expect(detail.resolvingVersions).toEqual([]);
     expect(detail.candidateVersions).toEqual([
       expect.objectContaining({ id: versionId, typeKey: 'general_training_material', version: 4 }),
     ]);
@@ -375,7 +377,7 @@ describe('GET /admin/legislation/changes/:id', () => {
     const candidates = restCalls().find(
       (call) =>
         call.url.pathname === '/rest/v1/document_template_versions' &&
-        !call.url.searchParams.has('resolves_legal_change_id', `eq.${changeId}`)
+        !call.url.searchParams.has('answers.legal_change_id', `eq.${changeId}`)
     )!;
     expect(candidates.secret).toBe(true);
     expect(Object.fromEntries(candidates.url.searchParams)).toMatchObject({
@@ -439,6 +441,37 @@ describe('GET /admin/legislation/changes/:id', () => {
     expect(
       restCalls().filter((call) => call.url.pathname === '/rest/v1/document_template_versions')
     ).toHaveLength(1);
+  });
+
+  it('lists every version that answers a resolved change, through the versions’ links', async () => {
+    change = {
+      ...changeRow,
+      resolution: 'template_version',
+      resolved_at: '2026-11-13T09:00:00+00:00',
+    };
+    answering = [
+      versionRow,
+      {
+        ...versionRow,
+        id: 'c2c2c2c2-0000-4000-8000-000000000002',
+        version: 7,
+        template: { type_key: 'training_themes', title: 'Tematica instruirii' },
+      },
+    ];
+
+    const detail = adminLegalChangeDetailSchema.parse(
+      await (await request(`/admin/legislation/changes/${changeId}`)).json()
+    );
+
+    expect(detail.resolvingVersions.map((version) => [version.typeKey, version.version])).toEqual([
+      ['general_training_material', 4],
+      ['training_themes', 7],
+    ]);
+    const read = restCalls().find((call) => call.url.searchParams.has('answers.legal_change_id'))!;
+    expect(read.url.searchParams.get('answers.legal_change_id')).toBe(`eq.${changeId}`);
+    expect(read.url.searchParams.get('select')).toContain(
+      'answers:template_version_legal_changes!inner(legal_change_id)'
+    );
   });
 
   it('answers 404 for a change that does not exist or an id that is not one', async () => {

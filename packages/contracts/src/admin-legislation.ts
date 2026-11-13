@@ -102,7 +102,8 @@ export const adminLegalChangeDetailSchema = adminLegalChangeListItemSchema
     // Why a person should read the change, in English.
     review: z.array(z.string()),
     passages: z.array(adminLegalChangePassageSchema),
-    resolvingVersion: adminTemplateVersionSchema.nullable(),
+    // Every built-in version that answers the change, oldest first.
+    resolvingVersions: z.array(adminTemplateVersionSchema),
     // The versions that can answer an open change: of a template its passages name, registered
     // after it was seen, not layout, with a note, answering no other change. Empty once it is
     // resolved.

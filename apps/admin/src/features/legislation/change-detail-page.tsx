@@ -105,9 +105,13 @@ function Resolution({ change }: { change: AdminLegalChangeDetail }) {
             <ResolutionBadge resolution={change.resolution} />{' '}
             <span className="tabular-nums">{formatDateTime(change.resolvedAt)}</span>
           </Fact>
-          {change.resolvingVersion && (
+          {change.resolvingVersions.length > 0 && (
             <Fact term="Answered by">
-              <VersionLine version={change.resolvingVersion} />
+              <div className="space-y-3">
+                {change.resolvingVersions.map((version) => (
+                  <VersionLine key={version.id} version={version} />
+                ))}
+              </div>
             </Fact>
           )}
         </dl>

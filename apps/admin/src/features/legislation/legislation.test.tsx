@@ -93,7 +93,7 @@ const detail: AdminLegalChangeDetail = {
       hunks: [],
     },
   ],
-  resolvingVersion: null,
+  resolvingVersions: [],
   candidateVersions: [version],
   awaitingAssessment: false,
   olderOpenChanges: [],
@@ -206,7 +206,7 @@ beforeEach(() => {
         resolution: 'template_version',
         resolvedAt: '2026-11-13T09:00:00+00:00',
         resolvedByNote: version.note,
-        resolvingVersion: version,
+        resolvingVersions: [version],
         candidateVersions: [],
       };
       return Response.json(current);

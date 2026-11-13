@@ -231,11 +231,15 @@ async function detailOf(db: AdminClient, id: string) {
         'id, manifest, template_file, type_key, paragraph, citation_form, locator, article, unit_label, status, old_text, new_text, hunks'
       )
       .eq('change_id', id),
-    db.from('document_template_versions').select(versionColumns).eq('resolves_legal_change_id', id),
+    db
+      .from('document_template_versions')
+      .select(`${versionColumns}, answers:template_version_legal_changes!inner(legal_change_id)`)
+      .eq('answers.legal_change_id', id)
+      .order('created_at'),
   ]);
   if (change.error) throw fromDatabaseError(change.error, 'read legal change');
   if (passages.error) throw fromDatabaseError(passages.error, 'read legal change passages');
-  if (resolving.error) throw fromDatabaseError(resolving.error, 'read resolving version');
+  if (resolving.error) throw fromDatabaseError(resolving.error, 'read resolving versions');
   if (!change.data) throw new ApiError('not_found', 'No such legal change.');
   const typeKeys = [
     ...new Set(passages.data.flatMap((passage) => (passage.type_key ? [passage.type_key] : []))),
@@ -250,7 +254,7 @@ async function detailOf(db: AdminClient, id: string) {
     amendedUnits: storedAmendedUnitsSchema.parse(change.data.amended_units ?? []),
     review: storedReviewSchema.parse(change.data.review ?? []),
     passages: [...passages.data].sort(passageOrder).map(toPassage),
-    resolvingVersion: resolving.data[0] ? toVersion(resolving.data[0]) : null,
+    resolvingVersions: resolving.data.map(toVersion),
     candidateVersions,
     awaitingAssessment:
       change.data.resolution === 'open' &&
