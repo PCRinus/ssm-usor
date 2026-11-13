@@ -17,6 +17,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
 import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
 
+import { CommuteMeansCombobox } from './commute-means-combobox';
 import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './employee-form-schema';
 import { todayIso } from './employee-format';
 import { EmployeeWorkplaceCombobox } from './employee-workplace-combobox';
@@ -518,7 +519,7 @@ export function EmployeeForm({
             <Field
               id="commuteRoute"
               label="Traseul de deplasare"
-              hint="De acasă la locul de muncă, cu mijlocul de transport."
+              hint="De acasă la locul de muncă, pe unde trece."
               help="angajati.traseu"
               error={errors.commuteRoute}
               className="sm:col-span-2"
@@ -531,6 +532,39 @@ export function EmployeeForm({
                 disabled={isSaving}
                 aria-invalid={Boolean(errors.commuteRoute)}
                 aria-describedby={describedBy('commuteRoute', errors.commuteRoute, true)}
+              />
+            </Field>
+            <Field
+              id="commuteMeans"
+              label="Mijloace de transport"
+              mark="optional"
+              help="angajati.mijloace-de-transport"
+              error={errors.commuteMeansOther}
+            >
+              <Controller
+                control={formControl}
+                name="commuteMeans"
+                render={({ field: means }) => (
+                  <Controller
+                    control={formControl}
+                    name="commuteMeansOther"
+                    render={({ field: other }) => (
+                      <CommuteMeansCombobox
+                        id="commuteMeans"
+                        testId="employee-commute-means"
+                        value={{ means: means.value, other: other.value || null }}
+                        onChange={(next) => {
+                          means.onChange(next.means);
+                          other.onChange(next.other ?? '');
+                        }}
+                        onBlur={means.onBlur}
+                        disabled={isSaving}
+                        invalid={Boolean(errors.commuteMeansOther)}
+                        describedBy={describedBy('commuteMeans', errors.commuteMeansOther)}
+                      />
+                    )}
+                  />
+                )}
               />
             </Field>
             <Field

@@ -1,6 +1,8 @@
 import {
   type BloodGroup,
   bloodGroups,
+  commuteMeans,
+  commuteMeansOtherMaxLength,
   decodeCnp,
   isValidCnpInput,
   normalizeCnp,
@@ -101,6 +103,11 @@ export const employeeFormSchema = z
     education: optionalText(160, 'Studiile pot avea cel mult 160 de caractere.'),
     authorizations: optionalText(500, 'Autorizațiile pot avea cel mult 500 de caractere.'),
     commuteRoute: optionalText(1000, 'Traseul poate avea cel mult 1000 de caractere.'),
+    commuteMeans: z.array(z.enum(commuteMeans)),
+    commuteMeansOther: optionalText(
+      commuteMeansOtherMaxLength,
+      `Mijlocul de transport scris de tine poate avea cel mult ${commuteMeansOtherMaxLength} de caractere.`
+    ),
     commuteMinutes: z
       .string()
       .trim()
@@ -154,6 +161,8 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   education: '',
   authorizations: '',
   commuteRoute: '',
+  commuteMeans: [],
+  commuteMeansOther: '',
   commuteMinutes: '',
 };
 
@@ -183,6 +192,8 @@ export function toEmployeeForm(employee: Employee): EmployeeFormValues {
     education: employee.education ?? '',
     authorizations: employee.authorizations ?? '',
     commuteRoute: employee.commuteRoute ?? '',
+    commuteMeans: employee.commuteMeans,
+    commuteMeansOther: employee.commuteMeansOther ?? '',
     commuteMinutes: employee.commuteMinutes?.toString() ?? '',
   };
 }
@@ -219,6 +230,8 @@ export function toCreateEmployeeRequest(values: EmployeeFormValues): CreateEmplo
     education: textOrNull(values.education),
     authorizations: textOrNull(values.authorizations),
     commuteRoute: textOrNull(values.commuteRoute),
+    commuteMeans: values.commuteMeans,
+    commuteMeansOther: textOrNull(values.commuteMeansOther),
     commuteMinutes: values.commuteMinutes ? Number(values.commuteMinutes) : null,
   };
 }

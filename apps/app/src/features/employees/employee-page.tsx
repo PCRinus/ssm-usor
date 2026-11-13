@@ -1,4 +1,4 @@
-import { maskCnp } from '@ssm-usor/contracts';
+import { commuteMeansLabels, maskCnp } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { getRouteApi } from '@tanstack/react-router';
 import { Eye, EyeOff } from 'lucide-react';
@@ -150,6 +150,12 @@ export function EmployeePage() {
           </Fact>
           <Fact label="Traseul de deplasare" wide>
             {employee.commuteRoute}
+          </Fact>
+          <Fact label="Mijloace de transport">
+            {commuteMeansLabels({
+              means: employee.commuteMeans,
+              other: employee.commuteMeansOther,
+            }).join(', ')}
           </Fact>
           <Fact label="Durata deplasării (minute)">{employee.commuteMinutes}</Fact>
           <Fact label="Observații" wide>

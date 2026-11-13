@@ -73,6 +73,8 @@ const employee = {
   education: null,
   authorizations: null,
   commuteRoute: null,
+  commuteMeans: [],
+  commuteMeansOther: null,
   commuteMinutes: null,
   training: untrained,
   tests: noTests,

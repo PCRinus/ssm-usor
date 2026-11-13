@@ -63,6 +63,8 @@ const createdEmployee = {
   education: null,
   authorizations: null,
   commuteRoute: null,
+  commuteMeans: [],
+  commuteMeansOther: null,
   commuteMinutes: null,
   contractNumber: null,
 };
@@ -595,6 +597,8 @@ describe('employee creation', () => {
       education: null,
       authorizations: null,
       commuteRoute: null,
+      commuteMeans: [],
+      commuteMeansOther: null,
       commuteMinutes: null,
     });
   });
@@ -632,6 +636,23 @@ describe('employee creation', () => {
     expect(label('commuteRoute')).toContain('Traseul de deplasare');
     expect(label('commuteRoute')).not.toContain('(opțional)');
     expect(label('commuteMinutes')).toContain('(opțional)');
+  });
+
+  it('asks for the means of transport, as optional, between the route and its duration', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    await screen.findByTestId('new-employee-page');
+    const label = (id: string) => document.querySelector(`label[for="${id}"]`)!;
+    const follows = (a: Element, b: Element) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    expect(label('commuteMeans').textContent).toContain('Mijloace de transport');
+    expect(label('commuteMeans').textContent).toContain('(opțional)');
+    expect(follows(label('commuteRoute'), label('commuteMeans'))).toBe(true);
+    expect(follows(label('commuteMeans'), label('commuteMinutes'))).toBe(true);
+    expect(document.getElementById('commuteRoute-hint')?.textContent).toBe(
+      'De acasă la locul de muncă, pe unde trece.'
+    );
   });
 
   it('asks right after the domicile, as optional, where the worker lives when it differs', async () => {
@@ -769,6 +790,8 @@ describe('training sheet fields on employees (ADR 021)', () => {
     education: 'Școala profesională',
     authorizations: 'ISCIR',
     commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
+    commuteMeans: ['on_foot', 'public_transport'],
+    commuteMeansOther: null,
     commuteMinutes: 35,
   };
 
@@ -796,10 +819,19 @@ describe('training sheet fields on employees (ADR 021)', () => {
       screen.getByTestId('employee-commute-route'),
       'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24'
     );
+    await user.click(screen.getByTestId('employee-commute-means'));
+    await user.click(await screen.findByTestId('employee-commute-means-public_transport'));
+    await user.click(screen.getByTestId('employee-commute-means-on_foot'));
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('employee-commute-means').textContent).toBe(
+      'Pe jos, Transport public'
+    );
     await user.type(screen.getByTestId('employee-commute-minutes'), '35');
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
     expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+      commuteMeans: ['on_foot', 'public_transport'],
+      commuteMeansOther: null,
       workplaceId: registeredOffice.id,
       qualification: 'Sudor autorizat',
       education: 'Școala profesională',
@@ -808,6 +840,60 @@ describe('training sheet fields on employees (ADR 021)', () => {
       commuteRoute: 'Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24',
       commuteMinutes: 35,
     });
+  });
+
+  it('picks the means with the keyboard and adds one typed apart, which another one typed replaces', async () => {
+    mockApi({ workplaces: () => Response.json({ items: [registeredOffice] }) });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await fillRequired(user);
+    screen.getByTestId('employee-commute-means').focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard('transport public');
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('employee-commute-means-public_transport').dataset.checked).toBe(
+      'true'
+    );
+    await user.keyboard('Barca');
+    expect(screen.getByTestId('employee-commute-means-add').textContent).toBe('Adaugă „Barca”');
+    await user.keyboard('{Enter}');
+    await user.keyboard('Bacul de pe Mureș');
+    expect(screen.getByTestId('employee-commute-means-add').textContent).toBe(
+      'Pune „Bacul de pe Mureș” în locul lui „Barca”'
+    );
+    await user.keyboard('{Enter}{Escape}');
+    expect(screen.getByTestId('employee-commute-means').textContent).toBe(
+      'Transport public, Bacul de pe Mureș'
+    );
+    await user.click(screen.getByTestId('employee-submit'));
+    await screen.findByTestId('employees-page');
+    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+      commuteMeans: ['public_transport'],
+      commuteMeansOther: 'Bacul de pe Mureș',
+    });
+  });
+
+  it('opens with the means saved and clears them all at once', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: withSheet }),
+      workplaces: () => Response.json({ items: [registeredOffice] }),
+    });
+    mountApp(authFixture(makeSession()).client, editPage);
+    const user = userEvent.setup();
+    const means = await screen.findByTestId('employee-commute-means');
+    await waitFor(() => expect(means.textContent).toBe('Pe jos, Transport public'));
+    await user.click(means);
+    await user.click(await screen.findByTestId('employee-commute-means-clear'));
+    await user.keyboard('{Escape}');
+    expect(means.textContent).toBe('Alege unul sau mai multe');
+    await user.click(screen.getByTestId('employee-submit'));
+    await waitFor(() =>
+      expect(requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')).toHaveLength(1)
+    );
+    expect(
+      JSON.parse(String(requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]![1]?.body))
+    ).toMatchObject({ commuteMeans: [], commuteMeansOther: null });
   });
 
   it('leaves the choice to the person when the client has several workplaces', async () => {
@@ -940,6 +1026,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       'Studiile',
       'Autorizații',
       'Traseul de deplasare',
+      'Mijloace de transport',
       'Durata deplasării (minute)',
       'Observații',
     ]);
@@ -948,6 +1035,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(within(section).getByText('Școala profesională')).toBeTruthy();
     expect(within(section).getByText('ISCIR')).toBeTruthy();
     expect(within(section).getByText('Str. Florilor 9, Timișoara')).toBeTruthy();
+    expect(within(section).getByText('Pe jos, Transport public')).toBeTruthy();
     expect(
       within(section).getByText('Str. Lungă 5 – Str. Fabricii 3, cu autobuzul 24')
     ).toBeTruthy();
@@ -968,6 +1056,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
       'Studiile',
       'Autorizații',
       'Traseul de deplasare',
+      'Mijloace de transport',
       'Durata deplasării (minute)',
     ]) {
       expect(value(label)).toBe('—');
@@ -1473,7 +1562,7 @@ describe('job positions on employees (ADR 006)', () => {
     const helper = { ...welderPosition, id: newPositionId, name: 'Ajutor sudor', employeeCount: 0 };
     mockApi({
       detail: () =>
-        Response.json({ employee: { ...sampleEmployee, jobTitle: 'Muncitor calificat' } }),
+        Response.json({ employee: { ...createdEmployee, jobTitle: 'Muncitor calificat' } }),
       positions: () => Response.json({ items: [helper, welderPosition] }),
     });
     mountApp(authFixture(makeSession()).client, `${employeesPage}/${sampleEmployee.id}`);
@@ -1502,7 +1591,7 @@ describe('job positions on employees (ADR 006)', () => {
   it('moves a contract title that only repeats the post along with the post', async () => {
     const helper = { ...welderPosition, id: newPositionId, name: 'Ajutor sudor', employeeCount: 0 };
     mockApi({
-      detail: () => Response.json({ employee: sampleEmployee }),
+      detail: () => Response.json({ employee: createdEmployee }),
       positions: () => Response.json({ items: [helper, welderPosition] }),
     });
     mountApp(authFixture(makeSession()).client, `${employeesPage}/${sampleEmployee.id}`);
@@ -1542,6 +1631,8 @@ describe('employee editing', () => {
     rhFactor: null,
     notes: null,
     archivedAt: null,
+    commuteMeans: [],
+    commuteMeansOther: null,
     jobTitle: 'Muncitor calificat',
   };
 
