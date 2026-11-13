@@ -3,6 +3,7 @@ import '@docx-editor.dev/core/styles/editor.css';
 import { packagedFonts } from '@docx-editor.dev/fonts';
 import { DocxEditor } from '@docx-editor.dev/react';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { editorStrings } from '@/features/documents/editor-strings.ro';
 
 const fonts = packagedFonts({ allow: ['Arial'] });
@@ -18,7 +19,11 @@ export default function AnnexWordView({
   onReady: () => void;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col" data-testid="instruction-preview-word">
+    <div
+      className="flex h-full min-h-0 flex-col"
+      data-testid="instruction-preview-word"
+      {...replayMask}
+    >
       <DocxEditor
         document={bytes}
         mode="view"

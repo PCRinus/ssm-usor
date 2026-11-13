@@ -28,7 +28,9 @@ import {
   inviteEmployeeParticipants,
 } from '@/api/generated/api';
 import { HelpLink } from '@/components/help-link';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import {
@@ -53,7 +55,7 @@ const shownAtFirst = 8;
 interface RowResult {
   outcome: BulkInvitationOutcome;
   channel: ParticipantChannel | null;
-  message: string | null;
+  message: ReactNode;
 }
 
 type Phase =
@@ -124,7 +126,7 @@ function BulkInviteForm({
   const textOf = (invitee: ImportInvitee) => typed[invitee.employeeId] ?? storedAddress(invitee);
   const firstAt = new Map<string, ImportInvitee>();
   const plans = new Map<string, { address: string; channel: ParticipantChannel | null }>();
-  const errors = new Map<string, string>();
+  const errors = new Map<string, ReactNode>();
   for (const invitee of candidates) {
     const text = textOf(invitee).trim();
     if (!text) continue;
@@ -142,7 +144,7 @@ function BulkInviteForm({
     }
     const first = firstAt.get(address.address);
     if (first) {
-      errors.set(invitee.employeeId, `Aceeași adresă e scrisă și la ${nameOf(first)}.`);
+      errors.set(invitee.employeeId, maskPeople`Aceeași adresă e scrisă și la ${nameOf(first)}.`);
     } else {
       firstAt.set(address.address, invitee);
     }
@@ -491,7 +493,7 @@ function RowList({
 function PersonName({ invitee, hint }: { invitee: ImportInvitee; hint?: string }) {
   return (
     <span className="min-w-0">
-      <span className="block font-semibold">{nameOf(invitee)}</span>
+      <Masked className="block font-semibold">{nameOf(invitee)}</Masked>
       {(invitee.position || hint) && (
         <span className="block text-xs text-muted-foreground">
           {[invitee.position, hint].filter(Boolean).join(' · ')}
@@ -514,7 +516,7 @@ function InviteeRow({
   invitee: ImportInvitee;
   text: string;
   channel: ParticipantChannel | null;
-  error: string | undefined;
+  error: ReactNode;
   result: RowResult | undefined;
   disabled: boolean;
   onChange: (text: string) => void;
@@ -532,7 +534,7 @@ function InviteeRow({
       <PersonName invitee={invitee} hint={fromRow ? 'din datele lucrătorului' : undefined} />
       <span>
         <label htmlFor={inputId} className="sr-only">
-          Email sau telefon pentru {nameOf(invitee)}
+          Email sau telefon pentru <Masked>{nameOf(invitee)}</Masked>
         </label>
         <Input
           id={inputId}

@@ -25,6 +25,8 @@ import {
   useState,
 } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
+
 import { pagesLabel } from './import-format';
 import type { SelectedFile } from './upload-selection';
 import { type ImportImageFile, isHeic, useImportImage } from './use-import-image';
@@ -120,7 +122,9 @@ function PreviewContent({
     >
       <div className="flex items-start gap-3 border-b py-3 pr-3 pl-4 sm:pl-5">
         <div className="grid min-w-0 flex-1 gap-0.5 pt-1">
-          <DialogTitle className="text-base leading-snug wrap-anywhere">{photo.name}</DialogTitle>
+          <DialogTitle className="text-base leading-snug wrap-anywhere" {...replayMask}>
+            {photo.name}
+          </DialogTitle>
           <DialogDescription className="text-[13px]">
             {photo.detail ?? `Fotografia ${index + 1} din ${photos.length}`}
           </DialogDescription>
@@ -191,7 +195,9 @@ function PreviewHeader({
   return (
     <div className="flex items-start gap-3 border-b py-3 pr-3 pl-4 sm:pl-5">
       <div className="grid min-w-0 flex-1 gap-0.5 pt-1">
-        <DialogTitle className="text-base leading-snug wrap-anywhere">{photo.name}</DialogTitle>
+        <DialogTitle className="text-base leading-snug wrap-anywhere" {...replayMask}>
+          {photo.name}
+        </DialogTitle>
         <DialogDescription className="text-[13px]">
           {photo.detail ?? `Fotografia ${index + 1} din ${total}`}
         </DialogDescription>

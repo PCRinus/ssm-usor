@@ -12,13 +12,15 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { useRouteContext } from '@tanstack/react-router';
 import { UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import {
   getListOrganizationMembersQueryKey,
   useListOrganizationMembers,
 } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 
 import { formatDay, roleLabels } from './labels';
 import { MemberActions } from './member-actions';
@@ -34,7 +36,7 @@ export function MembersCard({
   canManage: boolean;
   onInvite?: () => void;
 }) {
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const members = useListOrganizationMembers({
     request: apiRequest,
@@ -102,12 +104,18 @@ export function MembersCard({
                 members.data.items.map((member) => (
                   <TableRow key={member.userId} data-testid="member-row">
                     <TableCell className="font-medium">
-                      {member.fullName ?? <span className="text-muted-foreground">Fără nume</span>}
+                      {member.fullName ? (
+                        <Masked>{member.fullName}</Masked>
+                      ) : (
+                        <span className="text-muted-foreground">Fără nume</span>
+                      )}
                       {member.userId === userId && (
                         <span className="ml-2 text-xs font-normal text-muted-foreground">(tu)</span>
                       )}
                     </TableCell>
-                    <TableCell className="break-all">{member.email ?? '—'}</TableCell>
+                    <TableCell className="break-all" {...replayMask}>
+                      {member.email ?? '—'}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={member.role === 'owner' ? 'default' : 'secondary'}>
                         {roleLabels[member.role]}

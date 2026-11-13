@@ -13,6 +13,7 @@ import {
   useListMySignatureRequests,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -230,6 +231,7 @@ function RequestRow({
             params={{ clientId: request.client.id, employeeId: request.employee.id }}
             data-testid="signature-request-employee"
             className="font-medium hover:underline"
+            {...replayMask}
           >
             {name}
           </Link>

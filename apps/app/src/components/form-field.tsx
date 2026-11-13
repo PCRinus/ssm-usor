@@ -4,7 +4,12 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import type { ReactNode } from 'react';
 import type { FieldError } from 'react-hook-form';
 
+import { replayMask } from '@/app/observability/replay-masking';
+
 import { HelpLink } from './help-link';
+
+// The error type of a message that names a person, which the session replay masks.
+export const personalError = 'personal';
 
 export function FieldMessage({
   id,
@@ -20,7 +25,7 @@ export function FieldMessage({
   if (!error) return null;
   return (
     <p id={id} data-testid={id} role="alert" className={cn('text-sm text-destructive', className)}>
-      {error.message}
+      {error.type === personalError ? <span {...replayMask}>{error.message}</span> : error.message}
       {help && (
         <>
           {' '}

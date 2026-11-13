@@ -30,6 +30,7 @@ import {
   useUpdateFireSubstance,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -299,7 +300,13 @@ function SubstanceForm({
         document.getElementById('fire-substance-name')?.focus();
       }}
     >
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>{substance ? 'Modifică substanța' : 'Adaugă o substanță'}</DialogTitle>
           <DialogDescription>

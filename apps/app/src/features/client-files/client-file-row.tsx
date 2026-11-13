@@ -12,6 +12,7 @@ import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { Download, Lock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { rowClickProps } from '@/components/data-table/row-click';
 
 import { type ClientFile, fileKind, formatFileSize, formatUploadDate } from './client-file-format';
@@ -38,8 +39,11 @@ export function FileRow({
   onDelete,
   onOwnersOnly,
   depth = 0,
+  personal = false,
 }: {
   file: ClientFile;
+  // A file about one worker, whose name and note usually name them.
+  personal?: boolean;
   depth?: number;
   changeable: boolean;
   showOwnersOnly: boolean;
@@ -74,6 +78,7 @@ export function FileRow({
               data-testid="client-file-open"
               className="w-fit rounded-sm text-left font-medium wrap-anywhere underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
               {...open}
+              {...(personal && replayMask)}
             >
               {file.name}
             </a>
@@ -98,6 +103,7 @@ export function FileRow({
               <p
                 data-testid="client-file-row-note"
                 className="text-xs whitespace-pre-line text-muted-foreground wrap-anywhere"
+                {...(personal && replayMask)}
               >
                 {file.note}
               </p>
@@ -109,7 +115,10 @@ export function FileRow({
       <TableCell className="align-top">
         <span className="tabular-nums">{date}</span>
         {uploader && (
-          <span className="mt-0.5 block max-w-48 truncate text-xs text-muted-foreground">
+          <span
+            className="mt-0.5 block max-w-48 truncate text-xs text-muted-foreground"
+            {...replayMask}
+          >
             {uploader}
           </span>
         )}

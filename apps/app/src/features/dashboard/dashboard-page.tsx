@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { getGetDashboardSummaryQueryKey, useGetDashboardSummary } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 
@@ -64,7 +65,13 @@ export function DashboardPage() {
               data-testid="dashboard-greeting"
               className="text-[15px] leading-snug text-dashboard-quiet sm:text-base"
             >
-              {`${greetingAt(now)}${name ? `, ${name}` : ''}. ${summaryLine(todoTotal(data), data.trainings.ssm.overdue + data.trainings.su.overdue)}`}
+              {greetingAt(now)}
+              {name && (
+                <>
+                  , <Masked>{name}</Masked>
+                </>
+              )}
+              {`. ${summaryLine(todoTotal(data), data.trainings.ssm.overdue + data.trainings.su.overdue)}`}
             </p>
           ) : (
             summary.isPending && <Skeleton className="h-6 w-full max-w-[560px]" />

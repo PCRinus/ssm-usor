@@ -29,8 +29,5 @@ export function paperSignedLine(record: { verifier: unknown; admission: unknown 
   return `Semnat pe hârtie: ${slots.map((slot) => signerSlotLabels[slot].toLowerCase()).join(', ')}`;
 }
 
-export const formatPerson = (person: { name: string; jobTitle: string }) =>
-  person.jobTitle ? `${person.name}, ${person.jobTitle}` : person.name;
-
 export const attendeeCountLabel = (count: number) =>
   count === 1 ? '1 participant' : `${count} participanți`;

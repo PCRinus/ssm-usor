@@ -37,6 +37,7 @@ import {
   type ImportDetail,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 
 import { CreditsUsedLine } from './credits-notices';
@@ -46,6 +47,7 @@ import { partsNoun } from './library/library-model';
 import {
   type FieldState,
   formatFieldValue,
+  personalPaths,
   type Proposal,
   refusedValueMessage,
 } from './review-model';
@@ -76,7 +78,7 @@ function Line({
   icon: ReactNode;
   count?: number;
   label: string;
-  detail: string;
+  detail: ReactNode;
 }) {
   return (
     <li
@@ -249,7 +251,11 @@ export function ConfirmImportDialog({
                     key={state.path}
                     icon={<RefreshCw className="size-4" />}
                     label={state.label}
-                    detail={`${formatFieldValue(state.path, state.existing)} devine ${formatFieldValue(state.path, state.value)}`}
+                    detail={
+                      personalPaths.has(state.path)
+                        ? maskPeople`${formatFieldValue(state.path, state.existing)} devine ${formatFieldValue(state.path, state.value)}`
+                        : `${formatFieldValue(state.path, state.existing)} devine ${formatFieldValue(state.path, state.value)}`
+                    }
                   />
                 ))}
               </ul>

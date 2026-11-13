@@ -1,6 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
+
 // Measured on the header, not on the window: the sidebar takes a share of the window.
 const actionsPlacement = {
   narrow: 'w-full @lg:w-auto @lg:shrink-0',
@@ -13,9 +15,12 @@ export function RecordHeader({
   facts,
   actions,
   actionsWidth = 'narrow',
+  personal = false,
 }: {
   icon: LucideIcon;
   title: string;
+  // The title is a person's name, which the session replay masks.
+  personal?: boolean;
   facts: ReactNode;
   actions?: ReactNode;
   actionsWidth?: keyof typeof actionsPlacement;
@@ -30,7 +35,12 @@ export function RecordHeader({
           <Icon className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
+          <h1
+            className="truncate text-xl font-semibold tracking-tight"
+            {...(personal && replayMask)}
+          >
+            {title}
+          </h1>
           <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">{facts}</dl>
         </div>
         {actions && (

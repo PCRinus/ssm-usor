@@ -36,10 +36,10 @@ export function ContactCard({ client, readOnly }: { client: Client; readOnly: bo
         </p>
       ) : (
         <FactList>
-          <Fact label="Nume" testId="contact-name">
+          <Fact label="Nume" testId="contact-name" replay="mask">
             {client.contactName}
           </Fact>
-          <Fact label="Email" testId="contact-email">
+          <Fact label="Email" testId="contact-email" replay="mask">
             {client.contactEmail && (
               <a
                 className="underline-offset-4 hover:underline"
@@ -49,7 +49,7 @@ export function ContactCard({ client, readOnly }: { client: Client; readOnly: bo
               </a>
             )}
           </Fact>
-          <Fact label="Telefon" testId="contact-phone">
+          <Fact label="Telefon" testId="contact-phone" replay="mask">
             {client.contactPhone && (
               <a
                 className="tabular-nums underline-offset-4 hover:underline"

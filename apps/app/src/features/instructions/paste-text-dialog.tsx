@@ -18,6 +18,7 @@ import { Label } from '@ssm-usor/ui/components/label';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useDeferredValue, useMemo, useState } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 
 import { blocksFromBody, type DraftBlock } from './instruction-draft';
@@ -158,6 +159,7 @@ function PasteContent({
           <Textarea
             id="paste-text"
             data-testid="paste-text"
+            {...replayShow}
             className="max-h-64 min-h-32 [field-sizing:fixed]"
             rows={6}
             value={text}

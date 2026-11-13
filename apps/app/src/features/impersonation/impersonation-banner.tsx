@@ -6,6 +6,8 @@ import { UserRoundKey } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { getGetMeQueryKey, type MeResponse, useEndMyImpersonation } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
+import { Masked } from '@/components/replay';
 
 import { usePageIdentity } from './page-identity-context';
 
@@ -48,6 +50,21 @@ function useExpiry(expiresAt: string) {
 const targetOf = (impersonation: Impersonation, organizationName: string | undefined) =>
   [impersonation.targetName ?? 'un membru', organizationName].filter(Boolean).join(' · ');
 
+function Target({
+  impersonation,
+  organizationName,
+}: {
+  impersonation: Impersonation;
+  organizationName: string | undefined;
+}) {
+  return (
+    <>
+      {impersonation.targetName ? <Masked>{impersonation.targetName}</Masked> : 'un membru'}
+      {organizationName && ` · ${organizationName}`}
+    </>
+  );
+}
+
 export function ImpersonationBanner({
   impersonation,
   organizationName,
@@ -75,7 +92,7 @@ export function ImpersonationBanner({
       <UserRoundKey aria-hidden="true" className="mt-0.5 size-4 shrink-0 md:mt-0" />
       <p className="min-w-0 flex-1">
         <span data-testid="impersonation-target" className="font-semibold">
-          Acționezi ca {targetOf(impersonation, organizationName)}
+          Acționezi ca <Target impersonation={impersonation} organizationName={organizationName} />
         </span>{' '}
         <span data-testid="impersonation-until" className="block md:inline">
           până la {until} {minutesLeft > 0 ? `(încă ${minutesLeft} min).` : '(se încheie acum).'}
@@ -115,7 +132,10 @@ export function ImpersonationMarker({
       className="inline-flex h-8 max-w-56 min-w-8 shrink items-center justify-center gap-1.5 rounded-full border border-warning-border bg-warning px-2 text-[13px] font-semibold text-warning-foreground sm:justify-start sm:px-2.5"
     >
       <UserRoundKey aria-hidden="true" className="size-4 shrink-0" />
-      <span className="hidden min-w-0 truncate sm:inline">
+      <span
+        className="hidden min-w-0 truncate sm:inline"
+        {...(impersonation.targetName && replayMask)}
+      >
         {impersonation.targetName ?? 'un membru'}
       </span>
     </span>

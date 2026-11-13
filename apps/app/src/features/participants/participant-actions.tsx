@@ -19,6 +19,8 @@ import {
   useRevokeClientParticipant,
   useRevokeParticipantInvitation,
 } from '@/api/generated/api';
+import { maskPeople } from '@/components/mask-people';
+import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import { participantFailure } from './participant-errors';
@@ -57,7 +59,7 @@ export function InvitationStatus({
     onMessage(null);
     try {
       await resend.mutateAsync({ invitationId: invitation.id });
-      toast.success(`Am retrimis invitația pe ${invitation.address}.`);
+      toast.success(maskPeople`Am retrimis invitația pe ${invitation.address}.`);
     } catch (cause) {
       const failure = participantFailure(cause, invitation.resendableAt);
       onMessage({ variant: failure.saved ? 'warning' : 'destructive', text: failure.message });
@@ -70,7 +72,7 @@ export function InvitationStatus({
     onMessage(null);
     try {
       await revoke.mutateAsync({ invitationId: invitation.id });
-      toast.success(`Invitația pe ${invitation.address} a fost revocată.`);
+      toast.success(maskPeople`Invitația pe ${invitation.address} a fost revocată.`);
     } catch (cause) {
       onMessage({ variant: 'destructive', text: participantFailure(cause).message });
     }
@@ -143,8 +145,8 @@ export function InvitationStatus({
             onClose={() => setConfirming(false)}
           >
             Persoana nu va mai putea intra în portal cu{' '}
-            <span className="font-medium text-foreground">{invitation.address}</span>. Poți trimite
-            oricând o nouă invitație.
+            <Masked className="font-medium text-foreground">{invitation.address}</Masked>. Poți
+            trimite oricând o nouă invitație.
           </ConfirmDialog>
         </>
       }
@@ -171,7 +173,7 @@ export function ParticipantStatus({
     onMessage(null);
     try {
       await revoke.mutateAsync({ participantId: participant.id });
-      toast.success(`${participant.fullName} nu mai are acces la portal.`);
+      toast.success(maskPeople`${participant.fullName} nu mai are acces la portal.`);
     } catch (cause) {
       onMessage({ variant: 'destructive', text: participantFailure(cause).message });
     }
@@ -227,8 +229,8 @@ export function ParticipantStatus({
             onConfirm={() => void revokeAccess()}
             onClose={() => setConfirming(false)}
           >
-            <span className="font-medium text-foreground">{participant.fullName}</span> nu va mai
-            putea intra în portal. Instruirile, fișele și celelalte date rămân la client, iar
+            <Masked className="font-medium text-foreground">{participant.fullName}</Masked> nu va
+            mai putea intra în portal. Instruirile, fișele și celelalte date rămân la client, iar
             persoana poate fi invitată din nou oricând.
           </ConfirmDialog>
         </>
@@ -242,7 +244,7 @@ function AdministratorBadge() {
 }
 
 function Address({ children }: { children: string }) {
-  return <span className="font-medium break-all">{children}</span>;
+  return <Masked className="font-medium break-all">{children}</Masked>;
 }
 
 function StatusRow({

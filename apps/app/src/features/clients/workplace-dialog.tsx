@@ -34,6 +34,7 @@ import {
   useUpdateWorkplace,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -249,6 +250,7 @@ function WorkplaceForm({
       onCloseAutoFocus={onCloseAutoFocus}
     >
       <form
+        {...replayShow}
         ref={formRef}
         onSubmit={(event) => {
           // The dialog also opens from the employee form's workplace picker. React events bubble

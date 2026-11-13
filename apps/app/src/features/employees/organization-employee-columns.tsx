@@ -20,6 +20,7 @@ export const organizationEmployeeColumns = helper.columns([
     meta: {
       cellClassName: 'font-medium',
       skeletonClassName: 'w-40',
+      personal: true,
     },
     cell: ({ row, getValue }) => (
       <>

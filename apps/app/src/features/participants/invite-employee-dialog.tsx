@@ -14,7 +14,9 @@ import { useState } from 'react';
 
 import { useInviteEmployeeParticipant } from '@/api/generated/api';
 import { HelpLink } from '@/components/help-link';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import type { ParticipantMessage } from './participant-actions';
@@ -92,7 +94,7 @@ function InviteEmployeeForm({
         employeeId: employee.id,
         data: { channel: picked.channel, address: picked.address },
       });
-      toast.success(`Invitația a fost trimisă pe ${picked.address}.`);
+      toast.success(maskPeople`Invitația a fost trimisă pe ${picked.address}.`);
       onClose();
     } catch (cause) {
       const failure = participantFailure(cause);
@@ -163,7 +165,7 @@ function InviteEmployeeForm({
                     className="mt-0.5 size-4 shrink-0 accent-primary"
                   />
                   <span className="grid min-w-0 gap-0.5">
-                    <span className="font-medium break-all">{option.address}</span>
+                    <Masked className="font-medium break-all">{option.address}</Masked>
                     {option.blocked ? (
                       <span
                         data-testid="participant-invite-blocked"

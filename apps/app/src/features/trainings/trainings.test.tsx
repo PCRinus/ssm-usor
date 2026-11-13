@@ -9,6 +9,7 @@ import {
 import { todayIso } from '@/features/employees/employee-format';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { fullText } from '@/test/text';
 import {
   employeeTests,
   noTests,
@@ -359,8 +360,8 @@ describe("an employee's training tabs", () => {
     const periodic = within(items[0]!);
     expect(periodic.getByText('Periodică')).toBeTruthy();
     expect(periodic.getByTestId('training-record-duration').textContent).toBe('120 min (2 h)');
-    expect(periodic.getByText('Maria Pop, Șef atelier')).toBeTruthy();
-    expect(periodic.getByText('Dan Marin, Inspector SSM')).toBeTruthy();
+    expect(periodic.getByText(fullText('Maria Pop, Șef atelier'))).toBeTruthy();
+    expect(periodic.getByText(fullText('Dan Marin, Inspector SSM'))).toBeTruthy();
     expect(periodic.queryByTestId('training-record-paper')).toBeNull();
     expect(periodic.queryByTestId('training-record-paper-signed')).toBeNull();
     const toggle = periodic.getByTestId('training-material-toggle');

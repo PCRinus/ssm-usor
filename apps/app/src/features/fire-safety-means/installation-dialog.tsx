@@ -22,6 +22,7 @@ import {
   useCreateFireInstallation,
   useUpdateFireInstallation,
 } from '@/api/generated/api';
+import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -146,7 +147,13 @@ function InstallationForm({
 
   return (
     <DialogContent data-testid="fire-installation-dialog" className="sm:max-w-2xl">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>{installation ? 'Modifică instalația' : 'Adaugă o instalație'}</DialogTitle>
           <DialogDescription>

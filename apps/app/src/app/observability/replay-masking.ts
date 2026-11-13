@@ -91,7 +91,7 @@ function outsideTheDocument(element: Element) {
 }
 
 // The page title names the open record, a person on a worker's page.
-export function maskReplayText(text: string, element?: HTMLElement | null) {
+export function maskReplayText(text: string, element?: Element | null) {
   if (!element || element.tagName === 'TITLE' || outsideTheDocument(element)) {
     return asterisks(text);
   }
@@ -100,7 +100,7 @@ export function maskReplayText(text: string, element?: HTMLElement | null) {
   return maskPersonalPatterns(text);
 }
 
-function isPassword(element: HTMLElement) {
+function isPassword(element: Element) {
   return (
     (element instanceof HTMLInputElement && element.type === 'password') ||
     element.hasAttribute('data-rr-is-password') ||
@@ -108,7 +108,7 @@ function isPassword(element: HTMLElement) {
   );
 }
 
-export function maskReplayInput(text: string, element?: HTMLElement | null) {
+export function maskReplayInput(text: string, element?: Element | null) {
   if (!element || isPassword(element) || outsideTheDocument(element))
     return '*'.repeat(text.length);
   if (element.closest(maskSelector)) return '*'.repeat(text.length);

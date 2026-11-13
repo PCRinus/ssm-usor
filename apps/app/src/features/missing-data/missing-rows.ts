@@ -10,7 +10,9 @@ import {
   type RiskEvaluationKind,
 } from '@ssm-usor/contracts';
 import { linkOptions } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
 
+import { maskPeople } from '@/components/mask-people';
 import type {
   DocumentSectionId,
   FireSafetyDocumentSectionId,
@@ -128,7 +130,7 @@ export type MissingAction = 'declare_no_sensitive_groups';
 export type MissingRow = {
   key: string;
   label: string;
-  detail?: string;
+  detail?: ReactNode;
   // Null when the person looking cannot fix it, such as a specialist and the organization's data.
   target: MissingTarget | null;
   action?: MissingAction;
@@ -216,7 +218,7 @@ export const documentMissingData: Record<
   {
     place: DocumentPlace;
     label: string;
-    detail?: string | ((context: DocumentContext) => string);
+    detail?: ReactNode | ((context: DocumentContext) => ReactNode);
     target: (context: DocumentContext) => MissingTarget;
   }
 > = {
@@ -301,7 +303,7 @@ export const documentMissingData: Record<
     label: 'Alt reprezentant al lucrătorilor',
     detail: ({ clash }) =>
       clash
-        ? `„${clash.representativeName}” are același nume ca reprezentantul legal al clientului, „${clash.legalRepresentativeName}”.`
+        ? maskPeople`„${clash.representativeName}” are același nume ca reprezentantul legal al clientului, „${clash.legalRepresentativeName}”.`
         : 'Reprezentantul legal al clientului nu îi poate reprezenta și pe lucrători.',
     target: ({ clientId }) => to.training(clientId, 'workers-representative-clash'),
   },

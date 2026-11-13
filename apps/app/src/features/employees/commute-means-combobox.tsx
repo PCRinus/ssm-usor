@@ -18,6 +18,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
 
+import { replayShape } from '@/app/observability/replay-masking';
 import { comboboxTriggerClass } from '@/components/combobox-trigger';
 import { normalizeSearch } from '@/lib/normalize-search';
 
@@ -82,6 +83,7 @@ export function CommuteMeansCombobox({
   const trigger = useRef<HTMLButtonElement>(null);
   const [insideDialog, setInsideDialog] = useState(false);
   const chosen = commuteMeansLabels(value);
+  const listedChosen = commuteMeansLabels({ means: value.means, other: null });
   const typed = search.trim();
   const listed = [...Object.values(commuteMeanLabels), value.other ?? ''];
   const offered =
@@ -129,7 +131,15 @@ export function CommuteMeansCombobox({
           )}
         >
           <span className={cn('min-w-0', chosen.length > 0 && 'font-medium')}>
-            {chosen.length > 0 ? chosen.join(', ') : 'Alege unul sau mai multe'}
+            {chosen.length > 0 ? (
+              <>
+                {listedChosen.join(', ')}
+                {listedChosen.length > 0 && value.other && ', '}
+                {value.other && <span {...replayShape}>{value.other}</span>}
+              </>
+            ) : (
+              'Alege unul sau mai multe'
+            )}
           </span>
           <ChevronsUpDown className="size-4 shrink-0 opacity-50" aria-hidden="true" />
         </button>
@@ -139,6 +149,7 @@ export function CommuteMeansCombobox({
           <CommandInput
             data-testid={`${testId}-search`}
             placeholder="Caută sau scrie alt mijloc"
+            {...replayShape}
             value={search}
             onValueChange={setSearch}
           />
@@ -176,7 +187,7 @@ export function CommuteMeansCombobox({
                   }}
                   testId={`${testId}-other`}
                 >
-                  {value.other}
+                  <span {...replayShape}>{value.other}</span>
                 </Choice>
               )}
               {offered && (
@@ -192,11 +203,18 @@ export function CommuteMeansCombobox({
                 >
                   <Plus aria-hidden="true" />
                   <span className="min-w-0 flex-1">
-                    {tooLong
-                      ? `Prea lung: cel mult ${commuteMeansOtherMaxLength} de caractere`
-                      : value.other
-                        ? `Pune „${typed}” în locul lui „${value.other}”`
-                        : `Adaugă „${typed}”`}
+                    {tooLong ? (
+                      `Prea lung: cel mult ${commuteMeansOtherMaxLength} de caractere`
+                    ) : value.other ? (
+                      <>
+                        Pune „<span {...replayShape}>{typed}</span>” în locul lui „
+                        <span {...replayShape}>{value.other}</span>”
+                      </>
+                    ) : (
+                      <>
+                        Adaugă „<span {...replayShape}>{typed}</span>”
+                      </>
+                    )}
                   </span>
                 </CommandItem>
               )}

@@ -14,6 +14,7 @@ import {
   type SignatureRequestListResponseItemsItem,
   useListClientSignatureRequests,
 } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { formatDate, roCount } from '@/features/employees/employee-format';
@@ -108,6 +109,7 @@ export function ClientSignatureRequests({
                   to="/clienti/$clientId/angajati/$employeeId"
                   params={{ clientId, employeeId: group.employee.id }}
                   className="font-medium hover:underline"
+                  {...replayMask}
                 >
                   {formatEmployeeName(group.employee)}
                 </Link>

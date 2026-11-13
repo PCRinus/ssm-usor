@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import type { Client } from '@/features/clients/client-form-schema';
@@ -26,9 +27,15 @@ function EmployeeName({
   employeeId: string | null;
   name: string;
 }) {
-  if (!employeeId) return <h3 className="text-sm font-semibold">{name}</h3>;
+  if (!employeeId) {
+    return (
+      <h3 className="text-sm font-semibold" {...replayMask}>
+        {name}
+      </h3>
+    );
+  }
   return (
-    <h3 className="text-sm font-semibold">
+    <h3 className="text-sm font-semibold" {...replayMask}>
       <Link
         to="/clienti/$clientId/angajati/$employeeId"
         params={{ clientId, employeeId }}

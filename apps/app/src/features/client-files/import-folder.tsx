@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Download, FileArchive, Folder } from 'lucide
 import { type ReactNode, useState } from 'react';
 
 import { listClientFiles } from '@/api/generated/api';
+import { replayMask } from '@/app/observability/replay-masking';
 import { filesLabel } from '@/features/imports/import-format';
 import { saveFile } from '@/lib/save-file';
 
@@ -161,7 +162,10 @@ export function ImportFolderRows({
         <TableCell className="align-top">
           <span className="tabular-nums">{date}</span>
           {uploader && (
-            <span className="mt-0.5 block max-w-48 truncate text-xs text-muted-foreground">
+            <span
+              className="mt-0.5 block max-w-48 truncate text-xs text-muted-foreground"
+              {...replayMask}
+            >
               {uploader}
             </span>
           )}

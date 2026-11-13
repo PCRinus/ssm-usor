@@ -1,9 +1,11 @@
-import { commuteMeansLabels, maskCnp } from '@ssm-usor/contracts';
+import { commuteMeansLabels, type CommuteMeansValue, maskCnp } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { getRouteApi } from '@tanstack/react-router';
 import { Eye, EyeOff } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
+import { replayMask, replayShape } from '@/app/observability/replay-masking';
+import { Shaped } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
 import { EmployeePortalCard } from '@/features/participants/employee-portal-card';
 import { SigningAgreementCard } from '@/features/signatures/signing-agreement-card';
@@ -25,12 +27,26 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Fact({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+function Fact({
+  label,
+  wide,
+  replay,
+  children,
+}: {
+  label: string;
+  wide?: boolean;
+  replay?: 'mask' | 'shape';
+  children: ReactNode;
+}) {
   const empty = children === null || children === undefined || children === '';
   return (
     <div className={wide ? 'bg-card px-5 py-3.5 sm:col-span-2' : 'bg-card px-5 py-3.5'}>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-sm font-medium break-words whitespace-pre-line">
+      <dd
+        className="mt-0.5 text-sm font-medium break-words whitespace-pre-line"
+        {...(replay === 'mask' && replayMask)}
+        {...(replay === 'shape' && replayShape)}
+      >
         {empty ? <span className="font-normal text-muted-foreground">—</span> : children}
       </dd>
     </div>
@@ -42,7 +58,7 @@ function Cnp({ value }: { value: string }) {
   const [revealed, setRevealed] = useState(false);
   return (
     <span className="flex items-center gap-2">
-      <span data-testid="employee-cnp-value" className="tabular-nums">
+      <span data-testid="employee-cnp-value" className="tabular-nums" {...replayMask}>
         {revealed ? value : maskCnp(value)}
       </span>
       <Button
@@ -57,6 +73,19 @@ function Cnp({ value }: { value: string }) {
         {revealed ? 'Ascunde' : 'Arată'}
       </Button>
     </span>
+  );
+}
+
+function commuteMeansText({ means, other }: CommuteMeansValue) {
+  const chosen = commuteMeansLabels({ means, other: null }).join(', ');
+  const typed = other?.trim();
+  if (!chosen && !typed) return null;
+  return (
+    <>
+      {chosen}
+      {chosen && typed && ', '}
+      {typed && <Shaped>{typed}</Shaped>}
+    </>
   );
 }
 
@@ -77,10 +106,16 @@ export function EmployeePage() {
     <div data-testid="employee-page">
       <div className="grid gap-6">
         <Section title="Identificare">
-          <Fact label="Nume">{employee.lastName}</Fact>
-          <Fact label="Prenume">{employee.firstName}</Fact>
+          <Fact label="Nume" replay="mask">
+            {employee.lastName}
+          </Fact>
+          <Fact label="Prenume" replay="mask">
+            {employee.firstName}
+          </Fact>
           <Fact label="CNP">{employee.cnp ? <Cnp value={employee.cnp} /> : null}</Fact>
-          <Fact label="Marca">{employee.employeeNumber}</Fact>
+          <Fact label="Marca" replay="mask">
+            {employee.employeeNumber}
+          </Fact>
         </Section>
 
         <Section title="Angajare">
@@ -101,7 +136,9 @@ export function EmployeePage() {
             </span>
           </Fact>
           <Fact label="Funcția din contract">{employee.jobTitle}</Fact>
-          <Fact label="Nr. contract">{employee.contractNumber}</Fact>
+          <Fact label="Nr. contract" replay="mask">
+            {employee.contractNumber}
+          </Fact>
           <Fact label="Data angajării">{formatDate(employee.hiredAt)}</Fact>
           <Fact label={former ? 'Vechime la plecare' : 'Vechime'}>
             {formatTenure(employee.hiredAt, employee.terminatedAt ?? todayIso())}
@@ -112,14 +149,14 @@ export function EmployeePage() {
         </Section>
 
         <Section title="Contact">
-          <Fact label="Email">
+          <Fact label="Email" replay="mask">
             {employee.email && (
               <a href={`mailto:${employee.email}`} className="hover:underline">
                 {employee.email}
               </a>
             )}
           </Fact>
-          <Fact label="Telefon">
+          <Fact label="Telefon" replay="mask">
             {employee.phone && (
               <a href={`tel:${employee.phone.replace(/[^+\d]/g, '')}`} className="hover:underline">
                 {employee.phone}
@@ -132,33 +169,38 @@ export function EmployeePage() {
           <Fact label="Punct de lucru" wide>
             {employee.workplace?.name}
           </Fact>
-          <Fact label="Data nașterii">
+          <Fact label="Data nașterii" replay="mask">
             {employee.birthDate ? formatDate(employee.birthDate) : null}
           </Fact>
-          <Fact label="Locul nașterii">{employee.birthPlace}</Fact>
-          <Fact label="Domiciliu" wide>
+          <Fact label="Locul nașterii" replay="mask">
+            {employee.birthPlace}
+          </Fact>
+          <Fact label="Domiciliu" wide replay="shape">
             {employee.homeAddress}
           </Fact>
-          <Fact label="Adresa unde locuiește" wide>
+          <Fact label="Adresa unde locuiește" wide replay="shape">
             {employee.residenceAddress}
           </Fact>
-          <Fact label="Grupa sanguină">{blood}</Fact>
-          <Fact label="Calificarea">{employee.qualification}</Fact>
-          <Fact label="Studiile">{employee.education}</Fact>
-          <Fact label="Autorizații" wide>
+          <Fact label="Grupa sanguină" replay="mask">
+            {blood}
+          </Fact>
+          <Fact label="Calificarea" replay="mask">
+            {employee.qualification}
+          </Fact>
+          <Fact label="Studiile" replay="mask">
+            {employee.education}
+          </Fact>
+          <Fact label="Autorizații" wide replay="mask">
             {employee.authorizations}
           </Fact>
-          <Fact label="Traseul de deplasare" wide>
+          <Fact label="Traseul de deplasare" wide replay="shape">
             {employee.commuteRoute}
           </Fact>
           <Fact label="Mijloace de transport">
-            {commuteMeansLabels({
-              means: employee.commuteMeans,
-              other: employee.commuteMeansOther,
-            }).join(', ')}
+            {commuteMeansText({ means: employee.commuteMeans, other: employee.commuteMeansOther })}
           </Fact>
           <Fact label="Durata deplasării (minute)">{employee.commuteMinutes}</Fact>
-          <Fact label="Observații" wide>
+          <Fact label="Observații" wide replay="mask">
             {employee.notes}
           </Fact>
         </Section>

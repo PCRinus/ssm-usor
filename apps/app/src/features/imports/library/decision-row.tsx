@@ -5,6 +5,8 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Pencil, SpellCheck, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
+
 import { rowTones } from './row-tones';
 
 export type Tone = 'done' | 'todo' | 'optional' | 'info' | 'warning' | 'spelling' | 'editing';
@@ -73,6 +75,7 @@ export function DecisionRow({
   id,
   wide = false,
   top = false,
+  personal = false,
   children,
 }: {
   tone: Tone;
@@ -85,9 +88,12 @@ export function DecisionRow({
   // Field names such as "Periodicitate SU, tehnico-administrativ" wrap in the narrow column.
   wide?: boolean;
   top?: boolean;
+  // The row decides a person's data: the session replay masks all but its label.
+  personal?: boolean;
   children: ReactNode;
 }) {
   const labelId = useId();
+  const replay = personal ? replayMask : {};
   return (
     <div
       id={id}
@@ -118,6 +124,7 @@ export function DecisionRow({
           'col-start-2 grid min-w-0 gap-1 text-sm sm:col-start-auto',
           toggle && 'col-end-[-1] sm:col-end-auto'
         )}
+        {...replay}
       >
         {children}
       </div>
@@ -131,7 +138,11 @@ export function DecisionRow({
           {actions}
         </RowActions>
       )}
-      {below && <div className="col-start-2 col-end-[-1] mt-2 min-w-0 sm:col-start-2">{below}</div>}
+      {below && (
+        <div className="col-start-2 col-end-[-1] mt-2 min-w-0 sm:col-start-2" {...replay}>
+          {below}
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,9 @@ import {
 } from '@ssm-usor/ui/components/native-select';
 import type { FieldError } from 'react-hook-form';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 
 import { signerKindLabels } from './signature-format';
@@ -85,7 +87,11 @@ export function SignerSelect({
               {members.length > 0 && (
                 <NativeSelectOptGroup label="Organizația ta">
                   {members.map((candidate) => (
-                    <NativeSelectOption key={candidate.accountId} value={candidate.accountId}>
+                    <NativeSelectOption
+                      key={candidate.accountId}
+                      value={candidate.accountId}
+                      {...replayMask}
+                    >
                       {candidateLabel(candidate)}
                     </NativeSelectOption>
                   ))}
@@ -94,7 +100,11 @@ export function SignerSelect({
               {participants.length > 0 && (
                 <NativeSelectOptGroup label="Clientul, în portal">
                   {participants.map((candidate) => (
-                    <NativeSelectOption key={candidate.accountId} value={candidate.accountId}>
+                    <NativeSelectOption
+                      key={candidate.accountId}
+                      value={candidate.accountId}
+                      {...replayMask}
+                    >
                       {candidateLabel(candidate)}
                     </NativeSelectOption>
                   ))}
@@ -128,8 +138,8 @@ export function SignerSelect({
           }
         >
           {slotName.trim()
-            ? `Rubrica tipărește „${slotName.trim()}”, dar semnează ${mismatch.name}. Semnătura se face pe numele contului, deci cele două trebuie să fie aceeași persoană.`
-            : `Rubrica nu are încă un nume. Semnătura se face pe numele contului, ${mismatch.name}.`}
+            ? maskPeople`Rubrica tipărește „${slotName.trim()}”, dar semnează ${mismatch.name}. Semnătura se face pe numele contului, deci cele două trebuie să fie aceeași persoană.`
+            : maskPeople`Rubrica nu are încă un nume. Semnătura se face pe numele contului, ${mismatch.name}.`}
         </Notice>
       )}
     </div>

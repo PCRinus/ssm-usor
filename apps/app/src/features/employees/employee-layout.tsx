@@ -32,6 +32,7 @@ export function EmployeeLayout() {
       <RecordHeader
         icon={UserRound}
         title={formatEmployeeName(employee)}
+        personal
         facts={
           <>
             <HeaderFact label="Post">

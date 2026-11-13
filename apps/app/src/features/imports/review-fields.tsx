@@ -27,6 +27,7 @@ import { type ReactNode, useId, useState } from 'react';
 import { Controller, type Resolver, useForm, type UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Segmented } from '@/components/segmented';
 import { CaenCombobox } from '@/features/clients/caen-combobox';
 import { VatPayerField } from '@/features/clients/client-fields';
@@ -60,6 +61,7 @@ import {
   formatFieldValue,
   inferenceNote,
   type LabelledSource,
+  personalPaths,
   type Proposal,
   type RegisteredCompany,
   sameCompanyName,
@@ -357,6 +359,7 @@ function FieldEditor({
       top
       wide
       id={anchorOf(path)}
+      personal={personalPaths.has(path)}
       testId="review-row-editing"
       label={
         <label htmlFor={id} className="grid gap-0.5 sm:mt-2">
@@ -423,6 +426,7 @@ function FieldEditor({
             id={id}
             data-testid={id}
             className={undefined}
+            {...(!personalPaths.has(path) && replayShow)}
             autoFocus
             inputMode={undefined}
             aria-invalid={Boolean(error)}
@@ -488,6 +492,7 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
       top
       wide
       id={anchorOf(state.path)}
+      personal={personalPaths.has(state.path)}
       testId="review-choice"
       label={<span id={`${name}-label`}>{state.label}</span>}
     >
@@ -545,6 +550,7 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
                   <Input
                     aria-label={state.label}
                     data-testid="review-other-value"
+                    {...(!personalPaths.has(state.path) && replayShow)}
                     className="max-w-sm"
                     autoFocus={!isOther}
                     aria-invalid={Boolean(otherError)}
@@ -804,6 +810,7 @@ function AnafRow({
       top
       wide
       id={anchorOf(state.path)}
+      personal={personalPaths.has(state.path)}
       testId="review-anaf-choice"
       label={<span id={`${name}-label`}>{state.label}</span>}
       actions={rowActions(state, context, onEdit, documentsSources)}
@@ -860,6 +867,7 @@ function MissingRow({
       tone={required ? 'todo' : 'optional'}
       wide
       id={anchorOf(state.path)}
+      personal={personalPaths.has(state.path)}
       testId="review-row"
       label={state.label}
       actions={
@@ -986,6 +994,7 @@ function ValueRow({
       top={Boolean(spelling) || unticked}
       wide
       id={anchorOf(state.path)}
+      personal={personalPaths.has(state.path)}
       testId="review-row"
       label={state.label}
       actions={rowActions(state, context, unticked ? undefined : onEdit)}
@@ -1085,6 +1094,7 @@ function NotApplicableRow({ state, context }: { state: FieldState; context: Fiel
       tone="info"
       wide
       id={anchorOf(state.path)}
+      personal={personalPaths.has(state.path)}
       testId="review-row"
       label={state.label}
       actions={rowActions(state, context)}
@@ -1228,6 +1238,7 @@ export function ExistingFieldGroups({
               tone="done"
               wide
               id={anchorOf(state.path)}
+              personal={personalPaths.has(state.path)}
               testId="review-row"
               label={state.label}
               actions={rowActions(state, context)}
@@ -1263,6 +1274,7 @@ function DifferRow({ state, context }: { state: FieldState; context: FieldContex
       top
       wide
       id={anchorOf(state.path)}
+      personal={personalPaths.has(state.path)}
       testId="review-differs-row"
       label={<span id={`${name}-label`}>{state.label}</span>}
     >

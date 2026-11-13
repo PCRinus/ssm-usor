@@ -35,8 +35,9 @@ import {
   type WorkplaceListResponse,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { Field, FieldMessage } from '@/components/form-field';
+import { Field, FieldMessage, personalError } from '@/components/form-field';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
@@ -196,6 +197,7 @@ function ResponsiblePersonForm({
       ) {
         const legalRepresentative = details.data?.documentDetails.legalRepresentativeName;
         form.setError('roles', {
+          type: personalError,
           message: legalRepresentative
             ? `„${values.fullName.trim()}” are același nume ca reprezentantul legal al clientului, „${legalRepresentative}”, și nu poate fi și reprezentantul lucrătorilor.`
             : `${values.fullName.trim()} este reprezentantul legal al clientului și nu poate fi și reprezentantul lucrătorilor.`,
@@ -257,8 +259,9 @@ function ResponsiblePersonForm({
         </DialogHeader>
         {person && pointedRole === 'workers_representative' && (
           <Notice variant="warning" data-testid="responsible-clash" className="mt-5">
-            {person.fullName} are același nume ca reprezentantul legal al clientului, așa că nu
-            poate fi și reprezentantul lucrătorilor. Debifează rolul aici și numește alt lucrător.
+            <Masked>{person.fullName}</Masked> are același nume ca reprezentantul legal al
+            clientului, așa că nu poate fi și reprezentantul lucrătorilor. Debifează rolul aici și
+            numește alt lucrător.
           </Notice>
         )}
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -465,7 +468,11 @@ function ResponsiblePersonForm({
             />
             <FieldMessage
               id="responsible-roles-error"
-              error={errors.roles ? { type: 'manual', message: errors.roles.message } : undefined}
+              error={
+                errors.roles
+                  ? { type: errors.roles.type, message: errors.roles.message }
+                  : undefined
+              }
             />
           </fieldset>
         </div>

@@ -518,6 +518,8 @@ export type Decision = {
     | 'existing'
     | 'trainings';
   label: string;
+  // The label names another person, so the session replay masks it.
+  namesPerson?: boolean;
   tag: string;
   // A near post or workplace to confirm, rather than a gap.
   tone: 'destructive' | 'warning';
@@ -766,6 +768,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
       key: 'match',
       anchor: 'match',
       label: `E propus ca același lucrător din aplicație ca ${personName(context, twin)}`,
+      namesPerson: true,
       tag: 'Același lucrător la două persoane',
       tone: 'destructive',
     });
@@ -866,6 +869,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
         key: `duplicate-${name}`,
         anchor: fieldAnchor(context, person, name),
         label: `${fieldLabels[name]} apare și la ${personName(context, other)}`,
+        namesPerson: true,
         tag: `${fieldLabels[name]} apare la două persoane`,
         tone: 'destructive',
       });

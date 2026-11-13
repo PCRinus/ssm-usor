@@ -15,7 +15,9 @@ import { type ReactNode, useMemo, useRef, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { BreadcrumbAside } from '@/app/breadcrumb-aside';
+import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
 
 import { ImportActionBar } from '../import-action-bar';
@@ -375,7 +377,9 @@ export function EmployeePersonPage({
     <div className="grid gap-2">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere" {...replayMask}>
+            {name}
+          </h1>
           {state !== 'set_aside' && (
             <Tag tone={stateLabels[state].tone} testId="person-state">
               {stateLabels[state].label}
@@ -441,6 +445,7 @@ export function EmployeePersonPage({
         <Includable
           id={`include-person-${person.id}`}
           name={name}
+          personal
           included={included}
           proposed={proposedPersonIncluded(context, person)}
           testId="person-include"
@@ -455,13 +460,14 @@ export function EmployeePersonPage({
         </Includable>
         {state === 'set_aside' && !leaver && (
           <Notice variant="info">
-            {name} e lăsat deoparte: nu se creează la confirmare. Pornește comutatorul de lângă nume
-            ca să-l iei înapoi la verificat.
+            <Masked>{name}</Masked> e lăsat deoparte: nu se creează la confirmare. Pornește
+            comutatorul de lângă nume ca să-l iei înapoi la verificat.
           </Notice>
         )}
         {declined && (
           <Notice variant="info" data-testid="person-declined-notice">
-            Îl creăm ca lucrător nou, nu îl completăm pe {matchedName(person)} din aplicație.{' '}
+            Îl creăm ca lucrător nou, nu îl completăm pe <Masked>{matchedName(person)}</Masked> din
+            aplicație.{' '}
             <Button
               type="button"
               variant="link"
@@ -475,7 +481,7 @@ export function EmployeePersonPage({
         )}
         {existing && (
           <Notice variant="info" data-testid="person-existing-notice">
-            {name} {former ? 'a fost' : 'e deja'} lucrător al clientului, cu{' '}
+            <Masked>{name}</Masked> {former ? 'a fost' : 'e deja'} lucrător al clientului, cu{' '}
             {person.existing?.matchedBy === 'cnp'
               ? 'același CNP'
               : person.existing?.matchedBy === 'name_only'

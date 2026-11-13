@@ -76,6 +76,7 @@ import {
   useState,
 } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
@@ -107,7 +108,7 @@ import { CommitVersion } from './commit-version';
 import { EditorLayoutContext } from './editor-layout';
 import { ReportProblemContext } from './report-problem-context';
 import { ReportProblemDialog } from './report-problem-dialog';
-import { loaderCrumb } from './route-title';
+import { loaderCrumb, personalCrumb } from './route-title';
 import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
 
 // Most page loads have nothing unread, so the dialog and its drawer stay out of the first download.
@@ -440,15 +441,22 @@ function AppNavigation({
                   className="data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:p-0!"
                 >
                   <Avatar className="size-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">{initials(name, email)}</AvatarFallback>
+                    <AvatarFallback className="rounded-lg" {...replayMask}>
+                      {initials(name, email)}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span data-testid="account-name" className="truncate font-medium">
+                    <span
+                      data-testid="account-name"
+                      className="truncate font-medium"
+                      {...replayMask}
+                    >
                       {name ?? 'Contul meu'}
                     </span>
                     <span
                       data-testid="account-organization"
                       className="truncate text-xs text-muted-foreground"
+                      {...(!organizationName && replayMask)}
                     >
                       {organizationName ?? email}
                     </span>
@@ -466,8 +474,14 @@ function AppNavigation({
                 className="w-64"
               >
                 <DropdownMenuLabel className="grid gap-0.5">
-                  {name && <span className="truncate">{name}</span>}
-                  <span className="font-normal break-all text-muted-foreground">{email}</span>
+                  {name && (
+                    <span className="truncate" {...replayMask}>
+                      {name}
+                    </span>
+                  )}
+                  <span className="font-normal break-all text-muted-foreground" {...replayMask}>
+                    {email}
+                  </span>
                   {organizationName && (
                     <span
                       data-testid="account-menu-organization"
@@ -524,7 +538,9 @@ export function AppShell() {
     select: (matches) =>
       matches.flatMap((match) => {
         const label = loaderCrumb(match.loaderData) ?? match.staticData.title;
-        return label ? [{ to: match.pathname, label }] : [];
+        return label
+          ? [{ to: match.pathname, label, personal: personalCrumb(match.loaderData) }]
+          : [];
       }),
   });
   const editorRoute = useMatches({
@@ -676,10 +692,14 @@ export function AppShell() {
                             {index > 0 && <BreadcrumbSeparator />}
                             <BreadcrumbItem>
                               {index === trail.length - 1 ? (
-                                <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                                <BreadcrumbPage {...(crumb.personal && replayMask)}>
+                                  {crumb.label}
+                                </BreadcrumbPage>
                               ) : (
                                 <BreadcrumbLink asChild>
-                                  <Link to={crumb.to}>{crumb.label}</Link>
+                                  <Link to={crumb.to} {...(crumb.personal && replayMask)}>
+                                    {crumb.label}
+                                  </Link>
                                 </BreadcrumbLink>
                               )}
                             </BreadcrumbItem>

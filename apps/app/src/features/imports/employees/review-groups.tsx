@@ -4,6 +4,7 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { BriefcaseBusiness, Check, Info, MapPin, UsersRound } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
+import { Masked } from '@/components/replay';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
 
 import { Fact, Facts, SectionHeader, StatusTag, Tag } from '../review-parts';
@@ -121,7 +122,7 @@ function GroupRow({
 
 const peopleFact = (count: number, people: string) => (
   <Fact icon={UsersRound} wrap>
-    {peopleLabel(count)}: {people}
+    {peopleLabel(count)}: <Masked>{people}</Masked>
   </Fact>
 );
 

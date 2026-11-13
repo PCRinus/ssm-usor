@@ -34,7 +34,10 @@ import {
   type ImportDetail,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
 
 import { CreditsUsedLine } from '../credits-notices';
@@ -58,7 +61,7 @@ function Line({
 }: {
   icon: ReactNode;
   count?: number;
-  label: string;
+  label: ReactNode;
   detail: ReactNode;
   warn?: boolean;
 }) {
@@ -240,7 +243,7 @@ export function EmployeeConfirmDialog({
                   const decision = decisionsOf(context, person)[0];
                   return (
                     <li key={person.id}>
-                      <span className="font-medium">{nameOf(person)}</span>{' '}
+                      <Masked className="font-medium">{nameOf(person)}</Masked>{' '}
                       <span className="text-muted-foreground">
                         {decision ? decision.tag.toLowerCase() : 'încă nedeschisă'}
                       </span>
@@ -265,7 +268,7 @@ export function EmployeeConfirmDialog({
               <Line
                 key={person.id}
                 icon={<UserRoundPen className="size-4" />}
-                label={`${nameOf(person)} se completează`}
+                label={maskPeople`${nameOf(person)} se completează`}
                 detail="Primește ce lipsea și instruirile de pe fișa lui. Ce avea deja în aplicație rămâne."
               />
             ))}
@@ -274,7 +277,7 @@ export function EmployeeConfirmDialog({
                 icon={<UserMinus className="size-4" />}
                 count={summary.leavers.length}
                 label={count(summary.leavers.length, 'fost lucrător', 'foști lucrători')}
-                detail={`${join(summary.leavers.map(nameOf))}, cu instruirile lor. Apar la Foști lucrători.`}
+                detail={maskPeople`${join(summary.leavers.map(nameOf))}, cu instruirile lor. Apar la Foști lucrători.`}
               />
             )}
             {summary.trainingsHeld > 0 && (
@@ -346,7 +349,7 @@ export function EmployeeConfirmDialog({
                     'test la angajare neverificat pe fișă',
                     'teste la angajare neverificate pe fișă'
                   )}
-                  detail={`${join(summary.untested.map(({ person, domain }) => `${nameOf(person)} (${trainingDomainLabels[domain]})`))}: pe fișă nu se vede testul verificat. Poți înregistra rezultatul pe pagina lucrătorului.`}
+                  detail={maskPeople`${join(summary.untested.map(({ person, domain }) => `${nameOf(person)} (${trainingDomainLabels[domain]})`))}: pe fișă nu se vede testul verificat. Poți înregistra rezultatul pe pagina lucrătorului.`}
                 />
               )}
               {summary.noCommute.length > 0 && (
@@ -359,7 +362,7 @@ export function EmployeeConfirmDialog({
                     'lucrător fără traseul de deplasare',
                     'lucrători fără traseul de deplasare'
                   )}
-                  detail={`${join(summary.noCommute.map(nameOf))}. Fișa individuală îl cere; îl completezi din datele lucrătorului.`}
+                  detail={maskPeople`${join(summary.noCommute.map(nameOf))}. Fișa individuală îl cere; îl completezi din datele lucrătorului.`}
                 />
               )}
               {summary.unusual.length > 0 && (
@@ -372,7 +375,7 @@ export function EmployeeConfirmDialog({
                     'valoare neobișnuită, preluată cum ai lăsat-o',
                     'valori neobișnuite, preluate cum le-ai lăsat'
                   )}
-                  detail={`La ${join([...new Set(summary.unusual.map(({ person }) => nameOf(person)))])}. Le poți corecta pe pagina fiecăruia.`}
+                  detail={maskPeople`La ${join([...new Set(summary.unusual.map(({ person }) => nameOf(person)))])}. Le poți corecta pe pagina fiecăruia.`}
                 />
               )}
             </Group>
@@ -400,7 +403,9 @@ export function EmployeeConfirmDialog({
                 data-testid="employee-confirm-issues"
               >
                 {issues.map((line) => (
-                  <li key={line}>{line}</li>
+                  <li key={line} {...replayMask}>
+                    {line}
+                  </li>
                 ))}
               </ul>
               Deschide persoanele, corectează și încearcă din nou.

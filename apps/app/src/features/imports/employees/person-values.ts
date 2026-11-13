@@ -1,5 +1,7 @@
 import { commuteMeansLabels, isValidCnp, parseCommuteMeansKey } from '@ssm-usor/contracts';
 
+import { replayMask, replayShape, replayShow } from '@/app/observability/replay-masking';
+
 import {
   differs as differ,
   type FieldName,
@@ -12,6 +14,21 @@ import {
 import { dateLabel } from './review-format';
 
 export const dateFields = new Set<FieldName>(['birthDate', 'hiredAt', 'leftOn']);
+
+const shapedFields = new Set<FieldName>([
+  'homeAddress',
+  'residenceAddress',
+  'commuteRoute',
+  'commuteMeans',
+]);
+const shownFields = new Set<FieldName>(['jobTitle', 'hiredAt', 'leftOn', 'commuteMinutes']);
+
+// How the session replay treats a value read from a sheet: the job and its dates show, an
+// address keeps its shape, everything else about the person is masked.
+export function fieldReplay(name: FieldName) {
+  if (shapedFields.has(name)) return replayShape;
+  return shownFields.has(name) ? replayShow : replayMask;
+}
 
 export const rhLabels: Record<string, string> = { '+': 'pozitiv', '-': 'negativ' };
 

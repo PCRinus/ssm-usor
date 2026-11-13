@@ -24,6 +24,7 @@ import {
   useUpdateFireBuilding,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -165,7 +166,13 @@ function BuildingForm({
 
   return (
     <DialogContent data-testid="fire-building-dialog" className="sm:max-w-2xl">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>Clădirea, {workplace.name}</DialogTitle>
           <DialogDescription>

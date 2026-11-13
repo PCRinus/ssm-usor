@@ -27,6 +27,7 @@ import {
   useUpdateClientFireSafety,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
@@ -368,6 +369,7 @@ function FireScheduleForm({
 
   return (
     <form
+      {...replayShow}
       ref={formRef}
       data-testid="fire-safety-form"
       onSubmit={(event) => void onSubmit(event)}
@@ -617,6 +619,7 @@ function FireRulesForm({
 
   return (
     <form
+      {...replayShow}
       ref={formRef}
       data-testid="fire-rules-form"
       onSubmit={(event) => void onSubmit(event)}

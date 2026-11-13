@@ -98,8 +98,12 @@ export function EmployeePortalCard({
         <div data-testid="participant-none" className="grid gap-4">
           <p className="text-sm text-muted-foreground">Lucrătorul nu are acces la portal.</p>
           <FactList>
-            <Fact label="Email">{employee.email}</Fact>
-            <Fact label="Telefon">{employee.phone}</Fact>
+            <Fact label="Email" replay="mask">
+              {employee.email}
+            </Fact>
+            <Fact label="Telefon" replay="mask">
+              {employee.phone}
+            </Fact>
           </FactList>
         </div>
       )}

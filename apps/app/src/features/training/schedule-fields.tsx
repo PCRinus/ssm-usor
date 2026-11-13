@@ -6,6 +6,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Briefcase, HardHat, Laptop, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { FieldMessage } from '@/components/form-field';
 import { Segmented, type SegmentOption } from '@/components/segmented';
 import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
@@ -398,6 +399,7 @@ export function TrainingScheduleFields({
                     <Input
                       id={ids[key]}
                       data-testid={ids[key]}
+                      {...replayShow}
                       inputMode="numeric"
                       autoComplete="off"
                       disabled={disabled}

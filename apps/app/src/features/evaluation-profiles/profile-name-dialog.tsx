@@ -11,6 +11,7 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { useForm } from 'react-hook-form';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -61,7 +62,13 @@ function ProfileNameForm({ naming, onClose }: { naming: ProfileNaming; onClose: 
 
   return (
     <DialogContent data-testid="profile-name-dialog" className="sm:max-w-lg">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>{naming.title}</DialogTitle>
           <DialogDescription>{naming.description}</DialogDescription>

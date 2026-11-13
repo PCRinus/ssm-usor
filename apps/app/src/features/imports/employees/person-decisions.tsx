@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 
+import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
 import { staffCategoryLabels } from '@/features/job-positions/job-position-schema';
@@ -45,7 +46,7 @@ import {
 import { FieldInput } from './person-fields';
 import { PhotoNumbers } from './person-photos';
 import { showChoice } from './person-sections';
-import { dateFields, fieldProblem, typedValue } from './person-values';
+import { dateFields, fieldProblem, fieldReplay, typedValue } from './person-values';
 import { orderedByClosest, withFields, withTitle, withWorkplace } from './review-changes';
 import { dateLabel } from './review-format';
 import type { Position, Workplace } from './use-review-context';
@@ -185,8 +186,8 @@ export function PostDecision({
     count > 1 ? (
       <p className="text-[13px] text-muted-foreground">
         Se aplică tuturor celor {count} persoane cu funcția{' '}
-        <span className="font-semibold text-foreground">{title}</span>: {names.join(', ')}. Funcția
-        de pe fișă se păstrează oricum la fiecare.
+        <span className="font-semibold text-foreground">{title}</span>:{' '}
+        <Masked>{names.join(', ')}</Masked>. Funcția de pe fișă se păstrează oricum la fiecare.
       </p>
     ) : null;
   return (
@@ -580,7 +581,9 @@ export function ChoiceCards({
                 }}
                 className="size-4 shrink-0 cursor-pointer accent-primary"
               />
-              <span className="min-w-0 wrap-anywhere">{showChoice(name, option.value)}</span>
+              <span className="min-w-0 wrap-anywhere" {...fieldReplay(name)}>
+                {showChoice(name, option.value)}
+              </span>
             </label>
             <PhotoNumbers
               pages={pages}
@@ -704,14 +707,15 @@ export function MatchDecision({
       {asked && (
         <p className="text-sm">
           Fișa nu are CNP și nici data nașterii. Clientul are un singur lucrător cu același nume,{' '}
-          {name}
+          <Masked>{name}</Masked>
           {hiredAt ? `, angajat la ${dateLabel(String(hiredAt))}` : ''}
           {leftAt ? `, plecat din firmă la ${dateLabel(leftAt)}` : ''}. {employee}
         </p>
       )}
       {rehire && leftAt && (
         <p className="text-sm">
-          {name} a plecat din firmă la {dateLabel(leftAt)}, iar fișa scrie angajarea
+          <Masked>{name}</Masked> a plecat din firmă la {dateLabel(leftAt)}, iar fișa scrie
+          angajarea
           {typeof sheetHiredAt === 'string' ? ` la ${dateLabel(sheetHiredAt)}` : ' după plecare'}.
           În aplicație, o reangajare după o pauză e un lucrător nou, nu cel vechi readus. Îl poți
           crea ca lucrător nou, poți corecta mai jos data angajării, dacă e citită greșit, sau îl
@@ -720,8 +724,8 @@ export function MatchDecision({
       )}
       {twin && (
         <p className="text-sm">
-          {twin.label}. Un lucrător se completează o singură dată: spune că nu e el sau lasă una
-          dintre persoane deoparte.
+          <Masked>{twin.label}</Masked>. Un lucrător se completează o singură dată: spune că nu e el
+          sau lasă una dintre persoane deoparte.
         </p>
       )}
       <div role="group" aria-labelledby="match-title" className="grid gap-2">

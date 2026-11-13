@@ -28,6 +28,7 @@ import {
 } from '@/api/generated/api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
 import { AgreementWarning } from './agreement-warning';
@@ -226,8 +227,8 @@ function SigningFlow({
             <DialogTitle>Scrie codul</DialogTitle>
             <DialogDescription data-testid="signing-address">
               Am trimis un cod {step.session.channel === 'sms' ? 'prin SMS ' : ''}la{' '}
-              <span className="font-medium text-foreground">{step.session.addressHint}</span>. Cu el
-              semnezi {count}. Este valabil până la{' '}
+              <Masked className="font-medium text-foreground">{step.session.addressHint}</Masked>.
+              Cu el semnezi {count}. Este valabil până la{' '}
               <span className="tabular-nums">
                 {timeFormat.format(new Date(step.session.expiresAt))}
               </span>
@@ -438,7 +439,7 @@ function RequestItem({
       {icon && <span className="mt-1 shrink-0">{icon}</span>}
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-medium">{formatEmployeeName(request.employee)}</span>
+          <Masked className="font-medium">{formatEmployeeName(request.employee)}</Masked>
           <Badge variant="secondary">{trainingDomainLabels[document.domain]}</Badge>
           <AgreementWarning agreement={request.agreement} />
         </p>

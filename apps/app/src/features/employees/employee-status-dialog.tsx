@@ -21,9 +21,11 @@ import {
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 
 import { formatDate, todayIso } from './employee-format';
@@ -131,8 +133,8 @@ function StatusForm({
       ]);
       toast.success(
         action === 'terminate'
-          ? `${name} a fost trecut la foști lucrători.`
-          : `${name} este din nou lucrător actual.`
+          ? maskPeople`${name} a fost trecut la foști lucrători.`
+          : maskPeople`${name} este din nou lucrător actual.`
       );
       onClose();
     } catch (cause) {
@@ -153,14 +155,18 @@ function StatusForm({
           <DialogDescription>
             {action === 'terminate' ? (
               <>
-                <span className="font-medium text-foreground">{name}</span> trece la foști
-                lucrători. Dovezile instruirilor rămân la dosar.
+                <span className="font-medium text-foreground" {...replayMask}>
+                  {name}
+                </span>{' '}
+                trece la foști lucrători. Dovezile instruirilor rămân la dosar.
               </>
             ) : (
               <>
-                <span className="font-medium text-foreground">{name}</span> revine printre
-                lucrătorii actuali. Folosește acțiunea doar pentru a corecta o greșeală; o
-                reangajare după o pauză se înregistrează ca lucrător nou.{' '}
+                <span className="font-medium text-foreground" {...replayMask}>
+                  {name}
+                </span>{' '}
+                revine printre lucrătorii actuali. Folosește acțiunea doar pentru a corecta o
+                greșeală; o reangajare după o pauză se înregistrează ca lucrător nou.{' '}
                 <HelpLink topic="angajati.reactivare">Află mai mult</HelpLink>
               </>
             )}

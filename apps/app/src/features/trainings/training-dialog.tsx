@@ -47,6 +47,7 @@ import {
   useUpdateTraining,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -664,6 +665,7 @@ function TrainingForm({
                 id="training-attendees"
                 data-testid="training-fixed-attendee"
                 className="rounded-md border bg-muted/40 px-3 py-2.5 text-sm font-medium"
+                {...replayMask}
               >
                 {formatEmployeeName(fixed)}
               </p>

@@ -14,6 +14,7 @@ import { type RowData, type SortingState, useTable } from '@tanstack/react-table
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
 import { ListEmpty } from '@/components/empty-state';
 import { Pager } from '@/components/pager';
 
@@ -196,7 +197,11 @@ export function DataTable<TData extends RowData>({
                 {...rowClickProps(onRowClick && (() => onRowClick(row.original)))}
               >
                 {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id} className={cell.column.columnDef.meta?.cellClassName}>
+                  <TableCell
+                    key={cell.id}
+                    className={cell.column.columnDef.meta?.cellClassName}
+                    {...(cell.column.columnDef.meta?.personal && replayMask)}
+                  >
                     <table.FlexRender cell={cell} />
                   </TableCell>
                 ))}

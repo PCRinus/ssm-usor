@@ -34,9 +34,9 @@ import { TrainingSheetReadiness } from '@/features/training-sheets/training-shee
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
-import { TrainerName, TrainingDuration } from './not-on-sheet';
+import { PersonWithTitle, TrainerName, TrainingDuration } from './not-on-sheet';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
-import { formatPerson, paperSignedLine, paperTrainingBadge } from './training-format';
+import { paperSignedLine, paperTrainingBadge } from './training-format';
 import { TrainingMaterial } from './training-material';
 import { TrainingStateBadge } from './training-state-badge';
 
@@ -397,7 +397,9 @@ function RecordItem({
           <TrainerName trainer={training.trainer} />
         </RecordFact>
         {training.verifier && (
-          <RecordFact label="A verificat">{formatPerson(training.verifier)}</RecordFact>
+          <RecordFact label="A verificat">
+            <PersonWithTitle person={training.verifier} />
+          </RecordFact>
         )}
         {training.supplementaryReason && (
           <RecordFact label="Motivul" wide>
@@ -407,7 +409,8 @@ function RecordItem({
         {admission && (
           <RecordFact label="Admitere" wide>
             <span data-testid="training-record-admission">
-              Admis la lucru de {formatPerson(admission)} la {formatDate(admission.admittedOn)}
+              Admis la lucru de <PersonWithTitle person={admission} /> la{' '}
+              {formatDate(admission.admittedOn)}
             </span>
           </RecordFact>
         )}

@@ -17,6 +17,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import { useInviteClientAdministrator } from '@/api/generated/api';
 import { Field, FieldMessage } from '@/components/form-field';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { PhoneInput } from '@/components/phone-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -114,7 +115,7 @@ function InviteAdministratorForm({
             : { fullName: values.fullName }),
         },
       });
-      toast.success(`Invitația a fost trimisă pe ${address}.`);
+      toast.success(maskPeople`Invitația a fost trimisă pe ${address}.`);
       onClose();
     } catch (cause) {
       const failure = participantFailure(cause);

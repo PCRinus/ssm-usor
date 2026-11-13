@@ -4,6 +4,7 @@ import { Label } from '@ssm-usor/ui/components/label';
 import type { ComponentProps } from 'react';
 import { Controller, type FieldError, type UseFormReturn, useFormState } from 'react-hook-form';
 
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -62,6 +63,7 @@ export function IdentificationFields({
           <Input
             id="cui"
             data-testid="client-cui"
+            {...replayShow}
             className="h-11 max-w-xs"
             {...form.register('cui')}
             inputMode="numeric"
@@ -114,6 +116,7 @@ export function IdentificationFields({
         <Input
           id="legalName"
           data-testid="client-legal-name"
+          {...replayShow}
           className="h-11"
           {...form.register('legalName')}
           autoComplete="organization"
@@ -197,6 +200,7 @@ export function RegistrationFields({ form, busy }: { form: ClientForm; busy: boo
         <Input
           id="tradeRegisterNumber"
           data-testid="client-trade-register"
+          {...replayShow}
           className="h-11"
           {...form.register('tradeRegisterNumber')}
           {...inputProps('tradeRegisterNumber', errors.tradeRegisterNumber, busy, true)}
@@ -243,6 +247,7 @@ export function RegisteredOfficeFields({ form, busy }: { form: ClientForm; busy:
         <Input
           id="locality"
           data-testid="client-locality"
+          {...replayShow}
           className="h-11"
           {...form.register('locality')}
           autoComplete="address-level2"
@@ -260,6 +265,7 @@ export function RegisteredOfficeFields({ form, busy }: { form: ClientForm; busy:
         <Input
           id="addressLine"
           data-testid="client-address"
+          {...replayShow}
           className="h-11"
           {...form.register('addressLine')}
           autoComplete="street-address"

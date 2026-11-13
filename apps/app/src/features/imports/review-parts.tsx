@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
+
 import { filesLabel } from './import-format';
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
 import { requestFileName } from './source-match';
@@ -544,15 +546,18 @@ export function SpellingChoice({
   written,
   keptWritten,
   onPick,
+  personal = false,
 }: {
   label: string;
   corrected: string;
   written: string;
   keptWritten: boolean;
   onPick: (keepWritten: boolean) => void;
+  personal?: boolean;
 }) {
   const name = useId();
   const diff = spellingDiff(corrected, written);
+  const replay = personal ? replayMask : {};
   return (
     <div className="grid gap-1.5" data-testid="review-spelling">
       <KindLine icon={<SpellCheck aria-hidden="true" />}>
@@ -566,7 +571,9 @@ export function SpellingChoice({
           heading="Scrierea corectată"
           testId="review-spelling-corrected"
         >
-          <SpellingPill runs={diff.value} written={false} />
+          <span {...replay}>
+            <SpellingPill runs={diff.value} written={false} />
+          </span>
         </PickOption>
         <PickOption
           name={name}
@@ -575,7 +582,9 @@ export function SpellingChoice({
           heading="Ca în document"
           testId="review-spelling-written"
         >
-          <SpellingPill runs={diff.written} written />
+          <span {...replay}>
+            <SpellingPill runs={diff.written} written />
+          </span>
         </PickOption>
       </PickList>
     </div>

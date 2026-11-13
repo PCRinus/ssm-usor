@@ -24,6 +24,7 @@ import {
   useUpdateEquipmentEntry,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -154,7 +155,13 @@ function EquipmentEntryForm({
 
   return (
     <DialogContent data-testid="equipment-dialog" className="sm:max-w-2xl">
-      <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
+      <form
+        {...replayShow}
+        ref={formRef}
+        onSubmit={(event) => void onSubmit(event)}
+        aria-busy={busy}
+        noValidate
+      >
         <DialogHeader>
           <DialogTitle>
             {entry ? 'Modifică articolul' : 'Adaugă un articol de echipament'}

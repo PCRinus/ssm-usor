@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { employeeProposal } from '@/test/employee-import-fixture';
+import { replayedInput, replayedText } from '@/test/replay';
 
 import {
   decisionsOf,
@@ -443,5 +444,39 @@ describe('the card of the data read from the sheets', () => {
     );
     expect(document.getElementById('field-hiredAt')).toBeNull();
     expect(pending()).toBe('Gata de confirmat');
+  });
+});
+
+describe('what a session replay of the data read from the sheets shows', () => {
+  const row = (name: string) => document.getElementById(`field-${name}`)!;
+  const value = (name: string) => row(name).querySelector('dd > div')!;
+
+  it('masks the person, keeps the shape of an address and shows the job', () => {
+    render(
+      <Data
+        who={withFields('pop', {
+          cnp: { options: [{ value: '2900101400128', pageIds: ['p3'] }] },
+          homeAddress: { options: [{ value: 'Str. Lungă nr. 4, Sibiu', pageIds: ['p3'] }] },
+        })}
+      />
+    );
+
+    expect(replayedText(value('lastName'))).toBe('***');
+    expect(replayedText(value('cnp'))).not.toMatch(/\d/);
+    expect(replayedText(value('homeAddress'))).toBe('Str. Xxxxx nr. 0, Xxxxx');
+    expect(replayedText(value('jobTitle'))).toBe('Vânzător');
+    const label = row('jobTitle').querySelector('dt')!;
+    expect(replayedText(label)).toBe(label.textContent);
+  });
+
+  it('masks what is typed about the person in its dialog, and shows the job', async () => {
+    const user = userEvent.setup();
+    render(<Data />);
+
+    await open(user, 'Modifică datele personale');
+    expect(replayedInput(screen.getByLabelText<HTMLInputElement>(/^Nume/))).toBe('***');
+    await user.click(screen.getByRole('button', { name: 'Renunță' }));
+    await open(user, 'Modifică datele de angajare');
+    expect(replayedInput(screen.getByLabelText<HTMLTextAreaElement>(/^Funcția/))).toBe('Vânzător');
   });
 });

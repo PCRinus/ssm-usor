@@ -24,6 +24,7 @@ import {
   useUpdateJobPosition,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -179,6 +180,7 @@ function JobPositionForm({
       onCloseAutoFocus={onCloseAutoFocus}
     >
       <form
+        {...replayShow}
         ref={formRef}
         onSubmit={(event) => {
           // The dialog also opens from inside other forms (the employee's position picker). It is

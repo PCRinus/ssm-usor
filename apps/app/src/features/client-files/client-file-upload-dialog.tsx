@@ -16,6 +16,7 @@ import { Check, File as FileIcon, FileUp, Upload, X } from 'lucide-react';
 import { type FormEvent, useRef, useState } from 'react';
 
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 
 import {
   chosenFileKind,
@@ -119,7 +120,10 @@ function UploadForm({
           {employee && (
             <DialogDescription data-testid="client-files-upload-employee">
               Pentru lucrătorul{' '}
-              <span className="font-medium text-foreground">{formatEmployeeName(employee)}</span>.
+              <Masked className="font-medium text-foreground">
+                {formatEmployeeName(employee)}
+              </Masked>
+              .
             </DialogDescription>
           )}
         </DialogHeader>

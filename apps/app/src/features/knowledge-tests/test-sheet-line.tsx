@@ -28,6 +28,7 @@ import {
   useMarkTestSheetPaperSignature,
 } from '@/api/generated/api';
 import { FileLinkButton } from '@/components/file-link-button';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import {
   reasonOf,
@@ -224,7 +225,7 @@ function PaperSlotDialog({
             <DialogTitle>Marchezi „{signerSlotLabels[slot]}” semnat pe hârtie?</DialogTitle>
             <DialogDescription>
               Pentru fișa de test tipărită și semnată de mână
-              {slot === 'examiner' && result.examiner ? ` de ${result.examiner.name}` : ''}. O
+              {slot === 'examiner' && result.examiner && maskPeople` de ${result.examiner.name}`}. O
               cerere de semnare electronică în așteptare pentru această rubrică se anulează.
             </DialogDescription>
           </DialogHeader>

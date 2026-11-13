@@ -54,7 +54,7 @@ function isSameOrigin(address: string) {
 
 // Replays keep `class` and `style`, or they play as bare HTML. A link to another origin can
 // carry a signed file address and the file's name, so only the app's own addresses stay.
-export function maskReplayAttribute(name: string, value: string, element?: HTMLElement) {
+export function maskReplayAttribute(name: string, value: string, element?: Element) {
   // A field's value reaches this already through maskInputFn, which keeps the shown fields.
   if (name === 'value' && element?.matches('input, textarea, select')) {
     return maskReplayInput(value, element);

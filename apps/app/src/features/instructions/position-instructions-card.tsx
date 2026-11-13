@@ -38,6 +38,7 @@ import {
   useListPositionInstructions,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -446,6 +447,7 @@ function PickInstructionsDialog({
             <>
               <Input
                 data-testid={testId('pick-search')}
+                {...replayShow}
                 placeholder="Caută după titlu…"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}

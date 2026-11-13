@@ -156,6 +156,7 @@ export function ClientFilesCard({
       key={file.id}
       file={file}
       depth={depth}
+      personal={Boolean(employee)}
       changeable={file.canChange && !readOnly}
       showOwnersOnly={!lead}
       canSwitch={isOwner && !lead && !readOnly}

@@ -2,6 +2,8 @@ import { Switch } from '@ssm-usor/ui/components/switch';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { type ReactNode, useEffect } from 'react';
 
+import { replayMask } from '@/app/observability/replay-masking';
+
 import { leftOutByMember } from './include-rule';
 import { RowActions } from './library/decision-row';
 
@@ -94,12 +96,15 @@ export function Includable({
   holdWordSpace = false,
   collapsedClassName,
   collapsed,
+  personal = false,
   children,
 }: {
   id: string;
   name: string;
   included: boolean;
   proposed: boolean;
+  // The name is a person's, which the session replay masks.
+  personal?: boolean;
   onChange: (included: boolean) => void;
   agreement?: Agreement;
   disabled?: boolean;
@@ -132,7 +137,10 @@ export function Includable({
       data-testid="left-out-row"
       className={cn('flex min-h-5 items-center justify-between gap-3', collapsedClassName)}
     >
-      <span className="min-w-0 text-sm font-medium wrap-anywhere text-muted-foreground">
+      <span
+        className="min-w-0 text-sm font-medium wrap-anywhere text-muted-foreground"
+        {...(personal && replayMask)}
+      >
         {name}
       </span>
       {toggle}

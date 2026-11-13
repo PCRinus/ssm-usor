@@ -29,7 +29,7 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal, Plus } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 
 import {
   getListResponsiblePersonsQueryKey,
@@ -40,8 +40,11 @@ import {
   useUpdateResponsiblePerson,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { rowClickProps } from '@/components/data-table/row-click';
+import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
+import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 import { type ResponsiblePersonFocus, useFocusRequest } from '@/features/missing-data/focus';
 
@@ -100,7 +103,7 @@ export function ResponsiblePersonsCard({
   const [pointedRole, setPointedRole] = useState<ResponsiblePersonRole | null>(null);
   const details = useDocumentDetails(clientId, userId);
   const [archiving, setArchiving] = useState<ResponsiblePerson | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode>(null);
 
   // Each decision names someone, so a role nobody holds is what generating will ask for.
   const held = new Set(persons.data?.items.flatMap((person) => person.roles));
@@ -155,7 +158,7 @@ export function ResponsiblePersonsCard({
           roles: person.roles,
         },
       });
-      toast.success(`Funcția lui ${person.fullName} a fost actualizată.`);
+      toast.success(maskPeople`Funcția lui ${person.fullName} a fost actualizată.`);
     } catch {
       setError('Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.');
     }
@@ -166,11 +169,11 @@ export function ResponsiblePersonsCard({
     setError(null);
     try {
       await archive.mutateAsync({ clientId, responsiblePersonId: person.id });
-      toast.success(`${person.fullName} a fost scos din listă.`);
+      toast.success(maskPeople`${person.fullName} a fost scos din listă.`);
     } catch (cause) {
       setError(
         cause instanceof ApiHttpError && cause.status === 404
-          ? `${person.fullName} nu mai este în lista acestui client.`
+          ? maskPeople`${person.fullName} nu mai este în lista acestui client.`
           : 'Nu am putut scoate persoana din listă. Verifică conexiunea și încearcă din nou.'
       );
     }
@@ -252,7 +255,7 @@ export function ResponsiblePersonsCard({
                     className={cn(!readOnly && 'cursor-pointer')}
                   >
                     <TableCell className="font-medium">
-                      {person.fullName}
+                      <Masked>{person.fullName}</Masked>
                       {person.workplaceId && workplaces.data && (
                         <span
                           data-testid="responsible-workplace-name"
@@ -363,9 +366,11 @@ export function ResponsiblePersonsCard({
             <DialogHeader>
               <DialogTitle>Scoți persoana din listă?</DialogTitle>
               <DialogDescription>
-                <span className="font-medium text-foreground">{archiving.fullName}</span> nu va mai
-                fi numită în documentele generate de acum înainte. Documentele deja emise rămân
-                neschimbate, iar lucrătorul rămâne în lista de lucrători.
+                <span className="font-medium text-foreground" {...replayMask}>
+                  {archiving.fullName}
+                </span>{' '}
+                nu va mai fi numită în documentele generate de acum înainte. Documentele deja emise
+                rămân neschimbate, iar lucrătorul rămâne în lista de lucrători.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="mt-2">

@@ -23,6 +23,7 @@ import {
   useUpdateOrganizationCompanyDetails,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
@@ -114,6 +115,16 @@ type LookupState =
   | { status: 'error'; message: string };
 
 type TextField = Exclude<keyof CompanyDetailsFormValues, 'countyCode' | 'vatPayer'>;
+
+const shownInReplay = new Set<TextField>([
+  'legalName',
+  'tradeRegisterNumber',
+  'locality',
+  'addressLine',
+  'legalRepresentativeRole',
+  'iban',
+  'bankName',
+]);
 
 function CompanyDetailsForm({
   saved,
@@ -231,6 +242,7 @@ function CompanyDetailsForm({
           disabled={locked}
           aria-invalid={Boolean(errors[name])}
           aria-describedby={errors[name] ? `${id}-error` : options.hint ? `${id}-hint` : undefined}
+          {...(shownInReplay.has(name) && replayShow)}
           {...form.register(name, {
             onChange: options.onChange && ((event) => options.onChange?.(event.target.value)),
           })}
@@ -258,6 +270,7 @@ function CompanyDetailsForm({
               <Input
                 id="company-cui"
                 data-testid="company-cui"
+                {...replayShow}
                 inputMode="numeric"
                 autoComplete="off"
                 disabled={locked}

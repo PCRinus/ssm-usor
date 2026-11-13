@@ -20,6 +20,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { captureAsMember } from '@/app/observability/posthog';
+import { replayShow } from '@/app/observability/replay-masking';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field, FieldMessage } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -241,6 +242,7 @@ function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => vo
             <Input
               id="onboarding-cui"
               data-testid="onboarding-cui"
+              {...replayShow}
               className="h-11 sm:flex-1"
               inputMode="numeric"
               autoComplete="off"
@@ -287,6 +289,7 @@ function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => vo
           <Input
             id="onboarding-organization"
             data-testid="onboarding-organization"
+            {...replayShow}
             className="h-11"
             autoComplete="organization"
             disabled={isSubmitting}

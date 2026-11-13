@@ -14,6 +14,7 @@ import {
   useStartDocumentDraft,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { replayMask } from '@/app/observability/replay-masking';
 import { useBackToList } from '@/app/use-back-to-list';
 import { Notice } from '@/components/notice';
 
@@ -353,7 +354,7 @@ export function DocumentEditorView({
       ) : (
         <div data-testid="editor-frame" data-ready={ready} className={editorFrameClassName}>
           {!ready && <EditorPlaceholder back={back} />}
-          <div className="h-full" aria-hidden={!ready} inert={!ready}>
+          <div className="h-full" aria-hidden={!ready} inert={!ready} {...replayMask}>
             <Suspense fallback={null}>
               <DocumentEditor
                 key={loaded.revisionId}
