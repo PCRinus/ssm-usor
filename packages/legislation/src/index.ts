@@ -5,6 +5,7 @@ export {
   fetchActForm,
   fetchActText,
   type FetchedActText,
+  fetchPublishedForm,
   formOn,
   hasActText,
   parseActText,
@@ -19,6 +20,7 @@ export {
   type AmendingAct,
   type AmendmentNote,
   type AmendmentOperation,
+  notedUnit,
   parseNote,
   type UnitPath,
 } from './amendments';
@@ -49,6 +51,7 @@ export {
   type LawHunk,
   lawHunks,
   type UnitChange,
+  unitLabel,
 } from './forms';
 export {
   assessImpact,

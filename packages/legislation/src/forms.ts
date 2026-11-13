@@ -1,6 +1,6 @@
 import { type ActText, type ActUnit, isRepealed, plainLabel, unitLines, unitsOf } from './act-text';
 import { children, type CitedPassage, findPoint, parseLocator } from './locator';
-import { align } from './quotes';
+import { align, type AlignOp } from './quotes';
 import { locateQuote } from './review';
 
 export type CitedUnit = {
@@ -26,11 +26,20 @@ export type UnitChange =
   | { unit: CitedUnit; status: 'changed'; old: string; new: string; hunks: LawHunk[] }
   | { unit: CitedUnit; status: 'added'; new: string }
   | { unit: CitedUnit; status: 'repealed'; old: string }
-  | { unit: CitedUnit; status: 'missing' };
+  | { unit: CitedUnit; status: 'missing' }
+  // Found in both forms but not compared: no words to read in one of them, images or a table the
+  // portal keeps as a picture, or too long to compare word by word.
+  | {
+      unit: CitedUnit;
+      status: 'uncompared';
+      reason: 'no_text' | 'too_long';
+      old: string;
+      new: string;
+    };
 
 type Forms = { verified: ActText; current: ActText };
 
-function unitLabel(unit: Omit<CitedUnit, 'label'>) {
+export function unitLabel(unit: Omit<CitedUnit, 'label'>) {
   const parts = [
     unit.annex !== null ? (/^\d/.test(unit.annex) ? `Anexa ${unit.annex}` : unit.annex) : null,
     [
@@ -116,9 +125,40 @@ export function citedUnits(forms: Forms, citation: CitedPassage): CitedUnit[] {
   });
 }
 
-function findUnit(text: ActText, unit: CitedUnit): ActUnit | null {
+const pointLine = /^(\d+(?:\^\d+)?)\.\s/;
+
+function quotedAfter(line: string, quoted: boolean) {
+  let open = quoted;
+  for (const character of line) {
+    if (character === '„' || character === '“') open = true;
+    else if (character === '”') open = false;
+    else if (character === '"') open = !open;
+  }
+  return open;
+}
+
+// An amending act's points are often plain paragraphs, "1. La articolul 80^1 …", each running to
+// the next one outside the text it quotes.
+function plainPoint(units: (string | ActUnit)[], label: string): ActUnit | null {
+  const holder: ActUnit = { kind: 'block', label: '', heading: null, content: units, notes: [] };
+  const lines: string[] = [];
+  let inside = false;
+  let quoted = false;
+  for (const line of unitLines(holder)) {
+    const number = quoted ? undefined : pointLine.exec(line)?.[1];
+    if (number !== undefined) inside = plainLabel(number) === label;
+    if (inside) lines.push(line);
+    quoted = quotedAfter(line, quoted);
+  }
+  return lines.length > 0
+    ? { kind: 'block', label: '', heading: null, content: lines, notes: [] }
+    : null;
+}
+
+function findUnit(text: ActText, unit: CitedUnit, plainPoints = false): ActUnit | null {
   if (unit.article === null) {
     if (unit.point !== null) {
+      if (plainPoints) return plainPoint(text.content, unit.point);
       for (const holder of text.content) {
         if (typeof holder === 'string') continue;
         if (holder.kind === 'point' && plainLabel(holder.label) === unit.point) return holder;
@@ -141,7 +181,9 @@ function findUnit(text: ActText, unit: CitedUnit): ActUnit | null {
   if (holder && unit.letter !== null) {
     holder = children(holder, 'letter').find((each) => plainLabel(each.label) === unit.letter);
   }
-  if (holder && unit.point !== null) return findPoint(holder, unit.point);
+  if (holder && unit.point !== null) {
+    return plainPoints ? plainPoint(holder.content, unit.point) : findPoint(holder, unit.point);
+  }
   return holder ?? null;
 }
 
@@ -157,10 +199,109 @@ function words(text: string): Word[] {
 
 const context = 5;
 
-export function lawHunks(old: string, current: string): LawHunk[] {
+type Line = { value: string; words: Word[] };
+
+function linesOf(text: string, all: Word[]): Line[] {
+  const lines: Line[] = [];
+  let open: Word[] = [];
+  let next = text.indexOf('\n');
+  const close = () => {
+    lines.push({ value: open.map((word) => word.value).join(' '), words: open });
+    open = [];
+  };
+  for (const word of all) {
+    while (next >= 0 && next < word.start) {
+      close();
+      next = text.indexOf('\n', next + 1);
+    }
+    open.push(word);
+  }
+  close();
+  return lines.filter((line) => line.words.length > 0);
+}
+
+function alignLines(before: Line[], after: Line[]): AlignOp<Line>[] | null {
+  const direct = align(before, after);
+  if (direct) return direct;
+  const seen = new Map<string, { before: number[]; after: number[] }>();
+  before.forEach((line, index) => {
+    const entry = seen.get(line.value) ?? { before: [], after: [] };
+    entry.before.push(index);
+    seen.set(line.value, entry);
+  });
+  after.forEach((line, index) => seen.get(line.value)?.after.push(index));
+  const pairs = [...seen.values()]
+    .filter((entry) => entry.before.length === 1 && entry.after.length === 1)
+    .map((entry) => [entry.before[0]!, entry.after[0]!] as const)
+    .sort((a, b) => a[0] - b[0]);
+  const tails: number[] = [];
+  const previous: number[] = [];
+  pairs.forEach(([, j], index) => {
+    let low = 0;
+    let high = tails.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (pairs[tails[middle]!]![1] < j) low = middle + 1;
+      else high = middle;
+    }
+    previous[index] = low > 0 ? tails[low - 1]! : -1;
+    tails[low] = index;
+  });
+  if (tails.length === 0) return null;
+  const anchors: (readonly [number, number])[] = [];
+  for (let at = tails.at(-1)!; at >= 0; at = previous[at]!) anchors.unshift(pairs[at]!);
+  const ops: AlignOp<Line>[] = [];
+  let i = 0;
+  let j = 0;
+  for (const [anchorI, anchorJ] of [...anchors, [before.length, after.length] as const]) {
+    const between = alignLines(before.slice(i, anchorI), after.slice(j, anchorJ));
+    if (!between) return null;
+    ops.push(...between);
+    if (anchorI < before.length) {
+      ops.push({ kind: 'same', template: before[anchorI]!, current: after[anchorJ]! });
+    }
+    i = anchorI + 1;
+    j = anchorJ + 1;
+  }
+  return ops;
+}
+
+// A long annex is compared line by line first, then word by word within the lines that differ.
+function alignWords(old: string, current: string, before: Word[], after: Word[]) {
+  const direct = align(before, after);
+  if (direct) return direct;
+  const lineOps = alignLines(linesOf(old, before), linesOf(current, after));
+  if (!lineOps) return null;
+  const ops: AlignOp<Word>[] = [];
+  let removed: Word[] = [];
+  let added: Word[] = [];
+  const flush = () => {
+    if (removed.length === 0 && added.length === 0) return true;
+    const inner = align(removed, added);
+    if (!inner) return false;
+    ops.push(...inner);
+    removed = [];
+    added = [];
+    return true;
+  };
+  for (const op of lineOps) {
+    if (op.kind === 'same') {
+      if (!flush()) return null;
+      op.template!.words.forEach((word, index) =>
+        ops.push({ kind: 'same', template: word, current: op.current!.words[index]! })
+      );
+    } else if (op.template) removed.push(...op.template.words);
+    else added.push(...op.current!.words);
+  }
+  return flush() ? ops : null;
+}
+
+// Null when the two are too long to compare even line by line.
+export function lawHunks(old: string, current: string): LawHunk[] | null {
   const before = words(old);
   const after = words(current);
-  const ops = align(before, after);
+  const ops = alignWords(old, current, before, after);
+  if (!ops) return null;
   const hunks: LawHunk[] = [];
   let open: { old: Word[]; new: Word[]; at: number } | null = null;
   let position = 0;
@@ -194,21 +335,37 @@ export function lawHunks(old: string, current: string): LawHunk[] {
   return hunks;
 }
 
+const hasWords = (unit: ActUnit): boolean =>
+  unit.content.some((item) =>
+    typeof item === 'string' ? /[\p{L}\p{N}]/u.test(item) : !isRepealed(item) && hasWords(item)
+  );
+
+// An amended marginal title is a change too.
 const textOf = (unit: ActUnit | null) =>
   unit && !isRepealed(unit)
-    ? unitLines(unit)
+    ? unitLines(unit, { everyHeading: true })
         .map((line) => line.replace(/\s+/g, ' ').trim())
         .join('\n')
     : null;
 
 export function compareUnit(forms: Forms, unit: CitedUnit): UnitChange {
-  const old = textOf(findUnit(forms.verified, unit));
-  const current = textOf(findUnit(forms.current, unit));
-  if (old === null && current === null) return { unit, status: 'missing' };
-  if (old === null) return { unit, status: 'added', new: current! };
-  if (current === null) return { unit, status: 'repealed', old };
-  const hunks = old === current ? [] : lawHunks(old, current);
+  let found = [findUnit(forms.verified, unit), findUnit(forms.current, unit)];
+  if (unit.point !== null && found.every((each) => each === null)) {
+    found = [findUnit(forms.verified, unit, true), findUnit(forms.current, unit, true)];
+  }
+  const [verified, current] = found;
+  const old = textOf(verified ?? null);
+  const now = textOf(current ?? null);
+  if (old === null && now === null) return { unit, status: 'missing' };
+  if (old === null) return { unit, status: 'added', new: now! };
+  if (now === null) return { unit, status: 'repealed', old };
+  if (!hasWords(verified!) || !hasWords(current!)) {
+    return { unit, status: 'uncompared', reason: 'no_text', old, new: now };
+  }
+  if (old === now) return { unit, status: 'unchanged', text: now };
+  const hunks = lawHunks(old, now);
+  if (!hunks) return { unit, status: 'uncompared', reason: 'too_long', old, new: now };
   return hunks.length === 0
-    ? { unit, status: 'unchanged', text: current }
-    : { unit, status: 'changed', old, new: current, hunks };
+    ? { unit, status: 'unchanged', text: now }
+    : { unit, status: 'changed', old, new: now, hunks };
 }

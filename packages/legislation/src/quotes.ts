@@ -146,13 +146,57 @@ export function tokenize(text: string): Token[] {
 export type AlignOp<T> = { kind: 'same' | 'template' | 'current'; template?: T; current?: T };
 type Op = AlignOp<Token>;
 
-export function align<T extends { value: string }>(template: T[], current: T[]): AlignOp<T>[] {
+// The table takes four bytes a cell, 16 MB at most, well within a Worker's 128 MB.
+const alignCells = 2 ** 22;
+
+// Null when the two are too long to compare word by word, even past the words they share at
+// either end.
+export function align<T extends { value: string }>(
+  template: T[],
+  current: T[]
+): AlignOp<T>[] | null {
+  if ((template.length + 1) * (current.length + 1) <= alignCells) {
+    return alignAll(template, current);
+  }
+  let head = 0;
+  while (
+    head < template.length &&
+    head < current.length &&
+    template[head]!.value === current[head]!.value
+  ) {
+    head += 1;
+  }
+  let tail = 0;
+  while (
+    tail < template.length - head &&
+    tail < current.length - head &&
+    template[template.length - 1 - tail]!.value === current[current.length - 1 - tail]!.value
+  ) {
+    tail += 1;
+  }
+  const middle = [
+    template.slice(head, template.length - tail),
+    current.slice(head, current.length - tail),
+  ] as const;
+  if ((middle[0].length + 1) * (middle[1].length + 1) > alignCells) return null;
+  const same = (i: number, j: number): AlignOp<T> => ({
+    kind: 'same',
+    template: template[i]!,
+    current: current[j]!,
+  });
+  return [
+    ...Array.from({ length: head }, (_, index) => same(index, index)),
+    ...alignAll(...middle),
+    ...Array.from({ length: tail }, (_, index) =>
+      same(template.length - tail + index, current.length - tail + index)
+    ),
+  ];
+}
+
+function alignAll<T extends { value: string }>(template: T[], current: T[]): AlignOp<T>[] {
   const n = template.length;
   const m = current.length;
   const width = m + 1;
-  if ((n + 1) * width > 2 ** 26) {
-    throw new Error(`A passage of ${n} words is too long to compare with ${m}.`);
-  }
   const table = new Uint32Array((n + 1) * width);
   const at = (i: number, j: number) => table[i * width + j]!;
   for (let i = n - 1; i >= 0; i -= 1) {
@@ -384,6 +428,19 @@ export function compareTexts(
     current = current.slice(start, end);
   }
   const ops = align(template, current);
+  if (!ops) {
+    return {
+      similarity: 0,
+      differences: [
+        {
+          alineat: '',
+          template: templateText,
+          current: currentText,
+          changes: [{ template: templateText, current: currentText }],
+        },
+      ],
+    };
+  }
   const hunks = hunksOf(ops);
   if (options.excerpt) {
     const first = hunks[0];

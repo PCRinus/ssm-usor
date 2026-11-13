@@ -109,6 +109,18 @@ export function namedPath(subject: string): UnitPath {
   return path;
 }
 
+const levels = ['annex', 'article', 'alineat', 'letter', 'point'] as const;
+
+// A note names its unit from some level down, "Alineatul (2), Articolul 36" or only "Litera c)";
+// the levels above that come from where it sits.
+export function notedUnit(note: Pick<AmendmentNote, 'path' | 'named'>): UnitPath {
+  const from = levels.findIndex((level) => note.named[level] !== null);
+  if (from < 0) return { ...note.path };
+  return Object.fromEntries(
+    levels.map((level, index) => [level, index < from ? note.path[level] : note.named[level]])
+  ) as UnitPath;
+}
+
 export function actName(kind: string, number: string, date: string | null) {
   const prefix = prefixes.find(([pattern]) => pattern.test(kind))?.[1] ?? kind;
   return `${prefix} ${number.replaceAll('.', '')}${date ? `/${date.slice(0, 4)}` : ''}`;

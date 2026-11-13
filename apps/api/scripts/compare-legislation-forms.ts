@@ -7,12 +7,14 @@ import { citationIndex, legalActs } from '@ssm-usor/document-engine/citations';
 import {
   assessImpact,
   fetchActForm,
+  fetchPublishedForm,
   portalOptionsFromEnv,
   portalPauseMs,
 } from '@ssm-usor/legislation-check';
 
 // What a new form of an act means for the templates, the law compared with itself:
 //   pnpm legislation:compare-forms --act oug-195-2002 --verified 2026-08-25 [--current 2026-11-06]
+// --verified published compares with the act as published.
 
 const { values } = parseArgs({
   options: {
@@ -29,7 +31,10 @@ if (!act?.portalId || !values.verified) {
 const portal = portalOptionsFromEnv(process.env);
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
-const verified = await fetchActForm(act.portalId, values.verified, portal);
+const verified =
+  values.verified === 'published'
+    ? await fetchPublishedForm(act.portalId, portal)
+    : await fetchActForm(act.portalId, values.verified, portal);
 await setTimeout(portalPauseMs);
 const current = await fetchActForm(act.portalId, values.current ?? null, portal);
 const describe = (form: typeof verified) =>

@@ -129,3 +129,11 @@ describe('comparing a quoted passage with the current text', () => {
     expect(comparison).toEqual({ similarity: 1, differences: [] });
   });
 });
+
+describe('comparing a passage too long to compare word by word', () => {
+  it('finds it not located instead of failing', () => {
+    const template = Array.from({ length: 2100 }, (_, index) => `cuvânt${index}`);
+    const current = template.map((word, index) => (index % 2 === 1 ? `alt${index}` : word));
+    expect(compare(template.join(' '), current.join(' '))).toMatchObject({ similarity: 0 });
+  });
+});
