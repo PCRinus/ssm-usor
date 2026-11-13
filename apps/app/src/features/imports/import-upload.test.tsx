@@ -782,7 +782,7 @@ describe('files chosen twice', () => {
     ]);
   });
 
-  it('keeps a copy in place of the file taken out', async () => {
+  it('takes the copy out with the file taken out', async () => {
     mockImportApi();
     const dialog = await openDialog();
     choose([pdf('Plan.pdf', '%PDF plan'), pdf('Plan (1).pdf', '%PDF plan')]);
@@ -790,7 +790,7 @@ describe('files chosen twice', () => {
     expect(setAsideLines(dialog)).toEqual(['Plan (1).pdf, același fișier ca Plan.pdf']);
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Scoate Plan.pdf' }));
-    expect(within(dialog).getByTestId('import-chosen').textContent).toContain('Plan (1).pdf');
+    expect(within(dialog).queryByTestId('import-chosen')).toBeNull();
     expect(within(dialog).queryByTestId('import-set-aside')).toBeNull();
   });
 });

@@ -327,25 +327,32 @@ export const addToSelection = async (
   kind: ImportKind = 'client'
 ) => mergeSelection(current, await openPicked(picked, kind));
 
+// A copy set aside is the same content, so it goes with the file taken out instead of taking
+// its place.
+function withoutFiles(selection: Selection, gone: (file: SelectedFile) => boolean): Selection {
+  const hashes = new Set(selection.files.filter(gone).map((file) => file.sha256));
+  hashes.delete('');
+  return {
+    ...selection,
+    files: selection.files.filter((file) => !gone(file) && !hashes.has(file.sha256)),
+  };
+}
+
 export const removeGroup = (selection: Selection, group: string): Selection => ({
-  ...selection,
-  files: selection.files.filter((file) => file.group !== group),
+  ...withoutFiles(selection, (file) => file.group === group),
   setAside: selection.setAside.filter((file) => file.group !== group),
 });
 
-export const removeFiles = (selection: Selection, keys: string[]): Selection => ({
-  ...selection,
-  files: selection.files.filter((file) => !keys.includes(file.key)),
-});
+export const removeFiles = (selection: Selection, keys: string[]): Selection =>
+  withoutFiles(selection, (file) => keys.includes(file.key));
 
-export const removeLoosePhotos = (selection: Selection): Selection => ({
-  ...selection,
-  files: selection.files.filter((file) => file.path !== file.group || !isPhoto(file)),
-});
+export const removeLoosePhotos = (selection: Selection): Selection =>
+  withoutFiles(selection, (file) => file.path === file.group && isPhoto(file));
 
-const copyMark = /(?: \(\d+\)| - cop(?:y|ie)| cop(?:y|ie))$/i;
+// Two digits at most, so a year in brackets, as in "Fișe (2025)", is not a copy's number.
+const copyMark = /(?: \([1-9]\d?\)| - cop(?:y|ie)| cop(?:y|ie))$/i;
 
-const copyFolder = /^cop(?:y|ie)(?: \(\d+\))?$/i;
+const copyFolder = /^cop(?:y|ie)(?: \([1-9]\d?\))?$/i;
 
 const isMarkedCopy = (path: string) => {
   const folders = path.split('/');
@@ -363,8 +370,7 @@ export const keptFirst = (a: { path: string }, b: { path: string }) =>
   a.path.length - b.path.length ||
   comparePaths(a.path, b.path);
 
-// Each identical file would be uploaded, read and charged again. Every chosen file stays in the
-// selection, so taking out the one kept brings one of its copies back.
+// Each identical file would be uploaded, read and charged again.
 export function withCopiesAside(selection: Selection): Selection {
   const kept = new Map<string, SelectedFile>();
   for (const file of [...selection.files].sort(keptFirst)) {

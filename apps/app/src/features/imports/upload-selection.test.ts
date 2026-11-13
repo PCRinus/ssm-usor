@@ -96,11 +96,11 @@ describe('choosing the files of an import', () => {
 
   it('keeps a folder whole, groups loose photographs and lists loose documents on their own', async () => {
     const selection = await addToSelection(emptySelection, [
-      { path: 'Acte PSI/Registru.pdf', blob: blob() },
-      { path: 'Acte PSI/2021/Decizie.PDF', blob: blob() },
-      { path: 'Contract 2019.pdf', blob: blob() },
-      { path: 'IMG_2041.HEIC', blob: blob() },
-      { path: 'IMG_2042.jpg', blob: blob() },
+      { path: 'Acte PSI/Registru.pdf', blob: blob('Registru.pdf') },
+      { path: 'Acte PSI/2021/Decizie.PDF', blob: blob('Decizie.PDF') },
+      { path: 'Contract 2019.pdf', blob: blob('Contract 2019.pdf') },
+      { path: 'IMG_2041.HEIC', blob: blob('IMG_2041.HEIC') },
+      { path: 'IMG_2042.jpg', blob: blob('IMG_2042.jpg') },
     ]);
 
     expect(selectionRows(selection.files)).toMatchObject([
@@ -368,6 +368,7 @@ describe('files chosen twice', () => {
       'Dosar SSM/Decizie numire.pdf'
     );
     expect(keptOf('Fișe (1)/Plan.pdf', 'Fișe/Plan.pdf')).toBe('Fișe/Plan.pdf');
+    expect(keptOf('Fișe (2025)/Plan.pdf', 'Arhiva veche/Plan.pdf')).toBe('Fișe (2025)/Plan.pdf');
     expect(keptOf('Dosar/Plan.pdf', 'Copii/Plan.pdf')).toBe('Copii/Plan.pdf');
     expect(keptOf('Plan - Copy.pdf', 'Plan.pdf')).toBe('Plan.pdf');
     expect(keptOf('Plan - copie.pdf', 'Plan nou.pdf')).toBe('Plan nou.pdf');
@@ -414,7 +415,7 @@ describe('files chosen twice', () => {
     });
   });
 
-  it('works the copies out again from what is still chosen', async () => {
+  it('takes the copies out with the file taken out', async () => {
     const chosen = await addToSelection(
       emptySelection,
       [
@@ -429,14 +430,13 @@ describe('files chosen twice', () => {
 
     const without = withCopiesAside(removeFiles(chosen, [kept.key]));
     expect(without.files.map((file) => file.path)).toEqual([
-      'WhatsApp Image 2026-11-07 at 14.02.06 (5).jpeg',
       'WhatsApp Image 2026-11-07 at 14.02.06.jpeg',
     ]);
     expect(without.setAside).toEqual([]);
-    expect(selectionTotals(without, 'employees').pages).toBe(2);
+    expect(selectionTotals(without, 'employees').pages).toBe(1);
   });
 
-  it('takes the copies of loose photographs out with them, and brings back a copy kept elsewhere', async () => {
+  it('takes the copies of loose photographs out with them, wherever they are', async () => {
     const chosen = await addToSelection(emptySelection, [
       { path: 'IMG_2031.jpg', blob: blob('poza 2031') },
       { path: 'IMG_2031 (1).jpg', blob: blob('poza 2031') },
@@ -449,7 +449,7 @@ describe('files chosen twice', () => {
     ]);
 
     const left = withCopiesAside(removeLoosePhotos(chosen));
-    expect(left.files.map((file) => file.path)).toEqual(['Fișe/IMG_2034 (1).jpg']);
+    expect(left.files).toEqual([]);
     expect(left.setAside).toEqual([]);
   });
 });

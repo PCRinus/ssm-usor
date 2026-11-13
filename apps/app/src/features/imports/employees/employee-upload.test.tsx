@@ -386,7 +386,7 @@ describe('the chosen photographs', () => {
     expect(within(dialog).queryByTestId('employee-upload-chosen')).toBeNull();
   });
 
-  it('reads a photograph chosen twice once, and brings the copy back when the one kept comes out', async () => {
+  it('reads a photograph chosen twice once, and takes the copy out with the one kept', async () => {
     const sheet = (name: string, text: string) => new File([text], name, { type: 'image/jpeg' });
     const dialog = await choose([
       sheet('WhatsApp Image 2026-11-07 at 14.01.34.jpeg', 'fișa Popescu'),
@@ -408,12 +408,12 @@ describe('the chosen photographs', () => {
         name: 'Scoate WhatsApp Image 2026-11-07 at 14.01.34.jpeg',
       })
     );
-    expect(chosenTitle(dialog)).toBe('2 fotografii de citit');
+    expect(chosenTitle(dialog)).toBe('O fotografie de citit');
     expect(
-      within(dialog).getByRole('button', {
+      within(dialog).queryByRole('button', {
         name: 'Deschide WhatsApp Image 2026-11-07 at 14.02.06 (5).jpeg',
       })
-    ).toBeTruthy();
+    ).toBeNull();
     expect(within(dialog).queryByTestId('import-set-aside')).toBeNull();
   });
 
