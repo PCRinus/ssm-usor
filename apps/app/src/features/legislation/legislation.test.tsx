@@ -64,6 +64,7 @@ const unassessed = {
   amendingActs: [],
   amendedUnits: [],
   passages: [],
+  updatedDocuments: [],
 };
 
 const helmetBefore =
@@ -109,6 +110,7 @@ const roadChange = {
     },
   ],
   passages: [helmetPassage],
+  updatedDocuments: [],
 };
 
 const changes = [
@@ -796,14 +798,14 @@ describe('the Legislație page', () => {
     );
   });
 
-  it('says a change not yet compared with the verified form is being analysed', async () => {
+  it('says a change not yet compared with the verified form has not been analysed yet', async () => {
     mockApi();
     mount('/legislatie/modificari');
 
     await waitFor(() => expect(screen.getAllByTestId('legal-change')).toHaveLength(3));
     const [open, noImpact, answered] = screen.getAllByTestId('legal-change');
     expect(within(open!).getByTestId('legal-change-status').textContent).toBe(
-      'Modificarea este în curs de analiză.'
+      'Modificarea nu a fost încă analizată.'
     );
     expect(within(noImpact!).queryByTestId('legal-change-status')).toBeNull();
     expect(within(answered!).queryByTestId('legal-change-status')).toBeNull();
@@ -819,14 +821,14 @@ describe('the Legislație page', () => {
     expect(change.textContent).toContain('Forma consolidată din 06.11.2026, după Legea 207/2026.');
     expect(within(change).getByTestId('legal-change-resolution').textContent).toBe('În verificare');
     expect(within(change).getByTestId('legal-change-units').textContent).toBe(
-      'Modificat:art. 36 alin. (2)'
+      'Modificări:art. 36 alin. (2)'
     );
     expect(within(change).getByTestId('legal-change-status').textContent).toBe(
       'Modifică un text citat în documente.'
     );
     const passage = within(change).getByTestId('legal-change-passage');
     expect(within(passage).getByTestId('legal-change-passage-place').textContent).toBe(
-      'Citat în Material de instruire introductiv-generală, Art. 36 alin. (1) – (3)'
+      'Citat în Material de instruire introductiv-generală, art. 36 alin. (1) – (3)'
     );
     expect(passage.textContent).not.toContain('.docx');
     const diff = within(passage).getByTestId('law-diff');
@@ -836,6 +838,90 @@ describe('the Legislație page', () => {
       'adăugat: pe cap cască',
       'adăugat: pentru această categorie de vehicul, cu elementele de siguranță cuplate în mod corespunzător',
     ]);
+    expect(within(passage).queryByTestId('legal-change-passage-toggle')).toBeNull();
+    expect(within(change).getByTestId('law-diff-legend')).toBeTruthy();
+  });
+
+  it("writes a superscript label in the law's text as the law prints it", async () => {
+    mockApi({
+      legalChanges: [
+        {
+          ...roadChange,
+          passages: [
+            {
+              ...helmetPassage,
+              unit: 'Art. 36 alin. (2^1)',
+              locator: 'Art. 36 alin. (2^1)',
+              oldText: '(2^1) a^1) casca de protecție;',
+              newText: '(2^1) a^1) casca de protecție omologată;',
+            },
+          ],
+        },
+      ],
+    });
+    mount('/legislatie/modificari');
+
+    const passage = await screen.findByTestId('legal-change-passage');
+    expect(passage.textContent).not.toContain('^');
+    expect(within(passage).getByTestId('law-diff').textContent).toBe(
+      '(2¹) a¹) casca de protecție adăugat: omologată;'
+    );
+    expect(within(passage).getByTestId('legal-change-passage-place').textContent).toBe(
+      'Citat în Material de instruire introductiv-generală, art. 36 alin. (2¹)'
+    );
+  });
+
+  it('names a place a passage is cited once, however often the document cites it there', async () => {
+    mockApi({
+      legalChanges: [
+        {
+          ...roadChange,
+          passages: ['2', '3', '4'].map((last) => ({
+            ...helmetPassage,
+            id: `a1b2c3d4-0000-4000-8000-00000000000${last}`,
+          })),
+        },
+      ],
+    });
+    mount('/legislatie/modificari');
+
+    const passage = await screen.findByTestId('legal-change-passage');
+    expect(within(passage).getAllByTestId('legal-change-passage-place')).toHaveLength(1);
+  });
+
+  it("leaves out the legend when no passage has the law's text", async () => {
+    mockApi({
+      legalChanges: [
+        {
+          ...roadChange,
+          passages: [{ ...helmetPassage, status: 'missing', oldText: null, newText: null }],
+        },
+      ],
+    });
+    mount('/legislatie/modificari');
+
+    const passage = await screen.findByTestId('legal-change-passage');
+    expect(passage.textContent).toContain('Prevederea nu apare în textul legii.');
+    expect(screen.getByTestId('legal-change-passages').textContent).not.toContain(
+      'cuvintele tăiate'
+    );
+    expect(screen.queryByTestId('law-diff')).toBeNull();
+  });
+
+  it('shows a text in full while neither its old nor its new form is long', async () => {
+    const sentence = 'Conducătorii de vehicule respectă regulile de circulație. '.repeat(8);
+    mockApi({
+      legalChanges: [
+        {
+          ...roadChange,
+          passages: [{ ...helmetPassage, oldText: sentence, newText: `${sentence}Text nou.` }],
+        },
+      ],
+    });
+    mount('/legislatie/modificari');
+
+    const passage = await screen.findByTestId('legal-change-passage');
+    expect(within(passage).getByTestId('law-diff')).toBeTruthy();
     expect(within(passage).queryByTestId('legal-change-passage-toggle')).toBeNull();
   });
 
@@ -857,11 +943,13 @@ describe('the Legislație page', () => {
     const toggle = await screen.findByTestId('legal-change-passage-toggle');
     expect(toggle.textContent).toBe('Ce s-a schimbat');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    const text = screen.getByTestId('law-diff').parentElement!;
+    const text = document.getElementById(toggle.getAttribute('aria-controls')!)!;
     expect(text.hidden).toBe(true);
+    expect(screen.queryByTestId('law-diff')).toBeNull();
     await userEvent.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(text.hidden).toBe(false);
+    expect(within(text).getByTestId('law-diff')).toBeTruthy();
   });
 
   it('shows a unit quoted in two documents once, naming both', async () => {
@@ -892,7 +980,7 @@ describe('the Legislație page', () => {
         .getAllByTestId('legal-change-passage-place')
         .map((place) => place.textContent)
     ).toEqual([
-      'Citat în Material de instruire introductiv-generală, Art. 36 alin. (1) – (3)',
+      'Citat în Material de instruire introductiv-generală, art. 36 alin. (1) – (3)',
       'Trimitere într-un document',
     ]);
   });
@@ -916,6 +1004,24 @@ describe('the Legislație page', () => {
           resolution: 'template_version',
           resolvedAt: '2026-11-14T09:00:00Z',
           resolvedByNote: 'Obligația de a purta casca este preluată în noua formulare.',
+          passages: [
+            helmetPassage,
+            {
+              ...helmetPassage,
+              id: 'a1b2c3d4-0000-4000-8000-000000000002',
+              templateFile: '6_protective_equipment_list.docx',
+              document: {
+                typeKey: 'protective_equipment_list',
+                title: 'Lista internă de dotare cu echipament individual de protecție',
+              },
+            },
+          ],
+          updatedDocuments: [
+            {
+              typeKey: 'general_training_material',
+              title: 'Material de instruire introductiv-generală',
+            },
+          ],
         },
       ],
     });
@@ -932,6 +1038,24 @@ describe('the Legislație page', () => {
       'Șablon nou pentru: Material de instruire introductiv-generală'
     );
     expect(within(change).getByTestId('law-diff')).toBeTruthy();
+  });
+
+  it('names no updated document when no template version is linked to the change', async () => {
+    mockApi({
+      legalChanges: [
+        {
+          ...roadChange,
+          resolution: 'template_version',
+          resolvedAt: '2026-11-14T09:00:00Z',
+          resolvedByNote: 'Obligația de a purta casca este preluată în noua formulare.',
+        },
+      ],
+    });
+    mount('/legislatie/modificari');
+
+    const change = await screen.findByTestId('legal-change');
+    expect(within(change).getByTestId('legal-change-note')).toBeTruthy();
+    expect(within(change).queryByTestId('legal-change-documents')).toBeNull();
   });
 
   it('shows the note of a change with no impact, with the articles it amended', async () => {
@@ -972,7 +1096,7 @@ describe('the Legislație page', () => {
       [...within(change).getByTestId('legal-change-units').children].map(
         (group) => group.textContent
       )
-    ).toEqual(['Modificate:art. 342, art. 343 și art. 109²', 'Abrogat:art. 400']);
+    ).toEqual(['Modificări:art. 342, art. 343 și art. 109²', 'Abrogări:art. 400']);
     expect(within(change).queryByTestId('legal-change-status')).toBeNull();
     expect(within(change).queryByTestId('legal-change-passages')).toBeNull();
   });

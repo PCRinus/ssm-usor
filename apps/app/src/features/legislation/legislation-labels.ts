@@ -64,23 +64,24 @@ export function countOf(count: number, one: string, many: string) {
 
 const superscriptDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 
-// The portal writes "Art. 109^2" for art. 109².
-export const unitName = (unit: string) =>
-  unit.replace(/\^(\d+)/g, (_, digits: string) =>
+// The portal writes "Art. 109^2" for art. 109², in a unit's name and in the law's text alike.
+export const withSuperscripts = (text: string) =>
+  text.replace(/\^(\d+)/g, (_, digits: string) =>
     [...digits].map((digit) => superscriptDigits[Number(digit)]).join('')
   );
 
-export const unitLabel = (unit: string) => unitName(unit).replace(/^Art\./, 'art.');
+export const unitLabel = (unit: string) => withSuperscripts(unit).replace(/^Art\./, 'art.');
 
+// Nouns, not participles: a participle would have to agree with "art.", "lit." or "anexa".
 export const operationLabels: Record<
   LegalChangeListResponseItemsItemAmendedUnitsItemOperation,
-  { one: string; many: string }
+  string
 > = {
-  modified: { one: 'Modificat', many: 'Modificate' },
-  supplemented: { one: 'Completat', many: 'Completate' },
-  inserted: { one: 'Introdus', many: 'Introduse' },
-  repealed: { one: 'Abrogat', many: 'Abrogate' },
-  other: { one: 'Schimbat', many: 'Schimbate' },
+  modified: 'Modificări',
+  supplemented: 'Completări',
+  inserted: 'Introduceri',
+  repealed: 'Abrogări',
+  other: 'Alte schimbări',
 };
 
 export function listOf(items: string[]) {
@@ -91,13 +92,8 @@ export function listOf(items: string[]) {
 
 export function changeStatus(change: LegalChangeListResponseItemsItem) {
   if (change.resolution !== 'open') return null;
-  if (change.outcome === null) return 'Modificarea este în curs de analiză.';
+  if (change.outcome === null) return 'Modificarea nu a fost încă analizată.';
   if (change.outcome === 'quote_differs') return 'Modifică un text citat în documente.';
   if (change.outcome === 'needs_review') return 'Modifică un articol la care trimit documentele.';
   return null;
-}
-
-export function updatedDocuments(change: LegalChangeListResponseItemsItem) {
-  if (change.resolution !== 'template_version') return [];
-  return [...new Set(change.passages.flatMap((passage) => passage.document?.title ?? []))];
 }

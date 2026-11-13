@@ -21,7 +21,6 @@ import {
   listOf,
   portalPage,
   resolutionLabels,
-  updatedDocuments,
 } from './legislation-labels';
 
 export function LegalChanges({ userId }: { userId: string }) {
@@ -111,7 +110,7 @@ function ChangeView({ change }: { change: LegalChange }) {
       ? listOf(change.amendingActs.map((act) => act.name))
       : change.amendingAct;
   const status = changeStatus(change);
-  const documents = updatedDocuments(change);
+  const documents = change.updatedDocuments.map((document) => document.title);
   return (
     <>
       <p className="text-sm text-muted-foreground">
