@@ -7,6 +7,8 @@
 --   LGA02  the template version cannot answer the change
 --   LGA03  the form was not seen on the portal
 --   LGA04  an open change of the act is at or before the form
+--   LGA05  the daily check has not assessed the change yet
+--   LGA06  an older change of the act is open
 
 alter table audit.events drop constraint events_action_known;
 alter table audit.events add constraint events_action_known check (
@@ -89,6 +91,20 @@ begin
   if v_change.resolution <> 'open' then
     raise exception 'The legal change is already resolved.' using errcode = 'LGA01';
   end if;
+  select verified_consolidated_on into v_verified from public.legal_acts where id = v_change.act_id for update;
+  -- The daily check assesses only open changes after the verified form: resolved before it, this
+  -- one would keep no outcome. One at or before the verified form will never be assessed.
+  if v_change.outcome is null and (v_verified is null or v_change.consolidated_on > v_verified) then
+    raise exception 'The daily check has not assessed the legal change yet.' using errcode = 'LGA05';
+  end if;
+  -- Resolving moves the verified form to this change's, and the daily check never assesses a
+  -- change at or before the verified form, so an older one left open would stay open for good.
+  if exists (
+    select 1 from public.legal_changes c
+    where c.act_id = v_change.act_id and c.resolution = 'open' and c.consolidated_on < v_change.consolidated_on
+  ) then
+    raise exception 'An older change of the act is open; resolve it first.' using errcode = 'LGA06';
+  end if;
 
   update public.legal_changes
   set resolution = 'no_impact', resolved_at = now(), resolved_by_note = v_note
@@ -96,7 +112,6 @@ begin
   returning * into v_change;
 
   -- As the Worker does on its own no-impact: the next form is compared with this one.
-  select verified_consolidated_on into v_verified from public.legal_acts where id = v_change.act_id for update;
   update public.legal_acts
   set verified_consolidated_on = v_change.consolidated_on
   where id = v_change.act_id
@@ -118,7 +133,7 @@ end;
 $$;
 
 comment on function public.admin_resolve_legal_change_no_impact(uuid, text) is
-  'Resolves an open legal change as no impact with p_note, Romanian for members (ADR 017), and advances the act''s verified form to the change''s, for a platform admin past the second factor (ADR 038). 42501 for anyone else, P0002 for no such change, LGA01 when it is not open, 22023 for a note not of 2 to 500 characters.';
+  'Resolves an open legal change as no impact with p_note, Romanian for members (ADR 017), and advances the act''s verified form to the change''s, for a platform admin past the second factor (ADR 038). 42501 for anyone else, P0002 for no such change, LGA01 when it is not open, LGA05 while the daily check has yet to assess it, LGA06 while an older change of the act is open, 22023 for a note not of 2 to 500 characters.';
 
 create function public.admin_link_legal_change(p_change_id uuid, p_template_version_id uuid)
 returns public.legal_changes
@@ -142,6 +157,20 @@ begin
   if v_change.resolution <> 'open' then
     raise exception 'The legal change is already resolved.' using errcode = 'LGA01';
   end if;
+  select verified_consolidated_on into v_verified from public.legal_acts where id = v_change.act_id for update;
+  -- The daily check assesses only open changes after the verified form: resolved before it, this
+  -- one would keep no outcome. One at or before the verified form will never be assessed.
+  if v_change.outcome is null and (v_verified is null or v_change.consolidated_on > v_verified) then
+    raise exception 'The daily check has not assessed the legal change yet.' using errcode = 'LGA05';
+  end if;
+  -- Resolving moves the verified form to this change's, and the daily check never assesses a
+  -- change at or before the verified form, so an older one left open would stay open for good.
+  if exists (
+    select 1 from public.legal_changes c
+    where c.act_id = v_change.act_id and c.resolution = 'open' and c.consolidated_on < v_change.consolidated_on
+  ) then
+    raise exception 'An older change of the act is open; resolve it first.' using errcode = 'LGA06';
+  end if;
 
   select tv.id, tv.version, tv.kind, tv.note, tv.created_at, tv.resolves_legal_change_id, t.type_key, t.organization_id
   into v_version
@@ -149,10 +178,12 @@ begin
   join public.document_templates t on t.id = tv.template_id
   where tv.id = p_template_version_id
   for update of tv;
-  -- A layout version changes no words, so it cannot answer a change of the law's.
+  -- A layout version changes no words, so it cannot answer a change of the law's; a version with no
+  -- note would leave members nothing to read under the change.
   if not found
     or v_version.organization_id is not null
     or v_version.kind = 'layout'
+    or v_version.note is null
     or v_version.resolves_legal_change_id is not null
     or v_version.created_at <= v_change.seen_at
     or not exists (
@@ -172,7 +203,6 @@ begin
   returning * into v_change;
 
   -- The answering version quotes the new form, which the next one is compared with.
-  select verified_consolidated_on into v_verified from public.legal_acts where id = v_change.act_id for update;
   update public.legal_acts
   set verified_consolidated_on = v_change.consolidated_on
   where id = v_change.act_id
@@ -197,7 +227,7 @@ end;
 $$;
 
 comment on function public.admin_link_legal_change(uuid, uuid) is
-  'Resolves an open legal change by the built-in template version p_template_version_id, which then names it, with the version''s note, and advances the act''s verified form to the change''s, for a platform admin past the second factor (ADR 038). The version is of a template the change''s passages name, registered after the change was seen, not a layout version and answering no other change. 42501 for anyone else, P0002 for no such change, LGA01 when it is not open, LGA02 for a version that cannot answer it.';
+  'Resolves an open legal change by the built-in template version p_template_version_id, which then names it, with the version''s note, and advances the act''s verified form to the change''s, for a platform admin past the second factor (ADR 038). The version is of a template the change''s passages name, registered after the change was seen, not a layout version, with a note and answering no other change. 42501 for anyone else, P0002 for no such change, LGA01 when it is not open, LGA05 while the daily check has yet to assess it, LGA06 while an older change of the act is open, LGA02 for a version that cannot answer it.';
 
 create function public.admin_record_verified_form(p_act_id text, p_consolidated_on date)
 returns public.legal_acts
@@ -248,7 +278,7 @@ end;
 $$;
 
 comment on function public.admin_record_verified_form(text, date) is
-  'Records the consolidated form p_consolidated_on as the one the templates were verified against for act p_act_id (ADR 017), for a platform admin past the second factor (ADR 038). The form is no newer than the last one seen on the portal. 42501 for anyone else, P0002 for no such act, LGA03 for a form not seen, LGA04 while a change of the act at or before it is open.';
+  'Records the consolidated form p_consolidated_on as the one the templates were verified against for act p_act_id (ADR 017), for a platform admin past the second factor (ADR 038). The form is no newer than the last one seen on the portal, and may be older than the current verified one, which corrects it. 42501 for anyone else, P0002 for no such act, LGA03 for a form not seen, LGA04 while a change of the act at or before it is open.';
 
 revoke all on function public.admin_resolve_legal_change_no_impact(uuid, text) from public, anon, service_role;
 revoke all on function public.admin_link_legal_change(uuid, uuid) from public, anon, service_role;

@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(49);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), v.app_metadata::jsonb, '{}', now(), now()
@@ -27,11 +27,16 @@ insert into public.legal_changes (id, act_id, seen_at, consolidated_on, outcome,
   ('d1d1d1d1-0000-4000-8000-0000000000c2', 'lege-227-2015', '2026-10-19 03:20+00', '2026-10-18', 'needs_review', now(), '2026-08-01'),
   ('d1d1d1d1-0000-4000-8000-0000000000c3', 'lege-319-2006', '2026-11-10 03:20+00', '2026-11-09', 'quote_differs', now(), '2021-07-25'),
   ('d1d1d1d1-0000-4000-8000-0000000000d4', 'lege-53-2003', '2026-10-01 03:20+00', '2026-09-30', 'needs_review', now(), '2026-04-27'),
-  ('d1d1d1d1-0000-4000-8000-0000000000e5', 'omai-163-2007', '2026-11-02 03:20+00', '2026-11-01', 'needs_review', now(), null);
+  ('d1d1d1d1-0000-4000-8000-0000000000e5', 'omai-163-2007', '2026-11-02 03:20+00', '2026-11-01', 'needs_review', now(), null),
+  ('d1d1d1d1-0000-4000-8000-0000000000f6', 'lege-53-2003', '2026-10-31 03:20+00', '2026-10-30', 'quote_differs', now(), '2026-04-27'),
+  ('d1d1d1d1-0000-4000-8000-0000000000f8', 'lege-227-2015', '2026-11-06 03:20+00', '2026-11-05', null, null, null),
+  ('d1d1d1d1-0000-4000-8000-0000000000f9', 'lege-227-2015', '2026-10-21 03:20+00', '2026-10-20', null, null, null);
 
 insert into public.legal_change_passages (change_id, manifest, template_file, type_key, paragraph, citation_form, unit_label, status, old_text, new_text) values
   ('d1d1d1d1-0000-4000-8000-0000000000c1', 'ssm', '2.2_general_training_material.docx', 'test_material', 2048, 'quote', 'Art. 36 alin. (2)', 'changed', 'casca', 'pe cap cască'),
-  ('d1d1d1d1-0000-4000-8000-0000000000c3', 'ssm', '2.2_general_training_material.docx', 'test_material', 120, 'quote', 'Art. 7', 'changed', 'vechi', 'nou');
+  ('d1d1d1d1-0000-4000-8000-0000000000c3', 'ssm', '2.2_general_training_material.docx', 'test_material', 120, 'quote', 'Art. 7', 'changed', 'vechi', 'nou'),
+  ('d1d1d1d1-0000-4000-8000-0000000000f6', 'ssm', '2.2_general_training_material.docx', 'test_material', 300, 'quote', 'Art. 39', 'changed', 'vechi', 'nou'),
+  ('d1d1d1d1-0000-4000-8000-0000000000f8', 'ssm', '2.2_general_training_material.docx', 'test_material', 400, 'quote', 'Art. 342', 'changed', 'vechi', 'nou');
 
 insert into public.document_templates (id, organization_id, type_key, title) values
   ('70000000-0000-4000-8000-0000000000c1', null, 'test_material', 'Material instruire generală'),
@@ -43,7 +48,8 @@ insert into public.document_template_versions (id, template_id, version, storage
   ('a1a1a1a1-0000-4000-8000-0000000000c2', '70000000-0000-4000-8000-0000000000c1', 902, 'test/c2', repeat('2', 64), 'layout', null, '2026-11-08 10:00+00'),
   ('a1a1a1a1-0000-4000-8000-0000000000c3', '70000000-0000-4000-8000-0000000000c2', 903, 'test/c3', repeat('3', 64), 'legal', 'Tematica.', '2026-11-08 10:00+00'),
   ('a1a1a1a1-0000-4000-8000-0000000000c4', '70000000-0000-4000-8000-0000000000c3', 904, 'test/c4', repeat('4', 64), 'legal', 'A lor.', '2026-11-08 10:00+00'),
-  ('a1a1a1a1-0000-4000-8000-0000000000c5', '70000000-0000-4000-8000-0000000000c1', 905, 'test/c5', repeat('5', 64), 'legal', 'Art. 36 alin. (2) preia forma din 30 octombrie 2026.', '2026-11-12 10:00+00');
+  ('a1a1a1a1-0000-4000-8000-0000000000c5', '70000000-0000-4000-8000-0000000000c1', 905, 'test/c5', repeat('5', 64), 'legal', 'Art. 36 alin. (2) preia forma din 30 octombrie 2026.', '2026-11-12 10:00+00'),
+  ('a1a1a1a1-0000-4000-8000-0000000000c6', '70000000-0000-4000-8000-0000000000c1', 906, 'test/c6', repeat('6', 64), 'legal', null, '2026-11-12 11:00+00');
 
 create or replace function pg_temp.act_as(p_user_id text, p_aal text default 'aal2')
 returns void language sql as $$
@@ -171,6 +177,31 @@ select throws_ok(
   $$ select public.admin_link_legal_change('d1d1d1d1-0000-4000-8000-0000000000c1', 'a1a1a1a1-0000-4000-8000-0000000000ff') $$,
   'LGA02', null, 'a version that does not exist cannot answer a change'
 );
+select throws_ok(
+  $$ select public.admin_link_legal_change('d1d1d1d1-0000-4000-8000-0000000000c1', 'a1a1a1a1-0000-4000-8000-0000000000c6') $$,
+  'LGA02', null, 'a version with no note for members cannot answer a change'
+);
+
+select throws_ok(
+  $$ select public.admin_resolve_legal_change_no_impact('d1d1d1d1-0000-4000-8000-0000000000f6', 'Fără impact.') $$,
+  'LGA06', null, 'a change is not resolved as no impact while an older change of the act is open'
+);
+select throws_ok(
+  $$ select public.admin_link_legal_change('d1d1d1d1-0000-4000-8000-0000000000f6', 'a1a1a1a1-0000-4000-8000-0000000000c5') $$,
+  'LGA06', null, 'a change is not linked while an older change of the act is open'
+);
+select throws_ok(
+  $$ select public.admin_resolve_legal_change_no_impact('d1d1d1d1-0000-4000-8000-0000000000f8', 'Fără impact.') $$,
+  'LGA05', null, 'a change the daily check has yet to assess is not resolved as no impact'
+);
+select throws_ok(
+  $$ select public.admin_link_legal_change('d1d1d1d1-0000-4000-8000-0000000000f8', 'a1a1a1a1-0000-4000-8000-0000000000c5') $$,
+  'LGA05', null, 'a change the daily check has yet to assess is not linked'
+);
+select lives_ok(
+  $$ select public.admin_resolve_legal_change_no_impact('d1d1d1d1-0000-4000-8000-0000000000f9', 'Fără impact.') $$,
+  'a change at or before the verified form, which the daily check will never assess, is resolved'
+);
 
 select lives_ok(
   $$ select public.admin_link_legal_change('d1d1d1d1-0000-4000-8000-0000000000c1', 'a1a1a1a1-0000-4000-8000-0000000000c5') $$,
@@ -236,6 +267,14 @@ select lives_ok(
   $$ select public.admin_record_verified_form('lege-319-2006', '2021-05-06') $$,
   'the admin records an earlier form as the verified one'
 );
+select lives_ok(
+  $$ select public.admin_resolve_legal_change_no_impact('d1d1d1d1-0000-4000-8000-0000000000d4', 'Fără impact.') $$,
+  'the oldest open change of an act is resolved'
+);
+select lives_ok(
+  $$ select public.admin_resolve_legal_change_no_impact('d1d1d1d1-0000-4000-8000-0000000000f6', 'Fără impact.') $$,
+  'the next change is resolved once the older one is'
+);
 
 reset role;
 
@@ -243,6 +282,11 @@ select is(
   (select verified_consolidated_on from public.legal_acts where id = 'lege-319-2006'),
   '2021-05-06'::date,
   'the act has the form the admin recorded'
+);
+select is(
+  (select verified_consolidated_on from public.legal_acts where id = 'lege-53-2003'),
+  '2026-10-30'::date,
+  'resolving the changes in order moves the verified form to the newest'
 );
 select results_eq(
   $$ select action, table_name, actor_id, details from audit.events where action = 'legal_act_verified' and details ->> 'act_id' = 'lege-319-2006' $$,
