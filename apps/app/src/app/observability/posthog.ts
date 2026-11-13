@@ -7,8 +7,13 @@ export function loadPostHog(): Promise<PostHog | null> {
   const token = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim();
   if (!token) return Promise.resolve(null);
 
-  clientPromise ??= import('posthog-js')
-    .then(({ default: posthog }) => {
+  clientPromise ??= Promise.all([
+    import('posthog-js'),
+    // Content blockers refuse the recorder PostHog would fetch from /static/, and the SDK
+    // fetches nothing once this has defined it.
+    import('posthog-js/dist/posthog-recorder'),
+  ])
+    .then(([{ default: posthog }]) => {
       posthog.init(token, {
         // PostHog's managed proxy on our domain: Firefox's tracking protection blocks
         // PostHog's own hosts, and with them the support chat.
