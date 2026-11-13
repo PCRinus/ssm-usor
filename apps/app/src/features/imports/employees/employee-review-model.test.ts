@@ -1075,6 +1075,8 @@ describe('the switches and what confirming writes', () => {
             terminatedAt: null,
             workplaceId: null,
             commuteRoute: null,
+            commuteMeans: [],
+            commuteMeansOther: null,
             commuteMinutes: null,
             hasContact: false,
             trainings: [],

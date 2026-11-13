@@ -57,6 +57,8 @@ const employeeRow = {
   education: null,
   authorizations: null,
   commute_route: 'Str. Lungă – Str. Fabricii, cu autobuzul 33',
+  commute_means: ['public_transport'],
+  commute_means_other: null,
   commute_minutes: 25,
   job_positions: { name: 'Sudor', work_zone: 'Atelier' },
   client_workplaces: workshop,

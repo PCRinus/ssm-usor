@@ -1,4 +1,4 @@
-import { isValidCnp } from '@ssm-usor/contracts';
+import { commuteMeansLabels, isValidCnp, parseCommuteMeansKey } from '@ssm-usor/contracts';
 
 import {
   differs as differ,
@@ -20,6 +20,10 @@ export function showValue(name: FieldName, value: FieldValue | null | undefined)
   if (dateFields.has(name)) return dateLabel(String(value));
   if (name === 'rhFactor') return `Rh ${rhLabels[String(value)] ?? value}`;
   if (name === 'commuteMinutes') return `${value} min`;
+  if (name === 'commuteMeans') {
+    const means = parseCommuteMeansKey(String(value));
+    return means ? commuteMeansLabels(means).join(', ') : String(value);
+  }
   return String(value);
 }
 

@@ -1,12 +1,13 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type {
-  PortalClientEmployee,
-  PortalEmployeeData,
-  PortalMe,
-  PortalResponsiblePerson,
-  PortalTrainingRecord,
-  PortalTrainingRecordsResponse,
-  TrainingDomain,
+import {
+  orderedCommuteMeans,
+  type PortalClientEmployee,
+  type PortalEmployeeData,
+  type PortalMe,
+  type PortalResponsiblePerson,
+  type PortalTrainingRecord,
+  type PortalTrainingRecordsResponse,
+  type TrainingDomain,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
@@ -50,7 +51,7 @@ const trainingStatusColumns =
 
 const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, source, created_at), signature_requests!signature_requests_record_of_client(${requestColumns}), training_signatures!training_signatures_record_of_client(${signatureColumns})`;
 
-const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, residence_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
+const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, residence_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
 
 const employeeListColumns =
   `id, last_name, first_name, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}, ${testStatusColumns}` as const;
@@ -264,6 +265,8 @@ export const getPortalEmployeeData: RouteHandler<
         education: row.education,
         authorizations: row.authorizations,
         commuteRoute: row.commute_route,
+        commuteMeans: orderedCommuteMeans(row.commute_means),
+        commuteMeansOther: row.commute_means_other,
         commuteMinutes: row.commute_minutes,
       },
       training: toEmployeeTraining(row.training_status),

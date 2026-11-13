@@ -501,6 +501,8 @@ export const employeeImportFieldNames = [
   'leftOn',
   'workplace',
   'commuteRoute',
+  // One value for the codes and the means typed apart, as `commuteMeansKey` writes it.
+  'commuteMeans',
   'commuteMinutes',
 ] as const;
 

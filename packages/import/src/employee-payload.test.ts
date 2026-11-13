@@ -1,4 +1,4 @@
-import type { EmployeeImportChanges } from '@ssm-usor/contracts';
+import { commuteMeansKey, type EmployeeImportChanges } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { type EmployeeImportClient, toEmployeeProposal } from './employee-import';
@@ -505,6 +505,45 @@ describe('toEmployeePayload', () => {
     expect(map().payload.employees[0]).toMatchObject({
       home_address: 'Str. Fabricii nr. 21, Sibiu',
       residence_address: 'Str. Morilor nr. 4, Cisnădie',
+    });
+  });
+
+  it('writes the means of transport as their codes and the means typed apart', () => {
+    const { proposal, check, map } = setUp({
+      ...comanFront,
+      fields: {
+        ...comanFront.fields,
+        commuteMeans: ['public_transport', 'on_foot'],
+        commuteMeansOther: 'Motocicletă',
+      },
+    });
+    check(idOf(proposal, 'Coman'));
+
+    const employee = map().payload.employees[0]!;
+    expect(employee.commute_means).toEqual(['on_foot', 'public_transport']);
+    expect(employee.commute_means_other).toBe('Motocicletă');
+  });
+
+  it('keeps the sheet’s means, takes the means the member wrote, and refuses a value that is no means', () => {
+    const { proposal, changes, check, map } = setUp({
+      ...popFront,
+      fields: { ...popFront.fields, commuteMeans: ['personal_car'] },
+    });
+    const pop = idOf(proposal, 'Pop');
+    check(pop);
+
+    expect(map().payload.employees[0]).toMatchObject({ commute_means: ['personal_car'] });
+    expect(map().payload.employees[0]!.replace).toBeUndefined();
+
+    changes.people[pop]!.fields = {
+      commuteMeans: { value: commuteMeansKey({ means: ['on_foot'], other: null }) },
+    };
+    expect(map().payload.employees[0]).toMatchObject({ commute_means: ['on_foot'] });
+
+    changes.people[pop]!.fields = { commuteMeans: { value: 'pe jos' } };
+    expect(map().blockers).toContainEqual({
+      path: `people.${pop}.fields.commuteMeans`,
+      code: 'invalid',
     });
   });
 

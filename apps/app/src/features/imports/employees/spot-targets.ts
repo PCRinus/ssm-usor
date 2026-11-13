@@ -23,6 +23,7 @@ const fieldTargets: Record<FieldName, string> = {
   leftOn: 'fields.leftOn',
   workplace: 'fields.workplace',
   commuteRoute: 'fields.commuteRoute',
+  commuteMeans: 'fields.commuteMeans',
   commuteMinutes: 'fields.commuteMinutes',
 };
 

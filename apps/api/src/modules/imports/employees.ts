@@ -3,6 +3,7 @@ import {
   employeeImportChangesSchema,
   type EmployeeImportPeople,
   type EmployeeImportPersonState,
+  orderedCommuteMeans,
 } from '@ssm-usor/contracts';
 import {
   type EmployeeImportClient,
@@ -52,7 +53,7 @@ export async function employeeImportClient(
         db
           .from('employees')
           .select(
-            'id, last_name, first_name, cnp, employee_number, birth_date, birth_place, home_address, residence_address, education, qualification, blood_group, rh_factor, job_title, hired_at, terminated_at, workplace_id, commute_route, commute_minutes, email, phone'
+            'id, last_name, first_name, cnp, employee_number, birth_date, birth_place, home_address, residence_address, education, qualification, blood_group, rh_factor, job_title, hired_at, terminated_at, workplace_id, commute_route, commute_means, commute_means_other, commute_minutes, email, phone'
           )
           .eq('client_id', clientId)
           .is('archived_at', null)
@@ -107,6 +108,8 @@ export async function employeeImportClient(
       terminatedAt: employee.terminated_at,
       workplaceId: employee.workplace_id,
       commuteRoute: employee.commute_route,
+      commuteMeans: orderedCommuteMeans(employee.commute_means),
+      commuteMeansOther: employee.commute_means_other,
       commuteMinutes: employee.commute_minutes,
       hasContact: Boolean(employee.email || employee.phone),
       trainings: records

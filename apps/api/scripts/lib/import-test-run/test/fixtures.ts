@@ -116,6 +116,8 @@ export function sheetPage(parts: {
       leftOn: null,
       workplace: null,
       commuteRoute: null,
+      commuteMeans: [],
+      commuteMeansOther: null,
       commuteMinutes: null,
       ...parts.fields,
     },

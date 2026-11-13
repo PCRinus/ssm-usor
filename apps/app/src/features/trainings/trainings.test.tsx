@@ -112,6 +112,8 @@ const employeeDetail = {
   education: null,
   authorizations: null,
   commuteRoute: null,
+  commuteMeans: [],
+  commuteMeansOther: null,
   commuteMinutes: null,
 };
 

@@ -2,6 +2,7 @@ import {
   bloodGroups,
   decodeCnp,
   isValidCnp,
+  parseCommuteMeansKey,
   rhFactors,
   sameHomeAddress,
   type TrainingDomain,
@@ -102,6 +103,7 @@ export const fieldLabels: Record<FieldName, string> = {
   leftOn: 'Data plecării',
   workplace: 'Locul de muncă',
   commuteRoute: 'Traseul spre locul de muncă',
+  commuteMeans: 'Mijloacele de transport',
   commuteMinutes: 'Durata drumului',
 };
 
@@ -123,6 +125,7 @@ export const fieldTitles: Record<FieldName, string> = {
   leftOn: 'Data plecării',
   workplace: 'Locul de muncă pe fișă',
   commuteRoute: 'Traseul spre locul de muncă',
+  commuteMeans: 'Mijloace de transport',
   commuteMinutes: 'Durata drumului',
 };
 
@@ -560,6 +563,7 @@ const medicalFields = new Set<FieldName>([
   'bloodGroup',
   'rhFactor',
   'commuteRoute',
+  'commuteMeans',
   'commuteMinutes',
 ]);
 
@@ -616,6 +620,11 @@ function invalidField(
   }
   if (name === 'birthDate' || name === 'hiredAt' || name === 'leftOn') {
     return typeof value === 'string' && isoDate.test(value)
+      ? null
+      : decision(`Corectează ${lower}`);
+  }
+  if (name === 'commuteMeans') {
+    return typeof value === 'string' && parseCommuteMeansKey(value) !== null
       ? null
       : decision(`Corectează ${lower}`);
   }

@@ -59,6 +59,8 @@ export const sheetPersonFieldsSchema = z.object({
   leftOn: dateField,
   workplace: textField,
   commuteRoute: textField,
+  // As `commuteMeansKey` writes it. Proposals stored before the means were read have none.
+  commuteMeans: textField.default({ options: [] }),
   commuteMinutes: personField(z.int()),
 }) satisfies z.ZodType<Record<EmployeeImportFieldName, PersonField<unknown>>>;
 

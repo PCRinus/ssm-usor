@@ -18,6 +18,7 @@ const dialogRows: readonly DialogRow[] = [
   { half: 'employeeNumber' },
   { pair: ['bloodGroup', 'rhFactor'], onPhone: 'paired' },
   { full: 'commuteRoute' },
+  { full: 'commuteMeans' },
   { half: 'commuteMinutes' },
 ];
 

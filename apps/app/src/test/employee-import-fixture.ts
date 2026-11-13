@@ -37,6 +37,7 @@ const emptyFields = {
   leftOn: none,
   workplace: none,
   commuteRoute: none,
+  commuteMeans: none,
   commuteMinutes: none,
 };
 

@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(27);
 
 -- Fixtures: two organizations with one member and one client each, plus an archived client in A.
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -87,6 +87,22 @@ select throws_ok(
   '23514',
   null,
   'a residence address is not blank'
+);
+
+select throws_ok(
+  $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at, commute_means)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Unknown', 'Means', 'Sudor', '2020-01-01', '{on_foot,ferry}') $$,
+  '23514',
+  null,
+  'a commute means is one of the codes'
+);
+
+select throws_ok(
+  $$ insert into public.employees (organization_id, client_id, last_name, first_name, job_title, hired_at, commute_means_other)
+     values ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Blank', 'Means', 'Sudor', '2020-01-01', '  ') $$,
+  '23514',
+  null,
+  'a commute means typed apart is not blank'
 );
 
 -- Organization B's client row, to hand to the headcount as someone who cannot read it.

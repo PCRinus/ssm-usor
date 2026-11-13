@@ -1,5 +1,6 @@
 import {
   bloodGroups,
+  type CommuteMean,
   decodeCnp,
   type EmployeeImportChanges,
   type EmployeeImportFieldName,
@@ -7,6 +8,7 @@ import {
   type ImportBlocker,
   isValidCnp,
   type KnowledgeTest,
+  parseCommuteMeansKey,
   rhFactors,
   sameHomeAddress,
   type SupplementaryTrainingReason,
@@ -60,6 +62,8 @@ export interface EmployeePayloadRow {
   job_title?: string;
   hired_at?: string;
   commute_route?: string;
+  commute_means?: CommuteMean[];
+  commute_means_other?: string;
   commute_minutes?: number;
   status?: 'active' | 'terminated';
   terminated_at?: string;
@@ -141,7 +145,10 @@ export interface EmployeeMapping {
   toCheck: string[];
 }
 
-const columns: Record<Exclude<EmployeeImportFieldName, 'workplace' | 'leftOn'>, string> = {
+const columns: Record<
+  Exclude<EmployeeImportFieldName, 'workplace' | 'leftOn' | 'commuteMeans'>,
+  string
+> = {
   lastName: 'last_name',
   firstName: 'first_name',
   cnp: 'cnp',
@@ -185,6 +192,9 @@ function allowed(name: EmployeeImportFieldName, value: Value): boolean {
   }
   if (name === 'birthDate' || name === 'hiredAt' || name === 'leftOn') {
     return typeof value === 'string' && isoDate.test(value);
+  }
+  if (name === 'commuteMeans') {
+    return typeof value === 'string' && parseCommuteMeansKey(value) !== null;
   }
   const limits = textLimits[name];
   if (!limits || typeof value !== 'string') return typeof value === 'string';
@@ -475,6 +485,8 @@ export function toEmployeePayload(input: {
         if (field.app !== undefined && field.app !== null && field.app !== value)
           replace.push('cnp');
         changed = true;
+      } else if (resolved.replace && name === 'commuteMeans') {
+        replace.push('commute_means', 'commute_means_other');
       } else if (resolved.replace && name in columns) {
         replace.push(columns[name as keyof typeof columns]);
       }
@@ -520,6 +532,12 @@ export function toEmployeePayload(input: {
     for (const [name, column] of Object.entries(columns)) {
       const value = values[name as EmployeeImportFieldName];
       if (filled(value)) (row as unknown as Record<string, Value>)[column] = value;
+    }
+    const means =
+      typeof values.commuteMeans === 'string' ? parseCommuteMeansKey(values.commuteMeans) : null;
+    if (means) {
+      row.commute_means = means.means;
+      if (means.other !== null) row.commute_means_other = means.other;
     }
     if (!existing) {
       for (const name of ['lastName', 'firstName', 'jobTitle', 'hiredAt'] as const) {

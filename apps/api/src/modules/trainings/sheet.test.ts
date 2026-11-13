@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   blankRowsAfter,
   buildTrainingSheetData,
+  commuteMeansPhrase,
   hoursOf,
   missingSheetDataOf,
   type SheetRecord,
@@ -56,6 +57,8 @@ const facts: TrainingSheetFacts = {
     education: 'Liceu',
     authorizations: null,
     commuteRoute: 'Str. Lungă – Str. Fabricii, cu autobuzul 33.',
+    commuteMeans: ['public_transport'],
+    commuteMeansOther: null,
     commuteMinutes: 25,
     workplace: workshop,
     position: { name: 'Sudor', workZone: 'Atelier' },
@@ -149,6 +152,107 @@ describe('buildTrainingSheetData', () => {
       authorizations: '',
       commute: 'Str. Lungă – Str. Fabricii, cu autobuzul 33 (25 de minute)',
     });
+  });
+
+  it('prints the means of transport on the commute line, after the route and before its duration', () => {
+    const commute = (employee: Partial<TrainingSheetFacts['employee']>) =>
+      buildTrainingSheetData({ ...facts, employee: { ...facts.employee, ...employee } }).employee
+        .commute;
+    const route = 'Str. Lungă – Str. Fabricii';
+
+    expect(commute({ commuteRoute: route, commuteMeans: ['public_transport'] })).toBe(
+      'Str. Lungă – Str. Fabricii, cu transportul public (25 de minute)'
+    );
+    expect(commute({ commuteRoute: route, commuteMeans: ['on_foot', 'public_transport'] })).toBe(
+      'Str. Lungă – Str. Fabricii, pe jos și cu transportul public (25 de minute)'
+    );
+    expect(
+      commute({
+        commuteRoute: `${route}.`,
+        commuteMeans: ['personal_car', 'employer_transport'],
+        commuteMeansOther: 'Trenul de navetă',
+        commuteMinutes: null,
+      })
+    ).toBe(
+      'Str. Lungă – Str. Fabricii, cu mașina personală, cu transportul asigurat de angajator și cu trenul de navetă'
+    );
+    expect(commute({ commuteRoute: route, commuteMeans: [], commuteMeansOther: null })).toBe(
+      'Str. Lungă – Str. Fabricii (25 de minute)'
+    );
+  });
+
+  it('prints no means the route already names, as routes typed before the means had a field do', () => {
+    const commute = (
+      commuteRoute: string,
+      commuteMeans: TrainingSheetFacts['employee']['commuteMeans']
+    ) =>
+      buildTrainingSheetData({
+        ...facts,
+        employee: { ...facts.employee, commuteRoute, commuteMeans },
+      }).employee.commute;
+
+    expect(commute('Str. Lungă – Str. Fabricii, cu autobuzul 33.', ['public_transport'])).toBe(
+      'Str. Lungă – Str. Fabricii, cu autobuzul 33 (25 de minute)'
+    );
+    expect(
+      commute('Autobuz 33: Piața Unirii - Calea Aradului - poarta fabricii', [
+        'on_foot',
+        'public_transport',
+      ])
+    ).toBe('Autobuz 33: Piața Unirii - Calea Aradului - poarta fabricii, pe jos (25 de minute)');
+    expect(commute('Pe jos, pe Str. Lungă până la poarta fabricii', ['on_foot'])).toBe(
+      'Pe jos, pe Str. Lungă până la poarta fabricii (25 de minute)'
+    );
+    expect(commute('Cu mașina firmei, pe DN 69', ['employer_transport'])).toBe(
+      'Cu mașina firmei, pe DN 69 (25 de minute)'
+    );
+  });
+
+  it('takes a street or a place for no means, and an employer vehicle for neither a car nor public transport', () => {
+    expect(commuteMeansPhrase('Str. Mașinilor – poarta fabricii', ['personal_car'], null)).toBe(
+      'cu mașina personală'
+    );
+    expect(
+      commuteMeansPhrase('Str. Trenului – zona pietonală', ['on_foot', 'public_transport'], null)
+    ).toBe('pe jos și cu transportul public');
+    expect(
+      commuteMeansPhrase('Cu microbuzul firmei până la poartă', ['public_transport'], null)
+    ).toBe('cu transportul public');
+    expect(
+      commuteMeansPhrase('Cu mașina firmei, pe DN 69', ['personal_car', 'employer_transport'], null)
+    ).toBe('cu mașina personală');
+    expect(commuteMeansPhrase('Str. Lungă, cu mașina', ['personal_car'], null)).toBe('');
+    expect(
+      commuteMeansPhrase('Tramvaiul 4: Piața Unirii – Fabricii', ['public_transport'], null)
+    ).toBe('');
+  });
+
+  it('prints a means typed apart that repeats a chosen one only once, and keeps no stray comma', () => {
+    expect(commuteMeansPhrase('Str. Lungă', ['on_foot'], 'Pe jos')).toBe('pe jos');
+    expect(commuteMeansPhrase('Str. Lungă', [], 'in tren')).toBe('in tren');
+    expect(
+      buildTrainingSheetData({
+        ...facts,
+        employee: {
+          ...facts.employee,
+          commuteRoute: 'Str. Lungă – Str. Fabricii,',
+          commuteMeans: ['public_transport'],
+        },
+      }).employee.commute
+    ).toBe('Str. Lungă – Str. Fabricii, cu transportul public (25 de minute)');
+  });
+
+  it('writes the means typed apart as it reads after the route, unless the route names it', () => {
+    expect(commuteMeansPhrase('Str. Lungă – Str. Fabricii', [], 'Motocicleta')).toBe(
+      'cu motocicleta'
+    );
+    expect(commuteMeansPhrase('Str. Lungă – Str. Fabricii', [], 'pe bac, peste Mureș')).toBe(
+      'pe bac, peste Mureș'
+    );
+    expect(
+      commuteMeansPhrase('Str. Lungă – Str. Fabricii, cu motocicleta', [], 'Motocicleta')
+    ).toBe('');
+    expect(commuteMeansPhrase(null, ['bicycle'], null)).toBe('cu bicicleta sau trotineta');
   });
 
   it('prints the only active workplace of an employee who has none, or the work zone alone', () => {

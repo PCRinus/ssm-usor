@@ -6,6 +6,7 @@ import {
   type EmployeeSortKey,
   type ListOrganizationEmployeesQuery,
   normalizeCnp,
+  orderedCommuteMeans,
   type OrganizationEmployeeListItem,
   type OrganizationEmployeeSortKey,
   pageRange,
@@ -89,7 +90,7 @@ function inStates<Q extends { or(filters: string, options: { referencedTable: st
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns =
-  `${employeeListColumns}, cnp, birth_date, birth_place, home_address, residence_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_minutes, contract_number` as const;
+  `${employeeListColumns}, cnp, birth_date, birth_place, home_address, residence_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, contract_number` as const;
 
 type EmployeeListRow = Pick<
   EmployeeRow,
@@ -165,6 +166,8 @@ export function toEmployee(
     education: row.education,
     authorizations: row.authorizations,
     commuteRoute: row.commute_route,
+    commuteMeans: orderedCommuteMeans(row.commute_means),
+    commuteMeansOther: row.commute_means_other,
     commuteMinutes: row.commute_minutes,
     contractNumber: row.contract_number,
   };
@@ -218,6 +221,8 @@ function sheetFields(body: CreateEmployeeRequest) {
     education: body.education ?? null,
     authorizations: body.authorizations ?? null,
     commute_route: body.commuteRoute ?? null,
+    commute_means: orderedCommuteMeans(body.commuteMeans ?? []),
+    commute_means_other: body.commuteMeansOther ?? null,
     commute_minutes: body.commuteMinutes ?? null,
   };
 }

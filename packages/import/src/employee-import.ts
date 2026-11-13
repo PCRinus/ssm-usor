@@ -1,4 +1,5 @@
 import {
+  commuteMeansKey,
   type EmployeeImportFieldName,
   employeeImportFieldNames,
   homeAddressDetail,
@@ -164,7 +165,14 @@ function personFields(pages: readonly ReadPage[], today: string) {
     );
   const written = (page: SheetPage, name: EmployeeImportFieldName): string | number | null => {
     if (name in page.person) return page.person[name as keyof SheetPage['person']];
-    return page.fields[name as keyof SheetPage['fields']] ?? null;
+    // A page read before the means were asked for has neither.
+    if (name === 'commuteMeans') {
+      return commuteMeansKey({
+        means: page.fields.commuteMeans ?? [],
+        other: page.fields.commuteMeansOther ?? null,
+      });
+    }
+    return page.fields[name as Exclude<keyof SheetPage['fields'], 'commuteMeans'>] ?? null;
   };
   const read = (name: EmployeeImportFieldName, { input, reading }: ReadPage) => {
     const value = written(reading, name);
@@ -255,6 +263,10 @@ const appValues = (
   leftOn: employee.terminatedAt,
   workplace: null,
   commuteRoute: employee.commuteRoute,
+  commuteMeans: commuteMeansKey({
+    means: [...employee.commuteMeans],
+    other: employee.commuteMeansOther,
+  }),
   commuteMinutes: employee.commuteMinutes,
 });
 

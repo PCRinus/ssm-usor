@@ -100,6 +100,8 @@ const noFields: SheetPage['fields'] = {
   leftOn: null,
   workplace: null,
   commuteRoute: null,
+  commuteMeans: [],
+  commuteMeansOther: null,
   commuteMinutes: null,
 };
 

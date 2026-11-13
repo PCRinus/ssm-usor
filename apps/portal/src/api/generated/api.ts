@@ -409,6 +409,17 @@ export const PortalEmployeeDataResponseEmployeeRhFactor = {
   '-': '-',
 } as const;
 
+export type PortalEmployeeDataResponseEmployeeCommuteMeansItem =
+  (typeof PortalEmployeeDataResponseEmployeeCommuteMeansItem)[keyof typeof PortalEmployeeDataResponseEmployeeCommuteMeansItem];
+
+export const PortalEmployeeDataResponseEmployeeCommuteMeansItem = {
+  on_foot: 'on_foot',
+  bicycle: 'bicycle',
+  personal_car: 'personal_car',
+  employer_transport: 'employer_transport',
+  public_transport: 'public_transport',
+} as const;
+
 export type PortalEmployeeDataResponseEmployee = {
   lastName: string;
   firstName: string;
@@ -439,6 +450,9 @@ export type PortalEmployeeDataResponseEmployee = {
   authorizations: string | null;
   /** @nullable */
   commuteRoute: string | null;
+  commuteMeans: PortalEmployeeDataResponseEmployeeCommuteMeansItem[];
+  /** @nullable */
+  commuteMeansOther: string | null;
   /** @nullable */
   commuteMinutes: number | null;
 };

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { commuteMeanSchema } from './commute-means';
 import { responsiblePersonRoleSchema } from './document-data';
 import { bloodGroupSchema, rhFactorSchema } from './employees';
 import { type ParticipantChannel, participantChannelSchema } from './participant-channels';
@@ -373,6 +374,8 @@ export const portalEmployeeDataSchema = z.object({
     education: z.string().nullable(),
     authorizations: z.string().nullable(),
     commuteRoute: z.string().nullable(),
+    commuteMeans: z.array(commuteMeanSchema),
+    commuteMeansOther: z.string().nullable(),
     commuteMinutes: z.int().nullable(),
   }),
   training: employeeTrainingSchema,

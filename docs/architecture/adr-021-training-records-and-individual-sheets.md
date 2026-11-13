@@ -3,6 +3,7 @@
 - Status: proposed
 - Date: 2026-10-16
 - Amended 2026-11-12 by [ADR 042](adr-042-paper-history-as-written.md): a training from paper holds a trainer, a material and a duration only where the paper writes one, and both sheets mark its rows as transcribed; see the notes below.
+- Amended 2026-11-13: the commute line of the SSM sheet prints the means of transport too; see the amendment below.
 
 ## Context
 
@@ -113,6 +114,16 @@ The app gains a root page _Angajați_, every current employee of every client of
 6. Client files on an employee. Independent.
 7. The organization-wide employees route with `unaccent` and the search, the root page _Angajați_ with its filters, and the search box on the client's list. The search is independent; the training-state filter is on step 3.
 8. The templates registered on hosted after the merge.
+
+## Amendment (2026-11-13): the means of transport on the commute line
+
+A tester asked for the means of transport apart from the route, and Mircea decided it on 2026-11-13. The employee gains the **means of transport** of the commute (_mijloacele de transport_): any of five codes, on foot, bicycle or scooter, own car, transport provided by the employer and public transport, since a commute often combines them, and one means the specialist types for anything else. The codes are kept as codes so that a report can count them; the means typed apart stays text. Both are optional, on the form and on the sheet; the sheet's readiness still asks for the route alone.
+
+The means matter for more than the record: of a road accident on public roads followed by temporary incapacity, the employer that organised the transport answers for the investigation (HG 1425/2006 norms art. 116 (7)).
+
+The SSM sheet prints them inside its existing line "Traseul de deplasare la/de la serviciu", after the route and before the duration: "Str. Lungă – Str. Fabricii, pe jos și cu transportul public (25 de minute)". Each code prints as a phrase that reads after a comma ("pe jos", "cu bicicleta sau trotineta", "cu mașina personală", "cu transportul asigurat de angajator", "cu transportul public"), the means typed apart after "cu" unless it starts with a preposition, all joined by "și". A labelled row of its own was rejected: annex 11 has no such row, and the sheet keeps the form's content. A means the route already names is not printed again, since routes typed before the field existed often say "cu autobuzul 33": the route's words are matched, folded, against each code's (autobuz, tramvai, metrou, tren and the like for public transport), a vehicle counting only after "cu" or at the start of the route, so a street such as "Str. Trenului" names no means, and a vehicle of the employer's ("mașina firmei") names neither the person's own car nor public transport; the means typed apart is matched against the route's text and is not printed when it repeats a chosen one. The employee import reads the means as codes beside the route, and keeps the route as the declaration writes it, line numbers included, which the codes do not hold; the same rule keeps the line from naming the means twice.
+
+The residence (_adresa unde locuiește_), added the same day, prints on neither sheet: annex 11 has only the domicile.
 
 ## Defaults taken instead of asking the provider
 

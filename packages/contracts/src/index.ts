@@ -17,6 +17,7 @@ export * from './client-contract';
 export * from './client-files';
 export * from './clients';
 export * from './cnp';
+export * from './commute-means';
 export * from './counties';
 export * from './cui';
 export * from './dashboard';
