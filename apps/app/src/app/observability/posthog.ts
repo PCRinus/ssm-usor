@@ -1,6 +1,8 @@
 import type { PostHog } from 'posthog-js';
 import { z } from 'zod';
 
+import { maskReplayInput, maskReplayText } from './replay-masking';
+
 let clientPromise: Promise<PostHog | null> | null = null;
 
 const textAttributes = new Set([
@@ -18,6 +20,28 @@ const textAttributes = new Set([
   'srcdoc',
 ]);
 
+const everyInputType = Object.fromEntries(
+  [
+    'color',
+    'date',
+    'datetime-local',
+    'email',
+    'file',
+    'month',
+    'number',
+    'password',
+    'range',
+    'search',
+    'select',
+    'tel',
+    'text',
+    'textarea',
+    'time',
+    'url',
+    'week',
+  ].map((type) => [type, true])
+);
+
 const addressAttributes = new Set(['href', 'src']);
 
 function isSameOrigin(address: string) {
@@ -30,7 +54,11 @@ function isSameOrigin(address: string) {
 
 // Replays keep `class` and `style`, or they play as bare HTML. A link to another origin can
 // carry a signed file address and the file's name, so only the app's own addresses stay.
-export function maskReplayAttribute(name: string, value: string) {
+export function maskReplayAttribute(name: string, value: string, element?: HTMLElement) {
+  // A field's value reaches this already through maskInputFn, which keeps the shown fields.
+  if (name === 'value' && element?.matches('input, textarea, select')) {
+    return maskReplayInput(value, element);
+  }
   const masked = textAttributes.has(name) || (addressAttributes.has(name) && !isSameOrigin(value));
   return masked ? '*'.repeat(value.length) : value;
 }
@@ -72,8 +100,14 @@ export function loadPostHog(): Promise<PostHog | null> {
         // Off until usePostHogSession knows whether the session acts as a member.
         disable_session_recording: true,
         session_recording: {
-          maskAllInputs: true,
+          // maskAllInputs leaves a file field's value, which names the chosen file, unmasked.
+          maskAllInputs: false,
+          maskInputOptions: everyInputType,
+          maskInputFn: maskReplayInput,
+          // rrweb calls maskTextFn only for text under maskTextSelector, and every text needs
+          // the check for a CNP, an email address or a phone number.
           maskTextSelector: '*',
+          maskTextFn: maskReplayText,
           maskAttributeFn: maskReplayAttribute,
           blockSelector: '[data-no-replay]',
           recordBody: false,
