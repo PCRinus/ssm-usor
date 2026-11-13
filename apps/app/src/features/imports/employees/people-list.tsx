@@ -30,6 +30,7 @@ import {
 import { PageThumb } from './page-thumb';
 import { dateLabel, pagesPhotosLabel, peopleLabel, trainingsLabel } from './review-format';
 import { type Position, positionName } from './use-review-context';
+import { unansweredDomains, whoTrainedId, whoTrainedState } from './who-trained-model';
 
 export const peopleSectionId = 'employee-hub-people';
 
@@ -77,6 +78,7 @@ export function PeopleList({
             }
           />
         </div>
+        <WhoTrainedLine detail={detail} clientId={clientId} context={context} />
         {peopleGroups(views).map((group) => (
           <div
             key={group.key}
@@ -110,6 +112,41 @@ export function PeopleList({
   );
 }
 
+function WhoTrainedLine({
+  detail,
+  clientId,
+  context,
+}: {
+  detail: ImportDetail;
+  clientId: string;
+  context: ReviewContext;
+}) {
+  const { asked, unanswered } = whoTrainedState(context);
+  const first = unanswered[0];
+  if (!first) return null;
+  return (
+    <p
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-[13.5px] text-muted-foreground sm:pl-[4.75rem]"
+      data-testid="employee-hub-who-trained"
+    >
+      <span>
+        La {unanswered.length} din {asked} {asked === 1 ? 'lucrător' : 'lucrători'} nu e ales cine a
+        instruit la periodice. Nu oprește importul.
+      </span>
+      <Link
+        to="/clienti/$clientId/angajati/import/$importId/$personId"
+        params={{ clientId, importId: detail.id, personId: first.id }}
+        hash={whoTrainedId(unansweredDomains(context, first.id)[0]!)}
+        className="font-medium text-foreground underline underline-offset-4"
+      >
+        Mergi la primul
+      </Link>
+    </p>
+  );
+}
+
+const isHandover = (key: string) => key === 'handover' || key.startsWith('handover-');
+
 function PersonRow({
   detail,
   clientId,
@@ -132,6 +169,13 @@ function PersonRow({
   const post = positionName(positions, positionOf(context, person)) ?? title;
   const rows = ownRows(context, person.id).filter(({ row }) => !row.testOnly).length;
   const summary = decisionSummary(view);
+  const warnings = view.notes.filter((note) => !isHandover(note.key));
+  const known = [
+    ...(view.included && unansweredDomains(context, person.id).length > 0
+      ? ['Nume nealese la periodice']
+      : []),
+    ...view.notes.filter((note) => isHandover(note.key)).map((note) => note.tag),
+  ];
   return (
     <li data-testid="employee-hub-person" data-state={view.state}>
       <Includable
@@ -197,10 +241,18 @@ function PersonRow({
                     <span className="text-muted-foreground">Nimic de hotărât pe fișe</span>
                   )
                 )}
-                {view.notes.length > 0 && (
+                {warnings.length > 0 && (
                   <span className="flex items-start gap-2 text-[13px] font-medium text-warning-foreground">
                     <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                    {view.notes.map((note) => note.tag).join(' · ')}
+                    {warnings.map((note) => note.tag).join(' · ')}
+                  </span>
+                )}
+                {known.length > 0 && (
+                  <span
+                    className="text-[13px] text-muted-foreground"
+                    data-testid="employee-hub-person-known"
+                  >
+                    {known.join(' · ')}
                   </span>
                 )}
               </span>
