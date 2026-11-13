@@ -21,7 +21,7 @@ describe('readingVersion', () => {
     expect(new Set(versions.map((version) => version.prompts)).size).toBe(5);
     expect(versions.map((version) => version.models)).toEqual([
       { sorting: 'gpt-6-luna', scanning: 'gpt-6.1-terra', reading: 'gpt-6.1-terra' },
-      { scanning: 'gpt-6.1-terra', locating: 'gemini-3.1-flash-lite' },
+      { scanning: 'gpt-6.1-terra' },
       { instructions: 'gpt-6.1-terra', similarity: 'gpt-6-luna' },
       { instructions: 'gpt-6.1-terra', similarity: 'gpt-6-luna' },
       { risks: 'gpt-6.1-terra' },
