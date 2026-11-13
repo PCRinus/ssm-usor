@@ -31,6 +31,19 @@ const PdfSourceView = lazy(viewerChunks.pdf);
 // the next time it opens.
 const notLocated = (answer: ImportSourceResponse) => answer.locations === null;
 
+// Asking again for the boxes signs the links anew; the photo keeps the link it opened with while
+// that lasts, so the image is not downloaded a second time.
+function useHeldLink(answer: ImportSourceResponse | undefined, answeredAt: number) {
+  const link = answer ? (answer.derived?.url ?? answer.original.url) : null;
+  const [held, setHeld] = useState<{ fileId: string; link: string; until: number } | null>(null);
+  const keeps = answer !== undefined && held?.fileId === answer.fileId && answeredAt < held.until;
+  if (answer && link && !keeps && held?.link !== link) {
+    const life = Math.max(0, answer.expiresInSeconds - 60) * 1000;
+    setHeld({ fileId: answer.fileId, link, until: answeredAt + life });
+  }
+  return keeps ? held.link : link;
+}
+
 export function SheetPageView({
   importId,
   page,
@@ -51,6 +64,7 @@ export function SheetPageView({
   );
   const locations = query.data?.locations ?? null;
   const box = useMemo(() => spotBox(locations, spot), [locations, spot]);
+  const link = useHeldLink(query.data, query.dataUpdatedAt);
   return (
     <div
       className={cn('relative overflow-hidden rounded-lg bg-muted/60', className)}
@@ -81,7 +95,7 @@ export function SheetPageView({
       ) : (
         <PhotoView
           key={box ? `${box.top} ${box.left} ${box.bottom} ${box.right}` : 'whole'}
-          source={query.data}
+          url={link ?? query.data.original.url}
           name={pageFileName(page)}
           spot={box}
           onEnlarge={onEnlarge}
@@ -119,12 +133,12 @@ function useImageFrame(
 }
 
 function PhotoView({
-  source,
+  url,
   name,
   spot,
   onEnlarge,
 }: {
-  source: ImportSourceResponse;
+  url: string;
   name: string;
   spot: SpotBox | null;
   onEnlarge?: () => void;
@@ -137,7 +151,6 @@ function PhotoView({
   const scroller = useRef<HTMLDivElement>(null);
   const image = useRef<HTMLImageElement>(null);
   const frame = useImageFrame(scroller, image);
-  const url = source.derived?.url ?? source.original.url;
   const { zoom } = view;
 
   useLayoutEffect(() => {
