@@ -1,4 +1,4 @@
-import { isValidCnp } from '@ssm-usor/contracts';
+import { type CommuteMean, isValidCnp } from '@ssm-usor/contracts';
 
 import type { ExistingMatch, ReferenceMatch } from './employee-proposal';
 import { contained, editDistance, foldName, foldText, sameName, similar, streetKey } from './match';
@@ -97,6 +97,8 @@ export interface ExistingEmployee {
   terminatedAt: string | null;
   workplaceId: string | null;
   commuteRoute: string | null;
+  commuteMeans: readonly CommuteMean[];
+  commuteMeansOther: string | null;
   commuteMinutes: number | null;
   hasContact: boolean;
   trainings: readonly ExistingTraining[];

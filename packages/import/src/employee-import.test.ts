@@ -1,3 +1,4 @@
+import { parseCommuteMeansKey } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { type EmployeeImportClient, hiringTestRowIds, toEmployeeProposal } from './employee-import';
@@ -624,6 +625,52 @@ describe('toEmployeeProposal', () => {
     expect(proposal.people[0]!.fields.residenceAddress.options).toEqual([
       { value: 'Timișoara, str. Florilor nr. 5', pageIds: ['page-1'] },
     ]);
+  });
+
+  it('proposes the means of transport of each page as one value, and the app’s beside them', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'commute_declaration',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: {
+            commuteRoute: 'Autobuz 33: Piața Unirii - poarta fabricii',
+            commuteMeans: ['public_transport', 'on_foot'],
+            commuteMeansOther: null,
+          },
+        }),
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: { commuteMeans: ['on_foot', 'public_transport'] },
+        }),
+        page({
+          pageKind: 'ssm_periodic',
+          person: { lastName: 'Marin', firstName: 'Ioana' },
+          fields: { commuteMeans: [], commuteMeansOther: 'Motocicletă' },
+        })
+      ),
+      client,
+      today,
+    });
+
+    const options = proposal.people[0]!.fields.commuteMeans.options;
+    expect(options.map((option) => parseCommuteMeansKey(option.value))).toEqual([
+      { means: ['on_foot', 'public_transport'], other: null },
+      { means: [], other: 'Motocicletă' },
+    ]);
+    expect(options[0]!.pageIds).toEqual(['page-1', 'page-2']);
+  });
+
+  it('reads a page read before the means were asked for as one that names none', () => {
+    const old = page({ pageKind: 'commute_declaration', person: { lastName: 'Marin' } });
+    const fields = old.fields as Partial<typeof old.fields>;
+    delete fields.commuteMeans;
+    delete fields.commuteMeansOther;
+
+    const proposal = toEmployeeProposal({ pages: pagesOf(old), client, today });
+
+    expect(proposal.people[0]!.fields.commuteMeans).toEqual({ options: [] });
   });
 
   it('reads a proposal stored before the residence was read as one without it', () => {

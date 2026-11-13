@@ -1,4 +1,9 @@
-import { supplementaryTrainingReasons, trainingDomains, trainingPhases } from '@ssm-usor/contracts';
+import {
+  commuteMeans,
+  supplementaryTrainingReasons,
+  trainingDomains,
+  trainingPhases,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import { answerFormat, minutes } from './wire';
@@ -49,6 +54,8 @@ export const sheetPageSchema = z.object({
     leftOn: text,
     workplace: text,
     commuteRoute: text,
+    commuteMeans: z.array(z.enum(commuteMeans)),
+    commuteMeansOther: text,
     commuteMinutes: minutes(z.int()).nullable(),
   }),
   admission: z.object({

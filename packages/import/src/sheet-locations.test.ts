@@ -76,6 +76,30 @@ describe('locatingTargets', () => {
     });
   });
 
+  it('names the means of transport as one value, the means typed apart among them', () => {
+    const declaration = page({
+      pageKind: 'commute_declaration',
+      fields: {
+        commuteRoute: 'Autobuz 33: Piața Unirii - poarta fabricii',
+        commuteMeans: ['public_transport', 'on_foot'],
+        commuteMeansOther: 'motocicletă',
+      },
+    });
+
+    expect(locatingTargets(declaration)).toEqual([
+      {
+        id: 'fields.commuteRoute',
+        label: 'traseul',
+        value: 'Autobuz 33: Piața Unirii - poarta fabricii',
+      },
+      {
+        id: 'fields.commuteMeans',
+        label: 'mijloacele de transport',
+        value: 'Pe jos, Transport public, motocicletă',
+      },
+    ]);
+  });
+
   it('names a page that wrote nothing with no target', () => {
     expect(locatingTargets(page({ pageKind: 'other' }))).toEqual([]);
   });

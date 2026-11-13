@@ -1,3 +1,4 @@
+import { commuteMeansLabels } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { CompletionRequest } from './gateway';
@@ -42,7 +43,8 @@ export interface SheetLocation {
   right: number;
 }
 
-const fieldLabels: Record<keyof SheetPage['fields'], string> = {
+// The means typed apart are located with the codes, as one value.
+const fieldLabels: Record<Exclude<keyof SheetPage['fields'], 'commuteMeansOther'>, string> = {
   birthDate: 'data nașterii',
   birthPlace: 'locul nașterii',
   homeAddress: 'domiciliul',
@@ -56,6 +58,7 @@ const fieldLabels: Record<keyof SheetPage['fields'], string> = {
   leftOn: 'data plecării',
   workplace: 'locul de muncă',
   commuteRoute: 'traseul',
+  commuteMeans: 'mijloacele de transport',
   commuteMinutes: 'durata deplasării (minute)',
 };
 
@@ -72,8 +75,14 @@ export function locatingTargets(page: SheetPage): LocatingTarget[] {
       value: page.person.employeeNumber,
     });
   }
-  for (const key of Object.keys(fieldLabels) as (keyof SheetPage['fields'])[]) {
-    const value = page.fields[key];
+  for (const key of Object.keys(fieldLabels) as (keyof typeof fieldLabels)[]) {
+    const value =
+      key === 'commuteMeans'
+        ? commuteMeansLabels({
+            means: page.fields.commuteMeans ?? [],
+            other: page.fields.commuteMeansOther ?? null,
+          }).join(', ')
+        : page.fields[key];
     if (value !== null && value !== '') {
       targets.push({ id: `fields.${key}`, label: fieldLabels[key], value: String(value) });
     }

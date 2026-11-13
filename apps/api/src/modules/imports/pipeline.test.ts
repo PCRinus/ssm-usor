@@ -1552,6 +1552,8 @@ describe('an employee import', () => {
     leftOn: null,
     workplace: null,
     commuteRoute: null,
+    commuteMeans: [],
+    commuteMeansOther: null,
     commuteMinutes: null,
   };
 
