@@ -276,4 +276,10 @@ describe('decodeEntities', () => {
       'în şi ț & &#x110000; &#9999999;'
     );
   });
+
+  it('reads the named entities the portal writes in tables and keeps unknown ones', () => {
+    expect(decodeEntities('2&times;3 &Acirc;&acirc; &NBSP;&ndash; &constructor; &bogus;')).toBe(
+      '2×3 Ââ  – &constructor; &bogus;'
+    );
+  });
 });
