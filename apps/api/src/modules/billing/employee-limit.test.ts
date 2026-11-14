@@ -24,7 +24,6 @@ describe('the employee limit the database counts against', () => {
   const body = latestDefinition('employee_limit_of');
   const now = new Date('2026-11-14T10:00:00Z');
   const row = {
-    stripe_subscription_id: 'sub_1',
     trial_ends_at: null,
     employee_step: null,
   };

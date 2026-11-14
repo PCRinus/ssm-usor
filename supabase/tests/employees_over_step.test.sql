@@ -239,7 +239,7 @@ update public.subscriptions
 set plan = 'start', employee_step = 250, stripe_account = 'acct_test', stripe_customer_id = 'cus_test', stripe_subscription_id = 'sub_test',
   billing_interval = 'month', price_version = 'v2'
 where organization_id = '11111111-0000-4000-8000-000000000001';
-select is(pg_temp.since(), null, 'a plan chosen during the trial is not counted against its step before the trial ends');
+select is(pg_temp.since(), null, 'a legacy row that chose a plan in its trial is not counted against its step before the trial ends');
 
 update public.subscriptions set trial_ends_at = now() - interval '1 minute', access_until = now() + interval '14 days'
 where organization_id = '11111111-0000-4000-8000-000000000001';
