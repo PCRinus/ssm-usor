@@ -12,6 +12,7 @@ import {
   type ClientStage,
   emptyClientForm,
 } from './client-form-schema';
+import { isOffersNotInPlanError, offersNotInPlanMessage } from './offers-plan';
 
 export const clientWording = {
   client: {
@@ -79,6 +80,10 @@ export function reportClientSaveError(
     }
     if (isReadOnlyError(cause)) {
       form.setError('root.server', { message: readOnlyMessage });
+      return;
+    }
+    if (isOffersNotInPlanError(cause)) {
+      form.setError('root.server', { message: offersNotInPlanMessage });
       return;
     }
     if (cause.status === 403) {

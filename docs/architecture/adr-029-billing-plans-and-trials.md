@@ -4,6 +4,7 @@
 - Date: 2026-10-26, amended 2026-10-27 (our own checkout with the Payment Element instead of Stripe's hosted Checkout, the account settings, the credentials)
 - Amended 2026-10-31: only signing codes count against the SMS allowance, on the subscription's month, with a safety cap, warnings and +40 for every SMS; each plan's import credits and a welcome gift at the first payment (#640); signing codes at the chosen plan's allowance with a hard stop between choosing a plan during the trial and the first payment; one tester switch for SMS and credits; manual workflows that add credits and signing codes. See "Limits and usage" and "Tester trials".
 - Amended 2026-11-14: a new organization's trial lasts 14 days instead of 30; trials already running keep their end, and the 30 days of read-only access after it are unchanged. See "Plans and the trial".
+- Amended 2026-11-14: offers (leads, [ADR 007](adr-007-leads-and-service-contracts.md)) and their contracts are a Profesional feature; on Start the existing ones are read, archived, restored and promoted, and nothing else about them changes. See "Plan features".
 
 ## Context
 
@@ -46,6 +47,14 @@ Read-only is enforced by the API: a member's request that changes something (`PO
 - the portal's privacy notice and language, without which a participant could not get to what they may still read.
 
 A participant's signing and test attempts answer `403` too. Acknowledging an update is a member's own state and is never checked. Two writes stay open on purpose: accepting an invitation already sent, which gives the person read-only access like everyone else, and a client's upload of the signed service contract through its return link, so a document the provider asked for is not lost. An admin impersonating a member of a read-only organization is read-only too. The database does not enforce it: the publishable key ships in the SPA, so a member who calls the data API directly could still write. That is accepted. It saves a read-only account from nothing it could not do through the export, and a write policy on every table is a large change for a case no honest customer meets.
+
+### Plan features
+
+(Added 2026-11-14.) Beyond its limits, a plan can include a **feature** that another lacks. The first is **offers**: the leads of [ADR 007](adr-007-leads-and-service-contracts.md) with their contracts, their files and the owners' notes about them. Profesional and Enterprise have them, and so does a trial, also after Start is chosen during it, since a trial carries Profesional's features until it ends. An organization without a subscription row has every feature, as it has full access.
+
+On Start, the existing offers stay as they are: owners list and open them, download their contracts and files, archive and restore them, and turn them into clients. Creating an offer and changing anything about one is refused: its data, contact and notes, its files, and its contract's details, drafts, issuing, sending and signed copy. The contract of a client, a promoted offer's included, is not an offer's and stays on every plan. A copy signed by the client through the return link still arrives, as it does while read-only.
+
+Unlike read-only access, the database enforces this one, for the rows and for the files written straight to Storage: the helpers its Storage policies ask, `is_draft_document_path` and `is_writable_client_file_path`, refuse a lead's paths as they refuse an archived client's. Offers live in the database's own rules already (the lead's stage, its policies and triggers), and a refused change there is one line of a trigger per table, so the refusal sits beside them: `organization_has_offers` decides, triggers refuse a lead's row and the rows under it with `CLL03`, and the API answers `403` with the reason `offers_not_in_plan`. The API asks the same function before anything leaves or is written outside the database, an email or a file, and `GET /me` reports it as `features.offers`, which the app reads to show offers as read-only with a note that leads to the Abonament tab. The menu keeps **Oferte** on Start, so the feature stays where people can find it.
 
 ### Subscriptions in our database
 

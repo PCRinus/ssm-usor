@@ -415,6 +415,16 @@
               "periodEnd",
               "state"
             ]
+          },
+          "features": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "offers": {
+                "type": "boolean"
+              }
+            },
+            "required": ["offers"]
           }
         },
         "required": ["user", "profile", "membership"]

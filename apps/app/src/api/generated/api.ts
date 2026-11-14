@@ -321,6 +321,13 @@ export type MeResponseCreditsThisMonth = {
   state: MeResponseCreditsThisMonthState;
 } | null;
 
+/**
+ * @nullable
+ */
+export type MeResponseFeatures = {
+  offers: boolean;
+} | null;
+
 export interface MeResponse {
   user: MeResponseUser;
   /** @nullable */
@@ -335,6 +342,8 @@ export interface MeResponse {
   smsThisMonth?: MeResponseSmsThisMonth;
   /** @nullable */
   creditsThisMonth?: MeResponseCreditsThisMonth;
+  /** @nullable */
+  features?: MeResponseFeatures;
 }
 
 export interface SupportIdentity {

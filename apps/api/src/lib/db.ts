@@ -1,4 +1,4 @@
-import { clientConflictReasons } from '@ssm-usor/contracts';
+import { clientConflictReasons, offersNotInPlanReason } from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 import type { Context } from 'hono';
 
@@ -84,6 +84,9 @@ export const archivedClientError = () =>
 
 // Raised by the triggers that keep employees, positions, workplaces and documents off a lead.
 const leadCode = 'CLL01';
+
+// Raised by the triggers that keep a lead as it is on a plan without offers.
+const offersNotInPlanCode = 'CLL03';
 
 // Raised by the signing schema (ADR 023); the message is the reason.
 const signingErrors: Record<
@@ -187,6 +190,13 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
         'The company is still a lead; it has no safety records until it is promoted.',
         undefined,
         clientConflictReasons.clientIsLead
+      );
+    case offersNotInPlanCode:
+      return new ApiError(
+        'forbidden',
+        'Offers are part of the Profesional plan; this one is only read.',
+        undefined,
+        offersNotInPlanReason
       );
   }
   // No code means the request never reached PostgREST (network, timeout, gateway). Only then

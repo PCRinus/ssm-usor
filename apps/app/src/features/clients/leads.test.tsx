@@ -54,7 +54,7 @@ function mockApi(
       'list' | 'get' | 'create' | 'update' | 'promote' | 'archive' | 'notes' | 'saveNotes',
       Route
     >
-  > & { role?: 'owner' | 'specialist' } = {}
+  > & { role?: 'owner' | 'specialist'; offers?: boolean } = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -68,6 +68,7 @@ function mockApi(
           organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
           role: routes.role ?? 'owner',
         },
+        features: { offers: routes.offers ?? true },
       });
     }
     if (path === '/clients' && method === 'GET') {
@@ -415,5 +416,67 @@ describe('leads', () => {
     });
     mount(`/oferte/${leadId}`);
     expect(await screen.findByTestId('lead-not-found')).toBeTruthy();
+  });
+});
+
+describe('leads on a plan without offers', () => {
+  it('lists them to read, with a note that leads to the subscription, and adds none', async () => {
+    mockApi({ offers: false });
+    mount('/oferte');
+    const row = await screen.findByTestId('leads-row');
+    const notice = await screen.findByTestId('offers-plan-notice');
+    expect(notice.textContent).toContain('planul Profesional');
+    expect(notice.textContent).toContain('transforma în clienți');
+    expect(screen.getByTestId('offers-plan-subscription').getAttribute('href')).toBe(
+      '/organizatie/abonament'
+    );
+    expect(screen.queryByTestId('leads-add')).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(within(row).getByTestId('leads-row-menu'));
+    expect(await screen.findByTestId('leads-promote')).toBeTruthy();
+    expect(screen.getByTestId('leads-archive')).toBeTruthy();
+    expect(screen.queryByTestId('leads-edit')).toBeNull();
+  });
+
+  it('says what the plan includes where there is no lead yet', async () => {
+    mockApi({ offers: false, list: () => Response.json(page([])) });
+    mount('/oferte');
+    expect((await screen.findByTestId('leads-empty')).textContent).toContain('planul Profesional');
+    expect(screen.getByTestId('offers-plan-notice')).toBeTruthy();
+    expect(screen.queryByTestId('leads-add')).toBeNull();
+  });
+
+  it('shows a lead to read and to promote, and nothing to change', async () => {
+    mockApi({ offers: false });
+    mount(`/oferte/${leadId}`);
+    expect((await screen.findByTestId('offers-plan-notice')).textContent).toContain(
+      'transformată în client'
+    );
+    expect(screen.getByTestId('lead-promote')).toBeTruthy();
+    expect(screen.getByTestId('lead-archive')).toBeTruthy();
+    expect(screen.queryByTestId('lead-edit')).toBeNull();
+    expect(screen.queryByTestId('contact-edit')).toBeNull();
+    expect(await screen.findByTestId('owner-notes-body')).toHaveProperty('readOnly', true);
+    expect(screen.queryByTestId('owner-notes-save')).toBeNull();
+  });
+
+  it('opens no form for a new lead or for editing one', async () => {
+    mockApi({ offers: false });
+    mount('/oferte/nou');
+    expect(await screen.findByTestId('offers-plan-notice')).toBeTruthy();
+    expect(screen.queryByTestId('client-submit')).toBeNull();
+    disposeRuntimes();
+
+    const runtime = mount(`/oferte/${leadId}/editare`);
+    await screen.findByTestId('lead-page');
+    expect(runtime.router.state.location.pathname).toBe(`/oferte/${leadId}`);
+  });
+
+  it('keeps everything open on a plan with offers', async () => {
+    mockApi({ offers: true });
+    mount(`/oferte/${leadId}`);
+    expect(await screen.findByTestId('lead-edit')).toBeTruthy();
+    expect(screen.queryByTestId('offers-plan-notice')).toBeNull();
   });
 });

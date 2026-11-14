@@ -4,6 +4,7 @@ import { billingCreditsUsageSchema, billingSmsUsageSchema } from './billing';
 import { missingDocumentDataSchema } from './documents';
 import { creditsShortSchema } from './imports';
 import { membershipSchema } from './organizations';
+import { planFeaturesSchema } from './plan-features';
 import { profileSchema } from './profile';
 import { subscriptionSummarySchema } from './subscriptions';
 
@@ -48,6 +49,7 @@ export * from './participants';
 export * from './pdf';
 export * from './person-names';
 export * from './phone';
+export * from './plan-features';
 export * from './profile';
 export * from './protective-equipment';
 export * from './releases';
@@ -115,6 +117,8 @@ export const meResponseSchema = z.object({
   // Stripe for the owner's amounts. Null without a subscription, or when they could not be read.
   smsThisMonth: billingSmsUsageSchema.nullable().optional(),
   creditsThisMonth: billingCreditsUsageSchema.nullable().optional(),
+  // Null for an account that belongs to no organization, or when the plan could not be read.
+  features: planFeaturesSchema.nullable().optional(),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;

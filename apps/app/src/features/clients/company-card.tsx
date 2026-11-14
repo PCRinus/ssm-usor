@@ -28,7 +28,7 @@ function addressField(client: Client) {
   return client.locality ? 'addressLine' : 'locality';
 }
 
-// `readOnly` is an archived client, whose data is not edited.
+// `readOnly` is an archived client, or a lead on a plan without offers.
 export function CompanyCard({
   client,
   readOnly,

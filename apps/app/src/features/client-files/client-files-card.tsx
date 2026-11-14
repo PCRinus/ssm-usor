@@ -41,7 +41,7 @@ function importFolders(items: ClientFile[]) {
   return [...folders.entries()];
 }
 
-// `readOnly` is an archived company.
+// `readOnly` is an archived company, or a lead on a plan without offers.
 export function ClientFilesCard({
   client,
   employee,

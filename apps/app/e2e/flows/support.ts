@@ -131,6 +131,13 @@ export async function createLead(organizationId: string, legalName: string, cui:
   return lead.data.id as string;
 }
 
+export async function subscribeToStart(organizationId: string) {
+  const { error } = await admin
+    .from('subscriptions')
+    .insert({ organization_id: organizationId, plan: 'start', status: 'active' });
+  if (error) throw error;
+}
+
 // A client company of the organization. Removed with it by `cleanUp`.
 export async function createClientCompany(
   organizationId: string,

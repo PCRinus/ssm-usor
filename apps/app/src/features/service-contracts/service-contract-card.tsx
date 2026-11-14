@@ -64,6 +64,7 @@ import { Masked } from '@/components/replay';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
+import { isOffersNotInPlanError, offersNotInPlanMessage } from '@/features/clients/offers-plan';
 import { pdfOfRevision, usePrint } from '@/features/documents/print';
 import { todayIso } from '@/features/employees/employee-format';
 import { type ContractFocus, useFocusRequest } from '@/features/missing-data/focus';
@@ -272,7 +273,8 @@ function ContractTrail({
 }
 
 // Rendered for owners only, as the API answers only them. `editor` is where the contract
-// opens: under the lead or under the client. `readOnly` is an archived company.
+// opens: under the lead or under the client. `readOnly` is an archived company,
+// or a lead on a plan without offers.
 export function ServiceContractCard({
   client,
   userId,
@@ -464,7 +466,9 @@ function ServiceContractBody({
       setError(
         body?.reason === 'client_archived'
           ? 'Firma este arhivată; contractul ei nu mai poate fi modificat.'
-          : 'Nu am putut salva detaliile contractului. Verifică conexiunea și încearcă din nou.'
+          : isOffersNotInPlanError(cause)
+            ? offersNotInPlanMessage
+            : 'Nu am putut salva detaliile contractului. Verifică conexiunea și încearcă din nou.'
       );
     }
   });
@@ -659,6 +663,10 @@ function ServiceContractBody({
               )}
             </Fact>
           </FactList>
+        ) : readOnly && !saved.contract ? (
+          <p data-testid="contract-details-none" className="text-sm text-muted-foreground">
+            Detaliile contractului nu au fost completate.
+          </p>
         ) : (
           <form
             ref={formRef}
@@ -738,7 +746,9 @@ function ServiceContractBody({
         description={
           <span data-testid={document ? 'contract-state' : 'contract-none'}>
             {!document
-              ? 'Contractul nu a fost generat încă. Salvează detaliile, apoi generează-l: îl primești ca ciornă, pe care o adaptezi în editor.'
+              ? readOnly
+                ? 'Contractul nu a fost generat.'
+                : 'Contractul nu a fost generat încă. Salvează detaliile, apoi generează-l: îl primești ca ciornă, pe care o adaptezi în editor.'
               : document.draft
                 ? document.issued
                   ? `Revizia ${document.issued.revision} este în vigoare. Ciorna o înlocuiește abia când o emiți.`

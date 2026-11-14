@@ -19,6 +19,7 @@ import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { requireOffersFor } from '../../lib/offers';
 import { contentMatches, splitFileName, typeOfExtension } from './file-type';
 import type {
   deleteClientFileRoute,
@@ -156,7 +157,9 @@ function requireChangeable(c: Context<ApiEnv>, row: FileRow) {
 }
 
 async function requireActiveClient(db: DataClient, clientId: string) {
-  if ((await findClient(db, clientId)).archived_at) throw archivedClientError();
+  const client = await findClient(db, clientId);
+  if (client.archived_at) throw archivedClientError();
+  await requireOffersFor(db, client);
 }
 
 const leadOwnersOnly = () =>
@@ -243,6 +246,7 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
   const db = createDataClient(c);
   const client = await findClient(db, clientId);
   if (client.archived_at) throw archivedClientError();
+  await requireOffersFor(db, client);
   const asked = query.ownersOnly === 'true';
   if (asked && !isOwner(c)) {
     throw new ApiError('forbidden', 'Only an owner keeps a file for owners only.');

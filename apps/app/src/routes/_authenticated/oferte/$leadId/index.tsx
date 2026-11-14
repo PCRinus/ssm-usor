@@ -14,6 +14,8 @@ import {
 } from '@/features/clients/client-archive-dialog';
 import { CompanyCard } from '@/features/clients/company-card';
 import { ContactCard } from '@/features/clients/contact-card';
+import { useOffersInPlan } from '@/features/clients/offers-plan';
+import { OffersPlanNotice } from '@/features/clients/offers-plan-notice';
 import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
 import { PromoteLeadDialog } from '@/features/clients/promote-lead-dialog';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
@@ -52,6 +54,8 @@ function LeadPage() {
     },
   });
   const archived = lead.archivedAt !== null;
+  const offers = useOffersInPlan();
+  const readOnly = archived || !offers;
   // The shell renders this only for a signed-in user.
   if (!session) return null;
 
@@ -78,12 +82,14 @@ function LeadPage() {
         actions={
           !archived && (
             <>
-              <Button asChild variant="outline" size="sm" data-testid="lead-edit">
-                <Link to="/oferte/$leadId/editare" params={{ leadId: lead.id }}>
-                  <Pencil aria-hidden="true" />
-                  <span className="@max-md:sr-only">Modifică</span>
-                </Link>
-              </Button>
+              {offers && (
+                <Button asChild variant="outline" size="sm" data-testid="lead-edit">
+                  <Link to="/oferte/$leadId/editare" params={{ leadId: lead.id }}>
+                    <Pencil aria-hidden="true" />
+                    <span className="@max-md:sr-only">Modifică</span>
+                  </Link>
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -123,13 +129,20 @@ function LeadPage() {
           transformată în client până nu este reactivată.
         </Notice>
       )}
+      {!offers && (
+        <OffersPlanNotice>
+          Pe planul Start oferta și contractul ei rămân de citit și de descărcat, iar oferta poate
+          fi transformată în client oricând. Ca s-o modifici sau să lucrezi la contract, ai nevoie
+          de planul Profesional.
+        </OffersPlanNotice>
+      )}
       <div className="grid gap-6">
-        <CompanyCard client={lead} readOnly={archived} focus={focusAmong(focus, companyFocus)} />
-        <ContactCard client={lead} readOnly={archived} />
+        <CompanyCard client={lead} readOnly={readOnly} focus={focusAmong(focus, companyFocus)} />
+        <ContactCard client={lead} readOnly={readOnly} />
         <ServiceContractCard
           client={lead}
           userId={session.user.id}
-          readOnly={archived}
+          readOnly={readOnly}
           focus={focusAmong(focus, contractFocus)}
           editor={(children, testId) => (
             <Button asChild variant="outline" size="sm">
@@ -144,8 +157,8 @@ function LeadPage() {
             </Button>
           )}
         />
-        <ClientFilesCard client={lead} userId={session.user.id} readOnly={archived} />
-        <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={archived} />
+        <ClientFilesCard client={lead} userId={session.user.id} readOnly={readOnly} />
+        <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={readOnly} />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <PromoteLeadDialog

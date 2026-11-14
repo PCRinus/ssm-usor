@@ -14,7 +14,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Client** (_client_): a company the organization serves. Avoid: customer, which is the organization.
 
-**Lead** (_ofertă_): a company the organization hopes to serve and does not serve yet. An owner promotes it to a client, normally once its service contract is signed, and that cannot be undone; a lead that goes nowhere is archived. Only owners work with leads. ADR 007. Avoid: prospect, opportunity. The interface calls a lead an _ofertă_ (offer) since 2026-11-11, which ADR 007 had avoided; the word is the interface's alone.
+**Lead** (_ofertă_): a company the organization hopes to serve and does not serve yet. An owner promotes it to a client, normally once its service contract is signed, and that cannot be undone; a lead that goes nowhere is archived. Only owners work with leads. ADR 007. Avoid: prospect, opportunity. The interface calls a lead an _ofertă_ (offer) since 2026-11-11, which ADR 007 had avoided; the word is the interface's alone. Leads are a **plan feature** of Profesional: on Start the existing ones are only read, archived, restored and promoted (ADR 029).
 
 **Stage**: how far a company has come with the organization: **lead**, then **client**. One record moves from the first to the second by promotion and never back. The interface never shows the word, only _oferte_ and _clienți_. Separate from whether the company is active or **archived**, which applies to both stages: an archived lead is restored as a lead. Avoid: status, which is kept for where a record stands in its own life (an employee's, a revision's, a client's being active or archived), and type or kind, which hide that one becomes the other.
 

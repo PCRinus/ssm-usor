@@ -412,7 +412,8 @@ type Upstream =
   | 'participants'
   | 'testQuestions'
   | 'trainingRecords'
-  | 'testResults';
+  | 'testResults'
+  | 'offers';
 
 const fetchMock = vi.fn<typeof fetch>();
 const confirmedCopy = {
@@ -446,6 +447,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         return Response.json(user);
       case '/rest/v1/rpc/current_membership':
         return Response.json([membership]);
+      case '/rest/v1/rpc/current_organization_has_offers':
+        return handlers.offers?.() ?? Response.json(true);
       case '/rest/v1/rpc/active_test_questions':
         return handlers.testQuestions?.(init, url) ?? Response.json(bankQuestions('muncă', 10));
       case '/rest/v1/organizations':
@@ -2205,6 +2208,27 @@ describe('POST /documents/{documentId}/issue', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
     expect(calls('/storage/v1/object/sign/documents/', 'POST')).toHaveLength(0);
     expect(calls('/rest/v1/rpc/issue_document_revision')).toHaveLength(0);
+  });
+
+  it("issues nothing for a lead's contract on a plan without offers, before reading the file", async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+      clients: () => Response.json({ ...clientRow, stage: 'lead' }),
+      offers: () => Response.json(false),
+    });
+    const response = await issue();
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('offers_not_in_plan');
+    expect(calls('/storage/v1/object/sign/documents/', 'POST')).toHaveLength(0);
+    expect(calls('/rest/v1/rpc/issue_document_revision')).toHaveLength(0);
+  });
+
+  it("issues a lead's contract where the plan has offers", async () => {
+    mockUpstream({
+      documents: () => Response.json({ ...documentRow, document_revisions: [revisionRow] }),
+      clients: () => Response.json({ ...clientRow, stage: 'lead' }),
+    });
+    expect((await issue()).status).toBe(200);
   });
 
   // The converter is apps/pdf behind a service binding, switched on by the deployment.

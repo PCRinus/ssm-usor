@@ -101,6 +101,7 @@ function mockApi(
   > & {
     role?: 'owner' | 'specialist';
     client?: Record<string, unknown>;
+    offers?: boolean;
   } = {}
 ) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -114,6 +115,7 @@ function mockApi(
           organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
           role: routes.role ?? 'owner',
         },
+        features: { offers: routes.offers ?? true },
       });
     }
     if (pathname === `/clients/${leadId}`) return Response.json({ client: routes.client ?? lead });
@@ -946,5 +948,35 @@ describe('who signs the contract for the client', () => {
     expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeName');
     expect(bodyOfSave()).not.toHaveProperty('clientRepresentativeRole');
     expect(requests(`/clients/${leadId}/document-details`, 'GET')).toHaveLength(0);
+  });
+});
+
+describe('the contract of a lead on a plan without offers', () => {
+  const signedContract = contractDocument({
+    draft: null,
+    issued: revision({
+      status: 'issued',
+      issuedAt: '2026-09-21T11:00:00+00:00',
+      hasPdf: true,
+      hasSignedCopy: true,
+    }),
+  });
+
+  it('is still opened and downloaded, and nothing on it changes', async () => {
+    mockApi({ offers: false, get: () => Response.json(state({ document: signedContract })) });
+    mount();
+    const user = userEvent.setup();
+    await screen.findByTestId('contract-signed');
+    await waitFor(() =>
+      expect(screen.getByTestId('contract-signed-open').getAttribute('href')).toContain(
+        '/files/download?'
+      )
+    );
+    expect(screen.getByTestId('contract-open').textContent).toContain('Deschide');
+    expect(screen.getByTestId('contract-open').textContent).not.toContain('modifică');
+    await user.click(screen.getByTestId('contract-issued-actions'));
+    expect(await screen.findByTestId('contract-download-issued')).toBeTruthy();
+    expect(screen.queryByTestId('contract-send')).toBeNull();
+    expect(screen.queryByTestId('contract-signed-actions')).toBeNull();
   });
 });

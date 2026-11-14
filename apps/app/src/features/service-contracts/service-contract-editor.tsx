@@ -10,11 +10,13 @@ export function ServiceContractEditor({
   clientId,
   userId,
   readOnly,
+  readOnlyReason,
   back,
 }: {
   clientId: string;
   userId: string;
   readOnly: boolean;
+  readOnlyReason?: { label: string; title: string };
   back: ReactNode;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -23,6 +25,7 @@ export function ServiceContractEditor({
   return (
     <DocumentEditorView
       readOnly={readOnly}
+      readOnlyReason={readOnlyReason}
       source={{
         document: contract.data?.document ?? undefined,
         isPending: contract.isPending,

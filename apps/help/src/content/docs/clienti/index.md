@@ -1,6 +1,6 @@
 ---
 title: Clienți
-description: Lista clienților, ce arată coloanele ei, pagina unui client, și arhivarea și reactivarea unui client.
+description: Lista clienților, ce arată coloanele ei, pagina unui client, arhivarea și reactivarea unui client, și ofertele.
 topics:
   - id: clienti.lista
     heading: Lista clienților
@@ -31,6 +31,11 @@ sources:
   - apps/app/src/features/clients/client-archive-dialog.tsx
   - supabase/migrations/20260921110000_archived_client_freeze.sql
   - supabase/migrations/20261010150000_client_list_fire_safety.sql
+  - docs/architecture/adr-029-billing-plans-and-trials.md
+  - supabase/migrations/20261116200000_offers_on_profesional.sql
+  - apps/app/src/features/clients/offers-plan.ts
+  - apps/app/src/features/clients/offers-plan-notice.tsx
+  - apps/app/src/features/clients/leads-page.tsx
 ---
 
 Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, lucrătorii, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client** sau, la primul client, cu **Adaugă primul client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
@@ -47,7 +52,7 @@ Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi priveșt
 
 Lista e ordonată după denumire și împărțită pe pagini. O poți ordona după oricare dintre coloane. Un clic pe rând deschide pagina clientului, la tabul **Detalii**. Din meniul de la capătul rândului ajungi la **Modifică**, care deschide același tab, și, dacă ești admin, la **Arhivează…**.
 
-Ofertele nu apar aici. Au lista lor, **Oferte**, pe care o văd doar adminii.
+Ofertele nu apar aici. Au lista lor, **Oferte**, pe care o văd doar adminii (vezi [Ofertele](#ofertele)).
 
 ### Clienți activi și clienți arhivați
 
@@ -101,3 +106,15 @@ Dacă un coleg a arhivat clientul cât timp lucrai la el, la salvare vezi „Cli
 ## Reactivarea unui client
 
 Un admin reactivează un client cu **Reactivează…**, din capul paginii clientului arhivat sau din meniul rândului din lista **Arhivați**. Clientul revine în lista clienților activi, cu lucrătorii, posturile și documentele lui, și poți lucra din nou la el.
+
+## Ofertele
+
+O ofertă e o firmă cu care discuți și care nu e încă client. Le găsești în **Oferte**, în meniul lateral, pe care îl văd doar adminii. Pe pagina unei oferte ții datele firmei, persoana de contact, notițele, fișierele și contractul de prestări servicii, pe care îl poți trimite firmei. Când firma semnează, o transformi în client cu **Transformă în client…**, cu tot ce ai scris deja despre ea.
+
+Ofertele, cu contractele lor, fac parte din planul **Profesional** și din perioada de probă. Pe planul **Start**:
+
+- ofertele de până acum rămân în listă: le deschizi, le citești și descarci contractul și fișierele lor;
+- le poți arhiva, reactiva și transforma în clienți, ca până acum;
+- nu poți adăuga oferte noi și nu le poți modifica: datele firmei, persoana de contact, notițele, fișierele și contractul rămân cum sunt. Butoanele acestor acțiuni nu mai apar, iar o notă pe pagină îți spune de ce și te duce la [Abonament](/organizatie/abonament/).
+
+Contractul unui client îl lucrezi pe orice plan, pe tabul **Contract**. Și o ofertă transformată în client își are de atunci contractul acolo, unde îl poți modifica, emite și trimite ca pe al oricărui client.

@@ -15,7 +15,8 @@ import { SectionCard } from '@/components/section-card';
 
 const maxLength = 5000;
 
-// Rendered for owners only: the API refuses anyone else. `readOnly` is an archived company.
+// Rendered for owners only: the API refuses anyone else. `readOnly` is an archived company,
+// or a lead on a plan without offers.
 export function OwnerNotesCard({
   clientId,
   userId,

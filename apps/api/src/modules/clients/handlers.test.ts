@@ -1173,3 +1173,50 @@ it('documents the client routes with bearer security and request schemas', () =>
   expect(document.components?.schemas?.ClientListResponse).toBeDefined();
   expect(document.components?.schemas?.CompanyLookupResponse).toBeDefined();
 });
+
+describe('a lead on a plan without offers', () => {
+  const leadRow = { ...clientRow, stage: 'lead' };
+  const refusal = () =>
+    Response.json(
+      { code: 'CLL03', message: 'Offers are part of the Profesional plan.' },
+      { status: 400 }
+    );
+  const json = (method: string, body: unknown) => ({
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const leadBody = { legalName: 'OMV Petrom SA', cui: 'RO 1590082', stage: 'lead' };
+
+  it.each([
+    ['creating one', () => request('/clients', json('POST', leadBody))],
+    [
+      'editing one',
+      () => request(`/clients/${clientRow.id}`, json('PUT', { ...leadBody, stage: undefined })),
+    ],
+    [
+      'writing its notes',
+      () => request(`/clients/${clientRow.id}/owner-notes`, json('PUT', { body: 'x' })),
+    ],
+  ])('passes on the refusal of %s', async (_name, send) => {
+    mockUpstream({
+      clients: (init) =>
+        init?.method === 'GET' || !init?.method ? Response.json([leadRow]) : refusal(),
+      notes: refusal,
+    });
+    const response = await send();
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('offers_not_in_plan');
+  });
+
+  it.each([
+    ['promoted', 'promote'],
+    ['archived', 'archive'],
+    ['restored', 'restore'],
+  ])('is still %s', async (_name, action) => {
+    mockUpstream({ clients: () => Response.json([leadRow]) });
+    expect((await request(`/clients/${clientRow.id}/${action}`, { method: 'POST' })).status).toBe(
+      200
+    );
+  });
+});
