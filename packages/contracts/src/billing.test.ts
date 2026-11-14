@@ -88,7 +88,7 @@ describe('plan catalogue', () => {
   it('gives every price its own versioned lookup key, one per plan, step and period', () => {
     const keys = cataloguePrices.map((price) => price.lookupKey);
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toHaveLength(21);
+    expect(keys).toHaveLength(22);
     expect(keys).toContain('start_250_monthly_v2');
     expect(keys).toContain('profesional_5000_annual_v2');
     for (const key of keys) {
@@ -104,12 +104,14 @@ describe('plan catalogue', () => {
       'start',
       'profesional',
       'sms_overage',
+      'credits_extra',
     ]);
   });
 
-  it('keeps one metered price, for the SMS extras the owner may turn on', () => {
+  it('keeps two metered prices, both monthly, for the extras the owner may turn on', () => {
     expect(cataloguePrices.filter((price) => price.usage === 'metered')).toEqual([
       expect.objectContaining({ lookupKey: 'sms_overage_monthly_v2', interval: 'month' }),
+      expect.objectContaining({ lookupKey: 'credits_extra_monthly_v2', interval: 'month' }),
     ]);
   });
 });
