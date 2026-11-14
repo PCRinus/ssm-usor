@@ -17,14 +17,18 @@ import {
   useListJobPositions,
   useListPositionInstructions,
 } from '@/api/generated/api';
+import { keepOpener, openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useAuth } from '@/features/auth/auth-context';
+import { CurrentClientHeaderFact } from '@/features/clients/client-fact';
+import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import { PositionInstructionsCard } from '@/features/instructions/position-instructions-card';
 import { EquipmentCard } from '@/features/protective-equipment/equipment-card';
 import { PositionRiskEvaluationCard } from '@/features/risk-evaluations/position-risk-evaluation-card';
 
+import { JobPositionBack } from './job-position-back';
 import { JobPositionDialog } from './job-position-dialog';
 import { JobPositionPending } from './job-position-pending';
 import { employeeCountLabel, intervalLabel, staffCategoryLabels } from './job-position-schema';
@@ -101,7 +105,20 @@ export function JobPositionPage() {
   return (
     <div data-testid="job-position-page" className="grid gap-5">
       <div className="grid gap-3">
-        <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{position.name}</h2>
+        <RecordHeader
+          back={<JobPositionBack />}
+          title={position.name}
+          facts={
+            <>
+              <CurrentClientHeaderFact />
+              <HeaderFact label="Lucrători">
+                <span className="tabular-nums" data-testid="job-position-header-employees">
+                  {position.employeeCount}
+                </span>
+              </HeaderFact>
+            </>
+          }
+        />
         <nav aria-label="Secțiunile postului">
           <ul className="flex flex-wrap gap-2">
             {sectionLinks.map(({ hash, label }) => (
@@ -109,6 +126,7 @@ export function JobPositionPage() {
                 <Button asChild variant="secondary" size="sm">
                   <Link
                     to="/clienti/$clientId/posturi/$jobPositionId"
+                    state={keepOpener}
                     params={{ clientId, jobPositionId }}
                     hash={hash}
                     data-testid="job-position-section-link"
@@ -124,7 +142,6 @@ export function JobPositionPage() {
 
       <SectionCard
         id={positionSections.details}
-        headingLevel={3}
         data-testid="job-position-details"
         title="Postul"
         action={
@@ -145,6 +162,7 @@ export function JobPositionPage() {
             <Link
               to="/clienti/$clientId/angajati"
               params={{ clientId }}
+              state={openedHere}
               className="hover:underline"
               data-testid="job-position-employees-link"
             >
@@ -223,6 +241,7 @@ export function JobPositionError({ error }: ErrorComponentProps) {
       title="Postul nu a putut fi încărcat"
       retryTestId="job-position-retry"
       explainForbidden
+      back={<JobPositionBack />}
     />
   );
 }

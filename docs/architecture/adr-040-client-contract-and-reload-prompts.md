@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-11-10
 - Amends [ADR 026](adr-026-updates-and-release-review.md) on when the update dialog opens.
+- Amended 2026-11-14: the app no longer has a breadcrumb row; see the amendment below.
 
 ## Context
 
@@ -84,3 +85,7 @@ PostHog receives `update_toast_shown`, `client_outdated_shown` (with the client 
 5. The portal: the same, worded for a participant. On steps 2 and 3, beside step 4.
 6. Refusing a request without the header, one release after step 3.
 7. The update dialog's condition and the help article. On step 4.
+
+## Amendment (2026-11-14): no breadcrumb around the error
+
+The app's breadcrumb row was replaced by a back arrow beside each nested page's title (PR #989). A route error still shows inside the signed-in layout, with the header and the sidebar; where the breadcrumb used to stay, the error card of a nested page carries the same back arrow above it.

@@ -2,6 +2,8 @@ import { Link } from '@tanstack/react-router';
 import { PenLine, ScanText } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { openedHere } from '@/app/opener';
+
 export const wayClass =
   'grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3.5 gap-y-1 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 
@@ -32,7 +34,12 @@ export function StartWays({ onImport }: { onImport: () => void }) {
       className="grid w-full max-w-[38rem] gap-3 sm:grid-cols-2"
       data-testid="clients-start-ways"
     >
-      <Link to="/clienti/nou" className={wayClass} data-testid="clients-start-form">
+      <Link
+        to="/clienti/nou"
+        state={openedHere}
+        className={wayClass}
+        data-testid="clients-start-form"
+      >
         <WayContent
           icon={<PenLine className="size-5" />}
           title="Adaugă primul client"

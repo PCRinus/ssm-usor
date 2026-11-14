@@ -20,6 +20,7 @@ import {
   type ImportListResponseItemsItem,
   useListImports,
 } from '@/api/generated/api';
+import { openedFromRecord, openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
 import { roCount } from '@/features/employees/employee-format';
@@ -92,6 +93,7 @@ export function EmployeeImportButtons({
           <Link
             to="/clienti/$clientId/angajati/nou"
             params={{ clientId }}
+            state={openedHere}
             data-testid="employees-add"
           >
             <Plus aria-hidden="true" />
@@ -139,6 +141,7 @@ export function EmployeeStartWays({
         <Link
           to="/clienti/$clientId/angajati/nou"
           params={{ clientId }}
+          state={openedHere}
           className={wayClass}
           data-testid="employees-start-add"
         >
@@ -313,6 +316,7 @@ function OpenImportCard({
         <Button asChild size="sm" variant={item.status === 'ready' ? 'default' : 'outline'}>
           <Link
             to="/clienti/$clientId/angajati/import/$importId"
+            state={openedFromRecord(`/clienti/${clientId}/angajati`)}
             params={{ clientId, importId: item.id }}
             data-testid="employee-import-open"
           >

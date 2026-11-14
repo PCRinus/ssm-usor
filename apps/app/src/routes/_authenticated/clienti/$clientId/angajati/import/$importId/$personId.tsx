@@ -26,7 +26,6 @@ export const Route = createFileRoute(
           { proposal: review.proposal, changes: changesOf(review.changes) },
           person
         ),
-        crumbIsPersonal: true,
       };
     } catch {
       return { crumb: 'Persoană' };

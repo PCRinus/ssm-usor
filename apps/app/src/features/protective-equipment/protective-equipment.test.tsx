@@ -161,7 +161,7 @@ describe("a job position's page", () => {
     mockApi();
     mount();
     await screen.findByTestId('job-position-page');
-    expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Sudor' })).toBeTruthy();
     expect(screen.getByText('Personal de execuție')).toBeTruthy();
     expect(screen.getByText('la 2 luni')).toBeTruthy();
     expect(screen.getByTestId('job-position-employees-link').textContent).toBe('3 lucrători');
@@ -180,17 +180,20 @@ describe("a job position's page", () => {
     expect(screen.getByTestId('equipment-state').textContent).toBe('2 articole');
   });
 
-  it('stays under the client header, with Posturi de lucru as the current tab', async () => {
+  it('is a page of its own, naming its client, with the way back to the positions', async () => {
     mockApi();
     mount();
     await screen.findByTestId('job-position-page');
-    expect(screen.getByRole('heading', { level: 1, name: 'VELOCE CAFE SRL' })).toBeTruthy();
-    const current = screen
-      .getAllByTestId('client-section')
-      .filter((link) => link.getAttribute('aria-current') === 'page');
-    expect(current.map((link) => link.textContent)).toEqual(['Posturi de lucru']);
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText('Sudor')).toBeTruthy();
+    expect(screen.queryByTestId('client-page')).toBeNull();
+    expect(screen.queryByTestId('client-section')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Sudor' })).toBeTruthy();
+    const client = screen.getByRole('link', { name: 'VELOCE CAFE SRL' });
+    expect(client.getAttribute('href')).toBe(positionsPage.replace(/\/posturi$/, '/detalii'));
+    expect(screen.getByTestId('job-position-header-employees').textContent).toBe('3');
+    const [back] = screen.getAllByTestId('page-back');
+    expect(screen.getAllByTestId('page-back')).toHaveLength(1);
+    expect(back!.getAttribute('aria-label')).toBe('Înapoi la posturile de lucru');
+    expect(back!.getAttribute('href')).toBe(positionsPage);
     expect(
       screen.getAllByTestId('job-position-section-link').map((link) => link.getAttribute('href'))
     ).toEqual([
@@ -207,7 +210,7 @@ describe("a job position's page", () => {
         'instructions',
         'fire-instructions',
         'risk-evaluation',
-      ].map((id) => document.getElementById(id)?.querySelector('h3')?.textContent)
+      ].map((id) => document.getElementById(id)?.querySelector('h2')?.textContent)
     ).toEqual([
       'Postul',
       expect.stringMatching(/^Echipament de protecție/),

@@ -14,10 +14,13 @@ import {
 import { type ReactNode, useMemo, useRef, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { BreadcrumbAside } from '@/app/breadcrumb-aside';
 import { replayMask } from '@/app/observability/replay-masking';
+import { keepOpener, openedHere } from '@/app/opener';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
+import { CurrentClientFact } from '@/features/clients/client-fact';
 import { roCount } from '@/features/employees/employee-format';
 
 import { ImportActionBar } from '../import-action-bar';
@@ -147,6 +150,7 @@ export function EmployeePersonPage({
   personId: string;
 }) {
   const navigate = useNavigate();
+  const returnToOpener = useReturnToOpener();
   const { review, context, positions, workplaces } = useReviewContext(detail, clientId);
   const people = context.proposal.people;
   const index = people.findIndex((each) => each.id === personId);
@@ -346,8 +350,9 @@ export function EmployeePersonPage({
       void navigate({
         to: '/clienti/$clientId/angajati/import/$importId/$personId',
         params: { clientId, importId: detail.id, personId: to.id },
+        state: keepOpener,
       });
-    } else {
+    } else if (!returnToOpener()) {
       void navigate({
         to: '/clienti/$clientId/angajati/import/$importId',
         params: { clientId, importId: detail.id },
@@ -373,21 +378,72 @@ export function EmployeePersonPage({
     0
   );
 
+  const pager = (
+    <nav
+      aria-label="Persoanele din import"
+      className="-mr-2 ml-auto flex shrink-0 items-center gap-1"
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={previous ? `Persoana anterioară: ${personName(context, previous)}` : undefined}
+        title={previous ? `Persoana anterioară: ${personName(context, previous)}` : undefined}
+        disabled={!previous}
+        data-testid="person-previous"
+        onClick={() => go(previous)}
+      >
+        <ChevronLeft aria-hidden="true" />
+        {!previous && <span className="sr-only">Persoana anterioară</span>}
+      </Button>
+      <span className="text-sm whitespace-nowrap tabular-nums" data-testid="person-position">
+        <span className="max-sm:sr-only">Persoana </span>
+        {index + 1} din {people.length}
+      </span>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={next ? `Persoana următoare: ${personName(context, next)}` : undefined}
+        title={next ? `Persoana următoare: ${personName(context, next)}` : undefined}
+        disabled={!next}
+        data-testid="person-pager-next"
+        onClick={() => go(next)}
+      >
+        <ChevronRight aria-hidden="true" />
+        {!next && <span className="sr-only">Persoana următoare</span>}
+      </Button>
+    </nav>
+  );
+
   const header = (toggle: ReactNode) => (
     <div className="grid gap-2">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-          <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere" {...replayMask}>
-            {name}
-          </h1>
-          {state !== 'set_aside' && (
-            <Tag tone={stateLabels[state].tone} testId="person-state">
-              {stateLabels[state].label}
-            </Tag>
-          )}
+      <TitleWithBack
+        line="text-2xl"
+        back={
+          <BackLink
+            to="/clienti/$clientId/angajati/import/$importId"
+            params={{ clientId, importId: detail.id }}
+            label="Înapoi la import"
+          />
+        }
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+            <h1 className="text-2xl font-semibold tracking-tight wrap-anywhere" {...replayMask}>
+              {name}
+            </h1>
+            {state !== 'set_aside' && (
+              <Tag tone={stateLabels[state].tone} testId="person-state">
+                {stateLabels[state].label}
+              </Tag>
+            )}
+          </div>
+          <span className="flex h-9 shrink-0 items-center">{toggle}</span>
         </div>
-        <span className="flex h-8 shrink-0 items-center">{toggle}</span>
-      </div>
+        <div className="flex flex-wrap items-center justify-between gap-x-4">
+          <CurrentClientFact />
+          {pager}
+        </div>
+      </TitleWithBack>
       <Facts>
         {post && (
           <Fact icon={BriefcaseBusiness} label={postId ? 'Postul' : 'Funcția pe fișă'}>
@@ -408,40 +464,6 @@ export function EmployeePersonPage({
   return (
     <ShowPageContext value={showPage}>
       <div className="grid gap-5" data-testid="person-page" data-state={state}>
-        <BreadcrumbAside>
-          <nav aria-label="Persoanele din import" className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={
-                previous ? `Persoana anterioară: ${personName(context, previous)}` : undefined
-              }
-              title={previous ? `Persoana anterioară: ${personName(context, previous)}` : undefined}
-              disabled={!previous}
-              data-testid="person-previous"
-              onClick={() => go(previous)}
-            >
-              <ChevronLeft aria-hidden="true" />
-              {!previous && <span className="sr-only">Persoana anterioară</span>}
-            </Button>
-            <span className="text-sm whitespace-nowrap tabular-nums" data-testid="person-position">
-              <span className="max-sm:sr-only">Persoana </span>
-              {index + 1} din {people.length}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={next ? `Persoana următoare: ${personName(context, next)}` : undefined}
-              title={next ? `Persoana următoare: ${personName(context, next)}` : undefined}
-              disabled={!next}
-              data-testid="person-pager-next"
-              onClick={() => go(next)}
-            >
-              <ChevronRight aria-hidden="true" />
-              {!next && <span className="sr-only">Persoana următoare</span>}
-            </Button>
-          </nav>
-        </BreadcrumbAside>
         <Includable
           id={`include-person-${person.id}`}
           name={name}
@@ -492,6 +514,7 @@ export function EmployeePersonPage({
             rămâne așa, dacă nu alegi altfel.{' '}
             <Link
               to="/clienti/$clientId/angajati/$employeeId"
+              state={openedHere}
               params={{ clientId, employeeId: person.existing!.employeeId }}
               className="underline"
             >

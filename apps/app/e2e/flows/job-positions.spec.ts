@@ -56,24 +56,22 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   await expect(accountant.getByTestId('job-position-employees')).toHaveText('Niciun lucrător');
 
   // Both posts still have to decide their equipment and instructions; the list says so, and
-  // each state leads to its section of the post's page, below the sticky header and tabs.
+  // each state leads to its section of the post's page, below the sticky header.
   await expect(page.getByTestId('job-positions-undecided-equipment')).toContainText(
     '2 posturi nu au echipamentul de protecție stabilit'
   );
   await expect(accountant.getByTestId('job-position-equipment')).toHaveText('De stabilit');
   await accountant.getByTestId('job-position-instructions').click();
   await expect(page).toHaveURL(/\/posturi\/[0-9a-f-]+#instructions$/);
-  await expect(page.getByTestId('client-page')).toBeVisible();
+  await expect(page.getByTestId('client-page')).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1, name: 'Contabil' })).toBeVisible();
   const instructions = page.getByTestId('instructions-card');
   await expect(instructions).toBeInViewport();
   await expect(page.getByTestId('instructions-state')).toHaveText('De stabilit');
-  const tabs = await page.getByRole('navigation', { name: 'Secțiunile clientului' }).boundingBox();
-  const heading = await instructions.getByRole('heading', { level: 3 }).boundingBox();
-  expect(heading!.y).toBeGreaterThanOrEqual(tabs!.y + tabs!.height);
-  await page
-    .getByRole('navigation', { name: 'breadcrumb' })
-    .getByRole('link', { name: 'Posturi de lucru' })
-    .click();
+  const header = await page.getByRole('banner').first().boundingBox();
+  const heading = await instructions.getByRole('heading', { level: 2 }).boundingBox();
+  expect(heading!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
+  await page.getByTestId('job-position-page').getByTestId('page-back').click();
   await expect(page.getByTestId('job-positions-undecided-fire-instructions')).toContainText(
     '2 posturi nu au instrucțiunile SU stabilite'
   );
@@ -81,20 +79,14 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   await expect(page).toHaveURL(/\/posturi\/[0-9a-f-]+#fire-instructions$/);
   await expect(page.getByTestId('fire-instructions-card')).toBeInViewport();
   await expect(page.getByTestId('fire-instructions-state')).toHaveText('De stabilit');
-  await page
-    .getByRole('navigation', { name: 'breadcrumb' })
-    .getByRole('link', { name: 'Posturi de lucru' })
-    .click();
+  await page.getByTestId('job-position-page').getByTestId('page-back').click();
   await expect(accountant.getByTestId('job-position-fire-instructions')).toHaveText('De stabilit');
   await expect(accountant.getByTestId('job-position-instructions')).toHaveText('De stabilit');
   await accountant.getByTestId('job-position-actions').click();
   await page.getByTestId('job-position-menu-equipment').click();
   await expect(page).toHaveURL(/#protective-equipment$/);
   await expect(page.getByTestId('equipment-card')).toBeInViewport();
-  await page
-    .getByRole('navigation', { name: 'breadcrumb' })
-    .getByRole('link', { name: 'Posturi de lucru' })
-    .click();
+  await page.getByTestId('job-position-page').getByTestId('page-back').click();
 
   // The same name in another case is the same position.
   await page.getByTestId('job-position-add').click();
@@ -207,10 +199,7 @@ test('a new hire goes into a post from the employee form, and can be moved to an
 
   // What was entered about the person can be corrected, from their page or from the list's
   // row menu; the post and the title stay.
-  await page
-    .getByRole('navigation', { name: 'breadcrumb' })
-    .getByRole('link', { name: 'Lucrători' })
-    .click();
+  await page.getByTestId('page-back').click();
   await page
     .getByTestId('employees-row')
     .filter({ hasText: 'Electricu' })

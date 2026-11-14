@@ -5,9 +5,12 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { keepOpener } from '@/app/opener';
+import { TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 
 import { ImportActionBar } from './import-action-bar';
+import { ImportOverviewBack } from './import-back';
 import { endSentence } from './import-format';
 import { ImportReviewIssues } from './import-review-issues';
 import { type FieldContext, FieldsSection } from './review-fields';
@@ -97,16 +100,18 @@ export function ReviewSectionPage({
     <SourcePrefetchContext value={prefetchSource}>
       <div data-testid="import-review-section" data-section={section} className="grid gap-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="grid max-w-3xl gap-1">
-            <h1 className="text-3xl font-semibold tracking-tight">{sectionLabels[section]}</h1>
-            <p className="text-sm text-muted-foreground">
-              {detail.intoExistingClient
-                ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
-                : section === 'identity'
-                  ? `${endSentence(name)} Valorile se preiau cum sunt, dacă nu le schimbi.`
-                  : name}
-            </p>
-          </div>
+          <TitleWithBack className="max-w-3xl" back={<ImportOverviewBack importId={detail.id} />}>
+            <div className="grid gap-1">
+              <h1 className="text-3xl font-semibold tracking-tight">{sectionLabels[section]}</h1>
+              <p className="text-sm text-muted-foreground">
+                {detail.intoExistingClient
+                  ? `Completezi clientul existent ${endSentence(name)} Ce are deja în aplicație nu se schimbă fără alegerea ta.`
+                  : section === 'identity'
+                    ? `${endSentence(name)} Valorile se preiau cum sunt, dacă nu le schimbi.`
+                    : name}
+              </p>
+            </div>
+          </TitleWithBack>
           <div className="grid w-full gap-1 sm:w-60">
             <SectionSteps importId={detail.id} section={section} statuses={statuses} />
           </div>
@@ -182,6 +187,7 @@ export function ReviewSectionPage({
             <Button asChild variant="outline" size="icon">
               <Link
                 to="/clienti/import/$importId/$section"
+                state={keepOpener}
                 params={{ importId: detail.id, section: previous }}
                 aria-label={`Înapoi la ${sectionLabels[previous]}`}
                 title={`Înapoi la ${sectionLabels[previous]}`}
@@ -201,6 +207,7 @@ export function ReviewSectionPage({
             {next ? (
               <Link
                 to="/clienti/import/$importId/$section"
+                state={keepOpener}
                 params={{ importId: detail.id, section: next }}
                 data-testid="import-next-section"
                 aria-label={`Continuă: ${sectionLabels[next]}`}
@@ -257,6 +264,7 @@ function SectionSteps({
             <li key={id} className="flex-1">
               <Link
                 to="/clienti/import/$importId/$section"
+                state={keepOpener}
                 params={{ importId, section: id }}
                 aria-label={`${index + 1}. ${sectionLabels[id]}${finished ? ', gata' : ''}`}
                 title={sectionLabels[id]}

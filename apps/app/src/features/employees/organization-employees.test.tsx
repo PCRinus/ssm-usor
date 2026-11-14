@@ -111,8 +111,7 @@ describe("the organization's employees", () => {
     await screen.findByTestId('organization-employees-page');
     expect(runtime.router.state.location.pathname).toBe('/angajati');
     expect(screen.getByRole('heading', { level: 1, name: 'Lucrători' })).toBeTruthy();
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText('Lucrători')).toBeTruthy();
+    expect(screen.queryByTestId('page-back')).toBeNull();
 
     const rows = await screen.findAllByTestId('organization-employees-row');
     expect(rows).toHaveLength(2);

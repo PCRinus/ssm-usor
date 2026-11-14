@@ -15,6 +15,8 @@ import {
   retryImportLibraryPart,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
+import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { scrollAndFocus } from '@/features/missing-data/focus';
@@ -22,6 +24,7 @@ import type { FactorStore } from '@/features/risk-evaluations/factor-store';
 import type { EditableFactor } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { RiskFactorDialog } from '@/features/risk-evaluations/risk-factor-dialog';
 
+import { ImportOverviewBack } from '../import-back';
 import { creditsLabel } from '../import-credits';
 import { importErrorMessage } from '../import-format';
 import { ImportIssueBadge } from '../import-review-issues';
@@ -179,6 +182,7 @@ function TaskContent({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const returnToImport = useReturnToOpener(`/clienti/import/${detail.id}`);
   const review = useRiskReview(detail.id, part);
   const prefetchSource = useSourcePrefetch(detail.id);
   const root = useRef<HTMLDivElement>(null);
@@ -322,7 +326,9 @@ function TaskContent({
       toast.success(
         'createdProfileIds' in result ? doneToast(result) : 'Ai confirmat evaluările de risc.'
       );
-      await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
+      if (!returnToImport()) {
+        await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
+      }
     } catch (cause) {
       const body =
         cause instanceof ApiHttpError
@@ -371,14 +377,16 @@ function TaskContent({
     <SourcePrefetchContext value={prefetchSource}>
       <div ref={root} className="grid gap-6" data-testid="library-task" data-part={part.part}>
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="grid max-w-3xl gap-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
-              <PartStatusTag part={part} />
-              <HelpLink topic="import.evaluari-de-risc" label="Ajutor: evaluările din import" />
+          <TitleWithBack className="max-w-3xl" back={<ImportOverviewBack importId={detail.id} />}>
+            <div className="grid gap-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
+                <PartStatusTag part={part} />
+                <HelpLink topic="import.evaluari-de-risc" label="Ajutor: evaluările din import" />
+              </div>
+              <p className="text-sm text-muted-foreground">{name}</p>
             </div>
-            <p className="text-sm text-muted-foreground">{name}</p>
-          </div>
+          </TitleWithBack>
           <div className="flex flex-wrap items-center gap-3">
             <ReportImportButton importId={detail.id} part={part.part} />
           </div>

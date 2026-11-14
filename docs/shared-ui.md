@@ -19,7 +19,7 @@ needs a genuinely interactive island.
 - `packages/ui/src/styles/globals.css` imports Tailwind, the theme, animation utilities, and
   shared base styles. It registers the UI source directory for Tailwind scanning.
 - `packages/ui/src/components` contains the editable shadcn components: Button, Input, Label,
-  Card, Badge, Avatar, Breadcrumb, Dropdown Menu, Separator, Sidebar, Sheet, Skeleton,
+  Card, Badge, Avatar, Dropdown Menu, Separator, Sidebar, Sheet, Skeleton,
   Table, and Tooltip. The registry's `cn` utility merges conditional classes and Tailwind overrides;
   it is also available through `@ssm-usor/ui/lib/utils`.
 

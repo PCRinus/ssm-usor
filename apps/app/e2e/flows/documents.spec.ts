@@ -345,8 +345,8 @@ test('the own instructions are issued with their annex, which opens in the edito
   await expect(page.getByTestId('editor-open-current')).toHaveAccessibleName(
     'Deschide în bibliotecă'
   );
-  await expect(page.getByRole('navigation', { name: 'breadcrumb' })).toHaveCount(0);
   await expect(page.getByTestId('editor-save')).toHaveCount(0);
+  await expect(page.getByTestId('editor-back')).toHaveAccessibleName('Înapoi');
   await page.getByTestId('editor-back').click();
   await expect(annex).toBeVisible();
 });
@@ -613,10 +613,9 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('fire-instructions-pick-save').click();
   await expect(page.getByTestId('fire-instructions-state')).toHaveText('1 instrucțiune');
   await expect(page.getByTestId('instructions-state')).toHaveText('1 instrucțiune');
-  await page
-    .getByRole('navigation', { name: 'breadcrumb' })
-    .getByRole('link', { name: 'Posturi de lucru' })
-    .click();
+  await page.getByTestId('job-position-page').getByTestId('page-back').click();
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-ssm`));
+  await page.getByTestId('client-section').filter({ hasText: 'Posturi de lucru' }).click();
   const positions = page.getByTestId('job-position-row');
   await expect(
     positions.filter({ hasText: 'Electrician' }).getByTestId('job-position-equipment')
@@ -633,10 +632,7 @@ test("from 10 employees the set includes the decision on the workers' representa
     await page.getByTestId(`${card}-copy-confirm`).click();
     await expect(page.getByTestId(`${card}-state`)).toHaveText('1 instrucțiune');
   }
-  await page
-    .getByRole('navigation', { name: 'breadcrumb' })
-    .getByRole('link', { name: 'Posturi de lucru' })
-    .click();
+  await page.getByTestId('job-position-page').getByTestId('page-back').click();
   await expect(
     positions.filter({ hasText: 'Vânzător' }).getByTestId('job-position-equipment')
   ).toHaveText('Nu necesită');

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
+import { openedHere } from '@/app/opener';
 import { Segmented } from '@/components/segmented';
 import { roCount } from '@/features/employees/employee-format';
 
@@ -567,6 +568,7 @@ function LibraryLink({ id, children }: { id: string; children: ReactNode }) {
   return (
     <Link
       to="/evaluari-de-risc/$profileId"
+      state={openedHere}
       params={{ profileId: id }}
       target="_blank"
       rel="noopener noreferrer"
@@ -626,6 +628,7 @@ function LibraryRows({
           <Button asChild variant="outline">
             <Link
               to="/evaluari-de-risc/$profileId"
+              state={openedHere}
               params={{ profileId: sheet.match.evaluationId }}
               target="_blank"
               data-testid="risk-import-library-open"

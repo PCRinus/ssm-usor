@@ -7,8 +7,9 @@ import { JobPositionPending } from '@/features/job-positions/job-position-pendin
 
 // A position is read from the client's list, which is a handful of rows and already cached
 // by the positions section; there is no request for one position. The loader warms it and
-// names the breadcrumb, for the position's page and the pages under it.
+// names the browser tab, for the position's page and the pages under it.
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/posturi/$jobPositionId')({
+  staticData: { fullPage: true },
   params: { parse: (params) => ({ jobPositionId: z.uuid().parse(params.jobPositionId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
     const userId = auth.getSnapshot().session?.user.id;

@@ -16,6 +16,8 @@ import {
   useUpdateEmployee,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
 import { useAuth } from '@/features/auth/auth-context';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
@@ -64,6 +66,10 @@ function issueTarget(path: string): IssueTarget<EmployeeFormValues> | undefined 
 export function useEmployeeForm(clientId: string, employee?: Employee) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
+  const returnToOpener = useReturnToOpener();
+  const returnToRecord = useReturnToOpener(
+    employee ? `/clienti/${clientId}/angajati/${employee.id}` : undefined
+  );
   const savedToast = useSavedToast();
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
@@ -129,14 +135,17 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       // The position just gained a person, whether it was new or not.
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       if (employee) {
-        savedToast('Datele lucrătorului au fost salvate.');
+        savedToast('Datele lucrătorului au fost salvate.', { returning: true });
+        if (returnToRecord()) return;
         await navigate({
           to: '/clienti/$clientId/angajati/$employeeId',
           params: { clientId, employeeId: employee.id },
+          state: keepOpener,
         });
       } else {
         // The list it returns to is sorted and paged, so the new row may not be in sight.
         toast.success(maskPeople`${values.lastName} ${values.firstName} a fost adăugat.`);
+        if (returnToOpener()) return;
         await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
       }
     } catch (cause) {

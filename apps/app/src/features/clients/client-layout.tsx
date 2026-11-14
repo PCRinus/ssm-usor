@@ -12,7 +12,6 @@ import {
   Archive,
   ArchiveRestore,
   BriefcaseBusiness,
-  Building2,
   ClipboardCheck,
   ClipboardList,
   FileSignature,
@@ -28,7 +27,9 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useMe } from '@/features/account/use-me';
@@ -99,7 +100,7 @@ const sections = [
 
 export function ClientLayout() {
   const { client, canDelete } = clientRoute.useLoaderData();
-  // Forms such as the new employee page stand on their own; the breadcrumb keeps the context.
+  // Forms such as the new employee page stand on their own, and name the client themselves.
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
   });
@@ -114,7 +115,7 @@ export function ClientLayout() {
   return (
     <div data-testid="client-page" className="space-y-5">
       <RecordHeader
-        icon={Building2}
+        back={<BackLink to="/clienti" label="Înapoi la clienți" />}
         title={client.legalName}
         facts={
           <>
@@ -223,7 +224,11 @@ export function ClientLayout() {
         client={client}
         onClose={() => setImporting(false)}
         onStarted={(importId) =>
-          void navigate({ to: '/clienti/import/$importId', params: { importId } })
+          void navigate({
+            to: '/clienti/import/$importId',
+            params: { importId },
+            state: openedHere,
+          })
         }
       />
     </div>
@@ -253,6 +258,7 @@ export function ClientError({ error }: ErrorComponentProps) {
       title="Clientul nu a putut fi încărcat"
       retryTestId="client-retry"
       explainForbidden
+      back={<BackLink to="/clienti" label="Înapoi la clienți" />}
     />
   );
 }

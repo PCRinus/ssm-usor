@@ -7,11 +7,15 @@ import {
   getListRiskEvaluationsQueryKey,
   useCreateRiskEvaluation,
 } from '@/api/generated/api';
+import { keepOpener, openedHere } from '@/app/opener';
 
 import { evaluationFailure, failureReason } from './evaluation-failure';
 import { useEvaluationCache } from './use-evaluation-cache';
 
-export function useStartEvaluation(clientId: string) {
+// Started on the empty sheet, the evaluation opens at the address already shown: a new history
+// entry would leave the sheet's arrow going back to the same sheet.
+export function useStartEvaluation(clientId: string, { onSheet = false } = {}) {
+  const opening = onSheet ? { replace: true, state: keepOpener } : { state: openedHere };
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const cache = useEvaluationCache(clientId);
@@ -26,11 +30,13 @@ export function useStartEvaluation(clientId: string) {
       if (evaluation.jobPosition) {
         await navigate({
           to: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare',
+          ...opening,
           params: { clientId, jobPositionId: evaluation.jobPosition.id },
         });
       } else {
         await navigate({
           to: '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId',
+          ...opening,
           params: { clientId, evaluationId: evaluation.id },
         });
       }

@@ -19,6 +19,7 @@ import {
   getListEmployeeTrainingRecordsQueryKey,
   useListEmployeeTrainingRecords,
 } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -111,6 +112,7 @@ function IntervalFact({
         {status.intervalSource === 'position' ? (
           <Link
             to="/clienti/$clientId/posturi/$jobPositionId"
+            state={openedHere}
             params={{ clientId, jobPositionId: jobPosition.id }}
             data-testid="training-interval-source"
             className={sourceLinkClass}

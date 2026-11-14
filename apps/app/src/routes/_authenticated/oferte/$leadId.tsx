@@ -1,5 +1,6 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import {
   createFileRoute,
   type ErrorComponentProps,
@@ -12,7 +13,10 @@ import { z } from 'zod';
 
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { backGap } from '@/components/back-gap';
+import { BackLink } from '@/components/back-link';
 
 // A lead is a client in an earlier stage (ADR 007), read through the same route. The
 // policies hide it from anyone who is not an owner, for whom the API answers 404.
@@ -38,6 +42,7 @@ export const Route = createFileRoute('/_authenticated/oferte/$leadId')({
         to: '/clienti/$clientId/detalii',
         params: { clientId: lead.id },
         replace: true,
+        state: keepOpener,
       });
     }
     return { lead, crumb: lead.legalName };
@@ -55,7 +60,12 @@ function LeadLayout() {
 function LeadPending() {
   return (
     <div className="space-y-5" aria-busy="true">
-      <Skeleton className="h-12 w-full rounded-lg" />
+      <div className={cn('flex items-center', backGap)}>
+        <div className="flex shrink-0">
+          <BackLink to="/oferte" label="Înapoi la oferte" />
+        </div>
+        <Skeleton className="h-12 flex-1 rounded-lg" />
+      </div>
       <Skeleton className="h-40 w-full" />
     </div>
   );
@@ -77,5 +87,12 @@ function LeadNotFound() {
 }
 
 function LeadError({ error }: ErrorComponentProps) {
-  return <RouteError error={error} testId="lead-error" title="Oferta nu a putut fi încărcată" />;
+  return (
+    <RouteError
+      error={error}
+      testId="lead-error"
+      title="Oferta nu a putut fi încărcată"
+      back={<BackLink to="/oferte" label="Înapoi la oferte" />}
+    />
+  );
 }

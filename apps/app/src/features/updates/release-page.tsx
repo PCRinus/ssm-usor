@@ -3,8 +3,10 @@ import { type ErrorComponentProps, Link, useLocation } from '@tanstack/react-rou
 import { useEffect, useRef } from 'react';
 
 import type { Release } from '@/api/generated/api';
+import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 
 import { InlineMarkdown } from './inline-markdown';
 import { KindSquare } from './kind-square';
@@ -66,6 +68,7 @@ function SectionLinks({
           <Link
             key={section.key}
             to="/actualizari/$tag"
+            state={keepOpener}
             params={{ tag }}
             hash={sectionIds[section.key]}
             className="flex h-11 shrink-0 items-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -89,6 +92,7 @@ function SectionLinks({
         <Link
           key={section.key}
           to="/actualizari/$tag"
+          state={keepOpener}
           params={{ tag }}
           hash={sectionIds[section.key]}
           data-current={section === current || undefined}
@@ -118,6 +122,7 @@ function OtherReleases({
       {previous && (
         <Link
           to="/actualizari/$tag"
+          state={keepOpener}
           params={{ tag: previous.tag }}
           data-testid="release-previous"
           className="flex sm:flex-1 sm:basis-[260px] flex-col gap-1 rounded-xl border bg-card px-4 py-3.5 outline-none hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-5 sm:py-4"
@@ -179,19 +184,27 @@ export function ReleasePage({ tag }: { tag: string }) {
             <span className="text-[13px] text-release-sand-muted">Publicată pe {published}</span>
           </div>
         </div>
-        <div className="grid max-w-[640px] gap-3">
-          <span className="hidden text-sm text-release-sand-muted sm:block">
-            Publicată pe {published}
-          </span>
-          <h1 className="text-[25px] leading-[1.2] font-bold tracking-[-0.02em] sm:text-[34px] sm:leading-[1.15]">
-            <InlineMarkdown text={release.headline} />
-          </h1>
-          {release.lead && (
-            <p className="text-base leading-[1.6] text-release-body sm:text-[17px]">
-              <InlineMarkdown text={release.lead} />
-            </p>
-          )}
-        </div>
+        <TitleWithBack
+          className="max-w-[640px] gap-y-0 sm:gap-y-3"
+          line="text-[25px] leading-[1.2] sm:text-[34px] sm:leading-[1.15]"
+          back={<BackLink to="/actualizari" label="Înapoi la actualizări" />}
+          eyebrow={
+            <span className="hidden text-sm text-release-sand-muted sm:block">
+              Publicată pe {published}
+            </span>
+          }
+        >
+          <div className="grid gap-3">
+            <h1 className="text-[25px] leading-[1.2] font-bold tracking-[-0.02em] sm:text-[34px] sm:leading-[1.15]">
+              <InlineMarkdown text={release.headline} />
+            </h1>
+            {release.lead && (
+              <p className="text-base leading-[1.6] text-release-body sm:text-[17px]">
+                <InlineMarkdown text={release.lead} />
+              </p>
+            )}
+          </div>
+        </TitleWithBack>
       </header>
 
       {sections.length > 1 && <SectionLinks tag={release.tag} sections={sections} phone />}
@@ -296,6 +309,11 @@ export function ReleaseNotFound() {
 
 export function ReleaseError({ error }: ErrorComponentProps) {
   return (
-    <RouteError error={error} testId="release-error" title="Actualizarea nu a putut fi încărcată" />
+    <RouteError
+      error={error}
+      testId="release-error"
+      title="Actualizarea nu a putut fi încărcată"
+      back={<BackLink to="/actualizari" label="Înapoi la actualizări" />}
+    />
   );
 }

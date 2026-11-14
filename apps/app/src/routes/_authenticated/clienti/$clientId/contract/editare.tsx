@@ -1,8 +1,6 @@
-import { Button } from '@ssm-usor/ui/components/button';
-import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
+import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { useBackToList } from '@/app/use-back-to-list';
+import { BackLink } from '@/components/back-link';
 import { useAuth } from '@/features/auth/auth-context';
 import { ServiceContractEditor } from '@/features/service-contracts/service-contract-editor';
 
@@ -16,27 +14,21 @@ const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 function ClientContractEditorPage() {
   const { client } = clientRoute.useLoaderData();
   const { session } = useAuth();
-  const backToList = useBackToList();
   // The shell renders this only for a signed-in user.
   if (!session) return null;
   return (
     <ServiceContractEditor
       clientId={client.id}
+      companyName={client.legalName}
       userId={session.user.id}
       readOnly={client.archivedAt !== null}
       back={
-        <Button asChild variant="ghost" size="sm">
-          <Link
-            to="/clienti/$clientId/contract"
-            params={{ clientId: client.id }}
-            data-testid="editor-back"
-            onClick={backToList}
-            aria-label="Înapoi la contract"
-          >
-            <ArrowLeft aria-hidden="true" />
-            <span className="hidden sm:inline">Contract</span>
-          </Link>
-        </Button>
+        <BackLink
+          to="/clienti/$clientId/contract"
+          params={{ clientId: client.id }}
+          data-testid="editor-back"
+          label="Înapoi la contract"
+        />
       }
     />
   );

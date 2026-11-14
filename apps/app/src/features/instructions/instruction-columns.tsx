@@ -10,6 +10,7 @@ import {
 import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil } from 'lucide-react';
 
+import { openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
@@ -40,7 +41,7 @@ export function instructionColumns({
         <Link
           to="/instructiuni/$moduleId"
           params={{ moduleId: row.original.id }}
-          state={{ openedFromList: true }}
+          state={openedHere}
           data-testid="instruction-open"
           className="hover:underline"
         >

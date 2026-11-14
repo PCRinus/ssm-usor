@@ -10,6 +10,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { useState } from 'react';
 
+import { openedFromRecord, openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
@@ -17,7 +18,7 @@ import {
   missingCountLabel,
   trainingSheetMissingGroups,
 } from '@/features/missing-data/missing-rows';
-import { startWayBack } from '@/features/missing-data/way-back';
+import { useStartWayBack } from '@/features/missing-data/way-back';
 
 import { useTrainingSheets } from './use-training-sheets';
 
@@ -33,6 +34,7 @@ export function TrainingSheetReadiness({
   const { session } = useAuth();
   const readiness = useTrainingSheets(clientId, employeeId);
   const [open, setOpen] = useState(false);
+  const startWayBack = useStartWayBack();
   const sheet = readiness.data?.[domain];
   const label = trainingDomainLabels[domain];
 
@@ -77,6 +79,11 @@ export function TrainingSheetReadiness({
             <MissingDataList
               groups={groups}
               testId="training-sheet-missing"
+              linkState={(target) =>
+                target.to === '/clienti/$clientId/angajati/$employeeId/editare'
+                  ? openedFromRecord(`/clienti/${clientId}/angajati/${employeeId}`)
+                  : openedHere
+              }
               onFollow={() => {
                 startWayBack({
                   userId: session?.user.id ?? '',

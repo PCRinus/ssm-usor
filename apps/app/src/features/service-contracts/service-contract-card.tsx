@@ -75,7 +75,7 @@ import {
   missingCountLabel,
   type MissingRow,
 } from '@/features/missing-data/missing-rows';
-import { startWayBack } from '@/features/missing-data/way-back';
+import { useStartWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
 
 import { SendContractDialog } from './send-contract-dialog';
@@ -368,6 +368,7 @@ function ServiceContractBody({
   const removeSigned = useRemoveDocumentSignedCopy({ request: apiRequest });
   const { printing, print } = usePrint();
   const signedInput = useRef<HTMLInputElement>(null);
+  const startWayBack = useStartWayBack();
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [sending, setSending] = useState(false);
   const [editing, setEditing] = useState(false);

@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 
 import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -107,6 +108,7 @@ export function EmployeesPage() {
                 key={filter.label}
                 to="/clienti/$clientId/angajati"
                 params={{ clientId }}
+                state={keepOpener}
                 search={{
                   ...(filter.status ? { status: filter.status } : {}),
                   q,
@@ -123,6 +125,7 @@ export function EmployeesPage() {
             value={q}
             onSearch={(next) =>
               void navigate({
+                state: keepOpener,
                 replace: true,
                 search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
               })
@@ -138,6 +141,7 @@ export function EmployeesPage() {
                 testId="employees-training-filter"
                 onChange={(next) =>
                   void navigate({
+                    state: keepOpener,
                     replace: true,
                     search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
                   })
@@ -148,6 +152,7 @@ export function EmployeesPage() {
                 testId="employees-test-filter"
                 onChange={(next) =>
                   void navigate({
+                    state: keepOpener,
                     replace: true,
                     search: (prev) => ({ ...prev, testState: next, page: undefined }),
                   })
@@ -171,6 +176,7 @@ export function EmployeesPage() {
           onRowClick={(employee) =>
             void navigate({
               to: '/clienti/$clientId/angajati/$employeeId',
+              state: openedHere,
               params: { clientId, employeeId: employee.id },
             })
           }
@@ -183,6 +189,7 @@ export function EmployeesPage() {
           onSortChange={(next) =>
             // Filter and sort changes replace the entry: back returns to the previous page.
             void navigate({
+              state: keepOpener,
               replace: true,
               search: (prev) => ({
                 ...prev,
@@ -193,7 +200,10 @@ export function EmployeesPage() {
             })
           }
           onPageChange={(next) =>
-            void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
+            void navigate({
+              search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }),
+              state: keepOpener,
+            })
           }
           error={
             <>
@@ -226,6 +236,7 @@ export function EmployeesPage() {
                 testId="employees-empty"
                 onClear={() =>
                   void navigate({
+                    state: keepOpener,
                     replace: true,
                     search: (prev) => ({ ...prev, q: undefined, page: undefined }),
                   })
@@ -240,6 +251,7 @@ export function EmployeesPage() {
                 clearTestId="employees-empty-clear-training-state"
                 onClear={() =>
                   void navigate({
+                    state: keepOpener,
                     replace: true,
                     search: (prev) => ({ ...prev, trainingState: undefined, page: undefined }),
                   })
@@ -254,6 +266,7 @@ export function EmployeesPage() {
                 clearTestId="employees-empty-clear-test-state"
                 onClear={() =>
                   void navigate({
+                    state: keepOpener,
                     replace: true,
                     search: (prev) => ({ ...prev, testState: undefined, page: undefined }),
                   })
@@ -287,6 +300,7 @@ export function EmployeesPage() {
         onStarted={(importId) =>
           void navigate({
             to: '/clienti/$clientId/angajati/import/$importId',
+            state: openedFromRecord(`/clienti/${clientId}/angajati`),
             params: { clientId, importId },
           })
         }
@@ -297,7 +311,11 @@ export function EmployeesPage() {
         client={client}
         onClose={() => setImporting(null)}
         onStarted={(importId) =>
-          void navigate({ to: '/clienti/import/$importId', params: { importId } })
+          void navigate({
+            to: '/clienti/import/$importId',
+            params: { importId },
+            state: openedHere,
+          })
         }
       />
     </div>

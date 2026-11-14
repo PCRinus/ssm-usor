@@ -401,15 +401,120 @@ describe("a position's risk evaluation card", () => {
   });
 });
 
+describe('the way back from an evaluation', () => {
+  it('unwinds the list, the position and its sheet one page at a time', async () => {
+    mockApi();
+    const runtime = mount(positionsPage);
+    const user = userEvent.setup();
+    const listIndex = runtime.router.history.location.state.__TSR_index;
+    const row = (await screen.findAllByTestId('job-position-row')).find((item) =>
+      item.textContent?.includes(welder.name)
+    )!;
+    await user.click(within(row).getByTestId('job-position-open'));
+    const card = await screen.findByTestId('position-risk-card');
+    await user.click(await within(card).findByTestId('position-risk-open'));
+    await screen.findByTestId('risk-evaluation-page');
+    expect(runtime.router.state.location.pathname).toBe(welderEvaluationPage);
+
+    const sheetBack = screen.getByTestId('page-back');
+    expect(sheetBack.getAttribute('aria-label')).toBe('Înapoi');
+    expect(sheetBack.getAttribute('href')).toBe(welderPage);
+    await user.click(sheetBack);
+    await screen.findByTestId('job-position-page');
+    expect(runtime.router.state.location.pathname).toBe(welderPage);
+
+    await user.click(screen.getByTestId('page-back'));
+    await screen.findAllByTestId('job-position-row');
+    expect(runtime.router.history.location.state.__TSR_index).toBe(listIndex);
+  });
+
+  it('goes back to the positions from a sheet started on its own page', async () => {
+    mockApi();
+    const runtime = mount(positionsPage);
+    const user = userEvent.setup();
+    const listIndex = runtime.router.history.location.state.__TSR_index;
+    const row = (await screen.findAllByTestId('job-position-row')).find((item) =>
+      item.textContent?.includes(fitter.name)
+    )!;
+    await user.click(await within(row).findByTestId('job-position-risk'));
+    const start = await screen.findByTestId('risk-evaluation-start');
+    const sheetIndex = runtime.router.history.location.state.__TSR_index;
+    await user.click(start);
+    await screen.findByTestId('risk-factors-empty');
+    expect(runtime.router.history.location.state.__TSR_index).toBe(sheetIndex);
+    expect(runtime.router.state.location.pathname).toBe(
+      `${positionsPage}/${fitter.id}/fisa-de-evaluare`
+    );
+
+    await user.click(screen.getByTestId('page-back'));
+    await screen.findAllByTestId('job-position-row');
+    expect(runtime.router.history.location.state.__TSR_index).toBe(listIndex);
+  });
+
+  it('goes back to the position a deleted sheet was opened from', async () => {
+    mockApi();
+    const runtime = mount(welderPage);
+    const user = userEvent.setup();
+    const positionIndex = runtime.router.history.location.state.__TSR_index;
+    const card = await screen.findByTestId('position-risk-card');
+    await user.click(await within(card).findByTestId('position-risk-open'));
+    await user.click(await screen.findByTestId('risk-evaluation-remove'));
+    await user.click(await screen.findByTestId('risk-evaluation-remove-confirm'));
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe(welderPage));
+    expect(runtime.router.history.location.state.__TSR_index).toBe(positionIndex);
+    expect((await screen.findByTestId('position-risk-state')).textContent).toBe('Neevaluat');
+  });
+
+  it("returns from a client's sheet to the positions it was opened from", async () => {
+    mockApi();
+    const runtime = mount(positionsPage);
+    const user = userEvent.setup();
+    const listIndex = runtime.router.history.location.state.__TSR_index;
+    const open = (await screen.findAllByTestId('client-risk-evaluation-open')).find(
+      (link) => link.textContent === 'Vizitatori'
+    )!;
+    await user.click(open);
+    await screen.findByTestId('risk-evaluation-page');
+    expect(runtime.router.state.location.pathname).toBe(
+      `${positionsPage}/fise-de-evaluare/${visitors.id}`
+    );
+    await user.click(screen.getByTestId('page-back'));
+    await screen.findByTestId('client-risk-evaluations-card');
+    expect(runtime.router.history.location.state.__TSR_index).toBe(listIndex);
+  });
+});
+
 describe("a position's risk evaluation page", () => {
   it('lists the factors in the order of the sheet, each with its component and group', async () => {
     mockApi();
     mount(welderEvaluationPage);
     await screen.findByTestId('risk-evaluation-page');
-    expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByRole('link', { name: 'Sudor' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Fișa de evaluare')).toBeTruthy();
+    expect(screen.queryByTestId('client-page')).toBeNull();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare · Sudor' })
+    ).toBeTruthy();
+    expect(screen.getAllByTestId('page-back')).toHaveLength(1);
+    expect(
+      screen
+        .getAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent?.trim())
+        .slice(0, 3)
+    ).toEqual([
+      'Rezultatul evaluării',
+      expect.stringMatching(/^Sistemul de muncă/),
+      expect.stringMatching(/^Factori de risc/),
+    ]);
+    expect(screen.getByRole('heading', { level: 3, name: 'Nivel de risc global' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Înapoi la post' }).getAttribute('href')).toBe(
+      welderPage
+    );
+    expect(screen.getByTestId('risk-evaluation-header-position').getAttribute('href')).toBe(
+      welderPage
+    );
+    expect(screen.getByTestId('client-fact').getAttribute('href')).toBe(
+      `/clienti/${clientId}/detalii`
+    );
 
     expect(screen.getAllByTestId('risk-factors-tab').map((tab) => tab.textContent)).toEqual([
       'Toți 4',
@@ -1143,7 +1248,10 @@ describe("a client's evaluations outside its positions", () => {
     expect(runtime.router.state.location.pathname).toMatch(
       new RegExp(`^${positionsPage}/fise-de-evaluare/[0-9a-f-]+$`)
     );
-    expect(screen.getByRole('heading', { level: 2, name: 'Grupuri sensibile' })).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare · Grupuri sensibile' })
+    ).toBeTruthy();
+    expect(screen.getByTestId('page-back').getAttribute('aria-label')).toBe('Înapoi');
   });
 
   it('adds one by name, and puts a name the client already uses on the field', async () => {
@@ -1172,14 +1280,17 @@ describe("a client's evaluations outside its positions", () => {
     mockApi();
     mount(`${positionsPage}/fise-de-evaluare/${visitors.id}`);
     const card = await screen.findByTestId('work-system-card');
-    expect(screen.getByRole('heading', { level: 2, name: 'Vizitatori' })).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare · Vizitatori' })
+    ).toBeTruthy();
     expect(within(card).getByTestId('work-system-exposed-persons').textContent).toBe(
       'Min. 3 persoane'
     );
-    const current = screen
-      .getAllByTestId('client-section')
-      .filter((link) => link.getAttribute('aria-current') === 'page');
-    expect(current.map((link) => link.textContent)).toEqual(['Posturi de lucru']);
+    expect(screen.queryByTestId('client-section')).toBeNull();
+    expect(screen.getByTestId('client-fact').textContent).toBe(sampleClient.legalName);
+    const back = screen.getByTestId('page-back');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi la posturile de lucru');
+    expect(back.getAttribute('href')).toBe(positionsPage);
 
     const user = userEvent.setup();
     await user.click(within(card).getByTestId('work-system-edit'));
@@ -1200,7 +1311,10 @@ describe("a client's evaluations outside its positions", () => {
       ])
     );
     expect(
-      await screen.findByRole('heading', { level: 2, name: 'Vizitatori și curieri' })
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Fișa de evaluare · Vizitatori și curieri',
+      })
     ).toBeTruthy();
   });
 
@@ -1215,6 +1329,71 @@ describe("a client's evaluations outside its positions", () => {
     mockApi();
     mount(`${positionsPage}/fise-de-evaluare/${uuid()}`);
     expect(await screen.findByTestId('risk-evaluation-not-found')).toBeTruthy();
+  });
+});
+
+describe('a page still loading or failing to load', () => {
+  it.each([
+    ['a position', positionsPath, welderPage, positionsPage],
+    [
+      "a position's sheet",
+      `${positionsPath}/${welder.id}/risk-evaluation`,
+      welderEvaluationPage,
+      welderPage,
+    ],
+    [
+      "a client's sheet",
+      `${evaluationsPath}/${visitors.id}`,
+      `${positionsPage}/fise-de-evaluare/${visitors.id}`,
+      positionsPage,
+    ],
+    ["a position's sheet, before its position", positionsPath, welderEvaluationPage, welderPage],
+  ])('shows the way back while %s loads', async (_, slowPath, path, parent) => {
+    mockApi();
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((input, init) =>
+      new URL(String(input)).pathname === slowPath
+        ? new Promise<Response>(() => {})
+        : answer(input, init)
+    );
+    mount(path);
+    const back = await screen.findByTestId('page-back', {}, { timeout: 3000 });
+    expect(back.getAttribute('href')).toBe(parent);
+    expect(screen.queryByTestId('client-page')).toBeNull();
+  });
+
+  function failing(path: string) {
+    mockApi();
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === path
+        ? Response.json({ error: 'internal', message: 'Eroare' }, { status: 500 })
+        : answer(input, init)
+    );
+  }
+
+  it.each([
+    ['a position', positionsPath, welderPage, 'job-position-error', positionsPage],
+    [
+      "a position's sheet",
+      `${positionsPath}/${welder.id}/risk-evaluation`,
+      welderEvaluationPage,
+      'risk-evaluation-error',
+      welderPage,
+    ],
+    [
+      "a client's sheet",
+      `${evaluationsPath}/${visitors.id}`,
+      `${positionsPage}/fise-de-evaluare/${visitors.id}`,
+      'risk-evaluation-error',
+      positionsPage,
+    ],
+  ])('keeps the way back on %s', async (_, failingPath, path, errorTestId, parent) => {
+    failing(failingPath);
+    mount(path);
+    expect(await screen.findByTestId(errorTestId)).toBeTruthy();
+    expect(screen.queryByTestId('client-page')).toBeNull();
+    expect(screen.getByTestId('page-back').getAttribute('href')).toBe(parent);
   });
 });
 

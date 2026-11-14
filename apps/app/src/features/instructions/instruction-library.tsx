@@ -10,6 +10,7 @@ import { Archive, BookOpenText } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { getListInstructionModulesQueryKey, useListInstructionModules } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -117,7 +118,7 @@ export function InstructionLibrary({
           void navigate({
             to: '/instructiuni/$moduleId',
             params: { moduleId: module.id },
-            state: { openedFromList: true },
+            state: openedHere,
           })
         }
         meta={meta}

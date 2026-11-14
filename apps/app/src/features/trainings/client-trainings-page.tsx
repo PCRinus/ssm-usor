@@ -38,6 +38,7 @@ import {
   useListTrainings,
 } from '@/api/generated/api';
 import { replayMask, replayShow } from '@/app/observability/replay-masking';
+import { keepOpener } from '@/app/opener';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { Notice } from '@/components/notice';
@@ -120,6 +121,7 @@ export function ClientTrainingsPage() {
                 key={filter.label}
                 to="/clienti/$clientId/instruiri-tinute"
                 params={{ clientId }}
+                state={keepOpener}
                 search={{ ...(filter.domain ? { domain: filter.domain } : {}), phase }}
                 data-testid="trainings-filter-domain"
                 data-domain={filter.domain ?? 'all'}
@@ -138,6 +140,7 @@ export function ClientTrainingsPage() {
             value={phase ?? ''}
             onChange={(event) =>
               void navigate({
+                state: keepOpener,
                 replace: true,
                 search: (prev) => ({
                   ...prev,

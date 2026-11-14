@@ -31,6 +31,7 @@ import {
   useListClientDocuments,
   useListClientFiles,
 } from '@/api/generated/api';
+import { openedFromRecord, openedHere } from '@/app/opener';
 import { FileLinkButton } from '@/components/file-link-button';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
@@ -250,6 +251,7 @@ export function SigningAgreementCard({
               <Link
                 to="/clienti/$clientId/angajati/$employeeId/editare"
                 params={{ clientId: employee.clientId, employeeId: employee.id }}
+                state={openedFromRecord(`/clienti/${employee.clientId}/angajati/${employee.id}`)}
               >
                 Modifică datele
               </Link>
@@ -266,7 +268,11 @@ export function SigningAgreementCard({
           data-testid="signing-agreement-no-representative"
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/clienti/$clientId/detalii" params={{ clientId: employee.clientId }}>
+              <Link
+                to="/clienti/$clientId/detalii"
+                params={{ clientId: employee.clientId }}
+                state={openedHere}
+              >
                 Datele clientului
               </Link>
             </Button>
@@ -283,7 +289,11 @@ export function SigningAgreementCard({
           data-testid="signing-agreement-annex"
           action={
             <Button asChild variant="outline" size="sm">
-              <Link to="/clienti/$clientId/documente-ssm" params={{ clientId: employee.clientId }}>
+              <Link
+                to="/clienti/$clientId/documente-ssm"
+                params={{ clientId: employee.clientId }}
+                state={openedHere}
+              >
                 Documente SSM
               </Link>
             </Button>

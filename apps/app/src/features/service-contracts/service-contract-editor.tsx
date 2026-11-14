@@ -1,19 +1,23 @@
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
 import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
+import { backGap } from '@/components/back-gap';
 import { DocumentEditorView } from '@/features/documents/document-editor-page';
 
 // The contract in the editor the documentation set uses. It is found through its own route
 // of the API, because the list of a client's documents is the documentation set only.
 export function ServiceContractEditor({
   clientId,
+  companyName,
   userId,
   readOnly,
   readOnlyReason,
   back,
 }: {
   clientId: string;
+  companyName: string;
   userId: string;
   readOnly: boolean;
   readOnlyReason?: { label: string; title: string };
@@ -33,7 +37,19 @@ export function ServiceContractEditor({
         isSuccess: contract.isSuccess,
         refetch: () => void contract.refetch(),
         invalidate: () => queryClient.invalidateQueries({ queryKey }),
-        back,
+        // Every contract has the same title, so the company is named beside it.
+        arrow: back,
+        back: (
+          <span className={cn('flex min-w-0 items-center', backGap)}>
+            {back}
+            <span
+              data-testid="editor-company"
+              className="max-w-40 truncate text-sm text-muted-foreground sm:max-w-72"
+            >
+              {companyName}
+            </span>
+          </span>
+        ),
       }}
     />
   );

@@ -1,10 +1,9 @@
 import type { InstructionDomain } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
-import { Link } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { BackLink } from '@/components/back-link';
 
+import { ImportOverviewBack, ImportParentBack } from './import-back';
 import { ImportLoader, ProcessingView } from './import-processing-page';
 import { ConfirmedImportHub } from './library/confirmed-hub';
 import { LibraryTaskPage } from './library/library-task-page';
@@ -18,14 +17,14 @@ const hasLibraryTasks = (detail: ImportDetail) =>
 
 export function ImportPage({ importId }: { importId: string }) {
   return (
-    <ImportLoader importId={importId}>
+    <ImportLoader importId={importId} back={<BackLink to="/clienti" label="Înapoi la clienți" />}>
       {(detail) =>
         detail.status === 'ready' && detail.proposal ? (
           <ReviewHub key={detail.id} detail={detail} />
         ) : hasLibraryTasks(detail) ? (
           <ConfirmedImportHub key={detail.id} detail={detail} />
         ) : (
-          <ProcessingView detail={detail} />
+          <ProcessingView detail={detail} back={<ImportParentBack detail={detail} />} />
         )
       }
     </ImportLoader>
@@ -34,19 +33,18 @@ export function ImportPage({ importId }: { importId: string }) {
 
 export function ImportFilesPage({ importId }: { importId: string }) {
   return (
-    <ImportLoader importId={importId}>
+    <ImportLoader importId={importId} back={<ImportOverviewBack importId={importId} />}>
       {(detail) => (
-        <div className="grid gap-4">
-          {(detail.status === 'ready' || hasLibraryTasks(detail)) && (
-            <Button asChild variant="ghost" size="sm" className="w-fit">
-              <Link to="/clienti/import/$importId" params={{ importId }}>
-                <ArrowLeft aria-hidden="true" />
-                {detail.status === 'ready' ? 'Înapoi la propunere' : 'Înapoi la import'}
-              </Link>
-            </Button>
-          )}
-          <ProcessingView detail={detail} />
-        </div>
+        <ProcessingView
+          detail={detail}
+          back={
+            detail.status === 'ready' || hasLibraryTasks(detail) ? (
+              <ImportOverviewBack importId={importId} />
+            ) : (
+              <ImportParentBack detail={detail} />
+            )
+          }
+        />
       )}
     </ImportLoader>
   );
@@ -54,12 +52,12 @@ export function ImportFilesPage({ importId }: { importId: string }) {
 
 export function ImportSectionPage({ importId, section }: { importId: string; section: SectionId }) {
   return (
-    <ImportLoader importId={importId}>
+    <ImportLoader importId={importId} back={<ImportOverviewBack importId={importId} />}>
       {(detail) =>
         detail.status === 'ready' && detail.proposal ? (
           <ReviewSectionPage key={detail.id} detail={detail} section={section} />
         ) : (
-          <ProcessingView detail={detail} />
+          <ProcessingView detail={detail} back={<ImportOverviewBack importId={importId} />} />
         )
       }
     </ImportLoader>
@@ -74,12 +72,12 @@ export function ImportLibraryPage({
   domain: InstructionDomain;
 }) {
   return (
-    <ImportLoader importId={importId}>
+    <ImportLoader importId={importId} back={<ImportOverviewBack importId={importId} />}>
       {(detail) =>
         (detail.status === 'ready' && detail.proposal) || detail.status === 'confirmed' ? (
           <LibraryTaskPage key={`${detail.id}-${domain}`} detail={detail} domain={domain} />
         ) : (
-          <ProcessingView detail={detail} />
+          <ProcessingView detail={detail} back={<ImportOverviewBack importId={importId} />} />
         )
       }
     </ImportLoader>
@@ -88,12 +86,12 @@ export function ImportLibraryPage({
 
 export function ImportRisksPage({ importId }: { importId: string }) {
   return (
-    <ImportLoader importId={importId}>
+    <ImportLoader importId={importId} back={<ImportOverviewBack importId={importId} />}>
       {(detail) =>
         (detail.status === 'ready' && detail.proposal) || detail.status === 'confirmed' ? (
           <RisksTaskPage key={detail.id} detail={detail} />
         ) : (
-          <ProcessingView detail={detail} />
+          <ProcessingView detail={detail} back={<ImportOverviewBack importId={importId} />} />
         )
       }
     </ImportLoader>

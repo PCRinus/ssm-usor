@@ -28,10 +28,14 @@ import {
   useRemoveRiskEvaluation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
+import { CurrentClientHeaderFact } from '@/features/clients/client-fact';
+import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import { ApplyProfileDialog } from '@/features/evaluation-profiles/apply-profile-dialog';
 import { ProfileNameDialog } from '@/features/evaluation-profiles/profile-name-dialog';
 import type { ProfileNaming } from '@/features/evaluation-profiles/profile-naming';
@@ -45,6 +49,7 @@ import { hasLibraryFactor } from './factor-origin';
 import { OriginSummary } from './factor-origin-view';
 import { useEvaluationFactorStore } from './factor-store';
 import { LibraryNudge } from './library-nudge';
+import { RiskEvaluationBack } from './risk-evaluation-back';
 import { RiskEvaluationPending } from './risk-evaluation-pending';
 import {
   clientEvaluationsSection,
@@ -101,10 +106,26 @@ export function PositionRiskEvaluationPage() {
   if (!position || !query.data) return <RiskEvaluationPending />;
   const { evaluation } = query.data;
 
+  const facts = (
+    <>
+      <HeaderFact label="Post">
+        <Link
+          to="/clienti/$clientId/posturi/$jobPositionId"
+          params={{ clientId, jobPositionId }}
+          data-testid="risk-evaluation-header-position"
+          className="hover:underline"
+        >
+          {position.name}
+        </Link>
+      </HeaderFact>
+      <CurrentClientHeaderFact />
+    </>
+  );
+
   if (!evaluation) {
     return (
       <div data-testid="risk-evaluation-page" className="grid gap-5">
-        <Header title={position.name} />
+        <Header title={position.name} facts={facts} />
         <PositionNotEvaluated clientId={clientId} position={position} readOnly={readOnly} />
       </div>
     );
@@ -121,6 +142,7 @@ export function PositionRiskEvaluationPage() {
         params: { clientId, jobPositionId },
         hash: positionSections.riskEvaluation,
       }}
+      facts={facts}
     />
   );
 }
@@ -150,6 +172,7 @@ export function ClientRiskEvaluationPage() {
         params: { clientId },
         hash: clientEvaluationsSection,
       }}
+      facts={<CurrentClientHeaderFact />}
     />
   );
 }
@@ -163,7 +186,7 @@ function PositionNotEvaluated({
   position: JobPosition;
   readOnly: boolean;
 }) {
-  const { start, pending, failure } = useStartEvaluation(clientId);
+  const { start, pending, failure } = useStartEvaluation(clientId, { onSheet: true });
   return (
     <>
       {failure && (
@@ -197,18 +220,23 @@ function PositionNotEvaluated({
   );
 }
 
-function Header({ title, action }: { title: string; action?: ReactNode }) {
+function Header({
+  title,
+  facts,
+  actions,
+}: {
+  title: string;
+  facts: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-      <div className="grid gap-1">
-        <p className="text-sm text-muted-foreground">Fișa de evaluare</p>
-        <div className="flex min-w-0 items-center gap-1.5">
-          <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
-          <HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />
-        </div>
-      </div>
-      {action}
-    </div>
+    <RecordHeader
+      back={<RiskEvaluationBack />}
+      title={`Fișa de evaluare · ${title}`}
+      titleAside={<HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />}
+      facts={facts}
+      actions={actions}
+    />
   );
 }
 
@@ -226,12 +254,14 @@ function RiskEvaluationView({
   userId,
   readOnly,
   afterRemove,
+  facts,
 }: {
   evaluation: RiskEvaluation;
   position?: JobPosition;
   userId: string;
   readOnly: boolean;
   afterRemove: AfterRemove;
+  facts: ReactNode;
 }) {
   const [removing, setRemoving] = useState(false);
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
@@ -241,44 +271,49 @@ function RiskEvaluationView({
   const workSystemStore = useEvaluationWorkSystemStore(evaluation);
   const view = useFactorListView(evaluation.factors, sections.factors);
   const saveToLibrary = () => setNaming(saveAsProfile(evaluation));
+  const canSave = evaluation.factors.length > 0 && !nudge.shown;
   return (
     <div data-testid="risk-evaluation-page" className="grid gap-5">
       <Header
         title={evaluationTitle(evaluation)}
-        action={
-          <div className="flex flex-wrap gap-2">
-            {evaluation.factors.length > 0 && !nudge.shown && (
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="risk-evaluation-save-as-profile"
-                onClick={saveToLibrary}
-              >
-                <LibraryBig aria-hidden="true" />
-                Salvează în bibliotecă…
-              </Button>
-            )}
-            {!readOnly && (
-              <Button
-                variant="destructive-outline"
-                size="sm"
-                data-testid="risk-evaluation-remove"
-                onClick={() => setRemoving(true)}
-              >
-                <Trash2 aria-hidden="true" />
-                Șterge fișa…
-              </Button>
-            )}
-          </div>
+        facts={facts}
+        actions={
+          (canSave || !readOnly) && (
+            <>
+              {canSave && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="risk-evaluation-save-as-profile"
+                  onClick={saveToLibrary}
+                >
+                  <LibraryBig aria-hidden="true" />
+                  Salvează în bibliotecă…
+                </Button>
+              )}
+              {!readOnly && (
+                <Button
+                  variant="destructive-outline"
+                  size="sm"
+                  data-testid="risk-evaluation-remove"
+                  onClick={() => setRemoving(true)}
+                >
+                  <Trash2 aria-hidden="true" />
+                  Șterge fișa…
+                </Button>
+              )}
+            </>
+          )
         }
       />
-      <RiskResultCard id={sections.result} evaluation={evaluation} view={view} />
+      <RiskResultCard id={sections.result} evaluation={evaluation} view={view} headingLevel={2} />
       <WorkSystemCard
         id={sections.workSystem}
         workSystem={evaluation}
         store={workSystemStore}
         position={position}
         readOnly={readOnly}
+        headingLevel={2}
       />
       <RiskFactorsCard
         id={sections.factors}
@@ -299,6 +334,7 @@ function RiskEvaluationView({
         removalConsequence="nu vor mai apărea în fișă și în planul de prevenire."
         editorContext={evaluationTitle(evaluation)}
         clientId={evaluation.clientId}
+        headingLevel={2}
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveEvaluationDialog
@@ -362,6 +398,7 @@ function RemoveEvaluationDialog({
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
+  const returnToOpener = useReturnToOpener();
   const cache = useEvaluationCache(evaluation.clientId);
   const remove = useRemoveRiskEvaluation({ request: apiRequest });
   const [error, setError] = useState<string | null>(null);
@@ -383,7 +420,8 @@ function RemoveEvaluationDialog({
       }
     }
     toast.success('Fișa de evaluare a fost ștearsă.');
-    await navigate(afterRemove);
+    // The sheet is gone, so its entry is replaced rather than left for the browser's back.
+    if (!returnToOpener()) await navigate({ ...afterRemove, replace: true, state: keepOpener });
     await cache.removed(evaluation);
   }
 
@@ -449,6 +487,7 @@ export function RiskEvaluationError({ error }: ErrorComponentProps) {
       testId="risk-evaluation-error"
       title="Fișa de evaluare nu a putut fi încărcată"
       retryTestId="risk-evaluation-retry"
+      back={<RiskEvaluationBack />}
     />
   );
 }

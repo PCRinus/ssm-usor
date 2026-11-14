@@ -11,6 +11,8 @@ import {
   useState,
 } from 'react';
 
+import { keepOpener } from '@/app/opener';
+
 const tabBase =
   'inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-t-[10px] border border-b-0 border-border text-sm outline-none transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring';
 const tabInactive =
@@ -190,9 +192,10 @@ function SectionNavAnchor({
 
 const SectionNavTabLink = createLink(SectionNavAnchor);
 
+// The tabs of a record are one place: moving between them keeps where the record was opened from.
 export const SectionNavLink: LinkComponent<typeof SectionNavAnchor> = (props) => (
   <li className="flex shrink-0">
-    <SectionNavTabLink resetScroll={false} {...props} />
+    <SectionNavTabLink resetScroll={false} state={keepOpener} {...props} />
   </li>
 );
 

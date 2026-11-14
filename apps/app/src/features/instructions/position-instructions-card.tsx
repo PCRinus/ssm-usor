@@ -39,6 +39,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -196,7 +197,6 @@ export function PositionInstructionsCard({
   return (
     <SectionCard
       id={id}
-      headingLevel={3}
       help="instructiuni.aplicare"
       data-testid={testId('card')}
       title={
@@ -274,6 +274,7 @@ export function PositionInstructionsCard({
                   <TableCell className="min-w-40 font-medium whitespace-normal">
                     <Link
                       to="/instructiuni/$moduleId"
+                      state={openedHere}
                       params={{ moduleId: item.moduleId }}
                       className="hover:underline"
                       data-testid={testId('open')}
@@ -473,6 +474,7 @@ function PickInstructionsDialog({
                         <span className="min-w-0 flex-1">{module.title}</span>
                         <Link
                           to="/instructiuni/$moduleId"
+                          state={openedHere}
                           params={{ moduleId: module.id }}
                           target="_blank"
                           rel="noreferrer"

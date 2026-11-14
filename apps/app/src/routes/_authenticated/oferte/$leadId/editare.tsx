@@ -1,5 +1,6 @@
 import { createFileRoute, getRouteApi, Navigate } from '@tanstack/react-router';
 
+import { keepOpener } from '@/app/opener';
 import { ClientForm } from '@/features/clients/client-form';
 import { useOffersInPlan } from '@/features/clients/offers-plan';
 
@@ -14,7 +15,9 @@ function EditLeadPage() {
   const { lead } = leadRoute.useLoaderData();
   const offers = useOffersInPlan();
   if (lead.archivedAt || !offers) {
-    return <Navigate to="/oferte/$leadId" params={{ leadId: lead.id }} replace />;
+    return (
+      <Navigate to="/oferte/$leadId" params={{ leadId: lead.id }} replace state={keepOpener} />
+    );
   }
   // Keyed, so that the form starts again from the record if another one is opened.
   return <ClientForm key={lead.id} lead={lead} />;

@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 
 import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -73,7 +74,7 @@ export function LeadsPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Oferte</h1>
         {offers && (archived || !isEmptyOrLoading(listStatus, meta.total)) && (
           <Button asChild>
-            <Link to="/oferte/nou" data-testid="leads-add">
+            <Link to="/oferte/nou" state={openedHere} data-testid="leads-add">
               <Plus aria-hidden="true" />
               Adaugă ofertă
             </Link>
@@ -117,7 +118,7 @@ export function LeadsPage() {
           data={leads.data?.items}
           rowKey={rowKey}
           onRowClick={(lead) =>
-            void navigate({ to: '/oferte/$leadId', params: { leadId: lead.id } })
+            void navigate({ to: '/oferte/$leadId', params: { leadId: lead.id }, state: openedHere })
           }
           meta={meta}
           noun={['ofertă', 'oferte']}
@@ -179,7 +180,7 @@ export function LeadsPage() {
                 data-testid="leads-empty"
                 actions={
                   <Button asChild>
-                    <Link to="/oferte/nou" data-testid="leads-add">
+                    <Link to="/oferte/nou" state={openedHere} data-testid="leads-add">
                       <Plus aria-hidden="true" />
                       Adaugă prima ofertă
                     </Link>

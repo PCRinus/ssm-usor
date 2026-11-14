@@ -4,6 +4,9 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Link } from '@tanstack/react-router';
 import type { ComponentProps } from 'react';
 
+import { keepOpener } from '@/app/opener';
+import { useReturnOnClick } from '@/app/use-return-to-opener';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
@@ -31,6 +34,7 @@ const wording = {
 export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: ClientStage }) {
   const { form, onSubmit, lookup, lookupCui, stage, isSaving } = useClientForm(lead, newStage);
   const formRef = useRevealErrors(form);
+  const cancel = useReturnOnClick(lead ? `/oferte/${lead.id}` : undefined);
   const words = wording[stage];
   const {
     register,
@@ -60,11 +64,21 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
 
   return (
     <div data-testid={lead ? 'edit-lead-page' : `new-${words.testId}-page`} className="space-y-7">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">
+      <TitleWithBack
+        back={
+          lead ? (
+            <BackLink to="/oferte/$leadId" params={{ leadId: lead.id }} label="Înapoi la ofertă" />
+          ) : stage === 'lead' ? (
+            <BackLink to="/oferte" label="Înapoi la oferte" />
+          ) : (
+            <BackLink to="/clienti" label="Înapoi la clienți" />
+          )
+        }
+      >
+        <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">
           {lead ? `Modifică: ${lead.legalName}` : words.new}
         </h1>
-      </div>
+      </TitleWithBack>
       <form
         ref={formRef}
         className="grid gap-6"
@@ -145,11 +159,18 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
           </Button>
           <Button asChild type="button" variant="ghost" className="h-11">
             {lead ? (
-              <Link to="/oferte/$leadId" params={{ leadId: lead.id }}>
+              <Link
+                to="/oferte/$leadId"
+                params={{ leadId: lead.id }}
+                state={keepOpener}
+                onClick={cancel}
+              >
                 Renunță
               </Link>
             ) : (
-              <Link to={stage === 'lead' ? '/oferte' : '/clienti'}>Renunță</Link>
+              <Link to={stage === 'lead' ? '/oferte' : '/clienti'} onClick={cancel}>
+                Renunță
+              </Link>
             )}
           </Button>
         </div>

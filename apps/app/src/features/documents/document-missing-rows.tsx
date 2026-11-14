@@ -10,7 +10,7 @@ import { getGetDocumentReadinessQueryKey, useGetDocumentReadiness } from '@/api/
 import { useMe } from '@/features/account/use-me';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
 import { documentMissingGroups } from '@/features/missing-data/missing-rows';
-import { startWayBack } from '@/features/missing-data/way-back';
+import { useStartWayBack } from '@/features/missing-data/way-back';
 import { SensitiveGroupsNoneButton } from '@/features/risk-evaluations/sensitive-groups-none-button';
 
 import { setParams } from './document-sets';
@@ -41,6 +41,7 @@ export function DocumentMissingRows({
     },
   });
   const isOwner = useMe().data?.membership?.role === 'owner';
+  const startWayBack = useStartWayBack();
 
   if (readiness.isPending) return <Skeleton className="h-16 w-full" />;
   const groups = documentMissingGroups({

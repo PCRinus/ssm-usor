@@ -1,10 +1,12 @@
 import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { Archive, ArchiveRestore, Handshake, Pencil, UserCheck } from 'lucide-react';
+import { Archive, ArchiveRestore, Pencil, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
+import { openedFromRecord, openedHere } from '@/app/opener';
+import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { ClientFilesCard } from '@/features/client-files/client-files-card';
@@ -62,7 +64,7 @@ function LeadPage() {
   return (
     <div data-testid="lead-page" className="space-y-5">
       <RecordHeader
-        icon={Handshake}
+        back={<BackLink to="/oferte" label="Înapoi la oferte" />}
         title={lead.legalName}
         facts={
           <>
@@ -84,7 +86,11 @@ function LeadPage() {
             <>
               {offers && (
                 <Button asChild variant="outline" size="sm" data-testid="lead-edit">
-                  <Link to="/oferte/$leadId/editare" params={{ leadId: lead.id }}>
+                  <Link
+                    to="/oferte/$leadId/editare"
+                    params={{ leadId: lead.id }}
+                    state={openedFromRecord(`/oferte/${lead.id}`)}
+                  >
                     <Pencil aria-hidden="true" />
                     <span className="@max-md:sr-only">Modifică</span>
                   </Link>
@@ -149,7 +155,7 @@ function LeadPage() {
               <Link
                 to="/oferte/$leadId/contract"
                 params={{ leadId: lead.id }}
-                state={{ openedFromList: true }}
+                state={openedHere}
                 data-testid={testId}
               >
                 {children}

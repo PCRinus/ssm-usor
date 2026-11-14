@@ -24,6 +24,8 @@ import {
   useListClients,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { keptFieldNames } from '@/features/reload-prompts/kept-text';
@@ -211,6 +213,7 @@ export function InstructionForm({
           to: '/instructiuni/$moduleId',
           params: { moduleId: created.module.id },
           replace: true,
+          state: keepOpener,
         });
       }
       await invalidateLibrary(queryClient);
@@ -270,18 +273,28 @@ export function InstructionForm({
   return (
     <div data-testid="instruction-form" className="grid gap-5">
       <div className="grid gap-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <h1
-            className="text-2xl font-semibold tracking-tight sm:text-3xl"
-            data-testid="instruction-form-title"
-          >
-            {title}
-          </h1>
-          <Badge variant={module ? 'default' : 'outline'} data-testid="editor-state">
-            {module ? `Versiunea ${module.version.number}` : 'Nouă, nesalvată'}
-          </Badge>
-          <HelpLink topic="instructiuni.formular" label="Ajutor: scrierea unei instrucțiuni" />
-        </div>
+        <TitleWithBack
+          line="text-2xl sm:text-3xl"
+          back={
+            <BackLink
+              to={domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}
+              label="Înapoi la instrucțiunile proprii"
+            />
+          }
+        >
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1
+              className="text-2xl font-semibold tracking-tight wrap-anywhere sm:text-3xl"
+              data-testid="instruction-form-title"
+            >
+              {title}
+            </h1>
+            <Badge variant={module ? 'default' : 'outline'} data-testid="editor-state">
+              {module ? `Versiunea ${module.version.number}` : 'Nouă, nesalvată'}
+            </Badge>
+            <HelpLink topic="instructiuni.formular" label="Ajutor: scrierea unei instrucțiuni" />
+          </div>
+        </TitleWithBack>
         <p className="text-sm text-muted-foreground" data-testid="instruction-form-facts">
           {domainLabels[domain]} · {groupLabels[group]} ·{' '}
           {count === 0 ? 'fără articole încă' : articleCountLabel(count).toLowerCase()}

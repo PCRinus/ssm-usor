@@ -2,10 +2,12 @@ import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { type ErrorComponentProps, getRouteApi, Link, Outlet } from '@tanstack/react-router';
-import { Pencil, RotateCcw, UserRound, UserRoundMinus } from 'lucide-react';
+import { Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
 import { useState } from 'react';
 
+import { openedFromRecord } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { BackLink } from '@/components/back-link';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 
@@ -30,7 +32,13 @@ export function EmployeeLayout() {
   return (
     <div data-testid="employee-layout" className="space-y-5">
       <RecordHeader
-        icon={UserRound}
+        back={
+          <BackLink
+            to="/clienti/$clientId/angajati"
+            params={{ clientId }}
+            label="Înapoi la lucrători"
+          />
+        }
         title={formatEmployeeName(employee)}
         personal
         facts={
@@ -65,6 +73,7 @@ export function EmployeeLayout() {
                 <Link
                   to="/clienti/$clientId/angajati/$employeeId/editare"
                   params={{ clientId, employeeId }}
+                  state={openedFromRecord(`/clienti/${clientId}/angajati/${employeeId}`)}
                 >
                   <Pencil aria-hidden="true" />
                   Modifică
@@ -123,6 +132,7 @@ export function EmployeeNotFound() {
 }
 
 export function EmployeeError({ error }: ErrorComponentProps) {
+  const { clientId } = clientRoute.useParams();
   return (
     <RouteError
       error={error}
@@ -130,6 +140,13 @@ export function EmployeeError({ error }: ErrorComponentProps) {
       title="Lucrătorul nu a putut fi încărcat"
       retryTestId="employee-retry"
       explainForbidden
+      back={
+        <BackLink
+          to="/clienti/$clientId/angajati"
+          params={{ clientId }}
+          label="Înapoi la lucrători"
+        />
+      }
     />
   );
 }

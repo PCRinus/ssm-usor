@@ -4,6 +4,7 @@ import { Send } from 'lucide-react';
 import { useState } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
+import { openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import type { Client } from '@/features/clients/client-form-schema';
@@ -38,6 +39,7 @@ function EmployeeName({
     <h3 className="text-sm font-semibold" {...replayMask}>
       <Link
         to="/clienti/$clientId/angajati/$employeeId"
+        state={openedHere}
         params={{ clientId, employeeId }}
         className="hover:underline"
       >

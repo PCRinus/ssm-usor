@@ -13,6 +13,7 @@ import { z } from 'zod';
 
 import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -102,7 +103,7 @@ function ClientsPage() {
               Importă din documente
             </Button>
             <Button asChild>
-              <Link to="/clienti/nou" data-testid="clients-add">
+              <Link to="/clienti/nou" state={openedHere} data-testid="clients-add">
                 <Plus aria-hidden="true" />
                 Adaugă client
               </Link>
@@ -141,7 +142,11 @@ function ClientsPage() {
           data={clients.data?.items}
           rowKey={rowKey}
           onRowClick={(client) =>
-            void navigate({ to: '/clienti/$clientId/detalii', params: { clientId: client.id } })
+            void navigate({
+              to: '/clienti/$clientId/detalii',
+              params: { clientId: client.id },
+              state: openedHere,
+            })
           }
           meta={meta}
           noun={['client', 'clienți']}
@@ -209,7 +214,11 @@ function ClientsPage() {
         open={importing}
         onClose={() => setImporting(false)}
         onStarted={(importId) =>
-          void navigate({ to: '/clienti/import/$importId', params: { importId } })
+          void navigate({
+            to: '/clienti/import/$importId',
+            params: { importId },
+            state: openedHere,
+          })
         }
       />
     </div>

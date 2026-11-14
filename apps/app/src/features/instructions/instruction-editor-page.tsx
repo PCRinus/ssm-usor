@@ -1,8 +1,8 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, useLocation, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, BookOpenText, Download } from 'lucide-react';
+import { Link, useRouteContext } from '@tanstack/react-router';
+import { BookOpenText, Download } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useEditorLayout } from '@/app/editor-layout';
-import { useBackToList } from '@/app/use-back-to-list';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { editorFrameClassName, saveAs } from '@/features/documents/editor-frame';
 import { EditorPlaceholder } from '@/features/documents/editor-placeholder';
 import { warningBadge } from '@/features/documents/pack-styles';
@@ -38,10 +38,6 @@ export function InstructionEditorPage({
 }) {
   useEditorLayout();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const backToList = useBackToList();
-  const openedFromList = useLocation({
-    select: (location) => location.state.openedFromList === true,
-  });
   const query = useGetInstructionModule(moduleId, {
     request: apiRequest,
     query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
@@ -101,19 +97,11 @@ export function InstructionEditorPage({
   }
 
   const back = (
-    <Button asChild variant="ghost" size="sm">
-      <Link
-        to={module?.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}
-        data-testid="editor-back"
-        onClick={backToList}
-        aria-label={openedFromList ? 'Înapoi' : 'Înapoi la instrucțiunile proprii'}
-      >
-        <ArrowLeft aria-hidden="true" />
-        <span className="hidden sm:inline">
-          {openedFromList ? 'Înapoi' : 'Instrucțiuni proprii'}
-        </span>
-      </Link>
-    </Button>
+    <BackLink
+      to={module?.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}
+      data-testid="editor-back"
+      label="Înapoi la instrucțiunile proprii"
+    />
   );
 
   if (query.isPending || (module && !loaded && !loadError)) {
@@ -126,14 +114,15 @@ export function InstructionEditorPage({
   if (query.isError || loadError || !module || !loaded) {
     return (
       <div data-testid="editor-unavailable" role="alert" className="grid max-w-lg gap-4 py-10">
-        <h1 className="text-2xl font-semibold">Instrucțiunea nu a putut fi deschisă</h1>
+        <TitleWithBack back={back} line="text-2xl">
+          <h1 className="text-2xl font-semibold">Instrucțiunea nu a putut fi deschisă</h1>
+        </TitleWithBack>
         <p className="text-sm leading-relaxed text-muted-foreground">
           {query.isError && query.error instanceof ApiHttpError && query.error.status === 404
             ? 'Instrucțiunea nu există în bibliotecă.'
             : 'Nu am putut încărca instrucțiunea. Verifică conexiunea și încearcă din nou.'}
         </p>
         <div className="flex gap-2">
-          {back}
           <Button
             variant="outline"
             onClick={() => {
@@ -221,8 +210,9 @@ export function InstructionEditorPage({
           role="alert"
           className="grid max-w-xl gap-4 rounded-lg border p-6"
         >
-          <div className="flex justify-start">{back}</div>
-          <h1 className="text-lg font-semibold">{module.title}</h1>
+          <TitleWithBack back={back} line="text-lg">
+            <h1 className="text-lg font-semibold">{module.title}</h1>
+          </TitleWithBack>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Instrucțiunea nu a putut fi afișată. O poți descărca și citi în Word.
           </p>

@@ -5,11 +5,14 @@ import { FileText } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
+import { TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 
 import { AbandonImportDialog } from './abandon-import-dialog';
 import { ConfirmImportDialog } from './confirm-import-dialog';
 import { ImportActionBar } from './import-action-bar';
+import { ImportParentBack } from './import-back';
 import { filesLabel, uploadSummary, usageLine } from './import-format';
 import { ImportReviewIssues } from './import-review-issues';
 import { LibraryGroup, RisksGroup } from './library/library-group';
@@ -75,23 +78,31 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   return (
     <div data-testid="import-review-hub" className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid max-w-3xl gap-1">
-          {intoExisting && (
-            <span className="text-sm text-muted-foreground">Completezi clientul existent</span>
-          )}
-          <h1 className="text-3xl font-semibold tracking-tight">{name}</h1>
-          <p className="text-sm text-muted-foreground">
-            Propunere {read === 1 ? 'dintr-un fișier citit' : `din ${filesLabel(read)} citite`}
-            {summary ? ` din ${summary}` : ''}.{' '}
-            {intoExisting
-              ? 'Alegerile se salvează în propunere. Clientul se completează când confirmi.'
-              : 'Alegerile se salvează în propunere. Clientul se creează când confirmi.'}
-          </p>
-        </div>
+        <TitleWithBack
+          className="max-w-3xl"
+          back={<ImportParentBack detail={detail} />}
+          eyebrow={
+            intoExisting && (
+              <span className="text-sm text-muted-foreground">Completezi clientul existent</span>
+            )
+          }
+        >
+          <div className="grid gap-1">
+            <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
+            <p className="text-sm text-muted-foreground">
+              Propunere {read === 1 ? 'dintr-un fișier citit' : `din ${filesLabel(read)} citite`}
+              {summary ? ` din ${summary}` : ''}.{' '}
+              {intoExisting
+                ? 'Alegerile se salvează în propunere. Clientul se completează când confirmi.'
+                : 'Alegerile se salvează în propunere. Clientul se creează când confirmi.'}
+            </p>
+          </div>
+        </TitleWithBack>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <Link
               to="/clienti/import/$importId/fisiere"
+              state={openedHere}
               params={{ importId: detail.id }}
               data-testid="import-review-files"
             >
@@ -112,6 +123,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
               <li key={`${link.anchor}-${link.code}`}>
                 <Link
                   to="/clienti/import/$importId/$section"
+                  state={openedHere}
                   params={{ importId: detail.id, section: link.section }}
                   hash={link.anchor}
                   className="font-medium underline underline-offset-4"
@@ -132,6 +144,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
               <li key={path}>
                 <Link
                   to="/clienti/import/$importId/$section"
+                  state={openedHere}
                   params={{ importId: detail.id, section: sectionOf(path) }}
                   hash={anchorOf(path)}
                   className="font-medium underline underline-offset-4"
@@ -165,6 +178,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
               <li key={section}>
                 <Link
                   to="/clienti/import/$importId/$section"
+                  state={openedHere}
                   params={{ importId: detail.id, section }}
                   data-testid="import-section-link"
                   data-section={section}
@@ -219,6 +233,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
                 if (first)
                   void navigate({
                     to: '/clienti/import/$importId/$section',
+                    state: openedHere,
                     params: { importId: detail.id, section: first.section },
                     hash: first.anchor,
                   });

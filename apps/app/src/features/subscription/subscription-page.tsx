@@ -17,6 +17,7 @@ import {
   createBillingPortalSession,
   resumeSubscription,
 } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { formatRoDate } from '@/lib/dates';
@@ -275,7 +276,7 @@ function noticeFor(
   );
   const chooseLink = (label: string, search?: { plan?: PaidPlan; step?: number }) => (
     <Button className="font-semibold" asChild>
-      <Link to="/organizatie/abonament/alege" search={search}>
+      <Link to="/organizatie/abonament/alege" search={search} state={openedHere}>
         {label}
       </Link>
     </Button>

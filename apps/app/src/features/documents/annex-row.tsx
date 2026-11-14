@@ -12,6 +12,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Download, Eye, MoreHorizontal } from 'lucide-react';
 
+import { openedHere } from '@/app/opener';
 import { formatRoDate } from '@/lib/dates';
 
 import { packCells, warningBadge } from './pack-styles';
@@ -39,7 +40,7 @@ export function AnnexRow({
             to="/instructiuni/$moduleId"
             params={{ moduleId: annex.moduleId }}
             search={{ version: annex.version.id }}
-            state={{ openedFromList: true }}
+            state={openedHere}
             data-testid="document-annex-title"
             className="underline-offset-4 hover:underline"
           >
@@ -81,7 +82,7 @@ export function AnnexRow({
                 to="/instructiuni/$moduleId"
                 params={{ moduleId: annex.moduleId }}
                 search={{ version: annex.version.id }}
-                state={{ openedFromList: true }}
+                state={openedHere}
               >
                 <Eye aria-hidden="true" />
                 Deschide

@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { BookOpenCheck } from 'lucide-react';
 import { useState } from 'react';
 
+import { openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 
 import {
@@ -50,6 +51,7 @@ export function LibraryTasksNotice({ clientId }: { clientId: string }) {
               <Button asChild variant="outline" size="sm" className="bg-card">
                 <Link
                   to="/clienti/import/$importId"
+                  state={openedHere}
                   params={{ importId: item.id }}
                   data-testid="client-library-tasks-open"
                 >

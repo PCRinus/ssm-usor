@@ -2,6 +2,7 @@ import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Link } from '@tanstack/react-router';
 
 import type { OrganizationEmployeeListResponse } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
 import { formatDate } from './employee-format';
@@ -26,6 +27,7 @@ export const organizationEmployeeColumns = helper.columns([
       <>
         <Link
           to="/clienti/$clientId/angajati/$employeeId"
+          state={openedHere}
           params={{ clientId: row.original.client.id, employeeId: row.original.id }}
           data-testid="organization-employees-open"
           className="hover:underline"
@@ -48,6 +50,7 @@ export const organizationEmployeeColumns = helper.columns([
     cell: ({ row, getValue }) => (
       <Link
         to="/clienti/$clientId/detalii"
+        state={openedHere}
         params={{ clientId: row.original.client.id }}
         data-testid="organization-employees-client"
         className="block truncate hover:underline"

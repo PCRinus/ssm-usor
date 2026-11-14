@@ -1,8 +1,10 @@
-import { Link } from '@tanstack/react-router';
+import { type HistoryState, Link, type ParsedLocation } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useId } from 'react';
 
-import type { MissingAction, MissingGroup, MissingRow } from './missing-rows';
+import { keepOpener, openedHere } from '@/app/opener';
+
+import type { MissingAction, MissingGroup, MissingRow, MissingTarget } from './missing-rows';
 
 const rowClass = 'flex min-h-12 items-center gap-3 px-4 py-2.5';
 
@@ -17,16 +19,24 @@ function RowText({ row }: { row: MissingRow }) {
   );
 }
 
+// The rows mostly lead to another place of the same record, which keeps where the record was
+// opened from; a position and its sheets are records of their own, opened from the row. A list
+// shown on another record says how its rows open.
+const rowOpening = (target: MissingTarget) =>
+  target.to.startsWith('/clienti/$clientId/posturi/') ? openedHere : keepOpener;
+
 export function MissingDataList({
   groups,
   testId,
   onFollow,
   renderAction,
+  linkState = rowOpening,
 }: {
   groups: readonly MissingGroup[];
   testId: string;
   onFollow?: (row: MissingRow) => void;
   renderAction?: (action: MissingAction, row: MissingRow) => ReactNode;
+  linkState?: (target: MissingTarget) => (current: ParsedLocation['state']) => HistoryState;
 }) {
   // Unique per list: a page can show one list per client.
   const id = useId();
@@ -56,6 +66,7 @@ export function MissingDataList({
                     {row.target ? (
                       <Link
                         {...row.target}
+                        state={linkState(row.target)}
                         data-testid={`${testId}-row`}
                         onClick={() => onFollow?.(row)}
                         className={`${rowClass} outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:flex-1`}

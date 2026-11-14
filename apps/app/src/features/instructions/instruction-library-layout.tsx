@@ -3,6 +3,7 @@ import { Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
 import { PenLine } from 'lucide-react';
 import { useState } from 'react';
 
+import { openedHere } from '@/app/opener';
 import { HelpLink } from '@/components/help-link';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useAuth } from '@/features/auth/auth-context';
@@ -53,7 +54,7 @@ export function InstructionLibraryLayout() {
           void navigate({
             to: '/instructiuni/nou',
             search: values,
-            state: { openedFromList: true },
+            state: openedHere,
           });
         }}
       />

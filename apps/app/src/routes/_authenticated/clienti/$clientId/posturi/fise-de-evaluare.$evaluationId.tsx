@@ -6,6 +6,7 @@ import {
   getGetRiskEvaluationQueryOptions,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import {
   ClientRiskEvaluationPage,
   RiskEvaluationError,
@@ -15,11 +16,12 @@ import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluati
 import { evaluationTitle } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { factorListSearch } from '@/features/risk-evaluations/use-factor-list-view';
 
-// The client-level evaluations live under the positions section, where their card is, so that
-// section stays the current tab.
+// The client-level evaluations keep their address under the positions section, where their card
+// is, though they open on a page of their own.
 export const Route = createFileRoute(
   '/_authenticated/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId'
 )({
+  staticData: { fullPage: true },
   validateSearch: factorListSearch,
   params: { parse: (params) => ({ evaluationId: z.uuid().parse(params.evaluationId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
@@ -46,6 +48,7 @@ export const Route = createFileRoute(
         to: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare',
         params: { clientId: params.clientId, jobPositionId: evaluation.jobPosition.id },
         replace: true,
+        state: keepOpener,
       });
     }
     return { crumb: evaluationTitle(evaluation) };
