@@ -229,10 +229,9 @@ function RiskFactorForm({
         await store.save(factor?.id ?? null, toFactorRequest(values));
         if (!factor && addAnother) {
           // The usual corner would cover the editor's buttons, which the next factor needs.
-          savedToast(
-            'Factorul a fost adăugat. Completează-l pe următorul.',
-            phone ? 'top-center' : 'bottom-left'
-          );
+          savedToast('Factorul a fost adăugat. Completează-l pe următorul.', {
+            position: phone ? 'top-center' : 'bottom-left',
+          });
           next.current = { component: values.component, group: values.group };
           return;
         }

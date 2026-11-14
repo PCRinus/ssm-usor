@@ -36,7 +36,7 @@ import {
   documentMissingGroups,
   missingCountLabel,
 } from '@/features/missing-data/missing-rows';
-import { startWayBack } from '@/features/missing-data/way-back';
+import { useStartWayBack } from '@/features/missing-data/way-back';
 import { SensitiveGroupsNoneButton } from '@/features/risk-evaluations/sensitive-groups-none-button';
 import { dateToIso } from '@/lib/dates';
 
@@ -120,6 +120,7 @@ function GenerateDocumentsForm({
   const generate = useGenerateClientDocuments({ request: apiRequest });
   // Only an owner can fill in the organization's details; a specialist is told whom to ask.
   const isOwner = useMe().data?.membership?.role === 'owner';
+  const startWayBack = useStartWayBack();
   const form = useForm<GenerateDocumentsFormValues>({
     resolver: zodResolver(generateDocumentsFormSchema(set)),
     defaultValues: {

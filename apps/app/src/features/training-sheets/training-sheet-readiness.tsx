@@ -18,7 +18,7 @@ import {
   missingCountLabel,
   trainingSheetMissingGroups,
 } from '@/features/missing-data/missing-rows';
-import { startWayBack } from '@/features/missing-data/way-back';
+import { useStartWayBack } from '@/features/missing-data/way-back';
 
 import { useTrainingSheets } from './use-training-sheets';
 
@@ -34,6 +34,7 @@ export function TrainingSheetReadiness({
   const { session } = useAuth();
   const readiness = useTrainingSheets(clientId, employeeId);
   const [open, setOpen] = useState(false);
+  const startWayBack = useStartWayBack();
   const sheet = readiness.data?.[domain];
   const label = trainingDomainLabels[domain];
 

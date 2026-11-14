@@ -66,7 +66,6 @@ export function TitleWithBack({
   children,
 }: {
   back: ReactNode;
-  // A line above the title, which the arrow leaves alone so it stays on the title's line.
   eyebrow?: ReactNode;
   className?: string;
   children: ReactNode;

@@ -1,4 +1,5 @@
 import { builtInDocumentTypeKeySchema, trainingDomainSchema } from '@ssm-usor/contracts';
+import { useRouter } from '@tanstack/react-router';
 import { useEffect, useSyncExternalStore } from 'react';
 import { z } from 'zod';
 
@@ -27,6 +28,9 @@ const wayBackSchema = z
     typeKey: builtInDocumentTypeKeySchema.optional(),
     employeeId: z.uuid().optional(),
     domain: trainingDomainSchema.optional(),
+    // The history entry the trip left from, so the way back can return to it instead of
+    // adding a copy when the page it reached was opened from there.
+    from: z.object({ index: z.number(), pathname: z.string() }).optional(),
     startedAt: z.number(),
   })
   .refine((wayBack) => wayBack.to !== 'document' || wayBack.typeKey !== undefined)
@@ -65,6 +69,18 @@ function subscribe(listener: () => void) {
 
 export const startWayBack = (wayBack: Omit<WayBack, 'startedAt'>) =>
   write(JSON.stringify({ ...wayBack, startedAt: Date.now() }));
+
+export function useStartWayBack() {
+  const router = useRouter();
+  return (wayBack: Omit<WayBack, 'startedAt' | 'from'>) =>
+    startWayBack({
+      ...wayBack,
+      from: {
+        index: router.history.location.state.__TSR_index,
+        pathname: router.state.location.pathname,
+      },
+    });
+}
 
 export const endWayBack = () => write(null);
 

@@ -135,7 +135,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       // The position just gained a person, whether it was new or not.
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       if (employee) {
-        savedToast('Datele lucrătorului au fost salvate.');
+        savedToast('Datele lucrătorului au fost salvate.', { returning: true });
         if (returnToRecord()) return;
         await navigate({
           to: '/clienti/$clientId/angajati/$employeeId',
