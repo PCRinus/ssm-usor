@@ -4,9 +4,11 @@ import { useRef, useState } from 'react';
 
 import {
   type ClientFileResponse,
+  getGetEarlierInstructionsQueryKey,
   getGetMeQueryKey,
   getListClientFilesQueryKey,
   getUploadClientFileUrl,
+  type UploadClientFileParams,
 } from '@/api/generated/api';
 import { apiUpload } from '@/api/http';
 import { isReadOnlyError } from '@/features/subscription/read-only';
@@ -22,7 +24,9 @@ export type ChosenFile = {
   error: string | null;
 };
 
-type Job = { key: string; file: File; ownersOnly: boolean; batch: Batch };
+type Extra = Pick<UploadClientFileParams, 'earlierInstructionsDomain' | 'validUntil'>;
+
+type Job = { key: string; file: File; ownersOnly: boolean; extra: Extra; batch: Batch };
 
 type Batch = { remaining: number; uploaded: string[]; failed: number };
 
@@ -49,7 +53,11 @@ export function useClientFileUploads(
   clientId: string,
   employeeId: string | undefined,
   initialFiles: File[],
-  onAllUploaded: () => void
+  onAllUploaded: () => void,
+  announce: (uploaded: string[]) => string = (uploaded) =>
+    uploaded.length === 1
+      ? `„${uploaded[0]}” a fost încărcat.`
+      : `Au fost încărcate ${fileCountLabel(uploaded.length)}.`
 ) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const [chosen, setChosen] = useState<ChosenFile[]>(() => initialFiles.map(choose));
@@ -65,11 +73,7 @@ export function useClientFileUploads(
   function settle(batch: Batch) {
     batch.remaining -= 1;
     if (batch.remaining > 0 || batch.failed > 0) return;
-    toast.success(
-      batch.uploaded.length === 1
-        ? `„${batch.uploaded[0]}” a fost încărcat.`
-        : `Au fost încărcate ${fileCountLabel(batch.uploaded.length)}.`
-    );
+    toast.success(announce(batch.uploaded));
     onAllUploaded();
   }
 
@@ -81,6 +85,7 @@ export function useClientFileUploads(
           fileName: job.file.name,
           ownersOnly: job.ownersOnly ? 'true' : 'false',
           employeeId,
+          ...job.extra,
         }),
         job.file,
         {
@@ -91,6 +96,11 @@ export function useClientFileUploads(
       );
       job.batch.uploaded.push(file.name);
       await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(clientId) });
+      if (job.extra.earlierInstructionsDomain) {
+        await queryClient.invalidateQueries({
+          queryKey: getGetEarlierInstructionsQueryKey(clientId),
+        });
+      }
       change(job.key, { state: 'uploaded', percent: 100 });
     } catch (cause) {
       if (isReadOnlyError(cause))
@@ -125,7 +135,7 @@ export function useClientFileUploads(
   const remove = (key: string) =>
     setChosen((current) => current.filter((entry) => entry.key !== key));
 
-  function start(ownersOnly: boolean) {
+  function start(ownersOnly: boolean, extra: Extra = {}) {
     const ready = chosen.filter((entry) => entry.state === 'ready');
     if (started || ready.length === 0) return;
     setStarted(true);
@@ -133,7 +143,7 @@ export function useClientFileUploads(
       current.map((entry) => (entry.state === 'ready' ? { ...entry, state: 'waiting' } : entry))
     );
     const batch: Batch = { remaining: ready.length, uploaded: [], failed: 0 };
-    queue.current.push(...ready.map(({ key, file }) => ({ key, file, ownersOnly, batch })));
+    queue.current.push(...ready.map(({ key, file }) => ({ key, file, ownersOnly, extra, batch })));
     pump();
   }
 

@@ -14,8 +14,10 @@ import type { MouseEvent } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
 import { rowClickProps } from '@/components/data-table/row-click';
+import { formatRoDate } from '@/lib/dates';
 
 import { type ClientFile, fileKind, formatFileSize, formatUploadDate } from './client-file-format';
+import { instructionsName } from './earlier-instructions';
 
 type FileAnchor = {
   href: string;
@@ -83,7 +85,18 @@ export function FileRow({
               {file.name}
             </a>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span data-testid="client-file-kind">{kind.label}</span>
+              {file.earlierInstructions ? (
+                <>
+                  <Badge variant="secondary" data-testid="client-file-instructions">
+                    {instructionsName[file.earlierInstructions.domain]}
+                  </Badge>
+                  <span className="tabular-nums" data-testid="client-file-valid-until">
+                    valabile până la {formatRoDate(file.earlierInstructions.validUntil)}
+                  </span>
+                </>
+              ) : (
+                <span data-testid="client-file-kind">{kind.label}</span>
+              )}
               {file.importRead === false && (
                 <>
                   <Badge variant="secondary" data-testid="client-file-unread">
