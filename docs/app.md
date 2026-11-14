@@ -204,10 +204,10 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/$clientId/angajati/import/$importId/index.tsx`         | `/clienti/:id/angajati/import/:importId`               | The employee import: its steps and photographs while it runs, the people hub once it is ready.                                                                                                             |
 | `routes/_authenticated/clienti/$clientId/angajati/import/$importId/$personId.tsx`     | `/clienti/:id/angajati/import/:importId/:personId`     | One person of the import, by the proposal's id; the loader names the browser tab after them.                                                                                                               |
 | `routes/_authenticated/clienti/$clientId/posturi/index.tsx`                           | `/clienti/:id/posturi`                                 | The client's job positions (ADR 006): the posts it employs people in, then the risk evaluations that are not of a position (ADR 015).                                                                      |
-| `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId.tsx`                  | `/clienti/:id/posturi/:jobPositionId`                  | Layout of one position: finds it in the client's list of positions and names the browser tab.                                                                                                              |
+| `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId.tsx`                  | `/clienti/:id/posturi/:jobPositionId`                  | Layout of one position, a full page: finds it in the client's list of positions and names the browser tab.                                                                                                 |
 | `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/index.tsx`            | `/clienti/:id/posturi/:jobPositionId`                  | One position with its protective equipment (ADR 011), the instruction modules it applies (ADR 012) and its risk evaluation (ADR 015).                                                                      |
 | `routes/_authenticated/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare.tsx` | `/clienti/:id/posturi/:jobPositionId/fisa-de-evaluare` | The position's risk evaluation, read by the position; offers to start one while there is none.                                                                                                             |
-| `routes/_authenticated/clienti/$clientId/posturi/fise-de-evaluare.$evaluationId.tsx`  | `/clienti/:id/posturi/fise-de-evaluare/:evaluationId`  | A risk evaluation that is not of a position: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                                     |
+| `routes/_authenticated/clienti/$clientId/posturi/fise-de-evaluare.$evaluationId.tsx`  | `/clienti/:id/posturi/fise-de-evaluare/:evaluationId`  | A risk evaluation that is not of a position, a full page: the sensitive groups, or one with a name. A position's evaluation found here redirects to its address under the position.                        |
 | `routes/_authenticated/angajati/index.tsx`                                            | `/angajati`                                            | "Angajați" (ADR 021), the sidebar entry after "Clienți": every client's employees in one list, with the status, client and state filters, the text search and the sort in the search params.               |
 | `routes/_authenticated/instructiuni.tsx`                                              | `/instructiuni`                                        | Layout of the instruction library (ADR 012), the sidebar entry "Instrucțiuni proprii" (ADR 034) between the clients and the organization.                                                                  |
 | `routes/_authenticated/instructiuni/index.tsx`                                        | `/instructiuni`                                        | Opens the SSM tab, `/instructiuni/ssm`.                                                                                                                                                                    |
@@ -523,14 +523,13 @@ index; the tabs of a record (`SectionNavLink`), its in-page search changes and i
 pass `keepOpener` on. While the index is there the arrow is labelled "Înapoi" and goes back
 through history to the opener, filters and scroll included; opened from a pasted link or a new
 tab, it is a plain link to the page above, which a middle or modified click also opens.
-A position and the evaluation sheets show inside the client's page, so they belong to the
-client: the links to them from the client's own page pass `keepOpener` (from another page, such
-as a worker's training tab or a library evaluation, they pass `openedHere`), and their own arrow
-is `up`, always the page above, leaving the opener to the client's arrow. A page that ends by
-returning to the record it was opened from, as an edit form on save or **Renunță**, is opened
-with `openedFromRecord(path)` and goes back through history only when that record opened it;
-otherwise it pushes the record with `keepOpener`. Error cards and loading states of a nested
-page carry the arrow too. Full pages under a client name it (`ClientFact`), since they have no
+A client's tabs show lists; a record opened from one, a worker, a position or an evaluation
+sheet, is a full page (`staticData.fullPage`) with its own arrow, opened with `openedHere` like
+any other record. A page that ends by returning to the record it was opened from, as an edit
+form on save or **Renunță**, is opened with `openedFromRecord(path)` and goes back through
+history only when that record opened it; otherwise it pushes the record with `keepOpener`.
+Error cards and loading states of a nested page carry the arrow too. Full pages under a client
+name it (`ClientFact`, or `CurrentClientHeaderFact` in a record header), since they have no
 client header.
 The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting a
 mobile navigation link closes the Sheet. An entry of `navigation` may have `children`, its
@@ -724,7 +723,8 @@ their tab bars read.
 - `/clienti/:clientId/posturi/:jobPositionId`: a position's page, full page like an
   employee's, in `src/features/protective-equipment/` ([ADR 011](architecture/adr-011-protective-equipment.md)).
   There is no request for one position: the page reads the client's list, which the section
-  already cached, and is not found when the position is not in it. It shows the interval,
+  already cached, and is not found when the position is not in it. Its record header names the
+  client and the current employee count. It shows the interval,
   the employee count linking to "Angajați", the activities, "Modifică" opening the same
   dialog, and the "Echipament individual de protecție" card over
   `GET …/job-positions/{id}/equipment`. An undecided post shows why it matters and the
@@ -1486,11 +1486,12 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   evaluation page, as does the row menu. Below the table, the card "Fișe de evaluare în afara
   posturilor" lists the sensitive groups, with "Începe evaluarea" while they have none, and
   the evaluations with a name; "Adaugă o fișă" asks for the name, and a `409` with
-  `risk_evaluation_name_taken` goes on the field. These evaluations open under
-  `/clienti/:clientId/posturi/fise-de-evaluare/:evaluationId`, so "Posturi de lucru"
-  stays the current tab.
-- The evaluation page is the same for both: a header with "Fișa de evaluare" above the title and "Șterge fișa…", which asks
-  first and returns to the position or to the positions; "Rezultatul evaluării", with the
+  `risk_evaluation_name_taken` goes on the field. These evaluations open on a page of their own
+  under `/clienti/:clientId/posturi/fise-de-evaluare/:evaluationId`, the address of the
+  section where their card is.
+- The evaluation page is the same for both, a full page: a record header titled "Fișa de evaluare · " and the
+  position or the evaluation's name, the position (for a position's) and the client as links under it,
+  and "Șterge fișa…", which asks first and returns to the position or to the positions; "Rezultatul evaluării", with the
   global level to two decimals, "Acceptabil" or "Peste limita acceptabilă" (3,50), the counts,
   and each component's share as a percentage and a bar (`componentShares`); "Sistemul de
   muncă", edited in place, with the means of production, the work environment and the
