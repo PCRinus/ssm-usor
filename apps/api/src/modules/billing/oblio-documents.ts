@@ -42,9 +42,13 @@ export type BillingOrganization = {
 
 export type PaidInvoiceLine = {
   description: string;
-  // Euro cents, before VAT.
+  // Euro cents, VAT included when `vatIncluded`, before VAT otherwise.
   unitAmount: number;
   quantity: number;
+  vatIncluded: boolean;
+  // What a line sent as one unit with its VAT included was counted in: 7 codes at 0.10 €.
+  counted?: { quantity: number; unitAmount: number };
+  // As Stripe gives it: `end` is the moment the next period starts.
   period: { start: Date; end: Date } | null;
 };
 
@@ -67,23 +71,68 @@ const romanianDate = new Intl.DateTimeFormat('ro-RO', {
   year: 'numeric',
 });
 
+const bucharestDay = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Bucharest',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const utcDate = new Intl.DateTimeFormat('ro-RO', {
+  timeZone: 'UTC',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
+// Stripe's period ends at the moment the next one starts, so the last day covered is the calendar
+// day before it in Romania; taking 24 hours off would land on the wrong day across a change of
+// summer time.
+export function periodText(start: Date, end: Date) {
+  const [year, month, day] = bucharestDay.format(end).split('-').map(Number);
+  const dayBefore = new Date(Date.UTC(year!, month! - 1, day! - 1));
+  const startDay = bucharestDay.format(start);
+  const last =
+    dayBefore.toISOString().slice(0, 10) < startDay
+      ? romanianDate.format(start)
+      : utcDate.format(dayBefore);
+  return `Perioada ${romanianDate.format(start)} – ${last}`;
+}
+
+const withFullStop = (sentence: string) => (sentence.endsWith('.') ? sentence : `${sentence}.`);
+
 const euros = (cents: number) => Math.round(cents) / 100;
 
+const romanianEuros = new Intl.NumberFormat('ro-RO', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function lineDescription(line: PaidInvoiceLine) {
+  const parts = [
+    line.counted &&
+      `${line.counted.quantity} × ${romanianEuros.format(line.counted.unitAmount / 100)} € fără TVA`,
+    line.period && periodText(line.period.start, line.period.end),
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join('. ') : undefined;
+}
+
 function products(lines: PaidInvoiceLine[]): OblioProduct[] {
-  return lines.map((line) => ({
-    name: line.description,
-    ...(line.period && {
-      description: `Perioada ${romanianDate.format(line.period.start)} – ${romanianDate.format(line.period.end)}`,
-    }),
-    price: euros(line.unitAmount),
-    measuringUnit: 'buc',
-    currency: 'EUR',
-    vatName: 'Normala',
-    vatPercentage,
-    vatIncluded: 0,
-    quantity: line.quantity,
-    productType: 'Serviciu',
-  }));
+  return lines.map((line) => {
+    const description = lineDescription(line);
+    return {
+      name: line.description,
+      ...(description && { description }),
+      price: euros(line.unitAmount),
+      measuringUnit: 'buc',
+      currency: 'EUR',
+      vatName: 'Normala',
+      vatPercentage,
+      vatIncluded: line.vatIncluded ? 1 : 0,
+      quantity: line.quantity,
+      productType: 'Serviciu',
+    };
+  });
 }
 
 function realClient(organization: BillingOrganization): OblioClientDetails {
@@ -120,7 +169,7 @@ export function toOblioDocument(
       language: 'RO',
       currency: 'EUR',
       products: products(invoice.lines),
-      mentions: `Proformă de test, fără valoare fiscală, pentru ${organization.name}.`,
+      mentions: withFullStop(`Proformă de test, fără valoare fiscală, pentru ${organization.name}`),
       internalNote: `Stripe ${invoice.id}`,
       sendEmail: 0,
       idempotencyKey: invoice.id,

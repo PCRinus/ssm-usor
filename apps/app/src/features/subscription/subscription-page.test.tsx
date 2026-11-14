@@ -531,6 +531,143 @@ describe('the Abonament tab', () => {
     expect(await screen.findByText('Abonamentul se reînnoiește din nou.')).toBeTruthy();
   });
 
+  describe('with a cancellation pending', () => {
+    const used = {
+      sms: { enabled: true, ceilingCents: 200, limit: 20, used: 20, spentCents: 200 },
+      credits: { enabled: true, ceilingCents: 300, limit: 200, used: 200, spentCents: 300 },
+    };
+    const unused = {
+      sms: { enabled: true, ceilingCents: 200, limit: 20, used: 0, spentCents: 0 },
+      credits: { enabled: false, ceilingCents: null, limit: null, used: null, spentCents: null },
+    };
+    const canceling = (
+      extras: Pick<BillingOverview['extras'], 'sms' | 'credits'>,
+      subscription = activeSubscription({
+        plan: 'start',
+        interval: 'month',
+        step: 250,
+        accessUntil: inDays(15),
+        cancelsAt: inDays(15),
+      }),
+      monthEnd = inDays(15),
+      owner: Owner | null = ownerPart()
+    ): BillingOverview => {
+      const overview = overviewWith({ subscription, owner, sms: { periodEnd: monthEnd } });
+      return { ...overview, extras: { ...overview.extras, unavailable: null, ...extras } };
+    };
+
+    it('says the plan is not paid again and the extras used come on a last invoice', async () => {
+      mockApi({ overview: canceling(used) });
+      mount();
+
+      const card = await screen.findByTestId('plan-card');
+      const amount = within(card).getByTestId('plan-amount').textContent;
+      expect(amount).toContain('6,05 €');
+      expect(amount).toContain(`pe ${roDate(inDays(15))}, cu TVA, doar extra`);
+      expect(card.textContent).toContain(
+        'Start, până la 250 de lucrători, lunarNu se mai plătește'
+      );
+      const extras = within(card).getByTestId('plan-extras').textContent;
+      expect(extras).toContain('20 de coduri SMS extra, până azi2 €');
+      expect(extras).toContain('200 de credite AI extra, până azi3 €');
+      expect(extras).toContain(`Extra cu TVA, pe factura din ${roDate(inDays(15))}6,05 €`);
+      expect(within(card).getByTestId('plan-note').textContent).toBe(
+        `Extra rămâne pornit până pe ${roDate(inDays(15))}. Ce folosești până atunci vine pe o factură din ${roDate(inDays(15))}.`
+      );
+    });
+
+    it('bills an annual plan’s extras at the end of the month, until the end', async () => {
+      const subscription = activeSubscription({
+        plan: 'profesional',
+        interval: 'year',
+        accessUntil: inDays(126),
+        cancelsAt: inDays(126),
+      });
+      mockApi({ overview: canceling(used, subscription, inDays(14)) });
+      mount();
+
+      const card = await screen.findByTestId('plan-card');
+      expect(within(card).getByTestId('plan-amount').textContent).toContain(
+        `pe ${roDate(inDays(14))}, cu TVA, doar extra`
+      );
+      expect(within(card).getByTestId('plan-extras').textContent).toContain(
+        `Extra cu TVA, pe factura din ${roDate(inDays(14))}6,05 €`
+      );
+      expect(within(card).getByTestId('plan-note').textContent).toBe(
+        `Extra rămâne pornit până pe ${roDate(inDays(126))} și se facturează lunar. Ce folosești în ultima lună vine pe o factură din ${roDate(inDays(126))}.`
+      );
+    });
+
+    it('says there is no further payment while no extra was used', async () => {
+      mockApi({ overview: canceling(unused) });
+      mount();
+
+      const card = await screen.findByTestId('plan-card');
+      const amount = within(card).getByTestId('plan-amount').textContent;
+      expect(amount).toContain('Niciuna');
+      expect(amount).toContain(`ai plătit până pe ${roDate(inDays(15))}`);
+      expect(within(card).queryByTestId('plan-extras')).toBeNull();
+      expect(within(card).getByTestId('plan-note').textContent).toContain(
+        `Extra rămâne pornit până pe ${roDate(inDays(15))}.`
+      );
+    });
+
+    it('promises no invoice for extras while a payment is overdue, since they stop', async () => {
+      const subscription = activeSubscription({
+        status: 'past_due',
+        interval: 'month',
+        accessUntil: inDays(9),
+        cancelsAt: inDays(9),
+      });
+      mockApi({ overview: canceling(used, subscription) });
+      mount();
+
+      const card = await screen.findByTestId('plan-card');
+      expect(within(card).getByTestId('plan-amount').textContent).toContain('Niciuna');
+      expect(card.textContent).not.toContain('Nu se mai plătește');
+      expect(within(card).queryByTestId('plan-extras')).toBeNull();
+      expect(within(card).queryByTestId('plan-note')).toBeNull();
+    });
+
+    it('still shows the extras used after they were turned off', async () => {
+      mockApi({
+        overview: canceling({
+          sms: { enabled: false, ceilingCents: null, limit: null, used: 12, spentCents: 120 },
+          credits: unused.credits,
+        }),
+      });
+      mount();
+
+      const card = await screen.findByTestId('plan-card');
+      expect(within(card).getByTestId('plan-amount').textContent).toContain('1,45 €');
+      expect(within(card).getByTestId('plan-extras').textContent).toContain(
+        '12 coduri SMS extra, până azi1,20 €'
+      );
+      expect(within(card).queryByTestId('plan-note')).toBeNull();
+    });
+
+    it('shows a specialist no amounts', async () => {
+      mockApi({
+        overview: canceling(
+          {
+            sms: { enabled: true, ceilingCents: null, limit: null, used: null, spentCents: null },
+            credits: unused.credits,
+          },
+          undefined,
+          undefined,
+          null
+        ),
+        role: 'specialist',
+      });
+      mount();
+
+      const card = await screen.findByTestId('plan-card');
+      expect(within(card).queryByTestId('plan-amount')).toBeNull();
+      expect(within(card).queryByTestId('plan-extras')).toBeNull();
+      expect(card.textContent).not.toContain('€');
+    });
+  });
+
   it('dates a cancellation while a payment is overdue by the end of the retries', async () => {
     mockApi({
       overview: overviewWith({
@@ -575,7 +712,7 @@ describe('the Abonament tab', () => {
     expect(within(screen.getByTestId('plan-card')).getByTestId('subscription-resume')).toBeTruthy();
   });
 
-  it('shows an annual renewal at the choice a change set for it', async () => {
+  it('shows an annual renewal at the choice a change set for it, headline and breakdown alike', async () => {
     const subscription = activeSubscription({ plan: 'profesional', interval: 'year' });
     mockApi({
       overview: overviewWith({
@@ -592,7 +729,48 @@ describe('the Abonament tab', () => {
     });
     mount();
 
-    expect((await screen.findByTestId('plan-amount')).textContent).toContain('711,48 €');
+    const card = await screen.findByTestId('plan-card');
+    expect(within(card).getByTestId('plan-amount').textContent).toContain('711,48 €');
+    const breakdown = card.textContent!.split('De pe')[0]!;
+    expect(breakdown).toContain('Start, până la 500 de lucrători, anual');
+    expect(breakdown).toContain('Total pe an711,48 €');
+    expect(breakdown).not.toContain('Profesional, până la');
+    expect(within(card).getByTestId('plan-note').textContent).toContain(
+      'treci la Start, până la 500 de lucrători, anual'
+    );
+  });
+
+  it('shows a monthly renewal at the choice a change set for it, headline and breakdown alike', async () => {
+    const subscription = activeSubscription({ plan: 'profesional', interval: 'month' });
+    mockApi({
+      overview: overviewWith({
+        subscription,
+        owner: ownerPart({
+          scheduledChange: {
+            plan: 'start',
+            step: 500,
+            interval: 'month',
+            at: subscription.currentPeriodEnd!,
+          },
+          nextPayment: {
+            at: subscription.currentPeriodEnd!,
+            subtotalCents: 5900,
+            vatCents: 1239,
+            totalCents: 7139,
+          },
+          extrasInPreviewCents: 0,
+        }),
+      }),
+    });
+    mount();
+
+    const card = await screen.findByTestId('plan-card');
+    expect(within(card).getByTestId('plan-amount').textContent).toContain('71,39 €');
+    const breakdown = card.textContent!.split('De pe')[0]!;
+    expect(breakdown).toContain('Start, până la 500 de lucrători, lunar59 €');
+    expect(breakdown).toContain('Total pe lună71,39 €');
+    expect(breakdown).not.toContain('Profesional, până la');
+    expect(breakdown).not.toContain('Diferența pentru schimbarea de plan');
   });
 
   it('says cancelling drops a change set for the renewal', async () => {
@@ -1048,6 +1226,25 @@ describe('the Extra card', () => {
     expect(within(plan).getByText('Diferența pentru schimbarea de plan')).toBeTruthy();
     expect(within(plan).getByText('37 de coduri SMS extra, până azi')).toBeTruthy();
     expect(within(plan).getByTestId('plan-amount').textContent).toContain(roDate(inDays(10)));
+  });
+
+  it('never shows less than the extras Stripe’s preview already holds', async () => {
+    mockApi({
+      overview: withExtras(
+        { sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 0, spentCents: 0 } },
+        {
+          owner: ownerPart({
+            nextPayment: { at: inDays(10), subtotalCents: 14900 + 200, vatCents: 0, totalCents: 0 },
+            extrasInPreviewCents: 200,
+          }),
+        }
+      ),
+    });
+    mount();
+    const plan = await screen.findByTestId('plan-card');
+    expect(plan.textContent).toContain('Extra2 €');
+    expect(within(plan).queryByText('Diferența pentru schimbarea de plan')).toBeNull();
+    expect(within(plan).getByTestId('plan-amount').textContent).toContain('182,71 €');
   });
 
   it('prices the next payment at the plan a change sets for the renewal', async () => {

@@ -14,6 +14,7 @@ import {
   shouldIssue,
   toOblioDocument,
   toStorno,
+  vatPercentage,
 } from './oblio-documents';
 import { parseLookupKey } from './rules';
 import {
@@ -79,30 +80,59 @@ function lineName(line: Stripe.InvoiceLineItem, catalogue: StripeCatalogue) {
     : `${name}: diferența pentru perioada rămasă`;
 }
 
+export const lineTax = (line: Stripe.InvoiceLineItem) =>
+  (line.taxes ?? []).reduce((sum, tax) => sum + tax.amount, 0);
+
+// Oblio works out each line's VAT itself, to the cent. Stripe rounds the invoice's VAT once and
+// spreads it over the lines, so a line can carry the cent the other way. A VAT of exactly half a
+// cent is left to no rounding rule: such a line goes with its VAT included.
+export function oblioRoundsAsStripe(net: number, tax: number) {
+  const exact = Math.abs(net) * vatPercentage;
+  if (exact % 100 === 50) return false;
+  return Math.sign(net) * Math.round(exact / 100) === tax;
+}
+
 // Stripe writes its line descriptions in English, so the invoice names the catalogue's products.
 // A prorated line is not unit × quantity, so it goes as one unit of its amount; a credit as a
-// negative quantity, the way a Romanian invoice shows a reduction.
+// negative quantity, the way a Romanian invoice shows a reduction. A line whose VAT Oblio would
+// not round as Stripe did goes with its VAT included, as one unit, so the document's total is the
+// amount charged (ADR 029, amendment "the invoice total is the amount charged").
 export function toPaidLines(
   lines: Stripe.InvoiceLineItem[],
   catalogue: StripeCatalogue
 ): PaidInvoiceLine[] {
   return lines
-    .filter((line) => line.amount !== 0)
+    .filter((line) => line.amount !== 0 || lineTax(line) !== 0)
     .map((line) => {
+      const tax = lineTax(line);
+      const vatIncluded = !oblioRoundsAsStripe(line.amount, tax);
+      const amount = vatIncluded ? line.amount + tax : line.amount;
       const quantity = line.quantity && line.quantity > 0 ? line.quantity : 1;
-      const exact = line.amount % quantity === 0;
-      const units = exact ? quantity : 1;
-      const unitAmount = Math.abs(line.amount) / units;
+      const perUnit = line.amount % quantity === 0 ? Math.abs(line.amount) / quantity : null;
+      const units = !vatIncluded && perUnit !== null ? quantity : 1;
       return {
         description: lineName(line, catalogue),
-        unitAmount,
-        quantity: line.amount < 0 ? -units : units,
+        unitAmount: Math.abs(amount) / units,
+        quantity: amount < 0 ? -units : units,
+        vatIncluded,
+        ...(vatIncluded &&
+          quantity > 1 &&
+          perUnit !== null && { counted: { quantity, unitAmount: perUnit } }),
         period: {
           start: new Date(line.period.start * 1000),
           end: new Date(line.period.end * 1000),
         },
       };
     });
+}
+
+export function checkLinesMakeTotal(invoice: Stripe.Invoice, lines: Stripe.InvoiceLineItem[]) {
+  const sum = lines.reduce((total, line) => total + line.amount + lineTax(line), 0);
+  if (sum !== invoice.total) {
+    throw new Error(
+      `Stripe invoice ${invoice.id}: its lines with their VAT make ${sum} cents, not the ${invoice.total} charged; no Oblio document was issued.`
+    );
+  }
 }
 
 async function allLines(stripe: Stripe, invoice: Stripe.Invoice) {
@@ -185,6 +215,43 @@ async function adoptFirstSubscription(
   return loadSubscription(deps.db, organizationId);
 }
 
+// The document is issued and numbered by now, so a difference is recorded for a person to settle
+// with a storno; failing the event would only retry what cannot change.
+async function compareTotals(deps: InvoiceDeps, row: InvoiceRow, organizationId: string) {
+  const series = row.oblio_series!;
+  const number = row.oblio_number!;
+  const details = {
+    stripe_invoice: row.stripe_invoice_id,
+    oblio_document: `${series}-${number}`,
+    stripe_total_cents: row.amount_cents,
+  };
+  let oblioTotal: number;
+  try {
+    oblioTotal = await oblioFor(deps).documentTotalCents(row.kind, series, number);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(
+      `Oblio ${row.kind} ${series} ${number} for Stripe invoice ${row.stripe_invoice_id}: its total could not be checked against the ${row.amount_cents} cents charged: ${message}`
+    );
+    await recordChange(deps.db, organizationId, {
+      source: 'stripe',
+      change: 'oblio_total_unchecked',
+      reason: message,
+      details,
+    });
+    return;
+  }
+  if (oblioTotal === row.amount_cents) return;
+  console.error(
+    `Oblio ${row.kind} ${series} ${number} totals ${oblioTotal} cents, but Stripe invoice ${row.stripe_invoice_id} charged ${row.amount_cents}.`
+  );
+  await recordChange(deps.db, organizationId, {
+    source: 'stripe',
+    change: 'oblio_total_mismatch',
+    details: { ...details, oblio_total_cents: oblioTotal },
+  });
+}
+
 // Each step checks what is already done, so a retried event finishes the work without issuing
 // twice; Oblio's idempotency key covers a crash between its answer and our write.
 export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
@@ -240,6 +307,7 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
       throw new Error(`Organization ${organizationId} lacks its company name, CUI or an email.`);
     }
     const lines = await allLines(stripe, invoice);
+    checkLinesMakeTotal(invoice, lines);
     const request = toOblioDocument(
       row.kind,
       { ...company, name: company.name, cui: company.cui, recipientEmail },
@@ -253,6 +321,7 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     );
     const document = await oblioFor(deps).issue(request);
     row = await updateInvoice(deps.db, invoice.id, issued(document));
+    await compareTotals(deps, row, organizationId);
   }
   const stored = await storePdf(deps, row);
   // Stripe delivers the event again, and the first payment and its credits are recorded then.

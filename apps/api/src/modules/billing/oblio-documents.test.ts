@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type BillingOrganization,
   type PaidStripeInvoice,
+  periodText,
   shouldIssue,
   testClient,
   toOblioDocument,
@@ -27,12 +28,19 @@ const invoice: PaidStripeInvoice = {
       description: 'SSM Ușor Start, abonament lunar',
       unitAmount: 3900,
       quantity: 1,
+      vatIncluded: false,
       period: {
         start: new Date('2026-11-01T00:00:00+02:00'),
-        end: new Date('2026-11-30T23:59:59+02:00'),
+        end: new Date('2026-12-01T00:00:00+02:00'),
       },
     },
-    { description: 'Pachet 50 de angajați', unitAmount: 1500, quantity: 2, period: null },
+    {
+      description: 'Pachet 50 de angajați',
+      unitAmount: 1500,
+      quantity: 2,
+      vatIncluded: false,
+      period: null,
+    },
   ],
   total: 8349,
   paymentReference: 'pi_3QxYzAbC',
@@ -117,6 +125,18 @@ describe('Oblio documents', () => {
     expect(testClient.save).toBe(0);
   });
 
+  it('ends the note with one full stop when the company name already ends with one', () => {
+    const { payload } = toOblioDocument(
+      'proforma',
+      { ...organization, name: 'S.C. SERVICIU EXTERN E2E S.R.L.' },
+      invoice
+    );
+
+    expect(payload.mentions).toBe(
+      'Proformă de test, fără valoare fiscală, pentru S.C. SERVICIU EXTERN E2E S.R.L.'
+    );
+  });
+
   it('leaves out the client fields the organization has not filled in', () => {
     const { payload } = toOblioDocument(
       'invoice',
@@ -152,5 +172,60 @@ describe('Oblio documents', () => {
       spvExtern: 1,
       idempotencyKey: 're_3QxYz',
     });
+  });
+});
+
+describe('the period on a document line', () => {
+  const period = (start: string, end: string) => periodText(new Date(start), new Date(end));
+
+  it('ends on the last day paid, not on the day the next period starts', () => {
+    expect(period('2026-11-15T10:20:30+02:00', '2027-11-15T10:20:30+02:00')).toBe(
+      'Perioada 15.11.2026 – 14.11.2027'
+    );
+    expect(period('2026-11-15T10:20:30+02:00', '2026-12-15T10:20:30+02:00')).toBe(
+      'Perioada 15.11.2026 – 14.12.2026'
+    );
+  });
+
+  it('ends a proration on the day before the renewal', () => {
+    expect(period('2026-11-15T13:47:18+02:00', '2027-10-28T13:47:11+03:00')).toBe(
+      'Perioada 15.11.2026 – 27.10.2027'
+    );
+  });
+
+  it('counts the days in Romania, whatever the date in UTC', () => {
+    expect(period('2026-11-30T22:30:00Z', '2026-12-31T22:30:00Z')).toBe(
+      'Perioada 01.12.2026 – 31.12.2026'
+    );
+    expect(period('2026-12-31T22:00:00Z', '2027-01-31T22:00:00Z')).toBe(
+      'Perioada 01.01.2027 – 31.01.2027'
+    );
+  });
+
+  it('ends on the last day of the month before, short months and leap years included', () => {
+    expect(period('2027-01-31T09:00:00+02:00', '2027-03-01T09:00:00+02:00')).toBe(
+      'Perioada 31.01.2027 – 28.02.2027'
+    );
+    expect(period('2028-01-31T09:00:00+02:00', '2028-03-01T09:00:00+02:00')).toBe(
+      'Perioada 31.01.2028 – 29.02.2028'
+    );
+    expect(period('2026-12-01T09:00:00+02:00', '2027-01-01T09:00:00+02:00')).toBe(
+      'Perioada 01.12.2026 – 31.12.2026'
+    );
+  });
+
+  it('keeps the day across a change of summer time', () => {
+    expect(period('2027-02-28T00:30:00+02:00', '2027-03-29T00:30:00+03:00')).toBe(
+      'Perioada 28.02.2027 – 28.03.2027'
+    );
+    expect(period('2026-09-26T00:30:00+03:00', '2026-10-26T00:30:00+02:00')).toBe(
+      'Perioada 26.09.2026 – 25.10.2026'
+    );
+  });
+
+  it('never ends before it starts', () => {
+    expect(period('2026-11-15T09:00:00+02:00', '2026-11-15T18:00:00+02:00')).toBe(
+      'Perioada 15.11.2026 – 15.11.2026'
+    );
   });
 });

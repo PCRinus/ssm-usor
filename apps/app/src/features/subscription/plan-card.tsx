@@ -76,21 +76,40 @@ export function PlanCard({
   let trialShare: number | null = null;
   const buttons: ReactNode[] = [];
 
-  const totalRows = (): AmountRow[] =>
-    amounts && choice
-      ? [
-          ...amounts.lines.map((line) => ({
-            label: line.label,
-            value: formatEuro(line.amountCents),
-          })),
-          { label: `TVA ${overview.catalogue.vatPercent} %`, value: formatEuro(amounts.vatCents) },
-          {
-            label: `Total ${perInterval[choice.interval]}`,
-            value: formatEuro(amounts.totalCents),
-            strong: true,
-          },
-        ]
-      : [];
+  const monthEnd =
+    overview.usage.smsThisMonth.periodEnd ?? overview.usage.creditsThisMonth.periodEnd;
+
+  const choiceRows = (shown: BillingChoice): AmountRow[] => {
+    const shownAmounts = choiceAmounts(shown);
+    return [
+      ...shownAmounts.lines.map((line) => ({
+        label: line.label,
+        value: formatEuro(line.amountCents),
+      })),
+      { label: `TVA ${overview.catalogue.vatPercent} %`, value: formatEuro(shownAmounts.vatCents) },
+      {
+        label: `Total ${perInterval[shown.interval]}`,
+        value: formatEuro(shownAmounts.totalCents),
+        strong: true,
+      },
+    ];
+  };
+  const totalRows = (): AmountRow[] => (choice ? choiceRows(choice) : []);
+
+  const extrasRows = (
+    extras: ReturnType<typeof extrasLines>,
+    billedAt: string | null
+  ): AmountRow[] => {
+    const cents = extras.reduce((sum, line) => sum + line.amountCents, 0);
+    return [
+      ...extras.map((line) => ({ label: line.label, value: formatEuro(line.amountCents) })),
+      {
+        label: billedAt ? `Extra cu TVA, pe factura din ${roDate(billedAt)}` : 'Extra cu TVA',
+        value: formatEuro(cents + vatOf(cents)),
+        strong: true,
+      },
+    ];
+  };
 
   const chooseLink = (label: string, variant: 'default' | 'outline' = 'default') => (
     <ActionLink key="choose" label={label} variant={variant} disabled={disabled} />
@@ -176,35 +195,29 @@ export function PlanCard({
             ? `Activ. Se reînnoiește pe ${roDate(renews)}.`
             : 'Activ.';
       if (owner && amounts && choice) {
-        // On an annual plan Stripe's next invoice can be a month of the SMS extras, so the renewal
-        // is shown, at the choice a change set for it.
         const renewal = owner.scheduledChange ?? choice;
-        amount =
-          choice.interval === 'year'
-            ? {
-                label: renewal.interval === 'year' ? 'Următoarea plată anuală' : 'Următoarea plată',
-                value: formatEuro(choiceAmounts(renewal).totalCents),
-                note: renews ? `pe ${roDate(renews)}, cu TVA` : 'cu TVA',
-              }
-            : {
-                label: 'Următoarea plată',
-                value: formatEuro(owner.nextPayment?.totalCents ?? amounts.totalCents),
-                note: `pe ${roDate(owner.nextPayment?.at ?? renews ?? now.toISOString())}, cu TVA`,
-              };
-        rows = totalRows();
+        const plan = choiceAmounts(renewal);
         const extras = extrasLines(overview.extras);
         const extrasCents = extras.reduce((sum, line) => sum + line.amountCents, 0);
-        const billedAt =
-          overview.usage.smsThisMonth.periodEnd ?? overview.usage.creditsThisMonth.periodEnd;
-        if (extrasCents > 0 && choice.interval === 'month') {
-          const plan = choiceAmounts(owner.scheduledChange ?? choice);
+        if (choice.interval === 'year') {
+          // Stripe's next invoice on an annual plan can be a month of extras, so the card shows the
+          // renewal, at the choice a change set for it.
+          amount = {
+            label: renewal.interval === 'year' ? 'Următoarea plată anuală' : 'Următoarea plată',
+            value: formatEuro(plan.totalCents),
+            note: renews ? `pe ${roDate(renews)}, cu TVA` : 'cu TVA',
+          };
+          rows = choiceRows(renewal);
+          if (extrasCents > 0) extraRows = extrasRows(extras, monthEnd);
+        } else {
           const preview = owner.nextPayment;
-          // Stripe's preview has the prorations and a change set for the renewal; its meters may
-          // still lack the last extras, which are added on top.
-          const subtotal = preview
-            ? preview.subtotalCents + Math.max(0, extrasCents - (owner.extrasInPreviewCents ?? 0))
-            : plan.subtotalCents + extrasCents;
-          const other = subtotal - plan.subtotalCents - extrasCents;
+          // Stripe's preview has the prorations and a change set for the renewal; its meters lag
+          // behind the extras counted here, so the extras come from the count, never below the
+          // preview's.
+          const previewExtras = owner.extrasInPreviewCents ?? 0;
+          const uncounted = Math.max(0, previewExtras - extrasCents);
+          const other = preview ? preview.subtotalCents - previewExtras - plan.subtotalCents : 0;
+          const subtotal = plan.subtotalCents + extrasCents + uncounted + other;
           const total = subtotal + vatOf(subtotal);
           rows = [
             ...plan.lines.map((line) => ({
@@ -212,26 +225,25 @@ export function PlanCard({
               value: formatEuro(line.amountCents),
             })),
             ...extras.map((line) => ({ label: line.label, value: formatEuro(line.amountCents) })),
+            ...(uncounted > 0 ? [{ label: 'Extra', value: formatEuro(uncounted) }] : []),
             ...(other !== 0
               ? [{ label: 'Diferența pentru schimbarea de plan', value: formatEuro(other) }]
               : []),
             { label: `TVA ${overview.catalogue.vatPercent} %`, value: formatEuro(vatOf(subtotal)) },
-            { label: 'Total', value: formatEuro(total), strong: true },
+            {
+              label:
+                subtotal !== plan.subtotalCents
+                  ? 'Total'
+                  : `Total ${perInterval[renewal.interval]}`,
+              value: formatEuro(total),
+              strong: true,
+            },
           ];
           amount = {
             label: 'Următoarea plată',
             value: formatEuro(total),
-            note: `pe ${roDate(preview?.at ?? billedAt ?? renews ?? now.toISOString())}, cu TVA, cu extra de până azi`,
+            note: `pe ${roDate(preview?.at ?? renews ?? monthEnd ?? now.toISOString())}, cu TVA${extrasCents + uncounted > 0 ? ', cu extra de până azi' : ''}`,
           };
-        } else if (extrasCents > 0) {
-          extraRows = [
-            ...extras.map((line) => ({ label: line.label, value: formatEuro(line.amountCents) })),
-            {
-              label: billedAt ? `Extra cu TVA, pe factura din ${roDate(billedAt)}` : 'Extra cu TVA',
-              value: formatEuro(extrasCents + vatOf(extrasCents)),
-              strong: true,
-            },
-          ];
         }
       }
       if (owner?.scheduledChange) {
@@ -292,18 +304,40 @@ export function PlanCard({
         ? `Nu se mai reînnoiește, iar ultima plată nu a reușit. Ai acces complet până pe ${roDate(end)}.`
         : `Nu se mai reînnoiește. Ai acces complet până pe ${roDate(end)}.`;
       if (owner) {
-        amount = {
-          label: 'Următoarea plată',
-          value: 'Niciuna',
-          note: overdue
-            ? `acces complet până pe ${roDate(end)}`
-            : `ai plătit până pe ${roDate(end)}`,
-        };
-        rows =
-          amounts?.lines.map((line) => ({
-            label: line.label,
-            value: formatEuro(line.amountCents),
-          })) ?? [];
+        // Extras stop while a payment is overdue, so nothing more is promised then.
+        const extras = overdue ? [] : extrasLines(overview.extras);
+        const extrasCents = extras.reduce((sum, line) => sum + line.amountCents, 0);
+        const billedAt = monthEnd && new Date(monthEnd) < new Date(end) ? monthEnd : end;
+        amount =
+          extrasCents > 0
+            ? {
+                label: 'Următoarea plată',
+                value: formatEuro(extrasCents + vatOf(extrasCents)),
+                note: `pe ${roDate(billedAt)}, cu TVA, doar extra`,
+              }
+            : {
+                label: 'Următoarea plată',
+                value: 'Niciuna',
+                note: overdue
+                  ? `acces complet până pe ${roDate(end)}`
+                  : `ai plătit până pe ${roDate(end)}`,
+              };
+        rows = overdue
+          ? (amounts?.lines.map((line) => ({
+              label: line.label,
+              value: formatEuro(line.amountCents),
+            })) ?? [])
+          : choice
+            ? [{ label: choiceSummary(choice), value: 'Nu se mai plătește' }]
+            : [];
+        if (extrasCents > 0) extraRows = extrasRows(extras, billedAt);
+        const extrasOn = overview.extras.sms.enabled || overview.extras.credits.enabled;
+        if (!overdue && extrasOn) {
+          note =
+            choice?.interval === 'year'
+              ? `Extra rămâne pornit până pe ${roDate(end)} și se facturează lunar. Ce folosești în ultima lună vine pe o factură din ${roDate(end)}.`
+              : `Extra rămâne pornit până pe ${roDate(end)}. Ce folosești până atunci vine pe o factură din ${roDate(end)}.`;
+        }
       }
       buttons.push(
         <Button

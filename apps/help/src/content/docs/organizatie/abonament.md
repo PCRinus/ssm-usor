@@ -239,6 +239,8 @@ Cel mai repede rezolvi cu **Schimbă cardul**: când salvezi un card nou, plata 
 
 Poți spune, dacă vrei, de ce pleci. Ce ai plătit nu se returnează, nici pe un plan lunar, nici pe unul anual. Până la sfârșitul perioadei plătite te poți răzgândi cu **Reactivează**, iar abonamentul se reînnoiește din nou ca înainte.
 
+Planul nu se mai plătește după anulare, dar Extra rămâne pornit până la sfârșitul perioadei plătite. Ce folosești până atunci vine pe o ultimă factură, în ziua în care se încheie abonamentul; pe un plan anual, extra se facturează în continuare lunar, iar ultima lună vine pe factura din acea zi. La plan, pagina **Abonament** arată extra de până azi, suma cu TVA și data facturii. Dacă nu folosești nimic extra, nu mai urmează nicio plată.
+
 O schimbare programată pentru reînnoire se anulează odată cu abonamentul, iar fereastra de anulare îți spune asta. Dacă reactivezi, o alegi din nou.
 
 Dacă anulezi cât timp o plată e restantă, accesul complet se încheie la data până la care se reîncearcă plata, iar pagina arată abonamentul ca anulat, cu **Reactivează**.
