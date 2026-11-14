@@ -174,12 +174,11 @@ const AuthenticatedSplatRoute = AuthenticatedSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
-const AuthenticatedActualizariRoute =
-  AuthenticatedActualizariRouteImport.update({
-    id: '/actualizari',
-    path: '/actualizari',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any);
+const AuthenticatedActualizariRoute = AuthenticatedActualizariRouteImport.update({
+  id: '/actualizari',
+  path: '/actualizari',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
 const AuthenticatedClientiRoute = AuthenticatedClientiRouteImport.update({
   id: '/clienti',
   path: '/clienti',
@@ -190,18 +189,16 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
-const AuthenticatedEvaluariDeRiscRoute =
-  AuthenticatedEvaluariDeRiscRouteImport.update({
-    id: '/evaluari-de-risc',
-    path: '/evaluari-de-risc',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any);
-const AuthenticatedInstructiuniRoute =
-  AuthenticatedInstructiuniRouteImport.update({
-    id: '/instructiuni',
-    path: '/instructiuni',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any);
+const AuthenticatedEvaluariDeRiscRoute = AuthenticatedEvaluariDeRiscRouteImport.update({
+  id: '/evaluari-de-risc',
+  path: '/evaluari-de-risc',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthenticatedInstructiuniRoute = AuthenticatedInstructiuniRouteImport.update({
+  id: '/instructiuni',
+  path: '/instructiuni',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
 const AuthenticatedLegislatieRoute = AuthenticatedLegislatieRouteImport.update({
   id: '/legislatie',
   path: '/legislatie',
@@ -212,12 +209,11 @@ const AuthenticatedOferteRoute = AuthenticatedOferteRouteImport.update({
   path: '/oferte',
   getParentRoute: () => AuthenticatedRoute,
 } as any);
-const AuthenticatedOrganizatieRoute =
-  AuthenticatedOrganizatieRouteImport.update({
-    id: '/organizatie',
-    path: '/organizatie',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any);
+const AuthenticatedOrganizatieRoute = AuthenticatedOrganizatieRouteImport.update({
+  id: '/organizatie',
+  path: '/organizatie',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
 const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -258,147 +254,126 @@ const ConfigurareContractRoute = ConfigurareContractRouteImport.update({
   path: '/contract',
   getParentRoute: () => ConfigurareRoute,
 } as any);
-const AuthenticatedActualizariIndexRoute =
-  AuthenticatedActualizariIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedActualizariRoute,
-  } as any);
-const AuthenticatedActualizariTagRoute =
-  AuthenticatedActualizariTagRouteImport.update({
-    id: '/$tag',
-    path: '/$tag',
-    getParentRoute: () => AuthenticatedActualizariRoute,
-  } as any);
-const AuthenticatedAngajatiIndexRoute =
-  AuthenticatedAngajatiIndexRouteImport.update({
-    id: '/angajati/',
-    path: '/angajati/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any);
-const AuthenticatedClientiIndexRoute =
-  AuthenticatedClientiIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedClientiRoute,
-  } as any);
-const AuthenticatedClientiClientIdRoute =
-  AuthenticatedClientiClientIdRouteImport.update({
-    id: '/$clientId',
-    path: '/$clientId',
-    getParentRoute: () => AuthenticatedClientiRoute,
-  } as any);
+const AuthenticatedActualizariIndexRoute = AuthenticatedActualizariIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedActualizariRoute,
+} as any);
+const AuthenticatedActualizariTagRoute = AuthenticatedActualizariTagRouteImport.update({
+  id: '/$tag',
+  path: '/$tag',
+  getParentRoute: () => AuthenticatedActualizariRoute,
+} as any);
+const AuthenticatedAngajatiIndexRoute = AuthenticatedAngajatiIndexRouteImport.update({
+  id: '/angajati/',
+  path: '/angajati/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any);
+const AuthenticatedClientiIndexRoute = AuthenticatedClientiIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedClientiRoute,
+} as any);
+const AuthenticatedClientiClientIdRoute = AuthenticatedClientiClientIdRouteImport.update({
+  id: '/$clientId',
+  path: '/$clientId',
+  getParentRoute: () => AuthenticatedClientiRoute,
+} as any);
 const AuthenticatedClientiNouRoute = AuthenticatedClientiNouRouteImport.update({
   id: '/nou',
   path: '/nou',
   getParentRoute: () => AuthenticatedClientiRoute,
 } as any);
-const AuthenticatedEvaluariDeRiscIndexRoute =
-  AuthenticatedEvaluariDeRiscIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedEvaluariDeRiscRoute,
-  } as any);
+const AuthenticatedEvaluariDeRiscIndexRoute = AuthenticatedEvaluariDeRiscIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedEvaluariDeRiscRoute,
+} as any);
 const AuthenticatedEvaluariDeRiscProfileIdRoute =
   AuthenticatedEvaluariDeRiscProfileIdRouteImport.update({
     id: '/$profileId',
     path: '/$profileId',
     getParentRoute: () => AuthenticatedEvaluariDeRiscRoute,
   } as any);
-const AuthenticatedInstructiuniIndexRoute =
-  AuthenticatedInstructiuniIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedInstructiuniRoute,
-  } as any);
-const AuthenticatedInstructiuniModuleIdRoute =
-  AuthenticatedInstructiuniModuleIdRouteImport.update({
-    id: '/$moduleId',
-    path: '/$moduleId',
-    getParentRoute: () => AuthenticatedInstructiuniRoute,
-  } as any);
-const AuthenticatedInstructiuniLibraryRoute =
-  AuthenticatedInstructiuniLibraryRouteImport.update({
-    id: '/_library',
-    getParentRoute: () => AuthenticatedInstructiuniRoute,
-  } as any);
-const AuthenticatedInstructiuniNouRoute =
-  AuthenticatedInstructiuniNouRouteImport.update({
-    id: '/nou',
-    path: '/nou',
-    getParentRoute: () => AuthenticatedInstructiuniRoute,
-  } as any);
-const AuthenticatedLegislatieIndexRoute =
-  AuthenticatedLegislatieIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedLegislatieRoute,
-  } as any);
-const AuthenticatedLegislatieActeRoute =
-  AuthenticatedLegislatieActeRouteImport.update({
-    id: '/acte',
-    path: '/acte',
-    getParentRoute: () => AuthenticatedLegislatieRoute,
-  } as any);
-const AuthenticatedLegislatieDocumenteRoute =
-  AuthenticatedLegislatieDocumenteRouteImport.update({
-    id: '/documente',
-    path: '/documente',
-    getParentRoute: () => AuthenticatedLegislatieRoute,
-  } as any);
-const AuthenticatedLegislatieModificariRoute =
-  AuthenticatedLegislatieModificariRouteImport.update({
-    id: '/modificari',
-    path: '/modificari',
-    getParentRoute: () => AuthenticatedLegislatieRoute,
-  } as any);
-const AuthenticatedOferteIndexRoute =
-  AuthenticatedOferteIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedOferteRoute,
-  } as any);
-const AuthenticatedOferteLeadIdRoute =
-  AuthenticatedOferteLeadIdRouteImport.update({
-    id: '/$leadId',
-    path: '/$leadId',
-    getParentRoute: () => AuthenticatedOferteRoute,
-  } as any);
+const AuthenticatedInstructiuniIndexRoute = AuthenticatedInstructiuniIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedInstructiuniRoute,
+} as any);
+const AuthenticatedInstructiuniModuleIdRoute = AuthenticatedInstructiuniModuleIdRouteImport.update({
+  id: '/$moduleId',
+  path: '/$moduleId',
+  getParentRoute: () => AuthenticatedInstructiuniRoute,
+} as any);
+const AuthenticatedInstructiuniLibraryRoute = AuthenticatedInstructiuniLibraryRouteImport.update({
+  id: '/_library',
+  getParentRoute: () => AuthenticatedInstructiuniRoute,
+} as any);
+const AuthenticatedInstructiuniNouRoute = AuthenticatedInstructiuniNouRouteImport.update({
+  id: '/nou',
+  path: '/nou',
+  getParentRoute: () => AuthenticatedInstructiuniRoute,
+} as any);
+const AuthenticatedLegislatieIndexRoute = AuthenticatedLegislatieIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedLegislatieRoute,
+} as any);
+const AuthenticatedLegislatieActeRoute = AuthenticatedLegislatieActeRouteImport.update({
+  id: '/acte',
+  path: '/acte',
+  getParentRoute: () => AuthenticatedLegislatieRoute,
+} as any);
+const AuthenticatedLegislatieDocumenteRoute = AuthenticatedLegislatieDocumenteRouteImport.update({
+  id: '/documente',
+  path: '/documente',
+  getParentRoute: () => AuthenticatedLegislatieRoute,
+} as any);
+const AuthenticatedLegislatieModificariRoute = AuthenticatedLegislatieModificariRouteImport.update({
+  id: '/modificari',
+  path: '/modificari',
+  getParentRoute: () => AuthenticatedLegislatieRoute,
+} as any);
+const AuthenticatedOferteIndexRoute = AuthenticatedOferteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedOferteRoute,
+} as any);
+const AuthenticatedOferteLeadIdRoute = AuthenticatedOferteLeadIdRouteImport.update({
+  id: '/$leadId',
+  path: '/$leadId',
+  getParentRoute: () => AuthenticatedOferteRoute,
+} as any);
 const AuthenticatedOferteNouRoute = AuthenticatedOferteNouRouteImport.update({
   id: '/nou',
   path: '/nou',
   getParentRoute: () => AuthenticatedOferteRoute,
 } as any);
-const AuthenticatedOrganizatieIndexRoute =
-  AuthenticatedOrganizatieIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedOrganizatieRoute,
-  } as any);
-const AuthenticatedOrganizatieAbilitariRoute =
-  AuthenticatedOrganizatieAbilitariRouteImport.update({
-    id: '/abilitari',
-    path: '/abilitari',
-    getParentRoute: () => AuthenticatedOrganizatieRoute,
-  } as any);
-const AuthenticatedOrganizatieAbonamentRoute =
-  AuthenticatedOrganizatieAbonamentRouteImport.update({
-    id: '/abonament',
-    path: '/abonament',
-    getParentRoute: () => AuthenticatedOrganizatieRoute,
-  } as any);
-const AuthenticatedOrganizatieDateFirmaRoute =
-  AuthenticatedOrganizatieDateFirmaRouteImport.update({
-    id: '/date-firma',
-    path: '/date-firma',
-    getParentRoute: () => AuthenticatedOrganizatieRoute,
-  } as any);
-const AuthenticatedOrganizatieEchipaRoute =
-  AuthenticatedOrganizatieEchipaRouteImport.update({
-    id: '/echipa',
-    path: '/echipa',
-    getParentRoute: () => AuthenticatedOrganizatieRoute,
-  } as any);
+const AuthenticatedOrganizatieIndexRoute = AuthenticatedOrganizatieIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedOrganizatieRoute,
+} as any);
+const AuthenticatedOrganizatieAbilitariRoute = AuthenticatedOrganizatieAbilitariRouteImport.update({
+  id: '/abilitari',
+  path: '/abilitari',
+  getParentRoute: () => AuthenticatedOrganizatieRoute,
+} as any);
+const AuthenticatedOrganizatieAbonamentRoute = AuthenticatedOrganizatieAbonamentRouteImport.update({
+  id: '/abonament',
+  path: '/abonament',
+  getParentRoute: () => AuthenticatedOrganizatieRoute,
+} as any);
+const AuthenticatedOrganizatieDateFirmaRoute = AuthenticatedOrganizatieDateFirmaRouteImport.update({
+  id: '/date-firma',
+  path: '/date-firma',
+  getParentRoute: () => AuthenticatedOrganizatieRoute,
+} as any);
+const AuthenticatedOrganizatieEchipaRoute = AuthenticatedOrganizatieEchipaRouteImport.update({
+  id: '/echipa',
+  path: '/echipa',
+  getParentRoute: () => AuthenticatedOrganizatieRoute,
+} as any);
 const AuthenticatedTesteIndexRoute = AuthenticatedTesteIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -408,12 +383,11 @@ const AuthenticatedTesteBankRoute = AuthenticatedTesteBankRouteImport.update({
   id: '/_bank',
   getParentRoute: () => AuthenticatedTesteRoute,
 } as any);
-const AuthenticatedClientiClientIdIndexRoute =
-  AuthenticatedClientiClientIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedClientiClientIdRoute,
-  } as any);
+const AuthenticatedClientiClientIdIndexRoute = AuthenticatedClientiClientIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedClientiClientIdRoute,
+} as any);
 const AuthenticatedClientiClientIdAlteDocumenteRoute =
   AuthenticatedClientiClientIdAlteDocumenteRouteImport.update({
     id: '/alte-documente',
@@ -498,24 +472,21 @@ const AuthenticatedInstructiuniLibrarySuRoute =
     path: '/su',
     getParentRoute: () => AuthenticatedInstructiuniLibraryRoute,
   } as any);
-const AuthenticatedOferteLeadIdIndexRoute =
-  AuthenticatedOferteLeadIdIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedOferteLeadIdRoute,
-  } as any);
-const AuthenticatedOferteLeadIdContractRoute =
-  AuthenticatedOferteLeadIdContractRouteImport.update({
-    id: '/contract',
-    path: '/contract',
-    getParentRoute: () => AuthenticatedOferteLeadIdRoute,
-  } as any);
-const AuthenticatedOferteLeadIdEditareRoute =
-  AuthenticatedOferteLeadIdEditareRouteImport.update({
-    id: '/editare',
-    path: '/editare',
-    getParentRoute: () => AuthenticatedOferteLeadIdRoute,
-  } as any);
+const AuthenticatedOferteLeadIdIndexRoute = AuthenticatedOferteLeadIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedOferteLeadIdRoute,
+} as any);
+const AuthenticatedOferteLeadIdContractRoute = AuthenticatedOferteLeadIdContractRouteImport.update({
+  id: '/contract',
+  path: '/contract',
+  getParentRoute: () => AuthenticatedOferteLeadIdRoute,
+} as any);
+const AuthenticatedOferteLeadIdEditareRoute = AuthenticatedOferteLeadIdEditareRouteImport.update({
+  id: '/editare',
+  path: '/editare',
+  getParentRoute: () => AuthenticatedOferteLeadIdRoute,
+} as any);
 const AuthenticatedOrganizatieAbonamentIndexRoute =
   AuthenticatedOrganizatieAbonamentIndexRouteImport.update({
     id: '/',
@@ -528,18 +499,16 @@ const AuthenticatedOrganizatieAbonamentAlegeRoute =
     path: '/alege',
     getParentRoute: () => AuthenticatedOrganizatieAbonamentRoute,
   } as any);
-const AuthenticatedTesteBankSsmRoute =
-  AuthenticatedTesteBankSsmRouteImport.update({
-    id: '/ssm',
-    path: '/ssm',
-    getParentRoute: () => AuthenticatedTesteBankRoute,
-  } as any);
-const AuthenticatedTesteBankSuRoute =
-  AuthenticatedTesteBankSuRouteImport.update({
-    id: '/su',
-    path: '/su',
-    getParentRoute: () => AuthenticatedTesteBankRoute,
-  } as any);
+const AuthenticatedTesteBankSsmRoute = AuthenticatedTesteBankSsmRouteImport.update({
+  id: '/ssm',
+  path: '/ssm',
+  getParentRoute: () => AuthenticatedTesteBankRoute,
+} as any);
+const AuthenticatedTesteBankSuRoute = AuthenticatedTesteBankSuRouteImport.update({
+  id: '/su',
+  path: '/su',
+  getParentRoute: () => AuthenticatedTesteBankRoute,
+} as any);
 const AuthenticatedClientiClientIdAlteDocumenteIndexRoute =
   AuthenticatedClientiClientIdAlteDocumenteIndexRouteImport.update({
     id: '/',
@@ -667,22 +636,17 @@ const AuthenticatedClientiClientIdPosturiJobPositionIdIndexRoute =
     getParentRoute: () => AuthenticatedClientiClientIdPosturiJobPositionIdRoute,
   } as any);
 const AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRoute =
-  AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRouteImport.update(
-    {
-      id: '/fisa-de-evaluare',
-      path: '/fisa-de-evaluare',
-      getParentRoute: () =>
-        AuthenticatedClientiClientIdPosturiJobPositionIdRoute,
-    } as any,
-  );
+  AuthenticatedClientiClientIdPosturiJobPositionIdFisaDeEvaluareRouteImport.update({
+    id: '/fisa-de-evaluare',
+    path: '/fisa-de-evaluare',
+    getParentRoute: () => AuthenticatedClientiClientIdPosturiJobPositionIdRoute,
+  } as any);
 const AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute =
-  AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRouteImport.update(
-    {
-      id: '/fise-de-evaluare/$evaluationId',
-      path: '/fise-de-evaluare/$evaluationId',
-      getParentRoute: () => AuthenticatedClientiClientIdPosturiRoute,
-    } as any,
-  );
+  AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRouteImport.update({
+    id: '/fise-de-evaluare/$evaluationId',
+    path: '/fise-de-evaluare/$evaluationId',
+    getParentRoute: () => AuthenticatedClientiClientIdPosturiRoute,
+  } as any);
 const AuthenticatedClientiImportImportIdInstructiuniDomainRoute =
   AuthenticatedClientiImportImportIdInstructiuniDomainRouteImport.update({
     id: '/instructiuni/$domain',
@@ -690,13 +654,11 @@ const AuthenticatedClientiImportImportIdInstructiuniDomainRoute =
     getParentRoute: () => AuthenticatedClientiImportImportIdRoute,
   } as any);
 const AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireIndexRoute =
-  AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireIndexRouteImport.update(
-    {
-      id: '/instruire/',
-      path: '/instruire/',
-      getParentRoute: () => AuthenticatedClientiClientIdAngajatiEmployeeIdRoute,
-    } as any,
-  );
+  AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireIndexRouteImport.update({
+    id: '/instruire/',
+    path: '/instruire/',
+    getParentRoute: () => AuthenticatedClientiClientIdAngajatiEmployeeIdRoute,
+  } as any);
 const AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRoute =
   AuthenticatedClientiClientIdAngajatiEmployeeIdInstruireSsmRouteImport.update({
     id: '/instruire/ssm',
@@ -713,15 +675,13 @@ const AuthenticatedClientiClientIdAngajatiImportImportIdIndexRoute =
   AuthenticatedClientiClientIdAngajatiImportImportIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () =>
-      AuthenticatedClientiClientIdAngajatiImportImportIdRoute,
+    getParentRoute: () => AuthenticatedClientiClientIdAngajatiImportImportIdRoute,
   } as any);
 const AuthenticatedClientiClientIdAngajatiImportImportIdPersonIdRoute =
   AuthenticatedClientiClientIdAngajatiImportImportIdPersonIdRouteImport.update({
     id: '/$personId',
     path: '/$personId',
-    getParentRoute: () =>
-      AuthenticatedClientiClientIdAngajatiImportImportIdRoute,
+    getParentRoute: () => AuthenticatedClientiClientIdAngajatiImportImportIdRoute,
   } as any);
 
 export interface FileRoutesByFullPath {
@@ -2074,16 +2034,14 @@ interface AuthenticatedActualizariRouteChildren {
   AuthenticatedActualizariIndexRoute: typeof AuthenticatedActualizariIndexRoute;
 }
 
-const AuthenticatedActualizariRouteChildren: AuthenticatedActualizariRouteChildren =
-  {
-    AuthenticatedActualizariTagRoute: AuthenticatedActualizariTagRoute,
-    AuthenticatedActualizariIndexRoute: AuthenticatedActualizariIndexRoute,
-  };
+const AuthenticatedActualizariRouteChildren: AuthenticatedActualizariRouteChildren = {
+  AuthenticatedActualizariTagRoute: AuthenticatedActualizariTagRoute,
+  AuthenticatedActualizariIndexRoute: AuthenticatedActualizariIndexRoute,
+};
 
-const AuthenticatedActualizariRouteWithChildren =
-  AuthenticatedActualizariRoute._addFileChildren(
-    AuthenticatedActualizariRouteChildren,
-  );
+const AuthenticatedActualizariRouteWithChildren = AuthenticatedActualizariRoute._addFileChildren(
+  AuthenticatedActualizariRouteChildren
+);
 
 interface AuthenticatedClientiClientIdAlteDocumenteRouteChildren {
   AuthenticatedClientiClientIdAlteDocumenteIndexRoute: typeof AuthenticatedClientiClientIdAlteDocumenteIndexRoute;
@@ -2097,7 +2055,7 @@ const AuthenticatedClientiClientIdAlteDocumenteRouteChildren: AuthenticatedClien
 
 const AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren =
   AuthenticatedClientiClientIdAlteDocumenteRoute._addFileChildren(
-    AuthenticatedClientiClientIdAlteDocumenteRouteChildren,
+    AuthenticatedClientiClientIdAlteDocumenteRouteChildren
   );
 
 interface AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren {
@@ -2124,7 +2082,7 @@ const AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren: Authenticated
 
 const AuthenticatedClientiClientIdAngajatiEmployeeIdRouteWithChildren =
   AuthenticatedClientiClientIdAngajatiEmployeeIdRoute._addFileChildren(
-    AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren,
+    AuthenticatedClientiClientIdAngajatiEmployeeIdRouteChildren
   );
 
 interface AuthenticatedClientiClientIdAngajatiImportImportIdRouteChildren {
@@ -2142,7 +2100,7 @@ const AuthenticatedClientiClientIdAngajatiImportImportIdRouteChildren: Authentic
 
 const AuthenticatedClientiClientIdAngajatiImportImportIdRouteWithChildren =
   AuthenticatedClientiClientIdAngajatiImportImportIdRoute._addFileChildren(
-    AuthenticatedClientiClientIdAngajatiImportImportIdRouteChildren,
+    AuthenticatedClientiClientIdAngajatiImportImportIdRouteChildren
   );
 
 interface AuthenticatedClientiClientIdAngajatiRouteChildren {
@@ -2157,10 +2115,8 @@ const AuthenticatedClientiClientIdAngajatiRouteChildren: AuthenticatedClientiCli
   {
     AuthenticatedClientiClientIdAngajatiEmployeeIdRoute:
       AuthenticatedClientiClientIdAngajatiEmployeeIdRouteWithChildren,
-    AuthenticatedClientiClientIdAngajatiNouRoute:
-      AuthenticatedClientiClientIdAngajatiNouRoute,
-    AuthenticatedClientiClientIdAngajatiIndexRoute:
-      AuthenticatedClientiClientIdAngajatiIndexRoute,
+    AuthenticatedClientiClientIdAngajatiNouRoute: AuthenticatedClientiClientIdAngajatiNouRoute,
+    AuthenticatedClientiClientIdAngajatiIndexRoute: AuthenticatedClientiClientIdAngajatiIndexRoute,
     AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute:
       AuthenticatedClientiClientIdAngajatiEmployeeIdEditareRoute,
     AuthenticatedClientiClientIdAngajatiImportImportIdRoute:
@@ -2169,7 +2125,7 @@ const AuthenticatedClientiClientIdAngajatiRouteChildren: AuthenticatedClientiCli
 
 const AuthenticatedClientiClientIdAngajatiRouteWithChildren =
   AuthenticatedClientiClientIdAngajatiRoute._addFileChildren(
-    AuthenticatedClientiClientIdAngajatiRouteChildren,
+    AuthenticatedClientiClientIdAngajatiRouteChildren
   );
 
 interface AuthenticatedClientiClientIdContractRouteChildren {
@@ -2181,13 +2137,12 @@ const AuthenticatedClientiClientIdContractRouteChildren: AuthenticatedClientiCli
   {
     AuthenticatedClientiClientIdContractEditareRoute:
       AuthenticatedClientiClientIdContractEditareRoute,
-    AuthenticatedClientiClientIdContractIndexRoute:
-      AuthenticatedClientiClientIdContractIndexRoute,
+    AuthenticatedClientiClientIdContractIndexRoute: AuthenticatedClientiClientIdContractIndexRoute,
   };
 
 const AuthenticatedClientiClientIdContractRouteWithChildren =
   AuthenticatedClientiClientIdContractRoute._addFileChildren(
-    AuthenticatedClientiClientIdContractRouteChildren,
+    AuthenticatedClientiClientIdContractRouteChildren
   );
 
 interface AuthenticatedClientiClientIdDocumenteSsmRouteChildren {
@@ -2205,7 +2160,7 @@ const AuthenticatedClientiClientIdDocumenteSsmRouteChildren: AuthenticatedClient
 
 const AuthenticatedClientiClientIdDocumenteSsmRouteWithChildren =
   AuthenticatedClientiClientIdDocumenteSsmRoute._addFileChildren(
-    AuthenticatedClientiClientIdDocumenteSsmRouteChildren,
+    AuthenticatedClientiClientIdDocumenteSsmRouteChildren
   );
 
 interface AuthenticatedClientiClientIdDocumenteSuRouteChildren {
@@ -2223,7 +2178,7 @@ const AuthenticatedClientiClientIdDocumenteSuRouteChildren: AuthenticatedClienti
 
 const AuthenticatedClientiClientIdDocumenteSuRouteWithChildren =
   AuthenticatedClientiClientIdDocumenteSuRoute._addFileChildren(
-    AuthenticatedClientiClientIdDocumenteSuRouteChildren,
+    AuthenticatedClientiClientIdDocumenteSuRouteChildren
   );
 
 interface AuthenticatedClientiClientIdPosturiJobPositionIdRouteChildren {
@@ -2241,7 +2196,7 @@ const AuthenticatedClientiClientIdPosturiJobPositionIdRouteChildren: Authenticat
 
 const AuthenticatedClientiClientIdPosturiJobPositionIdRouteWithChildren =
   AuthenticatedClientiClientIdPosturiJobPositionIdRoute._addFileChildren(
-    AuthenticatedClientiClientIdPosturiJobPositionIdRouteChildren,
+    AuthenticatedClientiClientIdPosturiJobPositionIdRouteChildren
   );
 
 interface AuthenticatedClientiClientIdPosturiRouteChildren {
@@ -2254,15 +2209,14 @@ const AuthenticatedClientiClientIdPosturiRouteChildren: AuthenticatedClientiClie
   {
     AuthenticatedClientiClientIdPosturiJobPositionIdRoute:
       AuthenticatedClientiClientIdPosturiJobPositionIdRouteWithChildren,
-    AuthenticatedClientiClientIdPosturiIndexRoute:
-      AuthenticatedClientiClientIdPosturiIndexRoute,
+    AuthenticatedClientiClientIdPosturiIndexRoute: AuthenticatedClientiClientIdPosturiIndexRoute,
     AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute:
       AuthenticatedClientiClientIdPosturiFiseDeEvaluareEvaluationIdRoute,
   };
 
 const AuthenticatedClientiClientIdPosturiRouteWithChildren =
   AuthenticatedClientiClientIdPosturiRoute._addFileChildren(
-    AuthenticatedClientiClientIdPosturiRouteChildren,
+    AuthenticatedClientiClientIdPosturiRouteChildren
   );
 
 interface AuthenticatedClientiClientIdRouteChildren {
@@ -2280,38 +2234,28 @@ interface AuthenticatedClientiClientIdRouteChildren {
   AuthenticatedClientiClientIdIndexRoute: typeof AuthenticatedClientiClientIdIndexRoute;
 }
 
-const AuthenticatedClientiClientIdRouteChildren: AuthenticatedClientiClientIdRouteChildren =
-  {
-    AuthenticatedClientiClientIdAlteDocumenteRoute:
-      AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren,
-    AuthenticatedClientiClientIdAngajatiRoute:
-      AuthenticatedClientiClientIdAngajatiRouteWithChildren,
-    AuthenticatedClientiClientIdContractRoute:
-      AuthenticatedClientiClientIdContractRouteWithChildren,
-    AuthenticatedClientiClientIdDetaliiRoute:
-      AuthenticatedClientiClientIdDetaliiRoute,
-    AuthenticatedClientiClientIdDocumenteSsmRoute:
-      AuthenticatedClientiClientIdDocumenteSsmRouteWithChildren,
-    AuthenticatedClientiClientIdDocumenteSuRoute:
-      AuthenticatedClientiClientIdDocumenteSuRouteWithChildren,
-    AuthenticatedClientiClientIdInstruireRoute:
-      AuthenticatedClientiClientIdInstruireRoute,
-    AuthenticatedClientiClientIdInstruiriTinuteRoute:
-      AuthenticatedClientiClientIdInstruiriTinuteRoute,
-    AuthenticatedClientiClientIdMijloaceDeAparareRoute:
-      AuthenticatedClientiClientIdMijloaceDeAparareRoute,
-    AuthenticatedClientiClientIdPortalRoute:
-      AuthenticatedClientiClientIdPortalRoute,
-    AuthenticatedClientiClientIdPosturiRoute:
-      AuthenticatedClientiClientIdPosturiRouteWithChildren,
-    AuthenticatedClientiClientIdIndexRoute:
-      AuthenticatedClientiClientIdIndexRoute,
-  };
+const AuthenticatedClientiClientIdRouteChildren: AuthenticatedClientiClientIdRouteChildren = {
+  AuthenticatedClientiClientIdAlteDocumenteRoute:
+    AuthenticatedClientiClientIdAlteDocumenteRouteWithChildren,
+  AuthenticatedClientiClientIdAngajatiRoute: AuthenticatedClientiClientIdAngajatiRouteWithChildren,
+  AuthenticatedClientiClientIdContractRoute: AuthenticatedClientiClientIdContractRouteWithChildren,
+  AuthenticatedClientiClientIdDetaliiRoute: AuthenticatedClientiClientIdDetaliiRoute,
+  AuthenticatedClientiClientIdDocumenteSsmRoute:
+    AuthenticatedClientiClientIdDocumenteSsmRouteWithChildren,
+  AuthenticatedClientiClientIdDocumenteSuRoute:
+    AuthenticatedClientiClientIdDocumenteSuRouteWithChildren,
+  AuthenticatedClientiClientIdInstruireRoute: AuthenticatedClientiClientIdInstruireRoute,
+  AuthenticatedClientiClientIdInstruiriTinuteRoute:
+    AuthenticatedClientiClientIdInstruiriTinuteRoute,
+  AuthenticatedClientiClientIdMijloaceDeAparareRoute:
+    AuthenticatedClientiClientIdMijloaceDeAparareRoute,
+  AuthenticatedClientiClientIdPortalRoute: AuthenticatedClientiClientIdPortalRoute,
+  AuthenticatedClientiClientIdPosturiRoute: AuthenticatedClientiClientIdPosturiRouteWithChildren,
+  AuthenticatedClientiClientIdIndexRoute: AuthenticatedClientiClientIdIndexRoute,
+};
 
 const AuthenticatedClientiClientIdRouteWithChildren =
-  AuthenticatedClientiClientIdRoute._addFileChildren(
-    AuthenticatedClientiClientIdRouteChildren,
-  );
+  AuthenticatedClientiClientIdRoute._addFileChildren(AuthenticatedClientiClientIdRouteChildren);
 
 interface AuthenticatedClientiImportImportIdRouteChildren {
   AuthenticatedClientiImportImportIdSectionRoute: typeof AuthenticatedClientiImportImportIdSectionRoute;
@@ -2323,21 +2267,18 @@ interface AuthenticatedClientiImportImportIdRouteChildren {
 
 const AuthenticatedClientiImportImportIdRouteChildren: AuthenticatedClientiImportImportIdRouteChildren =
   {
-    AuthenticatedClientiImportImportIdSectionRoute:
-      AuthenticatedClientiImportImportIdSectionRoute,
+    AuthenticatedClientiImportImportIdSectionRoute: AuthenticatedClientiImportImportIdSectionRoute,
     AuthenticatedClientiImportImportIdEvaluariDeRiscRoute:
       AuthenticatedClientiImportImportIdEvaluariDeRiscRoute,
-    AuthenticatedClientiImportImportIdFisiereRoute:
-      AuthenticatedClientiImportImportIdFisiereRoute,
-    AuthenticatedClientiImportImportIdIndexRoute:
-      AuthenticatedClientiImportImportIdIndexRoute,
+    AuthenticatedClientiImportImportIdFisiereRoute: AuthenticatedClientiImportImportIdFisiereRoute,
+    AuthenticatedClientiImportImportIdIndexRoute: AuthenticatedClientiImportImportIdIndexRoute,
     AuthenticatedClientiImportImportIdInstructiuniDomainRoute:
       AuthenticatedClientiImportImportIdInstructiuniDomainRoute,
   };
 
 const AuthenticatedClientiImportImportIdRouteWithChildren =
   AuthenticatedClientiImportImportIdRoute._addFileChildren(
-    AuthenticatedClientiImportImportIdRouteChildren,
+    AuthenticatedClientiImportImportIdRouteChildren
   );
 
 interface AuthenticatedClientiRouteChildren {
@@ -2348,34 +2289,28 @@ interface AuthenticatedClientiRouteChildren {
 }
 
 const AuthenticatedClientiRouteChildren: AuthenticatedClientiRouteChildren = {
-  AuthenticatedClientiClientIdRoute:
-    AuthenticatedClientiClientIdRouteWithChildren,
+  AuthenticatedClientiClientIdRoute: AuthenticatedClientiClientIdRouteWithChildren,
   AuthenticatedClientiNouRoute: AuthenticatedClientiNouRoute,
   AuthenticatedClientiIndexRoute: AuthenticatedClientiIndexRoute,
-  AuthenticatedClientiImportImportIdRoute:
-    AuthenticatedClientiImportImportIdRouteWithChildren,
+  AuthenticatedClientiImportImportIdRoute: AuthenticatedClientiImportImportIdRouteWithChildren,
 };
 
-const AuthenticatedClientiRouteWithChildren =
-  AuthenticatedClientiRoute._addFileChildren(AuthenticatedClientiRouteChildren);
+const AuthenticatedClientiRouteWithChildren = AuthenticatedClientiRoute._addFileChildren(
+  AuthenticatedClientiRouteChildren
+);
 
 interface AuthenticatedEvaluariDeRiscRouteChildren {
   AuthenticatedEvaluariDeRiscProfileIdRoute: typeof AuthenticatedEvaluariDeRiscProfileIdRoute;
   AuthenticatedEvaluariDeRiscIndexRoute: typeof AuthenticatedEvaluariDeRiscIndexRoute;
 }
 
-const AuthenticatedEvaluariDeRiscRouteChildren: AuthenticatedEvaluariDeRiscRouteChildren =
-  {
-    AuthenticatedEvaluariDeRiscProfileIdRoute:
-      AuthenticatedEvaluariDeRiscProfileIdRoute,
-    AuthenticatedEvaluariDeRiscIndexRoute:
-      AuthenticatedEvaluariDeRiscIndexRoute,
-  };
+const AuthenticatedEvaluariDeRiscRouteChildren: AuthenticatedEvaluariDeRiscRouteChildren = {
+  AuthenticatedEvaluariDeRiscProfileIdRoute: AuthenticatedEvaluariDeRiscProfileIdRoute,
+  AuthenticatedEvaluariDeRiscIndexRoute: AuthenticatedEvaluariDeRiscIndexRoute,
+};
 
 const AuthenticatedEvaluariDeRiscRouteWithChildren =
-  AuthenticatedEvaluariDeRiscRoute._addFileChildren(
-    AuthenticatedEvaluariDeRiscRouteChildren,
-  );
+  AuthenticatedEvaluariDeRiscRoute._addFileChildren(AuthenticatedEvaluariDeRiscRouteChildren);
 
 interface AuthenticatedInstructiuniLibraryRouteChildren {
   AuthenticatedInstructiuniLibrarySsmRoute: typeof AuthenticatedInstructiuniLibrarySsmRoute;
@@ -2384,15 +2319,13 @@ interface AuthenticatedInstructiuniLibraryRouteChildren {
 
 const AuthenticatedInstructiuniLibraryRouteChildren: AuthenticatedInstructiuniLibraryRouteChildren =
   {
-    AuthenticatedInstructiuniLibrarySsmRoute:
-      AuthenticatedInstructiuniLibrarySsmRoute,
-    AuthenticatedInstructiuniLibrarySuRoute:
-      AuthenticatedInstructiuniLibrarySuRoute,
+    AuthenticatedInstructiuniLibrarySsmRoute: AuthenticatedInstructiuniLibrarySsmRoute,
+    AuthenticatedInstructiuniLibrarySuRoute: AuthenticatedInstructiuniLibrarySuRoute,
   };
 
 const AuthenticatedInstructiuniLibraryRouteWithChildren =
   AuthenticatedInstructiuniLibraryRoute._addFileChildren(
-    AuthenticatedInstructiuniLibraryRouteChildren,
+    AuthenticatedInstructiuniLibraryRouteChildren
   );
 
 interface AuthenticatedInstructiuniRouteChildren {
@@ -2402,20 +2335,16 @@ interface AuthenticatedInstructiuniRouteChildren {
   AuthenticatedInstructiuniIndexRoute: typeof AuthenticatedInstructiuniIndexRoute;
 }
 
-const AuthenticatedInstructiuniRouteChildren: AuthenticatedInstructiuniRouteChildren =
-  {
-    AuthenticatedInstructiuniModuleIdRoute:
-      AuthenticatedInstructiuniModuleIdRoute,
-    AuthenticatedInstructiuniLibraryRoute:
-      AuthenticatedInstructiuniLibraryRouteWithChildren,
-    AuthenticatedInstructiuniNouRoute: AuthenticatedInstructiuniNouRoute,
-    AuthenticatedInstructiuniIndexRoute: AuthenticatedInstructiuniIndexRoute,
-  };
+const AuthenticatedInstructiuniRouteChildren: AuthenticatedInstructiuniRouteChildren = {
+  AuthenticatedInstructiuniModuleIdRoute: AuthenticatedInstructiuniModuleIdRoute,
+  AuthenticatedInstructiuniLibraryRoute: AuthenticatedInstructiuniLibraryRouteWithChildren,
+  AuthenticatedInstructiuniNouRoute: AuthenticatedInstructiuniNouRoute,
+  AuthenticatedInstructiuniIndexRoute: AuthenticatedInstructiuniIndexRoute,
+};
 
-const AuthenticatedInstructiuniRouteWithChildren =
-  AuthenticatedInstructiuniRoute._addFileChildren(
-    AuthenticatedInstructiuniRouteChildren,
-  );
+const AuthenticatedInstructiuniRouteWithChildren = AuthenticatedInstructiuniRoute._addFileChildren(
+  AuthenticatedInstructiuniRouteChildren
+);
 
 interface AuthenticatedLegislatieRouteChildren {
   AuthenticatedLegislatieActeRoute: typeof AuthenticatedLegislatieActeRoute;
@@ -2424,20 +2353,16 @@ interface AuthenticatedLegislatieRouteChildren {
   AuthenticatedLegislatieIndexRoute: typeof AuthenticatedLegislatieIndexRoute;
 }
 
-const AuthenticatedLegislatieRouteChildren: AuthenticatedLegislatieRouteChildren =
-  {
-    AuthenticatedLegislatieActeRoute: AuthenticatedLegislatieActeRoute,
-    AuthenticatedLegislatieDocumenteRoute:
-      AuthenticatedLegislatieDocumenteRoute,
-    AuthenticatedLegislatieModificariRoute:
-      AuthenticatedLegislatieModificariRoute,
-    AuthenticatedLegislatieIndexRoute: AuthenticatedLegislatieIndexRoute,
-  };
+const AuthenticatedLegislatieRouteChildren: AuthenticatedLegislatieRouteChildren = {
+  AuthenticatedLegislatieActeRoute: AuthenticatedLegislatieActeRoute,
+  AuthenticatedLegislatieDocumenteRoute: AuthenticatedLegislatieDocumenteRoute,
+  AuthenticatedLegislatieModificariRoute: AuthenticatedLegislatieModificariRoute,
+  AuthenticatedLegislatieIndexRoute: AuthenticatedLegislatieIndexRoute,
+};
 
-const AuthenticatedLegislatieRouteWithChildren =
-  AuthenticatedLegislatieRoute._addFileChildren(
-    AuthenticatedLegislatieRouteChildren,
-  );
+const AuthenticatedLegislatieRouteWithChildren = AuthenticatedLegislatieRoute._addFileChildren(
+  AuthenticatedLegislatieRouteChildren
+);
 
 interface AuthenticatedOferteLeadIdRouteChildren {
   AuthenticatedOferteLeadIdContractRoute: typeof AuthenticatedOferteLeadIdContractRoute;
@@ -2445,19 +2370,15 @@ interface AuthenticatedOferteLeadIdRouteChildren {
   AuthenticatedOferteLeadIdIndexRoute: typeof AuthenticatedOferteLeadIdIndexRoute;
 }
 
-const AuthenticatedOferteLeadIdRouteChildren: AuthenticatedOferteLeadIdRouteChildren =
-  {
-    AuthenticatedOferteLeadIdContractRoute:
-      AuthenticatedOferteLeadIdContractRoute,
-    AuthenticatedOferteLeadIdEditareRoute:
-      AuthenticatedOferteLeadIdEditareRoute,
-    AuthenticatedOferteLeadIdIndexRoute: AuthenticatedOferteLeadIdIndexRoute,
-  };
+const AuthenticatedOferteLeadIdRouteChildren: AuthenticatedOferteLeadIdRouteChildren = {
+  AuthenticatedOferteLeadIdContractRoute: AuthenticatedOferteLeadIdContractRoute,
+  AuthenticatedOferteLeadIdEditareRoute: AuthenticatedOferteLeadIdEditareRoute,
+  AuthenticatedOferteLeadIdIndexRoute: AuthenticatedOferteLeadIdIndexRoute,
+};
 
-const AuthenticatedOferteLeadIdRouteWithChildren =
-  AuthenticatedOferteLeadIdRoute._addFileChildren(
-    AuthenticatedOferteLeadIdRouteChildren,
-  );
+const AuthenticatedOferteLeadIdRouteWithChildren = AuthenticatedOferteLeadIdRoute._addFileChildren(
+  AuthenticatedOferteLeadIdRouteChildren
+);
 
 interface AuthenticatedOferteRouteChildren {
   AuthenticatedOferteLeadIdRoute: typeof AuthenticatedOferteLeadIdRouteWithChildren;
@@ -2471,8 +2392,9 @@ const AuthenticatedOferteRouteChildren: AuthenticatedOferteRouteChildren = {
   AuthenticatedOferteIndexRoute: AuthenticatedOferteIndexRoute,
 };
 
-const AuthenticatedOferteRouteWithChildren =
-  AuthenticatedOferteRoute._addFileChildren(AuthenticatedOferteRouteChildren);
+const AuthenticatedOferteRouteWithChildren = AuthenticatedOferteRoute._addFileChildren(
+  AuthenticatedOferteRouteChildren
+);
 
 interface AuthenticatedOrganizatieAbonamentRouteChildren {
   AuthenticatedOrganizatieAbonamentAlegeRoute: typeof AuthenticatedOrganizatieAbonamentAlegeRoute;
@@ -2481,15 +2403,13 @@ interface AuthenticatedOrganizatieAbonamentRouteChildren {
 
 const AuthenticatedOrganizatieAbonamentRouteChildren: AuthenticatedOrganizatieAbonamentRouteChildren =
   {
-    AuthenticatedOrganizatieAbonamentAlegeRoute:
-      AuthenticatedOrganizatieAbonamentAlegeRoute,
-    AuthenticatedOrganizatieAbonamentIndexRoute:
-      AuthenticatedOrganizatieAbonamentIndexRoute,
+    AuthenticatedOrganizatieAbonamentAlegeRoute: AuthenticatedOrganizatieAbonamentAlegeRoute,
+    AuthenticatedOrganizatieAbonamentIndexRoute: AuthenticatedOrganizatieAbonamentIndexRoute,
   };
 
 const AuthenticatedOrganizatieAbonamentRouteWithChildren =
   AuthenticatedOrganizatieAbonamentRoute._addFileChildren(
-    AuthenticatedOrganizatieAbonamentRouteChildren,
+    AuthenticatedOrganizatieAbonamentRouteChildren
   );
 
 interface AuthenticatedOrganizatieRouteChildren {
@@ -2500,38 +2420,31 @@ interface AuthenticatedOrganizatieRouteChildren {
   AuthenticatedOrganizatieIndexRoute: typeof AuthenticatedOrganizatieIndexRoute;
 }
 
-const AuthenticatedOrganizatieRouteChildren: AuthenticatedOrganizatieRouteChildren =
-  {
-    AuthenticatedOrganizatieAbilitariRoute:
-      AuthenticatedOrganizatieAbilitariRoute,
-    AuthenticatedOrganizatieAbonamentRoute:
-      AuthenticatedOrganizatieAbonamentRouteWithChildren,
-    AuthenticatedOrganizatieDateFirmaRoute:
-      AuthenticatedOrganizatieDateFirmaRoute,
-    AuthenticatedOrganizatieEchipaRoute: AuthenticatedOrganizatieEchipaRoute,
-    AuthenticatedOrganizatieIndexRoute: AuthenticatedOrganizatieIndexRoute,
-  };
+const AuthenticatedOrganizatieRouteChildren: AuthenticatedOrganizatieRouteChildren = {
+  AuthenticatedOrganizatieAbilitariRoute: AuthenticatedOrganizatieAbilitariRoute,
+  AuthenticatedOrganizatieAbonamentRoute: AuthenticatedOrganizatieAbonamentRouteWithChildren,
+  AuthenticatedOrganizatieDateFirmaRoute: AuthenticatedOrganizatieDateFirmaRoute,
+  AuthenticatedOrganizatieEchipaRoute: AuthenticatedOrganizatieEchipaRoute,
+  AuthenticatedOrganizatieIndexRoute: AuthenticatedOrganizatieIndexRoute,
+};
 
-const AuthenticatedOrganizatieRouteWithChildren =
-  AuthenticatedOrganizatieRoute._addFileChildren(
-    AuthenticatedOrganizatieRouteChildren,
-  );
+const AuthenticatedOrganizatieRouteWithChildren = AuthenticatedOrganizatieRoute._addFileChildren(
+  AuthenticatedOrganizatieRouteChildren
+);
 
 interface AuthenticatedTesteBankRouteChildren {
   AuthenticatedTesteBankSsmRoute: typeof AuthenticatedTesteBankSsmRoute;
   AuthenticatedTesteBankSuRoute: typeof AuthenticatedTesteBankSuRoute;
 }
 
-const AuthenticatedTesteBankRouteChildren: AuthenticatedTesteBankRouteChildren =
-  {
-    AuthenticatedTesteBankSsmRoute: AuthenticatedTesteBankSsmRoute,
-    AuthenticatedTesteBankSuRoute: AuthenticatedTesteBankSuRoute,
-  };
+const AuthenticatedTesteBankRouteChildren: AuthenticatedTesteBankRouteChildren = {
+  AuthenticatedTesteBankSsmRoute: AuthenticatedTesteBankSsmRoute,
+  AuthenticatedTesteBankSuRoute: AuthenticatedTesteBankSuRoute,
+};
 
-const AuthenticatedTesteBankRouteWithChildren =
-  AuthenticatedTesteBankRoute._addFileChildren(
-    AuthenticatedTesteBankRouteChildren,
-  );
+const AuthenticatedTesteBankRouteWithChildren = AuthenticatedTesteBankRoute._addFileChildren(
+  AuthenticatedTesteBankRouteChildren
+);
 
 interface AuthenticatedTesteRouteChildren {
   AuthenticatedTesteBankRoute: typeof AuthenticatedTesteBankRouteWithChildren;
@@ -2543,8 +2456,9 @@ const AuthenticatedTesteRouteChildren: AuthenticatedTesteRouteChildren = {
   AuthenticatedTesteIndexRoute: AuthenticatedTesteIndexRoute,
 };
 
-const AuthenticatedTesteRouteWithChildren =
-  AuthenticatedTesteRoute._addFileChildren(AuthenticatedTesteRouteChildren);
+const AuthenticatedTesteRouteWithChildren = AuthenticatedTesteRoute._addFileChildren(
+  AuthenticatedTesteRouteChildren
+);
 
 interface AuthenticatedRouteChildren {
   AuthenticatedSplatRoute: typeof AuthenticatedSplatRoute;
@@ -2568,8 +2482,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedActualizariRoute: AuthenticatedActualizariRouteWithChildren,
   AuthenticatedClientiRoute: AuthenticatedClientiRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedEvaluariDeRiscRoute:
-    AuthenticatedEvaluariDeRiscRouteWithChildren,
+  AuthenticatedEvaluariDeRiscRoute: AuthenticatedEvaluariDeRiscRouteWithChildren,
   AuthenticatedInstructiuniRoute: AuthenticatedInstructiuniRouteWithChildren,
   AuthenticatedLegislatieRoute: AuthenticatedLegislatieRouteWithChildren,
   AuthenticatedOferteRoute: AuthenticatedOferteRouteWithChildren,
@@ -2582,7 +2495,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
 };
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
-  AuthenticatedRouteChildren,
+  AuthenticatedRouteChildren
 );
 
 interface ConfigurareRouteChildren {
@@ -2597,9 +2510,7 @@ const ConfigurareRouteChildren: ConfigurareRouteChildren = {
   ConfigurareIndexRoute: ConfigurareIndexRoute,
 };
 
-const ConfigurareRouteWithChildren = ConfigurareRoute._addFileChildren(
-  ConfigurareRouteChildren,
-);
+const ConfigurareRouteWithChildren = ConfigurareRoute._addFileChildren(ConfigurareRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,

@@ -26,6 +26,14 @@ function LeadContractPage() {
       clientId={lead.id}
       userId={session.user.id}
       readOnly={lead.archivedAt !== null || !offers}
+      readOnlyReason={
+        lead.archivedAt === null && !offers
+          ? {
+              label: 'Doar de citit pe Start',
+              title: 'Ofertele și contractele lor se modifică pe planul Profesional.',
+            }
+          : undefined
+      }
       back={
         <Button asChild variant="ghost" size="sm">
           <Link

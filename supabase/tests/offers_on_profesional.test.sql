@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(27);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -148,6 +148,22 @@ select lives_ok(
   $$ insert into public.service_contracts (organization_id, client_id, contract_number, contract_date, start_date, duration_months)
      values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001', 52, '2026-02-15', '2026-02-15', 12) $$,
   'Start records the contract of a client'
+);
+
+select throws_ok(
+  $$ insert into public.client_documents (organization_id, client_id, type_key, title, document_group, owners_only)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000002', 'service_contract', 'Contract', 'other', true) $$,
+  'CLL03',
+  null,
+  'Start starts no contract for a lead'
+);
+
+select throws_ok(
+  $$ insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256, uploaded_by, owners_only)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000002', 'Ofertă', 'oferta.pdf', 'application/pdf', 10, repeat('a', 64), 'aaaaaaaa-0000-4000-8000-000000000001', true) $$,
+  'CLL03',
+  null,
+  'Start adds no file to a lead'
 );
 
 select throws_ok(

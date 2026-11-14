@@ -136,7 +136,9 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   ]);
   if (organization.error) throw fromDatabaseError(organization.error, 'me organization');
   if (subscription.error) throw fromDatabaseError(subscription.error, 'me subscription');
-  if (offers.error) throw fromDatabaseError(offers.error, 'me offers');
+  // The API refuses what the plan lacks either way, so a failed read shows offers as open
+  // instead of failing every page.
+  if (offers.error) console.error(`Plan features for /me failed: ${offers.error.code}`);
   const usage =
     organizationId && subscription.data && membership.data[0]?.access === 'full'
       ? await usageOf(c, organizationId)
@@ -163,7 +165,7 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
         subscription.data && membership.data[0]
           ? toSubscription(subscription.data, membership.data[0].access)
           : null,
-      features: offers.data === null ? null : { offers: offers.data },
+      features: offers.error || offers.data === null ? null : { offers: offers.data },
       ...usage,
     } satisfies MeResponse,
     200

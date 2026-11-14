@@ -46,7 +46,7 @@ function mockUpstream({
   memberUserId = user.id,
   subscription = null as typeof trialRow | null,
   access = 'full',
-  offers = true,
+  offers = true as boolean | 'error',
   appMetadata = { provider: 'email' } as Record<string, string>,
   impersonation = null as typeof activeImpersonation | null,
   impersonated = { full_name: 'Ion Ionescu', email: 'ion@example.ro' } as {
@@ -78,7 +78,9 @@ function mockUpstream({
       );
     }
     if (url.pathname === '/rest/v1/rpc/current_organization_has_offers') {
-      return Response.json(offers);
+      return offers === 'error'
+        ? Response.json({ code: '42883', message: 'missing' }, { status: 404 })
+        : Response.json(offers);
     }
     if (url.pathname === '/rest/v1/subscriptions') {
       return Response.json(
@@ -186,6 +188,14 @@ describe('GET /me', () => {
     expect(meResponseSchema.parse(await (await request('/me')).json()).features).toEqual({
       offers: false,
     });
+  });
+
+  it('leaves the plan features out instead of failing the page when they cannot be read', async () => {
+    mockUpstream({ offers: 'error' });
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const response = await request('/me');
+    expect(response.status).toBe(200);
+    expect(meResponseSchema.parse(await response.json()).features).toBeNull();
   });
 
   it('reports a trial with its end and full access', async () => {

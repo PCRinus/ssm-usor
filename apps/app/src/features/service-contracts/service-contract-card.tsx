@@ -64,6 +64,7 @@ import { Masked } from '@/components/replay';
 import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
+import { isOffersNotInPlanError, offersNotInPlanMessage } from '@/features/clients/offers-plan';
 import { pdfOfRevision, usePrint } from '@/features/documents/print';
 import { todayIso } from '@/features/employees/employee-format';
 import { type ContractFocus, useFocusRequest } from '@/features/missing-data/focus';
@@ -465,7 +466,9 @@ function ServiceContractBody({
       setError(
         body?.reason === 'client_archived'
           ? 'Firma este arhivată; contractul ei nu mai poate fi modificat.'
-          : 'Nu am putut salva detaliile contractului. Verifică conexiunea și încearcă din nou.'
+          : isOffersNotInPlanError(cause)
+            ? offersNotInPlanMessage
+            : 'Nu am putut salva detaliile contractului. Verifică conexiunea și încearcă din nou.'
       );
     }
   });

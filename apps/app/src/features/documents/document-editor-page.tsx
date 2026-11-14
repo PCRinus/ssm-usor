@@ -97,12 +97,20 @@ export function DocumentEditorPage({
   );
 }
 
+const archivedClient = {
+  label: 'Client arhivat',
+  title: 'Clientul este arhivat: documentul poate fi doar citit.',
+};
+
+// `readOnlyReason` names why a read-only document is so; an archived client unless said.
 export function DocumentEditorView({
   source,
   readOnly,
+  readOnlyReason = archivedClient,
 }: {
   source: DocumentSource;
   readOnly: boolean;
+  readOnlyReason?: { label: string; title: string };
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const documents = source;
@@ -255,12 +263,8 @@ export function DocumentEditorView({
           : `Emis · rev. ${revision.revision}`}
       </Badge>
       {readOnly && (
-        <Badge
-          variant="outline"
-          data-testid="editor-read-only"
-          title="Clientul este arhivat: documentul poate fi doar citit."
-        >
-          Client arhivat
+        <Badge variant="outline" data-testid="editor-read-only" title={readOnlyReason.title}>
+          {readOnlyReason.label}
         </Badge>
       )}
       {editable && (
