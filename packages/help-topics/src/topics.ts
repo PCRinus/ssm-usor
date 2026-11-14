@@ -111,6 +111,10 @@ export const helpTopics = {
     path: '/clienti/angajati/instruire-si-teste/',
     anchor: 'înregistrarea-unei-instruiri',
   },
+  'angajati.instructiuni-anterioare': {
+    path: '/clienti/angajati/instruire-si-teste/',
+    anchor: 'instrucțiunile-proprii-anterioare',
+  },
   'angajati.instruire': {
     path: '/clienti/angajati/instruire-si-teste/',
     anchor: 'taburile-de-instruire',
@@ -409,6 +413,10 @@ export const helpTopics = {
   'import.fise-gasite': { path: '/clienti/import/', anchor: 'fișele-găsite-în-documentație' },
   'import.fost-angajat': { path: '/clienti/import/', anchor: 'cine-a-plecat-din-firmă' },
   'import.fotografii-neatribuite': { path: '/clienti/import/', anchor: 'fotografiile-neatribuite' },
+  'import.instructiuni-anterioare': {
+    path: '/clienti/import/',
+    anchor: 'instrucțiunile-proprii-anterioare',
+  },
   'import.instructiuni-proprii': {
     path: '/clienti/import/',
     anchor: 'instrucțiunile-proprii-din-documentație',

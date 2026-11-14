@@ -16,6 +16,8 @@ topics:
     heading: După emiterea instrucțiunilor proprii
   - id: angajati.instruire-de-pe-hartie
     heading: Instruirile de pe fișa pe hârtie
+  - id: angajati.instructiuni-anterioare
+    heading: Instrucțiunile proprii anterioare
   - id: angajati.modificare-instruire
     heading: Modificarea și ștergerea unei instruiri
   - id: angajati.testare
@@ -48,6 +50,11 @@ sources:
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - docs/architecture/adr-042-paper-history-as-written.md
   - supabase/migrations/20261116140000_supplementary_training_proposals.sql
+  - supabase/migrations/20261116180000_earlier_own_instructions.sql
+  - apps/api/src/modules/client-files/earlier-instructions.ts
+  - apps/app/src/features/client-files/earlier-instructions-notice.tsx
+  - apps/app/src/features/client-files/earlier-instructions-dialog.tsx
+  - apps/app/src/features/client-files/earlier-instructions-group.tsx
   - apps/api/src/modules/trainings/supplementary-proposals.ts
   - apps/app/src/features/trainings/supplementary-training-proposals.tsx
   - apps/app/src/features/trainings/supplementary-proposals.ts
@@ -162,6 +169,19 @@ Când ai fișele mai multor lucrători, nu le transcrie de mână: importul din 
 Testul la angajare care a încheiat o instruire de pe hârtie s-a dat tot pe hârtie, așa că aplicația nu i-l mai cere lucrătorului. Dacă pe fișă testul e consemnat ca promovat, înregistrează-l cu **Înregistrează un rezultat de pe hârtie**: vezi „Când îl așteaptă un test”.
 
 Poți înregistra astfel și instruirile unui fost lucrător.
+
+### Instrucțiunile proprii anterioare
+
+O instruire de pe fișa pe hârtie are la material instrucțiunile proprii pe care clientul le avea atunci, de exemplu „IPSSM, art. 167–288”, iar aplicația nu are o copie a lor. Cât timp clientul are instruiri de pe hârtie într-un domeniu și pentru acel domeniu nu există nici o copie, nici răspunsul „Nu le am”, pe tabul **Instruiri ținute** apare nota **Păstrează instrucțiunile proprii anterioare**. Nota numește domeniile care lipsesc, IPSSM, IPSU sau amândouă. Când pe tab e și nota care propune o instruire după emiterea instrucțiunilor proprii, aceasta stă dedesubt.
+
+- **Adaugă instrucțiunile** deschide o fereastră în care alegi domeniul, fișierul și **Valabile până la**, ziua din care se aplică instrucțiunile noi. Propunem ziua de azi. Poți adăuga mai multe fișiere deodată, de exemplu scanurile paginilor: PDF, imagini, Word sau Excel, de cel mult 25 MB fiecare.
+- **Nu le am** spune că clientul nu le mai are. Când lipsesc amândouă, alegi pentru ce domeniu răspunzi, IPSSM, IPSU sau amândouă: fiecare domeniu are răspunsul lui.
+
+Nota dispare când fiecare domeniu cu instruiri de pe hârtie are o copie sau răspunsul „Nu le am”. Instrucțiunile proprii pe care importul documentației clientului le-a păstrat deja printre fișierele lui țin loc de copie. Același lucru îl întreabă și importul lucrătorilor din fișe, în ultima lui secțiune; vezi [Instrucțiunile proprii anterioare](/clienti/import/#instrucțiunile-proprii-anterioare) la import.
+
+Fișierele stau în **Alte documente**, în grupa **Instrucțiuni proprii anterioare**, fiecare cu domeniul lui și „valabile până la …”. Grupa are **Adaugă**, care deschide aceeași fereastră, iar ziua unui fișier o schimbi cu **Redenumește**, din meniul lui. Fișierele nu intră în documentele pe care le generezi. Un răspuns „Nu le am” nu mai contează după ce adaugi o copie pentru acel domeniu.
+
+Nu e o obligație legală: nicio normă nu cere angajatorului să păstreze instrucțiunile proprii pe care le-a înlocuit. Copia e o dovadă: la un control sau la cercetarea unui accident, fișa se citește împreună cu ce s-a predat.
 
 ### Modificarea și ștergerea unei instruiri
 
