@@ -24,7 +24,7 @@ import {
   type ImportDetailFilesItem,
   splitImport,
 } from '@/api/generated/api';
-import { openedHere } from '@/app/opener';
+import { openedFromRecord } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -95,7 +95,9 @@ export function ImportLoader({
   if (query.isPending) {
     return (
       <div className="grid gap-4" data-testid="import-loading" aria-busy="true">
-        <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
+        <TitleWithBack back={back}>
+          <div className="h-9 w-64 max-w-full animate-pulse rounded-md bg-muted" />
+        </TitleWithBack>
         <div className="h-40 animate-pulse rounded-lg bg-muted" />
       </div>
     );
@@ -103,7 +105,7 @@ export function ImportLoader({
   if (query.isError) {
     return (
       <div className="grid justify-items-start gap-4">
-        <div className="-ml-3 sm:-ml-2">{back}</div>
+        <div className="flex">{back}</div>
         <Notice
           variant="destructive"
           data-testid="import-error"
@@ -397,7 +399,7 @@ export function ProcessingView({ detail, back }: { detail: ImportDetail; back: R
                     <Button asChild variant="outline" size="xs">
                       <Link
                         to="/clienti/import/$importId/instructiuni/$domain"
-                        state={openedHere}
+                        state={openedFromRecord(`/clienti/import/${detail.id}`)}
                         params={{ importId: detail.id, domain }}
                         data-testid="import-library-file-open"
                       >

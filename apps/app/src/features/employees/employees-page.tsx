@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 
 import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { keepOpener, openedHere } from '@/app/opener';
+import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -298,7 +298,7 @@ export function EmployeesPage() {
         onStarted={(importId) =>
           void navigate({
             to: '/clienti/$clientId/angajati/import/$importId',
-            state: openedHere,
+            state: openedFromRecord(`/clienti/${clientId}/angajati`),
             params: { clientId, importId },
           })
         }

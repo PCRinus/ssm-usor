@@ -2,6 +2,7 @@ import { documentSetOf } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouter } from '@tanstack/react-router';
 
+import { keepOpener } from '@/app/opener';
 import { useAuth } from '@/features/auth/auth-context';
 import { documentRowLink } from '@/features/documents/document-sets';
 
@@ -59,29 +60,37 @@ export function useSavedToast() {
     const back = () => {
       endWayBack();
       if (wayBack.to === 'lead-contract') {
-        void navigate({ to: '/oferte/$leadId', params: { leadId: wayBack.clientId } });
+        void navigate({
+          to: '/oferte/$leadId',
+          params: { leadId: wayBack.clientId },
+          state: keepOpener,
+        });
       } else if (wayBack.to === 'client-contract') {
         void navigate({
           to: '/clienti/$clientId/contract',
           params: { clientId: wayBack.clientId },
+          state: keepOpener,
         });
       } else if (wayBack.to === 'training-sheet' && wayBack.employeeId && wayBack.domain) {
         void navigate({
           to: trainingTabs[wayBack.domain],
           params: { clientId: wayBack.clientId, employeeId: wayBack.employeeId },
+          state: keepOpener,
         });
       } else if (wayBack.to === 'document' && wayBack.typeKey) {
-        void navigate(documentRowLink(wayBack.clientId, wayBack.typeKey));
+        void navigate({ ...documentRowLink(wayBack.clientId, wayBack.typeKey), state: keepOpener });
       } else if (wayBack.to === 'fire-safety-documents') {
         void navigate({
           to: '/clienti/$clientId/documente-su',
           params: { clientId: wayBack.clientId },
+          state: keepOpener,
           search: { focus: 'generate' },
         });
       } else {
         void navigate({
           to: '/clienti/$clientId/documente-ssm',
           params: { clientId: wayBack.clientId },
+          state: keepOpener,
           search: { focus: 'generate' },
         });
       }

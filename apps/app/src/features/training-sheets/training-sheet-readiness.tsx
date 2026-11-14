@@ -10,6 +10,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { useState } from 'react';
 
+import { openedFromRecord, openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
@@ -77,6 +78,11 @@ export function TrainingSheetReadiness({
             <MissingDataList
               groups={groups}
               testId="training-sheet-missing"
+              linkState={(target) =>
+                target.to === '/clienti/$clientId/angajati/$employeeId/editare'
+                  ? openedFromRecord(`/clienti/${clientId}/angajati/${employeeId}`)
+                  : openedHere
+              }
               onFollow={() => {
                 startWayBack({
                   userId: session?.user.id ?? '',

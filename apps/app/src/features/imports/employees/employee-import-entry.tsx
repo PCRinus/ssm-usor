@@ -20,7 +20,7 @@ import {
   type ImportListResponseItemsItem,
   useListImports,
 } from '@/api/generated/api';
-import { openedHere } from '@/app/opener';
+import { openedFromRecord, openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
 import { roCount } from '@/features/employees/employee-format';
@@ -290,7 +290,7 @@ function OpenImportCard({
         <Button asChild size="sm" variant={item.status === 'ready' ? 'default' : 'outline'}>
           <Link
             to="/clienti/$clientId/angajati/import/$importId"
-            state={openedHere}
+            state={openedFromRecord(`/clienti/${clientId}/angajati`)}
             params={{ clientId, importId: item.id }}
             data-testid="employee-import-open"
           >

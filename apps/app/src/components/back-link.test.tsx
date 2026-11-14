@@ -106,6 +106,9 @@ describe('back link', () => {
     const arrow = await back();
     expect(arrow.getAttribute('href')).toBe('/list');
     expect(arrow.getAttribute('aria-label')).toBe('Înapoi la listă');
+    expect(arrow.className).toContain('bg-brand-forest/10');
+    expect(arrow.className).toContain('size-11');
+    expect(arrow.textContent).toBe('');
 
     await userEvent.click(arrow);
     expect(await screen.findByTestId('list')).toBeTruthy();
@@ -139,5 +142,24 @@ describe('back link', () => {
     await user.click(arrow);
     await user.keyboard('{/Control}');
     expect(router.state.location.pathname).toBe('/record/7/a');
+  });
+
+  it('is never marked as the current page, though it leads to an ancestor of it', async () => {
+    const root = createRootRoute({ component: Outlet });
+    const parent = createRoute({ getParentRoute: () => root, path: '/parent', component: Outlet });
+    const child = createRoute({
+      getParentRoute: () => parent,
+      path: '/child',
+      component: () => <AnyBackLink to="/parent" label="Înapoi la părinte" />,
+    });
+    const router = createRouter({
+      routeTree: root.addChildren([parent.addChildren([child])]),
+      history: createMemoryHistory({ initialEntries: ['/parent/child'] }),
+    });
+    render(<RouterProvider router={router} />);
+    const arrow = await back();
+    expect(arrow.getAttribute('href')).toBe('/parent');
+    expect(arrow.getAttribute('aria-current')).toBeNull();
+    expect(arrow.getAttribute('data-status')).toBeNull();
   });
 });

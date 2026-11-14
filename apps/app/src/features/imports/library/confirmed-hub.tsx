@@ -18,7 +18,7 @@ import {
 import { type ReactNode, useState } from 'react';
 
 import type { ImportDetail, ImportLibraryPart } from '@/api/generated/api';
-import { openedHere } from '@/app/opener';
+import { openedFromRecord, openedHere } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -69,7 +69,7 @@ function stepOf(importId: string, part: ImportLibraryPart, now: number): Step {
       link: {
         to: '/clienti/import/$importId/evaluari-de-risc',
         params: { importId },
-        state: openedHere,
+        state: openedFromRecord(`/clienti/import/${importId}`),
       },
       description: risksPartDescription(part, true, now),
     };
@@ -82,7 +82,7 @@ function stepOf(importId: string, part: ImportLibraryPart, now: number): Step {
     help: instructionsHelp,
     link: {
       to: '/clienti/import/$importId/instructiuni/$domain',
-      state: openedHere,
+      state: openedFromRecord(`/clienti/import/${importId}`),
       params: { importId, domain: part.domain },
     },
     description: partDescription(part, true, now),
@@ -112,15 +112,18 @@ export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
   return (
     <div data-testid="import-confirmed-hub" className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <TitleWithBack className="max-w-3xl" back={<ImportParentBack detail={detail} />}>
-          <div className="grid gap-1">
+        <TitleWithBack
+          className="max-w-3xl"
+          back={<ImportParentBack detail={detail} />}
+          eyebrow={
             <span className="text-sm text-muted-foreground">
               {detail.intoExistingClient
                 ? 'Client completat din documente'
                 : 'Client creat din documente'}
             </span>
-            <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
-          </div>
+          }
+        >
+          <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
         </TitleWithBack>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">

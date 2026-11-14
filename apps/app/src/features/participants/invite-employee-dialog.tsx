@@ -13,6 +13,7 @@ import { Link, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useInviteEmployeeParticipant } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -136,6 +137,7 @@ function InviteEmployeeForm({
                 <Link
                   to="/clienti/$clientId/angajati/$employeeId/editare"
                   params={{ clientId: employee.clientId, employeeId: employee.id }}
+                  state={openedHere}
                 >
                   Modifică datele
                 </Link>
@@ -193,6 +195,7 @@ function InviteEmployeeForm({
                       <Link
                         to="/clienti/$clientId/angajati/$employeeId/editare"
                         params={{ clientId: employee.clientId, employeeId: employee.id }}
+                        state={openedHere}
                       >
                         Modifică datele
                       </Link>

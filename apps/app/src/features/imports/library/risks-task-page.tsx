@@ -15,6 +15,7 @@ import {
   retryImportLibraryPart,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -181,6 +182,7 @@ function TaskContent({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const returnToImport = useReturnToOpener(`/clienti/import/${detail.id}`);
   const review = useRiskReview(detail.id, part);
   const prefetchSource = useSourcePrefetch(detail.id);
   const root = useRef<HTMLDivElement>(null);
@@ -324,7 +326,9 @@ function TaskContent({
       toast.success(
         'createdProfileIds' in result ? doneToast(result) : 'Ai confirmat evaluările de risc.'
       );
-      await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
+      if (!returnToImport()) {
+        await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
+      }
     } catch (cause) {
       const body =
         cause instanceof ApiHttpError

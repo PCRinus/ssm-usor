@@ -35,6 +35,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -132,6 +133,7 @@ export function EmployeeConfirmDialog({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const router = useRouter();
+  const returnToWorkers = useReturnToOpener(`/clienti/${clientId}/angajati`);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issues, setIssues] = useState<string[]>([]);
@@ -176,7 +178,9 @@ export function EmployeeConfirmDialog({
         }),
         queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
       ]);
-      await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
+      if (!returnToWorkers()) {
+        await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
+      }
       // The client's header reads its route's loader, which keeps the client it loaded.
       await router.invalidate();
     } catch (cause) {

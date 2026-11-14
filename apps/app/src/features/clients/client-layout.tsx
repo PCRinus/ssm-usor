@@ -12,7 +12,6 @@ import {
   Archive,
   ArchiveRestore,
   BriefcaseBusiness,
-  Building2,
   ClipboardCheck,
   ClipboardList,
   FileSignature,
@@ -28,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
@@ -116,7 +116,6 @@ export function ClientLayout() {
     <div data-testid="client-page" className="space-y-5">
       <RecordHeader
         back={<BackLink to="/clienti" label="Înapoi la clienți" />}
-        icon={Building2}
         title={client.legalName}
         facts={
           <>
@@ -225,7 +224,11 @@ export function ClientLayout() {
         client={client}
         onClose={() => setImporting(false)}
         onStarted={(importId) =>
-          void navigate({ to: '/clienti/import/$importId', params: { importId } })
+          void navigate({
+            to: '/clienti/import/$importId',
+            params: { importId },
+            state: openedHere,
+          })
         }
       />
     </div>
@@ -255,6 +258,7 @@ export function ClientError({ error }: ErrorComponentProps) {
       title="Clientul nu a putut fi încărcat"
       retryTestId="client-retry"
       explainForbidden
+      back={<BackLink to="/clienti" label="Înapoi la clienți" />}
     />
   );
 }

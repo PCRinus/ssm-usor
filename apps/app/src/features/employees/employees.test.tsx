@@ -1407,6 +1407,26 @@ describe('employee detail', () => {
     expect(runtime.router.state.location.search).toEqual({ q: 'Popescu' });
   });
 
+  it('keeps the way back to the list through an edit that is given up', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      detail: () => Response.json({ employee: fullEmployee }),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=Popescu`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('employees-open'));
+    await screen.findByTestId('employee-page');
+    await user.click(screen.getByTestId('employee-edit'));
+    await screen.findByTestId('edit-employee-page');
+    expect(screen.getByRole('link', { name: 'Înapoi' }).getAttribute('href')).toBe(detailPage);
+
+    await user.click(screen.getByRole('link', { name: 'Renunță' }));
+    await screen.findByTestId('employee-page');
+    await user.click(screen.getByRole('link', { name: 'Înapoi' }));
+    await screen.findByTestId('employees-row');
+    expect(runtime.router.state.location.search).toEqual({ q: 'Popescu' });
+  });
+
   it('goes up to the client’s workers when opened from a link', async () => {
     mockApi({ detail: () => Response.json({ employee: fullEmployee }) });
     const runtime = mountApp(authFixture(makeSession()).client, detailPage);

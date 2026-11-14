@@ -16,6 +16,7 @@ import {
   useUpdateEmployee,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
 import { useAuth } from '@/features/auth/auth-context';
@@ -61,6 +62,9 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const returnToOpener = useReturnToOpener();
+  const returnToRecord = useReturnToOpener(
+    employee ? `/clienti/${clientId}/angajati/${employee.id}` : undefined
+  );
   const savedToast = useSavedToast();
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
@@ -126,9 +130,11 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       if (employee) {
         savedToast('Datele lucrătorului au fost salvate.');
+        if (returnToRecord()) return;
         await navigate({
           to: '/clienti/$clientId/angajati/$employeeId',
           params: { clientId, employeeId: employee.id },
+          state: keepOpener,
         });
       } else {
         // The list it returns to is sorted and paged, so the new row may not be in sight.

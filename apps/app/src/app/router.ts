@@ -28,6 +28,8 @@ declare module '@tanstack/react-router' {
   interface HistoryState {
     // The history index of the page that opened this one (`app/opener.ts`).
     opener?: number;
+    // The path of the record that opened this page, when the page finishes by returning to it.
+    openerRecord?: string;
     // A code that failed on another page, as when changing the password, shown on the code page.
     codeFailure?: Exclude<VerifyResult, 'verified'>;
   }

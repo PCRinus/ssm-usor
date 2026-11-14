@@ -11,7 +11,7 @@ import {
 import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { openedHere } from '@/app/opener';
+import { openedFromRecord } from '@/app/opener';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
@@ -200,7 +200,7 @@ export function LibraryGroup({ detail }: { detail: ImportDetail }) {
           <TaskLink
             link={{
               to: '/clienti/import/$importId/instructiuni/$domain',
-              state: openedHere,
+              state: openedFromRecord(`/clienti/import/${detail.id}`),
               params: { importId: detail.id, domain: part.domain },
             }}
             part={part.part}
@@ -242,7 +242,7 @@ export function RisksGroup({ detail }: { detail: ImportDetail }) {
           <TaskLink
             link={{
               to: '/clienti/import/$importId/evaluari-de-risc',
-              state: openedHere,
+              state: openedFromRecord(`/clienti/import/${detail.id}`),
               params: { importId: detail.id },
             }}
             part={part.part}

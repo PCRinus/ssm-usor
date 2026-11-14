@@ -12,7 +12,7 @@ import {
   EvaluationProfileNotFound,
   EvaluationProfilePage,
 } from '@/features/evaluation-profiles/evaluation-profile-page';
-import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
+import { ProfilePending } from '@/features/evaluation-profiles/profile-pending';
 import { factorListSearch } from '@/features/risk-evaluations/use-factor-list-view';
 
 export const Route = createFileRoute('/_authenticated/evaluari-de-risc/$profileId')({
@@ -34,7 +34,7 @@ export const Route = createFileRoute('/_authenticated/evaluari-de-risc/$profileI
     }
   },
   component: ProfilePage,
-  pendingComponent: RiskEvaluationPending,
+  pendingComponent: ProfilePending,
   notFoundComponent: EvaluationProfileNotFound,
   errorComponent: EvaluationProfileError,
 });

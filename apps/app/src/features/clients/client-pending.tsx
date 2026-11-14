@@ -6,7 +6,7 @@ export function ClientPending() {
   return (
     <div className="space-y-5" aria-busy="true">
       <div className="flex items-center gap-3">
-        <div className="-mr-1 -ml-3 flex shrink-0 sm:-ml-2">
+        <div className="flex shrink-0">
           <BackLink to="/clienti" label="Înapoi la clienți" />
         </div>
         <Skeleton className="h-12 flex-1 rounded-lg" />

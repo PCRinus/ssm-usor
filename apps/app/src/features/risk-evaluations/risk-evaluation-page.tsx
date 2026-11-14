@@ -230,7 +230,7 @@ function Header({ title, back, action }: { title: string; back: ReactNode; actio
       <div className="grid gap-1">
         <p className="text-sm text-muted-foreground">Fișa de evaluare</p>
         <div className="flex min-w-0 items-center gap-1.5">
-          <div className="-ml-3 flex shrink-0 sm:-ml-2">{back}</div>
+          <div className="flex shrink-0">{back}</div>
           <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
           <HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />
         </div>

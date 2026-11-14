@@ -31,6 +31,7 @@ import {
   useListWorkplaces,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
@@ -236,7 +237,7 @@ export function FireSafetyMeansPage({
       action={
         !readOnly && (
           <Button asChild variant="outline">
-            <Link to="/clienti/$clientId/detalii" params={{ clientId }}>
+            <Link to="/clienti/$clientId/detalii" params={{ clientId }} state={keepOpener}>
               Deschide Detalii
             </Link>
           </Button>
@@ -263,6 +264,7 @@ export function FireSafetyMeansPage({
                       to="/clienti/$clientId/detalii"
                       params={{ clientId }}
                       search={{ focus: 'add-workplace' }}
+                      state={keepOpener}
                     >
                       Adaugă un loc de muncă
                     </Link>

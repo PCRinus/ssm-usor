@@ -89,11 +89,14 @@ export function RouteError({
   testId = 'route-error-page',
   retryTestId = 'route-error-reload',
   explainForbidden = false,
+  back,
 }: Partial<ErrorComponentProps> & {
   title?: string;
   testId?: string;
   retryTestId?: string;
   explainForbidden?: boolean;
+  // The way up from a nested page, which the shell's sidebar alone would not give.
+  back?: ReactNode;
 }) {
   const shellReport = useShellReportProblem();
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -139,7 +142,16 @@ export function RouteError({
     />
   );
 
-  if (shellReport) return card;
+  if (shellReport) {
+    return back ? (
+      <div className="grid gap-4">
+        <div className="flex">{back}</div>
+        {card}
+      </div>
+    ) : (
+      card
+    );
+  }
   return (
     <StandalonePage>
       {card}

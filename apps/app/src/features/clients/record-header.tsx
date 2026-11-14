@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
@@ -11,7 +10,6 @@ const actionsPlacement = {
 
 export function RecordHeader({
   back,
-  icon: Icon,
   title,
   facts,
   actions,
@@ -19,7 +17,6 @@ export function RecordHeader({
   personal = false,
 }: {
   back?: ReactNode;
-  icon: LucideIcon;
   title: string;
   personal?: boolean;
   facts: ReactNode;
@@ -28,14 +25,10 @@ export function RecordHeader({
 }) {
   return (
     <header className="@container">
-      <div className="flex min-w-0 flex-wrap items-center gap-3">
-        {back && <div className="-mr-1 -ml-3 flex shrink-0 sm:-ml-2">{back}</div>}
-        <div
-          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-          aria-hidden="true"
-        >
-          <Icon className="size-4" />
-        </div>
+      {/* h-7 is the title's line height, so the arrow stays on its first line while a long
+          name wraps under itself. */}
+      <div className="flex min-w-0 flex-wrap items-start gap-3">
+        {back && <div className="flex h-7 shrink-0 items-center">{back}</div>}
         <div className="min-w-0 flex-1">
           <h1
             className="text-xl font-semibold tracking-tight wrap-anywhere"
@@ -46,7 +39,9 @@ export function RecordHeader({
           <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">{facts}</dl>
         </div>
         {actions && (
-          <div className={`flex flex-wrap gap-2 ${actionsPlacement[actionsWidth]}`}>{actions}</div>
+          <div className={`flex flex-wrap gap-2 self-center ${actionsPlacement[actionsWidth]}`}>
+            {actions}
+          </div>
         )}
       </div>
     </header>

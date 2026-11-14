@@ -14,6 +14,7 @@ import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/
 import { ApiHttpError } from '@/api/http';
 import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { BackLink } from '@/components/back-link';
 
 // A lead is a client in an earlier stage (ADR 007), read through the same route. The
 // policies hide it from anyone who is not an owner, for whom the API answers 404.
@@ -57,7 +58,12 @@ function LeadLayout() {
 function LeadPending() {
   return (
     <div className="space-y-5" aria-busy="true">
-      <Skeleton className="h-12 w-full rounded-lg" />
+      <div className="flex items-center gap-3">
+        <div className="flex shrink-0">
+          <BackLink to="/oferte" label="Înapoi la oferte" />
+        </div>
+        <Skeleton className="h-12 flex-1 rounded-lg" />
+      </div>
       <Skeleton className="h-40 w-full" />
     </div>
   );
@@ -79,5 +85,12 @@ function LeadNotFound() {
 }
 
 function LeadError({ error }: ErrorComponentProps) {
-  return <RouteError error={error} testId="lead-error" title="Oferta nu a putut fi încărcată" />;
+  return (
+    <RouteError
+      error={error}
+      testId="lead-error"
+      title="Oferta nu a putut fi încărcată"
+      back={<BackLink to="/oferte" label="Înapoi la oferte" />}
+    />
+  );
 }

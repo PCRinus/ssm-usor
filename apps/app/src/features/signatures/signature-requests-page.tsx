@@ -14,6 +14,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { openedHere } from '@/app/opener';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -163,6 +164,7 @@ export function SignatureRequestsPage() {
                     <Link
                       to="/clienti/$clientId/instruiri-tinute"
                       params={{ clientId: group.client.id }}
+                      state={openedHere}
                       className="hover:underline"
                     >
                       {group.client.name}
@@ -229,6 +231,7 @@ function RequestRow({
                 : '/clienti/$clientId/angajati/$employeeId/instruire/su'
             }
             params={{ clientId: request.client.id, employeeId: request.employee.id }}
+            state={openedHere}
             data-testid="signature-request-employee"
             className="font-medium hover:underline"
             {...replayMask}

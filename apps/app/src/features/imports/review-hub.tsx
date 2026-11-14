@@ -78,11 +78,16 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   return (
     <div data-testid="import-review-hub" className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <TitleWithBack className="max-w-3xl" back={<ImportParentBack detail={detail} />}>
-          <div className="grid gap-1">
-            {intoExisting && (
+        <TitleWithBack
+          className="max-w-3xl"
+          back={<ImportParentBack detail={detail} />}
+          eyebrow={
+            intoExisting && (
               <span className="text-sm text-muted-foreground">Completezi clientul existent</span>
-            )}
+            )
+          }
+        >
+          <div className="grid gap-1">
             <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
             <p className="text-sm text-muted-foreground">
               Propunere {read === 1 ? 'dintr-un fișier citit' : `din ${filesLabel(read)} citite`}

@@ -8,6 +8,8 @@ import { Link } from '@tanstack/react-router';
 import { Controller } from 'react-hook-form';
 
 import { replayMask, replayShape } from '@/app/observability/replay-masking';
+import { keepOpener } from '@/app/opener';
+import { useReturnOnClick } from '@/app/use-return-to-opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -49,6 +51,9 @@ export function EmployeeForm({
   const { form, onSubmit, prefillBirthDate, choosePosition, workplaces, isSaving } =
     useEmployeeForm(clientId, employee);
   const formRef = useRevealErrors(form);
+  const cancel = useReturnOnClick(
+    employee ? `/clienti/${clientId}/angajati/${employee.id}` : undefined
+  );
   // The workplace picker stays disabled, and so cannot take the focus, until its list loads.
   useFocusRequest(focus !== undefined, {
     ready: focus !== 'workplace' || workplaces !== undefined,
@@ -653,11 +658,18 @@ export function EmployeeForm({
               <Link
                 to="/clienti/$clientId/angajati/$employeeId"
                 params={{ clientId, employeeId: employee.id }}
+                state={keepOpener}
+                onClick={cancel}
               >
                 Renunță
               </Link>
             ) : (
-              <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
+              <Link
+                to="/clienti/$clientId/angajati"
+                params={{ clientId }}
+                state={keepOpener}
+                onClick={cancel}
+              >
                 Renunță
               </Link>
             )}

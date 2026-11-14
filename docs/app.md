@@ -524,9 +524,14 @@ pass `keepOpener` on. While the index is there the arrow is labelled "Înapoi" a
 through history to the opener, filters and scroll included; opened from a pasted link or a new
 tab, it is a plain link to the page above, which a middle or modified click also opens.
 A position and the evaluation sheets show inside the client's page, so they belong to the
-client: their links pass `keepOpener` and their own arrow is `up`, always the page above, leaving
-the opener to the client's arrow. Full pages under a client name it (`ClientFact`), since they
-have no client header.
+client: the links to them from the client's own page pass `keepOpener` (from another page, such
+as a worker's training tab or a library evaluation, they pass `openedHere`), and their own arrow
+is `up`, always the page above, leaving the opener to the client's arrow. A page that ends by
+returning to the record it was opened from, as an edit form on save or **Renunță**, is opened
+with `openedFromRecord(path)` and goes back through history only when that record opened it;
+otherwise it pushes the record with `keepOpener`. Error cards and loading states of a nested
+page carry the arrow too. Full pages under a client name it (`ClientFact`), since they have no
+client header.
 The sidebar collapses to icons on desktop and uses a Sheet on mobile; selecting a
 mobile navigation link closes the Sheet. An entry of `navigation` may have `children`, its
 page's tabs: while the entry's route is open they show under it as sub-entries, the current one

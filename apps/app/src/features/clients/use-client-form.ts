@@ -9,6 +9,8 @@ import {
   useCreateClient,
   useUpdateClient,
 } from '@/api/generated/api';
+import { keepOpener } from '@/app/opener';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
 
 import {
   type Client,
@@ -31,6 +33,7 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
   const router = useRouter();
+  const returnToRecord = useReturnToOpener(lead ? `/oferte/${lead.id}` : undefined);
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: lead ? toClientForm(lead) : emptyClientForm,
@@ -51,7 +54,8 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
         await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
         await router.invalidate();
         toast.success('Datele ofertei au fost salvate.');
-        await navigate({ to: '/oferte/$leadId', params: { leadId: lead.id } });
+        if (returnToRecord()) return;
+        await navigate({ to: '/oferte/$leadId', params: { leadId: lead.id }, state: keepOpener });
         return;
       }
       const created = await create.mutateAsync({ data: toCreateClientRequest(values, stage) });

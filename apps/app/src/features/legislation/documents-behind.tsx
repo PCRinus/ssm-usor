@@ -30,6 +30,7 @@ import {
   useStartDocumentRegeneration,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { openedHere } from '@/app/opener';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -338,6 +339,7 @@ function BehindTypeCard({
             >
               <Link
                 {...documentRowLink(client.clientId, type.typeKey)}
+                state={openedHere}
                 className="font-medium underline-offset-4 hover:underline"
               >
                 {client.clientName}

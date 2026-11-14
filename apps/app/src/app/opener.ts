@@ -8,10 +8,24 @@ export const openedHere = (current: ParsedHistoryState): HistoryState => ({
   opener: current.__TSR_index,
 });
 
-export const keepOpener = (current: ParsedHistoryState): HistoryState =>
-  current.opener === undefined ? {} : { opener: current.opener };
+// The index alone does not say what the opener was. A page that finishes by returning to the
+// record it was opened from, as an edit form after saving, needs the record's path as well.
+export const openedFromRecord =
+  (record: string) =>
+  (current: ParsedHistoryState): HistoryState => ({
+    opener: current.__TSR_index,
+    openerRecord: record,
+  });
 
-export function stepsBackToOpener(state: ParsedHistoryState) {
+export const keepOpener = (current: ParsedHistoryState): HistoryState =>
+  current.opener === undefined
+    ? {}
+    : current.openerRecord === undefined
+      ? { opener: current.opener }
+      : { opener: current.opener, openerRecord: current.openerRecord };
+
+export function stepsBackToOpener(state: ParsedHistoryState, record?: string) {
   const { opener, __TSR_index: index } = state;
+  if (record !== undefined && state.openerRecord !== record) return null;
   return typeof opener === 'number' && opener < index ? opener - index : null;
 }

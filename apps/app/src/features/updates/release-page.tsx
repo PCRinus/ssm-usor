@@ -304,6 +304,11 @@ export function ReleaseNotFound() {
 
 export function ReleaseError({ error }: ErrorComponentProps) {
   return (
-    <RouteError error={error} testId="release-error" title="Actualizarea nu a putut fi încărcată" />
+    <RouteError
+      error={error}
+      testId="release-error"
+      title="Actualizarea nu a putut fi încărcată"
+      back={<BackLink to="/actualizari" label="Înapoi la actualizări" />}
+    />
   );
 }

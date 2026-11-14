@@ -2,7 +2,7 @@ import type { BillingChoice, BillingOverview } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useState } from 'react';
 
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
@@ -36,6 +36,17 @@ import { PlanPicker } from './plan-picker';
 // Stripe's libraries load with the card form, never with the rest of the app.
 const StripeCheckout = lazy(() => import('./stripe-checkout'));
 
+const up = <BackLink to="/organizatie/abonament" label="Înapoi la abonament" />;
+
+function WithBack({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid gap-4">
+      <div className="flex">{up}</div>
+      {children}
+    </div>
+  );
+}
+
 export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   const me = useMe();
   // Coming back from the bank's app focuses the window mid-confirmation; a refetch then must
@@ -45,27 +56,31 @@ export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   if (billing.isPending || !me.data) {
     return (
       <div data-testid="choose-plan-loading" className="grid gap-5">
-        <Skeleton className="h-10 w-64" />
+        <TitleWithBack back={up}>
+          <Skeleton className="h-9 w-64 max-w-full" />
+        </TitleWithBack>
         <Skeleton className="h-96 w-full" />
       </div>
     );
   }
   if (billing.isError) {
     return (
-      <Notice
-        variant="destructive"
-        action={
-          <Button
-            variant="outline"
-            disabled={billing.isFetching}
-            onClick={() => void billing.refetch()}
-          >
-            Încearcă din nou
-          </Button>
-        }
-      >
-        Nu am putut încărca abonamentul.
-      </Notice>
+      <WithBack>
+        <Notice
+          variant="destructive"
+          action={
+            <Button
+              variant="outline"
+              disabled={billing.isFetching}
+              onClick={() => void billing.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca abonamentul.
+        </Notice>
+      </WithBack>
     );
   }
 
@@ -79,16 +94,20 @@ export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   );
   if (!isOwner || !owner) {
     return (
-      <Notice variant="info" data-testid="choose-plan-owner-only" action={back}>
-        Doar adminul organizației alege și schimbă planul.
-      </Notice>
+      <WithBack>
+        <Notice variant="info" data-testid="choose-plan-owner-only" action={back}>
+          Doar adminul organizației alege și schimbă planul.
+        </Notice>
+      </WithBack>
     );
   }
   if (viewOf(overview.subscription) === 'enterprise') {
     return (
-      <Notice variant="info" action={back}>
-        Abonamentul Enterprise se schimbă prin email, la {contactEmail}.
-      </Notice>
+      <WithBack>
+        <Notice variant="info" action={back}>
+          Abonamentul Enterprise se schimbă prin email, la {contactEmail}.
+        </Notice>
+      </WithBack>
     );
   }
   return <ChoosePlanForm overview={overview} owner={owner} search={search} />;
@@ -149,7 +168,7 @@ function ChoosePlanForm({
   };
 
   const heading = (
-    <TitleWithBack back={<BackLink to="/organizatie/abonament" label="Înapoi la abonament" />}>
+    <TitleWithBack back={up}>
       <div className="grid gap-1.5">
         <h1 className="text-[26px] font-bold tracking-tight">
           {mode === 'change' ? 'Schimbă planul' : 'Alege planul'}
