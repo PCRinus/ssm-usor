@@ -11,7 +11,8 @@ shift
 if [[ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]]; then
   # shellcheck disable=SC1091
   source "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
-  nvm use --silent
+  # A machine whose nvm lacks .nvmrc's version keeps the Node already on PATH (exit 3 otherwise).
+  nvm use --silent || true
 fi
 
 files=()

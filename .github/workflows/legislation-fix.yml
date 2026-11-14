@@ -90,8 +90,11 @@ jobs:
         run: pnpm --filter "@ssm-usor/api^..." build
 
       # The inputs reach the script as environment variables, never spliced into the command.
+      # The install sets up the developer hooks, whose nvm step fails on the runner. The fix's files
+      # are written in Prettier's layout, and the pull request's CI checks them.
       - name: Answer the changes
         env:
+          LEFTHOOK: '0'
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           DISCORD_LEGISLATION_WEBHOOK: ${{ secrets.DISCORD_LEGISLATION_WEBHOOK }}
