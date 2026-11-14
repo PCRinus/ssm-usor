@@ -2404,13 +2404,17 @@ trainer too. A stored change equal to the themed value is the row dialog saving 
 value typed, and counts as empty as well; an examiner half typed over the themed one takes the
 other half saved with it. A person's change may carry `whoTrained`, by domain (`ssm`, `su`), the
 member's answer of who gave and who verified the periodic trainings (ADR 042): `trainer` and
-`verifier`, each with `before` and `from`, a `{ name, jobTitle }` for the rows dated before the
-person's handover and for those dated on it or after; with no handover, `from` names every dated
-row. `splitOn` is the handover date an answer copied to someone whose sheets record none splits at,
-and `copiedFrom` the person it was copied from, until the member changes it. `toEmployeePayload`
-fills each non-hiring row of the domain whose sheet names nobody in the slot with the answer for
-its period: a name the sheet writes, a name the member typed on the row (a stored value that
-differs from the reading; an empty text is one cleared on purpose) and an undated row keep their
+`verifier`, each with `before` and `from`, a `{ name, jobTitle }` (a verifier's `jobTitle`
+required) for the rows dated from the previous handover up to the latest and for those dated on the
+latest or after, and `splitOn` and `previousOn`, the handovers the role was chosen under, null for
+none; with no handover, `from` names every dated row. A role whose handovers are not the person's,
+across all their pages, names nothing. `splitCopied` marks handovers that came with a copy to
+someone whose sheets record none, and `copiedFrom` the person the copy follows until the member
+changes it. `toEmployeePayload` fills each non-hiring row of the domain whose sheet names nobody
+in the slot with the answer for its period; an undated row, one dated before the previous
+handover and a month-only row in the month of a handover not on the 1st take nothing. A name the
+sheet writes, a function it writes without a name, and a name the member typed on the row (a
+stored value that differs from the reading; an empty text is one cleared on purpose) keep their
 own, and a fire-safety row never takes a verifier. Nothing of it blocks; changes stored before it
 have none. Rows of several people become one training held only when the domain,
 phase, day, trainer, trainer's function, verifier, duration and material all match, a value both
