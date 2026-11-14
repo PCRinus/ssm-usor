@@ -14,12 +14,12 @@ export interface SteppedPlan {
   name: string;
   who: string;
   users: number;
-  firstStep: number;
-  stepSize: number;
-  lastStep: number;
+  /** Ascending; each is the most workers the plan covers at that price. */
+  steps: number[];
   firstPrice: number;
-  /** Added to the monthly price for each step above the first. */
-  stepPrice: number;
+  /** Added to the monthly price for every `priceUnit` workers above the first step. */
+  unitPrice: number;
+  priceUnit: number;
   lines: PlanLine[];
 }
 
@@ -60,11 +60,10 @@ export const start: SteppedPlan = {
   name: 'Start',
   who: 'Tot ce îți trebuie ca să ții la zi SSM și SU pentru toți clienții tăi.',
   users: 3,
-  firstStep: 250,
-  stepSize: 250,
-  lastStep: 750,
+  steps: [250, 500, 750],
   firstPrice: 39,
-  stepPrice: 20,
+  unitPrice: 20,
+  priceUnit: 250,
   lines: [
     { text: 'Oricâți clienți' },
     { text: '3 utilizatori' },
@@ -79,11 +78,10 @@ export const profesional: SteppedPlan = {
   name: 'Profesional',
   who: 'Pentru firma care crește: clienți noi, munca împărțită, ajutor mai repede.',
   users: 10,
-  firstStep: 500,
-  stepSize: 500,
-  lastStep: 5000,
+  steps: [500, 1000, 1500, 2000, 3000, 4000, 5000],
   firstPrice: 89,
-  stepPrice: 30,
+  unitPrice: 30,
+  priceUnit: 500,
   lines: [
     { text: 'Tot ce include Start' },
     { text: '10 utilizatori' },
@@ -110,22 +108,18 @@ export const enterprise: QuotedPlan = {
 
 export const steppedPlans = [start, profesional];
 
-export const maxWorkers = profesional.lastStep;
-export const maxUsers = profesional.users;
+export const lastStep = (plan: SteppedPlan) => plan.steps.at(-1)!;
 
-export function steps(plan: SteppedPlan): number[] {
-  const result: number[] = [];
-  for (let step = plan.firstStep; step <= plan.lastStep; step += plan.stepSize) result.push(step);
-  return result;
-}
+export const maxWorkers = lastStep(profesional);
+export const maxUsers = profesional.users;
 
 /** The smallest step that covers `workers`, or undefined past the plan's last step. */
 export function stepFor(plan: SteppedPlan, workers: number): number | undefined {
-  return steps(plan).find((step) => step >= workers);
+  return plan.steps.find((step) => step >= workers);
 }
 
 export function monthlyAt(plan: SteppedPlan, step: number): number {
-  return plan.firstPrice + (plan.stepPrice * (step - plan.firstStep)) / plan.stepSize;
+  return plan.firstPrice + (plan.unitPrice * (step - plan.steps[0]!)) / plan.priceUnit;
 }
 
 /** What a month costs when paid in the given period: annual pays ten months for twelve, rounded down. */
@@ -145,9 +139,12 @@ export const extras = { sms: 0.1, credits: 1.5, creditsPer: 100 };
 
 /** The pricing section's slider: every step of either plan, then null for past the last one. */
 export const workerStops: (number | null)[] = [
-  ...[...new Set(steppedPlans.flatMap(steps))].sort((a, b) => a - b),
+  ...[...new Set(steppedPlans.flatMap((plan) => plan.steps))].sort((a, b) => a - b),
   null,
 ];
+
+/** The labels under the slider that stay on a phone, where all of them would collide. */
+export const narrowStopLabels: (number | null)[] = [250, 1000, 2000, 4000, null];
 
 const whole = new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 0 });
 const cents = new Intl.NumberFormat('ro-RO', {
@@ -172,7 +169,8 @@ export function count(n: number, noun: string): string {
 }
 
 const keep = (text: string) => text.replaceAll(' ', '\u00a0');
-const extraLine = `Extra, doar dacă le pornești: ${keep(`${eur(extras.sms)} / SMS`)} · ${keep(`${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')}`)}`;
+const extraRates = `${keep(`${eur(extras.sms)} / SMS`)}, ${keep(`${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')}`)}`;
+const extraLine = `${eur(extras.sms)} / SMS extra\n${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')} extra`;
 const overText = `Peste ${count(maxWorkers, 'lucrători')}, îți facem o ofertă.`;
 
 export const pricingSection = {
@@ -186,9 +184,9 @@ export const pricingSection = {
   aiLink: 'credite AI',
   aiHref: '/#ai',
   terms:
-    'Prețurile sunt în euro, fără TVA. Peste ce e inclus plătești doar dacă pornești tu plata pentru extra.',
+    'Prețurile sunt în euro, fără TVA. Extra plătești doar dacă alegi tu, până la o limită pe lună stabilită de tine.',
   enterpriseAllowance: `Peste ${count(maxWorkers, 'lucrători')} sau peste ${maxUsers} utilizatori`,
-  enterpriseExtra: 'Coduri SMS și credite AI după nevoie',
+  enterpriseExtra: 'Coduri SMS și credite AI stabilite în ofertă',
 };
 
 export const defaultStop = workerStops.indexOf(500);
@@ -248,7 +246,7 @@ export function cardStates(workers: number | null, period: BillingPeriod): CardS
   const profStep = workers === null ? undefined : stepFor(profesional, workers);
   const recommended = startStep ? 'start' : profStep ? 'profesional' : 'enterprise';
   return [
-    pricedCard(start, startStep ?? start.lastStep, period, {
+    pricedCard(start, startStep ?? lastStep(start), period, {
       recommended: recommended === 'start',
       dim: !startStep,
       note: startStep
@@ -257,7 +255,7 @@ export function cardStates(workers: number | null, period: BillingPeriod): CardS
           ? overText
           : `Pentru ${count(workers, 'lucrători')}, alege ${profesional.name}.`,
     }),
-    pricedCard(profesional, profStep ?? profesional.lastStep, period, {
+    pricedCard(profesional, profStep ?? lastStep(profesional), period, {
       recommended: recommended === 'profesional',
       dim: !profStep,
       note: profStep ? undefined : overText,
@@ -300,14 +298,22 @@ export interface CompareRow {
   cells: [Cell, Cell, Cell];
 }
 
-function stepList(plan: SteppedPlan, format: (step: number) => string): string {
-  const all = steps(plan).map(format);
-  return all.length <= 3
-    ? `${all.slice(0, -1).join(', ')} sau ${all.at(-1)}`
-    : `de la ${all[0]} la ${all.at(-1)}`;
+function joined(items: string[], last: string): string {
+  return `${items.slice(0, -1).join(', ')} ${last} ${items.at(-1)}`;
 }
 
-const extrasCell = `${keep(`${eur(extras.sms)} / SMS`)}, ${keep(`${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')}`)}`;
+function stepList(plan: SteppedPlan, format: (step: number) => string): string {
+  const all = plan.steps.map(format);
+  return all.length <= 3 ? joined(all, 'sau') : `de la ${all[0]} la ${all.at(-1)}`;
+}
+
+function stepPrices(plan: SteppedPlan): string {
+  return plan.steps
+    .map((step, i) =>
+      keep(`${i === 0 ? count(step, 'lucrători') : num(step)}: ${eur(monthlyAt(plan, step))}`)
+    )
+    .join(', ');
+}
 
 export const compare = {
   title: 'Compară planurile',
@@ -325,7 +331,7 @@ export const compare = {
           label: 'Lucrători la clienții tăi',
           cells: [
             stepList(start, num),
-            `${stepList(profesional, num)}, din ${num(profesional.stepSize)} în ${num(profesional.stepSize)}`,
+            joined(profesional.steps.map(num), 'sau'),
             `Peste ${num(maxWorkers)}`,
           ],
         },
@@ -386,8 +392,8 @@ export const compare = {
           ],
         },
         {
-          label: 'Peste ce e inclus, doar dacă pornești plata pentru extra',
-          cells: [extrasCell, extrasCell, 'În ofertă'],
+          label: 'Extra, peste ce include planul',
+          cells: [extraRates, extraRates, 'În ofertă'],
         },
       ],
     },
@@ -429,7 +435,7 @@ export const pricingPage = {
     },
     {
       q: 'Ce se întâmplă dacă trec de numărul de lucrători al planului?',
-      a: `Treci pe treapta următoare: pe Start, din ${num(start.stepSize)} în ${num(start.stepSize)} până la ${count(start.lastStep, 'lucrători')}, apoi pe Profesional; pe Profesional, din ${num(profesional.stepSize)} în ${num(profesional.stepSize)} până la ${num(maxWorkers)}. Ce ai lucrat nu se blochează niciodată. Dacă după o lună ai tot mai mulți lucrători decât treapta ta, nu mai poți adăuga lucrători noi până nu treci pe treapta următoare sau arhivezi clienții cu care nu mai lucrezi.`,
+      a: `Treci pe treapta următoare. ${start.name} are trepte de ${joined(start.steps.map(num), 'și')} de lucrători, apoi treci pe ${profesional.name}, care are trepte de ${joined(profesional.steps.map(num), 'și')}. Ce ai lucrat nu se blochează niciodată. Dacă după o lună ai tot mai mulți lucrători decât treapta ta, nu mai poți adăuga lucrători noi până nu treci pe treapta următoare sau arhivezi clienții cu care nu mai lucrezi.`,
     },
     {
       q: 'Pot încerca înainte să plătesc?',
@@ -440,8 +446,8 @@ export const pricingPage = {
       a: `Cu ele, inteligența artificială citește documentația și fișele pe care le ai deja, iar tu verifici ce a citit înainte să se salveze. Documentele unui client folosesc 25 de credite AI, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul. Planul include în fiecare lună 2 credite AI pentru fiecare lucrător al treptei tale, plus 250; cele nefolosite nu trec în luna următoare. La prima plată primești, o singură dată, credite de bun venit care nu expiră: 10 pentru fiecare lucrător al treptei, cel mult ${num(welcomeCredits(Infinity))}.`,
     },
     {
-      q: 'Cum funcționează plata pentru extra?',
-      a: `E oprită până o pornești tu. Fără ea, când se termină ce include luna, codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Dacă o pornești, alegi o limită pe lună și plătești doar ce folosești peste ce e inclus, până la limita ta: ${eur(extras.sms)} pentru un cod prin SMS și ${eur(extras.credits)} pentru ${count(extras.creditsPer, 'credite AI')}.`,
+      q: 'Ce se întâmplă când termin codurile SMS sau creditele AI ale lunii?',
+      a: `Nu plătești nimic în plus până nu permiți tu. Până atunci, când se termină ce include luna, codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Dacă permiți, alegi o limită pe lună și plătești doar ce folosești peste ce include planul, până la limita ta: ${eur(extras.sms)} pentru fiecare cod prin SMS în plus și ${eur(extras.credits)} pentru fiecare ${count(extras.creditsPer, 'credite AI')} în plus.`,
     },
     {
       q: 'Pot renunța oricând?',
@@ -507,27 +513,18 @@ export const calculator = {
   summaries: [
     {
       title: `Start, de la ${eur(start.firstPrice)} + TVA pe lună`,
-      text: `${stepList(start, num)} de lucrători: ${stepList(start, (step) => eur(monthlyAt(start, step)))}. ${start.users} utilizatori.`,
+      text: `${stepPrices(start)}. ${start.users} utilizatori.`,
     },
     {
       title: `Profesional, de la ${eur(profesional.firstPrice)} + TVA pe lună`,
-      text: `${steps(profesional)
-        .slice(0, 3)
-        .map((step, i) =>
-          keep(
-            `${i === 0 ? count(step, 'lucrători') : num(step)} ${eur(monthlyAt(profesional, step))}`
-          )
-        )
-        .join(
-          ', '
-        )}, apoi ${eur(profesional.stepPrice)} pentru fiecare ${num(profesional.stepSize)} în plus, până la ${num(maxWorkers)}. ${profesional.users} utilizatori.`,
+      text: `${stepPrices(profesional)}. ${profesional.users} utilizatori.`,
     },
   ],
   enterprise: {
     title: 'Enterprise, ofertă personalizată',
     text: `Peste ${count(maxWorkers, 'lucrători')} sau peste ${maxUsers} utilizatori.`,
   },
-  extra: `Dacă într-o lună folosești mai mult decât e inclus, codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Poți porni plata pentru extra, cu o limită lunară aleasă de tine: ${eur(extras.sms)} pentru un SMS și ${eur(extras.credits)} pentru ${count(extras.creditsPer, 'credite AI')}.`,
+  extra: `Dacă într-o lună termini codurile SMS sau creditele AI incluse, nu plătești nimic în plus: codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Dacă vrei să continui, poți permite plata pentru ce folosești în plus, până la o limită pe lună aleasă de tine: ${eur(extras.sms)} pentru fiecare SMS și ${eur(extras.credits)} pentru fiecare ${count(extras.creditsPer, 'credite AI')}.`,
 };
 
 export function membersLabel(members: number): string {
@@ -588,7 +585,7 @@ export function quote(employees: number, members: number, period: BillingPeriod)
   } else if (startStep !== undefined) {
     advice = `${start.name} are cel mult ${start.users} utilizatori, așa că o echipă de ${members} merge pe ${profesional.name}.`;
   } else {
-    advice = `${start.name} acoperă până la ${count(start.lastStep, 'lucrători')}. Pe ${profesional.name} rămâi la același preț până la ${count(step, 'lucrători')}.`;
+    advice = `${start.name} acoperă până la ${count(lastStep(start), 'lucrători')}. Pe ${profesional.name} rămâi la același preț până la ${count(step, 'lucrători')}.`;
   }
 
   return {

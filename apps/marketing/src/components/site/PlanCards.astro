@@ -7,6 +7,7 @@ import {
   defaultPeriod,
   defaultStop,
   enterprise,
+  narrowStopLabels,
   pricingCta,
   pricingSection,
   steppedPlans,
@@ -50,7 +51,7 @@ const sliderId = `workers-${placement}`;
       <div class="stops" aria-hidden="true">
         {workerStops.map((value, index) => (
           <span
-            class:list={{ on: index === defaultStop, minor: index % 2 === 1 }}
+            class:list={{ on: index === defaultStop, minor: !narrowStopLabels.includes(value) }}
             style={`--at: ${index / last}`}
           >
             {stopLabel(value)}
@@ -291,7 +292,7 @@ const sliderId = `workers-${placement}`;
     display: grid;
     grid-row: span 5;
     grid-template-rows: subgrid;
-    padding: 44px 32px 32px;
+    padding: 36px 32px 28px;
     border: 1px solid var(--line);
     border-radius: 18px;
     background: #fff;
@@ -300,7 +301,7 @@ const sliderId = `workers-${placement}`;
   }
   .plan.top {
     border: 2px solid var(--ink);
-    padding: 43px 31px 31px;
+    padding: 35px 31px 27px;
   }
   .plan.dim {
     opacity: 0.42;
@@ -337,7 +338,7 @@ const sliderId = `workers-${placement}`;
     text-wrap: balance;
   }
   .pricebox {
-    margin-top: 40px;
+    margin-top: 28px;
   }
   .amt {
     display: block;
@@ -354,7 +355,7 @@ const sliderId = `workers-${placement}`;
   }
   .per {
     display: block;
-    margin-top: 10px;
+    margin-top: 8px;
     color: var(--ink-2);
     font-size: 14px;
   }
@@ -365,8 +366,8 @@ const sliderId = `workers-${placement}`;
     font-size: 14px;
   }
   .allow {
-    margin: 28px 0;
-    padding: 28px 0;
+    margin: 22px 0;
+    padding: 22px 0;
     border-block: 1px solid var(--line);
   }
   .stepq {
@@ -386,6 +387,7 @@ const sliderId = `workers-${placement}`;
   }
   .xtra {
     min-height: 1lh;
+    white-space: pre-line;
     text-wrap: balance;
     margin-top: 4px;
     color: var(--muted-ink);
@@ -393,7 +395,7 @@ const sliderId = `workers-${placement}`;
   }
   ul {
     display: grid;
-    gap: 11px;
+    gap: 10px;
     align-content: start;
     text-align: left;
   }
@@ -410,7 +412,7 @@ const sliderId = `workers-${placement}`;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-top: 32px;
+    padding-top: 26px;
   }
   .cta a {
     display: flex;
@@ -461,6 +463,9 @@ const sliderId = `workers-${placement}`;
     .plan {
       row-gap: 0;
     }
+    .plan.dim {
+      display: none;
+    }
     .who {
       min-height: 0;
     }
@@ -476,17 +481,48 @@ const sliderId = `workers-${placement}`;
       display: none;
     }
     .plan {
-      padding: 40px 22px 26px;
+      padding: 26px 20px 18px;
     }
     .plan.top {
-      padding: 39px 21px 25px;
+      padding: 25px 19px 17px;
+    }
+    .who {
+      margin-top: 4px;
+    }
+    .pricebox {
+      margin-top: 16px;
     }
     .amt {
-      font-size: 52px;
+      font-size: 44px;
     }
     .amt.ask {
-      font-size: 34px;
-      line-height: 52px;
+      font-size: 30px;
+      line-height: 44px;
+    }
+    .per {
+      margin-top: 4px;
+    }
+    .allow {
+      margin: 14px 0;
+      padding: 12px 0;
+    }
+    ul {
+      gap: 6px;
+    }
+    .cta {
+      gap: 6px;
+      padding-top: 18px;
+    }
+    .who,
+    .xtra {
+      line-height: 1.4;
+    }
+    .stepq {
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    ul :global(li) {
+      line-height: 1.35;
     }
   }
   @media (prefers-reduced-motion: reduce) {
