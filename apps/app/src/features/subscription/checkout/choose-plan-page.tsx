@@ -139,6 +139,8 @@ function ChoosePlanForm({
     live && current && !(view === 'trialChosen' && owner.card === null) ? 'change' : 'new'
   );
 
+  const welcomeAhead = mode === 'new' && subscription?.status === 'trialing';
+
   const state: CheckoutState = {
     choice,
     preview: preview.data,
@@ -146,6 +148,7 @@ function ChoosePlanForm({
     previewError: preview.isError ? billingErrorMessage(preview.error) : null,
     inTrial: view === 'trialChosen',
     endsTrial: mode === 'new' && view === 'trial',
+    welcomeAhead,
     readOnly: view === 'readOnly',
   };
 
@@ -167,6 +170,7 @@ function ChoosePlanForm({
       employees={employees}
       onChange={(next) => setPick(fitPick(next, owner, employees))}
       disabled={busy}
+      welcomeAhead={welcomeAhead}
     />
   );
 

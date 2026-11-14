@@ -7,6 +7,7 @@
 - Amended 2026-11-14: offers (leads, [ADR 007](adr-007-leads-and-service-contracts.md)) and their contracts are a Profesional feature; on Start the existing ones are read, archived, restored and promoted, and nothing else about them changes. See "Plan features".
 - Amended 2026-11-14, [below](#amendment-2026-11-14-plans-by-employee-step): each plan is priced by a step of employees, with three users on Start and ten on Profesional, and no packs or extra member; the SMS codes and AI credits follow the step; extras past what a step includes are the owner's choice, off until the screen that turns them on exists. It replaces the packs, the extra member, the billed SMS past the allowance and the safety cap described below.
 - Amended 2026-11-14, [below](#amendment-2026-11-14-choosing-a-plan-ends-the-trial): choosing a plan during the trial ends the trial when the first payment, taken at once, goes through; the days left are not kept. It replaces the first charge at the trial's end and everything "before the first payment".
+- Amended 2026-11-14, [below](#amendment-2026-11-14-welcome-credits-fixed-at-the-first-payment): the welcome credits are the step's at the first payment and never change after it; moving up no longer adds the difference.
 
 ## Context
 
@@ -273,3 +274,13 @@ A plan chosen during the trial before this change has a Stripe subscription stil
 ### What this replaces
 
 In "Plans and the trial": the paragraph on an organization that picks a plan before its trial ends. Under "Limits and usage": "Before the first payment", and in the welcome gift the reasoning about choosing and cancelling before the first charge (the gift still comes with the first payment). In "Plan features": offers after Start is chosen during the trial. In the amendment on plans by employee step: "Before the first payment nothing changes" and the users of a plan chosen during the trial.
+
+## Amendment 2026-11-14: welcome credits fixed at the first payment
+
+Decided by Mircea on 2026-11-14.
+
+At the first successful payment the organization receives 10 welcome AI credits per employee of the step it pays for, at most 10,000, which never expire, as before. That amount never changes afterwards: moving to a higher step or to Profesional gives no more welcome credits, and moving down takes none away. The monthly SMS codes and AI credits still follow the step on a change: an upgrade adds the difference for the month under way.
+
+Topping the gift up on every upgrade let an owner move up for a day, for about 11 €, collect 7,500 credits that never expire, and move back down.
+
+`grant_welcome_gift` grants once per organization and answers 0 afterwards, whatever amount it is asked for, so a webhook delivered again grants nothing twice. Only a paid invoice asks for it. Organizations that already received a gift keep what they have and get nothing more. In "Limits and usage" of the amendment on plans by employee step, this replaces "The welcome credits are brought up to the step's, so moving up after the first payment adds the difference once".

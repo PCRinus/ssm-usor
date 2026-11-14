@@ -106,24 +106,22 @@ describe('the credits meter', () => {
 });
 
 describe('the welcome gift', () => {
-  it('shows what is left of it, then that it is spent', () => {
-    expect(giftPanelFor(creditsUsage(), { paid: true, welcomeCredits: 10000 })).toEqual({
+  it('shows what is left of the credits the first payment brought, then that they are spent', () => {
+    expect(giftPanelFor(creditsUsage(), { paid: true })).toEqual({
       look: 'balance',
       title: 'Credite AI de bun venit',
-      text: 'Rămase din 10.000. Nu expiră și se folosesc după creditele AI ale lunii.',
+      text: 'Rămase din cele primite la prima plată. Nu expiră și se folosesc după creditele AI ale lunii.',
       value: '8.640',
     });
-    expect(
-      giftPanelFor(creditsUsage({ giftLeft: 0 }), { paid: true, welcomeCredits: 10000 })
-    ).toMatchObject({
+    expect(giftPanelFor(creditsUsage({ giftLeft: 0 }), { paid: true })).toMatchObject({
       look: 'spent',
       value: '0',
-      text: 'Le-ai folosit pe toate cele 10.000. Nu se mai primesc.',
+      text: 'Le-ai folosit pe toate cele primite la prima plată. Nu se mai primesc.',
     });
   });
 
   it('shows none in a trial', () => {
     const trial = creditsUsage({ period: 'trial', giftLeft: 0, included: 300, left: 215 });
-    expect(giftPanelFor(trial, { paid: false, welcomeCredits: null })).toBeNull();
+    expect(giftPanelFor(trial, { paid: false })).toBeNull();
   });
 });

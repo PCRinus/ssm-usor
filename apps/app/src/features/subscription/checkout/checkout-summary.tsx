@@ -18,7 +18,7 @@ interface When {
 function whenFor(
   mode: CheckoutMode,
   preview: BillingPreview,
-  context: { inTrial: boolean; endsTrial: boolean; readOnly: boolean }
+  context: { inTrial: boolean; endsTrial: boolean; welcomeAhead: boolean; readOnly: boolean }
 ): When {
   const due = preview.dueToday.totalCents;
   const next = preview.nextRenewal;
@@ -29,7 +29,7 @@ function whenFor(
 
   if (mode === 'new') {
     const welcome = planStep(preview.choice.plan, preview.choice.step)?.welcomeCredits ?? 0;
-    const gift = context.endsTrial
+    const gift = context.welcomeAhead
       ? ` Odată cu plata primești ${creditsCount(welcome)} de bun venit.`
       : '';
     return {
@@ -92,6 +92,7 @@ export function CheckoutSummary({
   settling,
   inTrial,
   endsTrial = false,
+  welcomeAhead = false,
   readOnly,
   children,
 }: {
@@ -101,6 +102,7 @@ export function CheckoutSummary({
   settling: boolean;
   inTrial: boolean;
   endsTrial?: boolean;
+  welcomeAhead?: boolean;
   readOnly: boolean;
   children: ReactNode;
 }) {
@@ -108,7 +110,7 @@ export function CheckoutSummary({
   const refused = (preview?.problems.length ?? 0) > 0;
   const when =
     preview && !settling && !refused
-      ? whenFor(mode, preview, { inTrial, endsTrial, readOnly })
+      ? whenFor(mode, preview, { inTrial, endsTrial, welcomeAhead, readOnly })
       : null;
 
   return (

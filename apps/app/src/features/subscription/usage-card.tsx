@@ -2,7 +2,6 @@ import {
   type BillingOverview,
   billingPlans,
   type PaidPlan,
-  planStep,
   selfServeLimits,
   stepFor,
 } from '@ssm-usor/contracts';
@@ -160,20 +159,8 @@ export function UsageCard({
           credits,
           creditsReaderOf(credits, { planChosen: Boolean(subscription?.planChosen) })
         );
-  const paidPlan =
-    choice && (view === 'active' || view === 'canceling' || view === 'pastDue')
-      ? choice.plan
-      : null;
-  const gift =
-    view === 'readOnly'
-      ? null
-      : giftPanelFor(credits, {
-          paid: paidPlan !== null,
-          welcomeCredits:
-            paidPlan && choice
-              ? (planStep(choice.plan, choice.step)?.welcomeCredits ?? null)
-              : null,
-        });
+  const paid = choice !== null && (view === 'active' || view === 'canceling' || view === 'pastDue');
+  const gift = view === 'readOnly' ? null : giftPanelFor(credits, { paid });
 
   const meters: Meter[] = [
     {

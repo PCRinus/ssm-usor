@@ -215,8 +215,8 @@ export function safetySheetCharges(store: CreditsStore, now: () => Date = () => 
 }
 
 /**
- * Once the first payment went through, the gift is brought up to the step's: all of it at the
- * first payment, the difference when the plan moves up a step or to Profesional (ADR 030).
+ * The gift is the step's at the first payment and never changes after it (ADR 029, amendment of
+ * 2026-11-14): the database grants it once, so a later step asks again and gets nothing.
  */
 export async function grantWelcomeGift(
   store: Pick<CreditsStore, 'welcomeGift'>,

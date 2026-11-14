@@ -37,12 +37,15 @@ export function PlanPicker({
   employees,
   onChange,
   disabled,
+  welcomeAhead,
 }: {
   pick: Pick;
   owner: BillingOwner;
   employees: number;
   onChange: (pick: Pick) => void;
   disabled: boolean;
+  // The welcome credits come once, with the first payment: none on a later change or return.
+  welcomeAhead: boolean;
 }) {
   const annual = pick.interval === 'year';
   const at = employeeStops.indexOf(pick.stop);
@@ -164,7 +167,9 @@ export function PlanPicker({
                     `Până la ${employeesLabel(planAt.employees)}`,
                     ...planCopy[plan].lines,
                     `${codesLabel(planAt.monthlySms)} SMS și ${creditsCount(planAt.monthlyCredits)} pe lună`,
-                    `${creditsCount(planAt.welcomeCredits)} de bun venit, la prima plată`,
+                    ...(welcomeAhead
+                      ? [`${creditsCount(planAt.welcomeCredits)} de bun venit, la prima plată`]
+                      : []),
                   ].map((line) => (
                     <span key={line} className="flex gap-2 text-[13px] leading-snug">
                       <Check aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-ring" />

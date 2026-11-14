@@ -1131,8 +1131,9 @@ recorded. The month's balance is the allowance plus the credits added by hand th
 the month's charges net of refunds, less the shortfall of the month before when it ended below
 zero. The **welcome gift** is a balance of its own that never expires, used once the month's
 credits are gone: 10 × the step, at most 10,000 (`welcomeCredits`), granted by the first
-paid invoice (`invoice.paid`, the same step that sets `first_paid_at`), and brought up to
-Profesional's, once, when a paid Start moves up (every subscription write once paid).
+paid invoice (`invoice.paid`, the same step that sets `first_paid_at`). It is fixed then:
+`grant_welcome_gift` grants once per organization and answers 0 afterwards, so a later step or
+plan adds nothing and a retried event grants nothing twice.
 
 - **Starting.** `POST /imports/{importId}/start` (and the import a split starts) charges the
   import's known part before it moves to `preparing`: 25 for a client import plus one per

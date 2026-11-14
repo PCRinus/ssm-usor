@@ -32,5 +32,7 @@ export interface CheckoutState {
   inTrial: boolean;
   // Paying now ends a trial still running, and its days left are lost.
   endsTrial: boolean;
+  // Only a first payment brings the welcome credits.
+  welcomeAhead: boolean;
   readOnly: boolean;
 }

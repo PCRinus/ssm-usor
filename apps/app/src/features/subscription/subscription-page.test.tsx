@@ -716,7 +716,7 @@ describe('the AI credits on the Abonament tab', () => {
     const gift = screen.getByTestId('credits-gift');
     expect(gift.dataset.look).toBe('balance');
     expect(gift.textContent).toContain('8.640');
-    expect(gift.textContent).toContain('Rămase din 10.000. Nu expiră');
+    expect(gift.textContent).toContain('Rămase din cele primite la prima plată. Nu expiră');
     expect(screen.getByTestId('usage-card').textContent).toContain(
       'Cu creditele AI, inteligența artificială citește documentele și fișele pe care le încarci.'
     );

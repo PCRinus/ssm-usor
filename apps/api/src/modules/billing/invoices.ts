@@ -165,7 +165,7 @@ async function organizationOfInvoice(deps: InvoiceDeps, invoice: Stripe.Invoice)
 }
 
 // The first payment's event can come before the subscription's own, while the row still holds the
-// trial: the welcome gift must be of the step paid for.
+// trial: the welcome credits, fixed at the first payment, must be of the step paid for.
 async function adoptFirstSubscription(
   deps: InvoiceDeps,
   invoice: Stripe.Invoice,
@@ -206,7 +206,8 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     });
   }
   // Every paid invoice, not only the one that marked the first payment: a retried event whose
-  // first delivery stopped between the two writes still brings the gift, which is granted once.
+  // first delivery stopped between the two writes still brings the gift. The database grants it
+  // once, at the step of the first payment, and never changes it after (ADR 029).
   if (subscription) {
     await grantWelcomeGift(creditsStore(deps.db), await loadSubscription(deps.db, organizationId));
   }

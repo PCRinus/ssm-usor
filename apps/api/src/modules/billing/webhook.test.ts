@@ -284,31 +284,17 @@ describe('POST /billing/stripe-webhook', () => {
       expect(gifts(fake)).toEqual([]);
     });
 
-    it("brings the welcome gift up to Profesional's on moving up from Start after the first payment", async () => {
-      const fake = createFake();
-      fake.tables.subscriptions!.push(paidRow(start));
-      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
-
-      await deliver(subscriptionEvent('customer.subscription.updated'));
-
-      expect(row(fake).plan).toBe('profesional');
-      expect(gifts(fake)).toEqual([
-        expect.objectContaining({ p_organization_id: organizationId, p_credits: 10000 }),
-      ]);
-    });
-
-    it("brings the welcome gift up to the higher step's on moving up a step", async () => {
+    it('grants no welcome credits on moving up a step or a plan after the first payment', async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow({ ...start, step: 250 }));
       fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
         stripeSubscription({ choice: { ...start, step: 750 } });
+      await deliver(subscriptionEvent('customer.subscription.updated', 'evt_step'));
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
+      await deliver(subscriptionEvent('customer.subscription.updated', 'evt_plan'));
 
-      await deliver(subscriptionEvent('customer.subscription.updated'));
-
-      expect(row(fake).employee_step).toBe(750);
-      expect(gifts(fake)).toEqual([
-        expect.objectContaining({ p_organization_id: organizationId, p_credits: 7500 }),
-      ]);
+      expect(row(fake)).toMatchObject({ plan: 'profesional', employee_step: 1500 });
+      expect(gifts(fake)).toEqual([]);
     });
 
     it('reads a v1 subscription back as the step that covers its packs', async () => {
@@ -593,7 +579,7 @@ describe('POST /billing/stripe-webhook', () => {
       expect(changes(fake).filter((change) => change.change === 'first_payment')).toHaveLength(1);
     });
 
-    it("grants the step's welcome gift with the first payment, asking again on a retry, which the database grants once", async () => {
+    it("asks for the step's welcome credits with the first payment and again on a retry, which the database grants once", async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow(start, { first_paid_at: null }));
       fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();

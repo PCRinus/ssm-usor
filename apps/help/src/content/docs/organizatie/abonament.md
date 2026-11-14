@@ -135,7 +135,7 @@ Câte credite AI ai:
 
 Creditele AI ale lunii se reînnoiesc în ziua în care se reînnoiește abonamentul, iar cele nefolosite nu se adună.
 
-La prima plată primești, o singură dată, **credite AI de bun venit**, ca să-ți muți clienții: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Nu expiră și se folosesc după creditele lunii. Dacă treci pe o treaptă mai mare sau pe Profesional după ce le-ai primit, primești diferența. Pe pagina **Abonament**, sub bare, un panou arată câte credite de bun venit mai ai.
+La prima plată primești, o singură dată, **credite AI de bun venit**, ca să-ți muți clienții: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Nu expiră și se folosesc după creditele lunii. Câte primești se stabilește la prima plată și nu se mai schimbă: dacă treci apoi pe o treaptă mai mare sau pe Profesional, nu primești altele, iar dacă treci pe una mai mică, nu se iau înapoi. Pe pagina **Abonament**, sub bare, un panou arată câte credite de bun venit mai ai.
 
 Bara creditelor se colorează la fel ca a codurilor SMS:
 

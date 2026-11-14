@@ -297,6 +297,8 @@ describe('choosing a plan', () => {
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     expect(stripe.elementsOptions.at(-1)).toMatchObject({ mode: 'subscription', amount: 7139 });
+    expect(screen.getByTestId('plan-option-start').textContent).not.toContain('de bun venit');
+    expect(screen.getByTestId('checkout-summary').textContent).not.toContain('de bun venit');
     await userEvent.click(submit);
 
     expect((await screen.findByTestId('checkout-error')).textContent).toContain(

@@ -139,23 +139,25 @@ export interface GiftPanel {
   value: string | null;
 }
 
+// The gift is fixed at the first payment and the API does not say how large it was, so the
+// current step's amount, which a later change of step does not touch, is never named here.
 export function giftPanelFor(
   credits: BillingCreditsUsage,
-  { paid, welcomeCredits }: { paid: boolean; welcomeCredits: number | null }
+  { paid }: { paid: boolean }
 ): GiftPanel | null {
   if (credits.giftLeft > 0) {
     return {
       look: 'balance',
       title: 'Credite AI de bun venit',
-      text: `${welcomeCredits ? `Rămase din ${formatCount(welcomeCredits)}. ` : ''}Nu expiră și se folosesc după creditele AI ale lunii.`,
+      text: 'Rămase din cele primite la prima plată. Nu expiră și se folosesc după creditele AI ale lunii.',
       value: formatCount(credits.giftLeft),
     };
   }
-  if (paid && welcomeCredits) {
+  if (paid) {
     return {
       look: 'spent',
       title: 'Credite AI de bun venit',
-      text: `Le-ai folosit pe toate cele ${formatCount(welcomeCredits)}. Nu se mai primesc.`,
+      text: 'Le-ai folosit pe toate cele primite la prima plată. Nu se mai primesc.',
       value: '0',
     };
   }

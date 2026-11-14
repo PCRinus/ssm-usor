@@ -98,6 +98,7 @@ export default function StripeCheckout({
             settling={state.settling}
             inTrial={false}
             endsTrial={state.endsTrial}
+            welcomeAhead={state.welcomeAhead}
             readOnly={state.readOnly}
           >
             <Button className="h-12 rounded-xl text-[15px] font-semibold" disabled>
@@ -249,6 +250,7 @@ function CheckoutForm({
           settling={state.settling}
           inTrial={false}
           endsTrial={state.endsTrial}
+          welcomeAhead={state.welcomeAhead}
           readOnly={state.readOnly}
         >
           {state.previewError && <Notice variant="destructive">{state.previewError}</Notice>}
