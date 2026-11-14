@@ -1,6 +1,7 @@
 import {
   type AnswerPeriod,
   answerRoles,
+  type HandoverWindow,
   type TrainingDomain,
   trainingDomainLabels,
   type WhoTrainedAnswer,
@@ -46,7 +47,7 @@ export function WhoTrainedOthers({
   person,
   domain,
   answer,
-  split,
+  window,
   onClose,
   onChange,
 }: {
@@ -54,7 +55,7 @@ export function WhoTrainedOthers({
   person: Person;
   domain: TrainingDomain;
   answer: WhoTrainedAnswer;
-  split: string | null;
+  window: HandoverWindow;
   onClose: () => void;
   onChange: (mutate: (current: Changes) => Changes) => void;
 }) {
@@ -65,7 +66,12 @@ export function WhoTrainedOthers({
   const samePost = candidates.open.filter((each) => each.samePost);
   const otherPosts = candidates.open.filter((each) => !each.samePost);
   const post = resolveField(context, person, 'jobTitle').value;
+  const split = window.splitOn;
   const periods: AnswerPeriod[] = split ? ['before', 'from'] : ['from'];
+  const before =
+    window.previousOn === null
+      ? `până la ${dateLabel(split ?? '')}`
+      : `de la ${dateLabel(window.previousOn)} până la ${dateLabel(split ?? '')}`;
 
   const toggle = (id: string, on: boolean) =>
     setTicked((current) => {
@@ -123,7 +129,7 @@ export function WhoTrainedOthers({
                       <span key={period}>
                         {split && (
                           <span className="text-muted-foreground tabular-nums">
-                            {period === 'before' ? 'până la' : 'de la'} {dateLabel(split)}:{' '}
+                            {period === 'before' ? before : `de la ${dateLabel(split)}`}:{' '}
                           </span>
                         )}
                         {chosen ? <Masked>{personText(chosen)}</Masked> : notOnSheet.name}
@@ -153,8 +159,18 @@ export function WhoTrainedOthers({
               ))}
             </Section>
           )}
+          {candidates.otherDates.length > 0 && (
+            <Section title="Au altă dată a preluării pe fișe">
+              {candidates.otherDates.map((other) => (
+                <li key={other.id} className="px-1 py-1.5 text-sm text-muted-foreground">
+                  <Masked>{personName(context, other)}</Masked> · rămâne cum e
+                </li>
+              ))}
+            </Section>
+          )}
           <p className="text-[13px] text-muted-foreground">
-            Fiecare îl poate schimba apoi pe pagina lui.
+            Fiecare îl poate schimba apoi pe pagina lui. Cât nu îl schimbă, urmează răspunsul de
+            aici.
           </p>
         </DialogBody>
         <DialogFooter className="mt-6">

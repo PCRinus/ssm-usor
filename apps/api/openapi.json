@@ -17083,11 +17083,11 @@
             "$ref": "#/components/schemas/WhoTrainedPeriods"
           },
           "verifier": {
-            "$ref": "#/components/schemas/WhoTrainedPeriods"
+            "$ref": "#/components/schemas/WhoVerifiedPeriods"
           },
-          "splitOn": {
-            "type": "string",
-            "format": "date"
+          "splitCopied": {
+            "type": "boolean",
+            "enum": [true]
           },
           "copiedFrom": {
             "type": "string",
@@ -17105,6 +17105,16 @@
           },
           "from": {
             "$ref": "#/components/schemas/WhoTrainedPerson"
+          },
+          "splitOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "previousOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
           }
         },
         "additionalProperties": false
@@ -17120,6 +17130,45 @@
           "jobTitle": {
             "type": "string",
             "nullable": true,
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": ["name", "jobTitle"],
+        "additionalProperties": false
+      },
+      "WhoVerifiedPeriods": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/WhoVerifiedPerson"
+          },
+          "from": {
+            "$ref": "#/components/schemas/WhoVerifiedPerson"
+          },
+          "splitOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "previousOn": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WhoVerifiedPerson": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "jobTitle": {
+            "type": "string",
             "minLength": 1,
             "maxLength": 160
           }

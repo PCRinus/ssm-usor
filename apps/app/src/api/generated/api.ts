@@ -8766,12 +8766,38 @@ export interface WhoTrainedPerson {
 export interface WhoTrainedPeriods {
   before?: WhoTrainedPerson;
   from?: WhoTrainedPerson;
+  /** @nullable */
+  splitOn?: string | null;
+  /** @nullable */
+  previousOn?: string | null;
+}
+
+export interface WhoVerifiedPerson {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  jobTitle: string;
+}
+
+export interface WhoVerifiedPeriods {
+  before?: WhoVerifiedPerson;
+  from?: WhoVerifiedPerson;
+  /** @nullable */
+  splitOn?: string | null;
+  /** @nullable */
+  previousOn?: string | null;
 }
 
 export interface WhoTrainedAnswer {
   trainer?: WhoTrainedPeriods;
-  verifier?: WhoTrainedPeriods;
-  splitOn?: string;
+  verifier?: WhoVerifiedPeriods;
+  splitCopied?: true;
   /**
    * @minLength 1
    * @maxLength 80

@@ -2195,36 +2195,59 @@ describe('who trained and who verified the periodic trainings', () => {
     joinedAt: '2026-09-17T10:00:00+00:00',
   };
   const iordache = { name: 'Iordache Vasile', jobTitle: 'Șef de șantier' };
+  const october = { splitOn: '2022-10-03', previousOn: null };
 
-  function handedOver(changes: unknown = null) {
+  // Pop's SSM sheet records a handover between her two periodic trainings; her SU sheet, a page of
+  // its own, has none and one training dated before it.
+  function handedOver(changes: unknown = null, rows: Record<string, unknown> = {}) {
     const base = employeeDetail();
     const proposal = base.employees!.proposal;
+    const p3 = proposal.pages.find((page) => page.id === 'p3')!;
     return employeeDetail({
       employees: {
         ...base.employees!,
         changes,
         proposal: {
           ...proposal,
-          pages: proposal.pages.map((page) =>
-            page.id === 'p3'
-              ? {
-                  ...page,
-                  rows: [
-                    sheetRow('r3', {
-                      heldOn: '2022-05-16',
-                      trainerName: null,
-                      trainerJobTitle: null,
-                    }),
-                    sheetRow('r8', {
-                      heldOn: '2023-05-15',
-                      trainerName: null,
-                      trainerJobTitle: null,
-                    }),
-                  ],
-                  handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare SSM Expert Vest' }],
-                }
-              : page
-          ),
+          pages: [
+            ...proposal.pages.map((page) =>
+              page.id === 'p3'
+                ? {
+                    ...page,
+                    rows: [
+                      sheetRow('r3', {
+                        heldOn: '2022-05-16',
+                        trainerName: null,
+                        trainerJobTitle: null,
+                      }),
+                      sheetRow('r8', {
+                        heldOn: '2023-05-15',
+                        trainerName: null,
+                        trainerJobTitle: null,
+                        ...rows,
+                      }),
+                    ],
+                    handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare SSM Expert Vest' }],
+                  }
+                : page
+            ),
+            {
+              ...p3,
+              id: 'p6',
+              label: 'IMG_p6.jpg',
+              kind: 'su_periodic',
+              rows: [
+                sheetRow('r10', {
+                  domain: 'su',
+                  heldOn: '2021-06-14',
+                  durationMinutes: 60,
+                  trainerName: null,
+                  trainerJobTitle: null,
+                }),
+              ],
+              handovers: [],
+            },
+          ],
         },
       },
     });
@@ -2238,7 +2261,7 @@ describe('who trained and who verified the periodic trainings', () => {
       }
     ).changes.people;
 
-  it('gives the trainings tables their column headings and the handover its row', async () => {
+  it('gives the trainings tables their column headings and both the handover’s row', async () => {
     mockEmployeeImport({ detail: handedOver() });
     mount(`${importPath}/pop`);
     const ssm = await screen.findByTestId('person-trainings-ssm');
@@ -2256,9 +2279,21 @@ describe('who trained and who verified the periodic trainings', () => {
       'Modifică',
       'Inclusă',
     ]);
+    const lines = (section: HTMLElement) =>
+      within(section)
+        .getAllByRole('row')
+        .slice(1)
+        .map((each) =>
+          each.dataset.testid === 'person-handover-row' ? 'preluare' : each.dataset.testid
+        );
+    expect(lines(ssm)).toEqual(['person-training-row', 'preluare', 'person-training-row']);
     expect(within(ssm).getByTestId('person-handover-row').textContent).toContain(
       'preluare consemnată pe fișă: „03.10.22 Preluare SSM Expert Vest”'
     );
+    expect(lines(screen.getByTestId('person-trainings-su'))).toEqual([
+      'person-training-row',
+      'preluare',
+    ]);
   });
 
   it('asks once per worker, each side of the handover, and names the rows left unnamed', async () => {
@@ -2278,15 +2313,19 @@ describe('who trained and who verified the periodic trainings', () => {
     expect(trainer().textContent).toContain('Până la 03.10.2022nume neînscris pe fișă');
 
     await user.click(within(question).getByRole('button', { name: 'Alege: a instruit' }));
-    const before = within(trainer()).getByLabelText<HTMLSelectElement>('Până la 3 octombrie 2022');
-    const after = within(trainer()).getByLabelText<HTMLSelectElement>('De la 3 octombrie 2022');
+    const before = within(trainer()).getByRole<HTMLSelectElement>('combobox', {
+      name: 'A instruit, până la 3 octombrie 2022',
+    });
+    const after = within(trainer()).getByRole<HTMLSelectElement>('combobox', {
+      name: 'A instruit, de la 3 octombrie 2022',
+    });
+    expect(document.activeElement).toBe(before);
     expect(before.value).toBe('');
-    expect(
-      within(after).queryByRole('option', { name: 'Același om ca înainte de preluare' })
-    ).toBeNull();
     await user.selectOptions(before, 'Iordache Vasile, Șef de șantier');
     await waitFor(() => expect(putCount()).toBe(1));
-    expect(savedPeople().pop?.whoTrained).toEqual({ ssm: { trainer: { before: iordache } } });
+    expect(savedPeople().pop?.whoTrained).toEqual({
+      ssm: { trainer: { before: iordache, ...october } },
+    });
     expect(within(after).getAllByRole('option')[0]!.textContent).toBe(
       'Același om ca înainte de preluare'
     );
@@ -2294,6 +2333,9 @@ describe('who trained and who verified the periodic trainings', () => {
     await user.click(within(trainer()).getByRole('button', { name: 'Gata' }));
 
     expect(trainer().dataset.tone).toBe('done');
+    expect(document.activeElement).toBe(
+      within(trainer()).getByRole('button', { name: 'Schimbă: a instruit' })
+    );
     expect(within(trainer()).getAllByText('ales de tine')).toHaveLength(2);
     const rows = within(ssm).getAllByTestId('person-training-row');
     expect(rows.map((row) => within(row).queryAllByText('ales de tine').length)).toEqual([1, 1]);
@@ -2312,7 +2354,7 @@ describe('who trained and who verified the periodic trainings', () => {
     const verifier = () => within(question).getByTestId('who-trained-verifier');
 
     await user.selectOptions(
-      within(verifier()).getByLabelText('De la 3 octombrie 2022'),
+      within(verifier()).getByRole('combobox', { name: 'A verificat, de la 3 octombrie 2022' }),
       'Alt nume…'
     );
     await user.type(
@@ -2333,17 +2375,74 @@ describe('who trained and who verified the periodic trainings', () => {
 
     await waitFor(() =>
       expect(savedPeople().pop?.whoTrained).toEqual({
-        ssm: { verifier: { from: { name: 'Pavel Mihai', jobTitle: 'Specialist SSM' } } },
+        ssm: {
+          verifier: { from: { name: 'Pavel Mihai', jobTitle: 'Specialist SSM' }, ...october },
+        },
       })
     );
     expect(verifier().dataset.tone).toBe('done');
+  });
+
+  it('says the handover changed and names nothing with an answer given under another', async () => {
+    mockEmployeeImport({
+      detail: handedOver({
+        people: {
+          pop: {
+            whoTrained: {
+              ssm: { trainer: { from: iordache, splitOn: '2021-01-04', previousOn: null } },
+            },
+          },
+        },
+      }),
+    });
+    const user = userEvent.setup();
+    mount(`${importPath}/pop`);
+    const question = await screen.findByTestId('who-trained-ssm');
+    expect(within(question).getByTestId('who-trained-guide').textContent).toContain(
+      'Data preluării de pe fișe s-a schimbat'
+    );
+    expect(within(question).getByTestId('who-trained-earlier').textContent).toBe(
+      'Ales înainte: Iordache Vasile, Șef de șantier'
+    );
+    const ssm = screen.getByTestId('person-trainings-ssm');
+    expect(within(ssm).queryAllByText('ales de tine')).toHaveLength(0);
+    expect(within(ssm).getByTestId('person-trainings-unanswered')).toBeTruthy();
+
+    await user.click(within(question).getByRole('button', { name: 'Alege: a instruit' }));
+    expect(
+      within(question).getByRole<HTMLSelectElement>('combobox', {
+        name: 'A instruit, de la 3 octombrie 2022',
+      }).value
+    ).toBe('other');
+    await user.click(within(question).getByRole('button', { name: 'Gata' }));
+    await waitFor(() =>
+      expect(savedPeople().pop?.whoTrained).toEqual({
+        ssm: { trainer: { from: iordache, ...october } },
+      })
+    );
+    expect(within(question).queryByTestId('who-trained-earlier')).toBeNull();
+  });
+
+  it('shows a verifier without a function as not taken over', async () => {
+    mockEmployeeImport({
+      detail: handedOver(null, { verifierName: 'Mureșan Ioana', verifierJobTitle: null }),
+    });
+    mount(`${importPath}/pop`);
+    const ssm = await screen.findByTestId('person-trainings-ssm');
+    const row = within(ssm).getAllByTestId('person-training-row')[1]!;
+    expect(row.textContent).toContain('Mureșan Ioana');
+    expect(within(row).getByTestId('verifier-dropped').textContent).toBe(
+      'fără funcție, nu se preia'
+    );
   });
 
   it('keeps a name the member typed on a row, marked as changed there', async () => {
     mockEmployeeImport({
       detail: handedOver({
         people: {
-          pop: { whoTrained: { ssm: { trainer: { before: iordache, from: iordache } } } },
+          pop: {
+            whoTrained: { ssm: { trainer: { before: iordache, from: iordache, ...october } } },
+          },
         },
         rows: {
           r8: { values: { trainerName: 'Crăciun Dorin', trainerJobTitle: 'Administrator' } },
@@ -2361,7 +2460,7 @@ describe('who trained and who verified the periodic trainings', () => {
   it('keeps a row following the answer when its other values are corrected', async () => {
     mockEmployeeImport({
       detail: handedOver({
-        people: { pop: { whoTrained: { ssm: { trainer: { before: iordache } } } } },
+        people: { pop: { whoTrained: { ssm: { trainer: { before: iordache, ...october } } } } },
       }),
     });
     const user = userEvent.setup();
@@ -2390,7 +2489,7 @@ describe('who trained and who verified the periodic trainings', () => {
   });
 
   it('uses the same answer for the workers of the same post, never one with their own', async () => {
-    const answer = { trainer: { from: iordache } };
+    const answer = { trainer: { from: iordache, ...october } };
     mockEmployeeImport({
       detail: handedOver({
         people: { pop: { whoTrained: { ssm: answer } }, toma: { jobPositionId: sellerId } },
@@ -2415,7 +2514,7 @@ describe('who trained and who verified the periodic trainings', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Folosește la un lucrător' }));
     await waitFor(() => expect(putCount()).toBe(1));
     expect(savedPeople().toma?.whoTrained).toEqual({
-      ssm: { ...answer, splitOn: '2022-10-03', copiedFrom: 'pop' },
+      ssm: { ...answer, splitCopied: true, copiedFrom: 'pop' },
     });
     expect(savedPeople().lazar).toBeUndefined();
     expect(screen.getByTestId('who-trained-ssm').textContent).toContain(
@@ -2424,12 +2523,12 @@ describe('who trained and who verified the periodic trainings', () => {
   });
 
   it('shows who received an answer from whom, and lets them change it', async () => {
-    const answer = { trainer: { from: iordache } };
+    const answer = { trainer: { from: iordache, ...october } };
     mockEmployeeImport({
       detail: handedOver({
         people: {
           pop: { whoTrained: { ssm: answer } },
-          toma: { whoTrained: { ssm: { ...answer, copiedFrom: 'pop' } } },
+          toma: { whoTrained: { ssm: { ...answer, splitCopied: true, copiedFrom: 'pop' } } },
         },
       }),
     });

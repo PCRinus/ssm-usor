@@ -1,11 +1,12 @@
 import {
   type AnsweredPerson,
-  type AnswerPeriod,
   type AnswerPeriods,
   type AnswerRole,
   answerRoles,
-  answerSplit,
+  type HandoverWindow,
   hasAnswer,
+  liveAnswer,
+  staleRoles,
   type TrainingDomain,
   trainingDomains,
   type WhoTrainedAnswer,
@@ -63,11 +64,17 @@ export function questionRows(context: Context, personId: string, domain: Trainin
 export const asksWhoTrained = (context: Context, personId: string, domain: TrainingDomain) =>
   questionRows(context, personId, domain).length > 0;
 
+export const liveOf = (context: Context, personId: string, domain: TrainingDomain) =>
+  liveAnswer(handoverOf(context, personId), answerOf(context.changes, personId, domain));
+
+export const staleOf = (context: Context, personId: string, domain: TrainingDomain) =>
+  staleRoles(domain, handoverOf(context, personId), answerOf(context.changes, personId, domain));
+
 export const unansweredDomains = (context: Context, personId: string) =>
   trainingDomains.filter(
     (domain) =>
       asksWhoTrained(context, personId, domain) &&
-      !hasAnswer(domain, answerOf(context.changes, personId, domain))
+      !hasAnswer(domain, liveOf(context, personId, domain))
   );
 
 export function whoTrainedState(context: ReviewContext) {
@@ -80,8 +87,22 @@ export function whoTrainedState(context: ReviewContext) {
   return { asked: asked.length, unanswered };
 }
 
-export const splitOf = (context: Context, personId: string, domain: TrainingDomain) =>
-  answerSplit(handoverOf(context, personId), answerOf(context.changes, personId, domain));
+const windowOfRole = (answer: WhoTrainedAnswer | undefined): HandoverWindow | null => {
+  const periods = answer?.trainer ?? answer?.verifier;
+  if (!periods || periods.splitOn === undefined) return null;
+  return { splitOn: periods.splitOn, previousOn: periods.previousOn ?? null };
+};
+
+/** The handovers a new choice is given under: the person's own, else those a copy brought. */
+export function windowOf(context: Context, personId: string, domain: TrainingDomain) {
+  const own = handoverOf(context, personId);
+  const answer = answerOf(context.changes, personId, domain);
+  if (own.splitOn !== null || !answer?.splitCopied) return own;
+  return windowOfRole(answer) ?? own;
+}
+
+const sameWindow = (a: HandoverWindow, b: HandoverWindow) =>
+  a.splitOn === b.splitOn && a.previousOn === b.previousOn;
 
 export function withAnswer(
   changes: Changes,
@@ -91,8 +112,7 @@ export function withAnswer(
 ): Changes {
   return withPersonChange(changes, personId, (current) => {
     const whoTrained = { ...current.whoTrained };
-    const kept = answer && (answer.trainer || answer.verifier || answer.splitOn);
-    if (kept) whoTrained[domain] = answer;
+    if (answer && (answer.trainer || answer.verifier)) whoTrained[domain] = answer;
     else delete whoTrained[domain];
     return {
       ...current,
@@ -101,20 +121,28 @@ export function withAnswer(
   });
 }
 
-// A copied answer the member changes is no longer the copy.
-export function answered(
+/**
+ * The answer with one role chosen again, whole, under the handovers it was chosen under. A copy the
+ * member changes becomes their own answer.
+ */
+export function withRole(
   answer: WhoTrainedAnswer | undefined,
   role: AnswerRole,
-  period: AnswerPeriod,
-  person: AnsweredPerson | null
+  periods: Pick<AnswerPeriods, 'before' | 'from'>,
+  window: HandoverWindow
 ): WhoTrainedAnswer {
-  const periods: AnswerPeriods = { ...answer?.[role] };
-  if (person) periods[period] = person;
-  else delete periods[period];
   const next: WhoTrainedAnswer = { ...answer };
-  if (periods.before || periods.from) next[role] = periods;
-  else delete next[role];
   delete next.copiedFrom;
+  if (periods.before || periods.from) {
+    (next as Record<AnswerRole, AnswerPeriods>)[role] = {
+      ...(periods.before ? { before: periods.before } : {}),
+      ...(periods.from ? { from: periods.from } : {}),
+      splitOn: window.splitOn,
+      previousOn: window.previousOn,
+    };
+  } else {
+    delete next[role];
+  }
   return next;
 }
 
@@ -127,55 +155,119 @@ const postKey = (context: Context, person: Person) => {
   return title === null ? null : `title:${foldText(String(title))}`;
 };
 
-// Those who have an answer of their own are listed apart: a copy never changes them.
+// What a copy holds: the source's roles under the source's handovers, which a person whose own
+// sheets record none takes along, and which must otherwise be the person's own.
+function copyFor(
+  source: WhoTrainedAnswer,
+  window: HandoverWindow,
+  own: HandoverWindow,
+  sourceId: string
+): WhoTrainedAnswer | null {
+  if (own.splitOn !== null && !sameWindow(own, window)) return null;
+  return {
+    ...(source.trainer ? { trainer: source.trainer } : {}),
+    ...(source.verifier ? { verifier: source.verifier } : {}),
+    ...(own.splitOn === null && window.splitOn !== null ? { splitCopied: true as const } : {}),
+    copiedFrom: source.copiedFrom ?? sourceId,
+  };
+}
+
+// Those with an answer of their own, or with other handovers on their sheets, are listed apart: a
+// copy never changes them.
 export function copyCandidates(context: Context, person: Person, domain: TrainingDomain) {
   const post = postKey(context, person);
+  const window = windowOf(context, person.id, domain);
   const others = context.proposal.people.filter(
     (other) =>
       other.id !== person.id &&
       personIncluded(context, other) &&
       asksWhoTrained(context, other.id, domain)
   );
+  const own = (other: Person) => hasAnswer(domain, answerOf(context.changes, other.id, domain));
+  const otherDates = (other: Person) => {
+    const theirs = handoverOf(context, other.id);
+    return theirs.splitOn !== null && !sameWindow(theirs, window);
+  };
   const open: CopyCandidate[] = others
-    .filter((other) => !hasAnswer(domain, answerOf(context.changes, other.id, domain)))
+    .filter((other) => !own(other) && !otherDates(other))
     .map((other) => ({
       person: other,
       samePost: post !== null && postKey(context, other) === post,
     }))
     .sort((a, b) => Number(b.samePost) - Number(a.samePost));
-  const answeredOnes = others.filter((other) =>
-    hasAnswer(domain, answerOf(context.changes, other.id, domain))
-  );
-  return { open, answered: answeredOnes };
+  return {
+    open,
+    answered: others.filter(own),
+    otherDates: others.filter((other) => !own(other) && otherDates(other)),
+  };
 }
 
-// A person without a handover of their own takes the split date with the answer.
 export function withAnswerCopied(
   context: Context,
   from: Person,
   domain: TrainingDomain,
   targetIds: readonly string[]
 ): Changes {
-  const source = answerOf(context.changes, from.id, domain);
+  const source = liveOf(context, from.id, domain);
   if (!hasAnswer(domain, source)) return context.changes;
-  const split = splitOf(context, from.id, domain);
+  const window = windowOf(context, from.id, domain);
   let changes = context.changes;
   for (const id of targetIds) {
     if (id === from.id || hasAnswer(domain, answerOf(changes, id, domain))) continue;
-    const own = handoverOf(context, id);
-    changes = withAnswer(changes, id, domain, {
-      ...(source!.trainer ? { trainer: source!.trainer } : {}),
-      ...(source!.verifier ? { verifier: source!.verifier } : {}),
-      ...(own === null && split !== null ? { splitOn: split } : {}),
-      copiedFrom: source!.copiedFrom ?? from.id,
-    });
+    const copy = copyFor(source!, window, handoverOf(context, id), from.id);
+    if (copy) changes = withAnswer(changes, id, domain, copy);
   }
   return changes;
 }
 
-export const copiesOf = (changes: Changes, sourceId: string, domain: TrainingDomain) =>
-  Object.values(changes.people).filter(
-    (change) => change.whoTrained?.[domain]?.copiedFrom === sourceId
+// The database keeps a JSON object's keys in an order of its own.
+const canonical = (value: unknown): string =>
+  JSON.stringify(value, (_, each: unknown) =>
+    each && typeof each === 'object' && !Array.isArray(each)
+      ? Object.fromEntries(Object.entries(each).sort(([a], [b]) => a.localeCompare(b)))
+      : each
+  );
+
+/**
+ * The copies made to follow their source's answer as it is now. A source taken out of the import
+ * leaves its copies as the answers of those who hold them.
+ */
+export function settleCopies(context: Context): Changes {
+  let changes = context.changes;
+  for (let pass = 0; pass < 3; pass++) {
+    const before = changes;
+    for (const [personId, change] of Object.entries(changes.people)) {
+      for (const domain of trainingDomains) {
+        const held = change.whoTrained?.[domain];
+        const sourceId = held?.copiedFrom;
+        if (!held || !sourceId) continue;
+        const now = { ...context, changes };
+        const source = context.proposal.people.find((each) => each.id === sourceId);
+        if (!source || !personIncluded(now, source)) {
+          const own = { ...held };
+          delete own.copiedFrom;
+          changes = withAnswer(changes, personId, domain, own);
+          continue;
+        }
+        const live = liveOf(now, sourceId, domain);
+        const copy = hasAnswer(domain, live)
+          ? copyFor(live!, windowOf(now, sourceId, domain), handoverOf(now, personId), sourceId)
+          : null;
+        if (canonical(copy) !== canonical(held)) {
+          changes = withAnswer(changes, personId, domain, copy ?? undefined);
+        }
+      }
+    }
+    if (changes === before) break;
+  }
+  return changes;
+}
+
+export const copiesOf = (context: Context, sourceId: string, domain: TrainingDomain) =>
+  context.proposal.people.filter(
+    (person) =>
+      personIncluded(context, person) &&
+      context.changes.people[person.id]?.whoTrained?.[domain]?.copiedFrom === sourceId
   ).length;
 
 export type SignerOption = {

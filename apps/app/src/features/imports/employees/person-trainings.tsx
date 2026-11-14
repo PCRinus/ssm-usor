@@ -1,4 +1,7 @@
 import {
+  handoverPrecedes,
+  type HandoverWindow,
+  monthOnlyRow,
   type NameSource,
   type SupplementaryTrainingReason,
   supplementaryTrainingReasonLabels,
@@ -90,20 +93,29 @@ function SignerText({
   name,
   jobTitle,
   from,
+  verifier = false,
 }: {
   name: string | null;
   jobTitle: string | null;
   from: NameSource | null;
+  verifier?: boolean;
 }) {
-  const title = jobTitle ? `, ${jobTitle}` : '';
+  const title = jobTitle?.trim() ? `, ${jobTitle}` : '';
+  // The confirm writes a verifier only with a function.
+  const dropped = verifier && Boolean(name?.trim()) && !title;
   return (
     <span className="grid min-w-0 gap-px">
-      <span className="wrap-anywhere">
-        {name ? <Masked>{name}</Masked> : notWritten(notOnSheet.name)}
+      <span className={cn('wrap-anywhere', dropped && 'text-muted-foreground')}>
+        {name?.trim() ? <Masked>{name}</Masked> : notWritten(notOnSheet.name)}
         {title}
       </span>
-      {from === 'answer' && <ChosenMark />}
-      {from === 'row' && <RowEditedMark />}
+      {dropped && (
+        <span className="text-xs text-muted-foreground" data-testid="verifier-dropped">
+          fără funcție, nu se preia
+        </span>
+      )}
+      {!dropped && from === 'answer' && <ChosenMark />}
+      {!dropped && from === 'row' && <RowEditedMark />}
     </span>
   );
 }
@@ -247,7 +259,7 @@ function TrainingRow({
   row: SheetRow;
   page: SheetPage;
   pages: SheetPage[];
-  handover: string | null;
+  handover: HandoverWindow;
   decision: Decision | undefined;
   onEdit: (row: SheetRow) => void;
   onChange: Update;
@@ -327,6 +339,7 @@ function TrainingRow({
                   name={values.verifierName}
                   jobTitle={values.verifierJobTitle}
                   from={values.verifierFrom}
+                  verifier
                 />
               </TableCell>
             )}
@@ -687,7 +700,7 @@ function DomainSection({
     );
   }
   const firstHandovers = new Map<string, { date: string; text: string; page: SheetPage }>();
-  for (const page of domain.pages) {
+  for (const page of pages) {
     for (const each of page.handovers ?? []) {
       if (each.date && !firstHandovers.has(each.date)) {
         firstHandovers.set(each.date, { date: each.date, text: each.text.trim(), page });
@@ -695,26 +708,32 @@ function DomainSection({
     }
   }
   const handoverRows = [...firstHandovers.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const dated = domain.periodic
+    .map((each) => ({ ...each, heldOn: rowValues(context.changes, each.row).heldOn }))
+    .sort((a, b) =>
+      a.heldOn === null || b.heldOn === null
+        ? Number(a.heldOn === null) - Number(b.heldOn === null)
+        : a.heldOn.localeCompare(b.heldOn)
+    );
   const periodicRows: ReactNode[] = [];
   let nextHandover = 0;
-  for (const { row, page } of domain.periodic) {
-    const heldOn = rowValues(context.changes, row).heldOn;
+  const handoverLine = (shown: (typeof handoverRows)[number]) => (
+    <HandoverRow
+      key={`handover-${shown.date}`}
+      domain={domain.domain}
+      date={shown.date}
+      text={shown.text}
+      page={shown.page}
+      pages={pages}
+    />
+  );
+  for (const { row, page, heldOn } of dated) {
+    const monthOnly = monthOnlyRow(row, context.changes.rows[row.id]?.values);
     while (
-      heldOn !== null &&
       nextHandover < handoverRows.length &&
-      handoverRows[nextHandover]!.date <= heldOn
+      (heldOn === null || handoverPrecedes(handoverRows[nextHandover]!.date, heldOn, monthOnly))
     ) {
-      const shown = handoverRows[nextHandover++]!;
-      periodicRows.push(
-        <HandoverRow
-          key={`handover-${shown.date}`}
-          domain={domain.domain}
-          date={shown.date}
-          text={shown.text}
-          page={shown.page}
-          pages={pages}
-        />
-      );
+      periodicRows.push(handoverLine(handoverRows[nextHandover++]!));
     }
     periodicRows.push(
       <TrainingRow
@@ -731,6 +750,7 @@ function DomainSection({
       />
     );
   }
+  periodicRows.push(...handoverRows.slice(nextHandover).map(handoverLine));
   return shell(
     <div className="pb-1">
       {domain.hiring.rows.length > 0 && (

@@ -11,6 +11,7 @@ import {
 
 import type { ImportDetail } from '@/api/generated/api';
 import { replayMask } from '@/app/observability/replay-masking';
+import { roCount } from '@/features/employees/employee-format';
 
 import { Includable } from '../include-switch';
 import { Fact, Facts, SectionHeader, StatusTag, Tag } from '../review-parts';
@@ -130,7 +131,7 @@ function WhoTrainedLine({
       data-testid="employee-hub-who-trained"
     >
       <span>
-        La {unanswered.length} din {asked} {asked === 1 ? 'lucrător' : 'lucrători'} nu e ales cine a
+        La {unanswered.length} din {roCount(asked, 'lucrător', 'lucrători')} nu e ales cine a
         instruit la periodice. Nu oprește importul.
       </span>
       <Link

@@ -1,12 +1,13 @@
 import {
   type AnsweredPerson,
   type AnswerPeriod,
+  type AnswerPeriods,
   type AnswerRole,
   answerRoles,
+  type HandoverWindow,
   hasAnswer,
   type TrainingDomain,
   trainingDomainLabels,
-  type WhoTrainedAnswer,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -15,9 +16,10 @@ import {
   NativeSelectOptGroup,
   NativeSelectOption,
 } from '@ssm-usor/ui/components/native-select';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { FileImage, Pencil, UserRoundCheck, UsersRound } from 'lucide-react';
-import { type ReactNode, useId, useMemo, useState } from 'react';
+import { type ReactNode, type Ref, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import {
   getListOrganizationMembersQueryKey,
@@ -43,10 +45,10 @@ import {
 import { PhotoNumbers } from './person-photos';
 import { dateLabel } from './review-format';
 import {
-  answered,
   copiesOf,
   copyCandidates,
   hiringNames,
+  liveOf,
   personText,
   questionRows,
   questionTitle,
@@ -55,9 +57,11 @@ import {
   sheetCounts,
   type SignerGroup,
   signerGroups,
-  splitOf,
+  staleOf,
   whoTrainedId,
+  windowOf,
   withAnswer,
+  withRole,
 } from './who-trained-model';
 import { WhoTrainedOthers } from './who-trained-others';
 
@@ -150,6 +154,7 @@ const sheetsLabel = (count: number) =>
   count === 0 ? '' : count === 1 ? ' · pe o fișă' : ` · pe ${roCount(count, 'fișă', 'fișe')}`;
 
 function PeriodPicker({
+  ref,
   role,
   label,
   choice,
@@ -160,6 +165,7 @@ function PeriodPicker({
   onType,
   onTyped,
 }: {
+  ref?: Ref<HTMLSelectElement>;
   role: AnswerRole;
   label: string;
   choice: Choice;
@@ -171,7 +177,7 @@ function PeriodPicker({
   onTyped: () => void;
 }) {
   const id = useId();
-  const accessible = `${roleLabels[role]}${label ? `, ${label.toLowerCase()}` : ''}`;
+  const accessible = `${roleLabels[role]}${label ? `, ${lowerFirst(label)}` : ''}`;
   return (
     <span className="grid min-w-0 content-start gap-1.5">
       {label && (
@@ -180,8 +186,9 @@ function PeriodPicker({
         </label>
       )}
       <NativeSelect
+        ref={ref}
         id={id}
-        aria-label={label ? undefined : accessible}
+        aria-label={accessible}
         value={choice.value}
         data-testid={`who-trained-pick-${role}`}
         onChange={(event) => onPick(event.target.value)}
@@ -231,76 +238,107 @@ function PeriodPicker({
   );
 }
 
+type Periods = Pick<AnswerPeriods, 'before' | 'from'>;
+
+const periodLabel = (period: AnswerPeriod, window: HandoverWindow, long: boolean) => {
+  if (window.splitOn === null) return '';
+  const day = long ? longDateLabel(window.splitOn) : dateLabel(window.splitOn);
+  if (period === 'from') return `De la ${day}`;
+  if (window.previousOn === null) return `Până la ${day}`;
+  const since = long ? longDateLabel(window.previousOn) : dateLabel(window.previousOn);
+  return `De la ${since} până la ${day}`;
+};
+
+const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+
 function RoleEditor({
   role,
-  answer,
-  split,
+  held,
+  window,
   groups,
   onSave,
   onDone,
 }: {
   role: AnswerRole;
-  answer: WhoTrainedAnswer | undefined;
-  split: string | null;
+  // What the role holds, even when given under other handovers: it is preselected again.
+  held: Periods | undefined;
+  window: HandoverWindow;
   groups: SignerGroup[];
-  onSave: (period: AnswerPeriod, person: AnsweredPerson | null) => void;
+  onSave: (periods: Periods) => void;
   onDone: () => void;
 }) {
-  const periods: AnswerPeriod[] = split ? ['before', 'from'] : ['from'];
+  const periods: AnswerPeriod[] = window.splitOn ? ['before', 'from'] : ['from'];
   const [choices, setChoices] = useState<Record<AnswerPeriod, Choice>>(() => ({
-    before: choiceOf(answer?.[role]?.before, groups, undefined, 'before'),
-    from: choiceOf(answer?.[role]?.from, groups, answer?.[role]?.before, 'from'),
+    before: choiceOf(held?.before, groups, undefined, 'before'),
+    from: choiceOf(held?.from, groups, window.splitOn ? held?.before : undefined, 'from'),
   }));
   const [errors, setErrors] = useState<Record<AnswerPeriod, string | null>>({
     before: null,
     from: null,
   });
+  const first = useRef<HTMLSelectElement>(null);
+  useEffect(() => first.current?.focus(), []);
   const options = groups.flatMap((group) => group.options);
-  const before = answer?.[role]?.before;
 
-  const typedPerson = (choice: Choice): AnsweredPerson | null | 'incomplete' => {
+  const typedPerson = (choice: Choice): AnsweredPerson | 'incomplete' => {
     const name = choice.name.trim();
     const jobTitle = choice.jobTitle.trim();
     if (name === '' || (role === 'verifier' && jobTitle === '')) return 'incomplete';
     return { name, jobTitle: jobTitle === '' ? null : jobTitle };
   };
 
+  const personOf = (
+    all: Record<AnswerPeriod, Choice>,
+    period: AnswerPeriod
+  ): AnsweredPerson | undefined => {
+    const choice = all[period];
+    if (choice.value === notWrittenValue) return undefined;
+    if (choice.value === sameValue) return personOf(all, 'before');
+    if (choice.value === otherValue) {
+      const typed = typedPerson(choice);
+      return typed === 'incomplete' ? undefined : typed;
+    }
+    const option = options.find((each) => each.key === choice.value);
+    return option ? { name: option.name, jobTitle: option.jobTitle } : undefined;
+  };
+
+  const commit = (all: Record<AnswerPeriod, Choice>) =>
+    onSave(
+      Object.fromEntries(
+        periods.flatMap((period) => {
+          const chosen = personOf(all, period);
+          return chosen ? [[period, chosen]] : [];
+        })
+      ) as Periods
+    );
+
   const pick = (period: AnswerPeriod, value: string) => {
     setErrors((current) => ({ ...current, [period]: null }));
-    setChoices((current) => ({
-      ...current,
-      [period]: { value, name: current[period].name, jobTitle: current[period].jobTitle },
-    }));
-    if (value === otherValue) return;
-    if (value === notWrittenValue) return onSave(period, null);
-    if (value === sameValue) return onSave(period, before ?? null);
-    const option = options.find((each) => each.key === value);
-    if (option) onSave(period, { name: option.name, jobTitle: option.jobTitle });
+    const next = { ...choices, [period]: { ...choices[period], value } };
+    setChoices(next);
+    if (value !== otherValue) commit(next);
   };
 
   const type = (period: AnswerPeriod, field: 'name' | 'jobTitle', value: string) =>
     setChoices((current) => ({ ...current, [period]: { ...current[period], [field]: value } }));
 
   const done = () => {
-    let complete = true;
-    for (const period of periods) {
-      const choice = choices[period];
-      if (choice.value !== otherValue) continue;
-      const person = typedPerson(choice);
-      if (person === 'incomplete') {
-        complete = false;
-        setErrors((current) => ({
-          ...current,
-          [period]:
-            role === 'verifier'
-              ? 'Scrie numele și funcția celui care a verificat.'
-              : 'Scrie numele celui care a instruit.',
-        }));
-      } else {
-        onSave(period, person);
-      }
+    const incomplete = periods.filter(
+      (period) =>
+        choices[period].value === otherValue && typedPerson(choices[period]) === 'incomplete'
+    );
+    for (const period of incomplete) {
+      setErrors((current) => ({
+        ...current,
+        [period]:
+          role === 'verifier'
+            ? 'Scrie numele și funcția celui care a verificat.'
+            : 'Scrie numele celui care a instruit.',
+      }));
     }
-    if (complete) onDone();
+    if (incomplete.length > 0) return;
+    commit(choices);
+    onDone();
   };
 
   return (
@@ -316,23 +354,21 @@ function RoleEditor({
         </Button>
       }
     >
-      <span className={split ? 'grid gap-4 sm:grid-cols-2' : 'grid gap-4'}>
-        {periods.map((period) => (
+      <span className={window.splitOn ? 'grid gap-4 sm:grid-cols-2' : 'grid gap-4'}>
+        {periods.map((period, index) => (
           <PeriodPicker
             key={period}
+            ref={index === 0 ? first : undefined}
             role={role}
-            label={
-              split ? `${period === 'before' ? 'Până la' : 'De la'} ${longDateLabel(split)}` : ''
-            }
+            label={periodLabel(period, window, true)}
             choice={choices[period]}
             groups={groups}
-            sameOffered={period === 'from' && split !== null && before !== undefined}
+            sameOffered={period === 'from' && window.splitOn !== null}
             error={errors[period]}
             onPick={(value) => pick(period, value)}
             onType={(field, value) => type(period, field, value)}
             onTyped={() => {
-              const person = typedPerson(choices[period]);
-              if (person !== 'incomplete') onSave(period, person);
+              if (typedPerson(choices[period]) !== 'incomplete') commit(choices);
             }}
           />
         ))}
@@ -343,19 +379,24 @@ function RoleEditor({
 
 function RoleSummary({
   role,
-  answer,
-  split,
+  live,
+  stale,
+  window,
   mark,
+  buttonRef,
   onOpen,
 }: {
   role: AnswerRole;
-  answer: WhoTrainedAnswer | undefined;
-  split: string | null;
+  live: Periods | undefined;
+  stale: Periods | undefined;
+  window: HandoverWindow;
   mark: ReactNode;
+  buttonRef: (element: HTMLButtonElement | null) => void;
   onOpen: () => void;
 }) {
-  const periods: AnswerPeriod[] = split ? ['before', 'from'] : ['from'];
-  const chosen = periods.some((period) => answer?.[role]?.[period]);
+  const periods: AnswerPeriod[] = window.splitOn ? ['before', 'from'] : ['from'];
+  const chosen = periods.some((period) => live?.[period]);
+  const earlier = stale ? [stale.before, stale.from].filter((each) => each !== undefined) : [];
   return (
     <DecisionRow
       tone={chosen ? 'done' : 'optional'}
@@ -363,6 +404,7 @@ function RoleSummary({
       testId={`who-trained-${role}`}
       actions={
         <Button
+          ref={buttonRef}
           type="button"
           variant="outline"
           size="sm"
@@ -374,17 +416,19 @@ function RoleSummary({
       }
     >
       {periods.map((period) => {
-        const person = answer?.[role]?.[period];
+        const person = live?.[period];
         return (
           <span
             key={period}
             className={
-              split ? 'grid gap-x-3 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-baseline' : 'grid'
+              window.splitOn
+                ? 'grid gap-x-3 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-baseline'
+                : 'grid'
             }
           >
-            {split && (
+            {window.splitOn && (
               <span className="text-muted-foreground tabular-nums">
-                {period === 'before' ? 'Până la' : 'De la'} {dateLabel(split)}
+                {periodLabel(period, window, false)}
               </span>
             )}
             {person ? (
@@ -398,9 +442,18 @@ function RoleSummary({
           </span>
         );
       })}
+      {earlier.length > 0 && (
+        <span className="text-[13px] text-muted-foreground" data-testid="who-trained-earlier">
+          Ales înainte: <Masked>{[...new Set(earlier.map(personText))].join('; ')}</Masked>
+        </span>
+      )}
     </DecisionRow>
   );
 }
+
+const samePeriods = (a: Periods | undefined, b: Periods) =>
+  JSON.stringify([a?.before ?? null, a?.from ?? null]) ===
+  JSON.stringify([b.before ?? null, b.from ?? null]);
 
 export function WhoTrainedQuestion({
   context,
@@ -418,17 +471,27 @@ export function WhoTrainedQuestion({
   onChange: Update;
 }) {
   const [open, setOpen] = useState<AnswerRole | null>(null);
+  const refocus = useRef<AnswerRole | null>(null);
+  const buttons = useRef<Partial<Record<AnswerRole, HTMLButtonElement | null>>>({});
+  useEffect(() => {
+    const role = refocus.current;
+    if (role === null || open === role) return;
+    refocus.current = null;
+    buttons.current[role]?.focus();
+  }, [open]);
   const [copying, setCopying] = useState(false);
   const people = useSignerPeople(clientId);
   const { proposal } = context;
   const counts = useMemo(() => sheetCounts({ proposal }), [proposal]);
   const rows = questionRows(context, person.id, domain);
   const answer = answerOf(context.changes, person.id, domain);
-  const split = splitOf(context, person.id, domain);
+  const live = liveOf(context, person.id, domain);
+  const stale = staleOf(context, person.id, domain);
+  const window = windowOf(context, person.id, domain);
   const sheetNames = hiringNames(context, person.id, domain);
   const groupsOf = (role: AnswerRole) => signerGroups({ role, sheetNames, ...people, counts });
   const candidates = copyCandidates(context, person, domain);
-  const copies = copiesOf(context.changes, person.id, domain);
+  const copies = copiesOf(context, person.id, domain);
   const source = answer?.copiedFrom
     ? proposal.people.find((each) => each.id === answer.copiedFrom)
     : undefined;
@@ -436,22 +499,23 @@ export function WhoTrainedQuestion({
   const title = questionTitle(domain);
   const mark = source ? (
     <ChosenMark>
-      ales de tine pentru {workersLabel(copiesOf(context.changes, source.id, domain))}, la{' '}
+      ales de tine pentru {workersLabel(copiesOf(context, source.id, domain))}, la{' '}
       <Masked>{personName(context, source)}</Masked>
     </ChosenMark>
   ) : (
     <ChosenMark />
   );
-  const save = (role: AnswerRole) => (period: AnswerPeriod, chosen: AnsweredPerson | null) =>
+  const save = (role: AnswerRole) => (periods: Periods) =>
     onChange((current) => {
-      const before = answerOf(current, person.id, domain);
-      const held = before?.[role]?.[period];
-      const unchanged = chosen
-        ? held?.name === chosen.name && held.jobTitle === chosen.jobTitle
-        : held === undefined;
-      if (unchanged) return current;
-      return withAnswer(current, person.id, domain, answered(before, role, period, chosen));
+      const held = answerOf(current, person.id, domain);
+      const now = liveOf({ proposal, changes: current }, person.id, domain);
+      if (now?.[role] && samePeriods(now[role], periods)) return current;
+      return withAnswer(current, person.id, domain, withRole(held, role, periods, window));
     });
+  const close = (role: AnswerRole) => {
+    refocus.current = role;
+    setOpen(null);
+  };
   const others = candidates.open.length;
   return (
     <div
@@ -475,32 +539,44 @@ export function WhoTrainedQuestion({
           />
         </span>
       </div>
-      <p className="max-w-[68ch] px-5 pt-0.5 pb-3 text-[13px] text-muted-foreground">
-        Pe fișă sunt doar semnăturile. Dacă nu știi cine a semnat, rămâne „{notOnSheet.name}”.
+      <p
+        className={cn(
+          'max-w-[68ch] px-5 pt-0.5 pb-3 text-[13px]',
+          stale.length > 0 ? 'font-medium text-foreground' : 'text-muted-foreground'
+        )}
+        data-testid="who-trained-guide"
+      >
+        {stale.length > 0
+          ? 'Data preluării de pe fișe s-a schimbat de când ai ales, așa că alegerea nu se mai folosește. Alege din nou.'
+          : `Pe fișă sunt doar semnăturile. Dacă nu știi cine a semnat, rămâne „${notOnSheet.name}”.`}
       </p>
       {answerRoles(domain).map((role) =>
         open === role ? (
           <RoleEditor
             key={role}
             role={role}
-            answer={answer}
-            split={split}
+            held={answer?.[role]}
+            window={window}
             groups={groupsOf(role)}
             onSave={save(role)}
-            onDone={() => setOpen(null)}
+            onDone={() => close(role)}
           />
         ) : (
           <RoleSummary
             key={role}
             role={role}
-            answer={answer}
-            split={split}
+            live={live?.[role]}
+            stale={stale.includes(role) ? answer?.[role] : undefined}
+            window={window}
             mark={mark}
+            buttonRef={(element) => {
+              buttons.current[role] = element;
+            }}
             onOpen={() => setOpen(role)}
           />
         )
       )}
-      {hasAnswer(domain, answer) && (copies > 0 || others > 0) && (
+      {hasAnswer(domain, live) && (copies > 0 || others > 0) && (
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t bg-muted/40 px-5 py-2.5 text-sm">
           {others > 0 && (
             <Button
@@ -529,8 +605,8 @@ export function WhoTrainedQuestion({
           context={context}
           person={person}
           domain={domain}
-          answer={answer!}
-          split={split}
+          answer={live!}
+          window={window}
           onClose={() => setCopying(false)}
           onChange={onChange}
         />

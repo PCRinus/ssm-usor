@@ -1,10 +1,10 @@
 import {
-  answerPeriod,
-  answerSplit,
   bloodGroups,
   decodeCnp,
-  handoverDay,
+  type HandoverWindow,
+  handoverWindow,
   isValidCnp,
+  monthOnlyRow,
   type NameSource,
   parseCommuteMeansKey,
   rhFactors,
@@ -511,7 +511,7 @@ export function examinerValues(changes: Changes, row: SheetRow) {
 export const handoverOf = (
   context: Pick<ReviewContext, 'proposal' | 'changes'>,
   personId: string
-) => handoverDay(pagesOf(context, personId));
+) => handoverWindow(pagesOf(context, personId));
 
 export const answerOf = (
   changes: Changes,
@@ -537,22 +537,27 @@ export function signedValues(
   context: Pick<ReviewContext, 'proposal' | 'changes'>,
   personId: string,
   row: SheetRow,
-  handover = handoverOf(context, personId)
+  handovers: HandoverWindow = handoverOf(context, personId)
 ): SignedValues {
   const values = rowValues(context.changes, row);
   const answer = answerOf(context.changes, personId, row.domain);
-  const period = answerPeriod(values.heldOn, answerSplit(handover, answer));
   const stored = context.changes.rows[row.id]?.values;
   const signer = (role: 'trainer' | 'verifier') => {
-    const [name, jobTitle] = signerFields[role];
+    const fields = signerFields[role];
+    const typed = typedOnRow(stored, row, fields, row.fromThemes);
+    // As for an examiner: once one half is typed, the other saved with it is the member's too.
+    const value = (field: (typeof fields)[number]) =>
+      (typed && stored && field in stored ? stored[field] : values[field]) as string | null;
     return rowSigner({
       domain: row.domain,
       phase: row.phase,
       role,
-      name: values[name],
-      jobTitle: values[jobTitle],
-      typed: typedOnRow(stored, row, signerFields[role], row.fromThemes),
-      period,
+      name: value(fields[0]),
+      jobTitle: value(fields[1]),
+      typed,
+      heldOn: values.heldOn,
+      monthOnly: monthOnlyRow(row, stored),
+      handovers,
       answer,
     });
   };

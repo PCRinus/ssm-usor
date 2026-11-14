@@ -832,8 +832,8 @@ describe('toEmployeePayload', () => {
   });
 
   describe('who trained, asked per person', () => {
-    const unnamed = (heldOn: string) =>
-      row({ heldOn, trainerName: null, trainerJobTitle: null, durationMinutes: 120 });
+    const unnamed = (heldOn: string, parts: Parameters<typeof row>[0] = {}) =>
+      row({ heldOn, trainerName: null, trainerJobTitle: null, durationMinutes: 120, ...parts });
     const handedOver = page({
       pageKind: 'ssm_periodic',
       trainings: [unnamed('2022-05-16'), unnamed('2022-11-14'), unnamed('2023-05-15')],
@@ -842,26 +842,43 @@ describe('toEmployeePayload', () => {
     const vasile = { name: 'Iordache Vasile', jobTitle: 'Șef de șantier' };
     const pavel = { name: 'Pavel Mihai', jobTitle: 'Specialist SSM' };
     const andreea = { name: 'Andreea Ionescu', jobTitle: 'Specialist SSM' };
-    const signers = (payload: ReturnType<typeof toEmployeePayload>['payload']) =>
+    const at = (splitOn: string | null, previousOn: string | null = null) => ({
+      splitOn,
+      previousOn,
+    });
+    type WhoTrained = NonNullable<EmployeeImportChanges['people'][string]['whoTrained']>;
+    const signers = (
+      payload: ReturnType<typeof toEmployeePayload>['payload'],
+      phases = ['periodic']
+    ) =>
       Object.fromEntries(
         payload.trainings
-          .filter((training) => training.phase === 'periodic')
+          .filter((training) => phases.includes(training.phase))
           .map((training) => [
             training.held_on,
             [training.trainer_name ?? null, training.verifier_name ?? null],
           ])
       );
+    const named = (payload: ReturnType<typeof toEmployeePayload>['payload']) =>
+      Object.values(signers(payload)).flat().filter(Boolean);
+    const answered = (...readings: Parameters<typeof setUp>) => {
+      const set = setUp(comanFront, ...readings);
+      const coman = idOf(set.proposal, 'Coman');
+      set.check(coman);
+      const answer = (whoTrained: WhoTrained) => {
+        set.changes.people[coman]!.whoTrained = whoTrained;
+      };
+      return { ...set, coman, answer };
+    };
 
     it('names the periodic rows each side of the handover with that side’s answer', () => {
-      const { proposal, changes, check, map } = setUp(comanFront, handedOver);
-      const coman = idOf(proposal, 'Coman');
-      check(coman);
-      changes.people[coman]!.whoTrained = {
+      const { answer, map } = answered(handedOver);
+      answer({
         ssm: {
-          trainer: { before: vasile, from: vasile },
-          verifier: { before: pavel, from: andreea },
+          trainer: { before: vasile, from: vasile, ...at('2022-10-03') },
+          verifier: { before: pavel, from: andreea, ...at('2022-10-03') },
         },
-      };
+      });
 
       const { payload, blockers } = map();
 
@@ -877,16 +894,13 @@ describe('toEmployeePayload', () => {
     });
 
     it('takes the one answer for every dated row when the sheets record no handover', () => {
-      const { proposal, changes, check, map } = setUp(
-        comanFront,
+      const { answer, map } = answered(
         page({
           pageKind: 'ssm_periodic',
           trainings: [unnamed('2022-05-16'), unnamed('2023-05-15')],
         })
       );
-      const coman = idOf(proposal, 'Coman');
-      check(coman);
-      changes.people[coman]!.whoTrained = { ssm: { trainer: { before: pavel, from: vasile } } };
+      answer({ ssm: { trainer: { from: vasile, ...at(null) } } });
 
       expect(signers(map().payload)).toEqual({
         '2022-05-16': ['Iordache Vasile', null],
@@ -894,29 +908,85 @@ describe('toEmployeePayload', () => {
       });
     });
 
-    it('splits a copied answer at the handover date copied with it', () => {
-      const { proposal, changes, check, map } = setUp(
-        comanFront,
+    it('names nothing once the handover the answer was given under is no longer on the sheets', () => {
+      const { answer, map, proposal } = answered(handedOver);
+      answer({ ssm: { trainer: { before: pavel, from: vasile, ...at('2022-10-03') } } });
+      proposal.pages[1]!.handovers = [{ date: '2023-01-09', text: '09.01.23 Preluare' }];
+      expect(named(map().payload)).toEqual([]);
+
+      proposal.pages[1]!.handovers = [];
+      expect(named(map().payload)).toEqual([]);
+
+      answer({ ssm: { trainer: { from: vasile } } });
+      expect(named(map().payload)).toEqual([]);
+    });
+
+    it('splits a copied answer at the handover copied with it, only while the sheets have none', () => {
+      const { answer, map, proposal } = answered(
         page({
           pageKind: 'ssm_periodic',
           trainings: [unnamed('2022-05-16'), unnamed('2023-05-15')],
         })
       );
-      const coman = idOf(proposal, 'Coman');
-      check(coman);
-      changes.people[coman]!.whoTrained = {
-        ssm: { trainer: { before: pavel, from: vasile }, splitOn: '2022-10-03' },
-      };
+      answer({
+        ssm: { trainer: { before: pavel, from: vasile, ...at('2022-10-03') }, splitCopied: true },
+      });
 
       expect(signers(map().payload)).toEqual({
         '2022-05-16': ['Pavel Mihai', null],
         '2023-05-15': ['Iordache Vasile', null],
       });
+
+      proposal.pages[1]!.handovers = [{ date: '2022-12-01', text: 'Preluare' }];
+      expect(named(map().payload)).toEqual([]);
+    });
+
+    it('leaves a month-only row of the handover’s month on neither side, unless given a day', () => {
+      const { answer, map, changes, proposal } = answered(
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [unnamed('2022-10'), unnamed('2022-09-12'), unnamed('2022-11-14')],
+          handovers: [{ date: '2022-10-03', text: 'Preluare' }],
+        })
+      );
+      answer({ ssm: { trainer: { before: pavel, from: vasile, ...at('2022-10-03') } } });
+
+      expect(signers(map().payload)).toEqual({
+        '2022-09-12': ['Pavel Mihai', null],
+        '2022-10-01': [null, null],
+        '2022-11-14': ['Iordache Vasile', null],
+      });
+
+      changes.rows[proposal.pages[1]!.rows[0]!.id] = { values: { heldOn: '2022-10-20' } };
+      expect(signers(map().payload)['2022-10-20']).toEqual(['Iordache Vasile', null]);
+    });
+
+    it('names before the latest handover only the rows from the previous one on', () => {
+      const { answer, map } = answered(
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [unnamed('2019-05-13'), unnamed('2021-05-10'), unnamed('2023-05-15')],
+          handovers: [{ date: '2020-02-03', text: 'Preluare' }],
+        }),
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [],
+          handovers: [{ date: '2022-10-03', text: 'Preluare' }],
+        })
+      );
+      answer({
+        ssm: { trainer: { before: pavel, from: vasile, ...at('2022-10-03', '2020-02-03') } },
+      });
+
+      expect(signers(map().payload)).toEqual({
+        '2019-05-13': [null, null],
+        '2021-05-10': ['Pavel Mihai', null],
+        '2023-05-15': ['Iordache Vasile', null],
+      });
     });
 
     it('keeps a name the sheet writes, a name typed on the row, and an undated row as written', () => {
-      const { proposal, changes, check, map } = setUp(
-        comanFront,
+      const { answer, map, changes, proposal } = answered(
         page({
           pageKind: 'ssm_periodic',
           trainings: [
@@ -927,13 +997,10 @@ describe('toEmployeePayload', () => {
           handovers: [{ date: '2022-10-03', text: '03.10.22 Preluare' }],
         })
       );
-      const coman = idOf(proposal, 'Coman');
-      check(coman);
-      const typed = proposal.pages[1]!.rows[1]!;
-      changes.rows[typed.id] = {
+      changes.rows[proposal.pages[1]!.rows[1]!.id] = {
         values: { trainerName: 'Crăciun Dorin', trainerJobTitle: 'Administrator' },
       };
-      changes.people[coman]!.whoTrained = { ssm: { trainer: { before: vasile, from: vasile } } };
+      answer({ ssm: { trainer: { before: vasile, from: vasile, ...at('2022-10-03') } } });
 
       expect(signers(map().payload)).toEqual({
         '2022-05-16': ['Barbu Ionuț', null],
@@ -942,14 +1009,36 @@ describe('toEmployeePayload', () => {
       });
     });
 
+    it('takes only the name where the sheet writes a function without one', () => {
+      const { answer, map } = answered(
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [
+            unnamed('2023-05-15', { trainerJobTitle: 'Maistru', verifierJobTitle: 'Inginer' }),
+          ],
+        })
+      );
+      answer({
+        ssm: {
+          trainer: { from: vasile, ...at(null) },
+          verifier: { from: pavel, ...at(null) },
+        },
+      });
+
+      expect(map().payload.trainings.find((each) => each.held_on === '2023-05-15')).toMatchObject({
+        trainer_name: 'Iordache Vasile',
+        trainer_job_title: 'Maistru',
+        verifier_name: 'Pavel Mihai',
+        verifier_job_title: 'Inginer',
+      });
+    });
+
     it('fills a row a dialog saved with the sheet’s empty name, and none the member cleared', () => {
-      const { proposal, changes, check, map } = setUp(comanFront, handedOver);
-      const coman = idOf(proposal, 'Coman');
-      check(coman);
+      const { answer, map, changes, proposal } = answered(handedOver);
       const [saved, cleared] = proposal.pages[1]!.rows;
       changes.rows[saved!.id] = { values: { durationMinutes: 90, trainerName: null } };
       changes.rows[cleared!.id] = { values: { trainerName: '', trainerJobTitle: '' } };
-      changes.people[coman]!.whoTrained = { ssm: { trainer: { before: vasile, from: vasile } } };
+      answer({ ssm: { trainer: { before: vasile, from: vasile, ...at('2022-10-03') } } });
 
       expect(signers(map().payload)).toEqual({
         '2022-05-16': ['Iordache Vasile', null],
@@ -958,9 +1047,84 @@ describe('toEmployeePayload', () => {
       });
     });
 
+    it('keeps a themed name the member saved again beside a function typed anew', () => {
+      const { answer, map, changes, proposal } = answered(
+        page({ pageKind: 'ssm_periodic', trainings: [unnamed('2023-05-15')] })
+      );
+      const themed = proposal.pages[1]!.rows[0]!;
+      Object.assign(themed, {
+        trainerName: 'Barbu Ionuț',
+        trainerJobTitle: 'Inspector SSM',
+        fromThemes: ['trainerName', 'trainerJobTitle'],
+      });
+      answer({
+        ssm: {
+          trainer: { from: { name: 'Barbu Ionuț', jobTitle: 'Inspector SSM' }, ...at(null) },
+        },
+      });
+      changes.rows[themed.id] = {
+        values: { trainerName: 'Barbu Ionuț', trainerJobTitle: 'Șef de echipă' },
+      };
+
+      expect(map().payload.trainings.find((each) => each.held_on === '2023-05-15')).toMatchObject({
+        trainer_name: 'Barbu Ionuț',
+        trainer_job_title: 'Șef de echipă',
+      });
+    });
+
+    it('names the supplementary rows too, and never the hiring rows', () => {
+      const { answer, map } = answered(
+        page({
+          pageKind: 'ssm_periodic',
+          trainings: [
+            unnamed('2023-02-06', { phase: 'supplementary', supplementaryReason: 'rules_changed' }),
+            unnamed('2023-05-15'),
+          ],
+        })
+      );
+      answer({
+        ssm: { trainer: { from: vasile, ...at(null) }, verifier: { from: pavel, ...at(null) } },
+      });
+
+      const { payload, blockers } = map();
+
+      expect(blockers).toEqual([]);
+      expect(signers(payload, ['periodic', 'supplementary'])).toEqual({
+        '2023-02-06': ['Iordache Vasile', 'Pavel Mihai'],
+        '2023-05-15': ['Iordache Vasile', 'Pavel Mihai'],
+      });
+      expect(
+        payload.trainings
+          .filter((each) => each.phase === 'introductory_general' || each.phase === 'workplace')
+          .some(
+            (each) =>
+              each.trainer_name === 'Iordache Vasile' || each.verifier_name === 'Pavel Mihai'
+          )
+      ).toBe(false);
+    });
+
+    it('leaves the examiner of an annual test written on a periodic row as the sheet gives it', () => {
+      const { answer, map } = answered(
+        page({
+          pageKind: 'su_periodic',
+          trainings: [trainedAndTested({ trainerName: null, trainerJobTitle: null })],
+        })
+      );
+      answer({ su: { trainer: { from: vasile, ...at(null) } } });
+
+      const { payload } = map();
+
+      expect(payload.trainings.find((each) => each.domain === 'su')).toMatchObject({
+        trainer_name: 'Iordache Vasile',
+      });
+      expect(payload.test_results.find((each) => each.test === 'annual')).toBeDefined();
+      expect(payload.test_results.find((each) => each.test === 'annual')).not.toHaveProperty(
+        'examiner_name'
+      );
+    });
+
     it('names no verifier on a fire-safety row, nor on the hiring rows', () => {
-      const { proposal, changes, check, map } = setUp(
-        comanFront,
+      const { answer, map } = answered(
         page({
           pageKind: 'su_periodic',
           trainings: [
@@ -968,12 +1132,10 @@ describe('toEmployeePayload', () => {
           ],
         })
       );
-      const coman = idOf(proposal, 'Coman');
-      check(coman);
-      changes.people[coman]!.whoTrained = {
-        ssm: { verifier: { from: pavel } },
-        su: { trainer: { from: vasile }, verifier: { from: pavel } },
-      };
+      answer({
+        ssm: { verifier: { from: pavel, ...at(null) } },
+        su: { trainer: { from: vasile, ...at(null) }, verifier: { from: pavel, ...at(null) } },
+      });
 
       const trainings = map().payload.trainings;
 
@@ -1004,7 +1166,7 @@ describe('toEmployeePayload', () => {
       check(coman, toma);
       changes.jobTitles[proposal.jobTitles[1]!.id] = { jobPositionId: positions[2]!.id };
       for (const id of [coman, toma]) {
-        changes.people[id]!.whoTrained = { ssm: { trainer: { from: vasile } } };
+        changes.people[id]!.whoTrained = { ssm: { trainer: { from: vasile, ...at(null) } } };
       }
 
       const may = map().payload.trainings.filter((training) => training.held_on === '2023-05-15');

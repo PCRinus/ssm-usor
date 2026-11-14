@@ -1,17 +1,17 @@
 import {
-  answerPeriod,
   type AnswerRole,
-  answerSplit,
   bloodGroups,
   type CommuteMean,
   decodeCnp,
   type EmployeeImportChanges,
   type EmployeeImportFieldName,
   employeeImportFieldNames,
-  handoverDay,
+  type HandoverWindow,
+  handoverWindow,
   type ImportBlocker,
   isValidCnp,
   type KnowledgeTest,
+  monthOnlyRow,
   parseCommuteMeansKey,
   rhFactors,
   rowSigner,
@@ -331,19 +331,27 @@ export function rowSigners(
   row: ProposedSheetRow,
   change: RowChange | undefined,
   answer: WhoTrainedAnswer | undefined,
-  handover: string | null
+  handovers: HandoverWindow
 ) {
-  const period = answerPeriod(rowValue(row, change, 'heldOn'), answerSplit(handover, answer));
+  const stored = change?.values;
   const signer = (role: AnswerRole) => {
-    const [name, jobTitle] = signerFields[role];
+    const fields = signerFields[role];
+    const typed = typedOnRow(stored, row, fields, row.fromThemes);
+    // As for an examiner: once the member typed one half, the other saved with it is theirs too,
+    // else a name equal to the themed one could never be kept beside a function typed anew.
+    const value = (field: (typeof fields)[number]) =>
+      (typed && stored && field in stored ? stored[field] : rowValue(row, change, field)) as
+        string | null;
     return rowSigner({
       domain: row.domain,
       phase: row.phase,
       role,
-      name: rowValue(row, change, name),
-      jobTitle: rowValue(row, change, jobTitle),
-      typed: typedOnRow(change?.values, row, signerFields[role], row.fromThemes),
-      period,
+      name: value(fields[0]),
+      jobTitle: value(fields[1]),
+      typed,
+      heldOn: rowValue(row, change, 'heldOn'),
+      monthOnly: monthOnlyRow(row, stored),
+      handovers,
       answer,
     });
   };
@@ -633,7 +641,7 @@ export function toEmployeePayload(input: {
       rows.map((each) => ({ ...each, heldOn: rowValue(each, changes.rows[each.id], 'heldOn') }))
     );
     const seen = new Set<string>();
-    const handover = handoverDay(ownPages);
+    const handover = handoverWindow(ownPages);
     for (const sheetRow of rows) {
       addRow(sheetRow, person, existing, seen, hiringTests, handover);
     }
@@ -645,7 +653,7 @@ export function toEmployeePayload(input: {
     existing: ExistingEmployee | undefined,
     seen: Set<string>,
     hiringTests: ReadonlySet<string>,
-    handover: string | null
+    handover: HandoverWindow
   ) {
     const change = changes.rows[sheetRow.id];
     const path = `rows.${sheetRow.id}`;
