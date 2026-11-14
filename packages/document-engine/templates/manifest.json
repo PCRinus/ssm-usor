@@ -93,7 +93,11 @@
       "file": "2.2_general_training_material.docx",
       "change": {
         "kind": "legal",
-        "note": "Citatele din legislație sunt în forma în vigoare: instruirea periodică, revizuirea evaluării riscurilor, evenimentele din străinătate, concediul de risc maternal, locurile de muncă și panourile de avertizare (fără „Materiale nocive sau iritante”)."
+        "note": "Art. 36 alin. (2) din O.U.G. 195/2002 cere conducătorilor și pasagerilor motocicletelor și mopedelor să poarte pe cap o cască omologată pentru categoria vehiculului, cu elementele de siguranță cuplate corect.",
+        "resolves": {
+          "act": "oug-195-2002",
+          "consolidatedOn": "2026-11-06"
+        }
       }
     },
     {
