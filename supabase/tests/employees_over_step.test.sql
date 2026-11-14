@@ -1,5 +1,5 @@
 begin;
-select plan(44);
+select plan(47);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -85,6 +85,21 @@ select is(
   (select row(employees, employee_limit, last_day, blocked)::text from public.employees_over_step('11111111-0000-4000-8000-000000000001')),
   row(252, 250, public.employees_over_step_last_day(now()), false)::text,
   'the state names the count, the step, the last day and no block'
+);
+
+select is(
+  (select row(kind, employees, employee_limit)::text from public.employees_over_step_notices_due()),
+  row('employees_over', 252, 250)::text,
+  'the owner is told when the clock starts'
+);
+insert into public.usage_notices (organization_id, period_start, kind)
+values ('11111111-0000-4000-8000-000000000001', now(), 'employees_over');
+select is((select count(*)::int from public.employees_over_step_notices_due()), 0, 'once');
+select pg_temp.set_since(now() - interval '1 month' + interval '2 days');
+select is(
+  (select kind from public.employees_over_step_notices_due()),
+  'employees_soon',
+  'and again three days before the last day'
 );
 
 select pg_temp.set_since(

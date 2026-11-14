@@ -396,5 +396,61 @@ create trigger clients_protect_restore_over_step before update of stage, archive
   for each row when (new.stage = 'client' and new.archived_at is null)
   execute function public.protect_client_restore_over_step();
 
+-- The owner hears of it twice per clock: when it starts, and three days before the last day.
+-- `usage_notices.period_start` holds the clock's start, so a new clock is told again.
+alter table public.usage_notices
+  drop constraint usage_notices_kind_format,
+  add constraint usage_notices_kind_format check (kind ~ '^(sms|credits|employees)_[a-z0-9]{1,20}$');
+
+create function public.employees_over_step_notices_due()
+returns table (
+  organization_id uuid,
+  over_since timestamptz,
+  kind text,
+  employees integer,
+  employee_limit integer,
+  last_day date
+)
+language sql
+volatile
+security definer
+set search_path = ''
+as $$
+  with clocks as (
+    select
+      s.organization_id,
+      s.employees_over_step_since as over_since,
+      public.employees_over_step_last_day(s.employees_over_step_since) as last_day,
+      case
+        when public.employees_over_step_last_day(s.employees_over_step_since)
+          - (now() at time zone 'Europe/Bucharest')::date <= 3
+        then 'employees_soon'
+        else 'employees_over'
+      end as kind,
+      public.employee_limit_of(s.plan, s.status, s.trial_ends_at, s.employee_step) as employee_limit
+    from public.subscriptions s
+    where s.employees_over_step_since is not null
+      and now() < public.employees_over_step_blocks_at(s.employees_over_step_since)
+      and public.access_at(s.access_until) = 'full'
+  )
+  select
+    c.organization_id,
+    c.over_since,
+    c.kind,
+    public.organization_employee_count(c.organization_id),
+    c.employee_limit,
+    c.last_day
+  from clocks c
+  where not exists (
+    select 1 from public.usage_notices n
+    where n.organization_id = c.organization_id
+      and n.period_start = c.over_since
+      and (n.kind = c.kind or n.kind = 'employees_soon')
+  );
+$$;
+
+revoke all on function public.employees_over_step_notices_due() from public, anon, authenticated;
+grant execute on function public.employees_over_step_notices_due() to service_role;
+
 -- Organizations already over their step start their month now.
 select public.refresh_all_employees_over_step();

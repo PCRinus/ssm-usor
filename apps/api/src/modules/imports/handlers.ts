@@ -45,6 +45,7 @@ import {
 import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
+import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { creditsStore } from '../credits/store';
 import { importCharges, importCreditsOf } from '../credits/usage';
 import { romanianDay } from '../documents/context';
@@ -1243,6 +1244,7 @@ export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = as
   });
   if (error) throw decisionError(error, 'confirm import');
   const result = data as { client_id: string; files: unknown[] };
+  noticeEmployeesOverStepLater(c);
   await queueCopy(c, importId);
   await queueEnded(c, importId);
   return c.json({ clientId: result.client_id, fileCount: result.files.length }, 200);
@@ -1307,6 +1309,7 @@ async function confirmEmployeeImport(
     files: unknown[];
   };
   await syncSignedSheets(c, row.id, result);
+  noticeEmployeesOverStepLater(c);
   await queueCopy(c, row.id);
   await queueEnded(c, row.id);
   return {

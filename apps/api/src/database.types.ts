@@ -7774,6 +7774,17 @@ export type Database = {
         Args: { p_since: string };
         Returns: string;
       };
+      employees_over_step_notices_due: {
+        Args: never;
+        Returns: {
+          employee_limit: number;
+          employees: number;
+          kind: string;
+          last_day: string;
+          organization_id: string;
+          over_since: string;
+        }[];
+      };
       expired_import_ids: { Args: never; Returns: string[] };
       extend_trial: {
         Args: {
