@@ -922,8 +922,15 @@ positions with current employees, and for each the supplementary trainings with 
 `rules_changed` in the domain created since `issued_at` that one of them attended. A newer issue
 supersedes the revision and so the proposal; the API lists only the revision in force.
 
+A supplementary training counts for a post only when it was also held on the issue's day in
+Romania or later: a paper training transcribed after the issue was not taught from these
+instructions.
+
 Members read the proposals of documents they can reach (`can_access_document`) and update only
-`dismissed_at` and `dismissed_by`; nobody inserts or deletes one but the trigger and the
+`dismissed_at` and `dismissed_by`. The trigger `supplementary_training_proposals_close` sets
+`dismissed_by` to the caller, whatever the request sends, and refuses (`42501`) any change to a
+closed proposal, reopening included; the secret key, SQL and the cascade of an account's deletion
+pass; nobody inserts or deletes one but the trigger and the
 revision's deletion, which takes it along. The archived-client trigger applies.
 
 ## Knowledge tests

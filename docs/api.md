@@ -557,11 +557,12 @@ the revision carries, else its issue day in Romania), `issuedAt`, `firstIssue` (
 revision of the document was issued) and `posts`: every position of the client with current
 workers, most workers first, `{ jobPositionId, name, workerCount, recordedOn }`. `recordedOn` is
 the Romanian day of the first supplementary training with the reason `rules_changed` in the
-domain recorded since the issue that a current worker of the post attended, null while there is
-none; a proposal whose every post has one is left out. Nothing records a training by itself: the
+domain recorded since the issue and held on its day or later that a current worker of the post
+attended, null while there is none; a proposal whose every post has one is left out. Nothing records a training by itself: the
 app opens the usual training dialog filled for the post. `POST …/{revisionId}/dismiss` closes an
-open proposal, "Nu e nevoie de instruire", recording who and when (the platform admin during an
-impersonation); one that is not open answers `404`, an archived client `409`.
+open proposal, "Nu e nevoie de instruire": the database records the caller as who closed it (the
+platform admin during an impersonation) and when. A proposal that is not open, closed already, of
+a superseded revision or with every post trained, answers `404`; an archived client `409`.
 
 The two individual training sheets
 ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)) are built on demand
