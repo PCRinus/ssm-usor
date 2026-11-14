@@ -13,6 +13,8 @@ export type MeterTone = 'normal' | 'warning' | 'over' | 'danger';
  */
 export interface SmsReader {
   owner: boolean;
+  // SMS extras turned on: past what is included, codes go on by SMS; unknown where not said.
+  extrasOn?: boolean;
   stop: 'month' | 'tester';
 }
 
@@ -72,21 +74,36 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
   const until = renews ? ` până pe ${renews}` : '';
 
   let hint: string;
+  const past = reader.extrasOn
+    ? `Peste ${included}, codurile pleacă mai departe prin SMS, ca extra`
+    : `Peste ${included}, ${byEmail}${until}`;
   switch (sms.state) {
+    case 'extra':
+      return {
+        used: sms.used,
+        limit: sms.included + sms.overage,
+        value: `${included} + ${formatCount(sms.overage)} extra`,
+        tone: 'over',
+        hint: `Ai folosit cele ${included} incluse. Codurile pleacă mai departe prin SMS, ca extra.`,
+      };
     case 'ok':
       hint =
         stop === 'tester'
           ? `Cont de test: ${included} pe lună, fără costuri în plus. La ${included}, codurile pleacă pe email${until}.`
-          : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. Peste ${included}, ${byEmail}${until}.`;
+          : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. ${past}.`;
       break;
     case 'near':
-      hint = `Mai ai ${formatCount(sms.included - sms.used)}${until}. Apoi ${byEmail}.`;
+      hint = reader.extrasOn
+        ? `Mai ai ${formatCount(sms.included - sms.used)} incluse${until}. Apoi codurile pleacă mai departe prin SMS, ca extra.`
+        : `Mai ai ${formatCount(sms.included - sms.used)}${until}. Apoi ${byEmail}.`;
       break;
     default:
       hint =
         stop === 'tester'
           ? `Cont de test: ai folosit cele ${included} din luna aceasta.${renews ? ` Până pe ${renews},` : ''} ${byEmail}. Ai nevoie de mai multe? Scrie-ne la ${contactEmail}.`
-          : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
+          : sms.overage > 0
+            ? `Ai atins plafonul pentru codurile extra.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`
+            : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
   }
 
   return {
