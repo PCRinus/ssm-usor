@@ -18,7 +18,7 @@
     "@astrojs/check": "^0.9.12",
     "@astrojs/sitemap": "^3.7.4",
     "@ssm-usor/design-tokens": "workspace:*",
-    "astro": "^7.4.4",
+    "astro": "^7.4.7",
     "posthog-js": "1.433.0"
   },
   "devDependencies": {
