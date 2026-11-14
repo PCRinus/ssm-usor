@@ -1,6 +1,9 @@
+import { cn } from '@ssm-usor/ui/lib/utils';
 import type { ReactNode } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
+import { backGap } from '@/components/back-gap';
+import { BackSlot } from '@/components/back-link';
 
 // Measured on the header, not on the window: the sidebar takes a share of the window.
 const actionsPlacement = {
@@ -25,10 +28,8 @@ export function RecordHeader({
 }) {
   return (
     <header className="@container">
-      {/* h-7 is the title's line height, so the arrow stays on its first line while a long
-          name wraps under itself. */}
-      <div className="flex min-w-0 flex-wrap items-start gap-3">
-        {back && <div className="flex h-7 shrink-0 items-center">{back}</div>}
+      <div className={cn('flex min-w-0 flex-wrap items-start gap-y-3', backGap)}>
+        {back && <BackSlot line="text-xl">{back}</BackSlot>}
         <div className="min-w-0 flex-1">
           <h1
             className="text-xl font-semibold tracking-tight wrap-anywhere"

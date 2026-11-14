@@ -104,6 +104,7 @@ export function JobPositionPage() {
     <div data-testid="job-position-page" className="grid gap-5">
       <div className="grid gap-3">
         <TitleWithBack
+          line="text-xl"
           back={
             <BackLink
               to="/clienti/$clientId/posturi"
@@ -113,9 +114,7 @@ export function JobPositionPage() {
             />
           }
         >
-          <h2 className="pt-1 text-xl font-semibold tracking-tight wrap-anywhere">
-            {position.name}
-          </h2>
+          <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{position.name}</h2>
         </TitleWithBack>
         <nav aria-label="Secțiunile postului">
           <ul className="flex flex-wrap gap-2">

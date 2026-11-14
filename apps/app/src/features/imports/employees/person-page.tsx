@@ -417,6 +417,7 @@ export function EmployeePersonPage({
   const header = (toggle: ReactNode) => (
     <div className="grid gap-2">
       <TitleWithBack
+        line="text-2xl"
         back={
           <BackLink
             to="/clienti/$clientId/angajati/import/$importId"

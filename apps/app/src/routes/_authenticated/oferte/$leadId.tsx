@@ -1,5 +1,6 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import {
   createFileRoute,
   type ErrorComponentProps,
@@ -14,6 +15,7 @@ import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/
 import { ApiHttpError } from '@/api/http';
 import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { backGap } from '@/components/back-gap';
 import { BackLink } from '@/components/back-link';
 
 // A lead is a client in an earlier stage (ADR 007), read through the same route. The
@@ -58,7 +60,7 @@ function LeadLayout() {
 function LeadPending() {
   return (
     <div className="space-y-5" aria-busy="true">
-      <div className="flex items-center gap-3">
+      <div className={cn('flex items-center', backGap)}>
         <div className="flex shrink-0">
           <BackLink to="/oferte" label="Înapoi la oferte" />
         </div>

@@ -29,7 +29,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { NotFound, RouteError } from '@/app/route-states';
-import { BackLink } from '@/components/back-link';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -227,14 +227,16 @@ function PositionNotEvaluated({
 function Header({ title, back, action }: { title: string; back: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-      <div className="grid gap-1">
-        <p className="text-sm text-muted-foreground">Fișa de evaluare</p>
+      <TitleWithBack
+        back={back}
+        line="text-xl"
+        eyebrow={<p className="text-sm text-muted-foreground">Fișa de evaluare</p>}
+      >
         <div className="flex min-w-0 items-center gap-1.5">
-          <div className="flex shrink-0">{back}</div>
           <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
           <HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />
         </div>
-      </div>
+      </TitleWithBack>
       {action}
     </div>
   );

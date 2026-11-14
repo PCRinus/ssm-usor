@@ -6,7 +6,7 @@ import type { Release } from '@/api/generated/api';
 import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
-import { BackLink } from '@/components/back-link';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 
 import { InlineMarkdown } from './inline-markdown';
 import { KindSquare } from './kind-square';
@@ -175,21 +175,26 @@ export function ReleasePage({ tag }: { tag: string }) {
 
   return (
     <div data-testid="release-page" className="mx-auto grid w-full max-w-[1040px] gap-6 sm:gap-7">
-      <header className="flex items-start gap-1 overflow-hidden rounded-2xl border border-release-sand-edge bg-release-sand pt-2 pr-5 pb-6 pl-2 sm:gap-3 sm:py-8 sm:pr-9 sm:pl-4">
-        <BackLink to="/actualizari" label="Înapoi la actualizări" />
-        <div className="grid min-w-0 flex-1 gap-3.5 pt-3 sm:flex sm:items-start sm:gap-8 sm:pt-0">
-          <ReleaseTag tag={release.tag} size="hero" className="hidden sm:flex" />
-          <div className="flex items-center gap-3.5 sm:hidden">
-            <ReleaseTag tag={release.tag} size="badge" />
-            <div className="grid gap-[3px]">
-              <span className="text-[15px] font-bold tabular-nums">Versiunea {release.tag}</span>
-              <span className="text-[13px] text-release-sand-muted">Publicată pe {published}</span>
-            </div>
+      <header className="grid gap-3.5 overflow-hidden rounded-2xl border border-release-sand-edge bg-release-sand px-5 pt-5 pb-6 sm:flex sm:items-start sm:gap-8 sm:px-9 sm:py-8">
+        <ReleaseTag tag={release.tag} size="hero" className="hidden sm:flex" />
+        <div className="flex items-center gap-3.5 sm:hidden">
+          <ReleaseTag tag={release.tag} size="badge" />
+          <div className="grid gap-[3px]">
+            <span className="text-[15px] font-bold tabular-nums">Versiunea {release.tag}</span>
+            <span className="text-[13px] text-release-sand-muted">Publicată pe {published}</span>
           </div>
-          <div className="grid max-w-[640px] gap-3">
+        </div>
+        <TitleWithBack
+          className="max-w-[640px] gap-y-0 sm:gap-y-3"
+          line="text-[25px] leading-[1.2] sm:text-[34px] sm:leading-[1.15]"
+          back={<BackLink to="/actualizari" label="Înapoi la actualizări" />}
+          eyebrow={
             <span className="hidden text-sm text-release-sand-muted sm:block">
               Publicată pe {published}
             </span>
+          }
+        >
+          <div className="grid gap-3">
             <h1 className="text-[25px] leading-[1.2] font-bold tracking-[-0.02em] sm:text-[34px] sm:leading-[1.15]">
               <InlineMarkdown text={release.headline} />
             </h1>
@@ -199,7 +204,7 @@ export function ReleasePage({ tag }: { tag: string }) {
               </p>
             )}
           </div>
-        </div>
+        </TitleWithBack>
       </header>
 
       {sections.length > 1 && <SectionLinks tag={release.tag} sections={sections} phone />}

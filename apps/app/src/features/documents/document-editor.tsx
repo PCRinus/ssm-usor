@@ -132,7 +132,9 @@ export default function DocumentEditor({
       // A module constant: a catalogue with a new identity rebuilds the whole interface.
       i18n={editorStrings}
       fonts={fonts}
-      renderTitleBarLeft={() => back}
+      // The editor spaces its title row 8 px apart and pads its title 6 px; -2 px leaves the
+      // arrow the 12 px it has beside every other title. The row centres both on one line.
+      renderTitleBarLeft={() => <span className="-mr-0.5 flex">{back}</span>}
       renderTitleBarRight={() => (
         <div data-editor-title-actions className="flex flex-wrap items-center gap-2">
           {editable && <UnfilledNavigator />}

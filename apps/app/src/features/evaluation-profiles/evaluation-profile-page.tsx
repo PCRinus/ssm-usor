@@ -10,7 +10,7 @@ import { useState } from 'react';
 
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
 import { NotFound, RouteError } from '@/app/route-states';
-import { BackLink } from '@/components/back-link';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { RiskFactorsCard } from '@/features/risk-evaluations/risk-factors-card';
@@ -59,16 +59,19 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
     <div data-testid="risk-profile-page" className="grid gap-5">
       <div className="grid gap-3">
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <div className="flex shrink-0">
-              <BackLink to="/evaluari-de-risc" label="Înapoi la evaluările de risc" />
+          <TitleWithBack
+            back={<BackLink to="/evaluari-de-risc" label="Înapoi la evaluările de risc" />}
+          >
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">
+                {profile.name}
+              </h1>
+              <HelpLink
+                topic="evaluari-de-risc.pagina-evaluarii"
+                label="Ajutor: evaluarea din bibliotecă"
+              />
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{profile.name}</h1>
-            <HelpLink
-              topic="evaluari-de-risc.pagina-evaluarii"
-              label="Ajutor: evaluarea din bibliotecă"
-            />
-          </div>
+          </TitleWithBack>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
