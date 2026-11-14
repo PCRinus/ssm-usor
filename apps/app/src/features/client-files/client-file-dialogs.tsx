@@ -248,7 +248,10 @@ export function DeleteClientFileDialog({
     }
     onClose();
     // Also after a failure: a 404 means the list on screen is out of date.
-    await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(clientId) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(clientId) }),
+      queryClient.invalidateQueries({ queryKey: getGetEarlierInstructionsQueryKey(clientId) }),
+    ]);
   }
 
   return (

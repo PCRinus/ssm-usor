@@ -5,6 +5,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
@@ -169,11 +170,19 @@ export function FileRow({
                   <DropdownMenuCheckboxItem
                     data-testid="client-file-owners-only-switch"
                     checked={file.ownersOnly}
-                    disabled={switching}
+                    disabled={switching || Boolean(file.earlierInstructions)}
                     onCheckedChange={(checked) => onOwnersOnly(checked === true)}
                   >
                     Doar pentru admini
                   </DropdownMenuCheckboxItem>
+                )}
+                {canSwitch && file.earlierInstructions && (
+                  <DropdownMenuLabel
+                    data-testid="client-file-owners-only-reason"
+                    className="max-w-60 text-xs font-normal text-muted-foreground"
+                  >
+                    Instrucțiunile anterioare rămân vizibile pentru toată echipa.
+                  </DropdownMenuLabel>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

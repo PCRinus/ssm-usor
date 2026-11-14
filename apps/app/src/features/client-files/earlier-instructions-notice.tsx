@@ -70,12 +70,12 @@ export function EarlierInstructionsNotice({
           data-testid="earlier-instructions-notice"
         >
           <Info aria-hidden="true" />
-          <AlertTitle id={titleId}>Păstrează instrucțiunile proprii anterioare</AlertTitle>
+          <AlertTitle id={titleId}>Instrucțiunile proprii anterioare, opțional</AlertTitle>
           <AlertDescription className="mt-1 justify-items-stretch gap-3">
             <p className="max-w-[84ch]">
               Instruirile preluate de pe hârtie trimit la articole din instrucțiunile proprii pe
               care clientul le avea atunci ({namesOf(missing)}). Păstrate aici, arată ce s-a predat,
-              la un control sau la cercetarea unui accident.{' '}
+              la un control sau la cercetarea unui accident. Nu e o obligație legală.{' '}
               <HelpLink topic="angajati.instructiuni-anterioare" className="text-current">
                 Află mai mult
               </HelpLink>

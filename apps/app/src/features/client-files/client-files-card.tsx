@@ -16,6 +16,7 @@ import { type MouseEvent, type ReactNode, useState } from 'react';
 
 import {
   type ClientFileListResponse,
+  getGetEarlierInstructionsQueryKey,
   getListClientFilesQueryKey,
   setClientFileOwnersOnly,
   useListClientFiles,
@@ -155,7 +156,10 @@ export function ClientFilesCard({
       toast.error(<>Nu am putut schimba cine vede „{fileName(file)}”. Încearcă din nou.</>);
     }
     setSwitching((current) => current.filter((id) => id !== file.id));
-    await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) }),
+      queryClient.invalidateQueries({ queryKey: getGetEarlierInstructionsQueryKey(client.id) }),
+    ]);
   }
 
   const items = files.data?.items ?? [];

@@ -13,7 +13,7 @@ import {
   sheetRow,
   workplaces,
 } from '@/test/employee-import-fixture';
-import { fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
+import { bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
 import { sheetTrainingCounts } from './earlier-instructions-counts';
@@ -298,5 +298,78 @@ describe('the earlier own instructions in the employee import', () => {
     ).toContain('/files/download?');
     expect(within(row).queryByRole('button')).toBeNull();
     expect(within(card).getByTestId('section-status').textContent).toBe('Le avem');
+  });
+});
+
+describe('the day the earlier own instructions applied until, in the import', () => {
+  const mine = keptFile('f1000000-0000-4000-8000-000000000011', 'IPSSM 2019');
+  const colleagues = keptFile('f1000000-0000-4000-8000-000000000012', 'IPSSM anexa', {
+    canChange: false,
+    uploadedBy: { id: 'user-two', fullName: 'Ion Pop' },
+  });
+  const patched = (file: { id: string }) => `/clients/${clientId}/files/${file.id}`;
+  const answerPatch: (init: RequestInit | undefined, url: URL) => Response | undefined = (
+    init,
+    url
+  ) =>
+    init?.method === 'PATCH' && url.pathname.startsWith(`/clients/${clientId}/files/`)
+      ? Response.json({ file: mine })
+      : undefined;
+
+  it('keeps a typed day and changes the files the member may change, saying how many keep theirs', async () => {
+    mockHub(
+      () => [domain('ssm', { state: 'added', files: [mine, colleagues] }), domain('su')],
+      answerPatch
+    );
+    mount();
+    const user = userEvent.setup();
+    const row = await rowOf('ssm');
+    const field = within(row).getByTestId('earlier-instructions-day') as HTMLInputElement;
+    expect(field.value).toBe('12.11.2026');
+    expect(within(row).getByTestId('earlier-instructions-day-note').textContent).toBe(
+      'Un fișier încărcat de un coleg își păstrează ziua: doar el sau un admin o schimbă.'
+    );
+    await user.clear(field);
+    await user.type(field, '01.03');
+    expect(field.value).toBe('01.03');
+    await user.type(field, '.2024');
+    await waitFor(() => expect(requestsTo(patched(mine), 'PATCH')).toHaveLength(1));
+    expect(bodyOf(patched(mine), 'PATCH')).toEqual({ validUntil: '2024-03-01' });
+    expect(requestsTo(patched(colleagues), 'PATCH')).toHaveLength(0);
+    expect(field.value).toBe('01.03.2024');
+    expect(
+      await screen.findByText(
+        'Ziua s-a schimbat la un fișier IPSSM. Un fișier încărcat de un coleg își păstrează ziua: doar el sau un admin o schimbă.'
+      )
+    ).toBeTruthy();
+  });
+
+  it('shows why the day cannot be changed when every file is a colleague’s', async () => {
+    mockHub(() => [domain('ssm', { state: 'added', files: [colleagues] }), domain('su')]);
+    mount();
+    const row = await rowOf('ssm');
+    expect((within(row).getByTestId('earlier-instructions-day') as HTMLInputElement).disabled).toBe(
+      true
+    );
+    expect(within(row).getByTestId('earlier-instructions-day-note').textContent).toBe(
+      'Fișierele le-a încărcat un coleg: doar el sau un admin le schimbă ziua.'
+    );
+  });
+
+  it('asks for the day instead of uploading when it was cleared', async () => {
+    mockHub(() => [domain('ssm'), domain('su')]);
+    mount();
+    const user = userEvent.setup();
+    const row = await rowOf('ssm');
+    await user.clear(within(row).getByTestId('earlier-instructions-day'));
+    await user.upload(
+      within(row).getByTestId('earlier-instructions-input'),
+      new File(['%PDF-1.4'], 'IPSSM 2019.pdf', { type: 'application/pdf' })
+    );
+    expect(within(row).getByRole('alert').textContent).toBe('Alege ziua, apoi adaugă fișierul.');
+    expect(uploads).toHaveLength(0);
+    await user.click(within(row).getByTestId('earlier-instructions-add'));
+    expect(within(row).getByRole('alert')).toBeTruthy();
+    expect(uploads).toHaveLength(0);
   });
 });

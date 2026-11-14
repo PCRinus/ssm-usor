@@ -1,7 +1,10 @@
+import { QueryClient } from '@tanstack/react-query';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getGetEarlierInstructionsQueryKey } from '@/api/generated/api';
+import { invalidateTrainings } from '@/features/trainings/training-queries';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -153,7 +156,8 @@ describe('the notice on Instruiri ținute', () => {
     mockClient(() => [domain('ssm'), domain('su')], undefined, [proposal]);
     mount('instruiri-tinute');
     const notice = await screen.findByTestId('earlier-instructions-notice');
-    expect(within(notice).getByText('Păstrează instrucțiunile proprii anterioare')).toBeTruthy();
+    expect(within(notice).getByText('Instrucțiunile proprii anterioare, opțional')).toBeTruthy();
+    expect(notice.textContent).toContain('Nu e o obligație legală.');
     expect(notice.textContent).toContain('(IPSSM și IPSU)');
     expect(notice.textContent).not.toMatch(/HG|OMAI|Legea|art\. \d/);
     const supplementary = await screen.findByTestId('training-proposal');
@@ -290,5 +294,61 @@ describe('the earlier own instructions in Alte documente', () => {
       note: null,
       validUntil: '2024-03-01',
     });
+  });
+
+  it('keeps a copy open to the team, saying why the switch is off', async () => {
+    mockClient(
+      () => [],
+      (init, url) =>
+        url.pathname === filesPath && (init?.method ?? 'GET') === 'GET'
+          ? Response.json({ items: [ssm] })
+          : undefined
+    );
+    mount('alte-documente');
+    const user = userEvent.setup();
+    await screen.findByTestId('earlier-instructions-group');
+    await user.click(screen.getByTestId('client-file-actions'));
+    const toggle = await screen.findByTestId('client-file-owners-only-switch');
+    expect(toggle.hasAttribute('data-disabled')).toBe(true);
+    expect(screen.getByTestId('client-file-owners-only-reason').textContent).toBe(
+      'Instrucțiunile anterioare rămân vizibile pentru toată echipa.'
+    );
+  });
+
+  it('has the notice asked again once a copy is deleted', async () => {
+    mockClient(
+      () => [],
+      (init, url) => {
+        if (url.pathname === filesPath && (init?.method ?? 'GET') === 'GET') {
+          return Response.json({ items: [ssm] });
+        }
+        if (url.pathname === `${filesPath}/${ssm.id}` && init?.method === 'DELETE') {
+          return new Response(null, { status: 204 });
+        }
+        return undefined;
+      }
+    );
+    const { queryClient } = mount('alte-documente');
+    const invalidated = vi.spyOn(queryClient, 'invalidateQueries');
+    const user = userEvent.setup();
+    await screen.findByTestId('earlier-instructions-group');
+    await user.click(screen.getByTestId('client-file-actions'));
+    await user.click(await screen.findByTestId('client-file-delete'));
+    await user.click(await screen.findByTestId('client-file-delete-confirm'));
+    await waitFor(() =>
+      expect(invalidated).toHaveBeenCalledWith({
+        queryKey: getGetEarlierInstructionsQueryKey(clientId),
+      })
+    );
+  });
+});
+
+describe('the notice after a training is recorded', () => {
+  it('is read again, since a paper training may bring a domain to ask for', async () => {
+    const queryClient = new QueryClient();
+    const earlierKey = getGetEarlierInstructionsQueryKey(clientId);
+    queryClient.setQueryData(earlierKey, { domains: [] });
+    await invalidateTrainings(queryClient, clientId);
+    expect(queryClient.getQueryState(earlierKey)?.isInvalidated).toBe(true);
   });
 });

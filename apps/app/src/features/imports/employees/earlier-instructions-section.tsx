@@ -20,6 +20,7 @@ import { DeleteClientFileDialog } from '@/features/client-files/client-file-dial
 import {
   type ClientFile,
   clientFileAccept,
+  fileCountLabel,
   formatFileSize,
 } from '@/features/client-files/client-file-format';
 import {
@@ -48,6 +49,17 @@ const longDate = new Intl.DateTimeFormat('ro-RO', {
   year: 'numeric',
   timeZone: 'UTC',
 });
+
+const latestDay = (files: ClientFile[]) =>
+  files
+    .map((file) => file.earlierInstructions?.validUntil ?? '')
+    .sort()
+    .at(-1) ?? '';
+
+const keptLabel = (count: number) =>
+  count === 1
+    ? 'Un fișier încărcat de un coleg își păstrează ziua: doar el sau un admin o schimbă.'
+    : `${fileCountLabel(count).replace(/^./, (first) => first.toUpperCase())} încărcate de colegi își păstrează ziua: doar cine le-a încărcat sau un admin o schimbă.`;
 
 const validityHint =
   '„Valabile până la” e ziua din care se aplică instrucțiunile noi. Propunem ziua de azi.';
@@ -176,13 +188,30 @@ function DomainRow({
   const changeValidUntil = useChangeValidUntil(clientId);
   const fileInput = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
-  const fileDays = domain.files.map((file) => file.earlierInstructions?.validUntil ?? '').sort();
-  const [day, setDay] = useState(() => fileDays.at(-1) || todayIso());
+  const changeable = domain.files.filter((file) => file.canChange);
+  const kept = domain.files.length - changeable.length;
+  const locked = domain.files.length > 0 && changeable.length === 0;
+  const filesDay = latestDay(changeable.length > 0 ? changeable : domain.files);
+  const [day, setDay] = useState(() => filesDay || todayIso());
+  const [seenDay, setSeenDay] = useState(filesDay);
+  if (seenDay !== filesDay) {
+    setSeenDay(filesDay);
+    if (filesDay) setDay(filesDay);
+  }
+  const [dayMissing, setDayMissing] = useState(false);
   const name = instructionsName[domain.domain];
-  const drop = useFileDrop((files) => {
-    if (files.length > 0 && day) onUpload(files, day);
-  });
-  const shownDay = domain.files.length > 0 ? fileDays.at(-1)! : day;
+  const dayId = `earlier-instructions-day-${domain.domain}`;
+
+  function upload(files: File[]) {
+    if (files.length === 0) return;
+    if (!day) {
+      setDayMissing(true);
+      return;
+    }
+    onUpload(files, day);
+  }
+
+  const drop = useFileDrop(upload);
 
   async function answer(unavailable: boolean) {
     onError(null);
@@ -202,10 +231,9 @@ function DomainRow({
 
   async function changeDay(value: string) {
     setDay(value);
-    if (!value || domain.files.length === 0) return;
-    const changed = domain.files.filter(
-      (file) => file.canChange && file.earlierInstructions?.validUntil !== value
-    );
+    if (!value) return;
+    setDayMissing(false);
+    const changed = changeable.filter((file) => file.earlierInstructions?.validUntil !== value);
     if (changed.length === 0) return;
     onError(null);
     try {
@@ -213,7 +241,11 @@ function DomainRow({
         changed.map((file) => file.id),
         value
       );
-      toast.success(`Ziua s-a schimbat la ${name}.`);
+      toast.success(
+        kept > 0
+          ? `Ziua s-a schimbat la ${fileCountLabel(changed.length)} ${name}. ${keptLabel(kept)}`
+          : `Ziua s-a schimbat la ${name}.`
+      );
     } catch {
       onError('Nu am putut schimba ziua. Verifică conexiunea și încearcă din nou.');
     }
@@ -241,26 +273,46 @@ function DomainRow({
       onChange={(event) => {
         const files = Array.from(event.target.files ?? []);
         event.target.value = '';
-        if (files.length > 0 && day) onUpload(files, day);
+        upload(files);
       }}
     />
   );
 
+  const dayNote = locked
+    ? 'Fișierele le-a încărcat un coleg: doar el sau un admin le schimbă ziua.'
+    : kept > 0
+      ? keptLabel(kept)
+      : null;
   const dayField = (
     <div className="grid content-start gap-1.5">
-      <label
-        htmlFor={`earlier-instructions-day-${domain.domain}`}
-        className="text-[13px] leading-none font-medium"
-      >
+      <label htmlFor={dayId} className="text-[13px] leading-none font-medium">
         Valabile până la
       </label>
       <DatePicker
-        id={`earlier-instructions-day-${domain.domain}`}
+        id={dayId}
         testId="earlier-instructions-day"
-        value={shownDay}
+        value={day}
         onChange={(value) => void changeDay(value)}
+        disabled={locked}
+        invalid={dayMissing}
+        describedBy={dayMissing ? `${dayId}-error` : dayNote ? `${dayId}-hint` : undefined}
         required
       />
+      {dayMissing ? (
+        <p id={`${dayId}-error`} role="alert" className="text-[13px] text-destructive">
+          Alege ziua, apoi adaugă fișierul.
+        </p>
+      ) : (
+        dayNote && (
+          <p
+            id={`${dayId}-hint`}
+            data-testid="earlier-instructions-day-note"
+            className="text-[13px] text-muted-foreground"
+          >
+            {dayNote}
+          </p>
+        )
+      )}
     </div>
   );
 
@@ -362,7 +414,7 @@ function DomainRow({
             className="w-fit -ml-2.5"
             data-testid="earlier-instructions-add-more"
             aria-label={`Adaugă încă un fișier la ${name}`}
-            onClick={() => fileInput.current?.click()}
+            onClick={() => (day ? fileInput.current?.click() : setDayMissing(true))}
           >
             <Plus aria-hidden="true" />
             Adaugă încă un fișier
@@ -381,7 +433,7 @@ function DomainRow({
               size="sm"
               data-testid="earlier-instructions-add"
               aria-label={`Adaugă fișierul cu ${name}`}
-              onClick={() => fileInput.current?.click()}
+              onClick={() => (day ? fileInput.current?.click() : setDayMissing(true))}
             >
               <Upload aria-hidden="true" />
               Adaugă fișierul

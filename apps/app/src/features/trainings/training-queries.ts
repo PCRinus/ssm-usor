@@ -4,6 +4,7 @@ import { useRouteContext } from '@tanstack/react-router';
 
 import {
   type EmployeeListResponse,
+  getGetEarlierInstructionsQueryKey,
   getListEmployeesQueryKey,
   getListOrganizationEmployeesQueryKey,
   getListSupplementaryTrainingProposalsQueryKey,
@@ -30,6 +31,7 @@ export function invalidateTrainings(queryClient: QueryClient, clientId: string) 
     queryClient.invalidateQueries({
       queryKey: getListSupplementaryTrainingProposalsQueryKey(clientId),
     }),
+    queryClient.invalidateQueries({ queryKey: getGetEarlierInstructionsQueryKey(clientId) }),
     invalidateSignatures(queryClient, clientId),
   ]);
 }
