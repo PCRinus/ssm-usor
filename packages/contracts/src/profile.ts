@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const currentTermsVersion = '2026-11-01';
+export const currentTermsVersion = '2026-11-14';
 
 export const fullNameSchema = z.string().trim().min(2).max(120);
 

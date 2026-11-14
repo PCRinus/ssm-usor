@@ -349,7 +349,7 @@ describe('POST /invitations/accept', () => {
     token: 'tok',
     fullName: 'Ion Ionescu',
     password: 'Parola123',
-    termsVersion: '2026-11-01',
+    termsVersion: '2026-11-14',
   };
   const accept = (overrides: Partial<typeof body> = {}) =>
     request('/invitations/accept', { ...body, ...overrides }, { signedIn: false });
@@ -370,7 +370,7 @@ describe('POST /invitations/accept', () => {
       invitation_token_hash: await hashToken('tok'),
       accepting_user_id: newUserId,
       new_full_name: 'Ion Ionescu',
-      accepted_terms_version: '2026-11-01',
+      accepted_terms_version: '2026-11-14',
     });
   });
 
@@ -429,7 +429,7 @@ describe('POST /invitations/accept', () => {
 });
 
 describe('POST /invitations/join', () => {
-  const body = { token: 'tok', termsVersion: '2026-11-01' };
+  const body = { token: 'tok', termsVersion: '2026-11-14' };
 
   it('accepts as the signed-in user, without the secret key', async () => {
     mockUpstream();
@@ -443,7 +443,7 @@ describe('POST /invitations/join', () => {
     const [join] = calls('/rest/v1/rpc/accept_organization_invitation');
     expect(join?.body).toEqual({
       invitation_token_hash: await hashToken('tok'),
-      accepted_terms_version: '2026-11-01',
+      accepted_terms_version: '2026-11-14',
     });
     expect(join?.headers.get('Authorization')).toBe('Bearer user-token');
   });
