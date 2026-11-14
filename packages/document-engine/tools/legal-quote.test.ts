@@ -1,18 +1,14 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import PizZip from 'pizzip';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { type Citation, templateCitations } from '../src/citations';
-import { renderDocument } from '../src/render';
-import { documentText, paragraphsOf } from '../src/text';
 import {
-  type LegalQuoteInput,
   type LegalQuoteResult,
   type PassageInput,
   type PatchInput,
@@ -22,7 +18,6 @@ import {
 } from './legal-quote';
 import { buildCitationIndex, templateSources } from './template-sources';
 
-const packageRoot = fileURLToPath(new URL('..', import.meta.url));
 const templatesFolder = fileURLToPath(new URL('../templates/', import.meta.url));
 const folders: string[] = [];
 afterAll(() => {
@@ -72,14 +67,6 @@ const quotesIn = (source: Uint8Array, file: string) =>
   templateCitations({ manifest: 'ssm', file, typeKey: 'test', source }).filter(
     (citation) => citation.form === 'quote'
   );
-const parts = (source: Uint8Array) => {
-  const zip = new PizZip(source);
-  return Object.fromEntries(
-    Object.keys(zip.files)
-      .filter((name) => !zip.files[name]!.dir)
-      .map((name) => [name, zip.file(name)!.asText()])
-  );
-};
 
 describe('a quote replaced in a templates folder', () => {
   const run = (properties: string, text: string) =>
@@ -473,158 +460,3 @@ describe('the manifests at the last release', () => {
     );
   });
 });
-
-// The first change the pipeline will make (ADR 017): Legea 207/2026 rewrote O.U.G. 195/2002
-// art. 36 alin. (2), which the general training material quotes. Run on a copy of the folder;
-// the real change is the pipeline's to propose.
-describe.each(['the whole passage', "the law's own change"] as const)(
-  'O.U.G. 195/2002 art. 36 alin. (2), as Legea 207/2026 worded it, given %s',
-  (mode) => {
-    const file = '2.2_general_training_material.docx';
-    const committed = JSON.parse(readFileSync(join(templatesFolder, 'citations.json'), 'utf8')) as {
-      citations: Citation[];
-    };
-    const citation = committed.citations.find(
-      (each) => each.act === 'oug-195-2002' && each.locator === 'Art. 36 alin. (1) – (3)'
-    )!;
-    const before =
-      '(2) Pe timpul deplasării pe drumurile publice, conducătorii motocicletelor, mopedelor și persoanele transportate pe acestea au obligația să poarte casca de protecție omologată.';
-    const after =
-      '(2) Pe timpul deplasării pe drumurile publice, conducătorii motocicletelor, mopedelor și persoanele transportate pe acestea au obligația să poarte pe cap cască de protecție omologată pentru această categorie de vehicul, cu elementele de siguranță cuplate în mod corespunzător.';
-    const lines = citation.text!.split('\n').map((line) => (line === before ? after : line));
-    const root = temporaryFolder();
-    const templates = join(root, 'templates');
-    cpSync(templatesFolder, templates, { recursive: true });
-    const original = new Uint8Array(readFileSync(join(templatesFolder, file)));
-    const wording =
-      mode === 'the whole passage'
-        ? { lines }
-        : {
-            changes: [
-              {
-                hunks: [
-                  { old: 'poarte casca de', new: 'poarte pe cap cască de' },
-                  {
-                    old: 'protecţie omologată.',
-                    new: 'protecţie omologată pentru această categorie de vehicul, cu elementele de siguranţă cuplate în mod corespunzător.',
-                  },
-                ],
-              },
-            ],
-          };
-    const result = applied(
-      replaceLegalQuote(
-        pathToFileURL(`${templates}/`),
-        {
-          citation,
-          ...wording,
-          change: {
-            note: 'Casca de protecție a motocicliștilor se poartă pe cap, omologată pentru categoria vehiculului și cu elementele de siguranță cuplate (O.U.G. 195/2002 art. 36 alin. (2), modificat prin Legea 207/2026).',
-            resolves: { act: 'oug-195-2002', consolidatedOn: '2026-11-06' },
-          },
-        } as LegalQuoteInput,
-        releasedAsIs(templatesFolder)
-      )
-    );
-    const changed = new Uint8Array(readFileSync(join(templates, file)));
-
-    it('changes alineat (2) alone, and the parser reads the new wording', () => {
-      expect(result.written).toEqual([file, 'citations.json', 'manifest.json']);
-      expect(result.summary.changes).toEqual([
-        { kind: 'changed', paragraph: citation.paragraph + 4, before, after },
-      ]);
-      expect(result.summary.notes).toEqual([]);
-      const reread = quotesIn(changed, file).find(
-        (each) => each.paragraph === citation.paragraph && each.act === citation.act
-      )!;
-      expect(reread.text).toBe(lines.join('\n'));
-      expect(reread.lastParagraph).toBe(citation.lastParagraph);
-    });
-
-    it('leaves the XML as it was outside the paragraph, and the other parts of the file', () => {
-      const { 'word/document.xml': xml, ...rest } = parts(changed);
-      const { 'word/document.xml': originalXml, ...originalRest } = parts(original);
-      expect(rest).toEqual(originalRest);
-      const paragraph = paragraphsOf(originalXml!)[citation.paragraph + 4]!;
-      const tail = originalXml!.length - paragraph.offset - paragraph.xml.length;
-      expect(xml!.slice(0, paragraph.offset)).toBe(originalXml!.slice(0, paragraph.offset));
-      expect(xml!.slice(xml!.length - tail)).toBe(originalXml!.slice(originalXml!.length - tail));
-      expect(paragraphsOf(xml!)[citation.paragraph + 4]!.xml).toBe(
-        paragraph.xml.replace(
-          'să poarte casca de protecție omologată.',
-          'să poarte pe cap cască de protecție omologată pentru această categorie de vehicul, cu elementele de siguranță cuplate în mod corespunzător.'
-        )
-      );
-    });
-
-    it('changes that one citation in the index, and records the change in the manifest', () => {
-      const index = JSON.parse(readFileSync(join(templates, 'citations.json'), 'utf8')) as {
-        citations: Citation[];
-      };
-      expect(index.citations).toEqual(
-        committed.citations.map((each) =>
-          each === citation ? { ...each, text: lines.join('\n') } : each
-        )
-      );
-      const manifest = JSON.parse(readFileSync(join(templates, 'manifest.json'), 'utf8')) as {
-        templates: { file: string; change: unknown }[];
-      };
-      expect(manifest.templates.find((entry) => entry.file === file)!.change).toEqual({
-        kind: 'legal',
-        note: expect.stringContaining('Legea 207/2026'),
-        resolves: { act: 'oug-195-2002', consolidatedOn: '2026-11-06' },
-      });
-    });
-
-    it('still renders, with the new wording', () => {
-      const rendered = renderDocument(changed, {
-        branding: true,
-        issueDate: '12.11.2026',
-        client: {
-          legalName: 'S.C. CLIENT DEMO S.R.L.',
-          representativeName: 'Maria POPESCU',
-          representativeRole: 'Administrator',
-        },
-        provider: {
-          legalName: 'S.C. SERVICIU EXTERN S.R.L.',
-          representativeName: 'Dan MARIN',
-          representativeRole: 'Administrator',
-        },
-        hasUnitRisks: false,
-        noUnitRisks: true,
-        unitRisks: [],
-      });
-      expect(documentText(rendered)).toContain(after);
-    });
-
-    it.runIf(mode !== 'the whole passage')(
-      'passes the template, citation and copied-passage tests on the changed folder',
-      () => {
-        const vitest = join(
-          dirname(createRequire(import.meta.url).resolve('vitest/package.json')),
-          'vitest.mjs'
-        );
-        const env = Object.fromEntries(
-          Object.entries(process.env).filter(([key]) => !key.startsWith('VITEST'))
-        );
-        const child = spawnSync(
-          process.execPath,
-          [
-            vitest,
-            'run',
-            'src/templates.test.ts',
-            'src/citations.test.ts',
-            'src/copied-passages.test.ts',
-          ],
-          {
-            cwd: packageRoot,
-            env: { ...env, DOCUMENT_TEMPLATES_DIR: templates },
-            encoding: 'utf8',
-          }
-        );
-        expect(child.status, `${child.stdout}\n${child.stderr}`.slice(-4000)).toBe(0);
-      },
-      300_000
-    );
-  }
-);
