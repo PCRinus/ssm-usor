@@ -21154,7 +21154,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-11-01"]
+            "enum": ["2026-11-14"]
           },
           "acceptsSpecialClauses": {
             "type": "boolean",
@@ -22760,7 +22760,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-11-01"]
+            "enum": ["2026-11-14"]
           }
         },
         "required": ["token", "fullName", "password", "termsVersion"]
@@ -22780,7 +22780,7 @@
           },
           "termsVersion": {
             "type": "string",
-            "enum": ["2026-11-01"]
+            "enum": ["2026-11-14"]
           }
         },
         "required": ["token", "termsVersion"]
