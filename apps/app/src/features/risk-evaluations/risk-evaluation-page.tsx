@@ -28,7 +28,9 @@ import {
   useRemoveRiskEvaluation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -304,13 +306,14 @@ function RiskEvaluationView({
           )
         }
       />
-      <RiskResultCard id={sections.result} evaluation={evaluation} view={view} />
+      <RiskResultCard id={sections.result} evaluation={evaluation} view={view} headingLevel={2} />
       <WorkSystemCard
         id={sections.workSystem}
         workSystem={evaluation}
         store={workSystemStore}
         position={position}
         readOnly={readOnly}
+        headingLevel={2}
       />
       <RiskFactorsCard
         id={sections.factors}
@@ -331,6 +334,7 @@ function RiskEvaluationView({
         removalConsequence="nu vor mai apărea în fișă și în planul de prevenire."
         editorContext={evaluationTitle(evaluation)}
         clientId={evaluation.clientId}
+        headingLevel={2}
       />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <RemoveEvaluationDialog
@@ -394,6 +398,7 @@ function RemoveEvaluationDialog({
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
+  const returnToOpener = useReturnToOpener();
   const cache = useEvaluationCache(evaluation.clientId);
   const remove = useRemoveRiskEvaluation({ request: apiRequest });
   const [error, setError] = useState<string | null>(null);
@@ -415,7 +420,8 @@ function RemoveEvaluationDialog({
       }
     }
     toast.success('Fișa de evaluare a fost ștearsă.');
-    await navigate(afterRemove);
+    // The sheet is gone, so its entry is replaced rather than left for the browser's back.
+    if (!returnToOpener()) await navigate({ ...afterRemove, replace: true, state: keepOpener });
     await cache.removed(evaluation);
   }
 

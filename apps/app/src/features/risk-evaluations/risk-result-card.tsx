@@ -39,16 +39,19 @@ export function RiskResultCard({
   id,
   evaluation,
   view,
+  headingLevel = 3,
 }: {
   id: string;
   evaluation: Pick<RiskEvaluation, 'factors' | 'globalRiskLevel'>;
   view: FactorListView;
+  headingLevel?: 2 | 3;
 }) {
   const { factors, globalRiskLevel } = evaluation;
+  const Subheading = headingLevel === 2 ? 'h3' : 'h4';
   return (
     <SectionCard
       id={id}
-      headingLevel={3}
+      headingLevel={headingLevel}
       data-testid="risk-result-card"
       title="Rezultatul evaluării"
     >
@@ -60,13 +63,13 @@ export function RiskResultCard({
             data-testid="risk-result-placeholder"
             className="pointer-events-none opacity-75 blur-[3px] grayscale select-none"
           >
-            <ResultLayout result={null} view={view} />
+            <ResultLayout result={null} view={view} Subheading={Subheading} />
           </div>
           <div
             data-testid="risk-result-empty"
             className="absolute inset-0 grid content-center justify-items-center bg-[radial-gradient(closest-side,var(--card)_40%,transparent_80%)] px-5 text-center"
           >
-            <h4 className="text-base font-medium">Niciun rezultat încă</h4>
+            <Subheading className="text-base font-medium">Niciun rezultat încă</Subheading>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
               Nivelul de risc global, ponderea pe componente și grila apar după primul factor de
               risc.
@@ -74,7 +77,7 @@ export function RiskResultCard({
           </div>
         </div>
       ) : (
-        <ResultLayout result={{ factors, globalRiskLevel }} view={view} />
+        <ResultLayout result={{ factors, globalRiskLevel }} view={view} Subheading={Subheading} />
       )}
     </SectionCard>
   );
@@ -85,9 +88,11 @@ export function RiskResultCard({
 function ResultLayout({
   result,
   view,
+  Subheading,
 }: {
   result: { factors: RiskEvaluation['factors']; globalRiskLevel: number } | null;
   view: FactorListView;
+  Subheading: 'h3' | 'h4';
 }) {
   const factors = result?.factors ?? [];
   const unacceptable = factors.filter((factor) => isUnacceptableRiskLevel(factor.riskLevel));
@@ -98,7 +103,7 @@ function ResultLayout({
     <div className="@container">
       <div className="grid items-start gap-x-14 gap-y-6 @xl:grid-cols-[minmax(0,1fr)_auto]">
         <div className="grid min-w-0 content-start">
-          <h4 className="text-sm font-medium">Nivel de risc global</h4>
+          <Subheading className="text-sm font-medium">Nivel de risc global</Subheading>
           <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
             {result ? (
               <>
@@ -140,7 +145,9 @@ function ResultLayout({
               'Niciun factor de risc încă.'
             )}
           </p>
-          <h4 className="mt-6 text-sm font-medium">Ponderea factorilor pe componente</h4>
+          <Subheading className="mt-6 text-sm font-medium">
+            Ponderea factorilor pe componente
+          </Subheading>
           <div
             aria-hidden="true"
             className="mt-2.5 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
@@ -173,7 +180,12 @@ function ResultLayout({
             ))}
           </ul>
         </div>
-        <RiskMatrix factors={factors} view={view} tinted={result !== null} />
+        <RiskMatrix
+          factors={factors}
+          view={view}
+          tinted={result !== null}
+          Subheading={Subheading}
+        />
       </div>
     </div>
   );
@@ -183,21 +195,23 @@ function RiskMatrix({
   factors,
   view,
   tinted,
+  Subheading,
 }: {
   factors: RiskEvaluation['factors'];
   view: FactorListView;
   tinted: boolean;
+  Subheading: 'h3' | 'h4';
 }) {
   const headingId = useId();
   return (
     <div className="grid content-start justify-items-start">
-      <h4
+      <Subheading
         id={headingId}
         title="Alege o celulă ca să vezi doar factorii ei."
         className="text-sm font-medium"
       >
         Factorii pe grila metodei
-      </h4>
+      </Subheading>
       <div
         role="group"
         aria-labelledby={headingId}

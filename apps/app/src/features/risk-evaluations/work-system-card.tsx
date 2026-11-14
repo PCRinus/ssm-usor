@@ -47,12 +47,14 @@ export function WorkSystemCard({
   store,
   position,
   readOnly,
+  headingLevel = 3,
 }: {
   id: string;
   workSystem: WorkSystem;
   store: WorkSystemStore;
   position?: JobPosition;
   readOnly: boolean;
+  headingLevel?: 2 | 3;
 }) {
   const { editing, editRef, open, close } = useInPlaceEdit();
   const clientLevel = isClientLevel(workSystem.kind);
@@ -60,7 +62,7 @@ export function WorkSystemCard({
   return (
     <SectionCard
       id={id}
-      headingLevel={3}
+      headingLevel={headingLevel}
       data-testid="work-system-card"
       title="Sistemul de muncă"
       description={descriptions[workSystem.kind]}

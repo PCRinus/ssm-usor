@@ -1,3 +1,4 @@
+import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import type { ReactNode } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
@@ -58,6 +59,18 @@ export function HeaderFact({ label, children }: { label: string; children: React
     <div className="flex min-w-0 gap-1.5">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
       <dd className="truncate">{children}</dd>
+    </div>
+  );
+}
+
+export function RecordHeaderPending({ back }: { back: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-start gap-3">
+      <div className="flex h-7 shrink-0 items-center">{back}</div>
+      <div className="grid min-w-0 flex-1 gap-1.5">
+        <Skeleton className="h-7 w-72 max-w-full" />
+        <Skeleton className="h-4 w-48 max-w-full" />
+      </div>
     </div>
   );
 }

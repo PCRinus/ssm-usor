@@ -451,6 +451,21 @@ describe('the way back from an evaluation', () => {
     expect(runtime.router.history.location.state.__TSR_index).toBe(listIndex);
   });
 
+  it('goes back to the position a deleted sheet was opened from', async () => {
+    mockApi();
+    const runtime = mount(welderPage);
+    const user = userEvent.setup();
+    const positionIndex = runtime.router.history.location.state.__TSR_index;
+    const card = await screen.findByTestId('position-risk-card');
+    await user.click(await within(card).findByTestId('position-risk-open'));
+    await user.click(await screen.findByTestId('risk-evaluation-remove'));
+    await user.click(await screen.findByTestId('risk-evaluation-remove-confirm'));
+
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe(welderPage));
+    expect(runtime.router.history.location.state.__TSR_index).toBe(positionIndex);
+    expect((await screen.findByTestId('position-risk-state')).textContent).toBe('Neevaluat');
+  });
+
   it("returns from a client's sheet to the positions it was opened from", async () => {
     mockApi();
     const runtime = mount(positionsPage);
@@ -480,6 +495,17 @@ describe("a position's risk evaluation page", () => {
       screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare · Sudor' })
     ).toBeTruthy();
     expect(screen.getAllByTestId('page-back')).toHaveLength(1);
+    expect(
+      screen
+        .getAllByRole('heading', { level: 2 })
+        .map((heading) => heading.textContent?.trim())
+        .slice(0, 3)
+    ).toEqual([
+      'Rezultatul evaluării',
+      expect.stringMatching(/^Sistemul de muncă/),
+      expect.stringMatching(/^Factori de risc/),
+    ]);
+    expect(screen.getByRole('heading', { level: 3, name: 'Nivel de risc global' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Înapoi la post' }).getAttribute('href')).toBe(
       welderPage
     );
@@ -1321,6 +1347,7 @@ describe('a page still loading or failing to load', () => {
       `${positionsPage}/fise-de-evaluare/${visitors.id}`,
       positionsPage,
     ],
+    ["a position's sheet, before its position", positionsPath, welderEvaluationPage, welderPage],
   ])('shows the way back while %s loads', async (_, slowPath, path, parent) => {
     mockApi();
     const answer = fetchMock.getMockImplementation()!;

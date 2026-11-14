@@ -587,6 +587,21 @@ describe('the risk library', () => {
 });
 
 describe('a profile page', () => {
+  it('shows the way back to the library while it loads', async () => {
+    mockApi();
+    const ownLibrary = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((input, init) =>
+      new URL(String(input)).pathname === `/evaluation-profiles/${office.id}`
+        ? new Promise<Response>(() => {})
+        : ownLibrary(input, init)
+    );
+    mount(`/evaluari-de-risc/${office.id}`);
+    const back = await screen.findByTestId('page-back', {}, { timeout: 3000 });
+    expect(back.getAttribute('href')).toBe('/evaluari-de-risc');
+    expect(screen.getAllByTestId('page-back')).toHaveLength(1);
+    expect(screen.queryByTestId('route-error-page')).toBeNull();
+  });
+
   it('shows the result and the factors with the evaluation page’s own card', async () => {
     mockApi();
     mount(`/evaluari-de-risc/${office.id}`);

@@ -613,7 +613,6 @@ test("from 10 employees the set includes the decision on the workers' representa
   await page.getByTestId('fire-instructions-pick-save').click();
   await expect(page.getByTestId('fire-instructions-state')).toHaveText('1 instrucțiune');
   await expect(page.getByTestId('instructions-state')).toHaveText('1 instrucțiune');
-  // The post was opened from the documents, so its arrow goes back there.
   await page.getByTestId('job-position-page').getByTestId('page-back').click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-ssm`));
   await page.getByTestId('client-section').filter({ hasText: 'Posturi de lucru' }).click();

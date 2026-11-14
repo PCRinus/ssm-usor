@@ -71,6 +71,7 @@ export function RiskFactorsCard({
   removalConsequence,
   editorContext,
   clientId,
+  headingLevel = 3,
 }: {
   id: string;
   factors: RiskFactor[];
@@ -86,6 +87,7 @@ export function RiskFactorsCard({
   removalConsequence: string;
   editorContext?: string;
   clientId?: string;
+  headingLevel?: 2 | 3;
 }) {
   const [editing, setEditing] = useState<FactorEditing>(null);
   const [removing, setRemoving] = useState<RiskFactor | null>(null);
@@ -114,7 +116,7 @@ export function RiskFactorsCard({
   return (
     <SectionCard
       id={id}
-      headingLevel={3}
+      headingLevel={headingLevel}
       data-testid="risk-factors-card"
       className={cn(factors.length > 0 && 'overflow-hidden pb-0')}
       description={description}
