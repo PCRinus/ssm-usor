@@ -221,7 +221,7 @@ export const listSupplementaryTrainingProposalsRoute = createRoute({
   operationId: 'listSupplementaryTrainingProposals',
   summary: "List the supplementary trainings proposed by issuing a client's own instructions",
   description:
-    'An issue of the own instructions, the occupational safety ones (IPSSM) or the fire-safety ones (IPSU), proposes a supplementary training when the client then had a current worker with a training recorded in that domain (ADR 042). Listed while it is open: its revision is the one in force, nobody closed it, and a post with current workers has had no supplementary training with the reason `rules_changed` in the domain recorded since the issue. Each lists every post with current workers, most workers first, with the day such a training was recorded for it, null while none was; occupational safety first. `firstIssue` is set when no earlier revision of the document was issued.',
+    'An issue of the own instructions, the occupational safety ones (IPSSM) or the fire-safety ones (IPSU), proposes a supplementary training when the client then had a current worker with a training recorded in that domain (ADR 042). Listed while it is open: its revision is the one in force, nobody closed it, and a post with current workers has had no supplementary training with the reason `rules_changed` in the domain recorded since the issue and held on its day or later. Each lists every post with current workers, most workers first, with the day such a training was recorded for it, null while none was; occupational safety first. `firstIssue` is set when no earlier revision of the document was issued.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams },
@@ -248,7 +248,7 @@ export const dismissSupplementaryTrainingProposalRoute = createRoute({
   operationId: 'dismissSupplementaryTrainingProposal',
   summary: 'Close a proposed supplementary training: no training is needed',
   description:
-    'For a revision that changed nothing important. Records who closed it and when; nothing is recorded as a training.',
+    'For a revision that changed nothing important. Only an open proposal closes, as the list gives it; the database records who closed it, the caller, and when. Nothing is recorded as a training.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: proposalParams },
@@ -256,7 +256,8 @@ export const dismissSupplementaryTrainingProposalRoute = createRoute({
     204: { description: 'Closed' },
     400: { description: 'Invalid path', content: errorContent },
     404: {
-      description: 'The client has no open proposal of that revision',
+      description:
+        'The client has no open proposal of that revision: closed, of a superseded revision, or with every post trained',
       content: errorContent,
     },
     409: {

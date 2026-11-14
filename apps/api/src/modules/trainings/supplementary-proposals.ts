@@ -24,6 +24,7 @@ type Post = { id: string; name: string; workerCount: number };
 
 type RecordedTraining = {
   domain: TrainingDomain;
+  heldOn: string;
   createdAt: string;
   positionIds: Set<string>;
 };
@@ -88,12 +89,13 @@ async function recordedSince(
       db
         .from('trainings')
         .select(
-          'domain, created_at, training_records(employees(job_position_id, status, archived_at))'
+          'domain, held_on, created_at, training_records(employees(job_position_id, status, archived_at))'
         )
         .eq('client_id', clientId)
         .eq('phase', 'supplementary')
         .eq('supplementary_reason', 'rules_changed')
         .gte('created_at', since)
+        .gte('held_on', romanianDay(since))
         .order('created_at')
         .order('id')
         .range(from, to),
@@ -101,6 +103,7 @@ async function recordedSince(
   );
   return rows.map((row) => ({
     domain: row.domain,
+    heldOn: row.held_on,
     createdAt: row.created_at,
     positionIds: new Set(
       row.training_records.flatMap(({ employees: employee }) =>
@@ -134,9 +137,14 @@ export async function listSupplementaryTrainingProposals(
   return proposals
     .map((proposal) => {
       const issuedAt = Date.parse(proposal.issuedAt);
+      const issuedOn = romanianDay(proposal.issuedAt);
+      // Held on the day of the issue or later too: a paper training transcribed after the issue
+      // was not taught from these instructions.
       const recorded = trainings.filter(
         (training) =>
-          training.domain === proposal.domain && Date.parse(training.createdAt) >= issuedAt
+          training.domain === proposal.domain &&
+          Date.parse(training.createdAt) >= issuedAt &&
+          training.heldOn >= issuedOn
       );
       const proposalPosts: SupplementaryTrainingProposalPost[] = posts.map((post) => {
         const first = recorded.find((training) => training.positionIds.has(post.id));
@@ -162,16 +170,20 @@ export async function listSupplementaryTrainingProposals(
     .sort((a, b) => domainOrder[a.domain] - domainOrder[b.domain]);
 }
 
-/** False when the client has no open proposal of that revision. */
+/**
+ * False when the client has no open proposal of that revision: one closed, of a superseded
+ * revision, or whose every post has had its training. The database names who closed it.
+ */
 export async function dismissSupplementaryTrainingProposal(
   db: DataClient,
   clientId: string,
-  revisionId: string,
-  userId: string
+  revisionId: string
 ) {
+  const open = await listSupplementaryTrainingProposals(db, clientId);
+  if (!open.some((proposal) => proposal.revisionId === revisionId)) return false;
   const { data, error } = await db
     .from('supplementary_training_proposals')
-    .update({ dismissed_at: new Date().toISOString(), dismissed_by: userId })
+    .update({ dismissed_at: new Date().toISOString() })
     .eq('client_id', clientId)
     .eq('revision_id', revisionId)
     .is('dismissed_at', null)

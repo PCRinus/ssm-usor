@@ -86,6 +86,32 @@ create trigger supplementary_training_proposals_protect_archived_client
   before insert or update or delete on public.supplementary_training_proposals
   for each row execute function public.protect_rows_of_archived_client();
 
+-- A member closes a proposal as themself, once: who closed it is never taken from the request,
+-- and a closed proposal is not reopened. The secret key, SQL and the cascade of an account's
+-- deletion, a nested trigger, pass.
+create function public.close_supplementary_training_proposal()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if (select auth.uid()) is null or pg_trigger_depth() > 1 then
+    return new;
+  end if;
+  if old.dismissed_at is not null then
+    raise exception 'A closed proposal stays closed.' using errcode = '42501';
+  end if;
+  new.dismissed_by := case when new.dismissed_at is null then null else (select auth.uid()) end;
+  return new;
+end;
+$$;
+
+revoke all on function public.close_supplementary_training_proposal() from public, anon, authenticated;
+
+create trigger supplementary_training_proposals_close
+  before update on public.supplementary_training_proposals
+  for each row execute function public.close_supplementary_training_proposal();
+
 alter table public.supplementary_training_proposals enable row level security;
 revoke all on table public.supplementary_training_proposals from anon;
 

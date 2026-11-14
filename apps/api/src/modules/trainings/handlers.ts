@@ -510,7 +510,6 @@ export const listSupplementaryTrainingProposals: RouteHandler<
   return c.json({ items: await listProposals(db, clientId) }, 200);
 };
 
-// During an impersonation this records the platform admin, as `created_by` does.
 export const dismissSupplementaryTrainingProposal: RouteHandler<
   typeof dismissSupplementaryTrainingProposalRoute,
   ApiEnv
@@ -518,7 +517,7 @@ export const dismissSupplementaryTrainingProposal: RouteHandler<
   const { clientId, revisionId } = c.req.valid('param');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  if (!(await dismissProposal(db, clientId, revisionId, c.get('user').id))) {
+  if (!(await dismissProposal(db, clientId, revisionId))) {
     throw new ApiError('not_found', 'This client has no open proposal of that revision.');
   }
   return c.body(null, 204);

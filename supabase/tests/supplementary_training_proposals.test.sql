@@ -1,10 +1,11 @@
 begin;
-select plan(14);
+select plan(20);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
   ('bbbbbbbb-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'specialist@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
-  ('bbbbbbbb-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'other@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
+  ('bbbbbbbb-0000-4000-8000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'other@test', 'x', now(), '{"provider":"email"}', '{}', now(), now()),
+  ('bbbbbbbb-0000-4000-8000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'colleague@test', 'x', now(), '{"provider":"email"}', '{}', now(), now());
 
 insert into public.organizations (id, name) values
   ('11111111-0000-4000-8000-000000000001', 'Org A'),
@@ -12,7 +13,8 @@ insert into public.organizations (id, name) values
 
 insert into public.organization_members (user_id, organization_id, role) values
   ('bbbbbbbb-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'specialist'),
-  ('bbbbbbbb-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000002', 'owner');
+  ('bbbbbbbb-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000002', 'owner'),
+  ('bbbbbbbb-0000-4000-8000-000000000003', '11111111-0000-4000-8000-000000000001', 'specialist');
 
 insert into public.clients (id, organization_id, legal_name, cui, stage) values
   ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'Termoconstruct Vest SRL', '1590082', 'client');
@@ -115,20 +117,63 @@ select throws_ok(
   'nor changes its domain'
 );
 
-select results_eq(
-  $$ update public.supplementary_training_proposals
-     set dismissed_at = now(), dismissed_by = 'bbbbbbbb-0000-4000-8000-000000000001'
-     where revision_id = 'e0000000-0000-4000-8000-000000000001'
-     returning dismissed_by $$,
-  $$ values ('bbbbbbbb-0000-4000-8000-000000000001'::uuid) $$,
-  'the specialist closes it: no training is needed'
-);
-
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
 
 select is_empty(
+  $$ update public.supplementary_training_proposals set dismissed_at = now() returning revision_id $$,
+  'another organization''s member closes nothing'
+);
+
+select is_empty(
   $$ select 1 from public.supplementary_training_proposals $$,
-  'another organization does not see it'
+  'nor sees it'
+);
+
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ update public.supplementary_training_proposals
+     set dismissed_at = now(), dismissed_by = 'bbbbbbbb-0000-4000-8000-000000000003'
+     where revision_id = 'e0000000-0000-4000-8000-000000000001'
+     returning dismissed_by $$,
+  $$ values ('bbbbbbbb-0000-4000-8000-000000000001'::uuid) $$,
+  'the specialist closes it as themself, whoever the request names'
+);
+
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000003');
+
+select throws_ok(
+  $$ update public.supplementary_training_proposals set dismissed_at = null, dismissed_by = null
+     where revision_id = 'e0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'a colleague does not reopen it'
+);
+
+select throws_ok(
+  $$ update public.supplementary_training_proposals set dismissed_at = now()
+     where revision_id = 'e0000000-0000-4000-8000-000000000001' $$,
+  '42501',
+  null,
+  'nor closes it again in their own name'
+);
+
+select pg_temp.act_as_postgres();
+insert into public.document_revisions (id, organization_id, document_id, revision, docx_path) values
+  ('e0000000-0000-4000-8000-000000000004', '11111111-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001', 2,
+   '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000001/d0000000-0000-4000-8000-000000000001/2.docx');
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
+
+select lives_ok(
+  $$ select public.issue_document_revision('e0000000-0000-4000-8000-000000000004', repeat('b', 64)) $$,
+  'the own instructions are issued again'
+);
+
+select results_eq(
+  $$ select revision_id, dismissed_at is null from public.supplementary_training_proposals
+     where document_id = 'd0000000-0000-4000-8000-000000000001' order by issued_at $$,
+  $$ values ('e0000000-0000-4000-8000-000000000001'::uuid, false), ('e0000000-0000-4000-8000-000000000004'::uuid, true) $$,
+  'which proposes anew beside the closed proposal of the revision it superseded, and nothing for the supersession'
 );
 
 select pg_temp.act_as_postgres();
@@ -136,7 +181,8 @@ update public.clients set archived_at = now() where id = 'cccccccc-0000-4000-800
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
 
 select throws_ok(
-  $$ update public.supplementary_training_proposals set dismissed_at = null, dismissed_by = null $$,
+  $$ update public.supplementary_training_proposals set dismissed_at = now()
+     where revision_id = 'e0000000-0000-4000-8000-000000000004' $$,
   'CLA01',
   null,
   'an archived client''s proposal stays as it is'
@@ -145,17 +191,25 @@ select throws_ok(
 select pg_temp.act_as_postgres();
 
 select throws_ok(
-  $$ update public.supplementary_training_proposals set dismissed_at = null $$,
+  $$ update public.supplementary_training_proposals set dismissed_at = null
+     where revision_id = 'e0000000-0000-4000-8000-000000000001' $$,
   '23514',
   null,
   'who closed it is kept only with when'
 );
 
-delete from public.document_revisions where id = 'e0000000-0000-4000-8000-000000000001';
+set local role service_role;
+
+select lives_ok(
+  $$ select * from public.delete_archived_client('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001') $$,
+  'deleting the archived client'
+);
+
+reset role;
 
 select is_empty(
   $$ select 1 from public.supplementary_training_proposals $$,
-  'the proposal goes with its revision'
+  'takes its proposals along'
 );
 
 select * from finish();

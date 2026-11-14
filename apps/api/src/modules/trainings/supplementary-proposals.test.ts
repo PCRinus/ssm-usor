@@ -182,11 +182,13 @@ describe('GET /clients/{clientId}/supplementary-training-proposals', () => {
         Response.json([
           {
             domain: 'ssm',
+            held_on: '2026-11-12',
             created_at: '2026-11-12T09:00:00+00:00',
             training_records: [worker(mason), worker(fixer, 'terminated')],
           },
           {
             domain: 'su',
+            held_on: '2026-11-13',
             created_at: '2026-11-12T22:30:00+00:00',
             training_records: [worker(siteManager)],
           },
@@ -203,6 +205,27 @@ describe('GET /clients/{clientId}/supplementary-training-proposals', () => {
     ]);
   });
 
+  it('does not count a training transcribed after the issue but held before it', async () => {
+    mockUpstream({
+      proposals: () => Response.json([proposalRows[1]]),
+      trainings: () =>
+        Response.json([
+          {
+            domain: 'ssm',
+            held_on: '2023-04-18',
+            created_at: '2026-11-13T09:00:00+00:00',
+            training_records: [worker(mason)],
+          },
+        ]),
+    });
+    const { items } = supplementaryTrainingProposalListResponseSchema.parse(
+      await (await request(proposalsPath)).json()
+    );
+    expect(items[0]!.posts.map((post) => post.recordedOn)).toEqual([null, null, null]);
+    const trainings = new URL(String(calls('/rest/v1/trainings')[0]![0])).searchParams;
+    expect(trainings.get('held_on')).toBe('gte.2026-11-12');
+  });
+
   it('leaves out a proposal once every post has had the training', async () => {
     mockUpstream({
       proposals: () => Response.json([proposalRows[1]]),
@@ -210,6 +233,7 @@ describe('GET /clients/{clientId}/supplementary-training-proposals', () => {
         Response.json([
           {
             domain: 'ssm',
+            held_on: '2026-11-13',
             created_at: '2026-11-13T09:00:00+00:00',
             training_records: [worker(mason), worker(fixer), worker(siteManager)],
           },
@@ -235,33 +259,69 @@ describe('GET /clients/{clientId}/supplementary-training-proposals', () => {
 
 describe('POST /clients/{clientId}/supplementary-training-proposals/{revisionId}/dismiss', () => {
   const dismissPath = `${proposalsPath}/${ssmRevisionId}/dismiss`;
+  const patches = () =>
+    calls('/rest/v1/supplementary_training_proposals').filter(
+      ([, init]) => init?.method === 'PATCH'
+    );
+  const proposalsThen = (patched: () => Response) => (init?: RequestInit) =>
+    init?.method === 'PATCH' ? patched() : Response.json(proposalRows);
 
-  it('closes the open proposal of the revision, recording who did', async () => {
-    mockUpstream({ proposals: () => Response.json([{ revision_id: ssmRevisionId }]) });
+  it('closes the open proposal of the revision, leaving who closed it to the database', async () => {
+    mockUpstream({
+      proposals: proposalsThen(() => Response.json([{ revision_id: ssmRevisionId }])),
+    });
     const response = await request(dismissPath, { method: 'POST' });
     expect(response.status).toBe(204);
-    const [input, init] = calls('/rest/v1/supplementary_training_proposals')[0]!;
+    const [input, init] = patches()[0]!;
     const search = new URL(String(input)).searchParams;
-    expect(init?.method).toBe('PATCH');
     expect(search.get('client_id')).toBe(`eq.${clientId}`);
     expect(search.get('revision_id')).toBe(`eq.${ssmRevisionId}`);
     expect(search.get('dismissed_at')).toBe('is.null');
-    expect(JSON.parse(String(init?.body))).toMatchObject({ dismissed_by: user.id });
+    expect(Object.keys(JSON.parse(String(init?.body)))).toEqual(['dismissed_at']);
   });
 
-  it('answers 404 when nothing open was closed', async () => {
-    mockUpstream({ proposals: () => Response.json([]) });
+  it('answers 404 without writing for a proposal of a superseded revision', async () => {
+    mockUpstream({ proposals: proposalsThen(() => Response.json([])) });
+    const response = await request(
+      `${proposalsPath}/d1d1d1d1-0000-4000-8000-000000000009/dismiss`,
+      { method: 'POST' }
+    );
+    expect(response.status).toBe(404);
+    expect(patches()).toHaveLength(0);
+  });
+
+  it('answers 404 without writing once every post has had its training', async () => {
+    mockUpstream({
+      proposals: proposalsThen(() => Response.json([])),
+      trainings: () =>
+        Response.json([
+          {
+            domain: 'ssm',
+            held_on: '2026-11-13',
+            created_at: '2026-11-13T09:00:00+00:00',
+            training_records: [worker(mason), worker(fixer), worker(siteManager)],
+          },
+        ]),
+    });
+    const response = await request(dismissPath, { method: 'POST' });
+    expect(response.status).toBe(404);
+    expect(patches()).toHaveLength(0);
+  });
+
+  it('answers 404 when it was closed in the meantime', async () => {
+    mockUpstream({ proposals: proposalsThen(() => Response.json([])) });
     const response = await request(dismissPath, { method: 'POST' });
     expect(response.status).toBe(404);
   });
 
   it('passes on the refusal of the database for an archived client', async () => {
     mockUpstream({
-      proposals: () =>
+      proposals: proposalsThen(() =>
         Response.json(
           { code: 'CLA01', message: 'An archived client is not changed.' },
           { status: 400 }
-        ),
+        )
+      ),
     });
     const response = await request(dismissPath, { method: 'POST' });
     expect(response.status).toBe(409);
