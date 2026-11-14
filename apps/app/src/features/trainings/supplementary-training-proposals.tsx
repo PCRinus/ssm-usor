@@ -18,6 +18,7 @@ import { formatRoDate } from '@/lib/dates';
 
 import {
   countOf,
+  focusHeadingIn,
   type Proposal,
   proposalLead,
   type ProposalPost,
@@ -34,11 +35,14 @@ export function SupplementaryTrainingProposals({
   userId,
   domain,
   readOnly,
+  page,
 }: {
   clientId: string;
   userId: string;
   domain?: TrainingDomain;
   readOnly: boolean;
+  // Whose first heading takes the focus once a closed notice is gone.
+  page: () => HTMLElement | null;
 }) {
   const proposals = useSupplementaryTrainingProposals(clientId, userId, !readOnly);
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
@@ -53,6 +57,7 @@ export function SupplementaryTrainingProposals({
           key={proposal.revisionId}
           clientId={clientId}
           proposal={proposal}
+          onClosed={() => focusHeadingIn(page())}
           onRecord={(post) =>
             setTarget({
               kind: 'new',
@@ -76,10 +81,12 @@ export function SupplementaryTrainingProposals({
 function ProposalNotice({
   clientId,
   proposal,
+  onClosed,
   onRecord,
 }: {
   clientId: string;
   proposal: Proposal;
+  onClosed: () => void;
   onRecord: (post: ProposalPost) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -106,6 +113,7 @@ function ProposalNotice({
     await queryClient.invalidateQueries({
       queryKey: getListSupplementaryTrainingProposalsQueryKey(clientId),
     });
+    onClosed();
   }
 
   return (

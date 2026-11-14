@@ -30,7 +30,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
 import { ClipboardCheck, Lock, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 
 import {
   getListTrainingsQueryKey,
@@ -98,12 +98,13 @@ export function ClientTrainingsPage() {
     },
   });
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
   const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
   const items = trainings.data?.items ?? [];
   const record = () => setTarget({ kind: 'new', domain: domain ?? 'ssm', phase: 'periodic' });
 
   return (
-    <div data-testid="client-trainings-page" className="space-y-5">
+    <div ref={pageRef} data-testid="client-trainings-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Instruiri ținute</h2>
         {!readOnly && !isEmptyOrLoading(trainings.status, items.length) && (
@@ -113,7 +114,12 @@ export function ClientTrainingsPage() {
           </Button>
         )}
       </div>
-      <SupplementaryTrainingProposals clientId={clientId} userId={userId} readOnly={readOnly} />
+      <SupplementaryTrainingProposals
+        clientId={clientId}
+        userId={userId}
+        readOnly={readOnly}
+        page={() => pageRef.current}
+      />
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
           <FilterTabs label="Filtrează după domeniu">

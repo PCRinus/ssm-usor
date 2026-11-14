@@ -61,3 +61,12 @@ export function useSupplementaryTrainingProposals(
     },
   });
 }
+
+// The focused link goes with the closed notice; a heading of the page takes the focus instead of
+// the document body, so a keyboard or screen reader user stays where they were.
+export function focusHeadingIn(page: HTMLElement | null) {
+  const heading = page?.querySelector<HTMLElement>('h2, h3');
+  if (!heading) return;
+  if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+  heading.focus();
+}

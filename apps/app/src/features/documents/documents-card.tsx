@@ -204,6 +204,7 @@ export function DocumentsCard<Set extends DocumentSet>({
   const { printing, print } = usePrint();
   // One file input for the whole card; what it was opened for waits here until a file is chosen.
   const fileInput = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const uploadTarget = useRef<{
     typeKey: BuiltInDocumentTypeKey;
     title: string;
@@ -830,13 +831,14 @@ export function DocumentsCard<Set extends DocumentSet>({
             userId={userId}
             domain={trainingDomain}
             readOnly={readOnly}
+            page={() => cardRef.current}
           />
         )}
       </>
     ) : null;
 
   return (
-    <Card data-testid="documents-card" className="gap-0 overflow-hidden py-0">
+    <Card ref={cardRef} data-testid="documents-card" className="gap-0 overflow-hidden py-0">
       {pack ? (
         <PackLayout
           set={set}

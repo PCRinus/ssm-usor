@@ -1035,6 +1035,9 @@ describe('the supplementary training proposed after the own instructions were is
     await user.click(within(notice).getByTestId('training-proposal-dismiss'));
     await waitFor(() => expect(screen.queryByTestId('training-proposal')).toBeNull());
     expect(requests('POST', `${proposalsPath}/${ssmRevisionId}/dismiss`)).toHaveLength(1);
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Instruiri ținute' }))
+    );
     expect(requests('POST', trainingsPath)).toHaveLength(0);
   });
 
