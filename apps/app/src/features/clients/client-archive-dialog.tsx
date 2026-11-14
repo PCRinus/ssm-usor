@@ -25,6 +25,10 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { setParams } from '@/features/documents/document-sets';
+import {
+  isEmployeesOverStepError,
+  restoreOverStepMessage,
+} from '@/features/subscription/employees-over-step';
 
 export interface ClientArchiveChange {
   // The stage words the dialog; a lead has no documents to warn about.
@@ -34,6 +38,7 @@ export interface ClientArchiveChange {
 
 function serverMessage(cause: unknown, action: ClientArchiveChange['action'], lead: boolean) {
   const noun = lead ? 'oferta' : 'clientul';
+  if (isEmployeesOverStepError(cause)) return restoreOverStepMessage;
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) {
       return lead

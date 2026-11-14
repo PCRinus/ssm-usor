@@ -17,6 +17,7 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
 import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 
 import { CommuteMeansCombobox } from './commute-means-combobox';
 import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './employee-form-schema';
@@ -83,6 +84,7 @@ export function EmployeeForm({
           )}
         </h1>
       </div>
+      {!employee && <EmployeesOverStepNotice />}
       <form
         ref={formRef}
         className="grid gap-6"

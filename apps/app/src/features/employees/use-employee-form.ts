@@ -19,6 +19,10 @@ import { ApiHttpError } from '@/api/http';
 import { maskPeople } from '@/components/mask-people';
 import { useAuth } from '@/features/auth/auth-context';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import {
+  employeesOverStepMessage,
+  isEmployeesOverStepError,
+} from '@/features/subscription/employees-over-step';
 import { type IssueTarget, setApiIssues } from '@/lib/api-issues';
 
 import {
@@ -134,6 +138,10 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
       }
     } catch (cause) {
+      if (isEmployeesOverStepError(cause)) {
+        form.setError('root.server', { message: employeesOverStepMessage });
+        return;
+      }
       if (cause instanceof ApiHttpError) {
         const body = cause.body as Partial<ApiErrorResponse> | undefined;
         if (cause.status === 409) {

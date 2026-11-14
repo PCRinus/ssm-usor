@@ -712,6 +712,63 @@ describe('employee creation', () => {
   });
 });
 
+describe('a month over the step of employees', () => {
+  const meOver =
+    (blocked: boolean, role = 'owner') =>
+    () =>
+      Response.json({
+        user: { id: 'user-one', email: 'review@example.test' },
+        membership: { organization: { id: 'org-1', name: 'SSM Test' }, role },
+        employeesOverStep: { since: '2026-11-02T10:00:00.000Z', lastDay: '2026-12-02', blocked },
+      });
+
+  it('says until when new employees can still be added, and keeps adding open', async () => {
+    mockApi({ me: meOver(false), list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, employeesPage);
+
+    const notice = await screen.findByTestId('employees-over-step');
+    expect(notice.textContent).toContain('până pe 02.12.2026 inclusiv');
+    expect(
+      within(notice).getByRole('link', { name: 'Vezi abonamentul' }).getAttribute('href')
+    ).toBe('/organizatie/abonament');
+    expect(screen.getByRole('link', { name: /Adaugă lucrător/ })).toBeTruthy();
+  });
+
+  it('explains the block in visible text and stops adding, but not editing or leaving', async () => {
+    mockApi({ me: meOver(true, 'specialist'), list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, employeesPage);
+
+    const notice = await screen.findByTestId('employees-over-step');
+    expect(notice.textContent).toContain('Nu mai poți adăuga lucrători noi.');
+    expect(notice.textContent).toContain('arhivează clienții cu care nu mai lucrezi');
+    expect(notice.textContent).toContain('Treapta o schimbă adminul organizației.');
+    const add = await screen.findByTestId('employees-add');
+    expect((add as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId('employees-import')).toBeTruthy();
+  });
+
+  it('words the refusal of the API on the form', async () => {
+    mockApi({
+      create: () =>
+        Response.json(
+          { error: 'forbidden', message: 'over', reason: 'employees_over_step' },
+          { status: 403 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
+    await user.type(screen.getByTestId('employee-first-name'), 'Ion');
+    await pickPosition(user, 'sud', /Sudor/);
+    setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('employee-form-error')).textContent).toContain(
+      'Nu mai poți adăuga lucrători noi'
+    );
+  });
+});
+
 describe('the employment contract number', () => {
   const detailPath = `${employeesPath}/${sampleEmployee.id}`;
   const detailPage = `${employeesPage}/${sampleEmployee.id}`;

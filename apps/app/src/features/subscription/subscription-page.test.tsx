@@ -293,6 +293,38 @@ describe('the Abonament tab', () => {
     ).toBe('/organizatie/abonament/alege?plan=profesional&step=1000');
   });
 
+  it('says until when new employees can be added while over the step, and when that has passed', async () => {
+    const over = (blocked: boolean) => {
+      const overview = overviewWith({
+        subscription: activeSubscription({ interval: 'month', step: 500 }),
+        employees: 600,
+        limits: { employees: 500, members: 10, sms: 100 },
+        owner: ownerPart(),
+      });
+      overview.usage.employeesOverStep = {
+        since: '2026-11-02T10:00:00.000Z',
+        lastDay: '2026-12-02',
+        blocked,
+      };
+      return overview;
+    };
+    mockApi({ overview: over(false) });
+    mount();
+
+    const notice = await screen.findByTestId('subscription-notice');
+    expect(notice.textContent).toContain('Poți adăuga lucrători noi până pe 02.12.2026 inclusiv.');
+    expect(notice.textContent).toContain(
+      'nu mai poți adăuga lucrători noi până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi'
+    );
+    cleanup();
+
+    mockApi({ overview: over(true) });
+    mount();
+    const blocked = await screen.findByTestId('subscription-notice');
+    expect(blocked.textContent).toContain('Nu mai poți adăuga lucrători noi.');
+    expect(blocked.textContent).toContain('De mai bine de o lună ai 600 de lucrători');
+  });
+
   it('counts the open invitations among the users, and offers Profesional once Start is full', async () => {
     mockApi({
       overview: overviewWith({

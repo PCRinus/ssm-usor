@@ -1,4 +1,4 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import { employeesOverStepReason, importErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -39,6 +39,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
+import { clientImportOverStepMessage } from '@/features/subscription/employees-over-step';
 
 import { CreditsUsedLine } from './credits-notices';
 import { importErrorMessage } from './import-format';
@@ -100,6 +101,7 @@ function Line({
 }
 
 const conflictReasons: Record<string, string> = {
+  [employeesOverStepReason]: clientImportOverStepMessage,
   [importErrorReasons.otherCompany]:
     'CUI-ul din documente nu este al acestui client. Verifică identitatea clientului înainte de confirmare.',
   [importErrorReasons.clientExists]:
