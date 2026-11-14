@@ -80,9 +80,13 @@ describe('the usage notices', () => {
   it('tells the owner at the allowance that the codes go on as extras, when extras are on', async () => {
     const { at, sendSmsUsageNotice } = setUp({ ceilingCents: 1000 });
 
+    expect(await at(40)).toBe('sms_80');
+    expect(sendSmsUsageNotice).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: 'sms_80', billed: true, cap: 150 })
+    );
     expect(await at(50)).toBe('sms_100');
     expect(sendSmsUsageNotice).toHaveBeenLastCalledWith(
-      expect.objectContaining({ kind: 'sms_100', billed: true, used: 50, included: 50 })
+      expect.objectContaining({ kind: 'sms_100', billed: true, used: 50, included: 50, cap: 150 })
     );
   });
 

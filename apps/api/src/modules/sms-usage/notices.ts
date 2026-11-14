@@ -1,4 +1,5 @@
 import {
+  extraUnitsWithin,
   type MailService,
   type PaidPlan,
   smsOverage,
@@ -47,6 +48,10 @@ export function createUsageNotices(deps: {
     const kind = noticeOfState[usage.state];
     if (!kind || usage.included === null || !usage.periodStart || !usage.periodEnd) return null;
 
+    const ceilingCents =
+      policy.extraCents === null ? null : await deps.store.smsCeiling(organizationId);
+    const extraCodes = ceilingCents === null ? null : extraUnitsWithin('sms', ceilingCents);
+
     // Recorded before it is sent, so two codes counted at once, or a retry, send it once.
     const recorded = await deps.store.recordNotice(organizationId, usage.periodStart, kind);
     if (!recorded) return null;
@@ -63,10 +68,10 @@ export function createUsageNotices(deps: {
         kind,
         organizationName: recipient.organizationName,
         planName: row?.stripe_subscription_id ? planNames[row.plan as PaidPlan] : null,
-        billed: usage.state === 'extra',
+        billed: extraCodes !== null,
         used: usage.used,
         included: usage.included,
-        cap: null,
+        cap: extraCodes === null ? null : usage.included + extraCodes,
         overageCents: smsOverage.price.unitAmount,
         periodStart: usage.periodStart,
         periodEnd: usage.periodEnd,
