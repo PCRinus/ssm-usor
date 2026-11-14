@@ -131,7 +131,7 @@ describe('what an organization may text', () => {
       },
       now
     );
-    expect(policy).toMatchObject({ sends: true, allowance: 50, extraCents: null });
+    expect(policy).toMatchObject({ sends: true, allowance: 50, extraCents: 10 });
     expect(policy.sends && iso(policy.period)).toEqual([
       '2026-10-18T09:30:00.000Z',
       '2026-11-18T09:30:00.000Z',
@@ -207,8 +207,9 @@ describe('the state of the meter', () => {
     expect(smsState(policy, { used, included: 50, overage, ceilingCents: 1000 })).toBe(state);
   });
 
-  it('says stopped at a hard stop, and none where nothing is texted', () => {
-    expect(smsState(hardStop, { used: 50, included: 50, overage: 0, ceilingCents: 1000 })).toBe(
+  it('says stopped where extras cannot apply, and none where nothing is texted', () => {
+    const pastDue = smsPolicy({ ...paid, status: 'past_due' }, at('2026-12-01T00:00:00.000Z'));
+    expect(smsState(pastDue, { used: 50, included: 50, overage: 0, ceilingCents: 1000 })).toBe(
       'stopped'
     );
     expect(smsState({ sends: false }, { used: 0, included: 0, ...off })).toBe('none');

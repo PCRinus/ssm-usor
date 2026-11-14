@@ -309,16 +309,6 @@
                 "type": "integer",
                 "minimum": 0
               },
-              "cap": {
-                "type": "integer",
-                "nullable": true,
-                "minimum": 0
-              },
-              "capFactor": {
-                "type": "integer",
-                "nullable": true,
-                "minimum": 1
-              },
               "overage": {
                 "type": "integer",
                 "minimum": 0
@@ -335,7 +325,7 @@
               },
               "state": {
                 "type": "string",
-                "enum": ["ok", "near", "stopped", "none"]
+                "enum": ["ok", "near", "extra", "stopped", "none"]
               }
             },
             "required": [
@@ -343,8 +333,6 @@
               "included",
               "allowance",
               "granted",
-              "cap",
-              "capFactor",
               "overage",
               "periodStart",
               "periodEnd",
@@ -385,6 +373,14 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "extra": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "extraLeft": {
+                "type": "integer",
+                "minimum": 0
+              },
               "period": {
                 "type": "string",
                 "enum": ["trial", "month"]
@@ -410,6 +406,8 @@
               "shortfall",
               "left",
               "giftLeft",
+              "extra",
+              "extraLeft",
               "period",
               "periodStart",
               "periodEnd",
@@ -21390,16 +21388,6 @@
                     "type": "integer",
                     "minimum": 0
                   },
-                  "cap": {
-                    "type": "integer",
-                    "nullable": true,
-                    "minimum": 0
-                  },
-                  "capFactor": {
-                    "type": "integer",
-                    "nullable": true,
-                    "minimum": 1
-                  },
                   "overage": {
                     "type": "integer",
                     "minimum": 0
@@ -21416,7 +21404,7 @@
                   },
                   "state": {
                     "type": "string",
-                    "enum": ["ok", "near", "stopped", "none"]
+                    "enum": ["ok", "near", "extra", "stopped", "none"]
                   }
                 },
                 "required": [
@@ -21424,8 +21412,6 @@
                   "included",
                   "allowance",
                   "granted",
-                  "cap",
-                  "capFactor",
                   "overage",
                   "periodStart",
                   "periodEnd",
@@ -21465,6 +21451,14 @@
                     "type": "integer",
                     "minimum": 0
                   },
+                  "extra": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "extraLeft": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
                   "period": {
                     "type": "string",
                     "enum": ["trial", "month"]
@@ -21490,6 +21484,8 @@
                   "shortfall",
                   "left",
                   "giftLeft",
+                  "extra",
+                  "extraLeft",
                   "period",
                   "periodStart",
                   "periodEnd",
@@ -21575,9 +21571,81 @@
               },
               "smsOverageCents": {
                 "type": "integer"
+              },
+              "creditBlockCents": {
+                "type": "integer"
               }
             },
-            "required": ["currency", "vatPercent", "plans", "smsOverageCents"]
+            "required": ["currency", "vatPercent", "plans", "smsOverageCents", "creditBlockCents"]
+          },
+          "extras": {
+            "type": "object",
+            "properties": {
+              "unavailable": {
+                "type": "string",
+                "nullable": true,
+                "enum": ["no_subscription", "enterprise", "trial", "past_due", "canceled", null]
+              },
+              "sms": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "ceilingCents": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "used": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "spentCents": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  }
+                },
+                "required": ["enabled", "ceilingCents", "limit", "used", "spentCents"]
+              },
+              "credits": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "ceilingCents": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "used": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  },
+                  "spentCents": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0
+                  }
+                },
+                "required": ["enabled", "ceilingCents", "limit", "used", "spentCents"]
+              }
+            },
+            "required": ["unavailable", "sms", "credits"]
           },
           "owner": {
             "type": "object",
@@ -21797,7 +21865,7 @@
             ]
           }
         },
-        "required": ["subscription", "usage", "catalogue", "owner"]
+        "required": ["subscription", "usage", "catalogue", "extras", "owner"]
       },
       "BillingPreview": {
         "type": "object",
@@ -21876,7 +21944,7 @@
                   "properties": {
                     "product": {
                       "type": "string",
-                      "enum": ["start", "profesional", "sms_overage"]
+                      "enum": ["start", "profesional", "sms_overage", "credits_extra"]
                     },
                     "quantity": {
                       "type": "integer",
@@ -22082,6 +22150,87 @@
           }
         },
         "required": ["url", "fileName", "expiresAt"]
+      },
+      "BillingExtras": {
+        "type": "object",
+        "properties": {
+          "unavailable": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["no_subscription", "enterprise", "trial", "past_due", "canceled", null]
+          },
+          "sms": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "ceilingCents": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "used": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "spentCents": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              }
+            },
+            "required": ["enabled", "ceilingCents", "limit", "used", "spentCents"]
+          },
+          "credits": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "ceilingCents": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "used": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "spentCents": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              }
+            },
+            "required": ["enabled", "ceilingCents", "limit", "used", "spentCents"]
+          }
+        },
+        "required": ["unavailable", "sms", "credits"]
+      },
+      "SetExtraRequest": {
+        "type": "object",
+        "properties": {
+          "ceilingEuros": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": ["ceilingEuros"]
       },
       "LegalActListResponse": {
         "type": "object",
@@ -48190,6 +48339,111 @@
           },
           "409": {
             "description": "The PDF is not stored yet; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/extras/{kind}": {
+      "put": {
+        "operationId": "setBillingExtra",
+        "summary": "Turn an extra on with a monthly ceiling, change the ceiling, or turn it off",
+        "description": "Past what the plan includes, signing codes go on by SMS at 0.10 € each (`sms`), or AI credits are bought in blocks of 100 at 1.50 € each (`credits`), up to the ceiling in whole euro, on the next invoice. A new ceiling or `null` applies at once; what was already used stays on the invoice. Only on a paid subscription in good standing; otherwise 409 `extras_unavailable`. The owner in person only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["sms", "credits"]
+            },
+            "required": true,
+            "name": "kind",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetExtraRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Both kinds of extras as they are now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingExtras"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not the owner, or is an admin impersonating one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Extras cannot be turned on for this subscription; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
