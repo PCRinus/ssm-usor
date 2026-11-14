@@ -2,7 +2,7 @@ import { type HistoryState, Link, type ParsedLocation } from '@tanstack/react-ro
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useId } from 'react';
 
-import { keepOpener } from '@/app/opener';
+import { keepOpener, openedHere } from '@/app/opener';
 
 import type { MissingAction, MissingGroup, MissingRow, MissingTarget } from './missing-rows';
 
@@ -20,13 +20,17 @@ function RowText({ row }: { row: MissingRow }) {
 }
 
 // The rows mostly lead to another place of the same record, which keeps where the record was
-// opened from; a list shown on another record says how its rows open.
+// opened from; a position and its sheets are records of their own, opened from the row. A list
+// shown on another record says how its rows open.
+const rowOpening = (target: MissingTarget) =>
+  target.to.startsWith('/clienti/$clientId/posturi/') ? openedHere : keepOpener;
+
 export function MissingDataList({
   groups,
   testId,
   onFollow,
   renderAction,
-  linkState = () => keepOpener,
+  linkState = rowOpening,
 }: {
   groups: readonly MissingGroup[];
   testId: string;
