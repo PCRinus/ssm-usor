@@ -104,7 +104,7 @@ function initialPick(
     {
       plan: search.plan ?? current?.plan ?? 'start',
       stop: search.step ?? current?.step ?? minimumStop(employees) ?? employeeStops[0]!,
-      interval: search.interval ?? current?.interval ?? 'month',
+      interval: search.interval ?? current?.interval ?? 'year',
     },
     owner,
     employees

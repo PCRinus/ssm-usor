@@ -138,7 +138,7 @@ const chosenTrial = (): NonNullable<BillingOverview['subscription']> => ({
 });
 
 describe('choosing a plan', () => {
-  it('charges a plan chosen in a trial now, and says the trial ends with the payment', async () => {
+  it('charges a plan chosen in a trial now, annual unless chosen otherwise, and says the trial ends with the payment', async () => {
     const trial = overviewWith({ subscription: trialSubscription(12), owner: ownerPart() });
     mockApi({
       overview: trial,
@@ -155,8 +155,15 @@ describe('choosing a plan', () => {
     expect(screen.getByTestId('plan-option-start').getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByTestId('step-value').textContent).toBe('500');
     expect((screen.getByTestId('step-less') as HTMLButtonElement).disabled).toBe(true);
-    expect((await screen.findByTestId('checkout-total')).textContent).toBe('71,39 €');
-    expect(await screen.findByText('Plătești azi 71,39 €.')).toBeTruthy();
+    expect(screen.getByTestId('interval-year').getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen
+        .getByTestId('interval-year')
+        .compareDocumentPosition(screen.getByTestId('interval-month'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByTestId('interval-year').textContent).toBe('Anualdouă luni gratuite');
+    expect((await screen.findByTestId('checkout-total')).textContent).toBe('711,48 €');
+    expect(await screen.findByText('Plătești azi 711,48 €.')).toBeTruthy();
     expect(
       screen.getByText(/Odată cu plata primești 5\.000 de credite AI de bun venit\.$/)
     ).toBeTruthy();
@@ -169,22 +176,22 @@ describe('choosing a plan', () => {
     expect(screen.getByTestId('plan-option-start').textContent).toContain(
       '5.000 de credite AI de bun venit, la prima plată'
     );
-    expect(screen.getByTestId('plan-option-start').textContent).toContain('59 €');
+    expect(screen.getByTestId('plan-option-start').textContent).toContain('49 €');
     expect(screen.getByTestId('plan-option-profesional').textContent).toContain(
       '100 de coduri SMS și 1.250 de credite AI pe lună'
     );
-    expect(screen.getByTestId('plan-option-profesional').textContent).toContain('89 €');
+    expect(screen.getByTestId('plan-option-profesional').textContent).toContain('74 €');
     await screen.findByTestId('payment-element');
     expect(stripe.elementsOptions.at(-1)).toMatchObject({
       mode: 'subscription',
-      amount: 7139,
+      amount: 71148,
       currency: 'eur',
       locale: 'ro',
       allowedPaymentMethodTypes: ['card'],
     });
 
     const user = userEvent.setup();
-    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
+    const submit = await screen.findByRole('button', { name: 'Plătește 711,48 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await user.click(submit);
 
@@ -194,7 +201,7 @@ describe('choosing a plan', () => {
     expect(bodyOf('/billing/subscription', 'POST')).toEqual({
       plan: 'start',
       step: 500,
-      interval: 'month',
+      interval: 'year',
     });
     expect(stripe.confirmPayment).toHaveBeenCalledWith(
       expect.objectContaining({ clientSecret: 'pi_secret_1', redirect: 'if_required' })
@@ -217,7 +224,7 @@ describe('choosing a plan', () => {
           Response.json({ clientSecret: 'pi_secret_1', intent: 'payment' }, { status: 201 }),
       },
     });
-    const runtime = mount();
+    const runtime = mount('?interval=month');
 
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
@@ -249,7 +256,7 @@ describe('choosing a plan', () => {
         },
       },
     });
-    const runtime = mount();
+    const runtime = mount('?interval=month');
 
     const user = userEvent.setup();
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
@@ -357,7 +364,7 @@ describe('choosing a plan', () => {
           Response.json({ clientSecret: 'seti_secret_3', intent: 'setup' }, { status: 201 }),
       },
     });
-    mount();
+    mount('?interval=month');
 
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
@@ -381,7 +388,7 @@ describe('choosing a plan', () => {
           ),
       },
     });
-    const runtime = mount();
+    const runtime = mount('?interval=month');
 
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
@@ -425,7 +432,7 @@ describe('choosing a plan', () => {
       expect(bodyOf('/billing/preview', 'POST')).toEqual({
         plan: 'profesional',
         step: 3000,
-        interval: 'month',
+        interval: 'year',
       })
     );
   });

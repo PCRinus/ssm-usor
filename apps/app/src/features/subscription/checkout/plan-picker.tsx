@@ -65,7 +65,7 @@ export function PlanPicker({
             aria-label="Perioada de plată"
             className="inline-flex gap-0.5 rounded-xl bg-muted p-[3px]"
           >
-            {(['month', 'year'] as const).map((interval) => {
+            {(['year', 'month'] as const).map((interval) => {
               const on = pick.interval === interval;
               return (
                 <button
@@ -90,7 +90,7 @@ export function PlanPicker({
                         on ? 'bg-success' : 'bg-card'
                       )}
                     >
-                      2 luni gratuite
+                      două luni gratuite
                     </span>
                   )}
                 </button>

@@ -73,7 +73,7 @@ Dacă proba se încheie fără un plan, contul rămâne 30 de zile doar pentru c
 
 Apasă **Alege un plan**. Pe pagina care se deschide:
 
-1. Alegi perioada de plată: **Lunar** sau **Anual**. Pe an, o lună costă zece douăsprezecimi din prețul lunar, rotunjit în jos la euro întreg: două luni gratuite.
+1. Alegi perioada de plată: **Anual** sau **Lunar**. Pe an, o lună costă zece douăsprezecimi din prețul lunar, rotunjit în jos la euro întreg: două luni gratuite. Pagina pornește pe **Anual**, ca pagina de prețuri; dacă ai deja un abonament, pornește pe perioada lui.
 2. Alegi câți lucrători au clienții tăi, cu butoanele minus și plus de lângă **Lucrători la clienții tăi** (vezi mai jos).
 3. Alegi planul: **Start** sau **Profesional**. Fiecare card arată prețul la treapta aleasă și ce include.
 4. Completezi cardul. Poți plăti și cu Apple Pay sau Google Pay, dacă telefonul sau browserul tău le are.
