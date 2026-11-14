@@ -43,8 +43,9 @@ export interface CreditsBalance {
   // A paid subscription had its gift at the first payment; a trial and a tester's never did.
   hadGift: boolean;
   owner: boolean;
-  // Extra AI credits are on, and a member is not told how many are left: the server decides.
-  extrasUncounted: boolean;
+  // A member is told no extras counts: when extras are on, or the server says credits remain that
+  // the member cannot see (a block already bought), the server decides whether an import starts.
+  serverDecides: boolean;
 }
 
 type Account = {
@@ -61,14 +62,19 @@ export function creditsBalance(
   if (!usage || usage.left === null || usage.state === 'unlimited') return null;
   const subscription = account.subscription ?? null;
   return {
-    available: usage.left + usage.giftLeft + usage.extraLeft,
+    // While a ceiling applies, a shortfall waits for next month and the month counts from zero.
+    available:
+      (usage.extrasOn ? Math.max(usage.left, 0) : usage.left) + usage.giftLeft + usage.extraLeft,
     usage,
     renewal: renewalOf(usage, subscription),
     trial: usage.period === 'trial',
     hadGift: subscription?.status !== 'trialing',
     owner,
-    extrasUncounted:
-      !owner && usage.extrasOn && usage.state !== 'out' && usage.state !== 'negative',
+    serverDecides:
+      !owner &&
+      usage.state !== 'out' &&
+      usage.state !== 'negative' &&
+      (usage.extrasOn || usage.left + usage.giftLeft <= 0),
   };
 }
 
@@ -92,7 +98,7 @@ export function creditsRefusal(
   balance: CreditsBalance | null,
   needed: number
 ): CreditsRefusal | null {
-  if (!balance || balance.extrasUncounted) return null;
+  if (!balance || balance.serverDecides) return null;
   if (balance.available <= 0) return { kind: 'none' };
   if (needed <= balance.available) return null;
   return {
@@ -148,9 +154,10 @@ export function leftSentence(balance: CreditsBalance, short: boolean) {
     usage.extraLeft > 0
       ? `, plus până la ${formatCount(usage.extraLeft)} extra, în pachete de 100`
       : '';
-  const uncounted = balance.extrasUncounted
-    ? ' Extra e pornit pentru creditele AI, așa că importul poate folosi și credite AI extra.'
-    : '';
+  const uncounted =
+    balance.serverDecides && usage.extrasOn
+      ? ' Extra e pornit pentru creditele AI, așa că importul poate folosi și credite AI extra.'
+      : '';
   return `${month}${gift}${extra}.${uncounted}`;
 }
 

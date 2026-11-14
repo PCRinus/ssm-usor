@@ -302,3 +302,21 @@ describe('AI extras in the upload dialog', () => {
     expect(creditsRefusal(balance, 25)).toEqual({ kind: 'none' });
   });
 });
+
+describe('a member and blocks already bought', () => {
+  it('leaves the decision to the server while its state is not out, extras off or on', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 0, extrasOn: false, state: 'ok' }),
+      { owner: false }
+    )!;
+    expect(creditsRefusal(balance, 25)).toBeNull();
+  });
+
+  it("counts an owner's month from zero below zero while a ceiling applies", () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: -150, giftLeft: 0, extraLeft: 100, extrasOn: true, state: 'near' })
+    )!;
+    expect(balance.available).toBe(100);
+    expect(creditsRefusal(balance, 100)).toBeNull();
+  });
+});
