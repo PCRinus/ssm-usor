@@ -30,6 +30,7 @@ import {
   updateInvoice,
 } from './store';
 import { idOf, type StripeAccess, type StripeCatalogue } from './stripe';
+import { syncSubscription } from './sync';
 
 export type InvoiceDeps = {
   env: ApiEnv['Bindings'];
@@ -163,6 +164,27 @@ async function organizationOfInvoice(deps: InvoiceDeps, invoice: Stripe.Invoice)
   return { byCustomer: null, organizationId: known ? fromMetadata! : null };
 }
 
+// The first payment's event can come before the subscription's own, while the row still holds the
+// trial: the welcome credits, fixed at the first payment, must be of the step paid for.
+async function adoptFirstSubscription(
+  deps: InvoiceDeps,
+  invoice: Stripe.Invoice,
+  byCustomer: Awaited<ReturnType<typeof findSubscriptionByCustomer>>,
+  organizationId: string
+) {
+  const subscriptionId = idOf(invoice.parent?.subscription_details?.subscription);
+  if (invoice.billing_reason !== 'subscription_create' || !subscriptionId) {
+    return byCustomer ?? (await loadSubscription(deps.db, organizationId));
+  }
+  const subscription = await deps.access.stripe.subscriptions.retrieve(subscriptionId);
+  await syncSubscription(deps.db, subscription, {
+    accountId: deps.catalogue.accountId,
+    now: new Date(),
+    record: { source: 'stripe', change: 'invoice.paid', details: { stripe_invoice: invoice.id } },
+  });
+  return loadSubscription(deps.db, organizationId);
+}
+
 // Each step checks what is already done, so a retried event finishes the work without issuing
 // twice; Oblio's idempotency key covers a crash between its answer and our write.
 export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
@@ -174,9 +196,16 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     console.warn(`Paid Stripe invoice ${invoice.id} names no organization here; left alone.`);
     return null;
   }
-  const subscription = byCustomer ?? (await loadSubscription(deps.db, organizationId));
+  const subscription = await adoptFirstSubscription(deps, invoice, byCustomer, organizationId);
   const paidAt = new Date((invoice.status_transitions.paid_at ?? invoice.created) * 1000);
-  if (subscription && (await markFirstPayment(deps.db, organizationId, paidAt))) {
+  // A row still holding the trial would size the welcome credits, which never change after, from
+  // the trial's placeholder plan rather than the step paid for.
+  const subscriptionId = idOf(invoice.parent?.subscription_details?.subscription);
+  const followed =
+    subscription !== null &&
+    subscriptionId !== null &&
+    subscription.stripe_subscription_id === subscriptionId;
+  if (followed && (await markFirstPayment(deps.db, organizationId, paidAt))) {
     await recordChange(deps.db, organizationId, {
       source: 'stripe',
       change: 'first_payment',
@@ -184,8 +213,9 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     });
   }
   // Every paid invoice, not only the one that marked the first payment: a retried event whose
-  // first delivery stopped between the two writes still brings the gift, which is granted once.
-  if (subscription) {
+  // first delivery stopped between the two writes still brings the gift. The database grants it
+  // once, at the step of the first payment, and never changes it after (ADR 029).
+  if (followed) {
     await grantWelcomeGift(creditsStore(deps.db), await loadSubscription(deps.db, organizationId));
   }
 
@@ -224,7 +254,12 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     const document = await oblioFor(deps).issue(request);
     row = await updateInvoice(deps.db, invoice.id, issued(document));
   }
-  return storePdf(deps, row);
+  const stored = await storePdf(deps, row);
+  // Stripe delivers the event again, and the first payment and its credits are recorded then.
+  if (!followed && invoice.billing_reason === 'subscription_create' && subscriptionId) {
+    throw new Error(`The first invoice ${invoice.id} is paid before its subscription is followed.`);
+  }
+  return stored;
 }
 
 async function invoiceOfCharge(stripe: Stripe, charge: Stripe.Charge) {

@@ -386,8 +386,6 @@ export const billingCreditsUsageSchema = z.object({
   left: z.int().nullable(),
   // The welcome gift's credits left; used once the month's are gone.
   giftLeft: z.int().min(0),
-  // What the first payment will bring: the chosen plan's gift, during the trial.
-  giftPending: z.int().min(0),
   // `trial`: one allowance for the whole trial, which does not renew; `month`: renews at the end.
   period: z.enum(['trial', 'month']),
   periodStart: timestamp,

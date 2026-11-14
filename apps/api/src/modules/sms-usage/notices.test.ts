@@ -157,25 +157,6 @@ describe('the usage notices', () => {
     expect(await at(240, profesional)).toBe('sms_80');
   });
 
-  it('words a hard stop before the first payment as stopped, with no cap', async () => {
-    const { at, sendSmsUsageNotice } = setUp();
-
-    expect(await at(40, chosenInTrial)).toBe('sms_80');
-    expect(await at(50, chosenInTrial)).toBe('sms_100');
-    expect(await at(50, chosenInTrial)).toBeNull();
-
-    expect(sendSmsUsageNotice).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        kind: 'sms_100',
-        planName: 'Start',
-        billed: false,
-        cap: null,
-        periodStart: '2026-11-20T08:00:00.000Z',
-        periodEnd: '2026-12-20T08:00:00.000Z',
-      })
-    );
-  });
-
   it("names no plan for a tester's trial, which stops hard at 300", async () => {
     const { at, sendSmsUsageNotice } = setUp();
 
@@ -190,6 +171,7 @@ describe('the usage notices', () => {
     ['no subscription', null],
     ['Enterprise', { ...paid, plan: 'enterprise' }],
     ['a trial that sends no SMS', { ...tester, tester_allowances: false }],
+    ['a plan chosen during the trial before 2026-11-14, until its first payment', chosenInTrial],
   ])('sends nothing for %s', async (_, row) => {
     const { at, store, sendSmsUsageNotice } = setUp();
 

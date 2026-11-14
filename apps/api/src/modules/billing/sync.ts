@@ -56,6 +56,14 @@ export function plainTrial(row: SubscriptionRow): SubscriptionFields {
   };
 }
 
+// Paying for a plan during the trial ends the trial then, and its days left are not kept (ADR 029).
+// A subscription created with a trial end ran Stripe's trial to the trial's own end.
+function trialCutShort(subscription: Stripe.Subscription, previous: SubscriptionRow | null) {
+  const trialEnd = previous?.trial_ends_at ? new Date(previous.trial_ends_at) : null;
+  const paidFrom = new Date((subscription.trial_end ?? subscription.start_date) * 1000);
+  return trialEnd && trialEnd > paidFrom ? { trial_ends_at: paidFrom.toISOString() } : {};
+}
+
 export function stateFromStripe(
   subscription: Stripe.Subscription,
   previous: SubscriptionRow | null,
@@ -94,7 +102,12 @@ export function stateFromStripe(
       };
     }
     case 'active':
-      return { ...common, status: 'active', access_until: iso(subscription.cancel_at) };
+      return {
+        ...common,
+        status: 'active',
+        access_until: iso(subscription.cancel_at),
+        ...trialCutShort(subscription, previous),
+      };
     case 'past_due':
     case 'unpaid':
     case 'paused': {

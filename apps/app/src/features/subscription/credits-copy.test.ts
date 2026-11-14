@@ -77,7 +77,7 @@ describe('the credits meter', () => {
     expect(meter.hint).toContain('Luna aceasta ai 1.496: 4 s-au scăzut pentru luna trecută.');
   });
 
-  it('tells a trial its credits last the whole trial, and what a chosen plan brings', () => {
+  it('tells a trial its credits last the whole trial', () => {
     const trial = creditsUsage({
       used: 85,
       included: 300,
@@ -86,13 +86,8 @@ describe('the credits meter', () => {
       giftLeft: 0,
       period: 'trial',
     });
-    expect(creditsMeterFor(trial, { kind: 'trial', nextMonthly: null }).hint).toMatch(
+    expect(creditsMeterFor(trial, { kind: 'trial' }).hint).toMatch(
       /^Pentru toată perioada de probă, până pe \d\d\.\d\d\.\d{4}\. Nu se reînnoiesc\.$/
-    );
-    expect(
-      creditsMeterFor({ ...trial, giftPending: 10000 }, { kind: 'trial', nextMonthly: 1500 }).hint
-    ).toMatch(
-      /^Cele 300 din perioada de probă, până la prima plată\. De pe \d\d\.\d\d\.\d{4} primești 1\.500 pe lună\.$/
     );
   });
 
@@ -111,30 +106,22 @@ describe('the credits meter', () => {
 });
 
 describe('the welcome gift', () => {
-  it('shows what is left of it, then that it is spent', () => {
-    expect(giftPanelFor(creditsUsage(), { paid: true, welcomeCredits: 10000 })).toEqual({
+  it('shows what is left of the credits the first payment brought, then that they are spent', () => {
+    expect(giftPanelFor(creditsUsage(), { paid: true })).toEqual({
       look: 'balance',
       title: 'Credite AI de bun venit',
-      text: 'Rămase din 10.000. Nu expiră și se folosesc după creditele AI ale lunii.',
+      text: 'Rămase din cele primite la prima plată. Nu expiră și se folosesc după creditele AI ale lunii.',
       value: '8.640',
     });
-    expect(
-      giftPanelFor(creditsUsage({ giftLeft: 0 }), { paid: true, welcomeCredits: 10000 })
-    ).toMatchObject({
+    expect(giftPanelFor(creditsUsage({ giftLeft: 0 }), { paid: true })).toMatchObject({
       look: 'spent',
       value: '0',
-      text: 'Le-ai folosit pe toate cele 10.000. Nu se mai primesc.',
+      text: 'Le-ai folosit pe toate cele primite la prima plată. Nu se mai primesc.',
     });
   });
 
-  it('promises it to a plan chosen during the trial, and shows none in a plain trial', () => {
+  it('shows none in a trial', () => {
     const trial = creditsUsage({ period: 'trial', giftLeft: 0, included: 300, left: 215 });
-    expect(
-      giftPanelFor({ ...trial, giftPending: 10000 }, { paid: false, welcomeCredits: null })
-    ).toMatchObject({
-      look: 'promise',
-      title: 'La prima plată primești 10.000 de credite AI de bun venit.',
-    });
-    expect(giftPanelFor(trial, { paid: false, welcomeCredits: null })).toBeNull();
+    expect(giftPanelFor(trial, { paid: false })).toBeNull();
   });
 });

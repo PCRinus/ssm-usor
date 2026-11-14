@@ -189,31 +189,31 @@ select is(
 );
 select is(
   public.grant_welcome_gift('11111111-0000-4000-8000-000000000061', 10000),
-  7500,
-  'moving up to Profesional brings the difference'
+  0,
+  'moving up to a larger step or plan adds no welcome credits'
 );
 select is(
-  public.grant_welcome_gift('11111111-0000-4000-8000-000000000061', 10000)
-  + public.grant_welcome_gift('11111111-0000-4000-8000-000000000061', 2500),
+  public.grant_welcome_gift('11111111-0000-4000-8000-000000000061', 1000)
+  + public.grant_welcome_gift('11111111-0000-4000-8000-000000000061', 10000),
   0,
-  'once, and moving down takes nothing'
+  'nor does moving down and up again'
 );
 select is(
   (select count(*)::int from public.subscription_changes
    where organization_id = '11111111-0000-4000-8000-000000000061' and change = 'welcome_gift'),
-  2,
-  'each gift is in the change log'
+  1,
+  'the gift is in the change log once'
 );
 
 select results_eq(
   $$ select balance, gift_left from pg_temp.balance() $$,
-  $$ values (-150, 10000) $$,
+  $$ values (-150, 2500) $$,
   'the gift is a balance of its own, which does not make up the month'
 );
 
 select results_eq(
   $$ select charged, refused, balance, gift_left from pg_temp.charge(62, 'import_start', 200, 'start:62:next', true, 1) $$,
-  $$ values (200, false, 0, 9950) $$,
+  $$ values (200, false, 0, 2450) $$,
   'the month''s credits go first, then the gift'
 );
 

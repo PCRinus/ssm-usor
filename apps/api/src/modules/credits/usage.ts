@@ -21,11 +21,9 @@ export function creditsState(included: number | null, left: number | null, giftL
   return available < included * 0.2 ? 'near' : 'ok';
 }
 
-// A trial without a plan never renews: credits come back only with a plan's first payment.
+// A trial never renews: credits come back only with a plan's first payment.
 export const renewsAt = (policy: CreditPolicy) =>
-  policy.limited && (policy.kind === 'month' || policy.giftPending > 0)
-    ? policy.period.end.toISOString()
-    : null;
+  policy.limited && policy.kind === 'month' ? policy.period.end.toISOString() : null;
 
 export function usageView(policy: CreditPolicy, balance: Balance): BillingCreditsUsage {
   const limited = policy.limited ? policy : null;
@@ -39,7 +37,6 @@ export function usageView(policy: CreditPolicy, balance: Balance): BillingCredit
     shortfall: balance.shortfall,
     left: balance.balance,
     giftLeft: balance.giftLeft,
-    giftPending: limited?.giftPending ?? 0,
     period: limited?.kind ?? 'month',
     periodStart: policy.period.start.toISOString(),
     periodEnd: policy.period.end.toISOString(),
@@ -218,9 +215,8 @@ export function safetySheetCharges(store: CreditsStore, now: () => Date = () => 
 }
 
 /**
- * Once the first payment went through, the gift is brought up to the step's: all of it at the
- * first payment, the difference when the plan moves up a step or to Profesional (ADR 030). Before that a plan
- * chosen during the trial brings nothing, since cancelling before the first charge costs nothing.
+ * The gift is the step's at the first payment and never changes after it (ADR 029, amendment of
+ * 2026-11-14): the database grants it once, so a later step asks again and gets nothing.
  */
 export async function grantWelcomeGift(
   store: Pick<CreditsStore, 'welcomeGift'>,

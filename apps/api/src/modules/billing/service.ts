@@ -53,21 +53,6 @@ export function hasLiveSubscription(row: SubscriptionRow | null): row is Subscri
   return Boolean(row?.stripe_subscription_id) && row?.status !== 'canceled';
 }
 
-export function inTrial(row: SubscriptionRow | null, now: Date) {
-  return (
-    row?.status === 'trialing' && row.trial_ends_at !== null && new Date(row.trial_ends_at) > now
-  );
-}
-
-const trialMarginMs = 3_600_000;
-
-// Within the trial's last hour the first charge is taken now, rather than set for a moment that
-// may have passed by the time Stripe reads it. The preview and the checkout both ask here.
-export function firstChargeAtTrialEnd(row: SubscriptionRow | null, now: Date) {
-  if (!inTrial(row, new Date(now.getTime() + trialMarginMs))) return null;
-  return new Date(row!.trial_ends_at!);
-}
-
 const prorationDateMaxAgeMs = 3_600_000;
 
 export function prorationDateOf(requested: string | undefined, now: Date) {
@@ -182,48 +167,30 @@ export async function preview(
     totalCents: recurring.totalCents,
   };
 
-  const purchase = (): BillingPreview => {
-    const trialEndsAt = firstChargeAtTrialEnd(row, now);
-    if (trialEndsAt) {
-      const trialEnd = trialEndsAt.toISOString();
-      return {
-        ...base,
-        unchanged: false,
-        appliesAt: trialEnd,
-        dueToday: none,
-        proration: null,
-        nextRenewal: { at: trialEnd, ...recurringAmounts },
-        firstChargeAt: trialEnd,
-        prorationDate: null,
-      };
-    }
-    return {
-      ...base,
-      unchanged: false,
-      appliesAt: now.toISOString(),
-      dueToday: recurringAmounts,
-      proration: null,
-      nextRenewal: { at: addInterval(now, choice.interval).toISOString(), ...recurringAmounts },
-      firstChargeAt: now.toISOString(),
-      prorationDate: null,
-    };
-  };
+  const purchase = (): BillingPreview => ({
+    ...base,
+    unchanged: false,
+    appliesAt: now.toISOString(),
+    dueToday: recurringAmounts,
+    proration: null,
+    nextRenewal: { at: addInterval(now, choice.interval).toISOString(), ...recurringAmounts },
+    firstChargeAt: now.toISOString(),
+    prorationDate: null,
+  });
   if (!hasLiveSubscription(row)) return purchase();
 
   const current = currentChoice(row);
   if (!current)
     throw conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
 
+  // A subscription created with a trial end is still charged only at that end (ADR 029); a new
+  // checkout replaces one whose card never confirmed.
   if (row.status === 'trialing' && row.trial_ends_at) {
-    // The checkout replaces a plan whose card never confirmed, and charges now within the
-    // trial's last hour.
-    if (!firstChargeAtTrialEnd(row, now)) {
-      const subscription = await retrieveSubscription(
-        await billing.stripe!(),
-        row.stripe_subscription_id
-      );
-      if (!subscription.default_payment_method) return purchase();
-    }
+    const subscription = await retrieveSubscription(
+      await billing.stripe!(),
+      row.stripe_subscription_id
+    );
+    if (!subscription.default_payment_method) return purchase();
     const trialEnd = new Date(row.trial_ends_at).toISOString();
     return {
       ...base,
@@ -450,8 +417,8 @@ async function sync(
   });
 }
 
-// A card that failed to confirm during the trial leaves a plan chosen with no card behind it; the
-// owner's next attempt replaces that plan rather than finding it in the way.
+// A subscription created with a trial end whose card never confirmed has no card behind it; the
+// owner's next attempt replaces it rather than finding it in the way.
 async function withoutUnconfirmedTrialPlan(
   billing: StripeBilling,
   row: SubscriptionRow | null
@@ -493,9 +460,6 @@ export async function createSubscription(
   }
   const earlier = await settleEarlierCheckouts(billing, row, customerId);
 
-  const trialEndsAt = firstChargeAtTrialEnd(row, billing.now);
-  const trialEnd = trialEndsAt ? seconds(trialEndsAt) : undefined;
-
   const params: Stripe.SubscriptionCreateParams = {
     customer: customerId,
     items: phaseItems(choice, billing.catalogue),
@@ -507,7 +471,6 @@ export async function createSubscription(
       payment_method_types: ['card'],
     },
     billing_mode: { type: 'flexible' },
-    ...(trialEnd ? { trial_end: trialEnd } : {}),
     metadata: { organization_id: billing.organizationId },
     expand: ['latest_invoice.confirmation_secret', 'pending_setup_intent'],
   };
@@ -519,8 +482,8 @@ export async function createSubscription(
     idempotencyKey: `subscription-${billing.organizationId}-${await digest({ params, earlier })}`,
   });
 
-  // An incomplete subscription is not the organization's until its first payment succeeds; the
-  // webhook adopts it then.
+  // Choosing a plan ends the trial only once the first payment succeeds (ADR 029): until then the
+  // subscription stays incomplete, the trial carries on untouched, and the webhook adopts it.
   if (subscription.status !== 'incomplete') {
     await sync(billing, row, subscription, 'plan_chosen', { plan: choice.plan });
   }
@@ -610,7 +573,8 @@ export async function changeSubscription(
     return { clientSecret: null, intent: null };
   }
 
-  // Nothing is paid during a trial, so every change applies at once and nothing is prorated.
+  // A subscription created with a trial end is unpaid until that end, so a change applies at once
+  // and nothing is prorated.
   if (subscription.status === 'trialing') {
     const updated = await stripe.subscriptions.update(subscription.id, {
       items: itemChanges(subscription, choice, billing.catalogue),
@@ -677,7 +641,8 @@ export async function cancelSubscription(
     details: { actor: billing.userId, note: request.note ?? null },
   };
 
-  // Before the first charge nothing was paid: the plan goes at once and the trial carries on.
+  // A subscription created with a trial end was not paid yet: it goes at once and the trial
+  // carries on.
   if (subscription.status === 'trialing') {
     await releaseSchedule(billing, subscription);
     await stripe.subscriptions.cancel(subscription.id, { cancellation_details });

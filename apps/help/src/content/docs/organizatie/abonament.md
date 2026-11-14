@@ -63,9 +63,9 @@ Un cont nou începe cu 14 zile de probă, fără card. În acest timp ai tot ce 
 
 Insigna planului arată câte zile mai ai. În ultima săptămână apare și o bandă deasupra paginii, pe care o poți închide până a doua zi; în ultima zi nu se mai închide.
 
-Poți alege un plan oricând în perioada de probă, fără să pierzi zilele rămase: cardul se salvează atunci, dar prima plată se face abia în ziua în care s-ar fi încheiat proba. Până atunci lucrezi exact ca înainte, cu limitele probei, iar SMS-urile pornesc din ziua în care ai ales planul. Până la prima plată, codurile de semnare prin SMS se opresc la cât include treapta aleasă, de exemplu 50 la 250 de lucrători. Din acel moment insigna arată numele planului ales, iar banda nu mai apare. Dacă alegi în ultima oră a probei, prima plată se face pe loc.
+Poți alege un plan oricând în perioada de probă. Plătești atunci, iar plata încheie perioada de probă: zilele de probă rămase nu se păstrează. De la plată ai tot ce include treapta aleasă: codurile de semnare prin SMS și creditele AI ale lunii, plus creditele AI de bun venit (vezi [Creditele AI](#creditele-ai)). Insigna arată de atunci numele planului, iar banda probei nu mai apare.
 
-Dacă banca nu a confirmat cardul, pagina **Abonament** îți spune că nu e salvat: fără card, prima plată nu reușește. **Adaugă cardul** deschide din nou formularul cardului, cu planul ales.
+Dacă banca refuză cardul sau nu confirmi plata, nu se plătește nimic și perioada de probă continuă ca înainte, până la data ei de sfârșit. Poți încerca din nou oricând, cu același card sau cu altul.
 
 Dacă proba se încheie fără un plan, contul rămâne 30 de zile doar pentru citire (vezi [Contul doar pentru citire](#contul-doar-pentru-citire)).
 
@@ -73,12 +73,12 @@ Dacă proba se încheie fără un plan, contul rămâne 30 de zile doar pentru c
 
 Apasă **Alege un plan**. Pe pagina care se deschide:
 
-1. Alegi perioada de plată: **Lunar** sau **Anual**. Pe an, o lună costă zece douăsprezecimi din prețul lunar, rotunjit în jos la euro întreg: două luni gratuite.
+1. Alegi perioada de plată: **Anual** sau **Lunar**. Pe an, o lună costă zece douăsprezecimi din prețul lunar, rotunjit în jos la euro întreg: două luni gratuite. Pagina pornește pe **Anual**, ca pagina de prețuri; dacă ai deja un abonament, pornește pe perioada lui.
 2. Alegi câți lucrători au clienții tăi, cu butoanele minus și plus de lângă **Lucrători la clienții tăi** (vezi mai jos).
 3. Alegi planul: **Start** sau **Profesional**. Fiecare card arată prețul la treapta aleasă și ce include.
 4. Completezi cardul. Poți plăti și cu Apple Pay sau Google Pay, dacă telefonul sau browserul tău le are.
 
-În dreapta, **Rezumat** arată prețul pe lună sau pe an, TVA-ul și totalul, iar dedesubt ce se întâmplă azi: în perioada de probă, „Azi nu plătești nimic” și data primei plăți; altfel, suma pe care o plătești azi.
+În dreapta, **Rezumat** arată prețul pe lună sau pe an, TVA-ul și totalul, iar dedesubt suma pe care o plătești azi și când se reînnoiește abonamentul. În perioada de probă, tot acolo scrie că plata încheie perioada de probă și că zilele rămase din ea nu se păstrează.
 
 Banca îți poate cere să confirmi plata în aplicația ei sau printr-un cod. Fereastra băncii apare peste pagină; după confirmare, te întorci la pagina **Abonament**. Dacă banca refuză cardul, mesajul apare deasupra butonului și poți încerca alt card.
 
@@ -106,7 +106,7 @@ Aplicația nu te lasă să alegi o treaptă sub câți lucrători ai azi: dacă 
 Se numără:
 
 - **lucrătorii la clienți**: lucrătorii actuali ai clienților activi, față de treapta ta. Foștii lucrători, ofertele și clienții arhivați nu intră în număr;
-- **utilizatorii**: membrii organizației, cu tine cu tot. O invitație trimisă și neacceptată ține și ea un loc, iar sub bară scrie câte sunt în așteptare: pe Start, cu 3 utilizatori, nu poți trimite o invitație dacă sunteți 2 și mai e una în așteptare. Dacă alegi Start în perioada de probă, numărul lui de utilizatori contează de atunci. Când nu mai e loc, poți revoca o invitație sau, de pe Start, poți trece pe Profesional;
+- **utilizatorii**: membrii organizației, cu tine cu tot. O invitație trimisă și neacceptată ține și ea un loc, iar sub bară scrie câte sunt în așteptare: pe Start, cu 3 utilizatori, nu poți trimite o invitație dacă sunteți 2 și mai e una în așteptare. Când nu mai e loc, poți revoca o invitație sau, de pe Start, poți trece pe Profesional;
 - **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include treapta, de exemplu „252 din 300”. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără. În perioada de probă, fără un plan ales, rândul nu are bară: spune doar că totul pleacă pe email.
 
 Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune treapta următoare, cu **Treci pe treapta următoare**. Dacă după o lună ai tot mai mulți lucrători decât treapta, treci pe treapta următoare sau arhivează clienții cu care nu mai lucrezi.
@@ -130,12 +130,12 @@ Cu creditele AI, inteligența artificială citește documentația și fișele pe
 
 Câte credite AI ai:
 
-- **în perioada de probă**: 300 pentru toată perioada, care nu se reînnoiesc. Dacă alegi un plan în perioada de probă, păstrezi cele 300 până la prima plată;
+- **în perioada de probă**: 300 pentru toată perioada, care nu se reînnoiesc;
 - **pe un plan**: în fiecare lună, 2 pentru fiecare lucrător al treptei, plus 250. De exemplu 750 la 250 de lucrători, 3.250 la 1.500.
 
 Creditele AI ale lunii se reînnoiesc în ziua în care se reînnoiește abonamentul, iar cele nefolosite nu se adună.
 
-La prima plată primești, o singură dată, **credite AI de bun venit**, ca să-ți muți clienții: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Nu expiră și se folosesc după creditele lunii. Dacă treci pe o treaptă mai mare sau pe Profesional după ce le-ai primit, primești diferența. Pe pagina **Abonament**, sub bare, un panou arată câte credite de bun venit mai ai; înainte de prima plată, panoul îți spune câte primești și când.
+La prima plată primești, o singură dată, **credite AI de bun venit**, ca să-ți muți clienții: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Nu expiră și se folosesc după creditele lunii. Câte primești se stabilește la prima plată și nu se mai schimbă: dacă treci apoi pe o treaptă mai mare sau pe Profesional, nu primești altele, iar dacă treci pe una mai mică, nu se iau înapoi. Pe pagina **Abonament**, sub bare, un panou arată câte credite de bun venit mai ai.
 
 Bara creditelor se colorează la fel ca a codurilor SMS:
 
@@ -167,8 +167,6 @@ Ofertele, cu contractele lor, fac parte din Profesional. După trecerea la Start
 
 O schimbare programată pentru reînnoire apare pe pagină, cu data ei. O poți retrage cu **Renunță la schimbare**.
 
-În perioada de probă, orice schimbare se aplică pe loc și nu costă nimic; prima plată rămâne în ziua în care se încheie proba.
-
 ## Plata și facturile
 
 **Schimbă cardul** deschide o pagină sigură a procesatorului de plăți, unde înlocuiești cardul. Când termini, te întorci în aplicație. Datele cardului nu ajung niciodată la noi.
@@ -197,7 +195,7 @@ O schimbare programată pentru reînnoire se anulează odată cu abonamentul, ia
 
 Dacă anulezi cât timp o plată e restantă, accesul complet se încheie la data până la care se reîncearcă plata, iar pagina arată abonamentul ca anulat, cu **Reactivează**.
 
-Dacă ai ales un plan în perioada de probă și renunți la el înainte de prima plată, nu plătești nimic și rămâi în perioada de probă până la data ei de sfârșit.
+Un plan ales în perioada de probă înainte de 14 noiembrie 2026 se plătește abia la sfârșitul probei. Dacă renunți la el înainte de acea plată, nu plătești nimic și rămâi în perioada de probă până la data ei de sfârșit.
 
 ## Contul doar pentru citire
 

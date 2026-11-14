@@ -2,7 +2,6 @@ import {
   type BillingOverview,
   billingPlans,
   type PaidPlan,
-  planStep,
   selfServeLimits,
   stepFor,
 } from '@ssm-usor/contracts';
@@ -50,11 +49,8 @@ function periodLabel(overview: BillingOverview, view: SubscriptionView) {
     case 'enterprise':
       return 'Fără limite';
     case 'trial':
-      return 'În perioada de probă';
     case 'trialChosen':
-      return choice && subscription?.trialEndsAt
-        ? `Limitele ${shortPlanNames[choice.plan]}, de pe ${roDate(subscription.trialEndsAt)}`
-        : 'În perioada de probă';
+      return 'În perioada de probă';
     case 'readOnly':
       return 'Ce ai în cont';
     default: {
@@ -84,16 +80,14 @@ export function UsageCard({
   const employees = overview.usage.employees.used ?? 0;
   const members = overview.usage.members.used ?? 0;
 
-  // Until a trial ends the API counts against the trial's limits; once a plan is chosen, the
-  // tab shows the limits that plan brings at the trial's end.
-  const planLimits = choice && view === 'trialChosen';
-  const employeeLimit = planLimits ? choice.step : overview.usage.employees.limit;
-  const memberLimit = planLimits ? billingPlans[choice.plan].members : overview.usage.members.limit;
+  const inTrial = view === 'trial' || view === 'trialChosen';
+  const employeeLimit = overview.usage.employees.limit;
+  const memberLimit = overview.usage.members.limit;
   const next = choice ? nextStepOf(choice, employees) : null;
   const profesionalStep = stepFor('profesional', employees);
 
   let employeeHint: string;
-  if (!choice || view === 'trial') {
+  if (!choice || inTrial) {
     const startStep = stepFor('start', employees);
     employeeHint =
       employeeLimit === null
@@ -124,7 +118,7 @@ export function UsageCard({
   let memberHint: string;
   if (view === 'readOnly') {
     memberHint = 'Colegii văd tot, dar nu pot schimba nimic.';
-  } else if (!choice || view === 'trial') {
+  } else if (!choice || inTrial) {
     memberHint = `Start are ${billingPlans.start.members} utilizatori, Profesional ${billingPlans.profesional.members}.`;
   } else {
     const plan = billingPlans[choice.plan];
@@ -163,27 +157,10 @@ export function UsageCard({
         }
       : creditsMeterFor(
           credits,
-          creditsReaderOf(credits, {
-            planChosen: Boolean(subscription?.planChosen),
-            nextMonthly: choice
-              ? (planStep(choice.plan, choice.step)?.monthlyCredits ?? null)
-              : null,
-          })
+          creditsReaderOf(credits, { planChosen: Boolean(subscription?.planChosen) })
         );
-  const paidPlan =
-    choice && (view === 'active' || view === 'canceling' || view === 'pastDue')
-      ? choice.plan
-      : null;
-  const gift =
-    view === 'readOnly'
-      ? null
-      : giftPanelFor(credits, {
-          paid: paidPlan !== null,
-          welcomeCredits:
-            paidPlan && choice
-              ? (planStep(choice.plan, choice.step)?.welcomeCredits ?? null)
-              : null,
-        });
+  const paid = choice !== null && (view === 'active' || view === 'canceling' || view === 'pastDue');
+  const gift = view === 'readOnly' ? null : giftPanelFor(credits, { paid });
 
   const meters: Meter[] = [
     {
@@ -320,11 +297,6 @@ const giftLooks: Record<GiftPanel['look'], { panel: string; badge: string; value
   balance: {
     panel: 'border-success-border bg-success',
     badge: 'bg-brand-lime text-foreground',
-    value: 'text-foreground',
-  },
-  promise: {
-    panel: 'border-dashed border-success-foreground/45 bg-card',
-    badge: 'bg-success text-success-foreground',
     value: 'text-foreground',
   },
   spent: {

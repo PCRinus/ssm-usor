@@ -137,12 +137,12 @@ describe('the Abonament tab', () => {
     expect(screen.queryByTestId('invoices-card')).toBeNull();
   });
 
-  it('says a plan chosen in the trial costs nothing today, and lets the owner drop it', async () => {
+  it('says a plan chosen in the trial before 2026-11-14 costs nothing today, and lets the owner drop it', async () => {
     const subscription = trialChosenSubscription();
     mockApi({
       overview: overviewWith({
         subscription,
-        limits: { employees: 5000, members: 10, sms: 100 },
+        limits: { employees: 5000, members: 10, sms: null },
         owner: ownerPart({
           card: { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 },
           nextPayment: {
@@ -165,9 +165,11 @@ describe('the Abonament tab', () => {
     const card = screen.getByTestId('plan-card');
     expect(within(card).getByTestId('plan-amount').textContent).toContain('71,39 €');
     expect(card.textContent).toContain('Start, până la 500 de lucrători, lunar');
-    expect(screen.getByTestId('meter-employees').textContent).toContain('312 din 500');
-    expect(screen.getByTestId('meter-members').textContent).toContain('1 din 3');
-    expect(screen.getByTestId('meter-sms').textContent).toContain('0 din 100');
+    expect(screen.getByTestId('meter-employees').textContent).toContain('312 din 5.000');
+    expect(screen.getByTestId('meter-members').textContent).toContain('1 din 10');
+    expect(screen.getByTestId('meter-sms').textContent).toContain(
+      'În perioada de probă nu trimitem SMS'
+    );
     expect(screen.getByTestId('payment-card-number').textContent).toBe('Visa •••• 4242');
 
     const user = userEvent.setup();
@@ -188,7 +190,7 @@ describe('the Abonament tab', () => {
     ).toBeTruthy();
   });
 
-  it('says when a plan chosen in the trial has no confirmed card, and leads to the card form', async () => {
+  it('says when a plan chosen in the trial before 2026-11-14 has no confirmed card, and leads to the card form', async () => {
     mockApi({
       overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
     });
@@ -687,28 +689,7 @@ describe('the signing codes by SMS on the Abonament tab', () => {
     );
   });
 
-  it('shows the hard stop of a plan chosen during the trial, and a trial without SMS', async () => {
-    mockApi({
-      overview: overviewWith({
-        subscription: trialChosenSubscription(),
-        owner: ownerPart(),
-        sms: smsUsage({
-          used: 50,
-          included: 50,
-          allowance: 50,
-          cap: null,
-          capFactor: null,
-          state: 'stopped',
-        }),
-      }),
-    });
-    mount();
-    const hint = await screen.findByTestId('meter-sms-hint');
-    expect(hint.textContent).toMatch(/^Ai folosit cele 50 de până la prima plată\./);
-    expect(hint.className).toContain('text-destructive-foreground');
-    cleanup();
-    disposeRuntimes();
-
+  it('shows a trial without SMS', async () => {
     mockApi({ overview: overviewWith({ subscription: trialSubscription(), owner: ownerPart() }) });
     mount();
     const meter = await screen.findByTestId('meter-sms');
@@ -735,7 +716,7 @@ describe('the AI credits on the Abonament tab', () => {
     const gift = screen.getByTestId('credits-gift');
     expect(gift.dataset.look).toBe('balance');
     expect(gift.textContent).toContain('8.640');
-    expect(gift.textContent).toContain('Rămase din 10.000. Nu expiră');
+    expect(gift.textContent).toContain('Rămase din cele primite la prima plată. Nu expiră');
     expect(screen.getByTestId('usage-card').textContent).toContain(
       'Cu creditele AI, inteligența artificială citește documentele și fișele pe care le încarci.'
     );
@@ -759,7 +740,7 @@ describe('the AI credits on the Abonament tab', () => {
     expect(screen.getByTestId('credits-gift').dataset.look).toBe('spent');
   });
 
-  it('turns red when used up, and promises the gift to a plan chosen during the trial', async () => {
+  it('turns red when used up, and promises no welcome credits during the trial', async () => {
     mockApi({
       overview: overviewWith({
         subscription: monthly(),
@@ -780,20 +761,15 @@ describe('the AI credits on the Abonament tab', () => {
 
     mockApi({
       overview: overviewWith({
-        subscription: trialChosenSubscription(),
+        subscription: trialSubscription(),
         owner: ownerPart(),
-        credits: { used: 85, left: 215, giftPending: 2500 },
+        credits: { used: 85, left: 215 },
       }),
     });
     mount();
-    const gift = await screen.findByTestId('credits-gift');
-    expect(gift.dataset.look).toBe('promise');
-    expect(gift.textContent).toContain('La prima plată primești 2.500 de credite AI de bun venit.');
-    expect(screen.getByTestId('meter-credits-hint').textContent).toContain(
-      'Cele 300 din perioada de probă, până la prima plată.'
+    expect((await screen.findByTestId('meter-credits-hint')).textContent).toMatch(
+      /^Pentru toată perioada de probă, până pe .*\. Nu se reînnoiesc\.$/
     );
-    expect(screen.getByTestId('meter-credits-hint').textContent).toContain(
-      'primești 1.250 pe lună'
-    );
+    expect(screen.queryByTestId('credits-gift')).toBeNull();
   });
 });

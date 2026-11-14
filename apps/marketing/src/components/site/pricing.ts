@@ -439,7 +439,7 @@ export const pricingPage = {
     },
     {
       q: 'Pot încerca înainte să plătesc?',
-      a: `Da. Ai ${trialDays} zile cu tot ce include Profesional, fără card. În această perioadă codurile de semnare se trimit pe email, iar SMS-urile pornesc când alegi un plan. Ai 300 de credite AI pe toată perioada, iar creditele de bun venit vin la prima plată. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.`,
+      a: `Da. Ai ${trialDays} zile cu tot ce include Profesional, fără card. În această perioadă codurile de semnare se trimit pe email și ai 300 de credite AI pe toată perioada. Când alegi un plan, plătești atunci și perioada de probă se încheie; zilele rămase din ea nu se păstrează. De la prima plată ai SMS-urile și creditele AI ale treptei, plus creditele de bun venit. Dacă nu alegi un plan, contul rămâne încă 30 de zile doar pentru citire: vezi și descarci tot, apoi datele se șterg.`,
     },
     {
       q: 'Ce sunt creditele AI?',

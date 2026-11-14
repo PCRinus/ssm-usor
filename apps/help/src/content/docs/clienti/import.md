@@ -154,7 +154,7 @@ Citirea documentelor și a fotografiilor se socotește în credite AI. Un credit
 
 În perioada de probă ai 300 de credite AI pentru toată perioada. Un plan are în fiecare lună 2 credite AI pentru fiecare lucrător al treptei tale, plus 250: de exemplu 750 la 250 de lucrători, 3.250 la 1.500. Luna e cea a abonamentului, iar creditele nefolosite nu trec în luna următoare.
 
-La prima plată primești, o singură dată, creditele AI de bun venit, ca să-ți aduci toți clienții în aplicație: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Ele nu expiră și se folosesc după cele ale lunii. Dacă treci pe o treaptă mai mare sau de la Start la Profesional, primești pe loc diferența de credite a lunii și, dacă aveai deja cadoul, diferența de cadou.
+La prima plată primești, o singură dată, creditele AI de bun venit, ca să-ți aduci toți clienții în aplicație: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Ele nu expiră și se folosesc după cele ale lunii. Dacă treci pe o treaptă mai mare sau de la Start la Profesional, primești pe loc diferența de credite a lunii; creditele de bun venit rămân cele primite la prima plată.
 
 Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele AI](/organizatie/abonament/#creditele-ai)).
 

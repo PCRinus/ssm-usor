@@ -91,7 +91,6 @@ describe('GET /billing', () => {
         shortfall: 0,
         left: 300,
         giftLeft: 0,
-        giftPending: 0,
         period: 'trial',
         periodStart: trial.created_at,
         periodEnd: trial.trial_ends_at,
@@ -294,21 +293,25 @@ describe('GET /billing', () => {
 });
 
 describe('POST /billing/preview', () => {
-  it('prices a plan chosen in the trial: nothing today, the first charge at its end', async () => {
+  it('prices a plan chosen in the trial as paid today, its period starting now', async () => {
     const fake = createFake();
     fake.tables.subscriptions!.push(subscriptionRow());
-    const trialEnd = new Date(row(fake).trial_ends_at as string).toISOString();
 
+    const before = Date.now();
     const response = await request('POST', '/billing/preview', { ...start, step: 500 });
 
     expect(response.status).toBe(200);
-    expect(billingPreviewSchema.parse(await response.json())).toMatchObject({
+    const body = billingPreviewSchema.parse(await response.json());
+    expect(body).toMatchObject({
       problems: [],
       recurring: { subtotalCents: 5900, vatCents: 1239, totalCents: 7139 },
-      dueToday: { totalCents: 0 },
-      nextRenewal: { at: trialEnd, totalCents: 7139 },
-      firstChargeAt: trialEnd,
+      dueToday: { subtotalCents: 5900, vatCents: 1239, totalCents: 7139 },
+      nextRenewal: { totalCents: 7139 },
     });
+    expect(Date.parse(body.firstChargeAt)).toBeGreaterThanOrEqual(before - 1000);
+    expect(Date.parse(body.firstChargeAt)).toBeLessThanOrEqual(Date.now());
+    expect(Date.parse(body.nextRenewal.at)).toBeLessThan(Date.now() + 32 * day * 1000);
+    expect(Date.parse(body.nextRenewal.at)).toBeGreaterThan(Date.now() + 27 * day * 1000);
   });
 
   it('says which of Start’s limits the organization passes, and the step it needs', async () => {
@@ -404,21 +407,33 @@ describe('POST /billing/preview', () => {
     expect(body.dueToday).toEqual({ subtotalCents: 38250, vatCents: 8033, totalCents: 46283 });
   });
 
-  it("charges now within the trial's last hour, as the checkout will", async () => {
+  it('prices a change of a plan chosen in the trial before 2026-11-14 for the trial’s end', async () => {
     const fake = createFake();
+    const trialEnd = new Date(Date.now() + 10 * day * 1000).toISOString();
     fake.tables.subscriptions!.push(
-      subscriptionRow({ trial_ends_at: new Date(Date.now() + 30 * 60_000).toISOString() })
+      paidRow(start, { status: 'trialing', trial_ends_at: trialEnd, access_until: trialEnd })
     );
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => ({
+      ...stripeSubscription({
+        status: 'trialing',
+        choice: start,
+        trialEnd: Math.floor(Date.parse(trialEnd) / 1000),
+      }),
+      default_payment_method: 'pm_1Card',
+    });
 
     const body = await previewOf(await request('POST', '/billing/preview', pro));
 
-    expect(body.dueToday.totalCents).toBe(18029);
-    expect(Date.parse(body.firstChargeAt)).toBeLessThanOrEqual(Date.now());
+    expect(body).toMatchObject({
+      dueToday: { totalCents: 0 },
+      firstChargeAt: trialEnd,
+      nextRenewal: { at: trialEnd, totalCents: 18029 },
+    });
   });
 
-  it("charges now in the trial's last hour for a plan whose card never confirmed", async () => {
+  it('prices a new checkout for a plan chosen in the trial whose card never confirmed', async () => {
     const fake = createFake();
-    const trialEnd = new Date(Date.now() + 30 * 60_000).toISOString();
+    const trialEnd = new Date(Date.now() + 10 * day * 1000).toISOString();
     fake.tables.subscriptions!.push(
       paidRow(start, { status: 'trialing', trial_ends_at: trialEnd, access_until: trialEnd })
     );
@@ -428,6 +443,7 @@ describe('POST /billing/preview', () => {
     const body = await previewOf(await request('POST', '/billing/preview', pro));
 
     expect(body.dueToday.totalCents).toBe(18029);
+    expect(Date.parse(body.firstChargeAt)).toBeLessThanOrEqual(Date.now());
   });
 
   it('returns the moment it prorated from', async () => {
@@ -486,35 +502,33 @@ describe('POST /billing/subscription', () => {
     fake.stripe['POST /v1/subscriptions'] = () => subscription;
   }
 
-  it('saves the card during the trial and charges at its end', async () => {
+  it('charges a plan chosen during the trial now, and leaves the trial as it is until it is paid', async () => {
     const fake = createFake();
-    fake.tables.subscriptions!.push(subscriptionRow());
-    const trialEnd = Math.floor(Date.parse(row(fake).trial_ends_at as string) / 1000);
+    const trial = subscriptionRow();
+    fake.tables.subscriptions!.push(trial);
     creating(fake, {
-      ...stripeSubscription({
-        status: 'trialing',
-        choice: { ...start, step: 500 },
-        trialEnd,
-        periodEnd: trialEnd,
-      }),
-      pending_setup_intent: {
-        id: 'seti_1',
-        object: 'setup_intent',
-        client_secret: 'seti_1_secret',
+      ...stripeSubscription({ status: 'incomplete', choice: { ...start, step: 500 } }),
+      latest_invoice: {
+        id: 'in_1First',
+        object: 'invoice',
+        status: 'open',
+        amount_remaining: 7139,
+        confirmation_secret: { client_secret: 'pi_1_secret', type: 'payment_intent' },
       },
     });
 
     const response = await request('POST', '/billing/subscription', { ...start, step: 500 });
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({ clientSecret: 'seti_1_secret', intent: 'setup' });
+    expect(await response.json()).toEqual({ clientSecret: 'pi_1_secret', intent: 'payment' });
     expect(stripeWrites(fake, '/v1/customers')[0]).toMatchObject({
       name: 'Prevenție Activă SRL',
       email: owner.email,
       'metadata[organization_id]': organizationId,
       'preferred_locales[0]': 'ro',
     });
-    expect(stripeWrites(fake, '/v1/subscriptions')[0]).toMatchObject({
+    const sent = stripeWrites(fake, '/v1/subscriptions')[0]!;
+    expect(sent).toMatchObject({
       customer: 'cus_1Test',
       'items[0][price]': priceIdOf('start_500_monthly_v2'),
       'items[0][quantity]': '1',
@@ -524,14 +538,18 @@ describe('POST /billing/subscription', () => {
       'payment_settings[save_default_payment_method]': 'on_subscription',
       'payment_settings[payment_method_types][0]': 'card',
       'billing_mode[type]': 'flexible',
-      trial_end: String(trialEnd),
       'metadata[organization_id]': organizationId,
     });
+    expect(sent.trial_end).toBeUndefined();
     expect(row(fake)).toMatchObject({
-      plan: 'start',
+      plan: 'profesional',
       status: 'trialing',
-      stripe_subscription_id: 'sub_1Test',
-      employee_step: 500,
+      trial_ends_at: trial.trial_ends_at,
+      access_until: trial.access_until,
+      stripe_customer_id: 'cus_1Test',
+      stripe_subscription_id: null,
+      employee_step: null,
+      first_paid_at: null,
     });
   });
 
@@ -599,7 +617,7 @@ describe('POST /billing/subscription', () => {
     expect(response.status).toBe(400);
   });
 
-  it('replaces a plan chosen in the trial whose card never confirmed', async () => {
+  it('replaces a plan chosen in the trial before 2026-11-14 whose card never confirmed, and charges now', async () => {
     const fake = createFake();
     fake.tables.subscriptions!.push(
       subscriptionRow({
@@ -622,24 +640,31 @@ describe('POST /billing/subscription', () => {
     });
     fake.stripe['POST /v1/customers/cus_1Test'] = () => ({ id: 'cus_1Test', object: 'customer' });
     creating(fake, {
-      ...stripeSubscription({ status: 'trialing', choice: pro, trialEnd, periodEnd: trialEnd }),
-      pending_setup_intent: {
-        id: 'seti_2',
-        object: 'setup_intent',
-        client_secret: 'seti_2_secret',
+      ...stripeSubscription({ status: 'incomplete', choice: pro }),
+      latest_invoice: {
+        id: 'in_1First',
+        object: 'invoice',
+        status: 'open',
+        amount_remaining: 18029,
+        confirmation_secret: { client_secret: 'pi_2_secret', type: 'payment_intent' },
       },
     });
 
     const response = await request('POST', '/billing/subscription', pro);
 
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({ clientSecret: 'seti_2_secret', intent: 'setup' });
+    expect(await response.json()).toEqual({ clientSecret: 'pi_2_secret', intent: 'payment' });
+    expect(stripeWrites(fake, '/v1/subscriptions')[0]!.trial_end).toBeUndefined();
     expect(
       fake.calls.some(
         (call) => call.method === 'DELETE' && call.url.pathname === '/v1/subscriptions/sub_1Old'
       )
     ).toBe(true);
-    expect(row(fake)).toMatchObject({ plan: 'profesional', stripe_subscription_id: 'sub_1Test' });
+    expect(row(fake)).toMatchObject({
+      plan: 'profesional',
+      status: 'trialing',
+      stripe_subscription_id: null,
+    });
   });
 
   async function checkoutKey(earlier: unknown[]) {
@@ -654,11 +679,13 @@ describe('POST /billing/subscription', () => {
     );
     fake.stripe['POST /v1/customers/cus_1Test'] = () => ({ id: 'cus_1Test', object: 'customer' });
     creating(fake, {
-      ...stripeSubscription({ status: 'trialing', choice: pro }),
-      pending_setup_intent: {
-        id: 'seti_1',
-        object: 'setup_intent',
-        client_secret: 'seti_1_secret',
+      ...stripeSubscription({ status: 'incomplete', choice: pro }),
+      latest_invoice: {
+        id: 'in_1First',
+        object: 'invoice',
+        status: 'open',
+        amount_remaining: 18029,
+        confirmation_secret: { client_secret: 'pi_1_secret', type: 'payment_intent' },
       },
     });
     fake.stripe['GET /v1/subscriptions'] = () => stripeList(earlier);
@@ -995,7 +1022,7 @@ describe('PATCH /billing/subscription', () => {
     );
   });
 
-  it('changes a plan chosen in the trial at once, with nothing prorated', async () => {
+  it('changes a plan chosen in the trial before 2026-11-14 at once, with nothing prorated', async () => {
     const fake = createFake();
     const trialEnd = now() + 10 * day;
     fake.tables.subscriptions!.push(
@@ -1061,7 +1088,7 @@ describe('cancelling and resuming', () => {
     );
   });
 
-  it('drops a plan chosen in the trial at once and returns to the plain trial', async () => {
+  it('drops a plan chosen in the trial before 2026-11-14 at once and returns to the plain trial', async () => {
     const fake = createFake();
     const trialEnd = new Date(Date.now() + 10 * day * 1000).toISOString();
     fake.tables.subscriptions!.push(
@@ -1208,7 +1235,6 @@ describe('the credits meter', () => {
       shortfall: 4,
       left: 676,
       giftLeft: 2500,
-      giftPending: 0,
       period: 'month',
       periodStart: anchor,
       state: 'ok',
@@ -1244,7 +1270,7 @@ describe('the credits meter', () => {
     expect(await creditsOf()).toMatchObject({ left: 0, giftLeft: 40, state: 'near' });
   });
 
-  it('keeps a plan chosen during the trial at the trial’s 300, and names the gift its first payment brings', async () => {
+  it('keeps a plan chosen during the trial before 2026-11-14 at the trial’s 300 until its first payment', async () => {
     const trialEnd = new Date((now() + 5 * day) * 1000).toISOString();
     const fake = meterFake({ used: 100 });
     fake.tables.subscriptions!.push(
@@ -1259,7 +1285,6 @@ describe('the credits meter', () => {
     expect(await creditsOf()).toMatchObject({
       included: 300,
       left: 200,
-      giftPending: 10000,
       period: 'trial',
       periodEnd: trialEnd,
     });
@@ -1279,7 +1304,6 @@ describe('the credits meter', () => {
     expect(credits).toMatchObject({
       included: 1500,
       left: 1488,
-      giftPending: 0,
       period: 'month',
     });
     expect(new Date(credits.periodStart) > new Date(trial.created_at as string)).toBe(true);
@@ -1355,9 +1379,9 @@ describe('the SMS meter', () => {
     });
   });
 
-  it('stops a plan chosen during the trial at its own allowance until the first payment, on a month ending with the trial', async () => {
+  it('sends no SMS for a plan chosen during the trial before 2026-11-14 until its first payment', async () => {
     const trialEnd = new Date((now() + 5 * day) * 1000).toISOString();
-    meterFake({ used: 50, overage: 0, granted: 0 }).tables.subscriptions!.push(
+    meterFake({ used: 0, overage: 0, granted: 0 }).tables.subscriptions!.push(
       paidRow(start, {
         status: 'trialing',
         trial_ends_at: trialEnd,
@@ -1366,13 +1390,7 @@ describe('the SMS meter', () => {
       })
     );
 
-    expect(await smsOf()).toMatchObject({
-      included: 50,
-      cap: null,
-      capFactor: null,
-      periodEnd: trialEnd,
-      state: 'stopped',
-    });
+    expect(await smsOf()).toMatchObject({ included: 0, state: 'none' });
   });
 
   it("gives a tester's trial Profesional's codes with a hard stop", async () => {

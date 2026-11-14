@@ -61,7 +61,7 @@ describe('SMS usage notice', () => {
     }
   });
 
-  it('at 80 % before the first payment, says the codes stop, without a price', async () => {
+  it('at 80 % with a hard stop, says the codes stop, without a price', async () => {
     const email = await sendNotice(hardStop);
 
     expect(email.subject).toBe('Ai folosit 40 din cele 50 de coduri SMS ale lunii');

@@ -4,7 +4,6 @@ import {
   type ImportCredits,
   importCredits,
   type ImportKind,
-  planStep,
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
@@ -39,7 +38,7 @@ export interface CreditsBalance {
   // scanned pages than were left.
   available: number;
   usage: BillingCreditsUsage;
-  renewal: { at: string; monthly: number; gift: number } | null;
+  renewal: { at: string; monthly: number } | null;
   trial: boolean;
   // A paid subscription had its gift at the first payment; a trial and a tester's never did.
   hadGift: boolean;
@@ -72,13 +71,9 @@ function renewalOf(
   if (usage.period === 'month') {
     // A paid subscription with an end in sight is cancelled: its month does not come again.
     if (subscription.status !== 'trialing' && subscription.accessUntil) return null;
-    return { at: usage.periodEnd, monthly: usage.allowance ?? 0, gift: 0 };
+    return { at: usage.periodEnd, monthly: usage.allowance ?? 0 };
   }
-  if (!subscription.planChosen || subscription.plan === 'enterprise') return null;
-  const step =
-    subscription.step === null ? undefined : planStep(subscription.plan, subscription.step);
-  if (!step) return null;
-  return { at: usage.periodEnd, monthly: step.monthlyCredits, gift: usage.giftPending };
+  return null;
 }
 
 export type CreditsRefusal =
@@ -151,10 +146,6 @@ function renewalSentence(balance: CreditsBalance, kind: ImportKind) {
       : null;
   }
   const day = creditsDay(renewal.at);
-  if (balance.trial) {
-    const gift = renewal.gift > 0 ? ` și ${creditsLabel(renewal.gift)} de bun venit` : '';
-    return `Pe ${day}, la prima plată, primești ${creditsLabel(renewal.monthly)} pe lună${gift}.`;
-  }
   return kind === 'client'
     ? `Pe ${day} primești alte ${formatCount(renewal.monthly)} și poți porni importul.`
     : `Pe ${day} primești alte ${formatCount(renewal.monthly)}.`;
