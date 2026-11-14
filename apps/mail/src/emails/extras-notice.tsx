@@ -22,41 +22,49 @@ export function credits(count: number) {
 
 const what = { sms: 'codurile SMS extra', credits: 'creditele AI extra' } as const;
 
-export function subject({ kind, level, ceilingCents }: ExtrasNoticeProps) {
+const blocks = (credits: number) =>
+  credits / 100 === 1 ? 'un pachet de 100' : `${credits / 100} pachete de 100`;
+
+export function subject({ kind, level, used, limit }: ExtrasNoticeProps) {
+  if (kind === 'sms') {
+    return level === 'near'
+      ? `Ai trimis ${used} din cele ${codes(limit)} SMS extra ale plafonului`
+      : 'Ai atins plafonul pentru codurile SMS extra';
+  }
   return level === 'near'
-    ? `Ai folosit 80 % din plafonul pentru ${what[kind]}`
-    : `Ai atins plafonul de ${euro(ceilingCents)} pentru ${what[kind]}`;
+    ? `Ai cumpărat ${credits(used)} extra din cele ${limit} ale plafonului`
+    : 'Plafonul pentru creditele AI extra e atins';
 }
 
 export default function ExtrasNotice(props: ExtrasNoticeProps) {
   const { kind, level, organizationName, ceilingCents, spentCents, used, limit, periodEnd } = props;
   const renewal = fullDate.format(new Date(periodEnd));
   const ceiling = euro(ceilingCents);
-  const usedWords = kind === 'sms' ? `${codes(used)} extra` : `${credits(used)} extra`;
-  const limitWords = kind === 'sms' ? codes(limit) : credits(limit);
   const reason = `Primești acest email pentru că ești adminul organizației ${organizationName} în SSM Ușor și ai pornit Extra. Îl trimitem o singură dată pe lună, când se întâmplă.`;
-  const after =
+  const smsAfter = `Până pe ${renewal}, codurile de semnare pleacă pe email; lucrătorii fără email nu pot semna până atunci.`;
+  const creditsAfter = `Până pe ${renewal}, un import pe care creditele rămase nu-l acoperă nu pornește; unul mai mic pornește.`;
+  const summary =
     kind === 'sms'
-      ? `Până pe ${renewal}, codurile de semnare pleacă pe email; lucrătorii fără email nu pot semna până atunci.`
-      : `Până pe ${renewal}, importurile noi pornesc doar dacă le ajung creditele rămase.`;
+      ? `Luna aceasta, ${organizationName} a trimis ${codes(used)} extra, adică ${euro(spentCents)} + TVA din plafonul de ${ceiling} pe lună, care ajunge pentru ${codes(limit)}.`
+      : `Luna aceasta, ${organizationName} a cumpărat ${credits(used)} extra, în ${blocks(used)}: ${euro(spentCents)} + TVA. Plafonul de ${ceiling} pe lună ajunge pentru ${credits(limit)}, în ${blocks(limit)}.`;
+  const next =
+    level === 'near'
+      ? kind === 'sms'
+        ? `La plafon, codurile de semnare pleacă pe email până pe ${renewal}, iar lucrătorii fără email nu pot semna până atunci.`
+        : `Când încă un pachet de 1,50 € nu mai încape în plafon, ne oprim. ${creditsAfter}`
+      : kind === 'sms'
+        ? `Ne-am oprit aici, ca factura să nu treacă de plafon. ${smsAfter}`
+        : `Încă un pachet de 1,50 € nu mai încape în plafon, așa că ne-am oprit aici. ${creditsAfter}`;
 
   return (
     <Layout preview={subject(props)} reason={reason}>
       <Title>
         {level === 'near'
-          ? `Plafonul pentru ${what[kind]} se apropie de capăt`
+          ? `${kind === 'sms' ? 'Codurile SMS extra' : 'Creditele AI extra'} se apropie de plafon`
           : `Ai atins plafonul pentru ${what[kind]}`}
       </Title>
-      <Paragraph>
-        {`Luna aceasta, ${organizationName} a folosit ${usedWords}, adică ${euro(spentCents)} + TVA din plafonul de ${ceiling} pe lună, care ajunge pentru ${limitWords}.`}
-      </Paragraph>
-      <Paragraph>
-        {level === 'near'
-          ? kind === 'sms'
-            ? `La plafon, codurile de semnare pleacă pe email până pe ${renewal}, iar lucrătorii fără email nu pot semna până atunci.`
-            : `La plafon, până pe ${renewal} importurile noi pornesc doar dacă le ajung creditele rămase.`
-          : `Ne-am oprit aici, ca factura să nu treacă de plafon. ${after}`}
-      </Paragraph>
+      <Paragraph>{summary}</Paragraph>
+      <Paragraph>{next}</Paragraph>
       <Paragraph>
         {`Suma apare pe factura din ${renewal}. Plafonul îl mărești, îl micșorezi sau oprești Extra oricând, din Abonament.`}
       </Paragraph>

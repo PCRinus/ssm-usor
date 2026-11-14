@@ -132,7 +132,7 @@ describe('refusing an import the credits do not cover', () => {
     expect(creditsRefusal(balance, 25)).toEqual({ kind: 'none' });
     expect(noneText('client', balance)).toEqual({
       title: 'Nu mai ai credite AI',
-      text: 'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente, decât cu credite AI extra, pe care adminul le pornește în Abonament, la Extra.',
+      text: 'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente. Poți porni Extra pentru creditele AI din Abonament.',
     });
   });
 
@@ -318,5 +318,33 @@ describe('a member and blocks already bought', () => {
     )!;
     expect(balance.available).toBe(100);
     expect(creditsRefusal(balance, 100)).toBeNull();
+  });
+});
+
+describe('the hint about AI extras when the credits ran out', () => {
+  const out = { left: 0, giftLeft: 0, state: 'out' as const };
+  it('tells the owner of a paid plan where to turn them on, and a member that the admin can', () => {
+    expect(noneText('client', creditsBalance(meWithCredits(out))).text).toContain(
+      'Poți porni Extra pentru creditele AI din Abonament.'
+    );
+    expect(noneText('client', creditsBalance(meWithCredits(out), { owner: false })).text).toContain(
+      'Adminul poate porni Extra pentru creditele AI.'
+    );
+  });
+
+  it('speaks of the ceiling once extras are on and used up', () => {
+    expect(
+      noneText('client', creditsBalance(meWithCredits({ ...out, extrasOn: true }))).text
+    ).toContain('Ai folosit și creditele AI extra pe care le permite plafonul');
+  });
+
+  it('says nothing of extras to a tester or a payment past due', () => {
+    const tester = summaryOf(trialSubscription(20));
+    const pastDue = summaryOf(activeSubscription({ interval: 'month', status: 'past_due' }));
+    for (const subscription of [tester, pastDue]) {
+      expect(
+        noneText('client', creditsBalance(meWithCredits(out, subscription))).text
+      ).not.toContain('Extra');
+    }
   });
 });

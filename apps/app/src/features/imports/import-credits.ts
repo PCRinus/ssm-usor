@@ -46,6 +46,8 @@ export interface CreditsBalance {
   // A member is told no extras counts: when extras are on, or the server says credits remain that
   // the member cannot see (a block already bought), the server decides whether an import starts.
   serverDecides: boolean;
+  // A paid subscription in good standing, the only one that can have extras.
+  paid: boolean;
 }
 
 type Account = {
@@ -75,6 +77,7 @@ export function creditsBalance(
       usage.state !== 'out' &&
       usage.state !== 'negative' &&
       (usage.extrasOn || usage.left + usage.giftLeft <= 0),
+    paid: Boolean(subscription?.planChosen) && subscription?.status === 'active',
   };
 }
 
@@ -213,8 +216,20 @@ export function noneText(kind: ImportKind, balance: CreditsBalance | null) {
   const what = kind === 'client' ? 'din documente' : 'din fișe';
   return {
     title: 'Nu mai ai credite AI',
-    text: `${used}${renewal ? ` ${renewal}` : ''} Până atunci nu poți porni un import nou ${what}${balance && !balance.trial ? ', decât cu credite AI extra, pe care adminul le pornește în Abonament, la Extra' : ''}.`,
+    text: `${used}${renewal ? ` ${renewal}` : ''} Până atunci nu poți porni un import nou ${what}.${balance ? extrasHint(balance) : ''}`,
   };
+}
+
+function extrasHint(balance: CreditsBalance) {
+  if (!balance.paid) return '';
+  if (balance.usage.extrasOn) {
+    return balance.owner
+      ? ' Ai folosit și creditele AI extra pe care le permite plafonul; îl poți mări din Abonament, la Extra.'
+      : ' S-au folosit și creditele AI extra pe care le permite plafonul ales de admin.';
+  }
+  return balance.owner
+    ? ' Poți porni Extra pentru creditele AI din Abonament.'
+    : ' Adminul poate porni Extra pentru creditele AI.';
 }
 
 export function refusalSentence(short: CreditsShort) {

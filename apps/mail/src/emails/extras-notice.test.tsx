@@ -36,10 +36,10 @@ describe('extras notice', () => {
   it('at 80 % of the SMS ceiling, says what was used of it and what happens at it', async () => {
     const email = await send(sms);
 
-    expect(email.subject).toBe('Ai folosit 80 % din plafonul pentru codurile SMS extra');
+    expect(email.subject).toBe('Ai trimis 80 din cele 100 de coduri SMS extra ale plafonului');
     for (const body of [email.html, email.text]) {
       expect(body).toContain(
-        'a folosit 80 de coduri extra, adică 8 € + TVA din plafonul de 10 € pe lună, care ajunge pentru 100 de coduri.'
+        'a trimis 80 de coduri extra, adică 8 € + TVA din plafonul de 10 € pe lună, care ajunge pentru 100 de coduri.'
       );
       expect(body).toContain('La plafon, codurile de semnare pleacă pe email până pe 01.12.2026');
       expect(body).toContain('o singură dată pe lună');
@@ -57,10 +57,29 @@ describe('extras notice', () => {
       limit: 600,
     });
 
-    expect(email.subject).toBe('Ai atins plafonul de 10 € pentru creditele AI extra');
-    expect(email.text).toContain('a folosit 600 de credite AI extra, adică 9 € + TVA');
-    expect(email.text).toContain('importurile noi pornesc doar dacă le ajung creditele rămase');
+    expect(email.subject).toBe('Plafonul pentru creditele AI extra e atins');
+    expect(email.text).toContain(
+      'a cumpărat 600 de credite AI extra, în 6 pachete de 100: 9 € + TVA. Plafonul de 10 € pe lună ajunge pentru 600 de credite AI, în 6 pachete de 100.'
+    );
+    expect(email.text).toContain('Încă un pachet de 1,50 € nu mai încape în plafon');
+    expect(email.text).toContain('unul mai mic pornește');
     expect(email.html).toContain('Mărește plafonul');
+  });
+
+  it('at 80 % of the AI credits the ceiling buys, words it by the credits, not the euro', async () => {
+    const email = await send({
+      ...sms,
+      kind: 'credits',
+      ceilingCents: 1000,
+      spentCents: 750,
+      used: 500,
+      limit: 600,
+    });
+
+    expect(email.subject).toBe('Ai cumpărat 500 de credite AI extra din cele 600 ale plafonului');
+    expect(email.text).toContain(
+      'Când încă un pachet de 1,50 € nu mai încape în plafon, ne oprim.'
+    );
   });
 
   it.each([
