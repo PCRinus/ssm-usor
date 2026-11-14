@@ -172,7 +172,7 @@ describe('the pricing cards', () => {
 
   it('say what costs more than the allowance, at the decided rates', () => {
     expect(cardStates(500, 'annual')[0]!.extra.replaceAll('\u00a0', ' ')).toBe(
-      'Extra: 0,10 € / SMS, 1,50 € / 100 de credite AI'
+      '0,10 € / SMS extra\n1,50 € / 100 de credite AI extra'
     );
     expect(cardStates(1000, 'annual')[1]!.extra).toBe(cardStates(500, 'annual')[1]!.extra);
   });

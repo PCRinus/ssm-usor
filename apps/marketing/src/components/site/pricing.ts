@@ -170,7 +170,7 @@ export function count(n: number, noun: string): string {
 
 const keep = (text: string) => text.replaceAll(' ', '\u00a0');
 const extraRates = `${keep(`${eur(extras.sms)} / SMS`)}, ${keep(`${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')}`)}`;
-const extraLine = `Extra: ${extraRates}`;
+const extraLine = `${eur(extras.sms)} / SMS extra\n${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')} extra`;
 const overText = `Peste ${count(maxWorkers, 'lucrători')}, îți facem o ofertă.`;
 
 export const pricingSection = {
