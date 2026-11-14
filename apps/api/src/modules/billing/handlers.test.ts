@@ -69,6 +69,7 @@ describe('GET /billing', () => {
     });
     expect(body.usage).toEqual({
       employees: { used: 120, limit: 5000 },
+      employeesOverStep: null,
       members: { used: 1, limit: 10 },
       invitations: 0,
       smsThisMonth: {
@@ -155,6 +156,28 @@ describe('GET /billing', () => {
 
     expect(body.usage.invitations).toBe(2);
     expect(body.usage.members).toEqual({ used: 1, limit: 3 });
+  });
+
+  it('says to every member since when the employees are over the step and until when one is added', async () => {
+    const fake = createFake({
+      membership: { user_id: owner.id, role: 'specialist', access: 'full' },
+      employeesOverStep: {
+        employees: 262,
+        employee_limit: 250,
+        over_since: '2026-11-02T10:00:00+00:00',
+        last_day: '2026-12-02',
+        blocked: false,
+      },
+    });
+    fake.tables.subscriptions!.push(paidRow({ plan: 'start', step: 250, interval: 'month' }));
+
+    const body = billingOverviewSchema.parse(await (await request('GET', '/billing')).json());
+
+    expect(body.usage.employeesOverStep).toEqual({
+      since: '2026-11-02T10:00:00.000Z',
+      lastDay: '2026-12-02',
+      blocked: false,
+    });
   });
 
   it('gives an impersonating admin the members’ view', async () => {

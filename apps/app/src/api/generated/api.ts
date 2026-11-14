@@ -322,6 +322,15 @@ export type MeResponseCreditsThisMonth = {
 /**
  * @nullable
  */
+export type MeResponseEmployeesOverStep = {
+  since: string;
+  lastDay: string;
+  blocked: boolean;
+} | null;
+
+/**
+ * @nullable
+ */
 export type MeResponseFeatures = {
   offers: boolean;
 } | null;
@@ -340,6 +349,8 @@ export interface MeResponse {
   smsThisMonth?: MeResponseSmsThisMonth;
   /** @nullable */
   creditsThisMonth?: MeResponseCreditsThisMonth;
+  /** @nullable */
+  employeesOverStep?: MeResponseEmployeesOverStep;
   /** @nullable */
   features?: MeResponseFeatures;
 }
@@ -13513,6 +13524,15 @@ export type BillingOverviewUsageEmployees = {
   limit: number | null;
 };
 
+/**
+ * @nullable
+ */
+export type BillingOverviewUsageEmployeesOverStep = {
+  since: string;
+  lastDay: string;
+  blocked: boolean;
+} | null;
+
 export type BillingOverviewUsageMembers = {
   /**
    * @minimum 0
@@ -13618,6 +13638,8 @@ export type BillingOverviewUsageCreditsThisMonth = {
 
 export type BillingOverviewUsage = {
   employees: BillingOverviewUsageEmployees;
+  /** @nullable */
+  employeesOverStep: BillingOverviewUsageEmployeesOverStep;
   members: BillingOverviewUsageMembers;
   /** @minimum 0 */
   invitations: number;

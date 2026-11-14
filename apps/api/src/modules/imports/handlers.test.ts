@@ -1166,6 +1166,19 @@ describe('POST /imports/{importId}/confirm', () => {
     expect(sent).toEqual([]);
   });
 
+  it('passes on the refusal of a client with employees a month past the step', async () => {
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(ready());
+      if (url.pathname === '/rest/v1/rpc/apply_client_import') {
+        return Response.json({ code: 'STP01', message: 'over the step' }, { status: 400 });
+      }
+    });
+    const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ reason: 'employees_over_step' });
+    expect(sent).toEqual([]);
+  });
+
   it('answers a row the client no longer has as a conflict, not an error', async () => {
     mockUpstream(({ url }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(ready());
