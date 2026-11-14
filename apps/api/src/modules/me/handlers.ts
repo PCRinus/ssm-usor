@@ -86,7 +86,13 @@ async function usageOf(c: Context<ApiEnv>, organizationId: string) {
     const [smsThisMonth, creditsThisMonth, employeesOverStep] = await Promise.all([
       smsUsageOf(store, organizationId, row, now),
       creditsUsageOf(creditsStore(db), organizationId, row, now),
-      employeesOverStepOf(db, organizationId),
+      employeesOverStepOf(db, organizationId).catch((error: unknown) => {
+        console.error(
+          'Employees over step for /me failed:',
+          error instanceof Error ? error.message : error
+        );
+        return null;
+      }),
     ]);
     return { smsThisMonth, creditsThisMonth, employeesOverStep };
   } catch (error) {

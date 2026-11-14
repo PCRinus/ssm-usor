@@ -30,6 +30,7 @@ import { Notice } from '@/components/notice';
 import {
   employeesOverStepMessage,
   isEmployeesOverStepError,
+  refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
 
 import { formatDate, todayIso } from './employee-format';
@@ -132,6 +133,7 @@ function StatusForm({
       // page reads its own query.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
+        refreshEmployeesOverStep(queryClient),
         queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
         // A leaver no longer counts in their job position; someone reactivated does again.
         queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),

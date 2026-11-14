@@ -112,7 +112,7 @@ Se numără:
 - **utilizatorii**: membrii organizației, cu tine cu tot. O invitație trimisă și neacceptată ține și ea un loc, iar sub bară scrie câte sunt în așteptare: pe Start, cu 3 utilizatori, nu poți trimite o invitație dacă sunteți 2 și mai e una în așteptare. Când nu mai e loc, poți revoca o invitație sau, de pe Start, poți trece pe Profesional;
 - **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include treapta, de exemplu „252 din 300”. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără. În perioada de probă, fără un plan ales, rândul nu are bară: spune doar că totul pleacă pe email.
 
-Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut, până în ce zi mai poți adăuga lucrători noi și îți propune treapta următoare, cu **Treci pe treapta următoare**. Adminul primește un email în ziua în care treci de treaptă și încă unul cu trei zile înainte de termen.
+Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut, până în ce zi mai poți adăuga lucrători noi și îți propune treapta următoare, cu **Treci pe treapta următoare**. Adminul primește un email când treci de treaptă, cel târziu a doua zi, și încă unul cu trei zile înainte de termen.
 
 Termenul e aceeași zi din luna următoare celei în care ai trecut de treaptă: dacă ai trecut pe 14 noiembrie, mai poți adăuga lucrători noi până pe 14 decembrie inclusiv. Dacă a doua zi ai tot mai mulți lucrători decât treapta, nu mai poți:
 
@@ -121,7 +121,7 @@ Termenul e aceeași zi din luna următoare celei în care ai trecut de treaptă:
 - reactiva un client arhivat care are lucrători;
 - confirma importul unui client care vine cu lucrători.
 
-Restul merge ca până acum: adaugi clienți fără lucrători, modifici datele, marchezi plecările, emiți documente, instruiești, testezi și semnezi. Un import din fișe poate completa lucrătorii pe care îi ai deja: lasă nebifate persoanele noi și confirmă-i pe ceilalți. Pe pagina **Lucrători** și în ferestrele de import vezi de ce, cu legătura spre **Abonament**.
+Restul merge ca până acum: adaugi clienți fără lucrători, modifici datele, marchezi plecările, emiți documente, instruiești, testezi și semnezi. Un import din fișe poate completa lucrătorii pe care îi ai deja: lasă deoparte persoanele noi, care nu se creează, și confirmă-i pe ceilalți. Pe pagina **Lucrători** și în ferestrele de import vezi de ce, cu legătura spre **Abonament**.
 
 Poți adăuga din nou, pe loc, când treci pe o treaptă care îi acoperă pe toți sau când ajungi la treapta ta sau sub ea, de exemplu arhivând clienții cu care nu mai lucrezi ori marcând lucrătorii care au plecat. Dacă treci din nou de treaptă mai târziu, ai iar o lună.
 

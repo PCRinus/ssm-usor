@@ -39,7 +39,10 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
-import { clientImportOverStepMessage } from '@/features/subscription/employees-over-step';
+import {
+  clientImportOverStepMessage,
+  refreshEmployeesOverStep,
+} from '@/features/subscription/employees-over-step';
 
 import { CreditsUsedLine } from './credits-notices';
 import { importErrorMessage } from './import-format';
@@ -169,6 +172,7 @@ export function ConfirmImportDialog({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() }),
+        refreshEmployeesOverStep(queryClient),
         queryClient.invalidateQueries({
           predicate: ({ queryKey }) =>
             String(queryKey[0]).startsWith(`/clients/${result.clientId}`),

@@ -80,8 +80,9 @@ revoke all on function public.employees_over_step_last_day(timestamptz) from pub
 revoke all on function public.employees_over_step_blocks_at(timestamptz) from public, anon, authenticated;
 
 -- Starts the clock at the moment the count passes the limit and clears it when it is back within,
--- never backdating it. The row is locked before counting, so two changes to the same organization's
--- employees count one after the other and neither undoes the other's start. Also called when the
+-- never backdating it. Before it moves the clock the row is locked and counted again, so two
+-- changes to the same organization's employees count one after the other and neither undoes the
+-- other's start. Also called when the
 -- limit changes with time alone, at the end of a trial, by every read below and the daily job.
 create function public.refresh_employees_over_step(p_organization_id uuid)
 returns timestamptz
@@ -96,13 +97,25 @@ declare
   v_used integer;
   v_since timestamptz;
 begin
+  select * into v_row from public.subscriptions where organization_id = p_organization_id;
+  if not found then
+    return null;
+  end if;
+  -- Reads on every page load take no lock unless the clock would move.
+  v_limit := public.employee_limit_of(v_row.plan, v_row.status, v_row.trial_ends_at, v_row.employee_step);
+  if v_limit is null then
+    v_since := null;
+  elsif public.organization_employee_count(p_organization_id) > v_limit then
+    v_since := coalesce(v_row.employees_over_step_since, now());
+  end if;
+  if v_since is not distinct from v_row.employees_over_step_since then
+    return v_since;
+  end if;
+  v_since := null;
   select * into v_row
   from public.subscriptions
   where organization_id = p_organization_id
   for update;
-  if not found then
-    return null;
-  end if;
   v_limit := public.employee_limit_of(v_row.plan, v_row.status, v_row.trial_ends_at, v_row.employee_step);
   if v_limit is not null then
     v_used := public.organization_employee_count(p_organization_id);

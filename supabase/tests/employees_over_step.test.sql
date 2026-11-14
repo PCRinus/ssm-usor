@@ -1,5 +1,5 @@
 begin;
-select plan(47);
+select plan(48);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -113,6 +113,20 @@ select case
   else lives_ok($$ select pg_temp.hire('cccccccc-0000-4000-8000-000000000002', 1) $$, 'on the last day a member still adds employees')
 end;
 reset role;
+
+select pg_temp.set_since(
+  (select max(d::date + time '12:00') at time zone 'Europe/Bucharest'
+   from generate_series((now() at time zone 'Europe/Bucharest')::date - 40, (now() at time zone 'Europe/Bucharest')::date, interval '1 day') d
+   where public.employees_over_step_last_day((d::date + time '12:00') at time zone 'Europe/Bucharest') = (now() at time zone 'Europe/Bucharest')::date - 1)
+);
+select case
+  when pg_temp.since() is null then pass('no day a month before ended yesterday')
+  else is(
+    (select blocked from public.employees_over_step('11111111-0000-4000-8000-000000000001')),
+    true,
+    'the day after the last day the organization is blocked'
+  )
+end;
 
 select pg_temp.set_since(pg_temp.a_month_ago());
 select is((select blocked from public.employees_over_step('11111111-0000-4000-8000-000000000001')), true, 'after the month the organization is blocked');

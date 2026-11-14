@@ -22,6 +22,7 @@ import { useSavedToast } from '@/features/missing-data/saved-toast';
 import {
   employeesOverStepMessage,
   isEmployeesOverStepError,
+  refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
 import { type IssueTarget, setApiIssues } from '@/lib/api-issues';
 
@@ -124,6 +125,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       }
       // Every filtered variant of this client's list starts with the same key prefix.
       await queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) });
+      await refreshEmployeesOverStep(queryClient);
       // The position just gained a person, whether it was new or not.
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       if (employee) {
@@ -139,6 +141,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       }
     } catch (cause) {
       if (isEmployeesOverStepError(cause)) {
+        await refreshEmployeesOverStep(queryClient);
         form.setError('root.server', { message: employeesOverStepMessage });
         return;
       }

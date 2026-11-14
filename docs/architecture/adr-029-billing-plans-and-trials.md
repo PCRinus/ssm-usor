@@ -312,7 +312,7 @@ From then, while still over, every write that adds to the count is refused, from
 - moving an active employee from a client that is not counted to one that is;
 - restoring an archived client that has active employees; one without any comes back as before.
 
-Nothing else is refused: adding a client without employees, recording a former employee, editing, archiving, marking a leaver, documents, trainings, tests and signing. An employee import that only completes people already there confirms; one with new people is refused whole, and its people still to check are left out of a confirmation as before, so the member can leave the new ones unchecked and confirm the rest. A client import is refused at confirmation when the client comes with employees; starting one is not refused, since a client may come without any, and the upload dialog says so first. A ready import is kept 14 days from its last change. Without a user, under the secret key (seeds, maintenance), nothing is refused.
+Nothing else is refused: adding a client without employees, recording a former employee, editing, archiving, marking a leaver, documents, trainings, tests and signing. An employee import that only completes people already there confirms; one with new people is refused whole, and a person set aside is left out of a confirmation as before, so the member can set the new ones aside, which are then not created, and confirm the rest. A client import is refused at confirmation when the client comes with employees; starting one is not refused, since a client may come without any, and the upload dialog says so first. A ready import is kept 14 days from its last change. Without a user, under the secret key (seeds, maintenance), nothing is refused.
 
 ### Lifting
 

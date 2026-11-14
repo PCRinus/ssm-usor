@@ -27,6 +27,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { setParams } from '@/features/documents/document-sets';
 import {
   isEmployeesOverStepError,
+  refreshEmployeesOverStep,
   restoreOverStepMessage,
 } from '@/features/subscription/employees-over-step';
 
@@ -114,6 +115,7 @@ export function ClientArchiveDialog({
       // The client page reads the record through its loader, which keeps whatever is cached.
       queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
       await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      await refreshEmployeesOverStep(queryClient);
       await router.invalidate();
       toast.success(
         action === 'archive'

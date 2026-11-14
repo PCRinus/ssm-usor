@@ -152,7 +152,7 @@ function SubscriptionContent({
         </Notice>
       )}
       {notice}
-      {!owner && <EmployeesOverStepNotice />}
+      {(!owner || view !== 'active') && <EmployeesOverStepNotice />}
       {error && <Notice variant="destructive">{error}</Notice>}
 
       <div className="grid items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
