@@ -13877,6 +13877,8 @@ export type BillingOverviewOwner = {
   /** @nullable */
   smsOverageCents: number | null;
   /** @nullable */
+  extrasInPreviewCents: number | null;
+  /** @nullable */
   card: BillingOverviewOwnerCard;
   /** @nullable */
   invoiceEmail: string | null;

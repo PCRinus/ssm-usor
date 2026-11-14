@@ -21691,6 +21691,10 @@
                 "type": "integer",
                 "nullable": true
               },
+              "extrasInPreviewCents": {
+                "type": "integer",
+                "nullable": true
+              },
               "card": {
                 "type": "object",
                 "nullable": true,
@@ -21872,6 +21876,7 @@
             "required": [
               "nextPayment",
               "smsOverageCents",
+              "extrasInPreviewCents",
               "card",
               "invoiceEmail",
               "ownerEmail",

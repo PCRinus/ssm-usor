@@ -153,6 +153,7 @@ export const noChoices: Owner['choices'] = {
 export const ownerPart = (overrides: Partial<Owner> = {}): Owner => ({
   nextPayment: null,
   smsOverageCents: null,
+  extrasInPreviewCents: null,
   card: null,
   invoiceEmail: null,
   ownerEmail: 'ana@protectconsult.test',

@@ -11,6 +11,7 @@ import {
   type BillingPortalSession,
   creditsExtra,
   type InvoiceEmail,
+  meteredProducts,
   type PaidPlan,
   readOnlyDays,
   smsOverage,
@@ -177,6 +178,7 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
 
   let nextPayment: NonNullable<BillingOverview['owner']>['nextPayment'] = null;
   let smsOverageCents: number | null = null;
+  let extrasInPreviewCents: number | null = null;
   if (!subscription.cancel_at) {
     const upcoming = await stripe.invoices.createPreview({ subscription: subscription.id });
     const smsPrice = stripeBilling.catalogue.priceIds.get(smsOverage.price.lookupKey);
@@ -184,6 +186,15 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
       .filter((line) => {
         const price = line.pricing?.price_details?.price;
         return (typeof price === 'string' ? price : price?.id) === smsPrice;
+      })
+      .reduce((sum, line) => sum + line.amount, 0);
+    extrasInPreviewCents = upcoming.lines.data
+      .filter((line) => {
+        const price = line.pricing?.price_details?.price;
+        const key = stripeBilling.catalogue.lookupKeys.get(
+          (typeof price === 'string' ? price : price?.id) ?? ''
+        );
+        return meteredProducts.some((product) => key?.startsWith(`${product.key}_`));
       })
       .reduce((sum, line) => sum + line.amount, 0);
     nextPayment = {
@@ -200,6 +211,7 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
     cancelAt: subscription.cancel_at ? fromSeconds(subscription.cancel_at) : null,
     nextPayment,
     smsOverageCents,
+    extrasInPreviewCents,
     scheduledChange: scheduled ? { ...scheduled.choice, at: scheduled.at.toISOString() } : null,
   };
 }
@@ -238,6 +250,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
     owner = {
       nextPayment: details?.nextPayment ?? null,
       smsOverageCents: details?.smsOverageCents ?? null,
+      extrasInPreviewCents: details?.extrasInPreviewCents ?? null,
       card: details?.card ?? null,
       invoiceEmail: row?.invoice_email ?? null,
       ownerEmail: email,

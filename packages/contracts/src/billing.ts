@@ -531,6 +531,9 @@ export const billingOverviewSchema = z.object({
       // Null without a renewing subscription.
       nextPayment: billingAmountsSchema.extend({ at: timestamp }).nullable(),
       smsOverageCents: cents.nullable(),
+      // The extras already on Stripe's preview of the next payment, without VAT; its meters lag
+      // behind the extras counted here by a little. Null without a renewing subscription.
+      extrasInPreviewCents: cents.nullable(),
       card: z
         .object({ brand: z.string(), last4: z.string(), expMonth: z.int(), expYear: z.int() })
         .nullable(),

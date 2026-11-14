@@ -313,9 +313,20 @@ describe('the extras on GET /billing', () => {
       { organization_id: organizationId, kind: 'credits', ceiling_cents: 1500 },
     ];
     stripeForOwner(fake);
+    fake.stripe['POST /v1/invoices/create_preview'] = () => ({
+      object: 'invoice',
+      subtotal: 3900 + 300,
+      total: Math.round((3900 + 300) * 1.21),
+      period_end: Math.floor(Date.now() / 1000) + 20 * day,
+      lines: stripeList([
+        { amount: 3900, pricing: { price_details: { price: priceIdOf('start_250_monthly_v2') } } },
+        { amount: 300, pricing: { price_details: { price: priceIdOf('sms_overage_monthly_v2') } } },
+      ]),
+    });
 
     const body = billingOverviewSchema.parse(await (await request('GET', '/billing')).json());
 
+    expect(body.owner?.extrasInPreviewCents).toBe(300);
     expect(body.extras).toEqual({
       unavailable: null,
       sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 37, spentCents: 370 },
