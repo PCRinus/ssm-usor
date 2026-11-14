@@ -42,9 +42,12 @@ export type BillingOrganization = {
 
 export type PaidInvoiceLine = {
   description: string;
-  // Euro cents, before VAT.
+  // Euro cents, VAT included when `vatIncluded`, before VAT otherwise.
   unitAmount: number;
   quantity: number;
+  vatIncluded: boolean;
+  // What a line sent as one unit with its VAT included was counted in: 7 codes at 0.10 €.
+  counted?: { quantity: number; unitAmount: number };
   period: { start: Date; end: Date } | null;
 };
 
@@ -69,21 +72,37 @@ const romanianDate = new Intl.DateTimeFormat('ro-RO', {
 
 const euros = (cents: number) => Math.round(cents) / 100;
 
+const romanianEuros = new Intl.NumberFormat('ro-RO', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function lineDescription(line: PaidInvoiceLine) {
+  const parts = [
+    line.counted &&
+      `${line.counted.quantity} × ${romanianEuros.format(line.counted.unitAmount / 100)} € fără TVA`,
+    line.period &&
+      `Perioada ${romanianDate.format(line.period.start)} – ${romanianDate.format(line.period.end)}`,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join('. ') : undefined;
+}
+
 function products(lines: PaidInvoiceLine[]): OblioProduct[] {
-  return lines.map((line) => ({
-    name: line.description,
-    ...(line.period && {
-      description: `Perioada ${romanianDate.format(line.period.start)} – ${romanianDate.format(line.period.end)}`,
-    }),
-    price: euros(line.unitAmount),
-    measuringUnit: 'buc',
-    currency: 'EUR',
-    vatName: 'Normala',
-    vatPercentage,
-    vatIncluded: 0,
-    quantity: line.quantity,
-    productType: 'Serviciu',
-  }));
+  return lines.map((line) => {
+    const description = lineDescription(line);
+    return {
+      name: line.description,
+      ...(description && { description }),
+      price: euros(line.unitAmount),
+      measuringUnit: 'buc',
+      currency: 'EUR',
+      vatName: 'Normala',
+      vatPercentage,
+      vatIncluded: line.vatIncluded ? 1 : 0,
+      quantity: line.quantity,
+      productType: 'Serviciu',
+    };
+  });
 }
 
 function realClient(organization: BillingOrganization): OblioClientDetails {

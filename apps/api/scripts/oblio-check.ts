@@ -62,6 +62,7 @@ try {
             description: 'SSM Ușor Start, abonament lunar',
             unitAmount: 3900,
             quantity: 1,
+            vatIncluded: false,
             period: { start: now, end: periodEnd },
           },
         ],

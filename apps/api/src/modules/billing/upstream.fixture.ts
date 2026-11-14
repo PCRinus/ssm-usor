@@ -331,6 +331,8 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
       },
     }),
     'PUT /api/docs/proforma/cancel': () => ({ status: 200, data: {} }),
+    'GET /api/docs/invoice/list': (call) => listedDocument(fake, 'invoice', call),
+    'GET /api/docs/proforma/list': (call) => listedDocument(fake, 'proforma', call),
   };
 
   fetchMock.mockImplementation(async (input, init) => {
@@ -400,6 +402,34 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
     throw new Error(`Unexpected upstream request: ${method} ${url}`);
   });
   return fake;
+}
+
+type PostedProduct = { price: number; quantity: number; vatIncluded: 0 | 1; vatPercentage: number };
+
+const roundCents = (value: number) => Math.sign(value) * Math.round(Math.abs(value));
+
+// Oblio's arithmetic as its documents show it: a line's value, then its VAT rounded to the cent.
+export function oblioTotalCents(products: PostedProduct[]) {
+  return products.reduce((total, product) => {
+    const value = roundCents(product.price * product.quantity * 100);
+    if (product.vatIncluded) return total + value;
+    return total + value + roundCents((value * product.vatPercentage) / 100);
+  }, 0);
+}
+
+function listedDocument(fake: Fake, kind: 'invoice' | 'proforma', call: Call) {
+  const posted = oblioWrites(fake, `/api/docs/${kind}`).at(-1);
+  const products = (posted?.products ?? []) as PostedProduct[];
+  return {
+    status: 200,
+    data: [
+      {
+        seriesName: call.url.searchParams.get('seriesName'),
+        number: call.url.searchParams.get('number'),
+        total: (oblioTotalCents(products) / 100).toFixed(4),
+      },
+    ],
+  };
 }
 
 export const stripeWrites = (fake: Fake, path: string) =>

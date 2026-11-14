@@ -47,6 +47,13 @@ const row = (fake: Fake) => fake.tables.subscriptions![0]!;
 const changes = (fake: Fake) => fake.tables.subscription_changes!;
 const gifts = (fake: Fake) => fake.tables['rpc/grant_welcome_gift'] ?? [];
 
+const vat = (amount: number) => ({
+  amount,
+  type: 'tax_rate_details',
+  tax_behavior: 'exclusive',
+  tax_rate_details: { tax_rate: 'txr_vat' },
+});
+
 function paidInvoice(overrides: Record<string, unknown> = {}) {
   const paidAt = now();
   return {
@@ -71,6 +78,7 @@ function paidInvoice(overrides: Record<string, unknown> = {}) {
         object: 'line_item',
         amount: 14900,
         quantity: 1,
+        taxes: [vat(3129)],
         description: '1 × SSM Ușor Profesional (at €149.00 / month)',
         period: { start: paidAt, end: paidAt + 30 * day },
         pricing: {
@@ -553,6 +561,20 @@ describe('POST /billing/stripe-webhook', () => {
           billing_reason: 'subscription_create',
           subtotal: 5900,
           total: 7139,
+          lines: stripeList([
+            {
+              ...paidInvoice().lines.data[0]!,
+              amount: 5900,
+              taxes: [vat(1239)],
+              pricing: {
+                type: 'price_details',
+                price_details: {
+                  price: priceIdOf('start_500_monthly_v2'),
+                  product: 'ssm_usor_start',
+                },
+              },
+            },
+          ]),
           parent: {
             type: 'subscription_details',
             subscription_details: {
@@ -774,12 +796,13 @@ describe('POST /billing/stripe-webhook', () => {
     it('names a prorated credit as such, as a negative quantity', async () => {
       const fake = createFake();
       const at = now();
-      const invoice = paidInvoice();
+      const invoice = paidInvoice({ subtotal: 12940, total: 15657 });
       invoice.lines.data.push({
         id: 'il_2',
         object: 'line_item',
-        amount: -1950,
+        amount: -1960,
         quantity: 1,
+        taxes: [vat(-412)],
         description: 'Unused time on SSM Ușor Start',
         period: { start: at, end: at + 15 * day },
         pricing: {
@@ -798,10 +821,87 @@ describe('POST /billing/stripe-webhook', () => {
       expect(oblioWrites(fake, '/api/docs/invoice')[0]!.products).toContainEqual(
         expect.objectContaining({
           name: 'SSM Ușor Start, până la 500 de lucrători: credit pentru perioada nefolosită',
-          price: 19.5,
+          price: 19.6,
           quantity: -1,
         })
       );
+    });
+
+    it('records, loudly, an Oblio document whose total is not what Stripe charged', async () => {
+      const fake = createFake();
+      paying(fake);
+      fake.oblio['GET /api/docs/invoice/list'] = () => ({
+        status: 200,
+        data: [{ seriesName: 'SSMUSOR', number: '0001', total: '180.2800' }],
+      });
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await deliver(paidEvent);
+
+      expect(response.status).toBe(200);
+      expect(changes(fake)).toContainEqual(
+        expect.objectContaining({
+          change: 'oblio_total_mismatch',
+          details: {
+            stripe_invoice: 'in_1Paid',
+            oblio_document: 'SSMUSOR-0001',
+            stripe_total_cents: 18029,
+            oblio_total_cents: 18028,
+          },
+        })
+      );
+      expect(logged).toHaveBeenCalledWith(
+        expect.stringMatching(/SSMUSOR 0001 totals 18028.*in_1Paid charged 18029/)
+      );
+      expect(fake.tables.billing_invoices![0]).toMatchObject({
+        oblio_number: '0001',
+        pdf_path: expect.any(String),
+      });
+      logged.mockRestore();
+    });
+
+    it('records an Oblio document whose total could not be read back', async () => {
+      const fake = createFake();
+      paying(fake);
+      fake.oblio['GET /api/docs/invoice/list'] = () => ({ status: 503, data: undefined });
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await deliver(paidEvent);
+
+      expect(response.status).toBe(200);
+      expect(changes(fake)).toContainEqual(
+        expect.objectContaining({
+          change: 'oblio_total_unchecked',
+          details: {
+            stripe_invoice: 'in_1Paid',
+            oblio_document: 'SSMUSOR-0001',
+            stripe_total_cents: 18029,
+          },
+        })
+      );
+      expect(logged).toHaveBeenCalledWith(expect.stringMatching(/could not be checked/));
+      logged.mockRestore();
+    });
+
+    it('records nothing when the totals agree', async () => {
+      const fake = createFake();
+      paying(fake);
+
+      await deliver(paidEvent);
+
+      expect(changes(fake).map((change) => change.change)).not.toContain('oblio_total_mismatch');
+    });
+
+    it('issues nothing when the lines and their VAT do not make the amount charged', async () => {
+      const fake = createFake();
+      paying(fake, paidInvoice({ total: 18030 }));
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await deliver(paidEvent);
+
+      expect(response.status).toBe(500);
+      expect(oblioWrites(fake, '/api/docs/invoice')).toEqual([]);
+      vi.mocked(console.error).mockRestore();
     });
   });
 

@@ -262,6 +262,19 @@ export function createOblioClient(config: OblioConfig, deps: OblioDeps = {}) {
     createProforma: (payload: OblioProformaPayload) => create('proforma', payload),
     storno: (payload: OblioStornoPayload) => create('invoice', payload),
     issue: (request: OblioDocumentRequest) => create(request.kind, request.payload),
+    // The answer to issuing a document carries no amounts; the listing does.
+    documentTotalCents: async (kind: OblioDocumentKind, seriesName: string, number: string) => {
+      const found = await call<{ seriesName: string; number: string; total: string }[]>(
+        'GET',
+        `/docs/${kind}/list`,
+        { cif: await sellerCif(), seriesName, number }
+      );
+      const document = found.find(
+        (entry) => entry.seriesName === seriesName && entry.number === number
+      );
+      if (!document) throw refused(404, `${kind} ${seriesName} ${number} is not listed`);
+      return Math.round(Number(document.total) * 100);
+    },
     getDocument: async (kind: OblioDocumentKind, seriesName: string, number: string) =>
       call<OblioDocument>('GET', `/docs/${kind}`, { cif: await sellerCif(), seriesName, number }),
     cancel: async (kind: OblioDocumentKind, seriesName: string, number: string) =>
