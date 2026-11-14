@@ -124,6 +124,18 @@ describe('Oblio documents', () => {
     expect(testClient.save).toBe(0);
   });
 
+  it('ends the note with one full stop when the company name already ends with one', () => {
+    const { payload } = toOblioDocument(
+      'proforma',
+      { ...organization, name: 'S.C. SERVICIU EXTERN E2E S.R.L.' },
+      invoice
+    );
+
+    expect(payload.mentions).toBe(
+      'Proformă de test, fără valoare fiscală, pentru S.C. SERVICIU EXTERN E2E S.R.L.'
+    );
+  });
+
   it('leaves out the client fields the organization has not filled in', () => {
     const { payload } = toOblioDocument(
       'invoice',

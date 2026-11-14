@@ -70,6 +70,8 @@ const romanianDate = new Intl.DateTimeFormat('ro-RO', {
   year: 'numeric',
 });
 
+const withFullStop = (sentence: string) => (sentence.endsWith('.') ? sentence : `${sentence}.`);
+
 const euros = (cents: number) => Math.round(cents) / 100;
 
 const romanianEuros = new Intl.NumberFormat('ro-RO', {
@@ -139,7 +141,7 @@ export function toOblioDocument(
       language: 'RO',
       currency: 'EUR',
       products: products(invoice.lines),
-      mentions: `Proformă de test, fără valoare fiscală, pentru ${organization.name}.`,
+      mentions: withFullStop(`Proformă de test, fără valoare fiscală, pentru ${organization.name}`),
       internalNote: `Stripe ${invoice.id}`,
       sendEmail: 0,
       idempotencyKey: invoice.id,
