@@ -17,7 +17,7 @@ import {
   useListJobPositions,
   useListPositionInstructions,
 } from '@/api/generated/api';
-import { keepOpener } from '@/app/opener';
+import { keepOpener, openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
@@ -162,6 +162,7 @@ export function JobPositionPage() {
             <Link
               to="/clienti/$clientId/angajati"
               params={{ clientId }}
+              state={openedHere}
               className="hover:underline"
               data-testid="job-position-employees-link"
             >

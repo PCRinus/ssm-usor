@@ -437,8 +437,11 @@ describe('the way back from an evaluation', () => {
       item.textContent?.includes(fitter.name)
     )!;
     await user.click(await within(row).findByTestId('job-position-risk'));
-    await user.click(await screen.findByTestId('risk-evaluation-start'));
+    const start = await screen.findByTestId('risk-evaluation-start');
+    const sheetIndex = runtime.router.history.location.state.__TSR_index;
+    await user.click(start);
     await screen.findByTestId('risk-factors-empty');
+    expect(runtime.router.history.location.state.__TSR_index).toBe(sheetIndex);
     expect(runtime.router.state.location.pathname).toBe(
       `${positionsPage}/${fitter.id}/fisa-de-evaluare`
     );
@@ -1300,6 +1303,70 @@ describe("a client's evaluations outside its positions", () => {
     mockApi();
     mount(`${positionsPage}/fise-de-evaluare/${uuid()}`);
     expect(await screen.findByTestId('risk-evaluation-not-found')).toBeTruthy();
+  });
+});
+
+describe('a page still loading or failing to load', () => {
+  it.each([
+    ['a position', positionsPath, welderPage, positionsPage],
+    [
+      "a position's sheet",
+      `${positionsPath}/${welder.id}/risk-evaluation`,
+      welderEvaluationPage,
+      welderPage,
+    ],
+    [
+      "a client's sheet",
+      `${evaluationsPath}/${visitors.id}`,
+      `${positionsPage}/fise-de-evaluare/${visitors.id}`,
+      positionsPage,
+    ],
+  ])('shows the way back while %s loads', async (_, slowPath, path, parent) => {
+    mockApi();
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((input, init) =>
+      new URL(String(input)).pathname === slowPath
+        ? new Promise<Response>(() => {})
+        : answer(input, init)
+    );
+    mount(path);
+    const back = await screen.findByTestId('page-back', {}, { timeout: 3000 });
+    expect(back.getAttribute('href')).toBe(parent);
+    expect(screen.queryByTestId('client-page')).toBeNull();
+  });
+
+  function failing(path: string) {
+    mockApi();
+    const answer = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === path
+        ? Response.json({ error: 'internal', message: 'Eroare' }, { status: 500 })
+        : answer(input, init)
+    );
+  }
+
+  it.each([
+    ['a position', positionsPath, welderPage, 'job-position-error', positionsPage],
+    [
+      "a position's sheet",
+      `${positionsPath}/${welder.id}/risk-evaluation`,
+      welderEvaluationPage,
+      'risk-evaluation-error',
+      welderPage,
+    ],
+    [
+      "a client's sheet",
+      `${evaluationsPath}/${visitors.id}`,
+      `${positionsPage}/fise-de-evaluare/${visitors.id}`,
+      'risk-evaluation-error',
+      positionsPage,
+    ],
+  ])('keeps the way back on %s', async (_, failingPath, path, errorTestId, parent) => {
+    failing(failingPath);
+    mount(path);
+    expect(await screen.findByTestId(errorTestId)).toBeTruthy();
+    expect(screen.queryByTestId('client-page')).toBeNull();
+    expect(screen.getByTestId('page-back').getAttribute('href')).toBe(parent);
   });
 });
 
