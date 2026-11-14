@@ -5,6 +5,7 @@
 - Amended 2026-10-31: only signing codes count against the SMS allowance, on the subscription's month, with a safety cap, warnings and +40 for every SMS; each plan's import credits and a welcome gift at the first payment (#640); signing codes at the chosen plan's allowance with a hard stop between choosing a plan during the trial and the first payment; one tester switch for SMS and credits; manual workflows that add credits and signing codes. See "Limits and usage" and "Tester trials".
 - Amended 2026-11-14: a new organization's trial lasts 14 days instead of 30; trials already running keep their end, and the 30 days of read-only access after it are unchanged. See "Plans and the trial".
 - Amended 2026-11-14: offers (leads, [ADR 007](adr-007-leads-and-service-contracts.md)) and their contracts are a Profesional feature; on Start the existing ones are read, archived, restored and promoted, and nothing else about them changes. See "Plan features".
+- Amended 2026-11-14, [below](#amendment-2026-11-14-plans-by-employee-step): each plan is priced by a step of employees, with three users on Start and ten on Profesional, and no packs or extra member; the SMS codes and AI credits follow the step; extras past what a step includes are the owner's choice, off until the screen that turns them on exists. It replaces the packs, the extra member, the billed SMS past the allowance and the safety cap described below.
 
 ## Context
 
@@ -175,3 +176,73 @@ The testers' round comes between the phases; the waitlist hears only after it.
 - Two pieces of published copy change in phase 2: the FAQ about going over the limit and about a trial without a plan, and the SMS line of the comparison table. The table also gains a credits row, and the Terms a point on credits.
 - Invitations, sign-in codes and signature-request notices by SMS are our cost, not the client's. They grow with the employees and their trainings; no price changes for them now.
 - The Terms' version changes, so invited members accept the new one, as they do any version.
+
+## Amendment 2026-11-14: plans by employee step
+
+The pricing page changed on 2026-11-14 (#969, #976) and is again the source of what was promised: `apps/marketing/src/components/site/pricing.ts`. The app, the API, the database and Stripe follow it with a catalogue of its own, version `v2`, in `packages/contracts/src/billing.ts`.
+
+### Why
+
+- **The gap from 39 € to 149 € was too large.** A provider a little past Start's 250 employees, or one who needed a second colleague, either stacked packs and extra members onto Start or paid 149 € for a Profesional sized for 1,500. The SSM contact who needs three users would have been pushed to 149 €.
+- **Steps follow the employees**, as Resend's volume steps follow e-mails: the price rises by a known amount at a known number, never by a pack chosen and counted by the owner.
+- **Users are fixed per plan, three and ten, instead of paid seats.** A seat price on top of a step made two numbers to watch; a team past ten users is an Enterprise conversation anyway.
+- **Extras are opt-in instead of billed by default.** Billing every signing code past the allowance, up to three times it, grew an invoice without the owner choosing it. Now nothing past what the step includes costs anything until the owner turns it on and sets a monthly ceiling.
+
+### Plans and steps
+
+A **step** (_treaptă_) is the most employees a plan covers at a price: the active employees of the active clients, in total, counted as before.
+
+| Plan        | Users | Steps (employees) and monthly price without VAT                                               |
+| ----------- | ----- | --------------------------------------------------------------------------------------------- |
+| Start       | 3     | 250: 39 €, 500: 59 €, 750: 79 €                                                               |
+| Profesional | 10    | 500: 89 €, 1,000: 119 €, 1,500: 149 €, 2,000: 179 €, 3,000: 239 €, 4,000: 299 €, 5,000: 359 € |
+
+Paid yearly, a month costs ten twelfths of the monthly price, rounded down to a whole euro, and the year twelve such months: Start at 250 is 32 € a month, 384 € a year ("două luni gratuite"). Rounding down makes the annual prices of Start's steps not a fixed multiple of the monthly ones, which is one reason each step is a price of its own rather than a quantity of one price.
+
+**Enterprise** is more than 5,000 employees or more than ten users: a quote, never in the checkout, as before. The packs (50 and 500 employees), the extra member and every other add-on are gone.
+
+What each step includes, every month of the subscription:
+
+- **SMS signing codes**: the step ÷ 5 (50 at 250, 1,000 at 5,000);
+- **AI credits** (_credite AI_, the word every text people read uses now, for what were "credite pentru import"): 2 × the step + 250 (750 at 250, 10,250 at 5,000). Unused credits do not carry over;
+- once, at the first payment, **welcome AI credits** that never expire: 10 × the step, at most 10,000 (2,500 at 250, 10,000 from 1,000 up).
+
+What an action costs in credits does not change ([ADR 030](adr-030-import-from-documents.md#usage-is-counted-in-credits)).
+
+### Stripe
+
+One product per plan, as before, and one price per plan, step and period, under lookup keys such as `start_250_monthly_v2` and `profesional_5000_annual_v2`: twenty prices. A step change is therefore a change of the plan item's price on the same subscription, with no quantities. The metered SMS price stays on every subscription, as `sms_overage_monthly_v2`, so that turning extras on later needs no change to existing subscriptions; while extras are off nothing is reported to its meter, and it bills nothing. The `v1` prices stay in both accounts, active: nothing is archived, and a `v1` subscription keeps working until it is changed (below). The setup script creates the `v2` prices; running it is an operator's step in each account.
+
+### Choosing and changing
+
+The owner chooses a plan, a step and a period. The checkout refuses a step below today's employees (`step_below_need`), and a plan with fewer users than the organization has members (`members_over_plan`); Start is refused above 750 employees (`employees_over_plan`). Past 5,000 employees or ten members the page points to Enterprise.
+
+"Changes during a period" above applies with one rule for what is an upgrade: the higher monthly price. Every Profesional step costs more than every Start step, so moving from Start to Profesional is still an upgrade. An upgrade, a higher step on the same plan included, applies at once and is prorated as before (on the next invoice on a monthly plan, charged at once on an annual one, the unused part credited); a lower step, or Profesional to Start, applies at the next renewal and credits nothing; monthly to annual at once, annual to monthly at the end of the paid year. With no quantities left, a change never both adds and removes, so the `split_change` refusal no longer arises from a choice, only from a change asked while an annual payment for an earlier one waits.
+
+### Limits and usage
+
+- **Employees over the step.** The meter on the Abonament tab shows how many are over and offers the next step; nothing is blocked. The pricing page says that after a month still over, no new employees can be added until the owner moves up or archives clients. That block was step 10 of the order of work and is still not built; nor is the banner and email at once. Until it is, being over the step is shown and never enforced.
+- **Users.** Fixed per plan, three or ten, shown on the meter with the open invitations, each of which holds a place. With no seat to buy, an invitation is refused (`member_limit_reached`) once the members and the open invitations fill the plan's users; renewing an address's own open invitation is not, and renewing an expired one takes a place again. An address that is already a member still answers `already_member`. A trial has ten; a plan chosen during the trial holds the organization to its own users from the moment it is chosen, since the first charge bills them. Two invitations sent in the same instant at one place short can both pass: the count and the insert are not locked together. Accepting an invitation already sent is never refused. A plan with fewer users than the organization's members cannot be chosen.
+- **The allowances follow the step of the subscription row.** Because the row takes a change when it applies, a higher step's SMS codes and AI credits count at once, for the month already under way (the difference, as an upgrade gave before), and a lower step's from the renewal. The welcome credits are brought up to the step's, so moving up after the first payment adds the difference once, and moving down takes nothing back.
+- **Before the first payment** nothing changes: a plan chosen during the trial sends signing codes up to its step's allowance with a hard stop, and the credits stay the trial's 300 until the first payment brings the step's month and welcome credits.
+- **A trial** counts its employees and users against Profesional's largest step and ten users. Its length and its credits are its own amendment.
+- **Testers** keep 300 signing codes and 1,500 AI credits a month, now numbers of their own instead of Profesional's.
+
+### Extras
+
+Past what the step includes, extras are **off by default**. The owner will turn them on with a monthly ceiling they choose: then each extra signing code by SMS costs 0.10 € and each extra 100 AI credits 1.50 €, up to the ceiling, on the next invoice. That screen is being designed and is not part of this build. Until it exists every organization is off:
+
+- at the allowance, a signing code goes by email to a signer with an email, and a signer without one is told to ask their specialist, as at the hard stop before the first payment; it starts again at the renewal;
+- when the AI credits run out, a new import waits for the next month; the manual workflow that adds credits stays for support;
+- nothing is billed past the step and nothing is reported to Stripe's meter;
+- nothing can be bought: the pack of 1,000 credits for 15 € that ADR 030 announced is dropped.
+
+The safety cap at three times the allowance, its "Ridică limita", its dialog, the endpoint that set it and its email no longer exist. Its column stays, unused, for the ceiling the opt-in will need; the overage report to Stripe and its daily retry stay too, and only run for a code billed past the allowance, which none is. The email for the codes past the allowance keeps its wording for billed codes, which the API no longer asks for.
+
+### Existing rows
+
+Production holds one tester's trial and no paying subscription, so no customer moves. Each subscription row gets its step; a row with a `v1` subscription takes the smallest `v2` step of its plan that covers what it had (the plan's included employees and its packs): Start without packs takes 250, with up to five packs 500, with more 750; Profesional without packs takes 1,500, with one pack 2,000, and so on up to 5,000. An extra member is dropped: Start's three users already cover the two it allowed. Trials and rows without a plan have no step. Its Stripe subscription keeps its `v1` prices, read back as that same step, until the owner changes it, which moves it to `v2`; a script that moves every `v1` subscription at its renewal, as "Changing prices" describes, is not needed while none is paid.
+
+### What this replaces
+
+In the sections above: the packs and the extra member in "Stripe takes the payment" and "Changes during a period"; "Moving down from Profesional to Start adds the packs…" and Start's ceiling of 600 employees and two members; under "Limits and usage", the employees and members rules, each plan's SMS allowance, the signing codes billed past it, the safety cap and its warning at the cap, and the credit allowances and gifts (now by step); the margins, which were computed for the old allowances.
