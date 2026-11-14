@@ -22,6 +22,7 @@ import {
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { clientObjectBuckets, createAdminFileStore } from '../../lib/files';
+import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { documentationProgress } from '../documents/context';
 import type {
   archiveClientRoute,
@@ -425,7 +426,9 @@ export const archiveClient: RouteHandler<typeof archiveClientRoute, ApiEnv> = as
 
 export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  return c.json(clientResponse(c, await setArchived(createDataClient(c), clientId, false)), 200);
+  const client = await setArchived(createDataClient(c), clientId, false);
+  noticeEmployeesOverStepLater(c);
+  return c.json(clientResponse(c, client), 200);
 };
 
 const clientNotFound = () =>

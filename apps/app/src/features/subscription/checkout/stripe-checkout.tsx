@@ -12,7 +12,6 @@ import { Notice } from '@/components/notice';
 import { billingErrorMessage } from '../billing-errors';
 import { choiceAmounts, shortPlanNames } from '../billing-format';
 import { BillingCard } from '../billing-ui';
-import { roDate } from '../subscription-copy';
 import { billingPreviewKey, hasLiveSubscription, refreshBilling } from '../use-billing';
 import { ctaLabel } from './checkout-choice';
 import { CheckoutFrame, type CheckoutState } from './checkout-frame';
@@ -58,9 +57,7 @@ export default function StripeCheckout({
   const configured = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
   const dueNow = state.preview
     ? state.preview.dueToday.totalCents
-    : state.readOnly
-      ? choiceAmounts(state.choice).totalCents
-      : 0;
+    : choiceAmounts(state.choice).totalCents;
   const options: StripeElementsOptions =
     dueNow > 0
       ? {
@@ -100,6 +97,8 @@ export default function StripeCheckout({
             preview={state.preview}
             settling={state.settling}
             inTrial={false}
+            endsTrial={state.endsTrial}
+            welcomeAhead={state.welcomeAhead}
             readOnly={state.readOnly}
           >
             <Button className="h-12 rounded-xl text-[15px] font-semibold" disabled>
@@ -210,8 +209,8 @@ function CheckoutForm({
         return;
       }
       toast.success(
-        preview.dueToday.totalCents === 0
-          ? `Ai ales ${name}. Azi nu ai plătit nimic; prima plată e pe ${roDate(preview.firstChargeAt)}.`
+        state.endsTrial
+          ? `Plata a reușit. Abonamentul ${name} e activ, iar perioada de probă s-a încheiat.`
           : `Plata a reușit. Abonamentul ${name} e activ.`
       );
       onDone();
@@ -254,6 +253,8 @@ function CheckoutForm({
           preview={preview}
           settling={state.settling}
           inTrial={false}
+          endsTrial={state.endsTrial}
+          welcomeAhead={state.welcomeAhead}
           readOnly={state.readOnly}
         >
           {state.previewError && <Notice variant="destructive">{state.previewError}</Notice>}

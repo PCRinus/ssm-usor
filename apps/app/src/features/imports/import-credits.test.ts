@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  activeSubscription,
-  summaryOf,
-  trialChosenSubscription,
-  trialSubscription,
-} from '@/test/billing-fixture';
+import { activeSubscription, summaryOf, trialSubscription } from '@/test/billing-fixture';
 import { meWithCredits } from '@/test/import-fixture';
 
 import {
@@ -141,13 +136,9 @@ describe('refusing an import the credits do not cover', () => {
     });
   });
 
-  it("says a trial's credits do not renew, and what the first payment brings once a plan is chosen", () => {
+  it("says a trial's credits do not renew, and what the first payment brings", () => {
     expect(noneText('client', trial({ left: 0 })).text).toBe(
       'Ai folosit cele 300 de credite AI ale perioadei de probă. Creditele AI ale perioadei de probă nu se reînnoiesc. La prima plată primești creditele lunii și pe cele de bun venit. Până atunci nu poți porni un import nou din documente.'
-    );
-    const chosen = trial({ left: 0, giftPending: 2500 }, trialChosenSubscription());
-    expect(noneText('employees', chosen).text).toBe(
-      'Ai folosit cele 300 de credite AI ale perioadei de probă. Pe 8 noiembrie, la prima plată, primești 1.250 de credite AI pe lună și 2.500 de credite AI de bun venit. Până atunci nu poți porni un import nou din fișe.'
     );
   });
 

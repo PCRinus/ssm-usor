@@ -45,6 +45,7 @@ export type Fake = {
   calls: Call[];
   uploads: { path: string; bytes: number }[];
   smsUsage: { used: number; overage: number; granted: number };
+  employeesOverStep: Row | null;
   credits: { granted: number; used: number; shortfall: number; gift_left: number };
 };
 
@@ -73,6 +74,7 @@ export function stripeSubscription(options: {
   choice: BillingChoice;
   periodEnd?: number;
   trialEnd?: number | null;
+  startDate?: number;
   anchor?: number | null;
   cancelAt?: number | null;
   endedAt?: number | null;
@@ -95,6 +97,7 @@ export function stripeSubscription(options: {
     livemode: false,
     metadata: options.metadata ?? { organization_id: organizationId },
     trial_end: options.trialEnd ?? null,
+    start_date: options.startDate ?? periodEnd - 30 * day,
     billing_cycle_anchor: options.anchor ?? null,
     cancel_at: options.cancelAt ?? null,
     cancel_at_period_end: false,
@@ -157,6 +160,7 @@ export function paidRow(choice: BillingChoice, overrides: Row = {}): Row {
     stripe_subscription_id: 'sub_1Test',
     billing_interval: choice.interval,
     price_version: 'v2',
+    trial_ends_at: new Date(Date.now() - 40 * day * 1000).toISOString(),
     first_paid_at: new Date(Date.now() - 40 * day * 1000).toISOString(),
     employee_step: choice.step,
     ...overrides,
@@ -258,6 +262,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
     calls: [],
     uploads: [],
     smsUsage: { used: 0, overage: 0, granted: 0 },
+    employeesOverStep: null,
     credits: { granted: 0, used: 0, shortfall: 0, gift_left: 0 },
     ...overrides,
   };
@@ -357,6 +362,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
       return json({ Key: `billing-invoices/${path}` });
     }
     if (url.pathname === '/rest/v1/rpc/sms_period_usage') return json(fake.smsUsage);
+    if (url.pathname === '/rest/v1/rpc/employees_over_step') return json(fake.employeesOverStep);
     if (url.pathname === '/rest/v1/rpc/credit_balance') {
       const { p_allowance } = JSON.parse(body ?? '{}') as { p_allowance: number | null };
       const { granted, used, shortfall } = fake.credits;

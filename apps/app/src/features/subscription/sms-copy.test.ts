@@ -17,11 +17,9 @@ describe('codesLabel', () => {
 });
 
 describe('where the codes stop', () => {
-  it('tells a paid month from a plan chosen in the trial and a tester', () => {
-    expect(stopOf({ planChosen: true, status: 'active' })).toBe('month');
-    expect(stopOf({ planChosen: true, status: 'past_due' })).toBe('month');
-    expect(stopOf({ planChosen: true, status: 'trialing' })).toBe('firstPayment');
-    expect(stopOf({ planChosen: false, status: 'trialing' })).toBe('tester');
+  it("tells a plan's month from a tester's", () => {
+    expect(stopOf({ planChosen: true })).toBe('month');
+    expect(stopOf({ planChosen: false })).toBe('tester');
   });
 });
 
@@ -54,16 +52,6 @@ describe('the SMS meter', () => {
     expect(smsMeterFor(tester, { owner: true, stop: 'tester' }).hint).toContain('Scrie-ne');
   });
 
-  it('stops a plan chosen in the trial until the first payment, with no price', () => {
-    const chosen = smsUsage({ used: 50, included: 50, allowance: 50, state: 'stopped' });
-    const hint = smsMeterFor(chosen, { owner: true, stop: 'firstPayment' }).hint;
-    expect(hint).toContain('de până la prima plată');
-    expect(hint).not.toContain('€');
-    expect(
-      smsMeterFor({ ...chosen, used: 4, state: 'ok' }, { owner: true, stop: 'firstPayment' }).hint
-    ).toBe('Până la prima plată, codurile se opresc la 50.');
-  });
-
   it('draws no bar where no SMS goes, and none without a limit', () => {
     expect(smsMeterFor(smsUsage({ state: 'none', included: 0 }), owner)).toMatchObject({
       used: null,
@@ -89,11 +77,5 @@ describe('the SMS bar', () => {
     const bar = smsBarFor(smsUsage({ used: 300, state: 'stopped' }), owner)!;
     expect(bar).toMatchObject({ kind: 'smsStop', state: 'stopped', closable: false });
     expect(bar.detail).toContain('Ai folosit cele 300 de coduri ale lunii.');
-    expect(
-      smsBarFor(smsUsage({ used: 50, included: 50, state: 'stopped' }), {
-        owner: true,
-        stop: 'firstPayment',
-      })!.detail
-    ).toContain('de până la prima plată');
   });
 });

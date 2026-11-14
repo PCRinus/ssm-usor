@@ -19,6 +19,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
 import {
   testStatusColumns,
@@ -365,6 +366,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
       ? new ApiError('conflict', conflictMessage(error.message))
       : fromDatabaseError(error, 'create employee');
   }
+  noticeEmployeesOverStepLater(c);
   return c.json({ employee: toEmployee(data) }, 201);
 };
 
@@ -420,6 +422,7 @@ export const updateEmployeeStatus: RouteHandler<typeof updateEmployeeStatusRoute
       : fromDatabaseError(error, 'update employee status');
   }
   if (!data) throw new ApiError('not_found', 'This employee does not exist under this client.');
+  if (body.status === 'active') noticeEmployeesOverStepLater(c);
   return c.json({ employee: toEmployee(data) }, 200);
 };
 

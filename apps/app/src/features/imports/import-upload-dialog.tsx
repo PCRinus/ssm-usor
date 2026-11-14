@@ -31,6 +31,8 @@ import { type FormEvent, type ReactNode, useRef, useState } from 'react';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
+import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
+import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 
 import {
   CreditsLine,
@@ -95,6 +97,7 @@ function UploadForm({
   onClose: () => void;
   onStarted: (importId: string) => void;
 }) {
+  const employeesBlocked = useEmployeesBlocked();
   const [chosen, setChosen] = useState<Selection>(emptySelection);
   const selection = withCopiesAside(chosen);
   const [opening, setOpening] = useState(false);
@@ -228,6 +231,7 @@ function UploadForm({
           ) : (
             <>
               <DialogBody className="mt-4 grid gap-4">
+                {employeesBlocked && <EmployeesOverStepNotice context="clientImport" />}
                 <Notice variant="info" data-testid="import-upload-one-client">
                   {client ? (
                     <>

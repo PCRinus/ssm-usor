@@ -31,6 +31,8 @@ import { useAuth } from '@/features/auth/auth-context';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 import { roCount } from '@/features/employees/employee-format';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
+import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
+import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 
 import {
   CreditsLine,
@@ -129,6 +131,7 @@ function UploadForm({
   onStarted: (importId: string) => void;
   onImportDocumentation?: () => void;
 }) {
+  const employeesBlocked = useEmployeesBlocked();
   const [chosen, setChosen] = useState<Selection>(emptySelection);
   const selection = withCopiesAside(chosen);
   const [added, setAdded] = useState<string[] | null>(withFound ? null : []);
@@ -273,6 +276,7 @@ function UploadForm({
           ) : (
             <>
               <DialogBody className="mt-4 grid gap-3.5">
+                {employeesBlocked && <EmployeesOverStepNotice context="employeeImport" />}
                 {choosing && noPosts && !noPostsDismissed && (
                   <Notice
                     variant="warning"

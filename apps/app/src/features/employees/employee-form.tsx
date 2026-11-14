@@ -21,6 +21,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { ClientFact } from '@/features/clients/client-fact';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
 import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
+import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 
 import { CommuteMeansCombobox } from './commute-means-combobox';
 import { type Employee, employeeErrorHelp, type EmployeeFormValues } from './employee-form-schema';
@@ -107,6 +108,7 @@ export function EmployeeForm({
         </h1>
         <ClientFact clientId={clientId} clientName={clientName} className="mt-1" />
       </TitleWithBack>
+      {!employee && <EmployeesOverStepNotice />}
       <form
         ref={formRef}
         className="grid gap-6"

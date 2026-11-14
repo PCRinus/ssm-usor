@@ -176,6 +176,29 @@ export const smsUsageNoticeEmailSchema = z.object({
 
 export type SmsUsageNoticeEmail = z.infer<typeof smsUsageNoticeEmailSchema>;
 
+export const employeesOverStepNoticeKinds = ['employees_over', 'employees_soon'] as const;
+export type EmployeesOverStepNoticeKind = (typeof employeesOverStepNoticeKinds)[number];
+
+/**
+ * Tells an organization's owner that its active employees passed the plan's step, and again three
+ * days before the last day new employees can be added (ADR 029). Once per kind each time the
+ * count passes the step.
+ */
+export const employeesOverStepNoticeEmailSchema = z.object({
+  to: z.email(),
+  kind: z.enum(employeesOverStepNoticeKinds),
+  organizationName: z.string().trim().min(2).max(200),
+  employees: z.int().min(1),
+  /** The step, or a trial's own limit. */
+  limit: z.int().min(1),
+  /** The last day, in Romanian time, new employees can be added. */
+  lastDay: z.iso.date(),
+  /** The Abonament tab in the SPA. */
+  subscriptionUrl: z.url(),
+});
+
+export type EmployeesOverStepNoticeEmail = z.infer<typeof employeesOverStepNoticeEmailSchema>;
+
 /** `id` is the provider's message id, or null when the email was only logged. */
 export type MailReceipt = { id: string | null };
 
@@ -197,4 +220,5 @@ export interface MailService {
   sendSigningCode(input: SigningCodeEmail): Promise<MailReceipt>;
   sendSignatureRequest(input: SignatureRequestEmail): Promise<MailReceipt>;
   sendSmsUsageNotice(input: SmsUsageNoticeEmail): Promise<MailReceipt>;
+  sendEmployeesOverStepNotice(input: EmployeesOverStepNoticeEmail): Promise<MailReceipt>;
 }

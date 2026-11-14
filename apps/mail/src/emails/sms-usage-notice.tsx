@@ -97,7 +97,7 @@ function Figures({ rows, total }: { rows: Figure[]; total?: Figure }) {
   );
 }
 
-// Nothing past the included codes can be billed before the first payment or in a tester's trial
+// Nothing past the included codes is billed while the extras are off or in a tester's trial
 // (ADR 029), so those emails never speak of a price.
 export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
   const {

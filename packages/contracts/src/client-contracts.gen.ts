@@ -1,5 +1,5 @@
 // Written by `pnpm generate:api` from the generated clients (ADR 040).
 export const clientContractFingerprints = {
-  app: '80309a1b29b8563d',
+  app: 'a4a127a79375bcfc',
   portal: 'e305d896dcf1129d',
 } as const;

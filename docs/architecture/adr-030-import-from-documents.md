@@ -10,6 +10,7 @@
 - Amended 2026-11-11, [below](#amendment-2026-11-11-a-reading-outside-an-import): a product's safety data sheet is read in the substance dialog, outside any import, with its values checked by their codes and charged in credits of its own kind.
 - Amended 2026-11-13 by [ADR 043](adr-043-photo-value-highlight.md): in the employee import, a sheet page opened from a value spotlights where the value is written, located by Gemini 3.1 Flash-Lite in a request of its own, so a photograph is no longer always unmarked; Google LLC joins the sub-processors.
 - Amended 2026-11-14, [below](#amendment-2026-11-14-ai-credits-by-employee-step): the credits are called AI credits in what people read, each plan's monthly credits and welcome credits follow its employee step ([ADR 029](adr-029-billing-plans-and-trials.md#amendment-2026-11-14-plans-by-employee-step)), and the credits past them are an extra the owner turns on, not a pack bought.
+- Amended 2026-11-14 ([ADR 029](adr-029-billing-plans-and-trials.md#amendment-2026-11-14-welcome-credits-fixed-at-the-first-payment)): the welcome gift is the step's at the first payment and never changes after it; an upgrade adds the difference in monthly credits only. In "Usage is counted in credits" this replaces the difference in the gift under "Changing plan", and the same in the amendment on AI credits by employee step.
 
 ## Context
 

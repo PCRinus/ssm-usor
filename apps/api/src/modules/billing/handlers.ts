@@ -27,6 +27,7 @@ import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
+import { employeesOverStepOf } from './employees-over-step';
 import type {
   cancelSubscriptionRoute,
   changeSubscriptionRoute,
@@ -207,9 +208,10 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
     countOpenInvitations(billing.db, billing.organizationId),
   ]);
   const limits = usageLimits(row, billing.now);
-  const [sms, credits] = await Promise.all([
+  const [sms, credits, employeesOverStep] = await Promise.all([
     smsUsageOf(smsUsageStore(billing.db), billing.organizationId, row, billing.now),
     creditsUsageOf(creditsStore(billing.db), billing.organizationId, row, billing.now),
+    employeesOverStepOf(billing.db, billing.organizationId),
   ]);
 
   let owner: BillingOverview['owner'] = null;
@@ -243,6 +245,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
       subscription: row ? subscriptionView(row, membership.access, stripeCancelAt) : null,
       usage: {
         employees: { used: usage.employees, limit: limits.employees },
+        employeesOverStep,
         members: { used: usage.members, limit: limits.members },
         invitations,
         smsThisMonth: sms,

@@ -1,8 +1,6 @@
 import type { Database, Json } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { creditsStore } from '../credits/store';
-import { grantWelcomeGift } from '../credits/usage';
 import type { BillingOrganization } from './oblio-documents';
 import type { Usage } from './rules';
 
@@ -112,7 +110,6 @@ export async function saveSubscription(
       });
   const { data, error } = await write.select('*').single();
   if (error) throw fromDatabaseError(error, 'billing subscription write');
-  await grantWelcomeGift(creditsStore(db), data);
   await recordChange(db, organizationId, {
     ...record,
     details: { ...record.details, ...changed },
@@ -120,8 +117,6 @@ export async function saveSubscription(
   return data;
 }
 
-// The first paid invoice ends the hard stop on signing codes that a plan chosen during the trial
-// has (ADR 029); later payments leave it as it is.
 export async function markFirstPayment(db: AdminClient, organizationId: string, paidAt: Date) {
   const { data, error } = await db
     .from('subscriptions')

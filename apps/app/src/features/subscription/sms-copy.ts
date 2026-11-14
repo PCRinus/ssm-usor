@@ -9,11 +9,11 @@ export type MeterTone = 'normal' | 'warning' | 'over' | 'danger';
  * Who reads the meter, and why the codes stop where they stop. Every stop is hard: past what is
  * included the codes go by email until the month renews, and nothing is billed, since extras are
  * off until the owner can turn them on (ADR 029, amendment of 2026-11-14). `month` is a paid
- * plan's, `firstPayment` a plan chosen during the trial, `tester` a tester's trial.
+ * plan's, `tester` a tester's trial.
  */
 export interface SmsReader {
   owner: boolean;
-  stop: 'month' | 'tester' | 'firstPayment';
+  stop: 'month' | 'tester';
 }
 
 export interface SmsMeter {
@@ -38,10 +38,9 @@ export function codesLabel(count: number) {
 }
 
 export function stopOf(
-  subscription: Pick<SubscriptionSummary, 'planChosen' | 'status'> | null
+  subscription: Pick<SubscriptionSummary, 'planChosen'> | null
 ): SmsReader['stop'] {
-  if (!subscription?.planChosen) return 'tester';
-  return subscription.status === 'trialing' ? 'firstPayment' : 'month';
+  return subscription?.planChosen ? 'month' : 'tester';
 }
 
 const toneOf: Record<BillingSmsUsage['state'], MeterTone> = {
@@ -77,9 +76,7 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
       hint =
         stop === 'tester'
           ? `Cont de test: ${included} pe lună, fără costuri în plus. La ${included}, codurile pleacă pe email${until}.`
-          : stop === 'firstPayment'
-            ? `Până la prima plată, codurile se opresc la ${included}.`
-            : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. Peste ${included}, ${byEmail}${until}.`;
+          : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. Peste ${included}, ${byEmail}${until}.`;
       break;
     case 'near':
       hint = `Mai ai ${formatCount(sms.included - sms.used)}${until}. Apoi ${byEmail}.`;
@@ -88,9 +85,7 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
       hint =
         stop === 'tester'
           ? `Cont de test: ai folosit cele ${included} din luna aceasta.${renews ? ` Până pe ${renews},` : ''} ${byEmail}. Ai nevoie de mai multe? Scrie-ne la ${contactEmail}.`
-          : stop === 'firstPayment'
-            ? `Ai folosit cele ${included} de până la prima plată.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`
-            : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
+          : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
   }
 
   return {
@@ -115,7 +110,6 @@ export interface SmsBar {
 const stopWords: Record<SmsReader['stop'], string> = {
   month: 'ale lunii',
   tester: 'ale lunii',
-  firstPayment: 'de până la prima plată',
 };
 
 /** From 80 % of what is included (ADR 029); none below it, and none while no SMS goes. */

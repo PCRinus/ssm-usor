@@ -124,7 +124,7 @@ function initialPick(
     {
       plan: search.plan ?? current?.plan ?? 'start',
       stop: search.step ?? current?.step ?? minimumStop(employees) ?? employeeStops[0]!,
-      interval: search.interval ?? current?.interval ?? 'month',
+      interval: search.interval ?? current?.interval ?? 'year',
     },
     owner,
     employees
@@ -152,11 +152,13 @@ function ChoosePlanForm({
   const [busy, setBusy] = useState(false);
   const employees = overview.usage.employees.used ?? 0;
   const members = overview.usage.members.used ?? 0;
-  // A plan chosen in the trial whose card never confirmed is chosen again with the card form;
-  // the mode stays as it opened, so the card form never disappears while the bank confirms.
+  // A plan chosen with a trial end whose card never confirmed is chosen again with the card form; the mode stays as it opened, so the card form never disappears while the bank
+  // confirms.
   const [mode] = useState(() =>
     live && current && !(view === 'trialChosen' && owner.card === null) ? 'change' : 'new'
   );
+
+  const welcomeAhead = mode === 'new' && subscription?.status === 'trialing';
 
   const state: CheckoutState = {
     choice,
@@ -164,6 +166,8 @@ function ChoosePlanForm({
     settling,
     previewError: preview.isError ? billingErrorMessage(preview.error) : null,
     inTrial: view === 'trialChosen',
+    endsTrial: mode === 'new' && subscription?.status === 'trialing' && view !== 'readOnly',
+    welcomeAhead,
     readOnly: view === 'readOnly',
   };
 
@@ -187,6 +191,7 @@ function ChoosePlanForm({
       employees={employees}
       onChange={(next) => setPick(fitPick(next, owner, employees))}
       disabled={busy}
+      welcomeAhead={welcomeAhead}
     />
   );
 

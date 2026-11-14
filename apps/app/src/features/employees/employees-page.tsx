@@ -23,6 +23,7 @@ import {
 import { EmployeeUploadDialog } from '@/features/imports/employees/employee-upload-dialog';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { TestStateFilter } from '@/features/knowledge-tests/test-state-filter';
+import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
@@ -96,6 +97,7 @@ export function EmployeesPage() {
           <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
         )}
       </div>
+      {!readOnly && <EmployeesOverStepNotice />}
       <EmployeesImportedCard clientId={clientId} />
       {!readOnly && <OpenEmployeeImports clientId={clientId} />}
       <div className="overflow-hidden rounded-lg border bg-card">

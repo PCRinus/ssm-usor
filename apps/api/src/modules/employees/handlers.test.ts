@@ -442,6 +442,19 @@ describe('POST /clients/{clientId}/employees', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_is_lead');
   });
 
+  it('passes on the refusal of the database a month after the employees passed the step', async () => {
+    mockUpstream({
+      employees: () =>
+        Response.json(
+          { code: 'STP01', message: 'Over the step of employees for a month.' },
+          { status: 400 }
+        ),
+    });
+    const response = await postEmployee(validBody);
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('employees_over_step');
+  });
+
   it('stores the digits-only CNP, lowercases the email, writes the phone in E.164, and scopes to the membership', async () => {
     mockUpstream({ employees: () => Response.json(employeeRow, { status: 201 }) });
     const response = await postEmployee(validBody);
@@ -670,6 +683,21 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     expect(response.status).toBe(200);
     const patch = calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')!;
     expect(JSON.parse(String(patch[1]?.body))).toEqual({ status: 'active', terminated_at: null });
+  });
+
+  it('refuses to reactivate a month after the employees passed the step', async () => {
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: 'STP01', message: 'Over the step of employees for a month.' },
+              { status: 400 }
+            )
+          : Response.json([{ id: employeeRow.id, hired_at: employeeRow.hired_at }]),
+    });
+    const response = await patchStatus({ status: 'active' });
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('employees_over_step');
   });
 
   it('refuses to reactivate while a current employee holds the CNP', async () => {

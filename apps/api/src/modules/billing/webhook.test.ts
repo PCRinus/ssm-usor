@@ -166,7 +166,94 @@ describe('POST /billing/stripe-webhook', () => {
   });
 
   describe('a subscription event', () => {
-    it('records a plan chosen during the trial, which keeps the trial until its end', async () => {
+    it('leaves the trial as it is while the first payment of a plan chosen in it is incomplete', async () => {
+      const fake = createFake();
+      const trial = subscriptionRow({ stripe_customer_id: 'cus_1Test' });
+      fake.tables.subscriptions!.push(trial);
+      let status = 'incomplete';
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ status, choice: start });
+
+      await deliver(subscriptionEvent('customer.subscription.created', 'evt_created'));
+      await deliver({
+        id: 'evt_action',
+        type: 'invoice.payment_action_required',
+        data: {
+          object: {
+            id: 'in_1First',
+            object: 'invoice',
+            customer: 'cus_1Test',
+            billing_reason: 'subscription_create',
+          },
+        },
+      });
+      await deliver({
+        id: 'evt_failed',
+        type: 'invoice.payment_failed',
+        data: {
+          object: {
+            id: 'in_1First',
+            object: 'invoice',
+            customer: 'cus_1Test',
+            billing_reason: 'subscription_create',
+            parent: {
+              type: 'subscription_details',
+              subscription_details: { subscription: 'sub_1Test' },
+            },
+          },
+        },
+      });
+      status = 'incomplete_expired';
+      await deliver(subscriptionEvent('customer.subscription.updated', 'evt_expired'));
+
+      expect(row(fake)).toEqual(trial);
+      expect(gifts(fake)).toEqual([]);
+    });
+
+    it('ends the trial when the first payment of a plan chosen in it goes through', async () => {
+      const fake = createFake();
+      const trial = subscriptionRow({ stripe_customer_id: 'cus_1Test' });
+      fake.tables.subscriptions!.push(trial);
+      const paidFrom = now() - 60;
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ choice: start, startDate: paidFrom, anchor: paidFrom });
+
+      await deliver(subscriptionEvent('customer.subscription.updated'));
+
+      expect(row(fake)).toMatchObject({
+        plan: 'start',
+        status: 'active',
+        stripe_subscription_id: 'sub_1Test',
+        employee_step: 500,
+        trial_ends_at: new Date(paidFrom * 1000).toISOString(),
+        access_until: null,
+        billing_anchor_at: new Date(paidFrom * 1000).toISOString(),
+      });
+      expect(gifts(fake)).toEqual([]);
+    });
+
+    it('keeps the end of a trial that Stripe ran to its end, for a plan chosen before 2026-11-14', async () => {
+      const fake = createFake();
+      const trialEnd = now() - 60;
+      fake.tables.subscriptions!.push(
+        paidRow(start, {
+          status: 'trialing',
+          trial_ends_at: new Date(trialEnd * 1000).toISOString(),
+          first_paid_at: null,
+        })
+      );
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ choice: start, trialEnd, startDate: trialEnd - 20 * day });
+
+      await deliver(subscriptionEvent('customer.subscription.updated'));
+
+      expect(row(fake)).toMatchObject({
+        status: 'active',
+        trial_ends_at: new Date(trialEnd * 1000).toISOString(),
+      });
+    });
+
+    it('records a plan chosen during the trial before 2026-11-14, which Stripe keeps on trial until its end', async () => {
       const fake = createFake();
       const trialEnd = now() + 12 * day;
       fake.tables.subscriptions!.push(subscriptionRow());
@@ -197,31 +284,17 @@ describe('POST /billing/stripe-webhook', () => {
       expect(gifts(fake)).toEqual([]);
     });
 
-    it("brings the welcome gift up to Profesional's on moving up from Start after the first payment", async () => {
-      const fake = createFake();
-      fake.tables.subscriptions!.push(paidRow(start));
-      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
-
-      await deliver(subscriptionEvent('customer.subscription.updated'));
-
-      expect(row(fake).plan).toBe('profesional');
-      expect(gifts(fake)).toEqual([
-        expect.objectContaining({ p_organization_id: organizationId, p_credits: 10000 }),
-      ]);
-    });
-
-    it("brings the welcome gift up to the higher step's on moving up a step", async () => {
+    it('grants no welcome credits on moving up a step or a plan after the first payment', async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow({ ...start, step: 250 }));
       fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
         stripeSubscription({ choice: { ...start, step: 750 } });
+      await deliver(subscriptionEvent('customer.subscription.updated', 'evt_step'));
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
+      await deliver(subscriptionEvent('customer.subscription.updated', 'evt_plan'));
 
-      await deliver(subscriptionEvent('customer.subscription.updated'));
-
-      expect(row(fake).employee_step).toBe(750);
-      expect(gifts(fake)).toEqual([
-        expect.objectContaining({ p_organization_id: organizationId, p_credits: 7500 }),
-      ]);
+      expect(row(fake)).toMatchObject({ plan: 'profesional', employee_step: 1500 });
+      expect(gifts(fake)).toEqual([]);
     });
 
     it('reads a v1 subscription back as the step that covers its packs', async () => {
@@ -438,7 +511,84 @@ describe('POST /billing/stripe-webhook', () => {
       ]);
     });
 
-    it('records the first payment once, which ends the hard stop on signing codes', async () => {
+    function firstPaymentOfTrial(fake: Fake) {
+      fake.tables.subscriptions!.push(subscriptionRow({ stripe_customer_id: 'cus_1Test' }));
+      const paidFrom = now() - 60;
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ choice: start, startDate: paidFrom, anchor: paidFrom });
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () =>
+        paidInvoice({
+          billing_reason: 'subscription_create',
+          subtotal: 5900,
+          total: 7139,
+          parent: {
+            type: 'subscription_details',
+            subscription_details: {
+              subscription: 'sub_1Test',
+              metadata: { organization_id: organizationId },
+            },
+          },
+        });
+      return paidFrom;
+    }
+
+    const startGift = expect.objectContaining({
+      p_organization_id: organizationId,
+      p_credits: 5000,
+    });
+
+    it("grants the paid step's welcome credits when the first payment's event comes before the subscription's", async () => {
+      const fake = createFake();
+      const paidFrom = firstPaymentOfTrial(fake);
+
+      await deliver(paidEvent);
+
+      expect(row(fake)).toMatchObject({
+        plan: 'start',
+        status: 'active',
+        employee_step: 500,
+        trial_ends_at: new Date(paidFrom * 1000).toISOString(),
+        first_paid_at: expect.any(String),
+      });
+      expect(gifts(fake)).toEqual([startGift]);
+    });
+
+    it("grants the paid step's welcome credits when the subscription's event comes first", async () => {
+      const fake = createFake();
+      firstPaymentOfTrial(fake);
+
+      await deliver(subscriptionEvent('customer.subscription.updated'));
+      expect(gifts(fake)).toEqual([]);
+      await deliver(paidEvent);
+
+      expect(row(fake)).toMatchObject({ plan: 'start', status: 'active', employee_step: 500 });
+      expect(gifts(fake)).toEqual([startGift]);
+    });
+
+    it('records no first payment and no welcome credits while the subscription paid for is not followed yet, and takes them on the redelivery', async () => {
+      const fake = createFake();
+      firstPaymentOfTrial(fake);
+      const paid = fake.stripe['GET /v1/subscriptions/sub_1Test']!;
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ status: 'incomplete', choice: start });
+
+      const first = await deliver(paidEvent);
+
+      expect(first.status).toBe(500);
+      expect(row(fake)).toMatchObject({ status: 'trialing', first_paid_at: null });
+      expect(gifts(fake)).toEqual([]);
+      expect(oblioWrites(fake, '/api/docs/invoice')).toHaveLength(1);
+
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = paid;
+      const again = await deliver(paidEvent);
+
+      expect(again.status).toBe(200);
+      expect(row(fake)).toMatchObject({ status: 'active', first_paid_at: expect.any(String) });
+      expect(gifts(fake)).toEqual([startGift]);
+      expect(oblioWrites(fake, '/api/docs/invoice')).toHaveLength(1);
+    });
+
+    it('records the first payment once', async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow(pro, { first_paid_at: null }));
       fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
@@ -452,7 +602,7 @@ describe('POST /billing/stripe-webhook', () => {
       expect(changes(fake).filter((change) => change.change === 'first_payment')).toHaveLength(1);
     });
 
-    it("grants the step's welcome gift with the first payment, asking again on a retry, which the database grants once", async () => {
+    it("asks for the step's welcome credits with the first payment and again on a retry, which the database grants once", async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow(start, { first_paid_at: null }));
       fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
@@ -476,6 +626,7 @@ describe('POST /billing/stripe-webhook', () => {
 
     it('issues the first invoice paid before the checkout saved the customer', async () => {
       const fake = createFake();
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
       fake.stripe['GET /v1/invoices/in_1Paid'] = () =>
         paidInvoice({
           billing_reason: 'subscription_create',

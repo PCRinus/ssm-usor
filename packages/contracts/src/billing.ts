@@ -301,6 +301,18 @@ export const billingUsageMeterSchema = z.object({
 });
 export type BillingUsageMeter = z.infer<typeof billingUsageMeterSchema>;
 
+// The active employees are past the step (ADR 029). Until `lastDay` ends, in Romanian time, new
+// employees are still added; after it, while still over, nothing that adds one is accepted.
+export const employeesOverStepSchema = z.object({
+  since: timestamp,
+  lastDay: z.iso.date(),
+  blocked: z.boolean(),
+});
+export type EmployeesOverStep = z.infer<typeof employeesOverStepSchema>;
+
+// The `reason` of the 403 for adding employees, or bringing them back, past the month over the step.
+export const employeesOverStepReason = 'employees_over_step';
+
 /** A tester's trial sends this many signing codes a month, with a hard stop (ADR 029). */
 export const testerMonthlySms = 300;
 
@@ -386,8 +398,6 @@ export const billingCreditsUsageSchema = z.object({
   left: z.int().nullable(),
   // The welcome gift's credits left; used once the month's are gone.
   giftLeft: z.int().min(0),
-  // What the first payment will bring: the chosen plan's gift, during the trial.
-  giftPending: z.int().min(0),
   // `trial`: one allowance for the whole trial, which does not renew; `month`: renews at the end.
   period: z.enum(['trial', 'month']),
   periodStart: timestamp,
@@ -464,6 +474,8 @@ export const billingOverviewSchema = z.object({
     // Active employees of active clients. Until a trial ends, the trial's limits apply, a plan
     // chosen during it or not.
     employees: billingUsageMeterSchema,
+    // Null while the employees are within the step, and where nothing limits them.
+    employeesOverStep: employeesOverStepSchema.nullable(),
     members: billingUsageMeterSchema,
     // Open invitations, each holding one of the plan's users until accepted, revoked or expired.
     invitations: z.int().min(0),

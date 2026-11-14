@@ -56,7 +56,6 @@ export function creditsUsage(overrides: Partial<BillingCreditsUsage> = {}): Bill
     shortfall: 0,
     left: 2610,
     giftLeft: 8640,
-    giftPending: 0,
     period: 'month',
     periodStart: inDays(-17),
     periodEnd: inDays(14),
@@ -182,6 +181,7 @@ export function overviewWith({
     subscription,
     usage: {
       employees: { used: employees, limit: limits?.employees ?? 5000 },
+      employeesOverStep: null,
       members: { used: members, limit: limits?.members ?? 10 },
       invitations,
       smsThisMonth: {
@@ -205,7 +205,6 @@ export function overviewWith({
         shortfall: 0,
         left: 300,
         giftLeft: 0,
-        giftPending: 0,
         period: 'trial',
         periodStart: '2026-10-01T08:00:00.000Z',
         periodEnd: '2026-10-31T08:00:00.000Z',

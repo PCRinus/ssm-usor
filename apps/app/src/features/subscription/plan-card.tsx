@@ -131,7 +131,7 @@ export function PlanCard({
       seal = { kind: 'trial', label: `Probă · ${daysLeftLabel(days)}` };
       name = 'Perioada de probă';
       status = owner
-        ? `Până pe ${roDate(end)} ai tot ce include Profesional. Alege un plan oricând: zilele rămase nu se pierd, iar prima plată e abia pe ${roDate(end)}.`
+        ? `Până pe ${roDate(end)} ai tot ce include Profesional. Alege un plan oricând: plătești atunci, iar perioada de probă se încheie.`
         : `Până pe ${roDate(end)} organizația are tot ce include Profesional.`;
       amount = { label: 'Mai ai', value: daysLeftLabel(days), note: `până pe ${roDate(end)}` };
       if (days <= 1)

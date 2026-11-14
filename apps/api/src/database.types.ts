@@ -5487,6 +5487,7 @@ export type Database = {
           created_at: string;
           current_period_end: string | null;
           employee_step: number | null;
+          employees_over_step_since: string | null;
           first_paid_at: string | null;
           invoice_email: string | null;
           organization_id: string;
@@ -5508,6 +5509,7 @@ export type Database = {
           created_at?: string;
           current_period_end?: string | null;
           employee_step?: number | null;
+          employees_over_step_since?: string | null;
           first_paid_at?: string | null;
           invoice_email?: string | null;
           organization_id: string;
@@ -5529,6 +5531,7 @@ export type Database = {
           created_at?: string;
           current_period_end?: string | null;
           employee_step?: number | null;
+          employees_over_step_since?: string | null;
           first_paid_at?: string | null;
           invoice_email?: string | null;
           organization_id?: string;
@@ -7700,6 +7703,23 @@ export type Database = {
           error: true;
         } & 'the function public.employee_client_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
+      employee_counts: {
+        Args: {
+          p_archived_at: string;
+          p_client_id: string;
+          p_status: Database['public']['Enums']['employee_status'];
+        };
+        Returns: boolean;
+      };
+      employee_limit_of: {
+        Args: {
+          p_employee_step: number;
+          p_plan: Database['public']['Enums']['subscription_plan'];
+          p_status: Database['public']['Enums']['subscription_status'];
+          p_trial_ends_at: string;
+        };
+        Returns: number;
+      };
       employee_search_name: {
         Args: { '': Database['public']['Tables']['employees']['Row'] };
         Returns: {
@@ -7734,6 +7754,37 @@ export type Database = {
           last_periodic_on: string;
           state: Database['public']['Enums']['training_state'];
           workplace_trained_on: string;
+        }[];
+      };
+      employees_over_step: {
+        Args: { p_organization_id: string };
+        Returns: {
+          blocked: boolean;
+          last_day: string;
+          over_since: string;
+        }[];
+      };
+      employees_over_step_blocks_at: {
+        Args: { p_since: string };
+        Returns: string;
+      };
+      employees_over_step_last_day: {
+        Args: { p_since: string };
+        Returns: string;
+      };
+      employees_over_step_limit: {
+        Args: { s: Database['public']['Tables']['subscriptions']['Row'] };
+        Returns: number;
+      };
+      employees_over_step_notices_due: {
+        Args: never;
+        Returns: {
+          employee_limit: number;
+          employees: number;
+          kind: string;
+          last_day: string;
+          organization_id: string;
+          over_since: string;
         }[];
       };
       expired_import_ids: { Args: never; Returns: string[] };
@@ -8162,6 +8213,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      organization_employee_count: {
+        Args: { p_organization_id: string };
+        Returns: number;
+      };
       organization_employee_states: {
         Args: { p_organization_id: string };
         Returns: {
@@ -8173,6 +8228,10 @@ export type Database = {
           su_training_due_on: string;
           su_training_state: Database['public']['Enums']['training_state'];
         }[];
+      };
+      organization_employees_blocked: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
       };
       organization_employees_in_state: {
         Args: {
@@ -8346,6 +8405,11 @@ export type Database = {
         };
         Returns: boolean;
       };
+      refresh_all_employees_over_step: { Args: never; Returns: number };
+      refresh_employees_over_step: {
+        Args: { p_organization_id: string };
+        Returns: string;
+      };
       refund_import_credits: { Args: { p_import_id: string }; Returns: number };
       refund_library_part_credits: {
         Args: {
@@ -8358,6 +8422,10 @@ export type Database = {
       refund_safety_sheet_credits: { Args: { p_key: string }; Returns: number };
       refuse_archived_client: {
         Args: { p_client_id: string };
+        Returns: undefined;
+      };
+      refuse_employees_over_step: {
+        Args: { p_organization_id: string };
         Returns: undefined;
       };
       refuse_lead_without_offers: {

@@ -107,7 +107,6 @@ export function meWithCredits(
     shortfall: 0,
     left: 1270,
     giftLeft: 7840,
-    giftPending: 0,
     period: 'month',
     periodStart: '2026-10-14T08:00:00.000Z',
     periodEnd: '2026-11-14T08:00:00.000Z',

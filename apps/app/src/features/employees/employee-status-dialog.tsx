@@ -27,6 +27,11 @@ import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
+import {
+  employeesOverStepMessage,
+  isEmployeesOverStepError,
+  refreshEmployeesOverStep,
+} from '@/features/subscription/employees-over-step';
 
 import { formatDate, todayIso } from './employee-format';
 
@@ -40,6 +45,7 @@ export interface EmployeeStatusChange {
 }
 
 function serverMessage(cause: unknown) {
+  if (isEmployeesOverStepError(cause)) return employeesOverStepMessage;
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) return 'Lucrătorul nu mai există la acest client.';
     if (cause.status === 409) return conflictMessage(cause.body as Partial<ApiErrorResponse>);
@@ -127,6 +133,7 @@ function StatusForm({
       // page reads its own query.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
+        refreshEmployeesOverStep(queryClient),
         queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
         // A leaver no longer counts in their job position; someone reactivated does again.
         queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),

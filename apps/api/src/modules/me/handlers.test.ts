@@ -48,6 +48,7 @@ function mockUpstream({
   subscription = null as typeof trialRow | null,
   access = 'full',
   offers = true as boolean | 'error',
+  overStep = null as Record<string, unknown> | null,
   appMetadata = { provider: 'email' } as Record<string, string>,
   impersonation = null as typeof activeImpersonation | null,
   impersonated = { full_name: 'Ion Ionescu', email: 'ion@example.ro' } as {
@@ -90,6 +91,9 @@ function mockUpstream({
     }
     if (url.pathname === '/rest/v1/rpc/credit_balance') {
       return Response.json({ granted: 0, used: 640, shortfall: 0, balance: 860, gift_left: 8640 });
+    }
+    if (url.pathname === '/rest/v1/rpc/employees_over_step') {
+      return Response.json(overStep);
     }
     if (url.pathname === '/rest/v1/rpc/sms_period_usage') {
       return Response.json({ used: 252, overage: 0, granted: 0 });
@@ -180,6 +184,7 @@ describe('GET /me', () => {
       subscription: null,
       smsThisMonth: null,
       creditsThisMonth: null,
+      employeesOverStep: null,
       features: { offers: true },
     });
   });
@@ -279,6 +284,28 @@ describe('GET /me', () => {
       });
     });
 
+    it('says since when the employees are over the step and the last day to add one', async () => {
+      mockUpstream({
+        subscription: paidRow,
+        overStep: {
+          employees: 1512,
+          employee_limit: 1500,
+          over_since: '2026-11-02T10:00:00+00:00',
+          last_day: '2026-12-02',
+          blocked: false,
+        },
+      });
+
+      const response = await request('/me');
+
+      const me = meResponseSchema.parse(await response.json());
+      expect(me.employeesOverStep).toEqual({
+        since: '2026-11-02T10:00:00.000Z',
+        lastDay: '2026-12-02',
+        blocked: false,
+      });
+    });
+
     it('says none goes during a trial without a plan', async () => {
       mockUpstream({ subscription: trialRow });
 
@@ -299,6 +326,7 @@ describe('GET /me', () => {
       const me = meResponseSchema.parse(await response.json());
       expect(me.smsThisMonth).toBeNull();
       expect(me.creditsThisMonth).toBeNull();
+      expect(me.employeesOverStep).toBeNull();
     });
   });
 
@@ -328,6 +356,7 @@ describe('GET /me', () => {
       subscription: null,
       smsThisMonth: null,
       creditsThisMonth: null,
+      employeesOverStep: null,
       features: null,
     });
   });

@@ -21,6 +21,11 @@ import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
 import { useAuth } from '@/features/auth/auth-context';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import {
+  employeesOverStepMessage,
+  isEmployeesOverStepError,
+  refreshEmployeesOverStep,
+} from '@/features/subscription/employees-over-step';
 import { type IssueTarget, setApiIssues } from '@/lib/api-issues';
 
 import {
@@ -126,6 +131,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       }
       // Every filtered variant of this client's list starts with the same key prefix.
       await queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) });
+      await refreshEmployeesOverStep(queryClient);
       // The position just gained a person, whether it was new or not.
       await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
       if (employee) {
@@ -143,6 +149,11 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         await navigate({ to: '/clienti/$clientId/angajati', params: { clientId } });
       }
     } catch (cause) {
+      if (isEmployeesOverStepError(cause)) {
+        await refreshEmployeesOverStep(queryClient);
+        form.setError('root.server', { message: employeesOverStepMessage });
+        return;
+      }
       if (cause instanceof ApiHttpError) {
         const body = cause.body as Partial<ApiErrorResponse> | undefined;
         if (cause.status === 409) {

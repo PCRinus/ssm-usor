@@ -135,25 +135,12 @@ export function NoCreditsFooter({ isOwner, onClose }: { isOwner: boolean; onClos
 
 export function GiftHint({ balance }: { balance: CreditsBalance | null }) {
   if (!balance?.trial) return null;
-  const pending = balance.usage.giftPending;
   return (
     <Hint icon={<Gift aria-hidden="true" />}>
-      {pending > 0 ? (
-        <>
-          La prima plată primești și{' '}
-          <b className="font-semibold text-foreground">
-            {formatCount(pending)} de credite AI de bun venit
-          </b>
-          , ca să-ți aduci toți clienții în aplicație. Nu expiră.
-        </>
-      ) : (
-        <>
-          La prima plată primești și{' '}
-          <b className="font-semibold text-foreground">creditele AI de bun venit</b>, ca să-ți aduci
-          toți clienții în aplicație: 10 pentru fiecare lucrător al treptei alese, cel mult{' '}
-          {formatCount(welcomeCreditsFor(Infinity))}. Nu expiră.
-        </>
-      )}
+      La prima plată primești și{' '}
+      <b className="font-semibold text-foreground">creditele AI de bun venit</b>, ca să-ți aduci
+      toți clienții în aplicație: 10 pentru fiecare lucrător al treptei alese, cel mult{' '}
+      {formatCount(welcomeCreditsFor(Infinity))}. Nu expiră.
     </Hint>
   );
 }

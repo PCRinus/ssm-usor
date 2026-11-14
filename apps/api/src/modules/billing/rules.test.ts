@@ -182,7 +182,6 @@ describe('usage limits', () => {
   const row = {
     plan: 'start',
     status: 'trialing',
-    stripe_subscription_id: null as string | null,
     trial_ends_at: '2026-11-08T10:00:00Z',
     employee_step: 500 as number | null,
   };
@@ -191,11 +190,8 @@ describe('usage limits', () => {
     expect(usageLimits(row, now)).toEqual({ employees: 5000, members: 10 });
   });
 
-  it('holds a plan chosen during the trial to its own users at once', () => {
-    expect(usageLimits({ ...row, stripe_subscription_id: 'sub_1' }, now)).toEqual({
-      employees: 5000,
-      members: 3,
-    });
+  it("counts the paid plan's step and users from the first payment, though the trial would have run on", () => {
+    expect(usageLimits({ ...row, status: 'active' }, now)).toEqual({ employees: 500, members: 3 });
   });
 
   it("counts the step's employees and the plan's users once the trial is over", () => {

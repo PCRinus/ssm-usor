@@ -20,6 +20,7 @@ import {
 import { openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
+import { formatRoDate } from '@/lib/dates';
 
 import { billingErrorMessage } from './billing-errors';
 import { addDays, cardBrand, employeesLabel, formatCount, formatEuro } from './billing-format';
@@ -27,6 +28,7 @@ import { BillingCard } from './billing-ui';
 import { CancelDialog } from './cancel-dialog';
 import { ChangeDialog } from './change-dialog';
 import { nextStepAction, nextStepOf, nextStepSentence } from './checkout/checkout-choice';
+import { EmployeesOverStepNotice } from './employees-over-step-notice';
 import { InvoicesCard } from './invoices-card';
 import { leaveFor } from './leave';
 import { PaymentCard } from './payment-card';
@@ -151,6 +153,7 @@ function SubscriptionContent({
         </Notice>
       )}
       {notice}
+      {(!owner || view !== 'active') && <EmployeesOverStepNotice />}
       {error && <Notice variant="destructive">{error}</Notice>}
 
       <div className="grid items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -357,16 +360,31 @@ function noticeFor(
       if (employees.used <= employees.limit) return null;
       const next = nextStepOf(choice, employees.used);
       const action = next && nextStepAction(choice, next);
+      const over = overview.usage.employeesOverStep;
       return (
         <Notice
           variant="warning"
           data-testid="subscription-notice"
-          title="Ai trecut de treapta de lucrători."
+          title={
+            over?.blocked
+              ? 'Nu mai poți adăuga lucrători noi.'
+              : over
+                ? `Ai trecut de treapta de lucrători. Poți adăuga lucrători noi până pe ${formatRoDate(over.lastDay)} inclusiv.`
+                : 'Ai trecut de treapta de lucrători.'
+          }
           action={action && chooseLink(action.label, action.search)}
         >
-          Ai {employeesLabel(employees.used)} la clienți, cu{' '}
+          {over?.blocked
+            ? 'De mai bine de o lună ai mai mulți lucrători decât treapta ta. Acum ai '
+            : 'Ai '}
+          {employeesLabel(employees.used)} la clienți, cu{' '}
           {formatCount(employees.used - employees.limit)} peste treapta ta, de{' '}
-          {formatCount(employees.limit)}. Lucrezi mai departe cu tot ce ai.
+          {formatCount(employees.limit)}. Lucrezi mai departe cu tot ce ai
+          {over?.blocked
+            ? ', dar nu mai adaugi lucrători până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.'
+            : over
+              ? '. Dacă după această dată ai tot mai mulți, nu mai poți adăuga lucrători noi până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.'
+              : '.'}
           {next
             ? ` ${nextStepSentence(choice, next)}`
             : ` Peste ${employeesLabel(selfServeLimits.employees)}, scrie-ne pentru o ofertă, la ${contactEmail}.`}

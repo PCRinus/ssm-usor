@@ -6,6 +6,8 @@
 - Amended 2026-11-14: a new organization's trial lasts 14 days instead of 30; trials already running keep their end, and the 30 days of read-only access after it are unchanged. See "Plans and the trial".
 - Amended 2026-11-14: offers (leads, [ADR 007](adr-007-leads-and-service-contracts.md)) and their contracts are a Profesional feature; on Start the existing ones are read, archived, restored and promoted, and nothing else about them changes. See "Plan features".
 - Amended 2026-11-14, [below](#amendment-2026-11-14-plans-by-employee-step): each plan is priced by a step of employees, with three users on Start and ten on Profesional, and no packs or extra member; the SMS codes and AI credits follow the step; extras past what a step includes are the owner's choice, off until the screen that turns them on exists. It replaces the packs, the extra member, the billed SMS past the allowance and the safety cap described below.
+- Amended 2026-11-14, [below](#amendment-2026-11-14-choosing-a-plan-ends-the-trial): choosing a plan during the trial ends the trial when the first payment, taken at once, goes through; the days left are not kept. It replaces the first charge at the trial's end and everything "before the first payment".
+- Amended 2026-11-14, [below](#amendment-2026-11-14-welcome-credits-fixed-at-the-first-payment): the welcome credits are the step's at the first payment and never change after it; moving up no longer adds the difference.
 
 ## Context
 
@@ -51,7 +53,7 @@ A participant's signing and test attempts answer `403` too. Acknowledging an upd
 
 ### Plan features
 
-(Added 2026-11-14.) Beyond its limits, a plan can include a **feature** that another lacks. The first is **offers**: the leads of [ADR 007](adr-007-leads-and-service-contracts.md) with their contracts, their files and the owners' notes about them. Profesional and Enterprise have them, and so does a trial, also after Start is chosen during it, since a trial carries Profesional's features until it ends. An organization without a subscription row has every feature, as it has full access.
+(Added 2026-11-14.) Beyond its limits, a plan can include a **feature** that another lacks. The first is **offers**: the leads of [ADR 007](adr-007-leads-and-service-contracts.md) with their contracts, their files and the owners' notes about them. Profesional and Enterprise have them, and so does a trial, since a trial carries Profesional's features until it ends. (Amended 2026-11-14: paying for Start during the trial ends the trial, so offers become read-only from that payment; a Start chosen during the trial before then keeps them until the trial's end.) An organization without a subscription row has every feature, as it has full access.
 
 On Start, the existing offers stay as they are: owners list and open them, download their contracts and files, archive and restore them, and turn them into clients. Creating an offer and changing anything about one is refused: its data, contact and notes, its files, and its contract's details, drafts, issuing, sending and signed copy. The contract of a client, a promoted offer's included, is not an offer's and stays on every plan. A copy signed by the client through the return link still arrives, as it does while read-only.
 
@@ -221,7 +223,7 @@ The owner chooses a plan, a step and a period. The checkout refuses a step below
 
 ### Limits and usage
 
-- **Employees over the step.** The meter on the Abonament tab shows how many are over and offers the next step; nothing is blocked. The pricing page says that after a month still over, no new employees can be added until the owner moves up or archives clients. That block was step 10 of the order of work and is still not built; nor is the banner and email at once. Until it is, being over the step is shown and never enforced.
+- **Employees over the step.** The meter on the Abonament tab shows how many are over and offers the next step. After a month still over, nothing that adds an employee is accepted until the step covers them; see the amendment below, "A month over the step".
 - **Users.** Fixed per plan, three or ten, shown on the meter with the open invitations, each of which holds a place. With no seat to buy, an invitation is refused (`member_limit_reached`) once the members and the open invitations fill the plan's users; renewing an address's own open invitation is not, and renewing an expired one takes a place again. An address that is already a member still answers `already_member`. A trial has ten; a plan chosen during the trial holds the organization to its own users from the moment it is chosen, since the first charge bills them. Two invitations sent in the same instant at one place short can both pass: the count and the insert are not locked together. Accepting an invitation already sent is never refused. A plan with fewer users than the organization's members cannot be chosen.
 - **The allowances follow the step of the subscription row.** Because the row takes a change when it applies, a higher step's SMS codes and AI credits count at once, for the month already under way (the difference, as an upgrade gave before), and a lower step's from the renewal. The welcome credits are brought up to the step's, so moving up after the first payment adds the difference once, and moving down takes nothing back.
 - **Before the first payment** nothing changes: a plan chosen during the trial sends signing codes up to its step's allowance with a hard stop, and the credits stay the trial's 300 until the first payment brings the step's month and welcome credits.
@@ -246,3 +248,84 @@ Production holds one tester's trial and no paying subscription, so no customer m
 ### What this replaces
 
 In the sections above: the packs and the extra member in "Stripe takes the payment" and "Changes during a period"; "Moving down from Profesional to Start adds the packs…" and Start's ceiling of 600 employees and two members; under "Limits and usage", the employees and members rules, each plan's SMS allowance, the signing codes billed past it, the safety cap and its warning at the cap, and the credit allowances and gifts (now by step); the margins, which were computed for the old allowances.
+
+## Amendment 2026-11-14: choosing a plan ends the trial
+
+Decided by Mircea on 2026-11-14.
+
+### What
+
+Choosing a plan during the trial ends the trial at that moment. The checkout charges the plan's first period at once, as it already did after a trial or for a read-only organization: the Stripe subscription has no `trial_end`, and the paid period, the subscription's month and its renewal date start with that payment. The trial's days left are lost. From that first payment the organization has its step's SMS signing codes and AI credits for the month, and the step's welcome credits, as after any first payment.
+
+The first payment is confirmed in the browser (`payment_behavior: 'default_incomplete'`). Until it succeeds the Stripe subscription is `incomplete` and our row does not follow it: the organization stays in its trial, unchanged, with nothing granted. A declined card or a 3-D Secure step left unfinished leaves it there; Stripe expires the incomplete subscription after a day and the owner can try again, the next attempt cancelling the one left behind. When the payment succeeds, the row takes the subscription as `active` and its `trial_ends_at` becomes the subscription's start, the moment the trial ended. The event of the paid invoice may come before the subscription's own; the invoice's handler then reads the subscription from Stripe first, so the welcome credits are always the step's that was paid for. When a paid first invoice can never be adopted, because its subscription was cancelled or superseded by a second checkout, Stripe retries the event until it ends as an error, and no welcome credits are granted for it.
+
+A trial with no plan chosen is unchanged: 14 days, 300 AI credits, signing codes by email, Profesional's limits and features, read-only for 30 days after it ends.
+
+### Why
+
+- It removes the state "plan chosen, not yet paid" and its own rules: SMS up to the chosen step's allowance with a hard stop, the trial's credits until the first payment, the chosen plan's users already counted, cancelling back into the trial, and the texts for each.
+- It closes a window in which a trial could send up to 1,000 free SMS signing codes, on Profesional's largest step, and then cancel before anything was charged.
+- Keeping the trial's days was meant to make deciding early cost nothing. With the trial at 14 days the days given up are few, and an owner who wants them can wait to choose; the checkout says, before paying, that the payment ends the trial and that its days left are not kept.
+
+### Existing rows
+
+A plan chosen during the trial before this change has a Stripe subscription still `trialing`, charged at the trial's end. Production had none when this was decided, but such rows are handled as they are: the subscription is followed as before, a change applies at once with nothing prorated, and cancelling drops it at once and returns the organization to its plain trial (logged as `plan_canceled_in_trial`). Until its first payment such a row gets what a trial gets: no SMS (unless it is a tester's), the trial's 300 credits and the trial's limits. The Abonament tab names the plan and the day of the first payment and lets the owner drop it; one whose card never confirmed is chosen again through the checkout, which now charges at once.
+
+### What this replaces
+
+In "Plans and the trial": the paragraph on an organization that picks a plan before its trial ends. Under "Limits and usage": "Before the first payment", and in the welcome gift the reasoning about choosing and cancelling before the first charge (the gift still comes with the first payment). In "Plan features": offers after Start is chosen during the trial. In the amendment on plans by employee step: "Before the first payment nothing changes" and the users of a plan chosen during the trial.
+
+## Amendment 2026-11-14: welcome credits fixed at the first payment
+
+Decided by Mircea on 2026-11-14.
+
+At the first successful payment the organization receives 10 welcome AI credits per employee of the step it pays for, at most 10,000, which never expire, as before. That amount never changes afterwards: moving to a higher step or to Profesional gives no more welcome credits, and moving down takes none away. The monthly SMS codes and AI credits still follow the step on a change: an upgrade adds the difference for the month under way.
+
+Topping the gift up on every upgrade let an owner move up for a day, for about 11 €, collect 7,500 credits that never expire, and move back down.
+
+`grant_welcome_gift` grants once per organization and answers 0 afterwards, whatever amount it is asked for, so a webhook delivered again grants nothing twice. Only a paid invoice asks for it. Organizations that already received a gift keep what they have and get nothing more. In "Limits and usage" of the amendment on plans by employee step, this replaces "The welcome credits are brought up to the step's, so moving up after the first payment adds the difference once".
+
+## Amendment 2026-11-14: a month over the step
+
+The pricing page and the Terms (point 8, "Limitele treptei") already promise it: when the active employees of the active clients pass the subscription's step, the organization is told; if after a month it has neither moved up nor come back within the step, it adds no employees, and no clients with employees, until it does; everything in the account keeps working. Step 10 of the order of work named this block and it was not built. This builds it.
+
+### The count and the limit
+
+The count is the Abonament tab's: active employees (`status = 'active'`, not archived) of clients that are clients, not offers, and not archived. The limit is the subscription's step; during a trial, the trial's own limit, Profesional's largest step (5,000), so a trial is never held to a step it has not paid for; a row without a step takes its plan's first. No limit applies, and no clock runs, while the subscription is canceled or the organization read-only: it cannot add employees then anyway, and coming back starts a fresh month if it is still over, never an old one already past. A payment being retried keeps full access, so its clock runs. Enterprise has no step and is never counted. An organization without a subscription row has no limit, as it has full access. The database computes both (`organization_employee_count`, `employee_limit_of`); `usageLimits` in the API's billing rules computes the same limit for the meter, and a test holds the two to the plan catalogue.
+
+### The clock
+
+`subscriptions.employees_over_step_since` holds when the count last went past the limit, and is null while it is within. It is written in the database only, by `refresh_employees_over_step`, which counts and either keeps the time it holds, sets it to now, or clears it; before it moves the clock it locks the subscription row and counts again. It never sets an earlier time, so nothing can backdate a block, and a refusal leaves it alone because a refused write rolls back with it. Triggers call it after every change that can move the count (an employee added, removed, archived or brought back, its status, a move between clients; a client archived, restored or promoted), deferred to the end of the transaction and run once per organization there: an import writes its people one statement at a time, so a refresh per row, or per statement, would count the whole organization once per person. The refusal below does not wait for it, so an import stays all or nothing. A change that can move the limit (plan, step, status, the trial's end, the end of access, a chosen plan) moves the clock in the same write. Each start and each clear goes to `subscription_changes` with source `database`. The lock makes two changes to one organization count one after the other, so neither undoes the other's start.
+
+The limit also moves with time alone when a trial ends. That needs no new scheduled job: the daily run the API already has (its cron at 02:41) refreshes every clock first, and reading the state (`employees_over_step`, which `GET /me` and `GET /billing` call) refreshes that organization's. A clock started late by either is started from that moment, never from the trial's end. Organizations already over when the migration runs start their month then.
+
+Rejected: deriving the start from the change log or from the employees' `created_at` on every read (a clock that a deleted row or an edited date could move), and a timestamp the API writes (the data API lets members write employees directly, so the API is not the only writer).
+
+### The month and the block
+
+The last day new employees can be added is the same calendar day a month after the clock started, in Romanian time, clamped to the month's last day as Stripe's months are (31 January gives 28 February). The block starts when that day ends, at midnight in Bucharest, so the date the app and the email show is a whole day, inclusive. That is the reading of "after a month" most favourable to the customer.
+
+From then, while still over, every write that adds to the count is refused, from a member, with `STP01`, which the API answers as `403` with `reason: employees_over_step`. The check counts live, so a clock left set while the count is within never blocks. What is refused, each by a trigger, so that the data API refuses it too:
+
+- adding an active employee: the form, both imports' confirmations, and a direct insert;
+- turning a former employee active again, and bringing back an employee archived as a mistake;
+- moving an active employee from a client that is not counted to one that is;
+- restoring an archived client that has active employees; one without any comes back as before.
+
+Deleting an organization needs its employees gone first (their foreign key restricts it), and the refresh deferred to the end finds the subscription deleted with the organization and does nothing.
+
+Nothing else is refused: adding a client without employees, recording a former employee, editing, archiving, marking a leaver, documents, trainings, tests and signing. An employee import that only completes people already there confirms; one with new people is refused whole, and a person set aside is left out of a confirmation as before, so the member can set the new ones aside, which are then not created, and confirm the rest. A client import is refused at confirmation when the client comes with employees; starting one is not refused, since a client may come without any, and the upload dialog says so first. A ready import is kept 14 days from its last change. Without a user, under the secret key (seeds, maintenance), nothing is refused.
+
+### Lifting
+
+The block lifts in the write that ends it: a step that covers the count, or a plan or trial whose limit does (the subscription trigger clears the clock in the same update a Stripe webhook makes), or the count dropping to the step or below, by archiving clients, marking leavers or archiving employees entered by mistake. The app names the first two. Going over again later starts a new month.
+
+### What people see and hear
+
+`GET /me` and `GET /billing` carry `employeesOverStep: { since, lastDay, blocked }`, null while within. The employees screen, the new employee form and the two import dialogs show a notice to every member: before the block, until when new employees can be added; after it, that they cannot, why, and what lifts it, with a link to Abonament and, for a member who is not the owner, that the owner changes the step. After the block, the add buttons are disabled with that notice in view. The Abonament tab's notice to the owner names the date. A refused request is worded where it was made.
+
+The owner gets an email when the clock starts and another three days before the last day, each once per clock (`usage_notices`, keyed by the clock's start). The first goes from the request that passed the step and, failing that, from the daily run, which also sends the reminder; both record before sending and take the record back if the send fails, as the SMS notices do. One that finds no owner to send to is not kept as sent either, so it goes out once the organization has an owner again.
+
+### Trials, testers and Enterprise
+
+A trial, a tester's included, is held to its own 5,000 under the same rule; a tester's trial can outlast a month. Choosing a plan in a trial now charges at once and ends the trial, so the plan's step applies from then; a row that chose a plan before that change and still waits for the trial's end is held to its step from the trial's end. Enterprise is never blocked.
