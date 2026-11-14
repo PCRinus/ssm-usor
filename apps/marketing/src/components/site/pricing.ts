@@ -170,7 +170,7 @@ export function count(n: number, noun: string): string {
 
 const keep = (text: string) => text.replaceAll(' ', '\u00a0');
 const extraRates = `${keep(`${eur(extras.sms)} / SMS`)}, ${keep(`${eur(extras.credits)} / ${count(extras.creditsPer, 'credite AI')}`)}`;
-const extraLine = `Peste atât plătești doar dacă permiți tu: ${extraRates}`;
+const extraLine = `Extra: ${extraRates}`;
 const overText = `Peste ${count(maxWorkers, 'lucrători')}, îți facem o ofertă.`;
 
 export const pricingSection = {
@@ -184,7 +184,7 @@ export const pricingSection = {
   aiLink: 'credite AI',
   aiHref: '/#ai',
   terms:
-    'Prețurile sunt în euro, fără TVA. Codurile SMS și creditele AI peste cele incluse le plătești doar dacă le permiți, până la o limită pe lună aleasă de tine.',
+    'Prețurile sunt în euro, fără TVA. Extra plătești doar dacă alegi tu, până la o limită pe lună stabilită de tine.',
   enterpriseAllowance: `Peste ${count(maxWorkers, 'lucrători')} sau peste ${maxUsers} utilizatori`,
   enterpriseExtra: 'Coduri SMS și credite AI stabilite în ofertă',
 };
@@ -392,7 +392,7 @@ export const compare = {
           ],
         },
         {
-          label: 'Peste cele incluse, doar dacă le permiți',
+          label: 'Extra, peste ce include planul',
           cells: [extraRates, extraRates, 'În ofertă'],
         },
       ],

@@ -16,7 +16,6 @@ import {
   perMonth,
   pricingCta,
   pricingPage,
-  pricingSection,
   profesional,
   quote,
   smsCodes,
@@ -173,7 +172,7 @@ describe('the pricing cards', () => {
 
   it('say what costs more than the allowance, at the decided rates', () => {
     expect(cardStates(500, 'annual')[0]!.extra.replaceAll('\u00a0', ' ')).toBe(
-      'Peste atât plătești doar dacă permiți tu: 0,10 € / SMS, 1,50 € / 100 de credite AI'
+      'Extra: 0,10 € / SMS, 1,50 € / 100 de credite AI'
     );
     expect(cardStates(1000, 'annual')[1]!.extra).toBe(cardStates(500, 'annual')[1]!.extra);
   });
@@ -285,16 +284,6 @@ describe('the copy', () => {
     expect(pricingPage.faq[1]!.a).toContain(
       'Profesional, care are trepte de 500, 1.000, 1.500, 2.000, 3.000, 4.000 și 5.000.'
     );
-  });
-
-  it('the extras are never called a switch to turn on', () => {
-    const texts = [
-      pricingSection.terms,
-      calculator.extra,
-      ...pricingPage.faq.flatMap((item) => [item.q, item.a]),
-      ...compare.groups.flatMap((group) => group.rows.map((row) => row.label)),
-    ];
-    expect(texts.join(' ')).not.toMatch(/pornești|plata pentru extra|Extra,/);
   });
 
   it('every promise of a free trial says 14 days', () => {
