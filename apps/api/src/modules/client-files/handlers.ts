@@ -185,6 +185,15 @@ const leadOwnersOnly = () =>
     clientFileErrorReasons.leadOwnersOnly
   );
 
+// Hidden from a specialist, a copy would leave its domain asked for beside it (ADR 042).
+const earlierForTheTeam = () =>
+  new ApiError(
+    'conflict',
+    'A copy of earlier own instructions is for the whole team, and a lead has none.',
+    undefined,
+    clientFileErrorReasons.earlierInstructionsForTheTeam
+  );
+
 const refused = (reason: string, message: string) =>
   new ApiError('validation_error', message, undefined, reason);
 
@@ -267,6 +276,7 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
   }
   if (query.employeeId) await requireEmployee(db, clientId, query.employeeId);
   const earlier = earlierInstructionsOf(query);
+  if (earlier && (asked || client.stage === 'lead')) throw earlierForTheTeam();
   const stem = splitFileName(query.fileName).stem.trim().slice(0, 200).trim();
   const { data: row, error } = await db
     .from('client_files')
@@ -293,14 +303,6 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
   } catch (failure) {
     await db.from('client_files').delete().eq('id', row.id);
     throw failure;
-  }
-  if (earlier) {
-    const answer = await db
-      .from('earlier_instructions_unavailable')
-      .delete()
-      .eq('client_id', clientId)
-      .eq('domain', earlier.domain);
-    if (answer.error) throw fromDatabaseError(answer.error, 'take back the answer');
   }
   return c.json({ file: await present(c, db, row) }, 201);
 };
@@ -344,7 +346,8 @@ export const setClientFileOwnersOnly: RouteHandler<
   const { clientId, fileId } = c.req.valid('param');
   const { ownersOnly } = c.req.valid('json');
   const db = createDataClient(c);
-  await findFile(db, clientId, fileId);
+  const file = await findFile(db, clientId, fileId);
+  if (ownersOnly && file.earlier_instructions_domain) throw earlierForTheTeam();
   const { data, error } = await db
     .from('client_files')
     .update({ owners_only: ownersOnly })

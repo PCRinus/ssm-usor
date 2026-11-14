@@ -9,7 +9,10 @@ alter table public.client_files
   add constraint client_files_earlier_instructions_valid_until
     check ((earlier_instructions_domain is null) = (valid_until is null)),
   add constraint client_files_earlier_instructions_of_client
-    check (earlier_instructions_domain is null or (employee_id is null and import_id is null));
+    check (earlier_instructions_domain is null or (employee_id is null and import_id is null)),
+  -- Hidden from a specialist, a copy would leave the domain asked for beside it.
+  add constraint client_files_earlier_instructions_for_the_team
+    check (earlier_instructions_domain is null or not owners_only);
 
 comment on column public.client_files.earlier_instructions_domain is
   'Set when the file is a copy of the own instructions the client had before, IPSSM (ssm) or IPSU (su), which its paper trainings cite (ADR 042).';
@@ -72,3 +75,26 @@ create policy "members take back the answers about their clients"
 
 revoke insert, update, truncate on table public.earlier_instructions_unavailable from authenticated;
 grant insert (client_id, organization_id, domain, answered_by) on table public.earlier_instructions_unavailable to authenticated;
+
+-- A copy answers for its domain, so it takes back a "Nu le am" in the insert's own transaction.
+-- Runs as its owner, past the delete policy, whoever uploads.
+create function public.take_back_earlier_instructions_unavailable()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from public.earlier_instructions_unavailable u
+  where u.client_id = new.client_id and u.domain = new.earlier_instructions_domain;
+  return null;
+end;
+$$;
+
+revoke all on function public.take_back_earlier_instructions_unavailable() from public, anon, authenticated;
+
+create trigger client_files_take_back_earlier_instructions_unavailable
+  after insert on public.client_files
+  for each row
+  when (new.earlier_instructions_domain is not null)
+  execute function public.take_back_earlier_instructions_unavailable();

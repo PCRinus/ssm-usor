@@ -174,4 +174,5 @@ export const clientFileErrorReasons = {
   tooLarge: 'client_file_too_large',
   leadOwnersOnly: 'client_file_lead_owners_only',
   notEarlierInstructions: 'client_file_not_earlier_instructions',
+  earlierInstructionsForTheTeam: 'client_file_earlier_instructions_for_the_team',
 } as const;

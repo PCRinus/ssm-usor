@@ -412,7 +412,7 @@ describe('POST /clients/{clientId}/files', () => {
     expect(checked.searchParams.get('archived_at')).toBe('is.null');
   });
 
-  it("keeps a copy of the client's earlier own instructions with the day they applied until, and takes back an answer that there are none", async () => {
+  it("keeps a copy of the client's earlier own instructions with the day they applied until, leaving the answer to the database", async () => {
     mockUpstream();
     const response = await upload(
       {
@@ -430,10 +430,7 @@ describe('POST /clients/{clientId}/files', () => {
       valid_until: '2026-11-12',
       employee_id: null,
     });
-    const [takenBack] = calls('/rest/v1/earlier_instructions_unavailable', 'DELETE');
-    const query = new URL(String(takenBack![0])).searchParams;
-    expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(query.get('domain')).toBe('eq.ssm');
+    expect(calls('/rest/v1/earlier_instructions_unavailable', 'DELETE')).toHaveLength(0);
   });
 
   it.each([
@@ -449,10 +446,18 @@ describe('POST /clients/{clientId}/files', () => {
     expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
   });
 
-  it('touches no answer for an ordinary file', async () => {
+  it('keeps a copy of earlier own instructions for the whole team, and never for a lead', async () => {
+    role = 'owner';
     mockUpstream();
-    await upload({ fileName: 'oferta.pdf' }, pdf);
-    expect(calls('/rest/v1/earlier_instructions_unavailable', 'DELETE')).toHaveLength(0);
+    const earlier = { earlierInstructionsDomain: 'ssm', validUntil: '2026-11-12' };
+    const hidden = await upload({ fileName: 'IPSSM.pdf', ownersOnly: 'true', ...earlier }, pdf);
+    expect(hidden.status).toBe(409);
+    expect(await reasonOf(hidden)).toBe('client_file_earlier_instructions_for_the_team');
+    mockUpstream({ clients: () => Response.json([{ ...clientRow, stage: 'lead' }]) });
+    const lead = await upload({ fileName: 'IPSSM.pdf', ...earlier }, pdf);
+    expect(lead.status).toBe(409);
+    expect(await reasonOf(lead)).toBe('client_file_earlier_instructions_for_the_team');
+    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
   });
 
   it('refuses an employee the client does not have', async () => {
@@ -638,6 +643,22 @@ describe('PUT /clients/{clientId}/files/{fileId}/owners-only', () => {
     mockUpstream();
     expect((await setFlag(true)).status).toBe(200);
     expect(sent('/rest/v1/client_files', 'PATCH')).toEqual({ owners_only: true });
+  });
+
+  it('keeps a copy of earlier own instructions open to the team', async () => {
+    role = 'owner';
+    mockUpstream({
+      files: (init) =>
+        (init?.method ?? 'GET') === 'GET'
+          ? Response.json([
+              { ...colleagueFile, earlier_instructions_domain: 'ssm', valid_until: '2026-11-12' },
+            ])
+          : undefined,
+    });
+    const response = await setFlag(true);
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('client_file_earlier_instructions_for_the_team');
+    expect(calls('/rest/v1/client_files', 'PATCH')).toHaveLength(0);
   });
 
   it("keeps a lead's file for owners only", async () => {

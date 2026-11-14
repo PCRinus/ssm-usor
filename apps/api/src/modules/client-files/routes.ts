@@ -69,7 +69,7 @@ export const uploadClientFileRoute = createRoute({
   operationId: 'uploadClientFile',
   summary: 'Upload one file about a client',
   description:
-    "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. `earlierInstructionsDomain` and `validUntil` go together and make the file a copy of the client's earlier own instructions (ADR 042), never an employee's file; uploading one takes back an answer that the client has none in that domain. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
+    "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. `earlierInstructionsDomain` and `validUntil` go together and make the file a copy of the client's earlier own instructions (ADR 042), never an employee's file, never for owners only and never a lead's (`409`, reason `client_file_earlier_instructions_for_the_team`); storing one takes back an answer that the client has none in that domain. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -92,7 +92,11 @@ export const uploadClientFileRoute = createRoute({
       content: errorContent,
     },
     404: noSuchClient,
-    409: archivedClient,
+    409: {
+      description:
+        'The client is archived (reason `client_archived`), or a copy of earlier own instructions is asked for owners only or for a lead (reason `client_file_earlier_instructions_for_the_team`)',
+      content: errorContent,
+    },
     ...membershipErrors,
     403: {
       description: 'Not a member, or a specialist asking for a file for owners only',
@@ -158,7 +162,8 @@ export const setClientFileOwnersOnlyRoute = createRoute({
     400: { description: 'Invalid path or request body', content: errorContent },
     404: noSuchFile,
     409: {
-      description: 'The client is archived, or is a lead whose files stay for owners only',
+      description:
+        'The client is archived, or is a lead whose files stay for owners only, or the file is a copy of earlier own instructions, which stays for the whole team (reason `client_file_earlier_instructions_for_the_team`)',
       content: errorContent,
     },
     ...ownerErrors,

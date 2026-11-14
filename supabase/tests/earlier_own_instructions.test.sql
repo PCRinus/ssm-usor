@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(23);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -92,6 +92,36 @@ select throws_ok(
   'but not the domain'
 );
 
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
+
+select is_empty(
+  $$ update public.client_files set valid_until = '2020-01-01'
+     where id = 'f0000000-0000-4000-8000-000000000001' returning 1 $$,
+  'a colleague specialist does not change the day of a copy they did not upload'
+);
+
+select pg_temp.act_as_postgres();
+
+select throws_ok(
+  $$ update public.client_files set owners_only = true
+     where id = 'f0000000-0000-4000-8000-000000000001' $$,
+  '23514',
+  null,
+  'a copy is never for owners only, so a specialist never sees its domain as missing'
+);
+
+select throws_ok(
+  $$ insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256,
+       earlier_instructions_domain, valid_until, owners_only)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001',
+       'IPSU', 'IPSU.pdf', 'application/pdf', 10, repeat('b', 64), 'su', '2026-11-12', true) $$,
+  '23514',
+  null,
+  'nor is one uploaded so'
+);
+
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
+
 select lives_ok(
   $$ insert into public.earlier_instructions_unavailable (client_id, organization_id, domain)
      values ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'su') $$,
@@ -143,6 +173,14 @@ select is_empty(
   'another organization does not see the answer'
 );
 
+select throws_ok(
+  $$ insert into public.earlier_instructions_unavailable (client_id, organization_id, domain)
+     values ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'ssm') $$,
+  '42501',
+  null,
+  'nor answers for a client of it'
+);
+
 select is_empty(
   $$ delete from public.earlier_instructions_unavailable returning 1 $$,
   'nor takes it back'
@@ -154,6 +192,27 @@ select results_eq(
   $$ delete from public.earlier_instructions_unavailable returning domain::text $$,
   $$ values ('su') $$,
   'a colleague takes the answer back'
+);
+
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
+insert into public.earlier_instructions_unavailable (client_id, organization_id, domain) values
+  ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'su'),
+  ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'ssm');
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000002');
+
+select lives_ok(
+  $$ insert into public.client_files (organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256,
+       earlier_instructions_domain, valid_until)
+     values ('11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000001',
+       'IPSU 2020', 'IPSU 2020.pdf', 'application/pdf', 10, repeat('c', 64), 'su', '2026-11-12') $$,
+  'the colleague keeps a copy of the IPSU'
+);
+
+select results_eq(
+  $$ select domain::text from public.earlier_instructions_unavailable
+     where client_id = 'cccccccc-0000-4000-8000-000000000001' $$,
+  $$ values ('ssm') $$,
+  'which takes back the IPSU answer alone, though another member gave it'
 );
 
 select pg_temp.act_as_postgres();
