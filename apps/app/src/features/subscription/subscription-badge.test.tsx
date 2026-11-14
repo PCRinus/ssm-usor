@@ -381,3 +381,33 @@ describe('the credits meter in the badge', () => {
     expect(screen.queryByTestId('subscription-details-gift')).toBeNull();
   });
 });
+
+describe('the SMS bar with extras on', () => {
+  it('says the codes go on as extras, never that they go by email', async () => {
+    await renderRouted(
+      <SubscriptionBar
+        subscription={active}
+        sms={smsUsage({ used: 85, included: 100, state: 'near', extrasOn: true })}
+        isOwner
+        canAct
+      />
+    );
+    const bar = await screen.findByTestId('subscription-bar');
+    expect(bar.textContent).toContain('codurile pleacă mai departe prin SMS, ca extra');
+    expect(bar.textContent).not.toContain('pleacă pe email');
+  });
+
+  it('says the ceiling is reached, to a member too, who has no count', async () => {
+    await renderRouted(
+      <SubscriptionBar
+        subscription={active}
+        sms={smsUsage({ used: 100, included: 100, overage: 0, state: 'stopped', extrasOn: true })}
+        isOwner={false}
+        canAct={false}
+      />
+    );
+    expect((await screen.findByTestId('subscription-bar')).textContent).toContain(
+      'Ai atins plafonul pentru codurile extra.'
+    );
+  });
+});

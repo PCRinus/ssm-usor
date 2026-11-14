@@ -195,21 +195,31 @@ export function PlanCard({
         const billedAt =
           overview.usage.smsThisMonth.periodEnd ?? overview.usage.creditsThisMonth.periodEnd;
         if (extrasCents > 0 && choice.interval === 'month') {
-          const subtotal = amounts.subtotalCents + extrasCents;
+          const plan = choiceAmounts(owner.scheduledChange ?? choice);
+          const preview = owner.nextPayment;
+          // Stripe's preview has the prorations and a change set for the renewal; its meters may
+          // still lack the last extras, which are added on top.
+          const subtotal = preview
+            ? preview.subtotalCents + Math.max(0, extrasCents - (owner.extrasInPreviewCents ?? 0))
+            : plan.subtotalCents + extrasCents;
+          const other = subtotal - plan.subtotalCents - extrasCents;
           const total = subtotal + vatOf(subtotal);
           rows = [
-            ...amounts.lines.map((line) => ({
+            ...plan.lines.map((line) => ({
               label: line.label,
               value: formatEuro(line.amountCents),
             })),
             ...extras.map((line) => ({ label: line.label, value: formatEuro(line.amountCents) })),
+            ...(other !== 0
+              ? [{ label: 'Diferența pentru schimbarea de plan', value: formatEuro(other) }]
+              : []),
             { label: `TVA ${overview.catalogue.vatPercent} %`, value: formatEuro(vatOf(subtotal)) },
             { label: 'Total', value: formatEuro(total), strong: true },
           ];
           amount = {
             label: 'Următoarea plată',
             value: formatEuro(total),
-            note: `pe ${roDate(billedAt ?? renews ?? now.toISOString())}, cu TVA, cu extra de până azi`,
+            note: `pe ${roDate(preview?.at ?? billedAt ?? renews ?? now.toISOString())}, cu TVA, cu extra de până azi`,
           };
         } else if (extrasCents > 0) {
           extraRows = [

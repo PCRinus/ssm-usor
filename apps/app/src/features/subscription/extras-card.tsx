@@ -31,13 +31,16 @@ export function ExtrasCard({
   owner,
   canAct,
   renewsAt,
+  firstPaymentAt = null,
 }: {
   extras: BillingExtras;
   owner: boolean;
   canAct: boolean;
   renewsAt: string | null;
+  firstPaymentAt?: string | null;
 }) {
-  const note = unavailableNote(extras.unavailable);
+  const note = unavailableNote(extras.unavailable, firstPaymentAt);
+  const ownerRows = owner && (extras.unavailable === null || extras.unavailable === 'past_due');
   const bothOff = !extras.sms.enabled && !extras.credits.enabled;
   return (
     <BillingCard
@@ -50,22 +53,28 @@ export function ExtrasCard({
     >
       {owner && bothOff && extras.unavailable === null && (
         <p className="max-w-[68ch] text-sm leading-relaxed text-pretty text-muted-foreground">
-          Peste ce include planul, codurile de semnare pleacă pe email și importurile noi așteaptă
-          luna următoare.
+          Peste ce include planul, codurile de semnare pleacă pe email, iar un import pe care
+          creditele rămase nu-l acoperă așteaptă luna următoare.
         </p>
       )}
       <div className="grid gap-3">
         {kinds.map((kind) =>
-          owner && extras.unavailable === null ? (
+          ownerRows ? (
             <OwnerRow
               key={kind}
               kind={kind}
               extra={extras[kind]}
+              suspended={extras.unavailable === 'past_due'}
               canAct={canAct}
               renewsAt={renewsAt}
             />
           ) : (
-            <PlainRow key={kind} kind={kind} extra={extras[kind]} />
+            <PlainRow
+              key={kind}
+              kind={kind}
+              extra={extras[kind]}
+              suspended={extras.unavailable === 'past_due'}
+            />
           )
         )}
       </div>
@@ -74,7 +83,7 @@ export function ExtrasCard({
           <p className="min-w-0 flex-[1_1_200px] text-[13px] leading-relaxed text-muted-foreground">
             {note}
           </p>
-          {extras.unavailable === 'trial' && canAct && (
+          {extras.unavailable === 'trial' && !firstPaymentAt && canAct && (
             <Button asChild className="h-9 font-semibold">
               <Link to="/organizatie/abonament/alege">Alege un plan</Link>
             </Button>
@@ -109,19 +118,26 @@ function RowHead({ kind, children }: { kind: ExtraKind; children?: ReactNode }) 
   );
 }
 
-function PlainRow({ kind, extra }: { kind: ExtraKind; extra: BillingExtra }) {
+function PlainRow({
+  kind,
+  extra,
+  suspended,
+}: {
+  kind: ExtraKind;
+  extra: BillingExtra;
+  suspended: boolean;
+}) {
+  const on = extra.enabled && !suspended;
   return (
     <div data-testid={`extra-${kind}`} className="rounded-lg border px-3 py-2.5">
       <RowHead kind={kind}>
         <span
           className={cn(
-            'inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold',
-            extra.enabled
-              ? 'bg-primary text-primary-foreground'
-              : 'border bg-muted text-muted-foreground'
+            'inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold whitespace-nowrap',
+            on ? 'bg-primary text-primary-foreground' : 'border bg-muted text-muted-foreground'
           )}
         >
-          {extra.enabled ? 'Pornit' : 'Oprit'}
+          {on ? 'Pornit' : extra.enabled ? 'Oprit până la plată' : 'Oprit'}
         </span>
       </RowHead>
     </div>
@@ -131,11 +147,13 @@ function PlainRow({ kind, extra }: { kind: ExtraKind; extra: BillingExtra }) {
 function OwnerRow({
   kind,
   extra,
+  suspended,
   canAct,
   renewsAt,
 }: {
   kind: ExtraKind;
   extra: BillingExtra;
+  suspended: boolean;
   canAct: boolean;
   renewsAt: string | null;
 }) {
@@ -143,24 +161,25 @@ function OwnerRow({
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const state = extraRowState(extra);
+  const state = extraRowState(extra, suspended ? 'past_due' : null);
 
   async function save(euros: number | null) {
     setBusy(true);
     setError(null);
     try {
       await setBillingExtra(kind, { ceilingEuros: euros }, apiRequest);
-      toast.success(savedMessage(kind, euros));
-      setEditing(false);
-      await refreshBilling(queryClient);
     } catch (cause) {
       setError(billingErrorMessage(cause));
-    } finally {
       setBusy(false);
+      return;
     }
+    toast.success(savedMessage(kind, euros));
+    // Saved either way; a page that failed to reload shows the change on the next one.
+    await refreshBilling(queryClient).catch(() => undefined);
+    setEditing(false);
+    setBusy(false);
   }
 
-  const switchLabel = `${extraNames[kind].label}: ${extra.enabled ? 'pornit' : 'oprit'}`;
   return (
     <div
       data-testid={`extra-${kind}`}
@@ -173,8 +192,8 @@ function OwnerRow({
       <RowHead kind={kind}>
         <Switch
           checked={extra.enabled || editing}
-          disabled={!canAct || busy}
-          aria-label={switchLabel}
+          disabled={!canAct || busy || (suspended && !extra.enabled)}
+          aria-label={extraNames[kind].label}
           data-testid={`extra-${kind}-switch`}
           onCheckedChange={(on) => {
             setError(null);
@@ -186,7 +205,7 @@ function OwnerRow({
       </RowHead>
       {extra.enabled && !editing && (
         <>
-          {extra.limit !== null && extra.limit > 0 && (
+          {state !== 'suspended' && extra.limit !== null && extra.limit > 0 && (
             <UsageBar
               used={extra.used ?? 0}
               limit={extra.limit}
@@ -202,7 +221,9 @@ function OwnerRow({
                 state === 'reached' ? 'text-destructive-foreground' : 'text-muted-foreground'
               )}
             >
-              {extraOnLine(kind, extra, renewsAt)}
+              {state === 'suspended'
+                ? `Oprit până la plată. Plafon ${(extra.ceilingCents ?? 0) / 100} € pe lună.`
+                : extraOnLine(kind, extra, renewsAt)}
             </p>
             {canAct && (
               <Button

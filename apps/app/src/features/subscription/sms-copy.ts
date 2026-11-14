@@ -13,8 +13,6 @@ export type MeterTone = 'normal' | 'warning' | 'over' | 'danger';
  */
 export interface SmsReader {
   owner: boolean;
-  // SMS extras turned on: past what is included, codes go on by SMS; unknown where not said.
-  extrasOn?: boolean;
   stop: 'month' | 'tester';
 }
 
@@ -74,7 +72,7 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
   const until = renews ? ` până pe ${renews}` : '';
 
   let hint: string;
-  const past = reader.extrasOn
+  const past = sms.extrasOn
     ? `Peste ${included}, codurile pleacă mai departe prin SMS, ca extra`
     : `Peste ${included}, ${byEmail}${until}`;
   switch (sms.state) {
@@ -82,7 +80,10 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
       return {
         used: sms.used,
         limit: sms.included + sms.overage,
-        value: `${included} + ${formatCount(sms.overage)} extra`,
+        value:
+          sms.overage > 0
+            ? `${included} + ${formatCount(sms.overage)} extra`
+            : `${formatCount(sms.used)} din ${included}`,
         tone: 'over',
         hint: `Ai folosit cele ${included} incluse. Codurile pleacă mai departe prin SMS, ca extra.`,
       };
@@ -93,7 +94,7 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
           : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. ${past}.`;
       break;
     case 'near':
-      hint = reader.extrasOn
+      hint = sms.extrasOn
         ? `Mai ai ${formatCount(sms.included - sms.used)} incluse${until}. Apoi codurile pleacă mai departe prin SMS, ca extra.`
         : `Mai ai ${formatCount(sms.included - sms.used)}${until}. Apoi ${byEmail}.`;
       break;
@@ -101,7 +102,7 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
       hint =
         stop === 'tester'
           ? `Cont de test: ai folosit cele ${included} din luna aceasta.${renews ? ` Până pe ${renews},` : ''} ${byEmail}. Ai nevoie de mai multe? Scrie-ne la ${contactEmail}.`
-          : sms.overage > 0
+          : sms.extrasOn || sms.overage > 0
             ? `Ai atins plafonul pentru codurile extra.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`
             : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
   }
@@ -148,7 +149,7 @@ export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader): SmsBar | nul
         closable: true,
       };
     case 'stopped':
-      if (sms.overage > 0) {
+      if (sms.extrasOn || sms.overage > 0) {
         return {
           kind: 'smsStop',
           state: 'stopped',
@@ -165,7 +166,9 @@ export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader): SmsBar | nul
         state: 'near',
         lead: `Ai folosit ${formatCount(sms.used)} din cele ${included} de semnare prin SMS.`,
         short: `${formatCount(sms.used)} din ${included} SMS.`,
-        detail: `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă pe email.`,
+        detail: sms.extrasOn
+          ? `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă mai departe prin SMS, ca extra.`
+          : `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă pe email.`,
         closable: true,
       };
     default:

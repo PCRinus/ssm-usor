@@ -162,7 +162,7 @@ Bara creditelor se colorează la fel ca a codurilor SMS:
 
 - **când mai ai puține**, sub o cincime din cele ale lunii, cu cele de bun venit cu tot, devine galbenă și îți spune câte mai ai;
 - **când s-au terminat**, devine roșie: cu Extra oprit, importurile noi așteaptă reînnoirea și nu plătești nimic în plus;
-- **cu credite AI extra**, arată, de exemplu, „1.250 + 100 extra”: cele incluse, plus cele extra folosite luna aceasta;
+- **cu credite AI extra**, arată, de exemplu, „1.250 + 100 extra”: cele incluse, plus cele extra cumpărate luna aceasta (un pachet de 100 se plătește când folosești primul credit din el);
 - **sub zero**: un import care găsește mai multe pagini scanate decât credite merge până la capăt, iar ce lipsește se scade din luna următoare, de exemplu „−4 · se scad din luna viitoare”. Soldul nu coboară sub −150. Până la reînnoire nu poți porni un import nou.
 
 Dacă un import nu reușește, creditele lui se întorc; nu se întorc pentru un import citit și lăsat apoi neterminat. Unui cont de test îi dăm 1.500 de credite AI pe lună, fără credite de bun venit; la 1.500, importurile se opresc până la reînnoire.
@@ -176,23 +176,23 @@ Peste ce include treapta ta, poți porni **Extra**, separat pentru două lucruri
 - **Coduri SMS extra**: 0,10 € pentru fiecare cod de semnare trimis prin SMS după cele incluse în lună;
 - **Credite AI extra**: 1,50 € pentru fiecare 100 de credite AI după cele ale lunii și după cele de bun venit.
 
-La amândouă se adaugă TVA. Extra e oprit până îl pornești tu. Cât e oprit, totul merge ca până acum: peste ce include planul, codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare, fără să plătești nimic în plus.
+La amândouă se adaugă TVA. Extra e oprit până îl pornești tu. Cât e oprit, totul merge ca până acum: peste ce include planul, codurile de semnare pleacă pe email, iar un import pe care creditele rămase nu-l acoperă așteaptă luna următoare (unul mai mic pornește), fără să plătești nimic în plus.
 
-**Cum îl pornești.** În cardul **Extra** din pagina **Abonament**, apasă comutatorul de lângă codurile SMS sau de lângă creditele AI, scrie **plafonul lunar** în euro și apasă **Pornește**. Plafonul e suma cea mai mare pe care o poți plăti pentru acel extra într-o lună: de la 1 € la 500 €, în euro întregi, fără TVA. Fiecare extra are plafonul lui. Sub câmp vezi ce înseamnă plafonul: de exemplu, la 10 €, până la 100 de coduri SMS extra pe lună. Nu mai e niciun pas de confirmare: după ce apeși **Pornește**, un mesaj scurt îți spune că Extra e pornit.
+**Cum îl pornești.** În cardul **Extra** din pagina **Abonament**, apasă comutatorul de lângă codurile SMS sau de lângă creditele AI, scrie **plafonul lunar** în euro și apasă **Pornește**. Plafonul e suma cea mai mare pe care o poți plăti pentru acel extra într-o lună: de la 1 € la 500 €, în euro întregi, fără TVA. Fiecare extra are plafonul lui. Sub câmp vezi ce înseamnă plafonul: de exemplu, la 10 €, până la 100 de coduri SMS extra pe lună. După ce apeși **Pornește** nu mai ai nimic de confirmat: un mesaj scurt îți spune că Extra e pornit.
 
 **Plafonul se schimbă oricând** cu **Modifică**, iar Extra se oprește oricând cu același comutator, fără confirmare. Schimbarea se aplică pe loc, pentru luna în curs. Ce s-a folosit deja rămâne de plătit.
 
 **Codurile SMS extra.** După codurile incluse, codurile de semnare pleacă mai departe prin SMS, câte 0,10 €, cât timp încap în plafon: 10 € înseamnă 100 de coduri extra. Când plafonul e atins, până la luna următoare codurile pleacă pe email, iar un lucrător fără email vede în portal că trebuie să vorbească cu specialistul SSM.
 
-**Creditele AI extra se cumpără în pachete de 100.** Un pachet costă 1,50 € și se plătește când folosești primul credit din el. Plafonul cumpără doar pachete întregi: 10 € ajung pentru 6 pachete, adică 600 de credite AI, cel mult 9 €. Cu 1 € nu ajungi la un pachet. Ordinea e mereu aceeași: întâi creditele AI ale lunii, apoi cele de bun venit, apoi cele extra. Ce rămâne nefolosit dintr-un pachet se folosește mai departe în aceeași lună și nu se adună la luna următoare. Un import pornește dacă îi ajung creditele lunii, cele de bun venit și pachetele pe care plafonul le mai poate cumpăra. Dacă un import nu reușește, creditele lui se întorc în cont, dar pachetul cumpărat rămâne plătit.
+**Creditele AI extra se cumpără în pachete de 100.** Un pachet costă 1,50 € și se plătește când folosești primul credit din el. Plafonul cumpără doar pachete întregi: 10 € ajung pentru 6 pachete, adică 600 de credite AI, cel mult 9 €. Cu 1 € nu ajungi la un pachet. Plafonul e atins când în ce a rămas din el nu mai încape un pachet de 1,50 €: la 10 €, după 6 pachete. Ordinea e mereu aceeași: întâi creditele AI ale lunii, apoi cele de bun venit, apoi cele extra. Ce rămâne nefolosit dintr-un pachet se folosește mai departe în aceeași lună și nu se adună la luna următoare. Un import pornește dacă îi ajung creditele lunii, cele de bun venit și pachetele pe care plafonul le mai poate cumpăra. Dacă un import nu reușește, creditele lui se întorc în cont, dar pachetul cumpărat rămâne plătit. Pachetele se cumpără doar pentru ce folosește importul: dacă luna a coborât sub zero, diferența se scade tot din luna următoare, nu se plătește cu pachete.
 
 **Ce plătești și când.** Extra apare pe factura următoare doar cât l-ai folosit. Pe pagina **Abonament**, cardul **Extra** arată, pentru fiecare, cât s-a folosit luna aceasta din plafon, de exemplu „37 de coduri extra până azi: 3,70 € din 10 €”, iar la plan, următoarea plată arată și extra de până azi. Pe un plan anual, extra se facturează lunar, separat de plata anuală.
 
-**Când nu se poate porni.** În perioada de probă, Extra nu se poate porni: se poate după ce alegi un plan. Cât timp o plată e restantă, Extra se oprește și pornește din nou după plată, cu plafonul pe care l-ai ales. Când abonamentul se încheie, Extra se oprește; dacă reactivezi, îl pornești din nou.
+**Când nu se poate porni.** În perioada de probă, Extra nu se poate porni: se poate după prima plată. Cât timp o plată e restantă, Extra se oprește și pornește din nou după plată, cu plafonul pe care l-ai ales; între timp poți micșora plafonul sau opri Extra, dar nu-l poți porni sau mări. Dacă banca încă trebuie să confirme o plată pentru o schimbare de plan, Extra se pornește după ce plata e gata. Când abonamentul se încheie, Extra se oprește; dacă reactivezi, îl pornești din nou.
 
 **Emailuri.** Adminul primește un email când s-a folosit 80 % din plafonul unui extra și când plafonul e atins, fiecare o singură dată pe lună.
 
-Doar adminul organizației pornește Extra și alege plafonul. Colegii văd doar dacă e pornit sau oprit, fără sume.
+Doar adminul organizației pornește Extra și alege plafonul. Colegii văd doar dacă Extra e pornit sau oprit: nu văd plafonul, nici sume, nici câte coduri sau credite extra s-au folosit. Bara lor arată cele incluse și că se folosesc extra, iar la un import fereastra le spune doar că importul poate folosi credite AI extra; dacă nu ajung, importul nu pornește.
 
 ## Schimbarea planului
 

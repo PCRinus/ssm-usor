@@ -83,12 +83,18 @@ describe('a kind that is on', () => {
 });
 
 describe('the meters with extras', () => {
-  it('shows the codes past what is included as extra, with what they cost to the owner only', () => {
-    const sms = smsUsage({ used: 137, included: 100, allowance: 100, overage: 37, state: 'extra' });
-    const on = extras({
-      sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 37, spentCents: 370 },
+  const smsOn = { enabled: true, ceilingCents: 1000, limit: 100, used: 37, spentCents: 370 };
+
+  it('shows the owner the codes past what is included and what they cost', () => {
+    const sms = smsUsage({
+      used: 137,
+      included: 100,
+      allowance: 100,
+      overage: 37,
+      state: 'extra',
+      extrasOn: true,
     });
-    expect(smsExtraMeter(sms, on, true)).toMatchObject({
+    expect(smsExtraMeter(sms, extras({ sms: smsOn }), true)).toMatchObject({
       value: '100 + 37 extra',
       used: 137,
       limit: 200,
@@ -96,23 +102,49 @@ describe('the meters with extras', () => {
       tone: 'over',
       hint: '37 de coduri extra până azi, 3,70 € + TVA. Plafonul e în Extra.',
     });
-    expect(smsExtraMeter(sms, { ...on, sms: { ...off, enabled: true } }, false)).toMatchObject({
-      value: '100 + 37 extra',
-      hint: '37 de coduri extra până azi.',
+  });
+
+  it('tells a member that extras are in use, with no count', () => {
+    const member = smsUsage({
+      used: 100,
+      included: 100,
+      overage: 0,
+      state: 'extra',
+      extrasOn: true,
     });
+    const meter = smsExtraMeter(member, extras({ sms: { ...off, enabled: true } }), false);
+    expect(meter).toMatchObject({ value: '100 din 100', tone: 'over' });
+    expect(meter!.hint).toBe(
+      'S-au folosit cele 100 incluse. Codurile pleacă mai departe prin SMS, ca extra.'
+    );
   });
 
   it('turns red at the ceiling, and points an owner with extras off to them', () => {
-    const reached = smsUsage({ used: 200, included: 100, overage: 100, state: 'stopped' });
-    expect(smsExtraMeter(reached, extras(), true)).toMatchObject({ tone: 'danger' });
+    const reached = smsUsage({
+      used: 200,
+      included: 100,
+      overage: 100,
+      state: 'stopped',
+      extrasOn: true,
+    });
+    expect(smsExtraMeter(reached, extras({ sms: { ...smsOn, used: 100 } }), true)).toMatchObject({
+      tone: 'danger',
+    });
     const used = smsUsage({ used: 100, included: 100, overage: 0, state: 'stopped' });
     expect(smsExtraMeter(used, extras(), true)).toMatchObject({ toExtra: true, tone: 'danger' });
     expect(smsExtraMeter(used, extras(), false)).toBeNull();
     expect(smsExtraMeter(used, extras({ unavailable: 'past_due' }), true)).toBeNull();
   });
 
-  it('shows the credits bought in blocks beside those included', () => {
-    const credits = creditsUsage({ used: 1300, included: 1250, extra: 100, left: 50, state: 'ok' });
+  it('shows the owner the credits bought in blocks beside those included', () => {
+    const credits = creditsUsage({
+      used: 1250,
+      included: 1250,
+      extra: 100,
+      left: 0,
+      extrasOn: true,
+      state: 'ok',
+    });
     expect(
       creditsExtraMeter(
         credits,
@@ -124,7 +156,21 @@ describe('the meters with extras', () => {
     ).toMatchObject({
       value: '1.250 + 100 extra',
       tone: 'over',
-      hint: '100 de credite AI extra luna aceasta, 1,50 € + TVA. Plafonul e în Extra.',
+      hint: '100 de credite AI extra cumpărate luna aceasta, 1,50 € + TVA. Plafonul e în Extra.',
+    });
+  });
+
+  it('tells a member that imports use extra credits, without numbers', () => {
+    const credits = creditsUsage({
+      used: 1250,
+      included: 1250,
+      left: 0,
+      extrasOn: true,
+      state: 'ok',
+    });
+    expect(creditsExtraMeter(credits, extras(), false)).toMatchObject({
+      value: '1.250 din 1.250',
+      hint: 'S-au folosit creditele AI ale lunii. Importurile folosesc acum credite AI extra.',
     });
   });
 });

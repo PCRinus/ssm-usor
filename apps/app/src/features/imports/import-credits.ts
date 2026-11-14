@@ -42,6 +42,9 @@ export interface CreditsBalance {
   trial: boolean;
   // A paid subscription had its gift at the first payment; a trial and a tester's never did.
   hadGift: boolean;
+  owner: boolean;
+  // Extra AI credits are on, and a member is not told how many are left: the server decides.
+  extrasUncounted: boolean;
 }
 
 type Account = {
@@ -50,7 +53,10 @@ type Account = {
 };
 
 /** Null when nothing limits the credits, or before the account answers. */
-export function creditsBalance(account: Account | undefined): CreditsBalance | null {
+export function creditsBalance(
+  account: Account | undefined,
+  { owner = true }: { owner?: boolean } = {}
+): CreditsBalance | null {
   const usage = account?.creditsThisMonth;
   if (!usage || usage.left === null || usage.state === 'unlimited') return null;
   const subscription = account.subscription ?? null;
@@ -60,6 +66,9 @@ export function creditsBalance(account: Account | undefined): CreditsBalance | n
     renewal: renewalOf(usage, subscription),
     trial: usage.period === 'trial',
     hadGift: subscription?.status !== 'trialing',
+    owner,
+    extrasUncounted:
+      !owner && usage.extrasOn && usage.state !== 'out' && usage.state !== 'negative',
   };
 }
 
@@ -83,7 +92,7 @@ export function creditsRefusal(
   balance: CreditsBalance | null,
   needed: number
 ): CreditsRefusal | null {
-  if (!balance) return null;
+  if (!balance || balance.extrasUncounted) return null;
   if (balance.available <= 0) return { kind: 'none' };
   if (needed <= balance.available) return null;
   return {
@@ -139,7 +148,10 @@ export function leftSentence(balance: CreditsBalance, short: boolean) {
     usage.extraLeft > 0
       ? `, plus până la ${formatCount(usage.extraLeft)} extra, în pachete de 100`
       : '';
-  return `${month}${gift}${extra}.`;
+  const uncounted = balance.extrasUncounted
+    ? ' Extra e pornit pentru creditele AI, așa că importul poate folosi și credite AI extra.'
+    : '';
+  return `${month}${gift}${extra}.${uncounted}`;
 }
 
 function renewalSentence(balance: CreditsBalance, kind: ImportKind) {

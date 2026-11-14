@@ -83,17 +83,15 @@ describe('the SMS bar', () => {
 describe('the SMS meter with extras', () => {
   it('counts codes past what is included as extra, and says what happens past the included ones', () => {
     expect(
-      smsMeterFor(smsUsage({ used: 137, included: 100, overage: 37, state: 'extra' }), {
-        owner: true,
-        stop: 'month',
-        extrasOn: true,
-      })
+      smsMeterFor(
+        smsUsage({ used: 137, included: 100, overage: 37, state: 'extra', extrasOn: true }),
+        { owner: true, stop: 'month' }
+      )
     ).toMatchObject({ value: '100 + 37 extra', tone: 'over' });
     expect(
-      smsMeterFor(smsUsage({ used: 85, included: 100, state: 'near' }), {
+      smsMeterFor(smsUsage({ used: 85, included: 100, state: 'near', extrasOn: true }), {
         owner: true,
         stop: 'month',
-        extrasOn: true,
       }).hint
     ).toContain('Apoi codurile pleacă mai departe prin SMS, ca extra.');
     expect(

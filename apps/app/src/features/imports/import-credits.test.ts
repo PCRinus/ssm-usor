@@ -272,3 +272,33 @@ describe('what an import used', () => {
     ).toBe('Importul a folosit 98 de credite AI.');
   });
 });
+
+describe('AI extras in the upload dialog', () => {
+  it('counts what the extras can still give to the owner', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 600, extrasOn: true })
+    )!;
+    expect(creditsRefusal(balance, 25)).toBeNull();
+    expect(leftSentence(balance, false)).toContain('plus până la 600 extra, în pachete de 100');
+  });
+
+  it('leaves the decision to the server for a member, and says extras are on without numbers', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 0, extrasOn: true, state: 'ok' }),
+      { owner: false }
+    )!;
+    expect(creditsRefusal(balance, 25)).toBeNull();
+    expect(leftSentence(balance, false)).toContain(
+      'Extra e pornit pentru creditele AI, așa că importul poate folosi și credite AI extra.'
+    );
+    expect(leftSentence(balance, false)).not.toMatch(/extra, în pachete/);
+  });
+
+  it('refuses a member once the server says the extras are used up too', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 0, extrasOn: true, state: 'out' }),
+      { owner: false }
+    )!;
+    expect(creditsRefusal(balance, 25)).toEqual({ kind: 'none' });
+  });
+});

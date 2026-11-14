@@ -18,12 +18,12 @@ import { roDate } from './subscription-copy';
 export const extraNames: Record<ExtraKind, { label: string; rate: string; short: string }> = {
   sms: {
     label: 'Coduri SMS extra',
-    rate: '0,10 € / SMS extra',
+    rate: '0,10 € / SMS extra, plus TVA',
     short: 'codurile SMS',
   },
   credits: {
     label: 'Credite AI extra',
-    rate: '1,50 € / 100 de credite AI extra',
+    rate: '1,50 € / 100 de credite AI extra, plus TVA',
     short: 'creditele AI',
   },
 };
@@ -62,38 +62,54 @@ export function ceilingBuys(kind: ExtraKind, euros: number) {
   return `Până la ${creditsCount(credits)} extra pe lună, în pachete de 100: cel mult ${formatEuro(spent)}.`;
 }
 
-export type ExtraRowState = 'off' | 'on' | 'reached';
+export type ExtraRowState = 'off' | 'suspended' | 'on' | 'reached';
 
-export function extraRowState(extra: BillingExtra): ExtraRowState {
+export function extraRowState(
+  extra: BillingExtra,
+  unavailable: BillingExtras['unavailable'] = null
+): ExtraRowState {
   if (!extra.enabled) return 'off';
-  if (extra.limit !== null && extra.used !== null && extra.used >= extra.limit) return 'reached';
-  return 'on';
+  if (unavailable !== null) return 'suspended';
+  if (extra.limit === null || extra.limit === 0 || extra.used === null) return 'on';
+  return extra.used >= extra.limit ? 'reached' : 'on';
 }
+
+const blockPrice = formatEuro(extraUnitCents('credits'));
 
 export function extraOnLine(kind: ExtraKind, extra: BillingExtra, renewsAt: string | null) {
   const ceiling = formatEuro(extra.ceilingCents ?? 0);
   const spent = formatEuro(extra.spentCents ?? 0);
   const used = extra.used ?? 0;
+  const until = renewsAt ? `Până pe ${roDate(renewsAt)}` : 'Până la reînnoire';
+  if (kind === 'credits' && extra.limit === 0) {
+    return `Cu ${ceiling} nu ajungi la un pachet de 100 de credite AI, care costă ${blockPrice}. Mărește plafonul ca să le poți folosi.`;
+  }
   if (extraRowState(extra) === 'reached') {
-    const until = renewsAt ? ` Până pe ${roDate(renewsAt)}` : ' Până la reînnoire';
     return kind === 'sms'
-      ? `Plafon atins: ${spent} din ${ceiling}.${until}, codurile pleacă pe email.`
-      : `Plafon atins: ${spent} din ${ceiling}.${until}, importurile noi așteaptă.`;
+      ? `Plafon atins: ${spent} din ${ceiling}. ${until}, codurile pleacă pe email.`
+      : `${creditsCount(used)} cumpărate: ${spent} din ${ceiling}. Încă un pachet de ${blockPrice} nu mai încape în plafon.`;
   }
   if (used === 0) return `Plafon ${ceiling} pe lună. Nimic folosit luna aceasta.`;
-  return `${unitsLabel(kind, used)} extra până azi: ${spent} din ${ceiling}.`;
+  return kind === 'sms'
+    ? `${codesLabel(used)} extra până azi: ${spent} din ${ceiling}.`
+    : `${creditsCount(used)} extra cumpărate luna aceasta: ${spent} din ${ceiling}.`;
 }
 
 export const ceilingNote = 'Extra apare pe factura lunii doar cât îl folosești, plus TVA.';
 
-export function unavailableNote(unavailable: BillingExtras['unavailable']): string | null {
+export function unavailableNote(
+  unavailable: BillingExtras['unavailable'],
+  firstPaymentAt: string | null = null
+): string | null {
   switch (unavailable) {
     case null:
       return null;
     case 'trial':
-      return 'Se poate porni după ce alegi un plan.';
+      return firstPaymentAt
+        ? `Se poate porni după prima plată, pe ${roDate(firstPaymentAt)}.`
+        : 'Se poate porni după ce alegi un plan.';
     case 'past_due':
-      return 'Extra e oprit cât timp o plată e restantă și pornește din nou după plată.';
+      return 'Extra e oprit cât timp o plată e restantă și pornește din nou după plată. Plafonul îl poți micșora sau poți opri Extra și acum.';
     default:
       return null;
   }
@@ -119,7 +135,6 @@ export interface ExtraMeter {
   used: number | null;
   limit: number | null;
   value: string | null;
-  // Where the included part ends, as a fraction of the bar.
   ticks?: number[];
   tone: MeterTone;
   hint: string;
@@ -127,6 +142,11 @@ export interface ExtraMeter {
   toExtra?: boolean;
 }
 
+const smsUntil = (sms: BillingSmsUsage) =>
+  sms.periodEnd ? `Până pe ${roDate(sms.periodEnd)}` : 'Până la reînnoire';
+
+// A member is told that extras are in use, never how many: the count and the ceiling would give
+// the owner's amounts away.
 export function smsExtraMeter(
   sms: BillingSmsUsage,
   extras: BillingExtras,
@@ -134,20 +154,32 @@ export function smsExtraMeter(
 ): ExtraMeter | null {
   if (sms.included === null || (sms.state !== 'extra' && sms.state !== 'stopped')) return null;
   const included = formatCount(sms.included);
-  const until = sms.periodEnd ? `Până pe ${roDate(sms.periodEnd)}` : 'Până la reînnoire';
   const extra = extras.sms;
-  if (sms.overage === 0 && sms.state === 'stopped') {
+  const atCeiling = sms.state === 'stopped' && sms.extrasOn;
+  if (sms.state === 'stopped' && !atCeiling && sms.overage === 0) {
     if (!owner || extras.unavailable !== null || extra.enabled) return null;
     return {
       used: sms.used,
       limit: sms.included,
       value: `${formatCount(sms.used)} din ${included}`,
       tone: 'danger',
-      hint: `Ai folosit cele ${included} ale lunii. ${until}, codurile pleacă pe email, iar cine nu are email nu poate semna. Le poți trimite mai departe prin SMS din Extra.`,
+      hint: `Ai folosit cele ${included} ale lunii. ${smsUntil(sms)}, codurile pleacă pe email, iar cine nu are email nu poate semna. Le poți trimite mai departe prin SMS din Extra.`,
       toExtra: true,
     };
   }
-  const room = owner && extra.limit !== null ? Math.max(extra.limit, sms.overage) : sms.overage;
+  const atCeilingHint = `Ai atins plafonul pentru codurile extra. ${smsUntil(sms)}, codurile pleacă pe email, iar cine nu are email nu poate semna.`;
+  if (!owner) {
+    return {
+      used: sms.included,
+      limit: sms.included,
+      value: `${included} din ${included}`,
+      tone: atCeiling ? 'danger' : 'over',
+      hint: atCeiling
+        ? atCeilingHint
+        : `S-au folosit cele ${included} incluse. Codurile pleacă mai departe prin SMS, ca extra.`,
+    };
+  }
+  const room = extra.limit !== null ? Math.max(extra.limit, sms.overage) : sms.overage;
   const total = sms.included + room;
   const bar = {
     used: sms.included + sms.overage,
@@ -155,23 +187,19 @@ export function smsExtraMeter(
     value: `${included} + ${formatCount(sms.overage)} extra`,
     ticks: room > 0 ? [sms.included / total] : [],
   };
-  if (sms.state === 'stopped') {
-    return {
-      ...bar,
-      tone: 'danger',
-      hint: `Ai atins plafonul pentru codurile extra. ${until}, codurile pleacă pe email, iar cine nu are email nu poate semna.`,
-    };
-  }
-  const spent = owner && extra.spentCents !== null ? `, ${formatEuro(extra.spentCents)} + TVA` : '';
+  if (sms.state === 'stopped') return { ...bar, tone: 'danger', hint: atCeilingHint };
   return {
     ...bar,
     tone: 'over',
     hint:
       sms.overage === 0
         ? `Ai folosit cele ${included} incluse. Codurile pleacă mai departe prin SMS, ca extra.`
-        : `${codesLabel(sms.overage)} extra până azi${spent}.${owner ? ' Plafonul e în Extra.' : ''}`,
+        : `${codesLabel(sms.overage)} extra până azi, ${formatEuro(extra.spentCents ?? 0)} + TVA. Plafonul e în Extra.`,
   };
 }
+
+const stillStarts =
+  'Un import pe care creditele rămase nu-l acoperă așteaptă luna următoare; unul mai mic pornește.';
 
 export function creditsExtraMeter(
   credits: BillingCreditsUsage,
@@ -182,38 +210,49 @@ export function creditsExtraMeter(
   const limit = Math.max(0, credits.included - credits.shortfall);
   const renews = roDate(credits.periodEnd);
   const extra = extras.credits;
+  if (!owner) {
+    if (!credits.extrasOn || credits.left > 0) return null;
+    const atCeiling = credits.state === 'out' || credits.state === 'negative';
+    return {
+      used: limit,
+      limit,
+      value: `${formatCount(limit)} din ${formatCount(limit)}`,
+      tone: atCeiling ? 'danger' : 'over',
+      hint: atCeiling
+        ? `S-au folosit și creditele AI extra pe care le permite plafonul. ${stillStarts}`
+        : 'S-au folosit creditele AI ale lunii. Importurile folosesc acum credite AI extra.',
+    };
+  }
   if (credits.extra === 0) {
-    if (credits.state !== 'out' || !owner || extras.unavailable !== null || extra.enabled) {
-      return null;
-    }
+    if (credits.state !== 'out' || extras.unavailable !== null || extra.enabled) return null;
     return {
       used: credits.used,
       limit,
       value: `${formatCount(credits.used)} din ${formatCount(limit)}`,
       tone: 'danger',
-      hint: `Nu poți porni un import nou până pe ${renews}, când primești alte ${formatCount(credits.included)}, sau poți folosi credite AI extra din Extra.`,
+      hint: `Nu poți porni un import nou până pe ${renews}, când primești alte ${creditsCount(credits.included)}. Până atunci poți porni Extra pentru creditele AI.`,
       toExtra: true,
     };
   }
-  const room = owner && extra.limit !== null ? Math.max(extra.limit, credits.extra) : credits.extra;
+  const room = extra.limit !== null ? Math.max(extra.limit, credits.extra) : credits.extra;
   const total = limit + room;
   const bar = {
-    used: Math.min(credits.used, total),
+    used: limit + credits.extra,
     limit: total,
     value: `${formatCount(limit)} + ${formatCount(credits.extra)} extra`,
     ticks: [limit / total],
   };
-  const spent = owner && extra.spentCents !== null ? `, ${formatEuro(extra.spentCents)} + TVA` : '';
+  const spent = `, ${formatEuro(extra.spentCents ?? 0)} + TVA`;
   if (credits.state === 'out' || credits.state === 'negative') {
     return {
       ...bar,
       tone: 'danger',
-      hint: `Ai atins plafonul pentru creditele AI extra${spent}. Importurile noi așteaptă până pe ${renews}.`,
+      hint: `Ai folosit creditele AI extra pe care le permite plafonul${spent}. ${stillStarts}`,
     };
   }
   return {
     ...bar,
     tone: 'over',
-    hint: `${creditsCount(credits.extra)} extra luna aceasta${spent}.${owner ? ' Plafonul e în Extra.' : ''}`,
+    hint: `${creditsCount(credits.extra)} extra cumpărate luna aceasta${spent}. Plafonul e în Extra.`,
   };
 }

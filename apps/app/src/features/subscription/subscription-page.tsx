@@ -182,6 +182,11 @@ function SubscriptionContent({
               renewsAt={
                 overview.usage.smsThisMonth.periodEnd ?? overview.usage.creditsThisMonth.periodEnd
               }
+              firstPaymentAt={
+                subscription?.planChosen && subscription.status === 'trialing'
+                  ? subscription.trialEndsAt
+                  : null
+              }
             />
           )}
           {owner ? (
@@ -240,7 +245,6 @@ function SubscriptionContent({
   );
 }
 
-// Without a subscription, on Enterprise and once read-only there is nothing to turn on.
 const extrasShown = new Set<SubscriptionView>([
   'trial',
   'trialChosen',

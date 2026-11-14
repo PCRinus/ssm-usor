@@ -143,11 +143,7 @@ export function UsageCard({
           tone: 'normal',
           hint: 'Cât contul e doar pentru citire, nu se mai trimit SMS-uri.',
         }
-      : smsMeterFor(sms, {
-          owner,
-          stop: stopOf(subscription),
-          extrasOn: overview.extras.sms.enabled && overview.extras.unavailable === null,
-        });
+      : smsMeterFor(sms, { owner, stop: stopOf(subscription) });
 
   const credits = overview.usage.creditsThisMonth;
   const creditsMeter: CreditsMeter =
