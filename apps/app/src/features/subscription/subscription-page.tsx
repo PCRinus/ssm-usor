@@ -373,7 +373,9 @@ function noticeFor(
           }
           action={action && chooseLink(action.label, action.search)}
         >
-          {over?.blocked ? 'De mai bine de o lună ai ' : 'Ai '}
+          {over?.blocked
+            ? 'De mai bine de o lună ai mai mulți lucrători decât treapta ta. Acum ai '
+            : 'Ai '}
           {employeesLabel(employees.used)} la clienți, cu{' '}
           {formatCount(employees.used - employees.limit)} peste treapta ta, de{' '}
           {formatCount(employees.limit)}. Lucrezi mai departe cu tot ce ai

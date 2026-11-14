@@ -322,7 +322,9 @@ describe('the Abonament tab', () => {
     mount();
     const blocked = await screen.findByTestId('subscription-notice');
     expect(blocked.textContent).toContain('Nu mai poți adăuga lucrători noi.');
-    expect(blocked.textContent).toContain('De mai bine de o lună ai 600 de lucrători');
+    expect(blocked.textContent).toContain(
+      'De mai bine de o lună ai mai mulți lucrători decât treapta ta. Acum ai 600 de lucrători'
+    );
   });
 
   it('counts the open invitations among the users, and offers Profesional once Start is full', async () => {
