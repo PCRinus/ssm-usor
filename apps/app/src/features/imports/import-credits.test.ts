@@ -132,7 +132,7 @@ describe('refusing an import the credits do not cover', () => {
     expect(creditsRefusal(balance, 25)).toEqual({ kind: 'none' });
     expect(noneText('client', balance)).toEqual({
       title: 'Nu mai ai credite AI',
-      text: 'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente.',
+      text: 'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente, decât cu credite AI extra, pe care adminul le pornește în Abonament, la Extra.',
     });
   });
 

@@ -4,9 +4,11 @@ import type Stripe from 'stripe';
 
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import type { ApiEnv } from '../../lib/env';
+import { type ApiEnv, appOrigin } from '../../lib/env';
 import { stripeFor } from '../billing/stripe';
 import type { CreditsHooks } from '../credits/store';
+import { noticeRecipient } from '../sms-usage/notices';
+import { createExtrasNotices, extrasNoticeDeps } from './notices';
 
 const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
@@ -100,8 +102,18 @@ export async function reportBlocks(
 
 export function blocksReporter(env: ApiEnv['Bindings']) {
   return async (organizationId: string) => {
-    if (!env.STRIPE_SECRET_KEY?.trim()) return;
-    await reportBlocks({ db: adminClient(env), stripe: stripeFor(env).stripe }, { organizationId });
+    const db = adminClient(env);
+    if (env.STRIPE_SECRET_KEY?.trim()) {
+      await reportBlocks({ db, stripe: stripeFor(env).stripe }, { organizationId });
+    }
+    const notices = createExtrasNotices(
+      extrasNoticeDeps(db, {
+        recipient: (id) => noticeRecipient(db, id),
+        mail: env.MAIL,
+        subscriptionUrl: () => new URL('/organizatie/abonament', appOrigin(env)).href,
+      })
+    );
+    await notices(organizationId, 'credits', new Date());
   };
 }
 

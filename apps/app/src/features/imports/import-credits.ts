@@ -213,7 +213,7 @@ export function noneText(kind: ImportKind, balance: CreditsBalance | null) {
   const what = kind === 'client' ? 'din documente' : 'din fișe';
   return {
     title: 'Nu mai ai credite AI',
-    text: `${used}${renewal ? ` ${renewal}` : ''} Până atunci nu poți porni un import nou ${what}.`,
+    text: `${used}${renewal ? ` ${renewal}` : ''} Până atunci nu poți porni un import nou ${what}${balance && !balance.trial ? ', decât cu credite AI extra, pe care adminul le pornește în Abonament, la Extra' : ''}.`,
   };
 }
 

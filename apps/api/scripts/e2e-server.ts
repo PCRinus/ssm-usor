@@ -61,6 +61,8 @@ const mail: MailService = {
     record('sms-usage-notice', to, `${subscriptionUrl} kind=${kind} used=${used}`),
   sendEmployeesOverStepNotice: ({ to, kind, subscriptionUrl, lastDay }) =>
     record('employees-over-step-notice', to, `${subscriptionUrl} kind=${kind} lastDay=${lastDay}`),
+  sendExtrasNotice: ({ to, kind, level, subscriptionUrl }) =>
+    record('extras-notice', to, `${subscriptionUrl} kind=${kind} level=${level}`),
 };
 const sms: SmsService = {
   sendParticipantInvitation: ({ to, portalUrl }) =>

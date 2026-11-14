@@ -1216,6 +1216,11 @@ whole blocks, the ceiling buys (10 € is 100 codes, or 600 credits for 9 €), 
 extra codes or credits bought, `spentCents` their price without VAT. A charge that buys blocks
 reports each as one `credits_extra_blocks` meter event (value 1, the block's id as identifier)
 right after the charge, and again from the daily cron.
+After an extra code is counted and after a charge buys blocks, the API emails the owner at 80 %
+of what that kind's ceiling buys (`sms_extra80`, `credits_extra80`) and when nothing more fits
+(`sms_extra100`, `credits_extra100`), each recorded in `usage_notices` first so it goes once a
+month, and taken back when the email fails. The allowance email at 100 % (`sms_100`) says the codes
+go on as extras when SMS extras are on; the safety cap's email (`sms_cap`) is gone.
 
 `GET /imports/{importId}` answers `credits`, null before the import started: `used` (net of what
 was given back, the own instructions included), `atStart` (the known part, settled for an

@@ -38,27 +38,6 @@ export function codes(count: number) {
   return tail === 0 || tail >= 20 ? `${count} de coduri` : `${count} coduri`;
 }
 
-const timesWords: Record<number, string> = {
-  2: 'două',
-  3: 'trei',
-  4: 'patru',
-  5: 'cinci',
-  6: 'șase',
-  7: 'șapte',
-  8: 'opt',
-  9: 'nouă',
-  10: 'zece',
-};
-
-// Said only where the cap is a whole multiple of the included codes: codes granted by hand raise
-// both by the same number, which breaks the ratio.
-function timesOver(cap: number, included: number) {
-  if (cap % included !== 0) return null;
-  const times = cap / included;
-  const word = timesWords[times] ?? (times % 100 >= 20 ? `${times} de` : `${times}`);
-  return `de ${word} ori`;
-}
-
 // Intl's ro-RO writes "EUR"; the app and the pricing page write "€".
 export function euro(cents: number) {
   const amount = new Intl.NumberFormat('ro-RO', {
@@ -97,8 +76,8 @@ function Figures({ rows, total }: { rows: Figure[]; total?: Figure }) {
   );
 }
 
-// Nothing past the included codes is billed while the extras are off or in a tester's trial
-// (ADR 029), so those emails never speak of a price.
+// Nothing past the included codes is billed unless the owner turned SMS extras on (ADR 029), so
+// the other emails never speak of a price.
 export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
   const {
     kind,
@@ -143,7 +122,7 @@ export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
         />
         <Paragraph>
           {billed
-            ? `Peste ${included}, codurile se trimit mai departe, iar fiecare costă ${price} + TVA, pe factura din ${renewal}. Lucrătorii care au email primesc codul pe email, fără cost; cere-le adresa celor care n-au dat-o.`
+            ? `Ai pornit Extra pentru codurile SMS: peste ${included}, codurile se trimit mai departe, iar fiecare costă ${price} + TVA, pe factura din ${renewal}, până la plafonul ales. Lucrătorii care au email primesc codul pe email, fără cost; cere-le adresa celor care n-au dat-o.`
             : `Peste ${included}, codurile nu mai pleacă prin SMS până pe ${renewal}: lucrătorii cu email îl primesc pe email, iar cei fără email nu pot semna până atunci. Cere adresa de email celor care n-au dat-o.`}
         </Paragraph>
         <Action href={subscriptionUrl}>Vezi consumul</Action>
@@ -153,10 +132,13 @@ export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
   }
 
   if (kind === 'sms_100' && billed) {
-    const times = cap ? timesOver(cap, included) : null;
+    const more = cap ? Math.max(0, cap - included) : 0;
     return (
-      <Layout preview={`De acum, fiecare cod SMS costă ${price} + TVA.`} reason={reason}>
-        <Title>{`De acum, fiecare cod SMS costă ${price}`}</Title>
+      <Layout
+        preview={`Codurile SMS pleacă mai departe, ca extra, cu ${price} + TVA fiecare.`}
+        reason={reason}
+      >
+        <Title>Codurile SMS pleacă mai departe, ca extra</Title>
         <Paragraph>
           {`${organizationName} a trimis toate cele ${codes(included)} de semnare prin SMS ${where}, în luna ${month}.`}
         </Paragraph>
@@ -166,48 +148,14 @@ export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
             { label: 'Trimise până azi', value: String(used) },
           ]}
           total={{
-            label: `Peste plan, pe factura din ${renewal}`,
+            label: `Extra, pe factura din ${renewal}`,
             value: `${price} + TVA fiecare`,
           }}
         />
         <Paragraph>
-          {cap
-            ? `Codurile se trimit mai departe, ca lucrătorii să poată semna. Mergem până la ${cap} pe lună${times ? `, ${times} cele incluse` : ''}; acolo ne oprim și te anunțăm, ca factura să nu crească fără să știi.`
-            : 'Codurile se trimit mai departe, ca lucrătorii să poată semna.'}
+          {`Pentru că ai pornit Extra, codurile se trimit mai departe, ca lucrătorii să poată semna: încă ${codes(more)} luna aceasta, cât încap în plafonul ales. Plafonul îl schimbi sau oprești Extra oricând, din Abonament.`}
         </Paragraph>
         <Action href={subscriptionUrl}>Vezi consumul</Action>
-        <FallbackLink href={subscriptionUrl} />
-      </Layout>
-    );
-  }
-
-  if (kind === 'sms_cap') {
-    const over = Math.max(0, used - included);
-    const times = cap ? timesOver(cap, included) : null;
-    return (
-      <Layout
-        preview={`Codurile de semnare nu mai pleacă prin SMS până pe ${renewal}.`}
-        reason={reason}
-      >
-        <Title>Ai atins limita de siguranță pentru SMS</Title>
-        <Paragraph>
-          {`${organizationName} a trimis ${codes(used)} de semnare prin SMS în luna ${month}, ${times ? `${times} cele ${included} incluse` : `peste cele ${included} incluse`}. Ne-am oprit aici, ca factura să nu crească fără să știi.`}
-        </Paragraph>
-        <Paragraph>{noSmsUntilRenewal}</Paragraph>
-        <Figures
-          rows={[
-            { label: includedLabel, value: String(included) },
-            { label: 'Trimise', value: String(used) },
-          ]}
-          total={{
-            label: `Peste plan: ${over} × ${price}`,
-            value: `${euro(over * overageCents)} + TVA`,
-          }}
-        />
-        <Paragraph>
-          {`Suma apare pe factura din ${renewal}. Dacă vrei ca SMS-urile să pornească din nou acum, ridică limita din Abonament.`}
-        </Paragraph>
-        <Action href={subscriptionUrl}>Ridică limita</Action>
         <FallbackLink href={subscriptionUrl} />
       </Layout>
     );
@@ -230,7 +178,7 @@ export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
         ]}
       />
       <Paragraph>
-        {`Pe ${renewal} codurile prin SMS pornesc din nou. Nu plătești nimic pentru codurile care pleacă pe email.`}
+        {`Pe ${renewal} codurile prin SMS pornesc din nou. Nu plătești nimic pentru codurile care pleacă pe email.${planName ? ' Dacă vrei ca ele să plece mai departe prin SMS, pornește Extra din Abonament, cu un plafon lunar ales de tine.' : ''}`}
       </Paragraph>
       <Action href={subscriptionUrl}>Vezi consumul</Action>
       <FallbackLink href={subscriptionUrl} />
@@ -245,7 +193,7 @@ SmsUsageNotice.PreviewProps = {
   billed: true,
   used: 252,
   included: 300,
-  cap: 900,
+  cap: 400,
   overageCents: 10,
   periodStart: '2026-10-14T08:00:00.000Z',
   periodEnd: '2026-11-14T08:00:00.000Z',

@@ -35,6 +35,7 @@ const env: ApiEnv['Bindings'] = {
     sendSignatureRequest: vi.fn(),
     sendSmsUsageNotice: vi.fn(),
     sendEmployeesOverStepNotice: vi.fn(),
+    sendExtrasNotice: vi.fn(),
   },
   SMS: {
     sendParticipantInvitation: vi.fn(),

@@ -39,6 +39,7 @@ sources:
   - apps/mail/src/emails/employees-over-step-notice.tsx
   - supabase/migrations/20261117120000_employees_over_step.sql
   - apps/mail/src/emails/sms-usage-notice.tsx
+  - apps/mail/src/emails/extras-notice.tsx
   - apps/app/src/features/subscription/*.tsx
   - apps/app/src/features/subscription/sms-copy.ts
   - apps/api/src/modules/sms-usage/policy.ts
