@@ -78,7 +78,7 @@ covers, one of the plan's steps; required once a plan is chosen, except on Enter
 the owner, `current_period_end`, `billing_anchor_at` (Stripe's billing cycle anchor, the day the
 SMS month starts on), `first_paid_at` (the first invoice with an amount, which ends the hard stop
 on signing codes of a plan chosen during the trial). `sms_cap_factor`, the safety cap the
-extras' ceiling replaced, is dropped by `20261117100000_usage_extras`. A trial with no plan chosen has no step and
+extras' ceiling replaced, is dropped by `20261117200000_usage_extras`. A trial with no plan chosen has no step and
 no Stripe subscription; a trial with a plan chosen carries all of Stripe's side, and a trial whose
 plan was cancelled keeps its customer. A Stripe customer needs its
 account, and a Stripe subscription its customer, interval and price version. Members read every
