@@ -1,4 +1,4 @@
-import type { BillingChoice, BillingOverview } from '@ssm-usor/contracts';
+import { type BillingChoice, type BillingOverview, trialDays } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -22,8 +22,6 @@ import {
   type SealKind,
 } from './subscription-copy';
 import { currentChoice, hasLiveSubscription, type SubscriptionView } from './use-billing';
-
-const trialDays = 30;
 
 export type ActionsMode = 'enabled' | 'disabled' | 'hidden';
 
