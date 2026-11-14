@@ -61,8 +61,7 @@ const tracked = [
   'stripe_subscription_id',
   'billing_interval',
   'price_version',
-  'employee_packs',
-  'extra_members',
+  'employee_step',
   'current_period_end',
   'invoice_email',
   'billing_anchor_at',
@@ -152,6 +151,25 @@ export async function countUsage(db: AdminClient, organizationId: string): Promi
   if (employees.error) throw fromDatabaseError(employees.error, 'billing employee count');
   if (members.error) throw fromDatabaseError(members.error, 'billing member count');
   return { employees: employees.count ?? 0, members: members.count ?? 0 };
+}
+
+// An open invitation holds one of the plan's users until it is accepted, revoked or expires.
+export async function countOpenInvitations(
+  db: AdminClient,
+  organizationId: string,
+  exceptEmail?: string
+) {
+  let query = db
+    .from('organization_invitations')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', organizationId)
+    .is('accepted_at', null)
+    .is('revoked_at', null)
+    .gt('expires_at', new Date().toISOString());
+  if (exceptEmail) query = query.neq('email', exceptEmail);
+  const { count, error } = await query;
+  if (error) throw fromDatabaseError(error, 'billing open invitations');
+  return count ?? 0;
 }
 
 export type Company = Omit<BillingOrganization, 'recipientEmail' | 'cui' | 'name'> & {

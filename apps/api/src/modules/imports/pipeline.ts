@@ -176,7 +176,7 @@ export const importReasons = {
       'Fișierele depășesc limitele unui import de lucrători: cel mult 500 de fișiere și 1 GiB, fiecare fișier de cel mult 25 MiB.',
   },
   creditsShort:
-    'Fișierele au mai multe pagini decât s-au numărat la încărcare, iar creditele rămase nu ajung pentru toate.',
+    'Fișierele au mai multe pagini decât s-au numărat la încărcare, iar creditele AI rămase nu ajung pentru toate.',
   stalled: 'Importul s-a oprit înainte să se termine.',
   left: 'Importul a rămas neterminat 14 zile.',
 } as const;

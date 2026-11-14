@@ -17,6 +17,7 @@ const at = (days: number) => new Date(2026, 9, 26 + days, 22, 0).toISOString();
 const trial = (days: number): SubscriptionSummary => ({
   plan: 'profesional',
   planChosen: false,
+  step: null,
   status: 'trialing',
   trialEndsAt: at(days),
   accessUntil: at(days),

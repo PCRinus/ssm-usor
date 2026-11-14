@@ -1,7 +1,8 @@
 import {
   billingPlans,
   type PaidPlan,
-  smsCapFactor,
+  type PlanStep,
+  planStep,
   type SmsUsageState,
   testerMonthlySms,
 } from '@ssm-usor/contracts';
@@ -17,11 +18,20 @@ export type SmsSubscription = {
   first_paid_at: string | null;
   billing_anchor_at: string | null;
   current_period_end: string | null;
-  sms_cap_factor: number;
+  employee_step: number | null;
 };
 
 export const smsSubscriptionColumns =
-  'organization_id, plan, status, created_at, trial_ends_at, stripe_subscription_id, stripe_customer_id, tester_allowances, first_paid_at, billing_anchor_at, current_period_end, sms_cap_factor';
+  'organization_id, plan, status, created_at, trial_ends_at, stripe_subscription_id, stripe_customer_id, tester_allowances, first_paid_at, billing_anchor_at, current_period_end, employee_step';
+
+/** The step a chosen plan's allowances come from; a row without one has its plan's first. */
+export function stepOf(row: Pick<SmsSubscription, 'plan' | 'employee_step'>): PlanStep {
+  const plan = row.plan as PaidPlan;
+  return (
+    (row.employee_step === null ? undefined : planStep(plan, row.employee_step)) ??
+    billingPlans[plan].steps[0]!
+  );
+}
 
 export type Period = { start: Date; end: Date };
 
@@ -119,38 +129,26 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
       bills: false,
     };
   }
-  const allowance = billingPlans[row.plan as PaidPlan].monthlySms;
-  if (!isPaid(row)) {
-    return {
-      sends: true,
-      period: trialMonth(row, now),
-      allowance,
-      cap: null,
-      capFactor: null,
-      bills: false,
-    };
-  }
-  const capFactor = row.sms_cap_factor ?? smsCapFactor.default;
+  const allowance = stepOf(row).monthlySms;
+  // Extras are off for everyone until the owner can turn them on, so a paid plan stops hard at
+  // its allowance too and nothing past it is billed (ADR 029, amendment of 2026-11-14).
   return {
     sends: true,
-    period: monthAround(billingAnchor(row), now),
+    period: isPaid(row) ? monthAround(billingAnchor(row), now) : trialMonth(row, now),
     allowance,
-    cap: allowance * capFactor,
-    capFactor,
-    bills: true,
+    cap: null,
+    capFactor: null,
+    bills: false,
   };
 }
 
 export function smsState(
   policy: SmsPolicy,
-  counts: { used: number; included: number | null; cap: number | null }
+  counts: { used: number; included: number | null }
 ): SmsUsageState {
   if (!policy.sends) return 'none';
-  const { used, included, cap } = counts;
+  const { used, included } = counts;
   if (included === null) return 'ok';
-  if (used >= included) {
-    if (cap === null) return 'stopped';
-    return used >= cap ? 'capped' : 'over';
-  }
+  if (used >= included) return 'stopped';
   return used >= included * 0.8 ? 'near' : 'ok';
 }

@@ -191,7 +191,8 @@ the local stack's identities.
 
 The **Configurează Stripe** workflow (`.github/workflows/stripe-setup.yml`) makes an
 environment's Stripe account match the plan catalogue in `packages/contracts` (ADR 029): a
-product per plan and add-on, their monthly and annual prices under versioned lookup keys, the
+product per plan, a monthly and an annual price for each of its steps under versioned lookup
+keys, the
 `sms_overage` billing meter and its monthly metered price, the 21 % VAT rate added to the price,
 the customer portal limited to updating the card, the app's payment method domain, and the
 events of the webhook endpoint. Without `apply` it only lists what it would change. It creates

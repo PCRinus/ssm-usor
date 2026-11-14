@@ -29,7 +29,6 @@ const refusalMessages: Record<SmsRefusalReason, string> = {
   sms_trial: 'No SMS is sent during a trial without a plan; use an email address.',
   sms_foreign_number: 'SMS go to Romanian numbers (+40) only.',
   sms_allowance_reached: "This month's signing codes by SMS are used up.",
-  sms_cap_reached: "This month's signing codes by SMS reached the safety cap.",
 };
 
 export function smsRefusalError(reason: SmsRefusalReason) {

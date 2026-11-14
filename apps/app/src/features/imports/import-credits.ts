@@ -1,10 +1,10 @@
 import {
   type BillingCreditsUsage,
-  billingPlans,
   type CreditsShort,
   type ImportCredits,
   importCredits,
   type ImportKind,
+  planStep,
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
@@ -16,7 +16,7 @@ const takesDe = (value: number) => {
 };
 
 export const creditsLabel = (value: number) =>
-  value === 1 ? '1 credit' : `${formatCount(value)} ${takesDe(value) ? 'de ' : ''}credite`;
+  value === 1 ? '1 credit AI' : `${formatCount(value)} ${takesDe(value) ? 'de ' : ''}credite AI`;
 
 const scannedPagesLabel = (value: number) =>
   value === 1 ? '1 pagină scanată' : `${value} ${takesDe(value) ? 'de ' : ''}pagini scanate`;
@@ -75,11 +75,10 @@ function renewalOf(
     return { at: usage.periodEnd, monthly: usage.allowance ?? 0, gift: 0 };
   }
   if (!subscription.planChosen || subscription.plan === 'enterprise') return null;
-  return {
-    at: usage.periodEnd,
-    monthly: billingPlans[subscription.plan].monthlyCredits,
-    gift: usage.giftPending,
-  };
+  const step =
+    subscription.step === null ? undefined : planStep(subscription.plan, subscription.step);
+  if (!step) return null;
+  return { at: usage.periodEnd, monthly: step.monthlyCredits, gift: usage.giftPending };
 }
 
 export type CreditsRefusal =
@@ -112,9 +111,9 @@ export function usesSentence(
   if (kind === 'employees') {
     const per = files.pdfs > 0 ? 'unul pe fotografie sau pagină' : 'unul pe fotografie';
     return files.pages === 0
-      ? `Folosește un credit pe fotografie${files.pdfs > 0 ? ' sau pagină' : ''}.`
+      ? `Folosește un credit AI pe fotografie${files.pdfs > 0 ? ' sau pagină' : ''}.`
       : files.pages === 1
-        ? 'Folosește 1 credit.'
+        ? 'Folosește 1 credit AI.'
         : `Folosește ${creditsLabel(files.pages)}, ${per}.`;
   }
   const needed = startCreditsOf('client', files);
@@ -148,7 +147,7 @@ function renewalSentence(balance: CreditsBalance, kind: ImportKind) {
   const { renewal } = balance;
   if (!renewal) {
     return balance.trial
-      ? 'Creditele perioadei de probă nu se reînnoiesc. La prima plată primești creditele lunii și pe cele de bun venit.'
+      ? 'Creditele AI ale perioadei de probă nu se reînnoiesc. La prima plată primești creditele lunii și pe cele de bun venit.'
       : null;
   }
   const day = creditsDay(renewal.at);
@@ -172,7 +171,7 @@ export function shortText(
   const until = refusal.renewsAt ? ` până pe ${creditsDay(refusal.renewsAt)}` : '';
   if (kind === 'employees') {
     return {
-      title: 'Nu ajung creditele pentru toate fotografiile',
+      title: 'Nu ajung creditele AI pentru toate fotografiile',
       text: `Cele ${withPages ? photosAndPages(refusal.needed) : photosCount(refusal.needed)} folosesc ${creditsLabel(refusal.needed)}, iar ție ${remain} ${left}${until}. Scoate o parte și păstreaz-o pentru ${refusal.renewsAt ? 'un import după reînnoire' : 'un import următor'}, cu toate fotografiile unei persoane în același import.`,
     };
   }
@@ -182,7 +181,7 @@ export function shortText(
       : `Importul folosește ${creditsLabel(refusal.needed)} înainte de paginile scanate`;
   const renewal = balance ? renewalSentence(balance, kind) : null;
   return {
-    title: 'Nu ajung creditele pentru acest import',
+    title: 'Nu ajung creditele AI pentru acest import',
     text: `${uses}, iar ție ${remain} ${left}.${renewal ? ` ${renewal}` : ''}`,
   };
 }
@@ -191,16 +190,15 @@ const photosAndPages = (value: number) =>
   `${value} ${takesDe(value) ? 'de ' : ''}fotografii și pagini`;
 
 export function noneText(kind: ImportKind, balance: CreditsBalance | null) {
-  const included = formatCount(balance?.usage.included ?? 0);
   const used = !balance
-    ? 'Ai folosit creditele pentru importuri.'
+    ? 'Ai folosit creditele AI.'
     : balance.trial
-      ? `Ai folosit cele ${included} de credite ale perioadei de probă.`
-      : `Ai folosit cele ${included} de credite ale lunii${balance.hadGift ? ' și pe cele de bun venit' : ''}.`;
+      ? `Ai folosit cele ${creditsLabel(balance.usage.included ?? 0)} ale perioadei de probă.`
+      : `Ai folosit cele ${creditsLabel(balance.usage.included ?? 0)} ale lunii${balance.hadGift ? ' și pe cele de bun venit' : ''}.`;
   const renewal = balance ? renewalSentence(balance, kind) : null;
   const what = kind === 'client' ? 'din documente' : 'din fișe';
   return {
-    title: 'Nu mai ai credite pentru importuri',
+    title: 'Nu mai ai credite AI',
     text: `${used}${renewal ? ` ${renewal}` : ''} Până atunci nu poți porni un import nou ${what}.`,
   };
 }
@@ -208,8 +206,8 @@ export function noneText(kind: ImportKind, balance: CreditsBalance | null) {
 export function refusalSentence(short: CreditsShort) {
   const until = short.renewsAt ? ` până pe ${creditsDay(short.renewsAt)}` : '';
   return short.left <= 0
-    ? `Nu mai ai credite pentru importuri${until}. Scrie-ne la contact@ssmusor.ro și îți adăugăm credite.`
-    : `Nu ajung creditele: importul folosește ${creditsLabel(short.needed)}, iar ție ${short.left === 1 ? 'îți mai rămâne' : 'îți mai rămân'} ${formatCount(short.left)}${until}. Scrie-ne la contact@ssmusor.ro și îți adăugăm credite.`;
+    ? `Nu mai ai credite AI${until}. Importurile noi așteaptă luna următoare.`
+    : `Nu ajung creditele AI: importul folosește ${creditsLabel(short.needed)}, iar ție ${short.left === 1 ? 'îți mai rămâne' : 'îți mai rămân'} ${formatCount(short.left)}${until}.`;
 }
 
 export function usedSentence(credits: ImportCredits, kind: ImportKind) {
@@ -228,6 +226,6 @@ export function usedSentence(credits: ImportCredits, kind: ImportKind) {
 }
 
 export const overSentence = (over: number) =>
-  `Ai trecut cu ${formatCount(over)} peste cele rămase; le scădem din creditele lunii viitoare.`;
+  `Ai trecut cu ${formatCount(over)} peste cele rămase; le scădem din creditele AI ale lunii viitoare.`;
 
-export const refundedSentence = 'Creditele ți-au fost returnate.';
+export const refundedSentence = 'Creditele AI ți-au fost returnate.';

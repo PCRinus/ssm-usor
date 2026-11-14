@@ -1249,7 +1249,7 @@ describe('a substance filled in from its safety data sheet', () => {
     await user.click(within(await card()).getByTestId('fire-substance-add'));
     const dialog = await screen.findByTestId('fire-substance-dialog');
     expect(within(dialog).getByTestId('fire-substance-sheet-offer').textContent).toContain(
-      'Citirea folosește 3 credite.'
+      'Citirea folosește 3 credite AI.'
     );
     await user.type(within(dialog).getByTestId('fire-substance-quantity'), '2 bidoane de 5 l');
     await user.upload(within(dialog).getByTestId('fire-substance-sheet-input'), sheet);
@@ -1354,7 +1354,7 @@ describe('a substance filled in from its safety data sheet', () => {
 
     const error = await within(dialog).findByTestId('fire-substance-sheet-error');
     expect(error.textContent).toContain('scanată sau fotografiată');
-    expect(error.textContent).toContain('Creditele ți-au fost returnate.');
+    expect(error.textContent).toContain('Creditele AI ți-au fost returnate.');
     expect(value(dialog, 'fire-substance-name')).toBe('');
   });
 
@@ -1425,7 +1425,7 @@ describe('a substance filled in from its safety data sheet', () => {
       expect(within(offer).getByTestId('import-credits-line').dataset.short).toBe('true')
     );
     expect(within(offer).getByTestId('import-credits-line').textContent).toContain(
-      'Citirea folosește 3 credite. Îți mai rămân 2'
+      'Citirea folosește 3 credite AI. Îți mai rămân 2'
     );
     expect(within(dialog).getByTestId('fire-substance-sheet-choose')).toHaveProperty(
       'disabled',

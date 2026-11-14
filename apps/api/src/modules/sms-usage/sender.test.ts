@@ -19,7 +19,7 @@ const paid: SmsSubscription = {
   first_paid_at: '2026-11-13T08:00:00.000Z',
   billing_anchor_at: '2026-11-13T08:00:00.000Z',
   current_period_end: null,
-  sms_cap_factor: 3,
+  employee_step: 250,
 };
 
 function setUp(
@@ -60,7 +60,7 @@ function setUp(
 }
 
 describe('the SMS sender', () => {
-  it("counts a signing code against the month's allowance and cap, then marks it sent", async () => {
+  it("counts a signing code against the step's allowance, with a hard stop, then marks it sent", async () => {
     const { store, send, sendSigningCode, onOverage } = setUp(paid);
 
     expect(await send()).toEqual({
@@ -77,7 +77,7 @@ describe('the SMS sender', () => {
         end: new Date('2026-12-13T08:00:00.000Z'),
       },
       allowance: 50,
-      cap: 150,
+      cap: null,
     });
     expect(sendSigningCode).toHaveBeenCalledOnce();
     expect(store.markSent).toHaveBeenCalledWith('row-1', 'SM1', now);
@@ -103,12 +103,12 @@ describe('the SMS sender', () => {
     expect(onCounted).toHaveBeenCalledWith(organizationId, paid);
   });
 
-  it('reports a code past the allowance to Stripe, for the subscription’s customer', async () => {
+  it('reports nothing to Stripe for a paid plan while extras are off', async () => {
     const { send, onOverage } = setUp(paid, { id: 'row-9', overage: true });
 
     await send();
 
-    expect(onOverage).toHaveBeenCalledWith({ id: 'row-9', sentAt: now, customerId: 'cus_1' });
+    expect(onOverage).not.toHaveBeenCalled();
   });
 
   it('passes no cap for a hard stop, and never reports one', async () => {
@@ -140,7 +140,7 @@ describe('the SMS sender', () => {
     expect(sendSigningCode).not.toHaveBeenCalled();
   });
 
-  it.each(['sms_allowance_reached', 'sms_cap_reached'] as const)(
+  it.each(['sms_allowance_reached'] as const)(
     'answers the refusal the count gives (%s) and sends nothing',
     async (refusal) => {
       const { send, sendSigningCode, onCounted } = setUp(paid, { refusal });

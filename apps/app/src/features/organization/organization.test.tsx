@@ -254,6 +254,7 @@ describe('inviting a member', () => {
     ['already_member', 'invite-email-error', /aparține deja unui membru/],
     ['sent_recently', 'invite-email-error', /în ultimele 10 minute/],
     ['too_many_open_invitations', 'invite-error', /20 de invitații în așteptare/],
+    ['member_limit_reached', 'invite-error', /Toți utilizatorii planului sunt ocupați/],
   ])(
     'words the %s conflict next to its cause and keeps the dialog open',
     async (reason, testId, text) => {

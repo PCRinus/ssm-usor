@@ -2,24 +2,23 @@ import { type BillingChoiceProblem, billingChoiceProblemReasonSchema } from '@ss
 
 import { ApiHttpError } from '@/api/http';
 
+import { formatCount } from './billing-format';
 import { contactEmail } from './subscription-copy';
 
 export function problemMessage(problem: BillingChoiceProblem) {
   switch (problem.reason) {
-    case 'start_employee_ceiling':
-      return 'Start acoperă cel mult 600 de lucrători. Pentru câți ai, alege Profesional.';
-    case 'start_member_ceiling':
-      return 'Start are cel mult 2 utilizatori. Pentru câți sunteți, alege Profesional.';
-    case 'employee_packs_below_need':
-      return `Pentru lucrătorii de azi îți trebuie cel puțin ${problem.minimum ?? 1} ${problem.minimum === 1 ? 'pachet' : 'pachete'}.`;
-    case 'extra_members_below_need':
-      return `Pentru utilizatorii de azi îți trebuie cel puțin ${problem.minimum ?? 1} în plus.`;
-    case 'employee_packs_above_plan':
-      return `Planul permite cel mult ${problem.maximum ?? 0} pachete.`;
-    case 'extra_members_above_plan':
-      return `Planul permite cel mult ${problem.maximum ?? 0} ${problem.maximum === 1 ? 'utilizator' : 'utilizatori'} în plus.`;
+    case 'employees_over_plan':
+      return problem.maximum === 750
+        ? 'Start acoperă cel mult 750 de lucrători. Pentru câți ai, alege Profesional.'
+        : `Planurile din aplicație acoperă cel mult ${formatCount(problem.maximum ?? 5000)} de lucrători. Scrie-ne pentru o ofertă, la ${contactEmail}.`;
+    case 'members_over_plan':
+      return problem.maximum === 3
+        ? 'Start are cel mult 3 utilizatori. Pentru câți sunteți, alege Profesional.'
+        : `Planurile din aplicație au cel mult ${problem.maximum ?? 10} utilizatori. Scrie-ne pentru o ofertă, la ${contactEmail}.`;
+    case 'step_below_need':
+      return `Pentru lucrătorii de azi îți trebuie cel puțin treapta de ${formatCount(problem.minimum ?? 0)}.`;
     case 'split_change':
-      return 'Pe planul anual, ce adaugi se plătește azi, iar ce scoți se schimbă abia la reînnoire, așa că le faci pe rând: întâi adaugi și plătești, apoi scoți ce nu mai îți trebuie.';
+      return 'O plată anuală pentru schimbarea de mai devreme încă se confirmă. După ce reușește, poți programa schimbarea pentru reînnoire.';
   }
 }
 

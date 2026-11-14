@@ -21,8 +21,8 @@ import {
 
 const day = 86_400;
 const now = () => Math.floor(Date.now() / 1000);
-const pro = { plan: 'profesional', interval: 'month', employeePacks: 0, extraMembers: 0 } as const;
-const start = { plan: 'start', interval: 'month', employeePacks: 1, extraMembers: 0 } as const;
+const pro = { plan: 'profesional', step: 1500, interval: 'month' } as const;
+const start = { plan: 'start', step: 500, interval: 'month' } as const;
 
 async function deliver(event: Record<string, unknown>, bindings = env, signature?: string) {
   const signed = await signedEvent(event);
@@ -76,7 +76,7 @@ function paidInvoice(overrides: Record<string, unknown> = {}) {
         pricing: {
           type: 'price_details',
           price_details: {
-            price: priceIdOf('profesional_monthly_v1'),
+            price: priceIdOf('profesional_1500_monthly_v2'),
             product: 'ssm_usor_profesional',
           },
         },
@@ -183,9 +183,8 @@ describe('POST /billing/stripe-webhook', () => {
         stripe_customer_id: 'cus_1Test',
         stripe_subscription_id: 'sub_1Test',
         billing_interval: 'month',
-        price_version: 'v1',
-        employee_packs: 1,
-        extra_members: 0,
+        price_version: 'v2',
+        employee_step: 500,
         trial_ends_at: new Date(trialEnd * 1000).toISOString(),
         access_until: new Date((trialEnd + 14 * day) * 1000).toISOString(),
       });
@@ -209,6 +208,38 @@ describe('POST /billing/stripe-webhook', () => {
       expect(gifts(fake)).toEqual([
         expect.objectContaining({ p_organization_id: organizationId, p_credits: 10000 }),
       ]);
+    });
+
+    it("brings the welcome gift up to the higher step's on moving up a step", async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow({ ...start, step: 250 }));
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ choice: { ...start, step: 750 } });
+
+      await deliver(subscriptionEvent('customer.subscription.updated'));
+
+      expect(row(fake).employee_step).toBe(750);
+      expect(gifts(fake)).toEqual([
+        expect.objectContaining({ p_organization_id: organizationId, p_credits: 7500 }),
+      ]);
+    });
+
+    it('reads a v1 subscription back as the step that covers its packs', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }, { price_version: 'v1' }));
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({
+          choice: start,
+          lines: [
+            { lookupKey: 'start_monthly_v1', quantity: 1 },
+            { lookupKey: 'employees50_monthly_v1', quantity: 7 },
+            { lookupKey: 'sms_overage_monthly_v1', quantity: undefined },
+          ],
+        });
+
+      await deliver(subscriptionEvent('customer.subscription.updated'));
+
+      expect(row(fake)).toMatchObject({ price_version: 'v1', employee_step: 750 });
     });
 
     it("keeps Stripe's billing anchor, which starts the SMS month", async () => {
@@ -380,7 +411,14 @@ describe('POST /billing/stripe-webhook', () => {
         idempotencyKey: 'in_1Paid',
         sendEmail: 1,
         client: { name: 'Prevenție Activă SRL', cif: '12345678', email: owner.email, vatPayer: 1 },
-        products: [{ name: 'SSM Ușor Profesional', price: 149, quantity: 1, vatPercentage: 21 }],
+        products: [
+          {
+            name: 'SSM Ușor Profesional, până la 1.500 de lucrători',
+            price: 149,
+            quantity: 1,
+            vatPercentage: 21,
+          },
+        ],
         collect: { type: 'Card', documentNumber: 'pi_1Paid', value: 180.29 },
       });
       expect(fake.tables.billing_invoices).toEqual([
@@ -414,7 +452,7 @@ describe('POST /billing/stripe-webhook', () => {
       expect(changes(fake).filter((change) => change.change === 'first_payment')).toHaveLength(1);
     });
 
-    it("grants the plan's welcome gift with the first payment, asking again on a retry, which the database grants once", async () => {
+    it("grants the step's welcome gift with the first payment, asking again on a retry, which the database grants once", async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow(start, { first_paid_at: null }));
       fake.stripe['GET /v1/invoices/in_1Paid'] = () => paidInvoice();
@@ -422,7 +460,7 @@ describe('POST /billing/stripe-webhook', () => {
       await deliver(paidEvent);
       await deliver({ ...paidEvent, id: 'evt_paid_again' });
 
-      const gift = expect.objectContaining({ p_organization_id: organizationId, p_credits: 2500 });
+      const gift = expect.objectContaining({ p_organization_id: organizationId, p_credits: 5000 });
       expect(gifts(fake)).toEqual([gift, gift]);
     });
 
@@ -563,7 +601,7 @@ describe('POST /billing/stripe-webhook', () => {
         period: { start: at, end: at + 15 * day },
         pricing: {
           type: 'price_details',
-          price_details: { price: priceIdOf('start_monthly_v1'), product: 'ssm_usor_start' },
+          price_details: { price: priceIdOf('start_500_monthly_v2'), product: 'ssm_usor_start' },
         },
         parent: {
           type: 'subscription_item_details',
@@ -576,7 +614,7 @@ describe('POST /billing/stripe-webhook', () => {
 
       expect(oblioWrites(fake, '/api/docs/invoice')[0]!.products).toContainEqual(
         expect.objectContaining({
-          name: 'SSM Ușor Start: credit pentru perioada nefolosită',
+          name: 'SSM Ușor Start, până la 500 de lucrători: credit pentru perioada nefolosită',
           price: 19.5,
           quantity: -1,
         })

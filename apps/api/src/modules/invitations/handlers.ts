@@ -14,6 +14,8 @@ import { createDataClient, fromDatabaseError } from '../../lib/db';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createToken, hashToken } from '../../lib/tokens';
+import { usageLimits } from '../billing/rules';
+import { countOpenInvitations, loadSubscription } from '../billing/store';
 import { accountExists, fromInvitationError, invitationNotOpen } from './errors';
 import type {
   acceptInvitationRoute,
@@ -135,8 +137,38 @@ async function sendInvitation(c: Context<ApiEnv>, email: string, role: Organizat
   return toInvitation({ ...row, sent_at: sentAt });
 }
 
+// The plan's users are fixed and none can be bought (ADR 029, amendment of 2026-11-14), so an
+// open invitation holds a place: inviting ten at once would otherwise pass. Two invitations sent
+// in the same instant at one place short can both pass; the count and the insert are not locked.
+async function assertRoomForMember(c: Context<ApiEnv>, email: string) {
+  const admin = createAdminClient(c);
+  const organizationId = c.get('membership').organizationId;
+  const limit = usageLimits(await loadSubscription(admin, organizationId), new Date()).members;
+  if (limit === null) return;
+  const [members, pending] = await Promise.all([
+    admin
+      .from('organization_members')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('organization_id', organizationId),
+    countOpenInvitations(admin, organizationId, email),
+  ]);
+  if (members.error) throw fromDatabaseError(members.error, 'invitation member count');
+  if ((members.count ?? 0) + pending < limit) return;
+  // A member's own address answers `already_member` from the database function instead.
+  const list = await createDataClient(c).rpc('organization_member_list');
+  if (list.error) throw fromDatabaseError(list.error, 'invitation member list');
+  if (list.data.some((member) => member.email.toLowerCase() === email)) return;
+  throw new ApiError(
+    'conflict',
+    `The plan has ${limit} users, and every place is taken or invited.`,
+    undefined,
+    'member_limit_reached'
+  );
+}
+
 export const createInvitation: RouteHandler<typeof createInvitationRoute, ApiEnv> = async (c) => {
   const { email, role } = c.req.valid('json');
+  await assertRoomForMember(c, email);
   return c.json(await sendInvitation(c, email, role), 201);
 };
 
@@ -145,13 +177,17 @@ export const resendInvitation: RouteHandler<typeof resendInvitationRoute, ApiEnv
 
   const found = await createDataClient(c)
     .from('organization_invitations')
-    .select('email, role')
+    .select('email, role, expires_at')
     .eq('id', invitationId)
     .is('accepted_at', null)
     .is('revoked_at', null)
     .maybeSingle();
   if (found.error) throw fromDatabaseError(found.error, 'invitation resend lookup');
   if (!found.data) throw new ApiError('not_found', 'The invitation does not exist.');
+  // An expired invitation gave its place up, and renewing it takes one again.
+  if (Date.parse(found.data.expires_at) <= Date.now()) {
+    await assertRoomForMember(c, found.data.email);
+  }
 
   return c.json(await sendInvitation(c, found.data.email, found.data.role), 200);
 };

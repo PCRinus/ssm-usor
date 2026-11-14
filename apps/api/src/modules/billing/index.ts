@@ -9,7 +9,6 @@ import {
   previewBilling,
   resumeSubscriptionHandler,
   updateInvoiceEmail,
-  updateSmsCap,
 } from './handlers';
 import {
   cancelSubscriptionRoute,
@@ -21,7 +20,6 @@ import {
   previewBillingRoute,
   resumeSubscriptionRoute,
   updateInvoiceEmailRoute,
-  updateSmsCapRoute,
 } from './routes';
 import { stripeWebhook } from './webhook';
 
@@ -36,6 +34,5 @@ export const billingRouter = createRouter()
   .openapi(resumeSubscriptionRoute, resumeSubscriptionHandler)
   .openapi(createPortalSessionRoute, createPortalSession)
   .openapi(updateInvoiceEmailRoute, updateInvoiceEmail)
-  .openapi(updateSmsCapRoute, updateSmsCap)
   .openapi(getInvoicePdfRoute, getInvoicePdf)
   .post('/billing/stripe-webhook', stripeWebhook);

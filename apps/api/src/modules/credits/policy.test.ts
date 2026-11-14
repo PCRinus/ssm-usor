@@ -17,7 +17,7 @@ const trial: SmsSubscription = {
   first_paid_at: null,
   billing_anchor_at: null,
   current_period_end: null,
-  sms_cap_factor: 3,
+  employee_step: null,
 };
 
 const paid = (overrides: Partial<SmsSubscription> = {}): SmsSubscription => ({
@@ -28,6 +28,7 @@ const paid = (overrides: Partial<SmsSubscription> = {}): SmsSubscription => ({
   stripe_customer_id: 'cus_1',
   first_paid_at: '2026-09-13T08:02:00.000Z',
   billing_anchor_at: '2026-09-13T08:00:00.000Z',
+  employee_step: 250,
   ...overrides,
 });
 
@@ -46,13 +47,13 @@ describe('creditPolicy', () => {
   });
 
   it("keeps a plan chosen during the trial at the trial's 300, naming the gift its first payment brings", () => {
-    const chosen = { ...trial, plan: 'start', stripe_subscription_id: 'sub_1' };
+    const chosen = { ...trial, plan: 'start', stripe_subscription_id: 'sub_1', employee_step: 500 };
 
     expect(creditPolicy(chosen, now)).toMatchObject({
       kind: 'trial',
       allowance: 300,
       period: { end: at(trial.trial_ends_at!) },
-      giftPending: 2500,
+      giftPending: 5000,
     });
   });
 
@@ -72,15 +73,15 @@ describe('creditPolicy', () => {
     });
   });
 
-  it("counts a paid plan on Stripe's months, the month before at the plan's allowance", () => {
+  it("counts a paid plan on Stripe's months, the month before at the step's allowance", () => {
     expect(creditPolicy(paid({ first_paid_at: '2026-08-13T08:00:00.000Z' }), now)).toEqual({
       limited: true,
       kind: 'month',
       period: { start: at('2026-10-13T08:00:00.000Z'), end: at('2026-11-13T08:00:00.000Z') },
-      allowance: 300,
+      allowance: 750,
       previous: {
         period: { start: at('2026-09-13T08:00:00.000Z'), end: at('2026-10-13T08:00:00.000Z') },
-        allowance: 300,
+        allowance: 750,
       },
       giftPending: 0,
     });
@@ -89,6 +90,7 @@ describe('creditPolicy', () => {
   it('takes the trial as the month before the first paid one', () => {
     const first = paid({
       plan: 'profesional',
+      employee_step: 1500,
       created_at: '2026-09-20T08:00:00.000Z',
       first_paid_at: '2026-10-14T08:01:00.000Z',
       billing_anchor_at: '2026-10-14T08:00:00.000Z',
@@ -96,7 +98,7 @@ describe('creditPolicy', () => {
 
     expect(creditPolicy(first, now)).toMatchObject({
       period: { start: at('2026-10-14T08:00:00.000Z') },
-      allowance: 1500,
+      allowance: 3250,
       previous: {
         period: { start: at('2026-09-20T08:00:00.000Z'), end: at('2026-10-14T08:00:00.000Z') },
         allowance: 300,
@@ -136,7 +138,7 @@ describe('the credits meter', () => {
       balance: 325,
       giftLeft: 0,
     });
-    expect(view).toMatchObject({ used: 0, left: 325, included: 300 });
+    expect(view).toMatchObject({ used: 0, left: 325, included: 750 });
   });
 });
 

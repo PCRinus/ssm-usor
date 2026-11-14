@@ -18,7 +18,7 @@ const paid: SmsSubscription = {
   first_paid_at: '2026-11-13T08:00:00.000Z',
   billing_anchor_at: '2026-11-13T08:00:00.000Z',
   current_period_end: null,
-  sms_cap_factor: 3,
+  employee_step: 250,
 };
 
 const chosenInTrial: SmsSubscription = {
@@ -75,7 +75,7 @@ function setUp(options: { granted?: number; owner?: boolean } = {}) {
 }
 
 describe('the usage notices', () => {
-  it('emails the owner once at 80 %, at 100 % and at the cap of a paid plan', async () => {
+  it('emails the owner of a paid plan once at 80 % and once at 100 %, where the codes stop', async () => {
     const { at, sendSmsUsageNotice } = setUp();
 
     expect(await at(39)).toBeNull();
@@ -84,23 +84,21 @@ describe('the usage notices', () => {
     expect(await at(49)).toBeNull();
     expect(await at(50)).toBe('sms_100');
     expect(await at(51)).toBeNull();
-    expect(await at(150)).toBe('sms_cap');
     expect(await at(150)).toBeNull();
 
     expect(sendSmsUsageNotice.mock.calls.map(([email]) => [email.kind, email.used])).toEqual([
       ['sms_80', 40],
       ['sms_100', 50],
-      ['sms_cap', 150],
     ]);
     expect(sendSmsUsageNotice).toHaveBeenLastCalledWith({
       to: 'olga@prevenireplus.example',
-      kind: 'sms_cap',
+      kind: 'sms_100',
       organizationName: 'Prevenire Plus SRL',
       planName: 'Start',
-      billed: true,
-      used: 150,
+      billed: false,
+      used: 50,
       included: 50,
-      cap: 150,
+      cap: null,
       overageCents: 10,
       periodStart: '2026-11-13T08:00:00.000Z',
       periodEnd: '2026-12-13T08:00:00.000Z',
@@ -140,15 +138,23 @@ describe('the usage notices', () => {
     expect(sendSmsUsageNotice).toHaveBeenCalledOnce();
   });
 
-  it('counts the codes granted by hand into what is included and the cap', async () => {
+  it('counts the codes granted by hand into what is included', async () => {
     const { at, sendSmsUsageNotice } = setUp({ granted: 50 });
 
     expect(await at(79)).toBeNull();
     expect(await at(80)).toBe('sms_80');
 
     expect(sendSmsUsageNotice).toHaveBeenCalledWith(
-      expect.objectContaining({ included: 100, cap: 200 })
+      expect.objectContaining({ included: 100, cap: null })
     );
+  });
+
+  it("counts against the step's codes: 300 at Profesional's 1,500", async () => {
+    const { at } = setUp();
+    const profesional = { ...paid, plan: 'profesional', employee_step: 1500 };
+
+    expect(await at(239, profesional)).toBeNull();
+    expect(await at(240, profesional)).toBe('sms_80');
   });
 
   it('words a hard stop before the first payment as stopped, with no cap', async () => {

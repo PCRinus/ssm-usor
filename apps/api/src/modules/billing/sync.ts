@@ -50,8 +50,7 @@ export function plainTrial(row: SubscriptionRow): SubscriptionFields {
     stripe_subscription_id: null,
     billing_interval: null,
     price_version: null,
-    employee_packs: 0,
-    extra_members: 0,
+    employee_step: null,
     current_period_end: null,
     billing_anchor_at: null,
   };
@@ -74,8 +73,7 @@ export function stateFromStripe(
     stripe_subscription_id: subscription.id,
     billing_interval: chosen.choice.interval,
     price_version: chosen.version,
-    employee_packs: chosen.choice.employeePacks,
-    extra_members: chosen.choice.extraMembers,
+    employee_step: chosen.choice.step,
     current_period_end: iso(planItem.current_period_end),
     billing_anchor_at: iso(subscription.billing_cycle_anchor),
   };

@@ -51,14 +51,17 @@ export type Fake = {
 export const priceIdOf = (lookupKey: string) => `price_${lookupKey}`;
 
 export function stripePrice(lookupKey: string) {
-  const price = cataloguePrices.find((candidate) => candidate.lookupKey === lookupKey)!;
+  const price = cataloguePrices.find((candidate) => candidate.lookupKey === lookupKey);
   return {
     id: priceIdOf(lookupKey),
     object: 'price',
     lookup_key: lookupKey,
     active: true,
-    unit_amount: price.unitAmount,
-    recurring: { interval: price.interval, usage_type: price.usage },
+    unit_amount: price?.unitAmount ?? 1500,
+    recurring: {
+      interval: price?.interval ?? (lookupKey.includes('_annual_') ? 'year' : 'month'),
+      usage_type: price?.usage ?? 'licensed',
+    },
   };
 }
 
@@ -77,9 +80,10 @@ export function stripeSubscription(options: {
   latestInvoice?: unknown;
   pendingSetupIntent?: unknown;
   metadata?: Record<string, string>;
+  lines?: { lookupKey: string; quantity: number | undefined }[];
 }) {
   const periodEnd = options.periodEnd ?? Math.floor(Date.now() / 1000) + 20 * day;
-  const lines = [
+  const lines = options.lines ?? [
     ...choiceLines(options.choice),
     { lookupKey: smsOverage.price.lookupKey, quantity: undefined },
   ];
@@ -136,8 +140,7 @@ export function subscriptionRow(overrides: Row = {}): Row {
     stripe_subscription_id: null,
     billing_interval: null,
     price_version: null,
-    employee_packs: 0,
-    extra_members: 0,
+    employee_step: null,
     invoice_email: null,
     current_period_end: null,
     ...overrides,
@@ -153,10 +156,9 @@ export function paidRow(choice: BillingChoice, overrides: Row = {}): Row {
     stripe_customer_id: 'cus_1Test',
     stripe_subscription_id: 'sub_1Test',
     billing_interval: choice.interval,
-    price_version: 'v1',
+    price_version: 'v2',
     first_paid_at: new Date(Date.now() - 40 * day * 1000).toISOString(),
-    employee_packs: choice.employeePacks,
-    extra_members: choice.extraMembers,
+    employee_step: choice.step,
     ...overrides,
   });
 }

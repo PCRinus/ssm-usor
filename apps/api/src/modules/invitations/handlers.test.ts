@@ -59,14 +59,26 @@ const upstreamDefaults = {
   role: 'owner',
   create: () => Response.json([invitationRow]),
   invitations: () => Response.json([invitationRow]),
-  invitation: () => Response.json({ email: invitationRow.email, role: invitationRow.role }),
+  invitation: () =>
+    Response.json({
+      email: invitationRow.email,
+      role: invitationRow.role,
+      expires_at: invitationRow.expires_at,
+    }),
   revoke: () => Response.json(true),
   lookup: () => Response.json([lookupRow]),
   createUser: () => Response.json({ id: newUserId, email: lookupRow.email }),
   acceptAs: () => Response.json(organizationId),
   join: () => Response.json(organizationId),
   profile: () => Response.json({ user_id: user.id, full_name: 'Ana Popescu' }),
+  subscription: () => Response.json(null),
+  members: () => Response.json([] as { email: string }[]),
+  memberCount: 1,
+  pendingCount: 0,
 };
+
+const counted = (count: number) =>
+  new Response(null, { status: 200, headers: { 'Content-Range': `*/${count}` } });
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -86,6 +98,8 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         return Response.json([
           { user_id: user.id, organization_id: organizationId, role: upstream.role },
         ]);
+      case '/rest/v1/rpc/organization_member_list':
+        return upstream.members();
       case '/rest/v1/rpc/create_organization_invitation':
         return upstream.create();
       case '/rest/v1/rpc/revoke_organization_invitation':
@@ -100,8 +114,13 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
         return Response.json({ name: 'Protect SSM' });
       case '/rest/v1/profiles':
         return upstream.profile();
+      case '/rest/v1/subscriptions':
+        return upstream.subscription();
+      case '/rest/v1/organization_members':
+        return counted(upstream.memberCount);
       case '/rest/v1/organization_invitations':
         if (method === 'PATCH') return new Response(null, { status: 204 });
+        if (method === 'HEAD') return counted(upstream.pendingCount);
         return url.searchParams.has('id') ? upstream.invitation() : upstream.invitations();
     }
     throw new Error(`Unexpected upstream request: ${method} ${url}`);
@@ -186,6 +205,97 @@ describe('POST /organization/invitations', () => {
     expect(hashed?.headers.get('apikey')).toBe(env.SUPABASE_SECRET_KEY);
     expect(hashed?.url.searchParams.get('id')).toBe(`eq.${invitationId}`);
     expect(marked?.body).toEqual({ sent_at: body.sentAt });
+  });
+
+  describe("the plan's users", () => {
+    const start = () =>
+      Response.json({
+        organization_id: organizationId,
+        plan: 'start',
+        status: 'active',
+        trial_ends_at: null,
+        stripe_subscription_id: 'sub_1',
+        employee_step: 250,
+      });
+
+    it('refuses an invitation past Start’s three users, open invitations counted', async () => {
+      mockUpstream({ subscription: start, memberCount: 2, pendingCount: 1 });
+
+      const response = await request('/organization/invitations', { email: 'ion@example.ro' });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ reason: 'member_limit_reached' });
+      expect(calls('/rest/v1/rpc/create_organization_invitation')).toEqual([]);
+      const [pending] = calls('/rest/v1/organization_invitations', 'HEAD');
+      expect(pending?.url.searchParams.get('email')).toBe('neq.ion@example.ro');
+    });
+
+    it('leaves a member’s own address to the database, which answers already_member', async () => {
+      mockUpstream({
+        subscription: start,
+        memberCount: 3,
+        members: () => Response.json([{ email: 'ion@example.ro' }]),
+        create: () => databaseError('INV01', 'already_member'),
+      });
+
+      const response = await request('/organization/invitations', { email: 'ion@example.ro' });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ reason: 'already_member' });
+    });
+
+    it('refuses to renew an expired invitation once its place is taken', async () => {
+      mockUpstream({
+        subscription: start,
+        memberCount: 3,
+        invitation: () =>
+          Response.json({
+            email: 'ion@example.ro',
+            role: 'specialist',
+            expires_at: '2020-01-01T00:00:00Z',
+          }),
+      });
+
+      const response = await request(
+        `/organization/invitations/${invitationId}/resend`,
+        undefined,
+        { method: 'POST' }
+      );
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ reason: 'member_limit_reached' });
+      expect(calls('/rest/v1/rpc/create_organization_invitation')).toEqual([]);
+    });
+
+    it('resends an open invitation at the limit, since it already holds its place', async () => {
+      mockUpstream({ subscription: start, memberCount: 2, pendingCount: 0 });
+
+      const response = await request(
+        `/organization/invitations/${invitationId}/resend`,
+        undefined,
+        { method: 'POST' }
+      );
+
+      expect(response.status).toBe(200);
+      expect(calls('/rest/v1/organization_members')).toEqual([]);
+    });
+
+    it('invites while there is room', async () => {
+      mockUpstream({ subscription: start, memberCount: 2, pendingCount: 0 });
+
+      expect((await request('/organization/invitations', { email: 'ion@example.ro' })).status).toBe(
+        201
+      );
+    });
+
+    it('counts nothing for an organization without a subscription', async () => {
+      mockUpstream({ memberCount: 40 });
+
+      expect((await request('/organization/invitations', { email: 'ion@example.ro' })).status).toBe(
+        201
+      );
+      expect(calls('/rest/v1/organization_members')).toEqual([]);
+    });
   });
 
   it('refuses a specialist before touching the database', async () => {

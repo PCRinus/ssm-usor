@@ -9,8 +9,6 @@ import {
   cancelSubscriptionRequestSchema,
   changeSubscriptionRequestSchema,
   invoiceEmailSchema,
-  smsCapRequestSchema,
-  smsCapSchema,
 } from '@ssm-usor/contracts';
 
 import { allowWhileReadOnly } from '../../lib/access';
@@ -119,9 +117,9 @@ export const changeSubscriptionRoute = createRoute({
   method: 'patch',
   path: '/billing/subscription',
   operationId: 'changeSubscription',
-  summary: 'Change the plan, the interval, the packs or the members',
+  summary: 'Change the plan, the step or the interval',
   description:
-    'Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.',
+    'A change to a higher monthly price, a higher step or Profesional, and monthly to annual apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. A lower step, Profesional to Start and annual to monthly wait for the renewal. During a trial everything applies at once. A change that waits for the renewal while an annual payment for an earlier one is still pending is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.',
   security: bearerSecurity,
   middleware: ownerMiddleware,
   request: {
@@ -251,38 +249,6 @@ export const getInvoicePdfRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: { description: 'No such invoice in the organization', content: errorContent },
     409: { description: 'The PDF is not stored yet; see `reason`', content: errorContent },
-    ...ownerOnlyErrors,
-  },
-});
-
-export const updateSmsCapRoute = createRoute({
-  method: 'put',
-  path: '/billing/sms-cap',
-  operationId: 'updateSmsCap',
-  summary: "The safety cap on the month's signing codes by SMS",
-  description:
-    "A multiple of the plan's allowance, from 3 (the default) to 20; codes granted by hand come on top. Past the cap no signing code goes by SMS. Recorded in the subscription's change log.",
-  security: bearerSecurity,
-  middleware: ownerMiddleware,
-  request: {
-    body: {
-      required: true,
-      content: {
-        'application/json': { schema: smsCapRequestSchema.meta({ id: 'SmsCapRequest' }) },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'The saved cap',
-      content: { 'application/json': { schema: smsCapSchema.meta({ id: 'SmsCap' }) } },
-    },
-    400: { description: 'Invalid request body', content: errorContent },
-    409: {
-      description:
-        'No plan is chosen (`no_subscription`) or the plan is Enterprise (`enterprise_plan`)',
-      content: errorContent,
-    },
     ...ownerOnlyErrors,
   },
 });

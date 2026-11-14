@@ -248,6 +248,10 @@
               "planChosen": {
                 "type": "boolean"
               },
+              "step": {
+                "type": "integer",
+                "nullable": true
+              },
               "status": {
                 "type": "string",
                 "enum": ["trialing", "active", "past_due", "canceled"]
@@ -275,6 +279,7 @@
             "required": [
               "plan",
               "planChosen",
+              "step",
               "status",
               "trialEndsAt",
               "accessUntil",
@@ -330,7 +335,7 @@
               },
               "state": {
                 "type": "string",
-                "enum": ["ok", "near", "over", "capped", "stopped", "none"]
+                "enum": ["ok", "near", "stopped", "none"]
               }
             },
             "required": [
@@ -21246,13 +21251,9 @@
                 "nullable": true,
                 "enum": ["month", "year", null]
               },
-              "employeePacks": {
+              "step": {
                 "type": "integer",
-                "minimum": 0
-              },
-              "extraMembers": {
-                "type": "integer",
-                "minimum": 0
+                "nullable": true
               },
               "trialEndsAt": {
                 "type": "string",
@@ -21289,8 +21290,7 @@
               "planChosen",
               "status",
               "interval",
-              "employeePacks",
-              "extraMembers",
+              "step",
               "trialEndsAt",
               "currentPeriodEnd",
               "accessUntil",
@@ -21333,6 +21333,10 @@
                   }
                 },
                 "required": ["used", "limit"]
+              },
+              "invitations": {
+                "type": "integer",
+                "minimum": 0
               },
               "smsThisMonth": {
                 "type": "object",
@@ -21381,7 +21385,7 @@
                   },
                   "state": {
                     "type": "string",
-                    "enum": ["ok", "near", "over", "capped", "stopped", "none"]
+                    "enum": ["ok", "near", "stopped", "none"]
                   }
                 },
                 "required": [
@@ -21467,7 +21471,7 @@
                 ]
               }
             },
-            "required": ["employees", "members", "smsThisMonth", "creditsThisMonth"]
+            "required": ["employees", "members", "invitations", "smsThisMonth", "creditsThisMonth"]
           },
           "catalogue": {
             "type": "object",
@@ -21490,139 +21494,57 @@
                     "name": {
                       "type": "string"
                     },
-                    "prices": {
-                      "type": "object",
-                      "properties": {
-                        "month": {
-                          "type": "integer"
+                    "members": {
+                      "type": "integer"
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "employees": {
+                            "type": "integer"
+                          },
+                          "prices": {
+                            "type": "object",
+                            "properties": {
+                              "month": {
+                                "type": "integer"
+                              },
+                              "year": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": ["month", "year"]
+                          },
+                          "monthlySms": {
+                            "type": "integer"
+                          },
+                          "monthlyCredits": {
+                            "type": "integer"
+                          },
+                          "welcomeCredits": {
+                            "type": "integer"
+                          }
                         },
-                        "year": {
-                          "type": "integer"
-                        }
-                      },
-                      "required": ["month", "year"]
-                    },
-                    "includedEmployees": {
-                      "type": "integer"
-                    },
-                    "includedMembers": {
-                      "type": "integer"
-                    },
-                    "maxMembers": {
-                      "type": "integer",
-                      "nullable": true
-                    },
-                    "monthlySms": {
-                      "type": "integer"
-                    },
-                    "monthlyCredits": {
-                      "type": "integer"
-                    },
-                    "welcomeCredits": {
-                      "type": "integer"
-                    },
-                    "employeePack": {
-                      "type": "string",
-                      "enum": [
-                        "start",
-                        "profesional",
-                        "employees50",
-                        "employees500",
-                        "member",
-                        "sms_overage"
-                      ]
-                    },
-                    "maxEmployeePacks": {
-                      "type": "integer",
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "key",
-                    "name",
-                    "prices",
-                    "includedEmployees",
-                    "includedMembers",
-                    "maxMembers",
-                    "monthlySms",
-                    "monthlyCredits",
-                    "welcomeCredits",
-                    "employeePack",
-                    "maxEmployeePacks"
-                  ]
-                }
-              },
-              "employeePacks": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "key": {
-                      "type": "string",
-                      "enum": [
-                        "start",
-                        "profesional",
-                        "employees50",
-                        "employees500",
-                        "member",
-                        "sms_overage"
-                      ]
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "employees": {
-                      "type": "integer"
-                    },
-                    "prices": {
-                      "type": "object",
-                      "properties": {
-                        "month": {
-                          "type": "integer"
-                        },
-                        "year": {
-                          "type": "integer"
-                        }
-                      },
-                      "required": ["month", "year"]
-                    }
-                  },
-                  "required": ["key", "name", "employees", "prices"]
-                }
-              },
-              "extraMember": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "prices": {
-                    "type": "object",
-                    "properties": {
-                      "month": {
-                        "type": "integer"
-                      },
-                      "year": {
-                        "type": "integer"
+                        "required": [
+                          "employees",
+                          "prices",
+                          "monthlySms",
+                          "monthlyCredits",
+                          "welcomeCredits"
+                        ]
                       }
-                    },
-                    "required": ["month", "year"]
-                  }
-                },
-                "required": ["name", "prices"]
+                    }
+                  },
+                  "required": ["key", "name", "members", "steps"]
+                }
               },
               "smsOverageCents": {
                 "type": "integer"
               }
             },
-            "required": [
-              "currency",
-              "vatPercent",
-              "plans",
-              "employeePacks",
-              "extraMember",
-              "smsOverageCents"
-            ]
+            "required": ["currency", "vatPercent", "plans", "smsOverageCents"]
           },
           "owner": {
             "type": "object",
@@ -21689,26 +21611,20 @@
                     "type": "string",
                     "enum": ["start", "profesional"]
                   },
+                  "step": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
                   "interval": {
                     "type": "string",
                     "enum": ["month", "year"]
-                  },
-                  "employeePacks": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 100
-                  },
-                  "extraMembers": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 100
                   },
                   "at": {
                     "type": "string",
                     "format": "date-time"
                   }
                 },
-                "required": ["plan", "interval", "employeePacks", "extraMembers", "at"]
+                "required": ["plan", "step", "interval", "at"]
               },
               "choices": {
                 "type": "object",
@@ -21716,17 +21632,9 @@
                   "start": {
                     "type": "object",
                     "properties": {
-                      "minimums": {
-                        "type": "object",
-                        "properties": {
-                          "employeePacks": {
-                            "type": "integer"
-                          },
-                          "extraMembers": {
-                            "type": "integer"
-                          }
-                        },
-                        "required": ["employeePacks", "extraMembers"]
+                      "minimumStep": {
+                        "type": "integer",
+                        "nullable": true
                       },
                       "problems": {
                         "type": "array",
@@ -21736,12 +21644,9 @@
                             "reason": {
                               "type": "string",
                               "enum": [
-                                "start_employee_ceiling",
-                                "start_member_ceiling",
-                                "employee_packs_below_need",
-                                "extra_members_below_need",
-                                "employee_packs_above_plan",
-                                "extra_members_above_plan",
+                                "employees_over_plan",
+                                "members_over_plan",
+                                "step_below_need",
                                 "split_change"
                               ]
                             },
@@ -21758,22 +21663,14 @@
                         }
                       }
                     },
-                    "required": ["minimums", "problems"]
+                    "required": ["minimumStep", "problems"]
                   },
                   "profesional": {
                     "type": "object",
                     "properties": {
-                      "minimums": {
-                        "type": "object",
-                        "properties": {
-                          "employeePacks": {
-                            "type": "integer"
-                          },
-                          "extraMembers": {
-                            "type": "integer"
-                          }
-                        },
-                        "required": ["employeePacks", "extraMembers"]
+                      "minimumStep": {
+                        "type": "integer",
+                        "nullable": true
                       },
                       "problems": {
                         "type": "array",
@@ -21783,12 +21680,9 @@
                             "reason": {
                               "type": "string",
                               "enum": [
-                                "start_employee_ceiling",
-                                "start_member_ceiling",
-                                "employee_packs_below_need",
-                                "extra_members_below_need",
-                                "employee_packs_above_plan",
-                                "extra_members_above_plan",
+                                "employees_over_plan",
+                                "members_over_plan",
+                                "step_below_need",
                                 "split_change"
                               ]
                             },
@@ -21805,7 +21699,7 @@
                         }
                       }
                     },
-                    "required": ["minimums", "problems"]
+                    "required": ["minimumStep", "problems"]
                   }
                 },
                 "required": ["start", "profesional"]
@@ -21882,22 +21776,16 @@
                 "type": "string",
                 "enum": ["start", "profesional"]
               },
+              "step": {
+                "type": "integer",
+                "minimum": 1
+              },
               "interval": {
                 "type": "string",
                 "enum": ["month", "year"]
-              },
-              "employeePacks": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 100
-              },
-              "extraMembers": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 100
               }
             },
-            "required": ["plan", "interval", "employeePacks", "extraMembers"]
+            "required": ["plan", "step", "interval"]
           },
           "problems": {
             "type": "array",
@@ -21907,12 +21795,9 @@
                 "reason": {
                   "type": "string",
                   "enum": [
-                    "start_employee_ceiling",
-                    "start_member_ceiling",
-                    "employee_packs_below_need",
-                    "extra_members_below_need",
-                    "employee_packs_above_plan",
-                    "extra_members_above_plan",
+                    "employees_over_plan",
+                    "members_over_plan",
+                    "step_below_need",
                     "split_change"
                   ]
                 },
@@ -21928,19 +21813,9 @@
               "required": ["reason"]
             }
           },
-          "minimums": {
-            "type": "object",
-            "properties": {
-              "employeePacks": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "extraMembers": {
-                "type": "integer",
-                "minimum": 0
-              }
-            },
-            "required": ["employeePacks", "extraMembers"]
+          "minimumStep": {
+            "type": "integer",
+            "nullable": true
           },
           "unchanged": {
             "type": "boolean"
@@ -21968,14 +21843,7 @@
                   "properties": {
                     "product": {
                       "type": "string",
-                      "enum": [
-                        "start",
-                        "profesional",
-                        "employees50",
-                        "employees500",
-                        "member",
-                        "sms_overage"
-                      ]
+                      "enum": ["start", "profesional", "sms_overage"]
                     },
                     "quantity": {
                       "type": "integer",
@@ -22055,7 +21923,7 @@
         "required": [
           "choice",
           "problems",
-          "minimums",
+          "minimumStep",
           "unchanged",
           "recurring",
           "appliesAt",
@@ -22073,22 +21941,16 @@
             "type": "string",
             "enum": ["start", "profesional"]
           },
+          "step": {
+            "type": "integer",
+            "minimum": 1
+          },
           "interval": {
             "type": "string",
             "enum": ["month", "year"]
-          },
-          "employeePacks": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100
-          },
-          "extraMembers": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100
           }
         },
-        "required": ["plan", "interval", "employeePacks", "extraMembers"]
+        "required": ["plan", "step", "interval"]
       },
       "BillingCheckoutResponse": {
         "type": "object",
@@ -22112,26 +21974,20 @@
             "type": "string",
             "enum": ["start", "profesional"]
           },
+          "step": {
+            "type": "integer",
+            "minimum": 1
+          },
           "interval": {
             "type": "string",
             "enum": ["month", "year"]
-          },
-          "employeePacks": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100
-          },
-          "extraMembers": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100
           },
           "prorationDate": {
             "type": "string",
             "format": "date-time"
           }
         },
-        "required": ["plan", "interval", "employeePacks", "extraMembers"]
+        "required": ["plan", "step", "interval"]
       },
       "CancelSubscriptionRequest": {
         "type": "object",
@@ -22176,29 +22032,6 @@
           }
         },
         "required": ["email"]
-      },
-      "SmsCap": {
-        "type": "object",
-        "properties": {
-          "factor": {
-            "type": "integer"
-          },
-          "cap": {
-            "type": "integer"
-          }
-        },
-        "required": ["factor", "cap"]
-      },
-      "SmsCapRequest": {
-        "type": "object",
-        "properties": {
-          "factor": {
-            "type": "integer",
-            "minimum": 3,
-            "maximum": 20
-          }
-        },
-        "required": ["factor"]
       },
       "BillingInvoiceLink": {
         "type": "object",
@@ -47830,8 +47663,8 @@
       },
       "patch": {
         "operationId": "changeSubscription",
-        "summary": "Change the plan, the interval, the packs or the members",
-        "description": "Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.",
+        "summary": "Change the plan, the step or the interval",
+        "description": "A change to a higher monthly price, a higher step or Profesional, and monthly to annual apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. A lower step, Profesional to Start and annual to monthly wait for the renewal. During a trial everything applies at once. A change that waits for the renewal while an annual payment for an earlier one is still pending is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.",
         "security": [
           {
             "bearerAuth": []
@@ -48220,100 +48053,6 @@
           },
           "409": {
             "description": "The choice does not fit the organization, or the subscription is not in a state for it; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected API error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "A dependency is temporarily unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/billing/sms-cap": {
-      "put": {
-        "operationId": "updateSmsCap",
-        "summary": "The safety cap on the month's signing codes by SMS",
-        "description": "A multiple of the plan's allowance, from 3 (the default) to 20; codes granted by hand come on top. Past the cap no signing code goes by SMS. Recorded in the subscription's change log.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SmsCapRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The saved cap",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SmsCap"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request body",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "A valid user access token is required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The caller is not the owner, or is an admin impersonating one",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "No plan is chosen (`no_subscription`) or the plan is Enterprise (`enterprise_plan`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -48805,7 +48544,7 @@
             }
           },
           "409": {
-            "description": "Already a member, too many open invitations, or an email was sent in the last 10 minutes; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "Already a member, too many open invitations, the plan's users all taken or invited (`member_limit_reached`), or an email was sent in the last 10 minutes; see `reason`; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -54115,7 +53854,7 @@
             }
           },
           "409": {
-            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), the month's codes used up at a hard stop (`sms_allowance_reached`) or the safety cap reached (`sms_cap_reached`); the last two carry `resumesAt`, when the month's codes start again; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), or the month's codes used up (`sms_allowance_reached`), which carries `resumesAt`, when the month's codes start again; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -55224,7 +54963,7 @@
             }
           },
           "409": {
-            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), the month's codes used up at a hard stop (`sms_allowance_reached`) or the safety cap reached (`sms_cap_reached`); the last two carry `resumesAt`, when the month's codes start again; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "A code was sent to the account in the last minute (reason `code_rate_limited`, with `retryAfterSeconds`), the account has no address for the code (reason `signer_has_no_address`), or an agreement's client has no legal representative filled in (reason `missing_document_data`). A code that would go by SMS and may not is refused and no session is kept: a trial (`sms_trial`), a number outside Romania (`sms_foreign_number`), or the month's codes used up (`sms_allowance_reached`), which carries `resumesAt`, when the month's codes start again; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

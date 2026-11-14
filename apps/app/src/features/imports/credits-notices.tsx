@@ -1,14 +1,13 @@
-import { billingPlans, type ImportKind } from '@ssm-usor/contracts';
+import { type ImportKind, welcomeCreditsFor } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { Coins, Gift, Mail } from 'lucide-react';
+import { Coins, Gift } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import { formatCount } from '@/features/subscription/billing-format';
-import { contactEmail } from '@/features/subscription/subscription-copy';
 
 import {
   type CreditsBalance,
@@ -64,21 +63,6 @@ function Hint({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   );
 }
 
-export function ContactHint() {
-  return (
-    <Hint icon={<Mail aria-hidden="true" />}>
-      Ai nevoie de credite mai devreme? Scrie-ne la{' '}
-      <a
-        href={`mailto:${contactEmail}`}
-        className="font-semibold text-foreground underline-offset-2 hover:underline"
-      >
-        {contactEmail}
-      </a>{' '}
-      și îți adăugăm credite.
-    </Hint>
-  );
-}
-
 const subscriptionLink = (
   <Button asChild variant="outline" size="sm" className="bg-card">
     <Link to="/organizatie/abonament" data-testid="import-credits-subscription">
@@ -126,11 +110,10 @@ export function NoCreditsNotices({
       <Notice variant="destructive" title={title} data-testid="import-credits-none">
         <span className="tabular-nums">{text}</span>
       </Notice>
-      <ContactHint />
       {kind === 'client' && (
         <Hint icon={<Coins aria-hidden="true" />}>
           Importurile pornite deja merg până la capăt. Dacă găsesc mai multe pagini scanate decât
-          credite, diferența se scade din creditele lunii viitoare.
+          credite AI, diferența se scade din creditele lunii viitoare.
         </Hint>
       )}
     </>
@@ -159,16 +142,16 @@ export function GiftHint({ balance }: { balance: CreditsBalance | null }) {
         <>
           La prima plată primești și{' '}
           <b className="font-semibold text-foreground">
-            {formatCount(pending)} de credite de bun venit
+            {formatCount(pending)} de credite AI de bun venit
           </b>
           , ca să-ți aduci toți clienții în aplicație. Nu expiră.
         </>
       ) : (
         <>
           La prima plată primești și{' '}
-          <b className="font-semibold text-foreground">creditele de bun venit</b>, ca să-ți aduci
-          toți clienții în aplicație: {formatCount(billingPlans.start.welcomeCredits)} cu Start sau{' '}
-          {formatCount(billingPlans.profesional.welcomeCredits)} cu Profesional. Nu expiră.
+          <b className="font-semibold text-foreground">creditele AI de bun venit</b>, ca să-ți aduci
+          toți clienții în aplicație: 10 pentru fiecare lucrător al treptei alese, cel mult{' '}
+          {formatCount(welcomeCreditsFor(Infinity))}. Nu expiră.
         </>
       )}
     </Hint>

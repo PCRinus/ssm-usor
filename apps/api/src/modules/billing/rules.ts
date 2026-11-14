@@ -5,55 +5,30 @@ import {
   type BillingInterval,
   billingPlans,
   type BillingProductKey,
-  employeePacks,
-  extraMember,
+  lastStep,
   type PaidPlan,
+  planStep,
+  selfServeLimits,
+  stepFor,
   vatPercent,
 } from '@ssm-usor/contracts';
 
 export type Usage = { employees: number; members: number };
 
-const planRank: Record<PaidPlan, number> = { start: 0, profesional: 1 };
-
-export function minimumsFor(plan: PaidPlan, usage: Usage) {
-  const terms = billingPlans[plan];
-  const packSize = employeePacks[terms.employeePack].employees;
-  return {
-    employeePacks: Math.max(0, Math.ceil((usage.employees - terms.includedEmployees) / packSize)),
-    extraMembers: Math.max(0, usage.members - terms.includedMembers),
-  };
+export function minimumStepFor(plan: PaidPlan, employees: number) {
+  return stepFor(plan, employees)?.employees ?? null;
 }
 
 export function problemsWith(choice: BillingChoice, usage: Usage): BillingChoiceProblem[] {
-  const terms = billingPlans[choice.plan];
-  const ceilingEmployees =
-    terms.maxEmployeePacks === null
-      ? null
-      : terms.includedEmployees +
-        terms.maxEmployeePacks * employeePacks[terms.employeePack].employees;
   const problems: BillingChoiceProblem[] = [];
-  const minimums = minimumsFor(choice.plan, usage);
-
-  const overEmployees = ceilingEmployees !== null && usage.employees > ceilingEmployees;
-  const overMembers = terms.maxMembers !== null && usage.members > terms.maxMembers;
-  if (overEmployees) problems.push({ reason: 'start_employee_ceiling' });
-  if (overMembers) problems.push({ reason: 'start_member_ceiling' });
-
-  if (!overEmployees && choice.employeePacks < minimums.employeePacks) {
-    problems.push({ reason: 'employee_packs_below_need', minimum: minimums.employeePacks });
+  const minimum = minimumStepFor(choice.plan, usage.employees);
+  const members = billingPlans[choice.plan].members;
+  if (minimum === null) {
+    problems.push({ reason: 'employees_over_plan', maximum: lastStep(choice.plan).employees });
+  } else if (choice.step < minimum) {
+    problems.push({ reason: 'step_below_need', minimum });
   }
-  if (!overMembers && choice.extraMembers < minimums.extraMembers) {
-    problems.push({ reason: 'extra_members_below_need', minimum: minimums.extraMembers });
-  }
-  if (terms.maxEmployeePacks !== null && choice.employeePacks > terms.maxEmployeePacks) {
-    problems.push({ reason: 'employee_packs_above_plan', maximum: terms.maxEmployeePacks });
-  }
-  if (terms.maxMembers !== null) {
-    const maximum = terms.maxMembers - terms.includedMembers;
-    if (choice.extraMembers > maximum) {
-      problems.push({ reason: 'extra_members_above_plan', maximum });
-    }
-  }
+  if (usage.members > members) problems.push({ reason: 'members_over_plan', maximum: members });
   return problems;
 }
 
@@ -66,54 +41,31 @@ export function amounts(subtotalCents: number): BillingAmounts {
   return { subtotalCents, vatCents, totalCents: subtotalCents + vatCents };
 }
 
+const priceOf = (choice: BillingChoice) =>
+  planStep(choice.plan, choice.step)!.prices[choice.interval];
+
 export type ChoiceLine = { product: BillingProductKey; lookupKey: string; quantity: number };
 
 export function choiceLines(choice: BillingChoice): ChoiceLine[] {
-  const terms = billingPlans[choice.plan];
-  const pack = employeePacks[terms.employeePack];
-  const lines: ChoiceLine[] = [
-    { product: choice.plan, lookupKey: terms.prices[choice.interval].lookupKey, quantity: 1 },
-  ];
-  if (choice.employeePacks > 0) {
-    lines.push({
-      product: pack.key,
-      lookupKey: pack.prices[choice.interval].lookupKey,
-      quantity: choice.employeePacks,
-    });
-  }
-  if (choice.extraMembers > 0) {
-    lines.push({
-      product: extraMember.key,
-      lookupKey: extraMember.prices[choice.interval].lookupKey,
-      quantity: choice.extraMembers,
-    });
-  }
-  return lines;
+  return [{ product: choice.plan, lookupKey: priceOf(choice).lookupKey, quantity: 1 }];
 }
 
-const unitAmounts = new Map<string, number>(
-  [
-    ...Object.values(billingPlans).flatMap((plan) => Object.values(plan.prices)),
-    ...Object.values(employeePacks).flatMap((pack) => Object.values(pack.prices)),
-    ...Object.values(extraMember.prices),
-  ].map((price) => [price.lookupKey, price.unitAmount])
-);
-
 export function recurringPrice(choice: BillingChoice) {
-  const lines = choiceLines(choice).map((line) => ({
-    product: line.product,
-    quantity: line.quantity,
-    amountCents: unitAmounts.get(line.lookupKey)! * line.quantity,
-  }));
-  const subtotal = lines.reduce((sum, line) => sum + line.amountCents, 0);
-  return { interval: choice.interval, lines, ...amounts(subtotal) };
+  const subtotal = priceOf(choice).unitAmount;
+  return {
+    interval: choice.interval,
+    lines: [{ product: choice.plan, quantity: 1, amountCents: subtotal }],
+    ...amounts(subtotal),
+  };
 }
 
 export const sameChoice = (a: BillingChoice, b: BillingChoice) =>
-  a.plan === b.plan &&
-  a.interval === b.interval &&
-  a.employeePacks === b.employeePacks &&
-  a.extraMembers === b.extraMembers;
+  a.plan === b.plan && a.step === b.step && a.interval === b.interval;
+
+// Every Profesional step costs more than every Start step, so the monthly price ranks the plans
+// as well as the steps.
+const rankOf = (choice: BillingChoice) =>
+  planStep(choice.plan, choice.step)!.prices.month.unitAmount;
 
 export type ChangeSplit = {
   // What changes at once, prorated; null when nothing does.
@@ -124,38 +76,15 @@ export type ChangeSplit = {
   chargeNow: boolean;
 };
 
-// ADR 029: an upgrade and an addition apply at once, monthly to annual too; a downgrade, a
-// removal and annual to monthly wait for the renewal. A downgrade and annual to monthly take the
-// rest of the choice with them: what the target needs belongs to the cheaper plan's period, and
-// raising it today would charge the current plan for it. An upgrade takes the whole choice at
-// once, so what the higher plan includes stops being paid for, credited like the plan.
+// ADR 029: an upgrade, a higher step included, and monthly to annual apply at once; a lower step,
+// a downgrade and annual to monthly wait for the renewal, and take the rest of the choice with
+// them, so the current plan is never charged for what belongs to the next period.
 export function splitChange(current: BillingChoice, target: BillingChoice): ChangeSplit {
   if (sameChoice(current, target)) return { now: null, atRenewal: null, chargeNow: false };
-
-  const downgrade = planRank[target.plan] < planRank[current.plan];
+  const down = rankOf(target) < rankOf(current);
   const toMonthly = current.interval === 'year' && target.interval === 'month';
-  let now: BillingChoice;
-  if (downgrade || toMonthly) {
-    now = current;
-  } else if (current.interval === 'month' && target.interval === 'year') {
-    now = target;
-  } else if (target.plan !== current.plan) {
-    now = { ...target, interval: current.interval };
-  } else {
-    now = {
-      ...target,
-      interval: current.interval,
-      employeePacks: Math.max(current.employeePacks, target.employeePacks),
-      extraMembers: Math.max(current.extraMembers, target.extraMembers),
-    };
-  }
-
-  const changesNow = !sameChoice(now, current);
-  return {
-    now: changesNow ? now : null,
-    atRenewal: sameChoice(now, target) ? null : target,
-    chargeNow: changesNow && now.interval === 'year',
-  };
+  if (down || toMonthly) return { now: null, atRenewal: target, chargeNow: false };
+  return { now: target, atRenewal: null, chargeNow: target.interval === 'year' };
 }
 
 export function addInterval(date: Date, interval: BillingInterval) {
@@ -165,45 +94,56 @@ export function addInterval(date: Date, interval: BillingInterval) {
   return next;
 }
 
+// v1 had one price per plan, with packs of employees and extra members as quantities beside it;
+// a subscription on it still renews until the owner changes it (ADR 029, amendment of 2026-11-14).
 const lookupKeyPattern =
-  /^(start|profesional|employees50|employees500|member|sms_overage)_(monthly|annual)_(v[0-9]+)$/;
+  /^(start|profesional|employees50|employees500|member|sms_overage)(?:_([0-9]+))?_(monthly|annual)_(v[0-9]+)$/;
 
-export function parseLookupKey(lookupKey: string | null | undefined) {
+export type ParsedLookupKey = {
+  product: BillingProductKey | 'employees50' | 'employees500' | 'member';
+  step: number | null;
+  interval: BillingInterval;
+  version: string;
+};
+
+export function parseLookupKey(lookupKey: string | null | undefined): ParsedLookupKey | null {
   const match = lookupKey ? lookupKeyPattern.exec(lookupKey) : null;
   if (!match) return null;
   return {
-    product: match[1] as BillingProductKey,
-    interval: (match[2] === 'monthly' ? 'month' : 'year') as BillingInterval,
-    version: match[3]!,
+    product: match[1] as ParsedLookupKey['product'],
+    step: match[2] ? Number(match[2]) : null,
+    interval: match[3] === 'monthly' ? 'month' : 'year',
+    version: match[4]!,
   };
 }
+
+export const isPlanProduct = (product: string | undefined): product is PaidPlan =>
+  product === 'start' || product === 'profesional';
+
+const v1Covered = {
+  start: { included: 250, pack: 50 },
+  profesional: { included: 1500, pack: 500 },
+};
 
 export type PricedItem = { lookupKey: string | null; quantity: number };
 
 export function choiceFromItems(items: PricedItem[]) {
-  let plan: { plan: PaidPlan; interval: BillingInterval; version: string } | null = null;
-  let packs = 0;
-  let members = 0;
-  for (const item of items) {
-    const parsed = parseLookupKey(item.lookupKey);
-    if (!parsed) continue;
-    if (parsed.product === 'start' || parsed.product === 'profesional') {
-      plan = { plan: parsed.product, interval: parsed.interval, version: parsed.version };
-    } else if (parsed.product === 'employees50' || parsed.product === 'employees500') {
-      packs += item.quantity;
-    } else if (parsed.product === 'member') {
-      members += item.quantity;
-    }
+  const parsed = items.map((item) => ({ ...item, key: parseLookupKey(item.lookupKey) }));
+  const planItem = parsed.find((item) => isPlanProduct(item.key?.product));
+  if (!planItem?.key) return null;
+  const plan = planItem.key.product as PaidPlan;
+  let step = planItem.key.step;
+  if (step === null) {
+    const packs = parsed
+      .filter((item) => item.key?.product === 'employees50' || item.key?.product === 'employees500')
+      .reduce((sum, item) => sum + item.quantity, 0);
+    const covered = v1Covered[plan].included + packs * v1Covered[plan].pack;
+    step = (stepFor(plan, covered) ?? lastStep(plan)).employees;
   }
-  if (!plan) return null;
+  if (!planStep(plan, step)) return null;
   return {
-    choice: {
-      plan: plan.plan,
-      interval: plan.interval,
-      employeePacks: packs,
-      extraMembers: members,
-    } satisfies BillingChoice,
-    version: plan.version,
+    choice: { plan, step, interval: planItem.key.interval } satisfies BillingChoice,
+    version: planItem.key.version,
   };
 }
 
@@ -213,22 +153,24 @@ export function usageLimits(
     status: string;
     stripe_subscription_id: string | null;
     trial_ends_at: string | null;
-    employee_packs: number;
-    extra_members: number;
+    employee_step: number | null;
   } | null,
   now: Date
 ) {
   if (!row || row.plan === 'enterprise') return { employees: null, members: null };
   const inTrial =
     row.status === 'trialing' && row.trial_ends_at !== null && new Date(row.trial_ends_at) > now;
+  const plan = row.plan as PaidPlan;
+  // A plan chosen during the trial is billed for its own users from the trial's end, so the
+  // members invited before then must already fit it.
   if (inTrial) {
-    const trial = billingPlans.profesional;
-    return { employees: trial.includedEmployees, members: trial.includedMembers };
+    return {
+      employees: selfServeLimits.employees,
+      members: row.stripe_subscription_id ? billingPlans[plan].members : selfServeLimits.members,
+    };
   }
-  const terms = billingPlans[row.plan as PaidPlan];
   return {
-    employees:
-      terms.includedEmployees + row.employee_packs * employeePacks[terms.employeePack].employees,
-    members: terms.includedMembers + row.extra_members,
+    employees: row.employee_step ?? billingPlans[plan].steps[0]!.employees,
+    members: billingPlans[plan].members,
   };
 }

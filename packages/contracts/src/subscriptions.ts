@@ -24,6 +24,8 @@ export const subscriptionSummarySchema = z.object({
   // True once the owner picked a plan, also while its trial runs on; the badge then names the
   // plan instead of the trial (ADR 029).
   planChosen: z.boolean(),
+  // The chosen plan's step of employees; null without a chosen plan, and on Enterprise.
+  step: z.int().nullable(),
   status: subscriptionStatusSchema,
   trialEndsAt: z.iso.datetime({ offset: true }).nullable(),
   // When full access ends; null while nothing is due to end.

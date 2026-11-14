@@ -66,7 +66,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PATCH /organization/members/{userId}`                                 | Owner                                 | `204` after changing the member's role                                                                                                                                                             |
 | `DELETE /organization/members/{userId}`                                | Owner                                 | `204` after removing the membership; the account stays                                                                                                                                             |
 | `GET /billing`                                                         | Verified user with a membership       | The Abonament tab: `{ subscription, usage, catalogue, owner }`; `owner` is null except for the owner in person                                                                                     |
-| `POST /billing/preview`                                                | Owner in person                       | What `{ plan, interval, employeePacks, extraMembers }` costs today and at the renewal, and what keeps it out                                                                                       |
+| `POST /billing/preview`                                                | Owner in person                       | What `{ plan, step, interval }` costs today and at the renewal, and what keeps it out                                                                                                              |
 | `POST /billing/subscription`                                           | Owner in person                       | `201 { clientSecret, intent }` after creating the Stripe subscription                                                                                                                              |
 | `PATCH /billing/subscription`                                          | Owner in person                       | `{ clientSecret, intent }` after changing it, at once or at the renewal                                                                                                                            |
 | `POST /billing/subscription/cancel`                                    | Owner in person                       | `204` after setting the cancellation, or dropping a plan chosen in the trial                                                                                                                       |
@@ -989,26 +989,28 @@ by the setup script's metadata, and kept for ten minutes per isolate.
 
 Every billing route stays open while the organization is read-only. Only the owner in person
 calls the owner routes: a specialist and an admin impersonating the owner get `403`.
-`GET /billing` answers every member; its `owner` part (next payment, extra SMS so far, card,
-email for invoices, a change set for the renewal, the fewest packs and members each plan needs,
-the invoices) only the owner in person. `usage.smsThisMonth` counts the signing codes sent by SMS
-in the subscription's month (see SMS below), and `usage.creditsThisMonth` the import credits (see
-Import credits below). The catalogue's plans carry `monthlyCredits` and `welcomeCredits`.
+`GET /billing` answers every member; its `owner` part (next payment, card,
+email for invoices, a change set for the renewal, the smallest step each plan needs today, the
+invoices) only the owner in person. `usage.smsThisMonth` counts the signing codes sent by SMS
+in the subscription's month (see SMS below), and `usage.creditsThisMonth` the AI credits (see
+Import credits below). The catalogue's plans carry their users and their steps, each with its
+monthly and annual price, its SMS codes, its monthly credits and its welcome credits.
 
-A choice is `{ plan: start | profesional, interval: month | year, employeePacks, extraMembers }`.
-It cannot go below the packs today's employees need or the extra members today's members need,
-Start stops at 600 employees and 2 members, and Enterprise never comes through here. A choice
-that breaks one of those answers `409` with the first problem as `reason`
-(`start_employee_ceiling`, `start_member_ceiling`, `employee_packs_below_need`,
-`extra_members_below_need`, `employee_packs_above_plan`, `extra_members_above_plan`);
-`POST /billing/preview` lists them all in `problems` instead. Other `409` reasons:
+A choice is `{ plan: start | profesional, step, interval: month | year }`, where `step` is one of
+the plan's steps of employees (Start 250, 500, 750; Profesional 500 to 5,000); any other step is
+`400`. It cannot go below the step today's employees need, Start stops at 750 employees and three
+members, Profesional at 5,000 and ten, and Enterprise never comes through here. A choice that
+breaks one of those answers `409` with the first problem as `reason` (`step_below_need` with
+`minimum`, `employees_over_plan` and `members_over_plan` with `maximum`); `POST /billing/preview`
+lists them all in `problems` instead, with `minimumStep`. Other `409` reasons:
 `subscription_exists`, `no_subscription`, `enterprise_plan`, `company_details_missing` (the
 legal name or CUI under Date firmă, which the invoice needs), `unchanged`, `not_canceling`,
 `pdf_pending`. A declined card is `422` with `reason: card_declined`.
 
 **Choosing a plan** creates or reuses the Stripe customer (company name and address, the
 owner's email, locale `ro`, `organization_id` in its metadata) and a subscription with the
-plan, the packs, the extra members and the metered SMS price, the 21 % tax rate,
+step's price and the metered SMS price (which nothing is reported to while the extras are off),
+the 21 % tax rate,
 `default_incomplete`, the card saved on the subscription, card as the only payment method (Apple
 Pay and Google Pay come through it; Link stays off) and flexible billing mode. During a trial
 its `trial_end` is the trial's end and the answer carries a SetupIntent secret (`intent: setup`);
@@ -1037,7 +1039,8 @@ of the other mode or of a connected account, and inserts the event id into `stri
 first: an event already processed answers `200` at once; a failure records `error` and answers
 `500`, so Stripe delivers it again. Each subscription event reads the subscription back from
 Stripe and writes the row from it: plan, interval and price version from the items' lookup keys,
-packs and members from their quantities, `current_period_end` from the plan item, and
+the step from the plan item's lookup key (a `v1` subscription's from its plan and packs, as the
+smallest step that covers them), `current_period_end` from the plan item, and
 `access_until` as the ADR sets it (the trial's end plus 14 days while a chosen plan waits for its
 first charge; null while active, the cancellation date once one is set; 14 days from the first
 failed renewal while past due; the end of the paid period once canceled). An organization
@@ -1066,26 +1069,26 @@ sign-in codes. It refuses with a `reason`:
 
 - `sms_trial`: a trial without a chosen plan and without the tester switch, or one that has ended;
 - `sms_foreign_number`: a number that is not Romanian (`+40`);
-- `sms_allowance_reached`: a signing code past the month's allowance where nothing past it can be
-  billed: a tester's trial, or a plan chosen during the trial before its first payment;
-- `sms_cap_reached`: a signing code at the safety cap.
+- `sms_allowance_reached`: a signing code past the month's allowance. Every plan stops there while
+  the extras are off, as a tester's trial and a plan chosen during the trial do;
 
 Only signing codes count. The month is the subscription's: from Stripe's billing anchor once the
 first invoice is paid, monthly on an annual plan too; before that, months from the trial's start,
 the month of a plan chosen during the trial ending at the trial's end. Without a subscription, or
 on Enterprise, nothing limits the codes and the month is the calendar's. The allowance is the
-plan's (Start 50, Profesional 300; a tester's trial 300) plus the codes granted by hand; past it,
-after the first payment, a code goes out as overage up to `sms_cap_factor` times the allowance,
-and is reported to Stripe as one `sms_overage` meter event (value 1, the log row's id as
-identifier, the subscription's customer) right after the send, and again by the daily cron when
-that failed.
+step's (one for every five employees; a tester's trial 300) plus the codes granted by hand. Past
+it nothing goes by SMS while the extras are off (ADR 029, amendment of 2026-11-14). The overage
+path stays for them: a code sent past the allowance on a plan that bills would be reported to
+Stripe as one `sms_overage` meter event (value 1, the log row's id as identifier, the
+subscription's customer) right after the send, and again by the daily cron when that failed; no
+plan bills today.
 
 What each caller does with a refusal: an SMS invitation answers `409` (`422` for
 `sms_foreign_number`) before anything is saved, and the bulk invitation reports the reason on the
 person's row; a signature-request notice by SMS is skipped and the request stays without
 `notified_at`; a signing session answers `409` with the reason and keeps no session (a signer
 with an email always gets the code by email, so a texted code has no email to fall back on), and
-with `resumesAt`, the end of the month, for `sms_allowance_reached` and `sms_cap_reached`. The
+with `resumesAt`, the end of the month, for `sms_allowance_reached`. The
 Send SMS hook texts a sign-in code when any organization the participant belongs to, or that
 invited the number, may text, logs it against the most recent invitation's organization among
 those, and otherwise answers `403` with a message.
@@ -1093,25 +1096,24 @@ those, and otherwise answers `403` with a message.
 `GET /billing` answers `usage.smsThisMonth`: `used`, `included` (allowance plus `granted`),
 `allowance`, `granted`, `cap` (null for a hard stop or no limit, grants included), `capFactor`,
 `overage`, `periodStart`, `periodEnd` (null while no SMS goes) and `state`: `none` (no SMS goes),
-`ok`, `near` (from 80 %), `over` (past `included`, billed), `capped`, `stopped` (a hard stop
-reached). `PUT /billing/sms-cap { factor }`, owner only, sets the cap from 3 to 20 times the
-allowance on a chosen plan (`409 no_subscription` without one, `enterprise_plan` on Enterprise),
-logged as `sms_cap` in `subscription_changes`.
+`ok`, `near` (from 80 %), `stopped` (the allowance reached: every plan stops there until the
+extras exist). `usage.invitations` counts the open invitations, each holding one of the plan's
+users.
 
 After a signing code is counted, or refused at the month's limit, the sender looks for a usage
 notice, in the background of the request: the month's state gives `sms_80` (`near`), `sms_100`
-(`over` or `stopped`) or `sms_cap` (`capped`), only the highest reached. It is inserted into
+(`stopped`), only the highest reached. It is inserted into
 `usage_notices` first, and only the request that inserted it emails the organization's first
-owner, at the owner's account email (not the email for invoices: the owner is the one who can
-raise the cap). A failed email deletes the row again, so the next code tries once more. A month
+owner, at the owner's account email (not the email for invoices: the owner is the one who acts
+on the subscription). A failed email deletes the row again, so the next code tries once more. A month
 with no limit, and the kinds that are not counted, send none.
 
 ## Import credits
 
 [ADR 030](architecture/adr-030-import-from-documents.md), "Usage is counted in credits". What an
 import's reading uses is counted in credits in the ledger `credit_entries` (`modules/credits`).
-The month's allowance is computed from the plan, never stored: Start 300 and Profesional 1,500 a
-month (`monthlyCredits`), so moving up to Profesional raises the month at once. An ordinary
+The month's allowance is computed from the step, never stored: 2 × the step + 250 a month
+(`monthlyCredits`), so moving up a step or to Profesional raises the month at once. An ordinary
 trial, a plan chosen during it included, has 300 for its whole length, from the trial's start to
 its end, without a monthly reset; a tester's trial (the tester switch) 1,500 a month on the
 months the SMS follow, with no gift. After the first payment the month is the subscription's, as
@@ -1119,7 +1121,7 @@ for SMS. Without a subscription, or on Enterprise, nothing limits the credits; t
 recorded. The month's balance is the allowance plus the credits added by hand that month, less
 the month's charges net of refunds, less the shortfall of the month before when it ended below
 zero. The **welcome gift** is a balance of its own that never expires, used once the month's
-credits are gone: 2,500 on Start, 10,000 on Profesional (`welcomeCredits`), granted by the first
+credits are gone: 10 × the step, at most 10,000 (`welcomeCredits`), granted by the first
 paid invoice (`invoice.paid`, the same step that sets `first_paid_at`), and brought up to
 Profesional's, once, when a paid Start moves up (every subscription write once paid). A plan
 chosen during the trial brings it only with that first payment.

@@ -2,6 +2,7 @@ import {
   type BillingChoice,
   billingPlans,
   type BillingPreview,
+  planStep,
   vatPercent,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -28,36 +29,45 @@ import {
   choiceSummary,
   employeesLabel,
   formatEuro,
-  packsLabel,
   perInterval,
   shortPlanNames,
+  stepLabel,
 } from './billing-format';
 import { type AmountRow, AmountRows } from './billing-ui';
+import { creditsCount } from './credits-copy';
+import { codesLabel } from './sms-copy';
 import { roDate } from './subscription-copy';
 import { refreshBilling } from './use-billing';
 import { useBillingPreview } from './use-billing-preview';
 
-const planRank = { start: 0, profesional: 1 } as const;
+type ChangeKind =
+  'trial' | 'upgrade' | 'downgrade' | 'stepUp' | 'stepDown' | 'toAnnual' | 'toMonthly';
 
-type ChangeKind = 'trial' | 'upgrade' | 'downgrade' | 'toAnnual' | 'toMonthly' | 'add' | 'remove';
+const stepOf = (choice: BillingChoice) => planStep(choice.plan, choice.step)!;
 
-function changeKind(current: BillingChoice, target: BillingChoice, inTrial: boolean) {
+// The API's order: a higher monthly price applies at once, a lower one or annual to monthly at
+// the renewal. Every Profesional step costs more than every Start step.
+function changeKind(current: BillingChoice, target: BillingChoice, inTrial: boolean): ChangeKind {
   if (inTrial) return 'trial';
-  if (planRank[target.plan] > planRank[current.plan]) return 'upgrade';
-  if (planRank[target.plan] < planRank[current.plan]) return 'downgrade';
-  if (current.interval !== target.interval)
-    return target.interval === 'year' ? 'toAnnual' : 'toMonthly';
-  const removes =
-    target.employeePacks < current.employeePacks || target.extraMembers < current.extraMembers;
-  return removes ? 'remove' : 'add';
+  const rank = (choice: BillingChoice) => stepOf(choice).prices.month.unitAmount;
+  const otherPlan = target.plan !== current.plan;
+  if (rank(target) < rank(current)) return otherPlan ? 'downgrade' : 'stepDown';
+  if (current.interval === 'year' && target.interval === 'month') return 'toMonthly';
+  if (rank(target) > rank(current)) return otherPlan ? 'upgrade' : 'stepUp';
+  return 'toAnnual';
 }
 
 const proLosses = [
+  `${billingPlans.profesional.members} utilizatori: Start are ${billingPlans.start.members}`,
   'fiecare coleg își vede doar clienții lui',
   'documente fără marca SSM Ușor',
-  'suport prioritar',
-  `${billingPlans.profesional.monthlySms - billingPlans.start.monthlySms} de SMS pe lună: Start are ${billingPlans.start.monthlySms}`,
+  'suport în aceeași zi lucrătoare',
 ];
+
+const includes = (choice: BillingChoice) => {
+  const step = stepOf(choice);
+  return `${codesLabel(step.monthlySms)} SMS și ${creditsCount(step.monthlyCredits)} pe lună`;
+};
 
 interface Copy {
   title: string;
@@ -85,12 +95,7 @@ function recurringRows(preview: BillingPreview, from: string): AmountRow[] {
   ];
 }
 
-function copyFor(
-  kind: ChangeKind,
-  current: BillingChoice,
-  preview: BillingPreview,
-  usage: { employees: number; members: number }
-): Copy {
+function copyFor(kind: ChangeKind, current: BillingChoice, preview: BillingPreview): Copy {
   const target = preview.choice;
   const targetName = shortPlanNames[target.plan];
   const currentName = shortPlanNames[current.plan];
@@ -155,40 +160,41 @@ function copyFor(
         confirm: 'Schimbă planul',
         keep: 'Renunță',
       };
-    case 'upgrade': {
-      const terms = billingPlans[target.plan];
-      const dropsPacks = current.employeePacks > 0 && target.employeePacks === 0;
-      const droppedMembers = Math.max(0, current.extraMembers - target.extraMembers);
-      const packsLine = dropsPacks
-        ? ` ${current.employeePacks === 1 ? 'Pachetul' : `Cele ${current.employeePacks} pachete`} de lucrători nu mai ${current.employeePacks === 1 ? 'este necesar și se oprește' : 'sunt necesare și se opresc'}.`
-        : '';
-      const membersLine =
-        droppedMembers > 0
-          ? ` ${droppedMembers === 1 ? 'Un utilizator în plus nu mai este necesar și se oprește' : `${droppedMembers} utilizatori în plus nu mai sunt necesari și se opresc`}.`
-          : '';
+    case 'upgrade':
       return {
         title: `Treci la ${targetName}?`,
-        lead: `${targetName} începe azi: ${employeesLabel(terms.includedEmployees)}, ${terms.includedMembers} utilizatori, ${terms.monthlySms} de SMS pe lună, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.${packsLine}${membersLine}`,
+        lead: `${targetName} începe azi: ${stepLabel(target.step)}, ${billingPlans[target.plan].members} utilizatori, ${includes(target)}, fiecare coleg își vede clienții lui și documentele nu mai poartă marca SSM Ușor.`,
         rows: nowRows(),
         note: prorationNote,
         confirm: `Treci la ${targetName}`,
         keep: 'Renunță',
       };
-    }
-    case 'downgrade': {
-      const needs = [
-        target.employeePacks > 0 ? packsLabel(target.plan, target.employeePacks) : null,
-        target.extraMembers > 0 ? 'al doilea utilizator' : null,
-      ].filter(Boolean);
+    case 'stepUp':
+      return {
+        title: `Treci la treapta de ${employeesLabel(target.step)}?`,
+        lead: `Treapta nouă începe azi, cu ${includes(target)}. Diferența de coduri și de credite AI o primești pentru luna aceasta.`,
+        rows: nowRows(),
+        note: prorationNote,
+        confirm: 'Treci pe treapta nouă',
+        keep: 'Renunță',
+      };
+    case 'downgrade':
       return {
         title: `Treci la ${targetName} de pe ${applies}?`,
-        lead: `Până pe ${applies} rămâi pe ${currentName}, iar perioada plătită nu se returnează.${needs.length ? ` Pentru cei ${employeesLabel(usage.employees)} și cei ${usage.members} utilizatori de azi, ${targetName} are nevoie de ${needs.join(' și de ')}.` : ''}`,
+        lead: `Până pe ${applies} rămâi pe ${currentName}, iar perioada plătită nu se returnează. Apoi ai ${choiceSummary(target)}, cu ${includes(target)}.`,
         ...atRenewal(applies),
         losses: current.plan === 'profesional' ? proLosses : undefined,
         confirm: `Treci la ${targetName} pe ${applies}`,
         keep: `Rămân pe ${currentName}`,
       };
-    }
+    case 'stepDown':
+      return {
+        title: `Treci la treapta de ${employeesLabel(target.step)} de pe ${applies}?`,
+        lead: `Până pe ${applies} rămâi pe treapta de acum, iar perioada plătită nu se returnează. Apoi ai ${includes(target)}.`,
+        ...atRenewal(applies),
+        confirm: `Schimbă treapta pe ${applies}`,
+        keep: 'Rămân pe treapta de acum',
+      };
     case 'toAnnual':
       return {
         title: 'Treci la plata anuală?',
@@ -210,29 +216,10 @@ function copyFor(
     case 'toMonthly':
       return {
         title: `Treci la plata lunară de pe ${applies}?`,
-        lead: `Anul plătit rămâne până pe ${applies}, iar banii nu se returnează. Apoi plătești în fiecare lună.`,
+        lead: `Anul plătit rămâne până pe ${applies}, iar banii nu se returnează. Apoi plătești în fiecare lună: ${choiceSummary(target)}.`,
         ...atRenewal(applies),
         confirm: 'Treci la plata lunară',
         keep: 'Rămân pe anual',
-      };
-    case 'add':
-      return {
-        title: 'Adaugi la abonament?',
-        lead: `Se aplică azi: ${choiceSummary(target)}.`,
-        rows: nowRows(),
-        note: prorationNote,
-        confirm: 'Adaugă',
-        keep: 'Renunță',
-      };
-    case 'remove':
-      return {
-        title: `Schimbi abonamentul de pe ${applies}?`,
-        lead: chargedBeforeRenewal
-          ? `Ce adaugi se aplică azi. Ce scoți rămâne până pe ${applies}, iar perioada plătită nu se returnează; apoi rămâi cu ${choiceSummary(target)}.`
-          : `Până pe ${applies} păstrezi ce ai acum, iar perioada plătită nu se returnează. Apoi rămâi cu ${choiceSummary(target)}.`,
-        ...atRenewal(applies),
-        confirm: `Schimbă de pe ${applies}`,
-        keep: 'Renunță',
       };
   }
 }
@@ -241,7 +228,6 @@ export function ChangeDialog({
   current,
   target,
   inTrial,
-  usage,
   onClose,
   onDone,
 }: {
@@ -249,7 +235,6 @@ export function ChangeDialog({
   // Null while closed.
   target: BillingChoice | null;
   inTrial: boolean;
-  usage: { employees: number; members: number };
   onClose: () => void;
   onDone?: () => void;
 }) {
@@ -261,7 +246,6 @@ export function ChangeDialog({
             current={current}
             target={target}
             inTrial={inTrial}
-            usage={usage}
             onClose={onClose}
             onDone={onDone}
           />
@@ -275,14 +259,12 @@ function ChangeForm({
   current,
   target,
   inTrial,
-  usage,
   onClose,
   onDone,
 }: {
   current: BillingChoice;
   target: BillingChoice;
   inTrial: boolean;
-  usage: { employees: number; members: number };
   onClose: () => void;
   onDone?: () => void;
 }) {
@@ -292,7 +274,7 @@ function ChangeForm({
   const [error, setError] = useState<string | null>(null);
   const kind = changeKind(current, target, inTrial);
   const data = preview.data;
-  const copy = data ? copyFor(kind, current, data, usage) : null;
+  const copy = data ? copyFor(kind, current, data) : null;
   const blocked = data ? data.problems.length > 0 || data.unchanged : true;
 
   async function confirm() {
@@ -316,7 +298,7 @@ function ChangeForm({
         }
       }
       toast.success(
-        kind === 'downgrade' || kind === 'toMonthly' || kind === 'remove'
+        kind === 'downgrade' || kind === 'toMonthly' || kind === 'stepDown'
           ? `Gata. De pe ${roDate(data!.appliesAt)} treci la ${choiceSummary(target)}.`
           : `Gata. Abonamentul este acum ${choiceSummary(target)}.`
       );

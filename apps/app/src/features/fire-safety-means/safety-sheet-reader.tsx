@@ -44,17 +44,17 @@ function failureMessage(cause: unknown) {
   const reason = body?.reason;
   const credits =
     body?.creditsRefunded === true
-      ? ' Creditele ți-au fost returnate.'
+      ? ' Creditele AI ți-au fost returnate.'
       : body?.creditsRefunded === false
-        ? ` Creditele nu au putut fi returnate încă; scrie-ne la ${contactEmail} și le returnăm noi.`
+        ? ` Creditele AI nu au putut fi returnate încă; scrie-ne la ${contactEmail} și le returnăm noi.`
         : '';
   if (reason && Object.hasOwn(refusals, reason)) return `${refusals[reason]!}${credits}`;
   if (reason === 'credits_insufficient' && body?.credits) {
     const { left, renewsAt } = body.credits;
     const until = renewsAt ? ` până pe ${creditsDay(renewsAt)}` : '';
     return left <= 0
-      ? `Nu mai ai credite${until}. Scrie-ne la ${contactEmail} și îți adăugăm credite.`
-      : `Nu ajung creditele: citirea fișei folosește ${creditsLabel(cost)}, iar ${left === 1 ? 'îți mai rămâne' : 'îți mai rămân'} ${left}${until}.`;
+      ? `Nu mai ai credite AI${until}.`
+      : `Nu ajung creditele AI: citirea fișei folosește ${creditsLabel(cost)}, iar ${left === 1 ? 'îți mai rămâne' : 'îți mai rămân'} ${left}${until}.`;
   }
   if (reason === 'client_archived') return 'Clientul este arhivat.';
   return `Nu am putut citi fișa acum. Încearcă din nou peste câteva minute.${credits}`;

@@ -1,45 +1,30 @@
-import { type BillingChoice, billingPlans, extraMember, type PaidPlan } from '@ssm-usor/contracts';
+import { billingPlans, type PaidPlan, stepFor } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Minus, Plus } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { HelpLink } from '@/components/help-link';
 
-import {
-  employeeLimitOf,
-  employeesLabel,
-  formatCount,
-  formatEuro,
-  packOf,
-  shortPlanNames,
-} from '../billing-format';
+import { employeesLabel, formatCount, formatEuro, shortPlanNames } from '../billing-format';
 import { BillingCard } from '../billing-ui';
+import { creditsCount } from '../credits-copy';
+import { codesLabel } from '../sms-copy';
 import { contactEmail } from '../subscription-copy';
 import type { BillingOwner } from '../use-billing';
-import { limitsFor, unavailableReason } from './checkout-choice';
-
-const creditsLine = (plan: PaidPlan) =>
-  `${formatCount(billingPlans[plan].monthlyCredits)} de credite pentru import pe lună, plus ${formatCount(billingPlans[plan].welcomeCredits)} la prima plată`;
+import { employeeStops, minimumStop, type Pick, unavailableReason } from './checkout-choice';
 
 const planCopy: Record<PaidPlan, { who: string; lines: string[] }> = {
   start: {
-    who: 'Pentru specialistul care lucrează singur.',
-    lines: [
-      '250 de lucrători, apoi pachete de 50, până la 600',
-      'Un utilizator; al doilea costă 15 € pe lună',
-      '50 SMS pe lună, apoi 0,10 € fiecare',
-      creditsLine('start'),
-    ],
+    who: 'Tot ce îți trebuie ca să ții la zi SSM și SU pentru toți clienții tăi.',
+    lines: ['Oricâți clienți', '3 utilizatori'],
   },
   profesional: {
-    who: 'Pentru firmele cu o echipă de specialiști.',
+    who: 'Pentru firma care crește: clienți noi, munca împărțită, ajutor mai repede.',
     lines: [
-      '1.500 de lucrători, apoi pachete de 500',
-      '3 utilizatori, apoi 15 € pe lună fiecare',
-      '300 SMS pe lună, apoi 0,10 € fiecare',
-      creditsLine('profesional'),
+      '10 utilizatori',
       'Fiecare coleg își vede clienții lui',
       'Documente fără marca SSM Ușor',
-      'Suport prioritar',
+      'Suport în aceeași zi lucrătoare',
     ],
   },
 };
@@ -47,38 +32,23 @@ const planCopy: Record<PaidPlan, { who: string; lines: string[] }> = {
 const plans: PaidPlan[] = ['start', 'profesional'];
 
 export function PlanPicker({
-  choice,
+  pick,
   owner,
   employees,
-  members,
   onChange,
   disabled,
 }: {
-  choice: BillingChoice;
+  pick: Pick;
   owner: BillingOwner;
   employees: number;
-  members: number;
-  onChange: (choice: BillingChoice) => void;
+  onChange: (pick: Pick) => void;
   disabled: boolean;
 }) {
-  const annual = choice.interval === 'year';
-  const limits = limitsFor(choice.plan, owner);
-  const terms = billingPlans[choice.plan];
-  const pack = packOf(choice.plan);
-  const name = shortPlanNames[choice.plan];
-  const covered = employeeLimitOf(choice);
-  const memberPrice = extraMember.prices[choice.interval].unitAmount;
-
-  const pickPlan = (plan: PaidPlan) => {
-    if (plan === choice.plan) return;
-    const next = limitsFor(plan, owner);
-    onChange({
-      ...choice,
-      plan,
-      employeePacks: next.minPacks,
-      extraMembers: next.minMembers,
-    });
-  };
+  const annual = pick.interval === 'year';
+  const at = employeeStops.indexOf(pick.stop);
+  const floor = minimumStop(employees);
+  const floorAt = floor === null ? employeeStops.length - 1 : employeeStops.indexOf(floor);
+  const moveTo = (index: number) => onChange({ ...pick, stop: employeeStops[index]! });
 
   return (
     <>
@@ -93,7 +63,7 @@ export function PlanPicker({
             className="inline-flex gap-0.5 rounded-xl bg-muted p-[3px]"
           >
             {(['month', 'year'] as const).map((interval) => {
-              const on = choice.interval === interval;
+              const on = pick.interval === interval;
               return (
                 <button
                   key={interval}
@@ -101,7 +71,7 @@ export function PlanPicker({
                   aria-pressed={on}
                   data-testid={`interval-${interval}`}
                   disabled={disabled}
-                  onClick={() => onChange({ ...choice, interval })}
+                  onClick={() => onChange({ ...pick, interval })}
                   className={cn(
                     'inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-[9px] px-3.5 text-sm',
                     on
@@ -126,12 +96,30 @@ export function PlanPicker({
           </div>
         </div>
 
+        <Stepper
+          name="step"
+          label="Lucrători la clienții tăi"
+          value={formatCount(pick.stop)}
+          canLess={!disabled && at > floorAt}
+          canMore={!disabled && at < employeeStops.length - 1}
+          less="Mai puțini lucrători"
+          more="Mai mulți lucrători"
+          onLess={() => moveTo(at - 1)}
+          onMore={() => moveTo(at + 1)}
+          hint={
+            floor === null
+              ? `Ai ${employeesLabel(employees)}, peste ce acoperă planurile din aplicație.`
+              : `Ai ${employeesLabel(employees)} la clienții activi, așa că treapta nu poate fi sub ${formatCount(floor)}.`
+          }
+          help={<HelpLink topic="organizatie.trepte" label="Ajutor: Treptele de lucrători" />}
+        />
+
         <div className="grid gap-3 md:grid-cols-2">
           {plans.map((plan) => {
-            const on = plan === choice.plan;
-            const why = unavailableReason(plan, owner);
-            const prices = billingPlans[plan].prices;
-            const price = prices[choice.interval].unitAmount;
+            const on = plan === pick.plan;
+            const why = unavailableReason(plan, owner, pick.stop);
+            const planAt = stepFor(plan, pick.stop) ?? billingPlans[plan].steps.at(-1)!;
+            const price = planAt.prices[pick.interval].unitAmount;
             return (
               <button
                 key={plan}
@@ -139,7 +127,7 @@ export function PlanPicker({
                 aria-pressed={on}
                 data-testid={`plan-option-${plan}`}
                 disabled={disabled || why !== null}
-                onClick={() => pickPlan(plan)}
+                onClick={() => !on && onChange({ ...pick, plan })}
                 className={cn(
                   'flex cursor-pointer flex-col gap-2.5 rounded-xl bg-card p-4 text-left disabled:cursor-not-allowed',
                   on ? 'border-2 border-primary' : 'm-px border',
@@ -163,16 +151,21 @@ export function PlanPicker({
                 </span>
                 <span className="flex flex-wrap items-baseline gap-1.5">
                   <strong className="text-[26px] font-bold tracking-tight tabular-nums">
-                    {formatEuro(price)}
+                    {formatEuro(annual ? price / 12 : price)}
                   </strong>
                   <span className="text-[13px] text-muted-foreground">
                     {annual
-                      ? `pe an + TVA, adică ${formatEuro(Math.round(price / 12))} pe lună`
-                      : 'pe lună + TVA'}
+                      ? `+ TVA pe lună, plătit anual: ${formatEuro(price)} + TVA`
+                      : '+ TVA pe lună'}
                   </span>
                 </span>
                 <span className="grid gap-1.5 border-t pt-2.5">
-                  {planCopy[plan].lines.map((line) => (
+                  {[
+                    `Până la ${employeesLabel(planAt.employees)}`,
+                    ...planCopy[plan].lines,
+                    `${codesLabel(planAt.monthlySms)} SMS și ${creditsCount(planAt.monthlyCredits)} pe lună`,
+                    `${creditsCount(planAt.welcomeCredits)} de bun venit, la prima plată`,
+                  ].map((line) => (
                     <span key={line} className="flex gap-2 text-[13px] leading-snug">
                       <Check aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-ring" />
                       {line}
@@ -187,7 +180,8 @@ export function PlanPicker({
           })}
         </div>
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Peste 1.500 de lucrători sau o echipă mare? Scrie-ne pentru o ofertă, la{' '}
+          Peste {employeesLabel(employeeStops.at(-1)!)} sau peste {billingPlans.profesional.members}{' '}
+          utilizatori? Scrie-ne pentru o ofertă, la{' '}
           <a
             href={`mailto:${contactEmail}?subject=${encodeURIComponent('Ofertă Enterprise SSM Ușor')}`}
             className="font-semibold text-foreground underline-offset-2 hover:underline"
@@ -197,54 +191,6 @@ export function PlanPicker({
           .
         </p>
       </BillingCard>
-
-      <BillingCard aria-labelledby="pick-extras" data-testid="extras-picker">
-        <div className="flex items-center gap-1">
-          <h2 id="pick-extras" className="text-base font-semibold">
-            Lucrători și utilizatori
-          </h2>
-          <HelpLink topic="organizatie.pachete" label="Ajutor: Lucrători și utilizatori" />
-        </div>
-        <Stepper
-          name="packs"
-          label={`Pachete de ${pack.employees} de lucrători`}
-          price={`${formatEuro(pack.prices[choice.interval].unitAmount)} ${annual ? 'pe an' : 'pe lună'} fiecare`}
-          value={choice.employeePacks}
-          min={limits.minPacks}
-          max={limits.maxPacks}
-          disabled={disabled}
-          less="Un pachet mai puțin"
-          more="Un pachet în plus"
-          onChange={(employeePacks) => onChange({ ...choice, employeePacks })}
-          hint={
-            limits.minPacks > 0
-              ? `Ai ${employeesLabel(employees)}, iar ${name} include ${formatCount(terms.includedEmployees)}: îți trebuie cel puțin ${limits.minPacks} ${limits.minPacks === 1 ? 'pachet' : 'pachete'}. Acum acoperi ${formatCount(covered)}.`
-              : `${name} include ${employeesLabel(terms.includedEmployees)}, iar tu ai ${formatCount(employees)}. ${choice.employeePacks > 0 ? `Acum acoperi ${formatCount(covered)}.` : 'Nu ai nevoie de pachete acum.'}`
-          }
-        />
-        <div className="border-t pt-3.5">
-          <Stepper
-            name="members"
-            label="Utilizatori în plus"
-            price={`${formatEuro(memberPrice)} ${annual ? 'pe an' : 'pe lună'} fiecare`}
-            value={choice.extraMembers}
-            min={limits.minMembers}
-            max={limits.maxMembers}
-            disabled={disabled}
-            less="Un utilizator mai puțin"
-            more="Un utilizator în plus"
-            onChange={(extraMembers) => onChange({ ...choice, extraMembers })}
-            hint={
-              (choice.plan === 'start'
-                ? 'Start include un utilizator și permite cel mult încă unul.'
-                : 'Profesional include 3 utilizatori. Adaugi alții oricând.') +
-              (limits.minMembers > 0
-                ? ` Sunteți ${members}, deci îți trebuie cel puțin ${limits.minMembers} în plus.`
-                : '')
-            }
-          />
-        </div>
-      </BillingCard>
     </>
   );
 }
@@ -252,44 +198,44 @@ export function PlanPicker({
 function Stepper({
   name,
   label,
-  price,
   value,
-  min,
-  max,
   hint,
+  help,
   less,
   more,
-  disabled,
-  onChange,
+  canLess,
+  canMore,
+  onLess,
+  onMore,
 }: {
   name: string;
   label: string;
-  price: string;
-  value: number;
-  min: number;
-  max: number;
+  value: string;
   hint: string;
+  help: ReactNode;
   less: string;
   more: string;
-  disabled: boolean;
-  onChange: (value: number) => void;
+  canLess: boolean;
+  canMore: boolean;
+  onLess: () => void;
+  onMore: () => void;
 }) {
   const button =
     'grid size-10 cursor-pointer place-items-center rounded-[10px] border border-input bg-card disabled:cursor-not-allowed disabled:text-muted-foreground/50';
   return (
     <div className="grid gap-1">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="grid min-w-0 flex-[1_1_200px] gap-0.5">
+        <div className="flex min-w-0 flex-[1_1_200px] items-center gap-1">
           <span className="text-sm font-semibold">{label}</span>
-          <span className="text-[13px] text-muted-foreground">{price}</span>
+          {help}
         </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
             aria-label={less}
             data-testid={`${name}-less`}
-            disabled={disabled || value <= min}
-            onClick={() => onChange(value - 1)}
+            disabled={!canLess}
+            onClick={onLess}
             className={button}
           >
             <Minus aria-hidden="true" className="size-4" />
@@ -297,7 +243,7 @@ function Stepper({
           <output
             aria-live="polite"
             data-testid={`${name}-value`}
-            className="min-w-10 text-center text-lg font-bold tabular-nums"
+            className="min-w-16 text-center text-lg font-bold tabular-nums"
           >
             {value}
           </output>
@@ -305,8 +251,8 @@ function Stepper({
             type="button"
             aria-label={more}
             data-testid={`${name}-more`}
-            disabled={disabled || value >= max}
-            onClick={() => onChange(value + 1)}
+            disabled={!canMore}
+            onClick={onMore}
             className={button}
           >
             <Plus aria-hidden="true" className="size-4" />

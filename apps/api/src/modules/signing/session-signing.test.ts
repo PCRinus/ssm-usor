@@ -591,6 +591,7 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
           billing_anchor_at: '2026-01-14T08:00:00.000Z',
           current_period_end: null,
           sms_cap_factor: 3,
+          employee_step: 250,
         },
       ],
       '/rest/v1/rpc/sms_period_usage': () => ({ used: 40, overage: 0, granted: 0 }),
@@ -620,10 +621,10 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
         kind: 'sms_80',
         organizationName: 'Protect SSM',
         planName: 'Start',
-        billed: true,
+        billed: false,
         used: 40,
         included: 50,
-        cap: 150,
+        cap: null,
         subscriptionUrl: `${signingEnv.APP_ORIGIN}/organizatie/abonament`,
       })
     );
@@ -632,7 +633,7 @@ describe('POST /portal/participants/{participantId}/signing-sessions', () => {
     expect(notice!.secret).toBe(true);
   });
 
-  it.each(['sms_cap_reached', 'sms_allowance_reached'])(
+  it.each(['sms_allowance_reached'])(
     'answers 409 with %s when no code may be texted to a signer without email, and keeps no session',
     async (refusal) => {
       participantUpstream('employee', {

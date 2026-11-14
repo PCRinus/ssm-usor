@@ -1,11 +1,9 @@
 import {
   type BillingChoice,
   type BillingInterval,
-  billingPlans,
   type CancellationReason,
-  employeePacks,
-  extraMember,
   type PaidPlan,
+  planStep,
   vatPercent,
 } from '@ssm-usor/contracts';
 
@@ -47,22 +45,6 @@ export const perInterval: Record<BillingInterval, string> = {
   year: 'pe an',
 };
 
-export function packOf(plan: PaidPlan) {
-  return employeePacks[billingPlans[plan].employeePack];
-}
-
-/** "1 pachet de 500 de lucrători", "2 pachete de câte 50 de lucrători". */
-export function packsLabel(plan: PaidPlan, packs: number) {
-  const size = packOf(plan).employees;
-  return packs === 1
-    ? `1 pachet de ${size} de lucrători`
-    : `${packs} pachete de câte ${size} de lucrători`;
-}
-
-export function extraMembersLabel(members: number) {
-  return members === 1 ? '1 utilizator în plus' : `${members} utilizatori în plus`;
-}
-
 export function vatOf(subtotalCents: number) {
   return Math.round((subtotalCents * vatPercent) / 100);
 }
@@ -72,29 +54,21 @@ export interface PriceLine {
   amountCents: number;
 }
 
+/** "până la 500 de lucrători". */
+export const stepLabel = (step: number) => `până la ${employeesLabel(step)}`;
+
+export const priceOf = (choice: BillingChoice) =>
+  planStep(choice.plan, choice.step)?.prices[choice.interval].unitAmount ?? 0;
+
 // The list price of a choice for one interval, as the API's preview prices it, so the tab can
 // show a plan's lines without asking for a preview.
 export function choiceLines(choice: BillingChoice): PriceLine[] {
-  const terms = billingPlans[choice.plan];
-  const lines: PriceLine[] = [
+  return [
     {
-      label: `${shortPlanNames[choice.plan]}, ${intervalAdjectives[choice.interval]}`,
-      amountCents: terms.prices[choice.interval].unitAmount,
+      label: `${shortPlanNames[choice.plan]}, ${stepLabel(choice.step)}, ${intervalAdjectives[choice.interval]}`,
+      amountCents: priceOf(choice),
     },
   ];
-  if (choice.employeePacks > 0) {
-    lines.push({
-      label: packsLabel(choice.plan, choice.employeePacks),
-      amountCents: packOf(choice.plan).prices[choice.interval].unitAmount * choice.employeePacks,
-    });
-  }
-  if (choice.extraMembers > 0) {
-    lines.push({
-      label: extraMembersLabel(choice.extraMembers),
-      amountCents: extraMember.prices[choice.interval].unitAmount * choice.extraMembers,
-    });
-  }
-  return lines;
 }
 
 export function choiceAmounts(choice: BillingChoice) {
@@ -104,34 +78,9 @@ export function choiceAmounts(choice: BillingChoice) {
   return { lines, subtotalCents, vatCents, totalCents: subtotalCents + vatCents };
 }
 
-export function employeeLimitOf(choice: Pick<BillingChoice, 'plan' | 'employeePacks'>) {
-  return (
-    billingPlans[choice.plan].includedEmployees +
-    choice.employeePacks * packOf(choice.plan).employees
-  );
-}
-
-export function memberLimitOf(choice: Pick<BillingChoice, 'plan' | 'extraMembers'>) {
-  return billingPlans[choice.plan].includedMembers + choice.extraMembers;
-}
-
-export function packsNeeded(plan: PaidPlan, employees: number) {
-  const terms = billingPlans[plan];
-  return Math.max(0, Math.ceil((employees - terms.includedEmployees) / packOf(plan).employees));
-}
-
-/** "Start, lunar, cu 2 pachete și 1 utilizator în plus". */
+/** "Start, până la 500 de lucrători, lunar". */
 export function choiceSummary(choice: BillingChoice) {
-  const extras = [
-    choice.employeePacks > 0
-      ? choice.employeePacks === 1
-        ? '1 pachet'
-        : `${choice.employeePacks} pachete`
-      : null,
-    choice.extraMembers > 0 ? extraMembersLabel(choice.extraMembers) : null,
-  ].filter(Boolean);
-  const base = `${shortPlanNames[choice.plan]}, ${intervalAdjectives[choice.interval]}`;
-  return extras.length ? `${base}, cu ${extras.join(' și ')}` : base;
+  return `${shortPlanNames[choice.plan]}, ${stepLabel(choice.step)}, ${intervalAdjectives[choice.interval]}`;
 }
 
 const cardBrands: Record<string, { name: string; short: string }> = {

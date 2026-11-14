@@ -199,7 +199,7 @@ Fișa cu date de securitate o primește clientul de la furnizorul produsului. Re
 
 ### Completarea din fișa cu date de securitate
 
-În fereastra unei substanțe, nouă sau deja în listă, inclusiv una preluată din import cu eticheta „Incompletă”, alegi **Alege fișa (PDF)** și PDF-ul fișei produsului. O fișă înseamnă o substanță. Citirea folosește 3 credite, iar fereastra îți arată, înainte să alegi fișierul, câte îți mai rămân. Dacă nu-ți ajung, butonul nu se poate apăsa.
+În fereastra unei substanțe, nouă sau deja în listă, inclusiv una preluată din import cu eticheta „Incompletă”, alegi **Alege fișa (PDF)** și PDF-ul fișei produsului. O fișă înseamnă o substanță. Citirea folosește 3 credite AI, iar fereastra îți arată, înainte să alegi fișierul, câte îți mai rămân. Dacă nu-ți ajung, butonul nu se poate apăsa.
 
 Citirea durează de obicei sub un minut. Între timp poți completa cantitatea și locul de depozitare, dar fereastra nu se poate închide până se termină citirea, ca să nu pierzi o citire plătită. După citire:
 

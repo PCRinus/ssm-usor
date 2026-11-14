@@ -20,19 +20,10 @@ export const vatPercent = 21;
 
 // A changed amount is a new Stripe price under a new version, never an edit of the old one: Stripe
 // prices are immutable, and existing subscriptions move at their renewal (ADR 029).
-export const priceVersion = 'v1';
+export const priceVersion = 'v2';
 
-export const billingProductKeySchema = z.enum([
-  'start',
-  'profesional',
-  'employees50',
-  'employees500',
-  'member',
-  'sms_overage',
-]);
+export const billingProductKeySchema = z.enum(['start', 'profesional', 'sms_overage']);
 export type BillingProductKey = z.infer<typeof billingProductKeySchema>;
-
-export type EmployeePackKey = Extract<BillingProductKey, 'employees50' | 'employees500'>;
 
 export interface CataloguePrice {
   lookupKey: string;
@@ -49,68 +40,101 @@ export interface CatalogueProduct {
   name: string;
 }
 
-const monthsPaidPerYear = 10;
+const intervalKeys: Record<BillingInterval, string> = { month: 'monthly', year: 'annual' };
 
-function lookupKey(product: BillingProductKey, interval: BillingInterval) {
-  return `${product}_${interval === 'month' ? 'monthly' : 'annual'}_${priceVersion}`;
+/** Annual pays ten months for twelve, each rounded down to a whole euro (ADR 029). */
+export function annualCents(monthlyCents: number) {
+  return Math.floor(((monthlyCents / 100) * 10) / 12) * 12 * 100;
 }
 
-function recurring(
-  product: BillingProductKey,
-  monthlyAmount: number
-): Record<BillingInterval, CataloguePrice> {
+export const smsCodesFor = (step: number) => step / 5;
+
+/** AI credits a month: two for every employee of the step, plus 250; they do not carry over. */
+export const creditsFor = (step: number) => 2 * step + 250;
+
+/** AI credits granted once, at the first payment, that never expire. */
+export const welcomeCreditsFor = (step: number) => Math.min(10 * step, 10_000);
+
+export interface PlanStep {
+  employees: number;
+  prices: Record<BillingInterval, CataloguePrice>;
+  monthlySms: number;
+  monthlyCredits: number;
+  welcomeCredits: number;
+}
+
+export interface PlanTerms {
+  key: PaidPlan;
+  name: string;
+  /** Users, the owner included; fixed, none can be bought. */
+  members: number;
+  steps: PlanStep[];
+}
+
+function step(plan: PaidPlan, employees: number, monthlyEuros: number): PlanStep {
+  const price = (interval: BillingInterval, unitAmount: number): CataloguePrice => ({
+    lookupKey: `${plan}_${employees}_${intervalKeys[interval]}_${priceVersion}`,
+    product: plan,
+    interval,
+    unitAmount,
+    usage: 'licensed',
+  });
   return {
-    month: {
-      lookupKey: lookupKey(product, 'month'),
-      product,
-      interval: 'month',
-      unitAmount: monthlyAmount,
-      usage: 'licensed',
+    employees,
+    prices: {
+      month: price('month', monthlyEuros * 100),
+      year: price('year', annualCents(monthlyEuros * 100)),
     },
-    year: {
-      lookupKey: lookupKey(product, 'year'),
-      product,
-      interval: 'year',
-      unitAmount: monthlyAmount * monthsPaidPerYear,
-      usage: 'licensed',
-    },
+    monthlySms: smsCodesFor(employees),
+    monthlyCredits: creditsFor(employees),
+    welcomeCredits: welcomeCreditsFor(employees),
   };
 }
 
-export interface EmployeePack {
-  key: EmployeePackKey;
-  name: string;
-  employees: number;
-  prices: Record<BillingInterval, CataloguePrice>;
+export const billingPlans: Record<PaidPlan, PlanTerms> = {
+  start: {
+    key: 'start',
+    name: 'SSM Ușor Start',
+    members: 3,
+    steps: [step('start', 250, 39), step('start', 500, 59), step('start', 750, 79)],
+  },
+  profesional: {
+    key: 'profesional',
+    name: 'SSM Ușor Profesional',
+    members: 10,
+    steps: [
+      step('profesional', 500, 89),
+      step('profesional', 1000, 119),
+      step('profesional', 1500, 149),
+      step('profesional', 2000, 179),
+      step('profesional', 3000, 239),
+      step('profesional', 4000, 299),
+      step('profesional', 5000, 359),
+    ],
+  },
+};
+
+export const paidPlans = Object.keys(billingPlans) as PaidPlan[];
+
+export function planStep(plan: PaidPlan, employees: number): PlanStep | undefined {
+  return billingPlans[plan].steps.find((candidate) => candidate.employees === employees);
 }
 
-export const employeePacks: Record<EmployeePackKey, EmployeePack> = {
-  employees50: {
-    key: 'employees50',
-    name: 'Pachet de 50 de lucrători',
-    employees: 50,
-    prices: recurring('employees50', 1500),
-  },
-  employees500: {
-    key: 'employees500',
-    name: 'Pachet de 500 de lucrători',
-    employees: 500,
-    prices: recurring('employees500', 4000),
-  },
-};
+export function stepFor(plan: PaidPlan, employees: number): PlanStep | undefined {
+  return billingPlans[plan].steps.find((candidate) => candidate.employees >= employees);
+}
 
-export const extraMember: {
-  key: 'member';
-  name: string;
-  prices: Record<BillingInterval, CataloguePrice>;
-} = {
-  key: 'member',
-  name: 'Utilizator în plus',
-  prices: recurring('member', 1500),
-};
+export const lastStep = (plan: PaidPlan) => billingPlans[plan].steps.at(-1)!;
 
-// Monthly on every plan, annual ones too, which makes an annual subscription mixed-interval. The
-// API reports only the codes past the plan's allowance, so one price serves both plans.
+/** Past these, an organization needs Enterprise, which is sold by email (ADR 029). */
+export const selfServeLimits = {
+  employees: lastStep('profesional').employees,
+  members: billingPlans.profesional.members,
+} as const;
+
+// Monthly on every plan, annual ones too, which makes an annual subscription mixed-interval. Kept
+// on every subscription for the extras the owner will turn on; while they are off nothing is
+// reported to its meter, so it bills nothing (ADR 029, amendment of 2026-11-14).
 export const smsOverage: {
   key: 'sms_overage';
   name: string;
@@ -121,7 +145,7 @@ export const smsOverage: {
   name: 'SMS peste cele incluse în plan',
   meterEventName: 'sms_overage',
   price: {
-    lookupKey: lookupKey('sms_overage', 'month'),
+    lookupKey: `sms_overage_monthly_${priceVersion}`,
     product: 'sms_overage',
     interval: 'month',
     unitAmount: 10,
@@ -129,94 +153,44 @@ export const smsOverage: {
   },
 };
 
-export interface PlanTerms {
-  key: PaidPlan;
-  name: string;
-  prices: Record<BillingInterval, CataloguePrice>;
-  includedEmployees: number;
-  includedMembers: number;
-  /** Members in all, extra ones included; null where any number may be bought. */
-  maxMembers: number | null;
-  monthlySms: number;
-  /** Import credits a month (ADR 030); they do not carry over. */
-  monthlyCredits: number;
-  /** Credits granted once, at the first payment, that never expire (ADR 030). */
-  welcomeCredits: number;
-  employeePack: EmployeePackKey;
-  /** Null where any number may be bought. */
-  maxEmployeePacks: number | null;
-}
-
-export const billingPlans: Record<PaidPlan, PlanTerms> = {
-  start: {
-    key: 'start',
-    name: 'SSM Ușor Start',
-    prices: recurring('start', 3900),
-    includedEmployees: 250,
-    includedMembers: 1,
-    maxMembers: 2,
-    monthlySms: 50,
-    monthlyCredits: 300,
-    welcomeCredits: 2500,
-    employeePack: 'employees50',
-    // 600 employees: past that, Start with packs costs more than Profesional.
-    maxEmployeePacks: 7,
-  },
-  profesional: {
-    key: 'profesional',
-    name: 'SSM Ușor Profesional',
-    prices: recurring('profesional', 14900),
-    includedEmployees: 1500,
-    includedMembers: 3,
-    maxMembers: null,
-    monthlySms: 300,
-    monthlyCredits: 1500,
-    welcomeCredits: 10000,
-    employeePack: 'employees500',
-    maxEmployeePacks: null,
-  },
-};
-
 export const catalogueProducts: CatalogueProduct[] = [
   ...Object.values(billingPlans),
-  ...Object.values(employeePacks),
-  extraMember,
   smsOverage,
 ].map(({ key, name }) => ({ key, name }));
 
 export const cataloguePrices: CataloguePrice[] = [
-  ...[...Object.values(billingPlans), ...Object.values(employeePacks), extraMember].flatMap(
-    ({ prices }) => [prices.month, prices.year]
+  ...Object.values(billingPlans).flatMap((plan) =>
+    plan.steps.flatMap(({ prices }) => [prices.month, prices.year])
   ),
   smsOverage.price,
 ];
 
-export const billingChoiceSchema = z.object({
+const billingChoiceShape = z.object({
   plan: paidPlanSchema,
+  step: z.int().min(1),
   interval: billingIntervalSchema,
-  employeePacks: z.int().min(0).max(100),
-  extraMembers: z.int().min(0).max(100),
 });
+
+export const billingChoiceSchema = billingChoiceShape.refine(
+  (choice) => planStep(choice.plan, choice.step) !== undefined,
+  { message: 'Not a step of this plan.', path: ['step'] }
+);
 export type BillingChoice = z.infer<typeof billingChoiceSchema>;
 
 export const billingChoiceProblemReasonSchema = z.enum([
-  'start_employee_ceiling',
-  'start_member_ceiling',
-  'employee_packs_below_need',
-  'extra_members_below_need',
-  'employee_packs_above_plan',
-  'extra_members_above_plan',
-  // An annual change that both adds now, charged today, and removes at the renewal: the two
-  // go one after the other, the addition first.
+  // Today's employees are past the plan's last step: Start's 750, or Profesional's 5,000.
+  'employees_over_plan',
+  'members_over_plan',
+  'step_below_need',
+  // An annual change while an earlier one, charged now, still waits for its payment: the two go
+  // one after the other.
   'split_change',
 ]);
 export type BillingChoiceProblemReason = z.infer<typeof billingChoiceProblemReasonSchema>;
 
 export const billingChoiceProblemSchema = z.object({
   reason: billingChoiceProblemReasonSchema,
-  // With a `_below_need` reason: the fewest packs or extra members that would do.
   minimum: z.int().min(0).optional(),
-  // With an `_above_plan` reason: the most the plan allows.
   maximum: z.int().min(0).optional(),
 });
 export type BillingChoiceProblem = z.infer<typeof billingChoiceProblemSchema>;
@@ -239,10 +213,11 @@ export const billingPreviewLineSchema = z.object({
 });
 
 export const billingPreviewSchema = z.object({
-  choice: billingChoiceSchema,
+  choice: billingChoiceShape,
   // Empty when the choice may be bought; otherwise creating or changing to it answers 409.
   problems: z.array(billingChoiceProblemSchema),
-  minimums: z.object({ employeePacks: z.int().min(0), extraMembers: z.int().min(0) }),
+  // The plan's smallest step that covers today's employees; null when none of its steps does.
+  minimumStep: z.int().nullable(),
   // True when the subscription already is, or is already set to become, this choice.
   unchanged: z.boolean(),
   recurring: billingAmountsSchema.extend({
@@ -265,10 +240,15 @@ export const billingPreviewSchema = z.object({
 });
 export type BillingPreview = z.infer<typeof billingPreviewSchema>;
 
-export const changeSubscriptionRequestSchema = billingChoiceSchema.extend({
-  // The preview's `prorationDate`; one older than an hour, or in the future, is replaced by now.
-  prorationDate: timestamp.optional(),
-});
+export const changeSubscriptionRequestSchema = billingChoiceShape
+  .extend({
+    // The preview's `prorationDate`; one older than an hour, or in the future, is replaced by now.
+    prorationDate: timestamp.optional(),
+  })
+  .refine((choice) => planStep(choice.plan, choice.step) !== undefined, {
+    message: 'Not a step of this plan.',
+    path: ['step'],
+  });
 export type ChangeSubscriptionRequest = z.infer<typeof changeSubscriptionRequestSchema>;
 
 export const billingCheckoutResponseSchema = z.object({
@@ -321,11 +301,8 @@ export const billingUsageMeterSchema = z.object({
 });
 export type BillingUsageMeter = z.infer<typeof billingUsageMeterSchema>;
 
-/** A tester's trial sends Profesional's signing codes a month, with a hard stop (ADR 029). */
-export const testerMonthlySms = billingPlans.profesional.monthlySms;
-
-/** The safety cap on signing codes, as a multiple of the plan's allowance (ADR 029). */
-export const smsCapFactor = { default: 3, max: 20 } as const;
+/** A tester's trial sends this many signing codes a month, with a hard stop (ADR 029). */
+export const testerMonthlySms = 300;
 
 /** Why an SMS was not sent, as `reason` carries it on the refusal. */
 export const smsRefusalReasons = [
@@ -333,20 +310,14 @@ export const smsRefusalReasons = [
   'sms_trial',
   // SMS go to Romanian numbers (+40) only.
   'sms_foreign_number',
-  // The month's signing codes are used up where nothing past them can be billed: a tester's
-  // trial, or a plan chosen during the trial before its first payment.
+  // The month's signing codes are used up. Every plan stops there until the extras exist.
   'sms_allowance_reached',
-  // The safety cap is reached; the owner can raise it.
-  'sms_cap_reached',
 ] as const;
 export const smsRefusalReasonSchema = z.enum(smsRefusalReasons);
 export type SmsRefusalReason = z.infer<typeof smsRefusalReasonSchema>;
 
-/**
- * `none`: no SMS goes at all; `near`: from 80 % of what is included; `over`: past it, billed;
- * `capped`: at the safety cap; `stopped`: at a hard stop, where nothing past it is billed.
- */
-export const smsUsageStateSchema = z.enum(['ok', 'near', 'over', 'capped', 'stopped', 'none']);
+/** `none`: no SMS goes at all; `near`: from 80 % of what is included; `stopped`: all used. */
+export const smsUsageStateSchema = z.enum(['ok', 'near', 'stopped', 'none']);
 export type SmsUsageState = z.infer<typeof smsUsageStateSchema>;
 
 export const billingSmsUsageSchema = z.object({
@@ -371,8 +342,8 @@ export type BillingSmsUsage = z.infer<typeof billingSmsUsageSchema>;
 /** A trial's credits for the whole trial, without a monthly reset (ADR 030). */
 export const trialCredits = 300;
 
-/** A tester's trial reads Profesional's credits a month, with a hard stop and no gift (ADR 029). */
-export const testerMonthlyCredits = billingPlans.profesional.monthlyCredits;
+/** A tester's trial has this many credits a month, with a hard stop and no gift (ADR 029). */
+export const testerMonthlyCredits = 1500;
 
 /** What an import uses (ADR 030): one credit per photograph or page read. */
 export const importCredits = {
@@ -425,18 +396,6 @@ export const billingCreditsUsageSchema = z.object({
 });
 export type BillingCreditsUsage = z.infer<typeof billingCreditsUsageSchema>;
 
-export const smsCapRequestSchema = z.object({
-  factor: z.int().min(smsCapFactor.default).max(smsCapFactor.max),
-});
-export type SmsCapRequest = z.infer<typeof smsCapRequestSchema>;
-
-export const smsCapSchema = z.object({
-  factor: z.int(),
-  // The plan's allowance times the factor, before any codes granted by hand.
-  cap: z.int(),
-});
-export type SmsCap = z.infer<typeof smsCapSchema>;
-
 export const billingInvoiceSchema = z.object({
   stripeInvoiceId: z.string(),
   kind: z.enum(['invoice', 'proforma']),
@@ -460,32 +419,24 @@ export const billingCatalogueSchema = z.object({
     z.object({
       key: paidPlanSchema,
       name: z.string(),
-      prices: pricePair,
-      includedEmployees: z.int(),
-      includedMembers: z.int(),
-      maxMembers: z.int().nullable(),
-      monthlySms: z.int(),
-      monthlyCredits: z.int(),
-      welcomeCredits: z.int(),
-      employeePack: billingProductKeySchema,
-      maxEmployeePacks: z.int().nullable(),
+      members: z.int(),
+      steps: z.array(
+        z.object({
+          employees: z.int(),
+          prices: pricePair,
+          monthlySms: z.int(),
+          monthlyCredits: z.int(),
+          welcomeCredits: z.int(),
+        })
+      ),
     })
   ),
-  employeePacks: z.array(
-    z.object({
-      key: billingProductKeySchema,
-      name: z.string(),
-      employees: z.int(),
-      prices: pricePair,
-    })
-  ),
-  extraMember: z.object({ name: z.string(), prices: pricePair }),
   smsOverageCents: cents,
 });
 export type BillingCatalogue = z.infer<typeof billingCatalogueSchema>;
 
 const choiceLimitsSchema = z.object({
-  minimums: z.object({ employeePacks: z.int(), extraMembers: z.int() }),
+  minimumStep: z.int().nullable(),
   problems: z.array(billingChoiceProblemSchema),
 });
 
@@ -497,8 +448,8 @@ export const billingOverviewSchema = z.object({
       planChosen: z.boolean(),
       status: subscriptionStatusSchema,
       interval: billingIntervalSchema.nullable(),
-      employeePacks: z.int().min(0),
-      extraMembers: z.int().min(0),
+      // The step of the chosen plan; null without one, and on Enterprise.
+      step: z.int().nullable(),
       trialEndsAt: timestamp.nullable(),
       currentPeriodEnd: timestamp.nullable(),
       accessUntil: timestamp.nullable(),
@@ -514,6 +465,8 @@ export const billingOverviewSchema = z.object({
     // chosen during it or not.
     employees: billingUsageMeterSchema,
     members: billingUsageMeterSchema,
+    // Open invitations, each holding one of the plan's users until accepted, revoked or expired.
+    invitations: z.int().min(0),
     // The subscription's month, from the day it renews (ADR 029).
     smsThisMonth: billingSmsUsageSchema,
     // Import credits, on the same month (ADR 030); a trial's last the whole trial.
@@ -533,8 +486,8 @@ export const billingOverviewSchema = z.object({
       // Where the invoices go while `invoiceEmail` is null.
       ownerEmail: z.email().nullable(),
       // A downgrade or removal waiting for the renewal.
-      scheduledChange: billingChoiceSchema.extend({ at: timestamp }).nullable(),
-      // The fewest packs and extra members each plan needs today, and what keeps it out.
+      scheduledChange: billingChoiceShape.extend({ at: timestamp }).nullable(),
+      // The smallest step each plan needs today, and what keeps it out.
       choices: z.object({ start: choiceLimitsSchema, profesional: choiceLimitsSchema }),
       invoices: z.array(billingInvoiceSchema),
     })

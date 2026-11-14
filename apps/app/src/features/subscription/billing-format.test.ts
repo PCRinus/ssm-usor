@@ -6,8 +6,6 @@ import {
   employeesLabel,
   formatCount,
   formatEuro,
-  packsLabel,
-  packsNeeded,
 } from './billing-format';
 
 describe('billing format', () => {
@@ -42,33 +40,16 @@ describe('billing format', () => {
   });
 
   it('prices a choice as the API does, VAT rounded to the cent', () => {
-    const amounts = choiceAmounts({
-      plan: 'profesional',
-      interval: 'year',
-      employeePacks: 1,
-      extraMembers: 1,
-    });
+    const amounts = choiceAmounts({ plan: 'profesional', step: 1000, interval: 'year' });
     expect(amounts.lines.map((line) => [line.label, line.amountCents])).toEqual([
-      ['Profesional, anual', 149000],
-      ['1 pachet de 500 de lucrători', 40000],
-      ['1 utilizator în plus', 15000],
+      ['Profesional, până la 1.000 de lucrători, anual', 118800],
     ]);
-    expect(amounts).toMatchObject({ subtotalCents: 204000, vatCents: 42840, totalCents: 246840 });
-  });
-
-  it('counts the packs a plan needs', () => {
-    expect(packsNeeded('start', 250)).toBe(0);
-    expect(packsNeeded('start', 312)).toBe(2);
-    expect(packsNeeded('profesional', 1740)).toBe(1);
-    expect(packsLabel('start', 2)).toBe('2 pachete de câte 50 de lucrători');
+    expect(amounts).toMatchObject({ subtotalCents: 118800, vatCents: 24948, totalCents: 143748 });
   });
 
   it('sums up a choice in a line', () => {
-    expect(
-      choiceSummary({ plan: 'start', interval: 'month', employeePacks: 2, extraMembers: 1 })
-    ).toBe('Start, lunar, cu 2 pachete și 1 utilizator în plus');
-    expect(
-      choiceSummary({ plan: 'profesional', interval: 'year', employeePacks: 0, extraMembers: 0 })
-    ).toBe('Profesional, anual');
+    expect(choiceSummary({ plan: 'start', step: 500, interval: 'month' })).toBe(
+      'Start, până la 500 de lucrători, lunar'
+    );
   });
 });

@@ -21,6 +21,7 @@ const paidStart = {
   billing_anchor_at: '2026-08-31T08:00:00.000Z',
   current_period_end: '2026-10-31T08:00:00.000Z',
   sms_cap_factor: 3,
+  employee_step: 250,
 };
 
 function clientWith(
@@ -75,10 +76,10 @@ describe('adding credits by hand', () => {
       p_organization_id: organizationId,
       p_period_start: '2026-09-30T08:00:00.000Z',
       p_period_end: '2026-10-31T08:00:00.000Z',
-      p_allowance: 300,
+      p_allowance: 750,
       p_previous_start: '2026-08-31T08:00:00.000Z',
       p_previous_end: '2026-09-30T08:00:00.000Z',
-      p_previous_allowance: 300,
+      p_previous_allowance: 750,
       p_credits: 500,
       p_reason: 'A rămas fără credite',
       p_actor: 'mircea',

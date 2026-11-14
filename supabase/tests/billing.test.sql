@@ -1,5 +1,5 @@
 begin;
-select plan(30);
+select plan(32);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -29,10 +29,10 @@ insert into public.subscriptions (organization_id, plan, status, trial_ends_at, 
 values ('11111111-0000-4000-8000-000000000001', 'start', 'trialing', now() + interval '10 days', now() + interval '10 days');
 
 select results_eq(
-  $$ select employee_packs, extra_members, stripe_subscription_id is null, invoice_email is null
+  $$ select employee_step is null, stripe_subscription_id is null, invoice_email is null
      from public.subscriptions where organization_id = '11111111-0000-4000-8000-000000000001' $$,
-  $$ values (0, 0, true, true) $$,
-  'a trial has no packs, no extra members and nothing in Stripe'
+  $$ values (true, true, true) $$,
+  'a trial has no step and nothing in Stripe'
 );
 
 select throws_ok(
@@ -49,28 +49,43 @@ select throws_ok(
   'a Stripe customer needs the account it lives in'
 );
 
+select throws_ok(
+  $$ update public.subscriptions
+     set stripe_account = 'acct_1Pfa', stripe_customer_id = 'cus_1Abc',
+         stripe_subscription_id = 'sub_1Abc', billing_interval = 'year', price_version = 'v2'
+     where organization_id = '11111111-0000-4000-8000-000000000001' $$,
+  '23514', null,
+  'a chosen plan needs its step'
+);
+
 select lives_ok(
   $$ update public.subscriptions
      set stripe_account = 'acct_1Pfa', stripe_customer_id = 'cus_1Abc',
-         stripe_subscription_id = 'sub_1Abc', billing_interval = 'year', price_version = 'v1',
-         employee_packs = 2, extra_members = 1, invoice_email = 'contabilitate@firma.ro',
+         stripe_subscription_id = 'sub_1Abc', billing_interval = 'year', price_version = 'v2',
+         employee_step = 500, invoice_email = 'contabilitate@firma.ro',
          current_period_end = now() + interval '1 year'
      where organization_id = '11111111-0000-4000-8000-000000000001' $$,
-  'a chosen plan records its Stripe ids, interval, price version and quantities'
+  'a chosen plan records its Stripe ids, interval, price version and step'
 );
 
 select throws_ok(
-  $$ insert into public.subscriptions (organization_id, plan, status, stripe_account, stripe_customer_id, stripe_subscription_id, billing_interval, price_version)
-     values ('22222222-0000-4000-8000-000000000001', 'start', 'active', 'acct_1Pfa', 'cus_2Abc', 'sub_1Abc', 'month', 'v1') $$,
+  $$ insert into public.subscriptions (organization_id, plan, status, stripe_account, stripe_customer_id, stripe_subscription_id, billing_interval, price_version, employee_step)
+     values ('22222222-0000-4000-8000-000000000001', 'start', 'active', 'acct_1Pfa', 'cus_2Abc', 'sub_1Abc', 'month', 'v2', 250) $$,
   '23505', null,
   'a Stripe subscription belongs to one organization'
 );
 
 select throws_ok(
-  $$ update public.subscriptions set employee_packs = -1
+  $$ update public.subscriptions set employee_step = 1000
      where organization_id = '11111111-0000-4000-8000-000000000001' $$,
   '23514', null,
-  'packs are never negative'
+  'a step is one of its plan''s: Start stops at 750'
+);
+
+select lives_ok(
+  $$ update public.subscriptions set plan = 'profesional', employee_step = 1000
+     where organization_id = '11111111-0000-4000-8000-000000000001' $$,
+  'and Profesional has a step of 1,000'
 );
 
 select throws_ok(
@@ -164,9 +179,9 @@ select is_empty(
 );
 
 select results_eq(
-  $$ select billing_interval::text, employee_packs, extra_members from public.subscriptions $$,
-  $$ values ('year', 2, 1) $$,
-  'a member reads its subscription''s plan and quantities'
+  $$ select plan::text, billing_interval::text, employee_step from public.subscriptions $$,
+  $$ values ('profesional', 'year', 1000) $$,
+  'a member reads its subscription''s plan, interval and step'
 );
 
 select throws_ok(

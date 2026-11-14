@@ -25,6 +25,7 @@ const trialRow = {
   trial_ends_at: '2026-11-25T10:00:00+00:00',
   access_until: '2026-11-25T10:00:00+00:00',
   stripe_subscription_id: null as string | null,
+  employee_step: null as number | null,
   created_at: '2026-10-26T10:00:00+00:00',
 };
 
@@ -206,6 +207,7 @@ describe('GET /me', () => {
     expect(meResponseSchema.parse(await response.json()).subscription).toEqual({
       plan: 'profesional',
       planChosen: false,
+      step: null,
       status: 'trialing',
       trialEndsAt: '2026-11-25T10:00:00.000Z',
       accessUntil: '2026-11-25T10:00:00.000Z',
@@ -216,7 +218,12 @@ describe('GET /me', () => {
 
   it('names the plan chosen during a trial, which carries on until the first charge', async () => {
     mockUpstream({
-      subscription: { ...trialRow, plan: 'start', stripe_subscription_id: 'sub_123' },
+      subscription: {
+        ...trialRow,
+        plan: 'start',
+        stripe_subscription_id: 'sub_123',
+        employee_step: 500,
+      },
     });
 
     const response = await request('/me');
@@ -224,6 +231,7 @@ describe('GET /me', () => {
     expect(meResponseSchema.parse(await response.json()).subscription).toMatchObject({
       plan: 'start',
       planChosen: true,
+      step: 500,
       status: 'trialing',
     });
   });
@@ -252,6 +260,7 @@ describe('GET /me', () => {
       billing_anchor_at: '2026-10-14T09:00:00+00:00',
       current_period_end: '2026-11-14T09:00:00+00:00',
       sms_cap_factor: 3,
+      employee_step: 1500,
     };
 
     it('counts them, and the credits, as the Abonament tab does, for the bar on every page', async () => {
@@ -260,10 +269,10 @@ describe('GET /me', () => {
       const response = await request('/me');
 
       const me = meResponseSchema.parse(await response.json());
-      expect(me.smsThisMonth).toMatchObject({ used: 252, included: 300, cap: 900, state: 'near' });
+      expect(me.smsThisMonth).toMatchObject({ used: 252, included: 300, cap: null, state: 'near' });
       expect(me.creditsThisMonth).toMatchObject({
         used: 640,
-        included: 1500,
+        included: 3250,
         left: 860,
         giftLeft: 8640,
         state: 'ok',

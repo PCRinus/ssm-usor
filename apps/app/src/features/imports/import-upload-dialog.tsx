@@ -33,7 +33,6 @@ import { Notice } from '@/components/notice';
 import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 
 import {
-  ContactHint,
   CreditsLine,
   CreditsShortNotice,
   GiftHint,
@@ -330,15 +329,12 @@ function UploadForm({
                   </div>
                 )}
                 {refusal?.kind === 'short' && (
-                  <>
-                    <CreditsShortNotice
-                      kind="client"
-                      refusal={refusal}
-                      balance={balance}
-                      isOwner={isOwner}
-                    />
-                    <ContactHint />
-                  </>
+                  <CreditsShortNotice
+                    kind="client"
+                    refusal={refusal}
+                    balance={balance}
+                    isOwner={isOwner}
+                  />
                 )}
                 {unreadable && (
                   <Notice variant="warning" data-testid="import-unreadable">

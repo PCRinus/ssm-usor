@@ -222,6 +222,7 @@ describe('the plan badge on a phone', () => {
       subscription: {
         plan: 'profesional',
         planChosen: false,
+        step: null,
         status: 'trialing',
         trialEndsAt: inDays(14),
         accessUntil: inDays(14),
@@ -251,6 +252,7 @@ describe('the plan badge on a phone', () => {
       subscription: {
         plan: 'start',
         planChosen: true,
+        step: 1500,
         status: 'active',
         trialEndsAt: null,
         accessUntil: null,

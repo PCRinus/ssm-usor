@@ -9,6 +9,7 @@
 - Amended by [ADR 041](adr-041-su-import-questions-and-suggestions.md) (accepted 2026-11-10): the means several files give are counted once, the assembly point and the smoking place are confirmed by the member, the substances are proposed, and the model drafts suggested values for a workplace's fire-safety card.
 - Amended 2026-11-11, [below](#amendment-2026-11-11-a-reading-outside-an-import): a product's safety data sheet is read in the substance dialog, outside any import, with its values checked by their codes and charged in credits of its own kind.
 - Amended 2026-11-13 by [ADR 043](adr-043-photo-value-highlight.md): in the employee import, a sheet page opened from a value spotlights where the value is written, located by Gemini 3.1 Flash-Lite in a request of its own, so a photograph is no longer always unmarked; Google LLC joins the sub-processors.
+- Amended 2026-11-14, [below](#amendment-2026-11-14-ai-credits-by-employee-step): the credits are called AI credits in what people read, each plan's monthly credits and welcome credits follow its employee step ([ADR 029](adr-029-billing-plans-and-trials.md#amendment-2026-11-14-plans-by-employee-step)), and the credits past them are an extra the owner turns on, not a pack bought.
 
 ## Context
 
@@ -188,3 +189,15 @@ A product's safety data sheet is read in the substance dialog ([ADR 018](adr-018
 - **No quote for each value.** The rule that every value carries the passage that contains it cannot hold: the texts are condensed, and translated when the sheet is not in Romanian. What can be checked is checked in code: every hazard statement code and every CAS, EC and UN number in the draft must occur in the file's text, or it is left out and the member is told how many were. A file without the sheet's structure of sections is refused before a model is asked. The rest is the member's to read before saving, which is why the reading writes nothing.
 - **Credits with no import.** Every earlier charge named an import. This reading has kinds of its own in the ledger, `safety_sheet` and `safety_sheet_refund`, with no import, the refund matched to the charge by its key. It is refused unless the balance covers it, never takes the balance below zero, and is given back when the file is refused or the reading fails. It takes 3 credits, set from an estimate of about 3 to 5 cents a sheet. A later reading outside an import takes the same shape rather than borrowing an import's kinds.
 - **Nothing is kept.** The file is not stored and leaves no improvement copy (ADR 037 is about imports). Its tokens and cost are a log line, not a row.
+
+## Amendment 2026-11-14: AI credits by employee step
+
+The plans are priced by a step of employees since [ADR 029's amendment of 2026-11-14](adr-029-billing-plans-and-trials.md#amendment-2026-11-14-plans-by-employee-step), and the credits follow the step. In "Usage is counted in credits":
+
+- **Name.** What people read calls them **credite AI** (AI credits): the pricing page, the app, the emails and the help. "Credite pentru import" undersold them once a reading outside an import used them too, and read as unclear to someone not yet a client. The code keeps `credits`.
+- **Allowances.** Each month of a subscription brings 2 × the step + 250 credits: 750 on Start at 250 employees, 1,250 on Profesional at 500, 3,250 at 1,500 and 10,250 at 5,000. A trial's 300 for the whole trial and the testers' 1,500 a month do not change. The month and the carry-over rule do not change.
+- **The welcome gift** is 10 × the step, at most 10,000: 2,500 on Start at 250, 10,000 from a step of 1,000 up. Granted at the first payment, as before.
+- **Changing plan or step.** An upgrade, to a higher step or to Profesional, adds the difference in monthly credits at once and the difference in the gift once, if the gift was already granted; a move down takes effect at the renewal and takes nothing back.
+- **When credits run out**, a new import waits for the next month. Extra credits past the allowance are an extra the owner will turn on with a monthly ceiling, at 1.50 € for each 100; until the screen that turns them on exists, nobody has them on and nothing is sold. The pack of 1,000 credits for 15 € is dropped. The manual workflow that adds credits stays for support.
+
+What an action costs in credits does not change.

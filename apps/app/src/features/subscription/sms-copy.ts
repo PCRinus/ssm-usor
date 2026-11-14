@@ -1,17 +1,19 @@
-import { type BillingSmsUsage, smsOverage } from '@ssm-usor/contracts';
+import type { BillingSmsUsage, SubscriptionSummary } from '@ssm-usor/contracts';
 
-import { formatCount, formatEuro } from './billing-format';
+import { formatCount } from './billing-format';
 import { contactEmail, roDate } from './subscription-copy';
 
 export type MeterTone = 'normal' | 'warning' | 'over' | 'danger';
 
 /**
- * Who reads the meter, and why the codes stop where they stop. `tester` and `firstPayment` stop
- * hard at what is included; `billed` sends past it, up to the safety cap (ADR 029).
+ * Who reads the meter, and why the codes stop where they stop. Every stop is hard: past what is
+ * included the codes go by email until the month renews, and nothing is billed, since extras are
+ * off until the owner can turn them on (ADR 029, amendment of 2026-11-14). `month` is a paid
+ * plan's, `firstPayment` a plan chosen during the trial, `tester` a tester's trial.
  */
 export interface SmsReader {
   owner: boolean;
-  stop: 'billed' | 'tester' | 'firstPayment';
+  stop: 'month' | 'tester' | 'firstPayment';
 }
 
 export interface SmsMeter {
@@ -21,11 +23,7 @@ export interface SmsMeter {
   value: string | null;
   tone: MeterTone;
   hint: string;
-  raiseCap: boolean;
 }
-
-// Kept on one line with its euro sign, which the bar and the hints otherwise wrap alone.
-export const smsPrice = formatEuro(smsOverage.price.unitAmount).replace(' ', '\u00a0');
 
 export const trialSmsNote =
   'În perioada de probă nu trimitem SMS: invitațiile, codurile de conectare și cele de semnare pleacă pe email. SMS-urile pornesc când alegi un plan.';
@@ -39,30 +37,25 @@ export function codesLabel(count: number) {
     : `${formatCount(count)} coduri`;
 }
 
-export function stopOf(sms: BillingSmsUsage, planChosen: boolean): SmsReader['stop'] {
-  if (sms.cap !== null) return 'billed';
-  return planChosen ? 'firstPayment' : 'tester';
+export function stopOf(
+  subscription: Pick<SubscriptionSummary, 'planChosen' | 'status'> | null
+): SmsReader['stop'] {
+  if (!subscription?.planChosen) return 'tester';
+  return subscription.status === 'trialing' ? 'firstPayment' : 'month';
 }
 
 const toneOf: Record<BillingSmsUsage['state'], MeterTone> = {
   none: 'normal',
   ok: 'normal',
   near: 'warning',
-  over: 'over',
-  capped: 'danger',
   stopped: 'danger',
 };
 
+const byEmail = 'codurile pleacă pe email, iar cine nu are email nu poate semna';
+
 export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
   if (sms.state === 'none') {
-    return {
-      used: null,
-      limit: null,
-      value: null,
-      tone: 'normal',
-      hint: trialSmsNote,
-      raiseCap: false,
-    };
+    return { used: null, limit: null, value: null, tone: 'normal', hint: trialSmsNote };
   }
   if (sms.included === null) {
     return {
@@ -71,16 +64,12 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
       value: formatCount(sms.used),
       tone: 'normal',
       hint: 'Fără limită. Se numără doar codurile de semnare.',
-      raiseCap: false,
     };
   }
-  const { owner, stop } = reader;
+  const { stop } = reader;
   const included = formatCount(sms.included);
   const renews = sms.periodEnd ? roDate(sms.periodEnd) : null;
   const until = renews ? ` până pe ${renews}` : '';
-  const cap = sms.cap === null ? null : codesLabel(sms.cap);
-  const over = Math.max(0, sms.used - sms.included);
-  const byEmail = 'codurile pleacă pe email, iar cine nu are email nu poate semna';
 
   let hint: string;
   switch (sms.state) {
@@ -89,41 +78,19 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
         stop === 'tester'
           ? `Cont de test: ${included} pe lună, fără costuri în plus. La ${included}, codurile pleacă pe email${until}.`
           : stop === 'firstPayment'
-            ? owner
-              ? `Până la prima plată, codurile se opresc la ${included}; după ea, cele în plus costă ${smsPrice} fiecare.`
-              : `Până la prima plată, codurile se opresc la ${included}.`
-            : owner
-              ? `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. Peste ${included}, fiecare cod costă ${smsPrice} și apare pe factura din ${renews ?? 'luna următoare'}.`
-              : 'Se numără doar codurile de semnare; invitațiile și codurile de conectare nu.';
+            ? `Până la prima plată, codurile se opresc la ${included}.`
+            : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. Peste ${included}, ${byEmail}${until}.`;
       break;
-    case 'near': {
-      const left = formatCount(sms.included - sms.used);
-      hint =
-        stop !== 'billed'
-          ? `Mai ai ${left}${until}. Apoi ${byEmail}.`
-          : owner
-            ? `Mai ai ${left} incluse${until}. Apoi fiecare cod costă ${smsPrice} și apare pe factură; codurile se trimit mai departe, până la ${cap} pe lună.`
-            : `Mai ai ${left} incluse${until}. Apoi codurile se trimit mai departe, până la ${cap} pe lună.`;
+    case 'near':
+      hint = `Mai ai ${formatCount(sms.included - sms.used)}${until}. Apoi ${byEmail}.`;
       break;
-    }
-    case 'over':
-      hint = owner
-        ? `+${formatCount(over)} peste cele incluse, ${smsPrice} fiecare, pe factura din ${renews ?? 'luna următoare'}. Codurile se trimit mai departe, până la ${cap} pe lună.`
-        : `+${formatCount(over)} peste cele incluse. Codurile se trimit mai departe, până la ${cap} pe lună.`;
-      break;
-    case 'capped': {
-      const reached = `Ai atins limita de siguranță, de ${cap} pe lună.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
-      hint = owner
-        ? `${reached} Cele ${formatCount(over)} peste plan: ${formatEuro(over * smsOverage.price.unitAmount)} + TVA, pe factura din ${renews ?? 'luna următoare'}.`
-        : `${reached} Adminul poate ridica limita.`;
-      break;
-    }
-    case 'stopped':
+    default:
       hint =
         stop === 'tester'
           ? `Cont de test: ai folosit cele ${included} din luna aceasta.${renews ? ` Până pe ${renews},` : ''} ${byEmail}. Ai nevoie de mai multe? Scrie-ne la ${contactEmail}.`
-          : `Ai folosit cele ${included} de până la prima plată.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.${owner ? ` După prima plată, cele în plus costă ${smsPrice} fiecare.` : ''}`;
-      break;
+          : stop === 'firstPayment'
+            ? `Ai folosit cele ${included} de până la prima plată.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`
+            : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
   }
 
   return {
@@ -132,34 +99,32 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
     value: `${formatCount(sms.used)} din ${included}`,
     tone: toneOf[sms.state],
     hint,
-    raiseCap: owner && sms.state === 'capped',
   };
 }
 
 export interface SmsBar {
   kind: 'sms' | 'smsStop';
-  state: 'near' | 'over' | 'capped' | 'stopped';
+  state: 'near' | 'stopped';
   lead: string;
   // The lead on a phone, where the bar keeps to one line.
   short: string;
   detail: string;
   closable: boolean;
-  // At the cap the bar offers only what the owner can do about it.
-  link: 'usage' | 'raiseCap' | null;
 }
 
+const stopWords: Record<SmsReader['stop'], string> = {
+  month: 'ale lunii',
+  tester: 'ale lunii',
+  firstPayment: 'de până la prima plată',
+};
+
 /** From 80 % of what is included (ADR 029); none below it, and none while no SMS goes. */
-export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader & { canAct: boolean }) {
+export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader): SmsBar | null {
   if (sms.included === null) return null;
-  const { owner, stop } = reader;
   const included = codesLabel(sms.included);
   const renews = sms.periodEnd ? roDate(sms.periodEnd).slice(0, 5) : null;
   const on = renews ? ` pe ${renews}` : '';
   const until = renews ? `Până pe ${renews} pleacă pe email` : 'Pleacă pe email';
-  const stopped = {
-    lead: 'Codurile de semnare nu mai pleacă prin SMS.',
-    short: 'Codurile SMS s-au oprit.',
-  };
   switch (sms.state) {
     case 'near':
       return {
@@ -167,49 +132,18 @@ export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader & { canAct: bo
         state: 'near',
         lead: `Ai folosit ${formatCount(sms.used)} din cele ${included} de semnare prin SMS.`,
         short: `${formatCount(sms.used)} din ${included} SMS.`,
-        detail:
-          stop !== 'billed'
-            ? `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă pe email.`
-            : owner
-              ? `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, fiecare cod costă ${smsPrice}.`
-              : `Se reînnoiesc${on}.`,
+        detail: `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă pe email.`,
         closable: true,
-        link: 'usage',
-      } satisfies SmsBar;
-    case 'over':
-      return {
-        kind: 'sms',
-        state: 'over',
-        lead: `Ai trecut de cele ${included} SMS incluse.`,
-        short: `Peste cele ${included} SMS.`,
-        detail: owner
-          ? `Codurile pleacă mai departe, cu ${smsPrice} fiecare, pe factura din ${renews ?? 'luna următoare'}.`
-          : `Codurile pleacă mai departe${renews ? ` până pe ${renews}, când se reînnoiesc` : ''}.`,
-        closable: false,
-        link: 'usage',
-      } satisfies SmsBar;
-    case 'capped': {
-      const cap = formatCount(sms.cap ?? sms.included);
-      return {
-        kind: 'smsStop',
-        state: 'capped',
-        ...stopped,
-        detail: owner
-          ? `Ai atins limita de siguranță de ${cap} pe lună. ${until}; cine nu are email nu poate semna.`
-          : `S-a atins limita de ${cap} pe lună. ${until}; adminul poate ridica limita.`,
-        closable: false,
-        link: reader.canAct ? 'raiseCap' : owner ? 'usage' : null,
-      } satisfies SmsBar;
-    }
+      };
     case 'stopped':
       return {
         kind: 'smsStop',
         state: 'stopped',
-        ...stopped,
-        detail: `Ai folosit cele ${included} ${stop === 'tester' ? 'ale lunii' : 'de până la prima plată'}. ${until}; cine nu are email nu poate semna.`,
+        lead: 'Codurile de semnare nu mai pleacă prin SMS.',
+        short: 'Codurile SMS s-au oprit.',
+        detail: `Ai folosit cele ${included} ${stopWords[reader.stop]}. ${until}; cine nu are email nu poate semna.`,
         closable: false,
-        link: 'usage',
-      } satisfies SmsBar;
+      };
     default:
       return null;
   }

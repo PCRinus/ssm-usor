@@ -1721,7 +1721,7 @@ describe('confirming', () => {
     await user.click(await screen.findByTestId('employee-hub-confirm'));
     const dialog = await screen.findByTestId('employee-confirm-dialog');
     expect(within(dialog).getByTestId('import-credits-used').textContent).toBe(
-      'Importul a folosit 98 de credite.'
+      'Importul a folosit 98 de credite AI.'
     );
   });
 

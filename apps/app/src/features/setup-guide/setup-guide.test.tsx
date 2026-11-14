@@ -199,6 +199,7 @@ const anotherChange = (runtime: AppRuntime) =>
 const readOnly: SubscriptionSummary = {
   plan: 'profesional',
   planChosen: false,
+  step: null,
   status: 'canceled',
   trialEndsAt: null,
   accessUntil: null,

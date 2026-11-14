@@ -4,18 +4,18 @@ import { formatCount } from './billing-format';
 import type { MeterTone } from './sms-copy';
 import { contactEmail, roDate } from './subscription-copy';
 
-export const creditsLabel = 'Credite pentru import';
+export const creditsLabel = 'Credite AI';
 
 export const creditsExplained =
-  'Un credit e o pagină scanată sau o fotografie citită la import. Documentele unui client costă 25 de credite, plus câte unul pentru fiecare pagină scanată.';
+  'Cu creditele AI, inteligența artificială citește documentele și fișele pe care le încarci. Documentele unui client folosesc 25 de credite AI, plus unul pentru fiecare pagină scanată; fiecare fotografie a unei fișe folosește unul.';
 
-/** "1 credit", "12 credite", "300 de credite", "10.000 de credite". */
+/** "1 credit AI", "12 credite AI", "300 de credite AI", "10.000 de credite AI". */
 export function creditsCount(count: number) {
-  if (count === 1) return '1 credit';
+  if (count === 1) return '1 credit AI';
   const tail = count % 100;
   return count !== 0 && (tail === 0 || tail >= 20)
-    ? `${formatCount(count)} de credite`
-    : `${formatCount(count)} credite`;
+    ? `${formatCount(count)} de credite AI`
+    : `${formatCount(count)} credite AI`;
 }
 
 /**
@@ -68,7 +68,6 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
   const limit = Math.max(0, credits.included - credits.shortfall);
   const renews = roDate(credits.periodEnd);
   const available = credits.left + credits.giftLeft;
-  const askUs = `scrie-ne la ${contactEmail} și îți adăugăm credite`;
   const shortfall =
     credits.shortfall > 0
       ? ` Luna aceasta ai ${formatCount(limit)}: ${formatCount(credits.shortfall)} s-au scăzut pentru luna trecută.`
@@ -88,8 +87,8 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
         'Un import a găsit mai multe pagini scanate decât credite și a mers până la capăt.';
       const rest =
         reader.kind === 'trial'
-          ? `Până la prima plată nu poți porni un import nou; dacă ai nevoie, ${askUs}.`
-          : `Pe ${renews} primești ${formatCount(credits.included + credits.left)} în loc de ${formatCount(credits.included)}. Până atunci nu poți porni un import nou; dacă ai nevoie, ${askUs}.`;
+          ? 'Până la prima plată nu poți porni un import nou.'
+          : `Pe ${renews} primești ${formatCount(credits.included + credits.left)} în loc de ${formatCount(credits.included)}. Până atunci nu poți porni un import nou.`;
       hint = `${first} ${rest}`;
       hintShort = `${first} Cele ${below} se scad ${next}. ${rest}`;
       break;
@@ -97,10 +96,10 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
     case 'out':
       hint =
         reader.kind === 'trial'
-          ? `Ai folosit toate cele ${formatCount(credits.included)} ale perioadei de probă. Altele vin cu prima plată, după ce alegi un plan. Ai nevoie mai devreme? ${capitalized(askUs)}.`
+          ? `Ai folosit toate cele ${formatCount(credits.included)} ale perioadei de probă. Altele vin cu prima plată, după ce alegi un plan.`
           : reader.kind === 'tester'
-            ? `Cont de test: ai folosit cele ${formatCount(credits.included)} ale lunii. Nu poți porni un import nou până pe ${renews}; dacă ai nevoie, ${askUs}.`
-            : `Nu poți porni un import nou până pe ${renews}, când primești alte ${formatCount(credits.included)}. Ai nevoie mai devreme? ${capitalized(askUs)}.`;
+            ? `Cont de test: ai folosit cele ${formatCount(credits.included)} ale lunii. Nu poți porni un import nou până pe ${renews}; dacă ai nevoie, scrie-ne la ${contactEmail} și îți adăugăm credite AI.`
+            : `Nu poți porni un import nou până pe ${renews}, când primești alte ${formatCount(credits.included)}.`;
       break;
     default: {
       const near =
@@ -118,7 +117,7 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
       } else if (reader.kind === 'tester') {
         hint = `${near}Cont de test: ${formatCount(credits.included)} pe lună. La ${formatCount(credits.included)}, importurile se opresc până pe ${renews}; scrie-ne dacă ai nevoie de mai multe.`;
       } else if (credits.left <= 0 && credits.giftLeft > 0) {
-        hint = `Creditele lunii s-au terminat, așa că importurile folosesc acum creditele de bun venit. Pe ${renews} primești alte ${formatCount(credits.included)}.`;
+        hint = `Creditele AI ale lunii s-au terminat, așa că importurile folosesc acum creditele de bun venit. Pe ${renews} primești alte ${formatCount(credits.included)}.`;
       } else {
         hint = near
           ? `${near}Pe ${renews} primești alte ${formatCount(credits.included)}.`
@@ -137,8 +136,6 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
     hintShort: hintShort && hintShort + shortfall,
   };
 }
-
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export interface GiftPanel {
   look: 'balance' | 'promise' | 'spent';
@@ -162,15 +159,15 @@ export function giftPanelFor(
   if (credits.giftLeft > 0) {
     return {
       look: 'balance',
-      title: 'Credite de bun venit',
-      text: `${welcomeCredits ? `Rămase din ${formatCount(welcomeCredits)}. ` : ''}Nu expiră și se folosesc după creditele lunii.`,
+      title: 'Credite AI de bun venit',
+      text: `${welcomeCredits ? `Rămase din ${formatCount(welcomeCredits)}. ` : ''}Nu expiră și se folosesc după creditele AI ale lunii.`,
       value: formatCount(credits.giftLeft),
     };
   }
   if (paid && welcomeCredits) {
     return {
       look: 'spent',
-      title: 'Credite de bun venit',
+      title: 'Credite AI de bun venit',
       text: `Le-ai folosit pe toate cele ${formatCount(welcomeCredits)}. Nu se mai primesc.`,
       value: '0',
     };
