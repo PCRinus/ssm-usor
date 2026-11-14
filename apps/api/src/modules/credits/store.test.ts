@@ -39,6 +39,7 @@ function upstream(answer: Record<string, unknown>) {
           balance: 0,
           gift_left: 0,
           extra: 100,
+          extra_left: 0,
         });
       }
       throw new Error(`Unexpected ${url.pathname}`);
@@ -128,6 +129,6 @@ describe('charging credits', () => {
       creditPolicy(paid, now)
     );
 
-    expect(balance).toMatchObject({ extra: 100, extraLeft: 500 });
+    expect(balance).toMatchObject({ extra: 100, extraLeft: 500, extrasOn: true });
   });
 });

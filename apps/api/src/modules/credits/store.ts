@@ -18,6 +18,7 @@ export type Balance = {
   giftLeft: number;
   extra: number;
   extraLeft: number;
+  extrasOn: boolean;
 };
 
 export type Charge = {
@@ -28,7 +29,6 @@ export type Charge = {
   extraBlocks: number;
 };
 
-// Told of every charge that bought blocks of extra credits, to report them to Stripe.
 export type CreditsHooks = { blocksBought?: (organizationId: string) => Promise<void> | void };
 
 export type ImportCreditEntry = {
@@ -55,8 +55,15 @@ function periodArgs(policy: CreditPolicy) {
 }
 
 export function creditsStore(db: AdminClient, hooks: CreditsHooks = {}) {
-  async function extraLeft(organizationId: string, policy: CreditPolicy, extra: number) {
-    if (!policy.limited || policy.blockCents === null) return 0;
+  // What the extras can still give: what the month's blocks hold, plus the blocks the ceiling can
+  // still buy.
+  async function extras(
+    organizationId: string,
+    policy: CreditPolicy,
+    bought: { extra: number; extra_left: number }
+  ) {
+    const off = { extraLeft: 0, extrasOn: false };
+    if (!policy.limited || policy.blockCents === null) return off;
     const { data, error } = await db
       .from('usage_extras')
       .select('ceiling_cents')
@@ -64,9 +71,12 @@ export function creditsStore(db: AdminClient, hooks: CreditsHooks = {}) {
       .eq('kind', 'credits')
       .maybeSingle();
     if (error) throw fromDatabaseError(error, 'credits ceiling');
-    if (!data) return 0;
+    if (!data) return off;
     const blocks = Math.floor(data.ceiling_cents / policy.blockCents);
-    return Math.max(0, blocks * creditsExtra.blockCredits - extra);
+    return {
+      extraLeft: bought.extra_left + Math.max(0, blocks * creditsExtra.blockCredits - bought.extra),
+      extrasOn: true,
+    };
   }
 
   return {
@@ -91,7 +101,7 @@ export function creditsStore(db: AdminClient, hooks: CreditsHooks = {}) {
         balance: data.balance,
         giftLeft: data.gift_left,
         extra: data.extra,
-        extraLeft: await extraLeft(organizationId, policy, data.extra),
+        ...(await extras(organizationId, policy, data)),
       };
     },
     async charge(input: {

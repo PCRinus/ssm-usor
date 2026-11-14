@@ -1118,6 +1118,7 @@ export type Database = {
           actor: string | null;
           created_at: string;
           credits: number;
+          extra_credits: number;
           gift_credits: number;
           id: number;
           import_file_id: string | null;
@@ -1133,6 +1134,7 @@ export type Database = {
           actor?: string | null;
           created_at?: string;
           credits: number;
+          extra_credits?: number;
           gift_credits?: number;
           id?: never;
           import_file_id?: string | null;
@@ -1148,6 +1150,7 @@ export type Database = {
           actor?: string | null;
           created_at?: string;
           credits?: number;
+          extra_credits?: number;
           gift_credits?: number;
           id?: never;
           import_file_id?: string | null;
@@ -7690,6 +7693,7 @@ export type Database = {
         Returns: {
           balance: number;
           extra: number;
+          extra_left: number;
           gift_left: number;
           granted: number;
           shortfall: number;
@@ -7704,6 +7708,7 @@ export type Database = {
         };
         Returns: {
           extra: number;
+          extra_used: number;
           granted: number;
           used: number;
         }[];

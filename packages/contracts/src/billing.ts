@@ -374,6 +374,8 @@ export const billingSmsUsageSchema = z.object({
   granted: z.int().min(0),
   // Codes past `included` this month, sent as extras and billed on the next invoice.
   overage: z.int().min(0),
+  // The owner turned SMS extras on and they apply now: past `included`, codes go on by SMS.
+  extrasOn: z.boolean(),
   // Null while no SMS goes.
   periodStart: timestamp.nullable(),
   periodEnd: timestamp.nullable(),
@@ -432,6 +434,8 @@ export const billingCreditsUsageSchema = z.object({
   extra: z.int().min(0),
   // What the extras' ceiling can still buy this month, in whole blocks; 0 while extras are off.
   extraLeft: z.int().min(0),
+  // The owner turned AI extras on and they apply now.
+  extrasOn: z.boolean(),
   // `trial`: one allowance for the whole trial, which does not renew; `month`: renews at the end.
   period: z.enum(['trial', 'month']),
   periodStart: timestamp,

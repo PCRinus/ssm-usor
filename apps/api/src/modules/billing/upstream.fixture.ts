@@ -46,7 +46,14 @@ export type Fake = {
   uploads: { path: string; bytes: number }[];
   smsUsage: { used: number; overage: number; granted: number };
   employeesOverStep: Row | null;
-  credits: { granted: number; used: number; shortfall: number; gift_left: number; extra: number };
+  credits: {
+    granted: number;
+    used: number;
+    shortfall: number;
+    gift_left: number;
+    extra: number;
+    extra_left?: number;
+  };
 };
 
 export const priceIdOf = (lookupKey: string) => `price_${lookupKey}`;
@@ -382,10 +389,11 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
     if (url.pathname === '/rest/v1/rpc/employees_over_step') return json(fake.employeesOverStep);
     if (url.pathname === '/rest/v1/rpc/credit_balance') {
       const { p_allowance } = JSON.parse(body ?? '{}') as { p_allowance: number | null };
-      const { granted, used, shortfall, extra } = fake.credits;
+      const { granted, used, shortfall } = fake.credits;
       return json({
+        extra_left: 0,
         ...fake.credits,
-        balance: p_allowance === null ? null : p_allowance + granted + extra - used - shortfall,
+        balance: p_allowance === null ? null : p_allowance + granted - used - shortfall,
       });
     }
     if (url.pathname.startsWith('/rest/v1/')) return database(fake, call, headers);

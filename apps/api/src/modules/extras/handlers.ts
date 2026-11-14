@@ -6,12 +6,21 @@ import {
   type BillingSmsUsage,
   creditsExtra,
   type ExtraKind,
+  type meteredProducts,
+  smsOverage,
 } from '@ssm-usor/contracts';
-import type Stripe from 'stripe';
 
 import { createAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import {
+  hasMetered,
+  releaseSchedule,
+  retrieveSubscription,
+  scheduledChoice,
+  scheduleRenewal,
+  type StripeBilling,
+} from '../billing/service';
 import { loadSubscription, recordChange } from '../billing/store';
 import { priceId, stripeCatalogue, stripeFor } from '../billing/stripe';
 import { creditsStore } from '../credits/store';
@@ -29,7 +38,6 @@ const hidden: Omit<BillingExtra, 'enabled'> = {
   spentCents: null,
 };
 
-/** The other members see whether each kind is on, and nothing of the ceilings or the amounts. */
 export function extrasView(input: {
   row: Parameters<typeof extrasUnavailable>[0];
   ceilings: Ceilings;
@@ -58,15 +66,46 @@ export function extrasView(input: {
 const conflict = (reason: string, message: string) =>
   new ApiError('conflict', message, undefined, reason);
 
-// Subscriptions made before AI extras existed carry no item for their meter, and a meter event
-// for a customer whose subscription has no such item is accepted and billed to nobody.
-export async function ensureCreditsItem(stripe: Stripe, subscriptionId: string, price: string) {
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  if (subscription.items.data.some((item) => item.price.id === price)) return false;
-  await stripe.subscriptionItems.create(
-    { subscription: subscriptionId, price, proration_behavior: 'none' },
-    { idempotencyKey: `credits-extra-item-${subscriptionId}` }
+const meteredOf: Record<ExtraKind, (typeof meteredProducts)[number]> = {
+  sms: smsOverage,
+  credits: creditsExtra,
+};
+
+// A subscription made before an extra's price existed carries no item for its meter, and a meter
+// event for a customer without one is accepted and billed to nobody. A change waiting for its
+// payment is discarded by any items update, so Extra waits for it; a change set for the renewal
+// is a schedule whose phases list the items, so it is set again with the new item in it.
+export async function ensureMeteredItem(
+  billing: StripeBilling,
+  subscriptionId: string,
+  kind: ExtraKind
+) {
+  const product = meteredOf[kind];
+  const subscription = await retrieveSubscription(billing, subscriptionId);
+  if (hasMetered(subscription, product.key)) return false;
+  if (subscription.pending_update) {
+    throw conflict(
+      'extras_pending_payment',
+      'A change waits for its payment; Extra can be turned on once it is settled.'
+    );
+  }
+  const scheduled = await scheduledChoice(billing, subscription);
+  if (scheduled) await releaseSchedule(billing, subscription);
+  await billing.access.stripe.subscriptionItems.create(
+    {
+      subscription: subscriptionId,
+      price: priceId(billing.catalogue, product.price.lookupKey),
+      proration_behavior: 'none',
+    },
+    { idempotencyKey: `${product.key}-item-${subscriptionId}` }
   );
+  if (scheduled) {
+    await scheduleRenewal(
+      billing,
+      await retrieveSubscription(billing, subscriptionId),
+      scheduled.choice
+    );
+  }
   return true;
 }
 
@@ -80,22 +119,30 @@ export const setExtra: RouteHandler<typeof setExtraRoute, ApiEnv> = async (c) =>
   const store = extrasStore(db);
 
   const row = await loadSubscription(db, organizationId);
-  const unavailable = extrasUnavailable(row);
-  if (ceilingCents !== null && unavailable) {
+  const before = await store.ceilings(organizationId);
+  const was = before[kind];
+  // Lowering or turning off is how an owner stops a cost, so it works whatever the subscription.
+  const raising = ceilingCents !== null && (was === null || ceilingCents > was);
+  if (raising && extrasUnavailable(row)) {
     throw conflict(
       'extras_unavailable',
       'Extras apply only to a paid subscription in good standing.'
     );
   }
-  const before = await store.ceilings(organizationId);
-  if (before[kind] !== ceilingCents) {
-    if (kind === 'credits' && ceilingCents !== null && row?.stripe_subscription_id) {
+  if (was !== ceilingCents) {
+    if (raising && row?.stripe_subscription_id) {
       const access = stripeFor(c.env);
-      const catalogue = await stripeCatalogue(access);
-      await ensureCreditsItem(
-        access.stripe,
+      await ensureMeteredItem(
+        {
+          db,
+          organizationId,
+          userId,
+          now: new Date(),
+          access,
+          catalogue: await stripeCatalogue(access),
+        },
         row.stripe_subscription_id,
-        priceId(catalogue, creditsExtra.price.lookupKey)
+        kind
       );
     }
     await store.setCeiling(organizationId, kind, ceilingCents);

@@ -43,7 +43,7 @@ language sql as $$
 $$;
 
 create or replace function pg_temp.balance(shift int default 0)
-returns table (granted int, used int, shortfall int, balance int, gift_left int, extra int)
+returns table (granted int, used int, shortfall int, balance int, gift_left int, extra int, extra_left int)
 language sql as $$
   select * from public.credit_balance(
     '11111111-0000-4000-8000-000000000061',

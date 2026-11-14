@@ -1200,10 +1200,15 @@ in euros.
 **Extras** (ADR 029 and ADR 030, amendments of 2026-11-14). `PUT /billing/extras/{kind}` with
 `{ ceilingEuros }` turns `sms` or `credits` on with a monthly ceiling in whole euro (1 to 500),
 changes it, or with `null` turns it off; a change applies at once and what was used stays on the
-next invoice. Turning one on answers `409 extras_unavailable` unless the subscription has paid
-and is `active` (a trial, past due, ended, Enterprise, or no subscription); turning off always
-works. Turning AI credits on first adds the `credits_extra_monthly_v2` item to a Stripe
-subscription made without it (no proration, idempotent by subscription). An ended subscription
+next invoice. Turning one on or raising its ceiling answers `409 extras_unavailable` unless the
+subscription has paid and is `active` (a trial, past due, ended, Enterprise, or no
+subscription); lowering and turning off always work. Turning one on while a change waits for its
+payment answers `409 extras_pending_payment`. Turning a kind on first adds its metered item (`sms_overage_monthly_v2` or
+`credits_extra_monthly_v2`) to a Stripe subscription without one of that product (no proration,
+idempotent by subscription), releasing and setting again a schedule for the renewal around it.
+Usage carries `extrasOn` per kind; for anyone but the owner in person, `GET /billing` and
+`GET /me` leave out what the ceiling and the spend could be worked out from: `overage` is 0 and
+`used` stops at `included` for SMS, and `extra` and `extraLeft` are 0 for credits. An ended subscription
 turns both off (`extras_ended`). The answer, like `GET /billing`'s `extras`, is
 `{ unavailable, sms, credits }`, each kind `{ enabled, ceilingCents, limit, used, spentCents }`,
 the last four null except for the owner in person: `limit` is the codes, or the credits in

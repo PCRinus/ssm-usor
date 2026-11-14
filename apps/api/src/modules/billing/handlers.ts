@@ -27,6 +27,7 @@ import { isOwnerInPerson } from '../../lib/membership';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
 import { extrasView } from '../extras/handlers';
+import { creditsForMember, smsForMember } from '../extras/members';
 import { extrasStore } from '../extras/store';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
@@ -254,8 +255,8 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
         employeesOverStep,
         members: { used: usage.members, limit: limits.members },
         invitations,
-        smsThisMonth: sms,
-        creditsThisMonth: credits,
+        smsThisMonth: ownerInPerson ? sms : smsForMember(sms),
+        creditsThisMonth: ownerInPerson ? credits : creditsForMember(credits),
       },
       catalogue,
       extras: extrasView({ row, ceilings, sms, credits, owner: ownerInPerson }),

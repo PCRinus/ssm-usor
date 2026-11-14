@@ -110,6 +110,8 @@ key's alone.
 `usage_extras` ([ADR 029, amendment of 2026-11-14](architecture/adr-029-billing-plans-and-trials.md#amendment-2026-11-14-extras-with-a-monthly-ceiling))
 holds the extras an owner turned on, one row per `(organization, kind)`, `kind` `sms` or
 `credits`, with `ceiling_cents`, whole euro from 1 € to 500 € a month by a check; no row is off.
+`credit_entries.extra_credits` is an entry's part drawn from blocks, as `gift_credits` is its part
+from the welcome credits, so the month's balance never holds a block's credits.
 `credit_extra_blocks` holds every block of 100 AI credits bought past the month's and the welcome
 credits: the organization, the month, its `number` in the month (unique, so two charges cannot buy
 the same block) and `reported_at`, when its meter event went to Stripe; its id is the event's
@@ -136,10 +138,11 @@ grant, by `(organization, period_start)`: its `period_end`, the largest `allowan
 downgrade at the renewal would otherwise hide it) and the `shortfall` carried in from the month
 before, fixed when the month opens, at most 150. The allowance itself is computed by the API from
 the plan, which passes the months in. `credit_balance` and `credit_period_counts` also answer
-`extra`, 100 credits for each block bought in the month, which count into the month's balance;
-`charge_credits(…, p_block_cents)` buys blocks under the same lock once the month's and the
-welcome credits are used, while the owner's credits ceiling covers them, and answers
-`extra_blocks`, how many it bought.
+`extra`, 100 credits for each block bought in the month, and `credit_balance` `extra_left`, what
+they still hold, apart from the month's balance; `charge_credits(…, p_block_cents)` uses what the
+blocks hold once the month's and the welcome credits are used, then buys blocks under the same lock
+for what the charge still needs, while the owner's credits ceiling covers them (never for a
+balance already below zero), and answers `extra_blocks`, how many it bought.
 
 `credit_balance(organization, month, allowance, month before, its allowance)` answers the month's
 `granted`, `used` (charges net of refunds, the gift's part left out), `shortfall`, `balance` and

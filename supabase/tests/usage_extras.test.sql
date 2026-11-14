@@ -1,5 +1,5 @@
 begin;
-select plan(25);
+select plan(26);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -92,7 +92,7 @@ select results_eq(
 
 select results_eq(
   $$ select charged, refused, balance, gift_left, extra_blocks from pg_temp.charge(20, 'd', true) $$,
-  $$ values (20, false, 90, 0, 1) $$,
+  $$ values (20, false, 0, 0, 1) $$,
   'past the welcome credits one block of 100 is bought, the remaining welcome credits used first'
 );
 
@@ -104,13 +104,13 @@ select results_eq(
 
 select results_eq(
   $$ select charged, balance, extra_blocks from pg_temp.charge(250, 'f', true) $$,
-  $$ values (250, 50, 3) $$,
+  $$ values (250, 0, 3) $$,
   'a charge buys the blocks it needs at once'
 );
 
 select results_eq(
   $$ select refused, balance, extra_blocks from pg_temp.charge(251, 'g', true) $$,
-  $$ values (true, 50, 0) $$,
+  $$ values (true, 0, 0) $$,
   'a charge the ceiling cannot cover is refused, counting the blocks it can still buy'
 );
 
@@ -139,8 +139,14 @@ where organization_id = '11111111-0000-4000-8000-000000000091' and kind = 'credi
 
 select results_eq(
   $$ select charged, balance, extra_blocks from pg_temp.charge(10, 'j', true) $$,
-  $$ values (10, 85, 1) $$,
-  'a raised ceiling buys again at once, the block first filling what went below zero'
+  $$ values (10, -5, 1) $$,
+  'below zero, a raised ceiling buys one block for this charge alone, and the shortfall stays for next month'
+);
+
+select results_eq(
+  $$ select charged, balance, extra_blocks from pg_temp.charge(5, 'j2', false) $$,
+  $$ values (5, -5, 0) $$,
+  'what that block still holds pays the next charge, never the shortfall'
 );
 
 update public.usage_extras set ceiling_cents = 100
@@ -158,15 +164,15 @@ select results_eq(
   $$ select granted, used, extra, balance from public.credit_balance(
        '11111111-0000-4000-8000-000000000091', pg_temp.month_start(), pg_temp.month_start(1), 100,
        pg_temp.month_start(-1), pg_temp.month_start(), 100) $$,
-  $$ values (0, 715, 700, 85) $$,
+  $$ values (0, 105, 700, -5) $$,
   'the month counts the blocks apart from the credits added by hand'
 );
 
 select results_eq(
-  $$ select shortfall, balance, extra from public.credit_balance(
+  $$ select shortfall, balance, extra_left from public.credit_balance(
        '11111111-0000-4000-8000-000000000091', pg_temp.month_start(1), pg_temp.month_start(2), 100,
        pg_temp.month_start(), pg_temp.month_start(1), 100) $$,
-  $$ values (0, 100, 0) $$,
+  $$ values (5, 95, 0) $$,
   'what a block left unused ends with the month, and next month starts with no blocks'
 );
 

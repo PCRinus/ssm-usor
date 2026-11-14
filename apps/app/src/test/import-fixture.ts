@@ -109,6 +109,7 @@ export function meWithCredits(
     giftLeft: 7840,
     extra: 0,
     extraLeft: 0,
+    extrasOn: false,
     period: 'month',
     periodStart: '2026-10-14T08:00:00.000Z',
     periodEnd: '2026-11-14T08:00:00.000Z',

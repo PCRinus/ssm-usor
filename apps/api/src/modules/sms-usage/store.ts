@@ -9,7 +9,7 @@ export type SmsKind = Database['public']['Enums']['sms_kind'];
 
 export type Claim =
   | { id: string; overage: boolean }
-  | { refusal: Extract<SmsRefusalReason, 'sms_allowance_reached'>; atCeiling: boolean };
+  | { refusal: Extract<SmsRefusalReason, 'sms_allowance_reached'> };
 
 export type PeriodUsage = { used: number; overage: number; granted: number };
 
@@ -58,12 +58,7 @@ export function smsUsageStore(db: AdminClient) {
         .single();
       if (error) throw fromDatabaseError(error, 'sms claim');
       // The signer meets the ceiling as the allowance: the code goes by email either way.
-      if (data.refusal) {
-        return {
-          refusal: 'sms_allowance_reached',
-          atCeiling: data.refusal === 'sms_ceiling_reached',
-        };
-      }
+      if (data.refusal) return { refusal: 'sms_allowance_reached' };
       return { id: data.id, overage: data.overage };
     },
     async markSent(id: string, providerId: string | null, at: Date) {

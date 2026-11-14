@@ -75,6 +75,7 @@ describe('PUT /billing/extras/{kind}', () => {
   it('turns SMS extras on with a ceiling in whole euro and logs who did it', async () => {
     const fake = createFake();
     fake.tables.subscriptions!.push(paidRow(start));
+    stripeForOwner(fake);
 
     const response = await request('PUT', '/billing/extras/sms', { ceilingEuros: 10 });
 
@@ -111,7 +112,7 @@ describe('PUT /billing/extras/{kind}', () => {
     ]);
     expect(
       fake.calls.find((call) => call.url.pathname === '/v1/subscription_items')!.idempotencyKey
-    ).toBe('credits-extra-item-sub_1Test');
+    ).toBe('credits_extra-item-sub_1Test');
     expect(billingExtrasSchema.parse(await response.json()).credits).toMatchObject({
       enabled: true,
       ceilingCents: 1000,
@@ -159,6 +160,128 @@ describe('PUT /billing/extras/{kind}', () => {
     expect((await request('PUT', '/billing/extras/sms', { ceilingEuros: null })).status).toBe(200);
   });
 
+  it('adds the SMS item to a subscription that has none, as a v1 one may', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow(start));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({
+        choice: start,
+        lines: [{ lookupKey: 'start_250_monthly_v2', quantity: 1 }],
+      });
+    fake.stripe['POST /v1/subscription_items'] = () => ({
+      id: 'si_sms',
+      object: 'subscription_item',
+    });
+
+    expect((await request('PUT', '/billing/extras/sms', { ceilingEuros: 10 })).status).toBe(200);
+    expect(stripeWrites(fake, '/v1/subscription_items')).toEqual([
+      {
+        subscription: 'sub_1Test',
+        price: priceIdOf('sms_overage_monthly_v2'),
+        proration_behavior: 'none',
+      },
+    ]);
+  });
+
+  it('keeps a change set for the renewal, with the new item in both phases', async () => {
+    const fake = createFake();
+    const renewal = Math.floor(Date.now() / 1000) + 12 * day;
+    const lines = [{ lookupKey: 'start_500_monthly_v2', quantity: 1 }];
+    let added = false;
+    fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({
+        choice: { ...start, step: 500 },
+        periodEnd: renewal,
+        lines: added
+          ? [...lines, { lookupKey: 'credits_extra_monthly_v2', quantity: undefined }]
+          : lines,
+        schedule: added
+          ? null
+          : {
+              id: 'sub_sched_1',
+              object: 'subscription_schedule',
+              phases: [
+                { start_date: renewal - 30 * day, end_date: renewal, items: [] },
+                {
+                  start_date: renewal,
+                  end_date: renewal + 30 * day,
+                  items: [{ price: priceIdOf('start_250_monthly_v2'), quantity: 1 }],
+                },
+              ],
+            },
+      });
+    fake.stripe['POST /v1/subscription_schedules/sub_sched_1/release'] = () => ({
+      id: 'sub_sched_1',
+      object: 'subscription_schedule',
+    });
+    fake.stripe['POST /v1/subscription_items'] = () => {
+      added = true;
+      return { id: 'si_credits', object: 'subscription_item' };
+    };
+    fake.stripe['POST /v1/subscription_schedules'] = () => ({
+      id: 'sub_sched_2',
+      object: 'subscription_schedule',
+      phases: [{ start_date: renewal - 30 * day, end_date: renewal, items: [] }],
+    });
+    fake.stripe['POST /v1/subscription_schedules/sub_sched_2'] = () => ({
+      id: 'sub_sched_2',
+      object: 'subscription_schedule',
+      phases: [],
+    });
+
+    expect((await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 })).status).toBe(
+      200
+    );
+    const order = fake.calls
+      .filter((call) => call.url.host === 'api.stripe.com' && call.method === 'POST')
+      .map((call) => call.url.pathname);
+    expect(order).toEqual([
+      '/v1/subscription_schedules/sub_sched_1/release',
+      '/v1/subscription_items',
+      '/v1/subscription_schedules',
+      '/v1/subscription_schedules/sub_sched_2',
+    ]);
+    const phases = stripeWrites(fake, '/v1/subscription_schedules/sub_sched_2')[0]!;
+    expect(phases).toMatchObject({
+      'phases[0][items][1][price]': priceIdOf('credits_extra_monthly_v2'),
+      'phases[1][items][0][price]': priceIdOf('start_250_monthly_v2'),
+      'phases[1][items][2][price]': priceIdOf('credits_extra_monthly_v2'),
+    });
+  });
+
+  it('waits for a change whose payment is pending, and says so', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow(start));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => ({
+      ...stripeSubscription({
+        choice: start,
+        lines: [{ lookupKey: 'start_250_monthly_v2', quantity: 1 }],
+      }),
+      pending_update: { expires_at: Math.floor(Date.now() / 1000) + day },
+    });
+
+    const response = await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 });
+
+    expect(response.status).toBe(409);
+    expect(await reasonOf(response)).toBe('extras_pending_payment');
+    expect(ceilings(fake)).toEqual([]);
+  });
+
+  it('lets an owner whose payment is overdue lower a ceiling, never raise it', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow(start, { status: 'past_due' }));
+    fake.tables.usage_extras = [
+      { organization_id: organizationId, kind: 'sms', ceiling_cents: 50000 },
+    ];
+
+    expect((await request('PUT', '/billing/extras/sms', { ceilingEuros: 20 })).status).toBe(200);
+    expect(ceilings(fake)).toEqual([['sms', 2000]]);
+    const raised = await request('PUT', '/billing/extras/sms', { ceilingEuros: 30 });
+    expect(raised.status).toBe(409);
+    expect(ceilings(fake)).toEqual([['sms', 2000]]);
+  });
+
   it.each([0, 501, 9.5])('refuses a ceiling of %s €', async (ceilingEuros) => {
     const fake = createFake();
     fake.tables.subscriptions!.push(paidRow(start));
@@ -199,13 +322,19 @@ describe('the extras on GET /billing', () => {
       credits: { enabled: true, ceilingCents: 1500, limit: 1000, used: 100, spentCents: 150 },
     });
     expect(body.usage.smsThisMonth.state).toBe('extra');
-    expect(body.usage.creditsThisMonth).toMatchObject({ extra: 100, extraLeft: 900 });
+    expect(body.usage.smsThisMonth.extrasOn).toBe(true);
+    expect(body.usage.creditsThisMonth).toMatchObject({
+      extra: 100,
+      extraLeft: 900,
+      extrasOn: true,
+    });
   });
 
   it('shows the other members whether each extra is on, and no amount', async () => {
     const fake = createFake({
       membership: { user_id: owner.id, role: 'specialist', access: 'full' },
-      smsUsage: { used: 87, overage: 37, granted: 0 },
+      smsUsage: { used: 137, overage: 37, granted: 0 },
+      credits: { granted: 0, used: 900, shortfall: 0, gift_left: 0, extra: 200, extra_left: 50 },
     });
     fake.tables.subscriptions!.push(paidRow(start));
     fake.tables.usage_extras = [
@@ -219,6 +348,8 @@ describe('the extras on GET /billing', () => {
       sms: { enabled: true, ceilingCents: null, limit: null, used: null, spentCents: null },
       credits: { enabled: false, ceilingCents: null, limit: null, used: null, spentCents: null },
     });
+    expect(body.usage.smsThisMonth).toMatchObject({ used: 50, overage: 0, extrasOn: true });
+    expect(body.usage.creditsThisMonth).toMatchObject({ extra: 0, extraLeft: 0 });
   });
 
   it('says why extras cannot be turned on during a trial', async () => {

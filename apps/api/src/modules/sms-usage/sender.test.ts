@@ -163,7 +163,7 @@ describe('the SMS sender', () => {
   it.each(['sms_allowance_reached'] as const)(
     'answers the refusal the count gives (%s) and sends nothing',
     async (refusal) => {
-      const { send, sendSigningCode, onCounted } = setUp(paid, { refusal, atCeiling: false });
+      const { send, sendSigningCode, onCounted } = setUp(paid, { refusal });
 
       expect(await send()).toEqual({
         sent: false,

@@ -313,6 +313,9 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "extrasOn": {
+                "type": "boolean"
+              },
               "periodStart": {
                 "type": "string",
                 "nullable": true,
@@ -334,6 +337,7 @@
               "allowance",
               "granted",
               "overage",
+              "extrasOn",
               "periodStart",
               "periodEnd",
               "state"
@@ -381,6 +385,9 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "extrasOn": {
+                "type": "boolean"
+              },
               "period": {
                 "type": "string",
                 "enum": ["trial", "month"]
@@ -408,6 +415,7 @@
               "giftLeft",
               "extra",
               "extraLeft",
+              "extrasOn",
               "period",
               "periodStart",
               "periodEnd",
@@ -21392,6 +21400,9 @@
                     "type": "integer",
                     "minimum": 0
                   },
+                  "extrasOn": {
+                    "type": "boolean"
+                  },
                   "periodStart": {
                     "type": "string",
                     "nullable": true,
@@ -21413,6 +21424,7 @@
                   "allowance",
                   "granted",
                   "overage",
+                  "extrasOn",
                   "periodStart",
                   "periodEnd",
                   "state"
@@ -21459,6 +21471,9 @@
                     "type": "integer",
                     "minimum": 0
                   },
+                  "extrasOn": {
+                    "type": "boolean"
+                  },
                   "period": {
                     "type": "string",
                     "enum": ["trial", "month"]
@@ -21486,6 +21501,7 @@
                   "giftLeft",
                   "extra",
                   "extraLeft",
+                  "extrasOn",
                   "period",
                   "periodStart",
                   "periodEnd",

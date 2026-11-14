@@ -119,17 +119,26 @@ $$;
 revoke all on function public.claim_sms_send(uuid, public.sms_kind, timestamptz, timestamptz, int, int) from public, anon, authenticated;
 grant execute on function public.claim_sms_send(uuid, public.sms_kind, timestamptz, timestamptz, int, int) to service_role;
 
--- Credits now count the blocks bought in the month as `extra`: 100 credits each, added to the
--- month's, so what a block leaves unused is used next and ends with the month.
+-- An entry's part drawn from blocks of extra credits, as `gift_credits` is its part from the
+-- welcome credits, so the month's balance never holds a block's credits: a balance below zero (the
+-- 150 a reading may overrun) stays a shortfall for the next month and is never paid off with blocks.
+alter table public.credit_entries
+  add column extra_credits integer not null default 0,
+  add constraint credit_entries_extra_part check (
+    case when credits <= 0 then extra_credits between credits - gift_credits and 0
+         else extra_credits = 0 end
+  );
+
 drop function public.credit_balance(uuid, timestamptz, timestamptz, int, timestamptz, timestamptz, int);
 drop function public.credit_period_counts(uuid, timestamptz, timestamptz);
 
+-- `extra` is the credits bought in blocks in the month, `extra_used` what entries drew from them.
 create function public.credit_period_counts(
   p_organization_id uuid,
   p_period_start timestamptz,
   p_period_end timestamptz
 )
-returns table (granted int, used int, extra int)
+returns table (granted int, used int, extra int, extra_used int)
 language sql
 stable
 security definer
@@ -137,13 +146,14 @@ set search_path = ''
 as $$
   select
     coalesce(sum(e.credits) filter (where e.kind = 'grant'), 0)::int,
-    coalesce(-sum(e.credits - e.gift_credits) filter (where e.kind in (
+    coalesce(-sum(e.credits - e.gift_credits - e.extra_credits) filter (where e.kind in (
       'import_start', 'import_pages', 'scanned_page', 'refund', 'library_part', 'library_part_refund',
       'safety_sheet', 'safety_sheet_refund'
     )), 0)::int,
     (select 100 * count(*)::int from public.credit_extra_blocks b
       where b.organization_id = p_organization_id
-        and b.created_at >= p_period_start and b.created_at < p_period_end)
+        and b.created_at >= p_period_start and b.created_at < p_period_end),
+    coalesce(-sum(e.extra_credits), 0)::int
   from public.credit_entries e
   where e.organization_id = p_organization_id
     and e.created_at >= p_period_start
@@ -153,6 +163,7 @@ $$;
 revoke all on function public.credit_period_counts(uuid, timestamptz, timestamptz) from public, anon, authenticated;
 grant execute on function public.credit_period_counts(uuid, timestamptz, timestamptz) to service_role;
 
+-- `extra_left` is what the month's blocks still hold; it ends with the month.
 create function public.credit_balance(
   p_organization_id uuid,
   p_period_start timestamptz,
@@ -162,7 +173,9 @@ create function public.credit_balance(
   p_previous_end timestamptz,
   p_previous_allowance int
 )
-returns table (granted int, used int, shortfall int, balance int, gift_left int, extra int)
+returns table (
+  granted int, used int, shortfall int, balance int, gift_left int, extra int, extra_left int
+)
 language plpgsql
 stable
 security definer
@@ -183,7 +196,8 @@ begin
   where e.organization_id = p_organization_id;
 
   if p_allowance is null then
-    return query select counts.granted, counts.used, 0, null::int, gift, counts.extra;
+    return query select counts.granted, counts.used, 0, null::int, gift, counts.extra,
+      greatest(0, counts.extra - counts.extra_used);
     return;
   end if;
 
@@ -198,13 +212,13 @@ begin
     from public.credit_period_counts(p_organization_id, p_previous_start, p_previous_end);
     carried := least(150, greatest(0, -(
       greatest(p_previous_allowance, previous.allowance)
-      + before.granted + before.extra - before.used - coalesce(previous.shortfall, 0)
+      + before.granted - before.used - coalesce(previous.shortfall, 0)
     )));
   end if;
 
   return query select
-    counts.granted, counts.used, carried,
-    p_allowance + counts.granted + counts.extra - counts.used - carried, gift, counts.extra;
+    counts.granted, counts.used, carried, p_allowance + counts.granted - counts.used - carried,
+    gift, counts.extra, greatest(0, counts.extra - counts.extra_used);
 end;
 $$;
 
@@ -217,11 +231,12 @@ drop function public.charge_credits(
 );
 
 -- Charges under the lock per organization. The order is the month's credits, then the welcome
--- credits, then blocks of 100 bought while the owner's ceiling covers them, then, for a charge
--- that is never refused, below zero by at most 150.
+-- credits, then what the month's blocks still hold, then new blocks of 100 while the owner's
+-- ceiling covers them, then, for a charge that is never refused, below zero by at most 150.
+-- Blocks are bought only for what this charge still needs: a balance already below zero is not
+-- paid off with them. While a ceiling is set, a charge that must be covered is judged on what it
+-- can use, the month's credits counting from zero.
 --   p_block_cents what a block costs, when extras may apply at all; null buys none
--- A charge that must be covered counts what the ceiling can still buy. Each block bought is a row
--- of its own, reported to Stripe; `extra_blocks` answers how many this charge bought.
 create function public.charge_credits(
   p_organization_id uuid,
   p_kind public.credit_entry_kind,
@@ -252,7 +267,6 @@ declare
   bought int := 0;
   blocks_left int := 0;
   blocks int := 0;
-  month_left int;
   from_month int;
   from_gift int;
   from_extra int;
@@ -304,7 +318,10 @@ begin
     end if;
   end if;
 
-  if p_require and current.balance + current.gift_left + 100 * blocks_left < p_credits then
+  if p_require and (
+    case when ceiling is null then current.balance else greatest(current.balance, 0) end
+    + current.gift_left + current.extra_left + 100 * blocks_left
+  ) < p_credits then
     return query select 0, true, current.balance, current.gift_left, 0;
     return;
   end if;
@@ -312,31 +329,33 @@ begin
   from_month := least(p_credits, greatest(current.balance, 0));
   from_gift := least(p_credits - from_month, current.gift_left);
   rest := p_credits - from_month - from_gift;
-  month_left := current.balance - from_month;
+  from_extra := least(rest, current.extra_left);
+  rest := rest - from_extra;
   if rest > 0 and blocks_left > 0 then
-    blocks := least(blocks_left, ceil((rest - month_left) / 100.0)::int);
+    blocks := least(blocks_left, ceil(rest / 100.0)::int);
     insert into public.credit_extra_blocks (organization_id, period_start, period_end, number)
     select p_organization_id, p_period_start, p_period_end, bought + n
     from generate_series(1, blocks) n;
-    month_left := month_left + 100 * blocks;
+    from_extra := from_extra + least(rest, 100 * blocks);
+    rest := rest - least(rest, 100 * blocks);
   end if;
-  from_extra := least(rest, greatest(month_left, 0));
-  below := least(rest - from_extra, greatest(0, month_left - from_extra + 150));
+  below := least(rest, greatest(0, current.balance - from_month + 150));
 
   perform public.open_credit_period(
     p_organization_id, p_period_start, p_period_end, p_allowance, current.shortfall
   );
   insert into public.credit_entries (
-    organization_id, kind, credits, gift_credits, import_id, import_file_id, page, key, import_part
+    organization_id, kind, credits, gift_credits, extra_credits, import_id, import_file_id, page,
+    key, import_part
   )
   values (
     p_organization_id, p_kind, -(from_month + from_gift + from_extra + below), -from_gift,
-    p_import_id, p_import_file_id, p_page, p_key, p_import_part
+    -from_extra, p_import_id, p_import_file_id, p_page, p_key, p_import_part
   );
 
   return query select
     from_month + from_gift + from_extra + below, false,
-    month_left - from_extra - below, current.gift_left - from_gift, blocks;
+    current.balance - from_month - below, current.gift_left - from_gift, blocks;
 end;
 $$;
 

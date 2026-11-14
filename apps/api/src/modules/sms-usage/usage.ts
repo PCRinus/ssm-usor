@@ -17,6 +17,7 @@ export async function smsUsageOf(
       allowance: 0,
       granted: 0,
       overage: 0,
+      extrasOn: false,
       periodStart: null,
       periodEnd: null,
       state: 'none',
@@ -33,6 +34,7 @@ export async function smsUsageOf(
     allowance: policy.allowance,
     granted: counts.granted,
     overage: counts.overage,
+    extrasOn: ceilingCents !== null,
     periodStart: policy.period.start.toISOString(),
     periodEnd: policy.period.end.toISOString(),
     state: smsState(policy, {

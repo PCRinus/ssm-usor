@@ -254,6 +254,7 @@ export type MeResponseSmsThisMonth = {
   granted: number;
   /** @minimum 0 */
   overage: number;
+  extrasOn: boolean;
   /** @nullable */
   periodStart: string | null;
   /** @nullable */
@@ -308,6 +309,7 @@ export type MeResponseCreditsThisMonth = {
   extra: number;
   /** @minimum 0 */
   extraLeft: number;
+  extrasOn: boolean;
   period: MeResponseCreditsThisMonthPeriod;
   periodStart: string;
   periodEnd: string;
@@ -13569,6 +13571,7 @@ export type BillingOverviewUsageSmsThisMonth = {
   granted: number;
   /** @minimum 0 */
   overage: number;
+  extrasOn: boolean;
   /** @nullable */
   periodStart: string | null;
   /** @nullable */
@@ -13620,6 +13623,7 @@ export type BillingOverviewUsageCreditsThisMonth = {
   extra: number;
   /** @minimum 0 */
   extraLeft: number;
+  extrasOn: boolean;
   period: BillingOverviewUsageCreditsThisMonthPeriod;
   periodStart: string;
   periodEnd: string;

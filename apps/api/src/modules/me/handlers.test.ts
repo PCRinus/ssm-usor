@@ -49,6 +49,8 @@ function mockUpstream({
   access = 'full',
   offers = true as boolean | 'error',
   overStep = null as Record<string, unknown> | null,
+  role = 'owner' as 'owner' | 'specialist',
+  extras = false,
   appMetadata = { provider: 'email' } as Record<string, string>,
   impersonation = null as typeof activeImpersonation | null,
   impersonated = { full_name: 'Ion Ionescu', email: 'ion@example.ro' } as {
@@ -74,9 +76,7 @@ function mockUpstream({
     }
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return Response.json(
-        member
-          ? [{ user_id: memberUserId, organization_id: organization.id, role: 'owner', access }]
-          : []
+        member ? [{ user_id: memberUserId, organization_id: organization.id, role, access }] : []
       );
     }
     if (url.pathname === '/rest/v1/rpc/current_organization_has_offers') {
@@ -96,15 +96,20 @@ function mockUpstream({
         shortfall: 0,
         balance: 860,
         gift_left: 8640,
-        extra: 0,
+        extra: extras ? 200 : 0,
+        extra_left: extras ? 50 : 0,
       });
     }
     if (url.pathname === '/rest/v1/rpc/employees_over_step') {
       return Response.json(overStep);
     }
-    if (url.pathname === '/rest/v1/usage_extras') return Response.json(null);
+    if (url.pathname === '/rest/v1/usage_extras') {
+      return Response.json(extras ? { ceiling_cents: 1000 } : null);
+    }
     if (url.pathname === '/rest/v1/rpc/sms_period_usage') {
-      return Response.json({ used: 252, overage: 0, granted: 0 });
+      return Response.json(
+        extras ? { used: 340, overage: 40, granted: 0 } : { used: 252, overage: 0, granted: 0 }
+      );
     }
     if (url.pathname === '/rest/v1/rpc/my_open_invitations') {
       return Response.json([
@@ -289,6 +294,23 @@ describe('GET /me', () => {
         giftLeft: 8640,
         state: 'ok',
       });
+    });
+
+    it("gives the owner the extras' counts, and a colleague only that extras are on", async () => {
+      mockUpstream({ subscription: paidRow, extras: true });
+      const owner = meResponseSchema.parse(await (await request('/me')).json());
+      expect(owner.smsThisMonth).toMatchObject({ used: 340, overage: 40, extrasOn: true });
+      expect(owner.creditsThisMonth).toMatchObject({ extra: 200, extrasOn: true });
+
+      mockUpstream({ subscription: paidRow, extras: true, role: 'specialist' });
+      const colleague = meResponseSchema.parse(await (await request('/me')).json());
+      expect(colleague.smsThisMonth).toMatchObject({
+        used: 300,
+        overage: 0,
+        extrasOn: true,
+        state: 'extra',
+      });
+      expect(colleague.creditsThisMonth).toMatchObject({ extra: 0, extraLeft: 0, extrasOn: true });
     });
 
     it('says since when the employees are over the step and the last day to add one', async () => {

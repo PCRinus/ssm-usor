@@ -18,6 +18,7 @@ import { currentImpersonation, endActiveImpersonation } from '../../lib/imperson
 import { employeesOverStepOf } from '../billing/employees-over-step';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
+import { creditsForMember, smsForMember } from '../extras/members';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
 import type {
@@ -150,12 +151,20 @@ export const getMe: RouteHandler<typeof meRoute, ApiEnv> = async (c) => {
   // The API refuses what the plan lacks either way, so a failed read shows offers as open
   // instead of failing every page.
   if (offers.error) console.error(`Plan features for /me failed: ${offers.error.code}`);
-  const usage =
+  const role = membership.data[0]?.role;
+  const loaded =
     organizationId && subscription.data && membership.data[0]?.access === 'full'
       ? await usageOf(c, organizationId)
       : noUsage;
+  const ownerInPerson = role === 'owner' && !row;
+  const usage = ownerInPerson
+    ? loaded
+    : {
+        ...loaded,
+        smsThisMonth: loaded.smsThisMonth && smsForMember(loaded.smsThisMonth),
+        creditsThisMonth: loaded.creditsThisMonth && creditsForMember(loaded.creditsThisMonth),
+      };
 
-  const role = membership.data[0]?.role;
   return c.json(
     {
       user,

@@ -151,6 +151,7 @@ describe('the credits meter', () => {
       giftLeft: 0,
       extra: 0,
       extraLeft: 0,
+      extrasOn: false,
     });
     expect(view).toMatchObject({ used: 0, left: 325, included: 750 });
   });

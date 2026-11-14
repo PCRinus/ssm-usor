@@ -31,7 +31,6 @@ export const creditBlockCents = (row: SmsSubscription | null) =>
 
 export type ExtraSpend = { limit: number; used: number; spentCents: number };
 
-/** `used` is codes past the allowance, or credits bought in blocks; `limit` likewise. */
 export function extraSpend(kind: ExtraKind, ceilingCents: number, used: number): ExtraSpend {
   const units = kind === 'sms' ? used : Math.ceil(used / creditsExtra.blockCredits);
   const limit = extraUnitsWithin(kind, ceilingCents);

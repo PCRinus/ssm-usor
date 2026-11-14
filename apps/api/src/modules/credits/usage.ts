@@ -44,6 +44,7 @@ export function usageView(policy: CreditPolicy, balance: Balance): BillingCredit
     giftLeft: balance.giftLeft,
     extra: balance.extra,
     extraLeft: balance.extraLeft,
+    extrasOn: balance.extrasOn,
     period: limited?.kind ?? 'month',
     periodStart: policy.period.start.toISOString(),
     periodEnd: policy.period.end.toISOString(),
