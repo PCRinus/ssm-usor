@@ -3,6 +3,12 @@ import { z } from 'zod';
 /** How long an organization stays read-only before it is deleted (ADR 029). */
 export const readOnlyDays = 30;
 
+/**
+ * How long a new organization's trial lasts (ADR 029). `create_organization` hard-codes it, since
+ * a caller must not choose its own trial; a test fails when the two differ.
+ */
+export const trialDays = 14;
+
 export const subscriptionPlanSchema = z.enum(['start', 'profesional', 'enterprise']);
 export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
 

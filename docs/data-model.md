@@ -56,7 +56,7 @@ full access indefinitely: the seeded ones, the end-to-end accounts and every org
 created before billing. Members read their own organization's row; nobody writes it through the
 data API.
 
-`create_organization` starts a 30-day `profesional` trial. `extend_trial(owner email, until, reason, actor, tester)`, for the secret key only, moves a trial's end later, or starts a trial for an
+`create_organization` starts a 14-day `profesional` trial (`trialDays` in the contracts; trials started before 2026-11-14 kept their 30 days). `extend_trial(owner email, until, reason, actor, tester)`, for the secret key only, moves a trial's end later, or starts a trial for an
 organization without a row and returns `started` to say so. It refuses an unknown owner
 (`TRL01`), a subscription past its trial (`TRL02`), an end in the past (`TRL03`), an end not
 later than the current one (`TRL04`), an email that matches more than one owner (`TRL05`), and a

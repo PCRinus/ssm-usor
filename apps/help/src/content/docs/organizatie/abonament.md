@@ -61,7 +61,7 @@ Prețurile din aplicație sunt fără TVA, la care se adaugă TVA de 21 %. Total
 
 ## Perioada de probă
 
-Un cont nou începe cu 30 de zile de probă, fără card. În acest timp ai tot ce include **Profesional**: 1.500 de lucrători la clienți și 3 utilizatori, plus 300 de credite pentru import pentru toată perioada de probă (vezi [Creditele pentru import](#creditele-pentru-import)). Singura diferență: în perioada de probă nu se trimit SMS-uri. Codurile de conectare și de semnare pleacă pe email, iar un lucrător fără adresă de email nu poate fi invitat până alegi un plan.
+Un cont nou începe cu 14 zile de probă, fără card. În acest timp ai tot ce include **Profesional**: 1.500 de lucrători la clienți și 3 utilizatori, plus 300 de credite pentru import pentru toată perioada de probă (vezi [Creditele pentru import](#creditele-pentru-import)). Singura diferență: în perioada de probă nu se trimit SMS-uri. Codurile de conectare și de semnare pleacă pe email, iar un lucrător fără adresă de email nu poate fi invitat până alegi un plan.
 
 Insigna planului arată câte zile mai ai. În ultima săptămână apare și o bandă deasupra paginii, pe care o poți închide până a doua zi; în ultima zi nu se mai închide.
 

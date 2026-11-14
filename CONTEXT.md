@@ -282,7 +282,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Pack** (_pachet_): an add-on bought on top of a plan: 50 or 500 more employees, or one more member. Never added on the owner's behalf. ADR 029. Avoid: add-on in the interface, upgrade.
 
-**Trial** (_perioadă de probă_): the first 30 days of a new organization, with what Profesional includes except SMS and with 300 credits, and no card. A tester's is extended, never discounted, and its tester switch adds SMS and Profesional's monthly credits, with a hard stop at both. ADR 029. Avoid: free plan, demo.
+**Trial** (_perioadă de probă_): the first 14 days of a new organization, with what Profesional includes except SMS and with 300 credits, and no card. A tester's is extended, never discounted, and its tester switch adds SMS and Profesional's monthly credits, with a hard stop at both. ADR 029. Avoid: free plan, demo.
 
 **Subscription** (_abonament_): an organization's plan, billing interval, status and dates, kept in our database and mirrored by Stripe once a plan is chosen. An organization without one has full access indefinitely. ADR 029. Avoid: account, license.
 

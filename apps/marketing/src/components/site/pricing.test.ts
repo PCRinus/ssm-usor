@@ -1,4 +1,4 @@
-import { smsOverage } from '@ssm-usor/contracts';
+import { smsOverage, trialDays as appTrialDays } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { faq } from './copy';
@@ -20,6 +20,7 @@ import {
   quote,
   smsCodes,
   start,
+  trialDays,
   welcomeCredits,
   workerStops,
 } from './pricing';
@@ -294,6 +295,7 @@ describe('the copy', () => {
     ];
     expect(texts.join(' ')).not.toMatch(/30 de zile (gratuite|cu tot)/);
     expect(pricingCta.note).toBe('La lansare: 14 zile gratuite, fără card.');
+    expect(trialDays).toBe(appTrialDays);
   });
 
   it("the landing page's answer names both starting prices", () => {
