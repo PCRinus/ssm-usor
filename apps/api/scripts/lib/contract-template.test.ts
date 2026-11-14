@@ -38,6 +38,7 @@ const facts: ServiceContractFacts = {
     legal_representative_role: 'Administrator',
     contact_phone: null,
     archived_at: null,
+    stage: 'lead',
   },
   organization: {
     legal_name: 'S.C. EXEMPLU SSM S.R.L.',
