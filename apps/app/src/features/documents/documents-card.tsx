@@ -58,6 +58,7 @@ import {
   getDocumentWord,
   getListClientDocumentsQueryKey,
   getListDocumentsBehindQueryKey,
+  getListSupplementaryTrainingProposalsQueryKey,
   useDeleteDocumentDraft,
   useIssueDocument,
   useListClientDocuments,
@@ -72,6 +73,8 @@ import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
+import { useSupplementaryTrainingProposals } from '@/features/trainings/supplementary-proposals';
+import { SupplementaryTrainingProposals } from '@/features/trainings/supplementary-training-proposals';
 import { formatRoDate } from '@/lib/dates';
 import { saveFile } from '@/lib/save-file';
 
@@ -194,9 +197,14 @@ export function DocumentsCard<Set extends DocumentSet>({
   const remove = useDeleteDocumentDraft({ request: apiRequest });
   const upload = useUploadClientDocument({ request: apiRequest });
   const startDraft = useStartDocumentDraft({ request: apiRequest });
+  const trainingDomain = set === 'fire_safety' ? 'su' : 'ssm';
+  const proposals = useSupplementaryTrainingProposals(clientId, userId, !readOnly);
+  const proposing =
+    !readOnly && (proposals.data?.items ?? []).some((item) => item.domain === trainingDomain);
   const { printing, print } = usePrint();
   // One file input for the whole card; what it was opened for waits here until a file is chosen.
   const fileInput = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const uploadTarget = useRef<{
     typeKey: BuiltInDocumentTypeKey;
     title: string;
@@ -393,6 +401,9 @@ export function DocumentsCard<Set extends DocumentSet>({
           data: { acceptUnfilled: action === 'issueUnfilled' },
         });
         toast.success(`„${document.title}” a fost emis.`);
+        void queryClient.invalidateQueries({
+          queryKey: getListSupplementaryTrainingProposalsQueryKey(clientId),
+        });
       } else {
         await remove.mutateAsync({ documentId: document.id });
         toast.success(`Ciorna pentru „${document.title}” a fost ștearsă.`);
@@ -789,7 +800,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       {!empty && generateButton}
     </>
   );
-  const notices =
+  const failure =
     typeof error === 'string' ? (
       <Notice variant="destructive" data-testid="documents-error">
         {error}
@@ -810,9 +821,24 @@ export function DocumentsCard<Set extends DocumentSet>({
         </div>
       )
     );
+  const notices =
+    failure || proposing ? (
+      <>
+        {failure}
+        {proposing && (
+          <SupplementaryTrainingProposals
+            clientId={clientId}
+            userId={userId}
+            domain={trainingDomain}
+            readOnly={readOnly}
+            page={() => cardRef.current}
+          />
+        )}
+      </>
+    ) : null;
 
   return (
-    <Card data-testid="documents-card" className="gap-0 overflow-hidden py-0">
+    <Card ref={cardRef} data-testid="documents-card" className="gap-0 overflow-hidden py-0">
       {pack ? (
         <PackLayout
           set={set}
@@ -822,7 +848,7 @@ export function DocumentsCard<Set extends DocumentSet>({
           readOnly={readOnly}
           actions={actions || undefined}
           generate={empty ? generateButton : undefined}
-          notices={notices || undefined}
+          notices={notices ?? undefined}
         >
           {sectionRows}
         </PackLayout>

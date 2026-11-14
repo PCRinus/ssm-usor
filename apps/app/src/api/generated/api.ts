@@ -2956,6 +2956,39 @@ export interface FileLinkResponse {
   expiresInSeconds: number;
 }
 
+export type SupplementaryTrainingProposalListResponseItemsItemDomain =
+  (typeof SupplementaryTrainingProposalListResponseItemsItemDomain)[keyof typeof SupplementaryTrainingProposalListResponseItemsItemDomain];
+
+export const SupplementaryTrainingProposalListResponseItemsItemDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type SupplementaryTrainingProposalListResponseItemsItemPostsItem = {
+  jobPositionId: string;
+  name: string;
+  /** @minimum 1 */
+  workerCount: number;
+  /** @nullable */
+  recordedOn: string | null;
+};
+
+export type SupplementaryTrainingProposalListResponseItemsItem = {
+  revisionId: string;
+  domain: SupplementaryTrainingProposalListResponseItemsItemDomain;
+  documentTitle: string;
+  /** @minimum 1 */
+  revision: number;
+  firstIssue: boolean;
+  documentDate: string;
+  issuedAt: string;
+  posts: SupplementaryTrainingProposalListResponseItemsItemPostsItem[];
+};
+
+export interface SupplementaryTrainingProposalListResponse {
+  items: SupplementaryTrainingProposalListResponseItemsItem[];
+}
+
 export type TestBankResponseTestsItemDomain =
   (typeof TestBankResponseTestsItemDomain)[keyof typeof TestBankResponseTestsItemDomain];
 
@@ -21294,6 +21327,247 @@ export function useGetTrainingSheetLink<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getListSupplementaryTrainingProposalsUrl = (clientId: string) => {
+  return `/clients/${clientId}/supplementary-training-proposals`;
+};
+
+/**
+ * An issue of the own instructions, the occupational safety ones (IPSSM) or the fire-safety ones (IPSU), proposes a supplementary training when the client then had a current worker with a training recorded in that domain (ADR 042). Listed while it is open: its revision is the one in force, nobody closed it, and a post with current workers has had no supplementary training with the reason `rules_changed` in the domain recorded since the issue and held on its day or later. Each lists every post with current workers, most workers first, with the day such a training was recorded for it, null while none was; occupational safety first. `firstIssue` is set when no earlier revision of the document was issued.
+ * @summary List the supplementary trainings proposed by issuing a client's own instructions
+ */
+export const listSupplementaryTrainingProposals = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SupplementaryTrainingProposalListResponse> => {
+  return apiFetch<SupplementaryTrainingProposalListResponse>(
+    getListSupplementaryTrainingProposalsUrl(clientId),
+    {
+      ...options,
+      method: 'GET',
+    }
+  );
+};
+
+export const getListSupplementaryTrainingProposalsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/supplementary-training-proposals`] as const;
+};
+
+export const getListSupplementaryTrainingProposalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSupplementaryTrainingProposalsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>> = ({
+    signal,
+  }) => listSupplementaryTrainingProposals(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListSupplementaryTrainingProposalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>
+>;
+export type ListSupplementaryTrainingProposalsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListSupplementaryTrainingProposals<
+  TData = Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+          TError,
+          Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListSupplementaryTrainingProposals<
+  TData = Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+          TError,
+          Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListSupplementaryTrainingProposals<
+  TData = Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the supplementary trainings proposed by issuing a client's own instructions
+ */
+
+export function useListSupplementaryTrainingProposals<
+  TData = Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listSupplementaryTrainingProposals>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListSupplementaryTrainingProposalsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getDismissSupplementaryTrainingProposalUrl = (
+  clientId: string,
+  revisionId: string
+) => {
+  return `/clients/${clientId}/supplementary-training-proposals/${revisionId}/dismiss`;
+};
+
+/**
+ * For a revision that changed nothing important. Only an open proposal closes, as the list gives it; the database records who closed it, the caller, and when. Nothing is recorded as a training.
+ * @summary Close a proposed supplementary training: no training is needed
+ */
+export const dismissSupplementaryTrainingProposal = async (
+  clientId: string,
+  revisionId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getDismissSupplementaryTrainingProposalUrl(clientId, revisionId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getDismissSupplementaryTrainingProposalMutationKey = () =>
+  ['dismissSupplementaryTrainingProposal'] as const;
+
+export const getDismissSupplementaryTrainingProposalMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof dismissSupplementaryTrainingProposal>>,
+    TError,
+    DismissSupplementaryTrainingProposalMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof dismissSupplementaryTrainingProposal>>,
+  TError,
+  DismissSupplementaryTrainingProposalMutationVariables,
+  TContext
+> => {
+  const mutationKey = getDismissSupplementaryTrainingProposalMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof dismissSupplementaryTrainingProposal>>,
+    DismissSupplementaryTrainingProposalMutationVariables
+  > = (props) => {
+    const { clientId, revisionId } = props ?? {};
+
+    return dismissSupplementaryTrainingProposal(clientId, revisionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DismissSupplementaryTrainingProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof dismissSupplementaryTrainingProposal>>
+>;
+
+export type DismissSupplementaryTrainingProposalMutationError = ErrorType<ApiErrorResponse>;
+export type DismissSupplementaryTrainingProposalMutationVariables = {
+  clientId: string;
+  revisionId: string;
+};
+
+/**
+ * @summary Close a proposed supplementary training: no training is needed
+ */
+export const useDismissSupplementaryTrainingProposal = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof dismissSupplementaryTrainingProposal>>,
+      TError,
+      DismissSupplementaryTrainingProposalMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof dismissSupplementaryTrainingProposal>>,
+  TError,
+  DismissSupplementaryTrainingProposalMutationVariables,
+  TContext
+> => {
+  return useMutation(getDismissSupplementaryTrainingProposalMutationOptions(options), queryClient);
+};
 
 export const getGetTestBankUrl = (params?: GetTestBankParams) => {
   const normalizedParams = new URLSearchParams();

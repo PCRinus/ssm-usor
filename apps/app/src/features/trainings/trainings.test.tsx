@@ -244,6 +244,8 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
         });
       case `GET ${trainingsPath}`:
         return Response.json({ items: [] });
+      case `GET /clients/${clientId}/supplementary-training-proposals`:
+        return Response.json({ items: [] });
       case `GET ${trainingsPath}/proposal`:
         return Response.json(proposal());
       case `POST ${trainingsPath}`:
@@ -852,6 +854,203 @@ describe("a client's trainings held", () => {
     expect((await screen.findByTestId('trainings-lock')).textContent).toBe(lock);
     expect(screen.getByTestId('trainings-edit').hasAttribute('data-disabled')).toBe(editLocked);
     expect(screen.getByTestId('trainings-delete').hasAttribute('data-disabled')).toBe(true);
+  });
+});
+
+const proposalsPath = `/clients/${clientId}/supplementary-training-proposals`;
+const ssmRevisionId = '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d';
+
+const proposedPost = (
+  id: string,
+  name: string,
+  workerCount: number,
+  recordedOn: string | null = null
+) => ({
+  jobPositionId: id,
+  name,
+  workerCount,
+  recordedOn,
+});
+
+const issuedProposal = (overrides: Record<string, unknown> = {}) => ({
+  revisionId: ssmRevisionId,
+  domain: 'ssm',
+  documentTitle: 'Instrucțiuni proprii de securitate și sănătate în muncă',
+  revision: 2,
+  firstIssue: false,
+  documentDate: '2026-11-12',
+  issuedAt: '2026-11-12T09:00:00+00:00',
+  posts: [proposedPost(welderId, 'Sudor', 2), proposedPost(clerkId, 'Contabil', 1)],
+  ...overrides,
+});
+
+describe('the supplementary training proposed after the own instructions were issued', () => {
+  it('shows the occupational safety notice above the fire-safety one, citing a law only for the first', async () => {
+    mockApi({
+      [`GET ${proposalsPath}`]: () =>
+        Response.json({
+          items: [
+            issuedProposal({
+              posts: [
+                proposedPost(welderId, 'Sudor', 2, '2026-11-13'),
+                proposedPost(clerkId, 'Contabil', 1),
+              ],
+            }),
+            issuedProposal({
+              revisionId: '8b9c0d1e-2f3a-4b4c-9d5e-6f7a8b9c0d1e',
+              domain: 'su',
+              documentTitle: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+              revision: 1,
+              firstIssue: true,
+            }),
+          ],
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const [ssm, su] = await screen.findAllByTestId('training-proposal');
+    expect([ssm!.dataset.domain, su!.dataset.domain]).toEqual(['ssm', 'su']);
+    expect(within(ssm!).getByText('Instrucțiunile proprii SSM au fost emise din nou')).toBeTruthy();
+    expect(ssm!.textContent).toContain('Rev. 2, din 12.11.2026.');
+    expect(ssm!.textContent).toContain('(HG 1425/2006, art. 98 lit. b)).');
+    expect(within(ssm!).getByTestId('training-proposal-summary').textContent).toBe(
+      'Câte o instruire pe post · 2 posturi, 3 lucrători'
+    );
+    const [welders, clerks] = within(ssm!).getAllByTestId('training-proposal-post');
+    expect(within(welders!).getByTestId('training-proposal-done').textContent).toBe(
+      'Înregistrată pe 13.11.2026'
+    );
+    expect(within(welders!).queryByTestId('training-proposal-record')).toBeNull();
+    expect(clerks!.textContent).toContain('un lucrător');
+    expect(within(clerks!).getByTestId('training-proposal-record').textContent).toBe(
+      'Înregistrează'
+    );
+
+    expect(within(su!).getByText('Instrucțiunile proprii SU au fost emise')).toBeTruthy();
+    expect(su!.textContent).toContain('e bine ca lucrătorii să fie instruiți din ele.');
+    expect(su!.textContent).not.toMatch(/HG|OMAI|art\./);
+    expect(within(su!).getByRole('link', { name: 'Află mai mult' })).toBeTruthy();
+  });
+
+  it("opens the training dialog filled for the post, and saves a supplementary training for the post's workers", async () => {
+    let recorded = false;
+    mockApi({
+      [`GET ${proposalsPath}`]: () =>
+        Response.json({
+          items: [
+            issuedProposal({
+              posts: [
+                proposedPost(welderId, 'Sudor', 2, recorded ? '2026-11-14' : null),
+                proposedPost(clerkId, 'Contabil', 1),
+              ],
+            }),
+          ],
+        }),
+      [`POST ${trainingsPath}`]: () => {
+        recorded = true;
+        return Response.json(detailOf([popescu, taranu]), { status: 201 });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    const notice = await screen.findByTestId('training-proposal');
+    await user.click(within(notice).getAllByTestId('training-proposal-record')[0]!);
+
+    const dialog = await screen.findByTestId('training-dialog');
+    expect(within(dialog).getByTestId('training-proposed-step').textContent).toBe(
+      'Instruirea 1 din 2 propuse după emiterea instrucțiunilor proprii, pentru postul „Sudor”. Urmează: Contabil.'
+    );
+    expect((within(dialog).getByTestId('training-domain') as HTMLSelectElement).value).toBe('ssm');
+    expect((within(dialog).getByTestId('training-phase') as HTMLSelectElement).value).toBe(
+      'supplementary'
+    );
+    expect((within(dialog).getByTestId('training-reason') as HTMLSelectElement).value).toBe(
+      'rules_changed'
+    );
+    expect((within(dialog).getByTestId('training-position') as HTMLSelectElement).value).toBe(
+      welderId
+    );
+    const attendees = within(dialog).getAllByTestId('training-attendee');
+    expect(attendees.every((box) => box.getAttribute('aria-checked') === 'true')).toBe(true);
+    await waitFor(() =>
+      expect((within(dialog).getByTestId('training-duration') as HTMLInputElement).value).toBe(
+        '120'
+      )
+    );
+    expect((within(dialog).getByTestId('training-material') as HTMLTextAreaElement).value).toBe(
+      'Instrucțiuni proprii de securitate și sănătate în muncă, rev. 2 din 12.11.2026'
+    );
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+
+    expect(await screen.findByText('Instruirea a fost înregistrată.')).toBeTruthy();
+    const body = requests('POST', trainingsPath)[0]!.body;
+    expect(body).toMatchObject({
+      domain: 'ssm',
+      phase: 'supplementary',
+      supplementaryReason: 'rules_changed',
+      material: 'Instrucțiuni proprii de securitate și sănătate în muncă, rev. 2 din 12.11.2026',
+      employeeIds: [popescu.id, taranu.id],
+    });
+    expect(await screen.findByTestId('training-proposal-done')).toBeTruthy();
+  });
+
+  it('shows five posts and folds the rest behind a count', async () => {
+    const posts = [
+      'Sudor',
+      'Contabil',
+      'Lăcătuș',
+      'Strungar',
+      'Electrician',
+      'Paznic',
+      'Șofer',
+    ].map((name, index) =>
+      proposedPost(`0a0b0c0d-0e0f-4a0b-8c0d-0e0f0a0b0c0${index}`, name, 7 - index)
+    );
+    mockApi({
+      [`GET ${proposalsPath}`]: () => Response.json({ items: [issuedProposal({ posts })] }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    const notice = await screen.findByTestId('training-proposal');
+    expect(within(notice).getAllByTestId('training-proposal-post')).toHaveLength(5);
+    const unfold = within(notice).getByTestId('training-proposal-unfold');
+    expect(unfold.textContent).toBe('Arată toate cele 7 posturi');
+    await user.click(unfold);
+    expect(within(notice).getAllByTestId('training-proposal-post')).toHaveLength(7);
+    expect(unfold.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('closes the whole notice when no training is needed', async () => {
+    let dismissed = false;
+    mockApi({
+      [`GET ${proposalsPath}`]: () => Response.json({ items: dismissed ? [] : [issuedProposal()] }),
+      [`POST ${proposalsPath}/${ssmRevisionId}/dismiss`]: () => {
+        dismissed = true;
+        return new Response(null, { status: 204 });
+      },
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    const notice = await screen.findByTestId('training-proposal');
+    await user.click(within(notice).getByTestId('training-proposal-dismiss'));
+    await waitFor(() => expect(screen.queryByTestId('training-proposal')).toBeNull());
+    expect(requests('POST', `${proposalsPath}/${ssmRevisionId}/dismiss`)).toHaveLength(1);
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Instruiri ținute' }))
+    );
+    expect(requests('POST', trainingsPath)).toHaveLength(0);
+  });
+
+  it('shows no notice for an archived client', async () => {
+    mockApi({
+      [`GET /clients/${clientId}`]: () =>
+        Response.json({ client: { ...sampleClient, archivedAt: '2026-11-01T10:00:00+00:00' } }),
+      [`GET ${proposalsPath}`]: () => Response.json({ items: [issuedProposal()] }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    await screen.findByTestId('trainings-empty');
+    expect(screen.queryByTestId('training-proposal')).toBeNull();
+    expect(requests('GET', proposalsPath)).toHaveLength(0);
   });
 });
 

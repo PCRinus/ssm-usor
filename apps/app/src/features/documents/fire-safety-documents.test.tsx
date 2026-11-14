@@ -122,6 +122,7 @@ function mockApi({
   generate = (() =>
     Response.json({ created: [cover, registers], skipped: [] }, { status: 201 })) as Route,
   behind = [] as unknown[],
+  proposals = (() => Response.json({ items: [] })) as () => Response,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
@@ -140,6 +141,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === '/documents/behind') return Response.json({ items: behind });
+    if (pathname === `/clients/${clientId}/supplementary-training-proposals`) return proposals();
     if (pathname === `/clients/${clientId}/documents`) {
       return Response.json(
         fireSafety

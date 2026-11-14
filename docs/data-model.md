@@ -903,6 +903,36 @@ through `organization_employees_in_state`, under Dashboard. A row costs a few in
 `training_records (employee_id)` and the primary keys; `trainings (client_id, domain, phase,
 held_on)` serves a client's list of trainings.
 
+### Supplementary training proposals
+
+`supplementary_training_proposals` keeps each issue of a client's own instructions that
+proposes a supplementary training ([ADR 042](architecture/adr-042-paper-history-as-written.md),
+decision 4): one row per issued revision of `own_instructions` (domain `ssm`) or
+`fire_own_instructions` (`su`), keyed by `revision_id`, with `organization_id`, `client_id`,
+`document_id`, the `domain`, the revision's `issued_at`, and `dismissed_at` with `dismissed_by`
+once a member answers _Nu e nevoie de instruire_ (who closed it is kept only with when; the
+account goes null when deleted). It is a table beside the revision, as the signed copies are,
+because an issued revision never changes and the answer comes after issuing.
+
+The trigger `document_revisions_propose_supplementary_training` writes the row when a revision
+of one of the two types goes from draft to issued, whoever issues it, but only while the client
+has a current employee (active, not archived) with a training record in that domain: a client
+with nobody trained has nobody to train again. What the proposal lists is read, not stored: the
+positions with current employees, and for each the supplementary trainings with the reason
+`rules_changed` in the domain created since `issued_at` that one of them attended. A newer issue
+supersedes the revision and so the proposal; the API lists only the revision in force.
+
+A supplementary training counts for a post only when it was also held on the issue's day in
+Romania or later: a paper training transcribed after the issue was not taught from these
+instructions.
+
+Members read the proposals of documents they can reach (`can_access_document`) and update only
+`dismissed_at` and `dismissed_by`. The trigger `supplementary_training_proposals_close` sets
+`dismissed_by` to the caller, whatever the request sends, and refuses (`42501`) any change to a
+closed proposal, reopening included; the secret key, SQL and the cascade of an account's deletion
+pass; nobody inserts or deletes one but the trigger and the
+revision's deletion, which takes it along. The archived-client trigger applies.
+
 ## Knowledge tests
 
 The **knowledge tests** of [ADR 024](architecture/adr-024-knowledge-tests.md) are three: the

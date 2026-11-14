@@ -116,6 +116,7 @@ function mockApi({
       },
     })) as Route,
   behind = [] as unknown[],
+  proposals = (() => Response.json({ items: [] })) as () => Response,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -132,6 +133,7 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === '/documents/behind') return Response.json({ items: behind });
+    if (pathname === `/clients/${clientId}/supplementary-training-proposals`) return proposals();
     if (pathname === `/clients/${clientId}/documents`) {
       return Response.json({ items, lastGeneration, notApplicable, currentEmployeeCount });
     }
@@ -1326,6 +1328,58 @@ describe('client documents', () => {
 
     expect(await screen.findByText(/a fost emis\./)).toBeTruthy();
     expect(requests(`/documents/${firstAidId}/issue`, 'POST')).toHaveLength(1);
+  });
+
+  it('proposes a supplementary training for its own domain once the own instructions are issued', async () => {
+    let issued = false;
+    const proposal = (domain: 'ssm' | 'su', revisionId: string) => ({
+      revisionId,
+      domain,
+      documentTitle: 'Instrucțiuni proprii',
+      revision: 2,
+      firstIssue: false,
+      documentDate: '2026-11-12',
+      issuedAt: '2026-11-12T09:00:00+00:00',
+      posts: [
+        {
+          jobPositionId: '0a0b0c0d-0e0f-4a0b-8c0d-0e0f0a0b0c01',
+          name: 'Zidar',
+          workerCount: 4,
+          recordedOn: null,
+        },
+      ],
+    });
+    mockApi({
+      items: [firstAid],
+      action: () => {
+        issued = true;
+        return Response.json({ document: firstAid });
+      },
+      proposals: () =>
+        Response.json({
+          items: issued
+            ? [
+                proposal('ssm', '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d'),
+                proposal('su', '8b9c0d1e-2f3a-4b4c-9d5e-6f7a8b9c0d1e'),
+              ]
+            : [],
+        }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await openMenu(user, 'primul ajutor');
+    expect(screen.queryByTestId('training-proposal')).toBeNull();
+    await user.click(await screen.findByTestId('document-issue'));
+    await user.click(screen.getByTestId('document-confirm'));
+
+    const notice = await screen.findByTestId('training-proposal');
+    expect(notice.dataset.domain).toBe('ssm');
+    expect(screen.getAllByTestId('training-proposal')).toHaveLength(1);
+    expect(
+      within(notice).getByText('Instrucțiunile proprii SSM au fost emise din nou')
+    ).toBeTruthy();
+    expect(within(screen.getByTestId('pack-layout')).getByTestId('training-proposal')).toBe(notice);
   });
 
   it('asks again before issuing a file that still has text to fill in', async () => {

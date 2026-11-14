@@ -26,12 +26,18 @@ import { fireSafetyTechnicianJobTitle, trainingProposal } from './proposal';
 import type {
   createTrainingRoute,
   deleteTrainingRoute,
+  dismissSupplementaryTrainingProposalRoute,
   getTrainingProposalRoute,
   getTrainingRoute,
   listEmployeeTrainingRecordsRoute,
+  listSupplementaryTrainingProposalsRoute,
   listTrainingsRoute,
   updateTrainingRoute,
 } from './routes';
+import {
+  dismissSupplementaryTrainingProposal as dismissProposal,
+  listSupplementaryTrainingProposals as listProposals,
+} from './supplementary-proposals';
 import { toAdmission, toTraining, trainingColumns } from './training-rows';
 
 const signingColumns =
@@ -492,4 +498,27 @@ export const getTrainingProposal: RouteHandler<typeof getTrainingProposalRoute, 
     }),
     200
   );
+};
+
+export const listSupplementaryTrainingProposals: RouteHandler<
+  typeof listSupplementaryTrainingProposalsRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  return c.json({ items: await listProposals(db, clientId) }, 200);
+};
+
+export const dismissSupplementaryTrainingProposal: RouteHandler<
+  typeof dismissSupplementaryTrainingProposalRoute,
+  ApiEnv
+> = async (c) => {
+  const { clientId, revisionId } = c.req.valid('param');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  if (!(await dismissProposal(db, clientId, revisionId))) {
+    throw new ApiError('not_found', 'This client has no open proposal of that revision.');
+  }
+  return c.body(null, 204);
 };

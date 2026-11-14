@@ -121,6 +121,8 @@ Fiecare salvare care schimbă textul face o versiune nouă, chiar dacă schimbă
 
 Un document emis cu o versiune mai veche rămâne în urmă: în Documente SSM sau Documente SU apare „Instrucțiuni actualizate”, cu instrucțiunea care s-a schimbat. Îl generezi din nou ca să ia versiunea nouă.
 
+După ce emiți instrucțiunile proprii ale unui client care are lucrători instruiți, aplicația îți propune o instruire periodică suplimentară, câte una pe post. Vezi [După emiterea instrucțiunilor proprii](/clienti/angajati/instruire-si-teste/#după-emiterea-instrucțiunilor-proprii).
+
 ## Instrucțiunile din documentația importată
 
 Când imporți un client din documentația lui, aplicația citește separat și instrucțiunile proprii din pachet și ți le propune pentru bibliotecă, cu posturile la care se aplică. Le verifici în pagina importului, la **Instrucțiuni proprii**, după ce creezi clientul. Pașii sunt în [Importul din documente](/clienti/import/#instrucțiunile-proprii-din-documentație).

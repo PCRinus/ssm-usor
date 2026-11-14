@@ -5563,6 +5563,89 @@ export type Database = {
           },
         ];
       };
+      supplementary_training_proposals: {
+        Row: {
+          client_id: string;
+          dismissed_at: string | null;
+          dismissed_by: string | null;
+          document_id: string;
+          domain: Database['public']['Enums']['training_domain'];
+          issued_at: string;
+          organization_id: string;
+          revision_id: string;
+        };
+        Insert: {
+          client_id: string;
+          dismissed_at?: string | null;
+          dismissed_by?: string | null;
+          document_id: string;
+          domain: Database['public']['Enums']['training_domain'];
+          issued_at: string;
+          organization_id: string;
+          revision_id: string;
+        };
+        Update: {
+          client_id?: string;
+          dismissed_at?: string | null;
+          dismissed_by?: string | null;
+          document_id?: string;
+          domain?: Database['public']['Enums']['training_domain'];
+          issued_at?: string;
+          organization_id?: string;
+          revision_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'supplementary_training_proposals_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'supplementary_training_proposals_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'supplementary_training_proposals_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_documents';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'supplementary_training_proposals_document_fkey';
+            columns: ['document_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'documents_behind';
+            referencedColumns: ['document_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'supplementary_training_proposals_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'supplementary_training_proposals_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'supplementary_training_proposals_revision_id_fkey';
+            columns: ['revision_id'];
+            isOneToOne: true;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       template_version_legal_changes: {
         Row: {
           legal_change_id: string;

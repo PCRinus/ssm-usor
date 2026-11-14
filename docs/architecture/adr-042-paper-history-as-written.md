@@ -75,6 +75,12 @@ Comparing the new revision with the one issued before it, so as to propose only 
 
 For occupational safety the basis is HG 1425/2006 art. 98 lit. b), with the reason _modificarea instrucțiunilor proprii_, which already exists among the reasons of [ADR 021](adr-021-training-records-and-individual-sheets.md) (`rules_changed`). For fire safety there is none: OMAI 712/2005 has no such rule (art. 17¹ and art. 24, see above). Mircea chose on 2026-11-12 to propose it there too, for one rule in both domains and to be on the safe side, so the fire-safety proposal cites no law. Screens follow the design canvas, row 4 of the page "Istoricul pe hârtie".
 
+As built (step 7), where the above leaves it open:
+
+- **When.** The issue brings the proposal only if, at that moment, a current worker of the client (active, not archived) has a training recorded in the domain; a client whose only trained workers have left has nobody to train again. The database decides it as the revision is issued and keeps the proposal beside that revision (`supplementary_training_proposals`), with who closed it and when: the member whose token closed it, never a name the request gives, and a closed proposal is never reopened. Only the open proposal of the revision in force closes.
+- **What it lists** is read live: the posts with current workers now, not as they were at the issue. A post shows as done once a supplementary training of the domain with the reason `rules_changed`, recorded after the issue and held on the issue's day or later, has one of its current workers among its attendees, whether it was opened from the notice or recorded by hand; a paper training held before the issue and transcribed after it does not count. The notice shows the day the training was recorded, as its words _Înregistrată pe_ say. The notice goes when every post is done, when it is closed, or when a newer issue supersedes its revision.
+- **The material** the dialog proposes names the instructions, their revision and their date, without articles: "Instrucțiuni proprii de securitate și sănătate în muncă, rev. 2 din 14.11.2026".
+
 ### 5. The generated sheet says its paper rows are transcribed
 
 On every sheet the app generates, the on-demand one and the signed one, both domains, a row or a hiring block that comes from a paper training reads as a transcription whose signed original is with the employer.

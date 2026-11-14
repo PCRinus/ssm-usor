@@ -2,18 +2,22 @@ import { createRouter } from '../../router';
 import {
   createTraining,
   deleteTraining,
+  dismissSupplementaryTrainingProposal,
   getTraining,
   getTrainingProposal,
   listEmployeeTrainingRecords,
+  listSupplementaryTrainingProposals,
   listTrainings,
   updateTraining,
 } from './handlers';
 import {
   createTrainingRoute,
   deleteTrainingRoute,
+  dismissSupplementaryTrainingProposalRoute,
   getTrainingProposalRoute,
   getTrainingRoute,
   listEmployeeTrainingRecordsRoute,
+  listSupplementaryTrainingProposalsRoute,
   listTrainingsRoute,
   updateTrainingRoute,
 } from './routes';
@@ -35,4 +39,6 @@ export const trainingsRouter = createRouter()
   .openapi(listEmployeeTrainingRecordsRoute, listEmployeeTrainingRecords)
   .openapi(getTrainingSheetsRoute, getTrainingSheets)
   .openapi(getTrainingSheetRoute, getTrainingSheet)
-  .openapi(getTrainingSheetLinkRoute, getTrainingSheetLink);
+  .openapi(getTrainingSheetLinkRoute, getTrainingSheetLink)
+  .openapi(listSupplementaryTrainingProposalsRoute, listSupplementaryTrainingProposals)
+  .openapi(dismissSupplementaryTrainingProposalRoute, dismissSupplementaryTrainingProposal);

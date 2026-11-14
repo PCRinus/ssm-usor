@@ -12,6 +12,8 @@ topics:
     heading: Înregistrarea unei instruiri
   - id: angajati.instruire-suplimentara
     heading: Instruirea periodică suplimentară
+  - id: angajati.instruire-dupa-emitere
+    heading: După emiterea instrucțiunilor proprii
   - id: angajati.instruire-de-pe-hartie
     heading: Instruirile de pe fișa pe hârtie
   - id: angajati.modificare-instruire
@@ -45,6 +47,10 @@ sources:
   - docs/architecture/adr-024-knowledge-tests.md
   - docs/architecture/adr-032-employees-imported-from-training-sheets.md
   - docs/architecture/adr-042-paper-history-as-written.md
+  - supabase/migrations/20261116140000_supplementary_training_proposals.sql
+  - apps/api/src/modules/trainings/supplementary-proposals.ts
+  - apps/app/src/features/trainings/supplementary-training-proposals.tsx
+  - apps/app/src/features/trainings/supplementary-proposals.ts
   - packages/contracts/src/trainings.ts
   - packages/contracts/src/tests.ts
   - packages/contracts/src/job-positions.ts
@@ -126,6 +132,24 @@ Alegi tipul **Periodică suplimentară** și motivul, unul dintre cazurile din H
 - introducerea unei noi tehnologii sau proceduri de lucru.
 
 Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa SU apar în tabelul instruirilor periodice.
+
+### După emiterea instrucțiunilor proprii
+
+De fiecare dată când emiți instrucțiunile proprii ale unui client, IPSSM în **Documente SSM** sau IPSU în **Documente SU**, iar clientul are lucrători actuali cu cel puțin o instruire înregistrată în acel domeniu, aplicația îți propune o instruire periodică suplimentară. Prima emitere din aplicație contează și ea, pentru că instrucțiunile emise le înlocuiesc pe cele pe care clientul le avea până atunci.
+
+Propunerea e o notă care apare imediat după **Emite**, deasupra cuprinsului documentației, și pe tabul **Instruiri ținute** al clientului. Pe **Instruiri ținute** pot sta amândouă notele, SSM deasupra și SU dedesubt. O notă rămâne până înregistrezi instruirile sau o închizi.
+
+- **Posturile.** Nota arată fiecare post cu lucrători actuali și câți lucrători are. Fiecare post e o instruire, ca în fereastra de instruire, unde o instruire privește un singur post. La un client cu multe posturi vezi primele cinci, iar pe celelalte le deschizi cu **Arată toate**.
+- **Înregistrează**, lângă un post, deschide fereastra de instruire completată pentru el: tipul _Periodică suplimentară_, motivul _Modificarea prevederilor de securitate și sănătate în muncă sau a instrucțiunilor proprii_, lucrătorii postului bifați și, la material, instrucțiunile emise, cu revizia și data lor. Sus scrie a câta instruire e și ce posturi urmează. Verifici, completezi ce lipsește și salvezi.
+- **Înregistrată pe …** apare lângă post după ce salvezi, cu ziua în care ai înregistrat instruirea. Contează orice instruire periodică suplimentară din acel domeniu, cu motivul _Modificarea prevederilor de securitate și sănătate în muncă sau a instrucțiunilor proprii_, înregistrată după emitere și ținută în ziua emiterii sau după ea, la care a participat un lucrător actual al postului, chiar dacă ai înregistrat-o din altă parte. O instruire de pe hârtie ținută înainte de emitere nu contează, chiar dacă o transcrii după. Când toate posturile au instruirea lor, nota dispare.
+- **Nu e nevoie de instruire** închide toată nota, pentru o revizie care n-a schimbat nimic important, de exemplu una care a corectat doar greșeli de scriere. Aplicația ține minte cine a închis-o și când.
+- Când emiți din nou instrucțiunile, nota noii revizii o înlocuiește pe cea veche.
+
+Nota e doar o propunere: aplicația nu înregistrează singură nicio instruire, iar o instruire suplimentară o poți înregistra oricând de mână. Aplicația nu compară încă revizia nouă cu cea dinainte, așa că propune instruirea la fiecare emitere și pentru toate posturile.
+
+**SSM.** Instruirea periodică suplimentară se face și când se modifică instrucțiunile proprii (HG 1425/2006, art. 98 lit. b)).
+
+**SU.** Ordinul MAI nr. 712/2005 nu cere o instruire când se modifică instrucțiunile proprii. Aplicația ți-o propune totuși, ca regula să fie aceeași în ambele domenii; hotărăști tu dacă e nevoie de ea.
 
 ### Instruirile de pe fișa pe hârtie
 
