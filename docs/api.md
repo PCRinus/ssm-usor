@@ -798,12 +798,15 @@ The row is written first, then the file at the path the row names; a file that c
 stored takes its row back. `earlierInstructionsDomain` (`ssm` or `su`) and `validUntil` (an ISO
 day) go together and make the file a copy of the client's earlier own instructions; one without
 the other answers `400` on the missing one, and either with `employeeId` `400` on `employeeId`.
-Storing such a copy also takes back an answer that the client has none in that domain.
+Such a copy is for the whole team: asked for owners only, or for a lead, it answers `409` with
+`client_file_earlier_instructions_for_the_team`. Storing it also takes back an answer that the
+client has none in that domain, in the database, in the same transaction.
 
 `PATCH` takes `name` and `note` (`null` or an empty string clears the note), and `validUntil`
 on a copy of earlier own instructions; on any other file `validUntil` answers `400` with
 `client_file_not_earlier_instructions`. `PUT
-…/owners-only` takes `{ ownersOnly }`, from an owner; for a lead's file it answers `409` with
+…/owners-only` takes `{ ownersOnly }`, from an owner; on a copy of earlier own instructions
+`true` answers `409` with `client_file_earlier_instructions_for_the_team`; for a lead's file it answers `409` with
 `client_file_lead_owners_only`, the database's `CFL01`. `PATCH` and `DELETE` by anyone but the
 uploader or an owner answer `403`, and a file the caller cannot see, or one under another
 client, `404`. `DELETE` removes the stored file and then the row; there is no recycle bin.

@@ -361,7 +361,7 @@ Rândurile de pe fișe trimit la instrucțiunile proprii pe care clientul le ave
 Fiecare domeniu are răspunsul lui:
 
 - **Adaugă fișierul**, sau tragi fișierele peste rând: PDF, imagini, Word sau Excel, de cel mult 25 MB fiecare. Instrucțiunile vechi vin des ca mai multe scanuri, așa că poți adăuga mai multe fișiere, cu **Adaugă încă un fișier**. **Scoate** șterge definitiv fișierul, după ce confirmi.
-- **Valabile până la** e ziua din care se aplică instrucțiunile noi, adică ultima zi în care s-au predat cele vechi. Propunem ziua de azi. Ziua se păstrează cu fiecare fișier; schimbată aici, se schimbă la toate fișierele domeniului din listă.
+- **Valabile până la** e ziua din care se aplică instrucțiunile noi. Propunem ziua de azi; fișierele pe care le adaugi o primesc pe cea din câmp, iar fără ea nu se adaugă. Ziua se păstrează cu fiecare fișier. Schimbată aici, se schimbă la fișierele domeniului pe care le-ai încărcat tu, sau la toate dacă ești admin. Fișierele încărcate de un coleg își păstrează ziua, iar sub câmp scrie câte sunt; dacă toate sunt ale unui coleg, câmpul nu se poate schimba și scrie de ce.
 - **Nu le am**, când clientul nu le mai are. Răspunsul privește doar domeniul lui: „Nu le am” la IPSSM nu spune nimic despre IPSU. Îl schimbi cu **Schimbă răspunsul**.
 
 Fișierele se păstrează pe loc la client, în **Alte documente**, în grupa „Instrucțiuni proprii anterioare”, cu domeniul și ziua lor, chiar dacă renunți apoi la import. Fișierele adăugate pe tabul **Instruiri ținute** apar și aici. Dacă importul documentației clientului a păstrat deja instrucțiunile proprii ale unui domeniu, domeniul apare gata, „Le avem din documentația importată pe …”, cu fișierele lui, și nu ți se mai cere nimic pentru el.

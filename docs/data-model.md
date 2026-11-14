@@ -1515,7 +1515,9 @@ decision 3). A copy of them is a client file whose `earlier_instructions_domain`
 domain's instructions it holds, IPSSM (`ssm`) or IPSU (`su`), and whose `valid_until` is the day
 the instructions that replaced them apply from: `client_files_earlier_instructions_valid_until`
 sets both or neither, and `client_files_earlier_instructions_of_client` keeps them off an
-employee's file and off an import folder's. A member inserts both and updates `valid_until`
+employee's file and off an import folder's. `client_files_earlier_instructions_for_the_team`
+keeps a copy off `owners_only`: hidden from a specialist, it would leave its domain asked for
+beside it. A member inserts both and updates `valid_until`
 alone, under the usual policies; a wrong domain is a file deleted and uploaded again.
 `client_files_earlier_instructions_idx` on `(client_id, earlier_instructions_domain)`, partial,
 finds them. Several files per domain are allowed, since old instructions come as several scans.
@@ -1527,7 +1529,9 @@ A copy a confirmed client import kept counts as well, and is never marked: the i
 `earlier_instructions_unavailable` keeps a member's answer that the client has no copy, one row
 per `(client_id, domain)` with `organization_id`, `answered_by` (the caller, by the insert
 policy; null once the account goes) and `answered_at`. Deleting the row takes the answer back;
-uploading a copy of that domain deletes it too. Members read their organization's answers,
+storing a copy of that domain deletes it too, by the trigger
+`client_files_take_back_earlier_instructions_unavailable` after the file's insert, in its
+transaction and past the delete policy. Members read their organization's answers,
 insert one for an active client (not a lead) as themselves, and delete any of their
 organization's; the column grants leave nothing to update. The archived-client trigger
 applies (`CLA01`), and the rows go with their client (`on delete cascade`), so deleting an
