@@ -627,7 +627,7 @@ describe('the credits an import uses', () => {
     await openDialog();
 
     expect((await creditsLine()).textContent).toBe(
-      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
+      'Folosește 25 de credite AI, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
     );
     expect(screen.queryByTestId('import-credits-short')).toBeNull();
   });
@@ -644,10 +644,10 @@ describe('the credits an import uses', () => {
     const dialog = await openDialog();
 
     expect((await creditsLine()).textContent).toBe(
-      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15. Îți mai rămân 266 din cele 300 ale perioadei de probă.'
+      'Folosește 25 de credite AI, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15. Îți mai rămân 266 din cele 300 ale perioadei de probă.'
     );
     expect(dialog.textContent).toContain(
-      'La prima plată primești și creditele de bun venit, ca să-ți aduci toți clienții în aplicație: 2.500 cu Start sau 10.000 cu Profesional. Nu expiră.'
+      'La prima plată primești și creditele AI de bun venit, ca să-ți aduci toți clienții în aplicație: 10 pentru fiecare lucrător al treptei alese, cel mult 10.000. Nu expiră.'
     );
   });
 
@@ -658,13 +658,11 @@ describe('the credits an import uses', () => {
     await screen.findByTestId('import-chosen');
 
     const short = await screen.findByTestId('import-credits-short');
-    expect(short.textContent).toContain('Nu ajung creditele pentru acest import');
+    expect(short.textContent).toContain('Nu ajung creditele AI pentru acest import');
     expect(short.textContent).toContain(
-      'Citirea documentelor unui client folosește 25 de credite, iar ție îți mai rămân 18. Pe 14 noiembrie primești alte 1.500 și poți porni importul.'
+      'Citirea documentelor unui client folosește 25 de credite AI, iar ție îți mai rămân 18. Pe 14 noiembrie primești alte 1.500 și poți porni importul.'
     );
-    expect(screen.getByTestId('import-upload-dialog').textContent).toContain(
-      'Scrie-ne la contact@ssmusor.ro și îți adăugăm credite.'
-    );
+    expect(screen.getByTestId('import-upload-dialog').textContent).not.toContain('Scrie-ne');
     expect(within(short).getByTestId('import-credits-subscription').getAttribute('href')).toBe(
       '/organizatie/abonament'
     );
@@ -690,12 +688,12 @@ describe('the credits an import uses', () => {
     const dialog = await openDialog();
 
     const none = await screen.findByTestId('import-credits-none');
-    expect(none.textContent).toContain('Nu mai ai credite pentru importuri');
+    expect(none.textContent).toContain('Nu mai ai credite AI');
     expect(none.textContent).toContain(
-      'Ai folosit cele 1.500 de credite ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500'
+      'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500'
     );
     expect(dialog.textContent).toContain(
-      'Importurile pornite deja merg până la capăt. Dacă găsesc mai multe pagini scanate decât credite, diferența se scade din creditele lunii viitoare.'
+      'Importurile pornite deja merg până la capăt. Dacă găsesc mai multe pagini scanate decât credite AI, diferența se scade din creditele lunii viitoare.'
     );
     expect(screen.queryByTestId('import-upload-drop')).toBeNull();
     expect(screen.queryByTestId('import-upload-submit')).toBeNull();
@@ -722,7 +720,7 @@ describe('the credits an import uses', () => {
 
     const short = await screen.findByTestId('import-credits-short');
     expect(short.textContent).toContain(
-      'Citirea documentelor unui client folosește 25 de credite, iar ție îți mai rămân 12.'
+      'Citirea documentelor unui client folosește 25 de credite AI, iar ție îți mai rămân 12.'
     );
     expect(screen.queryByTestId('import-upload-stalled')).toBeNull();
     expect(screen.queryByTestId('import-upload-error')).toBeNull();
@@ -766,7 +764,7 @@ describe('files chosen twice', () => {
       'IMG_2031 (1).jpg, aceeași fotografie ca IMG_2031.jpg',
     ]);
     expect((await creditsLine()).textContent).toContain(
-      'Folosește 27 de credite (25 + 2 fotografii)'
+      'Folosește 27 de credite AI (25 + 2 fotografii)'
     );
 
     await userEvent.click(within(dialog).getByTestId('import-upload-submit'));

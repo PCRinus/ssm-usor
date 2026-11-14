@@ -218,15 +218,20 @@ export function safetySheetCharges(store: CreditsStore, now: () => Date = () => 
 }
 
 /**
- * Once the first payment went through, the gift is brought up to the plan's: all of it at the
- * first payment, the difference when Start moves up to Profesional (ADR 030). Before that a plan
+ * Once the first payment went through, the gift is brought up to the step's: all of it at the
+ * first payment, the difference when the plan moves up a step or to Profesional (ADR 030). Before that a plan
  * chosen during the trial brings nothing, since cancelling before the first charge costs nothing.
  */
 export async function grantWelcomeGift(
   store: Pick<CreditsStore, 'welcomeGift'>,
-  row: { organization_id: string; plan: string; first_paid_at: string | null } | null
+  row: {
+    organization_id: string;
+    plan: string;
+    employee_step: number | null;
+    first_paid_at: string | null;
+  } | null
 ) {
   if (!row?.first_paid_at) return 0;
-  const credits = welcomeCreditsOf(row.plan);
+  const credits = welcomeCreditsOf(row);
   return credits > 0 ? store.welcomeGift(row.organization_id, credits) : 0;
 }

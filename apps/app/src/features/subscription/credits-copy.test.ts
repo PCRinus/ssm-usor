@@ -1,18 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import { creditsUsage } from '@/test/billing-fixture';
+import { creditsUsage as usageAt } from '@/test/billing-fixture';
 
 import { creditsCount, creditsMeterFor, giftPanelFor } from './credits-copy';
 import { roDate } from './subscription-copy';
 
 const paid = { kind: 'paid' } as const;
 
+// A month of 1,500 AI credits keeps the figures below round.
+const creditsUsage = (overrides: Parameters<typeof usageAt>[0] = {}) =>
+  usageAt({ included: 1500, allowance: 1500, left: 860, ...overrides });
+
 describe('creditsCount', () => {
   it('counts credits the Romanian way', () => {
-    expect(creditsCount(1)).toBe('1 credit');
-    expect(creditsCount(12)).toBe('12 credite');
-    expect(creditsCount(300)).toBe('300 de credite');
-    expect(creditsCount(10000)).toBe('10.000 de credite');
+    expect(creditsCount(1)).toBe('1 credit AI');
+    expect(creditsCount(12)).toBe('12 credite AI');
+    expect(creditsCount(300)).toBe('300 de credite AI');
+    expect(creditsCount(10000)).toBe('10.000 de credite AI');
   });
 });
 
@@ -37,7 +41,7 @@ describe('the credits meter', () => {
     );
   });
 
-  it('turns red when used up, with the renewal and the offer to add credits', () => {
+  it('turns red when used up, with the renewal and no offer to add credits', () => {
     const meter = creditsMeterFor(
       creditsUsage({ used: 1500, left: 0, giftLeft: 0, state: 'out' }),
       paid
@@ -46,7 +50,7 @@ describe('the credits meter', () => {
     expect(meter.hint).toMatch(
       /^Nu poți porni un import nou până pe \d\d\.\d\d\.\d{4}, când primești alte 1\.500\./
     );
-    expect(meter.hint).toContain('Scrie-ne la contact@ssmusor.ro și îți adăugăm credite.');
+    expect(meter.hint).not.toContain('Scrie-ne');
   });
 
   it('shows a balance below zero, shortened on a phone with the sentence in the hint', () => {
@@ -101,7 +105,7 @@ describe('the credits meter', () => {
   it("says the welcome gift is in use once the month's are gone", () => {
     const meter = creditsMeterFor(creditsUsage({ used: 1500, left: 0, giftLeft: 8000 }), paid);
     expect(meter.hint).toMatch(
-      /^Creditele lunii s-au terminat, așa că importurile folosesc acum creditele de bun venit\./
+      /^Creditele AI ale lunii s-au terminat, așa că importurile folosesc acum creditele de bun venit\./
     );
   });
 });
@@ -110,8 +114,8 @@ describe('the welcome gift', () => {
   it('shows what is left of it, then that it is spent', () => {
     expect(giftPanelFor(creditsUsage(), { paid: true, welcomeCredits: 10000 })).toEqual({
       look: 'balance',
-      title: 'Credite de bun venit',
-      text: 'Rămase din 10.000. Nu expiră și se folosesc după creditele lunii.',
+      title: 'Credite AI de bun venit',
+      text: 'Rămase din 10.000. Nu expiră și se folosesc după creditele AI ale lunii.',
       value: '8.640',
     });
     expect(
@@ -129,7 +133,7 @@ describe('the welcome gift', () => {
       giftPanelFor({ ...trial, giftPending: 10000 }, { paid: false, welcomeCredits: null })
     ).toMatchObject({
       look: 'promise',
-      title: 'La prima plată primești 10.000 de credite de bun venit.',
+      title: 'La prima plată primești 10.000 de credite AI de bun venit.',
     });
     expect(giftPanelFor(trial, { paid: false, welcomeCredits: null })).toBeNull();
   });

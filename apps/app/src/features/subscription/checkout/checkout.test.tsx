@@ -115,7 +115,7 @@ const chosenTrial = (): NonNullable<BillingOverview['subscription']> => ({
   plan: 'start',
   planChosen: true,
   interval: 'month',
-  employeePacks: 2,
+  step: 500,
 });
 
 describe('choosing a plan', () => {
@@ -134,19 +134,21 @@ describe('choosing a plan', () => {
     const page = await screen.findByTestId('choose-plan-page');
     expect(within(page).getByRole('heading', { level: 1 }).textContent).toBe('Alege planul');
     expect(screen.getByTestId('plan-option-start').getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByTestId('packs-value').textContent).toBe('2');
-    expect((screen.getByTestId('packs-less') as HTMLButtonElement).disabled).toBe(true);
-    expect((await screen.findByTestId('checkout-total')).textContent).toBe('83,49 €');
+    expect(screen.getByTestId('step-value').textContent).toBe('500');
+    expect((screen.getByTestId('step-less') as HTMLButtonElement).disabled).toBe(true);
+    expect((await screen.findByTestId('checkout-total')).textContent).toBe('71,39 €');
     expect(await screen.findByText('Azi nu plătești nimic.')).toBeTruthy();
     expect(
-      screen.getByText(/La prima plată primești 2\.500 de credite de bun venit\.$/)
+      screen.getByText(/La prima plată primești 5\.000 de credite AI de bun venit\.$/)
     ).toBeTruthy();
     expect(screen.getByTestId('plan-option-start').textContent).toContain(
-      '300 de credite pentru import pe lună, plus 2.500 la prima plată'
+      '100 de coduri SMS și 1.250 de credite AI pe lună'
     );
+    expect(screen.getByTestId('plan-option-start').textContent).toContain('59 €');
     expect(screen.getByTestId('plan-option-profesional').textContent).toContain(
-      '1.500 de credite pentru import pe lună, plus 10.000 la prima plată'
+      '100 de coduri SMS și 1.250 de credite AI pe lună'
     );
+    expect(screen.getByTestId('plan-option-profesional').textContent).toContain('89 €');
     await screen.findByTestId('payment-element');
     expect(stripe.elementsOptions.at(-1)).toMatchObject({
       mode: 'setup',
@@ -164,9 +166,8 @@ describe('choosing a plan', () => {
     expect(stripe.submit).toHaveBeenCalledTimes(1);
     expect(bodyOf('/billing/subscription', 'POST')).toEqual({
       plan: 'start',
+      step: 500,
       interval: 'month',
-      employeePacks: 2,
-      extraMembers: 0,
     });
     expect(stripe.confirmSetup).toHaveBeenCalledWith(
       expect.objectContaining({ clientSecret: 'seti_secret_1', redirect: 'if_required' })
@@ -223,8 +224,7 @@ describe('choosing a plan', () => {
         plan: 'start',
         status: 'canceled',
         interval: 'month',
-        employeePacks: 2,
-        extraMembers: 0,
+        step: 500,
         access: 'read_only',
       }),
       owner: ownerPart(),
@@ -238,7 +238,7 @@ describe('choosing a plan', () => {
         'POST /billing/preview': (init) =>
           Response.json(
             previewFor(JSON.parse(String(init?.body)) as BillingChoice, {
-              dueToday: 6900,
+              dueToday: 5900,
               firstChargeAt: new Date().toISOString(),
             })
           ),
@@ -248,9 +248,9 @@ describe('choosing a plan', () => {
     });
     const runtime = mount();
 
-    const submit = await screen.findByRole('button', { name: 'Plătește 83,49 €' });
+    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
-    expect(stripe.elementsOptions.at(-1)).toMatchObject({ mode: 'subscription', amount: 8349 });
+    expect(stripe.elementsOptions.at(-1)).toMatchObject({ mode: 'subscription', amount: 7139 });
     await userEvent.click(submit);
 
     expect((await screen.findByTestId('checkout-error')).textContent).toContain(
@@ -343,7 +343,7 @@ describe('choosing a plan', () => {
     expect(stripe.confirmSetup).not.toHaveBeenCalled();
   });
 
-  it('keeps Start out of reach past its ceiling, and never below the packs needed', async () => {
+  it('keeps Start out of reach past 750 employees, and the step never below the employees', async () => {
     mockApi({
       overview: overviewWith({
         subscription: trialSubscription(12),
@@ -351,10 +351,10 @@ describe('choosing a plan', () => {
         owner: ownerPart({
           choices: {
             start: {
-              minimums: { employeePacks: 30, extraMembers: 0 },
-              problems: [{ reason: 'start_employee_ceiling' }],
+              minimumStep: null,
+              problems: [{ reason: 'employees_over_plan', maximum: 750 }],
             },
-            profesional: { minimums: { employeePacks: 1, extraMembers: 0 }, problems: [] },
+            profesional: { minimumStep: 2000, problems: [] },
           },
         }),
       }),
@@ -363,35 +363,66 @@ describe('choosing a plan', () => {
 
     const start = await screen.findByTestId('plan-option-start');
     expect((start as HTMLButtonElement).disabled).toBe(true);
-    expect(start.textContent).toContain('Start acoperă cel mult 600 de lucrători.');
+    expect(start.textContent).toContain('Start acoperă cel mult 750 de lucrători.');
     expect(screen.getByTestId('plan-option-profesional').getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByTestId('packs-value').textContent).toBe('1');
-    expect((screen.getByTestId('packs-less') as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId('step-value').textContent).toBe('2.000');
+    expect((screen.getByTestId('step-less') as HTMLButtonElement).disabled).toBe(true);
 
-    await userEvent.click(screen.getByTestId('packs-more'));
-    expect(screen.getByTestId('packs-value').textContent).toBe('2');
+    await userEvent.click(screen.getByTestId('step-more'));
+    expect(screen.getByTestId('step-value').textContent).toBe('3.000');
     await waitFor(() =>
       expect(bodyOf('/billing/preview', 'POST')).toEqual({
         plan: 'profesional',
+        step: 3000,
         interval: 'month',
-        employeePacks: 2,
-        extraMembers: 0,
       })
     );
   });
 
-  it('changes a running plan with a confirmation and no card form', async () => {
-    const subscription = activeSubscription({
-      plan: 'start',
-      interval: 'month',
-      employeePacks: 2,
-      extraMembers: 1,
+  it('moves to Profesional once the stop passes Start’s last step, with the site’s stops', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: trialSubscription(12),
+        employees: 600,
+        owner: ownerPart(),
+      }),
     });
+    mount();
+
+    expect((await screen.findByTestId('step-value')).textContent).toBe('750');
+    expect(screen.getByTestId('plan-option-start').getAttribute('aria-pressed')).toBe('true');
+    await userEvent.click(screen.getByTestId('step-more'));
+
+    expect(screen.getByTestId('step-value').textContent).toBe('1.000');
+    expect(screen.getByTestId('plan-option-profesional').getAttribute('aria-pressed')).toBe('true');
+    expect((screen.getByTestId('plan-option-start') as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() =>
+      expect(bodyOf('/billing/preview', 'POST')).toMatchObject({ plan: 'profesional', step: 1000 })
+    );
+  });
+
+  it('shows the annual price as a month of ten twelfths, rounded down, and the year', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: trialSubscription(12),
+        employees: 100,
+        owner: ownerPart(),
+      }),
+    });
+    mount('?interval=year');
+
+    const start = await screen.findByTestId('plan-option-start');
+    expect(start.textContent).toContain('32 €');
+    expect(start.textContent).toContain('plătit anual: 384 € + TVA');
+  });
+
+  it('changes a running plan with a confirmation and no card form', async () => {
+    const subscription = activeSubscription({ plan: 'start', interval: 'month', step: 500 });
     mockApi({
       overview: overviewWith({
         subscription,
         owner: ownerPart(),
-        limits: { employees: 350, members: 2, sms: 50 },
+        limits: { employees: 500, members: 3, sms: 100 },
       }),
       routes: {
         'PATCH /billing/subscription': () => Response.json({ clientSecret: null, intent: null }),
@@ -410,16 +441,14 @@ describe('choosing a plan', () => {
     expect(
       await within(dialog).findByRole('heading', { name: 'Treci la Profesional?' })
     ).toBeTruthy();
-    expect(dialog.textContent).toContain('2 pachete de lucrători nu mai sunt necesare');
-    expect(dialog.textContent).toContain('Un utilizator în plus nu mai este necesar');
+    expect(dialog.textContent).toContain('până la 500 de lucrători, 10 utilizatori');
     await userEvent.click(within(dialog).getByTestId('change-confirm'));
 
     await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
     expect(bodyOf('/billing/subscription', 'PATCH')).toEqual({
       plan: 'profesional',
+      step: 500,
       interval: 'month',
-      employeePacks: 0,
-      extraMembers: 0,
     });
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
@@ -427,12 +456,7 @@ describe('choosing a plan', () => {
   });
 
   it('shows no amount due today next to a change it refuses', async () => {
-    const subscription = activeSubscription({
-      plan: 'profesional',
-      interval: 'year',
-      employeePacks: 0,
-      extraMembers: 2,
-    });
+    const subscription = activeSubscription({ plan: 'profesional', interval: 'year', step: 2000 });
     mockApi({
       overview: overviewWith({ subscription, owner: ownerPart() }),
       routes: {
@@ -451,19 +475,15 @@ describe('choosing a plan', () => {
     expect(screen.queryByTestId('checkout-when')).toBeNull();
   });
 
-  it('shows the difference for the days left when a change adds now and removes at the renewal', async () => {
-    const subscription = activeSubscription({
-      interval: 'month',
-      employeePacks: 0,
-      extraMembers: 1,
-    });
+  it('moves up a step at once, with the difference for the days left on the next invoice', async () => {
+    const subscription = activeSubscription({ interval: 'month', step: 1500 });
     mockApi({
       overview: overviewWith({ subscription, owner: ownerPart() }),
       routes: {
         'POST /billing/preview': (init) =>
           Response.json(
             previewFor(JSON.parse(String(init?.body)) as BillingChoice, {
-              appliesAt: subscription.currentPeriodEnd!,
+              appliesAt: new Date().toISOString(),
               proration: { subtotalCents: 2250, chargedNow: false },
             })
           ),
@@ -471,39 +491,58 @@ describe('choosing a plan', () => {
     });
     mount();
 
-    await userEvent.click(await screen.findByTestId('packs-more'));
-    await userEvent.click(screen.getByTestId('members-less'));
+    await userEvent.click(await screen.findByTestId('step-more'));
     const submit = screen.getByTestId('checkout-submit');
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(submit);
 
     const dialog = await screen.findByTestId('change-dialog');
-    await within(dialog).findByText(/Ce adaugi se aplică azi/);
+    await within(dialog).findByRole('heading', {
+      name: 'Treci la treapta de 2.000 de lucrători?',
+    });
+    expect(dialog.textContent).toContain('400 de coduri SMS și 4.250 de credite AI pe lună');
     expect(dialog.textContent).toContain('Diferența pentru zilele rămase');
     expect(dialog.textContent).toContain('22,50 € + TVA');
   });
 
-  it('starts from a link that adds one pack', async () => {
+  it('leaves a lower step for the renewal', async () => {
+    const subscription = activeSubscription({ interval: 'month', step: 2000 });
+    mockApi({
+      overview: overviewWith({ subscription, owner: ownerPart() }),
+      routes: {
+        'POST /billing/preview': (init) =>
+          Response.json(
+            previewFor(JSON.parse(String(init?.body)) as BillingChoice, {
+              appliesAt: subscription.currentPeriodEnd!,
+            })
+          ),
+      },
+    });
+    mount();
+
+    await userEvent.click(await screen.findByTestId('step-less'));
+    const submit = screen.getByTestId('checkout-submit');
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(submit);
+
+    const dialog = await screen.findByTestId('change-dialog');
+    expect((await within(dialog).findByRole('heading', { level: 2 })).textContent).toMatch(
+      /^Treci la treapta de 1\.500 de lucrători de pe /
+    );
+    expect(dialog.textContent).toContain('rămâi pe treapta de acum');
+  });
+
+  it('starts from a link to the next step', async () => {
     mockApi({
       overview: overviewWith({
-        subscription: activeSubscription({
-          plan: 'start',
-          interval: 'month',
-          employeePacks: 2,
-          extraMembers: 0,
-        }),
+        subscription: activeSubscription({ plan: 'start', interval: 'month', step: 250 }),
         employees: 362,
-        owner: ownerPart({
-          choices: {
-            start: { minimums: { employeePacks: 3, extraMembers: 0 }, problems: [] },
-            profesional: { minimums: { employeePacks: 0, extraMembers: 0 }, problems: [] },
-          },
-        }),
+        owner: ownerPart(),
       }),
     });
-    mount('?packs=3');
+    mount('?step=500');
 
-    expect((await screen.findByTestId('packs-value')).textContent).toBe('3');
+    expect((await screen.findByTestId('step-value')).textContent).toBe('500');
     expect(screen.getByTestId('plan-option-start').getAttribute('aria-pressed')).toBe('true');
   });
 

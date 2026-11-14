@@ -1,9 +1,4 @@
-import {
-  billingPlans,
-  type PaidPlan,
-  testerMonthlyCredits,
-  trialCredits,
-} from '@ssm-usor/contracts';
+import { testerMonthlyCredits, trialCredits } from '@ssm-usor/contracts';
 
 import {
   billingAnchor,
@@ -13,6 +8,7 @@ import {
   monthAround,
   type Period,
   type SmsSubscription,
+  stepOf,
   trialMonth,
 } from '../sms-usage/policy';
 
@@ -33,10 +29,8 @@ export type CreditPolicy =
 
 const day = 86_400_000;
 
-const isPaidPlan = (plan: string): plan is PaidPlan => plan in billingPlans;
-
-export const welcomeCreditsOf = (plan: string) =>
-  isPaidPlan(plan) ? billingPlans[plan].welcomeCredits : 0;
+export const welcomeCreditsOf = (row: Pick<SmsSubscription, 'plan' | 'employee_step'>) =>
+  row.plan === 'start' || row.plan === 'profesional' ? stepOf(row).welcomeCredits : 0;
 
 const before = (period: Period) => new Date(period.start.getTime() - 1);
 
@@ -60,7 +54,7 @@ export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPoli
   const tester = row.tester_allowances;
   if (!isPaid(row)) {
     const trialEnd = dateOf(row.trial_ends_at);
-    const giftPending = row.stripe_subscription_id ? welcomeCreditsOf(row.plan) : 0;
+    const giftPending = row.stripe_subscription_id ? welcomeCreditsOf(row) : 0;
     if (tester && row.status === 'trialing' && trialEnd !== null && trialEnd > now) {
       return {
         limited: true,
@@ -85,7 +79,7 @@ export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPoli
 
   const anchor = billingAnchor(row);
   const period = monthAround(anchor, now);
-  const allowance = billingPlans[row.plan as PaidPlan].monthlyCredits;
+  const allowance = stepOf(row).monthlyCredits;
   const paidAt = dateOf(row.first_paid_at);
   const firstMonth = paidAt ? monthAround(anchor, paidAt) : null;
   let previous: CreditMonth | null;

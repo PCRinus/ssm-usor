@@ -1,14 +1,10 @@
-import {
-  type BillingChoice,
-  billingPlans,
-  type BillingPreview,
-  vatPercent,
-} from '@ssm-usor/contracts';
+import { type BillingChoice, type BillingPreview, planStep, vatPercent } from '@ssm-usor/contracts';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import type { ReactNode } from 'react';
 
-import { choiceAmounts, formatCount, formatEuro, perInterval } from '../billing-format';
+import { choiceAmounts, formatEuro, perInterval } from '../billing-format';
+import { creditsCount } from '../credits-copy';
 import { roDate } from '../subscription-copy';
 import type { CheckoutMode } from './checkout-choice';
 
@@ -35,7 +31,7 @@ function whenFor(
       return {
         tone: 'success',
         title: 'Azi nu plătești nimic.',
-        text: `Cardul se salvează acum. Prima plată, de ${formatEuro(next.totalCents)}, se face pe ${roDate(preview.firstChargeAt)}, când se încheie perioada de probă. La prima plată primești ${formatCount(billingPlans[preview.choice.plan].welcomeCredits)} de credite de bun venit.`,
+        text: `Cardul se salvează acum. Prima plată, de ${formatEuro(next.totalCents)}, se face pe ${roDate(preview.firstChargeAt)}, când se încheie perioada de probă. La prima plată primești ${creditsCount(planStep(preview.choice.plan, preview.choice.step)?.welcomeCredits ?? 0)} de bun venit.`,
       };
     }
     return {
@@ -51,7 +47,7 @@ function whenFor(
     return {
       tone: 'plain',
       title: 'Asta ai acum.',
-      text: 'Schimbă planul, perioada sau cantitățile ca să vezi diferența.',
+      text: 'Schimbă planul, treapta sau perioada ca să vezi diferența.',
     };
   }
   if (context.inTrial) {

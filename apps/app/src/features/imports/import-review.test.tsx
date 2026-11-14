@@ -2504,7 +2504,7 @@ describe('the credits the import used', () => {
     const dialog = await screen.findByTestId('import-confirm-dialog');
     await waitFor(() =>
       expect(within(dialog).getByTestId('import-credits-used').textContent).toBe(
-        'Importul a folosit 34 de credite (25 + 9 pagini scanate).'
+        'Importul a folosit 34 de credite AI (25 + 9 pagini scanate).'
       )
     );
   });
@@ -2519,7 +2519,7 @@ describe('the credits the import used', () => {
     const dialog = await screen.findByTestId('import-confirm-dialog');
     await waitFor(() =>
       expect(within(dialog).getByTestId('import-credits-used').textContent).toBe(
-        'Importul a folosit 34 de credite (25 + 9 pagini scanate). Ai trecut cu 4 peste cele rămase; le scădem din creditele lunii viitoare.'
+        'Importul a folosit 34 de credite AI (25 + 9 pagini scanate). Ai trecut cu 4 peste cele rămase; le scădem din creditele AI ale lunii viitoare.'
       )
     );
   });

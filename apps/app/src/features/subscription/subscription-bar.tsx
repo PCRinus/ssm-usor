@@ -95,11 +95,7 @@ export function SubscriptionBar({
 
   const smsBar =
     sms && subscription.access === 'full'
-      ? smsBarFor(sms, {
-          owner: isOwner,
-          canAct,
-          stop: stopOf(sms, subscription.planChosen),
-        })
+      ? smsBarFor(sms, { owner: isOwner, stop: stopOf(subscription) })
       : null;
   if (!smsBar || (smsBar.closable && dismissed.sms)) return null;
   return (
@@ -110,21 +106,10 @@ export function SubscriptionBar({
       lead={smsBar.lead}
       detail={smsBar.detail}
       action={
-        smsBar.link === 'raiseCap' ? (
-          <Link
-            to="/organizatie/abonament"
-            search={{ raiseCap: true }}
-            data-testid="subscription-bar-action"
-            className="inline-flex h-8 shrink-0 items-center rounded-lg bg-primary px-3 font-semibold whitespace-nowrap text-primary-foreground hover:bg-primary/90"
-          >
-            Ridică limita
-          </Link>
-        ) : smsBar.link === 'usage' ? (
-          <Link to={subscriptionPath} data-testid="subscription-bar-action" className={linkClass}>
-            <span className="md:hidden">Vezi</span>
-            <span className="hidden md:inline">Vezi consumul</span>
-          </Link>
-        ) : null
+        <Link to={subscriptionPath} data-testid="subscription-bar-action" className={linkClass}>
+          <span className="md:hidden">Vezi</span>
+          <span className="hidden md:inline">Vezi consumul</span>
+        </Link>
       }
       onClose={smsBar.closable ? () => close('sms') : undefined}
     />

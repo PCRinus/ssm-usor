@@ -296,7 +296,7 @@ describe('the processing page', () => {
 
     const notice = await screen.findByTestId('import-failed');
     expect(within(notice).getByTestId('import-failed-message').textContent).toBe(
-      'Importul s-a oprit din cauza unei erori. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.'
+      'Importul s-a oprit din cauza unei erori. Creditele AI ți-au fost returnate. Renunță la import și încearcă din nou.'
     );
     expect((await within(notice).findByTestId('import-report')).textContent).toBe(
       'Raportează o problemă cu importul'

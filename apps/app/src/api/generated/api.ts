@@ -211,6 +211,8 @@ export const MeResponseSubscriptionAccess = {
 export type MeResponseSubscription = {
   plan: MeResponseSubscriptionPlan;
   planChosen: boolean;
+  /** @nullable */
+  step: number | null;
   status: MeResponseSubscriptionStatus;
   /** @nullable */
   trialEndsAt: string | null;
@@ -227,8 +229,6 @@ export type MeResponseSmsThisMonthState =
 export const MeResponseSmsThisMonthState = {
   ok: 'ok',
   near: 'near',
-  over: 'over',
-  capped: 'capped',
   stopped: 'stopped',
   none: 'none',
 } as const;
@@ -13487,10 +13487,8 @@ export type BillingOverviewSubscription = {
   status: BillingOverviewSubscriptionStatus;
   /** @nullable */
   interval: BillingOverviewSubscriptionInterval;
-  /** @minimum 0 */
-  employeePacks: number;
-  /** @minimum 0 */
-  extraMembers: number;
+  /** @nullable */
+  step: number | null;
   /** @nullable */
   trialEndsAt: string | null;
   /** @nullable */
@@ -13536,8 +13534,6 @@ export type BillingOverviewUsageSmsThisMonthState =
 export const BillingOverviewUsageSmsThisMonthState = {
   ok: 'ok',
   near: 'near',
-  over: 'over',
-  capped: 'capped',
   stopped: 'stopped',
   none: 'none',
 } as const;
@@ -13627,6 +13623,8 @@ export type BillingOverviewUsageCreditsThisMonth = {
 export type BillingOverviewUsage = {
   employees: BillingOverviewUsageEmployees;
   members: BillingOverviewUsageMembers;
+  /** @minimum 0 */
+  invitations: number;
   smsThisMonth: BillingOverviewUsageSmsThisMonth;
   creditsThisMonth: BillingOverviewUsageCreditsThisMonth;
 };
@@ -13639,79 +13637,30 @@ export const BillingOverviewCataloguePlansItemKey = {
   profesional: 'profesional',
 } as const;
 
-export type BillingOverviewCataloguePlansItemPrices = {
+export type BillingOverviewCataloguePlansItemStepsItemPrices = {
   month: number;
   year: number;
 };
 
-export type BillingOverviewCataloguePlansItemEmployeePack =
-  (typeof BillingOverviewCataloguePlansItemEmployeePack)[keyof typeof BillingOverviewCataloguePlansItemEmployeePack];
-
-export const BillingOverviewCataloguePlansItemEmployeePack = {
-  start: 'start',
-  profesional: 'profesional',
-  employees50: 'employees50',
-  employees500: 'employees500',
-  member: 'member',
-  sms_overage: 'sms_overage',
-} as const;
+export type BillingOverviewCataloguePlansItemStepsItem = {
+  employees: number;
+  prices: BillingOverviewCataloguePlansItemStepsItemPrices;
+  monthlySms: number;
+  monthlyCredits: number;
+  welcomeCredits: number;
+};
 
 export type BillingOverviewCataloguePlansItem = {
   key: BillingOverviewCataloguePlansItemKey;
   name: string;
-  prices: BillingOverviewCataloguePlansItemPrices;
-  includedEmployees: number;
-  includedMembers: number;
-  /** @nullable */
-  maxMembers: number | null;
-  monthlySms: number;
-  monthlyCredits: number;
-  welcomeCredits: number;
-  employeePack: BillingOverviewCataloguePlansItemEmployeePack;
-  /** @nullable */
-  maxEmployeePacks: number | null;
-};
-
-export type BillingOverviewCatalogueEmployeePacksItemKey =
-  (typeof BillingOverviewCatalogueEmployeePacksItemKey)[keyof typeof BillingOverviewCatalogueEmployeePacksItemKey];
-
-export const BillingOverviewCatalogueEmployeePacksItemKey = {
-  start: 'start',
-  profesional: 'profesional',
-  employees50: 'employees50',
-  employees500: 'employees500',
-  member: 'member',
-  sms_overage: 'sms_overage',
-} as const;
-
-export type BillingOverviewCatalogueEmployeePacksItemPrices = {
-  month: number;
-  year: number;
-};
-
-export type BillingOverviewCatalogueEmployeePacksItem = {
-  key: BillingOverviewCatalogueEmployeePacksItemKey;
-  name: string;
-  employees: number;
-  prices: BillingOverviewCatalogueEmployeePacksItemPrices;
-};
-
-export type BillingOverviewCatalogueExtraMemberPrices = {
-  month: number;
-  year: number;
-};
-
-export type BillingOverviewCatalogueExtraMember = {
-  name: string;
-  prices: BillingOverviewCatalogueExtraMemberPrices;
+  members: number;
+  steps: BillingOverviewCataloguePlansItemStepsItem[];
 };
 
 export type BillingOverviewCatalogue = {
   currency: string;
   vatPercent: number;
   plans: BillingOverviewCataloguePlansItem[];
-  employeePacks: BillingOverviewCatalogueEmployeePacksItem[];
-  extraMember: BillingOverviewCatalogueExtraMember;
   smsOverageCents: number;
 };
 
@@ -13756,35 +13705,19 @@ export const BillingOverviewOwnerScheduledChangeInterval = {
  */
 export type BillingOverviewOwnerScheduledChange = {
   plan: BillingOverviewOwnerScheduledChangePlan;
+  /** @minimum 1 */
+  step: number;
   interval: BillingOverviewOwnerScheduledChangeInterval;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  employeePacks: number;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  extraMembers: number;
   at: string;
 } | null;
-
-export type BillingOverviewOwnerChoicesStartMinimums = {
-  employeePacks: number;
-  extraMembers: number;
-};
 
 export type BillingOverviewOwnerChoicesStartProblemsItemReason =
   (typeof BillingOverviewOwnerChoicesStartProblemsItemReason)[keyof typeof BillingOverviewOwnerChoicesStartProblemsItemReason];
 
 export const BillingOverviewOwnerChoicesStartProblemsItemReason = {
-  start_employee_ceiling: 'start_employee_ceiling',
-  start_member_ceiling: 'start_member_ceiling',
-  employee_packs_below_need: 'employee_packs_below_need',
-  extra_members_below_need: 'extra_members_below_need',
-  employee_packs_above_plan: 'employee_packs_above_plan',
-  extra_members_above_plan: 'extra_members_above_plan',
+  employees_over_plan: 'employees_over_plan',
+  members_over_plan: 'members_over_plan',
+  step_below_need: 'step_below_need',
   split_change: 'split_change',
 } as const;
 
@@ -13797,25 +13730,18 @@ export type BillingOverviewOwnerChoicesStartProblemsItem = {
 };
 
 export type BillingOverviewOwnerChoicesStart = {
-  minimums: BillingOverviewOwnerChoicesStartMinimums;
+  /** @nullable */
+  minimumStep: number | null;
   problems: BillingOverviewOwnerChoicesStartProblemsItem[];
-};
-
-export type BillingOverviewOwnerChoicesProfesionalMinimums = {
-  employeePacks: number;
-  extraMembers: number;
 };
 
 export type BillingOverviewOwnerChoicesProfesionalProblemsItemReason =
   (typeof BillingOverviewOwnerChoicesProfesionalProblemsItemReason)[keyof typeof BillingOverviewOwnerChoicesProfesionalProblemsItemReason];
 
 export const BillingOverviewOwnerChoicesProfesionalProblemsItemReason = {
-  start_employee_ceiling: 'start_employee_ceiling',
-  start_member_ceiling: 'start_member_ceiling',
-  employee_packs_below_need: 'employee_packs_below_need',
-  extra_members_below_need: 'extra_members_below_need',
-  employee_packs_above_plan: 'employee_packs_above_plan',
-  extra_members_above_plan: 'extra_members_above_plan',
+  employees_over_plan: 'employees_over_plan',
+  members_over_plan: 'members_over_plan',
+  step_below_need: 'step_below_need',
   split_change: 'split_change',
 } as const;
 
@@ -13828,7 +13754,8 @@ export type BillingOverviewOwnerChoicesProfesionalProblemsItem = {
 };
 
 export type BillingOverviewOwnerChoicesProfesional = {
-  minimums: BillingOverviewOwnerChoicesProfesionalMinimums;
+  /** @nullable */
+  minimumStep: number | null;
   problems: BillingOverviewOwnerChoicesProfesionalProblemsItem[];
 };
 
@@ -13906,29 +13833,18 @@ export const BillingPreviewChoiceInterval = {
 
 export type BillingPreviewChoice = {
   plan: BillingPreviewChoicePlan;
+  /** @minimum 1 */
+  step: number;
   interval: BillingPreviewChoiceInterval;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  employeePacks: number;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  extraMembers: number;
 };
 
 export type BillingPreviewProblemsItemReason =
   (typeof BillingPreviewProblemsItemReason)[keyof typeof BillingPreviewProblemsItemReason];
 
 export const BillingPreviewProblemsItemReason = {
-  start_employee_ceiling: 'start_employee_ceiling',
-  start_member_ceiling: 'start_member_ceiling',
-  employee_packs_below_need: 'employee_packs_below_need',
-  extra_members_below_need: 'extra_members_below_need',
-  employee_packs_above_plan: 'employee_packs_above_plan',
-  extra_members_above_plan: 'extra_members_above_plan',
+  employees_over_plan: 'employees_over_plan',
+  members_over_plan: 'members_over_plan',
+  step_below_need: 'step_below_need',
   split_change: 'split_change',
 } as const;
 
@@ -13938,13 +13854,6 @@ export type BillingPreviewProblemsItem = {
   minimum?: number;
   /** @minimum 0 */
   maximum?: number;
-};
-
-export type BillingPreviewMinimums = {
-  /** @minimum 0 */
-  employeePacks: number;
-  /** @minimum 0 */
-  extraMembers: number;
 };
 
 export type BillingPreviewRecurringInterval =
@@ -13961,9 +13870,6 @@ export type BillingPreviewRecurringLinesItemProduct =
 export const BillingPreviewRecurringLinesItemProduct = {
   start: 'start',
   profesional: 'profesional',
-  employees50: 'employees50',
-  employees500: 'employees500',
-  member: 'member',
   sms_overage: 'sms_overage',
 } as const;
 
@@ -14006,7 +13912,8 @@ export type BillingPreviewNextRenewal = {
 export interface BillingPreview {
   choice: BillingPreviewChoice;
   problems: BillingPreviewProblemsItem[];
-  minimums: BillingPreviewMinimums;
+  /** @nullable */
+  minimumStep: number | null;
   unchanged: boolean;
   recurring: BillingPreviewRecurring;
   appliesAt: string;
@@ -14036,17 +13943,9 @@ export const BillingChoiceInterval = {
 
 export interface BillingChoice {
   plan: BillingChoicePlan;
+  /** @minimum 1 */
+  step: number;
   interval: BillingChoiceInterval;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  employeePacks: number;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  extraMembers: number;
 }
 
 /**
@@ -14085,17 +13984,9 @@ export const ChangeSubscriptionRequestInterval = {
 
 export interface ChangeSubscriptionRequest {
   plan: ChangeSubscriptionRequestPlan;
+  /** @minimum 1 */
+  step: number;
   interval: ChangeSubscriptionRequestInterval;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  employeePacks: number;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
-  extraMembers: number;
   prorationDate?: string;
 }
 
@@ -14129,19 +14020,6 @@ export interface InvoiceEmail {
    * @nullable
    */
   email: string | null;
-}
-
-export interface SmsCap {
-  factor: number;
-  cap: number;
-}
-
-export interface SmsCapRequest {
-  /**
-   * @minimum 3
-   * @maximum 20
-   */
-  factor: number;
 }
 
 export interface BillingInvoiceLink {
@@ -39787,8 +39665,8 @@ export const getChangeSubscriptionUrl = () => {
 };
 
 /**
- * Upgrades and additions apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. Downgrades, removals and annual to monthly wait for the renewal. During a trial everything applies at once. An annual change that adds now and removes at the renewal is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.
- * @summary Change the plan, the interval, the packs or the members
+ * A change to a higher monthly price, a higher step or Profesional, and monthly to annual apply at once: on a monthly plan the difference goes on the next invoice, on an annual one it is charged now and may need the payment secret confirmed. A lower step, Profesional to Start and annual to monthly wait for the renewal. During a trial everything applies at once. A change that waits for the renewal while an annual payment for an earlier one is still pending is refused with `split_change`. `prorationDate`, from the preview, makes Stripe prorate as it showed.
+ * @summary Change the plan, the step or the interval
  */
 export const changeSubscription = async (
   changeSubscriptionRequest: ChangeSubscriptionRequest,
@@ -39867,7 +39745,7 @@ export type ChangeSubscriptionMutationError = ErrorType<ApiErrorResponse>;
 export type ChangeSubscriptionMutationVariables = { data: ChangeSubscriptionRequest };
 
 /**
- * @summary Change the plan, the interval, the packs or the members
+ * @summary Change the plan, the step or the interval
  */
 export const useChangeSubscription = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
   options?: {
@@ -40255,111 +40133,6 @@ export const useUpdateInvoiceEmail = <TError = ErrorType<ApiErrorResponse>, TCon
   TContext
 > => {
   return useMutation(getUpdateInvoiceEmailMutationOptions(options), queryClient);
-};
-
-export const getUpdateSmsCapUrl = () => {
-  return `/billing/sms-cap`;
-};
-
-/**
- * A multiple of the plan's allowance, from 3 (the default) to 20; codes granted by hand come on top. Past the cap no signing code goes by SMS. Recorded in the subscription's change log.
- * @summary The safety cap on the month's signing codes by SMS
- */
-export const updateSmsCap = async (
-  smsCapRequest: SmsCapRequest,
-  options?: Parameters<typeof apiFetch>[1]
-): Promise<SmsCap> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string]
-        )
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-  return apiFetch<SmsCap>(getUpdateSmsCapUrl(), {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(smsCapRequest),
-  });
-};
-
-export const getUpdateSmsCapMutationKey = () => ['updateSmsCap'] as const;
-
-export const getUpdateSmsCapMutationOptions = <
-  TError = ErrorType<ApiErrorResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateSmsCap>>,
-    TError,
-    UpdateSmsCapMutationVariables,
-    TContext
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateSmsCap>>,
-  TError,
-  UpdateSmsCapMutationVariables,
-  TContext
-> => {
-  const mutationKey = getUpdateSmsCapMutationKey();
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateSmsCap>>,
-    UpdateSmsCapMutationVariables
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return updateSmsCap(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateSmsCapMutationResult = NonNullable<Awaited<ReturnType<typeof updateSmsCap>>>;
-export type UpdateSmsCapMutationBody = SmsCapRequest;
-export type UpdateSmsCapMutationError = ErrorType<ApiErrorResponse>;
-export type UpdateSmsCapMutationVariables = { data: SmsCapRequest };
-
-/**
- * @summary The safety cap on the month's signing codes by SMS
- */
-export const useUpdateSmsCap = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateSmsCap>>,
-      TError,
-      UpdateSmsCapMutationVariables,
-      TContext
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateSmsCap>>,
-  TError,
-  UpdateSmsCapMutationVariables,
-  TContext
-> => {
-  return useMutation(getUpdateSmsCapMutationOptions(options), queryClient);
 };
 
 export const getGetBillingInvoicePdfUrl = (stripeInvoiceId: string) => {

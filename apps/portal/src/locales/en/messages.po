@@ -478,14 +478,6 @@ msgstr "The code comes by SMS, and this month's SMS codes have run out. They sta
 msgid "Codul vine prin SMS, iar SMS-urile pleacă doar spre numere din România (+40)."
 msgstr "The code comes by SMS, and SMS go only to Romanian numbers (+40)."
 
-#: src/features/signing/sms-refusal-notice.tsx
-msgid "Codul vine prin SMS, iar SMS-urile sunt oprite deocamdată."
-msgstr "The code comes by SMS, and SMS are stopped for now."
-
-#: src/features/signing/sms-refusal-notice.tsx
-msgid "Codul vine prin SMS, iar SMS-urile sunt oprite până pe {resumes}."
-msgstr "The code comes by SMS, and SMS are stopped until {resumes}."
-
 #: src/features/auth/sign-in-address.ts
 msgid "Codurile prin SMS pleacă doar spre numere din România (+40). Intră cu adresa de email la care ai primit invitația sau spune-i specialistului SSM să-ți adauge una."
 msgstr "Codes by SMS go only to Romanian numbers (+40). Sign in with the email address your invitation came to, or ask your SSM specialist to add one."
@@ -1217,10 +1209,6 @@ msgstr "Responsible persons"
 #: src/features/employees/employee-page.tsx
 msgid "Poate a fost scos din evidența companiei."
 msgstr "They may have been removed from the company's records."
-
-#: src/features/signing/sms-refusal-notice.tsx
-msgid "Poate și ridica limita de SMS-uri, ca să-l primești prin SMS."
-msgstr "They can also raise the SMS limit, so it reaches you by SMS."
 
 #: src/app/portal-footer.tsx
 msgid "Politica de confidențialitate"

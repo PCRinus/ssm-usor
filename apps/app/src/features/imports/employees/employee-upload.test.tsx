@@ -395,7 +395,7 @@ describe('the chosen photographs', () => {
     ]);
     expect(chosenTitle(dialog)).toBe('2 fotografii de citit');
     expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
-      'Folosește 2 credite, unul pe fotografie.'
+      'Folosește 2 credite AI, unul pe fotografie.'
     );
     const aside = within(dialog).getByTestId('import-set-aside');
     expect(within(aside).getByRole('heading').textContent).toBe('Puse deoparte, nu le citim');
@@ -437,7 +437,7 @@ describe('the credits an employee import uses', () => {
     const dialog = await openDialog('employees-start-found');
     await waitFor(() =>
       expect(within(dialog).getByTestId('import-credits-line').textContent).toBe(
-        'Folosește 2 credite, unul pe fotografie. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
+        'Folosește 2 credite AI, unul pe fotografie. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
       )
     );
   });
@@ -447,9 +447,9 @@ describe('the credits an employee import uses', () => {
     const dialog = await openDialog('employees-start-found');
 
     const short = await within(dialog).findByTestId('import-credits-short');
-    expect(short.textContent).toContain('Nu ajung creditele pentru toate fotografiile');
+    expect(short.textContent).toContain('Nu ajung creditele AI pentru toate fotografiile');
     expect(short.textContent).toContain(
-      'Cele 2 fotografii folosesc 2 credite, iar ție îți mai rămâne 1 până pe 14 noiembrie. Scoate o parte și păstreaz-o pentru un import după reînnoire, cu toate fotografiile unei persoane în același import.'
+      'Cele 2 fotografii folosesc 2 credite AI, iar ție îți mai rămâne 1 până pe 14 noiembrie. Scoate o parte și păstreaz-o pentru un import după reînnoire, cu toate fotografiile unei persoane în același import.'
     );
     expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', true);
 
@@ -471,7 +471,7 @@ describe('the credits an employee import uses', () => {
     });
     await waitFor(() =>
       expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
-        'Folosește 3 credite, unul pe fotografie sau pagină.'
+        'Folosește 3 credite AI, unul pe fotografie sau pagină.'
       )
     );
     await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));

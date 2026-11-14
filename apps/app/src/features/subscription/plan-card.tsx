@@ -171,8 +171,8 @@ export function PlanCard({
             ? `Activ. Se reînnoiește pe ${roDate(renews)}.`
             : 'Activ.';
       if (owner && amounts && choice) {
-        // On an annual plan the next invoice is the month's extra SMS, so the renewal is shown,
-        // at the choice a change set for it.
+        // On an annual plan Stripe's next invoice can be a month of the SMS extras, so the renewal
+        // is shown, at the choice a change set for it.
         const renewal = owner.scheduledChange ?? choice;
         amount =
           choice.interval === 'year'
@@ -187,9 +187,6 @@ export function PlanCard({
                 note: `pe ${roDate(owner.nextPayment?.at ?? renews ?? now.toISOString())}, cu TVA`,
               };
         rows = totalRows();
-        if (owner.smsOverageCents) {
-          note = `SMS-urile peste plan se plătesc lunar: luna aceasta, până acum, ${formatEuro(owner.smsOverageCents)} + TVA${owner.nextPayment ? `, pe factura din ${roDate(owner.nextPayment.at)}` : ''}.`;
-        }
       }
       if (owner?.scheduledChange) {
         note = (
@@ -212,7 +209,7 @@ export function PlanCard({
         );
       }
       if (choice) {
-        buttons.push(chooseLink('Schimbă planul sau pachetele', 'outline'));
+        buttons.push(chooseLink('Schimbă planul sau treapta', 'outline'));
         const toAnnual = choice.interval === 'month';
         buttons.push(
           <Button
@@ -231,13 +228,13 @@ export function PlanCard({
       }
       buttons.push(cancelButton);
       const startProblem = owner?.choices.start.problems.find((problem) =>
-        problem.reason.startsWith('start_')
+        problem.reason.endsWith('_over_plan')
       );
       if (subscription?.plan === 'profesional' && startProblem) {
         foot =
-          startProblem.reason === 'start_employee_ceiling'
-            ? `Start nu este disponibil: acoperă cel mult 600 de lucrători, iar tu ai ${formatCount(overview.usage.employees.used ?? 0)}.`
-            : `Start nu este disponibil: are cel mult 2 utilizatori, iar voi sunteți ${overview.usage.members.used ?? 0}.`;
+          startProblem.reason === 'employees_over_plan'
+            ? `Start nu este disponibil: acoperă cel mult ${formatCount(startProblem.maximum ?? 750)} de lucrători, iar tu ai ${formatCount(overview.usage.employees.used ?? 0)}.`
+            : `Start nu este disponibil: are cel mult ${startProblem.maximum ?? 3} utilizatori, iar voi sunteți ${overview.usage.members.used ?? 0}.`;
       }
       break;
     }

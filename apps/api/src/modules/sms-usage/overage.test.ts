@@ -12,7 +12,7 @@ import {
 } from '../billing/upstream.fixture';
 import { reportOverage, retryOverageReports } from './overage';
 
-const start = { plan: 'start', interval: 'month', employeePacks: 0, extraMembers: 0 } as const;
+const start = { plan: 'start', step: 250, interval: 'month' } as const;
 const sentAt = new Date(Date.now() - 60 * 60_000);
 
 const meterEvents = (fake: Fake) =>

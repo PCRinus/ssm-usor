@@ -590,10 +590,6 @@ describe('the signing screen', () => {
 
   it.each([
     [
-      'sms_cap_reached',
-      'Codul vine prin SMS, iar SMS-urile sunt oprite până pe 14 noiembrie 2026. Spune-i specialistului SSM de la Prevenție Vest S.R.L. Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi. Poate și ridica limita de SMS-uri, ca să-l primești prin SMS.',
-    ],
-    [
       'sms_allowance_reached',
       'Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta. Pornesc din nou pe 14 noiembrie 2026. Spune-i specialistului SSM de la Prevenție Vest S.R.L. Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi.',
     ],
@@ -641,7 +637,7 @@ describe('the signing screen', () => {
     vi.mocked(createPortalSigningSession)
       .mockResolvedValueOnce({ ...session, channel: 'sms', addressHint: '+40 7** *** *01' })
       .mockRejectedValueOnce(
-        refusal('sms_cap_reached', 'Refused.', { resumesAt: '2026-11-13T23:00:00.000Z' })
+        refusal('sms_allowance_reached', 'Refused.', { resumesAt: '2026-11-13T23:00:00.000Z' })
       );
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {

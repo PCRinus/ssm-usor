@@ -23,6 +23,7 @@ const inDays = (days: number) => {
 const trial = (days: number): SubscriptionSummary => ({
   plan: 'profesional',
   planChosen: false,
+  step: null,
   status: 'trialing',
   trialEndsAt: inDays(days),
   accessUntil: inDays(days),
@@ -34,6 +35,7 @@ const chosen = (days: number): SubscriptionSummary => ({
   ...trial(days),
   plan: 'start',
   planChosen: true,
+  step: 1500,
   accessUntil: inDays(days + 14),
 });
 
@@ -46,6 +48,7 @@ const readOnly: SubscriptionSummary = {
 const active: SubscriptionSummary = {
   plan: 'profesional',
   planChosen: true,
+  step: 1500,
   status: 'active',
   trialEndsAt: null,
   accessUntil: null,
@@ -56,6 +59,7 @@ const active: SubscriptionSummary = {
 const pastDue: SubscriptionSummary = {
   plan: 'profesional',
   planChosen: true,
+  step: 1500,
   status: 'past_due',
   trialEndsAt: null,
   accessUntil: inDays(10),
@@ -216,12 +220,12 @@ describe('the SMS bar', () => {
     await renderRouted(
       <SubscriptionBar
         subscription={active}
-        sms={smsUsage({ used: 342, state: 'over' })}
+        sms={smsUsage({ used: 300, state: 'stopped' })}
         isOwner
         canAct
       />
     );
-    expect((await screen.findByTestId('subscription-bar')).dataset.state).toBe('over');
+    expect((await screen.findByTestId('subscription-bar')).dataset.state).toBe('stopped');
     expect(screen.queryByTestId('subscription-bar-close')).toBeNull();
   });
 
@@ -239,31 +243,23 @@ describe('the SMS bar', () => {
     setItem.mockRestore();
   });
 
-  it('turns red at the cap, with the owner raising it from the bar', async () => {
-    const capped = smsUsage({ used: 900, state: 'capped' });
-    const { unmount } = await renderRouted(
-      <SubscriptionBar subscription={active} sms={capped} isOwner canAct />
+  it('turns red once the codes have stopped, and leads only to the usage', async () => {
+    const stopped = smsUsage({ used: 300, state: 'stopped' });
+    await renderRouted(<SubscriptionBar subscription={active} sms={stopped} isOwner canAct />);
+    const bar = await screen.findByTestId('subscription-bar');
+    expect(bar.dataset.kind).toBe('smsStop');
+    expect(bar.textContent).toContain('Ai folosit cele 300 de coduri ale lunii.');
+    expect(bar.textContent).not.toContain('€');
+    expect(screen.getByTestId('subscription-bar-action').getAttribute('href')).toBe(
+      '/organizatie/abonament'
     );
-    expect((await screen.findByTestId('subscription-bar')).dataset.kind).toBe('smsStop');
-    const action = screen.getByTestId('subscription-bar-action');
-    expect(action.textContent).toBe('Ridică limita');
-    expect(action.getAttribute('href')).toBe('/organizatie/abonament?raiseCap=true');
-    unmount();
-
-    await renderRouted(
-      <SubscriptionBar subscription={active} sms={capped} isOwner={false} canAct={false} />
-    );
-    expect((await screen.findByTestId('subscription-bar')).textContent).toContain(
-      'adminul poate ridica limita'
-    );
-    expect(screen.queryByTestId('subscription-bar-action')).toBeNull();
   });
 
   it("gives way to the account's own bar, and stays out while read-only", async () => {
     const { unmount } = await renderRouted(
       <SubscriptionBar
         subscription={pastDue}
-        sms={smsUsage({ used: 900, state: 'capped' })}
+        sms={smsUsage({ used: 300, state: 'stopped' })}
         isOwner
         canAct
       />
@@ -296,7 +292,7 @@ describe('the SMS meter in the badge', () => {
     await renderRouted(
       <SubscriptionBadge
         subscription={active}
-        sms={smsUsage({ used: 900, state: 'capped' })}
+        sms={smsUsage({ used: 300, state: 'stopped' })}
         isOwner={false}
         impersonating={false}
       />
@@ -306,8 +302,8 @@ describe('the SMS meter in the badge', () => {
     expect(badge.getAttribute('aria-label')).toContain('codurile SMS oprite');
     await userEvent.click(badge);
     const meter = await screen.findByTestId('subscription-details-sms');
-    expect(meter.dataset.state).toBe('capped');
-    expect(meter.textContent).toBe('Coduri de semnare prin SMS900 / 300');
+    expect(meter.dataset.state).toBe('stopped');
+    expect(meter.textContent).toBe('Coduri de semnare prin SMS300 / 300');
   });
 
   it('says a trial sends none, and where a plan chosen in it stops', async () => {
@@ -356,10 +352,10 @@ describe('the credits meter in the badge', () => {
     );
     await userEvent.click(await screen.findByTestId('subscription-badge'));
     expect((await screen.findByTestId('subscription-details-credits')).textContent).toBe(
-      'Credite pentru import640 / 1.500'
+      'Credite AI640 / 3.250'
     );
     expect(screen.getByTestId('subscription-details-gift').textContent).toBe(
-      'Plus 8.640 de credite de bun venit, fără termen.'
+      'Plus 8.640 de credite AI de bun venit, fără termen.'
     );
   });
 
@@ -385,7 +381,7 @@ describe('the credits meter in the badge', () => {
       '85 / 300'
     );
     expect(screen.getByTestId('subscription-details-gift').textContent).toBe(
-      'La prima plată primești 2.500 de credite de bun venit.'
+      'La prima plată primești 2.500 de credite AI de bun venit.'
     );
   });
 });

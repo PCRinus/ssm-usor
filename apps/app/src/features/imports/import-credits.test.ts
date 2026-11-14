@@ -42,33 +42,33 @@ const trial = (credits = {}, subscription = trialSubscription()) =>
 
 describe('counting credits in Romanian', () => {
   it('writes "de" from twenty on and groups thousands', () => {
-    expect(creditsLabel(1)).toBe('1 credit');
-    expect(creditsLabel(18)).toBe('18 credite');
-    expect(creditsLabel(25)).toBe('25 de credite');
-    expect(creditsLabel(101)).toBe('101 credite');
-    expect(creditsLabel(1500)).toBe('1.500 de credite');
+    expect(creditsLabel(1)).toBe('1 credit AI');
+    expect(creditsLabel(18)).toBe('18 credite AI');
+    expect(creditsLabel(25)).toBe('25 de credite AI');
+    expect(creditsLabel(101)).toBe('101 credite AI');
+    expect(creditsLabel(1500)).toBe('1.500 de credite AI');
   });
 });
 
 describe('what an import will use', () => {
   it('counts 25 for a client, and the photographs beside the documents', () => {
     expect(usesSentence('client', { photos: 0, pages: 0, pdfs: 0 })).toBe(
-      'Folosește 25 de credite, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
+      'Folosește 25 de credite AI, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
     );
     expect(usesSentence('client', { photos: 3, pages: 0, pdfs: 0 })).toBe(
-      'Folosește 28 de credite (25 + 3 fotografii), plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
+      'Folosește 28 de credite AI (25 + 3 fotografii), plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
     );
   });
 
   it('counts one for each photograph or page of an employee import', () => {
     expect(usesSentence('employees', { photos: 0, pages: 98, pdfs: 0 })).toBe(
-      'Folosește 98 de credite, unul pe fotografie.'
+      'Folosește 98 de credite AI, unul pe fotografie.'
     );
     expect(usesSentence('employees', { photos: 0, pages: 14, pdfs: 2 })).toBe(
-      'Folosește 14 credite, unul pe fotografie sau pagină.'
+      'Folosește 14 credite AI, unul pe fotografie sau pagină.'
     );
     expect(usesSentence('employees', { photos: 0, pages: 0, pdfs: 0 })).toBe(
-      'Folosește un credit pe fotografie.'
+      'Folosește un credit AI pe fotografie.'
     );
   });
 });
@@ -112,8 +112,8 @@ describe('refusing an import the credits do not cover', () => {
       renewsAt: '2026-11-14T08:00:00.000Z',
     });
     expect(shortText('client', refusal as never, balance)).toEqual({
-      title: 'Nu ajung creditele pentru acest import',
-      text: 'Citirea documentelor unui client folosește 25 de credite, iar ție îți mai rămân 18. Pe 14 noiembrie primești alte 1.500 și poți porni importul.',
+      title: 'Nu ajung creditele AI pentru acest import',
+      text: 'Citirea documentelor unui client folosește 25 de credite AI, iar ție îți mai rămân 18. Pe 14 noiembrie primești alte 1.500 și poți porni importul.',
     });
   });
 
@@ -124,30 +124,30 @@ describe('refusing an import the credits do not cover', () => {
   it('suggests a smaller employee import now and the rest after renewal', () => {
     const balance = paid({ left: 60, giftLeft: 0 });
     expect(shortText('employees', creditsRefusal(balance, 98) as never, balance)).toEqual({
-      title: 'Nu ajung creditele pentru toate fotografiile',
-      text: 'Cele 98 de fotografii folosesc 98 de credite, iar ție îți mai rămân 60 până pe 14 noiembrie. Scoate o parte și păstreaz-o pentru un import după reînnoire, cu toate fotografiile unei persoane în același import.',
+      title: 'Nu ajung creditele AI pentru toate fotografiile',
+      text: 'Cele 98 de fotografii folosesc 98 de credite AI, iar ție îți mai rămân 60 până pe 14 noiembrie. Scoate o parte și păstreaz-o pentru un import după reînnoire, cu toate fotografiile unei persoane în același import.',
     });
     expect(
       shortText('employees', creditsRefusal(balance, 98) as never, balance, true).text
-    ).toMatch(/^Cele 98 de fotografii și pagini folosesc 98 de credite/);
+    ).toMatch(/^Cele 98 de fotografii și pagini folosesc 98 de credite AI/);
   });
 
   it('says nothing is left, with the gift, at zero or below', () => {
     const balance = paid({ left: -4, giftLeft: 0, state: 'negative' });
     expect(creditsRefusal(balance, 25)).toEqual({ kind: 'none' });
     expect(noneText('client', balance)).toEqual({
-      title: 'Nu mai ai credite pentru importuri',
-      text: 'Ai folosit cele 1.500 de credite ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente.',
+      title: 'Nu mai ai credite AI',
+      text: 'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente.',
     });
   });
 
   it("says a trial's credits do not renew, and what the first payment brings once a plan is chosen", () => {
     expect(noneText('client', trial({ left: 0 })).text).toBe(
-      'Ai folosit cele 300 de credite ale perioadei de probă. Creditele perioadei de probă nu se reînnoiesc. La prima plată primești creditele lunii și pe cele de bun venit. Până atunci nu poți porni un import nou din documente.'
+      'Ai folosit cele 300 de credite AI ale perioadei de probă. Creditele AI ale perioadei de probă nu se reînnoiesc. La prima plată primești creditele lunii și pe cele de bun venit. Până atunci nu poți porni un import nou din documente.'
     );
     const chosen = trial({ left: 0, giftPending: 2500 }, trialChosenSubscription());
     expect(noneText('employees', chosen).text).toBe(
-      'Ai folosit cele 300 de credite ale perioadei de probă. Pe 8 noiembrie, la prima plată, primești 300 de credite pe lună și 2.500 de credite de bun venit. Până atunci nu poți porni un import nou din fișe.'
+      'Ai folosit cele 300 de credite AI ale perioadei de probă. Pe 8 noiembrie, la prima plată, primești 1.250 de credite AI pe lună și 2.500 de credite AI de bun venit. Până atunci nu poți porni un import nou din fișe.'
     );
   });
 
@@ -161,7 +161,7 @@ describe('refusing an import the credits do not cover', () => {
     });
     expect(refusalFromApi({ ...short, left: 0 })).toEqual({ kind: 'none' });
     expect(refusalSentence(short)).toBe(
-      'Nu ajung creditele: importul folosește 25 de credite, iar ție îți mai rămân 12 până pe 14 noiembrie. Scrie-ne la contact@ssmusor.ro și îți adăugăm credite.'
+      'Nu ajung creditele AI: importul folosește 25 de credite AI, iar ție îți mai rămân 12 până pe 14 noiembrie.'
     );
   });
 
@@ -187,7 +187,7 @@ describe('what an import used', () => {
         },
         'client'
       )
-    ).toBe('Importul a folosit 34 de credite (25 + 9 pagini scanate).');
+    ).toBe('Importul a folosit 34 de credite AI (25 + 9 pagini scanate).');
     expect(
       usedSentence(
         {
@@ -200,7 +200,7 @@ describe('what an import used', () => {
         },
         'client'
       )
-    ).toBe('Importul a folosit 26 de credite (25 + 1 pagină scanată).');
+    ).toBe('Importul a folosit 26 de credite AI (25 + 1 pagină scanată).');
     expect(
       usedSentence(
         {
@@ -213,7 +213,7 @@ describe('what an import used', () => {
         },
         'client'
       )
-    ).toBe('Importul a folosit 25 de credite.');
+    ).toBe('Importul a folosit 25 de credite AI.');
   });
 
   it('adds the readings of the own instructions, after the scanned pages', () => {
@@ -229,7 +229,7 @@ describe('what an import used', () => {
         },
         'client'
       )
-    ).toBe('Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii).');
+    ).toBe('Importul a folosit 60 de credite AI (25 + 35 pentru instrucțiunile proprii).');
     expect(
       usedSentence(
         {
@@ -243,7 +243,7 @@ describe('what an import used', () => {
         'client'
       )
     ).toBe(
-      'Importul a folosit 59 de credite (25 + 9 pagini scanate + 25 pentru instrucțiunile proprii).'
+      'Importul a folosit 59 de credite AI (25 + 9 pagini scanate + 25 pentru instrucțiunile proprii).'
     );
   });
 
@@ -261,7 +261,7 @@ describe('what an import used', () => {
         'client'
       )
     ).toBe(
-      'Importul a folosit 75 de credite (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc).'
+      'Importul a folosit 75 de credite AI (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc).'
     );
   });
 
@@ -278,6 +278,6 @@ describe('what an import used', () => {
         },
         'employees'
       )
-    ).toBe('Importul a folosit 98 de credite.');
+    ).toBe('Importul a folosit 98 de credite AI.');
   });
 });

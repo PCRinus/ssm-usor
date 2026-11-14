@@ -444,18 +444,10 @@ export const helpTopics = {
   'organizatie.anulare': { path: '/organizatie/abonament/', anchor: 'anularea-abonamentului' },
   'organizatie.colegii': { path: '/organizatie/abonament/', anchor: 'ce-văd-colegii' },
   'organizatie.consum': { path: '/organizatie/abonament/', anchor: 'cât-folosești' },
-  'organizatie.credite': { path: '/organizatie/abonament/', anchor: 'creditele-pentru-import' },
+  'organizatie.credite': { path: '/organizatie/abonament/', anchor: 'creditele-ai' },
   'organizatie.doar-citire': {
     path: '/organizatie/abonament/',
     anchor: 'contul-doar-pentru-citire',
-  },
-  'organizatie.limita-sms': {
-    path: '/organizatie/abonament/',
-    anchor: 'limita-de-siguranță-pentru-sms',
-  },
-  'organizatie.pachete': {
-    path: '/organizatie/abonament/',
-    anchor: 'pachetele-de-lucrători-și-utilizatorii-în-plus',
   },
   'organizatie.perioada-de-proba': { path: '/organizatie/abonament/', anchor: 'perioada-de-probă' },
   'organizatie.plata-nereusita': {
@@ -466,6 +458,10 @@ export const helpTopics = {
   'organizatie.schimbarea-planului': {
     path: '/organizatie/abonament/',
     anchor: 'schimbarea-planului',
+  },
+  'organizatie.trepte': {
+    path: '/organizatie/abonament/',
+    anchor: 'treptele-de-lucrători-și-utilizatorii',
   },
   'primii-pasi.deschide-ajutorul': {
     path: '/primii-pasi/',

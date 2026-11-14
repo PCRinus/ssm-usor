@@ -230,7 +230,7 @@ export default function SmsUsageNotice(props: SmsUsageNoticeProps) {
         ]}
       />
       <Paragraph>
-        {`Pe ${renewal} codurile prin SMS pornesc din nou. Dacă ai nevoie de mai multe până atunci, răspunde la acest email.`}
+        {`Pe ${renewal} codurile prin SMS pornesc din nou. Nu plătești nimic pentru codurile care pleacă pe email.`}
       </Paragraph>
       <Action href={subscriptionUrl}>Vezi consumul</Action>
       <FallbackLink href={subscriptionUrl} />

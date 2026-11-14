@@ -160,7 +160,7 @@ describe('the page of an employee import that is not ready', () => {
     );
     const notice = await screen.findByTestId('employee-processing-failed');
     expect(within(notice).getByTestId('employee-processing-failed-message').textContent).toBe(
-      'Serviciul care citește documentele nu a răspuns. Creditele ți-au fost returnate. Renunță la import și încearcă din nou.'
+      'Serviciul care citește documentele nu a răspuns. Creditele AI ți-au fost returnate. Renunță la import și încearcă din nou.'
     );
     expect(within(notice).getByTestId('import-report').textContent).toBe(
       'Raportează o problemă cu importul'

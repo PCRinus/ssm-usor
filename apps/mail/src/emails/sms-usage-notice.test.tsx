@@ -89,7 +89,7 @@ describe('SMS usage notice', () => {
         'a trimis toate cele 50 de coduri de semnare prin SMS incluse în Start'
       );
       expect(body).toContain('Până pe 14.11.2026, lucrătorii cu email primesc codul pe email.');
-      expect(body).toContain('răspunde la acest email');
+      expect(body).toContain('Nu plătești nimic pentru codurile care pleacă pe email.');
       expect(body).not.toContain('€');
     }
   });

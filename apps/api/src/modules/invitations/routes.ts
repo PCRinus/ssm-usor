@@ -83,7 +83,7 @@ export const createInvitationRoute = createRoute({
     400: { description: 'Invalid request body', content: errorContent },
     409: {
       description:
-        'Already a member, too many open invitations, or an email was sent in the last 10 minutes; see `reason`',
+        "Already a member, too many open invitations, the plan's users all taken or invited (`member_limit_reached`), or an email was sent in the last 10 minutes; see `reason`",
       content: errorContent,
     },
     ...inPersonOwnerErrors,

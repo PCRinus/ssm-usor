@@ -14,7 +14,7 @@ import {
   type ChangeSplit,
   choiceFromItems,
   choiceLines,
-  minimumsFor,
+  minimumStepFor,
   problemsWith,
   recurringPrice,
   sameChoice,
@@ -93,13 +93,8 @@ function assertNotEnterprise(row: SubscriptionRow | null) {
 }
 
 export function currentChoice(row: SubscriptionRow): BillingChoice | null {
-  if (row.plan === 'enterprise' || !row.billing_interval) return null;
-  return {
-    plan: row.plan,
-    interval: row.billing_interval,
-    employeePacks: row.employee_packs,
-    extraMembers: row.extra_members,
-  };
+  if (row.plan === 'enterprise' || !row.billing_interval || row.employee_step === null) return null;
+  return { plan: row.plan, step: row.employee_step, interval: row.billing_interval };
 }
 
 function itemGroup(lookupKey: string | null) {
@@ -111,7 +106,8 @@ function itemGroup(lookupKey: string | null) {
 }
 
 // Stripe changes a subscription item by its id: a price or quantity in place, a removal by
-// `deleted`, so the items are matched to the choice by what they are, not by their price.
+// `deleted`, so the items are matched to the choice by what they are, not by their price. A v1
+// subscription's packs and extra members are removed by the first change that moves it to v2.
 // A pending update (`pending_if_incomplete`) takes only an item's price and quantity, so there a
 // removal sets the quantity to 0 instead, and the item is deleted by a later change.
 export function itemChanges(
@@ -176,7 +172,7 @@ export async function preview(
   const base = {
     choice,
     problems: problemsWith(choice, usage),
-    minimums: minimumsFor(choice.plan, usage),
+    minimumStep: minimumStepFor(choice.plan, usage.employees),
     recurring,
   };
   const none = amounts(0);
@@ -648,8 +644,7 @@ export async function changeSubscription(
         at: new Date(planItemOf(updated)!.current_period_end * 1000).toISOString(),
         plan: split.atRenewal.plan,
         interval: split.atRenewal.interval,
-        employee_packs: split.atRenewal.employeePacks,
-        extra_members: split.atRenewal.extraMembers,
+        employee_step: split.atRenewal.step,
       },
     });
   }

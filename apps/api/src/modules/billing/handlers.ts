@@ -9,12 +9,9 @@ import {
   type BillingOverview,
   billingPlans,
   type BillingPortalSession,
-  employeePacks,
-  extraMember,
   type InvoiceEmail,
   type PaidPlan,
   readOnlyDays,
-  type SmsCap,
   smsOverage,
   vatPercent,
 } from '@ssm-usor/contracts';
@@ -40,9 +37,8 @@ import type {
   previewBillingRoute,
   resumeSubscriptionRoute,
   updateInvoiceEmailRoute,
-  updateSmsCapRoute,
 } from './routes';
-import { minimumsFor, problemsWith, usageLimits } from './rules';
+import { minimumStepFor, problemsWith, usageLimits } from './rules';
 import {
   type Billing,
   cancelSubscription,
@@ -56,6 +52,7 @@ import {
   type StripeBilling,
 } from './service';
 import {
+  countOpenInvitations,
   countUsage,
   type InvoiceRow,
   listInvoices,
@@ -92,29 +89,15 @@ const catalogue: BillingCatalogue = {
   plans: Object.values(billingPlans).map((plan) => ({
     key: plan.key,
     name: plan.name,
-    prices: { month: plan.prices.month.unitAmount, year: plan.prices.year.unitAmount },
-    includedEmployees: plan.includedEmployees,
-    includedMembers: plan.includedMembers,
-    maxMembers: plan.maxMembers,
-    monthlySms: plan.monthlySms,
-    monthlyCredits: plan.monthlyCredits,
-    welcomeCredits: plan.welcomeCredits,
-    employeePack: plan.employeePack,
-    maxEmployeePacks: plan.maxEmployeePacks,
+    members: plan.members,
+    steps: plan.steps.map((step) => ({
+      employees: step.employees,
+      prices: { month: step.prices.month.unitAmount, year: step.prices.year.unitAmount },
+      monthlySms: step.monthlySms,
+      monthlyCredits: step.monthlyCredits,
+      welcomeCredits: step.welcomeCredits,
+    })),
   })),
-  employeePacks: Object.values(employeePacks).map((pack) => ({
-    key: pack.key,
-    name: pack.name,
-    employees: pack.employees,
-    prices: { month: pack.prices.month.unitAmount, year: pack.prices.year.unitAmount },
-  })),
-  extraMember: {
-    name: extraMember.name,
-    prices: {
-      month: extraMember.prices.month.unitAmount,
-      year: extraMember.prices.year.unitAmount,
-    },
-  },
   smsOverageCents: smsOverage.price.unitAmount,
 };
 
@@ -141,8 +124,7 @@ function subscriptionView(
     planChosen: row.stripe_subscription_id !== null,
     status: row.status,
     interval: row.billing_interval,
-    employeePacks: row.employee_packs,
-    extraMembers: row.extra_members,
+    step: row.employee_step,
     trialEndsAt: iso(row.trial_ends_at),
     currentPeriodEnd: iso(row.current_period_end),
     accessUntil: iso(row.access_until),
@@ -219,9 +201,10 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
 export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c) => {
   const billing = billingOf(c);
   const membership = c.get('membership');
-  const [row, usage] = await Promise.all([
+  const [row, usage, invitations] = await Promise.all([
     loadSubscription(billing.db, billing.organizationId),
     countUsage(billing.db, billing.organizationId),
+    countOpenInvitations(billing.db, billing.organizationId),
   ]);
   const limits = usageLimits(row, billing.now);
   const [sms, credits] = await Promise.all([
@@ -238,12 +221,10 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
       hasLiveSubscription(row) ? stripeDetails(c, billing, row) : null,
     ]);
     stripeCancelAt = details?.cancelAt ?? null;
-    const choiceLimits = (plan: 'start' | 'profesional') => {
-      const minimums = minimumsFor(plan, usage);
-      return {
-        minimums,
-        problems: problemsWith({ plan, interval: 'month', ...minimums }, usage),
-      };
+    const choiceLimits = (plan: PaidPlan) => {
+      const minimumStep = minimumStepFor(plan, usage.employees);
+      const step = minimumStep ?? billingPlans[plan].steps.at(-1)!.employees;
+      return { minimumStep, problems: problemsWith({ plan, step, interval: 'month' }, usage) };
     };
     owner = {
       nextPayment: details?.nextPayment ?? null,
@@ -263,6 +244,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
       usage: {
         employees: { used: usage.employees, limit: limits.employees },
         members: { used: usage.members, limit: limits.members },
+        invitations,
         smsThisMonth: sms,
         creditsThisMonth: credits,
       },
@@ -434,43 +416,6 @@ export const getInvoicePdf: RouteHandler<typeof getInvoicePdfRoute, ApiEnv> = as
       fileName,
       expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
     } satisfies BillingInvoiceLink,
-    200
-  );
-};
-
-export const updateSmsCap: RouteHandler<typeof updateSmsCapRoute, ApiEnv> = async (c) => {
-  const billing = billingOf(c);
-  const { factor } = c.req.valid('json');
-  const row = await loadSubscription(billing.db, billing.organizationId);
-  if (row?.plan === 'enterprise') {
-    throw new ApiError(
-      'conflict',
-      'An Enterprise subscription is changed by email.',
-      undefined,
-      'enterprise_plan'
-    );
-  }
-  if (!row?.stripe_subscription_id) {
-    throw new ApiError(
-      'conflict',
-      'The safety cap belongs to a chosen plan.',
-      undefined,
-      'no_subscription'
-    );
-  }
-  const saved = await saveSubscription(
-    billing.db,
-    billing.organizationId,
-    row,
-    { sms_cap_factor: factor },
-    { source: 'owner', change: 'sms_cap', details: { actor: billing.userId } }
-  );
-  const savedFactor = saved?.sms_cap_factor ?? factor;
-  return c.json(
-    {
-      factor: savedFactor,
-      cap: billingPlans[row.plan as PaidPlan].monthlySms * savedFactor,
-    } satisfies SmsCap,
     200
   );
 };

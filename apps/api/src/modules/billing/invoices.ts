@@ -54,13 +54,24 @@ function oblioFor(deps: InvoiceDeps) {
   return createOblioClient({ clientId, clientSecret }, { fetch: deps.fetch });
 }
 
-const productNames = new Map(catalogueProducts.map((product) => [product.key, product.name]));
+const productNames = new Map<string, string>(
+  catalogueProducts.map((product) => [product.key, product.name])
+);
+
+const stepGroups = /\B(?=(\d{3})+(?!\d))/g;
 
 function lineName(line: Stripe.InvoiceLineItem, catalogue: StripeCatalogue) {
   const price = line.pricing?.price_details?.price;
   const lookupKey = price ? catalogue.lookupKeys.get(idOf(price) ?? '') : undefined;
-  const product = parseLookupKey(lookupKey)?.product;
-  const name = (product && productNames.get(product)) ?? line.description ?? 'SSM Ușor';
+  const parsed = parseLookupKey(lookupKey);
+  const product = parsed && productNames.get(parsed.product);
+  const step = parsed?.step;
+  const name =
+    (product && step
+      ? `${product}, până la ${String(step).replace(stepGroups, '.')} de lucrători`
+      : product) ??
+    line.description ??
+    'SSM Ușor';
   if (!line.parent?.subscription_item_details?.proration) return name;
   return line.amount < 0
     ? `${name}: credit pentru perioada nefolosită`

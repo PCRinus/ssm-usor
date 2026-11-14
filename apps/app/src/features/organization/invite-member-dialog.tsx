@@ -41,6 +41,9 @@ function serverMessage(cause: unknown) {
   if (refused) return refused;
   if (cause instanceof ApiHttpError) {
     const body = cause.body as Partial<ApiErrorResponse> | undefined;
+    if (body?.reason === 'member_limit_reached') {
+      return 'Toți utilizatorii planului sunt ocupați de membri sau de invitații în așteptare. Poți revoca o invitație. Pe Start, treci pe Profesional din Abonament; peste 10 utilizatori, scrie-ne la contact@ssmusor.ro pentru o ofertă.';
+    }
     if (body?.reason === 'too_many_open_invitations') {
       return 'Organizația are deja 20 de invitații în așteptare. Revocă una înainte de a trimite alta.';
     }

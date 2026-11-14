@@ -20,7 +20,7 @@ const trial: SmsSubscription = {
   first_paid_at: null,
   billing_anchor_at: null,
   current_period_end: null,
-  sms_cap_factor: 3,
+  employee_step: null,
 };
 
 const chosen: SmsSubscription = {
@@ -28,6 +28,7 @@ const chosen: SmsSubscription = {
   plan: 'start',
   stripe_subscription_id: 'sub_1',
   stripe_customer_id: 'cus_1',
+  employee_step: 250,
 };
 
 const paid: SmsSubscription = {
@@ -101,7 +102,7 @@ describe('what an organization may text', () => {
     ).toEqual({ sends: false });
   });
 
-  it("stops a plan chosen during the trial at the chosen plan's allowance, on a month that ends with the trial", () => {
+  it("stops a plan chosen during the trial at the chosen step's allowance, on a month that ends with the trial", () => {
     const policy = smsPolicy({ ...chosen, trial_ends_at: '2026-11-02T08:00:00.000Z' }, now);
     expect(policy).toMatchObject({ sends: true, allowance: 50, cap: null, bills: false });
     expect(policy.sends && iso(policy.period)).toEqual([
@@ -118,22 +119,29 @@ describe('what an organization may text', () => {
     expect(policy).toMatchObject({ sends: true, cap: null, bills: false });
   });
 
-  it('bills codes past the allowance up to three times it, from the first payment', () => {
+  it("stops a paid plan hard at its step's allowance and bills nothing past it while extras are off", () => {
     expect(smsPolicy(paid, at('2026-12-01T00:00:00.000Z'))).toMatchObject({
       sends: true,
       allowance: 50,
-      cap: 150,
-      capFactor: 3,
-      bills: true,
+      cap: null,
+      capFactor: null,
+      bills: false,
     });
-    expect(smsPolicy({ ...paid, plan: 'profesional', sms_cap_factor: 5 }, now)).toMatchObject({
-      allowance: 300,
-      cap: 1500,
+    expect(smsPolicy({ ...paid, plan: 'profesional', employee_step: 5000 }, now)).toMatchObject({
+      allowance: 1000,
+      cap: null,
+      bills: false,
     });
+    expect(smsPolicy({ ...paid, employee_step: 750 }, now)).toMatchObject({ allowance: 150 });
   });
 
-  it('counts an active subscription as paid even before the payment is recorded', () => {
-    expect(smsPolicy({ ...paid, first_paid_at: null }, now)).toMatchObject({ bills: true });
+  it("falls back to the plan's first step for a row without one", () => {
+    expect(smsPolicy({ ...paid, employee_step: null }, now)).toMatchObject({ allowance: 50 });
+  });
+
+  it("counts an active subscription's month from its anchor even before the payment is recorded", () => {
+    const policy = smsPolicy({ ...paid, first_paid_at: null }, at('2026-12-01T00:00:00.000Z'));
+    expect(policy.sends && iso(policy.period)[0]).toBe('2026-11-13T08:00:00.000Z');
   });
 
   it('sets no limit without a subscription or on Enterprise, on the calendar month', () => {
@@ -161,18 +169,15 @@ describe('the state of the meter', () => {
   it.each([
     [39, 'ok'],
     [40, 'near'],
-    [50, 'over'],
-    [149, 'over'],
-    [150, 'capped'],
-  ] as const)('says %s of 50 with a cap of 150 is %s', (used, state) => {
-    expect(smsState(policy, { used, included: 50, cap: 150 })).toBe(state);
+    [50, 'stopped'],
+    [150, 'stopped'],
+  ] as const)('says %s of 50 on a paid plan is %s', (used, state) => {
+    expect(smsState(policy, { used, included: 50 })).toBe(state);
   });
 
   it('says stopped at a hard stop, and none where nothing is texted', () => {
-    expect(smsState(hardStop, { used: 50, included: 50, cap: null })).toBe('stopped');
-    expect(smsState({ sends: false }, { used: 0, included: 0, cap: null })).toBe('none');
-    expect(smsState(smsPolicy(null, new Date()), { used: 900, included: null, cap: null })).toBe(
-      'ok'
-    );
+    expect(smsState(hardStop, { used: 50, included: 50 })).toBe('stopped');
+    expect(smsState({ sends: false }, { used: 0, included: 0 })).toBe('none');
+    expect(smsState(smsPolicy(null, new Date()), { used: 900, included: null })).toBe('ok');
   });
 });

@@ -5486,8 +5486,7 @@ export type Database = {
           billing_interval: Database['public']['Enums']['billing_interval'] | null;
           created_at: string;
           current_period_end: string | null;
-          employee_packs: number;
-          extra_members: number;
+          employee_step: number | null;
           first_paid_at: string | null;
           invoice_email: string | null;
           organization_id: string;
@@ -5508,8 +5507,7 @@ export type Database = {
           billing_interval?: Database['public']['Enums']['billing_interval'] | null;
           created_at?: string;
           current_period_end?: string | null;
-          employee_packs?: number;
-          extra_members?: number;
+          employee_step?: number | null;
           first_paid_at?: string | null;
           invoice_email?: string | null;
           organization_id: string;
@@ -5530,8 +5528,7 @@ export type Database = {
           billing_interval?: Database['public']['Enums']['billing_interval'] | null;
           created_at?: string;
           current_period_end?: string | null;
-          employee_packs?: number;
-          extra_members?: number;
+          employee_step?: number | null;
           first_paid_at?: string | null;
           invoice_email?: string | null;
           organization_id?: string;

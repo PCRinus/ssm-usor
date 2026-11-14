@@ -72,12 +72,13 @@ by the API, not by policies.
 Once a plan is chosen, the row also carries Stripe's side: `stripe_account` (the account the
 customer lives in, which a move from the PFA to an SRL may change), `stripe_customer_id`,
 `stripe_subscription_id` (unique), `billing_interval` (`month` or `year`), `price_version` (the
-catalogue version of its prices, such as `v1`), the quantities `employee_packs` and
-`extra_members` (both 0 by default), `invoice_email`, where Oblio sends the invoices instead of
+catalogue version of its prices, such as `v2`), `employee_step` (the employees the plan's price
+covers, one of the plan's steps; required once a plan is chosen, except on Enterprise),
+`invoice_email`, where Oblio sends the invoices instead of
 the owner, `current_period_end`, `billing_anchor_at` (Stripe's billing cycle anchor, the day the
 SMS month starts on), `first_paid_at` (the first invoice with an amount, which ends the hard stop
 on signing codes of a plan chosen during the trial) and `sms_cap_factor`, the safety cap as a
-multiple of the plan's SMS allowance (3 by default, 3 to 20, raised by the owner). A trial with no plan chosen has packs and members at 0 and
+multiple of the plan's SMS allowance, unused while the extras are off. A trial with no plan chosen has no step and
 no Stripe subscription; a trial with a plan chosen carries all of Stripe's side, and a trial whose
 plan was cancelled keeps its customer. A Stripe customer needs its
 account, and a Stripe subscription its customer, interval and price version. Members read every

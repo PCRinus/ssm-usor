@@ -17,9 +17,7 @@ import { smsUsageOf } from './usage';
 // to 100 % hears of 100 % alone, and never of 80 % afterwards.
 const noticeOfState: Partial<Record<SmsUsageState, SmsUsageNoticeKind>> = {
   near: 'sms_80',
-  over: 'sms_100',
   stopped: 'sms_100',
-  capped: 'sms_cap',
 };
 
 const planNames: Record<PaidPlan, string> = { start: 'Start', profesional: 'Profesional' };

@@ -653,6 +653,7 @@ describe('the credits an import starts on', () => {
     billing_anchor_at: anchor,
     current_period_end: null,
     sms_cap_factor: 3,
+    employee_step: 250,
   };
   const files = [
     fileRow(1),
@@ -712,9 +713,9 @@ describe('the credits an import starts on', () => {
       p_key: `start:${importId}`,
       p_require: true,
       p_period_start: anchor,
-      p_allowance: 300,
+      p_allowance: 750,
       p_previous_end: anchor,
-      p_previous_allowance: 300,
+      p_previous_allowance: 750,
     });
     expect(sent).toHaveLength(4);
   });

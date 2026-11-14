@@ -37,6 +37,6 @@ export async function smsUsageOf(
     overage: counts.overage,
     periodStart: policy.period.start.toISOString(),
     periodEnd: policy.period.end.toISOString(),
-    state: smsState(policy, { used: counts.used, included, cap }),
+    state: smsState(policy, { used: counts.used, included }),
   };
 }

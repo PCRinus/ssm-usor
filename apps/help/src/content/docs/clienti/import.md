@@ -143,7 +143,7 @@ Sunt două importuri, în această ordine: întâi clientul, din documentația l
 
 ## Creditele importurilor
 
-Citirea documentelor și a fotografiilor se socotește în credite. Un credit înseamnă o fotografie sau o pagină scanată citită.
+Citirea documentelor și a fotografiilor se socotește în credite AI. Un credit AI înseamnă o fotografie sau o pagină scanată citită.
 
 - **Importul unui client** folosește 25 de credite pentru citirea documentelor, oricât de lungi ar fi, plus câte unul pentru fiecare fotografie și pagină scanată. Un PDF cu text, salvat din Word de exemplu, intră în cele 25. Care pagini ale unui PDF sunt scanate se află abia la citire, așa că fereastra de încărcare îți spune: „Folosește 25 de credite, plus 1 pentru fiecare pagină scanată.” Tot ea îți spune că, dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.
 - **Importul lucrătorilor** folosește un credit pentru fiecare fotografie și pentru fiecare pagină a unui PDF.
@@ -152,21 +152,21 @@ Citirea documentelor și a fotografiilor se socotește în credite. Un credit î
 
 ### Câte credite ai
 
-În perioada de probă ai 300 de credite pentru toată perioada. Planul Start are 300 de credite pe lună, iar Profesional 1.500. Luna e cea a abonamentului, iar creditele nefolosite nu trec în luna următoare.
+În perioada de probă ai 300 de credite AI pentru toată perioada. Un plan are în fiecare lună 2 credite AI pentru fiecare lucrător al treptei tale, plus 250: de exemplu 750 la 250 de lucrători, 3.250 la 1.500. Luna e cea a abonamentului, iar creditele nefolosite nu trec în luna următoare.
 
-La prima plată primești, o singură dată, creditele de bun venit, ca să-ți aduci toți clienții în aplicație: 2.500 cu Start sau 10.000 cu Profesional. Ele nu expiră și se folosesc după cele ale lunii. Dacă treci de la Start la Profesional, primești pe loc diferența de credite a lunii și, dacă aveai deja cadoul de la Start, diferența de cadou.
+La prima plată primești, o singură dată, creditele AI de bun venit, ca să-ți aduci toți clienții în aplicație: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Ele nu expiră și se folosesc după cele ale lunii. Dacă treci pe o treaptă mai mare sau de la Start la Profesional, primești pe loc diferența de credite a lunii și, dacă aveai deja cadoul, diferența de cadou.
 
-Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele pentru import](/organizatie/abonament/#creditele-pentru-import)).
+Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele AI](/organizatie/abonament/#creditele-ai)).
 
 ### Când nu ajung creditele
 
-Un import nou pornește doar dacă creditele rămase acoperă ce se știe dinainte: cele 25 ale citirii și fotografiile, la un client; toate fotografiile și paginile, la lucrători. Altfel **Încarcă și citește** rămâne oprit, iar fereastra îți spune câte credite trebuie, câte îți mai rămân și când primești altele. La lucrători poți scoate o parte dintre fotografii și le imporți după reînnoire, cu toate fotografiile unei persoane în același import. Dacă ai nevoie de credite mai devreme, scrie-ne la contact@ssmusor.ro și îți adăugăm credite.
+Un import nou pornește doar dacă creditele rămase acoperă ce se știe dinainte: cele 25 ale citirii și fotografiile, la un client; toate fotografiile și paginile, la lucrători. Altfel **Încarcă și citește** rămâne oprit, iar fereastra îți spune câte credite trebuie, câte îți mai rămân și când primești altele. La lucrători poți scoate o parte dintre fotografii și le imporți după reînnoire, cu toate fotografiile unei persoane în același import.
 
-Un import pornit nu se oprește din lipsă de credite. Dacă documentele unui client au mai multe pagini scanate decât credite rămase, importul se termină, iar diferența se scade din creditele lunii următoare: cu 4 credite peste, luna următoare pe Start începe cu 296. Înainte să creezi clientul vezi cât a folosit importul, de exemplu „Importul a folosit 34 de credite (25 + 9 pagini scanate)” sau, cu instrucțiunile proprii, „Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii)”.
+Un import pornit nu se oprește din lipsă de credite. Dacă documentele unui client au mai multe pagini scanate decât credite rămase, importul se termină, iar diferența se scade din creditele lunii următoare: cu 4 credite peste, luna următoare, la 250 de lucrători, începe cu 746 în loc de 750. Înainte să creezi clientul vezi cât a folosit importul, de exemplu „Importul a folosit 34 de credite AI (25 + 9 pagini scanate)” sau, cu instrucțiunile proprii, „Importul a folosit 60 de credite AI (25 + 35 pentru instrucțiunile proprii)”.
 
 ### Creditele returnate
 
-Dacă un import se oprește înainte să fie gata de verificat, primești înapoi toate creditele lui, iar pagina importului îți spune „Creditele ți-au fost returnate.” Un import la care renunți după ce a fost citit nu se returnează: citirea s-a făcut.
+Dacă un import se oprește înainte să fie gata de verificat, primești înapoi toate creditele lui, iar pagina importului îți spune „Creditele AI ți-au fost returnate.” Un import la care renunți după ce a fost citit nu se returnează: citirea s-a făcut.
 
 ## Importul unui client din documente
 
@@ -238,7 +238,7 @@ Cardul unei instrucțiuni **asemănătoare** păstrează titlul din pachet, iar 
 
 Schimbările se salvează pe măsură ce le faci, cu starea salvării în bara de jos. Bara arată aceeași stare ca în lista importului. Până creezi clientul, mesajul **Creează întâi clientul** îți amintește de ce nu poți confirma încă. Când nu e nimic nou, sarcina spune „Nimic nou în pachet”, iar confirmarea doar aplică instrucțiunile tale la posturi. La confirmare, instrucțiunile noi intră în bibliotecă și toate se aplică la posturile alese; un post care o avea deja nu o primește de două ori.
 
-Dacă citirea nu reușește, vezi motivul și **Citește din nou**. Creditele citirii care nu a reușit îți sunt date înapoi, iar o citire nouă le folosește din nou (25 pentru IPSSM, 10 pentru IPSU), iar clientul și cealaltă parte rămân cum sunt. Totalul importului le arată separat, de exemplu „Importul a folosit 60 de credite (25 + 35 pentru instrucțiunile proprii)”.
+Dacă citirea nu reușește, vezi motivul și **Citește din nou**. Creditele citirii care nu a reușit îți sunt date înapoi, iar o citire nouă le folosește din nou (25 pentru IPSSM, 10 pentru IPSU), iar clientul și cealaltă parte rămân cum sunt. Totalul importului le arată separat, de exemplu „Importul a folosit 60 de credite AI (25 + 35 pentru instrucțiunile proprii)”.
 
 ### Evaluările de risc din documentație
 
@@ -260,7 +260,7 @@ Bara de confirmare rămâne jos pe ecran cât timp verifici. Arată aceeași sta
 
 La confirmare, evaluările pe care le adaugi intră în bibliotecă, cu factorii, măsurile, textele sistemului de muncă și câmpurile planului ca valori propuse. Factorii incluși se scriu pe fișele de evaluare ale clientului, după alegerea ta pentru fiecare post, iar fișele care lipsesc se creează. Fiecare factor scris la client arată din ce evaluare a bibliotecii vine, așa că **Unde este folosită** e corectă de la început. Evaluarea riscurilor și planul de prevenire ale clientului se actualizează apoi ca după orice schimbare a fișelor.
 
-Citirea evaluărilor de risc folosește 15 credite de fiecare dată când le citim. Dacă nu reușește, vezi motivul și **Citește din nou**, iar creditele citirii care nu a reușit îți sunt date înapoi. Totalul importului le arată separat, de exemplu „Importul a folosit 75 de credite (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc)”.
+Citirea evaluărilor de risc folosește 15 credite de fiecare dată când le citim. Dacă nu reușește, vezi motivul și **Citește din nou**, iar creditele citirii care nu a reușit îți sunt date înapoi. Totalul importului le arată separat, de exemplu „Importul a folosit 75 de credite AI (25 + 35 pentru instrucțiunile proprii + 15 pentru evaluările de risc)”.
 
 ### După crearea clientului
 

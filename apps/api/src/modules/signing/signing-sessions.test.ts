@@ -200,7 +200,7 @@ describe('createSigningSession', () => {
     await expect(start({}, seconds(1))).resolves.toBeDefined();
   });
 
-  it.each(['sms_allowance_reached', 'sms_cap_reached', 'sms_trial'])(
+  it.each(['sms_allowance_reached', 'sms_trial'])(
     'answers 409 with the reason when the SMS is refused (%s), and keeps no session',
     async (reason) => {
       send.mockRejectedValueOnce(new SigningCodeRefused(reason));
@@ -419,7 +419,7 @@ describe('the stores', () => {
   it('turns a refused SMS into a refusal the session answers with', async () => {
     const sender = signingCodeSender({
       mail: undefined,
-      sms: { send: async () => ({ sent: false, reason: 'sms_cap_reached' }) },
+      sms: { send: async () => ({ sent: false, reason: 'sms_allowance_reached' }) },
     });
 
     await expect(
@@ -430,6 +430,6 @@ describe('the stores', () => {
         code: '123456',
         expiresInMinutes: 10,
       })
-    ).rejects.toMatchObject({ name: 'SigningCodeRefused', reason: 'sms_cap_reached' });
+    ).rejects.toMatchObject({ name: 'SigningCodeRefused', reason: 'sms_allowance_reached' });
   });
 });

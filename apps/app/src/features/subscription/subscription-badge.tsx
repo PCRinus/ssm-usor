@@ -91,8 +91,7 @@ export function SubscriptionBadge({
 }) {
   const [open, setOpen] = useState(false);
   const seal = sealFor(subscription);
-  const smsStopped =
-    subscription.access === 'full' && (sms?.state === 'capped' || sms?.state === 'stopped');
+  const smsStopped = subscription.access === 'full' && sms?.state === 'stopped';
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -191,10 +190,12 @@ function SubscriptionDetails({
   let smsNote: string | null = null;
   if (!readOnly && sms?.state === 'none') {
     smsNote = 'În perioada de probă totul pleacă pe email; SMS-urile pornesc când alegi un plan.';
-  } else if (!readOnly && sms && sms.included !== null && sms.cap === null) {
+  } else if (!readOnly && sms && sms.included !== null) {
     smsNote = chosen
       ? `Până la prima plată, codurile se opresc la ${formatCount(sms.included)}.`
-      : `Cont de test: după ${codesLabel(sms.included)} pe lună, codurile pleacă pe email.`;
+      : subscription.planChosen
+        ? `După ${codesLabel(sms.included)} pe lună, codurile pleacă pe email până la reînnoire.`
+        : `Cont de test: după ${codesLabel(sms.included)} pe lună, codurile pleacă pe email.`;
   }
   const creditsShown = !readOnly && credits && credits.included !== null ? credits : null;
   const creditsMeter = creditsShown
@@ -225,7 +226,7 @@ function SubscriptionDetails({
         </p>
       ))}
       {!readOnly && sms && sms.included !== null && sms.state !== 'none' && (
-        <SmsMeterLine sms={sms} owner={isOwner} planChosen={subscription.planChosen} />
+        <SmsMeterLine sms={sms} owner={isOwner} subscription={subscription} />
       )}
       {creditsMeter && creditsMeter.used !== null && creditsMeter.limit !== null && (
         <MeterLine
@@ -294,13 +295,13 @@ function SubscriptionDetails({
 function SmsMeterLine({
   sms,
   owner,
-  planChosen,
+  subscription,
 }: {
   sms: BillingSmsUsage;
   owner: boolean;
-  planChosen: boolean;
+  subscription: Pick<SubscriptionSummary, 'planChosen' | 'status'>;
 }) {
-  const meter = smsMeterFor(sms, { owner, stop: stopOf(sms, planChosen) });
+  const meter = smsMeterFor(sms, { owner, stop: stopOf(subscription) });
   if (meter.used === null || meter.limit === null) return null;
   return (
     <MeterLine

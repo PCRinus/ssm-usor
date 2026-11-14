@@ -9,7 +9,7 @@ export type SmsKind = Database['public']['Enums']['sms_kind'];
 
 export type Claim =
   | { id: string; overage: boolean }
-  | { refusal: Extract<SmsRefusalReason, 'sms_allowance_reached' | 'sms_cap_reached'> };
+  | { refusal: Extract<SmsRefusalReason, 'sms_allowance_reached'> };
 
 export type PeriodUsage = { used: number; overage: number; granted: number };
 
@@ -57,8 +57,8 @@ export function smsUsageStore(db: AdminClient) {
         })
         .single();
       if (error) throw fromDatabaseError(error, 'sms claim');
-      if (data.refusal)
-        return { refusal: data.refusal as Extract<Claim, { refusal: string }>['refusal'] };
+      // No cap is passed while the extras are off, so the allowance is the only refusal left.
+      if (data.refusal) return { refusal: 'sms_allowance_reached' };
       return { id: data.id, overage: data.overage };
     },
     async markSent(id: string, providerId: string | null, at: Date) {

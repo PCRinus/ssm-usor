@@ -19,8 +19,14 @@ import {
   viewOf,
 } from '../use-billing';
 import { useBillingPreview } from '../use-billing-preview';
-import { ctaLabel } from './checkout-choice';
-import { clampChoice, unavailableReason } from './checkout-choice';
+import {
+  choiceOf,
+  ctaLabel,
+  employeeStops,
+  fitPick,
+  minimumStop,
+  type Pick,
+} from './checkout-choice';
 import { CheckoutFrame, type CheckoutState } from './checkout-frame';
 import { CheckoutSummary } from './checkout-summary';
 import type { ChoosePlanSearch } from './choose-plan-search';
@@ -87,33 +93,21 @@ export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   return <ChoosePlanForm overview={overview} owner={owner} search={search} />;
 }
 
-function initialChoice(
+function initialPick(
   overview: BillingOverview,
   owner: BillingOwner,
   search: ChoosePlanSearch
-): BillingChoice {
+): Pick {
   const current = currentChoice(overview.subscription);
-  const live = hasLiveSubscription(overview.subscription);
-  const fallbackPlan = unavailableReason('start', owner) ? 'profesional' : 'start';
-  const plan = search.plan ?? current?.plan ?? fallbackPlan;
-  const usable = unavailableReason(plan, owner) ? 'profesional' : plan;
-  const base: BillingChoice =
-    live && current && current.plan === usable
-      ? current
-      : {
-          plan: usable,
-          interval: current?.interval ?? 'month',
-          employeePacks: 0,
-          extraMembers: current?.plan === usable ? current.extraMembers : 0,
-        };
-  return clampChoice(
+  const employees = overview.usage.employees.used ?? 0;
+  return fitPick(
     {
-      ...base,
-      interval: search.interval ?? base.interval,
-      employeePacks: search.packs ?? base.employeePacks,
-      extraMembers: search.members ?? base.extraMembers,
+      plan: search.plan ?? current?.plan ?? 'start',
+      stop: search.step ?? current?.step ?? minimumStop(employees) ?? employeeStops[0]!,
+      interval: search.interval ?? current?.interval ?? 'month',
     },
-    owner
+    owner,
+    employees
   );
 }
 
@@ -131,7 +125,8 @@ function ChoosePlanForm({
   const view = viewOf(subscription);
   const live = hasLiveSubscription(subscription);
   const current = currentChoice(subscription);
-  const [choice, setChoice] = useState(() => initialChoice(overview, owner, search));
+  const [pick, setPick] = useState(() => initialPick(overview, owner, search));
+  const choice = choiceOf(pick);
   const [confirming, setConfirming] = useState<BillingChoice | null>(null);
   const { preview, settling } = useBillingPreview(choice);
   const [busy, setBusy] = useState(false);
@@ -165,11 +160,10 @@ function ChoosePlanForm({
   );
   const picker = (
     <PlanPicker
-      choice={choice}
+      pick={pick}
       owner={owner}
       employees={employees}
-      members={members}
-      onChange={(next) => setChoice(clampChoice(next, owner))}
+      onChange={(next) => setPick(fitPick(next, owner, employees))}
       disabled={busy}
     />
   );
@@ -236,7 +230,6 @@ function ChoosePlanForm({
         current={current!}
         target={confirming}
         inTrial={state.inTrial}
-        usage={{ employees, members }}
         onClose={() => setConfirming(null)}
         onDone={() => void navigate({ to: '/organizatie/abonament' })}
       />

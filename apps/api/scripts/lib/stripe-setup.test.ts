@@ -104,26 +104,48 @@ describe('planning the catalogue', () => {
 
   it('stops when a lookup key holds a different amount, since a price never changes', () => {
     const prices = matchingPrices().map((price) =>
-      price.lookupKey === 'start_monthly_v1' ? { ...price, unitAmount: 4900 } : price
+      price.lookupKey === 'start_250_monthly_v2' ? { ...price, unitAmount: 4900 } : price
     );
     expect(() => planPrices(prices, [smsMeter])).toThrow(
-      /start_monthly_v1 \(price_0\) has amount 4900/
+      /start_250_monthly_v2 \(price_0\) has amount 4900/
     );
   });
 
   it('stops when the SMS price counts another meter', () => {
     expect(() => planPrices(matchingPrices(), [{ ...smsMeter, id: 'mtr_2' }])).toThrow(
-      /sms_overage_monthly_v1 .* has meter mtr_1/
+      /sms_overage_monthly_v2 .* has meter mtr_1/
     );
   });
 
   it('reactivates an archived price that still matches', () => {
     const prices = matchingPrices().map((price) =>
-      price.lookupKey === 'member_annual_v1' ? { ...price, active: false } : price
+      price.lookupKey === 'start_500_annual_v2' ? { ...price, active: false } : price
     );
     expect(planPrices(prices, [smsMeter])).toEqual([
-      { kind: 'activate_price', id: expect.any(String), lookupKey: 'member_annual_v1' },
+      { kind: 'activate_price', id: expect.any(String), lookupKey: 'start_500_annual_v2' },
     ]);
+  });
+
+  it('creates the v2 prices beside the v1 ones and leaves those alone, archiving nothing', () => {
+    const v1 = [
+      'start_monthly_v1',
+      'employees50_monthly_v1',
+      'member_annual_v1',
+      'sms_overage_monthly_v1',
+    ].map((lookupKey, index) => ({
+      id: `price_v1_${index}`,
+      lookupKey,
+      productId: 'ssm_usor_start',
+      currency: 'eur',
+      unitAmount: 3900,
+      interval: 'month',
+      usage: 'licensed',
+      meterId: null,
+      active: true,
+    }));
+    const actions = planPrices(v1, [smsMeter]);
+    expect(actions).toHaveLength(cataloguePrices.length);
+    expect(actions.every((action) => action.kind === 'create_price')).toBe(true);
   });
 });
 
@@ -296,7 +318,7 @@ describe('a run against Stripe', () => {
 
     const prices = posted('/v1/prices');
     expect(prices).toHaveLength(cataloguePrices.length);
-    const sms = prices.find((write) => write.body.get('lookup_key') === 'sms_overage_monthly_v1');
+    const sms = prices.find((write) => write.body.get('lookup_key') === 'sms_overage_monthly_v2');
     expect(Object.fromEntries(sms!.body)).toMatchObject({
       product: 'ssm_usor_sms_overage',
       unit_amount: '10',
@@ -305,8 +327,13 @@ describe('a run against Stripe', () => {
       'recurring[meter]': collections['/v1/billing/meters']![0]!.id,
       tax_behavior: 'exclusive',
     });
-    const annual = prices.find((write) => write.body.get('lookup_key') === 'profesional_annual_v1');
-    expect(annual!.body.get('unit_amount')).toBe('149000');
+    const annual = prices.find(
+      (write) => write.body.get('lookup_key') === 'profesional_1500_annual_v2'
+    );
+    expect(annual!.body.get('unit_amount')).toBe('148800');
+    const start = prices.find((write) => write.body.get('lookup_key') === 'start_250_annual_v2');
+    expect(start!.body.get('unit_amount')).toBe('38400');
+    expect(start!.body.get('product')).toBe('ssm_usor_start');
 
     expect(Object.fromEntries(posted('/v1/tax_rates')[0]!.body)).toMatchObject({
       percentage: '21',

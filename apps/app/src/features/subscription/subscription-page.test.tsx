@@ -98,7 +98,7 @@ describe('the Abonament tab', () => {
       'SMS-urile pornesc când alegi un plan'
     );
     expect(screen.getByTestId('meter-employees').textContent).toContain(
-      'pentru 312 îți trebuie 2 pachete de câte 50 de lucrători'
+      'Pentru 312 lucrători, treapta potrivită e de 500 pe Start sau de 500 pe Profesional.'
     );
     expect(screen.getByTestId('payment-card').textContent).toContain('Nu ai salvat un card');
     expect(screen.getByTestId('invoices-card').textContent).toContain(
@@ -112,8 +112,8 @@ describe('the Abonament tab', () => {
       overview: overviewWith({
         subscription: activeSubscription(),
         employees: 1740,
-        members: 4,
-        limits: { employees: 2000, members: 4, sms: 300 },
+        members: 10,
+        limits: { employees: 1500, members: 10, sms: 300 },
       }),
     });
     mount();
@@ -125,10 +125,13 @@ describe('the Abonament tab', () => {
     expect(screen.getByTestId('member-note').textContent).toContain(
       'Adminul organizației se ocupă de abonament.'
     );
-    expect(screen.getByTestId('price-list').textContent).toContain('39 € pe lună sau 390 € pe an');
-    expect(screen.getByTestId('meter-employees').textContent).toContain('1.740 din 2.000');
+    expect(screen.getByTestId('price-list').textContent).toContain(
+      'de la 39 € pe lună, pentru 250 de lucrători'
+    );
+    expect(screen.getByTestId('meter-employees').textContent).toContain('1.740 din 1.500');
+    expect(screen.getByTestId('meter-employees').textContent).toContain('Cu 240 peste treaptă.');
     expect(screen.getByTestId('meter-members').textContent).toContain(
-      'adminul adaugă un utilizator'
+      'Profesional are 10 utilizatori. Pentru mai mulți, scrie-ne pentru o ofertă.'
     );
     expect(screen.queryByTestId('payment-card')).toBeNull();
     expect(screen.queryByTestId('invoices-card')).toBeNull();
@@ -139,14 +142,14 @@ describe('the Abonament tab', () => {
     mockApi({
       overview: overviewWith({
         subscription,
-        limits: { employees: 1500, members: 3, sms: 50 },
+        limits: { employees: 5000, members: 10, sms: 100 },
         owner: ownerPart({
           card: { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 },
           nextPayment: {
             at: subscription.trialEndsAt!,
-            subtotalCents: 6900,
-            vatCents: 1449,
-            totalCents: 8349,
+            subtotalCents: 5900,
+            vatCents: 1239,
+            totalCents: 7139,
           },
         }),
       }),
@@ -160,10 +163,11 @@ describe('the Abonament tab', () => {
       'Ai ales Start. Azi nu ai plătit nimic.'
     );
     const card = screen.getByTestId('plan-card');
-    expect(within(card).getByTestId('plan-amount').textContent).toContain('83,49 €');
-    expect(card.textContent).toContain('2 pachete de câte 50 de lucrători');
-    expect(screen.getByTestId('meter-employees').textContent).toContain('312 din 350');
-    expect(screen.getByTestId('meter-sms').textContent).toContain('0 din 50');
+    expect(within(card).getByTestId('plan-amount').textContent).toContain('71,39 €');
+    expect(card.textContent).toContain('Start, până la 500 de lucrători, lunar');
+    expect(screen.getByTestId('meter-employees').textContent).toContain('312 din 500');
+    expect(screen.getByTestId('meter-members').textContent).toContain('1 din 3');
+    expect(screen.getByTestId('meter-sms').textContent).toContain('0 din 100');
     expect(screen.getByTestId('payment-card-number').textContent).toBe('Visa •••• 4242');
 
     const user = userEvent.setup();
@@ -198,24 +202,24 @@ describe('the Abonament tab', () => {
     );
   });
 
-  it('shows an annual Profesional with its renewal, extra SMS and invoices', async () => {
+  it('shows an annual Profesional with its step, renewal and invoices, and no SMS extras', async () => {
     const subscription = activeSubscription();
     mockApi({
       overview: overviewWith({
         subscription,
-        employees: 1740,
+        employees: 1400,
         members: 4,
-        limits: { employees: 2000, members: 4, sms: 300 },
+        limits: { employees: 1500, members: 10, sms: 300 },
         owner: ownerPart({
           card: { brand: 'mastercard', last4: '8817', expMonth: 11, expYear: 2027 },
-          smsOverageCents: 260,
-          nextPayment: { at: inDays(6), subtotalCents: 260, vatCents: 55, totalCents: 315 },
+          smsOverageCents: 0,
+          nextPayment: { at: inDays(6), subtotalCents: 0, vatCents: 0, totalCents: 0 },
           choices: {
             start: {
-              minimums: { employeePacks: 30, extraMembers: 1 },
-              problems: [{ reason: 'start_employee_ceiling' }],
+              minimumStep: null,
+              problems: [{ reason: 'employees_over_plan', maximum: 750 }],
             },
-            profesional: { minimums: { employeePacks: 1, extraMembers: 1 }, problems: [] },
+            profesional: { minimumStep: 1500, problems: [] },
           },
           invoices: [
             {
@@ -245,12 +249,15 @@ describe('the Abonament tab', () => {
     mount();
 
     const card = await screen.findByTestId('plan-card');
-    expect(within(card).getByTestId('plan-amount').textContent).toContain('2.468,40 €');
-    expect(card.textContent).toContain('Total pe an2.468,40 €');
-    expect(within(card).getByTestId('plan-note').textContent).toContain('2,60 € + TVA');
+    expect(within(card).getByTestId('plan-amount').textContent).toContain('1.800,48 €');
+    expect(card.textContent).toContain('Profesional, până la 1.500 de lucrători, anual1.488 €');
+    expect(card.textContent).toContain('Total pe an1.800,48 €');
+    expect(within(card).queryByTestId('plan-note')).toBeNull();
+    expect(card.textContent).not.toContain('SMS-urile peste plan');
     expect(card.textContent).toContain(
-      'Start nu este disponibil: acoperă cel mult 600 de lucrători, iar tu ai 1.740.'
+      'Start nu este disponibil: acoperă cel mult 750 de lucrători, iar tu ai 1.400.'
     );
+    expect(within(card).getByRole('link', { name: 'Schimbă planul sau treapta' })).toBeTruthy();
     expect(within(card).getByRole('button', { name: 'Treci la plata lunară' })).toBeTruthy();
 
     const rows = within(screen.getByTestId('invoices-card')).getAllByTestId('invoice-row');
@@ -262,6 +269,46 @@ describe('the Abonament tab', () => {
     expect((ready as HTMLButtonElement).disabled).toBe(false);
     expect((pending as HTMLButtonElement).disabled).toBe(true);
     expect(pending!.textContent).toBe('PDF în curând');
+  });
+
+  it("offers the plan's own next step when over the step, with its price plus VAT", async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: activeSubscription({ interval: 'month', step: 500 }),
+        employees: 600,
+        limits: { employees: 500, members: 10, sms: 100 },
+        owner: ownerPart(),
+      }),
+    });
+    mount();
+
+    const notice = await screen.findByTestId('subscription-notice');
+    expect(notice.textContent).toContain(
+      'Treapta de 1.000 de lucrători costă 119 € + TVA pe lună.'
+    );
+    expect(
+      within(notice).getByRole('link', { name: 'Treci pe treapta următoare' }).getAttribute('href')
+    ).toBe('/organizatie/abonament/alege?plan=profesional&step=1000');
+  });
+
+  it('counts the open invitations among the users, and offers Profesional once Start is full', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: activeSubscription({ plan: 'start', interval: 'month', step: 500 }),
+        members: 2,
+        invitations: 1,
+        limits: { employees: 500, members: 3, sms: 100 },
+        owner: ownerPart(),
+      }),
+    });
+    mount();
+
+    const meter = await screen.findByTestId('meter-members');
+    expect(meter.textContent).toContain('2 din 3');
+    expect(within(meter).getByTestId('meter-members-hint').textContent).toBe(
+      'O invitație în așteptare ține un loc. Start are 3 utilizatori. Pentru un coleg nou, treci pe Profesional, care are 10.'
+    );
+    expect(within(meter).getByRole('link', { name: 'Treci pe Profesional' })).toBeTruthy();
   });
 
   it('opens an invoice PDF through a signed link', async () => {
@@ -309,12 +356,7 @@ describe('the Abonament tab', () => {
 
   it('confirms a move to monthly billing from the preview, then applies it', async () => {
     const subscription = activeSubscription();
-    const target = {
-      plan: 'profesional',
-      interval: 'month',
-      employeePacks: 1,
-      extraMembers: 1,
-    } as const;
+    const target = { plan: 'profesional', step: 1500, interval: 'month' } as const;
     mockApi({
       overview: overviewWith({ subscription, owner: ownerPart() }),
       routes: {
@@ -333,13 +375,15 @@ describe('the Abonament tab', () => {
       (await within(dialog).findByRole('heading', { name: `Treci la plata lunară de pe ${when}?` }))
         .textContent
     ).toBeTruthy();
-    expect(dialog.textContent).toContain('246,84 €');
+    expect(dialog.textContent).toContain('180,29 €');
     const previewsBefore = requests('/billing/preview', 'POST').length;
     await user.click(within(dialog).getByTestId('change-confirm'));
 
     await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
     expect(bodyOf('/billing/subscription', 'PATCH')).toEqual(target);
-    expect(await screen.findByText(/De pe .* treci la Profesional, lunar/)).toBeTruthy();
+    expect(
+      await screen.findByText(/De pe .* treci la Profesional, până la 1\.500 de lucrători, lunar/)
+    ).toBeTruthy();
     await waitFor(() => expect(screen.queryByTestId('change-dialog')).toBeNull());
 
     await user.click(screen.getByTestId('subscription-switch-interval'));
@@ -377,7 +421,7 @@ describe('the Abonament tab', () => {
     expect(bodyOf('/billing/subscription', 'PATCH')).toMatchObject({ prorationDate: shownAt });
   });
 
-  it('refuses an annual change that adds now and removes at the renewal, and says why', async () => {
+  it('refuses a change for the renewal while an annual payment is still confirming, and says why', async () => {
     const subscription = activeSubscription();
     mockApi({
       overview: overviewWith({ subscription, owner: ownerPart() }),
@@ -395,7 +439,7 @@ describe('the Abonament tab', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('subscription-switch-interval'));
     const dialog = await screen.findByTestId('change-dialog');
-    expect(await within(dialog).findByText(/le faci pe rând/)).toBeTruthy();
+    expect(await within(dialog).findByText(/încă se confirmă/)).toBeTruthy();
     expect((within(dialog).getByTestId('change-confirm') as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -405,8 +449,6 @@ describe('the Abonament tab', () => {
         subscription: activeSubscription({
           status: 'past_due',
           interval: 'month',
-          employeePacks: 0,
-          extraMembers: 0,
           accessUntil: inDays(14),
         }),
         owner: ownerPart({ card: { brand: 'visa', last4: '0341', expMonth: 10, expYear: 2026 } }),
@@ -433,8 +475,7 @@ describe('the Abonament tab', () => {
         subscription: activeSubscription({
           plan: 'start',
           interval: 'month',
-          employeePacks: 2,
-          extraMembers: 0,
+          step: 500,
           accessUntil: inDays(15),
           cancelsAt: inDays(15),
         }),
@@ -499,21 +540,15 @@ describe('the Abonament tab', () => {
   });
 
   it('shows an annual renewal at the choice a change set for it', async () => {
-    const subscription = activeSubscription({
-      plan: 'profesional',
-      interval: 'year',
-      employeePacks: 0,
-      extraMembers: 1,
-    });
+    const subscription = activeSubscription({ plan: 'profesional', interval: 'year' });
     mockApi({
       overview: overviewWith({
         subscription,
         owner: ownerPart({
           scheduledChange: {
             plan: 'start',
+            step: 500,
             interval: 'year',
-            employeePacks: 0,
-            extraMembers: 1,
             at: subscription.currentPeriodEnd!,
           },
         }),
@@ -521,7 +556,7 @@ describe('the Abonament tab', () => {
     });
     mount();
 
-    expect((await screen.findByTestId('plan-amount')).textContent).toContain('653,40 €');
+    expect((await screen.findByTestId('plan-amount')).textContent).toContain('711,48 €');
   });
 
   it('says cancelling drops a change set for the renewal', async () => {
@@ -532,9 +567,8 @@ describe('the Abonament tab', () => {
         owner: ownerPart({
           scheduledChange: {
             plan: 'start',
+            step: 500,
             interval: 'year',
-            employeePacks: 1,
-            extraMembers: 0,
             at: subscription.currentPeriodEnd!,
           },
         }),
@@ -557,8 +591,7 @@ describe('the Abonament tab', () => {
           plan: 'start',
           status: 'canceled',
           interval: 'month',
-          employeePacks: 2,
-          extraMembers: 0,
+          step: 500,
           accessUntil: inDays(-7),
           access: 'read_only',
           deletesAt: inDays(23),
@@ -623,30 +656,23 @@ describe('the Abonament tab', () => {
 });
 
 describe('the signing codes by SMS on the Abonament tab', () => {
-  const monthly = () =>
-    activeSubscription({ interval: 'month', employeePacks: 0, extraMembers: 0 });
+  const monthly = () => activeSubscription({ interval: 'month' });
   const paidWith = (sms: Parameters<typeof smsUsage>[0], owner: Owner | null = ownerPart()) =>
     overviewWith({ subscription: monthly(), owner, sms: smsUsage(sms) });
 
-  it('shows the owner the codes past the allowance and their price, and a member no amounts', async () => {
-    const sms = { used: 342, overage: 42, state: 'over' as const };
+  it('stops the codes at the allowance, sends them by email, and bills nothing', async () => {
+    const sms = { used: 300, state: 'stopped' as const };
     mockApi({ overview: paidWith(sms) });
     mount();
     const meter = await screen.findByTestId('meter-sms');
-    expect(meter.textContent).toContain('342 din 300');
-    expect(within(meter).getByTestId('meter-sms-hint').textContent).toContain(
-      '+42 peste cele incluse, 0,10\u00a0€ fiecare, pe factura din'
+    expect(meter.textContent).toContain('300 din 300');
+    const hint = within(meter).getByTestId('meter-sms-hint').textContent;
+    expect(hint).toMatch(/^Ai folosit cele 300 ale lunii\. Până pe .*, codurile pleacă pe email/);
+    expect(hint).not.toContain('€');
+    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain(
+      'bg-destructive'
     );
-    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain('bg-chart-3');
-    cleanup();
-    disposeRuntimes();
-
-    mockApi({ overview: paidWith(sms, null), role: 'specialist' });
-    mount();
-    const forMember = await screen.findByTestId('meter-sms-hint');
-    expect(forMember.textContent).toBe(
-      '+42 peste cele incluse. Codurile se trimit mai departe, până la 900 de coduri pe lună.'
-    );
+    expect(screen.queryByText('Ridică limita')).toBeNull();
   });
 
   it('turns amber from 80 %', async () => {
@@ -659,92 +685,6 @@ describe('the signing codes by SMS on the Abonament tab', () => {
     expect(within(meter).getByTestId('meter-sms-hint').className).toContain(
       'text-warning-foreground'
     );
-  });
-
-  it('lets the owner raise the cap once it is reached, and says what the new one means', async () => {
-    let factor = 3;
-    mockApi({
-      overview: paidWith({ used: 900, overage: 600, state: 'capped' }),
-      routes: {
-        'PUT /billing/sms-cap': (init) => {
-          factor = (JSON.parse(String(init?.body)) as { factor: number }).factor;
-          return Response.json({ factor, cap: factor * 300 });
-        },
-      },
-    });
-    mount();
-    const meter = await screen.findByTestId('meter-sms');
-    expect(within(meter).getByRole('meter').firstElementChild!.className).toContain(
-      'bg-destructive'
-    );
-    expect(within(meter).getByTestId('meter-sms-hint').textContent).toContain(
-      'Cele 600 peste plan: 60 € + TVA'
-    );
-
-    const user = userEvent.setup();
-    await user.click(within(meter).getByTestId('meter-sms-raise'));
-    const dialog = await screen.findByTestId('sms-cap-dialog');
-    expect(dialog.textContent).toContain(
-      'Acum e de 900 de coduri pe lună, de 3 ori cele 300 ale planului.'
-    );
-    expect(within(dialog).getByTestId<HTMLSelectElement>('sms-cap-factor').value).toBe('4');
-    expect(within(dialog).getByTestId('sms-cap-summary').textContent).toContain(
-      'Până la 1.200 de coduri pe lună.'
-    );
-    expect(within(dialog).getByTestId('sms-cap-summary').textContent).toContain(
-      'cel mult 90 € + TVA pe lună'
-    );
-
-    await user.selectOptions(within(dialog).getByTestId('sms-cap-factor'), '5');
-    expect(within(dialog).getByTestId('sms-cap-summary').textContent).toContain(
-      'Până la 1.500 de coduri pe lună.'
-    );
-    await user.click(within(dialog).getByTestId('sms-cap-save'));
-    await waitFor(() => expect(factor).toBe(5));
-    expect(await screen.findByText('Limita e acum de 1.500 de coduri pe lună.')).toBeTruthy();
-    await waitFor(() => expect(screen.queryByTestId('sms-cap-dialog')).toBeNull());
-  });
-
-  it('opens the dialog from the bar, and says why a change was refused', async () => {
-    mockApi({
-      overview: paidWith({ used: 900, overage: 600, state: 'capped' }),
-      routes: {
-        'PUT /billing/sms-cap': () =>
-          Response.json(
-            { error: 'conflict', message: 'enterprise', reason: 'enterprise_plan' },
-            { status: 409 }
-          ),
-      },
-    });
-    mountApp(authFixture(makeSession()).client, '/organizatie/abonament?raiseCap=true');
-    const dialog = await screen.findByTestId('sms-cap-dialog');
-    await userEvent.click(within(dialog).getByTestId('sms-cap-save'));
-    expect((await within(dialog).findByTestId('sms-cap-error')).textContent).toContain(
-      'Abonamentul Enterprise se schimbă prin email'
-    );
-  });
-
-  it('opens the dialog from the bar while already on the tab', async () => {
-    const capped = smsUsage({ used: 900, overage: 600, state: 'capped' });
-    mockApi({ overview: paidWith(capped), me: { smsThisMonth: capped } });
-    mount();
-    await screen.findByTestId('meter-sms');
-    expect(screen.queryByTestId('sms-cap-dialog')).toBeNull();
-    await userEvent.click(await screen.findByTestId('subscription-bar-action'));
-    expect(await screen.findByTestId('sms-cap-dialog')).toBeTruthy();
-  });
-
-  it('offers a member no way to raise the cap', async () => {
-    mockApi({
-      overview: paidWith({ used: 900, overage: 600, state: 'capped' }, null),
-      role: 'specialist',
-    });
-    mountApp(authFixture(makeSession()).client, '/organizatie/abonament?raiseCap=true');
-    expect((await screen.findByTestId('meter-sms-hint')).textContent).toContain(
-      'Adminul poate ridica limita.'
-    );
-    expect(screen.queryByTestId('meter-sms-raise')).toBeNull();
-    expect(screen.queryByTestId('sms-cap-dialog')).toBeNull();
   });
 
   it('shows the hard stop of a plan chosen during the trial, and a trial without SMS', async () => {
@@ -766,7 +706,6 @@ describe('the signing codes by SMS on the Abonament tab', () => {
     const hint = await screen.findByTestId('meter-sms-hint');
     expect(hint.textContent).toMatch(/^Ai folosit cele 50 de până la prima plată\./);
     expect(hint.className).toContain('text-destructive-foreground');
-    expect(screen.queryByTestId('meter-sms-raise')).toBeNull();
     cleanup();
     disposeRuntimes();
 
@@ -778,9 +717,8 @@ describe('the signing codes by SMS on the Abonament tab', () => {
   });
 });
 
-describe('the import credits on the Abonament tab', () => {
-  const monthly = () =>
-    activeSubscription({ interval: 'month', employeePacks: 0, extraMembers: 0 });
+describe('the AI credits on the Abonament tab', () => {
+  const monthly = () => activeSubscription({ interval: 'month' });
 
   it("shows the month's credits, the welcome gift left and what a credit is", async () => {
     mockApi({
@@ -792,14 +730,14 @@ describe('the import credits on the Abonament tab', () => {
     });
     mount();
     const meter = await screen.findByTestId('meter-credits');
-    expect(meter.textContent).toContain('Credite pentru import');
-    expect(meter.textContent).toContain('640 din 1.500');
+    expect(meter.textContent).toContain('Credite AI');
+    expect(meter.textContent).toContain('640 din 3.250');
     const gift = screen.getByTestId('credits-gift');
     expect(gift.dataset.look).toBe('balance');
     expect(gift.textContent).toContain('8.640');
     expect(gift.textContent).toContain('Rămase din 10.000. Nu expiră');
     expect(screen.getByTestId('usage-card').textContent).toContain(
-      'Un credit e o pagină scanată sau o fotografie citită la import.'
+      'Cu creditele AI, inteligența artificială citește documentele și fișele pe care le încarci.'
     );
   });
 
@@ -808,7 +746,7 @@ describe('the import credits on the Abonament tab', () => {
       overview: overviewWith({
         subscription: monthly(),
         owner: ownerPart(),
-        credits: creditsUsage({ used: 1504, left: -4, giftLeft: 0, state: 'negative' }),
+        credits: creditsUsage({ used: 3254, left: -4, giftLeft: 0, state: 'negative' }),
       }),
     });
     mount();
@@ -826,7 +764,7 @@ describe('the import credits on the Abonament tab', () => {
       overview: overviewWith({
         subscription: monthly(),
         owner: ownerPart(),
-        credits: creditsUsage({ used: 1500, left: 0, giftLeft: 0, state: 'out' }),
+        credits: creditsUsage({ used: 3250, left: 0, giftLeft: 0, state: 'out' }),
       }),
     });
     mount();
@@ -834,8 +772,8 @@ describe('the import credits on the Abonament tab', () => {
     expect(within(meter).getByRole('meter').firstElementChild!.className).toContain(
       'bg-destructive'
     );
-    expect(within(meter).getByTestId('meter-credits-hint').textContent).toContain(
-      'îți adăugăm credite'
+    expect(within(meter).getByTestId('meter-credits-hint').textContent).toMatch(
+      /^Nu poți porni un import nou până pe .*, când primești alte 3\.250\.$/
     );
     cleanup();
     disposeRuntimes();
@@ -850,10 +788,12 @@ describe('the import credits on the Abonament tab', () => {
     mount();
     const gift = await screen.findByTestId('credits-gift');
     expect(gift.dataset.look).toBe('promise');
-    expect(gift.textContent).toContain('La prima plată primești 2.500 de credite de bun venit.');
+    expect(gift.textContent).toContain('La prima plată primești 2.500 de credite AI de bun venit.');
     expect(screen.getByTestId('meter-credits-hint').textContent).toContain(
       'Cele 300 din perioada de probă, până la prima plată.'
     );
-    expect(screen.getByTestId('meter-credits-hint').textContent).toContain('primești 300 pe lună');
+    expect(screen.getByTestId('meter-credits-hint').textContent).toContain(
+      'primești 1.250 pe lună'
+    );
   });
 });

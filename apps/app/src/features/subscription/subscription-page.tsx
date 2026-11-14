@@ -1,4 +1,10 @@
-import { type BillingChoice, type BillingOverview, readOnlyDays } from '@ssm-usor/contracts';
+import {
+  type BillingChoice,
+  type BillingOverview,
+  type PaidPlan,
+  readOnlyDays,
+  selfServeLimits,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -15,22 +21,15 @@ import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 
 import { billingErrorMessage } from './billing-errors';
-import {
-  addDays,
-  cardBrand,
-  employeesLabel,
-  formatCount,
-  formatEuro,
-  packsNeeded,
-} from './billing-format';
+import { addDays, cardBrand, employeesLabel, formatCount, formatEuro } from './billing-format';
 import { BillingCard } from './billing-ui';
 import { CancelDialog } from './cancel-dialog';
 import { ChangeDialog } from './change-dialog';
+import { nextStepAction, nextStepOf, nextStepSentence } from './checkout/checkout-choice';
 import { InvoicesCard } from './invoices-card';
 import { leaveFor } from './leave';
 import { PaymentCard } from './payment-card';
 import { type ActionsMode, PlanCard } from './plan-card';
-import { SmsCapDialog } from './sms-cap-dialog';
 import { contactEmail, endedSentence, pricingUrl, roDate } from './subscription-copy';
 import { UsageCard } from './usage-card';
 import {
@@ -42,14 +41,7 @@ import {
   viewOf,
 } from './use-billing';
 
-export function SubscriptionPage({
-  raiseCap = false,
-  onRaiseCapClosed,
-}: {
-  // Opened from the bar's "Ridică limita", which links here.
-  raiseCap?: boolean;
-  onRaiseCapClosed?: () => void;
-}) {
+export function SubscriptionPage() {
   const me = useMe();
   const billing = useBilling();
 
@@ -83,13 +75,7 @@ export function SubscriptionPage({
   const isOwner = me.data.membership?.role === 'owner';
   const impersonating = Boolean(me.data.impersonation);
   return (
-    <SubscriptionContent
-      overview={billing.data}
-      isOwner={isOwner}
-      impersonating={impersonating}
-      raiseCap={raiseCap}
-      onRaiseCapClosed={onRaiseCapClosed}
-    />
+    <SubscriptionContent overview={billing.data} isOwner={isOwner} impersonating={impersonating} />
   );
 }
 
@@ -97,14 +83,10 @@ function SubscriptionContent({
   overview,
   isOwner,
   impersonating,
-  raiseCap,
-  onRaiseCapClosed,
 }: {
   overview: BillingOverview;
   isOwner: boolean;
   impersonating: boolean;
-  raiseCap: boolean;
-  onRaiseCapClosed?: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const view = viewOf(overview.subscription);
@@ -116,9 +98,6 @@ function SubscriptionContent({
   const actionsMode: ActionsMode = canAct ? 'enabled' : isOwner ? 'disabled' : 'hidden';
   const [cancelling, setCancelling] = useState(false);
   const [changeTarget, setChangeTarget] = useState<BillingChoice | null>(null);
-  const sms = overview.usage.smsThisMonth;
-  const capAdjustable = canAct && sms.cap !== null && sms.capFactor !== null;
-  const [raisingCap, setRaisingCap] = useState(false);
   const [busy, setBusy] = useState<'resume' | 'card' | 'withdraw' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -188,12 +167,7 @@ function SubscriptionContent({
               busy: busy !== null,
             }}
           />
-          <UsageCard
-            overview={overview}
-            view={view}
-            canAct={canAct}
-            onRaiseCap={() => setRaisingCap(true)}
-          />
+          <UsageCard overview={overview} view={view} canAct={canAct} />
         </div>
         <div className="grid min-w-0 gap-4 sm:gap-5">
           {owner ? (
@@ -208,7 +182,8 @@ function SubscriptionContent({
             <MemberNote overview={overview} />
           ) : null}
           <p className="px-1 text-[13px] leading-relaxed text-muted-foreground">
-            Peste 1.500 de lucrători sau o echipă mare? Scrie-ne pentru o ofertă, la{' '}
+            Peste {employeesLabel(selfServeLimits.employees)} sau peste {selfServeLimits.members}{' '}
+            utilizatori? Scrie-ne pentru o ofertă, la{' '}
             <a
               href={`mailto:${contactEmail}?subject=${encodeURIComponent('Ofertă Enterprise SSM Ușor')}`}
               className="font-semibold text-foreground underline-offset-2 hover:underline"
@@ -239,25 +214,11 @@ function SubscriptionContent({
           onClose={() => setCancelling(false)}
         />
       )}
-      {capAdjustable && (
-        <SmsCapDialog
-          sms={sms}
-          open={raisingCap || raiseCap}
-          onClose={() => {
-            setRaisingCap(false);
-            if (raiseCap) onRaiseCapClosed?.();
-          }}
-        />
-      )}
       {choice && (
         <ChangeDialog
           current={choice}
           target={changeTarget}
           inTrial={view === 'trialChosen'}
-          usage={{
-            employees: overview.usage.employees.used ?? 0,
-            members: overview.usage.members.used ?? 0,
-          }}
           onClose={() => setChangeTarget(null)}
         />
       )}
@@ -285,7 +246,7 @@ function noticeFor(
       {label}
     </Button>
   );
-  const chooseLink = (label: string, search?: { packs?: number }) => (
+  const chooseLink = (label: string, search?: { plan?: PaidPlan; step?: number }) => (
     <Button className="font-semibold" asChild>
       <Link to="/organizatie/abonament/alege" search={search}>
         {label}
@@ -393,24 +354,21 @@ function noticeFor(
       const employees = overview.usage.employees;
       if (!choice || employees.used === null || employees.limit === null) return null;
       if (employees.used <= employees.limit) return null;
-      const pack = overview.catalogue.employeePacks.find(
-        (item) => item.key === (choice.plan === 'start' ? 'employees50' : 'employees500')
-      );
+      const next = nextStepOf(choice, employees.used);
+      const action = next && nextStepAction(choice, next);
       return (
         <Notice
           variant="warning"
           data-testid="subscription-notice"
-          title="Ai trecut de limita de lucrători."
-          action={chooseLink('Adaugă un pachet', {
-            packs: packsNeeded(choice.plan, employees.used),
-          })}
+          title="Ai trecut de treapta de lucrători."
+          action={action && chooseLink(action.label, action.search)}
         >
           Ai {employeesLabel(employees.used)} la clienți, cu{' '}
-          {formatCount(employees.used - employees.limit)} peste cei {formatCount(employees.limit)}{' '}
-          din plan. Lucrezi mai departe cu tot ce ai.
-          {pack
-            ? ` Un pachet de ${pack.employees} de lucrători costă ${formatEuro(pack.prices[choice.interval])} ${choice.interval === 'year' ? 'pe an' : 'pe lună'}.`
-            : ''}
+          {formatCount(employees.used - employees.limit)} peste treapta ta, de{' '}
+          {formatCount(employees.limit)}. Lucrezi mai departe cu tot ce ai.
+          {next
+            ? ` ${nextStepSentence(choice, next)}`
+            : ` Peste ${employeesLabel(selfServeLimits.employees)}, scrie-ne pentru o ofertă, la ${contactEmail}.`}
         </Notice>
       );
     }
@@ -420,7 +378,7 @@ function noticeFor(
 }
 
 function MemberNote({ overview }: { overview: BillingOverview }) {
-  const { plans, extraMember } = overview.catalogue;
+  const { plans } = overview.catalogue;
   return (
     <>
       <BillingCard data-testid="member-note">
@@ -431,7 +389,7 @@ function MemberNote({ overview }: { overview: BillingOverview }) {
               Adminul organizației se ocupă de abonament.
             </strong>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Dacă ai nevoie de mai mulți lucrători sau de un coleg în plus, scrie-i adminului.
+              Dacă ai nevoie de o treaptă cu mai mulți lucrători sau de alt plan, scrie-i adminului.
             </p>
           </div>
         </div>
@@ -440,18 +398,15 @@ function MemberNote({ overview }: { overview: BillingOverview }) {
         <dl className="grid gap-2 text-sm">
           {plans.map((plan) => (
             <div key={plan.key} className="flex justify-between gap-4">
-              <dt className="font-medium">{plan.key === 'start' ? 'Start' : 'Profesional'}</dt>
+              <dt className="font-medium">
+                {plan.key === 'start' ? 'Start' : 'Profesional'}, {plan.members} utilizatori
+              </dt>
               <dd className="text-right text-muted-foreground tabular-nums">
-                {formatEuro(plan.prices.month)} pe lună sau {formatEuro(plan.prices.year)} pe an
+                de la {formatEuro(plan.steps[0]!.prices.month)} pe lună, pentru{' '}
+                {formatCount(plan.steps[0]!.employees)} de lucrători
               </dd>
             </div>
           ))}
-          <div className="flex justify-between gap-4">
-            <dt className="font-medium">Utilizator în plus</dt>
-            <dd className="text-right text-muted-foreground tabular-nums">
-              {formatEuro(extraMember.prices.month)} pe lună
-            </dd>
-          </div>
         </dl>
         <a
           href={pricingUrl}

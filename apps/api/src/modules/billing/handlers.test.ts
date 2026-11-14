@@ -19,8 +19,8 @@ import {
 
 const day = 86_400;
 const now = () => Math.floor(Date.now() / 1000);
-const start = { plan: 'start', interval: 'month', employeePacks: 0, extraMembers: 0 } as const;
-const pro = { plan: 'profesional', interval: 'month', employeePacks: 0, extraMembers: 0 } as const;
+const start = { plan: 'start', step: 250, interval: 'month' } as const;
+const pro = { plan: 'profesional', step: 1500, interval: 'month' } as const;
 
 const request = (method: string, path: string, body?: unknown, bindings = env) =>
   createApp().request(
@@ -68,8 +68,9 @@ describe('GET /billing', () => {
       status: 'trialing',
     });
     expect(body.usage).toEqual({
-      employees: { used: 120, limit: 1500 },
-      members: { used: 1, limit: 3 },
+      employees: { used: 120, limit: 5000 },
+      members: { used: 1, limit: 10 },
+      invitations: 0,
       smsThisMonth: {
         used: 0,
         included: 0,
@@ -100,14 +101,61 @@ describe('GET /billing', () => {
     expect(
       body.catalogue.plans.map((plan) => [
         plan.key,
-        plan.prices.month,
-        plan.monthlyCredits,
-        plan.welcomeCredits,
+        plan.members,
+        plan.steps.map((step) => [step.employees, step.prices.month, step.monthlyCredits]),
       ])
     ).toEqual([
-      ['start', 3900, 300, 2500],
-      ['profesional', 14900, 1500, 10000],
+      [
+        'start',
+        3,
+        [
+          [250, 3900, 750],
+          [500, 5900, 1250],
+          [750, 7900, 1750],
+        ],
+      ],
+      [
+        'profesional',
+        10,
+        [
+          [500, 8900, 1250],
+          [1000, 11900, 2250],
+          [1500, 14900, 3250],
+          [2000, 17900, 4250],
+          [3000, 23900, 6250],
+          [4000, 29900, 8250],
+          [5000, 35900, 10250],
+        ],
+      ],
     ]);
+  });
+
+  it('counts the open invitations, which hold places among the users', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow({ plan: 'start', step: 250, interval: 'month' }));
+    fake.tables.organization_invitations = [
+      { organization_id: organizationId, accepted_at: null, revoked_at: null },
+      { organization_id: organizationId, accepted_at: null, revoked_at: null },
+    ];
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ choice: { plan: 'start', step: 250, interval: 'month' } });
+    fake.stripe['POST /v1/invoices/create_preview'] = () => ({
+      object: 'invoice',
+      subtotal: 3900,
+      total: 4719,
+      period_end: now() + 20 * day,
+      lines: stripeList([]),
+    });
+    fake.stripe['GET /v1/customers/cus_1Test'] = () => ({
+      id: 'cus_1Test',
+      object: 'customer',
+      invoice_settings: { default_payment_method: null },
+    });
+
+    const body = billingOverviewSchema.parse(await (await request('GET', '/billing')).json());
+
+    expect(body.usage.invitations).toBe(2);
+    expect(body.usage.members).toEqual({ used: 1, limit: 3 });
   });
 
   it('gives an impersonating admin the members’ view', async () => {
@@ -138,8 +186,8 @@ describe('GET /billing', () => {
       ownerEmail: owner.email,
       invoices: [],
       choices: {
-        start: { minimums: { employeePacks: 2, extraMembers: 0 }, problems: [] },
-        profesional: { minimums: { employeePacks: 0, extraMembers: 0 }, problems: [] },
+        start: { minimumStep: 500, problems: [] },
+        profesional: { minimumStep: 500, problems: [] },
       },
     });
     expect(stripeCalls(fake)).toEqual([]);
@@ -148,7 +196,7 @@ describe('GET /billing', () => {
   it('shows the owner of a paid plan the card, the next payment and a change set for the renewal', async () => {
     const fake = createFake();
     const renewal = now() + 10 * day;
-    fake.tables.subscriptions!.push(paidRow({ ...pro, extraMembers: 1 }));
+    fake.tables.subscriptions!.push(paidRow(pro));
     fake.tables.billing_invoices!.push({
       stripe_invoice_id: 'in_1Paid',
       organization_id: organizationId,
@@ -163,7 +211,7 @@ describe('GET /billing', () => {
     });
     fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => ({
       ...stripeSubscription({
-        choice: { ...pro, extraMembers: 1 },
+        choice: pro,
         periodEnd: renewal,
         schedule: {
           id: 'sub_sched_1',
@@ -173,7 +221,7 @@ describe('GET /billing', () => {
             {
               start_date: renewal,
               end_date: renewal + 30 * day,
-              items: [{ price: priceIdOf('profesional_monthly_v1'), quantity: 1 }],
+              items: [{ price: priceIdOf('profesional_1500_monthly_v2'), quantity: 1 }],
             },
           ],
         },
@@ -193,11 +241,11 @@ describe('GET /billing', () => {
       lines: stripeList([
         {
           amount: 1500,
-          pricing: { price_details: { price: priceIdOf('sms_overage_monthly_v1') } },
+          pricing: { price_details: { price: priceIdOf('sms_overage_monthly_v2') } },
         },
         {
           amount: 14900,
-          pricing: { price_details: { price: priceIdOf('profesional_monthly_v1') } },
+          pricing: { price_details: { price: priceIdOf('profesional_1500_monthly_v2') } },
         },
       ]),
     });
@@ -207,10 +255,11 @@ describe('GET /billing', () => {
     expect(body.subscription).toMatchObject({
       planChosen: true,
       status: 'active',
-      extraMembers: 1,
+      step: 1500,
       cancelsAt: null,
     });
-    expect(body.usage.members.limit).toBe(4);
+    expect(body.usage.members.limit).toBe(10);
+    expect(body.usage.employees.limit).toBe(1500);
     expect(body.owner).toMatchObject({
       card: { brand: 'visa', last4: '4242', expMonth: 4, expYear: 2029 },
       nextPayment: {
@@ -250,35 +299,36 @@ describe('POST /billing/preview', () => {
     fake.tables.subscriptions!.push(subscriptionRow());
     const trialEnd = new Date(row(fake).trial_ends_at as string).toISOString();
 
-    const response = await request('POST', '/billing/preview', { ...start, employeePacks: 1 });
+    const response = await request('POST', '/billing/preview', { ...start, step: 500 });
 
     expect(response.status).toBe(200);
     expect(billingPreviewSchema.parse(await response.json())).toMatchObject({
       problems: [],
-      recurring: { subtotalCents: 5400, vatCents: 1134, totalCents: 6534 },
+      recurring: { subtotalCents: 5900, vatCents: 1239, totalCents: 7139 },
       dueToday: { totalCents: 0 },
-      nextRenewal: { at: trialEnd, totalCents: 6534 },
+      nextRenewal: { at: trialEnd, totalCents: 7139 },
       firstChargeAt: trialEnd,
     });
   });
 
-  it('says which of Start’s ceilings the organization passes, and the packs it needs', async () => {
-    const fake = createFake({ employees: 700 });
+  it('says which of Start’s limits the organization passes, and the step it needs', async () => {
+    const fake = createFake({ employees: 760 });
     fake.tables.subscriptions!.push(subscriptionRow());
     fake.tables.organization_members!.push(
       { organization_id: organizationId, user_id: 'a', role: 'specialist' },
-      { organization_id: organizationId, user_id: 'b', role: 'specialist' }
+      { organization_id: organizationId, user_id: 'b', role: 'specialist' },
+      { organization_id: organizationId, user_id: 'c', role: 'specialist' }
     );
 
     const startPreview = await previewOf(await request('POST', '/billing/preview', start));
     const proPreview = await previewOf(await request('POST', '/billing/preview', pro));
 
     expect(startPreview.problems).toEqual([
-      { reason: 'start_employee_ceiling' },
-      { reason: 'start_member_ceiling' },
+      { reason: 'employees_over_plan', maximum: 750 },
+      { reason: 'members_over_plan', maximum: 3 },
     ]);
     expect(proPreview.problems).toEqual([]);
-    expect(proPreview.minimums).toEqual({ employeePacks: 0, extraMembers: 0 });
+    expect(proPreview.minimumStep).toBe(1000);
   });
 
   it('charges a read-only organization now', async () => {
@@ -321,7 +371,7 @@ describe('POST /billing/preview', () => {
     expect(stripeWrites(fake, '/v1/invoices/create_preview')[0]).toMatchObject({
       'subscription_details[proration_behavior]': 'create_prorations',
       'subscription_details[items][0][id]': 'si_0',
-      'subscription_details[items][0][price]': priceIdOf('profesional_monthly_v1'),
+      'subscription_details[items][0][price]': priceIdOf('profesional_1500_monthly_v2'),
     });
     expect(body).toMatchObject({
       dueToday: { totalCents: 0 },
@@ -399,20 +449,17 @@ describe('POST /billing/preview', () => {
     );
   });
 
-  it('says an annual addition and a removal go one after the other', async () => {
+  it('says a change for the renewal waits while an annual upgrade is still being paid', async () => {
     const fake = createFake();
-    const annual = { ...pro, interval: 'year', extraMembers: 2 } as const;
+    const annual = { ...pro, step: 2000, interval: 'year' } as const;
     fake.tables.subscriptions!.push(paidRow(annual));
-    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
-    fake.stripe['POST /v1/invoices/create_preview'] = () => ({
-      object: 'invoice',
-      subtotal: 10000,
-      total: 12100,
-      lines: stripeList([]),
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => ({
+      ...stripeSubscription({ choice: annual }),
+      pending_update: { expires_at: now() + day },
     });
 
     const body = await previewOf(
-      await request('POST', '/billing/preview', { ...annual, employeePacks: 1, extraMembers: 0 })
+      await request('POST', '/billing/preview', { ...annual, step: 1500 })
     );
 
     expect(body.problems).toEqual([{ reason: 'split_change' }]);
@@ -446,7 +493,7 @@ describe('POST /billing/subscription', () => {
     creating(fake, {
       ...stripeSubscription({
         status: 'trialing',
-        choice: { ...start, employeePacks: 1 },
+        choice: { ...start, step: 500 },
         trialEnd,
         periodEnd: trialEnd,
       }),
@@ -457,7 +504,7 @@ describe('POST /billing/subscription', () => {
       },
     });
 
-    const response = await request('POST', '/billing/subscription', { ...start, employeePacks: 1 });
+    const response = await request('POST', '/billing/subscription', { ...start, step: 500 });
 
     expect(response.status).toBe(201);
     expect(await response.json()).toEqual({ clientSecret: 'seti_1_secret', intent: 'setup' });
@@ -469,10 +516,9 @@ describe('POST /billing/subscription', () => {
     });
     expect(stripeWrites(fake, '/v1/subscriptions')[0]).toMatchObject({
       customer: 'cus_1Test',
-      'items[0][price]': priceIdOf('start_monthly_v1'),
-      'items[1][price]': priceIdOf('employees50_monthly_v1'),
-      'items[1][quantity]': '1',
-      'items[2][price]': priceIdOf('sms_overage_monthly_v1'),
+      'items[0][price]': priceIdOf('start_500_monthly_v2'),
+      'items[0][quantity]': '1',
+      'items[1][price]': priceIdOf('sms_overage_monthly_v2'),
       'default_tax_rates[0]': 'txr_vat',
       payment_behavior: 'default_incomplete',
       'payment_settings[save_default_payment_method]': 'on_subscription',
@@ -485,7 +531,7 @@ describe('POST /billing/subscription', () => {
       plan: 'start',
       status: 'trialing',
       stripe_subscription_id: 'sub_1Test',
-      employee_packs: 1,
+      employee_step: 500,
     });
   });
 
@@ -534,14 +580,23 @@ describe('POST /billing/subscription', () => {
     expect(stripeWrites(fake, '/v1/subscriptions')).toEqual([]);
   });
 
-  it('refuses packs below what the employees need', async () => {
+  it('refuses a step below what the employees need', async () => {
     const fake = createFake({ employees: 312 });
     fake.tables.subscriptions!.push(subscriptionRow());
 
     const response = await request('POST', '/billing/subscription', start);
 
     expect(response.status).toBe(409);
-    expect(await reasonOf(response)).toBe('employee_packs_below_need');
+    expect(await reasonOf(response)).toBe('step_below_need');
+  });
+
+  it('refuses a step that is not one of the plan’s', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(subscriptionRow());
+
+    const response = await request('POST', '/billing/subscription', { ...start, step: 1000 });
+
+    expect(response.status).toBe(400);
   });
 
   it('replaces a plan chosen in the trial whose card never confirmed', async () => {
@@ -744,9 +799,8 @@ describe('POST /billing/subscription', () => {
 describe('PATCH /billing/subscription', () => {
   it('adds a monthly upgrade to the next invoice', async () => {
     const fake = createFake();
-    fake.tables.subscriptions!.push(paidRow({ ...start, employeePacks: 2 }));
-    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
-      stripeSubscription({ choice: { ...start, employeePacks: 2 } });
+    fake.tables.subscriptions!.push(paidRow(start));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: start });
     fake.stripe['POST /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
 
     const response = await request('PATCH', '/billing/subscription', pro);
@@ -755,13 +809,62 @@ describe('PATCH /billing/subscription', () => {
     expect(await response.json()).toEqual({ clientSecret: null, intent: null });
     expect(stripeWrites(fake, '/v1/subscriptions/sub_1Test')[0]).toMatchObject({
       'items[0][id]': 'si_0',
-      'items[0][price]': priceIdOf('profesional_monthly_v1'),
-      'items[1][id]': 'si_1',
-      'items[1][deleted]': 'true',
+      'items[0][price]': priceIdOf('profesional_1500_monthly_v2'),
       proration_behavior: 'create_prorations',
       payment_behavior: 'allow_incomplete',
     });
-    expect(row(fake)).toMatchObject({ plan: 'profesional', employee_packs: 0 });
+    expect(row(fake)).toMatchObject({ plan: 'profesional', employee_step: 1500 });
+  });
+
+  it('moves up a step as a change of the plan price, prorated on the next invoice', async () => {
+    const fake = createFake({ employees: 300 });
+    fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ choice: { ...start, step: 500 } });
+    fake.stripe['POST /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ choice: { ...start, step: 750 } });
+
+    const response = await request('PATCH', '/billing/subscription', { ...start, step: 750 });
+
+    expect(response.status).toBe(200);
+    const write = stripeWrites(fake, '/v1/subscriptions/sub_1Test')[0];
+    expect(write).toMatchObject({
+      'items[0][id]': 'si_0',
+      'items[0][price]': priceIdOf('start_750_monthly_v2'),
+      'items[0][quantity]': '1',
+      proration_behavior: 'create_prorations',
+    });
+    expect(Object.keys(write!).filter((key) => key.startsWith('items[1]'))).toEqual([]);
+    expect(row(fake)).toMatchObject({ plan: 'start', employee_step: 750 });
+  });
+
+  it('moves a v1 subscription to v2, removing its packs and extra members', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }, { price_version: 'v1' }));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({
+        choice: { ...start, step: 500 },
+        lines: [
+          { lookupKey: 'start_monthly_v1', quantity: 1 },
+          { lookupKey: 'employees50_monthly_v1', quantity: 2 },
+          { lookupKey: 'member_monthly_v1', quantity: 1 },
+          { lookupKey: 'sms_overage_monthly_v1', quantity: undefined },
+        ],
+      });
+    fake.stripe['POST /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: pro });
+
+    const response = await request('PATCH', '/billing/subscription', pro);
+
+    expect(response.status).toBe(200);
+    expect(stripeWrites(fake, '/v1/subscriptions/sub_1Test')[0]).toMatchObject({
+      'items[0][id]': 'si_0',
+      'items[0][price]': priceIdOf('profesional_1500_monthly_v2'),
+      'items[1][id]': 'si_1',
+      'items[1][deleted]': 'true',
+      'items[2][id]': 'si_2',
+      'items[2][deleted]': 'true',
+    });
+    expect(row(fake)).toMatchObject({ price_version: 'v2', employee_step: 1500 });
   });
 
   it('charges an annual upgrade at once and hands back the payment to confirm', async () => {
@@ -791,36 +894,43 @@ describe('PATCH /billing/subscription', () => {
     });
   });
 
-  it("sets an annual Start's packs to none rather than deleting them, which a pending update cannot", async () => {
+  it("sets an annual v1 Start's packs to none rather than deleting them, which a pending update cannot", async () => {
     const fake = createFake();
-    const annual = { ...start, interval: 'year', employeePacks: 2 } as const;
-    fake.tables.subscriptions!.push(paidRow(annual));
-    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
-    fake.stripe['POST /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
+    const annual = { ...start, step: 500, interval: 'year' } as const;
+    fake.tables.subscriptions!.push(paidRow(annual, { price_version: 'v1' }));
+    const v1 = stripeSubscription({
+      choice: annual,
+      lines: [
+        { lookupKey: 'start_annual_v1', quantity: 1 },
+        { lookupKey: 'employees50_annual_v1', quantity: 2 },
+        { lookupKey: 'sms_overage_monthly_v1', quantity: undefined },
+      ],
+    });
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => v1;
+    fake.stripe['POST /v1/subscriptions/sub_1Test'] = () => v1;
 
     await request('PATCH', '/billing/subscription', { ...pro, interval: 'year' });
 
     const sent = stripeWrites(fake, '/v1/subscriptions/sub_1Test')[0]!;
     expect(sent).toMatchObject({
       'items[0][id]': 'si_0',
-      'items[0][price]': priceIdOf('profesional_annual_v1'),
+      'items[0][price]': priceIdOf('profesional_1500_annual_v2'),
       'items[1][id]': 'si_1',
       'items[1][quantity]': '0',
     });
     expect(Object.keys(sent).some((key) => key.endsWith('[deleted]'))).toBe(false);
   });
 
-  it('refuses an annual change that adds now and removes at the renewal, before touching Stripe', async () => {
+  it('refuses a change for the renewal while an annual upgrade waits for its payment, before touching Stripe', async () => {
     const fake = createFake();
-    const annual = { ...pro, interval: 'year', extraMembers: 2 } as const;
+    const annual = { ...pro, step: 2000, interval: 'year' } as const;
     fake.tables.subscriptions!.push(paidRow(annual));
-    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => stripeSubscription({ choice: annual });
-
-    const response = await request('PATCH', '/billing/subscription', {
-      ...annual,
-      employeePacks: 1,
-      extraMembers: 0,
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () => ({
+      ...stripeSubscription({ choice: annual }),
+      pending_update: { expires_at: now() + day },
     });
+
+    const response = await request('PATCH', '/billing/subscription', { ...annual, step: 1500 });
 
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('split_change');
@@ -863,10 +973,7 @@ describe('PATCH /billing/subscription', () => {
       phases: [],
     });
 
-    const response = await request('PATCH', '/billing/subscription', {
-      ...start,
-      employeePacks: 1,
-    });
+    const response = await request('PATCH', '/billing/subscription', { ...start, step: 500 });
 
     expect(response.status).toBe(200);
     expect(stripeWrites(fake, '/v1/subscriptions/sub_1Test')).toEqual([]);
@@ -876,11 +983,9 @@ describe('PATCH /billing/subscription', () => {
     expect(stripeWrites(fake, '/v1/subscription_schedules/sub_sched_1')[0]).toMatchObject({
       end_behavior: 'release',
       'phases[0][end_date]': String(renewal),
-      'phases[0][items][0][price]': priceIdOf('profesional_monthly_v1'),
-      'phases[1][items][0][price]': priceIdOf('start_monthly_v1'),
-      'phases[1][items][1][price]': priceIdOf('employees50_monthly_v1'),
-      'phases[1][items][1][quantity]': '1',
-      'phases[1][items][2][price]': priceIdOf('sms_overage_monthly_v1'),
+      'phases[0][items][0][price]': priceIdOf('profesional_1500_monthly_v2'),
+      'phases[1][items][0][price]': priceIdOf('start_500_monthly_v2'),
+      'phases[1][items][1][price]': priceIdOf('sms_overage_monthly_v2'),
       'phases[1][proration_behavior]': 'none',
       'phases[1][duration][interval]': 'month',
     });
@@ -978,7 +1083,7 @@ describe('cancelling and resuming', () => {
       plan: 'profesional',
       status: 'trialing',
       stripe_subscription_id: null,
-      employee_packs: 0,
+      employee_step: null,
       access_until: trialEnd,
     });
   });
@@ -1097,11 +1202,11 @@ describe('the credits meter', () => {
 
     expect(await creditsOf()).toMatchObject({
       used: 120,
-      included: 350,
-      allowance: 300,
+      included: 800,
+      allowance: 750,
       granted: 50,
       shortfall: 4,
-      left: 226,
+      left: 676,
       giftLeft: 2500,
       giftPending: 0,
       period: 'month',
@@ -1111,29 +1216,31 @@ describe('the credits meter', () => {
     expect(balanceAsked(fake)).toMatchObject({
       p_organization_id: organizationId,
       p_period_start: anchor,
-      p_allowance: 300,
+      p_allowance: 750,
       p_previous_end: anchor,
-      p_previous_allowance: 300,
+      p_previous_allowance: 750,
     });
   });
 
-  it('gives Profesional its 1,500 a month', async () => {
-    meterFake({ used: 1300 }).tables.subscriptions!.push(paidRow(pro));
+  it("gives each step its own credits a month: 3,250 at Profesional's 1,500", async () => {
+    meterFake({ used: 3000 }).tables.subscriptions!.push(paidRow(pro));
+    expect(await creditsOf()).toMatchObject({ included: 3250, left: 250, state: 'near' });
 
-    expect(await creditsOf()).toMatchObject({ included: 1500, left: 200, state: 'near' });
+    meterFake({ used: 0 }).tables.subscriptions!.push(paidRow({ ...pro, step: 5000 }));
+    expect(await creditsOf()).toMatchObject({ included: 10250 });
   });
 
   it('says negative below zero, which the next month makes up', async () => {
-    meterFake({ used: 340 }).tables.subscriptions!.push(paidRow(start));
+    meterFake({ used: 790 }).tables.subscriptions!.push(paidRow(start));
 
     expect(await creditsOf()).toMatchObject({ left: -40, giftLeft: 0, state: 'negative' });
   });
 
   it('says out at zero, and counts the gift as left', async () => {
-    meterFake({ used: 300 }).tables.subscriptions!.push(paidRow(start));
+    meterFake({ used: 750 }).tables.subscriptions!.push(paidRow(start));
     expect(await creditsOf()).toMatchObject({ left: 0, state: 'out' });
 
-    meterFake({ used: 300, gift_left: 40 }).tables.subscriptions!.push(paidRow(start));
+    meterFake({ used: 750, gift_left: 40 }).tables.subscriptions!.push(paidRow(start));
     expect(await creditsOf()).toMatchObject({ left: 0, giftLeft: 40, state: 'near' });
   });
 
@@ -1195,7 +1302,7 @@ describe('the credits meter', () => {
   });
 });
 
-describe('the SMS meter and the safety cap', () => {
+describe('the SMS meter', () => {
   const specialist = { user_id: owner.id, role: 'specialist', access: 'full' } as const;
   const meterFake = (smsUsage: { used: number; overage: number; granted: number }) =>
     createFake({ smsUsage, membership: specialist });
@@ -1213,8 +1320,8 @@ describe('the SMS meter and the safety cap', () => {
       used: 45,
       included: 50,
       allowance: 50,
-      cap: 150,
-      capFactor: 3,
+      cap: null,
+      capFactor: null,
       overage: 0,
       periodStart: anchor,
       state: 'near',
@@ -1228,24 +1335,24 @@ describe('the SMS meter and the safety cap', () => {
     });
   });
 
-  it('adds the codes granted by hand to what is included and to the cap, and shows the overage', async () => {
-    meterFake({ used: 60, overage: 5, granted: 5 }).tables.subscriptions!.push(paidRow(start));
+  it("gives each step one code for every five employees: 300 at Profesional's 1,500", async () => {
+    meterFake({ used: 10, overage: 0, granted: 0 }).tables.subscriptions!.push(paidRow(pro));
 
-    expect(await smsOf()).toMatchObject({
-      used: 60,
-      included: 55,
-      cap: 155,
-      overage: 5,
-      state: 'over',
-    });
+    expect(await smsOf()).toMatchObject({ included: 300, allowance: 300 });
   });
 
-  it('says capped at the cap the owner raised', async () => {
-    meterFake({ used: 300, overage: 250, granted: 0 }).tables.subscriptions!.push(
+  it('stops a paid plan at its allowance, with the codes granted by hand, while extras are off', async () => {
+    meterFake({ used: 55, overage: 0, granted: 5 }).tables.subscriptions!.push(
       paidRow(start, { sms_cap_factor: 6 })
     );
 
-    expect(await smsOf()).toMatchObject({ cap: 300, capFactor: 6, state: 'capped' });
+    expect(await smsOf()).toMatchObject({
+      used: 55,
+      included: 55,
+      cap: null,
+      overage: 0,
+      state: 'stopped',
+    });
   });
 
   it('stops a plan chosen during the trial at its own allowance until the first payment, on a month ending with the trial', async () => {
@@ -1282,44 +1389,9 @@ describe('the SMS meter and the safety cap', () => {
     expect(await smsOf()).toMatchObject({ used: 7, included: null, cap: null, state: 'ok' });
   });
 
-  it('lets the owner raise the cap, and records it', async () => {
-    const fake = createFake();
-    fake.tables.subscriptions!.push(paidRow(start));
-
-    const response = await request('PUT', '/billing/sms-cap', { factor: 6 });
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ factor: 6, cap: 300 });
-    expect(row(fake).sms_cap_factor).toBe(6);
-    expect(fake.tables.subscription_changes).toEqual([
-      expect.objectContaining({
-        source: 'owner',
-        change: 'sms_cap',
-        details: expect.objectContaining({ actor: owner.id, sms_cap_factor: { from: 3, to: 6 } }),
-      }),
-    ]);
-  });
-
-  it.each([2, 21, 4.5])('refuses a factor of %s', async (factor) => {
+  it('no longer takes a safety cap from the owner', async () => {
     createFake().tables.subscriptions!.push(paidRow(start));
 
-    expect((await request('PUT', '/billing/sms-cap', { factor })).status).toBe(400);
-  });
-
-  it('keeps the cap for the owner', async () => {
-    createFake({
-      membership: { user_id: owner.id, role: 'specialist', access: 'full' },
-    }).tables.subscriptions!.push(paidRow(start));
-
-    expect((await request('PUT', '/billing/sms-cap', { factor: 6 })).status).toBe(403);
-  });
-
-  it('answers 409 while no plan is chosen', async () => {
-    createFake().tables.subscriptions!.push(subscriptionRow());
-
-    const response = await request('PUT', '/billing/sms-cap', { factor: 6 });
-
-    expect(response.status).toBe(409);
-    expect(await reasonOf(response)).toBe('no_subscription');
+    expect((await request('PUT', '/billing/sms-cap', { factor: 6 })).status).toBe(404);
   });
 });

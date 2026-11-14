@@ -5,8 +5,7 @@ import {
   billingPlans,
   type BillingPreview,
   type BillingSmsUsage,
-  employeePacks,
-  extraMember,
+  planStep,
   smsOverage,
   type SubscriptionSummary,
   vatPercent,
@@ -47,15 +46,15 @@ export function meFor({
   };
 }
 
-/** The month's import credits as the API reports them, on a paid Profesional unless told otherwise. */
+/** The month's AI credits as the API reports them, on Profesional at 1,500 unless told otherwise. */
 export function creditsUsage(overrides: Partial<BillingCreditsUsage> = {}): BillingCreditsUsage {
   return {
     used: 640,
-    included: 1500,
-    allowance: 1500,
+    included: 3250,
+    allowance: 3250,
     granted: 0,
     shortfall: 0,
-    left: 860,
+    left: 2610,
     giftLeft: 8640,
     giftPending: 0,
     period: 'month',
@@ -73,8 +72,8 @@ export function smsUsage(overrides: Partial<BillingSmsUsage> = {}): BillingSmsUs
     included: 300,
     allowance: 300,
     granted: 0,
-    cap: 900,
-    capFactor: 3,
+    cap: null,
+    capFactor: null,
     overage: 0,
     periodStart: inDays(-17),
     periodEnd: inDays(14),
@@ -83,40 +82,21 @@ export function smsUsage(overrides: Partial<BillingSmsUsage> = {}): BillingSmsUs
   };
 }
 
-const prices = (key: 'start' | 'profesional') => ({
-  month: billingPlans[key].prices.month.unitAmount,
-  year: billingPlans[key].prices.year.unitAmount,
-});
-
 export const catalogue: BillingOverview['catalogue'] = {
   currency: 'eur',
   vatPercent,
   plans: (['start', 'profesional'] as const).map((key) => ({
     key,
     name: billingPlans[key].name,
-    prices: prices(key),
-    includedEmployees: billingPlans[key].includedEmployees,
-    includedMembers: billingPlans[key].includedMembers,
-    maxMembers: billingPlans[key].maxMembers,
-    monthlySms: billingPlans[key].monthlySms,
-    monthlyCredits: billingPlans[key].monthlyCredits,
-    welcomeCredits: billingPlans[key].welcomeCredits,
-    employeePack: billingPlans[key].employeePack,
-    maxEmployeePacks: billingPlans[key].maxEmployeePacks,
+    members: billingPlans[key].members,
+    steps: billingPlans[key].steps.map((step) => ({
+      employees: step.employees,
+      prices: { month: step.prices.month.unitAmount, year: step.prices.year.unitAmount },
+      monthlySms: step.monthlySms,
+      monthlyCredits: step.monthlyCredits,
+      welcomeCredits: step.welcomeCredits,
+    })),
   })),
-  employeePacks: Object.values(employeePacks).map((pack) => ({
-    key: pack.key,
-    name: pack.name,
-    employees: pack.employees,
-    prices: { month: pack.prices.month.unitAmount, year: pack.prices.year.unitAmount },
-  })),
-  extraMember: {
-    name: extraMember.name,
-    prices: {
-      month: extraMember.prices.month.unitAmount,
-      year: extraMember.prices.year.unitAmount,
-    },
-  },
   smsOverageCents: smsOverage.price.unitAmount,
 };
 
@@ -128,8 +108,7 @@ export const trialSubscription = (days = 12): Subscription => ({
   planChosen: false,
   status: 'trialing',
   interval: null,
-  employeePacks: 0,
-  extraMembers: 0,
+  step: null,
   trialEndsAt: inDays(days),
   currentPeriodEnd: null,
   accessUntil: inDays(days),
@@ -143,7 +122,7 @@ export const trialChosenSubscription = (): Subscription => ({
   plan: 'start',
   planChosen: true,
   interval: 'month',
-  employeePacks: 2,
+  step: 500,
   accessUntil: inDays(26),
   currentPeriodEnd: inDays(12),
 });
@@ -153,8 +132,7 @@ export const activeSubscription = (overrides: Partial<Subscription> = {}): Subsc
   planChosen: true,
   status: 'active',
   interval: 'year',
-  employeePacks: 1,
-  extraMembers: 1,
+  step: 1500,
   trialEndsAt: null,
   currentPeriodEnd: inDays(126),
   accessUntil: null,
@@ -165,8 +143,8 @@ export const activeSubscription = (overrides: Partial<Subscription> = {}): Subsc
 });
 
 export const noChoices: Owner['choices'] = {
-  start: { minimums: { employeePacks: 2, extraMembers: 0 }, problems: [] },
-  profesional: { minimums: { employeePacks: 0, extraMembers: 0 }, problems: [] },
+  start: { minimumStep: 500, problems: [] },
+  profesional: { minimumStep: 500, problems: [] },
 };
 
 export const ownerPart = (overrides: Partial<Owner> = {}): Owner => ({
@@ -186,6 +164,7 @@ export function overviewWith({
   owner = null,
   employees = 312,
   members = 1,
+  invitations = 0,
   limits,
   sms,
   credits,
@@ -194,6 +173,7 @@ export function overviewWith({
   owner?: Owner | null;
   employees?: number;
   members?: number;
+  invitations?: number;
   limits?: { employees: number | null; members: number | null; sms: number | null };
   sms?: Partial<BillingSmsUsage>;
   credits?: Partial<BillingCreditsUsage>;
@@ -201,8 +181,9 @@ export function overviewWith({
   return {
     subscription,
     usage: {
-      employees: { used: employees, limit: limits?.employees ?? 1500 },
-      members: { used: members, limit: limits?.members ?? 3 },
+      employees: { used: employees, limit: limits?.employees ?? 5000 },
+      members: { used: members, limit: limits?.members ?? 10 },
+      invitations,
       smsThisMonth: {
         used: 0,
         included: limits?.sms ?? 0,
@@ -241,6 +222,7 @@ export const summaryOf = (subscription: Subscription | null): SubscriptionSummar
   subscription && {
     plan: subscription.plan,
     planChosen: subscription.planChosen,
+    step: subscription.step,
     status: subscription.status,
     trialEndsAt: subscription.trialEndsAt,
     accessUntil: subscription.accessUntil,
@@ -248,15 +230,8 @@ export const summaryOf = (subscription: Subscription | null): SubscriptionSummar
     deletesAt: subscription.deletesAt,
   };
 
-function cents(choice: BillingChoice) {
-  const plan = billingPlans[choice.plan];
-  const pack = employeePacks[plan.employeePack];
-  return (
-    plan.prices[choice.interval].unitAmount +
-    pack.prices[choice.interval].unitAmount * choice.employeePacks +
-    extraMember.prices[choice.interval].unitAmount * choice.extraMembers
-  );
-}
+const cents = (choice: BillingChoice) =>
+  planStep(choice.plan, choice.step)!.prices[choice.interval].unitAmount;
 
 export function previewFor(
   choice: BillingChoice,
@@ -284,7 +259,7 @@ export function previewFor(
   return {
     choice,
     problems,
-    minimums: { employeePacks: 0, extraMembers: 0 },
+    minimumStep: 500,
     unchanged,
     recurring: {
       interval: choice.interval,

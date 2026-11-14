@@ -56,13 +56,13 @@ export function hasLiveSubscription(subscription: BillingSubscription | null) {
 }
 
 export function currentChoice(subscription: BillingSubscription | null): BillingChoice | null {
-  if (!subscription?.planChosen || subscription.plan === 'enterprise' || !subscription.interval) {
+  if (
+    !subscription?.planChosen ||
+    subscription.plan === 'enterprise' ||
+    !subscription.interval ||
+    subscription.step === null
+  ) {
     return null;
   }
-  return {
-    plan: subscription.plan,
-    interval: subscription.interval,
-    employeePacks: subscription.employeePacks,
-    extraMembers: subscription.extraMembers,
-  };
+  return { plan: subscription.plan, step: subscription.step, interval: subscription.interval };
 }

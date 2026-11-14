@@ -1,19 +1,18 @@
-import { type BillingOverview, billingPlans } from '@ssm-usor/contracts';
+import {
+  type BillingOverview,
+  billingPlans,
+  type PaidPlan,
+  planStep,
+  selfServeLimits,
+  stepFor,
+} from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Gift } from 'lucide-react';
 
-import {
-  employeeLimitOf,
-  formatCount,
-  formatEuro,
-  memberLimitOf,
-  packOf,
-  packsLabel,
-  packsNeeded,
-  shortPlanNames,
-} from './billing-format';
+import { employeesLabel, formatCount, shortPlanNames, stepLabel } from './billing-format';
 import { BillingCard, UsageBar } from './billing-ui';
+import { nextStepAction, nextStepOf } from './checkout/checkout-choice';
 import {
   creditsExplained,
   creditsLabel,
@@ -39,8 +38,7 @@ interface Meter {
   ticks?: number[];
   tone?: MeterTone;
   hint: string;
-  action?: { label: string; search: { packs?: number; members?: number } };
-  raiseCap?: boolean;
+  action?: { label: string; search: { step?: number; plan?: PaidPlan } };
 }
 
 function periodLabel(overview: BillingOverview, view: SubscriptionView) {
@@ -74,12 +72,10 @@ export function UsageCard({
   overview,
   view,
   canAct,
-  onRaiseCap,
 }: {
   overview: BillingOverview;
   view: SubscriptionView;
   canAct: boolean;
-  onRaiseCap: () => void;
 }) {
   const subscription = overview.subscription;
   const choice = currentChoice(subscription);
@@ -91,64 +87,55 @@ export function UsageCard({
   // Until a trial ends the API counts against the trial's limits; once a plan is chosen, the
   // tab shows the limits that plan brings at the trial's end.
   const planLimits = choice && view === 'trialChosen';
-  const employeeLimit = planLimits ? employeeLimitOf(choice) : overview.usage.employees.limit;
-  const memberLimit = planLimits ? memberLimitOf(choice) : overview.usage.members.limit;
+  const employeeLimit = planLimits ? choice.step : overview.usage.employees.limit;
+  const memberLimit = planLimits ? billingPlans[choice.plan].members : overview.usage.members.limit;
+  const next = choice ? nextStepOf(choice, employees) : null;
+  const profesionalStep = stepFor('profesional', employees);
 
   let employeeHint: string;
-  let ticks: number[] = [];
   if (!choice || view === 'trial') {
-    const startPacks = packsNeeded('start', employees);
+    const startStep = stepFor('start', employees);
     employeeHint =
       employeeLimit === null
         ? 'Fără limită.'
-        : employees <= billingPlans.start.includedEmployees
-          ? 'Start include 250 de lucrători, Profesional 1.500.'
-          : startPacks <= (billingPlans.start.maxEmployeePacks ?? 0)
-            ? `Start include 250; pentru ${formatCount(employees)} îți trebuie ${packsLabel('start', startPacks)}.`
-            : 'Start acoperă cel mult 600 de lucrători; Profesional include 1.500.';
+        : startStep
+          ? `Pentru ${employeesLabel(employees)}, treapta potrivită e de ${formatCount(startStep.employees)} pe Start sau de ${formatCount(stepFor('profesional', employees)!.employees)} pe Profesional.`
+          : profesionalStep
+            ? `Start acoperă cel mult 750 de lucrători; pe Profesional, treapta potrivită e de ${formatCount(profesionalStep.employees)}.`
+            : `Peste ${employeesLabel(selfServeLimits.employees)}, scrie-ne pentru o ofertă.`;
   } else {
-    const included = billingPlans[choice.plan].includedEmployees;
-    const size = packOf(choice.plan).employees;
-    const limit = employeeLimitOf(choice);
-    const composition =
-      choice.employeePacks > 0
-        ? `${formatCount(included)} în plan și ${packsLabel(choice.plan, choice.employeePacks)}`
-        : `${formatCount(included)} în plan`;
+    const step = `Treapta ${stepLabel(choice.step)}`;
     employeeHint =
       view === 'readOnly'
-        ? `Cât acoperea ${shortPlanNames[choice.plan]}: ${composition}.`
-        : employees > limit
-          ? `Cu ${formatCount(employees - limit)} peste limită. ${composition}.`
-          : `${composition}.`;
-    for (let boundary = included; boundary < limit; boundary += size) {
-      ticks.push(boundary / limit);
-    }
+        ? `Cât acoperea ${shortPlanNames[choice.plan]}: ${stepLabel(choice.step)}.`
+        : employees > choice.step
+          ? `Cu ${formatCount(employees - choice.step)} peste treaptă. Lucrezi mai departe cu tot ce ai.`
+          : `${step}.`;
   }
-  if (ticks.length > 8) ticks = [];
 
+  const invitations = overview.usage.invitations;
+  const taken = members + invitations;
+  const invited =
+    invitations === 0 || view === 'readOnly'
+      ? ''
+      : invitations === 1
+        ? 'O invitație în așteptare ține un loc. '
+        : `${invitations} invitații în așteptare țin câte un loc. `;
   let memberHint: string;
   if (view === 'readOnly') {
     memberHint = 'Colegii văd tot, dar nu pot schimba nimic.';
   } else if (!choice || view === 'trial') {
-    memberHint = 'Start include un utilizator, Profesional trei.';
+    memberHint = `Start are ${billingPlans.start.members} utilizatori, Profesional ${billingPlans.profesional.members}.`;
   } else {
-    const included = billingPlans[choice.plan].includedMembers;
-    const base =
-      choice.extraMembers > 0
-        ? `${included} în plan și ${choice.extraMembers} în plus.`
-        : `${included} în plan.`;
-    const full = memberLimit !== null && members >= memberLimit;
-    const canAdd =
-      billingPlans[choice.plan].maxMembers === null ||
-      memberLimitOf(choice) < (billingPlans[choice.plan].maxMembers ?? 0);
-    memberHint = !owner
-      ? full
-        ? `${base} Pentru un coleg nou, adminul adaugă un utilizator.`
-        : base
-      : canAdd
-        ? `${base} ${choice.plan === 'start' ? 'Al doilea utilizator' : 'Fiecare utilizator nou'} costă ${formatEuro(overview.catalogue.extraMember.prices[choice.interval])} ${choice.interval === 'year' ? 'pe an' : 'pe lună'}.`
-        : `${base} Start are cel mult 2 utilizatori.`;
+    const plan = billingPlans[choice.plan];
+    const full = memberLimit !== null && taken >= memberLimit;
+    memberHint = full
+      ? choice.plan === 'start'
+        ? `${shortPlanNames.start} are ${plan.members} utilizatori. Pentru un coleg nou, ${owner ? 'treci' : 'adminul trece'} pe Profesional, care are ${billingPlans.profesional.members}.`
+        : `${shortPlanNames.profesional} are ${plan.members} utilizatori. Pentru mai mulți, scrie-ne pentru o ofertă.`
+      : `${shortPlanNames[choice.plan]} are ${plan.members} utilizatori.`;
   }
+  memberHint = invited + memberHint;
 
   const sms = overview.usage.smsThisMonth;
   const smsMeter: SmsMeter =
@@ -159,9 +146,8 @@ export function UsageCard({
           value: null,
           tone: 'normal',
           hint: 'Cât contul e doar pentru citire, nu se mai trimit SMS-uri.',
-          raiseCap: false,
         }
-      : smsMeterFor(sms, { owner, stop: stopOf(sms, Boolean(subscription?.planChosen)) });
+      : smsMeterFor(sms, { owner, stop: stopOf(subscription) });
 
   const credits = overview.usage.creditsThisMonth;
   const creditsMeter: CreditsMeter =
@@ -179,7 +165,9 @@ export function UsageCard({
           credits,
           creditsReaderOf(credits, {
             planChosen: Boolean(subscription?.planChosen),
-            nextMonthly: choice ? billingPlans[choice.plan].monthlyCredits : null,
+            nextMonthly: choice
+              ? (planStep(choice.plan, choice.step)?.monthlyCredits ?? null)
+              : null,
           })
         );
   const paidPlan =
@@ -191,7 +179,10 @@ export function UsageCard({
       ? null
       : giftPanelFor(credits, {
           paid: paidPlan !== null,
-          welcomeCredits: paidPlan ? billingPlans[paidPlan].welcomeCredits : null,
+          welcomeCredits:
+            paidPlan && choice
+              ? (planStep(choice.plan, choice.step)?.welcomeCredits ?? null)
+              : null,
         });
 
   const meters: Meter[] = [
@@ -200,14 +191,10 @@ export function UsageCard({
       label: 'Lucrători la clienți',
       used: employees,
       limit: employeeLimit,
-      ticks,
       hint: employeeHint,
       action:
-        canAct && live && choice && employeeLimit !== null && employees > employeeLimit
-          ? {
-              label: 'Adaugă un pachet',
-              search: { packs: packsNeeded(choice.plan, employees) },
-            }
+        canAct && live && choice && employeeLimit !== null && employees > employeeLimit && next
+          ? nextStepAction(choice, next)
           : undefined,
     },
     {
@@ -217,14 +204,8 @@ export function UsageCard({
       limit: memberLimit,
       hint: memberHint,
       action:
-        canAct &&
-        live &&
-        choice &&
-        memberLimit !== null &&
-        members >= memberLimit &&
-        (billingPlans[choice.plan].maxMembers === null ||
-          memberLimitOf(choice) < (billingPlans[choice.plan].maxMembers ?? 0))
-          ? { label: 'Adaugă un utilizator', search: { members: choice.extraMembers + 1 } }
+        canAct && live && choice?.plan === 'start' && memberLimit !== null && taken >= memberLimit
+          ? { label: 'Treci pe Profesional', search: { plan: 'profesional' as const } }
           : undefined,
     },
     {
@@ -235,7 +216,6 @@ export function UsageCard({
       value: smsMeter.value ?? undefined,
       tone: smsMeter.tone,
       hint: smsMeter.hint,
-      raiseCap: canAct && smsMeter.raiseCap,
     },
     {
       key: 'credits',
@@ -312,16 +292,6 @@ export function UsageCard({
                   meter.hint
                 )}
               </p>
-              {meter.raiseCap && (
-                <button
-                  type="button"
-                  onClick={onRaiseCap}
-                  data-testid={`meter-${meter.key}-raise`}
-                  className="inline-flex min-h-8 w-fit cursor-pointer items-center text-sm font-semibold underline-offset-2 hover:underline"
-                >
-                  Ridică limita
-                </button>
-              )}
               {meter.action && (
                 <Link
                   to="/organizatie/abonament/alege"

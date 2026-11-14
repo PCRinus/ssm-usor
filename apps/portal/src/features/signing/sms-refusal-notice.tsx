@@ -29,9 +29,6 @@ export function SmsRefusalNotice({
     sms_allowance_reached: resumes
       ? t`Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta. Pornesc din nou pe ${resumes}.`
       : t`Codul vine prin SMS, iar SMS-urile pentru coduri s-au terminat luna aceasta.`,
-    sms_cap_reached: resumes
-      ? t`Codul vine prin SMS, iar SMS-urile sunt oprite până pe ${resumes}.`
-      : t`Codul vine prin SMS, iar SMS-urile sunt oprite deocamdată.`,
   };
 
   return (
@@ -67,10 +64,6 @@ export function SmsRefusalNotice({
             </Trans>
           ) : (
             <Trans>Dacă îi dai o adresă de email, codul vine pe email și semnezi chiar azi.</Trans>
-          )}
-          {refusal.reason === 'sms_cap_reached' && ' '}
-          {refusal.reason === 'sms_cap_reached' && (
-            <Trans>Poate și ridica limita de SMS-uri, ca să-l primești prin SMS.</Trans>
           )}
         </p>
         {!again && (
