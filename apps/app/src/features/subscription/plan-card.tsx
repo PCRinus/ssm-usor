@@ -304,18 +304,40 @@ export function PlanCard({
         ? `Nu se mai reînnoiește, iar ultima plată nu a reușit. Ai acces complet până pe ${roDate(end)}.`
         : `Nu se mai reînnoiește. Ai acces complet până pe ${roDate(end)}.`;
       if (owner) {
-        amount = {
-          label: 'Următoarea plată',
-          value: 'Niciuna',
-          note: overdue
-            ? `acces complet până pe ${roDate(end)}`
-            : `ai plătit până pe ${roDate(end)}`,
-        };
-        rows =
-          amounts?.lines.map((line) => ({
-            label: line.label,
-            value: formatEuro(line.amountCents),
-          })) ?? [];
+        // Extras stop while a payment is overdue, so nothing more is promised then.
+        const extras = overdue ? [] : extrasLines(overview.extras);
+        const extrasCents = extras.reduce((sum, line) => sum + line.amountCents, 0);
+        const billedAt = monthEnd && new Date(monthEnd) < new Date(end) ? monthEnd : end;
+        amount =
+          extrasCents > 0
+            ? {
+                label: 'Următoarea plată',
+                value: formatEuro(extrasCents + vatOf(extrasCents)),
+                note: `pe ${roDate(billedAt)}, cu TVA, doar extra`,
+              }
+            : {
+                label: 'Următoarea plată',
+                value: 'Niciuna',
+                note: overdue
+                  ? `acces complet până pe ${roDate(end)}`
+                  : `ai plătit până pe ${roDate(end)}`,
+              };
+        rows = overdue
+          ? (amounts?.lines.map((line) => ({
+              label: line.label,
+              value: formatEuro(line.amountCents),
+            })) ?? [])
+          : choice
+            ? [{ label: choiceSummary(choice), value: 'Nu se mai plătește' }]
+            : [];
+        if (extrasCents > 0) extraRows = extrasRows(extras, billedAt);
+        const extrasOn = overview.extras.sms.enabled || overview.extras.credits.enabled;
+        if (!overdue && extrasOn) {
+          note =
+            choice?.interval === 'year'
+              ? `Extra rămâne pornit până pe ${roDate(end)} și se facturează lunar. Ce folosești în ultima lună vine pe o factură din ${roDate(end)}.`
+              : `Extra rămâne pornit până pe ${roDate(end)}. Ce folosești până atunci vine pe o factură din ${roDate(end)}.`;
+        }
       }
       buttons.push(
         <Button
