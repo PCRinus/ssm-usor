@@ -271,7 +271,7 @@ describe('onboarding', () => {
       {
         fullName: 'Ana Popescu',
         organizationName: 'Protect SSM SRL',
-        termsVersion: '2026-11-01',
+        termsVersion: '2026-11-14',
         acceptsSpecialClauses: true,
       },
     ]);
@@ -304,7 +304,7 @@ describe('onboarding', () => {
       {
         fullName: 'Ana Popescu',
         organizationName: 'OMV PETROM SA',
-        termsVersion: '2026-11-01',
+        termsVersion: '2026-11-14',
         acceptsSpecialClauses: true,
       },
     ]);

@@ -10,7 +10,7 @@ const M = legalEntity.filled ? 'span' : 'mark';
 <LegalPage
   title="Termeni și condiții"
   description="Condițiile de utilizare a platformei SSM Ușor pentru servicii externe de prevenire și protecție."
-  updated="7 noiembrie 2026"
+  updated="14 noiembrie 2026"
 >
   {!legalEntity.filled && (
     <p class="note">
@@ -113,69 +113,84 @@ const M = legalEntity.filled ? 'span' : 'mark';
 
   <h2>8. Abonament, perioadă de probă și plată</h2>
   <p>
-    Planurile, pachetele și prețurile sunt cele publicate pe{' '}
+    Planurile, treptele și prețurile sunt cele publicate pe{' '}
     <a href="/preturi/">pagina de prețuri</a>, în euro, fără TVA; TVA se adaugă la plată.
   </p>
   <ul>
     <li>
-      <strong>Perioada de probă.</strong> O organizație nouă are 30 de zile în care folosește tot ce
+      <strong>Planurile și treptele.</strong> Prețul unui plan depinde de treapta aleasă, adică de
+      numărul de lucrători activi ai tuturor clienților tăi activi, în total, pe care îl acoperă.
+      Fiecare plan include un număr fix de utilizatori; nu se cumpără pachete de lucrători sau
+      utilizatori în plus. Peste ultima treaptă a planului Profesional sau peste numărul lui de
+      utilizatori, îți facem o ofertă pentru planul Enterprise.
+    </li>
+    <li>
+      <strong>Perioada de probă.</strong> O organizație nouă are 14 zile în care folosește tot ce
       include planul Profesional, fără card, cu două excepții: în perioada de probă nu trimitem SMS,
-      iar codurile de autentificare și de semnare se trimit pe email; pentru import, perioada de
-      probă are 300 de credite în total, care nu se reînnoiesc lunar. Dacă alegi un plan în perioada
-      de probă, SMS-urile pornesc odată cu alegerea lui, dar până la prima plată codurile de semnare
-      se trimit prin SMS doar până la numărul inclus pe lună în planul ales. Peste acest număr, până
-      la luna următoare, codurile de semnare se trimit pe email, iar cine nu are o adresă de email
-      nu poate semna în acest timp. Tot până la prima plată, creditele pentru import rămân cele 300
-      ale perioadei de probă. Dacă la sfârșitul perioadei nu alege un plan, contul trece în modul
-      doar citire, conform punctului 10.
+      iar codurile de autentificare și de semnare se trimit pe email; perioada de probă are 300 de
+      credite AI în total, care nu se reînnoiesc lunar. Dacă alegi un plan în perioada de probă,
+      SMS-urile pornesc odată cu alegerea lui, dar până la prima plată codurile de semnare se trimit
+      prin SMS doar până la numărul inclus pe lună în treapta aleasă. Peste acest număr, până la
+      luna următoare, codurile de semnare se trimit pe email, iar cine nu are o adresă de email nu
+      poate semna în acest timp. Tot până la prima plată, creditele AI rămân cele 300 ale perioadei
+      de probă. Dacă la sfârșitul perioadei nu alege un plan, contul trece în modul doar citire,
+      conform punctului 10.
     </li>
     <li>
       <strong>Plata și reînnoirea automată.</strong> Abonamentul se plătește în avans, lunar sau
-      anual, cu cardul, prin procesatorul nostru de plăți, Stripe. Se reînnoiește automat la
-      sfârșitul fiecărei perioade, la prețul în vigoare, până când îl anulezi. Factura se emite după
-      fiecare plată și se trimite prin email și în sistemul RO e-Factura.
+      anual, cu cardul, prin procesatorul nostru de plăți, Stripe. Abonamentul anual acoperă
+      douăsprezece luni și costă cel mult cât zece luni ale abonamentului lunar pentru aceeași
+      treaptă. Se reînnoiește automat la sfârșitul fiecărei perioade, la prețul în vigoare, până
+      când îl anulezi. Factura se emite după fiecare plată și se trimite prin email și în sistemul
+      RO e-Factura.
     </li>
     <li>
-      <strong>Schimbări în timpul unei perioade.</strong> Un pachet sau un coleg adăugat ori
-      trecerea la un plan superior se facturează proporțional cu zilele rămase, pe factura
-      următoare; la abonamentul anual, imediat. Renunțarea la un pachet sau trecerea la un plan
-      inferior se aplică de la următoarea reînnoire, fără ca suma pentru perioada rămasă să fie
-      returnată sau scăzută din facturile următoare. După prima plată, trecerea de la Start la
-      Profesional îți adaugă pe loc diferența dintre creditele pentru import pe lună ale celor două
-      planuri și, dacă ai primit deja creditele de bun venit ale planului Start, diferența până la
-      cele ale planului Profesional.
+      <strong>Schimbări în timpul unei perioade.</strong> Trecerea pe o treaptă superioară sau la un
+      plan superior se facturează proporțional cu zilele rămase, pe factura următoare; la
+      abonamentul anual, imediat. Trecerea pe o treaptă inferioară sau la un plan inferior se aplică
+      de la următoarea reînnoire, fără ca suma pentru perioada rămasă să fie returnată sau scăzută
+      din facturile următoare. După prima plată, trecerea pe o treaptă superioară sau la un plan
+      superior îți adaugă pe loc diferența dintre creditele AI pe lună ale celor două trepte și,
+      dacă ai primit deja creditele de bun venit, diferența până la cele ale noii trepte.
     </li>
     <li>
-      <strong>Limitele planului.</strong> Când numărul de lucrători activi ai clienților tăi activi
-      depășește limita planului, te anunțăm. Dacă după o lună nu ai adăugat un pachet și nu ai
-      revenit sub limită, nu mai poți adăuga lucrători, nici clienți cu lucrători, până când adaugi
-      un pachet sau revii sub limită, de exemplu arhivând clienții cu care nu mai lucrezi. Tot ce
-      există în cont continuă să funcționeze.
+      <strong>Limitele treptei.</strong> Când numărul de lucrători activi ai clienților tăi activi
+      depășește treapta abonamentului, te anunțăm. Dacă după o lună nu ai trecut pe o treaptă
+      superioară și nu ai revenit sub limită, nu mai poți adăuga lucrători, nici clienți cu
+      lucrători, până când treci pe o treaptă superioară sau revii sub limită, de exemplu arhivând
+      clienții cu care nu mai lucrezi. Tot ce există în cont continuă să funcționeze.
     </li>
     <li>
       <strong>Codurile de semnare prin SMS.</strong> Din SMS-urile trimise de Platformă, doar
-      codurile de semnare se numără în cele incluse în plan; invitațiile, codurile de autentificare
-      și anunțurile despre instruirile de semnat nu se numără și nu se facturează. Lunile se
-      socotesc de la data abonamentului, nu după calendar, și la abonamentul anual. Codurile de
-      semnare trimise prin SMS peste numărul inclus în plan se facturează la prețul publicat pe
-      pagina de prețuri, pe factura următoare. Ca factura să nu crească fără margini, există o
-      limită de siguranță de trei ori numărul inclus în plan pe lună, pe care o poți ridica din
-      Platformă. Peste această limită, până la luna următoare, codurile de semnare nu se mai trimit
-      prin SMS: cine are o adresă de email le primește pe email, iar cine nu are nu poate semna în
-      acest timp.
+      codurile de semnare se numără în cele incluse în treaptă; invitațiile, codurile de
+      autentificare și anunțurile despre instruirile de semnat nu se numără și nu se facturează.
+      Fiecare treaptă include un număr de coduri de semnare prin SMS pe lună, publicat pe pagina de
+      prețuri. Lunile se socotesc de la data abonamentului, nu după calendar, și la abonamentul
+      anual. Peste numărul inclus, codurile de semnare se trimit prin SMS doar în condițiile
+      punctului „Consumul peste cel inclus”.
     </li>
     <li>
-      <strong>Creditele pentru import.</strong> Importul clienților din documente și al lucrătorilor
-      din fișe folosește credite: documentele unui client folosesc 25 de credite, plus unul pentru
+      <strong>Creditele AI.</strong> Importul clienților din documente și al lucrătorilor din fișe
+      folosește credite AI: documentele unui client folosesc 25 de credite AI, plus unul pentru
       fiecare pagină scanată, iar fiecare fotografie sau pagină a unei fișe folosește unul. Fiecare
-      plan include un număr de credite pe lună, publicat pe pagina de prețuri; creditele nefolosite
-      într-o lună nu trec în luna următoare. La prima plată primești, o singură dată, creditele de
-      bun venit ale planului, care nu expiră și se folosesc după creditele lunii. Un import nou
-      pornește doar dacă creditele rămase acoperă ce știm dinainte că va folosi. Dacă documentele
-      unui client au mai multe pagini scanate decât creditele rămase, importul merge până la capăt,
-      iar diferența, de cel mult 150 de credite, se scade din creditele lunii următoare. Dacă un
-      import nu reușește, îți dăm înapoi creditele lui; creditele nu se întorc pentru un import
-      citit și lăsat apoi neterminat. La cerere, îți putem adăuga credite.
+      treaptă include un număr de credite AI pe lună, publicat pe pagina de prețuri; creditele
+      nefolosite într-o lună nu trec în luna următoare. La prima plată primești, o singură dată,
+      creditele de bun venit ale treptei, care nu expiră și se folosesc după creditele lunii. Un
+      import nou pornește doar dacă creditele rămase acoperă ce știm dinainte că va folosi. Dacă
+      documentele unui client au mai multe pagini scanate decât creditele rămase, importul merge
+      până la capăt, iar diferența, de cel mult 150 de credite AI, se scade din creditele lunii
+      următoare. Dacă un import nu reușește, îți dăm înapoi creditele lui; creditele nu se întorc
+      pentru un import citit și lăsat apoi neterminat. La cerere, îți putem adăuga credite AI.
+    </li>
+    <li>
+      <strong>Consumul peste cel inclus.</strong> Codurile de semnare prin SMS și creditele AI
+      folosite peste cele incluse în treaptă se plătesc doar dacă permiți acest lucru. Din start,
+      plata lor este oprită. Proprietarul contului o poate porni din Platformă, atunci când funcția
+      este disponibilă, alegând o limită pe lună; din acel moment, ce se folosește peste cele
+      incluse se facturează la prețurile publicate pe pagina de prețuri, pe factura următoare, fără
+      a depăși limita aleasă. Cât timp plata este oprită sau limita a fost atinsă, până la luna
+      următoare codurile de semnare se trimit pe email, iar cine nu are o adresă de email nu poate
+      semna în acest timp, și nu pornesc importuri noi pentru care creditele rămase nu ajung.
     </li>
     <li>
       <strong>Plata eșuată.</strong> Dacă o reînnoire nu poate fi încasată, reîncercăm timp de cel
