@@ -11609,6 +11609,21 @@
                   "type": "string",
                   "nullable": true
                 },
+                "earlierInstructions": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "domain": {
+                      "type": "string",
+                      "enum": ["ssm", "su"]
+                    },
+                    "validUntil": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  },
+                  "required": ["domain", "validUntil"]
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -11655,6 +11670,7 @@
                 "importKind",
                 "importRead",
                 "importReason",
+                "earlierInstructions",
                 "createdAt",
                 "updatedAt",
                 "link"
@@ -11764,6 +11780,21 @@
                 "type": "string",
                 "nullable": true
               },
+              "earlierInstructions": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "enum": ["ssm", "su"]
+                  },
+                  "validUntil": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "required": ["domain", "validUntil"]
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -11790,6 +11821,7 @@
               "importKind",
               "importRead",
               "importReason",
+              "earlierInstructions",
               "createdAt",
               "updatedAt"
             ]
@@ -11809,6 +11841,10 @@
             "type": "string",
             "nullable": true,
             "maxLength": 2000
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date"
           }
         }
       },
@@ -11820,6 +11856,411 @@
           }
         },
         "required": ["ownersOnly"]
+      },
+      "EarlierInstructionsResponse": {
+        "type": "object",
+        "properties": {
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "domain": {
+                  "type": "string",
+                  "enum": ["ssm", "su"]
+                },
+                "paperTrainingCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "state": {
+                  "type": "string",
+                  "enum": ["imported", "added", "unavailable", "missing"]
+                },
+                "imported": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "confirmedOn": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "ownersOnly": {
+                            "type": "boolean"
+                          },
+                          "employee": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "lastName": {
+                                "type": "string"
+                              },
+                              "firstName": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["id", "lastName", "firstName"]
+                          },
+                          "originalFileName": {
+                            "type": "string"
+                          },
+                          "mimeType": {
+                            "type": "string",
+                            "enum": [
+                              "application/pdf",
+                              "image/jpeg",
+                              "image/png",
+                              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                              "application/msword",
+                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                              "application/vnd.ms-excel"
+                            ]
+                          },
+                          "sizeBytes": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "sha256": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "uploadedBy": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "fullName": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": ["id", "fullName"]
+                          },
+                          "canChange": {
+                            "type": "boolean"
+                          },
+                          "importId": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "uuid"
+                          },
+                          "importPath": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "importKind": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": ["client", "employees", null]
+                          },
+                          "importRead": {
+                            "type": "boolean",
+                            "nullable": true
+                          },
+                          "importReason": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "earlierInstructions": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "domain": {
+                                "type": "string",
+                                "enum": ["ssm", "su"]
+                              },
+                              "validUntil": {
+                                "type": "string",
+                                "format": "date"
+                              }
+                            },
+                            "required": ["domain", "validUntil"]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "link": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "fileName": {
+                                "type": "string"
+                              },
+                              "disposition": {
+                                "type": "string",
+                                "enum": ["inline", "attachment"]
+                              },
+                              "expiresInSeconds": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": ["url", "fileName", "disposition", "expiresInSeconds"]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "note",
+                          "ownersOnly",
+                          "employee",
+                          "originalFileName",
+                          "mimeType",
+                          "sizeBytes",
+                          "sha256",
+                          "uploadedBy",
+                          "canChange",
+                          "importId",
+                          "importPath",
+                          "importKind",
+                          "importRead",
+                          "importReason",
+                          "earlierInstructions",
+                          "createdAt",
+                          "updatedAt",
+                          "link"
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["confirmedOn", "files"]
+                },
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "note": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "ownersOnly": {
+                        "type": "boolean"
+                      },
+                      "employee": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "lastName": {
+                            "type": "string"
+                          },
+                          "firstName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "lastName", "firstName"]
+                      },
+                      "originalFileName": {
+                        "type": "string"
+                      },
+                      "mimeType": {
+                        "type": "string",
+                        "enum": [
+                          "application/pdf",
+                          "image/jpeg",
+                          "image/png",
+                          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                          "application/msword",
+                          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                          "application/vnd.ms-excel"
+                        ]
+                      },
+                      "sizeBytes": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "uploadedBy": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "fullName": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": ["id", "fullName"]
+                      },
+                      "canChange": {
+                        "type": "boolean"
+                      },
+                      "importId": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uuid"
+                      },
+                      "importPath": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "importKind": {
+                        "type": "string",
+                        "nullable": true,
+                        "enum": ["client", "employees", null]
+                      },
+                      "importRead": {
+                        "type": "boolean",
+                        "nullable": true
+                      },
+                      "importReason": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "earlierInstructions": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "domain": {
+                            "type": "string",
+                            "enum": ["ssm", "su"]
+                          },
+                          "validUntil": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": ["domain", "validUntil"]
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "link": {
+                        "type": "object",
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "fileName": {
+                            "type": "string"
+                          },
+                          "disposition": {
+                            "type": "string",
+                            "enum": ["inline", "attachment"]
+                          },
+                          "expiresInSeconds": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["url", "fileName", "disposition", "expiresInSeconds"]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "note",
+                      "ownersOnly",
+                      "employee",
+                      "originalFileName",
+                      "mimeType",
+                      "sizeBytes",
+                      "sha256",
+                      "uploadedBy",
+                      "canChange",
+                      "importId",
+                      "importPath",
+                      "importKind",
+                      "importRead",
+                      "importReason",
+                      "earlierInstructions",
+                      "createdAt",
+                      "updatedAt",
+                      "link"
+                    ]
+                  }
+                },
+                "unavailable": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "answeredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "answeredBy": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "fullName": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": ["id", "fullName"]
+                    }
+                  },
+                  "required": ["answeredAt", "answeredBy"]
+                }
+              },
+              "required": [
+                "domain",
+                "paperTrainingCount",
+                "state",
+                "imported",
+                "files",
+                "unavailable"
+              ]
+            }
+          }
+        },
+        "required": ["domains"]
       },
       "ImportSummaryResponse": {
         "type": "object",
@@ -44042,7 +44483,7 @@
       "post": {
         "operationId": "uploadClientFile",
         "summary": "Upload one file about a client",
-        "description": "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
+        "description": "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. `earlierInstructionsDomain` and `validUntil` go together and make the file a copy of the client's earlier own instructions (ADR 042), never an employee's file; uploading one takes back an answer that the client has none in that domain. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
         "security": [
           {
             "bearerAuth": []
@@ -44104,6 +44545,24 @@
             },
             "required": false,
             "name": "employeeId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "su"]
+            },
+            "required": false,
+            "name": "earlierInstructionsDomain",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "validUntil",
             "in": "query"
           }
         ],
@@ -44206,7 +44665,7 @@
       "patch": {
         "operationId": "updateClientFile",
         "summary": "Rename or annotate a file",
-        "description": "By the member who uploaded it or by an owner; anyone else's attempt is `403`.",
+        "description": "By the member who uploaded it or by an owner; anyone else's attempt is `403`. `validUntil` changes the day a copy of earlier own instructions applied until; on any other file it answers `400` (reason `client_file_not_earlier_instructions`).",
         "security": [
           {
             "bearerAuth": []
@@ -44524,6 +44983,323 @@
           },
           "409": {
             "description": "The client is archived, or is a lead whose files stay for owners only; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/earlier-instructions": {
+      "get": {
+        "operationId": "getEarlierInstructions",
+        "summary": "What the app holds of the own instructions the paper trainings cite",
+        "description": "Per domain, IPSSM then IPSU (ADR 042): how many of the client's trainings were transcribed from paper, the own instructions a confirmed client import kept among the client's files (`imported`), the copies members added (`files`, each with its `validUntil`), and a member's answer that the client has none (`unavailable`). `state` is the first that holds of `imported`, `added`, `unavailable`, else `missing`. Files for owners only are left out for a specialist.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The state of each domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarlierInstructionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{clientId}/earlier-instructions/{domain}/unavailable": {
+      "put": {
+        "operationId": "markEarlierInstructionsUnavailable",
+        "summary": "Answer that the client has no copy of its earlier own instructions in a domain",
+        "description": "The answer is about this domain alone, and stays until it is taken back or a copy is uploaded. Answering again changes nothing.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "su"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Answered"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`), or is a lead; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "clearEarlierInstructionsUnavailable",
+        "summary": "Take back the answer that the client has none",
+        "description": "By any member. The domain is asked for again until it has a copy or an answer.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "clientId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["ssm", "su"]
+            },
+            "required": true,
+            "name": "domain",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Taken back, or there was no answer"
+          },
+          "400": {
+            "description": "Invalid path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The client does not exist in the organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The client is archived (reason `client_archived`), or is a lead; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

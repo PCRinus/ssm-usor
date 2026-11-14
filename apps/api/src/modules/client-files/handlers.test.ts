@@ -49,6 +49,8 @@ const ownFile = {
   uploaded_by: user.id as string | null,
   import_id: null as string | null,
   import_path: null as string | null,
+  earlier_instructions_domain: null as string | null,
+  valid_until: null as string | null,
   created_at: '2026-09-30T10:00:00+00:00',
   updated_at: '2026-09-30T10:00:00+00:00',
   employees: null as { id: string; last_name: string; first_name: string } | null,
@@ -119,6 +121,9 @@ function mockUpstream(
       if (id === `eq.${ownFileId}`) return Response.json([ownFile]);
       if (id === `eq.${colleagueFileId}`) return Response.json([colleagueFile]);
       return Response.json([ownFile, colleagueFile]);
+    }
+    if (url.pathname === '/rest/v1/earlier_instructions_unavailable') {
+      return new Response(null, { status: 204 });
     }
     if (url.pathname === '/storage/v1/object/sign/client-files') {
       const { paths } = JSON.parse(String(init?.body)) as { paths: string[] };
@@ -327,7 +332,7 @@ describe('GET /clients/{clientId}/files', () => {
     ]);
     const listed = new URL(String(calls('/rest/v1/client_files', 'GET')[0]![0]));
     expect(listed.searchParams.get('select')).toContain(
-      'import_files!import_files_client_file_id_fkey(state,reason),imports!client_files_import_in_organization(kind)'
+      'import_files!import_files_client_file_id_fkey(state,reason,document_kind,document_domain),imports!client_files_import_in_organization(kind,confirmed_at)'
     );
   });
 
@@ -405,6 +410,49 @@ describe('POST /clients/{clientId}/files', () => {
     expect(checked.searchParams.get('id')).toBe(`eq.${employeeId}`);
     expect(checked.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(checked.searchParams.get('archived_at')).toBe('is.null');
+  });
+
+  it("keeps a copy of the client's earlier own instructions with the day they applied until, and takes back an answer that there are none", async () => {
+    mockUpstream();
+    const response = await upload(
+      {
+        fileName: 'Instructiuni proprii SSM 2021.pdf',
+        earlierInstructionsDomain: 'ssm',
+        validUntil: '2026-11-12',
+      },
+      pdf
+    );
+    expect(response.status).toBe(201);
+    const { file } = clientFileResponseSchema.parse(await response.json());
+    expect(file.earlierInstructions).toEqual({ domain: 'ssm', validUntil: '2026-11-12' });
+    expect(sent('/rest/v1/client_files', 'POST')).toMatchObject({
+      earlier_instructions_domain: 'ssm',
+      valid_until: '2026-11-12',
+      employee_id: null,
+    });
+    const [takenBack] = calls('/rest/v1/earlier_instructions_unavailable', 'DELETE');
+    const query = new URL(String(takenBack![0])).searchParams;
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
+    expect(query.get('domain')).toBe('eq.ssm');
+  });
+
+  it.each([
+    [{ earlierInstructionsDomain: 'su' }, 'validUntil'],
+    [{ validUntil: '2026-11-12' }, 'earlierInstructionsDomain'],
+    [{ earlierInstructionsDomain: 'su', validUntil: '2026-11-12', employeeId }, 'employeeId'],
+  ])('keeps earlier own instructions only whole and for the client (%o)', async (extra, path) => {
+    mockUpstream();
+    const response = await upload({ fileName: 'IPSU.pdf', ...extra }, pdf);
+    expect(response.status).toBe(400);
+    const body = apiErrorResponseSchema.parse(await response.json());
+    expect(body.issues?.map((issue) => issue.path)).toEqual([path]);
+    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
+  });
+
+  it('touches no answer for an ordinary file', async () => {
+    mockUpstream();
+    await upload({ fileName: 'oferta.pdf' }, pdf);
+    expect(calls('/rest/v1/earlier_instructions_unavailable', 'DELETE')).toHaveLength(0);
   });
 
   it('refuses an employee the client does not have', async () => {
@@ -514,6 +562,32 @@ describe('PATCH /clients/{clientId}/files/{fileId}', () => {
     });
     expect(response.status).toBe(200);
     expect(sent('/rest/v1/client_files', 'PATCH')).toEqual({ name: 'Certificat ONRC', note: null });
+  });
+
+  it('changes the day a copy of earlier own instructions applied until', async () => {
+    mockUpstream({
+      files: (init) =>
+        (init?.method ?? 'GET') === 'GET'
+          ? Response.json([
+              { ...ownFile, earlier_instructions_domain: 'su', valid_until: '2026-11-12' },
+            ])
+          : undefined,
+    });
+    const response = await request(`/clients/${clientId}/files/${ownFileId}`, 'PATCH', {
+      validUntil: '2024-03-01',
+    });
+    expect(response.status).toBe(200);
+    expect(sent('/rest/v1/client_files', 'PATCH')).toEqual({ valid_until: '2024-03-01' });
+  });
+
+  it('gives no other file such a day', async () => {
+    mockUpstream();
+    const response = await request(`/clients/${clientId}/files/${ownFileId}`, 'PATCH', {
+      validUntil: '2024-03-01',
+    });
+    expect(response.status).toBe(400);
+    expect(await reasonOf(response)).toBe('client_file_not_earlier_instructions');
+    expect(calls('/rest/v1/client_files', 'PATCH')).toHaveLength(0);
   });
 
   it("refuses a specialist a colleague's file", async () => {

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { importKinds } from './imports';
+import { instructionDomainSchema } from './instruction-modules';
 
 export const clientFileTypes = [
   'application/pdf',
@@ -59,6 +60,11 @@ export const clientFileSchema = z.object({
   // Whether the import read the file; with the reason when it did not. Null outside an import.
   importRead: z.boolean().nullable(),
   importReason: z.string().nullable(),
+  // A copy of the own instructions the client had before, which its paper trainings cite
+  // (ADR 042), with the day the instructions that replaced them apply from.
+  earlierInstructions: z
+    .object({ domain: instructionDomainSchema, validUntil: z.iso.date() })
+    .nullable(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -88,6 +94,9 @@ export const uploadClientFileQuerySchema = z.object({
   ownersOnly: z.enum(['true', 'false']).default('false'),
   // One of the client's employees; it cannot be changed after the upload.
   employeeId: z.uuid().optional(),
+  // Both or neither: the file is a copy of the client's earlier own instructions (ADR 042).
+  earlierInstructionsDomain: instructionDomainSchema.optional(),
+  validUntil: z.iso.date().optional(),
 });
 
 export type UploadClientFileQuery = z.infer<typeof uploadClientFileQuerySchema>;
@@ -96,6 +105,8 @@ export const updateClientFileRequestSchema = z.object({
   name: name.optional(),
   // Null or an empty string clears it.
   note: note.nullable().optional(),
+  // Only on a copy of earlier own instructions.
+  validUntil: z.iso.date().optional(),
 });
 
 export type UpdateClientFileRequest = z.infer<typeof updateClientFileRequestSchema>;
@@ -121,6 +132,40 @@ export const clientFileListResponseSchema = z.object({
 
 export type ClientFileListResponse = z.infer<typeof clientFileListResponseSchema>;
 
+export const earlierInstructionsStates = ['imported', 'added', 'unavailable', 'missing'] as const;
+
+export const earlierInstructionsDomainSchema = z.object({
+  domain: instructionDomainSchema,
+  // The client's trainings transcribed from paper in this domain, which cite these instructions.
+  paperTrainingCount: z.int().min(0),
+  // `imported` when a client import kept them among the client's files, `added` when a member
+  // added a copy, `unavailable` when a member answered that the client has none.
+  state: z.enum(earlierInstructionsStates),
+  // The own instructions a client import kept, and the day that import was confirmed.
+  imported: z
+    .object({
+      confirmedOn: z.iso.date(),
+      files: z.array(clientFileSchema.extend({ link: clientFileLinkSchema })),
+    })
+    .nullable(),
+  files: z.array(clientFileSchema.extend({ link: clientFileLinkSchema })),
+  unavailable: z
+    .object({
+      answeredAt: z.iso.datetime({ offset: true }),
+      answeredBy: z.object({ id: z.uuid(), fullName: z.string().nullable() }).nullable(),
+    })
+    .nullable(),
+});
+
+export type EarlierInstructionsDomain = z.infer<typeof earlierInstructionsDomainSchema>;
+
+export const earlierInstructionsResponseSchema = z.object({
+  // IPSSM first, then IPSU.
+  domains: z.array(earlierInstructionsDomainSchema),
+});
+
+export type EarlierInstructionsResponse = z.infer<typeof earlierInstructionsResponseSchema>;
+
 /** `reason` values on client file errors, so the SPA can word them itself. */
 export const clientFileErrorReasons = {
   typeNotAllowed: 'client_file_type_not_allowed',
@@ -128,4 +173,5 @@ export const clientFileErrorReasons = {
   empty: 'client_file_empty',
   tooLarge: 'client_file_too_large',
   leadOwnersOnly: 'client_file_lead_owners_only',
+  notEarlierInstructions: 'client_file_not_earlier_instructions',
 } as const;
