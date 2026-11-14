@@ -44,7 +44,7 @@ export function smsUsageStore(db: AdminClient) {
       kind: SmsKind;
       period: Period;
       allowance: number | null;
-      cap: number | null;
+      extraCents: number | null;
     }): Promise<Claim> {
       const { data, error } = await db
         .rpc('claim_sms_send', {
@@ -53,11 +53,11 @@ export function smsUsageStore(db: AdminClient) {
           p_period_start: input.period.start.toISOString(),
           p_period_end: input.period.end.toISOString(),
           p_allowance: input.allowance ?? none,
-          p_cap: input.cap ?? none,
+          p_extra_cents: input.extraCents ?? none,
         })
         .single();
       if (error) throw fromDatabaseError(error, 'sms claim');
-      // No cap is passed while the extras are off, so the allowance is the only refusal left.
+      // The signer meets the ceiling as the allowance: the code goes by email either way.
       if (data.refusal) return { refusal: 'sms_allowance_reached' };
       return { id: data.id, overage: data.overage };
     },
@@ -82,6 +82,16 @@ export function smsUsageStore(db: AdminClient) {
         .single();
       if (error) throw fromDatabaseError(error, 'sms period usage');
       return data;
+    },
+    async smsCeiling(organizationId: string) {
+      const { data, error } = await db
+        .from('usage_extras')
+        .select('ceiling_cents')
+        .eq('organization_id', organizationId)
+        .eq('kind', 'sms')
+        .maybeSingle();
+      if (error) throw fromDatabaseError(error, 'sms ceiling');
+      return data?.ceiling_cents ?? null;
     },
     /** False when the notice was already recorded for that month. */
     async recordNotice(organizationId: string, periodStart: string, kind: string) {

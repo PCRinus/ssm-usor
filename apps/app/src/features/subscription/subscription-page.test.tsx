@@ -788,8 +788,9 @@ describe('the AI credits on the Abonament tab', () => {
       'bg-destructive'
     );
     expect(within(meter).getByTestId('meter-credits-hint').textContent).toMatch(
-      /^Nu poți porni un import nou până pe .*, când primești alte 3\.250\.$/
+      /^Nu poți porni un import nou până pe .*, când primești alte 3\.250 de credite AI\. Până atunci poți porni Extra pentru creditele AI\.$/
     );
+    expect(within(meter).getByTestId('meter-credits-extra').getAttribute('href')).toBe('#extra');
     cleanup();
     disposeRuntimes();
 
@@ -805,5 +806,286 @@ describe('the AI credits on the Abonament tab', () => {
       /^Pentru toată perioada de probă, până pe .*\. Nu se reînnoiesc\.$/
     );
     expect(screen.queryByTestId('credits-gift')).toBeNull();
+  });
+});
+
+describe('the Extra card', () => {
+  const monthly = () => activeSubscription({ interval: 'month' });
+  const off = { enabled: false, ceilingCents: null, limit: null, used: null, spentCents: null };
+  const withExtras = (
+    extras: Partial<BillingOverview['extras']>,
+    rest: Partial<Parameters<typeof overviewWith>[0]> = {}
+  ): BillingOverview => {
+    const overview = overviewWith({ subscription: monthly(), owner: ownerPart(), ...rest });
+    return { ...overview, extras: { ...overview.extras, unavailable: null, ...extras } };
+  };
+
+  it('turns SMS extras on with the ceiling typed in the card, and says so', async () => {
+    let saved: unknown = null;
+    mockApi({
+      overview: withExtras({}),
+      routes: {
+        'PUT /billing/extras/sms': (init) => {
+          saved = JSON.parse(String(init?.body));
+          return Response.json({
+            unavailable: null,
+            sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 0, spentCents: 0 },
+            credits: off,
+          });
+        },
+      },
+    });
+    mount();
+    const card = await screen.findByTestId('extras-card');
+    await userEvent.click(within(card).getByTestId('extra-sms-switch'));
+    const field = within(card).getByTestId('extra-sms-ceiling');
+    await userEvent.type(field, '10');
+    expect(within(card).getByText('Până la 100 de coduri extra pe lună.')).toBeTruthy();
+    await userEvent.click(within(card).getByRole('button', { name: 'Pornește' }));
+
+    await waitFor(() => expect(saved).toEqual({ ceilingEuros: 10 }));
+    expect(
+      await screen.findByText('Extra pornit pentru codurile SMS: până la 10 € pe lună.')
+    ).toBeTruthy();
+  });
+
+  it('says what is wrong with a ceiling and sends nothing', async () => {
+    mockApi({ overview: withExtras({}) });
+    mount();
+    const card = await screen.findByTestId('extras-card');
+    await userEvent.click(within(card).getByTestId('extra-credits-switch'));
+    await userEvent.type(within(card).getByTestId('extra-credits-ceiling'), '0');
+    await userEvent.click(within(card).getByRole('button', { name: 'Pornește' }));
+
+    expect(within(card).getByRole('alert').textContent).toBe(
+      'Plafonul e de cel puțin 1 €. Ca să nu plătești nimic, lasă Extra oprit.'
+    );
+    expect(requests('/billing/extras/credits', 'PUT')).toHaveLength(0);
+  });
+
+  it('turns an extra off at once, without asking again', async () => {
+    mockApi({
+      overview: withExtras({
+        sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 37, spentCents: 370 },
+      }),
+      routes: {
+        'PUT /billing/extras/sms': () =>
+          Response.json({ unavailable: null, sms: off, credits: off }),
+      },
+    });
+    mount();
+    const card = await screen.findByTestId('extras-card');
+    expect(within(card).getByTestId('extra-sms-line').textContent).toBe(
+      '37 de coduri extra până azi: 3,70 € din 10 €.'
+    );
+    await userEvent.click(within(card).getByTestId('extra-sms-switch'));
+
+    await waitFor(() =>
+      expect(bodyOf('/billing/extras/sms', 'PUT')).toEqual({ ceilingEuros: null })
+    );
+  });
+
+  it('offers a higher ceiling once it is reached', async () => {
+    mockApi({
+      overview: withExtras({
+        sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 100, spentCents: 1000 },
+      }),
+    });
+    mount();
+    const row = await screen.findByTestId('extra-sms');
+    expect(row.dataset.state).toBe('reached');
+    expect(within(row).getByRole('button', { name: 'Mărește plafonul' })).toBeTruthy();
+  });
+
+  it('adds the extras so far to the next monthly payment', async () => {
+    mockApi({
+      overview: withExtras({
+        sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 37, spentCents: 370 },
+      }),
+    });
+    mount();
+    const plan = await screen.findByTestId('plan-card');
+    expect(within(plan).getByText('37 de coduri SMS extra, până azi')).toBeTruthy();
+    expect(within(plan).getByText('3,70 €')).toBeTruthy();
+  });
+
+  it('shows the other members on or off, without amounts or switches', async () => {
+    mockApi({
+      role: 'specialist',
+      overview: {
+        ...overviewWith({ subscription: monthly() }),
+        extras: {
+          unavailable: null,
+          sms: { enabled: true, ceilingCents: null, limit: null, used: null, spentCents: null },
+          credits: off,
+        },
+      },
+    });
+    mount();
+    const card = await screen.findByTestId('extras-card');
+    expect(within(card).queryByRole('switch')).toBeNull();
+    expect(within(card).getByTestId('extra-sms').textContent).toContain('Pornit');
+    expect(within(card).getByTestId('extra-credits').textContent).toContain('Oprit');
+    expect(card.textContent).not.toMatch(/\d+ €(?! \/)/);
+  });
+
+  it('lowers a ceiling below what is already used, which stays owed', async () => {
+    mockApi({
+      overview: withExtras({
+        sms: { enabled: true, ceilingCents: 2000, limit: 200, used: 150, spentCents: 1500 },
+      }),
+      routes: {
+        'PUT /billing/extras/sms': () =>
+          Response.json({
+            unavailable: null,
+            sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 150, spentCents: 1500 },
+            credits: off,
+          }),
+      },
+    });
+    mount();
+    const card = await screen.findByTestId('extras-card');
+    await userEvent.click(within(card).getByTestId('extra-sms-edit'));
+    const field = within(card).getByTestId('extra-sms-ceiling');
+    await userEvent.clear(field);
+    await userEvent.type(field, '10');
+    await userEvent.click(within(card).getByRole('button', { name: 'Salvează' }));
+
+    await waitFor(() => expect(bodyOf('/billing/extras/sms', 'PUT')).toEqual({ ceilingEuros: 10 }));
+    expect(
+      await screen.findByText('Extra pornit pentru codurile SMS: până la 10 € pe lună.')
+    ).toBeTruthy();
+  });
+
+  it('keeps the form open and says why when the save fails', async () => {
+    mockApi({
+      overview: withExtras({}),
+      routes: {
+        'PUT /billing/extras/sms': () =>
+          Response.json(
+            { error: 'conflict', message: 'x', reason: 'extras_pending_payment' },
+            { status: 409 }
+          ),
+      },
+    });
+    mount();
+    const card = await screen.findByTestId('extras-card');
+    await userEvent.click(within(card).getByTestId('extra-sms-switch'));
+    await userEvent.type(within(card).getByTestId('extra-sms-ceiling'), '10');
+    await userEvent.click(within(card).getByRole('button', { name: 'Pornește' }));
+
+    expect((await within(card).findByRole('alert')).textContent).toContain(
+      'o plată pentru o schimbare de plan'
+    );
+    expect(within(card).getByTestId('extra-sms-form')).toBeTruthy();
+    expect(within(card).getByRole('switch', { name: 'Coduri SMS extra' })).toBeTruthy();
+  });
+
+  it('shows extras paused while a payment is overdue, and lets the owner turn them off', async () => {
+    mockApi({
+      overview: {
+        ...overviewWith({
+          subscription: activeSubscription({ interval: 'month', status: 'past_due' }),
+          owner: ownerPart(),
+        }),
+        extras: {
+          unavailable: 'past_due',
+          sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 0, spentCents: 0 },
+          credits: off,
+        },
+      },
+    });
+    mount();
+    const row = await screen.findByTestId('extra-sms');
+    expect(row.dataset.state).toBe('suspended');
+    expect(within(row).getByTestId('extra-sms-line').textContent).toBe(
+      'Oprit până la plată. Plafon 10 € pe lună.'
+    );
+    expect(
+      (within(row).getByRole('switch', { name: 'Coduri SMS extra' }) as HTMLButtonElement).disabled
+    ).toBe(false);
+    expect(
+      (
+        within(screen.getByTestId('extra-credits')).getByRole('switch', {
+          name: 'Credite AI extra',
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true);
+  });
+
+  it('shows a member extras paused while a payment is overdue', async () => {
+    mockApi({
+      role: 'specialist',
+      overview: {
+        ...overviewWith({
+          subscription: activeSubscription({ interval: 'month', status: 'past_due' }),
+        }),
+        extras: {
+          unavailable: 'past_due',
+          sms: { ...off, enabled: true },
+          credits: off,
+        },
+      },
+    });
+    mount();
+    expect((await screen.findByTestId('extra-sms')).textContent).toContain('Oprit până la plată');
+  });
+
+  it('builds the next monthly payment on Stripe’s preview, with a proration and the extras it lacks', async () => {
+    mockApi({
+      overview: withExtras(
+        { sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 37, spentCents: 370 } },
+        {
+          owner: ownerPart({
+            nextPayment: { at: inDays(10), subtotalCents: 15000 + 300, vatCents: 0, totalCents: 0 },
+            extrasInPreviewCents: 300,
+          }),
+        }
+      ),
+    });
+    mount();
+    const plan = await screen.findByTestId('plan-card');
+    expect(within(plan).getByText('Diferența pentru schimbarea de plan')).toBeTruthy();
+    expect(within(plan).getByText('37 de coduri SMS extra, până azi')).toBeTruthy();
+    expect(within(plan).getByTestId('plan-amount').textContent).toContain(roDate(inDays(10)));
+  });
+
+  it('prices the next payment at the plan a change sets for the renewal', async () => {
+    mockApi({
+      overview: withExtras(
+        { sms: { enabled: true, ceilingCents: 1000, limit: 100, used: 10, spentCents: 100 } },
+        {
+          owner: ownerPart({
+            scheduledChange: { plan: 'profesional', step: 500, interval: 'month', at: inDays(10) },
+            nextPayment: { at: inDays(10), subtotalCents: 8900 + 100, vatCents: 0, totalCents: 0 },
+            extrasInPreviewCents: 100,
+          }),
+        }
+      ),
+    });
+    mount();
+    const plan = await screen.findByTestId('plan-card');
+    expect(within(plan).queryByText('Diferența pentru schimbarea de plan')).toBeNull();
+    expect(within(plan).getByTestId('plan-amount').textContent).toContain('108,90 €');
+  });
+
+  it('says a plan chosen in the trial gets extras after its first payment, with the date', async () => {
+    mockApi({
+      overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
+    });
+    mount();
+    const note = await screen.findByTestId('extras-note');
+    expect(note.textContent).toContain('Se poate porni după prima plată, pe');
+    expect(within(note).queryByRole('link', { name: 'Alege un plan' })).toBeNull();
+  });
+
+  it('says during a trial that extras come with a plan', async () => {
+    mockApi({ overview: overviewWith({ subscription: trialSubscription(), owner: ownerPart() }) });
+    mount();
+    const card = await screen.findByTestId('extras-card');
+    expect(within(card).getByTestId('extras-note').textContent).toContain(
+      'Se poate porni după ce alegi un plan.'
+    );
+    expect(within(card).queryByRole('switch')).toBeNull();
   });
 });

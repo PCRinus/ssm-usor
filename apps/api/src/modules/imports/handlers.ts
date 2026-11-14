@@ -49,6 +49,7 @@ import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-not
 import { creditsStore } from '../credits/store';
 import { importCharges, importCreditsOf } from '../credits/usage';
 import { romanianDay } from '../documents/context';
+import { blocksReporterOf } from '../extras/reporting';
 import { uninvitedOfImports } from '../participants/handlers';
 import {
   signedSheetContext,
@@ -891,7 +892,7 @@ async function beginReading(
       importErrorReasons.empty
     );
   }
-  const charges = importCharges(creditsStore(admin));
+  const charges = importCharges(creditsStore(admin, blocksReporterOf(c)));
   const needed = arrived.reduce(
     (total, file) => total + startCreditsOf(file, kind),
     kind === 'client' ? importCredits.clientReading : 0

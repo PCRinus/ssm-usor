@@ -304,3 +304,22 @@ describe('the copy', () => {
     expect(answer).toContain(`Profesional de la ${eur(profesional.firstPrice)}`);
   });
 });
+
+describe('extras on the pricing page', () => {
+  const answer = () =>
+    pricingPage.faq.find((item) => item.q.startsWith('Ce se întâmplă când termin'))!.a;
+
+  it('names Extra, and never asks the reader to permit a payment', () => {
+    for (const text of [answer(), calculator.extra]) {
+      expect(text).toContain('Extra');
+      expect(text).not.toMatch(/permi/);
+      expect(text).toContain('+ TVA');
+    }
+  });
+
+  it('says a smaller import still starts, and that AI credits come in blocks of 100', () => {
+    expect(answer()).toContain('unul mai mic pornește');
+    expect(answer()).toContain('pachet de 100 de credite AI');
+    expect(calculator.extra).toContain('pachet de 100 de credite AI');
+  });
+});

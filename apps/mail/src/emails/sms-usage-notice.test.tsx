@@ -17,7 +17,7 @@ const paid: SmsUsageNoticeProps = {
   billed: true,
   used: 240,
   included: 300,
-  cap: 900,
+  cap: 400,
   overageCents: 10,
   periodStart: '2026-10-14T08:00:00.000Z',
   periodEnd: '2026-11-14T08:00:00.000Z',
@@ -69,14 +69,14 @@ describe('SMS usage notice', () => {
     expect(email.html).not.toContain('€');
   });
 
-  it('at 100 % on a paid plan, says the codes go on, at what price, up to the cap', async () => {
+  it('at 100 % with SMS extras on, says the codes go on as extras, within the ceiling', async () => {
     const email = await sendNotice({ ...paid, kind: 'sms_100', used: 300 });
 
     expect(email.subject).toBe('Ai folosit toate cele 300 de coduri SMS incluse');
-    expect(email.html).toContain('De acum, fiecare cod SMS costă 0,10 €');
+    expect(email.html).toContain('Codurile SMS pleacă mai departe, ca extra');
     for (const body of bodies(email)) {
-      expect(body).toContain('Peste plan, pe factura din 14.11.2026');
-      expect(body).toContain('Mergem până la 900 pe lună, de trei ori cele incluse');
+      expect(body).toContain('Extra, pe factura din 14.11.2026');
+      expect(body).toContain('încă 100 de coduri luna aceasta, cât încap în plafonul ales');
     }
   });
 
@@ -90,6 +90,7 @@ describe('SMS usage notice', () => {
       );
       expect(body).toContain('Până pe 14.11.2026, lucrătorii cu email primesc codul pe email.');
       expect(body).toContain('Nu plătești nimic pentru codurile care pleacă pe email.');
+      expect(body).toContain('pornește Extra din Abonament');
       expect(body).not.toContain('€');
     }
   });
@@ -105,31 +106,6 @@ describe('SMS usage notice', () => {
 
     expect(email.text).toContain('incluse în perioada de probă');
     expect(email.text).not.toContain('Incluse în plan');
-  });
-
-  it('at the cap, says what the month costs and leads to raising the limit', async () => {
-    const email = await sendNotice({ ...paid, kind: 'sms_cap', used: 900 });
-
-    expect(email.subject).toBe('Codurile de semnare nu mai pleacă prin SMS până pe 14.11');
-    for (const body of bodies(email)) {
-      expect(body).toContain('de trei ori cele 300 incluse');
-      expect(body).toContain('Peste plan: 600 × 0,10 €');
-      expect(body).toContain('60 € + TVA');
-      expect(body).toContain('Ridică limita');
-    }
-  });
-
-  it('leaves out the multiple where granted codes break it', async () => {
-    const email = await sendNotice({
-      ...paid,
-      kind: 'sms_cap',
-      used: 920,
-      included: 320,
-      cap: 920,
-    });
-
-    expect(email.text).toContain('peste cele 320 incluse');
-    expect(email.text).not.toContain(' ori ');
   });
 
   it('writes the month across a new year in full', async () => {
@@ -155,6 +131,7 @@ describe('SMS usage notice', () => {
   it.each([
     [10, '0,10 €'],
     [6000, '60 €'],
+    [370, '3,70 €'],
   ])('writes %i cents as %s', (cents, words) => {
     expect(euro(cents)).toBe(words);
   });

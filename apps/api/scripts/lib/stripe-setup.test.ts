@@ -6,6 +6,7 @@ import {
   assertKeyMatchesEnvironment,
   createStripe,
   planDomain,
+  planMeters,
   planPortal,
   planPrices,
   planProducts,
@@ -22,6 +23,8 @@ import {
 } from './stripe-setup';
 
 const smsMeter = { id: 'mtr_1', eventName: 'sms_overage', status: 'active' };
+const creditsMeter = { id: 'mtr_3', eventName: 'credits_extra_blocks', status: 'active' };
+const meters = [smsMeter, creditsMeter];
 
 function matchingPrices(): PriceState[] {
   return cataloguePrices.map((price, index) => ({
@@ -32,7 +35,12 @@ function matchingPrices(): PriceState[] {
     unitAmount: price.unitAmount,
     interval: price.interval,
     usage: price.usage,
-    meterId: price.usage === 'metered' ? smsMeter.id : null,
+    meterId:
+      price.product === 'sms_overage'
+        ? smsMeter.id
+        : price.product === 'credits_extra'
+          ? creditsMeter.id
+          : null,
     active: true,
   }));
 }
@@ -88,7 +96,7 @@ describe('planning the catalogue', () => {
       active: true,
     }));
     expect(planProducts(products)).toEqual([]);
-    expect(planPrices(matchingPrices(), [smsMeter])).toEqual([]);
+    expect(planPrices(matchingPrices(), meters)).toEqual([]);
   });
 
   it('renames a product whose name changed', () => {
@@ -106,14 +114,30 @@ describe('planning the catalogue', () => {
     const prices = matchingPrices().map((price) =>
       price.lookupKey === 'start_250_monthly_v2' ? { ...price, unitAmount: 4900 } : price
     );
-    expect(() => planPrices(prices, [smsMeter])).toThrow(
+    expect(() => planPrices(prices, meters)).toThrow(
       /start_250_monthly_v2 \(price_0\) has amount 4900/
     );
   });
 
   it('stops when the SMS price counts another meter', () => {
-    expect(() => planPrices(matchingPrices(), [{ ...smsMeter, id: 'mtr_2' }])).toThrow(
-      /sms_overage_monthly_v2 .* has meter mtr_1/
+    expect(() =>
+      planPrices(matchingPrices(), [{ ...smsMeter, id: 'mtr_2' }, creditsMeter])
+    ).toThrow(/sms_overage_monthly_v2 .* has meter mtr_1/);
+  });
+
+  it('gives the AI credits price a meter of its own, never the SMS one', () => {
+    expect(planMeters([smsMeter])).toEqual([
+      {
+        kind: 'create_meter',
+        eventName: 'credits_extra_blocks',
+        name: 'Credite AI peste cele incluse în plan, câte 100',
+      },
+    ]);
+    const onSmsMeter = matchingPrices().map((price) =>
+      price.lookupKey === 'credits_extra_monthly_v2' ? { ...price, meterId: smsMeter.id } : price
+    );
+    expect(() => planPrices(onSmsMeter, meters)).toThrow(
+      /credits_extra_monthly_v2 .* has meter mtr_1/
     );
   });
 
@@ -121,7 +145,7 @@ describe('planning the catalogue', () => {
     const prices = matchingPrices().map((price) =>
       price.lookupKey === 'start_500_annual_v2' ? { ...price, active: false } : price
     );
-    expect(planPrices(prices, [smsMeter])).toEqual([
+    expect(planPrices(prices, meters)).toEqual([
       { kind: 'activate_price', id: expect.any(String), lookupKey: 'start_500_annual_v2' },
     ]);
   });
@@ -314,7 +338,10 @@ describe('a run against Stripe', () => {
     const posted = (path: string) => writes.filter((write) => write.path === path);
     expect(posted('/v1/products')).toHaveLength(catalogueProducts.length);
     const meter = posted('/v1/billing/meters');
-    expect(meter.map((write) => write.body.get('event_name'))).toEqual(['sms_overage']);
+    expect(meter.map((write) => write.body.get('event_name'))).toEqual([
+      'sms_overage',
+      'credits_extra_blocks',
+    ]);
 
     const prices = posted('/v1/prices');
     expect(prices).toHaveLength(cataloguePrices.length);
@@ -326,6 +353,16 @@ describe('a run against Stripe', () => {
       'recurring[usage_type]': 'metered',
       'recurring[meter]': collections['/v1/billing/meters']![0]!.id,
       tax_behavior: 'exclusive',
+    });
+    const credits = prices.find(
+      (write) => write.body.get('lookup_key') === 'credits_extra_monthly_v2'
+    );
+    expect(Object.fromEntries(credits!.body)).toMatchObject({
+      product: 'ssm_usor_credits_extra',
+      unit_amount: '150',
+      'recurring[interval]': 'month',
+      'recurring[usage_type]': 'metered',
+      'recurring[meter]': collections['/v1/billing/meters']![1]!.id,
     });
     const annual = prices.find(
       (write) => write.body.get('lookup_key') === 'profesional_1500_annual_v2'

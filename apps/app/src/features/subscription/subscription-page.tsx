@@ -28,6 +28,7 @@ import { CancelDialog } from './cancel-dialog';
 import { ChangeDialog } from './change-dialog';
 import { nextStepAction, nextStepOf, nextStepSentence } from './checkout/checkout-choice';
 import { EmployeesOverStepNotice } from './employees-over-step-notice';
+import { ExtrasCard } from './extras-card';
 import { InvoicesCard } from './invoices-card';
 import { leaveFor } from './leave';
 import { PaymentCard } from './payment-card';
@@ -173,6 +174,21 @@ function SubscriptionContent({
           <UsageCard overview={overview} view={view} canAct={canAct} />
         </div>
         <div className="grid min-w-0 gap-4 sm:gap-5">
+          {extrasShown.has(view) && (
+            <ExtrasCard
+              extras={overview.extras}
+              owner={owner !== null}
+              canAct={canAct}
+              renewsAt={
+                overview.usage.smsThisMonth.periodEnd ?? overview.usage.creditsThisMonth.periodEnd
+              }
+              firstPaymentAt={
+                subscription?.planChosen && subscription.status === 'trialing'
+                  ? subscription.trialEndsAt
+                  : null
+              }
+            />
+          )}
           {owner ? (
             <PaymentCard
               owner={owner}
@@ -228,6 +244,14 @@ function SubscriptionContent({
     </div>
   );
 }
+
+const extrasShown = new Set<SubscriptionView>([
+  'trial',
+  'trialChosen',
+  'active',
+  'canceling',
+  'pastDue',
+]);
 
 function noticeFor(
   overview: BillingOverview,

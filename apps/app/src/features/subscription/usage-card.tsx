@@ -21,6 +21,7 @@ import {
   type GiftPanel,
   giftPanelFor,
 } from './credits-copy';
+import { creditsExtraMeter, smsExtraMeter } from './extras-copy';
 import { toneInks } from './meter-tones';
 import { type MeterTone, type SmsMeter, smsMeterFor, stopOf } from './sms-copy';
 import { roDate } from './subscription-copy';
@@ -38,6 +39,7 @@ interface Meter {
   tone?: MeterTone;
   hint: string;
   action?: { label: string; search: { step?: number; plan?: PaidPlan } };
+  toExtra?: boolean;
 }
 
 function periodLabel(overview: BillingOverview, view: SubscriptionView) {
@@ -162,6 +164,10 @@ export function UsageCard({
   const paid = choice !== null && (view === 'active' || view === 'canceling' || view === 'pastDue');
   const gift = view === 'readOnly' ? null : giftPanelFor(credits, { paid });
 
+  const smsExtra = view === 'readOnly' ? null : smsExtraMeter(sms, overview.extras, owner);
+  const creditsExtra =
+    view === 'readOnly' ? null : creditsExtraMeter(credits, overview.extras, owner);
+
   const meters: Meter[] = [
     {
       key: 'employees',
@@ -193,6 +199,7 @@ export function UsageCard({
       value: smsMeter.value ?? undefined,
       tone: smsMeter.tone,
       hint: smsMeter.hint,
+      ...(smsExtra && { ...smsExtra, value: smsExtra.value ?? undefined }),
     },
     {
       key: 'credits',
@@ -204,6 +211,12 @@ export function UsageCard({
       tone: creditsMeter.tone,
       hint: creditsMeter.hint,
       hintShort: creditsMeter.hintShort,
+      ...(creditsExtra && {
+        ...creditsExtra,
+        value: creditsExtra.value ?? undefined,
+        valueShort: null,
+        hintShort: null,
+      }),
     },
   ];
 
@@ -269,6 +282,15 @@ export function UsageCard({
                   meter.hint
                 )}
               </p>
+              {meter.toExtra && canAct && (
+                <a
+                  href="#extra"
+                  data-testid={`meter-${meter.key}-extra`}
+                  className="inline-flex min-h-8 w-fit items-center text-sm font-semibold underline-offset-2 hover:underline"
+                >
+                  Pornește Extra
+                </a>
+              )}
               {meter.action && (
                 <Link
                   to="/organizatie/abonament/alege"

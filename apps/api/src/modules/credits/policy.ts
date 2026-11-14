@@ -1,5 +1,6 @@
 import { testerMonthlyCredits, trialCredits } from '@ssm-usor/contracts';
 
+import { creditBlockCents } from '../extras/policy';
 import {
   billingAnchor,
   calendarMonth,
@@ -23,6 +24,8 @@ export type CreditPolicy =
       allowance: number;
       // The month whose shortfall comes off this one; null where there is none.
       previous: CreditMonth | null;
+      // What a block of extra credits costs while extras may apply; null buys none.
+      blockCents: number | null;
     };
 
 const day = 86_400_000;
@@ -58,6 +61,7 @@ export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPoli
         kind: 'month',
         ...testerMonths(row, now),
         allowance: testerMonthlyCredits,
+        blockCents: null,
       };
     }
     const start = new Date(row.created_at);
@@ -69,6 +73,7 @@ export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPoli
       period: { start, end: end > start ? end : new Date(start.getTime() + day) },
       allowance: trialCredits,
       previous: null,
+      blockCents: null,
     };
   }
 
@@ -90,5 +95,12 @@ export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPoli
   } else {
     previous = { period: monthAround(anchor, before(period)), allowance };
   }
-  return { limited: true, kind: 'month', period, allowance, previous };
+  return {
+    limited: true,
+    kind: 'month',
+    period,
+    allowance,
+    previous,
+    blockCents: creditBlockCents(row),
+  };
 }

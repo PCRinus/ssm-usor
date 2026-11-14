@@ -652,7 +652,6 @@ describe('the credits an import starts on', () => {
     first_paid_at: new Date(Date.now() - 30 * day).toISOString(),
     billing_anchor_at: anchor,
     current_period_end: null,
-    sms_cap_factor: 3,
     employee_step: 250,
   };
   const files = [

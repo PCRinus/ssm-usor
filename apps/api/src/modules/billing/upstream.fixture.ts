@@ -1,4 +1,4 @@
-import { type BillingChoice, cataloguePrices, smsOverage } from '@ssm-usor/contracts';
+import { type BillingChoice, cataloguePrices, meteredProducts } from '@ssm-usor/contracts';
 import { vi } from 'vitest';
 
 import type { ApiEnv } from '../../lib/env';
@@ -46,7 +46,14 @@ export type Fake = {
   uploads: { path: string; bytes: number }[];
   smsUsage: { used: number; overage: number; granted: number };
   employeesOverStep: Row | null;
-  credits: { granted: number; used: number; shortfall: number; gift_left: number };
+  credits: {
+    granted: number;
+    used: number;
+    shortfall: number;
+    gift_left: number;
+    extra: number;
+    extra_left?: number;
+  };
 };
 
 export const priceIdOf = (lookupKey: string) => `price_${lookupKey}`;
@@ -87,7 +94,10 @@ export function stripeSubscription(options: {
   const periodEnd = options.periodEnd ?? Math.floor(Date.now() / 1000) + 20 * day;
   const lines = options.lines ?? [
     ...choiceLines(options.choice),
-    { lookupKey: smsOverage.price.lookupKey, quantity: undefined },
+    ...meteredProducts.map((product) => ({
+      lookupKey: product.price.lookupKey,
+      quantity: undefined,
+    })),
   ];
   return {
     id: options.id ?? 'sub_1Test',
@@ -137,7 +147,6 @@ export function subscriptionRow(overrides: Row = {}): Row {
     tester_allowances: false,
     first_paid_at: null,
     billing_anchor_at: null,
-    sms_cap_factor: 3,
     stripe_account: null,
     stripe_customer_id: null,
     stripe_subscription_id: null,
@@ -207,6 +216,15 @@ function database(fake: Fake, call: Call, headers: Headers) {
       created_at: new Date().toISOString(),
       ...row,
     }));
+    if (table === 'usage_extras') {
+      for (const row of added) {
+        const at = rows.findIndex(
+          (existing) =>
+            existing.organization_id === row.organization_id && existing.kind === row.kind
+        );
+        if (at >= 0) rows.splice(at, 1);
+      }
+    }
     for (const row of added) {
       const key =
         table === 'stripe_events'
@@ -226,6 +244,12 @@ function database(fake: Fake, call: Call, headers: Headers) {
     const changes = JSON.parse(call.body ?? '{}') as Row;
     const found = rows.filter((row) => matches(row, call.url));
     for (const row of found) Object.assign(row, changes);
+    if (!call.url.searchParams.has('select')) return new Response(null, { status: 204 });
+    return answer(found);
+  }
+  if (call.method === 'DELETE') {
+    const found = rows.filter((row) => matches(row, call.url));
+    fake.tables[table] = rows.filter((row) => !found.includes(row));
     if (!call.url.searchParams.has('select')) return new Response(null, { status: 204 });
     return answer(found);
   }
@@ -263,7 +287,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
     uploads: [],
     smsUsage: { used: 0, overage: 0, granted: 0 },
     employeesOverStep: null,
-    credits: { granted: 0, used: 0, shortfall: 0, gift_left: 0 },
+    credits: { granted: 0, used: 0, shortfall: 0, gift_left: 0, extra: 0 },
     ...overrides,
   };
 
@@ -367,6 +391,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
       const { p_allowance } = JSON.parse(body ?? '{}') as { p_allowance: number | null };
       const { granted, used, shortfall } = fake.credits;
       return json({
+        extra_left: 0,
         ...fake.credits,
         balance: p_allowance === null ? null : p_allowance + granted - used - shortfall,
       });

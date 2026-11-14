@@ -10,7 +10,7 @@ import type {
 import type { Database, Json } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { creditsStore } from '../credits/store';
+import { type CreditsHooks, creditsStore } from '../credits/store';
 import { importCharges } from '../credits/usage';
 import { employeeImportClient } from './employees';
 import { type ClientSheets, clientSheetsOf, type RiskLibrary, riskLibraryOf } from './risk-sheets';
@@ -165,8 +165,8 @@ export class ImportLimitError extends Error {
   }
 }
 
-export function importStore(admin: AdminClient): ImportStore {
-  const charges = importCharges(creditsStore(admin));
+export function importStore(admin: AdminClient, hooks?: CreditsHooks): ImportStore {
+  const charges = importCharges(creditsStore(admin, hooks));
   return {
     async getImport(importId) {
       const { data, error } = await admin

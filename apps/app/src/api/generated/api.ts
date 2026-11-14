@@ -229,6 +229,7 @@ export type MeResponseSmsThisMonthState =
 export const MeResponseSmsThisMonthState = {
   ok: 'ok',
   near: 'near',
+  extra: 'extra',
   stopped: 'stopped',
   none: 'none',
 } as const;
@@ -251,18 +252,9 @@ export type MeResponseSmsThisMonth = {
   allowance: number | null;
   /** @minimum 0 */
   granted: number;
-  /**
-   * @minimum 0
-   * @nullable
-   */
-  cap: number | null;
-  /**
-   * @minimum 1
-   * @nullable
-   */
-  capFactor: number | null;
   /** @minimum 0 */
   overage: number;
+  extrasOn: boolean;
   /** @nullable */
   periodStart: string | null;
   /** @nullable */
@@ -313,6 +305,11 @@ export type MeResponseCreditsThisMonth = {
   left: number | null;
   /** @minimum 0 */
   giftLeft: number;
+  /** @minimum 0 */
+  extra: number;
+  /** @minimum 0 */
+  extraLeft: number;
+  extrasOn: boolean;
   period: MeResponseCreditsThisMonthPeriod;
   periodStart: string;
   periodEnd: string;
@@ -13552,6 +13549,7 @@ export type BillingOverviewUsageSmsThisMonthState =
 export const BillingOverviewUsageSmsThisMonthState = {
   ok: 'ok',
   near: 'near',
+  extra: 'extra',
   stopped: 'stopped',
   none: 'none',
 } as const;
@@ -13571,18 +13569,9 @@ export type BillingOverviewUsageSmsThisMonth = {
   allowance: number | null;
   /** @minimum 0 */
   granted: number;
-  /**
-   * @minimum 0
-   * @nullable
-   */
-  cap: number | null;
-  /**
-   * @minimum 1
-   * @nullable
-   */
-  capFactor: number | null;
   /** @minimum 0 */
   overage: number;
+  extrasOn: boolean;
   /** @nullable */
   periodStart: string | null;
   /** @nullable */
@@ -13630,6 +13619,11 @@ export type BillingOverviewUsageCreditsThisMonth = {
   left: number | null;
   /** @minimum 0 */
   giftLeft: number;
+  /** @minimum 0 */
+  extra: number;
+  /** @minimum 0 */
+  extraLeft: number;
+  extrasOn: boolean;
   period: BillingOverviewUsageCreditsThisMonthPeriod;
   periodStart: string;
   periodEnd: string;
@@ -13680,6 +13674,76 @@ export type BillingOverviewCatalogue = {
   vatPercent: number;
   plans: BillingOverviewCataloguePlansItem[];
   smsOverageCents: number;
+  creditBlockCents: number;
+};
+
+/**
+ * @nullable
+ */
+export type BillingOverviewExtrasUnavailable =
+  (typeof BillingOverviewExtrasUnavailable)[keyof typeof BillingOverviewExtrasUnavailable] | null;
+
+export const BillingOverviewExtrasUnavailable = {
+  no_subscription: 'no_subscription',
+  enterprise: 'enterprise',
+  trial: 'trial',
+  past_due: 'past_due',
+  canceled: 'canceled',
+} as const;
+
+export type BillingOverviewExtrasSms = {
+  enabled: boolean;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  ceilingCents: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  used: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  spentCents: number | null;
+};
+
+export type BillingOverviewExtrasCredits = {
+  enabled: boolean;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  ceilingCents: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  used: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  spentCents: number | null;
+};
+
+export type BillingOverviewExtras = {
+  /** @nullable */
+  unavailable: BillingOverviewExtrasUnavailable;
+  sms: BillingOverviewExtrasSms;
+  credits: BillingOverviewExtrasCredits;
 };
 
 /**
@@ -13813,6 +13877,8 @@ export type BillingOverviewOwner = {
   /** @nullable */
   smsOverageCents: number | null;
   /** @nullable */
+  extrasInPreviewCents: number | null;
+  /** @nullable */
   card: BillingOverviewOwnerCard;
   /** @nullable */
   invoiceEmail: string | null;
@@ -13829,6 +13895,7 @@ export interface BillingOverview {
   subscription: BillingOverviewSubscription;
   usage: BillingOverviewUsage;
   catalogue: BillingOverviewCatalogue;
+  extras: BillingOverviewExtras;
   /** @nullable */
   owner: BillingOverviewOwner;
 }
@@ -13889,6 +13956,7 @@ export const BillingPreviewRecurringLinesItemProduct = {
   start: 'start',
   profesional: 'profesional',
   sms_overage: 'sms_overage',
+  credits_extra: 'credits_extra',
 } as const;
 
 export type BillingPreviewRecurringLinesItem = {
@@ -14044,6 +14112,84 @@ export interface BillingInvoiceLink {
   url: string;
   fileName: string;
   expiresAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type BillingExtrasUnavailable =
+  (typeof BillingExtrasUnavailable)[keyof typeof BillingExtrasUnavailable] | null;
+
+export const BillingExtrasUnavailable = {
+  no_subscription: 'no_subscription',
+  enterprise: 'enterprise',
+  trial: 'trial',
+  past_due: 'past_due',
+  canceled: 'canceled',
+} as const;
+
+export type BillingExtrasSms = {
+  enabled: boolean;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  ceilingCents: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  used: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  spentCents: number | null;
+};
+
+export type BillingExtrasCredits = {
+  enabled: boolean;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  ceilingCents: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  used: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  spentCents: number | null;
+};
+
+export interface BillingExtras {
+  /** @nullable */
+  unavailable: BillingExtrasUnavailable;
+  sms: BillingExtrasSms;
+  credits: BillingExtrasCredits;
+}
+
+export interface SetExtraRequest {
+  /**
+   * @minimum 1
+   * @maximum 500
+   * @nullable
+   */
+  ceilingEuros: number | null;
 }
 
 /**
@@ -40288,6 +40434,114 @@ export function useGetBillingInvoicePdf<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getSetBillingExtraUrl = (kind: 'sms' | 'credits') => {
+  return `/billing/extras/${kind}`;
+};
+
+/**
+ * Past what the plan includes, signing codes go on by SMS at 0.10 € each (`sms`), or AI credits are bought in blocks of 100 at 1.50 € each (`credits`), up to the ceiling in whole euro, on the next invoice. A new ceiling or `null` applies at once; what was already used stays on the invoice. Only on a paid subscription in good standing; otherwise 409 `extras_unavailable`. The owner in person only.
+ * @summary Turn an extra on with a monthly ceiling, change the ceiling, or turn it off
+ */
+export const setBillingExtra = async (
+  kind: 'sms' | 'credits',
+  setExtraRequest: SetExtraRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<BillingExtras> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<BillingExtras>(getSetBillingExtraUrl(kind), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setExtraRequest),
+  });
+};
+
+export const getSetBillingExtraMutationKey = () => ['setBillingExtra'] as const;
+
+export const getSetBillingExtraMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setBillingExtra>>,
+    TError,
+    SetBillingExtraMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setBillingExtra>>,
+  TError,
+  SetBillingExtraMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSetBillingExtraMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setBillingExtra>>,
+    SetBillingExtraMutationVariables
+  > = (props) => {
+    const { kind, data } = props ?? {};
+
+    return setBillingExtra(kind, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetBillingExtraMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setBillingExtra>>
+>;
+export type SetBillingExtraMutationBody = SetExtraRequest;
+export type SetBillingExtraMutationError = ErrorType<ApiErrorResponse>;
+export type SetBillingExtraMutationVariables = { kind: 'sms' | 'credits'; data: SetExtraRequest };
+
+/**
+ * @summary Turn an extra on with a monthly ceiling, change the ceiling, or turn it off
+ */
+export const useSetBillingExtra = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof setBillingExtra>>,
+      TError,
+      SetBillingExtraMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof setBillingExtra>>,
+  TError,
+  SetBillingExtraMutationVariables,
+  TContext
+> => {
+  return useMutation(getSetBillingExtraMutationOptions(options), queryClient);
+};
 
 export const getListLegalActsUrl = () => {
   return `/legislation/acts`;

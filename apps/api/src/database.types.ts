@@ -1118,6 +1118,7 @@ export type Database = {
           actor: string | null;
           created_at: string;
           credits: number;
+          extra_credits: number;
           gift_credits: number;
           id: number;
           import_file_id: string | null;
@@ -1133,6 +1134,7 @@ export type Database = {
           actor?: string | null;
           created_at?: string;
           credits: number;
+          extra_credits?: number;
           gift_credits?: number;
           id?: never;
           import_file_id?: string | null;
@@ -1148,6 +1150,7 @@ export type Database = {
           actor?: string | null;
           created_at?: string;
           credits?: number;
+          extra_credits?: number;
           gift_credits?: number;
           id?: never;
           import_file_id?: string | null;
@@ -1183,6 +1186,51 @@ export type Database = {
           },
           {
             foreignKeyName: 'credit_entries_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      credit_extra_blocks: {
+        Row: {
+          created_at: string;
+          id: string;
+          number: number;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          reported_at: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          number: number;
+          organization_id: string;
+          period_end: string;
+          period_start: string;
+          reported_at?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          number?: number;
+          organization_id?: string;
+          period_end?: string;
+          period_start?: string;
+          reported_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'credit_extra_blocks_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'credit_extra_blocks_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';
@@ -5493,7 +5541,6 @@ export type Database = {
           organization_id: string;
           plan: Database['public']['Enums']['subscription_plan'];
           price_version: string | null;
-          sms_cap_factor: number;
           status: Database['public']['Enums']['subscription_status'];
           stripe_account: string | null;
           stripe_customer_id: string | null;
@@ -5515,7 +5562,6 @@ export type Database = {
           organization_id: string;
           plan: Database['public']['Enums']['subscription_plan'];
           price_version?: string | null;
-          sms_cap_factor?: number;
           status: Database['public']['Enums']['subscription_status'];
           stripe_account?: string | null;
           stripe_customer_id?: string | null;
@@ -5537,7 +5583,6 @@ export type Database = {
           organization_id?: string;
           plan?: Database['public']['Enums']['subscription_plan'];
           price_version?: string | null;
-          sms_cap_factor?: number;
           status?: Database['public']['Enums']['subscription_status'];
           stripe_account?: string | null;
           stripe_customer_id?: string | null;
@@ -6696,6 +6741,42 @@ export type Database = {
           },
         ];
       };
+      usage_extras: {
+        Row: {
+          ceiling_cents: number;
+          kind: Database['public']['Enums']['usage_extra_kind'];
+          organization_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          ceiling_cents: number;
+          kind: Database['public']['Enums']['usage_extra_kind'];
+          organization_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          ceiling_cents?: number;
+          kind?: Database['public']['Enums']['usage_extra_kind'];
+          organization_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'usage_extras_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'usage_extras_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       usage_notices: {
         Row: {
           kind: string;
@@ -7415,6 +7496,7 @@ export type Database = {
       charge_credits: {
         Args: {
           p_allowance: number;
+          p_block_cents?: number;
           p_credits: number;
           p_import_file_id: string;
           p_import_id: string;
@@ -7433,6 +7515,7 @@ export type Database = {
         Returns: {
           balance: number;
           charged: number;
+          extra_blocks: number;
           gift_left: number;
           refused: boolean;
         }[];
@@ -7449,7 +7532,7 @@ export type Database = {
       claim_sms_send: {
         Args: {
           p_allowance: number;
-          p_cap: number;
+          p_extra_cents: number;
           p_kind: Database['public']['Enums']['sms_kind'];
           p_organization_id: string;
           p_period_end: string;
@@ -7609,6 +7692,8 @@ export type Database = {
         };
         Returns: {
           balance: number;
+          extra: number;
+          extra_left: number;
           gift_left: number;
           granted: number;
           shortfall: number;
@@ -7622,6 +7707,8 @@ export type Database = {
           p_period_start: string;
         };
         Returns: {
+          extra: number;
+          extra_used: number;
           granted: number;
           used: number;
         }[];
@@ -8962,6 +9049,7 @@ export type Database = {
       training_phase: 'introductory_general' | 'workplace' | 'periodic' | 'supplementary';
       training_source: 'app' | 'paper';
       training_state: 'untrained' | 'current' | 'due' | 'overdue';
+      usage_extra_kind: 'sms' | 'credits';
       work_system_component: 'executant' | 'work_task' | 'means_of_production' | 'work_environment';
       workplace_kind: 'fixed_space' | 'mobile_site';
     };
@@ -9197,6 +9285,7 @@ export const Constants = {
       training_phase: ['introductory_general', 'workplace', 'periodic', 'supplementary'],
       training_source: ['app', 'paper'],
       training_state: ['untrained', 'current', 'due', 'overdue'],
+      usage_extra_kind: ['sms', 'credits'],
       work_system_component: ['executant', 'work_task', 'means_of_production', 'work_environment'],
       workplace_kind: ['fixed_space', 'mobile_site'],
     },

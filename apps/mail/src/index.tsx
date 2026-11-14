@@ -1,6 +1,8 @@
 import {
   type EmployeesOverStepNoticeEmail,
   employeesOverStepNoticeEmailSchema,
+  type ExtrasNoticeEmail,
+  extrasNoticeEmailSchema,
   type MailReceipt,
   type MailService,
   type OrganizationInvitationEmail,
@@ -33,6 +35,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import EmployeesOverStepNotice, {
   subject as employeesOverStepNoticeSubject,
 } from './emails/employees-over-step-notice';
+import ExtrasNotice, { subject as extrasNoticeSubject } from './emails/extras-notice';
 import OrganizationInvitation, {
   subject as invitationSubject,
 } from './emails/organization-invitation';
@@ -187,6 +190,16 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: employeesOverStepNoticeSubject(notice),
       body: <EmployeesOverStepNotice {...notice} />,
+    });
+  }
+
+  async sendExtrasNotice(input: ExtrasNoticeEmail): Promise<MailReceipt> {
+    const { to, ...notice } = extrasNoticeEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: extrasNoticeSubject(notice),
+      body: <ExtrasNotice {...notice} />,
     });
   }
 }

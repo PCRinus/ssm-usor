@@ -449,6 +449,7 @@ export const helpTopics = {
     path: '/organizatie/abonament/',
     anchor: 'contul-doar-pentru-citire',
   },
+  'organizatie.extra': { path: '/organizatie/abonament/', anchor: 'extra' },
   'organizatie.perioada-de-proba': { path: '/organizatie/abonament/', anchor: 'perioada-de-probă' },
   'organizatie.plata-nereusita': {
     path: '/organizatie/abonament/',

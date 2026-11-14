@@ -38,13 +38,14 @@ const tester: SmsSubscription = {
   tester_allowances: true,
 };
 
-function setUp(options: { granted?: number; owner?: boolean } = {}) {
+function setUp(options: { granted?: number; owner?: boolean; ceilingCents?: number } = {}) {
   const usage = { used: 0, overage: 0, granted: options.granted ?? 0 };
   const recorded = new Set<string>();
   const key = (organization: string, periodStart: string, kind: string) =>
     `${organization}|${periodStart}|${kind}`;
   const store = {
     periodUsage: vi.fn(async () => ({ ...usage })),
+    smsCeiling: vi.fn(async () => options.ceilingCents ?? null),
     recordNotice: vi.fn(async (organization: string, periodStart: string, kind: string) => {
       const entry = key(organization, periodStart, kind);
       if (recorded.has(entry)) return false;
@@ -69,12 +70,26 @@ function setUp(options: { granted?: number; owner?: boolean } = {}) {
   });
   const at = (used: number, row: SmsSubscription | null = paid) => {
     usage.used = used;
+    usage.overage = Math.max(0, used - 50 - usage.granted);
     return notices(organizationId, row, now);
   };
   return { store, sendSmsUsageNotice, at, recorded };
 }
 
 describe('the usage notices', () => {
+  it('tells the owner at the allowance that the codes go on as extras, when extras are on', async () => {
+    const { at, sendSmsUsageNotice } = setUp({ ceilingCents: 1000 });
+
+    expect(await at(40)).toBe('sms_80');
+    expect(sendSmsUsageNotice).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: 'sms_80', billed: true, cap: 150 })
+    );
+    expect(await at(50)).toBe('sms_100');
+    expect(sendSmsUsageNotice).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: 'sms_100', billed: true, used: 50, included: 50, cap: 150 })
+    );
+  });
+
   it('emails the owner of a paid plan once at 80 % and once at 100 %, where the codes stop', async () => {
     const { at, sendSmsUsageNotice } = setUp();
 

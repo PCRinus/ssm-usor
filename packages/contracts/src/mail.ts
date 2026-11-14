@@ -143,12 +143,12 @@ export const signatureRequestEmailSchema = z.object({
 
 export type SignatureRequestEmail = z.infer<typeof signatureRequestEmailSchema>;
 
-export const smsUsageNoticeKinds = ['sms_80', 'sms_100', 'sms_cap'] as const;
+export const smsUsageNoticeKinds = ['sms_80', 'sms_100'] as const;
 export type SmsUsageNoticeKind = (typeof smsUsageNoticeKinds)[number];
 
 /**
- * Tells an organization's owner that the month's signing codes by SMS reached 80 %, all those
- * included, or the safety cap (ADR 029). Once per kind and month.
+ * Tells an organization's owner that the month's signing codes by SMS reached 80 % or all those
+ * included (ADR 029). Once per kind and month.
  */
 export const smsUsageNoticeEmailSchema = z.object({
   to: z.email(),
@@ -157,14 +157,14 @@ export const smsUsageNoticeEmailSchema = z.object({
   /** "Start" or "Profesional"; null for a tester's trial, whose codes are no plan's. */
   planName: z.string().trim().min(2).max(40).nullable(),
   /**
-   * True once the first payment went through: codes past the included ones go on and are billed,
-   * up to the cap. False for a hard stop at the included ones.
+   * True when the owner turned SMS extras on: codes past the included ones go on and are billed,
+   * up to the ceiling. False for a stop at the included ones.
    */
   billed: z.boolean(),
   used: z.int().min(0),
   /** The plan's codes plus any granted by hand. */
   included: z.int().min(1),
-  /** Null for a hard stop. */
+  /** The included codes plus the extra ones the ceiling allows; null for a stop. */
   cap: z.int().min(1).nullable(),
   overageCents: z.int().min(1),
   periodStart: z.iso.datetime({ offset: true }),
@@ -199,6 +199,28 @@ export const employeesOverStepNoticeEmailSchema = z.object({
 
 export type EmployeesOverStepNoticeEmail = z.infer<typeof employeesOverStepNoticeEmailSchema>;
 
+/**
+ * Tells an organization's owner that one kind of extras reached 80 % of what its monthly ceiling
+ * buys, or the ceiling itself (ADR 029, amendment of 2026-11-14). Once per kind, level and month.
+ */
+export const extrasNoticeEmailSchema = z.object({
+  to: z.email(),
+  kind: z.enum(['sms', 'credits']),
+  level: z.enum(['near', 'reached']),
+  organizationName: z.string().trim().min(2).max(200),
+  ceilingCents: z.int().min(100),
+  // Without VAT.
+  spentCents: z.int().min(0),
+  // Extra codes sent, or extra credits bought, this month; and what the ceiling buys.
+  used: z.int().min(0),
+  limit: z.int().min(0),
+  /** The first moment of the next month, which bills this one and starts again. */
+  periodEnd: z.iso.datetime({ offset: true }),
+  subscriptionUrl: z.url(),
+});
+
+export type ExtrasNoticeEmail = z.infer<typeof extrasNoticeEmailSchema>;
+
 /** `id` is the provider's message id, or null when the email was only logged. */
 export type MailReceipt = { id: string | null };
 
@@ -221,4 +243,5 @@ export interface MailService {
   sendSignatureRequest(input: SignatureRequestEmail): Promise<MailReceipt>;
   sendSmsUsageNotice(input: SmsUsageNoticeEmail): Promise<MailReceipt>;
   sendEmployeesOverStepNotice(input: EmployeesOverStepNoticeEmail): Promise<MailReceipt>;
+  sendExtrasNotice(input: ExtrasNoticeEmail): Promise<MailReceipt>;
 }

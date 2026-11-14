@@ -63,7 +63,6 @@ const tracked = [
   'current_period_end',
   'invoice_email',
   'billing_anchor_at',
-  'sms_cap_factor',
 ] as const satisfies (keyof SubscriptionRow)[];
 
 const sameInstant = (a: unknown, b: unknown) =>

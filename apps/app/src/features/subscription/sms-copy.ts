@@ -47,6 +47,7 @@ const toneOf: Record<BillingSmsUsage['state'], MeterTone> = {
   none: 'normal',
   ok: 'normal',
   near: 'warning',
+  extra: 'over',
   stopped: 'danger',
 };
 
@@ -71,21 +72,39 @@ export function smsMeterFor(sms: BillingSmsUsage, reader: SmsReader): SmsMeter {
   const until = renews ? ` până pe ${renews}` : '';
 
   let hint: string;
+  const past = sms.extrasOn
+    ? `Peste ${included}, codurile pleacă mai departe prin SMS, ca extra`
+    : `Peste ${included}, ${byEmail}${until}`;
   switch (sms.state) {
+    case 'extra':
+      return {
+        used: sms.used,
+        limit: sms.included + sms.overage,
+        value:
+          sms.overage > 0
+            ? `${included} + ${formatCount(sms.overage)} extra`
+            : `${formatCount(sms.used)} din ${included}`,
+        tone: 'over',
+        hint: `Ai folosit cele ${included} incluse. Codurile pleacă mai departe prin SMS, ca extra.`,
+      };
     case 'ok':
       hint =
         stop === 'tester'
           ? `Cont de test: ${included} pe lună, fără costuri în plus. La ${included}, codurile pleacă pe email${until}.`
-          : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. Peste ${included}, ${byEmail}${until}.`;
+          : `Se numără doar codurile de semnare; invitațiile și codurile de conectare nu. ${past}.`;
       break;
     case 'near':
-      hint = `Mai ai ${formatCount(sms.included - sms.used)}${until}. Apoi ${byEmail}.`;
+      hint = sms.extrasOn
+        ? `Mai ai ${formatCount(sms.included - sms.used)} incluse${until}. Apoi codurile pleacă mai departe prin SMS, ca extra.`
+        : `Mai ai ${formatCount(sms.included - sms.used)}${until}. Apoi ${byEmail}.`;
       break;
     default:
       hint =
         stop === 'tester'
           ? `Cont de test: ai folosit cele ${included} din luna aceasta.${renews ? ` Până pe ${renews},` : ''} ${byEmail}. Ai nevoie de mai multe? Scrie-ne la ${contactEmail}.`
-          : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
+          : sms.extrasOn || sms.overage > 0
+            ? `Ai atins plafonul pentru codurile extra.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`
+            : `Ai folosit cele ${included} ale lunii.${renews ? ` Până pe ${renews},` : ''} ${byEmail}.`;
   }
 
   return {
@@ -120,25 +139,50 @@ export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader): SmsBar | nul
   const on = renews ? ` pe ${renews}` : '';
   const until = renews ? `Până pe ${renews} pleacă pe email` : 'Pleacă pe email';
   switch (sms.state) {
+    case 'extra':
+      return {
+        kind: 'sms',
+        state: 'near',
+        lead: `Ai trecut de cele ${included} de semnare prin SMS incluse.`,
+        short: `Peste cele ${formatCount(sms.included)} SMS incluse.`,
+        detail: 'Codurile pleacă mai departe prin SMS, ca extra, până la plafonul lunar.',
+        closable: true,
+      };
+    case 'stopped':
+      if (sms.extrasOn || sms.overage > 0) {
+        return {
+          kind: 'smsStop',
+          state: 'stopped',
+          lead: 'Codurile de semnare nu mai pleacă prin SMS.',
+          short: 'Plafonul Extra e atins.',
+          detail: `Ai atins plafonul pentru codurile extra. ${until}; cine nu are email nu poate semna.`,
+          closable: false,
+        };
+      }
+      return stoppedBar(reader, included, until);
     case 'near':
       return {
         kind: 'sms',
         state: 'near',
         lead: `Ai folosit ${formatCount(sms.used)} din cele ${included} de semnare prin SMS.`,
         short: `${formatCount(sms.used)} din ${included} SMS.`,
-        detail: `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă pe email.`,
+        detail: sms.extrasOn
+          ? `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă mai departe prin SMS, ca extra.`
+          : `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă pe email.`,
         closable: true,
-      };
-    case 'stopped':
-      return {
-        kind: 'smsStop',
-        state: 'stopped',
-        lead: 'Codurile de semnare nu mai pleacă prin SMS.',
-        short: 'Codurile SMS s-au oprit.',
-        detail: `Ai folosit cele ${included} ${stopWords[reader.stop]}. ${until}; cine nu are email nu poate semna.`,
-        closable: false,
       };
     default:
       return null;
   }
+}
+
+function stoppedBar(reader: SmsReader, included: string, until: string): SmsBar {
+  return {
+    kind: 'smsStop',
+    state: 'stopped',
+    lead: 'Codurile de semnare nu mai pleacă prin SMS.',
+    short: 'Codurile SMS s-au oprit.',
+    detail: `Ai folosit cele ${included} ${stopWords[reader.stop]}. ${until}; cine nu are email nu poate semna.`,
+    closable: false,
+  };
 }

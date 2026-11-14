@@ -447,7 +447,7 @@ export const pricingPage = {
     },
     {
       q: 'Ce se întâmplă când termin codurile SMS sau creditele AI ale lunii?',
-      a: `Nu plătești nimic în plus până nu permiți tu. Până atunci, când se termină ce include luna, codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Dacă permiți, alegi o limită pe lună și plătești doar ce folosești peste ce include planul, până la limita ta: ${eur(extras.sms)} pentru fiecare cod prin SMS în plus și ${eur(extras.credits)} pentru fiecare ${count(extras.creditsPer, 'credite AI')} în plus.`,
+      a: `Cât timp Extra e oprit, nu plătești nimic în plus: când se termină ce include luna, codurile de semnare pleacă pe email, iar un import pe care creditele AI rămase nu-l acoperă așteaptă luna următoare (unul mai mic pornește). Dacă vrei să continui, pornești Extra, separat pentru SMS și pentru creditele AI, și alegi pentru fiecare o limită pe lună; plătești doar ce folosești peste ce include planul, până la limita ta: ${eur(extras.sms)} + TVA pentru fiecare cod prin SMS în plus și ${eur(extras.credits)} + TVA pentru fiecare pachet de ${count(extras.creditsPer, 'credite AI')} în plus, folosit după creditele lunii și cele de bun venit.`,
     },
     {
       q: 'Pot renunța oricând?',
@@ -524,7 +524,7 @@ export const calculator = {
     title: 'Enterprise, ofertă personalizată',
     text: `Peste ${count(maxWorkers, 'lucrători')} sau peste ${maxUsers} utilizatori.`,
   },
-  extra: `Dacă într-o lună termini codurile SMS sau creditele AI incluse, nu plătești nimic în plus: codurile de semnare pleacă pe email, iar importurile noi așteaptă luna următoare. Dacă vrei să continui, poți permite plata pentru ce folosești în plus, până la o limită pe lună aleasă de tine: ${eur(extras.sms)} pentru fiecare SMS și ${eur(extras.credits)} pentru fiecare ${count(extras.creditsPer, 'credite AI')}.`,
+  extra: `Dacă într-o lună termini codurile SMS sau creditele AI incluse și Extra e oprit, nu plătești nimic în plus: codurile de semnare pleacă pe email, iar un import pe care creditele rămase nu-l acoperă așteaptă luna următoare. Dacă vrei să continui, pornești Extra și alegi o limită pe lună: ${eur(extras.sms)} + TVA pentru fiecare SMS și ${eur(extras.credits)} + TVA pentru fiecare pachet de ${count(extras.creditsPer, 'credite AI')}.`,
 };
 
 export function membersLabel(members: number): string {

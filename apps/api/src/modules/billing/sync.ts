@@ -1,12 +1,14 @@
 import type Stripe from 'stripe';
 
 import type { AdminClient } from '../../lib/admin-db';
+import { extrasStore } from '../extras/store';
 import { choiceFromItems } from './rules';
 import {
   type ChangeRecord,
   findSubscriptionByCustomer,
   loadSubscription,
   organizationExists,
+  recordChange,
   saveSubscription,
   type SubscriptionFields,
   type SubscriptionRow,
@@ -178,8 +180,21 @@ export async function syncSubscription(
   if (!follows(previous, subscription)) return previous;
   const next = stateFromStripe(subscription, previous, context);
   if (!next) return previous;
-  return saveSubscription(db, organizationId, previous, next, {
+  const saved = await saveSubscription(db, organizationId, previous, next, {
     ...context.record,
     details: { ...context.record.details, stripe_subscription: subscription.id },
+  });
+  if (next.status === 'canceled') await extrasEndWith(db, organizationId);
+  return saved;
+}
+
+// A subscription taken out again later starts with extras off, as every new one does.
+async function extrasEndWith(db: AdminClient, organizationId: string) {
+  const ended = await extrasStore(db).turnOffAll(organizationId);
+  if (ended.length === 0) return;
+  await recordChange(db, organizationId, {
+    source: 'stripe',
+    change: 'extras_ended',
+    details: { kinds: ended },
   });
 }

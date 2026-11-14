@@ -9,6 +9,8 @@ import type { Context } from 'hono';
 import { adminClient } from '../../lib/admin-db';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { createExtrasNotices, extrasNoticeDeps } from '../extras/notices';
+import { extrasUnavailable } from '../extras/policy';
 import { createUsageNotices, noticeRecipient } from './notices';
 import { type OverageSend, reportOverageLater } from './overage';
 import { type SmsPolicy, smsPolicy, type SmsSubscription } from './policy';
@@ -85,7 +87,7 @@ export function createSmsSender(deps: {
         kind: input.kind,
         period: policy.period,
         allowance: counted ? policy.allowance : null,
-        cap: counted ? policy.cap : null,
+        extraCents: counted ? policy.extraCents : null,
       });
       if ('refusal' in claim) {
         deps.onCounted?.(input.organizationId, row);
@@ -111,7 +113,7 @@ export function createSmsSender(deps: {
         console.error(`SMS ${claim.id} went out but was not marked sent.`);
         return { sent: true, id: claim.id, overage: claim.overage, receipt };
       }
-      if (claim.overage && policy.bills && row?.stripe_customer_id) {
+      if (claim.overage && row?.stripe_customer_id) {
         deps.onOverage({ id: claim.id, sentAt, customerId: row.stripe_customer_id });
       }
       return { sent: true, id: claim.id, overage: claim.overage, receipt };
@@ -135,24 +137,28 @@ function waitUntilOf(c: Context<ApiEnv>) {
 export function smsSenderFor(env: ApiEnv['Bindings'], later: (work: Promise<unknown>) => void) {
   const db = adminClient(env);
   const store = smsUsageStore(db);
-  const notices = createUsageNotices({
-    store,
-    recipient: (organizationId) => noticeRecipient(db, organizationId),
+  const noticeDeps = {
+    recipient: (organizationId: string) => noticeRecipient(db, organizationId),
     mail: env.MAIL,
     subscriptionUrl: () => new URL('/organizatie/abonament', appOrigin(env)).href,
-  });
+  };
+  const notices = createUsageNotices({ store, ...noticeDeps });
+  const extrasNotices = createExtrasNotices(extrasNoticeDeps(db, noticeDeps));
+  const failed = (organizationId: string) => (error: unknown) => {
+    console.error(
+      `Usage notice for ${organizationId} failed: ${error instanceof Error ? error.message : 'unknown'}`
+    );
+  };
   return createSmsSender({
     sms: env.SMS,
     store,
     onOverage: (send) => later(reportOverageLater(env, send)),
-    onCounted: (organizationId, subscription) =>
-      later(
-        notices(organizationId, subscription, new Date()).catch((error: unknown) => {
-          console.error(
-            `Usage notice for ${organizationId} failed: ${error instanceof Error ? error.message : 'unknown'}`
-          );
-        })
-      ),
+    onCounted: (organizationId, subscription) => {
+      later(notices(organizationId, subscription, new Date()).catch(failed(organizationId)));
+      if (extrasUnavailable(subscription) === null) {
+        later(extrasNotices(organizationId, 'sms', new Date()).catch(failed(organizationId)));
+      }
+    },
   });
 }
 

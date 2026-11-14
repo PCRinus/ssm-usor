@@ -279,7 +279,7 @@ describe('the SMS bar', () => {
   });
 
   it('shows the SMS bar once the trial bar is closed for the day', async () => {
-    const tester = smsUsage({ used: 252, cap: null, capFactor: null, state: 'near' });
+    const tester = smsUsage({ used: 252, state: 'near' });
     await renderRouted(<SubscriptionBar subscription={trial(5)} sms={tester} isOwner canAct />);
     expect((await screen.findByTestId('subscription-bar')).dataset.kind).toBe('trial');
     await userEvent.click(screen.getByTestId('subscription-bar-close'));
@@ -379,5 +379,35 @@ describe('the credits meter in the badge', () => {
       '85 / 300'
     );
     expect(screen.queryByTestId('subscription-details-gift')).toBeNull();
+  });
+});
+
+describe('the SMS bar with extras on', () => {
+  it('says the codes go on as extras, never that they go by email', async () => {
+    await renderRouted(
+      <SubscriptionBar
+        subscription={active}
+        sms={smsUsage({ used: 85, included: 100, state: 'near', extrasOn: true })}
+        isOwner
+        canAct
+      />
+    );
+    const bar = await screen.findByTestId('subscription-bar');
+    expect(bar.textContent).toContain('codurile pleacă mai departe prin SMS, ca extra');
+    expect(bar.textContent).not.toContain('pleacă pe email');
+  });
+
+  it('says the ceiling is reached, to a member too, who has no count', async () => {
+    await renderRouted(
+      <SubscriptionBar
+        subscription={active}
+        sms={smsUsage({ used: 100, included: 100, overage: 0, state: 'stopped', extrasOn: true })}
+        isOwner={false}
+        canAct={false}
+      />
+    );
+    expect((await screen.findByTestId('subscription-bar')).textContent).toContain(
+      'Ai atins plafonul pentru codurile extra.'
+    );
   });
 });

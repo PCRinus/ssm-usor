@@ -5,6 +5,7 @@ import {
   billingPlans,
   type BillingPreview,
   type BillingSmsUsage,
+  creditsExtra,
   planStep,
   smsOverage,
   type SubscriptionSummary,
@@ -56,6 +57,9 @@ export function creditsUsage(overrides: Partial<BillingCreditsUsage> = {}): Bill
     shortfall: 0,
     left: 2610,
     giftLeft: 8640,
+    extra: 0,
+    extraLeft: 0,
+    extrasOn: false,
     period: 'month',
     periodStart: inDays(-17),
     periodEnd: inDays(14),
@@ -71,9 +75,8 @@ export function smsUsage(overrides: Partial<BillingSmsUsage> = {}): BillingSmsUs
     included: 300,
     allowance: 300,
     granted: 0,
-    cap: null,
-    capFactor: null,
     overage: 0,
+    extrasOn: false,
     periodStart: inDays(-17),
     periodEnd: inDays(14),
     state: 'ok',
@@ -97,6 +100,7 @@ export const catalogue: BillingOverview['catalogue'] = {
     })),
   })),
   smsOverageCents: smsOverage.price.unitAmount,
+  creditBlockCents: creditsExtra.price.unitAmount,
 };
 
 type Subscription = NonNullable<BillingOverview['subscription']>;
@@ -149,6 +153,7 @@ export const noChoices: Owner['choices'] = {
 export const ownerPart = (overrides: Partial<Owner> = {}): Owner => ({
   nextPayment: null,
   smsOverageCents: null,
+  extrasInPreviewCents: null,
   card: null,
   invoiceEmail: null,
   ownerEmail: 'ana@protectconsult.test',
@@ -189,9 +194,8 @@ export function overviewWith({
         included: limits?.sms ?? 0,
         allowance: limits?.sms ?? 0,
         granted: 0,
-        cap: null,
-        capFactor: null,
         overage: 0,
+        extrasOn: false,
         periodStart: null,
         periodEnd: null,
         state: limits?.sms ? 'ok' : 'none',
@@ -205,6 +209,9 @@ export function overviewWith({
         shortfall: 0,
         left: 300,
         giftLeft: 0,
+        extra: 0,
+        extraLeft: 0,
+        extrasOn: false,
         period: 'trial',
         periodStart: '2026-10-01T08:00:00.000Z',
         periodEnd: '2026-10-31T08:00:00.000Z',
@@ -213,6 +220,11 @@ export function overviewWith({
       },
     },
     catalogue,
+    extras: {
+      unavailable: subscription?.status === 'active' ? null : 'trial',
+      sms: { enabled: false, ceilingCents: null, limit: null, used: null, spentCents: null },
+      credits: { enabled: false, ceilingCents: null, limit: null, used: null, spentCents: null },
+    },
     owner,
   };
 }

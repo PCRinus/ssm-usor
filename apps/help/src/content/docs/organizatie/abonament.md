@@ -14,6 +14,8 @@ topics:
     heading: Cât folosești
   - id: organizatie.credite
     heading: Creditele AI
+  - id: organizatie.extra
+    heading: Extra
   - id: organizatie.schimbarea-planului
     heading: Schimbarea planului
   - id: organizatie.plata-si-facturi
@@ -37,12 +39,15 @@ sources:
   - apps/mail/src/emails/employees-over-step-notice.tsx
   - supabase/migrations/20261117120000_employees_over_step.sql
   - apps/mail/src/emails/sms-usage-notice.tsx
+  - apps/mail/src/emails/extras-notice.tsx
   - apps/app/src/features/subscription/*.tsx
   - apps/app/src/features/subscription/sms-copy.ts
   - apps/api/src/modules/sms-usage/policy.ts
   - apps/app/src/features/subscription/credits-copy.ts
   - apps/api/src/modules/credits/policy.ts
   - docs/architecture/adr-030-import-from-documents.md
+  - apps/api/src/modules/extras/policy.ts
+  - apps/app/src/features/subscription/extras-copy.ts
   - apps/app/src/features/subscription/checkout/*.tsx
 ---
 
@@ -52,10 +57,11 @@ Abonamentul e al organizației, nu al unei persoane. Îl alege, îl schimbă și
 
 O găsești în **Organizație**, la tabul **Abonament**, după **Abilitări**. Ajungi tot aici din insigna planului, de lângă sigla din capul paginii (pe telefon, din meniu, la **Abonament**, deasupra contului tău), și din banda care apare deasupra paginii când perioada de probă se apropie de sfârșit, când o plată nu a reușit sau când ai folosit 80 % din codurile de semnare prin SMS ale lunii (vezi [Cât folosești](#cât-folosești)).
 
-Pagina are trei părți:
+Pagina are patru părți:
 
 - **planul**: numele lui, treapta de lucrători, dacă e lunar sau anual, starea și următoarea plată, plus TVA;
 - **Cât folosești**: lucrătorii, utilizatorii, codurile de semnare prin SMS și creditele AI, față de cât include planul (vezi [Cât folosești](#cât-folosești));
+- **Extra**: codurile SMS și creditele AI de peste plan, pe care le pornești tu, fiecare cu plafonul lui lunar (vezi [Extra](#extra)). Pe telefon apare sub **Cât folosești**;
 - **Plată și facturi**: cardul, adresa la care pleacă facturile și lista facturilor (vezi [Plata și facturile](#plata-și-facturile)).
 
 Prețurile din aplicație sunt fără TVA, la care se adaugă TVA de 21 %. Totalurile arată și suma cu TVA.
@@ -127,9 +133,9 @@ Poți adăuga din nou, pe loc, când treci pe o treaptă care îi acoperă pe to
 
 În perioada de probă numărul se compară cu limita probei, de 5.000 de lucrători, iar pe Enterprise nu există treaptă. Cât timp abonamentul e anulat sau contul e doar pentru citire, termenul nu curge; dacă reactivezi abonamentul și ai tot mai mulți lucrători decât treapta, ai din nou o lună întreagă.
 
-Când ai folosit toate codurile de semnare prin SMS ale lunii, nu plătești nimic în plus: până la luna următoare, codurile pleacă pe email, iar un lucrător fără email nu le mai primește prin SMS.
+Când ai folosit toate codurile de semnare prin SMS ale lunii, ce urmează depinde de **Extra** (vezi [Extra](#extra)). Cu Extra oprit, nu plătești nimic în plus: până la luna următoare, codurile pleacă pe email, iar un lucrător fără email nu le mai primește prin SMS. Cu Extra pornit pentru codurile SMS, codurile pleacă mai departe prin SMS până la plafonul ales, iar bara arată, de exemplu, „100 + 37 extra”.
 
-Adminul organizației primește un email când au plecat 80 % din codurile incluse în lună și când au plecat toate, fiecare o singură dată pe lună. Emailul de la 100 % spune că, până la luna următoare, codurile nu mai pleacă prin SMS. Un lucrător fără email care cere atunci un cod de semnare vede în portal că trebuie să vorbească cu specialistul SSM; dacă îi adaugi o adresă de email, codul îi vine pe email și semnează pe loc.
+Adminul organizației primește un email când au plecat 80 % din codurile incluse în lună și când au plecat toate, fiecare o singură dată pe lună. Emailul de la 100 % spune ce urmează: cu Extra oprit, că până la luna următoare codurile nu mai pleacă prin SMS; cu Extra pornit, că pleacă mai departe ca extra, până la plafon. Un lucrător fără email care cere atunci un cod de semnare vede în portal că trebuie să vorbească cu specialistul SSM; dacă îi adaugi o adresă de email, codul îi vine pe email și semnează pe loc.
 
 SMS-urile pleacă doar la numere din România (+40). Un lucrător cu un număr din altă țară se invită pe email.
 
@@ -156,12 +162,38 @@ La prima plată primești, o singură dată, **credite AI de bun venit**, ca să
 Bara creditelor se colorează la fel ca a codurilor SMS:
 
 - **când mai ai puține**, sub o cincime din cele ale lunii, cu cele de bun venit cu tot, devine galbenă și îți spune câte mai ai;
-- **când s-au terminat**, devine roșie: importurile noi așteaptă reînnoirea și nu plătești nimic în plus;
+- **când s-au terminat**, devine roșie: cu Extra oprit, importurile noi așteaptă reînnoirea și nu plătești nimic în plus;
+- **cu credite AI extra**, arată, de exemplu, „1.250 + 100 extra”: cele incluse, plus cele extra cumpărate luna aceasta (un pachet de 100 se plătește când folosești primul credit din el);
 - **sub zero**: un import care găsește mai multe pagini scanate decât credite merge până la capăt, iar ce lipsește se scade din luna următoare, de exemplu „−4 · se scad din luna viitoare”. Soldul nu coboară sub −150. Până la reînnoire nu poți porni un import nou.
 
 Dacă un import nu reușește, creditele lui se întorc; nu se întorc pentru un import citit și lăsat apoi neterminat. Unui cont de test îi dăm 1.500 de credite AI pe lună, fără credite de bun venit; la 1.500, importurile se opresc până la reînnoire.
 
 Insigna planului arată și ea creditele lunii și pe cele de bun venit rămase.
+
+## Extra
+
+Peste ce include treapta ta, poți porni **Extra**, separat pentru două lucruri:
+
+- **Coduri SMS extra**: 0,10 € pentru fiecare cod de semnare trimis prin SMS după cele incluse în lună;
+- **Credite AI extra**: 1,50 € pentru fiecare 100 de credite AI după cele ale lunii și după cele de bun venit.
+
+La amândouă se adaugă TVA. Extra e oprit până îl pornești tu. Cât e oprit, totul merge ca până acum: peste ce include planul, codurile de semnare pleacă pe email, iar un import pe care creditele rămase nu-l acoperă așteaptă luna următoare (unul mai mic pornește), fără să plătești nimic în plus.
+
+**Cum îl pornești.** În cardul **Extra** din pagina **Abonament**, apasă comutatorul de lângă codurile SMS sau de lângă creditele AI, scrie **plafonul lunar** în euro și apasă **Pornește**. Plafonul e suma cea mai mare pe care o poți plăti pentru acel extra într-o lună: de la 1 € la 500 €, în euro întregi, fără TVA. Fiecare extra are plafonul lui. Sub câmp vezi ce înseamnă plafonul: de exemplu, la 10 €, până la 100 de coduri SMS extra pe lună. După ce apeși **Pornește** nu mai ai nimic de confirmat: un mesaj scurt îți spune că Extra e pornit.
+
+**Plafonul se schimbă oricând** cu **Modifică**, iar Extra se oprește oricând cu același comutator, fără confirmare. Schimbarea se aplică pe loc, pentru luna în curs. Ce s-a folosit deja rămâne de plătit.
+
+**Codurile SMS extra.** După codurile incluse, codurile de semnare pleacă mai departe prin SMS, câte 0,10 €, cât timp încap în plafon: 10 € înseamnă 100 de coduri extra. Când plafonul e atins, până la luna următoare codurile pleacă pe email, iar un lucrător fără email vede în portal că trebuie să vorbească cu specialistul SSM.
+
+**Creditele AI extra se cumpără în pachete de 100.** Un pachet costă 1,50 € și se plătește când folosești primul credit din el. Plafonul cumpără doar pachete întregi: 10 € ajung pentru 6 pachete, adică 600 de credite AI, cel mult 9 €. Cu 1 € nu ajungi la un pachet. Plafonul e atins când în ce a rămas din el nu mai încape un pachet de 1,50 €: la 10 €, după 6 pachete. Ordinea e mereu aceeași: întâi creditele AI ale lunii, apoi cele de bun venit, apoi cele extra. Ce rămâne nefolosit dintr-un pachet se folosește mai departe în aceeași lună și nu se adună la luna următoare. Un import pornește dacă îi ajung creditele lunii, cele de bun venit și pachetele pe care plafonul le mai poate cumpăra. Dacă un import nu reușește, creditele lui se întorc în cont, dar pachetul cumpărat rămâne plătit. Pachetele se cumpără doar pentru ce folosește importul: dacă luna a coborât sub zero, diferența se scade tot din luna următoare, nu se plătește cu pachete.
+
+**Ce plătești și când.** Extra apare pe factura următoare doar cât l-ai folosit. Pe pagina **Abonament**, cardul **Extra** arată, pentru fiecare, cât s-a folosit luna aceasta din plafon, de exemplu „37 de coduri extra până azi: 3,70 € din 10 €”, iar la plan, următoarea plată arată și extra de până azi. Pe un plan anual, extra se facturează lunar, separat de plata anuală.
+
+**Când nu se poate porni.** În perioada de probă, Extra nu se poate porni: se poate după prima plată. Cât timp o plată e restantă, Extra se oprește și pornește din nou după plată, cu plafonul pe care l-ai ales; între timp poți micșora plafonul sau opri Extra, dar nu-l poți porni sau mări. Dacă banca încă trebuie să confirme o plată pentru o schimbare de plan, Extra se pornește după ce plata e gata. Când abonamentul se încheie, Extra se oprește; dacă reactivezi, îl pornești din nou.
+
+**Emailuri.** Adminul primește un email când s-a folosit 80 % din plafonul unui extra și când plafonul e atins, fiecare o singură dată pe lună.
+
+Doar adminul organizației pornește Extra și alege plafonul. Colegii văd doar dacă Extra e pornit sau oprit: nu văd plafonul, nici sume, nici câte coduri sau credite extra s-au folosit. Bara lor arată cele incluse și că se folosesc extra, iar la un import fereastra le spune doar că importul poate folosi credite AI extra; dacă nu ajung, importul nu pornește.
 
 ## Schimbarea planului
 
@@ -221,4 +253,4 @@ Pagina **Abonament** funcționează și în acest timp. Cu **Alege un plan** sau
 
 ## Ce văd colegii
 
-Colegii care nu sunt admini văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor. Când sunteți peste treaptă, văd și până în ce zi se mai pot adăuga lucrători noi, sau că nu se mai pot. Nu văd sumele organizației, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS. Dacă aveți nevoie de o treaptă cu mai mulți lucrători sau de mai mulți utilizatori, adminul schimbă planul din pagina lui.
+Colegii care nu sunt admini văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor și dacă Extra e pornit sau oprit. Când sunteți peste treaptă, văd și până în ce zi se mai pot adăuga lucrători noi, sau că nu se mai pot. Nu văd sumele organizației, plafoanele, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS. Dacă aveți nevoie de o treaptă cu mai mulți lucrători sau de mai mulți utilizatori, adminul schimbă planul din pagina lui.

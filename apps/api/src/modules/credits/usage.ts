@@ -13,9 +13,17 @@ import type { SmsSubscription } from '../sms-usage/policy';
 import { type CreditPolicy, creditPolicy, welcomeCreditsOf } from './policy';
 import type { Balance, CreditsStore, ImportCreditEntry } from './store';
 
-export function creditsState(included: number | null, left: number | null, giftLeft: number) {
+// As `charge_credits` decides a charge that must be covered: while a ceiling applies the month
+// counts from zero, since its shortfall waits for the next month and is never paid with blocks.
+export function creditsState(
+  included: number | null,
+  left: number | null,
+  giftLeft: number,
+  extraLeft = 0,
+  extrasOn = false
+) {
   if (included === null || left === null) return 'unlimited' satisfies CreditsUsageState;
-  const available = left + giftLeft;
+  const available = (extrasOn ? Math.max(left, 0) : left) + giftLeft + extraLeft;
   if (left < 0 && available < 0) return 'negative' satisfies CreditsUsageState;
   if (available <= 0) return 'out' satisfies CreditsUsageState;
   return available < included * 0.2 ? 'near' : 'ok';
@@ -37,10 +45,19 @@ export function usageView(policy: CreditPolicy, balance: Balance): BillingCredit
     shortfall: balance.shortfall,
     left: balance.balance,
     giftLeft: balance.giftLeft,
+    extra: balance.extra,
+    extraLeft: balance.extraLeft,
+    extrasOn: balance.extrasOn,
     period: limited?.kind ?? 'month',
     periodStart: policy.period.start.toISOString(),
     periodEnd: policy.period.end.toISOString(),
-    state: creditsState(included, balance.balance, balance.giftLeft),
+    state: creditsState(
+      included,
+      balance.balance,
+      balance.giftLeft,
+      balance.extraLeft,
+      balance.extrasOn
+    ),
   };
 }
 

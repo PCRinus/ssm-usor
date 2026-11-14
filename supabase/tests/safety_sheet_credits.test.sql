@@ -20,7 +20,7 @@ returns timestamptz language sql as $$
 $$;
 
 create or replace function pg_temp.sheet(key text, credits int default 3, import_id uuid default null)
-returns table (charged int, refused boolean, balance int, gift_left int)
+returns table (charged int, refused boolean, balance int, gift_left int, extra_blocks int)
 language sql as $$
   select * from public.charge_credits(
     '11111111-0000-4000-8000-000000000421', 'safety_sheet', credits, import_id, null, null, key, true,

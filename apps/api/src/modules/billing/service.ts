@@ -1,8 +1,9 @@
 import {
   type BillingChoice,
   type BillingPreview,
+  type BillingProductKey,
   type CancellationReason,
-  smsOverage,
+  meteredProducts,
 } from '@ssm-usor/contracts';
 import type Stripe from 'stripe';
 
@@ -118,8 +119,19 @@ export function itemChanges(
       changes.push({ id: have.id, quantity: 0 });
     }
   }
+  if (removal === 'delete') {
+    for (const product of meteredProducts) {
+      if (!hasMetered(subscription, product.key)) {
+        changes.push({ price: priceId(catalogue, product.price.lookupKey) });
+      }
+    }
+  }
   return changes;
 }
+
+// Any version of the price counts: each version of a metered product bills the same meter.
+export const hasMetered = (subscription: Stripe.Subscription, product: BillingProductKey) =>
+  subscription.items.data.some((item) => (item.price.lookup_key ?? '').startsWith(`${product}_`));
 
 function phaseItems(choice: BillingChoice, catalogue: StripeCatalogue) {
   return [
@@ -127,7 +139,7 @@ function phaseItems(choice: BillingChoice, catalogue: StripeCatalogue) {
       price: priceId(catalogue, line.lookupKey),
       quantity: line.quantity,
     })),
-    { price: priceId(catalogue, smsOverage.price.lookupKey) },
+    ...meteredProducts.map((product) => ({ price: priceId(catalogue, product.price.lookupKey) })),
   ];
 }
 
@@ -490,12 +502,12 @@ export async function createSubscription(
   return secretOf(subscription);
 }
 
-async function releaseSchedule(billing: StripeBilling, subscription: Stripe.Subscription) {
+export async function releaseSchedule(billing: StripeBilling, subscription: Stripe.Subscription) {
   const scheduleId = idOf(subscription.schedule);
   if (scheduleId) await billing.access.stripe.subscriptionSchedules.release(scheduleId);
 }
 
-async function scheduleRenewal(
+export async function scheduleRenewal(
   billing: StripeBilling,
   subscription: Stripe.Subscription,
   target: BillingChoice

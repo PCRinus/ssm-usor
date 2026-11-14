@@ -132,7 +132,7 @@ describe('refusing an import the credits do not cover', () => {
     expect(creditsRefusal(balance, 25)).toEqual({ kind: 'none' });
     expect(noneText('client', balance)).toEqual({
       title: 'Nu mai ai credite AI',
-      text: 'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente.',
+      text: 'Ai folosit cele 1.500 de credite AI ale lunii și pe cele de bun venit. Pe 14 noiembrie primești alte 1.500 și poți porni importul. Până atunci nu poți porni un import nou din documente. Poți porni Extra pentru creditele AI din Abonament.',
     });
   });
 
@@ -270,5 +270,81 @@ describe('what an import used', () => {
         'employees'
       )
     ).toBe('Importul a folosit 98 de credite AI.');
+  });
+});
+
+describe('AI extras in the upload dialog', () => {
+  it('counts what the extras can still give to the owner', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 600, extrasOn: true })
+    )!;
+    expect(creditsRefusal(balance, 25)).toBeNull();
+    expect(leftSentence(balance, false)).toContain('plus până la 600 extra, în pachete de 100');
+  });
+
+  it('leaves the decision to the server for a member, and says extras are on without numbers', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 0, extrasOn: true, state: 'ok' }),
+      { owner: false }
+    )!;
+    expect(creditsRefusal(balance, 25)).toBeNull();
+    expect(leftSentence(balance, false)).toContain(
+      'Extra e pornit pentru creditele AI, așa că importul poate folosi și credite AI extra.'
+    );
+    expect(leftSentence(balance, false)).not.toMatch(/extra, în pachete/);
+  });
+
+  it('refuses a member once the server says the extras are used up too', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 0, extrasOn: true, state: 'out' }),
+      { owner: false }
+    )!;
+    expect(creditsRefusal(balance, 25)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('a member and blocks already bought', () => {
+  it('leaves the decision to the server while its state is not out, extras off or on', () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: 0, giftLeft: 0, extraLeft: 0, extrasOn: false, state: 'ok' }),
+      { owner: false }
+    )!;
+    expect(creditsRefusal(balance, 25)).toBeNull();
+  });
+
+  it("counts an owner's month from zero below zero while a ceiling applies", () => {
+    const balance = creditsBalance(
+      meWithCredits({ left: -150, giftLeft: 0, extraLeft: 100, extrasOn: true, state: 'near' })
+    )!;
+    expect(balance.available).toBe(100);
+    expect(creditsRefusal(balance, 100)).toBeNull();
+  });
+});
+
+describe('the hint about AI extras when the credits ran out', () => {
+  const out = { left: 0, giftLeft: 0, state: 'out' as const };
+  it('tells the owner of a paid plan where to turn them on, and a member that the admin can', () => {
+    expect(noneText('client', creditsBalance(meWithCredits(out))).text).toContain(
+      'Poți porni Extra pentru creditele AI din Abonament.'
+    );
+    expect(noneText('client', creditsBalance(meWithCredits(out), { owner: false })).text).toContain(
+      'Adminul poate porni Extra pentru creditele AI.'
+    );
+  });
+
+  it('speaks of the ceiling once extras are on and used up', () => {
+    expect(
+      noneText('client', creditsBalance(meWithCredits({ ...out, extrasOn: true }))).text
+    ).toContain('Ai folosit și creditele AI extra pe care le permite plafonul');
+  });
+
+  it('says nothing of extras to a tester or a payment past due', () => {
+    const tester = summaryOf(trialSubscription(20));
+    const pastDue = summaryOf(activeSubscription({ interval: 'month', status: 'past_due' }));
+    for (const subscription of [tester, pastDue]) {
+      expect(
+        noneText('client', creditsBalance(meWithCredits(out, subscription))).text
+      ).not.toContain('Extra');
+    }
   });
 });

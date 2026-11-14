@@ -42,6 +42,12 @@ export interface CreditsBalance {
   trial: boolean;
   // A paid subscription had its gift at the first payment; a trial and a tester's never did.
   hadGift: boolean;
+  owner: boolean;
+  // A member is told no extras counts: when extras are on, or the server says credits remain that
+  // the member cannot see (a block already bought), the server decides whether an import starts.
+  serverDecides: boolean;
+  // A paid subscription in good standing, the only one that can have extras.
+  paid: boolean;
 }
 
 type Account = {
@@ -50,16 +56,28 @@ type Account = {
 };
 
 /** Null when nothing limits the credits, or before the account answers. */
-export function creditsBalance(account: Account | undefined): CreditsBalance | null {
+export function creditsBalance(
+  account: Account | undefined,
+  { owner = true }: { owner?: boolean } = {}
+): CreditsBalance | null {
   const usage = account?.creditsThisMonth;
   if (!usage || usage.left === null || usage.state === 'unlimited') return null;
   const subscription = account.subscription ?? null;
   return {
-    available: usage.left + usage.giftLeft,
+    // While a ceiling applies, a shortfall waits for next month and the month counts from zero.
+    available:
+      (usage.extrasOn ? Math.max(usage.left, 0) : usage.left) + usage.giftLeft + usage.extraLeft,
     usage,
     renewal: renewalOf(usage, subscription),
     trial: usage.period === 'trial',
     hadGift: subscription?.status !== 'trialing',
+    owner,
+    serverDecides:
+      !owner &&
+      usage.state !== 'out' &&
+      usage.state !== 'negative' &&
+      (usage.extrasOn || usage.left + usage.giftLeft <= 0),
+    paid: Boolean(subscription?.planChosen) && subscription?.status === 'active',
   };
 }
 
@@ -83,7 +101,7 @@ export function creditsRefusal(
   balance: CreditsBalance | null,
   needed: number
 ): CreditsRefusal | null {
-  if (!balance) return null;
+  if (!balance || balance.serverDecides) return null;
   if (balance.available <= 0) return { kind: 'none' };
   if (needed <= balance.available) return null;
   return {
@@ -133,9 +151,17 @@ export function leftSentence(balance: CreditsBalance, short: boolean) {
     return `${remain} ${left} din cele ${formatCount(usage.included ?? 0)} ale perioadei de probă.`;
   }
   const month = `${remain} ${formatCount(usage.left ?? 0)} din ${formatCount(usage.included ?? 0)} luna aceasta`;
-  return usage.giftLeft > 0
-    ? `${month} și ${formatCount(usage.giftLeft)} din cadoul de bun venit.`
-    : `${month}.`;
+  const gift =
+    usage.giftLeft > 0 ? ` și ${formatCount(usage.giftLeft)} din cadoul de bun venit` : '';
+  const extra =
+    usage.extraLeft > 0
+      ? `, plus până la ${formatCount(usage.extraLeft)} extra, în pachete de 100`
+      : '';
+  const uncounted =
+    balance.serverDecides && usage.extrasOn
+      ? ' Extra e pornit pentru creditele AI, așa că importul poate folosi și credite AI extra.'
+      : '';
+  return `${month}${gift}${extra}.${uncounted}`;
 }
 
 function renewalSentence(balance: CreditsBalance, kind: ImportKind) {
@@ -190,8 +216,20 @@ export function noneText(kind: ImportKind, balance: CreditsBalance | null) {
   const what = kind === 'client' ? 'din documente' : 'din fișe';
   return {
     title: 'Nu mai ai credite AI',
-    text: `${used}${renewal ? ` ${renewal}` : ''} Până atunci nu poți porni un import nou ${what}.`,
+    text: `${used}${renewal ? ` ${renewal}` : ''} Până atunci nu poți porni un import nou ${what}.${balance ? extrasHint(balance) : ''}`,
   };
+}
+
+function extrasHint(balance: CreditsBalance) {
+  if (!balance.paid) return '';
+  if (balance.usage.extrasOn) {
+    return balance.owner
+      ? ' Ai folosit și creditele AI extra pe care le permite plafonul; îl poți mări din Abonament, la Extra.'
+      : ' S-au folosit și creditele AI extra pe care le permite plafonul ales de admin.';
+  }
+  return balance.owner
+    ? ' Poți porni Extra pentru creditele AI din Abonament.'
+    : ' Adminul poate porni Extra pentru creditele AI.';
 }
 
 export function refusalSentence(short: CreditsShort) {

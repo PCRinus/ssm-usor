@@ -74,6 +74,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /billing/portal-session`                                         | Owner in person                       | `201 { url }`, Stripe's page for the card                                                                                                                                                          |
 | `PUT /billing/invoice-email`                                           | Owner in person                       | `{ email }`, where the invoices go; null for the owner's email                                                                                                                                     |
 | `GET /billing/invoices/{stripeInvoiceId}/pdf`                          | Owner in person                       | `{ url, fileName, expiresAt }`, a one-minute link to our copy                                                                                                                                      |
+| `PUT /billing/extras/{kind}`                                           | Owner in person                       | `{ unavailable, sms, credits }` after setting `{ ceilingEuros }` (1–500, or null for off) for `sms` or `credits`                                                                                   |
 | `POST /billing/stripe-webhook`                                         | Stripe, by signature                  | `200 { received: true }` once the event is handled or was already                                                                                                                                  |
 | `GET /organization/invitations`                                        | Owner                                 | `{ "items": [ … ] }`, open and expired invitations                                                                                                                                                 |
 | `POST /organization/invitations`                                       | Owner                                 | `201` with the invitation, after emailing the link                                                                                                                                                 |
@@ -999,7 +1000,9 @@ by the setup script's metadata, and kept for ten minutes per isolate.
 
 Every billing route stays open while the organization is read-only. Only the owner in person
 calls the owner routes: a specialist and an admin impersonating the owner get `403`.
-`GET /billing` answers every member; its `owner` part (next payment, card,
+`GET /billing` answers every member; its `extras` part tells each member whether each kind of
+extras is on and, to the owner in person only, its ceiling, what it buys and what it has cost this
+month; its `owner` part (next payment, card,
 email for invoices, a change set for the renewal, the smallest step each plan needs today, the
 invoices) only the owner in person. `usage.smsThisMonth` counts the signing codes sent by SMS
 in the subscription's month (see SMS below), and `usage.creditsThisMonth` the AI credits (see
@@ -1019,7 +1022,8 @@ legal name or CUI under Date firmă, which the invoice needs), `unchanged`, `not
 
 **Choosing a plan** creates or reuses the Stripe customer (company name and address, the
 owner's email, locale `ro`, `organization_id` in its metadata) and a subscription with the
-step's price and the metered SMS price (which nothing is reported to while the extras are off),
+step's price and the two metered prices, SMS (`sms_overage_monthly_v2`) and AI credits
+(`credits_extra_monthly_v2`), which bill only what the extras report,
 the 21 % tax rate,
 `default_incomplete`, the card saved on the subscription, card as the only payment method (Apple
 Pay and Google Pay come through it; Link stays off) and flexible billing mode, with no
@@ -1088,19 +1092,19 @@ sign-in codes. It refuses with a `reason`:
   first payment has not gone through (a plan chosen during a trial before 2026-11-14 until the
   trial's end);
 - `sms_foreign_number`: a number that is not Romanian (`+40`);
-- `sms_allowance_reached`: a signing code past the month's allowance. Every plan stops there while
-  the extras are off, as a tester's trial does;
+- `sms_allowance_reached`: a signing code past the month's allowance while the extras are off, or
+  past the owner's SMS ceiling, and on every plan that cannot have extras (a tester's trial, a subscription past due or ended);
 
 Only signing codes count. The month is the subscription's: from Stripe's billing anchor once the
 first invoice is paid, monthly on an annual plan too; in a tester's trial, months from the
 trial's start. Without a subscription, or
 on Enterprise, nothing limits the codes and the month is the calendar's. The allowance is the
 step's (one for every five employees; a tester's trial 300) plus the codes granted by hand. Past
-it nothing goes by SMS while the extras are off (ADR 029, amendment of 2026-11-14). The overage
-path stays for them: a code sent past the allowance on a plan that bills would be reported to
-Stripe as one `sms_overage` meter event (value 1, the log row's id as identifier, the
-subscription's customer) right after the send, and again by the daily cron when that failed; no
-plan bills today.
+it a code goes by SMS only as an extra: on a paid subscription in good standing whose owner turned
+SMS extras on, while the month's extra codes at 0.10 € stay within the ceiling (ADR 029, amendment
+of 2026-11-14). Each extra code is reported to Stripe as one `sms_overage` meter event (value 1,
+the log row's id as identifier, the subscription's customer) right after the send, and again by
+the daily cron when that failed.
 
 What each caller does with a refusal: an SMS invitation answers `409` (`422` for
 `sms_foreign_number`) before anything is saved, and the bulk invitation reports the reason on the
@@ -1113,10 +1117,10 @@ invited the number, may text, logs it against the most recent invitation's organ
 those, and otherwise answers `403` with a message.
 
 `GET /billing` answers `usage.smsThisMonth`: `used`, `included` (allowance plus `granted`),
-`allowance`, `granted`, `cap` (null for a hard stop or no limit, grants included), `capFactor`,
-`overage`, `periodStart`, `periodEnd` (null while no SMS goes) and `state`: `none` (no SMS goes),
-`ok`, `near` (from 80 %), `stopped` (the allowance reached: every plan stops there until the
-extras exist). `usage.invitations` counts the open invitations, each holding one of the plan's
+`allowance`, `granted`, `overage` (the month's extra codes), `periodStart`, `periodEnd` (null
+while no SMS goes) and `state`: `none` (no SMS goes), `ok`, `near` (from 80 %), `extra` (the
+allowance reached, codes going on as extras within the ceiling), `stopped` (the allowance
+reached, and extras off or at their ceiling). `usage.invitations` counts the open invitations, each holding one of the plan's
 users.
 
 After a signing code is counted, or refused at the month's limit, the sender looks for a usage
@@ -1187,9 +1191,36 @@ plan adds nothing and a retried event grants nothing twice.
 `GET /billing` answers `usage.creditsThisMonth` to every member: `used` (the month's credits
 used, net of refunds), `included` (allowance plus `granted`; null where nothing limits them),
 `allowance`, `granted`, `shortfall`, `left` (may be negative, by 150 at most; null where nothing
-limits), `giftLeft`, `period` (`trial`, one allowance that does not renew, or `month`), `periodStart`,
-`periodEnd` and `state`: `ok`, `near` (what is left, the gift included, under a fifth of
-`included`), `out` (nothing left), `negative` (below zero) or `unlimited`. No amounts in euros.
+limits; blocks bought included), `giftLeft`, `extra` (credits bought this month in blocks),
+`extraLeft` (what the month's blocks still hold, plus what the credits ceiling can still buy in whole blocks while extras apply), `period` (`trial`, one allowance that does not renew, or `month`), `periodStart`,
+`periodEnd` and `state`: `ok`, `near` (what is left, the gift and `extraLeft` included, under a
+fifth of `included`), `out` (nothing left), `negative` (below zero) or `unlimited`. No amounts
+in euros.
+
+**Extras** (ADR 029 and ADR 030, amendments of 2026-11-14). `PUT /billing/extras/{kind}` with
+`{ ceilingEuros }` turns `sms` or `credits` on with a monthly ceiling in whole euro (1 to 500),
+changes it, or with `null` turns it off; a change applies at once and what was used stays on the
+next invoice. Turning one on or raising its ceiling answers `409 extras_unavailable` unless the
+subscription has paid and is `active` (a trial, past due, ended, Enterprise, or no
+subscription); lowering and turning off always work. Turning one on while a change waits for its
+payment answers `409 extras_pending_payment`. Turning a kind on first adds its metered item (`sms_overage_monthly_v2` or
+`credits_extra_monthly_v2`) to a Stripe subscription without one of that product (no proration,
+idempotent by subscription), releasing and setting again a schedule for the renewal around it.
+Usage carries `extrasOn` per kind; for anyone but the owner in person, `GET /billing` and
+`GET /me` leave out what the ceiling and the spend could be worked out from: `overage` is 0 and
+`used` stops at `included` for SMS, and `extra` and `extraLeft` are 0 for credits. An ended subscription
+turns both off (`extras_ended`). The answer, like `GET /billing`'s `extras`, is
+`{ unavailable, sms, credits }`, each kind `{ enabled, ceilingCents, limit, used, spentCents }`,
+the last four null except for the owner in person: `limit` is the codes, or the credits in
+whole blocks, the ceiling buys (10 € is 100 codes, or 600 credits for 9 €), `used` the month's
+extra codes or credits bought, `spentCents` their price without VAT. A charge that buys blocks
+reports each as one `credits_extra_blocks` meter event (value 1, the block's id as identifier)
+right after the charge, and again from the daily cron.
+After an extra code is counted and after a charge buys blocks, the API emails the owner at 80 %
+of what that kind's ceiling buys (`sms_extra80`, `credits_extra80`) and when nothing more fits
+(`sms_extra100`, `credits_extra100`), each recorded in `usage_notices` first so it goes once a
+month, and taken back when the email fails. The allowance email at 100 % (`sms_100`) says the codes
+go on as extras when SMS extras are on; the safety cap's email (`sms_cap`) is gone.
 
 `GET /imports/{importId}` answers `credits`, null before the import started: `used` (net of what
 was given back, the own instructions included), `atStart` (the known part, settled for an

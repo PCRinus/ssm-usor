@@ -156,19 +156,21 @@ Citirea documentelor și a fotografiilor se socotește în credite AI. Un credit
 
 La prima plată primești, o singură dată, creditele AI de bun venit, ca să-ți aduci toți clienții în aplicație: 10 pentru fiecare lucrător al treptei, cel mult 10.000. Ele nu expiră și se folosesc după cele ale lunii. Dacă treci pe o treaptă mai mare sau de la Start la Profesional, primești pe loc diferența de credite a lunii; creditele de bun venit rămân cele primite la prima plată.
 
-Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele AI](/organizatie/abonament/#creditele-ai)).
+Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit, plus, dacă adminul a pornit creditele AI extra, că importul poate folosi și credite extra; adminul vede și câte mai poate folosi până la plafon. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele AI](/organizatie/abonament/#creditele-ai)).
 
 Dacă organizația are de mai bine de o lună mai mulți lucrători activi decât treapta abonamentului, fereastra de încărcare îți spune asta înainte să pornești. Importul din fișe poate completa lucrătorii pe care îi ai deja, dar nu poate adăuga lucrători noi: lasă-i deoparte pe cei noi, care nu se creează, ca să confirmi restul. Un client nou care vine cu lucrători se confirmă abia după ce treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți (vezi [Cât folosești](/organizatie/abonament/#cât-folosești)).
 
 ### Când nu ajung creditele
 
-Un import nou pornește doar dacă creditele rămase acoperă ce se știe dinainte: cele 25 ale citirii și fotografiile, la un client; toate fotografiile și paginile, la lucrători. Altfel **Încarcă și citește** rămâne oprit, iar fereastra îți spune câte credite trebuie, câte îți mai rămân și când primești altele. La lucrători poți scoate o parte dintre fotografii și le imporți după reînnoire, cu toate fotografiile unei persoane în același import.
+Un import nou pornește doar dacă creditele rămase acoperă ce se știe dinainte: cele 25 ale citirii și fotografiile, la un client; toate fotografiile și paginile, la lucrători. Creditele rămase sunt cele ale lunii, cele de bun venit și, dacă adminul a pornit creditele AI extra, cele pe care le mai permite plafonul lui lunar (vezi [Extra](/organizatie/abonament/#extra)). Altfel **Încarcă și citește** rămâne oprit, iar fereastra îți spune câte credite trebuie, câte îți mai rămân și când primești altele. La lucrători poți scoate o parte dintre fotografii și le imporți după reînnoire, cu toate fotografiile unei persoane în același import.
 
-Un import pornit nu se oprește din lipsă de credite. Dacă documentele unui client au mai multe pagini scanate decât credite rămase, importul se termină, iar diferența se scade din creditele lunii următoare: cu 4 credite peste, luna următoare, la 250 de lucrători, începe cu 746 în loc de 750. Înainte să creezi clientul vezi cât a folosit importul, de exemplu „Importul a folosit 34 de credite AI (25 + 9 pagini scanate)” sau, cu instrucțiunile proprii, „Importul a folosit 60 de credite AI (25 + 35 pentru instrucțiunile proprii)”.
+Cu creditele AI extra pornite, după creditele lunii și cele de bun venit se folosesc credite extra, în pachete de 100, câte 1,50 € pachetul, plus TVA, pe factura următoare, până la plafonul ales.
+
+Un import pornit nu se oprește din lipsă de credite. Dacă documentele unui client au mai multe pagini scanate decât credite rămase, cu cele extra cu tot, importul se termină, iar diferența se scade din creditele lunii următoare: cu 4 credite peste, luna următoare, la 250 de lucrători, începe cu 746 în loc de 750. Înainte să creezi clientul vezi cât a folosit importul, de exemplu „Importul a folosit 34 de credite AI (25 + 9 pagini scanate)” sau, cu instrucțiunile proprii, „Importul a folosit 60 de credite AI (25 + 35 pentru instrucțiunile proprii)”.
 
 ### Creditele returnate
 
-Dacă un import se oprește înainte să fie gata de verificat, primești înapoi toate creditele lui, iar pagina importului îți spune „Creditele AI ți-au fost returnate.” Un import la care renunți după ce a fost citit nu se returnează: citirea s-a făcut.
+Dacă un import se oprește înainte să fie gata de verificat, primești înapoi toate creditele lui, iar pagina importului îți spune „Creditele AI ți-au fost returnate.” Un pachet de credite extra cumpărat pentru el rămâne plătit, dar creditele returnate le poți folosi în aceeași lună. Un import la care renunți după ce a fost citit nu se returnează: citirea s-a făcut.
 
 ## Importul unui client din documente
 

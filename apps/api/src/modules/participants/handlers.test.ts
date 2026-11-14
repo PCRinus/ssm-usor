@@ -27,6 +27,7 @@ const env: ApiEnv['Bindings'] = {
     sendSignatureRequest: vi.fn(),
     sendSmsUsageNotice: vi.fn(),
     sendEmployeesOverStepNotice: vi.fn(),
+    sendExtrasNotice: vi.fn(),
   },
   SMS: {
     sendParticipantInvitation: sendInvitationSms,
@@ -317,7 +318,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
         p_organization_id: organizationId,
         p_kind: 'participant_invitation',
         p_allowance: null,
-        p_cap: null,
+        p_extra_cents: null,
       }),
     ]);
     expect(sms.updates).toEqual([expect.objectContaining({ provider_id: 'sms_1' })]);

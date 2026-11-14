@@ -42,6 +42,7 @@ describe('creditPolicy', () => {
       period: { start: at(trial.created_at), end: at(trial.trial_ends_at!) },
       allowance: 300,
       previous: null,
+      blockCents: null,
     });
   });
 
@@ -70,6 +71,7 @@ describe('creditPolicy', () => {
         period: { start: at('2026-09-01T08:00:00.000Z'), end: at('2026-10-01T08:00:00.000Z') },
         allowance: 1500,
       },
+      blockCents: null,
     });
   });
 
@@ -83,6 +85,7 @@ describe('creditPolicy', () => {
         period: { start: at('2026-09-13T08:00:00.000Z'), end: at('2026-10-13T08:00:00.000Z') },
         allowance: 750,
       },
+      blockCents: 150,
     });
   });
 
@@ -127,6 +130,24 @@ describe('the credits meter', () => {
     expect(creditsState(null, null, 0)).toBe('unlimited');
   });
 
+  it('judges the state as a required charge is judged: below zero with a ceiling, from zero', () => {
+    expect(creditsState(1250, -150, 0, 100, true)).toBe('near');
+    expect(creditsState(1250, -150, 0, 100, false)).toBe('negative');
+    expect(creditsState(1250, -150, 0, 0, true)).toBe('out');
+  });
+
+  it('counts what the extras can still buy as left, so an owner with extras on is not out', () => {
+    expect(creditsState(300, 0, 0, 600)).toBe('ok');
+    expect(creditsState(300, 0, 0, 0)).toBe('out');
+    expect(creditsState(300, 10, 0, 0)).toBe('near');
+  });
+
+  it('buys blocks only for a paid subscription in good standing', () => {
+    expect(creditPolicy(paid(), now)).toMatchObject({ blockCents: 150 });
+    expect(creditPolicy(paid({ status: 'past_due' }), now)).toMatchObject({ blockCents: null });
+    expect(creditPolicy(paid({ status: 'canceled' }), now)).toMatchObject({ blockCents: null });
+  });
+
   it('never shows a month used below zero, which a late refund can make', () => {
     const view = usageView(creditPolicy(paid(), now), {
       granted: 0,
@@ -134,6 +155,9 @@ describe('the credits meter', () => {
       shortfall: 0,
       balance: 325,
       giftLeft: 0,
+      extra: 0,
+      extraLeft: 0,
+      extrasOn: false,
     });
     expect(view).toMatchObject({ used: 0, left: 325, included: 750 });
   });

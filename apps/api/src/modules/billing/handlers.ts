@@ -9,7 +9,9 @@ import {
   type BillingOverview,
   billingPlans,
   type BillingPortalSession,
+  creditsExtra,
   type InvoiceEmail,
+  meteredProducts,
   type PaidPlan,
   readOnlyDays,
   smsOverage,
@@ -25,6 +27,9 @@ import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
+import { extrasView } from '../extras/handlers';
+import { creditsForMember, smsForMember } from '../extras/members';
+import { extrasStore } from '../extras/store';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
 import { employeesOverStepOf } from './employees-over-step';
@@ -100,6 +105,7 @@ const catalogue: BillingCatalogue = {
     })),
   })),
   smsOverageCents: smsOverage.price.unitAmount,
+  creditBlockCents: creditsExtra.price.unitAmount,
 };
 
 // A row past due keeps the retry grace as its end, so a cancellation set meanwhile is known
@@ -172,6 +178,7 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
 
   let nextPayment: NonNullable<BillingOverview['owner']>['nextPayment'] = null;
   let smsOverageCents: number | null = null;
+  let extrasInPreviewCents: number | null = null;
   if (!subscription.cancel_at) {
     const upcoming = await stripe.invoices.createPreview({ subscription: subscription.id });
     const smsPrice = stripeBilling.catalogue.priceIds.get(smsOverage.price.lookupKey);
@@ -179,6 +186,15 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
       .filter((line) => {
         const price = line.pricing?.price_details?.price;
         return (typeof price === 'string' ? price : price?.id) === smsPrice;
+      })
+      .reduce((sum, line) => sum + line.amount, 0);
+    extrasInPreviewCents = upcoming.lines.data
+      .filter((line) => {
+        const price = line.pricing?.price_details?.price;
+        const key = stripeBilling.catalogue.lookupKeys.get(
+          (typeof price === 'string' ? price : price?.id) ?? ''
+        );
+        return meteredProducts.some((product) => key?.startsWith(`${product.key}_`));
       })
       .reduce((sum, line) => sum + line.amount, 0);
     nextPayment = {
@@ -195,6 +211,7 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
     cancelAt: subscription.cancel_at ? fromSeconds(subscription.cancel_at) : null,
     nextPayment,
     smsOverageCents,
+    extrasInPreviewCents,
     scheduledChange: scheduled ? { ...scheduled.choice, at: scheduled.at.toISOString() } : null,
   };
 }
@@ -208,15 +225,17 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
     countOpenInvitations(billing.db, billing.organizationId),
   ]);
   const limits = usageLimits(row, billing.now);
-  const [sms, credits, employeesOverStep] = await Promise.all([
+  const [sms, credits, employeesOverStep, ceilings] = await Promise.all([
     smsUsageOf(smsUsageStore(billing.db), billing.organizationId, row, billing.now),
     creditsUsageOf(creditsStore(billing.db), billing.organizationId, row, billing.now),
     employeesOverStepOf(billing.db, billing.organizationId),
+    extrasStore(billing.db).ceilings(billing.organizationId),
   ]);
+  const ownerInPerson = isOwnerInPerson(membership, billing.userId);
 
   let owner: BillingOverview['owner'] = null;
   let stripeCancelAt: string | null = null;
-  if (isOwnerInPerson(membership, billing.userId)) {
+  if (ownerInPerson) {
     const [invoices, email, details] = await Promise.all([
       listInvoices(billing.db, billing.organizationId),
       ownerEmail(billing.db, billing.organizationId),
@@ -231,6 +250,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
     owner = {
       nextPayment: details?.nextPayment ?? null,
       smsOverageCents: details?.smsOverageCents ?? null,
+      extrasInPreviewCents: details?.extrasInPreviewCents ?? null,
       card: details?.card ?? null,
       invoiceEmail: row?.invoice_email ?? null,
       ownerEmail: email,
@@ -248,10 +268,11 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
         employeesOverStep,
         members: { used: usage.members, limit: limits.members },
         invitations,
-        smsThisMonth: sms,
-        creditsThisMonth: credits,
+        smsThisMonth: ownerInPerson ? sms : smsForMember(sms),
+        creditsThisMonth: ownerInPerson ? credits : creditsForMember(credits),
       },
       catalogue,
+      extras: extrasView({ row, ceilings, sms, credits, owner: ownerInPerson }),
       owner,
     } satisfies BillingOverview,
     200

@@ -1,4 +1,5 @@
 import {
+  extraUnitsWithin,
   type MailService,
   type PaidPlan,
   smsOverage,
@@ -17,6 +18,7 @@ import { smsUsageOf } from './usage';
 // to 100 % hears of 100 % alone, and never of 80 % afterwards.
 const noticeOfState: Partial<Record<SmsUsageState, SmsUsageNoticeKind>> = {
   near: 'sms_80',
+  extra: 'sms_100',
   stopped: 'sms_100',
 };
 
@@ -24,7 +26,10 @@ const planNames: Record<PaidPlan, string> = { start: 'Start', profesional: 'Prof
 
 export type NoticeRecipient = { to: string; organizationName: string };
 
-export type UsageNoticeStore = Pick<SmsUsageStore, 'periodUsage' | 'recordNotice' | 'forgetNotice'>;
+export type UsageNoticeStore = Pick<
+  SmsUsageStore,
+  'periodUsage' | 'smsCeiling' | 'recordNotice' | 'forgetNotice'
+>;
 
 export function createUsageNotices(deps: {
   store: UsageNoticeStore;
@@ -43,6 +48,10 @@ export function createUsageNotices(deps: {
     const kind = noticeOfState[usage.state];
     if (!kind || usage.included === null || !usage.periodStart || !usage.periodEnd) return null;
 
+    const ceilingCents =
+      policy.extraCents === null ? null : await deps.store.smsCeiling(organizationId);
+    const extraCodes = ceilingCents === null ? null : extraUnitsWithin('sms', ceilingCents);
+
     // Recorded before it is sent, so two codes counted at once, or a retry, send it once.
     const recorded = await deps.store.recordNotice(organizationId, usage.periodStart, kind);
     if (!recorded) return null;
@@ -59,10 +68,10 @@ export function createUsageNotices(deps: {
         kind,
         organizationName: recipient.organizationName,
         planName: row?.stripe_subscription_id ? planNames[row.plan as PaidPlan] : null,
-        billed: usage.cap !== null,
+        billed: extraCodes !== null,
         used: usage.used,
         included: usage.included,
-        cap: usage.cap,
+        cap: extraCodes === null ? null : usage.included + extraCodes,
         overageCents: smsOverage.price.unitAmount,
         periodStart: usage.periodStart,
         periodEnd: usage.periodEnd,

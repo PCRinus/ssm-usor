@@ -4,7 +4,7 @@ import {
   type CataloguePrice,
   cataloguePrices,
   catalogueProducts,
-  smsOverage,
+  meteredProducts,
   vatPercent,
 } from '@ssm-usor/contracts';
 import type Stripe from 'stripe';
@@ -132,8 +132,8 @@ export interface StripeState {
 export type Action =
   | { kind: 'create_product'; id: string; name: string }
   | { kind: 'update_product'; id: string; name: string }
-  | { kind: 'create_meter' }
-  | { kind: 'reactivate_meter'; id: string }
+  | { kind: 'create_meter'; eventName: string; name: string }
+  | { kind: 'reactivate_meter'; id: string; eventName: string }
   | { kind: 'create_price'; price: CataloguePrice }
   | { kind: 'activate_price'; id: string; lookupKey: string }
   | { kind: 'create_tax_rate' }
@@ -162,19 +162,24 @@ export function planProducts(products: ProductState[]): Action[] {
   });
 }
 
-export function planMeter(meters: MeterState[]): Action[] {
-  const found = meters.find((meter) => meter.eventName === smsOverage.meterEventName);
-  if (!found) return [{ kind: 'create_meter' }];
-  if (found.status !== 'active') return [{ kind: 'reactivate_meter', id: found.id }];
-  return [];
+export function planMeters(meters: MeterState[]): Action[] {
+  return meteredProducts.flatMap(({ meterEventName: eventName, name }): Action[] => {
+    const found = meters.find((meter) => meter.eventName === eventName);
+    if (!found) return [{ kind: 'create_meter', eventName, name }];
+    if (found.status !== 'active') return [{ kind: 'reactivate_meter', id: found.id, eventName }];
+    return [];
+  });
 }
+
+const meterEventOf = (product: BillingProductKey) =>
+  meteredProducts.find((metered) => metered.key === product)?.meterEventName;
 
 // A price's amount, currency and interval never change in Stripe; a changed one is a new price
 // under a new version (ADR 029), so a mismatch stops the run instead of being "fixed".
 export function planPrices(prices: PriceState[], meters: MeterState[]): Action[] {
-  const meter = meters.find((candidate) => candidate.eventName === smsOverage.meterEventName);
   const conflicts: string[] = [];
   const actions = cataloguePrices.flatMap((wanted): Action[] => {
+    const meter = meters.find((candidate) => candidate.eventName === meterEventOf(wanted.product));
     const found = prices.find((price) => price.lookupKey === wanted.lookupKey);
     if (!found) return [{ kind: 'create_price', price: wanted }];
     const differences = [
@@ -299,7 +304,7 @@ export function planSetup(
   return {
     actions: [
       ...planProducts(state.products),
-      ...planMeter(state.meters),
+      ...planMeters(state.meters),
       ...planPrices(state.prices, state.meters),
       ...planTaxRate(state.taxRates),
       ...portal.actions,
@@ -318,9 +323,9 @@ export function describeAction(action: Action): string {
     case 'update_product':
       return `rename or reactivate product ${action.id} as "${action.name}"`;
     case 'create_meter':
-      return `create billing meter ${smsOverage.meterEventName}`;
+      return `create billing meter ${action.eventName}`;
     case 'reactivate_meter':
-      return `reactivate billing meter ${action.id}`;
+      return `reactivate billing meter ${action.eventName} (${action.id})`;
     case 'create_price': {
       const { price } = action;
       return `create price ${price.lookupKey}: ${(price.unitAmount / 100).toFixed(2)} ${billingCurrency} per ${price.interval}${price.usage === 'metered' ? ', metered' : ''}`;
@@ -446,7 +451,7 @@ const portalParams = {
 export async function applyAction(
   stripe: Stripe,
   action: Action,
-  context: { meterId?: string }
+  context: { meterIds: Map<string, string> }
 ): Promise<void> {
   switch (action.kind) {
     case 'create_product':
@@ -461,21 +466,23 @@ export async function applyAction(
       return;
     case 'create_meter': {
       const meter = await stripe.billing.meters.create({
-        display_name: smsOverage.name,
-        event_name: smsOverage.meterEventName,
+        display_name: action.name,
+        event_name: action.eventName,
         default_aggregation: { formula: 'sum' },
       });
-      context.meterId = meter.id;
+      context.meterIds.set(action.eventName, meter.id);
       return;
     }
     case 'reactivate_meter':
       await stripe.billing.meters.reactivate(action.id);
-      context.meterId = action.id;
+      context.meterIds.set(action.eventName, action.id);
       return;
     case 'create_price': {
       const { price } = action;
-      if (price.usage === 'metered' && !context.meterId) {
-        throw new SetupError(`No meter ${smsOverage.meterEventName} for ${price.lookupKey}.`);
+      const eventName = meterEventOf(price.product);
+      const meterId = eventName ? context.meterIds.get(eventName) : undefined;
+      if (price.usage === 'metered' && !meterId) {
+        throw new SetupError(`No meter ${eventName ?? '(none)'} for ${price.lookupKey}.`);
       }
       await stripe.prices.create({
         product: productId(price.product),
@@ -486,7 +493,7 @@ export async function applyAction(
         recurring: {
           interval: price.interval,
           usage_type: price.usage,
-          ...(price.usage === 'metered' ? { meter: context.meterId } : {}),
+          ...(price.usage === 'metered' ? { meter: meterId } : {}),
         },
         metadata: { [metadataKey]: price.lookupKey },
       });
@@ -535,7 +542,7 @@ export async function applyPlan(
   log: (line: string) => void
 ) {
   const context = {
-    meterId: state.meters.find((meter) => meter.eventName === smsOverage.meterEventName)?.id,
+    meterIds: new Map(state.meters.map((meter) => [meter.eventName, meter.id])),
   };
   for (const action of plan.actions) {
     await applyAction(stripe, action, context);
