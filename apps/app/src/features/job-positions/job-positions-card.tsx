@@ -38,7 +38,7 @@ import {
   useRemoveJobPosition,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { keepOpener } from '@/app/opener';
+import { openedHere } from '@/app/opener';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -203,7 +203,7 @@ export function JobPositionsCard({
                   () =>
                     void navigate({
                       to: '/clienti/$clientId/posturi/$jobPositionId',
-                      state: keepOpener,
+                      state: openedHere,
                       params: { clientId, jobPositionId: position.id },
                     })
                 )}
@@ -212,7 +212,7 @@ export function JobPositionsCard({
                 <TableCell>
                   <Link
                     to="/clienti/$clientId/posturi/$jobPositionId"
-                    state={keepOpener}
+                    state={openedHere}
                     params={{ clientId, jobPositionId: position.id }}
                     data-testid="job-position-open"
                     className="font-medium hover:underline"
@@ -312,7 +312,7 @@ export function JobPositionsCard({
                       <DropdownMenuItem asChild data-testid="job-position-menu-equipment">
                         <Link
                           to="/clienti/$clientId/posturi/$jobPositionId"
-                          state={keepOpener}
+                          state={openedHere}
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.equipment}
                         >
@@ -322,7 +322,7 @@ export function JobPositionsCard({
                       <DropdownMenuItem asChild data-testid="job-position-menu-instructions">
                         <Link
                           to="/clienti/$clientId/posturi/$jobPositionId"
-                          state={keepOpener}
+                          state={openedHere}
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.instructions}
                         >
@@ -332,7 +332,7 @@ export function JobPositionsCard({
                       <DropdownMenuItem asChild data-testid="job-position-menu-fire-instructions">
                         <Link
                           to="/clienti/$clientId/posturi/$jobPositionId"
-                          state={keepOpener}
+                          state={openedHere}
                           params={{ clientId, jobPositionId: position.id }}
                           hash={positionSections.fireInstructions}
                         >
@@ -342,7 +342,7 @@ export function JobPositionsCard({
                       <DropdownMenuItem asChild data-testid="job-position-menu-risk">
                         <Link
                           to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
-                          state={keepOpener}
+                          state={openedHere}
                           params={{ clientId, jobPositionId: position.id }}
                         >
                           Fișa de evaluare
@@ -430,7 +430,7 @@ function StateLink({
     <DecisionBadge asChild decision={decision}>
       <Link
         to="/clienti/$clientId/posturi/$jobPositionId"
-        state={keepOpener}
+        state={openedHere}
         params={{ clientId, jobPositionId: position.id }}
         hash={section}
         data-testid={testId}
@@ -455,7 +455,7 @@ function RiskEvaluationLink({
     <DecisionBadge asChild decision={(evaluation && evaluation.factorCount > 0) || null}>
       <Link
         to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
-        state={keepOpener}
+        state={openedHere}
         params={{ clientId, jobPositionId: position.id }}
         data-testid="job-position-risk"
       >
@@ -536,7 +536,7 @@ function PositionNames({
           {index > 0 && (index === shown.length - 1 && rest === 0 ? ' și ' : ', ')}
           <Link
             to="/clienti/$clientId/posturi/$jobPositionId"
-            state={keepOpener}
+            state={openedHere}
             params={{ clientId, jobPositionId: position.id }}
             hash={section}
             className="font-medium underline underline-offset-4"

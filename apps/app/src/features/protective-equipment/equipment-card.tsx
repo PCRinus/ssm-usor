@@ -172,7 +172,6 @@ export function EquipmentCard({
   return (
     <SectionCard
       id={id}
-      headingLevel={3}
       data-testid="equipment-card"
       title={
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">

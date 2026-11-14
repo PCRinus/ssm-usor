@@ -20,13 +20,15 @@ import {
 import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
-import { BackLink, TitleWithBack } from '@/components/back-link';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useAuth } from '@/features/auth/auth-context';
+import { CurrentClientHeaderFact } from '@/features/clients/client-fact';
+import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import { PositionInstructionsCard } from '@/features/instructions/position-instructions-card';
 import { EquipmentCard } from '@/features/protective-equipment/equipment-card';
 import { PositionRiskEvaluationCard } from '@/features/risk-evaluations/position-risk-evaluation-card';
 
+import { JobPositionBack } from './job-position-back';
 import { JobPositionDialog } from './job-position-dialog';
 import { JobPositionPending } from './job-position-pending';
 import { employeeCountLabel, intervalLabel, staffCategoryLabels } from './job-position-schema';
@@ -103,20 +105,20 @@ export function JobPositionPage() {
   return (
     <div data-testid="job-position-page" className="grid gap-5">
       <div className="grid gap-3">
-        <TitleWithBack
-          back={
-            <BackLink
-              to="/clienti/$clientId/posturi"
-              params={{ clientId }}
-              label="Înapoi la posturile de lucru"
-              up
-            />
+        <RecordHeader
+          back={<JobPositionBack />}
+          title={position.name}
+          facts={
+            <>
+              <CurrentClientHeaderFact />
+              <HeaderFact label="Lucrători">
+                <span className="tabular-nums" data-testid="job-position-header-employees">
+                  {position.employeeCount}
+                </span>
+              </HeaderFact>
+            </>
           }
-        >
-          <h2 className="pt-1 text-xl font-semibold tracking-tight wrap-anywhere">
-            {position.name}
-          </h2>
-        </TitleWithBack>
+        />
         <nav aria-label="Secțiunile postului">
           <ul className="flex flex-wrap gap-2">
             {sectionLinks.map(({ hash, label }) => (
@@ -140,7 +142,6 @@ export function JobPositionPage() {
 
       <SectionCard
         id={positionSections.details}
-        headingLevel={3}
         data-testid="job-position-details"
         title="Postul"
         action={
@@ -239,6 +240,7 @@ export function JobPositionError({ error }: ErrorComponentProps) {
       title="Postul nu a putut fi încărcat"
       retryTestId="job-position-retry"
       explainForbidden
+      back={<JobPositionBack />}
     />
   );
 }

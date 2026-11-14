@@ -197,7 +197,6 @@ export function PositionInstructionsCard({
   return (
     <SectionCard
       id={id}
-      headingLevel={3}
       help="instructiuni.aplicare"
       data-testid={testId('card')}
       title={

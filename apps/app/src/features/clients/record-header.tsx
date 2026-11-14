@@ -11,6 +11,7 @@ const actionsPlacement = {
 export function RecordHeader({
   back,
   title,
+  titleAside,
   facts,
   actions,
   actionsWidth = 'narrow',
@@ -18,6 +19,7 @@ export function RecordHeader({
 }: {
   back?: ReactNode;
   title: string;
+  titleAside?: ReactNode;
   personal?: boolean;
   facts: ReactNode;
   actions?: ReactNode;
@@ -30,12 +32,15 @@ export function RecordHeader({
       <div className="flex min-w-0 flex-wrap items-start gap-3">
         {back && <div className="flex h-7 shrink-0 items-center">{back}</div>}
         <div className="min-w-0 flex-1">
-          <h1
-            className="text-xl font-semibold tracking-tight wrap-anywhere"
-            {...(personal && replayMask)}
-          >
-            {title}
-          </h1>
+          <div className="flex items-start gap-1.5">
+            <h1
+              className="min-w-0 text-xl font-semibold tracking-tight wrap-anywhere"
+              {...(personal && replayMask)}
+            >
+              {title}
+            </h1>
+            {titleAside && <div className="flex h-7 shrink-0 items-center">{titleAside}</div>}
+          </div>
           <dl className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm">{facts}</dl>
         </div>
         {actions && (

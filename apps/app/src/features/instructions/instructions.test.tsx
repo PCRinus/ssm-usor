@@ -1304,10 +1304,10 @@ describe("a job position's instructions", () => {
     const user = userEvent.setup();
     const ssm = await screen.findByTestId('instructions-card');
     const su = await screen.findByTestId('fire-instructions-card');
-    expect(within(ssm).getByRole('heading', { level: 3 }).textContent).toContain(
+    expect(within(ssm).getByRole('heading', { level: 2 }).textContent).toContain(
       'Instrucțiuni specifice SSM'
     );
-    expect(within(su).getByRole('heading', { level: 3 }).textContent).toContain(
+    expect(within(su).getByRole('heading', { level: 2 }).textContent).toContain(
       'Instrucțiuni specifice SU'
     );
     expect((await screen.findByTestId('fire-instructions-state')).textContent).toBe('De stabilit');

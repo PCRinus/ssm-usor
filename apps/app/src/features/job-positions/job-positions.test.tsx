@@ -150,26 +150,29 @@ describe("a client's job positions", () => {
     expect(screen.getByRole('link', { name: 'Înapoi la clienți' })).toBeTruthy();
   });
 
-  it('opens a position on its own page from its name', async () => {
+  it('opens a position on a page of its own, whose arrow goes back to the list', async () => {
     mockApi();
     const runtime = mount();
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('job-position-row');
+    const listIndex = runtime.router.history.location.state.__TSR_index;
     await user.click(within(row!).getByTestId('job-position-open'));
     await screen.findByTestId('job-position-page');
     expect(runtime.router.state.location.pathname).toBe(`${listPage}/${barista.id}`);
-    expect(screen.getByRole('heading', { level: 2, name: 'Barman preparator' })).toBeTruthy();
+    expect(screen.queryByTestId('client-page')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Barman preparator' })).toBeTruthy();
     expect(screen.getByText('Prepară și servește înghețată și cafea.')).toBeTruthy();
-    const [clientBack, positionBack] = screen.getAllByTestId('page-back');
-    expect(clientBack!.getAttribute('aria-label')).toBe('Înapoi la clienți');
-    expect(positionBack!.getAttribute('aria-label')).toBe('Înapoi la posturile de lucru');
-    expect(positionBack!.getAttribute('href')).toBe(listPage);
-    await user.click(positionBack!);
+    const back = screen.getByTestId('page-back');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi');
+    expect(back.getAttribute('href')).toBe(listPage);
+
+    await user.click(back);
     await screen.findAllByTestId('job-position-row');
     expect(runtime.router.state.location.pathname).toBe(listPage);
+    expect(runtime.router.history.location.state.__TSR_index).toBe(listIndex);
   });
 
-  it('leaves the client its own way back: the position is part of the client, not its opener', async () => {
+  it("leaves the client's arrow its own opener after a position", async () => {
     mockApi();
     const runtime = mount();
     const user = userEvent.setup();
@@ -181,22 +184,15 @@ describe("a client's job positions", () => {
         state: openedHere,
       })
     );
-    const openPosition = async () => {
-      const [row] = await screen.findAllByTestId('job-position-row');
-      await user.click(within(row!).getByTestId('job-position-open'));
-      await screen.findByTestId('job-position-page');
-    };
-    await openPosition();
-    const [clientBack, positionBack] = screen.getAllByTestId('page-back');
-    expect(clientBack!.getAttribute('aria-label')).toBe('Înapoi');
-    expect(positionBack!.getAttribute('aria-label')).toBe('Înapoi la posturile de lucru');
-
-    await user.click(positionBack!);
+    const [row] = await screen.findAllByTestId('job-position-row');
+    await user.click(within(row!).getByTestId('job-position-open'));
+    await screen.findByTestId('job-position-page');
+    await user.click(screen.getByTestId('page-back'));
     await screen.findAllByTestId('job-position-row');
-    expect(screen.getByTestId('page-back').getAttribute('aria-label')).toBe('Înapoi');
 
-    await openPosition();
-    await user.click(screen.getAllByTestId('page-back')[0]!);
+    const clientBack = screen.getByTestId('page-back');
+    expect(clientBack.getAttribute('aria-label')).toBe('Înapoi');
+    await user.click(clientBack);
     await waitFor(() => expect(runtime.router.history.location.state.__TSR_index).toBe(0));
     expect(runtime.router.state.location.pathname).toBe(listPage);
   });

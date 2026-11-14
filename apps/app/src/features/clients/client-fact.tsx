@@ -1,6 +1,8 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { getRouteApi, Link } from '@tanstack/react-router';
 
+import { HeaderFact } from './record-header';
+
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 export function ClientFact({
@@ -29,4 +31,20 @@ export function ClientFact({
 export function CurrentClientFact({ className }: { className?: string }) {
   const { client } = clientRoute.useLoaderData();
   return <ClientFact clientId={client.id} clientName={client.legalName} className={className} />;
+}
+
+export function CurrentClientHeaderFact() {
+  const { client } = clientRoute.useLoaderData();
+  return (
+    <HeaderFact label="Client">
+      <Link
+        to="/clienti/$clientId/detalii"
+        params={{ clientId: client.id }}
+        data-testid="client-fact"
+        className="hover:underline"
+      >
+        {client.legalName}
+      </Link>
+    </HeaderFact>
+  );
 }

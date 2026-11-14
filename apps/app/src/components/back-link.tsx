@@ -8,18 +8,15 @@ import { keepOpener, stepsBackToOpener } from '@/app/opener';
 // The router marks a link to an ancestor of the current page as active; the way up is never the
 // current page, so neither mark is passed on.
 // `to` is the page above, which a new tab or a pasted link gets; a page opened from another one
-// goes back to it through history instead. `up` is for a page shown inside its record's own
-// layout, whose opener is the record's: its arrow always goes to `to` and leaves it to the record.
+// goes back to it through history instead.
 function BackAnchor({
   label,
-  up = false,
   className,
   onClick,
   ...props
-}: Omit<ComponentProps<'a'>, 'children'> & { label: string; up?: boolean }) {
+}: Omit<ComponentProps<'a'>, 'children'> & { label: string }) {
   const router = useRouter();
-  const opened = useLocation({ select: (location) => stepsBackToOpener(location.state) });
-  const steps = up ? null : opened;
+  const steps = useLocation({ select: (location) => stepsBackToOpener(location.state) });
   return (
     <a
       data-testid="page-back"
