@@ -90,11 +90,19 @@ function mockUpstream({
       );
     }
     if (url.pathname === '/rest/v1/rpc/credit_balance') {
-      return Response.json({ granted: 0, used: 640, shortfall: 0, balance: 860, gift_left: 8640 });
+      return Response.json({
+        granted: 0,
+        used: 640,
+        shortfall: 0,
+        balance: 860,
+        gift_left: 8640,
+        extra: 0,
+      });
     }
     if (url.pathname === '/rest/v1/rpc/employees_over_step') {
       return Response.json(overStep);
     }
+    if (url.pathname === '/rest/v1/usage_extras') return Response.json(null);
     if (url.pathname === '/rest/v1/rpc/sms_period_usage') {
       return Response.json({ used: 252, overage: 0, granted: 0 });
     }
@@ -264,7 +272,6 @@ describe('GET /me', () => {
       first_paid_at: '2026-10-14T09:00:00+00:00',
       billing_anchor_at: '2026-10-14T09:00:00+00:00',
       current_period_end: '2026-11-14T09:00:00+00:00',
-      sms_cap_factor: 3,
       employee_step: 1500,
     };
 
@@ -274,7 +281,7 @@ describe('GET /me', () => {
       const response = await request('/me');
 
       const me = meResponseSchema.parse(await response.json());
-      expect(me.smsThisMonth).toMatchObject({ used: 252, included: 300, cap: null, state: 'near' });
+      expect(me.smsThisMonth).toMatchObject({ used: 252, included: 300, state: 'near' });
       expect(me.creditsThisMonth).toMatchObject({
         used: 640,
         included: 3250,

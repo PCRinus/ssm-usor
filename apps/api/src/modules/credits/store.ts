@@ -1,3 +1,5 @@
+import { creditsExtra } from '@ssm-usor/contracts';
+
 import type { Database } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
@@ -14,6 +16,8 @@ export type Balance = {
   // Null where nothing limits the credits.
   balance: number | null;
   giftLeft: number;
+  extra: number;
+  extraLeft: number;
 };
 
 export type Charge = {
@@ -21,7 +25,11 @@ export type Charge = {
   refused: boolean;
   balance: number | null;
   giftLeft: number;
+  extraBlocks: number;
 };
+
+// Told of every charge that bought blocks of extra credits, to report them to Stripe.
+export type CreditsHooks = { blocksBought?: (organizationId: string) => Promise<void> | void };
 
 export type ImportCreditEntry = {
   import_id: string | null;
@@ -46,7 +54,21 @@ function periodArgs(policy: CreditPolicy) {
   };
 }
 
-export function creditsStore(db: AdminClient) {
+export function creditsStore(db: AdminClient, hooks: CreditsHooks = {}) {
+  async function extraLeft(organizationId: string, policy: CreditPolicy, extra: number) {
+    if (!policy.limited || policy.blockCents === null) return 0;
+    const { data, error } = await db
+      .from('usage_extras')
+      .select('ceiling_cents')
+      .eq('organization_id', organizationId)
+      .eq('kind', 'credits')
+      .maybeSingle();
+    if (error) throw fromDatabaseError(error, 'credits ceiling');
+    if (!data) return 0;
+    const blocks = Math.floor(data.ceiling_cents / policy.blockCents);
+    return Math.max(0, blocks * creditsExtra.blockCredits - extra);
+  }
+
   return {
     async subscription(organizationId: string): Promise<SmsSubscription | null> {
       const { data, error } = await db
@@ -68,6 +90,8 @@ export function creditsStore(db: AdminClient) {
         shortfall: data.shortfall,
         balance: data.balance,
         giftLeft: data.gift_left,
+        extra: data.extra,
+        extraLeft: await extraLeft(organizationId, policy, data.extra),
       };
     },
     async charge(input: {
@@ -98,14 +122,28 @@ export function creditsStore(db: AdminClient) {
           p_require: input.require,
           ...periodArgs(input.policy),
           ...(input.importPart ? { p_import_part: input.importPart } : {}),
+          ...(input.policy.limited && input.policy.blockCents !== null
+            ? { p_block_cents: input.policy.blockCents }
+            : {}),
         })
         .single();
       if (error) throw fromDatabaseError(error, 'charge credits');
+      if (data.extra_blocks > 0 && hooks.blocksBought) {
+        try {
+          await hooks.blocksBought(input.organizationId);
+        } catch (cause) {
+          // The daily retry reports what this left.
+          console.error(
+            `Extra credit blocks of ${input.organizationId} not reported yet: ${cause instanceof Error ? cause.message : 'unknown'}`
+          );
+        }
+      }
       return {
         charged: data.charged,
         refused: data.refused,
         balance: data.balance,
         giftLeft: data.gift_left,
+        extraBlocks: data.extra_blocks,
       };
     },
     // A start whose import could not be queued: it is started again, and charged, later.

@@ -8,6 +8,7 @@ import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { createExtractor } from '../../lib/extractor';
 import { adminFileStore } from '../../lib/files';
 import { lookupCompany } from '../companies/anaf';
+import { blocksReporter } from '../extras/reporting';
 import { keepStep } from './copies';
 import { importEnded } from './import-alerts';
 import {
@@ -104,7 +105,7 @@ export function pipelineDeps(env: ApiEnv['Bindings']): PipelineDeps {
   const files = adminFileStore(env);
   const admin = adminClient(env);
   return {
-    store: importStore(admin),
+    store: importStore(admin, { blocksBought: blocksReporter(env) }),
     objects: {
       read: files.readImportObject,
       write: files.writeImportObject,

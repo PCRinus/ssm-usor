@@ -202,3 +202,13 @@ The plans are priced by a step of employees since [ADR 029's amendment of 2026-1
 - **When credits run out**, a new import waits for the next month. Extra credits past the allowance are an extra the owner will turn on with a monthly ceiling, at 1.50 € for each 100; until the screen that turns them on exists, nobody has them on and nothing is sold. The pack of 1,000 credits for 15 € is dropped. The manual workflow that adds credits stays for support.
 
 What an action costs in credits does not change.
+
+## Amendment 2026-11-14: extra AI credits in blocks of 100
+
+[ADR 029's amendment of 2026-11-14](adr-029-billing-plans-and-trials.md#amendment-2026-11-14-extras-with-a-monthly-ceiling) lets the owner turn extra AI credits on with a monthly ceiling. In "Usage is counted in credits":
+
+- **Order of use.** The month's credits, then the welcome credits, then extra credits, bought in blocks of 100 at 1.50 € each while the ceiling covers a whole block. A block is bought, and billed, when its first credit is used; what it leaves is used next and ends with the month.
+- **Starting.** An import starts when the month's credits, the welcome credits and the blocks the ceiling can still buy cover its known part. The upload dialog counts them as left.
+- **Never stopped halfway** still holds: a reading that finds more scanned pages than everything above goes below zero, at most 150, made up from the next month.
+- **Refunds** give credits back to the balance, never a block: a block once bought is billed, and its credits stay usable that month.
+- **When credits run out** with extras off or at their ceiling, a new import waits for the next month, as before; the owner may turn extras on or raise the ceiling instead. The manual workflow that adds credits stays for support.

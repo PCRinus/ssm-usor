@@ -17,6 +17,7 @@ import { smsUsageOf } from './usage';
 // to 100 % hears of 100 % alone, and never of 80 % afterwards.
 const noticeOfState: Partial<Record<SmsUsageState, SmsUsageNoticeKind>> = {
   near: 'sms_80',
+  extra: 'sms_100',
   stopped: 'sms_100',
 };
 
@@ -24,7 +25,10 @@ const planNames: Record<PaidPlan, string> = { start: 'Start', profesional: 'Prof
 
 export type NoticeRecipient = { to: string; organizationName: string };
 
-export type UsageNoticeStore = Pick<SmsUsageStore, 'periodUsage' | 'recordNotice' | 'forgetNotice'>;
+export type UsageNoticeStore = Pick<
+  SmsUsageStore,
+  'periodUsage' | 'smsCeiling' | 'recordNotice' | 'forgetNotice'
+>;
 
 export function createUsageNotices(deps: {
   store: UsageNoticeStore;
@@ -59,10 +63,10 @@ export function createUsageNotices(deps: {
         kind,
         organizationName: recipient.organizationName,
         planName: row?.stripe_subscription_id ? planNames[row.plan as PaidPlan] : null,
-        billed: usage.cap !== null,
+        billed: usage.state === 'extra',
         used: usage.used,
         included: usage.included,
-        cap: usage.cap,
+        cap: null,
         overageCents: smsOverage.price.unitAmount,
         periodStart: usage.periodStart,
         periodEnd: usage.periodEnd,

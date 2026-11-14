@@ -31,7 +31,7 @@ $$;
 create or replace function pg_temp.charge(
   import_n int, kind text, credits int, key text, require boolean, shift int default 0
 )
-returns table (charged int, refused boolean, balance int, gift_left int)
+returns table (charged int, refused boolean, balance int, gift_left int, extra_blocks int)
 language sql as $$
   select * from public.charge_credits(
     '11111111-0000-4000-8000-000000000061', kind::public.credit_entry_kind, credits,
@@ -43,7 +43,7 @@ language sql as $$
 $$;
 
 create or replace function pg_temp.balance(shift int default 0)
-returns table (granted int, used int, shortfall int, balance int, gift_left int)
+returns table (granted int, used int, shortfall int, balance int, gift_left int, extra int)
 language sql as $$
   select * from public.credit_balance(
     '11111111-0000-4000-8000-000000000061',

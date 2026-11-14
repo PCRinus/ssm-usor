@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { billingExtrasSchema } from './extras';
 import {
   accessLevelSchema,
   subscriptionPlanSchema,
@@ -22,7 +23,12 @@ export const vatPercent = 21;
 // prices are immutable, and existing subscriptions move at their renewal (ADR 029).
 export const priceVersion = 'v2';
 
-export const billingProductKeySchema = z.enum(['start', 'profesional', 'sms_overage']);
+export const billingProductKeySchema = z.enum([
+  'start',
+  'profesional',
+  'sms_overage',
+  'credits_extra',
+]);
 export type BillingProductKey = z.infer<typeof billingProductKeySchema>;
 
 export interface CataloguePrice {
@@ -132,9 +138,9 @@ export const selfServeLimits = {
   members: billingPlans.profesional.members,
 } as const;
 
-// Monthly on every plan, annual ones too, which makes an annual subscription mixed-interval. Kept
-// on every subscription for the extras the owner will turn on; while they are off nothing is
-// reported to its meter, so it bills nothing (ADR 029, amendment of 2026-11-14).
+// Monthly on every plan, annual ones too, which makes an annual subscription mixed-interval. On
+// every subscription, so that turning extras on changes none; while they are off nothing is
+// reported to its meter, and it bills nothing (ADR 029).
 export const smsOverage: {
   key: 'sms_overage';
   name: string;
@@ -153,16 +159,39 @@ export const smsOverage: {
   },
 };
 
+/** AI credits past the month's and the welcome ones, sold in blocks of 100; one unit is a block. */
+export const creditsExtra: {
+  key: 'credits_extra';
+  name: string;
+  meterEventName: string;
+  blockCredits: number;
+  price: CataloguePrice;
+} = {
+  key: 'credits_extra',
+  name: 'Credite AI peste cele incluse în plan, câte 100',
+  meterEventName: 'credits_extra_blocks',
+  blockCredits: 100,
+  price: {
+    lookupKey: `credits_extra_monthly_${priceVersion}`,
+    product: 'credits_extra',
+    interval: 'month',
+    unitAmount: 150,
+    usage: 'metered',
+  },
+};
+
+export const meteredProducts = [smsOverage, creditsExtra];
+
 export const catalogueProducts: CatalogueProduct[] = [
   ...Object.values(billingPlans),
-  smsOverage,
+  ...meteredProducts,
 ].map(({ key, name }) => ({ key, name }));
 
 export const cataloguePrices: CataloguePrice[] = [
   ...Object.values(billingPlans).flatMap((plan) =>
     plan.steps.flatMap(({ prices }) => [prices.month, prices.year])
   ),
-  smsOverage.price,
+  ...meteredProducts.map((product) => product.price),
 ];
 
 const billingChoiceShape = z.object({
@@ -322,14 +351,18 @@ export const smsRefusalReasons = [
   'sms_trial',
   // SMS go to Romanian numbers (+40) only.
   'sms_foreign_number',
-  // The month's signing codes are used up. Every plan stops there until the extras exist.
+  // The month's signing codes are used up, and extras are off or at their ceiling.
   'sms_allowance_reached',
 ] as const;
 export const smsRefusalReasonSchema = z.enum(smsRefusalReasons);
 export type SmsRefusalReason = z.infer<typeof smsRefusalReasonSchema>;
 
-/** `none`: no SMS goes at all; `near`: from 80 % of what is included; `stopped`: all used. */
-export const smsUsageStateSchema = z.enum(['ok', 'near', 'stopped', 'none']);
+/**
+ * `none`: no SMS goes at all; `near`: from 80 % of what is included; `extra`: all included used,
+ * and codes go on as extras within the owner's ceiling; `stopped`: all used, and extras are off or
+ * at their ceiling.
+ */
+export const smsUsageStateSchema = z.enum(['ok', 'near', 'extra', 'stopped', 'none']);
 export type SmsUsageState = z.infer<typeof smsUsageStateSchema>;
 
 export const billingSmsUsageSchema = z.object({
@@ -339,10 +372,7 @@ export const billingSmsUsageSchema = z.object({
   included: z.int().min(0).nullable(),
   allowance: z.int().min(0).nullable(),
   granted: z.int().min(0),
-  // Null where nothing past `included` is sent: a hard stop, or no limit. Grants raise it too.
-  cap: z.int().min(0).nullable(),
-  capFactor: z.int().min(1).nullable(),
-  // Codes past `included` this month, billed on the next invoice.
+  // Codes past `included` this month, sent as extras and billed on the next invoice.
   overage: z.int().min(0),
   // Null while no SMS goes.
   periodStart: timestamp.nullable(),
@@ -398,6 +428,10 @@ export const billingCreditsUsageSchema = z.object({
   left: z.int().nullable(),
   // The welcome gift's credits left; used once the month's are gone.
   giftLeft: z.int().min(0),
+  // Credits bought this month in blocks of 100, as extras; inside `left` until used.
+  extra: z.int().min(0),
+  // What the extras' ceiling can still buy this month, in whole blocks; 0 while extras are off.
+  extraLeft: z.int().min(0),
   // `trial`: one allowance for the whole trial, which does not renew; `month`: renews at the end.
   period: z.enum(['trial', 'month']),
   periodStart: timestamp,
@@ -442,6 +476,7 @@ export const billingCatalogueSchema = z.object({
     })
   ),
   smsOverageCents: cents,
+  creditBlockCents: cents,
 });
 export type BillingCatalogue = z.infer<typeof billingCatalogueSchema>;
 
@@ -485,6 +520,7 @@ export const billingOverviewSchema = z.object({
     creditsThisMonth: billingCreditsUsageSchema,
   }),
   catalogue: billingCatalogueSchema,
+  extras: billingExtrasSchema,
   // The owner's alone (ADR 029): null for the other members and for an impersonating admin.
   owner: z
     .object({

@@ -32,6 +32,7 @@ export * from './employees';
 export * from './evaluation-profiles';
 export * from './extractor';
 export * from './extractor-http';
+export * from './extras';
 export * from './files';
 export * from './fire-safety';
 export * from './fold-text';

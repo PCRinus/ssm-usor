@@ -2,7 +2,7 @@ import {
   type BillingChoice,
   type BillingPreview,
   type CancellationReason,
-  smsOverage,
+  meteredProducts,
 } from '@ssm-usor/contracts';
 import type Stripe from 'stripe';
 
@@ -127,7 +127,7 @@ function phaseItems(choice: BillingChoice, catalogue: StripeCatalogue) {
       price: priceId(catalogue, line.lookupKey),
       quantity: line.quantity,
     })),
-    { price: priceId(catalogue, smsOverage.price.lookupKey) },
+    ...meteredProducts.map((product) => ({ price: priceId(catalogue, product.price.lookupKey) })),
   ];
 }
 

@@ -33,6 +33,7 @@ function setUp(
     markSent: vi.fn(async () => undefined),
     release: vi.fn(async () => undefined),
     periodUsage: vi.fn(),
+    smsCeiling: vi.fn(),
     recordNotice: vi.fn(),
     forgetNotice: vi.fn(),
   } satisfies SmsUsageStore;
@@ -60,7 +61,7 @@ function setUp(
 }
 
 describe('the SMS sender', () => {
-  it("counts a signing code against the step's allowance, with a hard stop, then marks it sent", async () => {
+  it("counts a signing code against the step's allowance, extras allowed past it, then marks it sent", async () => {
     const { store, send, sendSigningCode, onOverage } = setUp(paid);
 
     expect(await send()).toEqual({
@@ -77,7 +78,7 @@ describe('the SMS sender', () => {
         end: new Date('2026-12-13T08:00:00.000Z'),
       },
       allowance: 50,
-      cap: null,
+      extraCents: 10,
     });
     expect(sendSigningCode).toHaveBeenCalledOnce();
     expect(store.markSent).toHaveBeenCalledWith('row-1', 'SM1', now);
@@ -90,7 +91,7 @@ describe('the SMS sender', () => {
     await send('participant_invitation');
 
     expect(store.claim).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: 'participant_invitation', allowance: null, cap: null })
+      expect.objectContaining({ kind: 'participant_invitation', allowance: null, extraCents: null })
     );
     expect(onCounted).not.toHaveBeenCalled();
   });
@@ -103,15 +104,15 @@ describe('the SMS sender', () => {
     expect(onCounted).toHaveBeenCalledWith(organizationId, paid);
   });
 
-  it('reports nothing to Stripe for a paid plan while extras are off', async () => {
+  it('reports an extra code to Stripe once it went out', async () => {
     const { send, onOverage } = setUp(paid, { id: 'row-9', overage: true });
 
     await send();
 
-    expect(onOverage).not.toHaveBeenCalled();
+    expect(onOverage).toHaveBeenCalledWith({ id: 'row-9', sentAt: now, customerId: 'cus_1' });
   });
 
-  it("passes no cap for a tester's hard stop, and never reports one", async () => {
+  it("passes no extras for a tester's hard stop, and never reports one", async () => {
     const tester = {
       ...paid,
       plan: 'profesional',
@@ -128,8 +129,15 @@ describe('the SMS sender', () => {
     await send();
 
     expect(store.claim).toHaveBeenCalledWith(
-      expect.objectContaining({ allowance: 300, cap: null })
+      expect.objectContaining({ allowance: 300, extraCents: null })
     );
+    expect(onOverage).not.toHaveBeenCalled();
+  });
+
+  it('allows no extra code while a payment is overdue', async () => {
+    const { store, send, onOverage } = setUp({ ...paid, status: 'past_due' });
+    await send();
+    expect(store.claim).toHaveBeenCalledWith(expect.objectContaining({ extraCents: null }));
     expect(onOverage).not.toHaveBeenCalled();
   });
 
@@ -155,7 +163,7 @@ describe('the SMS sender', () => {
   it.each(['sms_allowance_reached'] as const)(
     'answers the refusal the count gives (%s) and sends nothing',
     async (refusal) => {
-      const { send, sendSigningCode, onCounted } = setUp(paid, { refusal });
+      const { send, sendSigningCode, onCounted } = setUp(paid, { refusal, atCeiling: false });
 
       expect(await send()).toEqual({
         sent: false,

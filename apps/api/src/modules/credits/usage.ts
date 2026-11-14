@@ -13,9 +13,14 @@ import type { SmsSubscription } from '../sms-usage/policy';
 import { type CreditPolicy, creditPolicy, welcomeCreditsOf } from './policy';
 import type { Balance, CreditsStore, ImportCreditEntry } from './store';
 
-export function creditsState(included: number | null, left: number | null, giftLeft: number) {
+export function creditsState(
+  included: number | null,
+  left: number | null,
+  giftLeft: number,
+  extraLeft = 0
+) {
   if (included === null || left === null) return 'unlimited' satisfies CreditsUsageState;
-  const available = left + giftLeft;
+  const available = left + giftLeft + extraLeft;
   if (left < 0 && available < 0) return 'negative' satisfies CreditsUsageState;
   if (available <= 0) return 'out' satisfies CreditsUsageState;
   return available < included * 0.2 ? 'near' : 'ok';
@@ -37,10 +42,12 @@ export function usageView(policy: CreditPolicy, balance: Balance): BillingCredit
     shortfall: balance.shortfall,
     left: balance.balance,
     giftLeft: balance.giftLeft,
+    extra: balance.extra,
+    extraLeft: balance.extraLeft,
     period: limited?.kind ?? 'month',
     periodStart: policy.period.start.toISOString(),
     periodEnd: policy.period.end.toISOString(),
-    state: creditsState(included, balance.balance, balance.giftLeft),
+    state: creditsState(included, balance.balance, balance.giftLeft, balance.extraLeft),
   };
 }
 

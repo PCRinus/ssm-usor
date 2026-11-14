@@ -20,7 +20,6 @@ const paidStart = {
   first_paid_at: '2026-08-31T08:05:00.000Z',
   billing_anchor_at: '2026-08-31T08:00:00.000Z',
   current_period_end: '2026-10-31T08:00:00.000Z',
-  sms_cap_factor: 3,
   employee_step: 250,
 };
 

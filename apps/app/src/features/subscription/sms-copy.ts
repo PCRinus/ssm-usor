@@ -47,6 +47,7 @@ const toneOf: Record<BillingSmsUsage['state'], MeterTone> = {
   none: 'normal',
   ok: 'normal',
   near: 'warning',
+  extra: 'over',
   stopped: 'danger',
 };
 

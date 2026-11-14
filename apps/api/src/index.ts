@@ -5,6 +5,7 @@ import { createApp } from './app';
 import type { ApiEnv } from './lib/env';
 import { scheduledEmployeesOverStep } from './modules/billing/employees-over-step-notices';
 import { consumeRegenerationBatch } from './modules/documents/regeneration-queue';
+import { scheduledBlockReports } from './modules/extras/reporting';
 import { scheduledImportCleanUp } from './modules/imports/cleanup';
 import { consumeImportBatch, consumeImportDeadLetters } from './modules/imports/queue';
 import { scheduledOverageReports } from './modules/sms-usage/overage';
@@ -35,6 +36,7 @@ export default {
         scheduledImportCleanUp(env),
         scheduledOverageReports(env),
         scheduledEmployeesOverStep(env),
+        scheduledBlockReports(env),
       ])
     ),
 } satisfies ExportedHandler<ApiEnv['Bindings']>;

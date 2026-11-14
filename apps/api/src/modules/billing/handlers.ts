@@ -9,6 +9,7 @@ import {
   type BillingOverview,
   billingPlans,
   type BillingPortalSession,
+  creditsExtra,
   type InvoiceEmail,
   type PaidPlan,
   readOnlyDays,
@@ -25,6 +26,8 @@ import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
+import { extrasView } from '../extras/handlers';
+import { extrasStore } from '../extras/store';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
 import { employeesOverStepOf } from './employees-over-step';
@@ -100,6 +103,7 @@ const catalogue: BillingCatalogue = {
     })),
   })),
   smsOverageCents: smsOverage.price.unitAmount,
+  creditBlockCents: creditsExtra.price.unitAmount,
 };
 
 // A row past due keeps the retry grace as its end, so a cancellation set meanwhile is known
@@ -208,15 +212,17 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
     countOpenInvitations(billing.db, billing.organizationId),
   ]);
   const limits = usageLimits(row, billing.now);
-  const [sms, credits, employeesOverStep] = await Promise.all([
+  const [sms, credits, employeesOverStep, ceilings] = await Promise.all([
     smsUsageOf(smsUsageStore(billing.db), billing.organizationId, row, billing.now),
     creditsUsageOf(creditsStore(billing.db), billing.organizationId, row, billing.now),
     employeesOverStepOf(billing.db, billing.organizationId),
+    extrasStore(billing.db).ceilings(billing.organizationId),
   ]);
+  const ownerInPerson = isOwnerInPerson(membership, billing.userId);
 
   let owner: BillingOverview['owner'] = null;
   let stripeCancelAt: string | null = null;
-  if (isOwnerInPerson(membership, billing.userId)) {
+  if (ownerInPerson) {
     const [invoices, email, details] = await Promise.all([
       listInvoices(billing.db, billing.organizationId),
       ownerEmail(billing.db, billing.organizationId),
@@ -252,6 +258,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
         creditsThisMonth: credits,
       },
       catalogue,
+      extras: extrasView({ row, ceilings, sms, credits, owner: ownerInPerson }),
       owner,
     } satisfies BillingOverview,
     200

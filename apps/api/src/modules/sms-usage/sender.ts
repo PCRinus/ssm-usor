@@ -85,7 +85,7 @@ export function createSmsSender(deps: {
         kind: input.kind,
         period: policy.period,
         allowance: counted ? policy.allowance : null,
-        cap: counted ? policy.cap : null,
+        extraCents: counted ? policy.extraCents : null,
       });
       if ('refusal' in claim) {
         deps.onCounted?.(input.organizationId, row);
@@ -111,7 +111,7 @@ export function createSmsSender(deps: {
         console.error(`SMS ${claim.id} went out but was not marked sent.`);
         return { sent: true, id: claim.id, overage: claim.overage, receipt };
       }
-      if (claim.overage && policy.bills && row?.stripe_customer_id) {
+      if (claim.overage && row?.stripe_customer_id) {
         deps.onOverage({ id: claim.id, sentAt, customerId: row.stripe_customer_id });
       }
       return { sent: true, id: claim.id, overage: claim.overage, receipt };

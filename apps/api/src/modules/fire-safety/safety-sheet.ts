@@ -31,6 +31,7 @@ import { ApiError } from '../../lib/errors';
 import { createExtractor } from '../../lib/extractor';
 import { creditsStore } from '../credits/store';
 import { safetySheetCharges } from '../credits/usage';
+import { blocksReporterOf } from '../extras/reporting';
 import type { readSafetySheetRoute } from './routes';
 
 const refused = (reason: string, message: string) =>
@@ -170,7 +171,9 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
 
   const organizationId = c.get('membership').organizationId;
   // The refund must land even when the member closes the dialog while the model reads.
-  const charges = safetySheetCharges(creditsStore(createLastingAdminClient(c)));
+  const charges = safetySheetCharges(
+    creditsStore(createLastingAdminClient(c), blocksReporterOf(c))
+  );
   const key = `sheet:${crypto.randomUUID()}`;
   const charge = await charges.charge(organizationId, key);
   if (!charge.started) throw creditsShort(charge.short);

@@ -20,7 +20,6 @@ const testerTrial = {
   first_paid_at: null,
   billing_anchor_at: null,
   current_period_end: null,
-  sms_cap_factor: 3,
   employee_step: 250,
 };
 

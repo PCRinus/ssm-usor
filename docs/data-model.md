@@ -77,8 +77,8 @@ covers, one of the plan's steps; required once a plan is chosen, except on Enter
 `invoice_email`, where Oblio sends the invoices instead of
 the owner, `current_period_end`, `billing_anchor_at` (Stripe's billing cycle anchor, the day the
 SMS month starts on), `first_paid_at` (the first invoice with an amount, which ends the hard stop
-on signing codes of a plan chosen during the trial) and `sms_cap_factor`, the safety cap as a
-multiple of the plan's SMS allowance, unused while the extras are off. A trial with no plan chosen has no step and
+on signing codes of a plan chosen during the trial). `sms_cap_factor`, the safety cap the
+extras' ceiling replaced, is dropped by `20261117100000_usage_extras`. A trial with no plan chosen has no step and
 no Stripe subscription; a trial with a plan chosen carries all of Stripe's side, and a trial whose
 plan was cancelled keeps its customer. A Stripe customer needs its
 account, and a Stripe subscription its customer, interval and price version. Members read every
@@ -93,15 +93,28 @@ database.
 `overage` (past the allowance, billed), the month it fell in (`period_start`, `period_end`), the
 provider's id, `sent_at` (null while the message is on its way) and `reported_at`, when its meter
 event went to Stripe. No phone number is kept. `claim_sms_send(organization, kind, month,
-allowance, cap)` decides and records a send under a lock per organization, so two codes asked
-for at once cannot both take the last one: below the allowance plus the codes granted by hand it
-records a send, past it a billed one while a cap is given and not reached, and otherwise answers
-`sms_allowance_reached` (a hard stop, no cap) or `sms_cap_reached` and records nothing.
+allowance, extra_cents)` decides and records a send under a lock per organization, so two codes
+asked for at once cannot both take the last one: below the allowance plus the codes granted by
+hand it records a send; past it, while `extra_cents` is given (extras may apply) and the owner's
+SMS ceiling in `usage_extras` covers one more extra code, a billed one (`overage`); otherwise it
+answers `sms_allowance_reached` (no ceiling) or `sms_ceiling_reached` and records nothing. The
+ceiling counts the month's extra codes, not all codes, so an allowance raised mid-month never
+lets the extras past it.
 `sms_period_usage(organization, month)` answers the counts. `sms_code_grants` holds the codes
 added by hand to a month (codes, reason, actor), written by `grant_signing_codes`, which also logs
 `signing_codes_granted` in `subscription_changes`. `usage_notices` records which usage warning
-(`sms_80`, `sms_100`, `sms_cap`, later `credits_*`) went to an organization in which month, once
-each. All four are the secret key's alone.
+(`sms_80`, `sms_100`, and the extras' `sms_extra80`, `sms_extra100`, `credits_extra80`,
+`credits_extra100`) went to an organization in which month, once each. All four are the secret
+key's alone.
+
+`usage_extras` ([ADR 029, amendment of 2026-11-14](architecture/adr-029-billing-plans-and-trials.md#amendment-2026-11-14-extras-with-a-monthly-ceiling))
+holds the extras an owner turned on, one row per `(organization, kind)`, `kind` `sms` or
+`credits`, with `ceiling_cents`, whole euro from 1 € to 500 € a month by a check; no row is off.
+`credit_extra_blocks` holds every block of 100 AI credits bought past the month's and the welcome
+credits: the organization, the month, its `number` in the month (unique, so two charges cannot buy
+the same block) and `reported_at`, when its meter event went to Stripe; its id is the event's
+identifier. Both are the secret key's alone; the API writes the ceilings for the owner in person
+and turns them off when the subscription ends.
 
 `credit_entries` is the ledger of import credits ([ADR 030](architecture/adr-030-import-from-documents.md),
 "Usage is counted in credits"; `20261102110000_import_credits`): the organization, the `kind`
@@ -122,7 +135,11 @@ for every other kind, by a check). A charge is never below what the floor allows
 grant, by `(organization, period_start)`: its `period_end`, the largest `allowance` it had (a
 downgrade at the renewal would otherwise hide it) and the `shortfall` carried in from the month
 before, fixed when the month opens, at most 150. The allowance itself is computed by the API from
-the plan, which passes the months in.
+the plan, which passes the months in. `credit_balance` and `credit_period_counts` also answer
+`extra`, 100 credits for each block bought in the month, which count into the month's balance;
+`charge_credits(…, p_block_cents)` buys blocks under the same lock once the month's and the
+welcome credits are used, while the owner's credits ceiling covers them, and answers
+`extra_blocks`, how many it bought.
 
 `credit_balance(organization, month, allowance, month before, its allowance)` answers the month's
 `granted`, `used` (charges net of refunds, the gift's part left out), `shortfall`, `balance` and

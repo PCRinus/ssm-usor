@@ -89,7 +89,7 @@ describe('what an organization may text', () => {
 
   it("gives a tester's trial 300 codes a month from the trial's start, with a hard stop", () => {
     const policy = smsPolicy({ ...trial, tester_allowances: true }, now);
-    expect(policy).toMatchObject({ sends: true, allowance: 300, cap: null, bills: false });
+    expect(policy).toMatchObject({ sends: true, allowance: 300, extraCents: null });
     expect(policy.sends && iso(policy.period)).toEqual([
       '2026-10-14T08:00:00.000Z',
       '2026-11-14T08:00:00.000Z',
@@ -114,7 +114,7 @@ describe('what an organization may text', () => {
       billing_anchor_at: '2026-10-18T08:00:00.000Z',
     };
     const policy = smsPolicy(retrying, now);
-    expect(policy).toMatchObject({ sends: true, allowance: 50, cap: null, bills: false });
+    expect(policy).toMatchObject({ sends: true, allowance: 50, extraCents: null });
     expect(policy.sends && iso(policy.period)).toEqual([
       '2026-10-18T08:00:00.000Z',
       '2026-11-18T08:00:00.000Z',
@@ -131,27 +131,30 @@ describe('what an organization may text', () => {
       },
       now
     );
-    expect(policy).toMatchObject({ sends: true, allowance: 50, cap: null, bills: false });
+    expect(policy).toMatchObject({ sends: true, allowance: 50, extraCents: null });
     expect(policy.sends && iso(policy.period)).toEqual([
       '2026-10-18T09:30:00.000Z',
       '2026-11-18T09:30:00.000Z',
     ]);
   });
 
-  it("stops a paid plan hard at its step's allowance and bills nothing past it while extras are off", () => {
+  it("lets a paid plan in good standing send extra codes at 0,10 € past its step's allowance", () => {
     expect(smsPolicy(paid, at('2026-12-01T00:00:00.000Z'))).toMatchObject({
       sends: true,
       allowance: 50,
-      cap: null,
-      capFactor: null,
-      bills: false,
+      extraCents: 10,
     });
     expect(smsPolicy({ ...paid, plan: 'profesional', employee_step: 5000 }, now)).toMatchObject({
       allowance: 1000,
-      cap: null,
-      bills: false,
+      extraCents: 10,
     });
     expect(smsPolicy({ ...paid, employee_step: 750 }, now)).toMatchObject({ allowance: 150 });
+  });
+
+  it('sends no extra code from a subscription past due or ended', () => {
+    const later = at('2026-12-01T00:00:00.000Z');
+    expect(smsPolicy({ ...paid, status: 'past_due' }, later)).toMatchObject({ extraCents: null });
+    expect(smsPolicy({ ...paid, status: 'canceled' }, later)).toMatchObject({ extraCents: null });
   });
 
   it("falls back to the plan's first step for a row without one", () => {
@@ -165,7 +168,7 @@ describe('what an organization may text', () => {
 
   it('sets no limit without a subscription or on Enterprise, on the calendar month', () => {
     const none = smsPolicy(null, now);
-    expect(none).toMatchObject({ sends: true, allowance: null, cap: null, bills: false });
+    expect(none).toMatchObject({ sends: true, allowance: null, extraCents: null });
     expect(none.sends && iso(none.period)).toEqual([
       '2026-10-01T00:00:00.000Z',
       '2026-11-01T00:00:00.000Z',
@@ -184,18 +187,31 @@ describe('what an organization may text', () => {
 describe('the state of the meter', () => {
   const policy = smsPolicy(paid, at('2026-12-01T00:00:00.000Z'));
 
+  const off = { overage: 0, ceilingCents: null };
+
   it.each([
     [39, 'ok'],
     [40, 'near'],
     [50, 'stopped'],
     [150, 'stopped'],
-  ] as const)('says %s of 50 on a paid plan is %s', (used, state) => {
-    expect(smsState(policy, { used, included: 50 })).toBe(state);
+  ] as const)('says %s of 50 on a paid plan with extras off is %s', (used, state) => {
+    expect(smsState(policy, { used, included: 50, ...off })).toBe(state);
+  });
+
+  it.each([
+    [50, 0, 'extra'],
+    [87, 37, 'extra'],
+    [149, 99, 'extra'],
+    [150, 100, 'stopped'],
+  ] as const)('says %s of 50 with %s extra under a 10 € ceiling is %s', (used, overage, state) => {
+    expect(smsState(policy, { used, included: 50, overage, ceilingCents: 1000 })).toBe(state);
   });
 
   it('says stopped at a hard stop, and none where nothing is texted', () => {
-    expect(smsState(policy, { used: 50, included: 50 })).toBe('stopped');
-    expect(smsState({ sends: false }, { used: 0, included: 0 })).toBe('none');
-    expect(smsState(smsPolicy(null, new Date()), { used: 900, included: null })).toBe('ok');
+    expect(smsState(hardStop, { used: 50, included: 50, overage: 0, ceilingCents: 1000 })).toBe(
+      'stopped'
+    );
+    expect(smsState({ sends: false }, { used: 0, included: 0, ...off })).toBe('none');
+    expect(smsState(smsPolicy(null, new Date()), { used: 900, included: null, ...off })).toBe('ok');
   });
 });

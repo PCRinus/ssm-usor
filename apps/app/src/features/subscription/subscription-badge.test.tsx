@@ -279,7 +279,7 @@ describe('the SMS bar', () => {
   });
 
   it('shows the SMS bar once the trial bar is closed for the day', async () => {
-    const tester = smsUsage({ used: 252, cap: null, capFactor: null, state: 'near' });
+    const tester = smsUsage({ used: 252, state: 'near' });
     await renderRouted(<SubscriptionBar subscription={trial(5)} sms={tester} isOwner canAct />);
     expect((await screen.findByTestId('subscription-bar')).dataset.kind).toBe('trial');
     await userEvent.click(screen.getByTestId('subscription-bar-close'));

@@ -7,6 +7,8 @@ import {
   testerMonthlySms,
 } from '@ssm-usor/contracts';
 
+import { smsExtraCents } from '../extras/policy';
+
 export type SmsSubscription = {
   plan: string;
   status: string;
@@ -42,10 +44,9 @@ export type SmsPolicy =
       period: Period;
       // Null where nothing limits the signing codes.
       allowance: number | null;
-      // Null for a hard stop at the allowance.
-      cap: number | null;
-      capFactor: number | null;
-      bills: boolean;
+      // What an extra code costs while extras may apply; null for a hard stop at the allowance,
+      // or past it at the owner's ceiling.
+      extraCents: number | null;
     };
 
 // Stripe's months: the anchor's day, or the month's last day where the month is shorter.
@@ -101,9 +102,7 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
       sends: true,
       period: calendarMonth(now),
       allowance: null,
-      cap: null,
-      capFactor: null,
-      bills: false,
+      extraCents: null,
     };
   }
   // A subscription created with a trial end is unpaid until that end and sends as the trial does;
@@ -117,31 +116,31 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
       sends: true,
       period: trialMonth(row, now),
       allowance: testerMonthlySms,
-      cap: null,
-      capFactor: null,
-      bills: false,
+      extraCents: null,
     };
   }
-  const allowance = stepOf(row).monthlySms;
-  // Extras are off for everyone until the owner can turn them on, so a paid plan stops hard at
-  // its allowance too and nothing past it is billed (ADR 029, amendment of 2026-11-14).
   return {
     sends: true,
     period: monthAround(billingAnchor(row), now),
-    allowance,
-    cap: null,
-    capFactor: null,
-    bills: false,
+    allowance: stepOf(row).monthlySms,
+    extraCents: smsExtraCents(row),
   };
 }
 
 export function smsState(
   policy: SmsPolicy,
-  counts: { used: number; included: number | null }
+  counts: { used: number; included: number | null; overage: number; ceilingCents: number | null }
 ): SmsUsageState {
   if (!policy.sends) return 'none';
   const { used, included } = counts;
   if (included === null) return 'ok';
-  if (used >= included) return 'stopped';
+  if (used >= included) {
+    const { extraCents } = policy;
+    const room =
+      extraCents !== null &&
+      counts.ceilingCents !== null &&
+      (counts.overage + 1) * extraCents <= counts.ceilingCents;
+    return room ? 'extra' : 'stopped';
+  }
   return used >= included * 0.8 ? 'near' : 'ok';
 }

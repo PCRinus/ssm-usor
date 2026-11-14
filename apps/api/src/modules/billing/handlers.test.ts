@@ -77,8 +77,6 @@ describe('GET /billing', () => {
         included: 0,
         allowance: 0,
         granted: 0,
-        cap: null,
-        capFactor: null,
         overage: 0,
         periodStart: null,
         periodEnd: null,
@@ -92,6 +90,8 @@ describe('GET /billing', () => {
         shortfall: 0,
         left: 300,
         giftLeft: 0,
+        extra: 0,
+        extraLeft: 0,
         period: 'trial',
         periodStart: trial.created_at,
         periodEnd: trial.trial_ends_at,
@@ -556,6 +556,7 @@ describe('POST /billing/subscription', () => {
       'items[0][price]': priceIdOf('start_500_monthly_v2'),
       'items[0][quantity]': '1',
       'items[1][price]': priceIdOf('sms_overage_monthly_v2'),
+      'items[2][price]': priceIdOf('credits_extra_monthly_v2'),
       'default_tax_rates[0]': 'txr_vat',
       payment_behavior: 'default_incomplete',
       'payment_settings[save_default_payment_method]': 'on_subscription',
@@ -1036,6 +1037,7 @@ describe('PATCH /billing/subscription', () => {
       'phases[0][items][0][price]': priceIdOf('profesional_1500_monthly_v2'),
       'phases[1][items][0][price]': priceIdOf('start_500_monthly_v2'),
       'phases[1][items][1][price]': priceIdOf('sms_overage_monthly_v2'),
+      'phases[1][items][2][price]': priceIdOf('credits_extra_monthly_v2'),
       'phases[1][proration_behavior]': 'none',
       'phases[1][duration][interval]': 'month',
     });
@@ -1234,7 +1236,7 @@ describe('the credits meter', () => {
   const specialist = { user_id: owner.id, role: 'specialist', access: 'full' } as const;
   const meterFake = (credits: Partial<Fake['credits']> = {}) =>
     createFake({
-      credits: { granted: 0, used: 0, shortfall: 0, gift_left: 0, ...credits },
+      credits: { granted: 0, used: 0, shortfall: 0, gift_left: 0, extra: 0, ...credits },
       membership: specialist,
     });
   const creditsOf = async () =>
@@ -1367,8 +1369,6 @@ describe('the SMS meter', () => {
       used: 45,
       included: 50,
       allowance: 50,
-      cap: null,
-      capFactor: null,
       overage: 0,
       periodStart: anchor,
       state: 'near',
@@ -1389,14 +1389,11 @@ describe('the SMS meter', () => {
   });
 
   it('stops a paid plan at its allowance, with the codes granted by hand, while extras are off', async () => {
-    meterFake({ used: 55, overage: 0, granted: 5 }).tables.subscriptions!.push(
-      paidRow(start, { sms_cap_factor: 6 })
-    );
+    meterFake({ used: 55, overage: 0, granted: 5 }).tables.subscriptions!.push(paidRow(start));
 
     expect(await smsOf()).toMatchObject({
       used: 55,
       included: 55,
-      cap: null,
       overage: 0,
       state: 'stopped',
     });
@@ -1421,13 +1418,13 @@ describe('the SMS meter', () => {
       subscriptionRow({ tester_allowances: true })
     );
 
-    expect(await smsOf()).toMatchObject({ used: 12, included: 300, cap: null, state: 'ok' });
+    expect(await smsOf()).toMatchObject({ used: 12, included: 300, state: 'ok' });
   });
 
   it('sets no limit without a subscription', async () => {
     meterFake({ used: 7, overage: 0, granted: 0 });
 
-    expect(await smsOf()).toMatchObject({ used: 7, included: null, cap: null, state: 'ok' });
+    expect(await smsOf()).toMatchObject({ used: 7, included: null, state: 'ok' });
   });
 
   it('no longer takes a safety cap from the owner', async () => {

@@ -97,7 +97,7 @@ export function addInterval(date: Date, interval: BillingInterval) {
 // v1 had one price per plan, with packs of employees and extra members as quantities beside it;
 // a subscription on it still renews until the owner changes it (ADR 029, amendment of 2026-11-14).
 const lookupKeyPattern =
-  /^(start|profesional|employees50|employees500|member|sms_overage)(?:_([0-9]+))?_(monthly|annual)_(v[0-9]+)$/;
+  /^(start|profesional|employees50|employees500|member|sms_overage|credits_extra)(?:_([0-9]+))?_(monthly|annual)_(v[0-9]+)$/;
 
 export type ParsedLookupKey = {
   product: BillingProductKey | 'employees50' | 'employees500' | 'member';

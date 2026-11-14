@@ -1,5 +1,5 @@
 begin;
-select plan(27);
+select plan(26);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -18,13 +18,13 @@ returns void language sql as $$
          set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated', 'app_metadata', '{"provider":"email"}'::jsonb)::text, true);
 $$;
 
-create or replace function pg_temp.claim(kind text, allowance int, cap int)
+create or replace function pg_temp.claim(kind text, allowance int, extra_cents int)
 returns table (id uuid, refusal text, overage boolean)
 language sql as $$
   select * from public.claim_sms_send(
     '11111111-0000-4000-8000-000000000051', kind::public.sms_kind,
     date_trunc('month', now()), date_trunc('month', now()) + interval '1 month',
-    allowance, cap
+    allowance, extra_cents
   );
 $$;
 
@@ -49,9 +49,9 @@ select throws_ok(
   'a member cannot grant codes'
 );
 select throws_ok(
-  $$ update public.subscriptions set sms_cap_factor = 20 $$,
+  $$ select * from public.usage_extras $$,
   '42501', null,
-  'a member cannot raise the cap directly'
+  'a member cannot read the extras'
 );
 
 reset role;
@@ -83,15 +83,24 @@ select results_eq(
 );
 
 select results_eq(
-  $$ select refusal, overage from pg_temp.claim('signing_code', 2, 3) $$,
+  $$ select refusal from pg_temp.claim('signing_code', 2, 10) $$,
+  $$ values ('sms_allowance_reached'::text) $$,
+  'extras that may apply still stop at the allowance while the owner has not turned them on'
+);
+
+insert into public.usage_extras (organization_id, kind, ceiling_cents)
+values ('11111111-0000-4000-8000-000000000051', 'sms', 100);
+
+select results_eq(
+  $$ select refusal, overage from pg_temp.claim('signing_code', 2, 100) $$,
   $$ values (null::text, true) $$,
-  'past the allowance and below the cap a code goes out as overage'
+  'past the allowance and within the ceiling a code goes out as overage'
 );
 
 select results_eq(
-  $$ select refusal from pg_temp.claim('signing_code', 2, 3) $$,
-  $$ values ('sms_cap_reached'::text) $$,
-  'at the cap a code is refused'
+  $$ select refusal from pg_temp.claim('signing_code', 2, 100) $$,
+  $$ values ('sms_ceiling_reached'::text) $$,
+  'at the ceiling a code is refused'
 );
 
 select results_eq(
@@ -117,9 +126,9 @@ select results_eq(
 );
 
 select results_eq(
-  $$ select refusal, overage from pg_temp.claim('signing_code', 2, 3) $$,
-  $$ values (null::text, true) $$,
-  'and the cap'
+  $$ select refusal from pg_temp.claim('signing_code', 2, 100) $$,
+  $$ values ('sms_ceiling_reached'::text) $$,
+  'but never the extras, whose ceiling counts the extra codes alone'
 );
 
 select results_eq(
@@ -164,17 +173,6 @@ select throws_ok(
 insert into public.subscriptions (organization_id, plan, status, trial_ends_at, access_until)
 values ('11111111-0000-4000-8000-000000000051', 'profesional', 'trialing', now() + interval '30 days', now() + interval '30 days');
 
-select is(
-  (select sms_cap_factor from public.subscriptions where organization_id = '11111111-0000-4000-8000-000000000051'),
-  3::smallint,
-  'the safety cap is three times the allowance by default'
-);
-
-select throws_ok(
-  $$ update public.subscriptions set sms_cap_factor = 21 where organization_id = '11111111-0000-4000-8000-000000000051' $$,
-  '23514', null,
-  'and at most twenty times it'
-);
 
 insert into public.usage_notices (organization_id, period_start, kind)
 values ('11111111-0000-4000-8000-000000000051', date_trunc('month', now()), 'sms_80');

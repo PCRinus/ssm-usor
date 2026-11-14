@@ -388,6 +388,38 @@ describe('POST /billing/stripe-webhook', () => {
       });
     });
 
+    it('turns the extras off once the subscription has ended, so a new one starts with them off', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(pro));
+      fake.tables.usage_extras = [
+        { organization_id: organizationId, kind: 'sms', ceiling_cents: 1000 },
+        { organization_id: organizationId, kind: 'credits', ceiling_cents: 1500 },
+      ];
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ status: 'canceled', choice: pro, endedAt: now() - day });
+
+      await deliver(subscriptionEvent('customer.subscription.deleted'));
+
+      expect(fake.tables.usage_extras).toEqual([]);
+      expect(fake.tables.subscription_changes).toContainEqual(
+        expect.objectContaining({ change: 'extras_ended', details: { kinds: ['sms', 'credits'] } })
+      );
+    });
+
+    it('keeps the extras the owner set while a payment is overdue', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow(pro));
+      fake.tables.usage_extras = [
+        { organization_id: organizationId, kind: 'sms', ceiling_cents: 1000 },
+      ];
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ status: 'past_due', choice: pro });
+
+      await deliver(subscriptionEvent('customer.subscription.updated'));
+
+      expect(fake.tables.usage_extras).toHaveLength(1);
+    });
+
     it("leaves the organization alone for another subscription's late event", async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow(pro, { stripe_subscription_id: 'sub_2Newer' }));
