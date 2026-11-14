@@ -117,7 +117,6 @@ export async function saveSubscription(
   return data;
 }
 
-// The first paid invoice's moment; later payments leave it as it is.
 export async function markFirstPayment(db: AdminClient, organizationId: string, paidAt: Date) {
   const { data, error } = await db
     .from('subscriptions')

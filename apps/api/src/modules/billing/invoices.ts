@@ -198,7 +198,14 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
   }
   const subscription = await adoptFirstSubscription(deps, invoice, byCustomer, organizationId);
   const paidAt = new Date((invoice.status_transitions.paid_at ?? invoice.created) * 1000);
-  if (subscription && (await markFirstPayment(deps.db, organizationId, paidAt))) {
+  // A row still holding the trial would size the welcome credits, which never change after, from
+  // the trial's placeholder plan rather than the step paid for.
+  const subscriptionId = idOf(invoice.parent?.subscription_details?.subscription);
+  const followed =
+    subscription !== null &&
+    subscriptionId !== null &&
+    subscription.stripe_subscription_id === subscriptionId;
+  if (followed && (await markFirstPayment(deps.db, organizationId, paidAt))) {
     await recordChange(deps.db, organizationId, {
       source: 'stripe',
       change: 'first_payment',
@@ -208,7 +215,7 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
   // Every paid invoice, not only the one that marked the first payment: a retried event whose
   // first delivery stopped between the two writes still brings the gift. The database grants it
   // once, at the step of the first payment, and never changes it after (ADR 029).
-  if (subscription) {
+  if (followed) {
     await grantWelcomeGift(creditsStore(deps.db), await loadSubscription(deps.db, organizationId));
   }
 
@@ -247,7 +254,12 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     const document = await oblioFor(deps).issue(request);
     row = await updateInvoice(deps.db, invoice.id, issued(document));
   }
-  return storePdf(deps, row);
+  const stored = await storePdf(deps, row);
+  // Stripe delivers the event again, and the first payment and its credits are recorded then.
+  if (!followed && invoice.billing_reason === 'subscription_create' && subscriptionId) {
+    throw new Error(`The first invoice ${invoice.id} is paid before its subscription is followed.`);
+  }
+  return stored;
 }
 
 async function invoiceOfCharge(stripe: Stripe, charge: Stripe.Charge) {

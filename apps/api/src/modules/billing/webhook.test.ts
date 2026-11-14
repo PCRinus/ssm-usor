@@ -565,6 +565,29 @@ describe('POST /billing/stripe-webhook', () => {
       expect(gifts(fake)).toEqual([startGift]);
     });
 
+    it('records no first payment and no welcome credits while the subscription paid for is not followed yet, and takes them on the redelivery', async () => {
+      const fake = createFake();
+      firstPaymentOfTrial(fake);
+      const paid = fake.stripe['GET /v1/subscriptions/sub_1Test']!;
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({ status: 'incomplete', choice: start });
+
+      const first = await deliver(paidEvent);
+
+      expect(first.status).toBe(500);
+      expect(row(fake)).toMatchObject({ status: 'trialing', first_paid_at: null });
+      expect(gifts(fake)).toEqual([]);
+      expect(oblioWrites(fake, '/api/docs/invoice')).toHaveLength(1);
+
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = paid;
+      const again = await deliver(paidEvent);
+
+      expect(again.status).toBe(200);
+      expect(row(fake)).toMatchObject({ status: 'active', first_paid_at: expect.any(String) });
+      expect(gifts(fake)).toEqual([startGift]);
+      expect(oblioWrites(fake, '/api/docs/invoice')).toHaveLength(1);
+    });
+
     it('records the first payment once', async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(paidRow(pro, { first_paid_at: null }));

@@ -208,7 +208,11 @@ function CheckoutForm({
         next = 'processing';
         return;
       }
-      toast.success(`Plata a reușit. Abonamentul ${name} e activ.`);
+      toast.success(
+        state.endsTrial
+          ? `Plata a reușit. Abonamentul ${name} e activ, iar perioada de probă s-a încheiat.`
+          : `Plata a reușit. Abonamentul ${name} e activ.`
+      );
       onDone();
     } catch (cause) {
       if (reasonOf(cause) === 'already_subscribed') {

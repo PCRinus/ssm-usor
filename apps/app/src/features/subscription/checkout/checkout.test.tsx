@@ -209,7 +209,11 @@ describe('choosing a plan', () => {
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
-    expect(await screen.findByText('Plata a reușit. Abonamentul Start e activ.')).toBeTruthy();
+    expect(
+      await screen.findByText(
+        'Plata a reușit. Abonamentul Start e activ, iar perioada de probă s-a încheiat.'
+      )
+    ).toBeTruthy();
   });
 
   it('keeps the trial when the bank does not confirm the first payment', async () => {
