@@ -102,7 +102,6 @@ const archivedClient = {
   title: 'Clientul este arhivat: documentul poate fi doar citit.',
 };
 
-// `readOnlyReason` names why a read-only document is so; an archived client unless said.
 export function DocumentEditorView({
   source,
   readOnly,

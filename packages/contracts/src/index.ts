@@ -117,7 +117,7 @@ export const meResponseSchema = z.object({
   // Stripe for the owner's amounts. Null without a subscription, or when they could not be read.
   smsThisMonth: billingSmsUsageSchema.nullable().optional(),
   creditsThisMonth: billingCreditsUsageSchema.nullable().optional(),
-  // Null for an account that belongs to no organization.
+  // Null for an account that belongs to no organization, or when the plan could not be read.
   features: planFeaturesSchema.nullable().optional(),
 });
 

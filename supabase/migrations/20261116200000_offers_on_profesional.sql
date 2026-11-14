@@ -92,8 +92,13 @@ $$;
 
 revoke all on function public.protect_lead_without_offers() from public, anon;
 
-create trigger clients_protect_lead_without_offers before insert or update on public.clients
-  for each row execute function public.protect_lead_without_offers();
+create trigger clients_protect_lead_insert_without_offers before insert on public.clients
+  for each row when (new.stage = 'lead')
+  execute function public.protect_lead_without_offers();
+
+create trigger clients_protect_lead_without_offers before update on public.clients
+  for each row when (old.stage = 'lead')
+  execute function public.protect_lead_without_offers();
 
 create function public.protect_rows_of_lead_without_offers()
 returns trigger
@@ -102,7 +107,12 @@ security definer
 set search_path = ''
 as $$
 begin
-  perform public.refuse_lead_without_offers(coalesce(new.client_id, old.client_id));
+  if tg_op <> 'INSERT' then
+    perform public.refuse_lead_without_offers(old.client_id);
+  end if;
+  if tg_op <> 'DELETE' then
+    perform public.refuse_lead_without_offers(new.client_id);
+  end if;
   return coalesce(new, old);
 end;
 $$;
@@ -133,10 +143,16 @@ security definer
 set search_path = ''
 as $$
 begin
-  perform public.refuse_lead_without_offers(
-    (select d.client_id from public.client_documents d
-     where d.id = coalesce(new.document_id, old.document_id))
-  );
+  if tg_op <> 'INSERT' then
+    perform public.refuse_lead_without_offers(
+      (select d.client_id from public.client_documents d where d.id = old.document_id)
+    );
+  end if;
+  if tg_op <> 'DELETE' then
+    perform public.refuse_lead_without_offers(
+      (select d.client_id from public.client_documents d where d.id = new.document_id)
+    );
+  end if;
   return coalesce(new, old);
 end;
 $$;
@@ -154,3 +170,46 @@ create trigger document_signed_copies_protect_lead_without_offers
 create trigger service_contract_sends_protect_lead_without_offers
   before insert or update or delete on public.service_contract_sends
   for each row execute function public.protect_document_rows_of_lead_without_offers();
+
+-- Files written straight to Storage, past the API, follow the rows: a lead's drafts and files are
+-- not written while the plan has no offers.
+create or replace function public.is_draft_document_path(p_path text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.document_revisions r
+    join public.client_documents d on d.id = r.document_id
+    join public.clients c on c.id = d.client_id
+    where (r.docx_path = p_path or regexp_replace(r.docx_path, '\.docx$', '.pdf') = p_path)
+      and r.status = 'draft'
+      and r.organization_id = public.current_organization_id()
+      and c.archived_at is null
+      and (c.stage <> 'lead' or public.organization_has_offers(c.organization_id))
+      and public.can_access_document(d.id)
+  );
+$$;
+
+create or replace function public.is_writable_client_file_path(p_path text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.client_files f
+    join public.clients c on c.id = f.client_id
+    where f.storage_path = p_path
+      and f.organization_id = public.current_organization_id()
+      and (not f.owners_only or public.is_organization_owner())
+      and (f.uploaded_by = auth.uid() or public.is_organization_owner())
+      and c.archived_at is null
+      and (c.stage <> 'lead' or public.organization_has_offers(c.organization_id))
+  );
+$$;

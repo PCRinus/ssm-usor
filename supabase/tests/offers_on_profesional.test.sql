@@ -1,5 +1,5 @@
 begin;
-select plan(27);
+select plan(37);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -18,6 +18,19 @@ insert into public.clients (id, organization_id, legal_name, cui, stage) values
 
 insert into public.client_documents (id, organization_id, client_id, type_key, title, document_group, owners_only) values
   ('dddddddd-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000002', 'service_contract', 'Contract de prestări servicii', 'other', true);
+
+insert into public.document_revisions (id, document_id, organization_id, revision, status, docx_path, issued_at, docx_sha256) values
+  ('eeeeeeee-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 1, 'issued',
+   '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000002/dddddddd-0000-4000-8000-000000000001/1.docx',
+   now(), repeat('a', 64)),
+  ('eeeeeeee-0000-4000-8000-000000000002', 'dddddddd-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 2, 'draft',
+   '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000002/dddddddd-0000-4000-8000-000000000001/2.docx',
+   null, null);
+
+insert into public.client_files (id, organization_id, client_id, name, original_file_name, mime_type, size_bytes, sha256, owners_only, uploaded_by) values
+  ('ffffffff-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000002', 'Ofertă', 'oferta.pdf', 'application/pdf', 10, repeat('a', 64), true, 'aaaaaaaa-0000-4000-8000-000000000001');
+
+insert into public.client_owner_notes (client_id, organization_id, body) values ('cccccccc-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'Sunat.');
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -61,6 +74,21 @@ reset role;
 select pg_temp.subscribe('enterprise', 'active', null);
 select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
 select ok(public.current_organization_has_offers(), 'Enterprise has offers');
+
+reset role;
+select pg_temp.subscribe('start', 'trialing', now() - interval '1 day');
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
+select ok(not public.current_organization_has_offers(), 'Start chosen in a trial that ended has no offers');
+
+reset role;
+select pg_temp.subscribe('start', 'past_due', null);
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
+select ok(not public.current_organization_has_offers(), 'Start awaiting a payment has no offers');
+
+reset role;
+select pg_temp.subscribe('start', 'canceled', null);
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000001');
+select ok(not public.current_organization_has_offers(), 'a cancelled Start has no offers');
 
 reset role;
 select pg_temp.subscribe('start', 'active', null);
@@ -176,6 +204,43 @@ select throws_ok(
   'Start drafts no contract of a lead'
 );
 
+select throws_ok(
+  $$ insert into public.document_signed_copies (revision_id, organization_id, document_id, storage_path, sha256)
+     values ('eeeeeeee-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001',
+             '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000002/dddddddd-0000-4000-8000-000000000001/1.signed.pdf',
+             repeat('b', 64)) $$,
+  'CLL03',
+  null,
+  'Start attaches no signed copy to a lead''s contract'
+);
+
+select throws_ok(
+  $$ insert into public.service_contract_sends (organization_id, document_id, revision_id, sent_to)
+     values ('11111111-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000001', 'eeeeeeee-0000-4000-8000-000000000001', 'andrei@client.ro') $$,
+  'CLL03',
+  null,
+  'Start records no send of a lead''s contract'
+);
+
+select throws_ok(
+  $$ update public.client_owner_notes set client_id = 'cccccccc-0000-4000-8000-000000000001' where client_id = 'cccccccc-0000-4000-8000-000000000002' $$,
+  'CLL03',
+  null,
+  'a row does not leave a lead for a client'
+);
+
+select ok(
+  not public.is_draft_document_path(
+    '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000002/dddddddd-0000-4000-8000-000000000001/2.docx'
+  ),
+  'Start writes no file of a lead''s draft to Storage'
+);
+
+select ok(
+  not public.is_writable_client_file_path((select storage_path from public.client_files where id = 'ffffffff-0000-4000-8000-000000000001')),
+  'Start writes or removes no file of a lead in Storage'
+);
+
 select results_eq(
   $$ select legal_name from public.clients where id = 'cccccccc-0000-4000-8000-000000000002' $$,
   $$ values ('Lead of A') $$,
@@ -209,6 +274,18 @@ select lives_ok(
   $$ insert into public.clients (organization_id, legal_name, cui, stage)
      values ('11111111-0000-4000-8000-000000000001', 'Another lead', '4221306', 'lead') $$,
   'Profesional creates a lead'
+);
+
+select ok(
+  public.is_draft_document_path(
+    '11111111-0000-4000-8000-000000000001/cccccccc-0000-4000-8000-000000000002/dddddddd-0000-4000-8000-000000000001/2.docx'
+  ),
+  'Profesional writes the file of a lead''s draft'
+);
+
+select ok(
+  public.is_writable_client_file_path((select storage_path from public.client_files where id = 'ffffffff-0000-4000-8000-000000000001')),
+  'Profesional writes the files of a lead'
 );
 
 select * from finish();
