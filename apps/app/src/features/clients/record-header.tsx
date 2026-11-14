@@ -1,7 +1,10 @@
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import type { ReactNode } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
+import { backGap } from '@/components/back-gap';
+import { BackSlot } from '@/components/back-link';
 
 // Measured on the header, not on the window: the sidebar takes a share of the window.
 const actionsPlacement = {
@@ -28,10 +31,8 @@ export function RecordHeader({
 }) {
   return (
     <header className="@container">
-      {/* h-7 is the title's line height, so the arrow stays on its first line while a long
-          name wraps under itself. */}
-      <div className="flex min-w-0 flex-wrap items-start gap-3">
-        {back && <div className="flex h-7 shrink-0 items-center">{back}</div>}
+      <div className={cn('flex min-w-0 flex-wrap items-start gap-y-3', backGap)}>
+        {back && <BackSlot line="text-xl">{back}</BackSlot>}
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5">
             <h1
@@ -65,8 +66,8 @@ export function HeaderFact({ label, children }: { label: string; children: React
 
 export function RecordHeaderPending({ back }: { back: ReactNode }) {
   return (
-    <div className="flex min-w-0 items-start gap-3">
-      <div className="flex h-7 shrink-0 items-center">{back}</div>
+    <div className={cn('flex min-w-0 items-start', backGap)}>
+      <BackSlot line="text-xl">{back}</BackSlot>
       <div className="grid min-w-0 flex-1 gap-1.5">
         <Skeleton className="h-7 w-72 max-w-full" />
         <Skeleton className="h-4 w-48 max-w-full" />

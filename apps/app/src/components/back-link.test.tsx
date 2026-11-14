@@ -16,8 +16,9 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { keepOpener, openedHere } from '@/app/opener';
+import { RecordHeader } from '@/features/clients/record-header';
 
-import { BackLink } from './back-link';
+import { BackLink, TitleWithBack } from './back-link';
 import { SectionNav, SectionNavLink } from './section-nav';
 
 // The routes here are not the app's, which the router's types are registered for.
@@ -161,5 +162,24 @@ describe('back link', () => {
     expect(arrow.getAttribute('href')).toBe('/parent');
     expect(arrow.getAttribute('aria-current')).toBeNull();
     expect(arrow.getAttribute('data-status')).toBeNull();
+  });
+
+  it('stands one line of its title high and the same space from it, in a title row and a record header', () => {
+    render(
+      <>
+        <TitleWithBack back={<a data-testid="row-arrow" />} line="text-2xl">
+          <h1>Lucrător nou</h1>
+        </TitleWithBack>
+        <RecordHeader back={<a data-testid="header-arrow" />} title="OMV PETROM SA" facts={null} />
+      </>
+    );
+    const row = screen.getByTestId('row-arrow').parentElement!;
+    const header = screen.getByTestId('header-arrow').parentElement!;
+    expect(row.className).toContain('h-[1lh]');
+    expect(row.className).toContain('text-2xl');
+    expect(header.className).toContain('h-[1lh]');
+    expect(header.className).toContain('text-xl');
+    expect(row.parentElement!.className).toContain('gap-x-3');
+    expect(header.parentElement!.className).toContain('gap-x-3');
   });
 });

@@ -172,7 +172,7 @@ function ChoosePlanForm({
   };
 
   const heading = (
-    <TitleWithBack back={up}>
+    <TitleWithBack back={up} line="text-[26px]">
       <div className="grid gap-1.5">
         <h1 className="text-[26px] font-bold tracking-tight">
           {mode === 'change' ? 'Schimbă planul' : 'Alege planul'}

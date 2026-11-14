@@ -15,7 +15,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
-import { BackLink } from '@/components/back-link';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 
 import type { DocumentEditorHandle } from './document-editor';
@@ -44,6 +44,8 @@ export interface DocumentSource {
   // After a save or a new draft, so that whatever listed the document shows it as it is.
   invalidate: () => Promise<void>;
   back: ReactNode;
+  // The arrow alone, beside a heading, when `back` carries more than the arrow.
+  arrow?: ReactNode;
 }
 
 // `readOnly` is an archived client.
@@ -107,6 +109,7 @@ export function DocumentEditorView({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const documents = source;
   const { document, back } = source;
+  const arrow = source.arrow ?? back;
   const documentId = document?.id ?? '';
   const saveDraft = useSaveDocumentDraftFile({ request: apiRequest });
   const startDraft = useStartDocumentDraft({ request: apiRequest });
@@ -221,14 +224,15 @@ export function DocumentEditorView({
   if (documents.isError || loadError || !document || !revision || !loaded) {
     return (
       <div data-testid="editor-unavailable" role="alert" className="grid max-w-lg gap-4 py-10">
-        <h1 className="text-2xl font-semibold">Documentul nu a putut fi deschis</h1>
+        <TitleWithBack back={arrow} line="text-2xl">
+          <h1 className="text-2xl font-semibold">Documentul nu a putut fi deschis</h1>
+        </TitleWithBack>
         <p className="text-sm leading-relaxed text-muted-foreground">
           {documents.isSuccess && (!document || !revision)
             ? 'Documentul nu există sau nu mai are nicio revizie.'
             : 'Nu am putut încărca fișierul. Verifică conexiunea și încearcă din nou.'}
         </p>
         <div className="flex gap-2">
-          {back}
           <Button
             variant="outline"
             onClick={() => {
@@ -336,8 +340,9 @@ export function DocumentEditorView({
           role="alert"
           className="grid max-w-xl gap-4 rounded-lg border p-6"
         >
-          <div className="flex justify-start">{back}</div>
-          <h1 className="text-lg font-semibold">{document.title}</h1>
+          <TitleWithBack back={arrow} line="text-lg">
+            <h1 className="text-lg font-semibold">{document.title}</h1>
+          </TitleWithBack>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Acest document are o așezare în pagină pe care editorul din aplicație nu o poate afișa.
             Descarcă-l, modifică-l în Word și păstrează-l; conținutul lui nu este afectat.

@@ -274,6 +274,7 @@ export function InstructionForm({
     <div data-testid="instruction-form" className="grid gap-5">
       <div className="grid gap-3">
         <TitleWithBack
+          line="text-2xl sm:text-3xl"
           back={
             <BackLink
               to={domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}

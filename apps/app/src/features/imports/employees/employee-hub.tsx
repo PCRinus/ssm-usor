@@ -91,6 +91,7 @@ export function EmployeeHub({
     <div className="grid gap-5" data-testid="employee-hub">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <TitleWithBack
+          line="text-2xl"
           className="min-w-64 flex-1"
           back={
             <BackLink

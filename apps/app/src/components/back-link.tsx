@@ -5,6 +5,8 @@ import type { ComponentProps, ReactNode } from 'react';
 
 import { keepOpener, stepsBackToOpener } from '@/app/opener';
 
+import { backGap } from './back-gap';
+
 // The router marks a link to an ancestor of the current page as active; the way up is never the
 // current page, so neither mark is passed on.
 // `to` is the page above, which a new tab or a pasted link gets; a page opened from another one
@@ -56,26 +58,32 @@ export const BackLink: LinkComponent<typeof BackAnchor> = (props) => (
   <BackAnchorLink state={keepOpener} {...props} />
 );
 
+// `line` is the title's own text size and leading: the slot is one of its lines high (`1lh`), so
+// the arrow centres on the title's first line whatever the title's size, while a long title
+// wraps under itself.
+export function BackSlot({ line, children }: { line: string; children: ReactNode }) {
+  return (
+    <div className={cn(line, 'flex h-[1lh] shrink-0 items-center self-start')}>{children}</div>
+  );
+}
+
 export function TitleWithBack({
   back,
+  line = 'text-3xl',
   eyebrow,
   className,
   children,
 }: {
   back: ReactNode;
+  line?: string;
   eyebrow?: ReactNode;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        'grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-1 gap-y-1 sm:gap-x-1.5',
-        className
-      )}
-    >
+    <div className={cn('grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-y-1', backGap, className)}>
       {eyebrow && <div className="col-start-2 min-w-0">{eyebrow}</div>}
-      <div className="flex h-9 items-center self-start">{back}</div>
+      <BackSlot line={line}>{back}</BackSlot>
       <div className="min-w-0">{children}</div>
     </div>
   );
