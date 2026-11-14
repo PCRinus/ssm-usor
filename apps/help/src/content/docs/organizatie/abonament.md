@@ -33,6 +33,9 @@ sources:
   - apps/api/src/modules/billing/service.ts
   - apps/api/src/modules/billing/rules.ts
   - apps/api/src/modules/sms-usage/notices.ts
+  - apps/api/src/modules/billing/employees-over-step-notices.ts
+  - apps/mail/src/emails/employees-over-step-notice.tsx
+  - supabase/migrations/20261117120000_employees_over_step.sql
   - apps/mail/src/emails/sms-usage-notice.tsx
   - apps/app/src/features/subscription/*.tsx
   - apps/app/src/features/subscription/sms-copy.ts
@@ -109,7 +112,20 @@ Se numără:
 - **utilizatorii**: membrii organizației, cu tine cu tot. O invitație trimisă și neacceptată ține și ea un loc, iar sub bară scrie câte sunt în așteptare: pe Start, cu 3 utilizatori, nu poți trimite o invitație dacă sunteți 2 și mai e una în așteptare. Când nu mai e loc, poți revoca o invitație sau, de pe Start, poți trece pe Profesional;
 - **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include treapta, de exemplu „252 din 300”. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără. În perioada de probă, fără un plan ales, rândul nu are bară: spune doar că totul pleacă pe email.
 
-Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut și îți propune treapta următoare, cu **Treci pe treapta următoare**. Dacă după o lună ai tot mai mulți lucrători decât treapta, treci pe treapta următoare sau arhivează clienții cu care nu mai lucrezi.
+Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut, până în ce zi mai poți adăuga lucrători noi și îți propune treapta următoare, cu **Treci pe treapta următoare**. Adminul primește un email în ziua în care treci de treaptă și încă unul cu trei zile înainte de termen.
+
+Termenul e aceeași zi din luna următoare celei în care ai trecut de treaptă: dacă ai trecut pe 14 noiembrie, mai poți adăuga lucrători noi până pe 14 decembrie inclusiv. Dacă a doua zi ai tot mai mulți lucrători decât treapta, nu mai poți:
+
+- adăuga lucrători, din formular sau dintr-un import din fișe;
+- reactiva un fost lucrător;
+- reactiva un client arhivat care are lucrători;
+- confirma importul unui client care vine cu lucrători.
+
+Restul merge ca până acum: adaugi clienți fără lucrători, modifici datele, marchezi plecările, emiți documente, instruiești, testezi și semnezi. Un import din fișe poate completa lucrătorii pe care îi ai deja: lasă nebifate persoanele noi și confirmă-i pe ceilalți. Pe pagina **Lucrători** și în ferestrele de import vezi de ce, cu legătura spre **Abonament**.
+
+Poți adăuga din nou, pe loc, când treci pe o treaptă care îi acoperă pe toți sau când ajungi la treapta ta sau sub ea, de exemplu arhivând clienții cu care nu mai lucrezi ori marcând lucrătorii care au plecat. Dacă treci din nou de treaptă mai târziu, ai iar o lună.
+
+În perioada de probă numărul se compară cu limita probei, de 5.000 de lucrători, iar pe Enterprise nu există treaptă.
 
 Când ai folosit toate codurile de semnare prin SMS ale lunii, nu plătești nimic în plus: până la luna următoare, codurile pleacă pe email, iar un lucrător fără email nu le mai primește prin SMS.
 
@@ -205,4 +221,4 @@ Pagina **Abonament** funcționează și în acest timp. Cu **Alege un plan** sau
 
 ## Ce văd colegii
 
-Colegii care nu sunt admini văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor. Nu văd sumele organizației, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS. Dacă aveți nevoie de o treaptă cu mai mulți lucrători sau de mai mulți utilizatori, adminul schimbă planul din pagina lui.
+Colegii care nu sunt admini văd tabul **Abonament** cu planul, starea lui și cât folosiți, plus prețurile planurilor. Când sunteți peste treaptă, văd și până în ce zi se mai pot adăuga lucrători noi, sau că nu se mai pot. Nu văd sumele organizației, cardul sau facturile, și nu pot schimba nimic. Văd și banda codurilor de semnare prin SMS. Dacă aveți nevoie de o treaptă cu mai mulți lucrători sau de mai mulți utilizatori, adminul schimbă planul din pagina lui.

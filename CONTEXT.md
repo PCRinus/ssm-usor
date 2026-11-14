@@ -280,7 +280,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Plan** (_plan_): what an organization pays for: **Start** (three users) or **Profesional** (ten users), each at a **step**, or **Enterprise** by quote. A plan sets scale and team (employees, members, signing codes by SMS, AI credits), never which documents, trainings or signatures exist. ADR 029. Avoid: tier, package.
 
-**Step** (_treaptă_): the most employees a plan covers at one price: 250, 500 or 750 on Start; 500 to 5,000 on Profesional. The step sets the price and the monthly signing codes and AI credits; going over it never blocks work, and the owner moves to the next step. ADR 029, amendment of 2026-11-14. Avoid: tier, band, and pack (_pachet_), the add-on the steps replaced.
+**Step** (_treaptă_): the most employees a plan covers at one price: 250, 500 or 750 on Start; 500 to 5,000 on Profesional. The step sets the price and the monthly signing codes and AI credits; going over it never blocks work already there, and the owner moves to the next step. After a month still **over the step** (_peste treaptă_), counted from the day the active employees first passed it, the organization adds no employees, and no clients with employees, until the step covers them again or the count drops; the date before which it still can is shown and emailed. ADR 029, amendments of 2026-11-14. Avoid: overage, which is for SMS and credits. Avoid: tier, band, and pack (_pachet_), the add-on the steps replaced.
 
 **Extras** (_extra_): signing codes by SMS and AI credits past what the step includes, paid only when the owner turns them on, up to a monthly ceiling they choose; off by default. ADR 029, amendment of 2026-11-14. Avoid: overage, add-on.
 

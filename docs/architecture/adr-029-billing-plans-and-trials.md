@@ -223,7 +223,7 @@ The owner chooses a plan, a step and a period. The checkout refuses a step below
 
 ### Limits and usage
 
-- **Employees over the step.** The meter on the Abonament tab shows how many are over and offers the next step; nothing is blocked. The pricing page says that after a month still over, no new employees can be added until the owner moves up or archives clients. That block was step 10 of the order of work and is still not built; nor is the banner and email at once. Until it is, being over the step is shown and never enforced.
+- **Employees over the step.** The meter on the Abonament tab shows how many are over and offers the next step. After a month still over, nothing that adds an employee is accepted until the step covers them; see the amendment below, "A month over the step".
 - **Users.** Fixed per plan, three or ten, shown on the meter with the open invitations, each of which holds a place. With no seat to buy, an invitation is refused (`member_limit_reached`) once the members and the open invitations fill the plan's users; renewing an address's own open invitation is not, and renewing an expired one takes a place again. An address that is already a member still answers `already_member`. A trial has ten; a plan chosen during the trial holds the organization to its own users from the moment it is chosen, since the first charge bills them. Two invitations sent in the same instant at one place short can both pass: the count and the insert are not locked together. Accepting an invitation already sent is never refused. A plan with fewer users than the organization's members cannot be chosen.
 - **The allowances follow the step of the subscription row.** Because the row takes a change when it applies, a higher step's SMS codes and AI credits count at once, for the month already under way (the difference, as an upgrade gave before), and a lower step's from the renewal. The welcome credits are brought up to the step's, so moving up after the first payment adds the difference once, and moving down takes nothing back.
 - **Before the first payment** nothing changes: a plan chosen during the trial sends signing codes up to its step's allowance with a hard stop, and the credits stay the trial's 300 until the first payment brings the step's month and welcome credits.
@@ -284,3 +284,46 @@ At the first successful payment the organization receives 10 welcome AI credits 
 Topping the gift up on every upgrade let an owner move up for a day, for about 11 €, collect 7,500 credits that never expire, and move back down.
 
 `grant_welcome_gift` grants once per organization and answers 0 afterwards, whatever amount it is asked for, so a webhook delivered again grants nothing twice. Only a paid invoice asks for it. Organizations that already received a gift keep what they have and get nothing more. In "Limits and usage" of the amendment on plans by employee step, this replaces "The welcome credits are brought up to the step's, so moving up after the first payment adds the difference once".
+
+## Amendment 2026-11-14: a month over the step
+
+The pricing page and the Terms (point 8, "Limitele treptei") already promise it: when the active employees of the active clients pass the subscription's step, the organization is told; if after a month it has neither moved up nor come back within the step, it adds no employees, and no clients with employees, until it does; everything in the account keeps working. Step 10 of the order of work named this block and it was not built. This builds it.
+
+### The count and the limit
+
+The count is the Abonament tab's: active employees (`status = 'active'`, not archived) of clients that are clients, not offers, and not archived. The limit is the subscription's step; during a trial, a plan chosen in it included, the trial's own limit, Profesional's largest step (5,000), so a trial is never held to a step it has not paid for yet; a row without a step takes its plan's first. Enterprise has no step and is never counted. An organization without a subscription row has no limit, as it has full access. The database computes both (`organization_employee_count`, `employee_limit_of`); `usageLimits` in the API's billing rules computes the same limit for the meter, and a test holds the two to the plan catalogue.
+
+### The clock
+
+`subscriptions.employees_over_step_since` holds when the count last went past the limit, and is null while it is within. It is written in the database only, by `refresh_employees_over_step`, which locks the subscription row, counts, and either keeps the time it holds, sets it to now, or clears it. It never sets an earlier time, so nothing can backdate a block, and a refusal leaves it alone because a refused write rolls back with it. Triggers call it after every change that can move the count (an employee added, removed, archived or brought back, its status, a move between clients; a client archived, restored or promoted) and in the same write as every change that can move the limit (plan, step, status, the trial's end, a chosen plan). Each start and each clear goes to `subscription_changes` with source `database`. The lock makes two changes to one organization count one after the other, so neither undoes the other's start.
+
+The limit also moves with time alone when a trial ends. That needs no new scheduled job: the daily run the API already has (its cron at 02:41) refreshes every clock first, and reading the state (`employees_over_step`, which `GET /me` and `GET /billing` call) refreshes that organization's. A clock started late by either is started from that moment, never from the trial's end. Organizations already over when the migration runs start their month then.
+
+Rejected: deriving the start from the change log or from the employees' `created_at` on every read (a clock that a deleted row or an edited date could move), and a timestamp the API writes (the data API lets members write employees directly, so the API is not the only writer).
+
+### The month and the block
+
+The last day new employees can be added is the same calendar day a month after the clock started, in Romanian time, clamped to the month's last day as Stripe's months are (31 January gives 28 February). The block starts when that day ends, at midnight in Bucharest, so the date the app and the email show is a whole day, inclusive. That is the reading of "after a month" most favourable to the customer.
+
+From then, while still over, every write that adds to the count is refused, from a member, with `STP01`, which the API answers as `403` with `reason: employees_over_step`. The check counts live, so a clock left set while the count is within never blocks. What is refused, each by a trigger, so that the data API refuses it too:
+
+- adding an active employee: the form, both imports' confirmations, and a direct insert;
+- turning a former employee active again, and bringing back an employee archived as a mistake;
+- moving an active employee from a client that is not counted to one that is;
+- restoring an archived client that has active employees; one without any comes back as before.
+
+Nothing else is refused: adding a client without employees, recording a former employee, editing, archiving, marking a leaver, documents, trainings, tests and signing. An employee import that only completes people already there confirms; one with new people is refused whole, and its people still to check are left out of a confirmation as before, so the member can leave the new ones unchecked and confirm the rest. A client import is refused at confirmation when the client comes with employees; starting one is not refused, since a client may come without any, and the upload dialog says so first. A ready import is kept 14 days from its last change. Without a user, under the secret key (seeds, maintenance), nothing is refused.
+
+### Lifting
+
+The block lifts in the write that ends it: a step that covers the count, or a plan or trial whose limit does (the subscription trigger clears the clock in the same update a Stripe webhook makes), or the count dropping to the step or below, by archiving clients or employees or marking leavers. Going over again later starts a new month.
+
+### What people see and hear
+
+`GET /me` and `GET /billing` carry `employeesOverStep: { since, lastDay, blocked }`, null while within. The employees screen, the new employee form and the two import dialogs show a notice to every member: before the block, until when new employees can be added; after it, that they cannot, why, and what lifts it, with a link to Abonament and, for a member who is not the owner, that the owner changes the step. After the block, the add buttons are disabled with that notice in view. The Abonament tab's notice to the owner names the date. A refused request is worded where it was made.
+
+The owner gets an email when the clock starts and another three days before the last day, each once per clock (`usage_notices`, keyed by the clock's start). The first goes from the request that passed the step and, failing that, from the daily run, which also sends the reminder; both record before sending and take the record back if the send fails, as the SMS notices do.
+
+### Trials, testers and Enterprise
+
+A trial, a tester's included, is held to its own 5,000 under the same rule; a tester's trial can outlast a month. A plan chosen in a trial is held to its step from the trial's end. Enterprise is never blocked.

@@ -49,7 +49,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /waitlist/confirm`                                                | Public, by emailed token              | `303` to the marketing site's confirmed or invalid-link page                                                                                                                                       |
 | `POST /hooks/supabase/send-email`                                      | Supabase Auth, by signature           | `200 {}` after handing the recovery, signup, password-changed or sign-in code email to the mail Worker                                                                                             |
 | `POST /hooks/supabase/send-sms`                                        | Supabase Auth, by signature           | `200 {}` after handing the portal's sign-in code to the SMS Worker                                                                                                                                 |
-| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "impersonation", "subscription", "smsThisMonth", "creditsThisMonth" }`; null when absent                                                                       |
+| `GET /me`                                                              | Verified, non-anonymous Supabase user | `{ "user", "profile", "membership", "impersonation", "subscription", "smsThisMonth", "creditsThisMonth", "features", "employeesOverStep" }`; null when absent                                      |
 | `DELETE /me/impersonation`                                             | Platform admin past the second factor | `204` after ending the caller's active impersonation, or when none is active                                                                                                                       |
 | `PATCH /me/profile`                                                    | Verified, non-anonymous Supabase user | The saved profile; creates it when the account has none                                                                                                                                            |
 | `GET /me/invitations`                                                  | Verified, non-anonymous Supabase user | `{ "items": [ … ] }`, open invitations sent to the caller's address; no id, no token                                                                                                               |
@@ -967,6 +967,16 @@ or null for an organization without one, which has full access. `access` is `ful
 `smsThisMonth` and `creditsThisMonth`, the same shapes as `usage.smsThisMonth` and
 `usage.creditsThisMonth` on `GET /billing`, for the bar from 80 % and the plan badge; null without a
 subscription, while read-only, or when the counts could not be read, which never fails the request.
+`employeesOverStep`, also `usage.employeesOverStep` on `GET /billing`, is
+`{ since, lastDay, blocked }` while the active employees of the active clients are past the step
+(a trial's own 5,000 until it ends; never on Enterprise), and null otherwise. `lastDay` is the
+last day, in Romanian time, new employees are added: a calendar month after `since`. From the
+next day, while still over, every write that adds to the count answers `403` with
+`reason: employees_over_step`: creating an employee, reactivating one, restoring a client with
+active employees, and confirming an employee or client import that brings new active people.
+The database refuses it (`STP01`, ADR 029, amendment "A month over the step"), so the data API
+refuses it too. The owner is emailed when the count passes the step, from the request that
+passed it and from the daily scheduled run, and three days before `lastDay` from that run.
 
 While the organization is read-only, every member request that changes something (`POST`,
 `PUT`, `PATCH`, `DELETE`) answers `403` with `reason: read_only` from the membership middleware,
