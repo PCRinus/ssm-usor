@@ -30,6 +30,8 @@ The client's files together are its **other documents** (_alte documente_), whic
 
 No categories and no tags: a client has a handful of files at first, and a category list made now would be a guess. The name and the note are searched by reading. No date of the paper itself, no expiry: a file whose date matters, such as a medical record that expires, is a fact the app will hold as data when that feature is built, not a property of a scan.
 
+(Amended 2026-11-14 by [ADR 042](adr-042-paper-history-as-written.md). One kind of file is asked for by name: a copy of the client's earlier own instructions, which its paper trainings cite, carries its domain and the day the instructions that replaced them apply from. It is not a category list; every other file stays as above.)
+
 No versions. A file is replaced by uploading the new one and deleting the old one. Versions belong to documents, where a revision is issued and the one before it is superseded.
 
 ### What can be uploaded

@@ -1453,17 +1453,18 @@ with the same `client_id`, `organization_id` and composite foreign key as `emplo
 are not documents: no type, no revisions, and a file is replaced by uploading another and
 deleting the first.
 
-| Column                 | Notes                                                                                       |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| `name`                 | 1 to 200 characters; the API starts it as the uploaded file's name without its extension.   |
-| `note`                 | Optional free text, up to 2000 characters.                                                  |
-| `owners_only`          | Hides the row and its file from specialists. False by default.                              |
-| `original_file_name`   | The name it was uploaded under, up to 255 characters; the download carries it.              |
-| `mime_type`            | PDF, JPEG, PNG, `.docx`, `.doc`, `.xlsx` or `.xls`, by a check constraint.                  |
-| `size_bytes`, `sha256` | 1 byte to 25 MiB, and the SHA-256 of the content in hex.                                    |
-| `storage_path`         | Generated as `<organization>/<client>/<id>.<extension>` from the type; unique.              |
-| `uploaded_by`          | The signed-in user, the platform admin during an impersonation; null once the account goes. |
-| `employee_id`          | Optional: the employee of the same client the file is about (ADR 021); set at upload only.  |
+| Column                                       | Notes                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`                                       | 1 to 200 characters; the API starts it as the uploaded file's name without its extension.                                                              |
+| `note`                                       | Optional free text, up to 2000 characters.                                                                                                             |
+| `owners_only`                                | Hides the row and its file from specialists. False by default.                                                                                         |
+| `original_file_name`                         | The name it was uploaded under, up to 255 characters; the download carries it.                                                                         |
+| `mime_type`                                  | PDF, JPEG, PNG, `.docx`, `.doc`, `.xlsx` or `.xls`, by a check constraint.                                                                             |
+| `size_bytes`, `sha256`                       | 1 byte to 25 MiB, and the SHA-256 of the content in hex.                                                                                               |
+| `storage_path`                               | Generated as `<organization>/<client>/<id>.<extension>` from the type; unique.                                                                         |
+| `uploaded_by`                                | The signed-in user, the platform admin during an impersonation; null once the account goes.                                                            |
+| `employee_id`                                | Optional: the employee of the same client the file is about (ADR 021); set at upload only.                                                             |
+| `earlier_instructions_domain`, `valid_until` | Both or neither: a copy of the client's earlier own instructions (ADR 042), `ssm` or `su`, and the day the instructions that replaced them apply from. |
 
 Members read their organization's files, except that a file for owners only is an owner's
 alone. A member inserts a row as its uploader, for an active client of their organization, or
@@ -1506,6 +1507,36 @@ a file of several employees (`client_files_import_file_idx`; set null if that ro
 with an `import_id`), and in `import_page` the page of a PDF whose image it is (1 to 10,000, only
 with an `import_file_id`). Only confirming an import fills these columns: the column grants
 leave them out of a member's insert.
+
+### Earlier own instructions
+
+A paper training cites the client's own instructions as they were then ([ADR 042](architecture/adr-042-paper-history-as-written.md),
+decision 3). A copy of them is a client file whose `earlier_instructions_domain` says which
+domain's instructions it holds, IPSSM (`ssm`) or IPSU (`su`), and whose `valid_until` is the day
+the instructions that replaced them apply from: `client_files_earlier_instructions_valid_until`
+sets both or neither, and `client_files_earlier_instructions_of_client` keeps them off an
+employee's file and off an import folder's. A member inserts both and updates `valid_until`
+alone, under the usual policies; a wrong domain is a file deleted and uploaded again.
+`client_files_earlier_instructions_idx` on `(client_id, earlier_instructions_domain)`, partial,
+finds them. Several files per domain are allowed, since old instructions come as several scans.
+
+A copy a confirmed client import kept counts as well, and is never marked: the import's file row
+(`import_files.client_file_id`) names a file the sorting took for `own_instructions` of that
+`document_domain`. Nothing is stored for it; the API reads it.
+
+`earlier_instructions_unavailable` keeps a member's answer that the client has no copy, one row
+per `(client_id, domain)` with `organization_id`, `answered_by` (the caller, by the insert
+policy; null once the account goes) and `answered_at`. Deleting the row takes the answer back;
+uploading a copy of that domain deletes it too. Members read their organization's answers,
+insert one for an active client (not a lead) as themselves, and delete any of their
+organization's; the column grants leave nothing to update. The archived-client trigger
+applies (`CLA01`), and the rows go with their client (`on delete cascade`), so deleting an
+archived client needs no step of its own.
+
+A domain is then **imported**, **added**, **unavailable** or **missing**, the first that holds,
+read by `GET /clients/{clientId}/earlier-instructions`. The question is asked only where paper
+trainings cite the domain: on the client page for a client with trainings of `source` `paper`
+in it, and in an employee import for the domains its sheets have rows in.
 
 ## Imports from documents
 
