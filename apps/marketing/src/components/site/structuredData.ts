@@ -1,6 +1,6 @@
 import { type Faq, faq, links, page } from './copy';
 import { legalEntity } from './legal';
-import { monthlyAt, paidYearly, pricingLinks, pricingPage, steppedPlans, steps } from './pricing';
+import { monthlyAt, paidYearly, pricingLinks, pricingPage, steppedPlans } from './pricing';
 
 function offers(site: URL) {
   const url = new URL(pricingLinks.page, site).href;
@@ -19,7 +19,7 @@ function offers(site: URL) {
     url,
     price: plan.firstPrice,
     priceCurrency: 'EUR',
-    priceSpecification: steps(plan).flatMap((step) => [
+    priceSpecification: plan.steps.flatMap((step) => [
       price(monthlyAt(plan, step), 'P1M', step),
       price(paidYearly(monthlyAt(plan, step)), 'P1Y', step),
     ]),

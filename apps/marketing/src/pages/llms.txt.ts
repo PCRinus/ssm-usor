@@ -14,7 +14,6 @@ import {
   pricingPage,
   smsCodes,
   steppedPlans,
-  steps as planSteps,
   welcomeCredits,
 } from '../components/site/pricing';
 
@@ -39,7 +38,7 @@ function llmsTxt(site: URL): string {
   const plans = [
     ...steppedPlans.map((plan) =>
       planBlock(`- ${plan.name}: ${plan.who}`, [
-        ...planSteps(plan).map((step) => stepLine(plan, step)),
+        ...plan.steps.map((step) => stepLine(plan, step)),
         ...plan.lines,
       ])
     ),

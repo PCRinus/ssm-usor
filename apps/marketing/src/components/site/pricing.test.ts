@@ -4,21 +4,23 @@ import { describe, expect, it } from 'vitest';
 import { faq } from './copy';
 import {
   aiCredits,
+  calculator,
   cardStates,
   compare,
   type CompareRow,
   eur,
   extras,
   monthlyAt,
+  narrowStopLabels,
   paidYearly,
   perMonth,
   pricingCta,
   pricingPage,
+  pricingSection,
   profesional,
   quote,
   smsCodes,
   start,
-  steps,
   welcomeCredits,
   workerStops,
 } from './pricing';
@@ -73,24 +75,29 @@ describe('the steps', () => {
     }
   });
 
-  it('Start has three steps of 250, Profesional every 500 up to 5.000', () => {
-    expect(steps(start)).toEqual([250, 500, 750]);
-    expect(steps(profesional)).toEqual([500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000]);
+  it('Start has three steps of 250, Profesional seven from 500 to 5.000', () => {
+    expect(start.steps).toEqual([250, 500, 750]);
+    expect(profesional.steps).toEqual([500, 1000, 1500, 2000, 3000, 4000, 5000]);
   });
 
-  it('each further 500 on Profesional adds 30 € a month, 25 € on annual and 300 € a year', () => {
-    for (const step of steps(profesional).filter((step) => step > 1500)) {
-      const previous = step - 500;
-      const monthly = monthlyAt(profesional, step);
-      expect(monthly - monthlyAt(profesional, previous)).toBe(30);
-      expect(
-        perMonth(monthly, 'annual') - perMonth(monthlyAt(profesional, previous), 'annual')
-      ).toBe(25);
-      expect(paidYearly(monthly) - paidYearly(monthlyAt(profesional, previous))).toBe(300);
-      expect(smsCodes(step) - smsCodes(previous)).toBe(100);
-      expect(aiCredits(step) - aiCredits(previous)).toBe(1000);
-    }
-    expect(monthlyAt(profesional, 5000)).toBe(359);
+  it('Profesional above 1.500 costs 30 € a month more for every 500 workers', () => {
+    expect(
+      profesional.steps.filter((step) => step > 1500).map((step) => monthlyAt(profesional, step))
+    ).toEqual([179, 239, 299, 359]);
+    expect(
+      [179, 239, 299, 359].map((monthly) => [perMonth(monthly, 'annual'), paidYearly(monthly)])
+    ).toEqual([
+      [149, 1788],
+      [199, 2388],
+      [249, 2988],
+      [299, 3588],
+    ]);
+    expect(profesional.steps.slice(3).map((step) => [smsCodes(step), aiCredits(step)])).toEqual([
+      [400, 4250],
+      [600, 6250],
+      [800, 8250],
+      [1000, 10250],
+    ]);
   });
 
   it('welcome credits stop at 10.000', () => {
@@ -99,21 +106,13 @@ describe('the steps', () => {
   });
 
   it('the slider stops at every step, then past 5.000', () => {
-    expect(workerStops).toEqual([
-      250,
-      500,
-      750,
-      1000,
-      1500,
-      2000,
-      2500,
-      3000,
-      3500,
-      4000,
-      4500,
-      5000,
-      null,
-    ]);
+    expect(workerStops).toEqual([250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, null]);
+  });
+
+  it('the labels kept on a phone are slider stops, from the first to past the last', () => {
+    expect(narrowStopLabels.every((label) => workerStops.includes(label))).toBe(true);
+    expect(narrowStopLabels[0]).toBe(workerStops[0]);
+    expect(narrowStopLabels.at(-1)).toBe(null);
   });
 
   it('the SMS extra matches the rate Stripe charges', () => {
@@ -172,10 +171,17 @@ describe('the pricing cards', () => {
     expect(ent!.dim).toBe(false);
   });
 
-  it('name the extras with the decided rates', () => {
+  it('say what costs more than the allowance, at the decided rates', () => {
     expect(cardStates(500, 'annual')[0]!.extra.replaceAll('\u00a0', ' ')).toBe(
-      'Extra, doar dacă le pornești: 0,10 € / SMS · 1,50 € / 100 de credite AI'
+      'Peste atât plătești doar dacă permiți tu: 0,10 € / SMS, 1,50 € / 100 de credite AI'
     );
+    expect(cardStates(1000, 'annual')[1]!.extra).toBe(cardStates(500, 'annual')[1]!.extra);
+  });
+
+  it('show 2.100 workers on the 3.000 step', () => {
+    const [startCard, prof] = cardStates(2100, 'monthly');
+    expect(startCard!.dim).toBe(true);
+    expect(prof!.price).toBe('239 €');
   });
 });
 
@@ -201,7 +207,7 @@ describe('quote', () => {
   });
 
   it.each(
-    steps(profesional).flatMap((step) =>
+    profesional.steps.flatMap((step) =>
       (['monthly', 'annual'] as const).map((period) => [step, period] as const)
     )
   )('Profesional at %i workers, %s', (step, period) => {
@@ -218,6 +224,8 @@ describe('quote', () => {
     expect(quote(260, 1, 'monthly').step).toBe(500);
     expect(quote(751, 1, 'monthly')).toMatchObject({ plan: profesional, step: 1000 });
     expect(quote(1550, 1, 'monthly').step).toBe(2000);
+    expect(quote(2100, 1, 'monthly')).toMatchObject({ step: 3000, perMonth: 239 });
+    expect(quote(4050, 1, 'monthly')).toMatchObject({ step: 5000, perMonth: 359 });
     expect(quote(5000, 1, 'monthly').step).toBe(5000);
   });
 
@@ -253,7 +261,7 @@ describe('the copy', () => {
   it('the comparison table follows the rules', () => {
     expect(cells('Lucrători la clienții tăi')).toEqual([
       '250, 500 sau 750',
-      'de la 500 la 5.000, din 500 în 500',
+      '500, 1.000, 1.500, 2.000, 3.000, 4.000 sau 5.000',
       'Peste 5.000',
     ]);
     expect(cells('Utilizatori')).toEqual(['3', '10', 'Peste 10']);
@@ -265,6 +273,28 @@ describe('the copy', () => {
       '2 la fiecare lucrător, plus 250: 750, 1.250 sau 1.750',
       '2 la fiecare lucrător, plus 250: de la 1.250 la 10.250',
     ]);
+  });
+
+  it('no sentence still steps Profesional every 500 workers', () => {
+    const texts = [
+      ...pricingPage.faq.map((item) => item.a),
+      ...calculator.summaries.map((summary) => summary.text),
+      ...compare.groups.flatMap((group) => group.rows.flatMap((row) => row.cells.map(String))),
+    ];
+    expect(texts.join(' ')).not.toMatch(/din 500 în 500|pentru fiecare 500/);
+    expect(pricingPage.faq[1]!.a).toContain(
+      'Profesional, care are trepte de 500, 1.000, 1.500, 2.000, 3.000, 4.000 și 5.000.'
+    );
+  });
+
+  it('the extras are never called a switch to turn on', () => {
+    const texts = [
+      pricingSection.terms,
+      calculator.extra,
+      ...pricingPage.faq.flatMap((item) => [item.q, item.a]),
+      ...compare.groups.flatMap((group) => group.rows.map((row) => row.label)),
+    ];
+    expect(texts.join(' ')).not.toMatch(/pornești|plata pentru extra|Extra,/);
   });
 
   it('every promise of a free trial says 14 days', () => {
