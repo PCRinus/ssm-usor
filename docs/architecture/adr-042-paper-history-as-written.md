@@ -51,6 +51,16 @@ Who gave the periodic trainings is then asked **per person**, on the person's pa
 
 Screens follow the design canvas, row 1 of the page "Istoricul pe hârtie".
 
+As built on 2026-11-14, revised after review:
+
+- **Where the answer lives.** In the member's stored changes, as `whoTrained` on the person, by domain; no column and no migration. The confirm expands it per row (`rowSigners` in `@ssm-usor/import`), and the review does the same for what it shows, so changes stored before it stay valid and nothing is written before confirming.
+- **The rule.** The app never puts a name on a row in a period the member did not place it in. Each role of an answer keeps the handovers it was chosen under (`splitOn`, `previousOn`, null for none). When the person's sheets no longer record those handovers, for instance after a page moves, the role names nothing, the person counts as unanswered, and the question says the handover changed; the old names stay shown and are preselected when the role is chosen again.
+- **The handovers.** A provider takes over the client, not a domain, so a person's handovers count across both sheets, and both tables show them as rows at their date. The latest splits the periods; with several, the answer before it covers only the rows from the previous handover on, and older rows take nothing. A month-only row in the month of a handover not on the 1st falls in neither period, unless the member gives it a day.
+- **What it names.** The rows of the periodic table, every non-hiring phase (periodic and supplementary), of the domain. A name the sheet writes is never replaced; a function the sheet writes without a name stays, and only the name comes from the answer; a name typed on the row with its pencil wins over the answer. The verifier is asked and written for occupational safety only, since the fire-safety periodic table has no verifier's signature; a verifier is a name and a function together, and one without a function is shown as not taken over.
+- **Copies.** A copy goes only to people without an answer whose sheets record the same handovers or none; one with none takes the source's handovers along (`splitCopied`). An unchanged copy (`copiedFrom`) follows its source when the source's answer changes, and a changed copy, or one whose source leaves the import, becomes the holder's own answer.
+- **When it is asked.** Where a dated periodic row of the domain leaves a role the domain asks unnamed on the sheet. The hub counts the people included who are asked and have no answer in force.
+- **Departures from the canvas.** The picker is the browser's own list, grouped, with "pe 6 fișe" after the name, instead of a drawn list; the handover line stays above the cards and also takes a row in the periodic tables at its date; the window that copies an answer shows the whole answer, both roles and both periods, since the whole answer is copied.
+
 ### 2. A missing material or duration stays missing
 
 Likewise, a missing material or duration is left as it is on paper, _necompletat pe fișă_, and never borrowed from today's themes. This reverses ADR 032's "A missing trainer, trainer's function or material is taken from the client's training themes and trainer, tagged _Din tematica clientului_" for all four values.

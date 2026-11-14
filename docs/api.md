@@ -2402,7 +2402,21 @@ lists in a row's `fromThemes` the values it took from the client's themes: the r
 confirm take them as empty unless the member typed one, and a test's examiner taken from such a
 trainer too. A stored change equal to the themed value is the row dialog saving every field, not a
 value typed, and counts as empty as well; an examiner half typed over the themed one takes the
-other half saved with it. Rows of several people become one training held only when the domain,
+other half saved with it. A person's change may carry `whoTrained`, by domain (`ssm`, `su`), the
+member's answer of who gave and who verified the periodic trainings (ADR 042): `trainer` and
+`verifier`, each with `before` and `from`, a `{ name, jobTitle }` (a verifier's `jobTitle`
+required) for the rows dated from the previous handover up to the latest and for those dated on the
+latest or after, and `splitOn` and `previousOn`, the handovers the role was chosen under, null for
+none; with no handover, `from` names every dated row. A role whose handovers are not the person's,
+across all their pages, names nothing. `splitCopied` marks handovers that came with a copy to
+someone whose sheets record none, and `copiedFrom` the person the copy follows until the member
+changes it. `toEmployeePayload` fills each non-hiring row of the domain whose sheet names nobody
+in the slot with the answer for its period; an undated row, one dated before the previous
+handover and a month-only row in the month of a handover not on the 1st take nothing. A name the
+sheet writes, a function it writes without a name, and a name the member typed on the row (a
+stored value that differs from the reading; an empty text is one cleared on purpose) keep their
+own, and a fire-safety row never takes a verifier. Nothing of it blocks; changes stored before it
+have none. Rows of several people become one training held only when the domain,
 phase, day, trainer, trainer's function, verifier, duration and material all match, a value both
 rows lack matching; nothing is taken from one row into another's training.
 `PUT /imports/{importId}/employee-changes` saves `{ version, changes }` through the same

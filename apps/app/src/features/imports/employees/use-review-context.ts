@@ -20,6 +20,7 @@ import {
   statesOf,
 } from './employee-review-model';
 import { useEmployeeReview } from './use-employee-review';
+import { settleCopies } from './who-trained-model';
 
 export type Position = JobPositionListResponse['items'][number];
 export type Workplace = WorkplaceListResponse['items'][number];
@@ -55,7 +56,12 @@ export function useReviewContext(detail: ImportDetail, clientId: string) {
   const update = useCallback(
     (mutate: (current: Changes) => Changes) =>
       save((current) =>
-        reopened({ proposal, changes: mutate(current), workplaceCount, today: todayIso() })
+        reopened({
+          proposal,
+          changes: settleCopies({ proposal, changes: mutate(current) }),
+          workplaceCount,
+          today: todayIso(),
+        })
       ),
     [save, proposal, workplaceCount]
   );

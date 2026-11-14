@@ -34,6 +34,8 @@ topics:
     heading: Cine a plecat din firmă
   - id: import.randuri
     heading: Rândurile de instruire
+  - id: import.cine-a-instruit
+    heading: Cine a instruit și cine a verificat
   - id: import.test-verificat-pe-fisa
     heading: Testul la angajare verificat pe fișă
   - id: import.salvare
@@ -123,6 +125,10 @@ sources:
   - apps/app/src/features/imports/employees/person-decisions.tsx
   - apps/app/src/features/imports/employees/person-fields.tsx
   - apps/app/src/features/imports/employees/person-trainings.tsx
+  - apps/app/src/features/imports/employees/who-trained-question.tsx
+  - apps/app/src/features/imports/employees/who-trained-others.tsx
+  - apps/app/src/features/imports/employees/who-trained-model.ts
+  - packages/contracts/src/who-trained.ts
   - apps/app/src/features/imports/employees/person-sections.ts
   - apps/app/src/features/imports/photo-strip-model.ts
   - apps/app/src/features/imports/employees/viewer-aside.tsx
@@ -326,7 +332,7 @@ O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrive
 
 **Posturi de lucru** și **Locuri de muncă** arată funcțiile și locurile scrise pe fișe care nu se potrivesc exact cu ale clientului, fiecare cu persoanele care o au. Ce hotărăști acolo se aplică tuturor celor care au același text pe fișă, așa că nu se mai cere la fiecare persoană. Dacă clientul nu are încă niciun post, secțiunea îți spune asta, iar **Adaugă postul** îl creează pe cel scris pe fișe.
 
-În **Persoane**, fiecare rând arată postul, data angajării, câte instruiri și câte fotografii are persoana și, alături, ce are de hotărât pe fișele ei, de exemplu „2 de hotărât: Domiciliul și funcția diferă între fișe · Lipsește data la o instruire”. Semnalările care nu opresc nimic, ca „O pagină pusă după ordine”, apar dedesubt. Printre ele, „Preluare consemnată pe fișă: 03.10.2022” arată că pe una dintre fișe e scrisă de mână ziua în care un nou serviciu de prevenire a preluat clientul; pe pagina persoanei o vezi deasupra instruirilor, cu precizarea că instruirile dinainte au fost făcute sub alt serviciu de prevenire. Dacă ziua preluării nu se citește întreagă sau e în viitor, nota e doar „Preluare consemnată pe fișă”, iar pe pagina persoanei vezi rândul așa cum e scris pe fișă. Un clic pe rând deschide pagina persoanei. Persoanele sunt grupate așa:
+În **Persoane**, fiecare rând arată postul, data angajării, câte instruiri și câte fotografii are persoana și, alături, ce are de hotărât pe fișele ei, de exemplu „2 de hotărât: Domiciliul și funcția diferă între fișe · Lipsește data la o instruire”. Semnalările care nu opresc nimic, ca „O pagină pusă după ordine”, apar dedesubt. Dedesubt, în gri, apar și cele doar de știut: „Nume nealese la periodice” la cine nu are încă ales cine a instruit la periodice (vezi [Cine a instruit și cine a verificat](#cine-a-instruit-și-cine-a-verificat)) și „Preluare consemnată pe fișă: 03.10.2022”, care arată că pe una dintre fișe e scrisă de mână ziua în care un nou serviciu de prevenire a preluat clientul; pe pagina persoanei o vezi deasupra instruirilor, cu precizarea că instruirile dinainte au fost făcute sub alt serviciu de prevenire, iar în tabelul instruirilor periodice, la data ei. Dacă ziua preluării nu se citește întreagă sau e în viitor, nota e doar „Preluare consemnată pe fișă”, iar pe pagina persoanei vezi rândul așa cum e scris pe fișă. Un clic pe rând deschide pagina persoanei. Deasupra listei, o linie spune la câți lucrători nu e ales cine a instruit, de exemplu „La 5 din 7 lucrători nu e ales cine a instruit la periodice. Nu oprește importul.”, iar **Mergi la primul** te duce la primul dintre ei. Persoanele sunt grupate așa:
 
 - **Cu ceva de hotărât**: au pe fișele lor ceva de ales sau de completat;
 - **Așteaptă doar postul**: nu au nimic de hotărât pe fișe, doar postul sau locul de muncă hotărât mai sus;
@@ -404,7 +410,9 @@ Când persoana se potrivește cu un fost lucrător al clientului, vezi asta pe p
 
 ### Rândurile de instruire
 
-Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul, așa cum le scrie fișa. Ce nu e scris pe fișă rămâne necompletat și nu se ia de nicăieri altundeva: tabelul instruirilor periodice al fișei nu are o rubrică pentru numele instructorului, iar o instruire de acum câțiva ani a fost adesea ținută de alt serviciu de prevenire decât cel de azi. În locul valorii lipsă vezi „nume neînscris pe fișă”, „necompletat pe fișă” sau „necompletată pe fișă”. Dacă știi valoarea, o scrii cu creionul rândului; altfel instruirea se preia așa, fără să oprească nimic. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu un clic pe el sau cu creionul lui ori îl scoți oprind comutatorul din dreapta lui. Un rând propus de import se strânge atunci pe loc la felul și data instruirii, cu „Nu e inclusă”; unul propus oprit, de exemplu nesemnat, rămâne deschis, cu motivul. Îl pornești din nou oricând. Testul la angajare și testul anual au și ele comutatorul lor.
+Se preiau toate instruirile de pe fișă, nu doar cele de care depinde termenul: introductiv-generală, la locul de muncă, periodice și suplimentare, cu ziua, durata, cine a instruit, funcția lui și materialul, așa cum le scrie fișa. Ce nu e scris pe fișă rămâne necompletat și nu se ia de nicăieri altundeva: tabelul instruirilor periodice al fișei nu are o rubrică pentru numele instructorului, iar o instruire de acum câțiva ani a fost adesea ținută de alt serviciu de prevenire decât cel de azi. În locul valorii lipsă vezi „nume neînscris pe fișă”, „necompletat pe fișă” sau „necompletată pe fișă”. Dacă știi valoarea, o scrii cu creionul rândului, iar cine a instruit și cine a verificat la periodice îl alegi o singură dată pentru toate rândurile (vezi mai jos); altfel instruirea se preia așa, fără să oprească nimic. „Admis la lucru”, cu ziua și cine l-a admis, merge la instruirea la locul de muncă. Un rând îl corectezi cu un clic pe el sau cu creionul lui ori îl scoți oprind comutatorul din dreapta lui. Un rând propus de import se strânge atunci pe loc la felul și data instruirii, cu „Nu e inclusă”; unul propus oprit, de exemplu nesemnat, rămâne deschis, cu motivul. Îl pornești din nou oricând. Testul la angajare și testul anual au și ele comutatorul lor.
+
+Instruirile la angajare și cele periodice stau în câte un tabel, cu coloanele Foto, Data, Durata, A instruit, A verificat (doar la SSM), Materialul predat și Inclusă. Pe telefon, tabelul se derulează în lateral, iar fotografia și data rămân pe loc, în stânga.
 
 Unele rânduri poartă o etichetă:
 
@@ -426,6 +434,30 @@ Se preiau așa dacă nu le schimbi. O instruire cu data în viitor, fără dată
 Testul anual SU consemnat în tabelul instruirilor periodice devine un rezultat de test. OMAI 712/2005 cere atât instruirea periodică (art. 21), cât și, anual, o verificare pe bază de teste, consemnată în fișa individuală (art. 30). Un rând care consemnează doar testul devine numai rezultatul testului. Un rând în care testul e scris împreună cu instruirea periodică din aceeași zi, de exemplu cu materialul predat urmat de „Testare”, devine amândouă: instruirea periodică, printre celelalte rânduri, și testul anual, sub ele, fiecare cu comutatorul lui. Dacă aplicația are deja instruirea din acea zi, rândul ei nu mai apare, dar testul scris pe el ți se propune în continuare. Ziua rândului e și a testului, așa că o corectezi o singură dată. Dacă testului nu i s-a citit ziua, o ai de completat: alege creionul testului anual. Un test fără examinator scris pe fișă se preia fără examinator, cu „nume neînscris pe fișă”; dacă fișa scrie doar numele sau doar funcția examinatorului, completezi și cealaltă valoare.
 
 **După import** îți arată cum va arăta instruirea lucrătorului în aplicație cu alegerile de acum: starea, ultima instruire periodică și testul la angajare. Rândurile mai multor persoane cu același domeniu, același fel, aceeași zi, același instructor cu aceeași funcție, același verificator, aceeași durată și același material devin o singură instruire în **Instruiri ținute**, cu toți participanții ei. Altfel devin instruiri separate în aceeași zi.
+
+### Cine a instruit și cine a verificat
+
+Tabelul instruirilor periodice al fișei nu are rubrică pentru nume, doar pentru semnături: a celui instruit, a celui care a instruit și, pe fișa SSM, a celui care a verificat. Fișa le cere semnate de cei care au făcut și au verificat instruirea (HG 1425/2006, art. 81 alin. (3)). La SSM, instruirea periodică se efectuează de către conducătorul locului de muncă (art. 96 alin. (1)), iar verificarea efectuării ei se face de către șeful ierarhic al celui care efectuează instruirea și prin sondaj de către angajator, lucrătorul desemnat, serviciul intern sau serviciile externe de prevenire și protecție, care semnează fișele de instruire ale lucrătorilor (art. 96 alin. (4)). Doi lucrători ai aceluiași client pot avea deci alți instructori, așa că întrebarea se pune pentru fiecare persoană, nu o dată pentru tot importul.
+
+Pe pagina persoanei, deasupra instruirilor periodice SSM, întrebarea e „Cine a instruit și cine a verificat?”, cu două roluri, „A instruit” și „A verificat”. La SU e „Cine a instruit?”, doar cu „A instruit”, pentru că tabelul periodic al fișei SU are doar semnătura celui care a instruit. Numerele de lângă „Semnăturile, pe fotografiile” deschid fotografiile pe care se văd semnăturile.
+
+Când pe fișele persoanei e consemnată o preluare, fiecare rol are un răspuns pentru instruirile dinaintea ei și unul pentru cele de la data ei încolo. Preluarea e a clientului, nu a unui domeniu, așa că aceeași dată împarte instruirile SSM și pe cele SU, iar în ambele tabele o vezi ca rând, la data ei. Fără preluare, rolul are un singur răspuns. Când fișele consemnează mai multe preluări, se ține seama de ultima, iar răspunsul pentru instruirile dinaintea ei se aplică doar celor de la preluarea anterioară încolo: cele mai vechi au fost făcute de alt serviciu și rămân cum sunt pe fișă. Tot cum e pe fișă rămâne un rând fără dată, și unul pe care fișa scrie doar luna, când preluarea e în aceeași lună, dar nu pe 1: nu se știe dacă instruirea a fost înainte sau după ea. Dacă îi scrii ziua cu creionul rândului, primește numele perioadei ei.
+
+**Alege** deschide rolul; un singur rol e deschis o dată, iar **Gata** îl închide. Pentru fiecare perioadă alegi:
+
+- un nume citit pe fișele de la angajare ale persoanei, cu numărul fișelor din import pe care apare;
+- unul dintre responsabilii clientului;
+- un coleg din organizația ta;
+- **Alt nume…**, unde scrii numele și funcția; la „A verificat” sunt obligatorii amândouă;
+- „Numele nu e scris pe fișă”, alegerea din oficiu: rândurile rămân cu „nume neînscris pe fișă”.
+
+Pentru instruirile de după preluare, prima variantă e „Același om ca înainte de preluare”, când ai ales pe cineva pentru cele dinainte. Un rol fără răspuns are în față liniuța gri: nu e obligatoriu și nu oprește crearea lucrătorilor. După ce ai ales, rolul arată numele pe fiecare perioadă, cu **Schimbă**.
+
+Numele ales trece pe fiecare rând periodic sau suplimentar din perioada lui pe care fișa nu scrie un nume, cu semnul „ales de tine”, și se scrie la instruire când creezi lucrătorii. Un nume scris pe fișă nu e înlocuit niciodată; când fișa scrie doar funcția, rândul ia numele ales și păstrează funcția de pe fișă. Un rând pe care îl schimbi cu creionul lui își păstrează numele tău, cu „schimbat de tine pe acest rând”. Cel care a verificat se preia doar cu nume și funcție: un nume fără funcție apare cu „fără funcție, nu se preia” și nu se scrie la instruire.
+
+Dacă după ce ai ales se schimbă data preluării de pe fișele persoanei, de exemplu pentru că muți o pagină la altcineva, alegerea nu se mai folosește: rândurile rămân cu „nume neînscris pe fișă”, persoana apare din nou printre cele fără nume ales, iar întrebarea îți spune că data s-a schimbat. Numele alese înainte rămân scrise sub rol și sunt propuse din nou când apeși **Alege**.
+
+După ce ai răspuns, **Folosește același răspuns și la alți lucrători…** deschide lista celorlalți lucrători din import care nu au încă un răspuns pentru același domeniu. Cei de pe același post sunt bifați din oficiu, cei de pe alte posturi nu; bifează-i doar pe cei instruiți de aceiași oameni. Se copiază tot răspunsul pentru domeniul acela, cu ambele roluri și ambele perioade, iar un lucrător fără preluare pe fișele lui primește și data preluării. Cine are deja un răspuns al lui apare separat și nu se schimbă, la fel cine are pe fișe altă dată a preluării. La lucrătorii care l-au primit vezi „ales de tine pentru 3 lucrători, la …”, cu numele persoanei de la care l-ai copiat. Cât nu îl schimbi la ei, răspunsul lor urmează răspunsul de la persoana de la care l-ai copiat: dacă îl schimbi acolo, se schimbă și la ei, iar „Folosit și la …” îi numără doar pe aceștia. Dacă îl schimbi pe pagina unuia dintre ei, devine răspunsul lui și nu mai urmează nimic. La fel se întâmplă cu toți când persoana de la care l-ai copiat e scoasă din import: își păstrează numele alese.
 
 ### Testul la angajare verificat pe fișă
 

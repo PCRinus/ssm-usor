@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { instructionBodySchema, instructionCategorySchema } from './instruction-body';
 import { type InstructionDomain, instructionDomainSchema } from './instruction-modules';
 import { preventionMeasureRequestSchema, workSystemComponentSchema } from './risk-evaluations';
+import { trainingDomainSchema } from './trainings';
+import { whoTrainedAnswerSchema } from './who-trained';
 
 // Imports from documents (ADR 030). The proposal itself is `@ssm-usor/import`'s schema, which
 // the API's routes add to the answer.
@@ -548,6 +550,9 @@ export const employeeImportChangesSchema = z.object({
           // This person's post or workplace, over the one decided for their title or text.
           jobPositionId: z.uuid().optional(),
           workplaceId: z.uuid().nullable().optional(),
+          // Who gave and who verified the periodic trainings, by domain, where the sheets name
+          // nobody (ADR 042).
+          whoTrained: z.partialRecord(trainingDomainSchema, whoTrainedAnswerSchema).optional(),
         })
         .strict()
     )
