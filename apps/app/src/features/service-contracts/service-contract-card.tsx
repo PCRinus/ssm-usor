@@ -663,6 +663,10 @@ function ServiceContractBody({
               )}
             </Fact>
           </FactList>
+        ) : readOnly && !saved.contract ? (
+          <p data-testid="contract-details-none" className="text-sm text-muted-foreground">
+            Detaliile contractului nu au fost completate.
+          </p>
         ) : (
           <form
             ref={formRef}
@@ -742,7 +746,9 @@ function ServiceContractBody({
         description={
           <span data-testid={document ? 'contract-state' : 'contract-none'}>
             {!document
-              ? 'Contractul nu a fost generat încă. Salvează detaliile, apoi generează-l: îl primești ca ciornă, pe care o adaptezi în editor.'
+              ? readOnly
+                ? 'Contractul nu a fost generat.'
+                : 'Contractul nu a fost generat încă. Salvează detaliile, apoi generează-l: îl primești ca ciornă, pe care o adaptezi în editor.'
               : document.draft
                 ? document.issued
                   ? `Revizia ${document.issued.revision} este în vigoare. Ciorna o înlocuiește abia când o emiți.`

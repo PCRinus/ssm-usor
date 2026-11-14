@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  accessTokenOf,
   addressOf,
   addSpecialist,
   cleanUp,
@@ -13,6 +14,7 @@ import {
   nameFireSafetyTechnician,
   signIn,
   signOut,
+  subscribeToStart,
 } from './support';
 
 test.afterAll(cleanUp);
@@ -315,4 +317,49 @@ test('an owner generates the contract of a lead, writes the price, issues it, an
   await expect(page).toHaveURL(new RegExp(`/clienti/${leadId}/contract$`));
   await expect(page.getByTestId('contract-owners-only')).toBeVisible();
   await expect(page.getByTestId('client-section').filter({ hasText: 'Contract' })).toHaveCount(0);
+});
+
+test('on Start an owner reads a lead and turns it into a client, and changes nothing else', async ({
+  page,
+}) => {
+  const owner = await createAccount('leads-start-owner', 'Olga Owner');
+  const organizationId = await createOrganization('Start E2E', owner.id);
+  const leadId = await createLead(organizationId, 'S.C. OFERTA VECHE E2E S.R.L.', '14399840');
+  await subscribeToStart(organizationId);
+
+  const headers = {
+    Authorization: `Bearer ${await accessTokenOf(owner.email)}`,
+    'Content-Type': 'application/json',
+  };
+  const api = (path: string, method: string, body?: unknown) =>
+    fetch(`${process.env.E2E_API_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  const created = await api('/clients', 'POST', {
+    legalName: 'S.C. OFERTA NOUA E2E S.R.L.',
+    cui: '18547290',
+    stage: 'lead',
+  });
+  expect(created.status).toBe(403);
+  expect((await created.json()).reason).toBe('offers_not_in_plan');
+  const notes = await api(`/clients/${leadId}/owner-notes`, 'PUT', { body: 'Încă discutăm.' });
+  expect(notes.status).toBe(403);
+
+  await signIn(page, owner.email, '/oferte');
+  await expect(page.getByTestId('offers-plan-notice')).toContainText('planul Profesional');
+  await expect(page.getByTestId('leads-row')).toHaveCount(1);
+  await expect(page.getByTestId('leads-add')).toHaveCount(0);
+
+  await page.getByTestId('leads-row').click();
+  await expect(page.getByTestId('lead-page')).toBeVisible();
+  await expect(page.getByTestId('offers-plan-notice')).toBeVisible();
+  await expect(page.getByTestId('lead-edit')).toHaveCount(0);
+  await expect(page.getByTestId('contact-edit')).toHaveCount(0);
+
+  await page.getByTestId('lead-promote').click();
+  await page.getByTestId('promote-lead-confirm').click();
+  await expect(page.getByTestId('client-details-page')).toBeVisible();
+  await expect(page.getByTestId('contact-edit')).toBeVisible();
 });
