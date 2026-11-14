@@ -1270,6 +1270,18 @@ describe('POST /imports/{importId}/confirm for an employee import', () => {
     });
   });
 
+  it('passes on the refusal of new people a month past the step', async () => {
+    mockUpstream(({ url }) => {
+      if (url.pathname === '/rest/v1/imports') return Response.json(importRow());
+      if (url.pathname === '/rest/v1/rpc/apply_employee_import') {
+        return Response.json({ code: 'STP01', message: 'over the step' }, { status: 400 });
+      }
+    });
+    const response = await request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ reason: 'employees_over_step' });
+  });
+
   it('writes the checked people, syncs their signed sheets, and queues their files', async () => {
     mockUpstream(({ url }) => {
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow());

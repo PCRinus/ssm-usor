@@ -138,6 +138,51 @@ export async function subscribeToStart(organizationId: string) {
   if (error) throw error;
 }
 
+// Start at its first step, 250 employees, with `count` active employees of one client and the
+// clock started at `overSince`, as the database would have set it then.
+export async function overStartStep(
+  organizationId: string,
+  clientId: string,
+  count: number,
+  overSince: Date
+) {
+  await subscribeToStart(organizationId);
+  const employees = await admin.from('employees').insert(
+    Array.from({ length: count }, (_, index) => ({
+      organization_id: organizationId,
+      client_id: clientId,
+      first_name: `Lucrător ${index + 1}`,
+      last_name: 'Pas',
+      job_title: 'Operator',
+      hired_at: '2024-02-15',
+    }))
+  );
+  if (employees.error) throw employees.error;
+  const clock = await admin
+    .from('subscriptions')
+    .update({ employees_over_step_since: overSince.toISOString() })
+    .eq('organization_id', organizationId);
+  if (clock.error) throw clock.error;
+}
+
+export async function archiveEmployees(clientId: string, count: number) {
+  const { data, error } = await admin
+    .from('employees')
+    .select('id')
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .limit(count);
+  if (error) throw error;
+  const archived = await admin
+    .from('employees')
+    .update({ archived_at: new Date().toISOString() })
+    .in(
+      'id',
+      data.map((row) => row.id)
+    );
+  if (archived.error) throw archived.error;
+}
+
 // A client company of the organization. Removed with it by `cleanUp`.
 export async function createClientCompany(
   organizationId: string,

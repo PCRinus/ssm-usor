@@ -1,4 +1,8 @@
-import { importErrorReasons, trainingDomainLabels } from '@ssm-usor/contracts';
+import {
+  employeesOverStepReason,
+  importErrorReasons,
+  trainingDomainLabels,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -39,6 +43,10 @@ import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
+import {
+  employeeImportOverStepMessage,
+  refreshEmployeesOverStep,
+} from '@/features/subscription/employees-over-step';
 
 import { CreditsUsedLine } from '../credits-notices';
 import { importErrorMessage, photosLabel } from '../import-format';
@@ -107,6 +115,7 @@ const issueFallback =
   'Nu am putut crea lucrătorii: o valoare nu se poate salva. Verifică persoanele și încearcă din nou.';
 
 const conflictReasons: Record<string, string> = {
+  [employeesOverStepReason]: employeeImportOverStepMessage,
   [importErrorReasons.outdated]:
     'Clientul s-a schimbat între timp: un post, un loc de muncă sau un lucrător ales nu mai există. Reîncarcă pagina și alege din nou.',
 };
@@ -167,6 +176,7 @@ export function EmployeeConfirmDialog({
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+        refreshEmployeesOverStep(queryClient),
         queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(detail.id) }),
         queryClient.invalidateQueries({
           predicate: ({ queryKey }) => String(queryKey[0]).startsWith(`/clients/${clientId}`),

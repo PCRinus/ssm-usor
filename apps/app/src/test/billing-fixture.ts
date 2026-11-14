@@ -181,6 +181,7 @@ export function overviewWith({
     subscription,
     usage: {
       employees: { used: employees, limit: limits?.employees ?? 5000 },
+      employeesOverStep: null,
       members: { used: members, limit: limits?.members ?? 10 },
       invitations,
       smsThisMonth: {

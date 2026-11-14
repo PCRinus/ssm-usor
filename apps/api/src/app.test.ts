@@ -94,6 +94,7 @@ describe('API routes', () => {
         subscription: null,
         smsThisMonth: null,
         creditsThisMonth: null,
+        employeesOverStep: null,
         features: null,
       })
     );

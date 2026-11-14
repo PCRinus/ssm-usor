@@ -1,4 +1,8 @@
-import { clientConflictReasons, offersNotInPlanReason } from '@ssm-usor/contracts';
+import {
+  clientConflictReasons,
+  employeesOverStepReason,
+  offersNotInPlanReason,
+} from '@ssm-usor/contracts';
 import { createClient } from '@supabase/supabase-js';
 import type { Context } from 'hono';
 
@@ -87,6 +91,17 @@ const leadCode = 'CLL01';
 
 // Raised by the triggers that keep a lead as it is on a plan without offers.
 const offersNotInPlanCode = 'CLL03';
+
+// Raised by the triggers that refuse adding employees a month after passing the plan's step.
+const employeesOverStepCode = 'STP01';
+
+export const employeesOverStepError = () =>
+  new ApiError(
+    'forbidden',
+    "The organization has been over its plan's step of employees for a month; no employee is added until the step covers them.",
+    undefined,
+    employeesOverStepReason
+  );
 
 // Raised by the signing schema (ADR 023); the message is the reason.
 const signingErrors: Record<
@@ -191,6 +206,8 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
         undefined,
         clientConflictReasons.clientIsLead
       );
+    case employeesOverStepCode:
+      return employeesOverStepError();
     case offersNotInPlanCode:
       return new ApiError(
         'forbidden',

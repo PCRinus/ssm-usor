@@ -45,6 +45,7 @@ export type Fake = {
   calls: Call[];
   uploads: { path: string; bytes: number }[];
   smsUsage: { used: number; overage: number; granted: number };
+  employeesOverStep: Row | null;
   credits: { granted: number; used: number; shortfall: number; gift_left: number };
 };
 
@@ -261,6 +262,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
     calls: [],
     uploads: [],
     smsUsage: { used: 0, overage: 0, granted: 0 },
+    employeesOverStep: null,
     credits: { granted: 0, used: 0, shortfall: 0, gift_left: 0 },
     ...overrides,
   };
@@ -360,6 +362,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
       return json({ Key: `billing-invoices/${path}` });
     }
     if (url.pathname === '/rest/v1/rpc/sms_period_usage') return json(fake.smsUsage);
+    if (url.pathname === '/rest/v1/rpc/employees_over_step') return json(fake.employeesOverStep);
     if (url.pathname === '/rest/v1/rpc/credit_balance') {
       const { p_allowance } = JSON.parse(body ?? '{}') as { p_allowance: number | null };
       const { granted, used, shortfall } = fake.credits;

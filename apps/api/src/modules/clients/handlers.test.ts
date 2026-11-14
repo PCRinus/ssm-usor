@@ -918,6 +918,19 @@ describe('archiving a client', () => {
     expect(JSON.parse(String(init?.body))).toEqual({ archived_at: null });
   });
 
+  it('passes on the refusal to restore a client with employees a month past the step', async () => {
+    mockUpstream({
+      clients: () =>
+        Response.json(
+          { code: 'STP01', message: 'Over the step of employees for a month.' },
+          { status: 400 }
+        ),
+    });
+    const response = await post('restore');
+    expect(response.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('employees_over_step');
+  });
+
   it('answers 404 when the client is not visible to the organization', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await post('archive')).status).toBe(404);

@@ -158,6 +158,8 @@ La prima plată primești, o singură dată, creditele AI de bun venit, ca să-�
 
 Înainte să pornești un import, fereastra de încărcare îți arată cât folosește și câte credite îți mai rămân luna aceasta și din cadoul de bun venit. Câte mai ai vezi oricând și pe pagina **Abonament**, în bara creditelor (vezi [Creditele AI](/organizatie/abonament/#creditele-ai)).
 
+Dacă organizația are de mai bine de o lună mai mulți lucrători activi decât treapta abonamentului, fereastra de încărcare îți spune asta înainte să pornești. Importul din fișe poate completa lucrătorii pe care îi ai deja, dar nu poate adăuga lucrători noi: lasă-i deoparte pe cei noi, care nu se creează, ca să confirmi restul. Un client nou care vine cu lucrători se confirmă abia după ce treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți (vezi [Cât folosești](/organizatie/abonament/#cât-folosești)).
+
 ### Când nu ajung creditele
 
 Un import nou pornește doar dacă creditele rămase acoperă ce se știe dinainte: cele 25 ale citirii și fotografiile, la un client; toate fotografiile și paginile, la lucrători. Altfel **Încarcă și citește** rămâne oprit, iar fereastra îți spune câte credite trebuie, câte îți mai rămân și când primești altele. La lucrători poți scoate o parte dintre fotografii și le imporți după reînnoire, cu toate fotografiile unei persoane în același import.

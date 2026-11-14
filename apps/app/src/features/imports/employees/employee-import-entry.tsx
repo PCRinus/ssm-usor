@@ -25,6 +25,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { roCount } from '@/features/employees/employee-format';
 import { useBulkInvite } from '@/features/participants/use-bulk-invite';
 import { uninvitedOf, useImportInvitees } from '@/features/participants/use-import-invitees';
+import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { importListPollMs, isRunning, isUploadUnderway, photosLabel } from '../import-format';
@@ -56,6 +57,7 @@ export function EmployeeImportButtons({
 }) {
   const found = useFoundSheets(clientId);
   const count = found.data?.total ?? 0;
+  const blocked = useEmployeesBlocked();
   return (
     <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
       {count > 0 ? (
@@ -80,16 +82,23 @@ export function EmployeeImportButtons({
           Importă din fișele de instruire
         </Button>
       )}
-      <Button asChild>
-        <Link
-          to="/clienti/$clientId/angajati/nou"
-          params={{ clientId }}
-          data-testid="employees-add"
-        >
+      {blocked ? (
+        <Button disabled data-testid="employees-add">
           <Plus aria-hidden="true" />
           Adaugă lucrător
-        </Link>
-      </Button>
+        </Button>
+      ) : (
+        <Button asChild>
+          <Link
+            to="/clienti/$clientId/angajati/nou"
+            params={{ clientId }}
+            data-testid="employees-add"
+          >
+            <Plus aria-hidden="true" />
+            Adaugă lucrător
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
@@ -104,17 +113,38 @@ export function EmployeeStartWays({
   const found = useFoundSheets(clientId);
   const batches = found.data?.items ?? [];
   const sheets = allSheets(batches);
+  const blocked = useEmployeesBlocked();
+  const addFirst = (
+    <>
+      <WayBadge>
+        <PenLine className="size-5" />
+      </WayBadge>
+      <span className="text-[15px] font-semibold">Adaugă primul lucrător</span>
+      <span className="text-sm leading-snug text-muted-foreground">
+        Completezi tu datele persoanei, pornind de la nume și post.
+      </span>
+    </>
+  );
   return (
     <div className="grid w-full max-w-[40rem] gap-3 text-left" data-testid="employees-start-ways">
-      <Link to="/clienti/$clientId/angajati/nou" params={{ clientId }} className={wayClass}>
-        <WayBadge>
-          <PenLine className="size-5" />
-        </WayBadge>
-        <span className="text-[15px] font-semibold">Adaugă primul lucrător</span>
-        <span className="text-sm leading-snug text-muted-foreground">
-          Completezi tu datele persoanei, pornind de la nume și post.
-        </span>
-      </Link>
+      {blocked ? (
+        <div
+          aria-disabled="true"
+          data-testid="employees-start-add"
+          className={cn(wayClass, 'pointer-events-none opacity-60')}
+        >
+          {addFirst}
+        </div>
+      ) : (
+        <Link
+          to="/clienti/$clientId/angajati/nou"
+          params={{ clientId }}
+          className={wayClass}
+          data-testid="employees-start-add"
+        >
+          {addFirst}
+        </Link>
+      )}
       {sheets.length > 0 && (
         <button
           type="button"

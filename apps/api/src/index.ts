@@ -3,6 +3,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { createAdminApp } from './admin-app';
 import { createApp } from './app';
 import type { ApiEnv } from './lib/env';
+import { scheduledEmployeesOverStep } from './modules/billing/employees-over-step-notices';
 import { consumeRegenerationBatch } from './modules/documents/regeneration-queue';
 import { scheduledImportCleanUp } from './modules/imports/cleanup';
 import { consumeImportBatch, consumeImportDeadLetters } from './modules/imports/queue';
@@ -30,6 +31,10 @@ export default {
   },
   scheduled: (_controller, env, context) =>
     context.waitUntil(
-      Promise.allSettled([scheduledImportCleanUp(env), scheduledOverageReports(env)])
+      Promise.allSettled([
+        scheduledImportCleanUp(env),
+        scheduledOverageReports(env),
+        scheduledEmployeesOverStep(env),
+      ])
     ),
 } satisfies ExportedHandler<ApiEnv['Bindings']>;

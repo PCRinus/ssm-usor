@@ -416,6 +416,24 @@
               "state"
             ]
           },
+          "employeesOverStep": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "since": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "lastDay": {
+                "type": "string",
+                "format": "date"
+              },
+              "blocked": {
+                "type": "boolean"
+              }
+            },
+            "required": ["since", "lastDay", "blocked"]
+          },
           "features": {
             "type": "object",
             "nullable": true,
@@ -21313,6 +21331,24 @@
                 },
                 "required": ["used", "limit"]
               },
+              "employeesOverStep": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "since": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "lastDay": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "blocked": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["since", "lastDay", "blocked"]
+              },
               "members": {
                 "type": "object",
                 "properties": {
@@ -21461,7 +21497,14 @@
                 ]
               }
             },
-            "required": ["employees", "members", "invitations", "smsThisMonth", "creditsThisMonth"]
+            "required": [
+              "employees",
+              "employeesOverStep",
+              "members",
+              "invitations",
+              "smsThisMonth",
+              "creditsThisMonth"
+            ]
           },
           "catalogue": {
             "type": "object",

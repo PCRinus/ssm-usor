@@ -1,4 +1,6 @@
 import {
+  type EmployeesOverStepNoticeEmail,
+  employeesOverStepNoticeEmailSchema,
   type MailReceipt,
   type MailService,
   type OrganizationInvitationEmail,
@@ -28,6 +30,9 @@ import {
 } from '@ssm-usor/contracts/mail';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 
+import EmployeesOverStepNotice, {
+  subject as employeesOverStepNoticeSubject,
+} from './emails/employees-over-step-notice';
 import OrganizationInvitation, {
   subject as invitationSubject,
 } from './emails/organization-invitation';
@@ -172,6 +177,16 @@ export class Mail extends WorkerEntrypoint<MailEnv> implements MailService {
       to,
       subject: smsUsageNoticeSubject(notice),
       body: <SmsUsageNotice {...notice} />,
+    });
+  }
+
+  async sendEmployeesOverStepNotice(input: EmployeesOverStepNoticeEmail): Promise<MailReceipt> {
+    const { to, ...notice } = employeesOverStepNoticeEmailSchema.parse(input);
+
+    return sendEmail(this.env, {
+      to,
+      subject: employeesOverStepNoticeSubject(notice),
+      body: <EmployeesOverStepNotice {...notice} />,
     });
   }
 }
