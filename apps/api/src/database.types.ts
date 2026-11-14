@@ -326,6 +326,7 @@ export type Database = {
         Row: {
           client_id: string;
           created_at: string;
+          earlier_instructions_domain: Database['public']['Enums']['instruction_domain'] | null;
           employee_id: string | null;
           id: string;
           import_file_id: string | null;
@@ -343,10 +344,12 @@ export type Database = {
           storage_path: string;
           updated_at: string;
           uploaded_by: string | null;
+          valid_until: string | null;
         };
         Insert: {
           client_id: string;
           created_at?: string;
+          earlier_instructions_domain?: Database['public']['Enums']['instruction_domain'] | null;
           employee_id?: string | null;
           id?: string;
           import_file_id?: string | null;
@@ -364,10 +367,12 @@ export type Database = {
           storage_path?: string;
           updated_at?: string;
           uploaded_by?: string | null;
+          valid_until?: string | null;
         };
         Update: {
           client_id?: string;
           created_at?: string;
+          earlier_instructions_domain?: Database['public']['Enums']['instruction_domain'] | null;
           employee_id?: string | null;
           id?: string;
           import_file_id?: string | null;
@@ -385,6 +390,7 @@ export type Database = {
           storage_path?: string;
           updated_at?: string;
           uploaded_by?: string | null;
+          valid_until?: string | null;
         };
         Relationships: [
           {
@@ -1588,6 +1594,59 @@ export type Database = {
           },
           {
             foreignKeyName: 'document_templates_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      earlier_instructions_unavailable: {
+        Row: {
+          answered_at: string;
+          answered_by: string | null;
+          client_id: string;
+          domain: Database['public']['Enums']['instruction_domain'];
+          organization_id: string;
+        };
+        Insert: {
+          answered_at?: string;
+          answered_by?: string | null;
+          client_id: string;
+          domain: Database['public']['Enums']['instruction_domain'];
+          organization_id: string;
+        };
+        Update: {
+          answered_at?: string;
+          answered_by?: string | null;
+          client_id?: string;
+          domain?: Database['public']['Enums']['instruction_domain'];
+          organization_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'earlier_instructions_unavailable_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'earlier_instructions_unavailable_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'earlier_instructions_unavailable_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'earlier_instructions_unavailable_organization_id_fkey';
             columns: ['organization_id'];
             isOneToOne: false;
             referencedRelation: 'organizations';

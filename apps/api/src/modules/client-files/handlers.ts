@@ -4,6 +4,7 @@ import {
   clientFileErrorReasons,
   type ClientFileType,
   type ImportKind,
+  type InstructionDomain,
   maxClientFileBytes,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
@@ -31,7 +32,7 @@ import type {
 // The policies decide who sees and who changes a file (ADR 013). The handlers check the
 // same rules first only to answer 403 and 409 where the database would match no row.
 
-type FileRow = Pick<
+export type FileRow = Pick<
   Database['public']['Tables']['client_files']['Row'],
   | 'id'
   | 'name'
@@ -45,29 +46,42 @@ type FileRow = Pick<
   | 'uploaded_by'
   | 'import_id'
   | 'import_path'
+  | 'earlier_instructions_domain'
+  | 'valid_until'
   | 'created_at'
   | 'updated_at'
 > & {
   employees: { id: string; last_name: string; first_name: string } | null;
-  import_files: { state: string; reason: string | null }[];
-  imports: { kind: ImportKind } | null;
+  import_files: {
+    state: string;
+    reason: string | null;
+    document_kind: string | null;
+    document_domain: InstructionDomain | null;
+  }[];
+  imports: { kind: ImportKind; confirmed_at: string | null } | null;
 };
 
-const fileColumns =
-  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, import_id, import_path, created_at, updated_at, employees(id, last_name, first_name), import_files!import_files_client_file_id_fkey(state, reason), imports!client_files_import_in_organization(kind)';
+export const fileColumns =
+  'id, name, note, owners_only, original_file_name, mime_type, size_bytes, sha256, storage_path, uploaded_by, import_id, import_path, earlier_instructions_domain, valid_until, created_at, updated_at, employees(id, last_name, first_name), import_files!import_files_client_file_id_fkey(state, reason, document_kind, document_domain), imports!client_files_import_in_organization(kind, confirmed_at)';
 
 const isOwner = (c: Context<ApiEnv>) => c.get('membership').role === 'owner';
 
 const canChange = (c: Context<ApiEnv>, row: FileRow) =>
   isOwner(c) || (row.uploaded_by !== null && row.uploaded_by === c.get('user').id);
 
-async function uploaderNames(db: DataClient, rows: FileRow[]) {
-  const ids = [...new Set(rows.flatMap((row) => (row.uploaded_by ? [row.uploaded_by] : [])))];
+export async function memberNames(db: DataClient, userIds: (string | null)[]) {
+  const ids = [...new Set(userIds.filter((id): id is string => id !== null))];
   if (ids.length === 0) return new Map<string, string>();
   const { data, error } = await db.from('profiles').select('user_id, full_name').in('user_id', ids);
   if (error) throw fromDatabaseError(error, 'read uploader names');
   return new Map(data.map((profile) => [profile.user_id, profile.full_name]));
 }
+
+const uploaderNames = (db: DataClient, rows: FileRow[]) =>
+  memberNames(
+    db,
+    rows.map((row) => row.uploaded_by)
+  );
 
 function toClientFile(c: Context<ApiEnv>, row: FileRow, names: Map<string, string>): ClientFile {
   return {
@@ -98,6 +112,10 @@ function toClientFile(c: Context<ApiEnv>, row: FileRow, names: Map<string, strin
       row.import_id && row.import_files[0]?.state !== 'read'
         ? (row.import_files[0]?.reason ?? null)
         : null,
+    earlierInstructions:
+      row.earlier_instructions_domain && row.valid_until
+        ? { domain: row.earlier_instructions_domain, validUntil: row.valid_until }
+        : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -107,7 +125,7 @@ async function present(c: Context<ApiEnv>, db: DataClient, row: FileRow) {
   return toClientFile(c, row, await uploaderNames(db, [row]));
 }
 
-async function findClient(db: DataClient, clientId: string) {
+export async function findClient(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
     .select('id, stage, archived_at')
@@ -167,6 +185,15 @@ const leadOwnersOnly = () =>
     clientFileErrorReasons.leadOwnersOnly
   );
 
+// Hidden from a specialist, a copy would leave its domain asked for beside it (ADR 042).
+const earlierForTheTeam = () =>
+  new ApiError(
+    'conflict',
+    'A copy of earlier own instructions is for the whole team, and a lead has none.',
+    undefined,
+    clientFileErrorReasons.earlierInstructionsForTheTeam
+  );
+
 const refused = (reason: string, message: string) =>
   new ApiError('validation_error', message, undefined, reason);
 
@@ -203,33 +230,33 @@ export const listClientFiles: RouteHandler<typeof listClientFilesRoute, ApiEnv> 
     .order('created_at', { ascending: false })
     .order('id');
   if (error) throw fromDatabaseError(error, 'list client files');
-  // Ten minutes: the list puts each link on a real anchor and fetches itself again before they
-  // expire; a phone may sleep in between.
-  const expiresInSeconds = 600;
-  const [names, links] = await Promise.all([
-    uploaderNames(db, data),
-    createFileStore(c).clientFileLinks(
-      data.map((row) => row.storage_path),
-      expiresInSeconds
-    ),
-  ]);
-  return c.json(
-    {
-      items: data.map((row) => ({
-        ...toClientFile(c, row, names),
-        link: {
-          url: links.get(row.storage_path)!,
-          fileName: downloadName(row.original_file_name),
-          disposition: shownInline.has(row.mime_type)
-            ? ('inline' as const)
-            : ('attachment' as const),
-          expiresInSeconds,
-        },
-      })),
-    },
-    200
-  );
+  return c.json({ items: await withLinks(c, db, data) }, 200);
 };
+
+// Ten minutes: a list puts each link on a real anchor and fetches itself again before they
+// expire; a phone may sleep in between.
+const linkSeconds = 600;
+
+export async function withLinks(c: Context<ApiEnv>, db: DataClient, rows: FileRow[]) {
+  const [names, links] = await Promise.all([
+    uploaderNames(db, rows),
+    rows.length > 0
+      ? createFileStore(c).clientFileLinks(
+          rows.map((row) => row.storage_path),
+          linkSeconds
+        )
+      : new Map<string, string>(),
+  ]);
+  return rows.map((row) => ({
+    ...toClientFile(c, row, names),
+    link: {
+      url: links.get(row.storage_path)!,
+      fileName: downloadName(row.original_file_name),
+      disposition: shownInline.has(row.mime_type) ? ('inline' as const) : ('attachment' as const),
+      expiresInSeconds: linkSeconds,
+    },
+  }));
+}
 
 export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
@@ -248,6 +275,8 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
     throw new ApiError('forbidden', 'Only an owner keeps a file for owners only.');
   }
   if (query.employeeId) await requireEmployee(db, clientId, query.employeeId);
+  const earlier = earlierInstructionsOf(query);
+  if (earlier && (asked || client.stage === 'lead')) throw earlierForTheTeam();
   const stem = splitFileName(query.fileName).stem.trim().slice(0, 200).trim();
   const { data: row, error } = await db
     .from('client_files')
@@ -263,6 +292,8 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
       size_bytes: bytes.length,
       sha256: await sha256(bytes),
       uploaded_by: c.get('user').id,
+      earlier_instructions_domain: earlier?.domain ?? null,
+      valid_until: earlier?.validUntil ?? null,
     })
     .select(fileColumns)
     .single();
@@ -285,6 +316,15 @@ export const updateClientFile: RouteHandler<typeof updateClientFileRoute, ApiEnv
   const changes: Database['public']['Tables']['client_files']['Update'] = {};
   if (body.name !== undefined) changes.name = body.name;
   if (body.note !== undefined) changes.note = body.note || null;
+  if (body.validUntil !== undefined) {
+    if (!current.earlier_instructions_domain) {
+      throw refused(
+        clientFileErrorReasons.notEarlierInstructions,
+        'Only a copy of earlier own instructions has a day they applied until.'
+      );
+    }
+    changes.valid_until = body.validUntil;
+  }
   if (Object.keys(changes).length === 0)
     return c.json({ file: await present(c, db, current) }, 200);
   const { data, error } = await db
@@ -306,7 +346,8 @@ export const setClientFileOwnersOnly: RouteHandler<
   const { clientId, fileId } = c.req.valid('param');
   const { ownersOnly } = c.req.valid('json');
   const db = createDataClient(c);
-  await findFile(db, clientId, fileId);
+  const file = await findFile(db, clientId, fileId);
+  if (ownersOnly && file.earlier_instructions_domain) throw earlierForTheTeam();
   const { data, error } = await db
     .from('client_files')
     .update({ owners_only: ownersOnly })
@@ -319,6 +360,27 @@ export const setClientFileOwnersOnly: RouteHandler<
   if (!data) throw new ApiError('not_found', 'This file does not exist under this client.');
   return c.json({ file: await present(c, db, data) }, 200);
 };
+
+function earlierInstructionsOf(query: {
+  earlierInstructionsDomain?: InstructionDomain;
+  validUntil?: string;
+  employeeId?: string;
+}) {
+  const { earlierInstructionsDomain: domain, validUntil } = query;
+  if (domain === undefined && validUntil === undefined) return null;
+  const issue = (path: string, message: string) =>
+    new ApiError('validation_error', message, [{ path, message }]);
+  if (domain === undefined) {
+    throw issue('earlierInstructionsDomain', 'A day they applied until goes with a domain.');
+  }
+  if (validUntil === undefined) {
+    throw issue('validUntil', 'A copy of earlier own instructions says until when they applied.');
+  }
+  if (query.employeeId) {
+    throw issue('employeeId', "The earlier own instructions are the client's, not an employee's.");
+  }
+  return { domain, validUntil };
+}
 
 const shownInline = new Set<string>(['application/pdf', 'image/jpeg', 'image/png']);
 

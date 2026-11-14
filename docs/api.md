@@ -101,6 +101,9 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PATCH /clients/{clientId}/files/{fileId}`                             | Uploader or owner                     | `{ "file": { … } }` after renaming or annotating it                                                                                                                                                |
 | `PUT /clients/{clientId}/files/{fileId}/owners-only`                   | Owner                                 | `{ "file": { … } }` after keeping it for owners or opening it to the team                                                                                                                          |
 | `DELETE /clients/{clientId}/files/{fileId}`                            | Uploader or owner                     | `204` after deleting the stored file and the row                                                                                                                                                   |
+| `GET /clients/{clientId}/earlier-instructions`                         | Verified user with a membership       | `{ "domains": [ … ] }`, IPSSM then IPSU: the paper trainings that cite them and what the app holds of the client's earlier own instructions                                                        |
+| `PUT /clients/{clientId}/earlier-instructions/{domain}/unavailable`    | Verified user with a membership       | `204` after answering that the client has none in that domain                                                                                                                                      |
+| `DELETE /clients/{clientId}/earlier-instructions/{domain}/unavailable` | Verified user with a membership       | `204` after taking the answer back                                                                                                                                                                 |
 | `POST /imports`                                                        | Verified user with a membership       | `201 { "import": { … } }`, an import from documents `uploading`, for a new client or `{ clientId }`; `{ clientId, kind: "employees", addFoundSheets? }` for an employee import                     |
 | `GET /imports`                                                         | Verified user with a membership       | `{ "items": [ … ] }`, the open imports of `?kind=` (client imports by default), failed ones included, newest first; `?clientId=` for one client's; `?status=confirmed` the last ten confirmed      |
 | `GET /imports/{importId}`                                              | Verified user with a membership       | `{ "import": { … } }` with its files, progress, other companies, and from `ready` its proposal, changes and blockers                                                                               |
@@ -770,7 +773,9 @@ uploader and for an owner, and for a file of an import folder ([ADR 030](archite
 [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md)), `importPath` (the
 folders it sat in inside the upload, null at the top) and `importRead` with `importReason`, from
 the import's file row (`import_files.client_file_id`): whether the import read it and, if not,
-why. The five are null for a file uploaded on its own.
+why. The five are null for a file uploaded on its own. `earlierInstructions` is
+`{ domain, validUntil }` for a copy of the client's earlier own instructions ([ADR 042](architecture/adr-042-paper-history-as-written.md)),
+otherwise null.
 `?employeeId=` lists that employee's files instead ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)); a
 value that is not an id answers `400`, and the id of an employee the client does not have gives
 an empty list.
@@ -790,15 +795,41 @@ or an old Office file, and looks for `word/document.xml` or `xl/workbook.xml` in
 `.xlsx`, which also passes as an old Office file when it is password-protected. A specialist
 asking for `ownersOnly` gets `403`, and a lead's file is for owners only whatever is asked.
 The row is written first, then the file at the path the row names; a file that cannot be
-stored takes its row back.
+stored takes its row back. `earlierInstructionsDomain` (`ssm` or `su`) and `validUntil` (an ISO
+day) go together and make the file a copy of the client's earlier own instructions; one without
+the other answers `400` on the missing one, and either with `employeeId` `400` on `employeeId`.
+Such a copy is for the whole team: asked for owners only, or for a lead, it answers `409` with
+`client_file_earlier_instructions_for_the_team`. Storing it also takes back an answer that the
+client has none in that domain, in the database, in the same transaction.
 
-`PATCH` takes `name` and `note` (`null` or an empty string clears the note). `PUT
-…/owners-only` takes `{ ownersOnly }`, from an owner; for a lead's file it answers `409` with
+`PATCH` takes `name` and `note` (`null` or an empty string clears the note), and `validUntil`
+on a copy of earlier own instructions; on any other file `validUntil` answers `400` with
+`client_file_not_earlier_instructions`. `PUT
+…/owners-only` takes `{ ownersOnly }`, from an owner; on a copy of earlier own instructions
+`true` answers `409` with `client_file_earlier_instructions_for_the_team`; for a lead's file it answers `409` with
 `client_file_lead_owners_only`, the database's `CFL01`. `PATCH` and `DELETE` by anyone but the
 uploader or an owner answer `403`, and a file the caller cannot see, or one under another
 client, `404`. `DELETE` removes the stored file and then the row; there is no recycle bin.
 Every write under an archived client answers `409` with `client_archived`, asked first by the
 upload and the delete, which touch files; the list and the download link still answer.
+
+A paper training cites the client's own instructions as they were then, and the app asks for a
+copy of them ([ADR 042](architecture/adr-042-paper-history-as-written.md), decision 3).
+`GET /clients/{clientId}/earlier-instructions` answers one entry per domain, `ssm` (IPSSM) then
+`su` (IPSU), each with `paperTrainingCount`, the client's trainings of `source` `paper` in that
+domain; `imported`, `{ confirmedOn, files }` when a confirmed client import kept files its
+sorting took for that domain's own instructions (the day is the import's confirmation, in
+Romania), else null; `files`, the copies members added, each a listed client file with its
+`earlierInstructions` and `link`; `unavailable`, `{ answeredAt, answeredBy }` when a member
+answered that the client has none, else null; and `state`, the first of `imported`, `added`,
+`unavailable` that holds, else `missing`. Files for owners only are left out for a specialist,
+as in the list. The client page asks while a domain with paper trainings is `missing`; an
+employee import asks for the domains its sheets have rows in.
+
+`PUT …/earlier-instructions/{domain}/unavailable` records the answer for that domain alone, in
+the caller's name; answering again changes nothing. `DELETE` takes it back. Both answer `409`
+for an archived client (`client_archived`) or a lead, and `400` for a domain other than `ssm` or
+`su`.
 
 Every listed file carries `link`: `url`, a signed link valid for ten minutes, made for the
 whole list in one Storage request as the caller; `fileName`, the name the file was uploaded

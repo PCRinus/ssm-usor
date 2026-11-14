@@ -42,6 +42,7 @@ import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
+import { EarlierInstructionsNotice } from '@/features/client-files/earlier-instructions-notice';
 import { formatDate } from '@/features/employees/employee-format';
 import { trainingLocks } from '@/features/signatures/use-record-signatures';
 import { isEmptyOrLoading } from '@/lib/list-state';
@@ -120,6 +121,7 @@ export function ClientTrainingsPage() {
         readOnly={readOnly}
         page={() => pageRef.current}
       />
+      <EarlierInstructionsNotice clientId={clientId} userId={userId} readOnly={readOnly} />
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
           <FilterTabs label="Filtrează după domeniu">

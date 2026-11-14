@@ -13,6 +13,7 @@ import { usageLine } from '../import-format';
 import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
 import { Fact, Facts, StatusTag } from '../review-parts';
+import { EarlierInstructionsSection } from './earlier-instructions-section';
 import { EmployeeConfirmDialog } from './employee-confirm-dialog';
 import { firstToCheck, hubCounts, peopleViews } from './employee-review-model';
 import { PeopleList, peopleSectionId } from './people-list';
@@ -113,6 +114,7 @@ export function EmployeeHub({
         onChange={review.update}
       />
       <UnplacedPages detail={detail} context={context} onChange={review.update} />
+      <EarlierInstructionsSection clientId={clientId} context={context} views={views} />
       {detail.usage && (
         <p className="text-xs text-muted-foreground tabular-nums" data-testid="import-usage">
           {usageLine(detail.usage)}

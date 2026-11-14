@@ -13,16 +13,18 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import {
+  getGetEarlierInstructionsQueryKey,
   getListClientFilesQueryKey,
   useDeleteClientFile,
   useUpdateClientFile,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -37,6 +39,7 @@ const clientFileFormSchema = z.object({
     .min(1, 'Introdu numele fișierului.')
     .max(200, 'Numele are cel mult 200 de caractere.'),
   note: z.string().trim().max(2000, 'Nota are cel mult 2000 de caractere.'),
+  validUntil: z.string(),
 });
 
 type ClientFileFormValues = z.infer<typeof clientFileFormSchema>;
@@ -80,20 +83,37 @@ function RenameForm({
   const update = useUpdateClientFile({ request: apiRequest });
   const form = useForm<ClientFileFormValues>({
     resolver: zodResolver(clientFileFormSchema),
-    defaultValues: { name: file.name, note: file.note ?? '' },
+    defaultValues: {
+      name: file.name,
+      note: file.note ?? '',
+      validUntil: file.earlierInstructions?.validUntil ?? '',
+    },
   });
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = update.isPending;
 
   const onSubmit = form.handleSubmit(async (values) => {
+    if (file.earlierInstructions && values.validUntil === '') {
+      form.setError('validUntil', { message: 'Alege ziua.' });
+      return;
+    }
     try {
       await update.mutateAsync({
         clientId,
         fileId: file.id,
-        data: { name: values.name, note: values.note || null },
+        data: {
+          name: values.name,
+          note: values.note || null,
+          ...(file.earlierInstructions ? { validUntil: values.validUntil } : {}),
+        },
       });
       await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(clientId) });
+      if (file.earlierInstructions) {
+        await queryClient.invalidateQueries({
+          queryKey: getGetEarlierInstructionsQueryKey(clientId),
+        });
+      }
       toast.success('Fișierul a fost salvat.');
       onClose();
     } catch (cause) {
@@ -146,6 +166,37 @@ function RenameForm({
               {...form.register('note')}
             />
           </Field>
+          {file.earlierInstructions && (
+            <Field
+              id="client-file-valid-until"
+              label="Valabile până la"
+              mark="required"
+              hint="Ziua din care se aplică instrucțiunile noi."
+              error={errors.validUntil}
+            >
+              <Controller
+                control={form.control}
+                name="validUntil"
+                render={({ field }) => (
+                  <DatePicker
+                    id="client-file-valid-until"
+                    testId="client-file-valid-until"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={busy}
+                    invalid={Boolean(errors.validUntil)}
+                    describedBy={
+                      errors.validUntil
+                        ? 'client-file-valid-until-error'
+                        : 'client-file-valid-until-hint'
+                    }
+                    required
+                  />
+                )}
+              />
+            </Field>
+          )}
           {errors.root?.server && (
             <Notice variant="destructive" data-testid="client-file-dialog-error">
               {errors.root.server.message}
@@ -197,7 +248,10 @@ export function DeleteClientFileDialog({
     }
     onClose();
     // Also after a failure: a 404 means the list on screen is out of date.
-    await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(clientId) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(clientId) }),
+      queryClient.invalidateQueries({ queryKey: getGetEarlierInstructionsQueryKey(clientId) }),
+    ]);
   }
 
   return (

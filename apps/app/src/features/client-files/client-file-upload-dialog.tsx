@@ -248,7 +248,7 @@ function UploadForm({
   );
 }
 
-function ChosenFileRow({
+export function ChosenFileRow({
   entry,
   personal,
   removable,

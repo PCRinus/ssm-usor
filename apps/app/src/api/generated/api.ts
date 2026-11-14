@@ -8154,6 +8154,22 @@ export const ClientFileListResponseItemsItemImportKind = {
   employees: 'employees',
 } as const;
 
+export type ClientFileListResponseItemsItemEarlierInstructionsDomain =
+  (typeof ClientFileListResponseItemsItemEarlierInstructionsDomain)[keyof typeof ClientFileListResponseItemsItemEarlierInstructionsDomain];
+
+export const ClientFileListResponseItemsItemEarlierInstructionsDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientFileListResponseItemsItemEarlierInstructions = {
+  domain: ClientFileListResponseItemsItemEarlierInstructionsDomain;
+  validUntil: string;
+} | null;
+
 export type ClientFileListResponseItemsItemLinkDisposition =
   (typeof ClientFileListResponseItemsItemLinkDisposition)[keyof typeof ClientFileListResponseItemsItemLinkDisposition];
 
@@ -8196,6 +8212,8 @@ export type ClientFileListResponseItemsItem = {
   importRead: boolean | null;
   /** @nullable */
   importReason: string | null;
+  /** @nullable */
+  earlierInstructions: ClientFileListResponseItemsItemEarlierInstructions;
   createdAt: string;
   updatedAt: string;
   link: ClientFileListResponseItemsItemLink;
@@ -8249,6 +8267,22 @@ export const ClientFileResponseFileImportKind = {
   employees: 'employees',
 } as const;
 
+export type ClientFileResponseFileEarlierInstructionsDomain =
+  (typeof ClientFileResponseFileEarlierInstructionsDomain)[keyof typeof ClientFileResponseFileEarlierInstructionsDomain];
+
+export const ClientFileResponseFileEarlierInstructionsDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClientFileResponseFileEarlierInstructions = {
+  domain: ClientFileResponseFileEarlierInstructionsDomain;
+  validUntil: string;
+} | null;
+
 export type ClientFileResponseFile = {
   id: string;
   name: string;
@@ -8276,6 +8310,8 @@ export type ClientFileResponseFile = {
   importRead: boolean | null;
   /** @nullable */
   importReason: string | null;
+  /** @nullable */
+  earlierInstructions: ClientFileResponseFileEarlierInstructions;
   createdAt: string;
   updatedAt: string;
 };
@@ -8295,10 +8331,291 @@ export interface UpdateClientFileRequest {
    * @nullable
    */
   note?: string | null;
+  validUntil?: string;
 }
 
 export interface SetClientFileOwnersOnlyRequest {
   ownersOnly: boolean;
+}
+
+export type EarlierInstructionsResponseDomainsItemDomain =
+  (typeof EarlierInstructionsResponseDomainsItemDomain)[keyof typeof EarlierInstructionsResponseDomainsItemDomain];
+
+export const EarlierInstructionsResponseDomainsItemDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type EarlierInstructionsResponseDomainsItemState =
+  (typeof EarlierInstructionsResponseDomainsItemState)[keyof typeof EarlierInstructionsResponseDomainsItemState];
+
+export const EarlierInstructionsResponseDomainsItemState = {
+  imported: 'imported',
+  added: 'added',
+  unavailable: 'unavailable',
+  missing: 'missing',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+} | null;
+
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemMimeType =
+  (typeof EarlierInstructionsResponseDomainsItemImportedFilesItemMimeType)[keyof typeof EarlierInstructionsResponseDomainsItemImportedFilesItemMimeType];
+
+export const EarlierInstructionsResponseDomainsItemImportedFilesItemMimeType = {
+  'application/pdf': 'application/pdf',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'application/vndopenxmlformats-officedocumentwordprocessingmldocument':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword': 'application/msword',
+  'application/vndopenxmlformats-officedocumentspreadsheetmlsheet':
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vndms-excel': 'application/vnd.ms-excel',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemUploadedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemImportKind =
+  | (typeof EarlierInstructionsResponseDomainsItemImportedFilesItemImportKind)[keyof typeof EarlierInstructionsResponseDomainsItemImportedFilesItemImportKind]
+  | null;
+
+export const EarlierInstructionsResponseDomainsItemImportedFilesItemImportKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemEarlierInstructionsDomain =
+  (typeof EarlierInstructionsResponseDomainsItemImportedFilesItemEarlierInstructionsDomain)[keyof typeof EarlierInstructionsResponseDomainsItemImportedFilesItemEarlierInstructionsDomain];
+
+export const EarlierInstructionsResponseDomainsItemImportedFilesItemEarlierInstructionsDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemEarlierInstructions = {
+  domain: EarlierInstructionsResponseDomainsItemImportedFilesItemEarlierInstructionsDomain;
+  validUntil: string;
+} | null;
+
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemLinkDisposition =
+  (typeof EarlierInstructionsResponseDomainsItemImportedFilesItemLinkDisposition)[keyof typeof EarlierInstructionsResponseDomainsItemImportedFilesItemLinkDisposition];
+
+export const EarlierInstructionsResponseDomainsItemImportedFilesItemLinkDisposition = {
+  inline: 'inline',
+  attachment: 'attachment',
+} as const;
+
+export type EarlierInstructionsResponseDomainsItemImportedFilesItemLink = {
+  url: string;
+  fileName: string;
+  disposition: EarlierInstructionsResponseDomainsItemImportedFilesItemLinkDisposition;
+  expiresInSeconds: number;
+};
+
+export type EarlierInstructionsResponseDomainsItemImportedFilesItem = {
+  id: string;
+  name: string;
+  /** @nullable */
+  note: string | null;
+  ownersOnly: boolean;
+  /** @nullable */
+  employee: EarlierInstructionsResponseDomainsItemImportedFilesItemEmployee;
+  originalFileName: string;
+  mimeType: EarlierInstructionsResponseDomainsItemImportedFilesItemMimeType;
+  /** @minimum 1 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  sha256: string;
+  /** @nullable */
+  uploadedBy: EarlierInstructionsResponseDomainsItemImportedFilesItemUploadedBy;
+  canChange: boolean;
+  /** @nullable */
+  importId: string | null;
+  /** @nullable */
+  importPath: string | null;
+  /** @nullable */
+  importKind: EarlierInstructionsResponseDomainsItemImportedFilesItemImportKind;
+  /** @nullable */
+  importRead: boolean | null;
+  /** @nullable */
+  importReason: string | null;
+  /** @nullable */
+  earlierInstructions: EarlierInstructionsResponseDomainsItemImportedFilesItemEarlierInstructions;
+  createdAt: string;
+  updatedAt: string;
+  link: EarlierInstructionsResponseDomainsItemImportedFilesItemLink;
+};
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemImported = {
+  confirmedOn: string;
+  files: EarlierInstructionsResponseDomainsItemImportedFilesItem[];
+} | null;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemFilesItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+} | null;
+
+export type EarlierInstructionsResponseDomainsItemFilesItemMimeType =
+  (typeof EarlierInstructionsResponseDomainsItemFilesItemMimeType)[keyof typeof EarlierInstructionsResponseDomainsItemFilesItemMimeType];
+
+export const EarlierInstructionsResponseDomainsItemFilesItemMimeType = {
+  'application/pdf': 'application/pdf',
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'application/vndopenxmlformats-officedocumentwordprocessingmldocument':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword': 'application/msword',
+  'application/vndopenxmlformats-officedocumentspreadsheetmlsheet':
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vndms-excel': 'application/vnd.ms-excel',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemFilesItemUploadedBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemFilesItemImportKind =
+  | (typeof EarlierInstructionsResponseDomainsItemFilesItemImportKind)[keyof typeof EarlierInstructionsResponseDomainsItemFilesItemImportKind]
+  | null;
+
+export const EarlierInstructionsResponseDomainsItemFilesItemImportKind = {
+  client: 'client',
+  employees: 'employees',
+} as const;
+
+export type EarlierInstructionsResponseDomainsItemFilesItemEarlierInstructionsDomain =
+  (typeof EarlierInstructionsResponseDomainsItemFilesItemEarlierInstructionsDomain)[keyof typeof EarlierInstructionsResponseDomainsItemFilesItemEarlierInstructionsDomain];
+
+export const EarlierInstructionsResponseDomainsItemFilesItemEarlierInstructionsDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemFilesItemEarlierInstructions = {
+  domain: EarlierInstructionsResponseDomainsItemFilesItemEarlierInstructionsDomain;
+  validUntil: string;
+} | null;
+
+export type EarlierInstructionsResponseDomainsItemFilesItemLinkDisposition =
+  (typeof EarlierInstructionsResponseDomainsItemFilesItemLinkDisposition)[keyof typeof EarlierInstructionsResponseDomainsItemFilesItemLinkDisposition];
+
+export const EarlierInstructionsResponseDomainsItemFilesItemLinkDisposition = {
+  inline: 'inline',
+  attachment: 'attachment',
+} as const;
+
+export type EarlierInstructionsResponseDomainsItemFilesItemLink = {
+  url: string;
+  fileName: string;
+  disposition: EarlierInstructionsResponseDomainsItemFilesItemLinkDisposition;
+  expiresInSeconds: number;
+};
+
+export type EarlierInstructionsResponseDomainsItemFilesItem = {
+  id: string;
+  name: string;
+  /** @nullable */
+  note: string | null;
+  ownersOnly: boolean;
+  /** @nullable */
+  employee: EarlierInstructionsResponseDomainsItemFilesItemEmployee;
+  originalFileName: string;
+  mimeType: EarlierInstructionsResponseDomainsItemFilesItemMimeType;
+  /** @minimum 1 */
+  sizeBytes: number;
+  /** @pattern ^[0-9a-f]{64}$ */
+  sha256: string;
+  /** @nullable */
+  uploadedBy: EarlierInstructionsResponseDomainsItemFilesItemUploadedBy;
+  canChange: boolean;
+  /** @nullable */
+  importId: string | null;
+  /** @nullable */
+  importPath: string | null;
+  /** @nullable */
+  importKind: EarlierInstructionsResponseDomainsItemFilesItemImportKind;
+  /** @nullable */
+  importRead: boolean | null;
+  /** @nullable */
+  importReason: string | null;
+  /** @nullable */
+  earlierInstructions: EarlierInstructionsResponseDomainsItemFilesItemEarlierInstructions;
+  createdAt: string;
+  updatedAt: string;
+  link: EarlierInstructionsResponseDomainsItemFilesItemLink;
+};
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemUnavailableAnsweredBy = {
+  id: string;
+  /** @nullable */
+  fullName: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type EarlierInstructionsResponseDomainsItemUnavailable = {
+  answeredAt: string;
+  /** @nullable */
+  answeredBy: EarlierInstructionsResponseDomainsItemUnavailableAnsweredBy;
+} | null;
+
+export type EarlierInstructionsResponseDomainsItem = {
+  domain: EarlierInstructionsResponseDomainsItemDomain;
+  /** @minimum 0 */
+  paperTrainingCount: number;
+  state: EarlierInstructionsResponseDomainsItemState;
+  /** @nullable */
+  imported: EarlierInstructionsResponseDomainsItemImported;
+  files: EarlierInstructionsResponseDomainsItemFilesItem[];
+  /** @nullable */
+  unavailable: EarlierInstructionsResponseDomainsItemUnavailable;
+};
+
+export interface EarlierInstructionsResponse {
+  domains: EarlierInstructionsResponseDomainsItem[];
 }
 
 export type ImportSummaryKind = (typeof ImportSummaryKind)[keyof typeof ImportSummaryKind];
@@ -16252,6 +16569,8 @@ export type UploadClientFileParams = {
   note?: string;
   ownersOnly?: UploadClientFileOwnersOnly;
   employeeId?: string;
+  earlierInstructionsDomain?: UploadClientFileEarlierInstructionsDomain;
+  validUntil?: string;
 };
 
 export type UploadClientFileOwnersOnly =
@@ -16260,6 +16579,14 @@ export type UploadClientFileOwnersOnly =
 export const UploadClientFileOwnersOnly = {
   true: 'true',
   false: 'false',
+} as const;
+
+export type UploadClientFileEarlierInstructionsDomain =
+  (typeof UploadClientFileEarlierInstructionsDomain)[keyof typeof UploadClientFileEarlierInstructionsDomain];
+
+export const UploadClientFileEarlierInstructionsDomain = {
+  ssm: 'ssm',
+  su: 'su',
 } as const;
 
 export type DownloadFileParams = {
@@ -35873,7 +36200,7 @@ export const getUploadClientFileUrl = (clientId: string, params: UploadClientFil
 };
 
 /**
- * Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.
+ * Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. `earlierInstructionsDomain` and `validUntil` go together and make the file a copy of the client's earlier own instructions (ADR 042), never an employee's file, never for owners only and never a lead's (`409`, reason `client_file_earlier_instructions_for_the_team`); storing one takes back an answer that the client has none in that domain. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.
  * @summary Upload one file about a client
  */
 export const uploadClientFile = async (
@@ -35986,7 +36313,7 @@ export const getUpdateClientFileUrl = (clientId: string, fileId: string) => {
 };
 
 /**
- * By the member who uploaded it or by an owner; anyone else's attempt is `403`.
+ * By the member who uploaded it or by an owner; anyone else's attempt is `403`. `validUntil` changes the day a copy of earlier own instructions applied until; on any other file it answers `400` (reason `client_file_not_earlier_instructions`).
  * @summary Rename or annotate a file
  */
 export const updateClientFile = async (
@@ -36295,6 +36622,337 @@ export const useSetClientFileOwnersOnly = <
   TContext
 > => {
   return useMutation(getSetClientFileOwnersOnlyMutationOptions(options), queryClient);
+};
+
+export const getGetEarlierInstructionsUrl = (clientId: string) => {
+  return `/clients/${clientId}/earlier-instructions`;
+};
+
+/**
+ * Per domain, IPSSM then IPSU (ADR 042): how many of the client's trainings were transcribed from paper, the own instructions a confirmed client import kept among the client's files (`imported`), the copies members added (`files`, each with its `validUntil`), and a member's answer that the client has none (`unavailable`). `state` is the first that holds of `imported`, `added`, `unavailable`, else `missing`. Files for owners only are left out for a specialist.
+ * @summary What the app holds of the own instructions the paper trainings cite
+ */
+export const getEarlierInstructions = async (
+  clientId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EarlierInstructionsResponse> => {
+  return apiFetch<EarlierInstructionsResponse>(getGetEarlierInstructionsUrl(clientId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetEarlierInstructionsQueryKey = (clientId: string) => {
+  return [`/clients/${clientId}/earlier-instructions`] as const;
+};
+
+export const getGetEarlierInstructionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getEarlierInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEarlierInstructions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetEarlierInstructionsQueryKey(clientId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getEarlierInstructions>>> = ({ signal }) =>
+    getEarlierInstructions(clientId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getEarlierInstructions>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetEarlierInstructionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getEarlierInstructions>>
+>;
+export type GetEarlierInstructionsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetEarlierInstructions<
+  TData = Awaited<ReturnType<typeof getEarlierInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEarlierInstructions>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEarlierInstructions>>,
+          TError,
+          Awaited<ReturnType<typeof getEarlierInstructions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEarlierInstructions<
+  TData = Awaited<ReturnType<typeof getEarlierInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEarlierInstructions>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getEarlierInstructions>>,
+          TError,
+          Awaited<ReturnType<typeof getEarlierInstructions>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetEarlierInstructions<
+  TData = Awaited<ReturnType<typeof getEarlierInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEarlierInstructions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary What the app holds of the own instructions the paper trainings cite
+ */
+
+export function useGetEarlierInstructions<
+  TData = Awaited<ReturnType<typeof getEarlierInstructions>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getEarlierInstructions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetEarlierInstructionsQueryOptions(clientId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getMarkEarlierInstructionsUnavailableUrl = (
+  clientId: string,
+  domain: 'ssm' | 'su'
+) => {
+  return `/clients/${clientId}/earlier-instructions/${domain}/unavailable`;
+};
+
+/**
+ * The answer is about this domain alone, and stays until it is taken back or a copy is uploaded. Answering again changes nothing.
+ * @summary Answer that the client has no copy of its earlier own instructions in a domain
+ */
+export const markEarlierInstructionsUnavailable = async (
+  clientId: string,
+  domain: 'ssm' | 'su',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getMarkEarlierInstructionsUnavailableUrl(clientId, domain), {
+    ...options,
+    method: 'PUT',
+  });
+};
+
+export const getMarkEarlierInstructionsUnavailableMutationKey = () =>
+  ['markEarlierInstructionsUnavailable'] as const;
+
+export const getMarkEarlierInstructionsUnavailableMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markEarlierInstructionsUnavailable>>,
+    TError,
+    MarkEarlierInstructionsUnavailableMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markEarlierInstructionsUnavailable>>,
+  TError,
+  MarkEarlierInstructionsUnavailableMutationVariables,
+  TContext
+> => {
+  const mutationKey = getMarkEarlierInstructionsUnavailableMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markEarlierInstructionsUnavailable>>,
+    MarkEarlierInstructionsUnavailableMutationVariables
+  > = (props) => {
+    const { clientId, domain } = props ?? {};
+
+    return markEarlierInstructionsUnavailable(clientId, domain, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkEarlierInstructionsUnavailableMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markEarlierInstructionsUnavailable>>
+>;
+
+export type MarkEarlierInstructionsUnavailableMutationError = ErrorType<ApiErrorResponse>;
+export type MarkEarlierInstructionsUnavailableMutationVariables = {
+  clientId: string;
+  domain: 'ssm' | 'su';
+};
+
+/**
+ * @summary Answer that the client has no copy of its earlier own instructions in a domain
+ */
+export const useMarkEarlierInstructionsUnavailable = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof markEarlierInstructionsUnavailable>>,
+      TError,
+      MarkEarlierInstructionsUnavailableMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof markEarlierInstructionsUnavailable>>,
+  TError,
+  MarkEarlierInstructionsUnavailableMutationVariables,
+  TContext
+> => {
+  return useMutation(getMarkEarlierInstructionsUnavailableMutationOptions(options), queryClient);
+};
+
+export const getClearEarlierInstructionsUnavailableUrl = (
+  clientId: string,
+  domain: 'ssm' | 'su'
+) => {
+  return `/clients/${clientId}/earlier-instructions/${domain}/unavailable`;
+};
+
+/**
+ * By any member. The domain is asked for again until it has a copy or an answer.
+ * @summary Take back the answer that the client has none
+ */
+export const clearEarlierInstructionsUnavailable = async (
+  clientId: string,
+  domain: 'ssm' | 'su',
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<void> => {
+  return apiFetch<void>(getClearEarlierInstructionsUnavailableUrl(clientId, domain), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getClearEarlierInstructionsUnavailableMutationKey = () =>
+  ['clearEarlierInstructionsUnavailable'] as const;
+
+export const getClearEarlierInstructionsUnavailableMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof clearEarlierInstructionsUnavailable>>,
+    TError,
+    ClearEarlierInstructionsUnavailableMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof clearEarlierInstructionsUnavailable>>,
+  TError,
+  ClearEarlierInstructionsUnavailableMutationVariables,
+  TContext
+> => {
+  const mutationKey = getClearEarlierInstructionsUnavailableMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof clearEarlierInstructionsUnavailable>>,
+    ClearEarlierInstructionsUnavailableMutationVariables
+  > = (props) => {
+    const { clientId, domain } = props ?? {};
+
+    return clearEarlierInstructionsUnavailable(clientId, domain, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClearEarlierInstructionsUnavailableMutationResult = NonNullable<
+  Awaited<ReturnType<typeof clearEarlierInstructionsUnavailable>>
+>;
+
+export type ClearEarlierInstructionsUnavailableMutationError = ErrorType<ApiErrorResponse>;
+export type ClearEarlierInstructionsUnavailableMutationVariables = {
+  clientId: string;
+  domain: 'ssm' | 'su';
+};
+
+/**
+ * @summary Take back the answer that the client has none
+ */
+export const useClearEarlierInstructionsUnavailable = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof clearEarlierInstructionsUnavailable>>,
+      TError,
+      ClearEarlierInstructionsUnavailableMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof clearEarlierInstructionsUnavailable>>,
+  TError,
+  ClearEarlierInstructionsUnavailableMutationVariables,
+  TContext
+> => {
+  return useMutation(getClearEarlierInstructionsUnavailableMutationOptions(options), queryClient);
 };
 
 export const getDownloadFileUrl = (params: DownloadFileParams) => {

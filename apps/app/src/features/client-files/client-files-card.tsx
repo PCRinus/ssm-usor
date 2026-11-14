@@ -5,6 +5,7 @@ import {
   openAddress,
   renewalMs,
 } from '@ssm-usor/api-http/file-link';
+import type { InstructionDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
@@ -15,6 +16,7 @@ import { type MouseEvent, type ReactNode, useState } from 'react';
 
 import {
   type ClientFileListResponse,
+  getGetEarlierInstructionsQueryKey,
   getListClientFilesQueryKey,
   setClientFileOwnersOnly,
   useListClientFiles,
@@ -30,6 +32,8 @@ import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-di
 import { type ClientFile, type ClientFileEmployee } from './client-file-format';
 import { FileRow } from './client-file-row';
 import { UploadClientFilesDialog } from './client-file-upload-dialog';
+import { EarlierInstructionsDialog } from './earlier-instructions-dialog';
+import { EarlierInstructionsRows } from './earlier-instructions-group';
 import { ImportFolderRows } from './import-folder';
 import { useFileDrop, useRefuseStrayDrops } from './use-file-drop';
 
@@ -70,6 +74,7 @@ export function ClientFilesCard({
   const [uploading, setUploading] = useState<File[] | null>(null);
   const [renaming, setRenaming] = useState<ClientFile | null>(null);
   const [deleting, setDeleting] = useState<ClientFile | null>(null);
+  const [addingEarlier, setAddingEarlier] = useState<InstructionDomain | null>(null);
   const [switching, setSwitching] = useState<string[]>([]);
   const [error, setError] = useState<ReactNode>(null);
   const fileName = (file: { name: string }) =>
@@ -151,11 +156,15 @@ export function ClientFilesCard({
       toast.error(<>Nu am putut schimba cine vede „{fileName(file)}”. Încearcă din nou.</>);
     }
     setSwitching((current) => current.filter((id) => id !== file.id));
-    await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) }),
+      queryClient.invalidateQueries({ queryKey: getGetEarlierInstructionsQueryKey(client.id) }),
+    ]);
   }
 
   const items = files.data?.items ?? [];
   const canUpload = !readOnly;
+  const earlierInstructions = items.filter((file) => file.earlierInstructions);
 
   const renderFile = (file: ClientFile, depth: number) => (
     <FileRow
@@ -272,7 +281,16 @@ export function ClientFilesCard({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.filter((file) => !file.importId).map((file) => renderFile(file, 0))}
+              {items
+                .filter((file) => !file.importId && !file.earlierInstructions)
+                .map((file) => renderFile(file, 0))}
+              {earlierInstructions.length > 0 && (
+                <EarlierInstructionsRows
+                  files={earlierInstructions}
+                  onAdd={canUpload && !lead ? () => setAddingEarlier('ssm') : null}
+                  renderFile={renderFile}
+                />
+              )}
               {importFolders(items).map(([importId, folderFiles]) => (
                 <ImportFolderRows
                   key={importId}
@@ -312,6 +330,13 @@ export function ClientFilesCard({
           canChooseOwnersOnly={isOwner && !lead}
           files={uploading}
           onClose={() => setUploading(null)}
+        />
+      )}
+      {!employee && (
+        <EarlierInstructionsDialog
+          clientId={client.id}
+          domain={addingEarlier}
+          onClose={() => setAddingEarlier(null)}
         />
       )}
       <RenameClientFileDialog

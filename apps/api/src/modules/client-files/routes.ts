@@ -2,6 +2,8 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   clientFileListResponseSchema,
   clientFileResponseSchema,
+  earlierInstructionsResponseSchema,
+  instructionDomainSchema,
   listClientFilesQuerySchema,
   setClientFileOwnersOnlyRequestSchema,
   updateClientFileRequestSchema,
@@ -14,6 +16,7 @@ import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../
 
 const clientParams = z.object({ clientId: z.uuid() });
 const fileParams = z.object({ clientId: z.uuid(), fileId: z.uuid() });
+const domainParams = z.object({ clientId: z.uuid(), domain: instructionDomainSchema });
 
 const noSuchClient = {
   description: 'The client does not exist in the organization',
@@ -66,7 +69,7 @@ export const uploadClientFileRoute = createRoute({
   operationId: 'uploadClientFile',
   summary: 'Upload one file about a client',
   description:
-    "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
+    "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. `earlierInstructionsDomain` and `validUntil` go together and make the file a copy of the client's earlier own instructions (ADR 042), never an employee's file, never for owners only and never a lead's (`409`, reason `client_file_earlier_instructions_for_the_team`); storing one takes back an answer that the client has none in that domain. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -89,7 +92,11 @@ export const uploadClientFileRoute = createRoute({
       content: errorContent,
     },
     404: noSuchClient,
-    409: archivedClient,
+    409: {
+      description:
+        'The client is archived (reason `client_archived`), or a copy of earlier own instructions is asked for owners only or for a lead (reason `client_file_earlier_instructions_for_the_team`)',
+      content: errorContent,
+    },
     ...membershipErrors,
     403: {
       description: 'Not a member, or a specialist asking for a file for owners only',
@@ -103,7 +110,8 @@ export const updateClientFileRoute = createRoute({
   path: '/clients/{clientId}/files/{fileId}',
   operationId: 'updateClientFile',
   summary: 'Rename or annotate a file',
-  description: "By the member who uploaded it or by an owner; anyone else's attempt is `403`.",
+  description:
+    "By the member who uploaded it or by an owner; anyone else's attempt is `403`. `validUntil` changes the day a copy of earlier own instructions applied until; on any other file it answers `400` (reason `client_file_not_earlier_instructions`).",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
@@ -154,7 +162,8 @@ export const setClientFileOwnersOnlyRoute = createRoute({
     400: { description: 'Invalid path or request body', content: errorContent },
     404: noSuchFile,
     409: {
-      description: 'The client is archived, or is a lead whose files stay for owners only',
+      description:
+        'The client is archived, or is a lead whose files stay for owners only, or the file is a copy of earlier own instructions, which stays for the whole team (reason `client_file_earlier_instructions_for_the_team`)',
       content: errorContent,
     },
     ...ownerErrors,
@@ -178,5 +187,71 @@ export const deleteClientFileRoute = createRoute({
     409: archivedClient,
     ...membershipErrors,
     403: notTheirs,
+  },
+});
+
+const earlierInstructionsErrors = {
+  400: { description: 'Invalid path', content: errorContent },
+  404: noSuchClient,
+  409: {
+    description: 'The client is archived (reason `client_archived`), or is a lead',
+    content: errorContent,
+  },
+  ...membershipErrors,
+};
+
+export const getEarlierInstructionsRoute = createRoute({
+  method: 'get',
+  path: '/clients/{clientId}/earlier-instructions',
+  operationId: 'getEarlierInstructions',
+  summary: 'What the app holds of the own instructions the paper trainings cite',
+  description:
+    "Per domain, IPSSM then IPSU (ADR 042): how many of the client's trainings were transcribed from paper, the own instructions a confirmed client import kept among the client's files (`imported`), the copies members added (`files`, each with its `validUntil`), and a member's answer that the client has none (`unavailable`). `state` is the first that holds of `imported`, `added`, `unavailable`, else `missing`. Files for owners only are left out for a specialist.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: clientParams },
+  responses: {
+    200: {
+      description: 'The state of each domain',
+      content: {
+        'application/json': {
+          schema: earlierInstructionsResponseSchema.meta({ id: 'EarlierInstructionsResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid path', content: errorContent },
+    404: noSuchClient,
+    ...membershipErrors,
+  },
+});
+
+export const markEarlierInstructionsUnavailableRoute = createRoute({
+  method: 'put',
+  path: '/clients/{clientId}/earlier-instructions/{domain}/unavailable',
+  operationId: 'markEarlierInstructionsUnavailable',
+  summary: 'Answer that the client has no copy of its earlier own instructions in a domain',
+  description:
+    'The answer is about this domain alone, and stays until it is taken back or a copy is uploaded. Answering again changes nothing.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: domainParams },
+  responses: {
+    204: { description: 'Answered' },
+    ...earlierInstructionsErrors,
+  },
+});
+
+export const clearEarlierInstructionsUnavailableRoute = createRoute({
+  method: 'delete',
+  path: '/clients/{clientId}/earlier-instructions/{domain}/unavailable',
+  operationId: 'clearEarlierInstructionsUnavailable',
+  summary: 'Take back the answer that the client has none',
+  description: 'By any member. The domain is asked for again until it has a copy or an answer.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { params: domainParams },
+  responses: {
+    204: { description: 'Taken back, or there was no answer' },
+    ...earlierInstructionsErrors,
   },
 });

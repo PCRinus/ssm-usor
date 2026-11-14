@@ -20,6 +20,8 @@ topics:
     heading: Lista persoanelor
   - id: import.fotografii-neatribuite
     heading: Fotografiile neatribuite
+  - id: import.instructiuni-anterioare
+    heading: Instrucțiunile proprii anterioare
   - id: import.pagina-persoanei
     heading: Pagina unei persoane
   - id: import.post
@@ -73,6 +75,8 @@ sources:
   - docs/architecture/adr-023-advanced-electronic-signature.md
   - packages/contracts/src/imports.ts
   - packages/contracts/src/billing.ts
+  - supabase/migrations/20261116180000_earlier_own_instructions.sql
+  - apps/app/src/features/imports/employees/earlier-instructions-section.tsx
   - docs/architecture/adr-034-own-instructions-as-app-text.md
   - docs/architecture/adr-036-risk-library-and-import.md
   - apps/app/src/features/imports/library/risks-model.ts
@@ -328,7 +332,7 @@ O pagină ajunge la o persoană după CNP, dacă cifra lui de control se potrive
 
 ## Lista persoanelor
 
-**Verifică lucrătorii propuși** e împărțită în secțiuni: **Posturi de lucru**, **Locuri de muncă** (doar când clientul are mai multe și fișele nu se potrivesc exact), **Persoane** și **Fotografii neatribuite**. Fiecare secțiune spune în dreapta ce mai are de făcut, de exemplu „3 de hotărât”, „7 de verificat” sau „2 de atribuit”, ori **Gata**.
+**Verifică lucrătorii propuși** e împărțită în secțiuni: **Posturi de lucru**, **Locuri de muncă** (doar când clientul are mai multe și fișele nu se potrivesc exact), **Persoane**, **Fotografii neatribuite** și, ultima, **Instrucțiunile proprii anterioare**. Fiecare secțiune spune în dreapta ce mai are de făcut, de exemplu „3 de hotărât”, „7 de verificat” sau „2 de atribuit”, ori **Gata**.
 
 **Posturi de lucru** și **Locuri de muncă** arată funcțiile și locurile scrise pe fișe care nu se potrivesc exact cu ale clientului, fiecare cu persoanele care o au. Ce hotărăști acolo se aplică tuturor celor care au același text pe fișă, așa că nu se mai cere la fiecare persoană. Dacă clientul nu are încă niciun post, secțiunea îți spune asta, iar **Adaugă postul** îl creează pe cel scris pe fișe.
 
@@ -349,6 +353,20 @@ Jos, o bară rămâne mereu pe ecran. Arată ce mai e de făcut, de exemplu „3
 O pagină pe care aplicația nu o poate lega de nicio persoană apare în **Fotografii neatribuite**, cu felul paginii și ce rânduri s-au citit pe ea. Un clic oriunde pe rând deschide atribuirea: o dai unei persoane de pe fișe sau o lași deoparte. O pagină lăsată deoparte nu ajunge la fișierele nimănui.
 
 Un clic pe miniatură deschide fotografia mare, peste pagină; treci la celelalte fotografii neatribuite cu butoanele de jos sau cu săgețile tastaturii, iar **Atribuie…** deschide atribuirea chiar pentru fotografia pe care o vezi. Și în fereastra de atribuire, **Deschide mare**, de lângă butoanele de mărire, o deschide mare.
+
+### Instrucțiunile proprii anterioare
+
+Rândurile de pe fișe trimit la instrucțiunile proprii pe care clientul le avea atunci, de exemplu „IPSSM, art. 167–288”, nu la cele pe care le generezi în aplicație. Ultima secțiune a paginii, **Instrucțiunile proprii anterioare**, îți cere o copie a lor, separat pentru IPSSM și pentru IPSU, și doar pentru domeniile în care fișele importului au instruiri. Lângă fiecare domeniu scrie la câte instruiri din import trimit.
+
+Fiecare domeniu are răspunsul lui:
+
+- **Adaugă fișierul**, sau tragi fișierele peste rând: PDF, imagini, Word sau Excel, de cel mult 25 MB fiecare. Instrucțiunile vechi vin des ca mai multe scanuri, așa că poți adăuga mai multe fișiere, cu **Adaugă încă un fișier**. **Scoate** șterge definitiv fișierul, după ce confirmi.
+- **Valabile până la** e ziua din care se aplică instrucțiunile noi. Propunem ziua de azi; fișierele pe care le adaugi o primesc pe cea din câmp, iar fără ea nu se adaugă. Ziua se păstrează cu fiecare fișier. Schimbată aici, se schimbă la fișierele domeniului pe care le-ai încărcat tu, sau la toate dacă ești admin. Fișierele încărcate de un coleg își păstrează ziua, iar sub câmp scrie câte sunt; dacă toate sunt ale unui coleg, câmpul nu se poate schimba și scrie de ce.
+- **Nu le am**, când clientul nu le mai are. Răspunsul privește doar domeniul lui: „Nu le am” la IPSSM nu spune nimic despre IPSU. Îl schimbi cu **Schimbă răspunsul**.
+
+Fișierele se păstrează pe loc la client, în **Alte documente**, în grupa „Instrucțiuni proprii anterioare”, cu domeniul și ziua lor, chiar dacă renunți apoi la import. Fișierele adăugate pe tabul **Instruiri ținute** apar și aici. Dacă importul documentației clientului a păstrat deja instrucțiunile proprii ale unui domeniu, domeniul apare gata, „Le avem din documentația importată pe …”, cu fișierele lui, și nu ți se mai cere nimic pentru el.
+
+Secțiunea e opțională: nu are semnalare în bara de jos și nu oprește crearea lucrătorilor. Nu e o obligație legală, pentru că nicio normă nu cere angajatorului să păstreze instrucțiunile proprii pe care le-a înlocuit. Păstrate lângă fișe, arată ce s-a predat atunci, la un control sau la cercetarea unui accident, când fișa se citește împreună cu ce s-a predat.
 
 ## Pagina unei persoane
 
