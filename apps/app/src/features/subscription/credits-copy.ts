@@ -22,14 +22,13 @@ export function creditsCount(count: number) {
  * Whose credits these are: a trial's last the whole trial; a tester's renew each month with a hard
  * stop; a paying organization's renew each month and are topped up by the welcome gift.
  */
-export type CreditsReader =
-  { kind: 'trial'; nextMonthly: number | null } | { kind: 'tester' } | { kind: 'paid' };
+export type CreditsReader = { kind: 'trial' } | { kind: 'tester' } | { kind: 'paid' };
 
 export function creditsReaderOf(
   credits: BillingCreditsUsage,
-  { planChosen, nextMonthly }: { planChosen: boolean; nextMonthly: number | null }
+  { planChosen }: { planChosen: boolean }
 ): CreditsReader {
-  if (credits.period === 'trial') return { kind: 'trial', nextMonthly };
+  if (credits.period === 'trial') return { kind: 'trial' };
   return planChosen ? { kind: 'paid' } : { kind: 'tester' };
 }
 
@@ -109,11 +108,7 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
             : `Mai ai ${formatCount(available)}. `
           : '';
       if (reader.kind === 'trial') {
-        hint =
-          near +
-          (reader.nextMonthly !== null && credits.giftPending > 0
-            ? `Cele ${formatCount(credits.included)} din perioada de probă, până la prima plată. De pe ${renews} primești ${formatCount(reader.nextMonthly)} pe lună.`
-            : `Pentru toată perioada de probă, până pe ${renews}. Nu se reînnoiesc.`);
+        hint = `${near}Pentru toată perioada de probă, până pe ${renews}. Nu se reînnoiesc.`;
       } else if (reader.kind === 'tester') {
         hint = `${near}Cont de test: ${formatCount(credits.included)} pe lună. La ${formatCount(credits.included)}, importurile se opresc până pe ${renews}; scrie-ne dacă ai nevoie de mai multe.`;
       } else if (credits.left <= 0 && credits.giftLeft > 0) {
@@ -138,7 +133,7 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
 }
 
 export interface GiftPanel {
-  look: 'balance' | 'promise' | 'spent';
+  look: 'balance' | 'spent';
   title: string;
   text: string;
   value: string | null;
@@ -148,14 +143,6 @@ export function giftPanelFor(
   credits: BillingCreditsUsage,
   { paid, welcomeCredits }: { paid: boolean; welcomeCredits: number | null }
 ): GiftPanel | null {
-  if (credits.giftPending > 0) {
-    return {
-      look: 'promise',
-      title: `La prima plată primești ${creditsCount(credits.giftPending)} de bun venit.`,
-      text: `Le primești pe ${roDate(credits.periodEnd)}, odată cu prima plată, ca să-ți muți clienții. Nu expiră.`,
-      value: null,
-    };
-  }
   if (credits.giftLeft > 0) {
     return {
       look: 'balance',

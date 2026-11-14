@@ -69,7 +69,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `POST /billing/preview`                                                | Owner in person                       | What `{ plan, step, interval }` costs today and at the renewal, and what keeps it out                                                                                                              |
 | `POST /billing/subscription`                                           | Owner in person                       | `201 { clientSecret, intent }` after creating the Stripe subscription                                                                                                                              |
 | `PATCH /billing/subscription`                                          | Owner in person                       | `{ clientSecret, intent }` after changing it, at once or at the renewal                                                                                                                            |
-| `POST /billing/subscription/cancel`                                    | Owner in person                       | `204` after setting the cancellation, or dropping a plan chosen in the trial                                                                                                                       |
+| `POST /billing/subscription/cancel`                                    | Owner in person                       | `204` after setting the cancellation, or dropping a plan chosen in the trial before 2026-11-14                                                                                                     |
 | `POST /billing/subscription/resume`                                    | Owner in person                       | `204` after withdrawing a pending cancellation                                                                                                                                                     |
 | `POST /billing/portal-session`                                         | Owner in person                       | `201 { url }`, Stripe's page for the card                                                                                                                                                          |
 | `PUT /billing/invoice-email`                                           | Owner in person                       | `{ email }`, where the invoices go; null for the owner's email                                                                                                                                     |
@@ -1012,11 +1012,13 @@ owner's email, locale `ro`, `organization_id` in its metadata) and a subscriptio
 step's price and the metered SMS price (which nothing is reported to while the extras are off),
 the 21 % tax rate,
 `default_incomplete`, the card saved on the subscription, card as the only payment method (Apple
-Pay and Google Pay come through it; Link stays off) and flexible billing mode. During a trial
-its `trial_end` is the trial's end and the answer carries a SetupIntent secret (`intent: setup`);
-otherwise the first invoice is charged now and the answer carries its PaymentIntent secret
-(`intent: payment`). An incomplete subscription is not the organization's until it is paid; a
-checkout started again cancels the abandoned one.
+Pay and Google Pay come through it; Link stays off) and flexible billing mode, with no
+`trial_end`: the first invoice is charged now, during a trial too, and the answer carries its
+PaymentIntent secret (`intent: payment`). An incomplete subscription is not the organization's
+until it is paid: until then a trial stays as it was, with nothing granted, also when the card is
+declined or 3-D Secure is never completed; a checkout started again cancels the abandoned one.
+Once paid, the row takes the subscription and a trial's `trial_ends_at` becomes the
+subscription's start, which ends the trial and its days left.
 
 **Changing** follows the ADR: an upgrade or an addition applies at once, prorated, on a monthly
 plan as a line on the next invoice (`create_prorations`), on an annual one charged now
@@ -1025,13 +1027,15 @@ may carry a payment secret); monthly to annual applies at once the same way. A d
 removal and annual to monthly wait for the renewal: a subscription schedule made from the
 subscription keeps the current items until the plan item's period end, then the new ones with
 `proration_behavior: none` for one interval, and releases the subscription. A downgrade takes
-the whole choice to the renewal. During a trial every change applies at once and nothing is
-prorated. A new change releases the schedule first.
+the whole choice to the renewal. A plan chosen during a trial before 2026-11-14, still trialing at
+Stripe until the trial's end, changes at once with nothing prorated. A new change releases the
+schedule first.
 
 **Cancelling** sets `cancel_at: max_period_end` (not `cancel_at_period_end`, which on a
 mixed-interval subscription stops at the monthly SMS item's end) and Stripe's cancellation
-feedback, and logs the reason in `subscription_changes`. Before the first charge of a trial the
-subscription is cancelled at once and the organization returns to its plain trial.
+feedback, and logs the reason in `subscription_changes`. A plan chosen during a trial before
+2026-11-14, not yet charged, is cancelled at once and the organization returns to its plain
+trial.
 **Resuming** clears `cancel_at`. Reactivating a read-only organization is choosing a plan again.
 
 **The webhook** checks the signature with `constructEventAsync` and Web Crypto, refuses an event
@@ -1041,16 +1045,19 @@ first: an event already processed answers `200` at once; a failure records `erro
 Stripe and writes the row from it: plan, interval and price version from the items' lookup keys,
 the step from the plan item's lookup key (a `v1` subscription's from its plan and packs, as the
 smallest step that covers them), `current_period_end` from the plan item, and
-`access_until` as the ADR sets it (the trial's end plus 14 days while a chosen plan waits for its
-first charge; null while active, the cancellation date once one is set; 14 days from the first
+`access_until` as the ADR sets it (the trial's end plus 14 days while a plan chosen during a trial
+before 2026-11-14 waits for its first charge; null while active, the cancellation date once one is set; 14 days from the first
 failed renewal while past due; the end of the paid period once canceled). An organization
 follows one subscription; another one's late events change nothing. `invoice.payment_failed`
-starts the 14 days (not for the first charge, confirmed in the browser);
+starts the 14 days (not for the first charge, confirmed in the browser, which leaves the trial
+as it was);
 `invoice.payment_action_required` is logged; `invoice.upcoming` only recorded.
 `customer.updated` with a new default card moves the subscription to it and, while past due,
 pays the open invoices at once.
 
-`invoice.paid` above zero adds a `billing_invoices` row, issues the Oblio document through
+`invoice.paid` for a subscription's first invoice (`subscription_create`) first reads the
+subscription back and writes the row from it, since its own event may come later; the welcome
+credits then follow the step paid for. `invoice.paid` above zero adds a `billing_invoices` row, issues the Oblio document through
 `oblio-documents.ts` (`OBLIO_DOCUMENTS=invoice`: series `SSMUSOR` to the email for invoices or
 the first owner's; anything else: a `TEST` proforma to the fixed test client, never emailed),
 stores its series, number and link, then downloads the PDF into `billing-invoices` at
@@ -1067,14 +1074,16 @@ sends goes through one sender (`modules/sms-usage`), which logs it in `sms_sends
 invitations, signature-request notices, signing codes and, through the Send SMS hook, portal
 sign-in codes. It refuses with a `reason`:
 
-- `sms_trial`: a trial without a chosen plan and without the tester switch, or one that has ended;
+- `sms_trial`: a trial without the tester switch, or one that has ended, and any subscription whose
+  first payment has not gone through (a plan chosen during a trial before 2026-11-14 until the
+  trial's end);
 - `sms_foreign_number`: a number that is not Romanian (`+40`);
 - `sms_allowance_reached`: a signing code past the month's allowance. Every plan stops there while
-  the extras are off, as a tester's trial and a plan chosen during the trial do;
+  the extras are off, as a tester's trial does;
 
 Only signing codes count. The month is the subscription's: from Stripe's billing anchor once the
-first invoice is paid, monthly on an annual plan too; before that, months from the trial's start,
-the month of a plan chosen during the trial ending at the trial's end. Without a subscription, or
+first invoice is paid, monthly on an annual plan too; in a tester's trial, months from the
+trial's start. Without a subscription, or
 on Enterprise, nothing limits the codes and the month is the calendar's. The allowance is the
 step's (one for every five employees; a tester's trial 300) plus the codes granted by hand. Past
 it nothing goes by SMS while the extras are off (ADR 029, amendment of 2026-11-14). The overage
@@ -1114,7 +1123,7 @@ with no limit, and the kinds that are not counted, send none.
 import's reading uses is counted in credits in the ledger `credit_entries` (`modules/credits`).
 The month's allowance is computed from the step, never stored: 2 × the step + 250 a month
 (`monthlyCredits`), so moving up a step or to Profesional raises the month at once. An ordinary
-trial, a plan chosen during it included, has 300 for its whole length, from the trial's start to
+trial has 300 for its whole length, from the trial's start to
 its end, without a monthly reset; a tester's trial (the tester switch) 1,500 a month on the
 months the SMS follow, with no gift. After the first payment the month is the subscription's, as
 for SMS. Without a subscription, or on Enterprise, nothing limits the credits; they are still
@@ -1123,8 +1132,7 @@ the month's charges net of refunds, less the shortfall of the month before when 
 zero. The **welcome gift** is a balance of its own that never expires, used once the month's
 credits are gone: 10 × the step, at most 10,000 (`welcomeCredits`), granted by the first
 paid invoice (`invoice.paid`, the same step that sets `first_paid_at`), and brought up to
-Profesional's, once, when a paid Start moves up (every subscription write once paid). A plan
-chosen during the trial brings it only with that first payment.
+Profesional's, once, when a paid Start moves up (every subscription write once paid).
 
 - **Starting.** `POST /imports/{importId}/start` (and the import a split starts) charges the
   import's known part before it moves to `preparing`: 25 for a client import plus one per
@@ -1168,8 +1176,7 @@ chosen during the trial brings it only with that first payment.
 `GET /billing` answers `usage.creditsThisMonth` to every member: `used` (the month's credits
 used, net of refunds), `included` (allowance plus `granted`; null where nothing limits them),
 `allowance`, `granted`, `shortfall`, `left` (may be negative, by 150 at most; null where nothing
-limits), `giftLeft`, `giftPending` (the gift a plan chosen during the trial will bring with its
-first payment), `period` (`trial`, one allowance that does not renew, or `month`), `periodStart`,
+limits), `giftLeft`, `period` (`trial`, one allowance that does not renew, or `month`), `periodStart`,
 `periodEnd` and `state`: `ok`, `near` (what is left, the gift included, under a fifth of
 `included`), `out` (nothing left), `negative` (below zero) or `unlimited`. No amounts in euros.
 

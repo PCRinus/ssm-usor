@@ -79,18 +79,9 @@ export function calendarMonth(now: Date): Period {
 
 export const dateOf = (value: string | null) => (value ? new Date(value) : null);
 
-/**
- * Before the first payment the months run from the trial's start, which stays put when a tester's
- * trial is extended or a plan is chosen, so neither starts the count again. A chosen plan's month
- * ends at the trial's end, the first charge, where Stripe's own months begin.
- */
+/** A tester's months run from the trial's start, which stays put when the trial is extended. */
 export function trialMonth(row: SmsSubscription, now: Date): Period {
-  const month = monthAround(new Date(row.created_at), now);
-  const trialEnd = dateOf(row.trial_ends_at);
-  if (row.stripe_subscription_id && trialEnd && trialEnd > now && trialEnd < month.end) {
-    return { start: month.start, end: trialEnd };
-  }
-  return month;
+  return monthAround(new Date(row.created_at), now);
 }
 
 // Stripe calls a subscription active only once an invoice is paid; the status also covers a
@@ -115,7 +106,9 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
       bills: false,
     };
   }
-  if (!row.stripe_subscription_id) {
+  // A plan chosen during the trial before 2026-11-14 is unpaid until the trial's end, and sends as
+  // the trial does until then.
+  if (!isPaid(row)) {
     const trialEnd = dateOf(row.trial_ends_at);
     const testerTrial =
       row.status === 'trialing' && row.tester_allowances && trialEnd !== null && trialEnd > now;
@@ -134,7 +127,7 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
   // its allowance too and nothing past it is billed (ADR 029, amendment of 2026-11-14).
   return {
     sends: true,
-    period: isPaid(row) ? monthAround(billingAnchor(row), now) : trialMonth(row, now),
+    period: monthAround(billingAnchor(row), now),
     allowance,
     cap: null,
     capFactor: null,

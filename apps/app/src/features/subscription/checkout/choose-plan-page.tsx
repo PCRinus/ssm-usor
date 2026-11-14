@@ -132,8 +132,9 @@ function ChoosePlanForm({
   const [busy, setBusy] = useState(false);
   const employees = overview.usage.employees.used ?? 0;
   const members = overview.usage.members.used ?? 0;
-  // A plan chosen in the trial whose card never confirmed is chosen again with the card form;
-  // the mode stays as it opened, so the card form never disappears while the bank confirms.
+  // A plan chosen in the trial before 2026-11-14 whose card never confirmed is chosen again with
+  // the card form; the mode stays as it opened, so the card form never disappears while the bank
+  // confirms.
   const [mode] = useState(() =>
     live && current && !(view === 'trialChosen' && owner.card === null) ? 'change' : 'new'
   );
@@ -144,6 +145,7 @@ function ChoosePlanForm({
     settling,
     previewError: preview.isError ? billingErrorMessage(preview.error) : null,
     inTrial: view === 'trialChosen',
+    endsTrial: mode === 'new' && view === 'trial',
     readOnly: view === 'readOnly',
   };
 

@@ -191,26 +191,21 @@ function SubscriptionDetails({
   if (!readOnly && sms?.state === 'none') {
     smsNote = 'În perioada de probă totul pleacă pe email; SMS-urile pornesc când alegi un plan.';
   } else if (!readOnly && sms && sms.included !== null) {
-    smsNote = chosen
-      ? `Până la prima plată, codurile se opresc la ${formatCount(sms.included)}.`
-      : subscription.planChosen
-        ? `După ${codesLabel(sms.included)} pe lună, codurile pleacă pe email până la reînnoire.`
-        : `Cont de test: după ${codesLabel(sms.included)} pe lună, codurile pleacă pe email.`;
+    smsNote = subscription.planChosen
+      ? `După ${codesLabel(sms.included)} pe lună, codurile pleacă pe email până la reînnoire.`
+      : `Cont de test: după ${codesLabel(sms.included)} pe lună, codurile pleacă pe email.`;
   }
   const creditsShown = !readOnly && credits && credits.included !== null ? credits : null;
   const creditsMeter = creditsShown
     ? creditsMeterFor(
         creditsShown,
-        creditsReaderOf(creditsShown, { planChosen: subscription.planChosen, nextMonthly: null })
+        creditsReaderOf(creditsShown, { planChosen: subscription.planChosen })
       )
     : null;
-  const giftNote = !creditsShown
-    ? null
-    : creditsShown.giftPending > 0
-      ? `La prima plată primești ${creditsCount(creditsShown.giftPending)} de bun venit.`
-      : creditsShown.giftLeft > 0
-        ? `Plus ${creditsCount(creditsShown.giftLeft)} de bun venit, fără termen.`
-        : null;
+  const giftNote =
+    creditsShown && creditsShown.giftLeft > 0
+      ? `Plus ${creditsCount(creditsShown.giftLeft)} de bun venit, fără termen.`
+      : null;
   const needsOwner = readOnly || Boolean(trial) || subscription.status === 'past_due';
   const action = ownerActionFor(subscription);
 
@@ -299,7 +294,7 @@ function SmsMeterLine({
 }: {
   sms: BillingSmsUsage;
   owner: boolean;
-  subscription: Pick<SubscriptionSummary, 'planChosen' | 'status'>;
+  subscription: Pick<SubscriptionSummary, 'planChosen'>;
 }) {
   const meter = smsMeterFor(sms, { owner, stop: stopOf(subscription) });
   if (meter.used === null || meter.limit === null) return null;

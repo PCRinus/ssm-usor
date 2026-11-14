@@ -77,7 +77,7 @@ describe('the credits meter', () => {
     expect(meter.hint).toContain('Luna aceasta ai 1.496: 4 s-au scăzut pentru luna trecută.');
   });
 
-  it('tells a trial its credits last the whole trial, and what a chosen plan brings', () => {
+  it('tells a trial its credits last the whole trial', () => {
     const trial = creditsUsage({
       used: 85,
       included: 300,
@@ -86,13 +86,8 @@ describe('the credits meter', () => {
       giftLeft: 0,
       period: 'trial',
     });
-    expect(creditsMeterFor(trial, { kind: 'trial', nextMonthly: null }).hint).toMatch(
+    expect(creditsMeterFor(trial, { kind: 'trial' }).hint).toMatch(
       /^Pentru toată perioada de probă, până pe \d\d\.\d\d\.\d{4}\. Nu se reînnoiesc\.$/
-    );
-    expect(
-      creditsMeterFor({ ...trial, giftPending: 10000 }, { kind: 'trial', nextMonthly: 1500 }).hint
-    ).toMatch(
-      /^Cele 300 din perioada de probă, până la prima plată\. De pe \d\d\.\d\d\.\d{4} primești 1\.500 pe lună\.$/
     );
   });
 
@@ -127,14 +122,8 @@ describe('the welcome gift', () => {
     });
   });
 
-  it('promises it to a plan chosen during the trial, and shows none in a plain trial', () => {
+  it('shows none in a trial', () => {
     const trial = creditsUsage({ period: 'trial', giftLeft: 0, included: 300, left: 215 });
-    expect(
-      giftPanelFor({ ...trial, giftPending: 10000 }, { paid: false, welcomeCredits: null })
-    ).toMatchObject({
-      look: 'promise',
-      title: 'La prima plată primești 10.000 de credite AI de bun venit.',
-    });
     expect(giftPanelFor(trial, { paid: false, welcomeCredits: null })).toBeNull();
   });
 });

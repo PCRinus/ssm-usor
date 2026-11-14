@@ -6,6 +6,7 @@
 - Amended 2026-11-14: a new organization's trial lasts 14 days instead of 30; trials already running keep their end, and the 30 days of read-only access after it are unchanged. See "Plans and the trial".
 - Amended 2026-11-14: offers (leads, [ADR 007](adr-007-leads-and-service-contracts.md)) and their contracts are a Profesional feature; on Start the existing ones are read, archived, restored and promoted, and nothing else about them changes. See "Plan features".
 - Amended 2026-11-14, [below](#amendment-2026-11-14-plans-by-employee-step): each plan is priced by a step of employees, with three users on Start and ten on Profesional, and no packs or extra member; the SMS codes and AI credits follow the step; extras past what a step includes are the owner's choice, off until the screen that turns them on exists. It replaces the packs, the extra member, the billed SMS past the allowance and the safety cap described below.
+- Amended 2026-11-14, [below](#amendment-2026-11-14-choosing-a-plan-ends-the-trial): choosing a plan during the trial ends the trial when the first payment, taken at once, goes through; the days left are not kept. It replaces the first charge at the trial's end and everything "before the first payment".
 
 ## Context
 
@@ -51,7 +52,7 @@ A participant's signing and test attempts answer `403` too. Acknowledging an upd
 
 ### Plan features
 
-(Added 2026-11-14.) Beyond its limits, a plan can include a **feature** that another lacks. The first is **offers**: the leads of [ADR 007](adr-007-leads-and-service-contracts.md) with their contracts, their files and the owners' notes about them. Profesional and Enterprise have them, and so does a trial, also after Start is chosen during it, since a trial carries Profesional's features until it ends. An organization without a subscription row has every feature, as it has full access.
+(Added 2026-11-14.) Beyond its limits, a plan can include a **feature** that another lacks. The first is **offers**: the leads of [ADR 007](adr-007-leads-and-service-contracts.md) with their contracts, their files and the owners' notes about them. Profesional and Enterprise have them, and so does a trial, since a trial carries Profesional's features until it ends. (Amended 2026-11-14: paying for Start during the trial ends the trial, so offers become read-only from that payment; a Start chosen during the trial before then keeps them until the trial's end.) An organization without a subscription row has every feature, as it has full access.
 
 On Start, the existing offers stay as they are: owners list and open them, download their contracts and files, archive and restore them, and turn them into clients. Creating an offer and changing anything about one is refused: its data, contact and notes, its files, and its contract's details, drafts, issuing, sending and signed copy. The contract of a client, a promoted offer's included, is not an offer's and stays on every plan. A copy signed by the client through the return link still arrives, as it does while read-only.
 
@@ -246,3 +247,29 @@ Production holds one tester's trial and no paying subscription, so no customer m
 ### What this replaces
 
 In the sections above: the packs and the extra member in "Stripe takes the payment" and "Changes during a period"; "Moving down from Profesional to Start adds the packs…" and Start's ceiling of 600 employees and two members; under "Limits and usage", the employees and members rules, each plan's SMS allowance, the signing codes billed past it, the safety cap and its warning at the cap, and the credit allowances and gifts (now by step); the margins, which were computed for the old allowances.
+
+## Amendment 2026-11-14: choosing a plan ends the trial
+
+Decided by Mircea on 2026-11-14.
+
+### What
+
+Choosing a plan during the trial ends the trial at that moment. The checkout charges the plan's first period at once, as it already did after a trial or for a read-only organization: the Stripe subscription has no `trial_end`, and the paid period, the subscription's month and its renewal date start with that payment. The trial's days left are lost. From that first payment the organization has its step's SMS signing codes and AI credits for the month, and the step's welcome credits, as after any first payment.
+
+The first payment is confirmed in the browser (`payment_behavior: 'default_incomplete'`). Until it succeeds the Stripe subscription is `incomplete` and our row does not follow it: the organization stays in its trial, unchanged, with nothing granted. A declined card or a 3-D Secure step left unfinished leaves it there; Stripe expires the incomplete subscription after a day and the owner can try again, the next attempt cancelling the one left behind. When the payment succeeds, the row takes the subscription as `active` and its `trial_ends_at` becomes the subscription's start, the moment the trial ended. The event of the paid invoice may come before the subscription's own; the invoice's handler then reads the subscription from Stripe first, so the welcome credits are always the step's that was paid for.
+
+A trial with no plan chosen is unchanged: 14 days, 300 AI credits, signing codes by email, Profesional's limits and features, read-only for 30 days after it ends.
+
+### Why
+
+- It removes the state "plan chosen, not yet paid" and its own rules: SMS up to the chosen step's allowance with a hard stop, the trial's credits until the first payment, the chosen plan's users already counted, cancelling back into the trial, and the texts for each.
+- It closes a window in which a trial could send up to 1,000 free SMS signing codes, on Profesional's largest step, and then cancel before anything was charged.
+- Keeping the trial's days was meant to make deciding early cost nothing. With the trial at 14 days the days given up are few, and an owner who wants them can wait to choose; the checkout says, before paying, that the payment ends the trial and that its days left are not kept.
+
+### Existing rows
+
+A plan chosen during the trial before this change has a Stripe subscription still `trialing`, charged at the trial's end. Production had none when this was decided, but such rows are handled as they are: the subscription is followed as before, a change applies at once with nothing prorated, and cancelling drops it at once and returns the organization to its plain trial (logged as `plan_canceled_in_trial`). Until its first payment such a row gets what a trial gets: no SMS (unless it is a tester's), the trial's 300 credits and the trial's limits. The Abonament tab names the plan and the day of the first payment and lets the owner drop it; one whose card never confirmed is chosen again through the checkout, which now charges at once.
+
+### What this replaces
+
+In "Plans and the trial": the paragraph on an organization that picks a plan before its trial ends. Under "Limits and usage": "Before the first payment", and in the welcome gift the reasoning about choosing and cancelling before the first charge (the gift still comes with the first payment). In "Plan features": offers after Start is chosen during the trial. In the amendment on plans by employee step: "Before the first payment nothing changes" and the users of a plan chosen during the trial.

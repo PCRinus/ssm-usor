@@ -30,6 +30,7 @@ import {
   updateInvoice,
 } from './store';
 import { idOf, type StripeAccess, type StripeCatalogue } from './stripe';
+import { syncSubscription } from './sync';
 
 export type InvoiceDeps = {
   env: ApiEnv['Bindings'];
@@ -163,6 +164,27 @@ async function organizationOfInvoice(deps: InvoiceDeps, invoice: Stripe.Invoice)
   return { byCustomer: null, organizationId: known ? fromMetadata! : null };
 }
 
+// The first payment's event can come before the subscription's own, while the row still holds the
+// trial: the welcome gift must be of the step paid for.
+async function adoptFirstSubscription(
+  deps: InvoiceDeps,
+  invoice: Stripe.Invoice,
+  byCustomer: Awaited<ReturnType<typeof findSubscriptionByCustomer>>,
+  organizationId: string
+) {
+  const subscriptionId = idOf(invoice.parent?.subscription_details?.subscription);
+  if (invoice.billing_reason !== 'subscription_create' || !subscriptionId) {
+    return byCustomer ?? (await loadSubscription(deps.db, organizationId));
+  }
+  const subscription = await deps.access.stripe.subscriptions.retrieve(subscriptionId);
+  await syncSubscription(deps.db, subscription, {
+    accountId: deps.catalogue.accountId,
+    now: new Date(),
+    record: { source: 'stripe', change: 'invoice.paid', details: { stripe_invoice: invoice.id } },
+  });
+  return loadSubscription(deps.db, organizationId);
+}
+
 // Each step checks what is already done, so a retried event finishes the work without issuing
 // twice; Oblio's idempotency key covers a crash between its answer and our write.
 export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
@@ -174,7 +196,7 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     console.warn(`Paid Stripe invoice ${invoice.id} names no organization here; left alone.`);
     return null;
   }
-  const subscription = byCustomer ?? (await loadSubscription(deps.db, organizationId));
+  const subscription = await adoptFirstSubscription(deps, invoice, byCustomer, organizationId);
   const paidAt = new Date((invoice.status_transitions.paid_at ?? invoice.created) * 1000);
   if (subscription && (await markFirstPayment(deps.db, organizationId, paidAt))) {
     await recordChange(deps.db, organizationId, {

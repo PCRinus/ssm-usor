@@ -102,21 +102,28 @@ describe('what an organization may text', () => {
     ).toEqual({ sends: false });
   });
 
-  it("stops a plan chosen during the trial at the chosen step's allowance, on a month that ends with the trial", () => {
-    const policy = smsPolicy({ ...chosen, trial_ends_at: '2026-11-02T08:00:00.000Z' }, now);
-    expect(policy).toMatchObject({ sends: true, allowance: 50, cap: null, bills: false });
-    expect(policy.sends && iso(policy.period)).toEqual([
-      '2026-10-14T08:00:00.000Z',
-      '2026-11-02T08:00:00.000Z',
-    ]);
+  it('sends no SMS for a plan chosen during the trial before 2026-11-14 until its first payment', () => {
+    expect(smsPolicy(chosen, now)).toEqual({ sends: false });
+    expect(
+      smsPolicy({ ...chosen, status: 'past_due', trial_ends_at: '2026-10-18T08:00:00.000Z' }, now)
+    ).toEqual({ sends: false });
   });
 
-  it('keeps the hard stop while the first charge has not gone through', () => {
+  it("gives a plan paid during the trial its step's codes on Stripe's months from that payment", () => {
     const policy = smsPolicy(
-      { ...chosen, status: 'past_due', trial_ends_at: '2026-10-18T08:00:00.000Z' },
+      {
+        ...paid,
+        trial_ends_at: '2026-10-18T09:30:00.000Z',
+        first_paid_at: '2026-10-18T09:30:00.000Z',
+        billing_anchor_at: '2026-10-18T09:30:00.000Z',
+      },
       now
     );
-    expect(policy).toMatchObject({ sends: true, cap: null, bills: false });
+    expect(policy).toMatchObject({ sends: true, allowance: 50, cap: null, bills: false });
+    expect(policy.sends && iso(policy.period)).toEqual([
+      '2026-10-18T09:30:00.000Z',
+      '2026-11-18T09:30:00.000Z',
+    ]);
   });
 
   it("stops a paid plan hard at its step's allowance and bills nothing past it while extras are off", () => {
@@ -164,7 +171,6 @@ describe('what an organization may text', () => {
 
 describe('the state of the meter', () => {
   const policy = smsPolicy(paid, at('2026-12-01T00:00:00.000Z'));
-  const hardStop = smsPolicy(chosen, at('2026-10-20T00:00:00.000Z'));
 
   it.each([
     [39, 'ok'],
@@ -176,7 +182,7 @@ describe('the state of the meter', () => {
   });
 
   it('says stopped at a hard stop, and none where nothing is texted', () => {
-    expect(smsState(hardStop, { used: 50, included: 50 })).toBe('stopped');
+    expect(smsState(policy, { used: 50, included: 50 })).toBe('stopped');
     expect(smsState({ sends: false }, { used: 0, included: 0 })).toBe('none');
     expect(smsState(smsPolicy(null, new Date()), { used: 900, included: null })).toBe('ok');
   });

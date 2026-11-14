@@ -313,8 +313,6 @@ export type MeResponseCreditsThisMonth = {
   left: number | null;
   /** @minimum 0 */
   giftLeft: number;
-  /** @minimum 0 */
-  giftPending: number;
   period: MeResponseCreditsThisMonthPeriod;
   periodStart: string;
   periodEnd: string;
@@ -13612,8 +13610,6 @@ export type BillingOverviewUsageCreditsThisMonth = {
   left: number | null;
   /** @minimum 0 */
   giftLeft: number;
-  /** @minimum 0 */
-  giftPending: number;
   period: BillingOverviewUsageCreditsThisMonthPeriod;
   periodStart: string;
   periodEnd: string;
@@ -39558,7 +39554,7 @@ export const getCreateSubscriptionUrl = () => {
 };
 
 /**
- * Creates the Stripe customer and subscription. During a trial the first charge falls on the trial's end and the answer carries a setup secret; otherwise it is charged now, with a payment secret. Also how a read-only organization subscribes again.
+ * Creates the Stripe customer and subscription, charged now: the answer carries the first payment's secret for the browser to confirm. During a trial, the trial ends when that payment succeeds and its days left are not kept; until then, and if it fails or is never confirmed, the organization stays in its trial and nothing changes. Also how a read-only organization subscribes again.
  * @summary Choose a plan
  */
 export const createSubscription = async (
@@ -39772,7 +39768,7 @@ export const getCancelSubscriptionUrl = () => {
 };
 
 /**
- * The plan runs to the end of the period paid, then the organization is read-only for 30 days. Before the first charge of a trial the plan goes at once and the trial carries on.
+ * The plan runs to the end of the period paid, then the organization is read-only for 30 days. A plan chosen during a trial before 2026-11-14, still unpaid until the trial's end, goes at once and the trial carries on.
  * @summary Cancel the subscription
  */
 export const cancelSubscription = async (

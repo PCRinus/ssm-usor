@@ -101,7 +101,7 @@ export const createSubscriptionRoute = createRoute({
   operationId: 'createSubscription',
   summary: 'Choose a plan',
   description:
-    "Creates the Stripe customer and subscription. During a trial the first charge falls on the trial's end and the answer carries a setup secret; otherwise it is charged now, with a payment secret. Also how a read-only organization subscribes again.",
+    "Creates the Stripe customer and subscription, charged now: the answer carries the first payment's secret for the browser to confirm. During a trial, the trial ends when that payment succeeds and its days left are not kept; until then, and if it fails or is never confirmed, the organization stays in its trial and nothing changes. Also how a read-only organization subscribes again.",
   security: bearerSecurity,
   middleware: ownerMiddleware,
   request: { body: choiceBody },
@@ -146,7 +146,7 @@ export const cancelSubscriptionRoute = createRoute({
   operationId: 'cancelSubscription',
   summary: 'Cancel the subscription',
   description:
-    'The plan runs to the end of the period paid, then the organization is read-only for 30 days. Before the first charge of a trial the plan goes at once and the trial carries on.',
+    "The plan runs to the end of the period paid, then the organization is read-only for 30 days. A plan chosen during a trial before 2026-11-14, still unpaid until the trial's end, goes at once and the trial carries on.",
   security: bearerSecurity,
   middleware: ownerMiddleware,
   request: {

@@ -111,13 +111,25 @@ describe('the SMS sender', () => {
     expect(onOverage).not.toHaveBeenCalled();
   });
 
-  it('passes no cap for a hard stop, and never reports one', async () => {
-    const hardStop = { ...paid, status: 'trialing', first_paid_at: null };
-    const { store, send, onOverage } = setUp(hardStop, { id: 'row-2', overage: true });
+  it("passes no cap for a tester's hard stop, and never reports one", async () => {
+    const tester = {
+      ...paid,
+      plan: 'profesional',
+      status: 'trialing',
+      trial_ends_at: '2026-12-20T08:00:00.000Z',
+      stripe_subscription_id: null,
+      stripe_customer_id: null,
+      tester_allowances: true,
+      first_paid_at: null,
+      billing_anchor_at: null,
+    };
+    const { store, send, onOverage } = setUp(tester, { id: 'row-2', overage: true });
 
     await send();
 
-    expect(store.claim).toHaveBeenCalledWith(expect.objectContaining({ allowance: 50, cap: null }));
+    expect(store.claim).toHaveBeenCalledWith(
+      expect.objectContaining({ allowance: 300, cap: null })
+    );
     expect(onOverage).not.toHaveBeenCalled();
   });
 

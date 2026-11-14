@@ -99,7 +99,5 @@ export function ctaLabel(
 ) {
   if (mode === 'change') return 'Continuă';
   if (!preview) return 'Continuă';
-  return preview.dueToday.totalCents === 0
-    ? `Salvează cardul și alege ${shortPlanNames[choice.plan]}`
-    : `Plătește ${formatEuro(preview.dueToday.totalCents)}`;
+  return `Plătește ${formatEuro(preview.dueToday.totalCents)}`;
 }

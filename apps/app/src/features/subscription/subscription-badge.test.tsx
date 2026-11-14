@@ -100,7 +100,7 @@ describe('SubscriptionBadge', () => {
     expect(screen.queryByRole('link', { name: 'Scrie-ne ca să continui' })).toBeNull();
   });
 
-  it('names the plan chosen during a trial, with the day of the first payment', async () => {
+  it('names a plan chosen during a trial before 2026-11-14, with the day of its first payment', async () => {
     await renderRouted(
       <SubscriptionBadge subscription={chosen(12)} sms={null} isOwner impersonating={false} />
     );
@@ -306,7 +306,7 @@ describe('the SMS meter in the badge', () => {
     expect(meter.textContent).toBe('Coduri de semnare prin SMS300 / 300');
   });
 
-  it('says a trial sends none, and where a plan chosen in it stops', async () => {
+  it('says a trial sends none, and so does a plan chosen in it before 2026-11-14 until its first payment', async () => {
     const { unmount } = await renderRouted(
       <SubscriptionBadge
         subscription={trial(12)}
@@ -326,16 +326,16 @@ describe('the SMS meter in the badge', () => {
     await renderRouted(
       <SubscriptionBadge
         subscription={chosen(12)}
-        sms={smsUsage({ used: 4, included: 50, allowance: 50, cap: null, capFactor: null })}
+        sms={smsUsage({ state: 'none', included: 0 })}
         isOwner
         impersonating={false}
       />
     );
     await userEvent.click(await screen.findByTestId('subscription-badge'));
-    expect((await screen.findByTestId('subscription-details-sms')).textContent).toContain('4 / 50');
-    expect(screen.getByTestId('subscription-details-sms-note').textContent).toBe(
-      'Până la prima plată, codurile se opresc la 50.'
+    expect((await screen.findByTestId('subscription-details-sms-note')).textContent).toBe(
+      'În perioada de probă totul pleacă pe email; SMS-urile pornesc când alegi un plan.'
     );
+    expect(screen.queryByTestId('subscription-details-sms')).toBeNull();
   });
 });
 
@@ -359,17 +359,16 @@ describe('the credits meter in the badge', () => {
     );
   });
 
-  it('promises the gift to a plan chosen during the trial', async () => {
+  it('promises no welcome credits in a trial, the first payment brings them', async () => {
     await renderRouted(
       <SubscriptionBadge
-        subscription={chosen(12)}
+        subscription={trial(12)}
         sms={null}
         credits={creditsUsage({
           used: 85,
           included: 300,
           left: 215,
           giftLeft: 0,
-          giftPending: 2500,
           period: 'trial',
         })}
         isOwner
@@ -380,8 +379,6 @@ describe('the credits meter in the badge', () => {
     expect((await screen.findByTestId('subscription-details-credits')).textContent).toContain(
       '85 / 300'
     );
-    expect(screen.getByTestId('subscription-details-gift').textContent).toBe(
-      'La prima plată primești 2.500 de credite AI de bun venit.'
-    );
+    expect(screen.queryByTestId('subscription-details-gift')).toBeNull();
   });
 });

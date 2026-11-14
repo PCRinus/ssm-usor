@@ -65,7 +65,10 @@ function mockApi({
     if (pathname === '/billing/preview' && method === 'POST') {
       const choice = JSON.parse(String(init?.body)) as BillingChoice;
       const route = routes['POST /billing/preview'];
-      return route ? route(init) : Response.json(previewFor(choice));
+      if (route) return route(init);
+      const subscription = current.subscription;
+      const buying = !subscription?.planChosen || subscription.status === 'trialing';
+      return Response.json(buying ? purchasePreview(choice) : previewFor(choice));
     }
     const route = routes[`${method} ${pathname}`];
     if (route) {
@@ -110,6 +113,22 @@ afterEach(() => {
 
 const savedCard = { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 };
 
+function purchasePreview(choice: BillingChoice) {
+  const now = new Date().toISOString();
+  const { recurring } = previewFor(choice);
+  return previewFor(choice, {
+    dueToday: recurring.subtotalCents,
+    appliesAt: now,
+    firstChargeAt: now,
+  });
+}
+
+const paidStart = () =>
+  overviewWith({
+    subscription: activeSubscription({ plan: 'start', interval: 'month', step: 500 }),
+    owner: ownerPart({ card: savedCard }),
+  });
+
 const chosenTrial = (): NonNullable<BillingOverview['subscription']> => ({
   ...trialSubscription(12),
   plan: 'start',
@@ -119,14 +138,14 @@ const chosenTrial = (): NonNullable<BillingOverview['subscription']> => ({
 });
 
 describe('choosing a plan', () => {
-  it('saves the card in a trial and charges nothing today', async () => {
+  it('charges a plan chosen in a trial now, and says the trial ends with the payment', async () => {
     const trial = overviewWith({ subscription: trialSubscription(12), owner: ownerPart() });
     mockApi({
       overview: trial,
-      after: overviewWith({ subscription: chosenTrial(), owner: ownerPart({ card: savedCard }) }),
+      after: paidStart(),
       routes: {
         'POST /billing/subscription': () =>
-          Response.json({ clientSecret: 'seti_secret_1', intent: 'setup' }, { status: 201 }),
+          Response.json({ clientSecret: 'pi_secret_1', intent: 'payment' }, { status: 201 }),
       },
     });
     const runtime = mount();
@@ -137,12 +156,18 @@ describe('choosing a plan', () => {
     expect(screen.getByTestId('step-value').textContent).toBe('500');
     expect((screen.getByTestId('step-less') as HTMLButtonElement).disabled).toBe(true);
     expect((await screen.findByTestId('checkout-total')).textContent).toBe('71,39 €');
-    expect(await screen.findByText('Azi nu plătești nimic.')).toBeTruthy();
+    expect(await screen.findByText('Plătești azi 71,39 €.')).toBeTruthy();
     expect(
-      screen.getByText(/La prima plată primești 5\.000 de credite AI de bun venit\.$/)
+      screen.getByText(/Odată cu plata primești 5\.000 de credite AI de bun venit\.$/)
     ).toBeTruthy();
+    expect(screen.getByTestId('checkout-trial-ends').textContent).toBe(
+      'Plata încheie perioada de probă: zilele de probă rămase nu se păstrează.'
+    );
     expect(screen.getByTestId('plan-option-start').textContent).toContain(
       '100 de coduri SMS și 1.250 de credite AI pe lună'
+    );
+    expect(screen.getByTestId('plan-option-start').textContent).toContain(
+      '5.000 de credite AI de bun venit, la prima plată'
     );
     expect(screen.getByTestId('plan-option-start').textContent).toContain('59 €');
     expect(screen.getByTestId('plan-option-profesional').textContent).toContain(
@@ -151,40 +176,63 @@ describe('choosing a plan', () => {
     expect(screen.getByTestId('plan-option-profesional').textContent).toContain('89 €');
     await screen.findByTestId('payment-element');
     expect(stripe.elementsOptions.at(-1)).toMatchObject({
-      mode: 'setup',
+      mode: 'subscription',
+      amount: 7139,
       currency: 'eur',
       locale: 'ro',
       allowedPaymentMethodTypes: ['card'],
     });
 
     const user = userEvent.setup();
-    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await user.click(submit);
 
-    await waitFor(() => expect(stripe.confirmSetup).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(stripe.confirmPayment).toHaveBeenCalledTimes(1));
     expect(stripe.submit).toHaveBeenCalledTimes(1);
+    expect(stripe.confirmSetup).not.toHaveBeenCalled();
     expect(bodyOf('/billing/subscription', 'POST')).toEqual({
       plan: 'start',
       step: 500,
       interval: 'month',
     });
-    expect(stripe.confirmSetup).toHaveBeenCalledWith(
-      expect.objectContaining({ clientSecret: 'seti_secret_1', redirect: 'if_required' })
+    expect(stripe.confirmPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ clientSecret: 'pi_secret_1', redirect: 'if_required' })
     );
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
     );
-    expect(await screen.findByText(/Azi nu ai plătit nimic; prima plată e pe/)).toBeTruthy();
+    expect(await screen.findByText('Plata a reușit. Abonamentul Start e activ.')).toBeTruthy();
   });
 
-  it('waits for the card to reach the subscription before saying the plan is chosen', async () => {
+  it('keeps the trial when the bank does not confirm the first payment', async () => {
     const trial = overviewWith({ subscription: trialSubscription(12), owner: ownerPart() });
-    const withoutCardYet = overviewWith({ subscription: chosenTrial(), owner: ownerPart() });
-    const withCard = overviewWith({
-      subscription: chosenTrial(),
-      owner: ownerPart({ card: savedCard }),
+    stripe.confirmPayment.mockResolvedValueOnce({
+      error: { message: 'Autentificarea plății nu a reușit.' },
     });
+    mockApi({
+      overview: trial,
+      routes: {
+        'POST /billing/subscription': () =>
+          Response.json({ clientSecret: 'pi_secret_1', intent: 'payment' }, { status: 201 }),
+      },
+    });
+    const runtime = mount();
+
+    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
+    await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
+    await userEvent.click(submit);
+
+    expect((await screen.findByTestId('checkout-error')).textContent).toContain(
+      'Autentificarea plății nu a reușit.'
+    );
+    expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament/alege');
+    expect(screen.getByTestId('checkout-trial-ends')).toBeTruthy();
+  });
+
+  it('waits for the paid subscription and its card before saying the plan is active', async () => {
+    const trial = overviewWith({ subscription: trialSubscription(12), owner: ownerPart() });
+    const paid = paidStart();
     let chosen = false;
     let readsAfterChoosing = 0;
     mockApi({
@@ -192,19 +240,19 @@ describe('choosing a plan', () => {
       routes: {
         'POST /billing/subscription': () => {
           chosen = true;
-          return Response.json({ clientSecret: 'seti_secret_1', intent: 'setup' }, { status: 201 });
+          return Response.json({ clientSecret: 'pi_secret_1', intent: 'payment' }, { status: 201 });
         },
         'GET /billing': () => {
           if (!chosen) return Response.json(trial);
           readsAfterChoosing += 1;
-          return Response.json(readsAfterChoosing <= 2 ? withoutCardYet : withCard);
+          return Response.json(readsAfterChoosing <= 2 ? trial : paid);
         },
       },
     });
     const runtime = mount();
 
     const user = userEvent.setup();
-    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await user.click(submit);
 
@@ -213,9 +261,7 @@ describe('choosing a plan', () => {
       { timeout: 8000 }
     );
     expect((await screen.findByTestId('payment-card-number')).textContent).toBe('Visa •••• 4242');
-    expect(screen.getByTestId('subscription-notice').textContent).not.toContain(
-      'Cardul nu a fost confirmat.'
-    );
+    expect(readsAfterChoosing).toBeGreaterThan(2);
   });
 
   it('charges at once when reactivating, and keeps the page on a declined card', async () => {
@@ -262,19 +308,22 @@ describe('choosing a plan', () => {
     expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament/alege');
   });
 
-  it('offers the card form again for a plan chosen in the trial whose card never confirmed, and keeps it while the bank confirms', async () => {
+  it('offers the card form again, charging now, for a plan chosen in the trial before 2026-11-14 whose card never confirmed, and keeps it while the bank confirms', async () => {
     const card = { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 };
     mockApi({
       overview: overviewWith({ subscription: chosenTrial(), owner: ownerPart() }),
-      after: overviewWith({ subscription: chosenTrial(), owner: ownerPart({ card }) }),
+      after: overviewWith({
+        subscription: activeSubscription({ plan: 'start', interval: 'month', step: 500 }),
+        owner: ownerPart({ card }),
+      }),
       routes: {
         'POST /billing/subscription': () =>
-          Response.json({ clientSecret: 'seti_secret_2', intent: 'setup' }, { status: 201 }),
+          Response.json({ clientSecret: 'pi_secret_2', intent: 'payment' }, { status: 201 }),
       },
     });
     const runtime = mount();
     const seenDuringConfirmation: (string | null)[] = [];
-    stripe.confirmSetup.mockImplementationOnce(async () => {
+    stripe.confirmPayment.mockImplementationOnce(async () => {
       await runtime.queryClient.refetchQueries({ queryKey: getGetBillingQueryKey() });
       await new Promise((resolve) => setTimeout(resolve, 50));
       seenDuringConfirmation.push(
@@ -286,7 +335,7 @@ describe('choosing a plan', () => {
 
     expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Alege planul');
     await screen.findByTestId('payment-element');
-    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(submit);
 
@@ -303,12 +352,12 @@ describe('choosing a plan', () => {
       overview: overviewWith({ subscription: trialSubscription(12), owner: ownerPart() }),
       routes: {
         'POST /billing/subscription': () =>
-          Response.json({ clientSecret: 'pi_secret_3', intent: 'payment' }, { status: 201 }),
+          Response.json({ clientSecret: 'seti_secret_3', intent: 'setup' }, { status: 201 }),
       },
     });
     mount();
 
-    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(submit);
 
@@ -332,7 +381,7 @@ describe('choosing a plan', () => {
     });
     const runtime = mount();
 
-    const submit = await screen.findByRole('button', { name: 'Salvează cardul și alege Start' });
+    const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(submit);
 

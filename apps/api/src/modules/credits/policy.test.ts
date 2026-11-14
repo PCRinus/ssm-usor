@@ -42,18 +42,19 @@ describe('creditPolicy', () => {
       period: { start: at(trial.created_at), end: at(trial.trial_ends_at!) },
       allowance: 300,
       previous: null,
-      giftPending: 0,
     });
   });
 
-  it("keeps a plan chosen during the trial at the trial's 300, naming the gift its first payment brings", () => {
+  it("keeps a plan chosen during the trial before 2026-11-14 at the trial's 300 until its first payment", () => {
     const chosen = { ...trial, plan: 'start', stripe_subscription_id: 'sub_1', employee_step: 500 };
 
-    expect(creditPolicy(chosen, now)).toMatchObject({
-      kind: 'trial',
-      allowance: 300,
-      period: { end: at(trial.trial_ends_at!) },
-      giftPending: 5000,
+    expect(creditPolicy(chosen, now)).toEqual(creditPolicy(trial, now));
+  });
+
+  it("counts a higher step's monthly credits for the month under way", () => {
+    expect(creditPolicy(paid({ employee_step: 750 }), now)).toMatchObject({
+      period: { start: at('2026-10-13T08:00:00.000Z') },
+      allowance: 1750,
     });
   });
 
@@ -69,7 +70,6 @@ describe('creditPolicy', () => {
         period: { start: at('2026-09-01T08:00:00.000Z'), end: at('2026-10-01T08:00:00.000Z') },
         allowance: 1500,
       },
-      giftPending: 0,
     });
   });
 
@@ -83,7 +83,6 @@ describe('creditPolicy', () => {
         period: { start: at('2026-09-13T08:00:00.000Z'), end: at('2026-10-13T08:00:00.000Z') },
         allowance: 750,
       },
-      giftPending: 0,
     });
   });
 
@@ -111,11 +110,9 @@ describe('creditPolicy', () => {
     expect(creditPolicy(paid({ plan: 'enterprise' }), now)).toMatchObject({ limited: false });
   });
 
-  it('renews a month and a chosen plan at the period end, never a trial without a plan', () => {
+  it('renews a paid month at its end, never a trial', () => {
     expect(renewsAt(creditPolicy(paid(), now))).toBe('2026-11-13T08:00:00.000Z');
-    expect(renewsAt(creditPolicy({ ...trial, stripe_subscription_id: 'sub_1' }, now))).toBe(
-      trial.trial_ends_at
-    );
+    expect(renewsAt(creditPolicy({ ...trial, stripe_subscription_id: 'sub_1' }, now))).toBeNull();
     expect(renewsAt(creditPolicy(trial, now))).toBeNull();
   });
 });

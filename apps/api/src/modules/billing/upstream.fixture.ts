@@ -73,6 +73,7 @@ export function stripeSubscription(options: {
   choice: BillingChoice;
   periodEnd?: number;
   trialEnd?: number | null;
+  startDate?: number;
   anchor?: number | null;
   cancelAt?: number | null;
   endedAt?: number | null;
@@ -95,6 +96,7 @@ export function stripeSubscription(options: {
     livemode: false,
     metadata: options.metadata ?? { organization_id: organizationId },
     trial_end: options.trialEnd ?? null,
+    start_date: options.startDate ?? periodEnd - 30 * day,
     billing_cycle_anchor: options.anchor ?? null,
     cancel_at: options.cancelAt ?? null,
     cancel_at_period_end: false,
@@ -157,6 +159,7 @@ export function paidRow(choice: BillingChoice, overrides: Row = {}): Row {
     stripe_subscription_id: 'sub_1Test',
     billing_interval: choice.interval,
     price_version: 'v2',
+    trial_ends_at: new Date(Date.now() - 40 * day * 1000).toISOString(),
     first_paid_at: new Date(Date.now() - 40 * day * 1000).toISOString(),
     employee_step: choice.step,
     ...overrides,

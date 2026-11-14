@@ -151,7 +151,6 @@ export function usageLimits(
   row: {
     plan: string;
     status: string;
-    stripe_subscription_id: string | null;
     trial_ends_at: string | null;
     employee_step: number | null;
   } | null,
@@ -161,14 +160,7 @@ export function usageLimits(
   const inTrial =
     row.status === 'trialing' && row.trial_ends_at !== null && new Date(row.trial_ends_at) > now;
   const plan = row.plan as PaidPlan;
-  // A plan chosen during the trial is billed for its own users from the trial's end, so the
-  // members invited before then must already fit it.
-  if (inTrial) {
-    return {
-      employees: selfServeLimits.employees,
-      members: row.stripe_subscription_id ? billingPlans[plan].members : selfServeLimits.members,
-    };
-  }
+  if (inTrial) return { ...selfServeLimits };
   return {
     employees: row.employee_step ?? billingPlans[plan].steps[0]!.employees,
     members: billingPlans[plan].members,

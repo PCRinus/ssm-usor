@@ -12,12 +12,13 @@ interface When {
   tone: 'success' | 'info' | 'plain';
   title: string;
   text: string;
+  note?: string;
 }
 
 function whenFor(
   mode: CheckoutMode,
   preview: BillingPreview,
-  context: { inTrial: boolean; readOnly: boolean }
+  context: { inTrial: boolean; endsTrial: boolean; readOnly: boolean }
 ): When {
   const due = preview.dueToday.totalCents;
   const next = preview.nextRenewal;
@@ -27,19 +28,19 @@ function whenFor(
       : `Abonamentul se reînnoiește pe ${roDate(next.at)}.`;
 
   if (mode === 'new') {
-    if (due === 0) {
-      return {
-        tone: 'success',
-        title: 'Azi nu plătești nimic.',
-        text: `Cardul se salvează acum. Prima plată, de ${formatEuro(next.totalCents)}, se face pe ${roDate(preview.firstChargeAt)}, când se încheie perioada de probă. La prima plată primești ${creditsCount(planStep(preview.choice.plan, preview.choice.step)?.welcomeCredits ?? 0)} de bun venit.`,
-      };
-    }
+    const welcome = planStep(preview.choice.plan, preview.choice.step)?.welcomeCredits ?? 0;
+    const gift = context.endsTrial
+      ? ` Odată cu plata primești ${creditsCount(welcome)} de bun venit.`
+      : '';
     return {
       tone: 'info',
       title: `Plătești azi ${formatEuro(due)}.`,
       text: context.readOnly
-        ? `${renews} Contul revine la acces complet imediat după plată.`
-        : renews,
+        ? `${renews} Contul revine la acces complet imediat după plată.${gift}`
+        : `${renews}${gift}`,
+      note: context.endsTrial
+        ? 'Plata încheie perioada de probă: zilele de probă rămase nu se păstrează.'
+        : undefined,
     };
   }
 
@@ -90,6 +91,7 @@ export function CheckoutSummary({
   preview,
   settling,
   inTrial,
+  endsTrial = false,
   readOnly,
   children,
 }: {
@@ -98,13 +100,16 @@ export function CheckoutSummary({
   preview: BillingPreview | undefined;
   settling: boolean;
   inTrial: boolean;
+  endsTrial?: boolean;
   readOnly: boolean;
   children: ReactNode;
 }) {
   const amounts = choiceAmounts(choice);
   const refused = (preview?.problems.length ?? 0) > 0;
   const when =
-    preview && !settling && !refused ? whenFor(mode, preview, { inTrial, readOnly }) : null;
+    preview && !settling && !refused
+      ? whenFor(mode, preview, { inTrial, endsTrial, readOnly })
+      : null;
 
   return (
     <aside
@@ -148,6 +153,11 @@ export function CheckoutSummary({
         >
           <strong className="text-sm font-semibold">{when.title}</strong>
           <p className="text-sm leading-relaxed">{when.text}</p>
+          {when.note && (
+            <p data-testid="checkout-trial-ends" className="text-sm leading-relaxed font-medium">
+              {when.note}
+            </p>
+          )}
         </div>
       ) : refused ? null : (
         <Skeleton className="h-20 w-full" />

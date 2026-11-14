@@ -23,8 +23,6 @@ export type CreditPolicy =
       allowance: number;
       // The month whose shortfall comes off this one; null where there is none.
       previous: CreditMonth | null;
-      // A plan chosen during the trial: the gift its first payment brings.
-      giftPending: number;
     };
 
 const day = 86_400_000;
@@ -46,22 +44,20 @@ function testerMonths(row: SmsSubscription, now: Date) {
 
 /**
  * The months follow the SMS months (ADR 029). Before the first payment an ordinary trial has one
- * allowance for its whole length, a plan chosen during it included: the gift and the plan's
- * credits come with the first payment. A tester's trial has monthly credits until then.
+ * allowance for its whole length, and a tester's trial monthly credits; the step's credits and the
+ * gift come with the first payment.
  */
 export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPolicy {
   if (!row || row.plan === 'enterprise') return { limited: false, period: calendarMonth(now) };
   const tester = row.tester_allowances;
   if (!isPaid(row)) {
     const trialEnd = dateOf(row.trial_ends_at);
-    const giftPending = row.stripe_subscription_id ? welcomeCreditsOf(row) : 0;
     if (tester && row.status === 'trialing' && trialEnd !== null && trialEnd > now) {
       return {
         limited: true,
         kind: 'month',
         ...testerMonths(row, now),
         allowance: testerMonthlyCredits,
-        giftPending,
       };
     }
     const start = new Date(row.created_at);
@@ -73,7 +69,6 @@ export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPoli
       period: { start, end: end > start ? end : new Date(start.getTime() + day) },
       allowance: trialCredits,
       previous: null,
-      giftPending,
     };
   }
 
@@ -95,5 +90,5 @@ export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPoli
   } else {
     previous = { period: monthAround(anchor, before(period)), allowance };
   }
-  return { limited: true, kind: 'month', period, allowance, previous, giftPending: 0 };
+  return { limited: true, kind: 'month', period, allowance, previous };
 }

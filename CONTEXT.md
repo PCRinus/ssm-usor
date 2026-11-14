@@ -284,7 +284,7 @@ The vocabulary of SSM Ușor. One product, one vocabulary: code, documentation, i
 
 **Extras** (_extra_): signing codes by SMS and AI credits past what the step includes, paid only when the owner turns them on, up to a monthly ceiling they choose; off by default. ADR 029, amendment of 2026-11-14. Avoid: overage, add-on.
 
-**Trial** (_perioadă de probă_): the first 14 days of a new organization, with what Profesional includes except SMS and with 300 credits, and no card. A tester's is extended, never discounted, and its tester switch adds SMS and Profesional's monthly credits, with a hard stop at both. ADR 029. Avoid: free plan, demo.
+**Trial** (_perioadă de probă_): the first 14 days of a new organization, with what Profesional includes except SMS and with 300 credits, and no card. Choosing a plan ends it with the first payment, taken at once; its days left are not kept. A tester's is extended, never discounted, and its tester switch adds SMS and Profesional's monthly credits, with a hard stop at both. ADR 029. Avoid: free plan, demo.
 
 **Subscription** (_abonament_): an organization's plan, billing interval, status and dates, kept in our database and mirrored by Stripe once a plan is chosen. An organization without one has full access indefinitely. ADR 029. Avoid: account, license.
 
