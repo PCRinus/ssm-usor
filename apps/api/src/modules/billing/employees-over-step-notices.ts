@@ -32,10 +32,7 @@ export async function sendEmployeesOverStepNotices(
     try {
       if (!deps.mail) throw new Error('No MAIL binding');
       const recipient = await deps.recipient(due.organization_id);
-      if (!recipient) {
-        console.error(`Organization ${due.organization_id} has no owner to tell of ${kind}.`);
-        continue;
-      }
+      if (!recipient) throw new Error('no owner to tell');
       await deps.mail.sendEmployeesOverStepNotice({
         to: recipient.to,
         kind,

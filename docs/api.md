@@ -969,7 +969,7 @@ or null for an organization without one, which has full access. `access` is `ful
 subscription, while read-only, or when the counts could not be read, which never fails the request.
 `employeesOverStep`, also `usage.employeesOverStep` on `GET /billing`, is
 `{ since, lastDay, blocked }` while the active employees of the active clients are past the step
-(a trial's own 5,000 until it ends; never on Enterprise), and null otherwise. `lastDay` is the
+(a trial's own 5,000 until it ends; never on Enterprise, nor while canceled or read-only), and null otherwise. `lastDay` is the
 last day, in Romanian time, new employees are added: a calendar month after `since`. From the
 next day, while still over, every write that adds to the count answers `403` with
 `reason: employees_over_step`: creating an employee, reactivating one, restoring a client with

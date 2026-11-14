@@ -30,7 +30,7 @@ export default function EmployeesOverStepNotice(props: EmployeesOverStepNoticePr
   const { kind, organizationName, employees, limit, lastDay, subscriptionUrl } = props;
   const reason = `Primești acest email pentru că ești adminul organizației ${organizationName} în SSM Ușor. Îl trimitem când treci de treaptă și încă o dată cu trei zile înainte de termen.`;
   const counts = `${organizationName} are acum ${workers(employees)} activi la clienții activi, iar treapta abonamentului acoperă ${workers(limit)}.`;
-  const rule = `Poți adăuga lucrători noi până pe ${printed(lastDay)} inclusiv. Dacă după această dată ai tot mai mulți lucrători decât treapta, nu mai poți adăuga lucrători noi, nici clienți cu lucrători, până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi.`;
+  const rule = `Poți adăuga lucrători noi până pe ${printed(lastDay)} inclusiv. Dacă după această dată ai tot mai mulți lucrători decât treapta, nu mai poți adăuga lucrători noi, nici clienți cu lucrători, până nu treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți.`;
   const kept =
     'Tot ce ai lucrat merge mai departe: editezi, emiți documente, instruiești și semnezi ca până acum.';
 

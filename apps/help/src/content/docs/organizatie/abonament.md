@@ -125,7 +125,7 @@ Restul merge ca până acum: adaugi clienți fără lucrători, modifici datele,
 
 Poți adăuga din nou, pe loc, când treci pe o treaptă care îi acoperă pe toți sau când ajungi la treapta ta sau sub ea, de exemplu arhivând clienții cu care nu mai lucrezi ori marcând lucrătorii care au plecat. Dacă treci din nou de treaptă mai târziu, ai iar o lună.
 
-În perioada de probă numărul se compară cu limita probei, de 5.000 de lucrători, iar pe Enterprise nu există treaptă.
+În perioada de probă numărul se compară cu limita probei, de 5.000 de lucrători, iar pe Enterprise nu există treaptă. Cât timp abonamentul e anulat sau contul e doar pentru citire, termenul nu curge; dacă reactivezi abonamentul și ai tot mai mulți lucrători decât treapta, ai din nou o lună întreagă.
 
 Când ai folosit toate codurile de semnare prin SMS ale lunii, nu plătești nimic în plus: până la luna următoare, codurile pleacă pe email, iar un lucrător fără email nu le mai primește prin SMS.
 

@@ -12,7 +12,7 @@ const afterBlock = {
   employeeImport:
     'Un import poate completa lucrătorii pe care îi ai deja, dar nu poate adăuga lucrători noi.',
   clientImport:
-    'Poți porni importul, dar un client cu lucrători se confirmă abia după ce treci pe o treaptă mai mare sau arhivezi alți clienți.',
+    'Poți porni importul, dar un client cu lucrători se confirmă abia după ce treci pe o treaptă mai mare sau scade numărul de lucrători activi.',
 } as const;
 
 export function EmployeesOverStepNotice({
@@ -46,7 +46,8 @@ export function EmployeesOverStepNotice({
         action={action}
       >
         De mai bine de o lună ai mai mulți lucrători activi decât treapta abonamentului. Ca să
-        adaugi lucrători, treci pe o treaptă mai mare sau arhivează clienții cu care nu mai lucrezi.
+        adaugi lucrători, treci pe o treaptă mai mare sau arhivează clienții cu care nu mai lucrezi
+        ori marchează plecarea lucrătorilor care nu mai lucrează la clienți.
         {whoChanges} Restul merge ca până acum: editezi, arhivezi, emiți documente, instruiești și
         semnezi.
         {afterBlock[context] && ` ${afterBlock[context]}`}

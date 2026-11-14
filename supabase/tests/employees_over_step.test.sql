@@ -1,5 +1,8 @@
 begin;
-select plan(48);
+select plan(52);
+
+-- The clock is kept at the end of each transaction; a test is one transaction.
+set constraints all immediate;
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -82,9 +85,9 @@ reset role;
 select is(pg_temp.since(), now(), 'adding more keeps the clock where it started');
 
 select is(
-  (select row(employees, employee_limit, last_day, blocked)::text from public.employees_over_step('11111111-0000-4000-8000-000000000001')),
-  row(252, 250, public.employees_over_step_last_day(now()), false)::text,
-  'the state names the count, the step, the last day and no block'
+  (select row(last_day, blocked)::text from public.employees_over_step('11111111-0000-4000-8000-000000000001')),
+  row(public.employees_over_step_last_day(now()), false)::text,
+  'the state names the last day and no block'
 );
 
 select is(
@@ -256,6 +259,22 @@ select is(
   'reading the state starts it from that moment'
 );
 select is(public.refresh_all_employees_over_step(), 1, 'the daily refresh goes over every subscription with a step');
+
+delete from public.subscriptions;
+insert into public.subscriptions (organization_id, plan, status, access_until)
+values ('11111111-0000-4000-8000-000000000001', 'start', 'canceled', now() - interval '1 day');
+select is(pg_temp.since(), null, 'no clock runs while the subscription is canceled');
+
+update public.subscriptions set status = 'active', access_until = null;
+select is(pg_temp.since(), now(), 'subscribing again over the step starts a fresh month');
+
+update public.subscriptions set employees_over_step_since = now() - interval '2 months';
+alter table public.subscriptions disable trigger subscriptions_employees_over_step_update;
+update public.subscriptions set status = 'past_due', access_until = now() - interval '1 day';
+alter table public.subscriptions enable trigger subscriptions_employees_over_step_update;
+select is(public.refresh_employees_over_step('11111111-0000-4000-8000-000000000001'), null, 'nor while read-only, once read');
+update public.subscriptions set status = 'active', access_until = null;
+select is(pg_temp.since(), now(), 'and coming back does not bring back an old clock');
 
 delete from public.subscriptions;
 insert into public.subscriptions (organization_id, plan, status, access_until)

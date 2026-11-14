@@ -24,7 +24,10 @@ function depsWith(rows: ReturnType<typeof due>[], recorded = true) {
       recordNotice: vi.fn(async () => recorded),
       forgetNotice: vi.fn(async () => {}),
     },
-    recipient: vi.fn(async () => ({ to: 'olga@exemplu.example', organizationName: 'Prevenire' })),
+    recipient: vi.fn<EmployeesOverStepNoticeDeps['recipient']>(async () => ({
+      to: 'olga@exemplu.example',
+      organizationName: 'Prevenire',
+    })),
     mail: { sendEmployeesOverStepNotice } as unknown as MailService,
     subscriptionUrl: 'https://app.ssmusor.ro/organizatie/abonament',
   } satisfies EmployeesOverStepNoticeDeps;
@@ -64,6 +67,20 @@ describe('employees over the step notices', () => {
 
     expect(await sendEmployeesOverStepNotices(deps, 'org-2')).toEqual(['employees_soon']);
     expect(deps.store.recordNotice).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps nothing recorded when the organization has no owner to tell', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { deps, sendEmployeesOverStepNotice } = depsWith([due('org-1')]);
+    deps.recipient.mockResolvedValueOnce(null);
+
+    expect(await sendEmployeesOverStepNotices(deps)).toEqual([]);
+    expect(sendEmployeesOverStepNotice).not.toHaveBeenCalled();
+    expect(deps.store.forgetNotice).toHaveBeenCalledWith(
+      'org-1',
+      '2026-11-02T10:00:00+00:00',
+      'employees_over'
+    );
   });
 
   it('takes a failed send back so the next run tries again', async () => {

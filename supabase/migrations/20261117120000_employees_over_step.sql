@@ -32,9 +32,13 @@ $$;
 
 revoke all on function public.organization_employee_count(uuid) from public, anon, authenticated;
 
+create index employees_organization_counted_idx on public.employees (organization_id, client_id)
+  where status = 'active' and archived_at is null;
+
 -- The employees a subscription covers, as `usageLimits` in apps/api billing rules computes it; a
 -- test there holds the numbers equal to the plan catalogue. Null for Enterprise, which has no
--- step. A trial counts against its own limit until it ends, a plan chosen during it included.
+-- step. A trial counts against its own limit until it ends, as does a row that chose a plan in
+-- its trial before choosing began to charge at once.
 create function public.employee_limit_of(
   p_plan public.subscription_plan,
   p_status public.subscription_status,
@@ -54,6 +58,22 @@ as $$
 $$;
 
 revoke all on function public.employee_limit_of(public.subscription_plan, public.subscription_status, timestamptz, integer) from public, anon, authenticated;
+
+-- No clock runs while the organization cannot add employees anyway, canceled or read-only, so
+-- subscribing again starts a fresh month rather than an old one already past.
+create function public.employees_over_step_limit(s public.subscriptions)
+returns integer
+language sql
+stable
+set search_path = ''
+as $$
+  select case
+    when s.status = 'canceled' or public.access_at(s.access_until) = 'read_only' then null
+    else public.employee_limit_of(s.plan, s.status, s.trial_ends_at, s.employee_step)
+  end;
+$$;
+
+revoke all on function public.employees_over_step_limit(public.subscriptions) from public, anon, authenticated;
 
 -- The last day employees can still be added: one calendar month after the day the clock started,
 -- in Romanian time, clamped to the month's last day as Stripe's months are. The block starts when
@@ -81,9 +101,9 @@ revoke all on function public.employees_over_step_blocks_at(timestamptz) from pu
 
 -- Starts the clock at the moment the count passes the limit and clears it when it is back within,
 -- never backdating it. Before it moves the clock the row is locked and counted again, so two
--- changes to the same organization's employees count one after the other and neither undoes the
--- other's start. Also called when the
--- limit changes with time alone, at the end of a trial, by every read below and the daily job.
+-- changes to one organization's employees count one after the other and neither undoes the
+-- other's start. The limit also moves with time alone, when a trial or access ends, so every
+-- read below and the daily job call it too.
 create function public.refresh_employees_over_step(p_organization_id uuid)
 returns timestamptz
 language plpgsql
@@ -101,8 +121,8 @@ begin
   if not found then
     return null;
   end if;
-  -- Reads on every page load take no lock unless the clock would move.
-  v_limit := public.employee_limit_of(v_row.plan, v_row.status, v_row.trial_ends_at, v_row.employee_step);
+  -- Every page load reads this, so the lock waits until the clock would move.
+  v_limit := public.employees_over_step_limit(v_row);
   if v_limit is null then
     v_since := null;
   elsif public.organization_employee_count(p_organization_id) > v_limit then
@@ -116,7 +136,7 @@ begin
   from public.subscriptions
   where organization_id = p_organization_id
   for update;
-  v_limit := public.employee_limit_of(v_row.plan, v_row.status, v_row.trial_ends_at, v_row.employee_step);
+  v_limit := public.employees_over_step_limit(v_row);
   if v_limit is not null then
     v_used := public.organization_employee_count(p_organization_id);
     if v_used > v_limit then
@@ -167,8 +187,6 @@ revoke all on function public.organization_employees_blocked(uuid) from public, 
 
 create function public.employees_over_step(p_organization_id uuid)
 returns table (
-  employees integer,
-  employee_limit integer,
   over_since timestamptz,
   last_day date,
   blocked boolean
@@ -180,15 +198,11 @@ set search_path = ''
 as $$
 declare
   v_since timestamptz;
-  v_row public.subscriptions;
 begin
   v_since := public.refresh_employees_over_step(p_organization_id);
-  select * into v_row from public.subscriptions where organization_id = p_organization_id;
-  if not found then
+  if not exists (select 1 from public.subscriptions where organization_id = p_organization_id) then
     return;
   end if;
-  employees := public.organization_employee_count(p_organization_id);
-  employee_limit := public.employee_limit_of(v_row.plan, v_row.status, v_row.trial_ends_at, v_row.employee_step);
   over_since := v_since;
   last_day := case when v_since is not null then public.employees_over_step_last_day(v_since) end;
   blocked := v_since is not null and now() >= public.employees_over_step_blocks_at(v_since);
@@ -221,56 +235,58 @@ $$;
 revoke all on function public.refresh_all_employees_over_step() from public, anon, authenticated;
 grant execute on function public.refresh_all_employees_over_step() to service_role;
 
-create function public.employees_over_step_after_employee()
+-- Deferred to the end of the transaction and run once per organization there: an import writes
+-- its people one statement at a time, and counting after each would read the whole organization
+-- once per person. Statement-level triggers would not help for the same reason. The mark is the
+-- statement's, so with the triggers set immediate a later statement refreshes again.
+create function public.employees_over_step_after_change()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_organization_id uuid := case when tg_op = 'DELETE' then old.organization_id else new.organization_id end;
+  v_setting text := 'ssm_over_step.o' || replace(v_organization_id::text, '-', '');
 begin
-  perform public.refresh_employees_over_step(coalesce(new.organization_id, old.organization_id));
+  if current_setting(v_setting, true) is not distinct from statement_timestamp()::text then
+    return null;
+  end if;
+  perform set_config(v_setting, statement_timestamp()::text, true);
+  perform public.refresh_employees_over_step(v_organization_id);
   return null;
 end;
 $$;
 
-revoke all on function public.employees_over_step_after_employee() from public, anon;
+revoke all on function public.employees_over_step_after_change() from public, anon;
 
-create trigger employees_over_step_after_insert after insert on public.employees
+create constraint trigger employees_over_step_after_insert after insert on public.employees
+  deferrable initially deferred
   for each row when (new.status = 'active' and new.archived_at is null)
-  execute function public.employees_over_step_after_employee();
+  execute function public.employees_over_step_after_change();
 
-create trigger employees_over_step_after_update after update of status, archived_at, client_id on public.employees
+create constraint trigger employees_over_step_after_update
+  after update of status, archived_at, client_id on public.employees
+  deferrable initially deferred
   for each row when (
     old.status is distinct from new.status
     or old.archived_at is distinct from new.archived_at
     or old.client_id is distinct from new.client_id
   )
-  execute function public.employees_over_step_after_employee();
+  execute function public.employees_over_step_after_change();
 
-create trigger employees_over_step_after_delete after delete on public.employees
+create constraint trigger employees_over_step_after_delete after delete on public.employees
+  deferrable initially deferred
   for each row when (old.status = 'active' and old.archived_at is null)
-  execute function public.employees_over_step_after_employee();
+  execute function public.employees_over_step_after_change();
 
-create function public.employees_over_step_after_client()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  perform public.refresh_employees_over_step(new.organization_id);
-  return null;
-end;
-$$;
-
-revoke all on function public.employees_over_step_after_client() from public, anon;
-
-create trigger clients_over_step_after_update after update of stage, archived_at on public.clients
+create constraint trigger clients_over_step_after_update after update of stage, archived_at on public.clients
+  deferrable initially deferred
   for each row when (old.stage is distinct from new.stage or old.archived_at is distinct from new.archived_at)
-  execute function public.employees_over_step_after_client();
+  execute function public.employees_over_step_after_change();
 
--- A change of plan, step or trial moves the limit: a step that covers the count, or the end of
--- the trial's own limit, starts or clears the clock in the same write.
+-- A change of plan, step, trial or access moves the limit, so the clock starts or clears in the
+-- same write. Coming back from canceled or read-only starts a fresh month.
 create function public.employees_over_step_on_subscription()
 returns trigger
 language plpgsql
@@ -282,11 +298,15 @@ declare
   v_used integer;
   v_since timestamptz;
 begin
-  v_limit := public.employee_limit_of(new.plan, new.status, new.trial_ends_at, new.employee_step);
+  v_limit := public.employees_over_step_limit(new);
   if v_limit is not null then
     v_used := public.organization_employee_count(new.organization_id);
     if v_used > v_limit then
-      v_since := coalesce(case when tg_op = 'UPDATE' then old.employees_over_step_since end, now());
+      v_since := case
+        when tg_op = 'UPDATE' and public.employees_over_step_limit(old) is not null
+          then coalesce(old.employees_over_step_since, now())
+        else now()
+      end;
     end if;
   end if;
   if v_since is distinct from (case when tg_op = 'UPDATE' then old.employees_over_step_since end) then
@@ -309,7 +329,8 @@ create trigger subscriptions_employees_over_step_insert before insert on public.
   for each row execute function public.employees_over_step_on_subscription();
 
 create trigger subscriptions_employees_over_step_update
-  before update of plan, status, trial_ends_at, employee_step, stripe_subscription_id on public.subscriptions
+  before update of plan, status, trial_ends_at, access_until, employee_step, stripe_subscription_id
+  on public.subscriptions
   for each row execute function public.employees_over_step_on_subscription();
 
 -- Without a user the caller holds the secret key: seeds and maintenance.
@@ -440,11 +461,11 @@ as $$
         then 'employees_soon'
         else 'employees_over'
       end as kind,
-      public.employee_limit_of(s.plan, s.status, s.trial_ends_at, s.employee_step) as employee_limit
+      public.employees_over_step_limit(s) as employee_limit
     from public.subscriptions s
     where s.employees_over_step_since is not null
       and now() < public.employees_over_step_blocks_at(s.employees_over_step_since)
-      and public.access_at(s.access_until) = 'full'
+      and public.employees_over_step_limit(s) is not null
   )
   select
     c.organization_id,

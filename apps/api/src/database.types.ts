@@ -7760,8 +7760,6 @@ export type Database = {
         Args: { p_organization_id: string };
         Returns: {
           blocked: boolean;
-          employee_limit: number;
-          employees: number;
           last_day: string;
           over_since: string;
         }[];
@@ -7773,6 +7771,10 @@ export type Database = {
       employees_over_step_last_day: {
         Args: { p_since: string };
         Returns: string;
+      };
+      employees_over_step_limit: {
+        Args: { s: Database['public']['Tables']['subscriptions']['Row'] };
+        Returns: number;
       };
       employees_over_step_notices_due: {
         Args: never;
