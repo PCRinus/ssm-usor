@@ -62,7 +62,8 @@ export function creditsStore(db: AdminClient, hooks: CreditsHooks = {}) {
     policy: CreditPolicy,
     bought: { extra: number; extra_left: number }
   ) {
-    const off = { extraLeft: 0, extrasOn: false };
+    // Blocks already bought stay usable whatever the extras are now: they are paid for.
+    const off = { extraLeft: bought.extra_left, extrasOn: false };
     if (!policy.limited || policy.blockCents === null) return off;
     const { data, error } = await db
       .from('usage_extras')

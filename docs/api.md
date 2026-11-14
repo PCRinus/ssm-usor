@@ -1192,7 +1192,7 @@ plan adds nothing and a retried event grants nothing twice.
 used, net of refunds), `included` (allowance plus `granted`; null where nothing limits them),
 `allowance`, `granted`, `shortfall`, `left` (may be negative, by 150 at most; null where nothing
 limits; blocks bought included), `giftLeft`, `extra` (credits bought this month in blocks),
-`extraLeft` (what the credits ceiling can still buy, in whole blocks; 0 while off), `period` (`trial`, one allowance that does not renew, or `month`), `periodStart`,
+`extraLeft` (what the month's blocks still hold, plus what the credits ceiling can still buy in whole blocks while extras apply), `period` (`trial`, one allowance that does not renew, or `month`), `periodStart`,
 `periodEnd` and `state`: `ok`, `near` (what is left, the gift and `extraLeft` included, under a
 fifth of `included`), `out` (nothing left), `negative` (below zero) or `unlimited`. No amounts
 in euros.

@@ -130,6 +130,12 @@ describe('the credits meter', () => {
     expect(creditsState(null, null, 0)).toBe('unlimited');
   });
 
+  it('judges the state as a required charge is judged: below zero with a ceiling, from zero', () => {
+    expect(creditsState(1250, -150, 0, 100, true)).toBe('near');
+    expect(creditsState(1250, -150, 0, 100, false)).toBe('negative');
+    expect(creditsState(1250, -150, 0, 0, true)).toBe('out');
+  });
+
   it('counts what the extras can still buy as left, so an owner with extras on is not out', () => {
     expect(creditsState(300, 0, 0, 600)).toBe('ok');
     expect(creditsState(300, 0, 0, 0)).toBe('out');

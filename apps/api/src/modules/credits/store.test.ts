@@ -132,3 +132,35 @@ describe('charging credits', () => {
     expect(balance).toMatchObject({ extra: 100, extraLeft: 500, extrasOn: true });
   });
 });
+
+describe('blocks already bought', () => {
+  it('stay counted when extras are off or cannot apply, since they are paid for', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(input instanceof Request ? input.url : String(input));
+        if (url.pathname === '/rest/v1/rpc/credit_balance') {
+          return Response.json({
+            granted: 0,
+            used: 1250,
+            shortfall: 0,
+            balance: 0,
+            gift_left: 0,
+            extra: 100,
+            extra_left: 70,
+          });
+        }
+        if (url.pathname === '/rest/v1/usage_extras') return Response.json(null);
+        throw new Error(`Unexpected ${url.pathname}`);
+      })
+    );
+    const store = creditsStore(adminClient(env));
+
+    for (const row of [paid, { ...paid, status: 'past_due' }]) {
+      expect(await store.balance(organizationId, creditPolicy(row, now))).toMatchObject({
+        extraLeft: 70,
+        extrasOn: false,
+      });
+    }
+  });
+});

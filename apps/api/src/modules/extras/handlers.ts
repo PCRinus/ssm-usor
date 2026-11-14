@@ -1,5 +1,7 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type BillingChoice,
+  billingChoiceSchema,
   type BillingCreditsUsage,
   type BillingExtra,
   type BillingExtras,
@@ -9,6 +11,7 @@ import {
   type meteredProducts,
   smsOverage,
 } from '@ssm-usor/contracts';
+import type Stripe from 'stripe';
 
 import { createAdminClient } from '../../lib/admin-db';
 import type { ApiEnv } from '../../lib/env';
@@ -22,7 +25,7 @@ import {
   type StripeBilling,
 } from '../billing/service';
 import { loadSubscription, recordChange } from '../billing/store';
-import { priceId, stripeCatalogue, stripeFor } from '../billing/stripe';
+import { idOf, priceId, stripeCatalogue, stripeFor } from '../billing/stripe';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
 import { smsUsageStore } from '../sms-usage/store';
@@ -73,15 +76,63 @@ const meteredOf: Record<ExtraKind, (typeof meteredProducts)[number]> = {
 
 // A subscription made before an extra's price existed carries no item for its meter, and a meter
 // event for a customer without one is accepted and billed to nobody. A change waiting for its
-// payment is discarded by any items update, so Extra waits for it; a change set for the renewal
-// is a schedule whose phases list the items, so it is set again with the new item in it.
+// payment is discarded by any items update, so Extra waits for it. A change set for the renewal
+// lives only in Stripe's schedule, whose phases list the items: it is released, the item added,
+// and the schedule set again. The choice is written on the subscription's metadata first, so a
+// failure between those steps, or a second request racing this one, finds it and sets the
+// schedule again rather than losing the change.
+const pendingKey = 'extras_scheduled_change';
+
+function pendingChoice(subscription: Stripe.Subscription): BillingChoice | null {
+  const raw = subscription.metadata?.[pendingKey];
+  if (!raw) return null;
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const parsed = billingChoiceSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+async function restoreSchedule(
+  billing: StripeBilling,
+  subscriptionId: string,
+  choice: BillingChoice
+) {
+  try {
+    const current = await retrieveSubscription(billing, subscriptionId);
+    if (idOf(current.schedule)) await releaseSchedule(billing, current);
+    await scheduleRenewal(billing, await retrieveSubscription(billing, subscriptionId), choice);
+    await billing.access.stripe.subscriptions.update(subscriptionId, {
+      metadata: { [pendingKey]: '' },
+    });
+  } catch (error) {
+    console.error(
+      `SCHEDULED CHANGE NOT RESTORED for organization ${billing.organizationId}, subscription ${subscriptionId}: set ${JSON.stringify(choice)} for the renewal by hand. ${error instanceof Error ? error.message : String(error)}`
+    );
+    throw new ApiError(
+      'service_unavailable',
+      'The change set for the renewal could not be set again; try once more.',
+      undefined,
+      'stripe_unavailable'
+    );
+  }
+}
+
 export async function ensureMeteredItem(
   billing: StripeBilling,
   subscriptionId: string,
   kind: ExtraKind
 ) {
   const product = meteredOf[kind];
-  const subscription = await retrieveSubscription(billing, subscriptionId);
+  let subscription = await retrieveSubscription(billing, subscriptionId);
+  const leftOver = pendingChoice(subscription);
+  if (leftOver && !idOf(subscription.schedule)) {
+    await restoreSchedule(billing, subscriptionId, leftOver);
+    subscription = await retrieveSubscription(billing, subscriptionId);
+  }
   if (hasMetered(subscription, product.key)) return false;
   if (subscription.pending_update) {
     throw conflict(
@@ -90,22 +141,27 @@ export async function ensureMeteredItem(
     );
   }
   const scheduled = await scheduledChoice(billing, subscription);
-  if (scheduled) await releaseSchedule(billing, subscription);
-  await billing.access.stripe.subscriptionItems.create(
-    {
-      subscription: subscriptionId,
-      price: priceId(billing.catalogue, product.price.lookupKey),
-      proration_behavior: 'none',
-    },
-    { idempotencyKey: `${product.key}-item-${subscriptionId}` }
-  );
   if (scheduled) {
-    await scheduleRenewal(
-      billing,
-      await retrieveSubscription(billing, subscriptionId),
-      scheduled.choice
-    );
+    await billing.access.stripe.subscriptions.update(subscriptionId, {
+      metadata: { [pendingKey]: JSON.stringify(scheduled.choice) },
+    });
   }
+  // A schedule with no phase still to come holds no change; it goes, and the item with it is plain.
+  if (idOf(subscription.schedule)) await releaseSchedule(billing, subscription);
+  try {
+    await billing.access.stripe.subscriptionItems.create(
+      {
+        subscription: subscriptionId,
+        price: priceId(billing.catalogue, product.price.lookupKey),
+        proration_behavior: 'none',
+      },
+      { idempotencyKey: `${product.key}-item-${subscriptionId}` }
+    );
+  } catch (error) {
+    if (scheduled) await restoreSchedule(billing, subscriptionId, scheduled.choice);
+    throw error;
+  }
+  if (scheduled) await restoreSchedule(billing, subscriptionId, scheduled.choice);
   return true;
 }
 

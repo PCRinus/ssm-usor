@@ -211,6 +211,8 @@ describe('PUT /billing/extras/{kind}', () => {
               ],
             },
       });
+    fake.stripe['POST /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ choice: { ...start, step: 500 } });
     fake.stripe['POST /v1/subscription_schedules/sub_sched_1/release'] = () => ({
       id: 'sub_sched_1',
       object: 'subscription_schedule',
@@ -237,16 +239,163 @@ describe('PUT /billing/extras/{kind}', () => {
       .filter((call) => call.url.host === 'api.stripe.com' && call.method === 'POST')
       .map((call) => call.url.pathname);
     expect(order).toEqual([
+      '/v1/subscriptions/sub_1Test',
       '/v1/subscription_schedules/sub_sched_1/release',
       '/v1/subscription_items',
       '/v1/subscription_schedules',
       '/v1/subscription_schedules/sub_sched_2',
+      '/v1/subscriptions/sub_1Test',
     ]);
     const phases = stripeWrites(fake, '/v1/subscription_schedules/sub_sched_2')[0]!;
     expect(phases).toMatchObject({
       'phases[0][items][1][price]': priceIdOf('credits_extra_monthly_v2'),
       'phases[1][items][0][price]': priceIdOf('start_250_monthly_v2'),
       'phases[1][items][2][price]': priceIdOf('credits_extra_monthly_v2'),
+    });
+  });
+
+  describe('around a change set for the renewal', () => {
+    const renewal = Math.floor(Date.now() / 1000) + 12 * day;
+    const plan = [{ lookupKey: 'start_500_monthly_v2', quantity: 1 }];
+    const credits = { lookupKey: 'credits_extra_monthly_v2', quantity: undefined };
+    const futurePhase = {
+      id: 'sub_sched_1',
+      object: 'subscription_schedule',
+      phases: [
+        { start_date: renewal - 30 * day, end_date: renewal, items: [] },
+        {
+          start_date: renewal,
+          end_date: renewal + 30 * day,
+          items: [{ price: priceIdOf('start_250_monthly_v2'), quantity: 1 }],
+        },
+      ],
+    };
+
+    function stripeState(
+      fake: Fake,
+      state: { items: unknown[]; schedule: unknown; metadata: Record<string, string> }
+    ) {
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({
+          choice: { ...start, step: 500 },
+          periodEnd: renewal,
+          lines: state.items as never,
+          schedule: state.schedule,
+          metadata: { organization_id: organizationId, ...state.metadata },
+        });
+      fake.stripe['POST /v1/subscriptions/sub_1Test'] = (call) => {
+        const value = call.form.get('metadata[extras_scheduled_change]');
+        if (value === '') delete state.metadata.extras_scheduled_change;
+        else if (value) state.metadata.extras_scheduled_change = value;
+        return stripeSubscription({ choice: { ...start, step: 500 } });
+      };
+      fake.stripe['POST /v1/subscription_schedules/sub_sched_1/release'] = () => {
+        state.schedule = null;
+        return { id: 'sub_sched_1', object: 'subscription_schedule' };
+      };
+      fake.stripe['POST /v1/subscription_schedules'] = () => {
+        state.schedule = { ...futurePhase, id: 'sub_sched_2' };
+        return { id: 'sub_sched_2', object: 'subscription_schedule', phases: futurePhase.phases };
+      };
+      fake.stripe['POST /v1/subscription_schedules/sub_sched_2'] = () => ({
+        id: 'sub_sched_2',
+        object: 'subscription_schedule',
+        phases: [],
+      });
+    }
+    const posts = (fake: Fake) =>
+      fake.calls
+        .filter((call) => call.url.host === 'api.stripe.com' && call.method === 'POST')
+        .map((call) => call.url.pathname);
+
+    it('sets the schedule again when adding the item fails, and answers the error', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }));
+      const state = { items: [...plan], schedule: futurePhase as unknown, metadata: {} };
+      stripeState(fake, state);
+      fake.stripe['POST /v1/subscription_items'] = () =>
+        new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        });
+
+      const response = await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 });
+
+      expect(response.status).toBeGreaterThanOrEqual(500);
+      expect(posts(fake)).toContain('/v1/subscription_schedules');
+      expect(state.schedule).not.toBeNull();
+      expect(state.metadata).toEqual({});
+      expect(ceilings(fake)).toEqual([]);
+    });
+
+    it('finishes a half-done turn-on: the item is there, the schedule is not', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }));
+      const state = {
+        items: [...plan, credits],
+        schedule: null as unknown,
+        metadata: {
+          extras_scheduled_change: JSON.stringify({ plan: 'start', step: 250, interval: 'month' }),
+        } as Record<string, string>,
+      };
+      stripeState(fake, state);
+
+      expect((await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 })).status).toBe(
+        200
+      );
+      expect(posts(fake)).toContain('/v1/subscription_schedules');
+      expect(posts(fake)).not.toContain('/v1/subscription_items');
+      expect(state.schedule).not.toBeNull();
+      expect(state.metadata).toEqual({});
+    });
+
+    it('releases a schedule with no change to come before adding the item', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }));
+      const state = {
+        items: [...plan],
+        schedule: { ...futurePhase, phases: [futurePhase.phases[0]] } as unknown,
+        metadata: {},
+      };
+      stripeState(fake, state);
+      fake.stripe['POST /v1/subscription_items'] = () => ({
+        id: 'si_c',
+        object: 'subscription_item',
+      });
+
+      expect((await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 })).status).toBe(
+        200
+      );
+      expect(posts(fake)).toEqual([
+        '/v1/subscription_schedules/sub_sched_1/release',
+        '/v1/subscription_items',
+      ]);
+    });
+
+    it('says loudly which change to set by hand when setting it again fails', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }));
+      const state = { items: [...plan], schedule: futurePhase as unknown, metadata: {} };
+      stripeState(fake, state);
+      fake.stripe['POST /v1/subscription_items'] = () => ({
+        id: 'si_c',
+        object: 'subscription_item',
+      });
+      fake.stripe['POST /v1/subscription_schedules'] = () =>
+        new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        });
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 });
+
+      expect(response.status).toBe(503);
+      expect(logged).toHaveBeenCalledWith(
+        expect.stringMatching(/SCHEDULED CHANGE NOT RESTORED for organization .*"step":250/)
+      );
+      expect(state.metadata).toHaveProperty('extras_scheduled_change');
+      logged.mockRestore();
     });
   });
 
