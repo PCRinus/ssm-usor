@@ -28,7 +28,7 @@ export interface CheckoutState {
   preview: BillingPreview | undefined;
   settling: boolean;
   previewError: string | null;
-  // A plan chosen during the trial before 2026-11-14, which Stripe charges at the trial's end.
+  // A plan chosen with a trial end, which Stripe charges only at that end.
   inTrial: boolean;
   endsTrial: boolean;
   welcomeAhead: boolean;

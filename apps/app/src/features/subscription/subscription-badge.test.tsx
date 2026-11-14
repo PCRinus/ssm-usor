@@ -306,7 +306,7 @@ describe('the SMS meter in the badge', () => {
     expect(meter.textContent).toBe('Coduri de semnare prin SMS300 / 300');
   });
 
-  it('says a trial sends none, and so does a plan chosen in it before 2026-11-14 until its first payment', async () => {
+  it("says a trial sends none, and says nothing of choosing a plan to one charged at its trial's end", async () => {
     const { unmount } = await renderRouted(
       <SubscriptionBadge
         subscription={trial(12)}
@@ -332,9 +332,8 @@ describe('the SMS meter in the badge', () => {
       />
     );
     await userEvent.click(await screen.findByTestId('subscription-badge'));
-    expect((await screen.findByTestId('subscription-details-sms-note')).textContent).toBe(
-      'În perioada de probă totul pleacă pe email; SMS-urile pornesc când alegi un plan.'
-    );
+    await screen.findByText('Ai ales Start');
+    expect(screen.queryByTestId('subscription-details-sms-note')).toBeNull();
     expect(screen.queryByTestId('subscription-details-sms')).toBeNull();
   });
 });

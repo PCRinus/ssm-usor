@@ -102,11 +102,23 @@ describe('what an organization may text', () => {
     ).toEqual({ sends: false });
   });
 
-  it('sends no SMS for a plan chosen during the trial before 2026-11-14 until its first payment', () => {
+  it('sends no SMS for a plan chosen with a trial end until its first charge', () => {
     expect(smsPolicy(chosen, now)).toEqual({ sends: false });
-    expect(
-      smsPolicy({ ...chosen, status: 'past_due', trial_ends_at: '2026-10-18T08:00:00.000Z' }, now)
-    ).toEqual({ sends: false });
+  });
+
+  it("sends at the step's allowance while a failed first charge at the trial's end is retried", () => {
+    const retrying = {
+      ...chosen,
+      status: 'past_due',
+      trial_ends_at: '2026-10-18T08:00:00.000Z',
+      billing_anchor_at: '2026-10-18T08:00:00.000Z',
+    };
+    const policy = smsPolicy(retrying, now);
+    expect(policy).toMatchObject({ sends: true, allowance: 50, cap: null, bills: false });
+    expect(policy.sends && iso(policy.period)).toEqual([
+      '2026-10-18T08:00:00.000Z',
+      '2026-11-18T08:00:00.000Z',
+    ]);
   });
 
   it("gives a plan paid during the trial its step's codes on Stripe's months from that payment", () => {

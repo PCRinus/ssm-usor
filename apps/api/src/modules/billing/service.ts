@@ -183,8 +183,8 @@ export async function preview(
   if (!current)
     throw conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
 
-  // Only a plan chosen during the trial before 2026-11-14 still waits at Stripe for the trial's
-  // end (ADR 029); a new checkout replaces one whose card never confirmed.
+  // A subscription created with a trial end is still charged only at that end (ADR 029); a new
+  // checkout replaces one whose card never confirmed.
   if (row.status === 'trialing' && row.trial_ends_at) {
     const subscription = await retrieveSubscription(
       await billing.stripe!(),
@@ -417,8 +417,8 @@ async function sync(
   });
 }
 
-// A plan chosen during the trial before 2026-11-14 whose card never confirmed has no card behind
-// it; the owner's next attempt replaces that plan rather than finding it in the way.
+// A subscription created with a trial end whose card never confirmed has no card behind it; the
+// owner's next attempt replaces it rather than finding it in the way.
 async function withoutUnconfirmedTrialPlan(
   billing: StripeBilling,
   row: SubscriptionRow | null
@@ -573,8 +573,8 @@ export async function changeSubscription(
     return { clientSecret: null, intent: null };
   }
 
-  // A plan chosen during the trial before 2026-11-14 is unpaid until the trial's end, so a change
-  // applies at once and nothing is prorated.
+  // A subscription created with a trial end is unpaid until that end, so a change applies at once
+  // and nothing is prorated.
   if (subscription.status === 'trialing') {
     const updated = await stripe.subscriptions.update(subscription.id, {
       items: itemChanges(subscription, choice, billing.catalogue),
@@ -641,8 +641,8 @@ export async function cancelSubscription(
     details: { actor: billing.userId, note: request.note ?? null },
   };
 
-  // A plan chosen during the trial before 2026-11-14 was not paid yet: it goes at once and the
-  // trial carries on.
+  // A subscription created with a trial end was not paid yet: it goes at once and the trial
+  // carries on.
   if (subscription.status === 'trialing') {
     await releaseSchedule(billing, subscription);
     await stripe.subscriptions.cancel(subscription.id, { cancellation_details });

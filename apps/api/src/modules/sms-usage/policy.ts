@@ -106,9 +106,9 @@ export function smsPolicy(row: SmsSubscription | null, now: Date): SmsPolicy {
       bills: false,
     };
   }
-  // A plan chosen during the trial before 2026-11-14 is unpaid until the trial's end, and sends as
-  // the trial does until then.
-  if (!isPaid(row)) {
+  // A subscription created with a trial end is unpaid until that end and sends as the trial does;
+  // once its first charge fails it has the plan's full access during the retries (ADR 029).
+  if (!isPaid(row) && row.status !== 'past_due') {
     const trialEnd = dateOf(row.trial_ends_at);
     const testerTrial =
       row.status === 'trialing' && row.tester_allowances && trialEnd !== null && trialEnd > now;

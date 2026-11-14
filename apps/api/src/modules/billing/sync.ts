@@ -57,7 +57,7 @@ export function plainTrial(row: SubscriptionRow): SubscriptionFields {
 }
 
 // Paying for a plan during the trial ends the trial then, and its days left are not kept (ADR 029).
-// A plan chosen before 2026-11-14 had Stripe's trial run to the trial's own end.
+// A subscription created with a trial end ran Stripe's trial to the trial's own end.
 function trialCutShort(subscription: Stripe.Subscription, previous: SubscriptionRow | null) {
   const trialEnd = previous?.trial_ends_at ? new Date(previous.trial_ends_at) : null;
   const paidFrom = new Date((subscription.trial_end ?? subscription.start_date) * 1000);

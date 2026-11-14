@@ -348,6 +348,9 @@ describe('choosing a plan', () => {
 
     expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Alege planul');
     await screen.findByTestId('payment-element');
+    expect((await screen.findByTestId('checkout-trial-ends')).textContent).toBe(
+      'Plata încheie perioada de probă: zilele de probă rămase nu se păstrează.'
+    );
     const submit = await screen.findByRole('button', { name: 'Plătește 71,39 €' });
     await waitFor(() => expect((submit as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(submit);

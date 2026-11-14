@@ -188,9 +188,9 @@ function SubscriptionDetails({
     lines = ['Abonament activ.'];
   }
   let smsNote: string | null = null;
-  if (!readOnly && sms?.state === 'none') {
+  if (!readOnly && sms?.state === 'none' && !subscription.planChosen) {
     smsNote = 'În perioada de probă totul pleacă pe email; SMS-urile pornesc când alegi un plan.';
-  } else if (!readOnly && sms && sms.included !== null) {
+  } else if (!readOnly && sms && sms.state !== 'none' && sms.included !== null) {
     smsNote = subscription.planChosen
       ? `După ${codesLabel(sms.included)} pe lună, codurile pleacă pe email până la reînnoire.`
       : `Cont de test: după ${codesLabel(sms.included)} pe lună, codurile pleacă pe email.`;
