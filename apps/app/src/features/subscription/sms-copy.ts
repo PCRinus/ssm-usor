@@ -121,6 +121,27 @@ export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader): SmsBar | nul
   const on = renews ? ` pe ${renews}` : '';
   const until = renews ? `Până pe ${renews} pleacă pe email` : 'Pleacă pe email';
   switch (sms.state) {
+    case 'extra':
+      return {
+        kind: 'sms',
+        state: 'near',
+        lead: `Ai trecut de cele ${included} de semnare prin SMS incluse.`,
+        short: `Peste cele ${formatCount(sms.included)} SMS incluse.`,
+        detail: 'Codurile pleacă mai departe prin SMS, ca extra, până la plafonul lunar.',
+        closable: true,
+      };
+    case 'stopped':
+      if (sms.overage > 0) {
+        return {
+          kind: 'smsStop',
+          state: 'stopped',
+          lead: 'Codurile de semnare nu mai pleacă prin SMS.',
+          short: 'Plafonul Extra e atins.',
+          detail: `Ai atins plafonul pentru codurile extra. ${until}; cine nu are email nu poate semna.`,
+          closable: false,
+        };
+      }
+      return stoppedBar(reader, included, until);
     case 'near':
       return {
         kind: 'sms',
@@ -130,16 +151,18 @@ export function smsBarFor(sms: BillingSmsUsage, reader: SmsReader): SmsBar | nul
         detail: `Se reînnoiesc${on}. Peste ${formatCount(sms.included)}, codurile pleacă pe email.`,
         closable: true,
       };
-    case 'stopped':
-      return {
-        kind: 'smsStop',
-        state: 'stopped',
-        lead: 'Codurile de semnare nu mai pleacă prin SMS.',
-        short: 'Codurile SMS s-au oprit.',
-        detail: `Ai folosit cele ${included} ${stopWords[reader.stop]}. ${until}; cine nu are email nu poate semna.`,
-        closable: false,
-      };
     default:
       return null;
   }
+}
+
+function stoppedBar(reader: SmsReader, included: string, until: string): SmsBar {
+  return {
+    kind: 'smsStop',
+    state: 'stopped',
+    lead: 'Codurile de semnare nu mai pleacă prin SMS.',
+    short: 'Codurile SMS s-au oprit.',
+    detail: `Ai folosit cele ${included} ${stopWords[reader.stop]}. ${until}; cine nu are email nu poate semna.`,
+    closable: false,
+  };
 }

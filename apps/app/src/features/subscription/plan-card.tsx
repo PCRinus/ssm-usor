@@ -10,8 +10,10 @@ import {
   formatCount,
   formatEuro,
   perInterval,
+  vatOf,
 } from './billing-format';
 import { type AmountRow, AmountRows, BillingCard, SealChip, StateChip } from './billing-ui';
+import { extrasLines } from './extras-copy';
 import {
   daysLeftLabel,
   daysUntil,
@@ -66,6 +68,7 @@ export function PlanCard({
   let status = '';
   let amount: { label: string; value: string; note?: string } | null = null;
   let rows: AmountRow[] = [];
+  let extraRows: AmountRow[] = [];
   let note: ReactNode = null;
   let foot: string | null = null;
   let trialShare: number | null = null;
@@ -187,6 +190,37 @@ export function PlanCard({
                 note: `pe ${roDate(owner.nextPayment?.at ?? renews ?? now.toISOString())}, cu TVA`,
               };
         rows = totalRows();
+        const extras = extrasLines(overview.extras);
+        const extrasCents = extras.reduce((sum, line) => sum + line.amountCents, 0);
+        const billedAt =
+          overview.usage.smsThisMonth.periodEnd ?? overview.usage.creditsThisMonth.periodEnd;
+        if (extrasCents > 0 && choice.interval === 'month') {
+          const subtotal = amounts.subtotalCents + extrasCents;
+          const total = subtotal + vatOf(subtotal);
+          rows = [
+            ...amounts.lines.map((line) => ({
+              label: line.label,
+              value: formatEuro(line.amountCents),
+            })),
+            ...extras.map((line) => ({ label: line.label, value: formatEuro(line.amountCents) })),
+            { label: `TVA ${overview.catalogue.vatPercent} %`, value: formatEuro(vatOf(subtotal)) },
+            { label: 'Total', value: formatEuro(total), strong: true },
+          ];
+          amount = {
+            label: 'Următoarea plată',
+            value: formatEuro(total),
+            note: `pe ${roDate(billedAt ?? renews ?? now.toISOString())}, cu TVA, cu extra de până azi`,
+          };
+        } else if (extrasCents > 0) {
+          extraRows = [
+            ...extras.map((line) => ({ label: line.label, value: formatEuro(line.amountCents) })),
+            {
+              label: billedAt ? `Extra cu TVA, pe factura din ${roDate(billedAt)}` : 'Extra cu TVA',
+              value: formatEuro(extrasCents + vatOf(extrasCents)),
+              strong: true,
+            },
+          ];
+        }
       }
       if (owner?.scheduledChange) {
         note = (
@@ -350,6 +384,12 @@ export function PlanCard({
       )}
 
       {rows.length > 0 && <AmountRows rows={rows} className="border-t pt-3.5" />}
+      {extraRows.length > 0 && (
+        <div data-testid="plan-extras" className="grid gap-2 border-t pt-3.5">
+          <span className="text-[13px] font-medium">Extra, facturat lunar</span>
+          <AmountRows rows={extraRows} />
+        </div>
+      )}
 
       {note && (
         <p

@@ -37,6 +37,8 @@ const reasonMessages: Record<string, string> = {
   pdf_pending: 'Factura se pregătește încă. Încearcă din nou peste câteva minute.',
   card_declined: 'Banca a refuzat cardul. Încearcă din nou sau folosește alt card.',
   stripe_unset: 'Plata nu este disponibilă acum. Încearcă din nou mai târziu.',
+  extras_unavailable:
+    'Extra se poate porni doar pe un abonament plătit, fără plăți restante. Reîncarcă pagina.',
 };
 
 export function billingErrorMessage(cause: unknown) {

@@ -55,7 +55,7 @@ export function creditsBalance(account: Account | undefined): CreditsBalance | n
   if (!usage || usage.left === null || usage.state === 'unlimited') return null;
   const subscription = account.subscription ?? null;
   return {
-    available: usage.left + usage.giftLeft,
+    available: usage.left + usage.giftLeft + usage.extraLeft,
     usage,
     renewal: renewalOf(usage, subscription),
     trial: usage.period === 'trial',
@@ -133,9 +133,13 @@ export function leftSentence(balance: CreditsBalance, short: boolean) {
     return `${remain} ${left} din cele ${formatCount(usage.included ?? 0)} ale perioadei de probă.`;
   }
   const month = `${remain} ${formatCount(usage.left ?? 0)} din ${formatCount(usage.included ?? 0)} luna aceasta`;
-  return usage.giftLeft > 0
-    ? `${month} și ${formatCount(usage.giftLeft)} din cadoul de bun venit.`
-    : `${month}.`;
+  const gift =
+    usage.giftLeft > 0 ? ` și ${formatCount(usage.giftLeft)} din cadoul de bun venit` : '';
+  const extra =
+    usage.extraLeft > 0
+      ? `, plus până la ${formatCount(usage.extraLeft)} extra, în pachete de 100`
+      : '';
+  return `${month}${gift}${extra}.`;
 }
 
 function renewalSentence(balance: CreditsBalance, kind: ImportKind) {
