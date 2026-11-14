@@ -85,6 +85,10 @@ Rejected: an inbound address per send, with the reply parsed for its attachment,
 
 "Oferte" is an entry of the sidebar that only owners see, with the clients' table: company, contact, contract state, date added, and a view of the archived ones. A lead's page has its own address and reuses the client page's parts; after promotion it leads to the client's page.
 
+### On the plans (amended 2026-11-14)
+
+Offers are a Profesional feature ([ADR 029](adr-029-billing-plans-and-trials.md#plan-features)). On Start an owner keeps reading the leads, downloading their contracts and files, archiving, restoring and promoting them, and changes nothing else about them; a service contract drafted for a client is untouched. The gate follows the client's stage, so a promoted lead's contract is the client's and every plan works on it.
+
 ### Order of work
 
 1. Continuing from an issued revision, for every document (the amendment to ADR 005).

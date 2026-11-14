@@ -72,6 +72,7 @@ type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined
 
 const fetchMock = vi.fn<typeof fetch>();
 let role: 'owner' | 'specialist' = 'specialist';
+let offers = true;
 
 function mockUpstream(
   handlers: { clients?: Handler; employees?: Handler; files?: Handler; storage?: Handler } = {}
@@ -85,6 +86,9 @@ function mockUpstream(
     }
     if (url.pathname === '/rest/v1/clients') {
       return handlers.clients?.(init, url) ?? Response.json([clientRow]);
+    }
+    if (url.pathname === '/rest/v1/rpc/current_organization_has_offers') {
+      return Response.json(offers);
     }
     if (url.pathname === '/rest/v1/employees') {
       return handlers.employees?.(init, url) ?? Response.json([{ id: employeeId }]);
@@ -615,5 +619,36 @@ describe('DELETE /clients/{clientId}/files/{fileId}', () => {
     expect(await reasonOf(response)).toBe('client_archived');
     expect(calls('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
     expect(calls('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
+  });
+});
+
+describe('the files of a lead on a plan without offers', () => {
+  beforeEach(() => {
+    role = 'owner';
+    offers = false;
+  });
+  afterEach(() => {
+    offers = true;
+  });
+
+  it('takes no new file', async () => {
+    mockUpstream({ clients: () => Response.json([{ ...clientRow, stage: 'lead' }]) });
+    const response = await upload({ fileName: 'oferta.pdf' }, pdf);
+    expect(response.status).toBe(403);
+    expect(await reasonOf(response)).toBe('offers_not_in_plan');
+    expect(calls('/rest/v1/client_files', 'POST')).toHaveLength(0);
+  });
+
+  it('removes no file, from the storage or the database', async () => {
+    mockUpstream({ clients: () => Response.json([{ ...clientRow, stage: 'lead' }]) });
+    const response = await request(`/clients/${clientId}/files/${ownFileId}`, 'DELETE');
+    expect(response.status).toBe(403);
+    expect(calls('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
+    expect(calls('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
+  });
+
+  it('keeps every file of a client open', async () => {
+    mockUpstream();
+    expect((await request(`/clients/${clientId}/files/${ownFileId}`, 'DELETE')).status).toBe(204);
   });
 });

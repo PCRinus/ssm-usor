@@ -54,6 +54,7 @@ const clientRow: ServiceContractFacts['client'] = {
   legal_representative_role: 'Administrator',
   contact_phone: null,
   archived_at: null,
+  stage: 'client',
 };
 const organizationRow: ServiceContractFacts['organization'] = {
   legal_name: 'S.C. SAFETY S.R.L.',
@@ -134,7 +135,8 @@ type Upstream =
   | 'upload'
   | 'file'
   | 'sends'
-  | 'profiles';
+  | 'profiles'
+  | 'offers';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -170,6 +172,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
         );
       case '/auth/v1/user':
         return Response.json(user);
+      case '/rest/v1/rpc/current_organization_has_offers':
+        return handlers.offers?.(init, url) ?? Response.json(true);
       case '/rest/v1/rpc/current_membership':
         return handlers.membership?.(init, url) ?? Response.json([membership]);
       case '/rest/v1/clients':
@@ -708,5 +712,89 @@ describe('POST /clients/{clientId}/service-contract/send', () => {
       env
     );
     expect(response.status).toBe(503);
+  });
+});
+
+describe('the contract of a lead on a plan without offers', () => {
+  const leadRow = { ...clientRow, stage: 'lead' };
+  const sendServiceContract = vi.fn<MailService['sendServiceContract']>();
+  const post = (path: string, body?: unknown) =>
+    createApp().request(
+      `/clients/${clientId}/service-contract${path}`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      },
+      { ...env, MAIL: { sendServiceContract } as unknown as MailService }
+    );
+  const reasonOf = async (response: Response) =>
+    apiErrorResponseSchema.parse(await response.json()).reason;
+
+  beforeEach(() => {
+    sendServiceContract.mockReset();
+    sendServiceContract.mockResolvedValue({ id: 'msg_1' });
+  });
+
+  it('passes on the refusal of its details', async () => {
+    mockUpstream({
+      clients: () => Response.json([leadRow]),
+      offers: () => Response.json(false),
+      contracts: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: 'CLL03', message: 'Offers are part of the Profesional plan.' },
+              { status: 400 }
+            )
+          : Response.json([contractRow]),
+    });
+    const response = await request('PUT', validBody);
+    expect(response.status).toBe(403);
+    expect(await reasonOf(response)).toBe('offers_not_in_plan');
+  });
+
+  it('generates nothing', async () => {
+    mockUpstream({ clients: () => Response.json([leadRow]), offers: () => Response.json(false) });
+    const response = await post('/generate');
+    expect(response.status).toBe(403);
+    expect(await reasonOf(response)).toBe('offers_not_in_plan');
+    expect(calls('/rest/v1/document_templates')).toHaveLength(0);
+    expect(calls('/rest/v1/client_documents', 'POST')).toHaveLength(0);
+  });
+
+  it('sends nothing', async () => {
+    mockUpstream({ clients: () => Response.json([leadRow]), offers: () => Response.json(false) });
+    const response = await post('/send', { to: 'andrei@client.example' });
+    expect(response.status).toBe(403);
+    expect(await reasonOf(response)).toBe('offers_not_in_plan');
+    expect(sendServiceContract).not.toHaveBeenCalled();
+  });
+
+  it('is generated where the plan has offers', async () => {
+    mockUpstream({
+      clients: () => Response.json([leadRow]),
+      documents: (init, url) =>
+        init?.method === 'POST'
+          ? Response.json({ id: documentId }, { status: 201 })
+          : url.searchParams.has('id')
+            ? Response.json(documentRow)
+            : Response.json([documentRow]),
+    });
+    expect((await post('/generate')).status).toBe(200);
+    expect(calls('/rest/v1/rpc/current_organization_has_offers', 'POST')).toHaveLength(1);
+  });
+
+  it('does not reach the contract of a client, which every plan drafts', async () => {
+    mockUpstream({
+      offers: () => Response.json(false),
+      documents: (init, url) =>
+        init?.method === 'POST'
+          ? Response.json({ id: documentId }, { status: 201 })
+          : url.searchParams.has('id')
+            ? Response.json(documentRow)
+            : Response.json([documentRow]),
+    });
+    expect((await post('/generate')).status).toBe(200);
+    expect(calls('/rest/v1/rpc/current_organization_has_offers', 'POST')).toHaveLength(0);
   });
 });

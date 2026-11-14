@@ -7659,6 +7659,7 @@ export type Database = {
           user_id: string;
         }[];
       };
+      current_organization_has_offers: { Args: never; Returns: boolean };
       current_organization_id: { Args: never; Returns: string };
       current_participations: {
         Args: never;
@@ -8226,6 +8227,10 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      organization_has_offers: {
+        Args: { p_organization_id: string };
+        Returns: boolean;
+      };
       organization_invitation_by_token: {
         Args: { invitation_token_hash: string };
         Returns: {
@@ -8355,6 +8360,10 @@ export type Database = {
       };
       refund_safety_sheet_credits: { Args: { p_key: string }; Returns: number };
       refuse_archived_client: {
+        Args: { p_client_id: string };
+        Returns: undefined;
+      };
+      refuse_lead_without_offers: {
         Args: { p_client_id: string };
         Returns: undefined;
       };

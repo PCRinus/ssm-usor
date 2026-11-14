@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 
 import { useBackToList } from '@/app/use-back-to-list';
 import { useAuth } from '@/features/auth/auth-context';
+import { useOffersInPlan } from '@/features/clients/offers-plan';
 import { ServiceContractEditor } from '@/features/service-contracts/service-contract-editor';
 
 export const Route = createFileRoute('/_authenticated/oferte/$leadId/contract')({
@@ -17,13 +18,14 @@ function LeadContractPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
   const backToList = useBackToList();
+  const offers = useOffersInPlan();
   // The shell renders this only for a signed-in user.
   if (!session) return null;
   return (
     <ServiceContractEditor
       clientId={lead.id}
       userId={session.user.id}
-      readOnly={lead.archivedAt !== null}
+      readOnly={lead.archivedAt !== null || !offers}
       back={
         <Button asChild variant="ghost" size="sm">
           <Link

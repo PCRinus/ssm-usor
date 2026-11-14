@@ -22,7 +22,8 @@ const helper = createDataTableColumns<ClientRow>();
 // Sortable column ids are the API sort keys: legalName and cui.
 export function leadColumns(
   onArchiveChange: (change: ClientArchiveChange) => void,
-  onPromote: (lead: ClientRow) => void
+  onPromote: (lead: ClientRow) => void,
+  editable: boolean
 ) {
   return helper.columns([
     helper.accessor('legalName', {
@@ -141,12 +142,14 @@ export function leadColumns(
                 </DropdownMenuItem>
               ) : (
                 <>
-                  <DropdownMenuItem asChild data-testid="leads-edit">
-                    <Link to="/oferte/$leadId/editare" params={{ leadId: lead.id }}>
-                      <Pencil aria-hidden="true" />
-                      Modifică
-                    </Link>
-                  </DropdownMenuItem>
+                  {editable && (
+                    <DropdownMenuItem asChild data-testid="leads-edit">
+                      <Link to="/oferte/$leadId/editare" params={{ leadId: lead.id }}>
+                        <Pencil aria-hidden="true" />
+                        Modifică
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem data-testid="leads-promote" onSelect={() => onPromote(lead)}>
                     <UserCheck aria-hidden="true" />
                     Transformă în client…

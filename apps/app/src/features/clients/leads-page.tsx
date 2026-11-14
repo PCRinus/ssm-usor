@@ -18,6 +18,8 @@ import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-
 import type { ClientRow } from './client-columns';
 import { leadColumns } from './lead-columns';
 import type { LeadSortKey } from './lead-sort';
+import { useOffersInPlan } from './offers-plan';
+import { OffersPlanNotice } from './offers-plan-notice';
 import { PromoteLeadDialog } from './promote-lead-dialog';
 
 const leadsRoute = getRouteApi('/_authenticated/oferte/');
@@ -62,13 +64,14 @@ export function LeadsPage() {
   const listStatus = !apiRequest.baseUrl ? 'error' : leads.status;
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState<ClientRow | null>(null);
-  const columns = useMemo(() => leadColumns(setArchiveChange, setPromoting), []);
+  const offers = useOffersInPlan();
+  const columns = useMemo(() => leadColumns(setArchiveChange, setPromoting, offers), [offers]);
 
   return (
     <div data-testid="leads-page" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Oferte</h1>
-        {(archived || !isEmptyOrLoading(listStatus, meta.total)) && (
+        {offers && (archived || !isEmptyOrLoading(listStatus, meta.total)) && (
           <Button asChild>
             <Link to="/oferte/nou" data-testid="leads-add">
               <Plus aria-hidden="true" />
@@ -77,6 +80,13 @@ export function LeadsPage() {
           </Button>
         )}
       </div>
+      {!offers && (
+        <OffersPlanNotice>
+          Pe planul Start poți citi și descărca ofertele de până acum, cu contractele lor, și le
+          poți transforma în clienți. Ca să adaugi oferte noi sau să le modifici, ai nevoie de
+          planul Profesional.
+        </OffersPlanNotice>
+      )}
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
           <FilterTabs label="Filtrează ofertele">
@@ -156,6 +166,11 @@ export function LeadsPage() {
             archived ? (
               <EmptyState icon={Archive} title="Nicio ofertă arhivată" data-testid="leads-empty">
                 Ofertele arhivate vor apărea aici. Le poți reactiva oricând.
+              </EmptyState>
+            ) : !offers ? (
+              <EmptyState icon={Handshake} title="Nicio ofertă" data-testid="leads-empty">
+                Cu planul Profesional ții aici companiile cu care discuți, le trimiți contractul și
+                le transformi în clienți când îl semnează.
               </EmptyState>
             ) : (
               <EmptyState

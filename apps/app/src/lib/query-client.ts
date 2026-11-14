@@ -1,6 +1,7 @@
 import { MutationCache, QueryClient } from '@tanstack/react-query';
 
 import { getGetMeQueryKey, getGetMySetupGuideQueryKey, type SetupGuide } from '@/api/generated/api';
+import { isOffersNotInPlanError } from '@/features/clients/offers-plan';
 import { setupGuideMutationKeys } from '@/features/setup-guide/guide-mutation-keys';
 import { isReadOnlyError } from '@/features/subscription/read-only';
 
@@ -19,10 +20,11 @@ export function createQueryClient() {
     }, guideRefetchDelay);
   };
   const queryClient: QueryClient = new QueryClient({
-    // A change refused because the organization just turned read-only brings the banner up at once.
+    // A change refused because the organization just turned read-only, or moved to a plan without
+    // offers, shows the new state at once.
     mutationCache: new MutationCache({
       onError: (error) => {
-        if (isReadOnlyError(error))
+        if (isReadOnlyError(error) || isOffersNotInPlanError(error))
           void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       },
       // Any other change may tick a step while the setup guide is in view (ADR 031).

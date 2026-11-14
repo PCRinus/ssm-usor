@@ -46,6 +46,7 @@ function mockUpstream({
   memberUserId = user.id,
   subscription = null as typeof trialRow | null,
   access = 'full',
+  offers = true,
   appMetadata = { provider: 'email' } as Record<string, string>,
   impersonation = null as typeof activeImpersonation | null,
   impersonated = { full_name: 'Ion Ionescu', email: 'ion@example.ro' } as {
@@ -75,6 +76,9 @@ function mockUpstream({
           ? [{ user_id: memberUserId, organization_id: organization.id, role: 'owner', access }]
           : []
       );
+    }
+    if (url.pathname === '/rest/v1/rpc/current_organization_has_offers') {
+      return Response.json(offers);
     }
     if (url.pathname === '/rest/v1/subscriptions') {
       return Response.json(
@@ -173,6 +177,14 @@ describe('GET /me', () => {
       subscription: null,
       smsThisMonth: null,
       creditsThisMonth: null,
+      features: { offers: true },
+    });
+  });
+
+  it("says whether the organization's plan has offers, as the database decides", async () => {
+    mockUpstream({ subscription: { ...trialRow, plan: 'start', status: 'active' }, offers: false });
+    expect(meResponseSchema.parse(await (await request('/me')).json()).features).toEqual({
+      offers: false,
     });
   });
 
@@ -297,6 +309,7 @@ describe('GET /me', () => {
       subscription: null,
       smsThisMonth: null,
       creditsThisMonth: null,
+      features: null,
     });
   });
 

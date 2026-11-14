@@ -28,6 +28,7 @@ import { archivedClientError, type DataClient, fromDatabaseError } from '../../l
 import { maxDocxBytes, requireDocx, sha256 } from '../../lib/docx';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { requireOffersFor } from '../../lib/offers';
 import type { PdfConverter } from '../../lib/pdf';
 import { renderSnapshotAnnexes, withAnnexes } from './annexes';
 import {
@@ -730,11 +731,12 @@ async function readDocument(db: DataClient, documentId: string) {
 async function requireActiveClient(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
-    .select('archived_at')
+    .select('archived_at, stage')
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client of document');
   if (data?.archived_at) throw archivedClientError();
+  if (data) await requireOffersFor(db, data);
 }
 
 const newest = (document: DocumentRow) =>

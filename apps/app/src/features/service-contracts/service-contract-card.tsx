@@ -272,7 +272,8 @@ function ContractTrail({
 }
 
 // Rendered for owners only, as the API answers only them. `editor` is where the contract
-// opens: under the lead or under the client. `readOnly` is an archived company.
+// opens: under the lead or under the client. `readOnly` is an archived company,
+// or a lead on a plan without offers.
 export function ServiceContractCard({
   client,
   userId,

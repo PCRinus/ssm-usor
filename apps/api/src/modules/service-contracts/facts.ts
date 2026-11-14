@@ -7,7 +7,7 @@ import { ApiError } from '../../lib/errors';
 type Tables = Database['public']['Tables'];
 
 const clientColumns =
-  'legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, legal_representative_role, contact_phone, archived_at';
+  'legal_name, cui, vat_payer, caen_code, trade_register_number, county_code, locality, address_line, legal_representative_name, legal_representative_role, contact_phone, archived_at, stage';
 const organizationColumns =
   'legal_name, cui, trade_register_number, county_code, locality, address_line, legal_representative_name, legal_representative_role, phone, iban, bank_name, authorization_certificate_number, authorization_certificate_date, authorization_certificate_issuer, vat_payer, fire_safety_technician_name, fire_safety_technician_certificate';
 const contractColumns =
@@ -33,6 +33,7 @@ export interface ServiceContractFacts {
     | 'legal_representative_role'
     | 'contact_phone'
     | 'archived_at'
+    | 'stage'
   >;
   organization: Pick<
     Tables['organizations']['Row'],

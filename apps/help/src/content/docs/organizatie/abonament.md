@@ -167,6 +167,8 @@ Ce se întâmplă depinde de schimbare:
 
 Dacă într-o singură schimbare adaugi ceva și scoți altceva, de exemplu un pachet în plus și un utilizator în minus, pe un plan lunar ce adaugi se aplică pe loc, cu diferența pe factura următoare, iar ce scoți de la reînnoire; fereastra de confirmare le arată pe amândouă. Pe un plan anual le faci pe rând: întâi adaugi și plătești, apoi scoți ce nu mai îți trebuie.
 
+Ofertele, cu contractele lor, fac parte din Profesional. După trecerea la Start, ofertele de până acum rămân de citit și de descărcat și le poți transforma în clienți, dar nu mai poți adăuga altele și nu le mai poți modifica (vezi [Ofertele](/clienti/#ofertele)).
+
 O schimbare programată pentru reînnoire apare pe pagină, cu data ei. O poți retrage cu **Renunță la schimbare**.
 
 În perioada de probă, orice schimbare se aplică pe loc și nu costă nimic; prima plată rămâne în ziua în care se încheie proba.

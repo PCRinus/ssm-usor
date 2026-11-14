@@ -11,7 +11,7 @@ import { useClientFieldsForm } from './use-client-fields-form';
 
 const fields: readonly (keyof ClientFormValues)[] = ['contactName', 'contactEmail', 'contactPhone'];
 
-// `readOnly` is an archived company, whose data is not edited.
+// `readOnly` is an archived company, or a lead on a plan without offers.
 export function ContactCard({ client, readOnly }: { client: Client; readOnly: boolean }) {
   const { editing, editRef, open, close } = useInPlaceEdit();
   const empty = !client.contactName && !client.contactEmail && !client.contactPhone;

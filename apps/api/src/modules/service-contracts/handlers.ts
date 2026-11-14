@@ -10,6 +10,7 @@ import {
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { requireOffersFor } from '../../lib/offers';
 import { createToken, hashToken } from '../../lib/tokens';
 import { stableJson } from '../documents/context';
 import {
@@ -187,6 +188,7 @@ export const generateServiceContract: RouteHandler<
   const db = createDataClient(c);
   const facts = await loadServiceContractFacts(db, clientId);
   if (facts.client.archived_at) throw archivedClientError();
+  await requireOffersFor(db, facts.client);
   const missing = missingServiceContractData(facts);
   if (!facts.contract || missing.length > 0) {
     throw new ApiError(
@@ -226,6 +228,7 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
 
   const facts = await loadServiceContractFacts(db, clientId);
   if (facts.client.archived_at) throw archivedClientError();
+  await requireOffersFor(db, facts.client);
   const { document } = await readServiceContractDocument(db, clientId);
   if (!facts.contract || !document?.issued) {
     throw new ApiError(
