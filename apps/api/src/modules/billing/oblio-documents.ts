@@ -48,6 +48,7 @@ export type PaidInvoiceLine = {
   vatIncluded: boolean;
   // What a line sent as one unit with its VAT included was counted in: 7 codes at 0.10 €.
   counted?: { quantity: number; unitAmount: number };
+  // As Stripe gives it: `end` is the moment the next period starts.
   period: { start: Date; end: Date } | null;
 };
 
@@ -70,6 +71,34 @@ const romanianDate = new Intl.DateTimeFormat('ro-RO', {
   year: 'numeric',
 });
 
+const bucharestDay = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Bucharest',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const utcDate = new Intl.DateTimeFormat('ro-RO', {
+  timeZone: 'UTC',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
+// Stripe's period ends at the moment the next one starts, so the last day covered is the calendar
+// day before it in Romania; taking 24 hours off would land on the wrong day across a change of
+// summer time.
+export function periodText(start: Date, end: Date) {
+  const [year, month, day] = bucharestDay.format(end).split('-').map(Number);
+  const dayBefore = new Date(Date.UTC(year!, month! - 1, day! - 1));
+  const startDay = bucharestDay.format(start);
+  const last =
+    dayBefore.toISOString().slice(0, 10) < startDay
+      ? romanianDate.format(start)
+      : utcDate.format(dayBefore);
+  return `Perioada ${romanianDate.format(start)} – ${last}`;
+}
+
 const withFullStop = (sentence: string) => (sentence.endsWith('.') ? sentence : `${sentence}.`);
 
 const euros = (cents: number) => Math.round(cents) / 100;
@@ -83,8 +112,7 @@ function lineDescription(line: PaidInvoiceLine) {
   const parts = [
     line.counted &&
       `${line.counted.quantity} × ${romanianEuros.format(line.counted.unitAmount / 100)} € fără TVA`,
-    line.period &&
-      `Perioada ${romanianDate.format(line.period.start)} – ${romanianDate.format(line.period.end)}`,
+    line.period && periodText(line.period.start, line.period.end),
   ].filter(Boolean);
   return parts.length > 0 ? parts.join('. ') : undefined;
 }
