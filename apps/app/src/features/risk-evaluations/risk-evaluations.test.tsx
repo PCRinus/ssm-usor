@@ -407,9 +407,9 @@ describe("a position's risk evaluation page", () => {
     mount(welderEvaluationPage);
     await screen.findByTestId('risk-evaluation-page');
     expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByRole('link', { name: 'Sudor' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Fișa de evaluare')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Înapoi la post' }).getAttribute('href')).toBe(
+      welderEvaluationPage.replace(/\/fisa-de-evaluare$/, '')
+    );
 
     expect(screen.getAllByTestId('risk-factors-tab').map((tab) => tab.textContent)).toEqual([
       'Toți 4',

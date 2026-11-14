@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
 import { NotFound, RouteError } from '@/app/route-states';
+import { BackLink } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { RiskEvaluationPending } from '@/features/risk-evaluations/risk-evaluation-pending';
@@ -59,6 +60,9 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
       <div className="grid gap-3">
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div className="flex min-w-0 items-center gap-1.5">
+            <div className="-ml-3 flex shrink-0 sm:-ml-2">
+              <BackLink to="/evaluari-de-risc" label="Înapoi la evaluările de risc" />
+            </div>
             <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{profile.name}</h1>
             <HelpLink
               topic="evaluari-de-risc.pagina-evaluarii"

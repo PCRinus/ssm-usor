@@ -1,6 +1,8 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 
+import { openedHere } from '@/app/opener';
+
 import { appVersion, commitSha, releaseTag } from './build-version';
 
 export function CommitVersion({
@@ -28,6 +30,7 @@ export function CommitVersion({
     return (
       <Link
         to="/actualizari/$tag"
+        state={openedHere}
         params={{ tag }}
         {...props}
         className={cn(props.className, 'underline-offset-4 hover:text-foreground hover:underline')}

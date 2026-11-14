@@ -789,7 +789,8 @@ describe('the contract of a client', () => {
     const back = await screen.findByTestId('editor-back');
     expect(runtime.router.state.location.pathname).toBe(`/clienti/${leadId}/contract/editare`);
     expect(back.getAttribute('href')).toBe(`/clienti/${leadId}/contract`);
-    expect(back.getAttribute('aria-label')).toBe('Înapoi la contract');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi');
+    expect(screen.getByTestId('editor-company').textContent).toBe(client.legalName);
   });
 
   it("leads from the missing data to the client's Detalii, and back to the contract", async () => {

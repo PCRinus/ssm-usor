@@ -3,8 +3,10 @@ import { type ErrorComponentProps, Link, useLocation } from '@tanstack/react-rou
 import { useEffect, useRef } from 'react';
 
 import type { Release } from '@/api/generated/api';
+import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
+import { BackLink } from '@/components/back-link';
 
 import { InlineMarkdown } from './inline-markdown';
 import { KindSquare } from './kind-square';
@@ -66,6 +68,7 @@ function SectionLinks({
           <Link
             key={section.key}
             to="/actualizari/$tag"
+            state={keepOpener}
             params={{ tag }}
             hash={sectionIds[section.key]}
             className="flex h-11 shrink-0 items-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -89,6 +92,7 @@ function SectionLinks({
         <Link
           key={section.key}
           to="/actualizari/$tag"
+          state={keepOpener}
           params={{ tag }}
           hash={sectionIds[section.key]}
           data-current={section === current || undefined}
@@ -118,6 +122,7 @@ function OtherReleases({
       {previous && (
         <Link
           to="/actualizari/$tag"
+          state={keepOpener}
           params={{ tag: previous.tag }}
           data-testid="release-previous"
           className="flex sm:flex-1 sm:basis-[260px] flex-col gap-1 rounded-xl border bg-card px-4 py-3.5 outline-none hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-5 sm:py-4"
@@ -170,27 +175,30 @@ export function ReleasePage({ tag }: { tag: string }) {
 
   return (
     <div data-testid="release-page" className="mx-auto grid w-full max-w-[1040px] gap-6 sm:gap-7">
-      <header className="grid gap-3.5 overflow-hidden rounded-2xl border border-release-sand-edge bg-release-sand px-5 pt-5 pb-6 sm:flex sm:items-start sm:gap-8 sm:px-9 sm:py-8">
-        <ReleaseTag tag={release.tag} size="hero" className="hidden sm:flex" />
-        <div className="flex items-center gap-3.5 sm:hidden">
-          <ReleaseTag tag={release.tag} size="badge" />
-          <div className="grid gap-[3px]">
-            <span className="text-[15px] font-bold tabular-nums">Versiunea {release.tag}</span>
-            <span className="text-[13px] text-release-sand-muted">Publicată pe {published}</span>
+      <header className="flex items-start gap-1 overflow-hidden rounded-2xl border border-release-sand-edge bg-release-sand pt-2 pr-5 pb-6 pl-2 sm:gap-3 sm:py-8 sm:pr-9 sm:pl-4">
+        <BackLink to="/actualizari" label="Înapoi la actualizări" />
+        <div className="grid min-w-0 flex-1 gap-3.5 pt-3 sm:flex sm:items-start sm:gap-8 sm:pt-0">
+          <ReleaseTag tag={release.tag} size="hero" className="hidden sm:flex" />
+          <div className="flex items-center gap-3.5 sm:hidden">
+            <ReleaseTag tag={release.tag} size="badge" />
+            <div className="grid gap-[3px]">
+              <span className="text-[15px] font-bold tabular-nums">Versiunea {release.tag}</span>
+              <span className="text-[13px] text-release-sand-muted">Publicată pe {published}</span>
+            </div>
           </div>
-        </div>
-        <div className="grid max-w-[640px] gap-3">
-          <span className="hidden text-sm text-release-sand-muted sm:block">
-            Publicată pe {published}
-          </span>
-          <h1 className="text-[25px] leading-[1.2] font-bold tracking-[-0.02em] sm:text-[34px] sm:leading-[1.15]">
-            <InlineMarkdown text={release.headline} />
-          </h1>
-          {release.lead && (
-            <p className="text-base leading-[1.6] text-release-body sm:text-[17px]">
-              <InlineMarkdown text={release.lead} />
-            </p>
-          )}
+          <div className="grid max-w-[640px] gap-3">
+            <span className="hidden text-sm text-release-sand-muted sm:block">
+              Publicată pe {published}
+            </span>
+            <h1 className="text-[25px] leading-[1.2] font-bold tracking-[-0.02em] sm:text-[34px] sm:leading-[1.15]">
+              <InlineMarkdown text={release.headline} />
+            </h1>
+            {release.lead && (
+              <p className="text-base leading-[1.6] text-release-body sm:text-[17px]">
+                <InlineMarkdown text={release.lead} />
+              </p>
+            )}
+          </div>
         </div>
       </header>
 

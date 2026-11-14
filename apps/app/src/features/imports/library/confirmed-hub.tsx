@@ -18,10 +18,13 @@ import {
 import { type ReactNode, useState } from 'react';
 
 import type { ImportDetail, ImportLibraryPart } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
+import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 
 import { CreditsUsedLine } from '../credits-notices';
+import { ImportParentBack } from '../import-back';
 import { endSentence, usageLine } from '../import-format';
 import { ReportImportButton } from '../report-import-button';
 import { PartStatusTag } from './library-group';
@@ -63,7 +66,11 @@ function stepOf(importId: string, part: ImportLibraryPart, now: number): Step {
       verb: 'evaluările',
       icon: ShieldAlert,
       help: risksHelp,
-      link: { to: '/clienti/import/$importId/evaluari-de-risc', params: { importId } },
+      link: {
+        to: '/clienti/import/$importId/evaluari-de-risc',
+        params: { importId },
+        state: openedHere,
+      },
       description: risksPartDescription(part, true, now),
     };
   }
@@ -75,6 +82,7 @@ function stepOf(importId: string, part: ImportLibraryPart, now: number): Step {
     help: instructionsHelp,
     link: {
       to: '/clienti/import/$importId/instructiuni/$domain',
+      state: openedHere,
       params: { importId, domain: part.domain },
     },
     description: partDescription(part, true, now),
@@ -104,18 +112,21 @@ export function ConfirmedImportHub({ detail }: { detail: ImportDetail }) {
   return (
     <div data-testid="import-confirmed-hub" className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid max-w-3xl gap-1">
-          <span className="text-sm text-muted-foreground">
-            {detail.intoExistingClient
-              ? 'Client completat din documente'
-              : 'Client creat din documente'}
-          </span>
-          <h1 className="text-3xl font-semibold tracking-tight">{name}</h1>
-        </div>
+        <TitleWithBack className="max-w-3xl" back={<ImportParentBack detail={detail} />}>
+          <div className="grid gap-1">
+            <span className="text-sm text-muted-foreground">
+              {detail.intoExistingClient
+                ? 'Client completat din documente'
+                : 'Client creat din documente'}
+            </span>
+            <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">{name}</h1>
+          </div>
+        </TitleWithBack>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <Link
               to="/clienti/import/$importId/fisiere"
+              state={openedHere}
               params={{ importId: detail.id }}
               data-testid="import-review-files"
             >

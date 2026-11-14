@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 
 // A lead is a client in an earlier stage (ADR 007), read through the same route. The
@@ -38,6 +39,7 @@ export const Route = createFileRoute('/_authenticated/oferte/$leadId')({
         to: '/clienti/$clientId/detalii',
         params: { clientId: lead.id },
         replace: true,
+        state: keepOpener,
       });
     }
     return { lead, crumb: lead.legalName };

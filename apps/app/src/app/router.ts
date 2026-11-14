@@ -25,14 +25,15 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: ReturnType<typeof createAppRouter>;
   }
-  // Routes declare their breadcrumb title; the shell reads it from the matched routes.
-  // A route under a client sets fullPage to render without the client summary and tabs.
-  // Set by a link from a list to its editor, whose back link then goes back instead.
   interface HistoryState {
-    openedFromList?: boolean;
+    // The history index of the page that opened this one (`app/opener.ts`).
+    opener?: number;
     // A code that failed on another page, as when changing the password, shown on the code page.
     codeFailure?: Exclude<VerifyResult, 'verified'>;
   }
+  // `title` names the browser tab; a route whose title depends on data returns `crumb` from its
+  // loader instead. A route under a client sets fullPage to render without the client summary
+  // and tabs.
   interface StaticDataRouteOption {
     title?: string;
     fullPage?: boolean;

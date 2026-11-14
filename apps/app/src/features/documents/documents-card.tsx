@@ -67,6 +67,7 @@ import {
   useUploadClientDocument,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { openedHere } from '@/app/opener';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
@@ -371,7 +372,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
     await navigate({
       ...documentLink(set, clientId, document.id),
-      state: { openedFromList: true },
+      state: openedHere,
     });
   }
 
@@ -429,7 +430,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       () =>
         void navigate({
           ...documentLink(set, clientId, document.id),
-          state: { openedFromList: true },
+          state: openedHere,
         })
     );
     const fileOf = (revision: Revision, format: 'docx' | 'pdf') => ({
@@ -443,7 +444,7 @@ export function DocumentsCard<Set extends DocumentSet>({
           <TableCell className={packCells.title}>
             <Link
               {...documentLink(set, clientId, document.id)}
-              state={{ openedFromList: true }}
+              state={openedHere}
               data-testid="document-title"
               className="font-medium underline-offset-4 hover:underline"
             >
@@ -530,7 +531,7 @@ export function DocumentsCard<Set extends DocumentSet>({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild data-testid="document-open">
-                  <Link {...documentLink(set, clientId, document.id)}>
+                  <Link {...documentLink(set, clientId, document.id)} state={openedHere}>
                     {document.draft && !readOnly ? (
                       <>
                         <SquarePen aria-hidden="true" />

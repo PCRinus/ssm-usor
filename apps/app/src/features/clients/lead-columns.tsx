@@ -11,6 +11,7 @@ import {
 import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, UserCheck } from 'lucide-react';
 
+import { openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
@@ -36,6 +37,7 @@ export function leadColumns(
       cell: ({ row, getValue }) => (
         <Link
           to="/oferte/$leadId"
+          state={openedHere}
           params={{ leadId: row.original.id }}
           data-testid="leads-open"
           className="hover:underline"
@@ -144,7 +146,11 @@ export function leadColumns(
                 <>
                   {editable && (
                     <DropdownMenuItem asChild data-testid="leads-edit">
-                      <Link to="/oferte/$leadId/editare" params={{ leadId: lead.id }}>
+                      <Link
+                        to="/oferte/$leadId/editare"
+                        params={{ leadId: lead.id }}
+                        state={openedHere}
+                      >
                         <Pencil aria-hidden="true" />
                         Modifică
                       </Link>

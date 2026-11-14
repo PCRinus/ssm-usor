@@ -317,17 +317,16 @@ describe("an employee's training tabs", () => {
     expect(runtime.router.state.location.pathname).toBe(`${employeePage}/instruire/ssm`);
     expect(screen.queryByTestId('employee-page')).toBeNull();
     expect(screen.getAllByTestId('employee-section')[1]!.getAttribute('aria-current')).toBe('page');
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText('Instruire SSM')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Înapoi la lucrători' }).getAttribute('href')).toBe(
+      employeePage.replace(/\/[^/]+$/, '')
+    );
 
     await user.click(screen.getAllByTestId('employee-section')[3]!);
     await screen.findByTestId('employee-files-card');
     expect(runtime.router.state.location.pathname).toBe(`${employeePage}/documente`);
     expect(screen.queryByTestId('employee-training-tab')).toBeNull();
     expect(screen.getAllByTestId('employee-section')[3]!.getAttribute('aria-current')).toBe('page');
-    expect(
-      within(screen.getByRole('navigation', { name: 'breadcrumb' })).getByText('Documente')
-    ).toBeTruthy();
+    expect(screen.getAllByTestId('page-back')).toHaveLength(1);
   });
 
   it('shows the state, the due date and the records newest first, each with its facts', async () => {

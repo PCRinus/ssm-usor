@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { Sparkles } from 'lucide-react';
 
 import type { Release } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 
 import { InlineMarkdown } from './inline-markdown';
@@ -65,6 +66,7 @@ function ReleaseRow({ release, last }: { release: Release; last: boolean }) {
         </div>
         <Link
           to="/actualizari/$tag"
+          state={openedHere}
           params={{ tag: release.tag }}
           data-testid="release-card"
           data-unread={release.unread || undefined}

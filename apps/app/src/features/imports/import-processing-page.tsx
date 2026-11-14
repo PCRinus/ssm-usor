@@ -24,6 +24,8 @@ import {
   type ImportDetailFilesItem,
   splitImport,
 } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
+import { TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 
@@ -82,9 +84,11 @@ function fileDetail(file: ImportFile) {
 
 export function ImportLoader({
   importId,
+  back,
   children,
 }: {
   importId: string;
+  back: ReactNode;
   children: (detail: ImportDetail) => ReactNode;
 }) {
   const query = useImport(importId);
@@ -98,17 +102,21 @@ export function ImportLoader({
   }
   if (query.isError) {
     return (
-      <Notice
-        variant="destructive"
-        data-testid="import-error"
-        action={
-          <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
-            Încearcă din nou
-          </Button>
-        }
-      >
-        {importErrorMessage(query.error, 'Nu am putut încărca importul. Încearcă din nou.')}
-      </Notice>
+      <div className="grid justify-items-start gap-4">
+        <div className="-ml-3 sm:-ml-2">{back}</div>
+        <Notice
+          variant="destructive"
+          data-testid="import-error"
+          className="w-full"
+          action={
+            <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
+              Încearcă din nou
+            </Button>
+          }
+        >
+          {importErrorMessage(query.error, 'Nu am putut încărca importul. Încearcă din nou.')}
+        </Notice>
+      </div>
     );
   }
   return children(query.data.import);
@@ -139,7 +147,7 @@ function progressAnnouncement(detail: ImportDetail, stalled: boolean) {
   return `${title(detail, stalled)}.`;
 }
 
-export function ProcessingView({ detail }: { detail: ImportDetail }) {
+export function ProcessingView({ detail, back }: { detail: ImportDetail; back: ReactNode }) {
   const navigate = useNavigate();
   const [abandoning, setAbandoning] = useState(false);
   const stalled = useUploadStalled(detail);
@@ -171,14 +179,16 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
         {announcement === arrivedAt ? '' : announcement}
       </p>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid gap-1">
-          <h1 className="text-3xl font-semibold tracking-tight">{title(detail, stalled)}</h1>
-          {summary && (
-            <p className="text-sm text-muted-foreground" data-testid="import-upload-summary">
-              {summary}, încărcate {uploadedWhen(detail.startedAt ?? detail.createdAt)}
-            </p>
-          )}
-        </div>
+        <TitleWithBack className="min-w-64 flex-1" back={back}>
+          <div className="grid gap-1">
+            <h1 className="text-3xl font-semibold tracking-tight">{title(detail, stalled)}</h1>
+            {summary && (
+              <p className="text-sm text-muted-foreground" data-testid="import-upload-summary">
+                {summary}, încărcate {uploadedWhen(detail.startedAt ?? detail.createdAt)}
+              </p>
+            )}
+          </div>
+        </TitleWithBack>
         {open && (
           <Button
             variant="outline"
@@ -387,6 +397,7 @@ export function ProcessingView({ detail }: { detail: ImportDetail }) {
                     <Button asChild variant="outline" size="xs">
                       <Link
                         to="/clienti/import/$importId/instructiuni/$domain"
+                        state={openedHere}
                         params={{ importId: detail.id, domain }}
                         data-testid="import-library-file-open"
                       >

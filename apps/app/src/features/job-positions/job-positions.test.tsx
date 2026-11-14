@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { openedHere } from '@/app/opener';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -145,8 +146,8 @@ describe("a client's job positions", () => {
 
     const sections = screen.getAllByTestId('client-section').map((item) => item.textContent);
     expect(sections.slice(0, 3)).toEqual(['Detalii', 'Lucrători', 'Posturi de lucru']);
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText('Posturi de lucru')).toBeTruthy();
+    expect(screen.getAllByTestId('page-back')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Înapoi la clienți' })).toBeTruthy();
   });
 
   it('opens a position on its own page from its name', async () => {
@@ -159,9 +160,45 @@ describe("a client's job positions", () => {
     expect(runtime.router.state.location.pathname).toBe(`${listPage}/${barista.id}`);
     expect(screen.getByRole('heading', { level: 2, name: 'Barman preparator' })).toBeTruthy();
     expect(screen.getByText('Prepară și servește înghețată și cafea.')).toBeTruthy();
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByRole('link', { name: 'Posturi de lucru' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Barman preparator')).toBeTruthy();
+    const [clientBack, positionBack] = screen.getAllByTestId('page-back');
+    expect(clientBack!.getAttribute('aria-label')).toBe('Înapoi la clienți');
+    expect(positionBack!.getAttribute('aria-label')).toBe('Înapoi la posturile de lucru');
+    expect(positionBack!.getAttribute('href')).toBe(listPage);
+    await user.click(positionBack!);
+    await screen.findAllByTestId('job-position-row');
+    expect(runtime.router.state.location.pathname).toBe(listPage);
+  });
+
+  it('leaves the client its own way back: the position is part of the client, not its opener', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+    await screen.findAllByTestId('job-position-row');
+    await act(() =>
+      runtime.router.navigate({
+        to: '/clienti/$clientId/posturi',
+        params: { clientId },
+        state: openedHere,
+      })
+    );
+    const openPosition = async () => {
+      const [row] = await screen.findAllByTestId('job-position-row');
+      await user.click(within(row!).getByTestId('job-position-open'));
+      await screen.findByTestId('job-position-page');
+    };
+    await openPosition();
+    const [clientBack, positionBack] = screen.getAllByTestId('page-back');
+    expect(clientBack!.getAttribute('aria-label')).toBe('Înapoi');
+    expect(positionBack!.getAttribute('aria-label')).toBe('Înapoi la posturile de lucru');
+
+    await user.click(positionBack!);
+    await screen.findAllByTestId('job-position-row');
+    expect(screen.getByTestId('page-back').getAttribute('aria-label')).toBe('Înapoi');
+
+    await openPosition();
+    await user.click(screen.getAllByTestId('page-back')[0]!);
+    await waitFor(() => expect(runtime.router.history.location.state.__TSR_index).toBe(0));
+    expect(runtime.router.state.location.pathname).toBe(listPage);
   });
 
   it("links each position's equipment and instructions to that section, in words for each state", async () => {

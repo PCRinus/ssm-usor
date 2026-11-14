@@ -13,6 +13,7 @@ import {
   type ImportListResponseItemsItem,
   useListImports,
 } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { filesLabel, isRunning, isUploadUnderway, uploadName } from './import-format';
@@ -103,6 +104,7 @@ function ImportListRow({ item }: { item: ImportItem }) {
     <Button asChild size="sm" variant={primary ? 'default' : 'outline'}>
       <Link
         to="/clienti/import/$importId"
+        state={openedHere}
         params={{ importId: item.id }}
         data-testid="import-list-open"
       >

@@ -4,6 +4,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Link } from '@tanstack/react-router';
 import type { ComponentProps } from 'react';
 
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
@@ -60,11 +61,21 @@ export function ClientForm({ lead, newStage }: { lead?: Client; newStage?: Clien
 
   return (
     <div data-testid={lead ? 'edit-lead-page' : `new-${words.testId}-page`} className="space-y-7">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">
+      <TitleWithBack
+        back={
+          lead ? (
+            <BackLink to="/oferte/$leadId" params={{ leadId: lead.id }} label="Înapoi la ofertă" />
+          ) : stage === 'lead' ? (
+            <BackLink to="/oferte" label="Înapoi la oferte" />
+          ) : (
+            <BackLink to="/clienti" label="Înapoi la clienți" />
+          )
+        }
+      >
+        <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">
           {lead ? `Modifică: ${lead.legalName}` : words.new}
         </h1>
-      </div>
+      </TitleWithBack>
       <form
         ref={formRef}
         className="grid gap-6"

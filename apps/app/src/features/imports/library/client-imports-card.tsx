@@ -3,6 +3,7 @@ import { Check, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 
@@ -51,6 +52,7 @@ function ImportRow({ item, now }: { item: ImportListResponseItemsItem; now: numb
     <li data-testid="client-import-row" data-outcome={outcome.kind}>
       <Link
         to="/clienti/import/$importId"
+        state={openedHere}
         params={{ importId: item.id }}
         className="grid grid-cols-[minmax(0,1fr)_1rem] items-center gap-x-3 gap-y-1 px-6 py-3.5 transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset @2xl:grid-cols-[9.5rem_minmax(0,1fr)_8.75rem_16rem_1rem] @2xl:gap-x-4"
       >

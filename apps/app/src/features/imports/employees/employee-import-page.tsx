@@ -4,6 +4,7 @@ import { Link, Outlet, useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { BackLink } from '@/components/back-link';
 
 import { ImportLoader } from '../import-processing-page';
 import { EmployeeHub } from './employee-hub';
@@ -51,7 +52,16 @@ export function EmployeeImportPage({
   clientName: string;
 }) {
   return (
-    <ImportLoader importId={importId}>
+    <ImportLoader
+      importId={importId}
+      back={
+        <BackLink
+          to="/clienti/$clientId/angajati"
+          params={{ clientId }}
+          label="Înapoi la lucrători"
+        />
+      }
+    >
       {(detail) =>
         !belongsTo(detail, clientId) ? (
           <EmployeeImportNotFound clientId={clientId} />
@@ -80,7 +90,16 @@ export function EmployeeImportPersonPage({
   personId: string;
 }) {
   return (
-    <ImportLoader importId={importId}>
+    <ImportLoader
+      importId={importId}
+      back={
+        <BackLink
+          to="/clienti/$clientId/angajati/import/$importId"
+          params={{ clientId, importId }}
+          label="Înapoi la import"
+        />
+      }
+    >
       {(detail) =>
         !belongsTo(detail, clientId) ? (
           <EmployeeImportNotFound clientId={clientId} />

@@ -11,6 +11,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
+import { openedHere } from '@/app/opener';
 import { createDataTableColumns, type DataTableColumnMeta } from '@/components/data-table/columns';
 import { formatGlobalLevel } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { dateToIso, formatRoDate } from '@/lib/dates';
@@ -45,7 +46,7 @@ export function profileColumns({
         <Link
           to="/evaluari-de-risc/$profileId"
           params={{ profileId: row.original.id }}
-          state={{ openedFromList: true }}
+          state={openedHere}
           data-testid="risk-profile-open"
           className="wrap-anywhere hover:underline"
         >

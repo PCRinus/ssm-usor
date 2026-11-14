@@ -1,6 +1,7 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 
+import { openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
@@ -40,7 +41,7 @@ function ContractPage() {
             <Link
               to="/clienti/$clientId/contract/editare"
               params={{ clientId: client.id }}
-              state={{ openedFromList: true }}
+              state={openedHere}
               data-testid={testId}
             >
               {children}

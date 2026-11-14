@@ -10,6 +10,8 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Gift } from 'lucide-react';
 
+import { openedHere } from '@/app/opener';
+
 import { employeesLabel, formatCount, shortPlanNames, stepLabel } from './billing-format';
 import { BillingCard, UsageBar } from './billing-ui';
 import { nextStepAction, nextStepOf } from './checkout/checkout-choice';
@@ -295,6 +297,7 @@ export function UsageCard({
               {meter.action && (
                 <Link
                   to="/organizatie/abonament/alege"
+                  state={openedHere}
                   search={meter.action.search}
                   data-testid={`meter-${meter.key}-action`}
                   className="inline-flex min-h-8 w-fit items-center text-sm font-semibold underline-offset-2 hover:underline"

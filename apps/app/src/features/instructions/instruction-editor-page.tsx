@@ -1,8 +1,8 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, useLocation, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, BookOpenText, Download } from 'lucide-react';
+import { Link, useRouteContext } from '@tanstack/react-router';
+import { BookOpenText, Download } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useEditorLayout } from '@/app/editor-layout';
-import { useBackToList } from '@/app/use-back-to-list';
+import { BackLink } from '@/components/back-link';
 import { editorFrameClassName, saveAs } from '@/features/documents/editor-frame';
 import { EditorPlaceholder } from '@/features/documents/editor-placeholder';
 import { warningBadge } from '@/features/documents/pack-styles';
@@ -38,10 +38,6 @@ export function InstructionEditorPage({
 }) {
   useEditorLayout();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const backToList = useBackToList();
-  const openedFromList = useLocation({
-    select: (location) => location.state.openedFromList === true,
-  });
   const query = useGetInstructionModule(moduleId, {
     request: apiRequest,
     query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
@@ -101,19 +97,11 @@ export function InstructionEditorPage({
   }
 
   const back = (
-    <Button asChild variant="ghost" size="sm">
-      <Link
-        to={module?.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}
-        data-testid="editor-back"
-        onClick={backToList}
-        aria-label={openedFromList ? 'Înapoi' : 'Înapoi la instrucțiunile proprii'}
-      >
-        <ArrowLeft aria-hidden="true" />
-        <span className="hidden sm:inline">
-          {openedFromList ? 'Înapoi' : 'Instrucțiuni proprii'}
-        </span>
-      </Link>
-    </Button>
+    <BackLink
+      to={module?.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}
+      data-testid="editor-back"
+      label="Înapoi la instrucțiunile proprii"
+    />
   );
 
   if (query.isPending || (module && !loaded && !loadError)) {

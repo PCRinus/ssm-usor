@@ -189,8 +189,10 @@ describe("a job position's page", () => {
       .getAllByTestId('client-section')
       .filter((link) => link.getAttribute('aria-current') === 'page');
     expect(current.map((link) => link.textContent)).toEqual(['Posturi de lucru']);
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText('Sudor')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Sudor' })).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Înapoi la posturile de lucru' }).getAttribute('href')
+    ).toBe(positionsPage);
     expect(
       screen.getAllByTestId('job-position-section-link').map((link) => link.getAttribute('href'))
     ).toEqual([

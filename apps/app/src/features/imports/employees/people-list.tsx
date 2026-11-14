@@ -11,6 +11,7 @@ import {
 
 import type { ImportDetail } from '@/api/generated/api';
 import { replayMask } from '@/app/observability/replay-masking';
+import { openedHere } from '@/app/opener';
 
 import { Includable } from '../include-switch';
 import { Fact, Facts, SectionHeader, StatusTag, Tag } from '../review-parts';
@@ -157,6 +158,7 @@ function PersonRow({
               <span className="grid min-w-0 gap-0.5">
                 <Link
                   to="/clienti/$clientId/angajati/import/$importId/$personId"
+                  state={openedHere}
                   params={{ clientId, importId: detail.id, personId: person.id }}
                   className="w-fit max-w-full truncate text-[15px] font-semibold underline-offset-[3px] outline-none group-hover/row:underline after:absolute after:inset-0 after:content-[''] focus-visible:underline focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
                   data-testid="employee-hub-person-link"

@@ -2,8 +2,8 @@ import type { DocumentSet } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useBlocker, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, Download, Pencil, Printer, Save } from 'lucide-react';
+import { useBlocker, useRouteContext } from '@tanstack/react-router';
+import { Download, Pencil, Printer, Save } from 'lucide-react';
 import { lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -15,7 +15,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
-import { useBackToList } from '@/app/use-back-to-list';
+import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 
 import type { DocumentEditorHandle } from './document-editor';
@@ -61,7 +61,6 @@ export function DocumentEditorPage({
   readOnly: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const backToList = useBackToList();
   const documents = useListClientDocuments(clientId, setParams(set), {
     request: apiRequest,
     query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
@@ -80,17 +79,11 @@ export function DocumentEditorPage({
         invalidate: () =>
           queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) }),
         back: (
-          <Button asChild variant="ghost" size="sm">
-            <Link
-              {...documentsLink(set, clientId, document && sectionOf(document.typeKey, set))}
-              data-testid="editor-back"
-              onClick={backToList}
-              aria-label={copy.backLabel}
-            >
-              <ArrowLeft aria-hidden="true" />
-              <span className="hidden sm:inline">{copy.tab}</span>
-            </Link>
-          </Button>
+          <BackLink
+            {...documentsLink(set, clientId, document && sectionOf(document.typeKey, set))}
+            data-testid="editor-back"
+            label={copy.backLabel}
+          />
         ),
       }}
     />

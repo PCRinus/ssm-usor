@@ -279,7 +279,7 @@ afterEach(() => {
 });
 
 describe('client employees list', () => {
-  it('shows the client header, breadcrumb, and the employees with their status', async () => {
+  it('shows the client header, its way back to the clients, and the employees with their status', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
     mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('client-page');
@@ -291,11 +291,9 @@ describe('client employees list', () => {
       .getAllByTestId('client-section')
       .filter((link) => link.getAttribute('aria-current') === 'page');
     expect(current.map((link) => link.textContent)).toEqual(['Lucrători']);
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).queryByText('Spațiul de lucru')).toBeNull();
-    expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();
-    expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Lucrători')).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
+    const back = screen.getByRole('link', { name: 'Înapoi la clienți' });
+    expect(back.getAttribute('href')).toBe('/clienti');
     const row = await screen.findByTestId('employees-row');
     expect(within(row).getByText('Popescu Ion')).toBeTruthy();
     expect(within(row).getByText('Marca A-17')).toBeTruthy();
@@ -443,16 +441,17 @@ describe('client employees list', () => {
     const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('employees-empty');
     expect(screen.getByTestId('employees-count').textContent).toBe('0 lucrători');
-    await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul lucrător/ }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('link', { name: /^Adaugă primul lucrător/ }));
     await screen.findByTestId('new-employee-page');
     expect(runtime.router.state.location.pathname).toBe(`${employeesPage}/nou`);
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
-    expect(within(breadcrumb).getByRole('link', { name: 'Lucrători' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Lucrător nou')).toBeTruthy();
     // The form stands on its own: no client summary card or section tabs above it.
     expect(screen.queryByTestId('client-page')).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Lucrător nou' })).toBeTruthy();
+    const fact = screen.getByTestId('client-fact');
+    expect(within(fact).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
+    const back = screen.getByRole('link', { name: 'Înapoi' });
+    expect(back.getAttribute('href')).toBe(employeesPage);
     const clientField = screen.getByTestId('employee-client') as HTMLInputElement;
     expect(clientField.value).toBe('OMV PETROM SA');
     expect(clientField.disabled).toBe(true);
@@ -1369,10 +1368,9 @@ describe('employee detail', () => {
     expect(screen.queryByTestId('client-page')).toBeNull();
     expect(screen.getByRole('heading', { level: 1, name: 'Popescu Ion' })).toBeTruthy();
     expect(screen.getByTestId('employee-status').textContent).toBe('Lucrător actual');
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByRole('link', { name: 'OMV PETROM SA' })).toBeTruthy();
-    expect(within(breadcrumb).getByRole('link', { name: 'Lucrători' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Popescu Ion')).toBeTruthy();
+    expect(screen.getByTestId('employee-header-client').textContent).toBe('OMV PETROM SA');
+    const back = screen.getByRole('link', { name: 'Înapoi' });
+    expect(back.getAttribute('href')).toBe(employeesPage);
     expect(screen.getByText('A-17')).toBeTruthy();
     expect(screen.getByText('1 mar. 2020')).toBeTruthy();
     expect(screen.getByText('1 ian. 1990')).toBeTruthy();
@@ -1385,6 +1383,43 @@ describe('employee detail', () => {
     expect(screen.getByRole('link', { name: '0721 000 000' }).getAttribute('href')).toBe(
       'tel:0721000000'
     );
+  });
+
+  it('goes back to the list it was opened from, search included, after moving between its tabs', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      detail: () => Response.json({ employee: fullEmployee }),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=Popescu`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('employees-open'));
+    await screen.findByTestId('employee-page');
+    const tab = (name: string) =>
+      screen.getAllByTestId('employee-section').find((link) => link.textContent === name)!;
+    await user.click(tab('Instruire SSM'));
+    await waitFor(() => expect(tab('Instruire SSM').getAttribute('aria-current')).toBe('page'));
+    await user.click(tab('Date'));
+    await screen.findByTestId('employee-page');
+
+    await user.click(screen.getByRole('link', { name: 'Înapoi' }));
+    await screen.findByTestId('employees-row');
+    expect(runtime.router.state.location.pathname).toBe(employeesPage);
+    expect(runtime.router.state.location.search).toEqual({ q: 'Popescu' });
+  });
+
+  it('goes up to the client’s workers when opened from a link', async () => {
+    mockApi({ detail: () => Response.json({ employee: fullEmployee }) });
+    const runtime = mountApp(authFixture(makeSession()).client, detailPage);
+    await screen.findByTestId('employee-page');
+    const user = userEvent.setup();
+    await user.click(
+      screen.getAllByTestId('employee-section').find((link) => link.textContent === 'Documente')!
+    );
+    const back = screen.getByRole('link', { name: 'Înapoi la lucrători' });
+    expect(back.getAttribute('href')).toBe(employeesPage);
+    await user.click(back);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe(employeesPage));
+    expect(runtime.router.state.location.search).toEqual({});
   });
 
   it('keeps the CNP masked until asked and hides it again', async () => {
@@ -1841,9 +1876,7 @@ describe('what a session replay of the employees shows', () => {
     const heading = await screen.findByRole('heading', { level: 1, name: 'Popescu Ion' });
 
     expect(replayedText(heading)).toBe('******* ***');
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(replayedText(within(breadcrumb).getByText('Popescu Ion'))).toBe('******* ***');
-    expect(replayedText(within(breadcrumb).getByText('OMV PETROM SA'))).toBe('OMV PETROM SA');
+    expect(replayedText(screen.getByTestId('employee-header-client'))).toBe('OMV PETROM SA');
     expect(replayedText(screen.getByTestId('employee-cnp-value'))).not.toMatch(/\d/);
     expect(replayedText(screen.getByText('1 ian. 1990'))).toBe('* **** ****');
     expect(replayedText(screen.getByText('Str. Mihai Eminescu nr. 12, ap. 3'))).toBe(

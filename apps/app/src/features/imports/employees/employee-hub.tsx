@@ -5,6 +5,9 @@ import { Clock, UserCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
+import { BackLink, TitleWithBack } from '@/components/back-link';
+import { ClientFact } from '@/features/clients/client-fact';
 import { roCount } from '@/features/employees/employee-format';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
@@ -86,8 +89,20 @@ export function EmployeeHub({
 
   return (
     <div className="grid gap-5" data-testid="employee-hub">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Verifică lucrătorii propuși</h1>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <TitleWithBack
+          className="min-w-64 flex-1"
+          back={
+            <BackLink
+              to="/clienti/$clientId/angajati"
+              params={{ clientId }}
+              label="Înapoi la lucrători"
+            />
+          }
+        >
+          <h1 className="text-2xl font-semibold tracking-tight">Verifică lucrătorii propuși</h1>
+          <ClientFact clientId={clientId} clientName={clientName} className="mt-1" />
+        </TitleWithBack>
         <div className="flex flex-wrap gap-1 max-sm:-ml-2.5">
           <Button variant="ghost" size="sm" onClick={() => setAbandoning(true)}>
             Renunță la import
@@ -170,6 +185,7 @@ export function EmployeeHub({
           <Button asChild data-testid="employee-hub-continue">
             <Link
               to="/clienti/$clientId/angajati/import/$importId/$personId"
+              state={openedHere}
               params={{ clientId, importId: detail.id, personId: nextView.person.id }}
             >
               <span className="truncate">

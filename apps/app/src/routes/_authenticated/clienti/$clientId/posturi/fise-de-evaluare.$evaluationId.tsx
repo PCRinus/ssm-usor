@@ -6,6 +6,7 @@ import {
   getGetRiskEvaluationQueryOptions,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import {
   ClientRiskEvaluationPage,
   RiskEvaluationError,
@@ -46,6 +47,7 @@ export const Route = createFileRoute(
         to: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare',
         params: { clientId: params.clientId, jobPositionId: evaluation.jobPosition.id },
         replace: true,
+        state: keepOpener,
       });
     }
     return { crumb: evaluationTitle(evaluation) };

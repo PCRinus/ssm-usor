@@ -12,6 +12,7 @@ import {
   useState,
 } from 'react';
 
+import { openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
@@ -688,6 +689,7 @@ export function MatchDecision({
   const employee = (
     <Link
       to="/clienti/$clientId/angajati/$employeeId"
+      state={openedHere}
       params={{ clientId, employeeId: match.employeeId }}
       className="underline"
     >

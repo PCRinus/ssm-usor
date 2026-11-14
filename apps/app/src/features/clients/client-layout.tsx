@@ -29,6 +29,7 @@ import {
 import { useState } from 'react';
 
 import { NotFound, RouteError } from '@/app/route-states';
+import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useMe } from '@/features/account/use-me';
@@ -99,7 +100,7 @@ const sections = [
 
 export function ClientLayout() {
   const { client, canDelete } = clientRoute.useLoaderData();
-  // Forms such as the new employee page stand on their own; the breadcrumb keeps the context.
+  // Forms such as the new employee page stand on their own, and name the client themselves.
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
   });
@@ -114,6 +115,7 @@ export function ClientLayout() {
   return (
     <div data-testid="client-page" className="space-y-5">
       <RecordHeader
+        back={<BackLink to="/clienti" label="Înapoi la clienți" />}
         icon={Building2}
         title={client.legalName}
         facts={

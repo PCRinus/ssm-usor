@@ -3,6 +3,8 @@ import { Link } from '@tanstack/react-router';
 import { LibraryBig } from 'lucide-react';
 import { Fragment } from 'react';
 
+import { openedHere } from '@/app/opener';
+
 import { originSummary } from './factor-origin';
 import type { RiskFactor } from './risk-evaluation-schema';
 
@@ -13,6 +15,7 @@ function ProfileLink({ profile }: { profile: RiskFactorSourceProfile }) {
   return (
     <Link
       to="/evaluari-de-risc/$profileId"
+      state={openedHere}
       params={{ profileId: profile.id }}
       data-testid="risk-factor-origin-link"
       className={profileLinkClass}

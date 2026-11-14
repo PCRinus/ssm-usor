@@ -1,13 +1,5 @@
 import type { SubscriptionSummary } from '@ssm-usor/contracts';
 import { Avatar, AvatarFallback } from '@ssm-usor/ui/components/avatar';
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@ssm-usor/ui/components/breadcrumb';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -67,7 +59,6 @@ import {
 } from 'lucide-react';
 import {
   type ComponentProps,
-  Fragment,
   lazy,
   type ReactNode,
   Suspense,
@@ -102,13 +93,11 @@ import { useReleases } from '@/features/updates/use-releases';
 import { useUpdateDialogOpen } from '@/features/updates/use-update-dialog-open';
 import { captureHelpOpened, helpHref, helpTarget, openHelpTab } from '@/lib/help';
 
-import { BreadcrumbAsideContext } from './breadcrumb-aside-context';
 import { releaseTag } from './build-version';
 import { CommitVersion } from './commit-version';
 import { EditorLayoutContext } from './editor-layout';
 import { ReportProblemContext } from './report-problem-context';
 import { ReportProblemDialog } from './report-problem-dialog';
-import { loaderCrumb, personalCrumb } from './route-title';
 import { readSidebarOpen, saveSidebarOpen } from './sidebar-open';
 
 // Most page loads have nothing unread, so the dialog and its drawer stay out of the first download.
@@ -532,17 +521,6 @@ export function AppShell() {
   const { auth, session } = useAuth();
   const context = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
-  // A route whose title depends on data returns it as `crumb` from its loader; a static title
-  // beside it stands in when the loader has no name to give.
-  const trail = useMatches({
-    select: (matches) =>
-      matches.flatMap((match) => {
-        const label = loaderCrumb(match.loaderData) ?? match.staticData.title;
-        return label
-          ? [{ to: match.pathname, label, personal: personalCrumb(match.loaderData) }]
-          : [];
-      }),
-  });
   const editorRoute = useMatches({
     select: (matches) => matches.some((match) => match.staticData.editorPage),
   });
@@ -552,7 +530,6 @@ export function AppShell() {
     []
   );
   const editorPage = editorRoute || editorViews > 0;
-  const [crumbAside, setCrumbAside] = useState<HTMLElement | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportingByEmail, setReportingByEmail] = useState<{ note?: string } | null>(null);
@@ -683,33 +660,6 @@ export function AppShell() {
                     : 'max-w-7xl px-5 py-6 sm:px-8 lg:px-10'
                 )}
               >
-                {!editorPage && (
-                  <div className="mb-7 flex items-center justify-between gap-x-4">
-                    <Breadcrumb className="min-w-0">
-                      <BreadcrumbList>
-                        {trail.map((crumb, index) => (
-                          <Fragment key={crumb.to}>
-                            {index > 0 && <BreadcrumbSeparator />}
-                            <BreadcrumbItem>
-                              {index === trail.length - 1 ? (
-                                <BreadcrumbPage {...(crumb.personal && replayMask)}>
-                                  {crumb.label}
-                                </BreadcrumbPage>
-                              ) : (
-                                <BreadcrumbLink asChild>
-                                  <Link to={crumb.to} {...(crumb.personal && replayMask)}>
-                                    {crumb.label}
-                                  </Link>
-                                </BreadcrumbLink>
-                              )}
-                            </BreadcrumbItem>
-                          </Fragment>
-                        ))}
-                      </BreadcrumbList>
-                    </Breadcrumb>
-                    <div ref={setCrumbAside} className="flex shrink-0 empty:hidden" />
-                  </div>
-                )}
                 {error && (
                   <Notice
                     variant="destructive"
@@ -731,9 +681,7 @@ export function AppShell() {
                 )}
                 <ReportProblemContext value={reportProblem}>
                   <EditorLayoutContext value={countEditorViews}>
-                    <BreadcrumbAsideContext value={crumbAside}>
-                      <Outlet />
-                    </BreadcrumbAsideContext>
+                    <Outlet />
                   </EditorLayoutContext>
                 </ReportProblemContext>
               </main>

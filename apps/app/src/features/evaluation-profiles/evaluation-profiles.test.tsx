@@ -599,8 +599,10 @@ describe('a profile page', () => {
       screen.getAllByTestId('risk-factor-row').map((row) => row.querySelector('p')?.textContent)
     ).toEqual(['Electrocutare prin atingere indirectă', 'Lucru prelungit la monitor']);
     expect(screen.queryByTestId('risk-factors-copy')).toBeNull();
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByText('Lucrător de birou')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Lucrător de birou' })).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Înapoi la evaluările de risc' }).getAttribute('href')
+    ).toBe('/evaluari-de-risc');
   });
 
   it('says above the factors that their plan fields are defaults', async () => {

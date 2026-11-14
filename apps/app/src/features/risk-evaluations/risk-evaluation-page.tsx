@@ -29,6 +29,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { NotFound, RouteError } from '@/app/route-states';
+import { BackLink } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -104,7 +105,17 @@ export function PositionRiskEvaluationPage() {
   if (!evaluation) {
     return (
       <div data-testid="risk-evaluation-page" className="grid gap-5">
-        <Header title={position.name} />
+        <Header
+          title={position.name}
+          back={
+            <BackLink
+              to="/clienti/$clientId/posturi/$jobPositionId"
+              params={{ clientId, jobPositionId }}
+              label="Înapoi la post"
+              up
+            />
+          }
+        />
         <PositionNotEvaluated clientId={clientId} position={position} readOnly={readOnly} />
       </div>
     );
@@ -121,6 +132,14 @@ export function PositionRiskEvaluationPage() {
         params: { clientId, jobPositionId },
         hash: positionSections.riskEvaluation,
       }}
+      back={
+        <BackLink
+          to="/clienti/$clientId/posturi/$jobPositionId"
+          params={{ clientId, jobPositionId }}
+          label="Înapoi la post"
+          up
+        />
+      }
     />
   );
 }
@@ -150,6 +169,14 @@ export function ClientRiskEvaluationPage() {
         params: { clientId },
         hash: clientEvaluationsSection,
       }}
+      back={
+        <BackLink
+          to="/clienti/$clientId/posturi"
+          params={{ clientId }}
+          label="Înapoi la posturile de lucru"
+          up
+        />
+      }
     />
   );
 }
@@ -197,12 +224,13 @@ function PositionNotEvaluated({
   );
 }
 
-function Header({ title, action }: { title: string; action?: ReactNode }) {
+function Header({ title, back, action }: { title: string; back: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
       <div className="grid gap-1">
         <p className="text-sm text-muted-foreground">Fișa de evaluare</p>
         <div className="flex min-w-0 items-center gap-1.5">
+          <div className="-ml-3 flex shrink-0 sm:-ml-2">{back}</div>
           <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{title}</h2>
           <HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />
         </div>
@@ -226,12 +254,14 @@ function RiskEvaluationView({
   userId,
   readOnly,
   afterRemove,
+  back,
 }: {
   evaluation: RiskEvaluation;
   position?: JobPosition;
   userId: string;
   readOnly: boolean;
   afterRemove: AfterRemove;
+  back: ReactNode;
 }) {
   const [removing, setRemoving] = useState(false);
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
@@ -245,6 +275,7 @@ function RiskEvaluationView({
     <div data-testid="risk-evaluation-page" className="grid gap-5">
       <Header
         title={evaluationTitle(evaluation)}
+        back={back}
         action={
           <div className="flex flex-wrap gap-2">
             {evaluation.factors.length > 0 && !nudge.shown && (

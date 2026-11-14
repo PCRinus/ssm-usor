@@ -385,18 +385,32 @@ describe('clients list', () => {
     expect(query.get('page')).toBe('1');
   });
 
-  it('shows an empty state that leads to the creation page', async () => {
+  it('shows an empty state that leads to the creation page, whose arrow goes back to it', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
     await screen.findByTestId('clients-empty');
+    expect(screen.queryByTestId('page-back')).toBeNull();
     expect(screen.getByTestId('clients-count').textContent).toBe('0 clienți');
-    await userEvent.setup().click(screen.getByRole('link', { name: /^Adaugă primul client/ }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('link', { name: /^Adaugă primul client/ }));
     await screen.findByTestId('new-client-page');
     await waitFor(() => expect(document.title).toBe('Client nou — Clienți — SSM Ușor'));
     expect(runtime.router.state.location.pathname).toBe('/clienti/nou');
-    const breadcrumb = screen.getByRole('navigation', { name: 'breadcrumb' });
-    expect(within(breadcrumb).getByRole('link', { name: 'Clienți' })).toBeTruthy();
-    expect(within(breadcrumb).getByText('Client nou')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Client nou' })).toBeTruthy();
+    const back = screen.getByRole('link', { name: 'Înapoi' });
+    expect(back.getAttribute('href')).toBe('/clienti');
+    await user.click(back);
+    await screen.findByTestId('clients-empty');
+    expect(runtime.router.state.location.pathname).toBe('/clienti');
+  });
+
+  it('names the clients list as the way back on a new client opened from a link', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, '/clienti/nou');
+    await screen.findByTestId('new-client-page');
+    const back = screen.getByRole('link', { name: 'Înapoi la clienți' });
+    expect(back.getAttribute('href')).toBe('/clienti');
+    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
   });
 
   it('offers the first client only in the empty state, not again above the list', async () => {

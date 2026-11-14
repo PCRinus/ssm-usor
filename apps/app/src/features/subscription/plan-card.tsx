@@ -4,6 +4,8 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
+import { openedHere } from '@/app/opener';
+
 import {
   choiceAmounts,
   choiceSummary,
@@ -390,7 +392,7 @@ function ActionLink({
   }
   return (
     <Button variant={variant} className={className} asChild>
-      <Link to="/organizatie/abonament/alege" data-testid="subscription-choose">
+      <Link to="/organizatie/abonament/alege" state={openedHere} data-testid="subscription-choose">
         {label}
       </Link>
     </Button>

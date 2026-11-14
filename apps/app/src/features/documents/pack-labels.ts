@@ -1,5 +1,7 @@
 import type { DocumentSet } from '@ssm-usor/contracts';
 
+import { keepOpener } from '@/app/opener';
+
 import type { SectionIdOf } from './document-sections';
 import { documentsLink } from './document-sets';
 import type { DocumentStatus, Pack, PackSection, StatusCounts } from './pack-status';
@@ -86,8 +88,10 @@ export const emptySectionCaption = (section: PackSection) => {
 export const sectionLabel = (section: Pick<PackSection, 'number' | 'title'>) =>
   section.number === null ? section.title : `${section.number}. ${section.title}`;
 
-export const sectionLink = (set: DocumentSet, clientId: string, section?: PackSection) =>
-  documentsLink(set, clientId, section?.id as SectionIdOf<DocumentSet> | undefined);
+export const sectionLink = (set: DocumentSet, clientId: string, section?: PackSection) => ({
+  ...documentsLink(set, clientId, section?.id as SectionIdOf<DocumentSet> | undefined),
+  state: keepOpener,
+});
 
 export function nextSection(pack: Pack, section: PackSection) {
   const index = pack.sections.findIndex((each) => each.id === section.id);

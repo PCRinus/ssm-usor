@@ -1,8 +1,6 @@
-import { Button } from '@ssm-usor/ui/components/button';
-import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
+import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
-import { useBackToList } from '@/app/use-back-to-list';
+import { BackLink } from '@/components/back-link';
 import { useAuth } from '@/features/auth/auth-context';
 import { useOffersInPlan } from '@/features/clients/offers-plan';
 import { ServiceContractEditor } from '@/features/service-contracts/service-contract-editor';
@@ -17,13 +15,13 @@ const leadRoute = getRouteApi('/_authenticated/oferte/$leadId');
 function LeadContractPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
-  const backToList = useBackToList();
   const offers = useOffersInPlan();
   // The shell renders this only for a signed-in user.
   if (!session) return null;
   return (
     <ServiceContractEditor
       clientId={lead.id}
+      companyName={lead.legalName}
       userId={session.user.id}
       readOnly={lead.archivedAt !== null || !offers}
       readOnlyReason={
@@ -35,18 +33,12 @@ function LeadContractPage() {
           : undefined
       }
       back={
-        <Button asChild variant="ghost" size="sm">
-          <Link
-            to="/oferte/$leadId"
-            params={{ leadId: lead.id }}
-            data-testid="editor-back"
-            onClick={backToList}
-            aria-label={`Înapoi la ${lead.legalName}`}
-          >
-            <ArrowLeft aria-hidden="true" />
-            <span className="hidden sm:inline">{lead.legalName}</span>
-          </Link>
-        </Button>
+        <BackLink
+          to="/oferte/$leadId"
+          params={{ leadId: lead.id }}
+          data-testid="editor-back"
+          label="Înapoi la ofertă"
+        />
       }
     />
   );

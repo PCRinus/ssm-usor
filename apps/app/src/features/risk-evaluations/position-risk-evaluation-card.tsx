@@ -12,6 +12,7 @@ import {
   getGetJobPositionRiskEvaluationQueryKey,
   useGetJobPositionRiskEvaluation,
 } from '@/api/generated/api';
+import { keepOpener } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
@@ -59,6 +60,7 @@ export function PositionRiskEvaluationCard({
     <Button asChild variant="outline" size="sm" data-testid="position-risk-open">
       <Link
         to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
+        state={keepOpener}
         params={{ clientId, jobPositionId: position.id }}
       >
         Deschide fișa

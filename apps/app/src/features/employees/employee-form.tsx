@@ -8,6 +8,7 @@ import { Link } from '@tanstack/react-router';
 import { Controller } from 'react-hook-form';
 
 import { replayMask, replayShape } from '@/app/observability/replay-masking';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
@@ -15,6 +16,7 @@ import { Notice } from '@/components/notice';
 import { PhoneInput } from '@/components/phone-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
+import { ClientFact } from '@/features/clients/client-fact';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
 import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
 
@@ -72,8 +74,24 @@ export function EmployeeForm({
 
   return (
     <div data-testid={employee ? 'edit-employee-page' : 'new-employee-page'} className="space-y-7">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">
+      <TitleWithBack
+        back={
+          employee ? (
+            <BackLink
+              to="/clienti/$clientId/angajati/$employeeId"
+              params={{ clientId, employeeId: employee.id }}
+              label="Înapoi la lucrător"
+            />
+          ) : (
+            <BackLink
+              to="/clienti/$clientId/angajati"
+              params={{ clientId }}
+              label="Înapoi la lucrători"
+            />
+          )
+        }
+      >
+        <h1 className="text-3xl font-semibold tracking-tight wrap-anywhere">
           {employee ? (
             <>
               Modifică: <span {...replayMask}>{formatEmployeeName(employee)}</span>
@@ -82,7 +100,8 @@ export function EmployeeForm({
             'Lucrător nou'
           )}
         </h1>
-      </div>
+        <ClientFact clientId={clientId} clientName={clientName} className="mt-1" />
+      </TitleWithBack>
       <form
         ref={formRef}
         className="grid gap-6"

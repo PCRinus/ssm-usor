@@ -11,6 +11,7 @@ import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import type { ClientListResponse } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
@@ -86,6 +87,7 @@ export function clientColumns({
           <>
             <Link
               to="/clienti/$clientId/detalii"
+              state={openedHere}
               params={{ clientId: row.original.id }}
               data-testid="clients-open"
               className="hover:underline"
@@ -180,7 +182,11 @@ export function clientColumns({
               ) : (
                 <>
                   <DropdownMenuItem asChild data-testid="clients-edit">
-                    <Link to="/clienti/$clientId/detalii" params={{ clientId: client.id }}>
+                    <Link
+                      to="/clienti/$clientId/detalii"
+                      params={{ clientId: client.id }}
+                      state={openedHere}
+                    >
                       <Pencil aria-hidden="true" />
                       Modifică
                     </Link>

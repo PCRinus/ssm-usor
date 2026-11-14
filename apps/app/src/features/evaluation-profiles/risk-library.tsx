@@ -11,6 +11,7 @@ import {
   useCreateEvaluationProfile,
   useListEvaluationProfiles,
 } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -84,7 +85,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
     navigate({
       to: '/evaluari-de-risc/$profileId',
       params: { profileId },
-      state: { openedFromList: true },
+      state: openedHere,
     });
 
   const startProfile = () =>

@@ -10,6 +10,7 @@ const actionsPlacement = {
 } as const;
 
 export function RecordHeader({
+  back,
   icon: Icon,
   title,
   facts,
@@ -17,6 +18,7 @@ export function RecordHeader({
   actionsWidth = 'narrow',
   personal = false,
 }: {
+  back?: ReactNode;
   icon: LucideIcon;
   title: string;
   personal?: boolean;
@@ -27,6 +29,7 @@ export function RecordHeader({
   return (
     <header className="@container">
       <div className="flex min-w-0 flex-wrap items-center gap-3">
+        {back && <div className="-mr-1 -ml-3 flex shrink-0 sm:-ml-2">{back}</div>}
         <div
           className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
           aria-hidden="true"
@@ -35,7 +38,7 @@ export function RecordHeader({
         </div>
         <div className="min-w-0 flex-1">
           <h1
-            className="truncate text-xl font-semibold tracking-tight"
+            className="text-xl font-semibold tracking-tight wrap-anywhere"
             {...(personal && replayMask)}
           >
             {title}

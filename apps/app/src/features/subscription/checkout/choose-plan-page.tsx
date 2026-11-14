@@ -4,6 +4,7 @@ import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { lazy, Suspense, useState } from 'react';
 
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 
@@ -148,15 +149,17 @@ function ChoosePlanForm({
   };
 
   const heading = (
-    <div className="grid gap-1.5">
-      <h1 className="text-[26px] font-bold tracking-tight">
-        {mode === 'change' ? 'Schimbă planul' : 'Alege planul'}
-      </h1>
-      <p className="text-[15px] leading-relaxed text-muted-foreground">
-        Ai {employeesLabel(employees)} la clienți și{' '}
-        {members === 1 ? 'un utilizator' : `${members} utilizatori`}. Prețurile sunt fără TVA.
-      </p>
-    </div>
+    <TitleWithBack back={<BackLink to="/organizatie/abonament" label="Înapoi la abonament" />}>
+      <div className="grid gap-1.5">
+        <h1 className="text-[26px] font-bold tracking-tight">
+          {mode === 'change' ? 'Schimbă planul' : 'Alege planul'}
+        </h1>
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
+          Ai {employeesLabel(employees)} la clienți și{' '}
+          {members === 1 ? 'un utilizator' : `${members} utilizatori`}. Prețurile sunt fără TVA.
+        </p>
+      </div>
+    </TitleWithBack>
   );
   const picker = (
     <PlanPicker

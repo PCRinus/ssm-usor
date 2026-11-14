@@ -17,8 +17,10 @@ import {
   useListJobPositions,
   useListPositionInstructions,
 } from '@/api/generated/api';
+import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useAuth } from '@/features/auth/auth-context';
 import { PositionInstructionsCard } from '@/features/instructions/position-instructions-card';
@@ -101,7 +103,20 @@ export function JobPositionPage() {
   return (
     <div data-testid="job-position-page" className="grid gap-5">
       <div className="grid gap-3">
-        <h2 className="text-xl font-semibold tracking-tight wrap-anywhere">{position.name}</h2>
+        <TitleWithBack
+          back={
+            <BackLink
+              to="/clienti/$clientId/posturi"
+              params={{ clientId }}
+              label="Înapoi la posturile de lucru"
+              up
+            />
+          }
+        >
+          <h2 className="pt-1 text-xl font-semibold tracking-tight wrap-anywhere">
+            {position.name}
+          </h2>
+        </TitleWithBack>
         <nav aria-label="Secțiunile postului">
           <ul className="flex flex-wrap gap-2">
             {sectionLinks.map(({ hash, label }) => (
@@ -109,6 +124,7 @@ export function JobPositionPage() {
                 <Button asChild variant="secondary" size="sm">
                   <Link
                     to="/clienti/$clientId/posturi/$jobPositionId"
+                    state={keepOpener}
                     params={{ clientId, jobPositionId }}
                     hash={hash}
                     data-testid="job-position-section-link"

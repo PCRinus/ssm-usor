@@ -2,6 +2,8 @@ import { sheetComponents, sortOrderSchema } from '@ssm-usor/contracts';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { z } from 'zod';
 
+import { keepOpener } from '@/app/opener';
+
 import {
   type FactorSort,
   factorSortKeys,
@@ -42,6 +44,7 @@ export function useFactorListView(factors: readonly RiskFactor[], listId: string
       to: '.',
       search: (previous) => ({ ...previous, ...patch }),
       replace: true,
+      state: keepOpener,
       resetScroll: false,
     });
 

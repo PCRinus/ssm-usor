@@ -20,6 +20,7 @@ import {
   type ImportListResponseItemsItem,
   useListImports,
 } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
 import { roCount } from '@/features/employees/employee-format';
@@ -83,6 +84,7 @@ export function EmployeeImportButtons({
       <Button asChild>
         <Link
           to="/clienti/$clientId/angajati/nou"
+          state={openedHere}
           params={{ clientId }}
           data-testid="employees-add"
         >
@@ -106,7 +108,12 @@ export function EmployeeStartWays({
   const sheets = allSheets(batches);
   return (
     <div className="grid w-full max-w-[40rem] gap-3 text-left" data-testid="employees-start-ways">
-      <Link to="/clienti/$clientId/angajati/nou" params={{ clientId }} className={wayClass}>
+      <Link
+        to="/clienti/$clientId/angajati/nou"
+        params={{ clientId }}
+        state={openedHere}
+        className={wayClass}
+      >
         <WayBadge>
           <PenLine className="size-5" />
         </WayBadge>
@@ -283,6 +290,7 @@ function OpenImportCard({
         <Button asChild size="sm" variant={item.status === 'ready' ? 'default' : 'outline'}>
           <Link
             to="/clienti/$clientId/angajati/import/$importId"
+            state={openedHere}
             params={{ clientId, importId: item.id }}
             data-testid="employee-import-open"
           >

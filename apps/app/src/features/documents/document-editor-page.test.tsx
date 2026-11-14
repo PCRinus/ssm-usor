@@ -183,9 +183,10 @@ describe('the document editor page', () => {
     expect(screen.getByTestId<HTMLButtonElement>('editor-save').disabled).toBe(true);
     // A full page: the client's header and sections make room for the document.
     expect(screen.queryByTestId('client-section')).toBeNull();
-    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
     expect(screen.queryByText(/© \d{4} SSM Ușor/)).toBeNull();
-    expect(within(editor).getByTestId('editor-back')).toBeTruthy();
+    const back = within(editor).getByTestId('editor-back');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi la documentele SSM');
+    expect(back.textContent).toBe('');
     expect(screen.getByRole('main').className).toContain('overflow-hidden');
   });
 
@@ -201,7 +202,6 @@ describe('the document editor page', () => {
       'animate-spin'
     );
     expect(screen.getByTestId('editor-frame').contains(loading)).toBe(true);
-    expect(screen.queryByRole('navigation', { name: 'breadcrumb' })).toBeNull();
   });
 
   it('keeps the loading state visible until the editor finishes preparing its pages', async () => {

@@ -7,7 +7,9 @@ import { Check, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
+import { CurrentClientFact } from '@/features/clients/client-fact';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { refundedSentence } from '../import-credits';
@@ -112,13 +114,25 @@ export function EmployeeProcessing({
   return (
     <div className="grid gap-6" data-testid="employee-processing">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {filesText} ale fișelor individuale de instruire, încărcate{' '}
-            {uploadedWhen(detail.startedAt ?? detail.createdAt)}
-          </p>
-        </div>
+        <TitleWithBack
+          className="min-w-64 flex-1"
+          back={
+            <BackLink
+              to="/clienti/$clientId/angajati"
+              params={{ clientId }}
+              label="Înapoi la lucrători"
+            />
+          }
+        >
+          <div className="grid gap-1">
+            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+            <CurrentClientFact />
+            <p className="text-sm text-muted-foreground">
+              {filesText} ale fișelor individuale de instruire, încărcate{' '}
+              {uploadedWhen(detail.startedAt ?? detail.createdAt)}
+            </p>
+          </div>
+        </TitleWithBack>
         {open && (
           <Button variant="outline" size="sm" onClick={() => setAbandoning(true)}>
             {running ? 'Oprește importul' : 'Renunță la import'}

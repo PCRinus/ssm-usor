@@ -11,6 +11,7 @@ import { Link } from '@tanstack/react-router';
 import { MoreHorizontal, Pencil, RotateCcw, UserRoundMinus } from 'lucide-react';
 
 import type { EmployeeListResponse } from '@/api/generated/api';
+import { openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
 import { formatDate } from './employee-format';
@@ -39,6 +40,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
         <>
           <Link
             to="/clienti/$clientId/angajati/$employeeId"
+            state={openedHere}
             params={{ clientId: row.original.clientId, employeeId: row.original.id }}
             data-testid="employees-open"
             className="hover:underline"
@@ -120,6 +122,7 @@ export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) 
               <DropdownMenuItem asChild data-testid="employees-edit">
                 <Link
                   to="/clienti/$clientId/angajati/$employeeId/editare"
+                  state={openedHere}
                   params={{ clientId: employee.clientId, employeeId: employee.id }}
                 >
                   <Pencil aria-hidden="true" />

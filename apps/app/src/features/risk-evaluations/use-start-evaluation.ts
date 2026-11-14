@@ -7,6 +7,7 @@ import {
   getListRiskEvaluationsQueryKey,
   useCreateRiskEvaluation,
 } from '@/api/generated/api';
+import { keepOpener } from '@/app/opener';
 
 import { evaluationFailure, failureReason } from './evaluation-failure';
 import { useEvaluationCache } from './use-evaluation-cache';
@@ -26,11 +27,13 @@ export function useStartEvaluation(clientId: string) {
       if (evaluation.jobPosition) {
         await navigate({
           to: '/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare',
+          state: keepOpener,
           params: { clientId, jobPositionId: evaluation.jobPosition.id },
         });
       } else {
         await navigate({
           to: '/clienti/$clientId/posturi/fise-de-evaluare/$evaluationId',
+          state: keepOpener,
           params: { clientId, evaluationId: evaluation.id },
         });
       }

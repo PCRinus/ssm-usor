@@ -5,7 +5,9 @@ import { type ErrorComponentProps, getRouteApi, Link, Outlet } from '@tanstack/r
 import { Pencil, RotateCcw, UserRound, UserRoundMinus } from 'lucide-react';
 import { useState } from 'react';
 
+import { openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
+import { BackLink } from '@/components/back-link';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 
@@ -30,6 +32,13 @@ export function EmployeeLayout() {
   return (
     <div data-testid="employee-layout" className="space-y-5">
       <RecordHeader
+        back={
+          <BackLink
+            to="/clienti/$clientId/angajati"
+            params={{ clientId }}
+            label="Înapoi la lucrători"
+          />
+        }
         icon={UserRound}
         title={formatEmployeeName(employee)}
         personal
@@ -65,6 +74,7 @@ export function EmployeeLayout() {
                 <Link
                   to="/clienti/$clientId/angajati/$employeeId/editare"
                   params={{ clientId, employeeId }}
+                  state={openedHere}
                 >
                   <Pencil aria-hidden="true" />
                   Modifică

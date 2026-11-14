@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { getGetInstructionModuleQueryKey, useGetInstructionModule } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 
 import { blocksFromBody, templateBlocks } from './instruction-draft';
 import { InstructionEditorPage } from './instruction-editor-page';
@@ -22,8 +23,8 @@ function Unavailable({ notFound, onRetry }: { notFound: boolean; onRetry: () => 
           : 'Nu am putut încărca instrucțiunea. Verifică conexiunea și încearcă din nou.'}
       </p>
       <div className="flex gap-2">
-        <Button asChild variant="ghost">
-          <Link to="/instructiuni/ssm">Instrucțiuni proprii</Link>
+        <Button asChild variant="outline">
+          <Link to="/instructiuni/ssm">Înapoi la instrucțiunile proprii</Link>
         </Button>
         {!notFound && (
           <Button variant="outline" onClick={onRetry}>
@@ -130,6 +131,7 @@ export function NewInstructionPage({ start, userId }: { start: StartValues; user
             to: '/instructiuni/nou',
             search: { ...values, ...(start.from ? { from: start.from } : {}) },
             replace: true,
+            state: keepOpener,
           });
         }}
       />

@@ -15,6 +15,7 @@ import {
   useListClientSignatureRequests,
 } from '@/api/generated/api';
 import { replayMask } from '@/app/observability/replay-masking';
+import { openedHere } from '@/app/opener';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
@@ -108,6 +109,7 @@ export function ClientSignatureRequests({
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <Link
                   to="/clienti/$clientId/angajati/$employeeId"
+                  state={openedHere}
                   params={{ clientId, employeeId: group.employee.id }}
                   className="font-medium hover:underline"
                   {...replayMask}

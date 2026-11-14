@@ -767,8 +767,8 @@ describe('client fire-safety documents', () => {
       expect(screen.getByTestId('editor-frame').getAttribute('data-ready')).toBe('true')
     );
     const back = screen.getByTestId('editor-back');
-    expect(back.getAttribute('aria-label')).toBe('Înapoi la documentele SU');
-    expect(back.textContent).toBe('Documente SU');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi');
+    expect(back.textContent).toBe('');
     await user.click(back);
 
     await screen.findAllByTestId('document-row');
@@ -788,7 +788,9 @@ describe('client fire-safety documents', () => {
     expect(
       requests('/documents').every(({ url }) => url.searchParams.get('set') === 'fire_safety')
     ).toBe(true);
-    await user.click(screen.getByTestId('editor-back'));
+    const back = screen.getByTestId('editor-back');
+    expect(back.getAttribute('aria-label')).toBe('Înapoi la documentele SU');
+    await user.click(back);
     await screen.findAllByTestId('document-row');
     expect(runtime.router.history.location.pathname).toBe(firePath);
     expect(runtime.router.history.location.search).toBe('?section=registers');

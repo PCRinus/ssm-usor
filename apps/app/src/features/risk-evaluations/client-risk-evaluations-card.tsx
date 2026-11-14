@@ -234,6 +234,7 @@ function EvaluationRow({ evaluation }: { evaluation: RiskEvaluationSummary }) {
     <Row
       title={
         <EvaluationLink
+          withinClient
           evaluation={evaluation}
           className="hover:underline"
           data-testid="client-risk-evaluation-open"
@@ -243,7 +244,11 @@ function EvaluationRow({ evaluation }: { evaluation: RiskEvaluationSummary }) {
       }
       state={
         <DecisionBadge asChild decision={evaluation.factorCount > 0 || null}>
-          <EvaluationLink evaluation={evaluation} data-testid="client-risk-evaluation-state">
+          <EvaluationLink
+            evaluation={evaluation}
+            withinClient
+            data-testid="client-risk-evaluation-state"
+          >
             {evaluationStateLabel(evaluation)}
             <ChevronRight aria-hidden="true" />
           </EvaluationLink>

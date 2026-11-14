@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { keepOpener } from '@/app/opener';
 import { ClientError, ClientLayout, ClientNotFound } from '@/features/clients/client-layout';
 import { ClientPending } from '@/features/clients/client-pending';
 
@@ -31,9 +32,9 @@ export const Route = createFileRoute('/_authenticated/clienti/$clientId')({
         to: '/oferte/$leadId',
         params: { leadId: client.id },
         replace: true,
+        state: keepOpener,
       });
     }
-    // The shell shows the crumb in place of a static title.
     return { client, canDelete, crumb: client.legalName };
   },
   component: ClientLayout,

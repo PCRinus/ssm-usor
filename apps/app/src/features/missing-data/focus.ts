@@ -3,6 +3,8 @@ import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useEffect, useEffectEvent } from 'react';
 import { z } from 'zod';
 
+import { keepOpener } from '@/app/opener';
+
 // Each page accepts only its own keys: a key names a card or a dialog, and is never used as a
 // selector, since anyone can put anything in an address.
 export const legalRepresentativeFocus = [
@@ -273,6 +275,7 @@ export function useFocusRequest(
         })) as never,
         hash: true,
         replace: true,
+        state: keepOpener,
         resetScroll: false,
       });
     let stopLooking = () => {};

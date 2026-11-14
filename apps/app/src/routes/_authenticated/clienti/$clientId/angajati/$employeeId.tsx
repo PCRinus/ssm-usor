@@ -11,7 +11,7 @@ import {
 } from '@/features/employees/employee-layout';
 import { EmployeePending } from '@/features/employees/employee-pending';
 
-// The loader warms the query and names the breadcrumb; the tabs read the same query so a status
+// The loader warms the query and names the browser tab; the tabs read the same query so a status
 // change or a training refreshes them.
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/angajati/$employeeId')({
   staticData: { fullPage: true },
@@ -28,7 +28,7 @@ export const Route = createFileRoute('/_authenticated/clienti/$clientId/angajati
           },
         })
       );
-      return { crumb: formatEmployeeName(employee), crumbIsPersonal: true };
+      return { crumb: formatEmployeeName(employee) };
     } catch (cause) {
       if (cause instanceof ApiHttpError && cause.status === 404) throw notFound();
       throw cause;
