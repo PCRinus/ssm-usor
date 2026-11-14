@@ -45,10 +45,10 @@ select public.create_organization('Tester SSM SRL', 'Tina Tester', '2026-10-26',
 
 select results_eq(
   $$ select plan::text, status::text, trial_ends_at = access_until,
-            trial_ends_at between now() + interval '30 days' - interval '1 minute' and now() + interval '30 days'
+            trial_ends_at between now() + interval '14 days' - interval '1 minute' and now() + interval '14 days'
      from public.subscriptions $$,
   $$ values ('profesional', 'trialing', true, true) $$,
-  'a new organization starts a 30-day Profesional trial, and its member reads it'
+  'a new organization starts a 14-day Profesional trial, and its member reads it'
 );
 
 select is(
