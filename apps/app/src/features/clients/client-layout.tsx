@@ -38,6 +38,7 @@ import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
 import { ClientDeleteDialog, type ClientToDelete } from './client-delete-dialog';
+import { ClientSheet } from './client-sheet';
 import { HeaderFact, RecordHeader } from './record-header';
 
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
@@ -113,91 +114,93 @@ export function ClientLayout() {
   const navigate = useNavigate();
   if (fullPage) return <Outlet />;
   return (
-    <div data-testid="client-page" className="space-y-5">
-      <RecordHeader
-        back={<BackLink to="/clienti" label="Înapoi la clienți" />}
-        title={client.legalName}
-        facts={
-          <>
-            <HeaderFact label="CUI">
-              <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
-            </HeaderFact>
-            <HeaderFact label="Lucrători">
-              <span className="tabular-nums" data-testid="client-employee-count">
-                {client.currentEmployeeCount}
-              </span>
-            </HeaderFact>
-          </>
-        }
-        actionsWidth="wide"
-        actions={
-          !client.archivedAt && (
+    <div data-testid="client-page">
+      <div className="mb-5 space-y-5">
+        <RecordHeader
+          back={<BackLink to="/clienti" label="Înapoi la clienți" />}
+          title={client.legalName}
+          facts={
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="client-import"
-                onClick={() => setImporting(true)}
-              >
-                <ScanText aria-hidden="true" />
-                Completează din documentație
-              </Button>
-              {isOwner && (
+              <HeaderFact label="CUI">
+                <span className="tabular-nums">{formatCui(client.cui, client.vatPayer)}</span>
+              </HeaderFact>
+              <HeaderFact label="Lucrători">
+                <span className="tabular-nums" data-testid="client-employee-count">
+                  {client.currentEmployeeCount}
+                </span>
+              </HeaderFact>
+            </>
+          }
+          actionsWidth="wide"
+          actions={
+            !client.archivedAt && (
+              <>
                 <Button
                   variant="outline"
                   size="sm"
-                  data-testid="client-archive"
-                  onClick={() => setArchiveChange({ client, action: 'archive' })}
+                  data-testid="client-import"
+                  onClick={() => setImporting(true)}
                 >
-                  <Archive aria-hidden="true" />
-                  Arhivează…
+                  <ScanText aria-hidden="true" />
+                  Completează din documentație
                 </Button>
-              )}
-            </>
-          )
-        }
-      />
-      {client.archivedAt && (
-        <Notice
-          variant="warning"
-          data-testid="client-archived-banner"
-          title="Client arhivat"
-          action={
-            (isOwner || canDelete) && (
-              <div className="flex flex-wrap gap-2">
                 {isOwner && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-warning-border bg-card"
-                    data-testid="client-restore"
-                    onClick={() => setArchiveChange({ client, action: 'restore' })}
+                    data-testid="client-archive"
+                    onClick={() => setArchiveChange({ client, action: 'archive' })}
                   >
-                    <ArchiveRestore aria-hidden="true" />
-                    Reactivează…
+                    <Archive aria-hidden="true" />
+                    Arhivează…
                   </Button>
                 )}
-                {canDelete && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-destructive/40 bg-card text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    data-testid="client-delete"
-                    onClick={() => setDeleting(client)}
-                  >
-                    <Trash2 aria-hidden="true" />
-                    Șterge definitiv…
-                  </Button>
-                )}
-              </div>
+              </>
             )
           }
-        >
-          Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.
-          {!isOwner && ' Un admin al organizației îl poate reactiva.'}
-        </Notice>
-      )}
-      <SectionNav label="Secțiunile clientului">
+        />
+        {client.archivedAt && (
+          <Notice
+            variant="warning"
+            data-testid="client-archived-banner"
+            title="Client arhivat"
+            action={
+              (isOwner || canDelete) && (
+                <div className="flex flex-wrap gap-2">
+                  {isOwner && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-warning-border bg-card"
+                      data-testid="client-restore"
+                      onClick={() => setArchiveChange({ client, action: 'restore' })}
+                    >
+                      <ArchiveRestore aria-hidden="true" />
+                      Reactivează…
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-destructive/40 bg-card text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      data-testid="client-delete"
+                      onClick={() => setDeleting(client)}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      Șterge definitiv…
+                    </Button>
+                  )}
+                </div>
+              )
+            }
+          >
+            Datele și documentele lui pot fi consultate și descărcate, dar nu modificate.
+            {!isOwner && ' Un admin al organizației îl poate reactiva.'}
+          </Notice>
+        )}
+      </div>
+      <SectionNav label="Secțiunile clientului" variant="folder" className="max-sm:-mx-5">
         {sections
           .filter((section) => isOwner || !section.ownerOnly)
           .map(({ to, label, icon }) => (
@@ -212,7 +215,9 @@ export function ClientLayout() {
             </SectionNavLink>
           ))}
       </SectionNav>
-      <Outlet />
+      <ClientSheet>
+        <Outlet />
+      </ClientSheet>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <ClientDeleteDialog
         client={deleting}
