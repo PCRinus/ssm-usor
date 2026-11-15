@@ -30,7 +30,7 @@ function ContractPage() {
     );
   }
   return (
-    <div data-testid="contract-page" className="grid gap-6">
+    <div data-testid="contract-page" className="grid gap-4">
       <ServiceContractCard
         client={client}
         userId={session.user.id}

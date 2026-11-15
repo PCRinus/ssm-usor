@@ -26,7 +26,7 @@ function DocumentsPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="documents-page" className="grid gap-6">
+    <div data-testid="documents-page" className="grid gap-4">
       <DocumentsCard
         set="occupational_safety"
         clientId={client.id}

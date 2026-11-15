@@ -30,7 +30,7 @@ function TrainingPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="training-page" className="grid gap-6">
+    <div data-testid="training-page" className="grid gap-4">
       <TrainingProgramSection
         client={client}
         userId={session.user.id}

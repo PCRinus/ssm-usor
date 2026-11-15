@@ -25,7 +25,7 @@ function FireSafetyDocumentsPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="fire-safety-documents-page" className="grid gap-6">
+    <div data-testid="fire-safety-documents-page" className="grid gap-4">
       <DocumentsCard
         set="fire_safety"
         clientId={client.id}

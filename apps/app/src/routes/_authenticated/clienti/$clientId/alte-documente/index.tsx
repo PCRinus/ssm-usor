@@ -16,7 +16,7 @@ function OtherDocumentsPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="other-documents-page" className="grid gap-6">
+    <div data-testid="other-documents-page" className="grid gap-4">
       <ClientFilesCard
         client={client}
         userId={session.user.id}

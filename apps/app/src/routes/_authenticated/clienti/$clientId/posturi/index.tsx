@@ -21,7 +21,7 @@ function JobPositionsPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="job-positions-page" className="grid gap-6">
+    <div data-testid="job-positions-page" className="grid gap-4">
       <JobPositionsCard
         clientId={client.id}
         userId={session.user.id}

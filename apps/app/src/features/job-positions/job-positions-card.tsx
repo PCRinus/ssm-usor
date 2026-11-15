@@ -156,6 +156,7 @@ export function JobPositionsCard({
   return (
     <div
       data-testid="job-positions-card"
+      data-sheet-panel
       className="scroll-mt-32 overflow-hidden rounded-lg border bg-card"
     >
       {empty ? (
