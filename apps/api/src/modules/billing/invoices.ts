@@ -16,6 +16,7 @@ import {
   toStorno,
   vatPercentage,
 } from './oblio-documents';
+import { type BillingAlerts, describeFailure, type StripeInvoiceRef } from './operator-alerts';
 import { parseLookupKey } from './rules';
 import {
   findSubscriptionByCustomer,
@@ -38,6 +39,7 @@ export type InvoiceDeps = {
   db: AdminClient;
   access: StripeAccess;
   catalogue: StripeCatalogue;
+  alerts: BillingAlerts;
   oblio?: OblioClient;
   fetch?: typeof fetch;
 };
@@ -126,13 +128,20 @@ export function toPaidLines(
     });
 }
 
-export function checkLinesMakeTotal(invoice: Stripe.Invoice, lines: Stripe.InvoiceLineItem[]) {
-  const sum = lines.reduce((total, line) => total + line.amount + lineTax(line), 0);
-  if (sum !== invoice.total) {
-    throw new Error(
-      `Stripe invoice ${invoice.id}: its lines with their VAT make ${sum} cents, not the ${invoice.total} charged; no Oblio document was issued.`
+export class LinesTotalMismatch extends Error {
+  constructor(
+    invoice: Stripe.Invoice,
+    readonly linesCents: number
+  ) {
+    super(
+      `Stripe invoice ${invoice.id}: its lines with their VAT make ${linesCents} cents, not the ${invoice.total} charged; no Oblio document was issued.`
     );
   }
+}
+
+export function checkLinesMakeTotal(invoice: Stripe.Invoice, lines: Stripe.InvoiceLineItem[]) {
+  const sum = lines.reduce((total, line) => total + line.amount + lineTax(line), 0);
+  if (sum !== invoice.total) throw new LinesTotalMismatch(invoice, sum);
 }
 
 async function allLines(stripe: Stripe, invoice: Stripe.Invoice) {
@@ -217,9 +226,20 @@ async function adoptFirstSubscription(
 
 // The document is issued and numbered by now, so a difference is recorded for a person to settle
 // with a storno; failing the event would only retry what cannot change.
-async function compareTotals(deps: InvoiceDeps, row: InvoiceRow, organizationId: string) {
+async function compareTotals(
+  deps: InvoiceDeps,
+  row: InvoiceRow,
+  organizationId: string,
+  invoice: StripeInvoiceRef
+) {
   const series = row.oblio_series!;
   const number = row.oblio_number!;
+  const alerted = {
+    organizationId,
+    invoice,
+    document: { kind: row.kind, series, number },
+    charged: { cents: row.amount_cents, currency: row.currency },
+  };
   const details = {
     stripe_invoice: row.stripe_invoice_id,
     oblio_document: `${series}-${number}`,
@@ -239,6 +259,11 @@ async function compareTotals(deps: InvoiceDeps, row: InvoiceRow, organizationId:
       reason: message,
       details,
     });
+    deps.alerts.notify({
+      ...alerted,
+      kind: 'oblio_total_unchecked',
+      reason: describeFailure(error),
+    });
     return;
   }
   if (oblioTotal === row.amount_cents) return;
@@ -250,6 +275,47 @@ async function compareTotals(deps: InvoiceDeps, row: InvoiceRow, organizationId:
     change: 'oblio_total_mismatch',
     details: { ...details, oblio_total_cents: oblioTotal },
   });
+  deps.alerts.notify({ ...alerted, kind: 'oblio_total_mismatch', oblioCents: oblioTotal });
+}
+
+const invoiceRef = (deps: InvoiceDeps, invoice: Stripe.Invoice): StripeInvoiceRef => ({
+  id: invoice.id,
+  number: invoice.number,
+  accountId: deps.catalogue.accountId,
+  livemode: deps.access.livemode,
+});
+
+async function issueDocument(
+  deps: InvoiceDeps,
+  invoice: Stripe.Invoice,
+  row: InvoiceRow,
+  subscription: Awaited<ReturnType<typeof loadSubscription>>,
+  paidAt: Date
+) {
+  const organizationId = row.organization_id;
+  const company = await loadCompany(deps.db, organizationId);
+  const recipientEmail =
+    subscription?.invoice_email ??
+    (await ownerEmail(deps.db, organizationId)) ??
+    invoice.customer_email;
+  if (!company.name || !company.cui || !recipientEmail) {
+    throw new Error(`Organization ${organizationId} lacks its company name, CUI or an email.`);
+  }
+  const lines = await allLines(deps.access.stripe, invoice);
+  checkLinesMakeTotal(invoice, lines);
+  const request = toOblioDocument(
+    row.kind,
+    { ...company, name: company.name, cui: company.cui, recipientEmail },
+    {
+      id: invoice.id,
+      lines: toPaidLines(lines, deps.catalogue),
+      total: invoice.total,
+      paymentReference: paymentReference(invoice),
+      paidAt,
+    }
+  );
+  const document = await oblioFor(deps).issue(request);
+  return updateInvoice(deps.db, invoice.id, issued(document));
 }
 
 // Each step checks what is already done, so a retried event finishes the work without issuing
@@ -298,30 +364,22 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     }));
 
   if (!row.issued_at) {
-    const company = await loadCompany(deps.db, organizationId);
-    const recipientEmail =
-      subscription?.invoice_email ??
-      (await ownerEmail(deps.db, organizationId)) ??
-      invoice.customer_email;
-    if (!company.name || !company.cui || !recipientEmail) {
-      throw new Error(`Organization ${organizationId} lacks its company name, CUI or an email.`);
+    const ref = invoiceRef(deps, invoice);
+    try {
+      row = await issueDocument(deps, invoice, row, subscription, paidAt);
+    } catch (error) {
+      deps.alerts.notify({
+        kind: 'invoice_not_issued',
+        organizationId,
+        invoice: ref,
+        document: row.kind,
+        charged: { cents: invoice.total, currency: invoice.currency },
+        linesCents: error instanceof LinesTotalMismatch ? error.linesCents : null,
+        reason: describeFailure(error),
+      });
+      throw error;
     }
-    const lines = await allLines(stripe, invoice);
-    checkLinesMakeTotal(invoice, lines);
-    const request = toOblioDocument(
-      row.kind,
-      { ...company, name: company.name, cui: company.cui, recipientEmail },
-      {
-        id: invoice.id,
-        lines: toPaidLines(lines, deps.catalogue),
-        total: invoice.total,
-        paymentReference: paymentReference(invoice),
-        paidAt,
-      }
-    );
-    const document = await oblioFor(deps).issue(request);
-    row = await updateInvoice(deps.db, invoice.id, issued(document));
-    await compareTotals(deps, row, organizationId);
+    await compareTotals(deps, row, organizationId, ref);
   }
   const stored = await storePdf(deps, row);
   // Stripe delivers the event again, and the first payment and its credits are recorded then.

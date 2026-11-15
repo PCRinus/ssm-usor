@@ -121,6 +121,9 @@ export type ApiEnv = {
     // A Discord webhook, one per environment, for the imports' alerts (ADR 037); without it
     // they are skipped.
     DISCORD_ALERTS_WEBHOOK?: string;
+    // A Discord webhook, one channel per environment, for invoicing problems (ADR 029); without
+    // it they are skipped.
+    DISCORD_BILLING_WEBHOOK?: string;
     // The admin area (ADR 038), which the imports' alerts link to; unset locally, where they
     // carry no link.
     ADMIN_ORIGIN?: string;

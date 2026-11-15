@@ -42,6 +42,7 @@ export type Fake = {
   membership: { user_id: string; role: 'owner' | 'specialist'; access: 'full' | 'read_only' };
   stripe: Record<string, StripeRoute>;
   oblio: Record<string, (call: Call) => unknown>;
+  discord: (call: Call) => Response | Promise<Response>;
   calls: Call[];
   uploads: { path: string; bytes: number }[];
   smsUsage: { used: number; overage: number; granted: number };
@@ -183,6 +184,13 @@ function matches(row: Row, url: URL) {
     }
     if (value === 'is.null' && row[key] !== null && row[key] !== undefined) return false;
     if (value.startsWith('eq.') && String(row[key]) !== value.slice(3)) return false;
+    if (value.startsWith('cs.')) {
+      const contained = JSON.parse(value.slice(3)) as Row;
+      const held = (row[key] ?? {}) as Row;
+      if (Object.entries(contained).some(([field, wanted]) => held[field] !== wanted)) {
+        return false;
+      }
+    }
   }
   return true;
 }
@@ -283,6 +291,7 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
     membership: { user_id: owner.id, role: 'owner', access: 'full' },
     stripe: {},
     oblio: {},
+    discord: () => new Response(null, { status: 204 }),
     calls: [],
     uploads: [],
     smsUsage: { used: 0, overage: 0, granted: 0 },
@@ -360,6 +369,8 @@ export function createFake(overrides: Partial<Fake> = {}): Fake {
       return result instanceof Response ? result : json(result);
     }
 
+    if (url.host === discordHost) return fake.discord(call);
+
     if (url.host === 'www.oblio.eu') {
       if (url.pathname.startsWith('/utils/show_file')) {
         return new Response(pdfBytes, { headers: { 'content-type': 'application/pdf' } });
@@ -431,6 +442,14 @@ function listedDocument(fake: Fake, kind: 'invoice' | 'proforma', call: Call) {
     ],
   };
 }
+
+export const discordHost = 'discord.example';
+export const billingWebhook = `https://${discordHost}/api/webhooks/2/token`;
+
+export const discordPosts = (fake: Fake) =>
+  fake.calls
+    .filter((call) => call.url.host === discordHost)
+    .map((call) => (JSON.parse(call.body ?? '{}') as { content: string }).content);
 
 export const stripeWrites = (fake: Fake, path: string) =>
   fake.calls
