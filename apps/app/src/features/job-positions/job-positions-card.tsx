@@ -188,7 +188,7 @@ export function JobPositionsCard({
               <TableHead>Lucrători</TableHead>
               <TableHead>EIP</TableHead>
               <TableHead>Instrucțiuni</TableHead>
-              <TableHead>Fișa de evaluare</TableHead>
+              <TableHead>Fișa de evaluare a riscurilor</TableHead>
               <TableHead className="w-12">
                 <span className="sr-only">Acțiuni</span>
               </TableHead>
@@ -345,7 +345,7 @@ export function JobPositionsCard({
                           state={openedHere}
                           params={{ clientId, jobPositionId: position.id }}
                         >
-                          Fișa de evaluare
+                          Fișa de evaluare a riscurilor
                         </Link>
                       </DropdownMenuItem>
                       {!readOnly && (

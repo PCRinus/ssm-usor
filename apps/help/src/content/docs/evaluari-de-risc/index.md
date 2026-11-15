@@ -1,6 +1,6 @@
 ---
 title: Evaluări de risc
-description: Biblioteca de evaluări de risc a organizației, fișa de evaluare a unui client cu factorii, clasele și măsurile ei, și ce cer evaluarea riscurilor și planul de prevenire și protecție ca să se genereze.
+description: Biblioteca de evaluări de risc a organizației, fișele de evaluare a riscurilor ale unui client, cu factorii, clasele și măsurile lor, și ce cer evaluarea riscurilor și planul de prevenire și protecție ca să se genereze.
 topics:
   - id: evaluari-de-risc.ce-este
     heading: Ce este o evaluare de risc
@@ -19,7 +19,7 @@ topics:
   - id: evaluari-de-risc.arhivare
     heading: Arhivarea și ștergerea
   - id: evaluari-de-risc.fisa
-    heading: Fișa de evaluare a unui client
+    heading: Fișa de evaluare a riscurilor
   - id: evaluari-de-risc.in-afara-posturilor
     heading: Fișele în afara posturilor
   - id: evaluari-de-risc.grupuri-sensibile
@@ -55,7 +55,7 @@ sources:
   - apps/api/src/modules/documents/context.ts
 ---
 
-Evaluarea riscurilor se face pe fișe de evaluare: câte una pentru fiecare post al unui client și, unde e cazul, pentru grupurile sensibile și pentru alte persoane expuse. Din aceleași fișe aplicația generează evaluarea riscurilor de accidentare și îmbolnăvire profesională (documentul 9) și planul de prevenire și protecție (documentul 10). Un post pe care îl evaluezi des, ca lucrătorul de birou sau vânzătorul, îl păstrezi în bibliotecă și îl aplici la orice client.
+Evaluarea riscurilor se face pe fișe de evaluare a riscurilor: câte una pentru fiecare post al unui client și, unde e cazul, pentru grupurile sensibile și pentru alte persoane expuse. Din aceleași fișe aplicația generează evaluarea riscurilor de accidentare și îmbolnăvire profesională (documentul 9) și planul de prevenire și protecție (documentul 10). Un post pe care îl evaluezi des, ca lucrătorul de birou sau vânzătorul, îl păstrezi în bibliotecă și îl aplici la orice client.
 
 ## Ce este o evaluare de risc
 
@@ -66,7 +66,7 @@ Aplicația evaluează prin metoda I.N.C.D.P.M. București: pentru fiecare factor
 Două cuvinte numesc două lucruri diferite:
 
 - o **evaluare de risc** e o intrare din biblioteca organizației tale, numită după post („Bucătar”), pe care o aplici la clienți;
-- o **fișă de evaluare** e a unui client: a unui post al lui sau a unei categorii de persoane din afara posturilor. Ea intră în documentele clientului.
+- o **fișă de evaluare a riscurilor** e a unui client: a unui post al lui sau a unei categorii de persoane din afara posturilor. Ea intră în documentele clientului.
 
 ## Biblioteca
 
@@ -97,7 +97,7 @@ La un client activ, după salvare factorii fișei arată că sunt în evaluarea 
 
 ## Pagina unei evaluări din bibliotecă
 
-Pagina unei evaluări din bibliotecă are aceleași carduri ca o fișă: **Rezultatul evaluării**, **Sistemul de muncă** și **Factori de risc**, pe care le completezi la fel ca în [fișa de evaluare a unui client](#fișa-de-evaluare-a-unui-client). Diferențele:
+Pagina unei evaluări din bibliotecă are aceleași carduri ca o fișă: **Rezultatul evaluării**, **Sistemul de muncă** și **Factori de risc**, pe care le completezi la fel ca în [fișa de evaluare a riscurilor a unui client](#fișa-de-evaluare-a-riscurilor). Diferențele:
 
 - **Sistemul de muncă** are doar mijloacele de producție, mediul de muncă și expunerea, toate opționale. Sarcina de muncă și persoanele expuse vin din postul clientului. O expunere lăsată goală lasă fiecărei fișe expunerea ei.
 - **Termenele și persoanele care răspund** din plan sunt valori implicite: se copiază în fișă și le schimbi acolo pentru fiecare client.
@@ -130,9 +130,9 @@ O evaluare pe care nu o mai aplici o arhivezi cu **Arhivează…**, din listă s
 
 Doar o evaluare pe care nu o folosește niciun client se poate șterge: pentru una folosită, meniul nu are **Șterge…**, ci doar **Arhivează…**. La fel, o evaluare folosită doar la clienți sau posturi arhivate nu se poate șterge. Un singur factor al unei evaluări folosite se poate șterge oricând; fișele își păstrează copia lui.
 
-## Fișa de evaluare a unui client
+## Fișa de evaluare a riscurilor
 
-Fișa unui post o găsești pe pagina postului, în cardul **Fișa de evaluare**, cu **Începe evaluarea** cât timp postul nu are fișă și **Deschide fișa** după aceea. Tabelul posturilor are o coloană **Fișa de evaluare** cu starea fiecărui post. Un post nu poate declara că nu are nevoie de evaluare.
+Fișa unui post o găsești pe pagina postului, în cardul **Fișa de evaluare a riscurilor**, cu **Începe evaluarea** cât timp postul nu are fișă și **Deschide fișa** după aceea. Tabelul posturilor are o coloană **Fișa de evaluare a riscurilor** cu starea fiecărui post. Un post nu poate declara că nu are nevoie de evaluare.
 
 Fișa are trei carduri:
 
@@ -144,7 +144,7 @@ Fișa are trei carduri:
 
 ### Fișele în afara posturilor
 
-Pe tabul **Posturi de lucru** al clientului, cardul **Fișe de evaluare în afara posturilor** ține fișele care nu sunt ale unui post: a grupurilor sensibile și ale altor persoane expuse. Cu **Adaugă o fișă** dai un nume categoriei, de exemplu „Vizitatori” sau „Personalul firmelor de curățenie”, și o evaluezi ca pe un post.
+Pe tabul **Posturi de lucru** al clientului, cardul **Fișe de evaluare a riscurilor în afara posturilor** ține fișele care nu sunt ale unui post: a grupurilor sensibile și ale altor persoane expuse. Cu **Adaugă o fișă** dai un nume categoriei, de exemplu „Vizitatori” sau „Personalul firmelor de curățenie”, și o evaluezi ca pe un post.
 
 O fișă în afara posturilor are, la sistemul de muncă, și **Sarcina de muncă** și **Persoanele expuse**, pe care un post le ia din activitățile și lucrătorii lui.
 
@@ -225,7 +225,7 @@ Un factor venit din bibliotecă arată sub descriere „În evaluarea … din bi
 
 Evaluarea riscurilor (documentul 9) și planul de prevenire și protecție (documentul 10), din Documente SSM, se generează din fișele clientului. Ca să le poți genera:
 
-- fiecare post actual are fișa de evaluare, cu cel puțin un factor de risc;
+- fiecare post actual are fișa de evaluare a riscurilor, cu cel puțin un factor de risc;
 - grupurile sensibile sunt evaluate, cu cel puțin un factor, sau clientul a declarat că nu are lucrători din aceste grupuri;
 - fiecare factor inacceptabil, peste nivelul 3, are cel puțin o măsură de prevenire;
 - fiecare factor care are măsuri are un termen și o persoană care răspunde.

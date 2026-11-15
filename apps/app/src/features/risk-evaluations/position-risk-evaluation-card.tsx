@@ -76,7 +76,7 @@ export function PositionRiskEvaluationCard({
       data-testid="position-risk-card"
       title={
         <span>
-          Fișa de evaluare
+          Fișa de evaluare a riscurilor
           {query.data && (
             <DecisionBadge
               className="ml-3 align-middle"
@@ -110,7 +110,7 @@ export function PositionRiskEvaluationCard({
             </Button>
           }
         >
-          Nu am putut încărca fișa de evaluare a postului.
+          Nu am putut încărca fișa de evaluare a riscurilor pentru acest post.
         </Notice>
       ) : !evaluation ? (
         <EmptyState
@@ -137,7 +137,7 @@ export function PositionRiskEvaluationCard({
         </EmptyState>
       ) : evaluation.globalRiskLevel === null ? (
         <p data-testid="position-risk-no-factors" className="text-sm text-muted-foreground">
-          Fișa de evaluare nu are încă factori de risc.
+          Fișa de evaluare a riscurilor nu are încă factori de risc.
         </p>
       ) : (
         <FactList className="lg:grid-cols-3">

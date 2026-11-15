@@ -101,11 +101,11 @@ export function CopyRiskFactorsDialog({
           )}
           {evaluations.isError ? (
             <Notice variant="destructive">
-              Nu am putut încărca fișele de evaluare ale clientului.
+              Nu am putut încărca fișele de evaluare a riscurilor ale clientului.
             </Notice>
           ) : evaluations.data && sources.length === 0 ? (
             <Notice variant="info" data-testid="risk-factors-copy-none">
-              Nicio altă fișă de evaluare a clientului nu are factori încă.
+              Clientul nu are încă altă fișă de evaluare a riscurilor cu factori.
             </Notice>
           ) : (
             <Field id="risk-factors-copy-source" label="Fișa de la care copiezi" mark="required">

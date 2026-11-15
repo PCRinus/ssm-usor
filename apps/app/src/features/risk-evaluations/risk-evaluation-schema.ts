@@ -99,7 +99,7 @@ export function evaluationTitle(
 ) {
   if (evaluation.kind === 'job_position') return evaluation.jobPosition?.name ?? 'Post de lucru';
   if (evaluation.kind === 'sensitive_groups') return 'Grupuri sensibile';
-  return evaluation.name ?? 'Evaluare';
+  return evaluation.name ?? 'Fără denumire';
 }
 
 export function evaluationStateLabel(

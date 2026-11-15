@@ -214,7 +214,7 @@ function PositionNotEvaluated({
       >
         {readOnly
           ? 'Postul nu a fost evaluat. Clientul este arhivat, așa că nu se mai evaluează.'
-          : 'Postul nu a fost evaluat încă. Evaluarea riscurilor și planul de prevenire se generează din fișele de evaluare ale posturilor.'}
+          : 'Postul nu a fost evaluat încă. Evaluarea riscurilor și planul de prevenire se generează din fișele de evaluare a riscurilor ale posturilor.'}
       </Notice>
     </>
   );
@@ -232,8 +232,10 @@ function Header({
   return (
     <RecordHeader
       back={<RiskEvaluationBack />}
-      title={`Fișa de evaluare · ${title}`}
-      titleAside={<HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare" />}
+      title={`Fișa de evaluare a riscurilor · ${title}`}
+      titleAside={
+        <HelpLink topic="evaluari-de-risc.fisa" label="Ajutor: fișa de evaluare a riscurilor" />
+      }
       facts={facts}
       actions={actions}
     />
@@ -419,7 +421,7 @@ function RemoveEvaluationDialog({
         return;
       }
     }
-    toast.success('Fișa de evaluare a fost ștearsă.');
+    toast.success('Fișa de evaluare a riscurilor a fost ștearsă.');
     // The sheet is gone, so its entry is replaced rather than left for the browser's back.
     if (!returnToOpener()) await navigate({ ...afterRemove, replace: true, state: keepOpener });
     await cache.removed(evaluation);
@@ -429,7 +431,7 @@ function RemoveEvaluationDialog({
     <Dialog open={open} onOpenChange={(next) => !next && !remove.isPending && onClose()}>
       <DialogContent data-testid="risk-evaluation-remove-dialog" className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Ștergi fișa de evaluare?</DialogTitle>
+          <DialogTitle>Ștergi fișa de evaluare a riscurilor?</DialogTitle>
           <DialogDescription>
             {count === 0
               ? 'Fișa nu are factori de risc.'
@@ -467,8 +469,8 @@ export function RiskEvaluationNotFound() {
   return (
     <NotFound
       testId="risk-evaluation-not-found"
-      title="Fișa de evaluare nu a fost găsită"
-      description="Nu există nicio fișă de evaluare cu acest identificator la acest client, sau a fost ștearsă."
+      title="Fișa de evaluare a riscurilor nu a fost găsită"
+      description="Nu există nicio fișă de evaluare a riscurilor cu acest identificator la acest client, sau a fost ștearsă."
       action={
         <Button size="lg" asChild>
           <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
@@ -485,7 +487,7 @@ export function RiskEvaluationError({ error }: ErrorComponentProps) {
     <RouteError
       error={error}
       testId="risk-evaluation-error"
-      title="Fișa de evaluare nu a putut fi încărcată"
+      title="Fișa de evaluare a riscurilor nu a putut fi încărcată"
       retryTestId="risk-evaluation-retry"
       back={<RiskEvaluationBack />}
     />

@@ -1213,7 +1213,7 @@ their tab bars read.
   failed part offers "Citește din nou" (`POST …/retry`).
 - The import's risk evaluations ([ADR 036](architecture/adr-036-risk-library-and-import.md),
   `risks-task-page.tsx`, `risk-sheet-card.tsx`, `risks-model.ts`). After the instructions the hub
-  shows the group "Evaluări de risc" with one task, "Fișe de evaluare", for the part
+  shows the group "Evaluări de risc" with one task, "Evaluări de risc", for the part
   `risk_evaluations`, with the same states. The task, `/clienti/import/:importId/evaluari-de-risc`,
   says above its cards how many sheets are left to decide and how many factors to look at, and
   gives each sheet of the proposal a card of decision rows (`decision-row.tsx`, shared with the
@@ -1484,20 +1484,20 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   undecided, each linking to its card; the row menu has both cards, and the notice above the
   table names the positions undecided for each.
 - Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)), in
-  `src/features/risk-evaluations/`. The position page's last card, "Fișa de evaluare" (ADR 036), reads
+  `src/features/risk-evaluations/`. The position page's last card, "Fișa de evaluare a riscurilor" (ADR 036), reads
   `GET …/job-positions/{id}/risk-evaluation`: without an evaluation it says that generating
   waits for it and offers "Începe evaluarea" (`POST …/risk-evaluations` with the position),
   which opens the new evaluation; with one it gives the global level and whether it is over
   the acceptable limit, the factor count and the unacceptable count, and "Deschide fișa".
-  The positions table has a "Fișa de evaluare" column from `GET …/risk-evaluations`:
+  The positions table has a "Fișa de evaluare a riscurilor" column from `GET …/risk-evaluations`:
   "Neevaluat" and "Fără factori" in amber, otherwise "12 factori · 2,79"; it links to the
-  evaluation page, as does the row menu. Below the table, the card "Fișe de evaluare în afara
+  evaluation page, as does the row menu. Below the table, the card "Fișe de evaluare a riscurilor în afara
   posturilor" lists the sensitive groups, with "Începe evaluarea" while they have none, and
   the evaluations with a name; "Adaugă o fișă" asks for the name, and a `409` with
   `risk_evaluation_name_taken` goes on the field. These evaluations open on a page of their own
   under `/clienti/:clientId/posturi/fise-de-evaluare/:evaluationId`, the address of the
   section where their card is.
-- The evaluation page is the same for both, a full page: a record header titled "Fișa de evaluare · " and the
+- The evaluation page is the same for both, a full page: a record header titled "Fișa de evaluare a riscurilor · " and the
   position or the evaluation's name, the position (for a position's) and the client as links under it,
   and "Șterge fișa…", which asks first and returns to the position or to the positions; "Rezultatul evaluării", with the
   global level to two decimals, "Acceptabil" or "Peste limita acceptabilă" (3,50), the counts,
@@ -1554,7 +1554,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - `/evaluari-de-risc`: the organization's risk library ([ADR 015](architecture/adr-015-risk-assessment.md)),
   in `src/features/evaluation-profiles/`, "Evaluări de risc" in the sidebar for owners and
   specialists alike; the interface calls a profile an "evaluare" of the library and a client's
-  evaluation its "fișă de evaluare" (ADR 036). The list is the shared data table over
+  evaluation its "fișă de evaluare a riscurilor" (ADR 036). The list is the shared data table over
   `GET /evaluation-profiles`, its page, sort, order and status in the URL, under the tabs
   "Active" and "Arhivate" with the count; each row has its factors, the unacceptable ones, the
   global level, red above 3,50, and "Folosită la", "3 clienți" or "—", and only the name, the

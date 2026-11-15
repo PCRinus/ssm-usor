@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-11-02
 - Amended by [ADR 037](adr-037-import-quality-and-alerts.md) (accepted 2026-11-04): a risks library part keeps `quality` counts, its reading version and flags (the columns found on each sheet among them), and leaves an improvement copy of its proposal and the member's changes, kept apart for 12 months; its review gains a report entry.
+- Amended 2026-11-15: a client's evaluation is its **Fișa de evaluare a riscurilor**, the heading document 9 prints above each post's table; see [The names](#the-names).
 
 ## Context
 
@@ -32,7 +33,7 @@ The five reference archives, read for this ADR:
 
 Mircea decided on 2026-11-02:
 
-1. The sidebar entry and the library page are **Evaluări de risc**. The client's side is renamed instead: a post's evaluation is its **Fișa de evaluare**, the name document 9 prints ("Fișa de evaluare a locului de muncă").
+1. The sidebar entry and the library page are **Evaluări de risc**. The client's side is renamed instead: a post's evaluation is its **Fișa de evaluare**, the name document 9 prints ("Fișa de evaluare a locului de muncă"). (Amended 2026-11-15: **Fișa de evaluare a riscurilor**, below.)
 2. The library works like Instrucțiuni proprii: an entry no client uses can be deleted; one that any client uses can only be **archived**. Clients keep copies, not links. The list gains a usage column. Unlinking a client from an entry is #801.
 3. A library entry also holds the **work-system texts**, copied with its factors.
 4. A library entry's plan fields are **defaults**, copied into an evaluation and changed there for the employer.
@@ -54,11 +55,13 @@ The library is **Evaluări de risc**: the sidebar entry, the page's title and it
 - "Salvează în bibliotecă", "Unde este folosit" and the factor's origin ("în evaluarea Bucătar din bibliotecă") keep their place with the new noun;
 - every "profil" in the app's text goes.
 
-A client's evaluation is its **Fișa de evaluare**:
+A client's evaluation is its **Fișa de evaluare a riscurilor**, plural "fișe de evaluare a riscurilor":
 
-- the post page's section and the evaluation page's heading read "Fișa de evaluare";
-- the positions table's column reads "Fișa de evaluare";
-- the client-level card reads "Fișe de evaluare în afara posturilor".
+- the post page's section and the evaluation page's heading read "Fișa de evaluare a riscurilor";
+- the positions table's column reads "Fișa de evaluare a riscurilor";
+- the client-level card reads "Fișe de evaluare a riscurilor în afara posturilor".
+
+Mircea renamed it on 2026-11-15 from "Fișa de evaluare", which this decision first gave it. The longer name matches the heading document 9 prints above each post's table, "Fișa de evaluare a riscurilor de accidentare și/sau îmbolnăvire profesională" (chapter V, point III of each evaluation; the method's annexes are 1 to 5). The method's own text calls the same table "Fișa de evaluare a locului de muncă". The library stays "Evaluări de risc", the document stays "Evaluarea riscurilor de accidentare și îmbolnăvire profesională", and the overall figure is the method's "nivelul de risc global", "Nivel global" in a table cell. The addresses keep `fisa-de-evaluare` and `fise-de-evaluare`: links and bookmarks depend on them.
 
 What names the work or the document stays: document 9's title, the setup guide's "Evaluează riscurile posturilor", the missing-data labels and the documents tab.
 
@@ -188,7 +191,7 @@ The help site gains the article **Evaluări de risc** in the area ADR 028 reserv
 
 ## Consequences
 
-- **Two words for two things.** "Evaluări de risc" is the organization's library; "Fișa de evaluare" is the client's. The glossary maps them to `evaluation_profiles` and `risk_evaluations`, which keep their names.
+- **Two words for two things.** "Evaluări de risc" is the organization's library; "Fișa de evaluare a riscurilor" is the client's. The glossary maps them to `evaluation_profiles` and `risk_evaluations`, which keep their names.
 - **The library fills itself.** A provider's first import brings its own library with it, so the second client of a kind is cheap from the start.
 - **The first client's documents 9 and 10** can be generated right after an import, where the evaluation was the largest typing job in the product (ADR 015).
 - **The pack's errors are surfaced, not fixed.** A specialist sees every level the grid disagrees with; the app still never chooses a class.

@@ -117,7 +117,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
           </div>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Ce schimbi aici nu ajunge în fișele de evaluare în care ai aplicat-o deja.
+          Ce schimbi aici nu ajunge în fișele de evaluare a riscurilor în care ai aplicat-o deja.
         </p>
       </div>
       {archived && (

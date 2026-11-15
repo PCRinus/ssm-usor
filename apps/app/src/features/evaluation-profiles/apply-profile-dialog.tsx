@@ -122,7 +122,7 @@ export function ApplyProfileDialog({
           ) : sources.length === 0 ? (
             <Notice variant="info" data-testid="apply-profile-none">
               Biblioteca nu are încă evaluări cu factori. Salvează în bibliotecă o fișă de evaluare
-              terminată sau pornește o evaluare din{' '}
+              a riscurilor terminată sau pornește o evaluare din{' '}
               <Link to="/evaluari-de-risc" className="font-medium underline underline-offset-2">
                 Evaluări de risc
               </Link>

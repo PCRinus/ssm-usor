@@ -331,7 +331,8 @@ export const documentMissingData: Record<
   'positions.risk_evaluation': {
     place: 'riskEvaluations',
     label: 'Evaluarea riscurilor pe posturi',
-    detail: 'Fiecare post are nevoie de o evaluare cu cel puțin un factor de risc.',
+    detail:
+      'Fiecare post are nevoie de o fișă de evaluare a riscurilor cu cel puțin un factor de risc.',
     target: ({ clientId }) => to.positions(clientId),
   },
   'risk_evaluations.sensitive_groups': {

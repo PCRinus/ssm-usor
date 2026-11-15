@@ -382,7 +382,10 @@ function TaskContent({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
                 <PartStatusTag part={part} />
-                <HelpLink topic="import.evaluari-de-risc" label="Ajutor: evaluările din import" />
+                <HelpLink
+                  topic="import.evaluari-de-risc"
+                  label="Ajutor: evaluările de risc din import"
+                />
               </div>
               <p className="text-sm text-muted-foreground">{name}</p>
             </div>
@@ -467,7 +470,7 @@ function TaskContent({
                       selected: state.targets.map((target) => target.reference),
                       themes: defaultSheetPosts(state.sheet, part.postReferences),
                       description:
-                        'Bifează posturile pe care le evaluează fișa. Fiecare primește factorii ei pe fișa lui de evaluare.',
+                        'Bifează posturile cărora li se aplică evaluarea. Fiecare primește factorii ei pe fișa lui de evaluare a riscurilor.',
                       resetLabel: 'Ca în document',
                     })
                   }

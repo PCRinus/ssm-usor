@@ -258,7 +258,7 @@ describe("a client's job positions", () => {
       'Echipament de protecție',
       'Instrucțiuni SSM',
       'Instrucțiuni SU',
-      'Fișa de evaluare',
+      'Fișa de evaluare a riscurilor',
       'Modifică',
       'Șterge',
     ]);
@@ -493,7 +493,7 @@ describe("a client's job positions", () => {
       'Echipament de protecție',
       'Instrucțiuni SSM',
       'Instrucțiuni SU',
-      'Fișa de evaluare',
+      'Fișa de evaluare a riscurilor',
     ]);
   });
 

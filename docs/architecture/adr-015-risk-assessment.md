@@ -81,7 +81,7 @@ The closing chapter of the general training material (2.2) on the unit's own ris
 
 The position page gains a card "Evaluare de risc" with the post's state, its global level and the count of factors, opening a page of its own for the evaluation: a list this long does not fit a card. The positions table gains a column for the state. The client-level evaluations sit on the client's document data. The library is a sidebar entry of the organization, "Riscuri", beside "Instrucțiuni". Owners and specialists both edit.
 
-(Amended 2026-11-02 by [ADR 036](adr-036-risk-library-and-import.md). The sidebar entry and the library are "Evaluări de risc"; a client's evaluation shows as "Fișa de evaluare" on the post's page, its own page and the positions table, and the client-level card is "Fișe de evaluare în afara posturilor".)
+(Amended 2026-11-02 by [ADR 036](adr-036-risk-library-and-import.md). The sidebar entry and the library are "Evaluări de risc"; a client's evaluation shows as "Fișa de evaluare a riscurilor" on the post's page, its own page and the positions table, and the client-level card is "Fișe de evaluare a riscurilor în afara posturilor", as renamed on 2026-11-15.)
 
 ### One assessment per client
 

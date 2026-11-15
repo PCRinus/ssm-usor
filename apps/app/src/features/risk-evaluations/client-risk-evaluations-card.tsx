@@ -63,7 +63,7 @@ export function ClientRiskEvaluationsCard({
     <SectionCard
       id={clientEvaluationsSection}
       data-testid="client-risk-evaluations-card"
-      title="Fișe de evaluare în afara posturilor"
+      title="Fișe de evaluare a riscurilor în afara posturilor"
       help="evaluari-de-risc.in-afara-posturilor"
       description="Grupurile sensibile la riscuri specifice se evaluează ca un post; la fel orice altă categorie de persoane expuse, cum sunt vizitatorii."
       action={
@@ -100,7 +100,7 @@ export function ClientRiskEvaluationsCard({
             </Button>
           }
         >
-          Nu am putut încărca fișele de evaluare ale clientului.
+          Nu am putut încărca fișele de evaluare a riscurilor ale clientului.
         </Notice>
       ) : (
         <ul className="grid divide-y">
@@ -296,7 +296,7 @@ function AddEvaluationForm({ clientId, onClose }: { clientId: string; onClose: (
         noValidate
       >
         <DialogHeader>
-          <DialogTitle>Adaugă o fișă de evaluare</DialogTitle>
+          <DialogTitle>Adaugă o fișă de evaluare a riscurilor</DialogTitle>
           <DialogDescription>
             Pentru persoane expuse care nu ocupă un post al clientului. Grupurile sensibile au fișa
             lor.
