@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
 import { commuteMeanSchema, commuteMeansOtherMaxLength } from './commute-means';
-import { listQuerySchema, listSearchSchema, pageSchema } from './list';
+import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } from './list';
 import { phoneSchema } from './phone';
 import { employeeTestsSchema, testStateFilterSchema } from './tests';
 import { employeeTrainingSchema, employeeTrainingStateFilterSchema } from './trainings';
@@ -107,17 +107,53 @@ export type UpdateEmployeeStatusRequest = z.infer<typeof updateEmployeeStatusReq
 
 // Without a status the list returns current employees. "name" orders by last name then
 // first name.
-export const employeeSortKeys = ['name', 'jobTitle', 'jobPosition', 'hiredAt'] as const;
+export const employeeSortKeys = [
+  'name',
+  'jobTitle',
+  'jobPosition',
+  'hiredAt',
+  'terminatedAt',
+  'ssmTraining',
+  'suTraining',
+] as const;
 export type EmployeeSortKey = (typeof employeeSortKeys)[number];
 
-export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name').extend({
-  status: employeeStatusSchema.optional(),
-  // Matched in either domain; "attention" is untrained or overdue.
-  trainingState: employeeTrainingStateFilterSchema.optional(),
-  // As the training state: passed means passed in both domains.
-  testState: testStateFilterSchema.optional(),
-  q: listSearchSchema.optional(),
+// "toTrain" is the clients list's "de instruit", untrained or overdue in either domain, and
+// "trainingDue" its "scadente", due within 30 days in either domain.
+export const employeeAttentionFilters = [
+  'signaturesPending',
+  'noPhone',
+  'noEmail',
+  'toTrain',
+  'trainingDue',
+] as const;
+export type EmployeeAttentionFilter = (typeof employeeAttentionFilters)[number];
+
+// Within one filter any value matches; across filters every one must. A training state is read
+// in its own domain, "attention" being untrained or overdue there; a test state in either
+// domain, and "passed" in both.
+export const employeeListFiltersSchema = z.object({
+  ssmTraining: repeatedQueryValue(employeeTrainingStateFilterSchema).optional(),
+  suTraining: repeatedQueryValue(employeeTrainingStateFilterSchema).optional(),
+  test: repeatedQueryValue(testStateFilterSchema).optional(),
+  attention: repeatedQueryValue(z.enum(employeeAttentionFilters)).optional(),
 });
+
+export type EmployeeListFilters = z.infer<typeof employeeListFiltersSchema>;
+
+export const clientEmployeeListFiltersSchema = employeeListFiltersSchema.extend({
+  jobPosition: repeatedQueryValue(z.uuid()).optional(),
+  workplace: repeatedQueryValue(z.uuid()).optional(),
+});
+
+export type ClientEmployeeListFilters = z.infer<typeof clientEmployeeListFiltersSchema>;
+
+export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name')
+  .extend({
+    status: employeeStatusSchema.optional(),
+    q: listSearchSchema.optional(),
+  })
+  .extend(clientEmployeeListFiltersSchema.shape);
 
 export type ListEmployeesQuery = z.infer<typeof listEmployeesQuerySchema>;
 
@@ -164,25 +200,29 @@ export const employeeSchema = z.object({
 
 export type Employee = z.infer<typeof employeeSchema>;
 
-export const employeeListItemSchema = employeeSchema.pick({
-  id: true,
-  clientId: true,
-  lastName: true,
-  firstName: true,
-  employeeNumber: true,
-  email: true,
-  phone: true,
-  jobTitle: true,
-  jobPosition: true,
-  hiredAt: true,
-  status: true,
-  terminatedAt: true,
-  workplace: true,
-  createdAt: true,
-  updatedAt: true,
-  training: true,
-  tests: true,
-});
+export const employeeListItemSchema = employeeSchema
+  .pick({
+    id: true,
+    clientId: true,
+    lastName: true,
+    firstName: true,
+    employeeNumber: true,
+    email: true,
+    phone: true,
+    jobTitle: true,
+    jobPosition: true,
+    hiredAt: true,
+    status: true,
+    terminatedAt: true,
+    workplace: true,
+    createdAt: true,
+    updatedAt: true,
+    training: true,
+    tests: true,
+  })
+  .extend({
+    signaturesPending: z.int().min(0),
+  });
 
 export type EmployeeListItem = z.infer<typeof employeeListItemSchema>;
 
@@ -201,7 +241,10 @@ export const employeeResponseSchema = z.object({ employee: employeeSchema });
 
 export type EmployeeResponse = z.infer<typeof employeeResponseSchema>;
 
-export const employeeListResponseSchema = pageSchema(employeeListItemSchema);
+export const employeeListResponseSchema = pageSchema(employeeListItemSchema).extend({
+  // The count of the status asked for, with no search and no filter.
+  unfilteredTotal: z.int().min(0),
+});
 
 export type EmployeeListResponse = z.infer<typeof employeeListResponseSchema>;
 

@@ -128,13 +128,15 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
 
   await page.goto(`/clienti/${clientId}/angajati`);
   const row = page.getByTestId('employees-row').filter({ hasText: 'Testatu Ion' });
-  await expect(row.getByTestId('test-status-ssm')).toHaveText('Promovat');
-  await expect(row.getByTestId('test-status-su')).toHaveText('Fără test');
+  await expect(row.getByTestId('test-status')).toHaveText('SU: fără test');
 
-  await page.getByTestId('employees-test-filter-none').click();
-  await expect(page).toHaveURL(/testState=none/);
+  await page.getByTestId('employees-filters').click();
+  const panel = page.getByTestId('employees-filters-panel');
+  await panel.getByTestId('employees-filters-test-none').click();
+  await expect(page).toHaveURL(/test=none/);
   await expect(row).toBeVisible();
-  await page.getByTestId('employees-test-filter-passed').click();
-  await expect(page).toHaveURL(/testState=passed/);
-  await expect(page.getByTestId('employees-empty')).toBeVisible();
+  await panel.getByTestId('employees-filters-test-none').click();
+  await panel.getByTestId('employees-filters-test-passed').click();
+  await expect(page).toHaveURL(/test=passed/);
+  await expect(page.getByTestId('employees-empty-filtered')).toBeVisible();
 });

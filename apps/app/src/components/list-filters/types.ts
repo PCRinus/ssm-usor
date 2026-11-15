@@ -3,6 +3,9 @@ import type { LucideIcon } from 'lucide-react';
 export interface ListFilterOption {
   value: string;
   label: string;
+  short?: string;
+  // Offered only once chosen, as a link sets it: the facet's other options say the same.
+  onlyWhenChosen?: boolean;
 }
 
 export interface ListFilterFacet<Key extends string = string> {
@@ -14,6 +17,8 @@ export interface ListFilterFacet<Key extends string = string> {
   column: 'left' | 'right';
   // A long list, such as the counties: picked from a list with its own search box.
   search?: { placeholder: string; addLabel: string };
+  // While the options load, the values the address names are kept rather than dropped.
+  loading?: boolean;
 }
 
 export type ListFilterValues<Key extends string = string> = Readonly<
@@ -47,7 +52,7 @@ export function selectedLabels<Key extends string>(
   const selected = values[facet.key] ?? [];
   return facet.options
     .filter((option) => selected.includes(option.value))
-    .map((option) => option.label);
+    .map((option) => option.short ?? option.label);
 }
 
 export const noFilters = <Key extends string>() => ({}) as ListFilterValues<Key>;

@@ -35,7 +35,7 @@ import {
 
 import { formatDate, todayIso } from './employee-format';
 
-type Employee = EmployeeListResponse['items'][number];
+type Employee = Omit<EmployeeListResponse['items'][number], 'signaturesPending'>;
 
 export type EmployeeStatusAction = 'terminate' | 'reactivate';
 

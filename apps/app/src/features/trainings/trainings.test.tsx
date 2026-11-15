@@ -200,7 +200,13 @@ const heldWith = (...attendees: { id: string; lastName: string; firstName: strin
   })),
 });
 
-const page = (items: unknown[]) => ({ items, page: 1, pageSize: 25, total: items.length });
+const page = (items: unknown[], unfilteredTotal = items.length) => ({
+  items,
+  page: 1,
+  pageSize: 25,
+  total: items.length,
+  unfilteredTotal,
+});
 
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
 
@@ -859,18 +865,18 @@ describe('training state in the employee lists', () => {
     ssm: trainingStatus('overdue', '2026-06-01', '2025-12-01'),
     su: trainingStatus('due', '2026-10-30'),
   });
+  const headerTexts = () =>
+    screen.getAllByRole('columnheader').map((header) => header.textContent?.replace('⁠', ''));
 
   it("says each domain's state and due date in its own column on the client's list and filters by state", async () => {
     mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([popescu, overdue])) });
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?page=2`);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('employees-row');
-    expect(
-      screen
-        .getAllByRole('columnheader')
-        .map((header) => header.textContent)
-        .filter((text) => text?.startsWith('Instruire'))
-    ).toEqual(['Instruire SSM', 'Instruire SU']);
+    expect(headerTexts().filter((text) => text?.startsWith('Instruire'))).toEqual([
+      'Instruire SSM',
+      'Instruire SU',
+    ]);
     const first = within(rows[0]!);
     expect(first.getByTestId('training-status-ssm').dataset.state).toBe('current');
     expect(first.getByTestId('training-status-ssm').textContent).toBe('La zi');
@@ -885,68 +891,112 @@ describe('training state in the employee lists', () => {
     expect(second.getByTestId('training-status-su').textContent).toBe('Scadentă');
     expect(second.getByTestId('training-due-su').textContent).toBe('până la 30 oct. 2026');
 
-    expect(
-      within(screen.getByTestId('employees-training-filter'))
-        .getAllByRole('button')
-        .map((chip) => chip.textContent)
-    ).toEqual(['Toate', 'La zi', 'Scadente', 'Depășite', 'Neinstruiți', 'De instruit']);
     const historyLength = runtime.router.history.length;
-    await user.click(screen.getByTestId('employees-training-filter-overdue'));
+    await user.click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    expect(
+      within(within(panel).getByRole('list', { name: 'Instruire SSM' }))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual([
+      'De instruit (neinstruiți sau depășiți)',
+      'Neinstruiți',
+      'Depășită',
+      'Scadentă în 30 de zile',
+      'La zi',
+    ]);
+    await user.click(within(panel).getByTestId('employees-filters-ssmTraining-overdue'));
+    await user.click(within(panel).getByTestId('employees-filters-suTraining-attention'));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ trainingState: 'overdue' })
+      expect(runtime.router.state.location.search).toEqual({
+        ssmTraining: 'overdue',
+        suTraining: 'attention',
+      })
     );
     expect(runtime.router.history.length).toBe(historyLength);
-    expect(
-      screen.getByTestId('employees-training-filter-overdue').getAttribute('aria-pressed')
-    ).toBe('true');
-    await waitFor(() =>
-      expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('trainingState')).toBe(
-        'overdue'
-      )
-    );
-    await user.click(screen.getByTestId('employees-training-filter-all'));
+    await waitFor(() => {
+      const sent = requests('GET', employeesPath).at(-1)!.url.searchParams;
+      expect(sent.getAll('ssmTraining')).toEqual(['overdue']);
+      expect(sent.getAll('suTraining')).toEqual(['attention']);
+      expect(sent.get('page')).toBe('1');
+    });
+    await user.click(within(panel).getByTestId('employees-filters-clear'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
-  it('opens filtered to those to train, as the clients list links to them', async () => {
+  it.each([
+    ['attention=toTrain', 'De instruit, SSM sau SU'],
+    ['trainingState=attention', 'De instruit, SSM sau SU'],
+    ['trainingState=due', 'Instruire scadentă în 30 de zile, SSM sau SU'],
+  ])(
+    'opens filtered to those to train in either domain, as the clients list links to them: %s',
+    async (search, label) => {
+      mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([popescu])) });
+      mountApp(authFixture(makeSession()).client, `${employeesPage}?${search}`);
+      await screen.findAllByTestId('employees-row');
+      expect(screen.getByTestId('employees-applied-filters-attention').textContent).toContain(
+        label
+      );
+      const sent = requests('GET', employeesPath).at(-1)!.url.searchParams;
+      expect(sent.getAll('attention')).toHaveLength(1);
+      expect(sent.has('trainingState')).toBe(false);
+    }
+  );
+
+  it("drops an earlier link's filter from the address once it is removed", async () => {
     mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([popescu])) });
-    mountApp(authFixture(makeSession()).client, `${employeesPage}?trainingState=attention`);
-    await screen.findAllByTestId('employees-row');
-    expect(
-      screen.getByTestId('employees-training-filter-attention').getAttribute('aria-pressed')
-    ).toBe('true');
-    expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('trainingState')).toBe(
-      'attention'
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${employeesPage}?trainingState=attention&testState=pending`
     );
+    const user = userEvent.setup();
+    await screen.findAllByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-applied-filters-attention-remove'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ test: 'pending' }));
+    await user.click(screen.getByTestId('employees-applied-filters-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await waitFor(() => {
+      const sent = requests('GET', employeesPath).at(-1)!.url.searchParams;
+      expect(sent.has('attention')).toBe(false);
+      expect(sent.has('test')).toBe(false);
+    });
   });
 
-  it('offers no "De instruit" among all the organization\'s employees', async () => {
+  it('opens a dashboard link of one domain on that domain alone', async () => {
     mockApi({
-      'GET /employees': () => Response.json(page([])),
+      'GET /employees': () =>
+        Response.json(page([{ ...overdue, client: { id: clientId, name: 'OMV PETROM SA' } }])),
       'GET /clients': () => Response.json(page([sampleClient])),
     });
-    mountApp(authFixture(makeSession()).client, '/angajati');
-    await screen.findByTestId('organization-employees-training-filter');
-    expect(screen.queryByTestId('organization-employees-training-filter-attention')).toBeNull();
+    mountApp(authFixture(makeSession()).client, '/angajati?trainingState=overdue&domain=ssm');
+    await screen.findAllByTestId('organization-employees-row');
+    const sent = requests('GET', '/employees').at(-1)!.url.searchParams;
+    expect(sent.getAll('ssmTraining')).toEqual(['overdue']);
+    expect(sent.has('suTraining')).toBe(false);
+    expect(sent.has('domain')).toBe(false);
+    expect(
+      screen.getByTestId('organization-employees-applied-filters-ssmTraining').textContent
+    ).toContain('Depășită');
   });
 
   it('says when no one is in the state asked for, and shows everyone again', async () => {
     mockApi({
       [`GET ${employeesPath}`]: (url) =>
-        Response.json(page(url.searchParams.get('trainingState') ? [] : [popescu])),
+        Response.json(url.searchParams.get('ssmTraining') ? page([], 1) : page([popescu])),
     });
     const runtime = mountApp(
       authFixture(makeSession()).client,
-      `${employeesPage}?trainingState=overdue`
+      `${employeesPage}?ssmTraining=overdue`
     );
     const user = userEvent.setup();
-    expect(await screen.findByText('Niciun lucrător în această stare a instruirii')).toBeTruthy();
-    await user.click(screen.getByTestId('employees-empty-clear-training-state'));
+    expect(await screen.findByText('Niciun lucrător nu se potrivește')).toBeTruthy();
+    expect(screen.getByTestId('employees-applied-filters')).toBeTruthy();
+    await user.click(screen.getByTestId('employees-empty-filtered-clear'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     expect(await screen.findAllByTestId('employees-row')).toHaveLength(1);
   });
 
-  it('shows a dash instead of a badge for a leaver', async () => {
+  it('shows a dash instead of a badge for a leaver, and no training filters', async () => {
     const leaver = {
       ...employee(ionescu.id, 'Ionescu', 'Ana', undefined, {
         ssm: trainingStatus(null),
@@ -957,14 +1007,20 @@ describe('training state in the employee lists', () => {
     };
     mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([leaver])) });
     mountApp(authFixture(makeSession()).client, `${employeesPage}?status=terminated`);
+    const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('employees-row');
     expect(within(row!).queryByTestId('training-status-ssm')).toBeNull();
     expect(within(row!).queryByTestId('training-status-su')).toBeNull();
-    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+    const headers = headerTexts();
     const cells = within(row!).getAllByRole('cell');
     expect(cells[headers.indexOf('Instruire SSM')]!.textContent).toBe('—');
     expect(cells[headers.indexOf('Instruire SU')]!.textContent).toBe('—');
-    expect(screen.queryByTestId('employees-training-filter')).toBeNull();
+    expect(cells[headers.indexOf('Data încetării')]!.textContent).toBe('31 ian. 2026');
+    await user.click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    expect(within(panel).queryByRole('heading', { name: 'Instruire SSM' })).toBeNull();
+    expect(within(panel).queryByRole('heading', { name: 'Testare' })).toBeNull();
+    expect(within(panel).getByRole('heading', { name: 'Necesită atenție' })).toBeTruthy();
   });
 
   it("filters the organization's employees by state", async () => {
@@ -978,47 +1034,28 @@ describe('training state in the employee lists', () => {
     const [row] = await screen.findAllByTestId('organization-employees-row');
     expect(within(row!).getByTestId('training-status-ssm').textContent).toBe('Depășită');
     expect(within(row!).getByTestId('training-due-su').textContent).toBe('până la 30 oct. 2026');
-    await user.click(screen.getByTestId('organization-employees-training-filter-untrained'));
-    await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ trainingState: 'untrained' })
+    await user.click(screen.getByTestId('organization-employees-filters'));
+    const panel = await screen.findByTestId('organization-employees-filters-panel');
+    await user.click(
+      within(panel).getByTestId('organization-employees-filters-suTraining-untrained')
+    );
+    await user.click(
+      within(panel).getByTestId('organization-employees-filters-suTraining-current')
     );
     await waitFor(() =>
-      expect(requests('GET', '/employees').at(-1)!.url.searchParams.get('trainingState')).toBe(
-        'untrained'
-      )
+      expect(runtime.router.state.location.search).toEqual({
+        suTraining: ['untrained', 'current'],
+      })
     );
-    await user.click(screen.getByTestId('organization-employees-training-filter-current'));
+    expect(runtime.router.state.location.href).toBe(
+      '/angajati?suTraining=untrained&suTraining=current'
+    );
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ trainingState: 'current' })
+      expect(requests('GET', '/employees').at(-1)!.url.searchParams.getAll('suTraining')).toEqual([
+        'untrained',
+        'current',
+      ])
     );
-    await waitFor(() =>
-      expect(requests('GET', '/employees').at(-1)!.url.searchParams.get('trainingState')).toBe(
-        'current'
-      )
-    );
-  });
-
-  it('reads one domain when the link names it, and both again once a state is picked', async () => {
-    mockApi({
-      'GET /employees': () =>
-        Response.json(page([{ ...overdue, client: { id: clientId, name: 'OMV PETROM SA' } }])),
-      'GET /clients': () => Response.json(page([sampleClient])),
-    });
-    const runtime = mountApp(
-      authFixture(makeSession()).client,
-      '/angajati?trainingState=overdue&domain=ssm'
-    );
-    const user = userEvent.setup();
-    await screen.findAllByTestId('organization-employees-row');
-    const sent = () => requests('GET', '/employees').at(-1)!.url.searchParams;
-    expect(sent().get('trainingState')).toBe('overdue');
-    expect(sent().get('domain')).toBe('ssm');
-    await user.click(screen.getByTestId('organization-employees-training-filter-due'));
-    await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ trainingState: 'due' })
-    );
-    await waitFor(() => expect(sent().get('trainingState')).toBe('due'));
-    expect(sent().has('domain')).toBe(false);
   });
 });
 
@@ -1371,74 +1408,90 @@ describe('test state in the employee lists', () => {
     ...employee(taranu.id, 'Țăranu', 'Ștefan'),
     tests: { ssm: testStatus('passed'), su: testStatus('annual_due', 'annual') },
   };
+  const pending = {
+    ...employee(ionescu.id, 'Ionescu', 'Ana'),
+    tests: { ssm: testStatus('pending', 'hiring'), su: testStatus('pending', 'hiring') },
+  };
 
-  it('shows both domains in one column on the client list and filters by test state', async () => {
+  it('says in one line only the test that asks for action, and filters by test state', async () => {
     mockApi({
       [`GET ${employeesPath}`]: (url) =>
-        Response.json(page(url.searchParams.get('testState') === 'none' ? [] : [popescu, tested])),
+        Response.json(
+          url.searchParams.get('test') === 'none' ? page([], 3) : page([popescu, tested, pending])
+        ),
     });
     const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('employees-row');
     const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
     expect(headers.filter((text) => text === 'Testare')).toHaveLength(1);
-    expect(headers.indexOf('Testare')).toBe(headers.indexOf('Instruire SU') + 1);
-    expect(within(rows[0]!).getByTestId('test-status-ssm').textContent).toBe('Fără test');
-    const second = within(rows[1]!);
-    expect(second.getByTestId('test-status-ssm').textContent).toBe('Promovat');
-    expect(second.getByTestId('test-status-ssm').className).toContain('bg-success');
-    expect(second.getByTestId('test-status-su').textContent).toBe('Anual scadent');
+    expect(within(rows[0]!).getByTestId('test-status').textContent).toBe('—');
+    const second = within(rows[1]!).getByTestId('test-status');
+    expect(second.textContent).toBe('SU: anual scadent');
+    expect(second.dataset.state).toBe('annual_due');
+    expect(within(rows[2]!).getByTestId('test-status').textContent).toBe('De susținut');
 
+    await user.click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
     expect(
-      within(screen.getByTestId('employees-test-filter'))
-        .getAllByRole('button')
-        .map((chip) => chip.textContent)
-    ).toEqual([
-      'Toate',
-      'La zi',
-      'De susținut',
-      'Anual scadent',
-      'Neverificat pe fișă',
-      'Fără test',
-    ]);
-    await user.click(screen.getByTestId('employees-test-filter-pending'));
+      within(within(panel).getByRole('list', { name: 'Testare' }))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual(['De susținut', 'Anual scadent', 'Neverificat pe fișă', 'La zi', 'Fără test']);
+    await user.click(within(panel).getByTestId('employees-filters-test-pending'));
+    await user.click(within(panel).getByTestId('employees-filters-test-unverified'));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ testState: 'pending' })
+      expect(requests('GET', employeesPath).at(-1)!.url.searchParams.getAll('test')).toEqual([
+        'pending',
+        'unverified',
+      ])
     );
-    await waitFor(() =>
-      expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('testState')).toBe(
-        'pending'
-      )
-    );
-    await user.click(screen.getByTestId('employees-test-filter-unverified'));
-    await waitFor(() =>
-      expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('testState')).toBe(
-        'unverified'
-      )
-    );
-    await user.click(screen.getByTestId('employees-test-filter-none'));
-    expect(await screen.findByText('Niciun lucrător în această stare a testării')).toBeTruthy();
-    await user.click(screen.getByTestId('employees-empty-clear-test-state'));
+    await user.click(within(panel).getByTestId('employees-filters-test-pending'));
+    await user.click(within(panel).getByTestId('employees-filters-test-unverified'));
+    await user.click(within(panel).getByTestId('employees-filters-test-none'));
+    await user.keyboard('{Escape}');
+    expect(await screen.findByText('Niciun lucrător nu se potrivește')).toBeTruthy();
+    await user.click(screen.getByTestId('employees-empty-filtered-clear'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
-    expect(await screen.findAllByTestId('employees-row')).toHaveLength(2);
+    expect(await screen.findAllByTestId('employees-row')).toHaveLength(3);
   });
 
-  it("filters the organization's employees by test state", async () => {
+  it.each([
+    [{ ssm: 'passed', su: 'passed' }, 'La zi'],
+    [{ ssm: 'passed', su: 'none' }, 'SU: fără test'],
+    [{ ssm: 'none', su: 'none' }, '—'],
+    [{ ssm: 'unverified', su: 'passed' }, 'Neverificat pe fișă'],
+  ] as const)(
+    'says "La zi" only when both domains passed, as the filter: %o',
+    async (states, text) => {
+      const row = {
+        ...employee(taranu.id, 'Țăranu', 'Ștefan'),
+        tests: { ssm: testStatus(states.ssm), su: testStatus(states.su) },
+      };
+      mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([row])) });
+      mountApp(authFixture(makeSession()).client, employeesPage);
+      const [listed] = await screen.findAllByTestId('employees-row');
+      expect(within(listed!).getByTestId('test-status').textContent).toBe(text);
+    }
+  );
+
+  it("filters the organization's employees by test state, dropping a value it does not know", async () => {
     mockApi({
       'GET /employees': () =>
         Response.json(page([{ ...tested, client: { id: clientId, name: 'OMV PETROM SA' } }])),
       'GET /clients': () => Response.json(page([sampleClient])),
     });
-    const runtime = mountApp(authFixture(makeSession()).client, '/angajati?testState=garbage');
+    mountApp(authFixture(makeSession()).client, '/angajati?testState=garbage&test=garbage');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('organization-employees-row');
-    expect(runtime.router.state.location.search).toEqual({});
-    expect(within(row!).getByTestId('test-status-su').textContent).toBe('Anual scadent');
-    await user.click(screen.getByTestId('organization-employees-test-filter-annual_due'));
+    expect(requests('GET', '/employees')[0]!.url.searchParams.has('test')).toBe(false);
+    expect(within(row!).getByTestId('test-status').textContent).toBe('SU: anual scadent');
+    await user.click(screen.getByTestId('organization-employees-filters'));
+    await user.click(await screen.findByTestId('organization-employees-filters-test-annual_due'));
     await waitFor(() =>
-      expect(requests('GET', '/employees').at(-1)!.url.searchParams.get('testState')).toBe(
-        'annual_due'
-      )
+      expect(requests('GET', '/employees').at(-1)!.url.searchParams.getAll('test')).toEqual([
+        'annual_due',
+      ])
     );
   });
 });

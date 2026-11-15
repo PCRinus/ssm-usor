@@ -25,10 +25,7 @@ export const helpTopics = {
     path: '/clienti/angajati/portal-si-act-aditional/',
     anchor: 'stările-actului-adițional',
   },
-  'angajati.actuali-si-fosti': {
-    path: '/clienti/angajati/',
-    anchor: 'lucrători-actuali-și-foști-lucrători',
-  },
+  'angajati.actuali-si-fosti': { path: '/clienti/angajati/', anchor: 'actuali-și-foști' },
   'angajati.adaugare': {
     path: '/clienti/angajati/adaugare-si-editare/',
     anchor: 'adăugarea-unui-lucrător',
@@ -81,7 +78,7 @@ export const helpTopics = {
   },
   'angajati.email': { path: '/clienti/angajati/adaugare-si-editare/', anchor: 'emailul' },
   'angajati.examinator': { path: '/clienti/angajati/instruire-si-teste/', anchor: 'examinatorul' },
-  'angajati.filtre-stari': { path: '/clienti/angajati/', anchor: 'filtrele-după-stare' },
+  'angajati.filtre-stari': { path: '/clienti/angajati/', anchor: 'filtrele' },
   'angajati.fisa-date-lipsa': {
     path: '/clienti/angajati/instruire-si-teste/',
     anchor: 'ce-lipsește-pentru-fișă',

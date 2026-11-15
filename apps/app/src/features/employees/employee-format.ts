@@ -1,8 +1,8 @@
 import type { EmployeeStatus } from '@ssm-usor/contracts';
 
 export const employeeStatusLabels: Record<EmployeeStatus, string> = {
-  active: 'Lucrători actuali',
-  terminated: 'Foști lucrători',
+  active: 'Actuali',
+  terminated: 'Foști',
 };
 
 const dateFormat = new Intl.DateTimeFormat('ro-RO', {
@@ -29,6 +29,11 @@ export function roCount(value: number, one: string, many: string) {
   const tail = value % 100;
   return value !== 0 && (tail === 0 || tail >= 20) ? `${value} de ${many}` : `${value} ${many}`;
 }
+
+export const workerNoun = (count: number) => roCount(count, 'lucrător', 'lucrători');
+
+export const pendingWorkersLabel = (total: number | undefined) =>
+  total === undefined ? 'Arată rezultatele' : `Arată ${workerNoun(total)}`;
 
 export function formatTenure(fromIso: string, toIso: string) {
   const [fromYear = 0, fromMonth = 0, fromDay = 0] = fromIso.split('-').map(Number);

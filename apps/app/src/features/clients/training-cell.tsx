@@ -1,4 +1,4 @@
-import type { ClientTraining, EmployeeTrainingStateFilter } from '@ssm-usor/contracts';
+import type { ClientTraining } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Check, CircleAlert, Clock } from 'lucide-react';
@@ -8,9 +8,19 @@ import { roCount } from '@/features/employees/employee-format';
 
 import type { ClientRow } from './client-columns';
 
-function trainingLinkState(training: ClientTraining): EmployeeTrainingStateFilter {
-  if (training.attentionCount > 0) return 'attention';
-  return training.dueCount > 0 ? 'due' : 'current';
+// The cell counts either domain, as the workers list's "De instruit" and "Scadentă" needs do;
+// "La zi" is current in both.
+function trainingLink(training: ClientTraining) {
+  if (training.attentionCount > 0) {
+    return { state: 'attention', search: { attention: ['toTrain' as const] } } as const;
+  }
+  if (training.dueCount > 0) {
+    return { state: 'due', search: { attention: ['trainingDue' as const] } } as const;
+  }
+  return {
+    state: 'current',
+    search: { ssmTraining: ['current' as const], suTraining: ['current' as const] },
+  } as const;
 }
 
 export function TrainingCell({ client }: { client: ClientRow }) {
@@ -18,7 +28,7 @@ export function TrainingCell({ client }: { client: ClientRow }) {
   if (!training || training.employeeCount === 0) {
     return <span className="text-muted-foreground">—</span>;
   }
-  const state = trainingLinkState(training);
+  const { state, search } = trainingLink(training);
   const [Icon, label, tone, iconTone] =
     training.attentionCount > 0
       ? [
@@ -39,7 +49,7 @@ export function TrainingCell({ client }: { client: ClientRow }) {
     <Link
       to="/clienti/$clientId/angajati"
       params={{ clientId: client.id }}
-      search={{ trainingState: state }}
+      search={search}
       state={openedHere}
       data-testid="clients-training"
       data-state={state}

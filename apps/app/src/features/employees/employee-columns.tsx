@@ -14,87 +14,32 @@ import type { EmployeeListResponse } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
-import { formatDate } from './employee-format';
 import type { EmployeeStatusChange } from './employee-status-dialog';
-import { testStateColumn } from './test-state-column';
-import { trainingStateColumns } from './training-state-columns';
+import { workerColumns } from './worker-columns';
 
 export type EmployeeRow = EmployeeListResponse['items'][number];
 
 const helper = createDataTableColumns<EmployeeRow>();
+const columns = workerColumns<EmployeeRow>('employees');
 
-// Sortable column ids are the API sort keys: name, jobPosition, hiredAt.
 // Without `onStatusChange` the client is archived and the rows have no actions.
-export function employeeColumns(onStatusChange?: (change: EmployeeStatusChange) => void) {
+export function employeeColumns({
+  former,
+  withStates,
+  onStatusChange,
+}: {
+  former: boolean;
+  withStates: boolean;
+  onStatusChange?: (change: EmployeeStatusChange) => void;
+}) {
   return helper.columns([
-    helper.accessor((row) => formatEmployeeName(row), {
-      id: 'name',
-      header: 'Lucrător',
-      enableSorting: true,
-      meta: {
-        cellClassName: 'font-medium',
-        skeletonClassName: 'w-40',
-        personal: true,
-      },
-      cell: ({ row, getValue }) => (
-        <>
-          <Link
-            to="/clienti/$clientId/angajati/$employeeId"
-            state={openedHere}
-            params={{ clientId: row.original.clientId, employeeId: row.original.id }}
-            data-testid="employees-open"
-            className="hover:underline"
-          >
-            {getValue()}
-          </Link>
-          {row.original.employeeNumber && (
-            <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-              Marca {row.original.employeeNumber}
-            </span>
-          )}
-        </>
-      ),
-    }),
-    // The post the person fills; the contract title is on their page (ADR 006).
-    helper.accessor((row) => row.jobPosition.name, {
-      id: 'jobPosition',
-      header: 'Post de lucru',
-      enableSorting: true,
-      meta: { skeletonClassName: 'w-28' },
-    }),
-    ...trainingStateColumns<EmployeeRow>(),
-    testStateColumn<EmployeeRow>(),
-    helper.display({
-      id: 'contact',
-      header: 'Contact',
-      meta: { cellClassName: 'max-w-56 text-sm', skeletonClassName: 'w-40', personal: true },
-      cell: ({ row }) => {
-        const { email, phone } = row.original;
-        if (!email && !phone) return '—';
-        return (
-          <>
-            {email && <span className="block truncate">{email}</span>}
-            {phone && <span className="block tabular-nums">{phone}</span>}
-          </>
-        );
-      },
-    }),
-    helper.accessor('hiredAt', {
-      id: 'hiredAt',
-      header: 'Angajat din',
-      enableSorting: true,
-      meta: { cellClassName: 'tabular-nums', skeletonClassName: 'w-24' },
-      cell: ({ row, getValue }) => (
-        <>
-          {formatDate(getValue())}
-          {row.original.terminatedAt && (
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              până la {formatDate(row.original.terminatedAt)}
-            </span>
-          )}
-        </>
-      ),
-    }),
+    columns.name,
+    columns.jobPosition,
+    ...columns.training(withStates),
+    columns.tests,
+    columns.signatures,
+    columns.hiredAt,
+    ...(former ? [columns.terminatedAt] : []),
     helper.display({
       id: 'actions',
       header: () => <span className="sr-only">Acțiuni</span>,

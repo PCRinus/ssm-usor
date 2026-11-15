@@ -2,17 +2,21 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type CreateEmployeeRequest,
   type Employee,
+  type EmployeeAttentionFilter,
+  type EmployeeListFilters,
   type EmployeeListItem,
   type EmployeeSortKey,
+  type EmployeeStatus,
   type EmployeeTrainingStateFilter,
-  type ListOrganizationEmployeesQuery,
   normalizeCnp,
   orderedCommuteMeans,
-  type OrganizationEmployeeListItem,
   type OrganizationEmployeeSortKey,
   pageRange,
   searchTerms,
+  type SortOrder,
   type TestStateFilter,
+  type TrainingDomain,
+  trainingDomains,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -50,50 +54,6 @@ const employeeColumnsWithoutStatus =
 export const employeeListColumns =
   `${employeeColumnsWithoutStatus}, training_status(${trainingStatusFields}), ${testStatusColumns}` as const;
 
-type StateFilters = {
-  trainingState?: EmployeeTrainingStateFilter;
-  testState?: TestStateFilter;
-};
-
-// Inner, so that a filter on a status drops the employees it leaves out.
-function listColumnsFor<Columns extends string>(columns: Columns, filters: StateFilters) {
-  let filtered: string = columns;
-  if (filters.trainingState) {
-    filtered = filtered.replace('training_status(', 'training_status!inner(');
-  }
-  if (filters.testState) filtered = filtered.replace('test_status(', 'test_status!inner(');
-  return filtered as Columns;
-}
-
-// "La zi" means up to date in both domains, and a passed test passed in both; every other state
-// flags someone the specialist has to see to in either. "attention" is the clients list's
-// "de instruit": untrained or overdue.
-function inStates<Q extends { or(filters: string, options: { referencedTable: string }): Q }>(
-  query: Q,
-  { trainingState, testState }: StateFilters
-) {
-  const matching = (state: string, everywhere: boolean) =>
-    everywhere
-      ? `and(ssm_state.eq.${state},su_state.eq.${state})`
-      : `ssm_state.eq.${state},su_state.eq.${state}`;
-  let filtered = query;
-  if (trainingState === 'attention') {
-    filtered = filtered.or('ssm_state.in.(untrained,overdue),su_state.in.(untrained,overdue)', {
-      referencedTable: 'training_status',
-    });
-  } else if (trainingState) {
-    filtered = filtered.or(matching(trainingState, trainingState === 'current'), {
-      referencedTable: 'training_status',
-    });
-  }
-  if (testState) {
-    filtered = filtered.or(matching(testState, testState === 'passed'), {
-      referencedTable: 'test_status',
-    });
-  }
-  return filtered;
-}
-
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns =
   `${employeeListColumns}, cnp, birth_date, birth_place, home_address, residence_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, contract_number` as const;
@@ -121,7 +81,7 @@ type EmployeeListRow = Pick<
   test_status: TestStatusRow | null;
 };
 
-export function toEmployeeListItem(row: EmployeeListRow): EmployeeListItem {
+function toEmployeeListItem(row: EmployeeListRow): Omit<EmployeeListItem, 'signaturesPending'> {
   return {
     id: row.id,
     clientId: row.client_id,
@@ -184,7 +144,7 @@ export function toEmployee(
 async function findClient(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
-    .select('id, archived_at')
+    .select('id, archived_at, stage')
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
@@ -243,83 +203,265 @@ function conflictMessage(detail: string | undefined) {
   return 'This employee conflicts with an existing one.';
 }
 
-// The id keeps every order stable across pages.
-const sortColumns: Record<EmployeeSortKey, string[]> = {
-  name: ['last_name', 'first_name'],
-  jobTitle: ['job_title', 'last_name', 'first_name'],
-  jobPosition: ['job_positions(name)', 'last_name', 'first_name'],
-  hiredAt: ['hired_at', 'last_name', 'first_name'],
+const listViewColumns =
+  'id, client_id, client_name, last_name, first_name, employee_number, email, phone, job_title, job_position_id, job_position_name, workplace_id, workplace_name, hired_at, status, terminated_at, created_at, updated_at, signatures_pending_count';
+
+type EmployeeListView = Database['public']['Views']['employee_list']['Row'];
+
+// The generated types make every column of a view nullable; these come from not-null columns of
+// the employee, its client and its post.
+type RequiredListColumn =
+  | 'id'
+  | 'client_id'
+  | 'client_name'
+  | 'last_name'
+  | 'first_name'
+  | 'job_title'
+  | 'job_position_id'
+  | 'job_position_name'
+  | 'hired_at'
+  | 'status'
+  | 'created_at'
+  | 'updated_at';
+
+type ListViewRow = { [Column in RequiredListColumn]: NonNullable<EmployeeListView[Column]> } & Pick<
+  EmployeeListView,
+  | 'employee_number'
+  | 'email'
+  | 'phone'
+  | 'workplace_id'
+  | 'workplace_name'
+  | 'terminated_at'
+  | 'signatures_pending_count'
+>;
+
+type ListedEmployee = { item: EmployeeListItem; client: { id: string; name: string } };
+
+// The statuses are read for the page only: they carry more than the view, which computes only
+// what the list filters and sorts on.
+async function listedEmployees(db: DataClient, rows: ListViewRow[]): Promise<ListedEmployee[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((row) => row.id);
+  const [training, tests] = await Promise.all([
+    db
+      .from('employee_training_status')
+      .select(`employee_id, ${trainingStatusFields}`)
+      .in('employee_id', ids),
+    db
+      .from('employee_test_status')
+      .select(`employee_id, ${testStatusFields}`)
+      .in('employee_id', ids),
+  ]);
+  if (training.error) throw fromDatabaseError(training.error, 'read training status');
+  if (tests.error) throw fromDatabaseError(tests.error, 'read test status');
+  const trainingOf = new Map(training.data.map((row) => [row.employee_id, row]));
+  const testsOf = new Map(tests.data.map((row) => [row.employee_id, row]));
+  return rows.map((row) => ({
+    item: {
+      ...toEmployeeListItem({
+        ...row,
+        job_positions: { id: row.job_position_id, name: row.job_position_name },
+        client_workplaces:
+          row.workplace_id && row.workplace_name
+            ? { id: row.workplace_id, name: row.workplace_name }
+            : null,
+        training_status: trainingOf.get(row.id) ?? null,
+        test_status: testsOf.get(row.id) ?? null,
+      }),
+      signaturesPending: row.signatures_pending_count ?? 0,
+    },
+    client: { id: row.client_id, name: row.client_name },
+  }));
+}
+
+type SortColumn = { column: string; nullsLast?: true };
+
+const byName: SortColumn[] = [{ column: 'last_name' }, { column: 'first_name' }];
+
+const trainingOrder = (domain: TrainingDomain): SortColumn[] => [
+  { column: `${domain}_training_rank`, nullsLast: true },
+  { column: `${domain}_training_due_on`, nullsLast: true },
+  ...byName,
+];
+
+// The id keeps every order stable across pages. A leaver has no training state and an employee
+// on the current tab no leave date, so either comes last both ways.
+const sortColumns: Record<EmployeeSortKey | OrganizationEmployeeSortKey, SortColumn[]> = {
+  name: byName,
+  jobTitle: [{ column: 'job_title' }, ...byName],
+  jobPosition: [{ column: 'job_position_name' }, ...byName],
+  client: [{ column: 'client_name' }, ...byName],
+  hiredAt: [{ column: 'hired_at' }, ...byName],
+  terminatedAt: [{ column: 'terminated_at', nullsLast: true }, ...byName],
+  ssmTraining: trainingOrder('ssm'),
+  suTraining: trainingOrder('su'),
 };
 
-// The computed fields hold the name lowercase and without diacritics, as `searchTerms` leaves
-// the terms.
-const employeeSearchFields = ['employee_search_name', 'employee_number'];
+type ListFilters = EmployeeListFilters & {
+  jobPosition?: string[];
+  workplace?: string[];
+  client?: string[];
+};
 
+const listFilterKeys = [
+  'ssmTraining',
+  'suTraining',
+  'test',
+  'attention',
+  'jobPosition',
+  'workplace',
+  'client',
+] as const satisfies readonly (keyof ListFilters)[];
+
+const attentionMatches: Record<EmployeeAttentionFilter, string> = {
+  signaturesPending: 'signatures_pending_count.gt.0',
+  noPhone: 'phone.is.null',
+  noEmail: 'email.is.null',
+  toTrain: 'ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue)',
+  trainingDue: 'ssm_training_state.eq.due,su_training_state.eq.due',
+};
+
+const testMatches = (state: TestStateFilter) =>
+  state === 'passed'
+    ? 'and(ssm_test_state.eq.passed,su_test_state.eq.passed)'
+    : `ssm_test_state.eq.${state},su_test_state.eq.${state}`;
+
+const trainingStates = (filters: readonly EmployeeTrainingStateFilter[]) => [
+  ...new Set(
+    filters.flatMap((state) =>
+      state === 'attention' ? (['untrained', 'overdue'] as const) : [state]
+    )
+  ),
+];
+
+type FilterableQuery<Query> = {
+  in(column: string, values: readonly string[]): Query;
+  or(filters: string): Query;
+  eq(column: string, value: string): Query;
+};
+
+function matchingFilters<Query extends FilterableQuery<Query>>(query: Query, filters: ListFilters) {
+  let filtered = query;
+  for (const trained of trainingDomains) {
+    const chosen = filters[trained === 'ssm' ? 'ssmTraining' : 'suTraining'];
+    if (chosen) filtered = filtered.in(`${trained}_training_state`, trainingStates(chosen));
+  }
+  if (filters.test) filtered = filtered.or(filters.test.map(testMatches).join(','));
+  if (filters.attention) {
+    filtered = filtered.or(filters.attention.map((need) => attentionMatches[need]).join(','));
+  }
+  if (filters.jobPosition) filtered = filtered.in('job_position_id', filters.jobPosition);
+  if (filters.workplace) filtered = filtered.in('workplace_id', filters.workplace);
+  if (filters.client) filtered = filtered.in('client_id', filters.client);
+  return filtered;
+}
+
+// The terms come lowercase and without diacritics, as the search column holds the name, and hold
+// only letters and digits, which keeps PostgREST's filter syntax out of them. The CNP is never
+// searched: the search sits in the address, which reaches the history and the analytics.
 function matchingEveryTerm<Query extends { or: (filters: string) => Query }>(
   query: Query,
-  q: string | undefined,
-  fields: readonly string[]
+  q: string | undefined
 ) {
   return searchTerms(q).reduce(
-    (matching, term) => matching.or(fields.map((field) => `${field}.ilike.*${term}*`).join(',')),
+    (matching, term) => matching.or(`search_name.ilike.*${term}*,employee_number.ilike.*${term}*`),
     query
   );
 }
 
-// An OR can test an embed only for whether it found a row, so each term gets its own embed of
-// the client, filtered on the name. Empty, it adds nothing to the rows.
-const clientNameMatch = (index: number) => `client_name_match_${index}`;
+type ListRequest = {
+  status?: EmployeeStatus;
+  q?: string;
+  page: number;
+  pageSize: number;
+  sort: EmployeeSortKey | OrganizationEmployeeSortKey;
+  order: SortOrder;
+  filters: ListFilters;
+};
 
-function withClientNameMatches<Columns extends string>(columns: Columns, q: string | undefined) {
-  return [
-    columns,
-    ...searchTerms(q).map(
-      (_, index) => `${clientNameMatch(index)}:clients!employees_client_id_fkey()`
-    ),
-  ].join(', ') as Columns;
+async function listFromView(
+  db: DataClient,
+  inScope: <Query extends ScopableQuery<Query>>(query: Query) => Query,
+  { status, q, page, pageSize, sort, order, filters }: ListRequest
+) {
+  const current = <Query extends ScopableQuery<Query>>(query: Query) => {
+    const scoped = inScope(query).is('archived_at', null);
+    return status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
+  };
+  const narrowed = listFilterKeys.some((key) => filters[key]) || searchTerms(q).length > 0;
+  const filtered = (columns: string, options: { count: 'exact'; head?: true }) =>
+    matchingEveryTerm(
+      matchingFilters(current(db.from('employee_list').select(columns, options)), filters),
+      q
+    );
+  let listQuery = filtered(listViewColumns, { count: 'exact' });
+  for (const { column, nullsLast } of sortColumns[sort]) {
+    listQuery = listQuery.order(column, {
+      ascending: order === 'asc',
+      ...(nullsLast ? { nullsFirst: false } : {}),
+    });
+  }
+  const { from, to } = pageRange(page, pageSize);
+  const [{ data, error, count }, all] = await Promise.all([
+    listQuery.order('id').range(from, to).returns<ListViewRow[]>(),
+    narrowed
+      ? current(db.from('employee_list').select('id', { count: 'exact', head: true }))
+      : null,
+  ]);
+  if (all?.error) throw fromDatabaseError(all.error, 'count employees');
+  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
+  if (error?.code === 'PGRST103') {
+    // The page lies past the end (rows left since the caller last looked): empty, real total.
+    const recount = await filtered('id', { count: 'exact', head: true });
+    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
+    const total = recount.count ?? 0;
+    return { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) };
+  }
+  if (error) throw fromDatabaseError(error, 'list employees');
+  const total = count ?? 0;
+  return {
+    items: await listedEmployees(db, data),
+    page,
+    pageSize,
+    total,
+    unfilteredTotal: unfilteredTotal(total),
+  };
 }
 
-function matchingEveryTermOrClientName<
-  Query extends {
-    or: (filters: string) => Query;
-    ilike: (column: string, pattern: string) => Query;
-  },
->(query: Query, q: string | undefined) {
-  return searchTerms(q).reduce((matching, term, index) => {
-    const fields = employeeSearchFields.map((field) => `${field}.ilike.*${term}*`);
-    return matching
-      .ilike(`${clientNameMatch(index)}.client_search_name`, `*${term}*`)
-      .or([...fields, `${clientNameMatch(index)}.not.is.null`].join(','));
-  }, query);
-}
+type ScopableQuery<Query> = {
+  eq(column: string, value: string): Query;
+  neq(column: string, value: string): Query;
+  is(column: string, value: null): Query;
+};
 
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  const { status, trainingState, testState, q, page, pageSize, sort, order } = c.req.valid('query');
-  const states = { trainingState, testState };
+  const { status, q, page, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
-  const filtered = () => {
-    const base = db
-      .from('employees')
-      .select(listColumnsFor(employeeListColumns, states), { count: 'exact' });
-    const scoped = inStates(base, states).eq('client_id', clientId).is('archived_at', null);
-    const current = status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
-    return matchingEveryTerm(current, q, employeeSearchFields);
-  };
-  let query = filtered();
-  for (const column of sortColumns[sort])
-    query = query.order(column, { ascending: order === 'asc' });
-  const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await query.order('id').range(from, to);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end (rows left since the caller last looked): empty, real total.
-    const recount = await filtered().range(0, 0);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
-    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+  const client = await findClient(db, clientId);
+  const readsStates =
+    Boolean(filters.ssmTraining || filters.suTraining || filters.test) ||
+    Boolean(filters.attention?.some((need) => need === 'toTrain' || need === 'trainingDue')) ||
+    sort === 'ssmTraining' ||
+    sort === 'suTraining';
+  // The states follow the current employees of active clients alone; elsewhere they would match
+  // nobody while the rows still show the state each one had.
+  if (readsStates && (client.archived_at || client.stage !== 'client')) {
+    throw new ApiError(
+      'validation_error',
+      'The employees of an archived client or a lead are not filtered or sorted by training or test state.'
+    );
   }
-  if (error) throw fromDatabaseError(error, 'list employees');
-  return c.json({ items: data.map(toEmployeeListItem), page, pageSize, total: count ?? 0 }, 200);
+  const { items, ...meta } = await listFromView(db, (scoped) => scoped.eq('client_id', clientId), {
+    status,
+    q,
+    page,
+    pageSize,
+    sort,
+    order,
+    filters,
+  });
+  return c.json({ items: items.map(({ item }) => item), ...meta }, 200);
 };
 
 export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = async (c) => {
@@ -513,154 +655,27 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
   return c.json({ employee: toEmployee(data) }, 200);
 };
 
-// Two foreign keys lead to clients, the plain one and the one that pins the organization.
-const clientColumns = 'client:clients!employees_client_id_fkey!inner(id, legal_name)';
-
-type OrganizationEmployeeListRow = EmployeeListRow & { client: { id: string; legal_name: string } };
-
-function toOrganizationEmployeeListItem(
-  row: OrganizationEmployeeListRow
-): OrganizationEmployeeListItem {
-  return { ...toEmployeeListItem(row), client: { id: row.client.id, name: row.client.legal_name } };
-}
-
-const organizationSortColumns: Record<OrganizationEmployeeSortKey, string[]> = {
-  name: ['last_name', 'first_name'],
-  client: ['client(legal_name)', 'last_name', 'first_name'],
-  jobPosition: ['job_positions(name)', 'last_name', 'first_name'],
-  hiredAt: ['hired_at', 'last_name', 'first_name'],
-};
-
-type OrganizationEmployeePageRow = Omit<
-  OrganizationEmployeeListRow,
-  'training_status' | 'test_status'
->;
-
-async function withStatuses(
-  db: DataClient,
-  rows: OrganizationEmployeePageRow[]
-): Promise<OrganizationEmployeeListRow[]> {
-  if (rows.length === 0) return [];
-  const ids = rows.map((row) => row.id);
-  const [training, tests] = await Promise.all([
-    db
-      .from('employee_training_status')
-      .select(`employee_id, ${trainingStatusFields}`)
-      .in('employee_id', ids),
-    db
-      .from('employee_test_status')
-      .select(`employee_id, ${testStatusFields}`)
-      .in('employee_id', ids),
-  ]);
-  if (training.error) throw fromDatabaseError(training.error, 'read training status');
-  if (tests.error) throw fromDatabaseError(tests.error, 'read test status');
-  const trainingOf = new Map(training.data.map((row) => [row.employee_id, row]));
-  const testsOf = new Map(tests.data.map((row) => [row.employee_id, row]));
-  return rows.map((row) => ({
-    ...row,
-    training_status: trainingOf.get(row.id) ?? null,
-    test_status: testsOf.get(row.id) ?? null,
-  }));
-}
-
-// The statuses are read for the page only: embedded, the database computes them for every
-// employee of the organization before it sorts and cuts the page.
-async function listOrganizationEmployeePage(
-  db: DataClient,
-  { status, clientId, q, page, pageSize, sort, order }: ListOrganizationEmployeesQuery
-) {
-  const filtered = () => {
-    let query = db
-      .from('employees')
-      .select(withClientNameMatches(`${employeeColumnsWithoutStatus}, ${clientColumns}`, q), {
-        count: 'exact',
-      })
-      .is('archived_at', null)
-      // Only an owner reads leads, and the list should not change with the role.
-      .eq('client.stage', 'client')
-      .is('client.archived_at', null);
-    if (clientId) query = query.eq('client_id', clientId);
-    query = status ? query.eq('status', status) : query.neq('status', 'terminated');
-    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeePageRow[]>();
-  };
-  let query = filtered();
-  for (const column of organizationSortColumns[sort])
-    query = query.order(column, { ascending: order === 'asc' });
-  const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await query.order('id').range(from, to);
-  if (error?.code === 'PGRST103') {
-    const recount = await filtered().range(0, 0);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
-    return { items: [], page, pageSize, total: recount.count ?? 0 };
-  }
-  if (error) throw fromDatabaseError(error, 'list organization employees');
-  const rows = await withStatuses(db, data);
-  return { items: rows.map(toOrganizationEmployeeListItem), page, pageSize, total: count ?? 0 };
-}
-
-// `*`: on the rows of a function, PostgREST sorts by, and filters an embed on, only what the
-// select returns. The function already leaves out archived employees and clients that are not
-// active, so no filter here needs the client.
-const inStatePageColumns =
-  '*, job_positions(id, name), client_workplaces!employees_workplace_in_client(id, name), client:clients!employees_client_id_fkey(id, legal_name)';
-
-async function listOrganizationEmployeesInState(
-  db: DataClient,
-  organizationId: string,
-  {
-    status,
-    clientId,
-    trainingState,
-    testState,
-    domain,
-    q,
-    page,
-    pageSize,
-    sort,
-    order,
-  }: ListOrganizationEmployeesQuery
-) {
-  const filtered = () => {
-    let query = db
-      .rpc(
-        'organization_employees_in_state',
-        {
-          p_organization_id: organizationId,
-          p_training_state: trainingState,
-          p_test_state: testState,
-          p_domain: domain,
-        },
-        { count: 'exact' }
-      )
-      .select(withClientNameMatches(inStatePageColumns, q));
-    if (clientId) query = query.eq('client_id', clientId);
-    query = status ? query.eq('status', status) : query.neq('status', 'terminated');
-    return matchingEveryTermOrClientName(query, q).returns<OrganizationEmployeePageRow[]>();
-  };
-  let query = filtered();
-  for (const column of organizationSortColumns[sort])
-    query = query.order(column, { ascending: order === 'asc' });
-  const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await query.order('id').range(from, to);
-  if (error?.code === 'PGRST103') {
-    const recount = await filtered().range(0, 0);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
-    return { items: [], page, pageSize, total: recount.count ?? 0 };
-  }
-  if (error) throw fromDatabaseError(error, 'list organization employees');
-  const rows = await withStatuses(db, data);
-  return { items: rows.map(toOrganizationEmployeeListItem), page, pageSize, total: count ?? 0 };
-}
-
 export const listOrganizationEmployees: RouteHandler<
   typeof listOrganizationEmployeesRoute,
   ApiEnv
 > = async (c) => {
-  const query = c.req.valid('query');
+  const { status, q, page, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  if (query.trainingState || query.testState) {
-    const { organizationId } = c.get('membership');
-    return c.json(await listOrganizationEmployeesInState(db, organizationId, query), 200);
-  }
-  return c.json(await listOrganizationEmployeePage(db, query), 200);
+  const { items, ...meta } = await listFromView(
+    db,
+    (query) => {
+      // Only an owner reads leads, and the list should not change with the role.
+      return query.eq('client_stage', 'client').is('client_archived_at', null);
+    },
+    {
+      status,
+      q,
+      page,
+      pageSize,
+      sort,
+      order,
+      filters,
+    }
+  );
+  return c.json({ items: items.map(({ item, client }) => ({ ...item, client })), ...meta }, 200);
 };

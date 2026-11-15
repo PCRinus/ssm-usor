@@ -31,11 +31,23 @@ export function SearchInput({
     if (committed !== text.trim()) setText(committed);
   }
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const sent = useRef(committed);
   useEffect(() => () => clearTimeout(timer.current), []);
+  // A search cleared or changed from outside while words typed here still wait drops them, or they
+  // would come back once the wait ends.
+  useEffect(() => {
+    if (committed !== sent.current) {
+      clearTimeout(timer.current);
+      sent.current = committed;
+    }
+  }, [committed]);
 
   function commit(next: string) {
     clearTimeout(timer.current);
-    if (next.trim() !== committed) onSearch(next.trim());
+    if (next.trim() !== committed) {
+      sent.current = next.trim();
+      onSearch(next.trim());
+    }
   }
 
   function change(next: string) {

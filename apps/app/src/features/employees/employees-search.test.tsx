@@ -49,7 +49,13 @@ const employee = (id: string, lastName: string, firstName: string) => ({
 const popescu = employee('7c9e6679-7425-40de-944b-e07fc1f90ae7', 'Popescu', 'Ion');
 const taranu = employee('8d0f7780-8536-41ef-a55c-f18fd2fa1bf8', 'Țăranu', 'Ștefan');
 
-const page = (items: unknown[]) => ({ items, page: 1, pageSize: 25, total: items.length });
+const page = (items: unknown[], unfilteredTotal = items.length) => ({
+  items,
+  page: 1,
+  pageSize: 25,
+  total: items.length,
+  unfilteredTotal,
+});
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -124,12 +130,18 @@ describe("searching a client's employees", () => {
   });
 
   it('says when no one matches and clears the search', async () => {
-    mockApi((url) => Response.json(url.searchParams.get('q') ? page([]) : page([popescu])));
+    mockApi((url) => Response.json(url.searchParams.get('q') ? page([], 1) : page([popescu])));
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?q=zzz`);
     const user = userEvent.setup();
-    expect(await screen.findByText('Niciun lucrător nu corespunde căutării')).toBeTruthy();
+    expect(await screen.findByText('Niciun lucrător nu se potrivește')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Niciun lucrător actual nu se potrivește căutării „zzz”. Caută după nume sau marcă.'
+      )
+    ).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Adaugă primul lucrător' })).toBeNull();
-    await user.click(screen.getByTestId('employees-empty-clear-search'));
+    expect(screen.getByTestId('employees-count').textContent).toBe('0 din 1 lucrător');
+    await user.click(screen.getByTestId('employees-empty-filtered-clear'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     await screen.findByTestId('employees-row');
     expect((screen.getByTestId('employees-search') as HTMLInputElement).value).toBe('');

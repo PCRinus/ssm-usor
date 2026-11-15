@@ -6,6 +6,7 @@ import {
   rowSortingFeature,
   tableFeatures,
 } from '@tanstack/react-table';
+import { createElement } from 'react';
 
 // Presentation hints a column may carry; the table itself stays headless.
 export interface DataTableColumnMeta {
@@ -36,3 +37,9 @@ export interface DataTableSort {
   sort: string;
   order: SortOrder;
 }
+
+// A header as narrow as its longest word, its label wrapping onto a second line.
+export const narrowHeader = 'w-px';
+
+export const twoLineHeader = (text: string) => () =>
+  createElement('span', { className: 'whitespace-normal leading-tight' }, text);

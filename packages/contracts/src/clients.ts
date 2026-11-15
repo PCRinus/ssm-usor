@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput, normalizeCui } from './cui';
-import { listQuerySchema, listSearchSchema, pageSchema, searchTerms } from './list';
+import {
+  listQuerySchema,
+  listSearchSchema,
+  pageSchema,
+  repeatedQueryValue,
+  searchTerms,
+} from './list';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
@@ -185,21 +191,14 @@ export type ClientAttentionFilter = (typeof clientAttentionFilters)[number];
 export const clientContractFilters = ['endingWithin60Days'] as const;
 export type ClientContractFilter = (typeof clientContractFilters)[number];
 
-// One value arrives as a string and a repeated parameter as an array.
-const repeated = <Value extends z.ZodType>(value: Value) =>
-  z.preprocess(
-    (input) => (typeof input === 'string' ? [input] : input),
-    z.array(value).min(1).max(50)
-  );
-
 // Within one filter any value matches; across filters every one must.
 export const clientListFiltersSchema = z.object({
-  documentation: repeated(z.enum(documentationStates)).optional(),
-  fireSafetyDocumentation: repeated(z.enum(documentationStates)).optional(),
-  training: repeated(z.enum(clientTrainingFilters)).optional(),
-  attention: repeated(z.enum(clientAttentionFilters)).optional(),
-  county: repeated(countyCodeSchema).optional(),
-  contract: repeated(z.enum(clientContractFilters)).optional(),
+  documentation: repeatedQueryValue(z.enum(documentationStates)).optional(),
+  fireSafetyDocumentation: repeatedQueryValue(z.enum(documentationStates)).optional(),
+  training: repeatedQueryValue(z.enum(clientTrainingFilters)).optional(),
+  attention: repeatedQueryValue(z.enum(clientAttentionFilters)).optional(),
+  county: repeatedQueryValue(countyCodeSchema).optional(),
+  contract: repeatedQueryValue(z.enum(clientContractFilters)).optional(),
 });
 
 export type ClientListFilters = z.infer<typeof clientListFiltersSchema>;

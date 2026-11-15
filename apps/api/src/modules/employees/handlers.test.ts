@@ -33,7 +33,7 @@ const membership = {
 };
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const activeClient = { id: clientId, archived_at: null };
+const activeClient = { id: clientId, archived_at: null, stage: 'client' };
 const positionId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const workplaceId = 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f';
 
@@ -141,13 +141,38 @@ const employeeListRow = Object.fromEntries(
   )
 );
 
+const employeeViewRow = {
+  id: employeeRow.id,
+  client_id: clientId,
+  client_name: 'Șantierul Naval SA',
+  last_name: 'Popescu',
+  first_name: 'Ion',
+  employee_number: 'A-17',
+  email: 'ion.popescu@example.com',
+  phone: '+40721000000',
+  job_title: 'Sudor',
+  job_position_id: positionId,
+  job_position_name: 'Sudor autorizat',
+  workplace_id: workplaceId,
+  workplace_name: 'Atelier',
+  hired_at: '2020-03-01',
+  status: 'active',
+  terminated_at: null,
+  created_at: employeeRow.created_at,
+  updated_at: employeeRow.updated_at,
+  signatures_pending_count: 2,
+};
+
 type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
 
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(
   handlers: Partial<
-    Record<'auth' | 'membership' | 'clients' | 'employees' | 'positions' | 'workplaces', Handler>
+    Record<
+      'auth' | 'membership' | 'clients' | 'employees' | 'positions' | 'workplaces' | 'list',
+      Handler
+    >
   >
 ) {
   fetchMock.mockImplementation(async (input, init) => {
@@ -164,6 +189,18 @@ function mockUpstream(
     }
     if (url.pathname === '/rest/v1/client_workplaces') {
       return handlers.workplaces?.(init, url) ?? Response.json([]);
+    }
+    if (url.pathname === '/rest/v1/employee_list') {
+      return (
+        handlers.list?.(init, url) ??
+        Response.json([employeeViewRow], { headers: { 'Content-Range': '0-0/1' } })
+      );
+    }
+    if (url.pathname === '/rest/v1/employee_training_status') {
+      return Response.json([{ employee_id: employeeRow.id, ...employeeRow.training_status }]);
+    }
+    if (url.pathname === '/rest/v1/employee_test_status') {
+      return Response.json([{ employee_id: employeeRow.id, ...employeeRow.test_status }]);
     }
     if (url.pathname === '/rest/v1/employees') {
       return (
@@ -209,7 +246,19 @@ afterEach(() => {
 });
 
 describe('GET /clients/{clientId}/employees', () => {
-  it('lists employees of the client without the CNP', async () => {
+  const listCalls = () =>
+    calls('/rest/v1/employee_list').map(([input, init]) => ({
+      query: new URL(String(input)).searchParams,
+      method: init?.method ?? 'GET',
+      headers: new Headers(init?.headers),
+    }));
+  const listQuery = () => listCalls().find((call) => call.method === 'GET')!.query;
+  const countQueries = () =>
+    listCalls()
+      .filter((call) => call.method === 'HEAD')
+      .map((call) => call.query);
+
+  it('lists employees of the client without the CNP, each with its statuses and pending signatures', async () => {
     mockUpstream({});
     const response = await request(employeesPath);
     expect(response.status).toBe(200);
@@ -218,6 +267,7 @@ describe('GET /clients/{clientId}/employees', () => {
       page: 1,
       pageSize: 25,
       total: 1,
+      unfilteredTotal: 1,
       items: [
         {
           id: employeeRow.id,
@@ -228,39 +278,57 @@ describe('GET /clients/{clientId}/employees', () => {
           email: 'ion.popescu@example.com',
           phone: '+40721000000',
           jobTitle: 'Sudor',
-          jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
+          jobPosition: { id: positionId, name: 'Sudor autorizat' },
           hiredAt: '2020-03-01',
           status: 'active',
           terminatedAt: null,
-          workplace: null,
+          workplace: { id: workplaceId, name: 'Atelier' },
           createdAt: employeeRow.created_at,
           updatedAt: employeeRow.updated_at,
           training,
           tests,
+          signaturesPending: 2,
         },
       ],
     });
     expect(JSON.stringify(body)).not.toContain('cnp');
     const [clientUrl] = calls('/rest/v1/clients')[0]!;
     expect(new URL(String(clientUrl)).searchParams.get('id')).toBe(`eq.${clientId}`);
-    const [listUrl, listInit] = calls('/rest/v1/employees')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
-    expect(query.get('select')).not.toContain('cnp');
-    expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(query.get('archived_at')).toBe('is.null');
-    expect(query.get('status')).toBe('neq.terminated');
-    expect(query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
-    expect(query.get('offset')).toBe('0');
-    expect(query.get('limit')).toBe('25');
-    const headers = new Headers(listInit?.headers);
-    expect(headers.get('Authorization')).toBe('Bearer test-access-token');
-    expect(headers.get('Prefer')).toContain('count=exact');
+    const [list] = listCalls();
+    expect(list!.query.get('select')).not.toContain('cnp');
+    expect(list!.query.get('client_id')).toBe(`eq.${clientId}`);
+    expect(list!.query.get('archived_at')).toBe('is.null');
+    expect(list!.query.get('status')).toBe('neq.terminated');
+    expect(list!.query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
+    expect(list!.query.get('offset')).toBe('0');
+    expect(list!.query.get('limit')).toBe('25');
+    expect(list!.headers.get('Authorization')).toBe('Bearer test-access-token');
+    expect(list!.headers.get('Prefer')).toContain('count=exact');
+    expect(countQueries()).toHaveLength(0);
+    const [trainingUrl] = calls('/rest/v1/employee_training_status')[0]!;
+    expect(new URL(String(trainingUrl)).searchParams.get('employee_id')).toBe(
+      `in.(${employeeRow.id})`
+    );
+  });
+
+  it('reads no statuses for an empty page', async () => {
+    mockUpstream({
+      list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
+    });
+    const response = await request(employeesPath);
+    expect(await response.json()).toEqual({
+      items: [],
+      page: 1,
+      pageSize: 25,
+      total: 0,
+      unfilteredTotal: 0,
+    });
+    expect(calls('/rest/v1/employee_training_status')).toHaveLength(0);
   });
 
   it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
     mockUpstream({
-      employees: () =>
-        Response.json([employeeListRow], { headers: { 'Content-Range': '25-25/26' } }),
+      list: () => Response.json([employeeViewRow], { headers: { 'Content-Range': '25-25/26' } }),
     });
     const response = await request(`${employeesPath}?page=2&pageSize=25&sort=hiredAt&order=desc`);
     expect(response.status).toBe(200);
@@ -269,114 +337,130 @@ describe('GET /clients/{clientId}/employees', () => {
       pageSize: 25,
       total: 26,
     });
-    const [listUrl] = calls('/rest/v1/employees')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
+    const query = listQuery();
     expect(query.get('order')).toBe('hired_at.desc,last_name.desc,first_name.desc,id.asc');
     expect(query.get('offset')).toBe('25');
     expect(query.get('limit')).toBe('25');
   });
 
+  it.each([
+    ['ssmTraining', 'ssm_training_rank.asc.nullslast,ssm_training_due_on.asc.nullslast'],
+    ['suTraining', 'su_training_rank.asc.nullslast,su_training_due_on.asc.nullslast'],
+    ['terminatedAt', 'terminated_at.asc.nullslast'],
+    ['jobPosition', 'job_position_name.asc'],
+  ])('sorts by %s, those without a value last', async (sort, order) => {
+    mockUpstream({});
+    expect((await request(`${employeesPath}?sort=${sort}`)).status).toBe(200);
+    expect(listQuery().get('order')).toBe(`${order},last_name.asc,first_name.asc,id.asc`);
+  });
+
+  it('keeps a training sorted the other way with those without a state still last', async () => {
+    mockUpstream({});
+    await request(`${employeesPath}?sort=ssmTraining&order=desc`);
+    expect(listQuery().get('order')).toBe(
+      'ssm_training_rank.desc.nullslast,ssm_training_due_on.desc.nullslast,last_name.desc,first_name.desc,id.asc'
+    );
+  });
+
   it('answers an empty page with the real total when the page lies past the end', async () => {
     mockUpstream({
-      employees: (_, url) =>
-        url?.searchParams.get('limit') === '1'
-          ? Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/3' } })
+      list: (init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/3' } })
           : Response.json(
               { code: 'PGRST103', message: 'Requested range not satisfiable' },
-              {
-                status: 416,
-              }
+              { status: 416 }
             ),
     });
     const response = await request(`${employeesPath}?page=9`);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+    expect(await response.json()).toEqual({
+      items: [],
+      page: 9,
+      pageSize: 25,
+      total: 3,
+      unfilteredTotal: 3,
+    });
   });
 
-  it.each(['page=0', 'pageSize=101', 'sort=cnp', 'order=sideways'])(
-    'rejects an invalid list parameter: %s',
-    async (search) => {
-      mockUpstream({});
-      const response = await request(`${employeesPath}?${search}`);
-      expect(response.status).toBe(400);
-      expect(calls('/rest/v1/employees')).toHaveLength(0);
-    }
-  );
+  it.each([
+    'page=0',
+    'pageSize=101',
+    'sort=cnp',
+    'order=sideways',
+    'ssmTraining=expired',
+    'test=failed',
+    'attention=noCnp',
+    'jobPosition=not-a-uuid',
+  ])('rejects an invalid list parameter: %s', async (search) => {
+    mockUpstream({});
+    const response = await request(`${employeesPath}?${search}`);
+    expect(response.status).toBe(400);
+    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+  });
 
-  it('filters by status when asked', async () => {
+  it('filters by status when asked, and counts the tab alone', async () => {
     mockUpstream({});
     const response = await request(`${employeesPath}?status=terminated`);
     expect(response.status).toBe(200);
-    const [listUrl] = calls('/rest/v1/employees')[0]!;
-    expect(new URL(String(listUrl)).searchParams.get('status')).toBe('eq.terminated');
+    expect(listQuery().get('status')).toBe('eq.terminated');
+    expect(countQueries()).toHaveLength(0);
   });
 
-  it('filters by a training state in either domain, leaving out the employees it does not match', async () => {
+  it('filters each domain by its own training states, "attention" being untrained or overdue', async () => {
     mockUpstream({});
-    const response = await request(`${employeesPath}?trainingState=overdue`);
-    expect(response.status).toBe(200);
-    const [listUrl] = calls('/rest/v1/employees')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
-    expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('training_status.or')).toBe('(ssm_state.eq.overdue,su_state.eq.overdue)');
+    await request(`${employeesPath}?ssmTraining=attention&ssmTraining=due&suTraining=current`);
+    const query = listQuery();
+    expect(query.get('ssm_training_state')).toBe('in.(untrained,overdue,due)');
+    expect(query.get('su_training_state')).toBe('in.(current)');
   });
 
-  it('filters those to train, untrained or overdue in either domain, as the clients list counts them', async () => {
+  it('filters by test states in either domain, "passed" meaning both', async () => {
     mockUpstream({});
-    const response = await request(`${employeesPath}?trainingState=attention`);
-    expect(response.status).toBe(200);
-    const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
-    expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('training_status.or')).toBe(
-      '(ssm_state.in.(untrained,overdue),su_state.in.(untrained,overdue))'
+    await request(`${employeesPath}?test=passed&test=annual_due`);
+    expect(listQuery().getAll('or')).toEqual([
+      '(and(ssm_test_state.eq.passed,su_test_state.eq.passed),ssm_test_state.eq.annual_due,su_test_state.eq.annual_due)',
+    ]);
+  });
+
+  it('keeps the employees with any of the needs asked for', async () => {
+    mockUpstream({});
+    await request(
+      `${employeesPath}?attention=signaturesPending&attention=noPhone&attention=noEmail&attention=toTrain&attention=trainingDue`
     );
+    expect(listQuery().getAll('or')).toEqual([
+      '(signatures_pending_count.gt.0,phone.is.null,email.is.null,ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue),ssm_training_state.eq.due,su_training_state.eq.due)',
+    ]);
   });
 
-  it('reads the training status without filtering when no state is asked for', async () => {
+  it('filters by job positions and workplaces of the client', async () => {
     mockUpstream({});
-    await request(employeesPath);
-    const [listUrl] = calls('/rest/v1/employees')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
-    expect(query.get('select')).toContain('training_status(');
-    expect(query.get('select')).not.toContain('!inner');
-    expect(query.get('training_status.or')).toBeNull();
+    const otherPosition = '6e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b';
+    await request(
+      `${employeesPath}?jobPosition=${positionId}&jobPosition=${otherPosition}&workplace=${workplaceId}`
+    );
+    const query = listQuery();
+    expect(query.get('job_position_id')).toBe(`in.(${positionId},${otherPosition})`);
+    expect(query.get('workplace_id')).toBe(`in.(${workplaceId})`);
   });
 
-  it('filters the employees up to date in either domain', async () => {
-    mockUpstream({});
-    const response = await request(`${employeesPath}?trainingState=current`);
-    expect(response.status).toBe(200);
-    const [listUrl] = calls('/rest/v1/employees')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
-    expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('training_status.or')).toBe('(and(ssm_state.eq.current,su_state.eq.current))');
-  });
-
-  it('filters by a test state in either domain, as the training state', async () => {
-    mockUpstream({});
-    const response = await request(`${employeesPath}?testState=annual_due&trainingState=due`);
-    expect(response.status).toBe(200);
-    const [listUrl] = calls('/rest/v1/employees')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
-    expect(query.get('select')).toContain('test_status!inner(');
-    expect(query.get('select')).toContain('training_status!inner(');
-    expect(query.get('test_status.or')).toBe('(ssm_state.eq.annual_due,su_state.eq.annual_due)');
-    expect(query.get('training_status.or')).toBe('(ssm_state.eq.due,su_state.eq.due)');
-  });
-
-  it('filters the employees who passed in both domains', async () => {
-    mockUpstream({});
-    await request(`${employeesPath}?testState=passed`);
-    const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
-    expect(query.get('select')).not.toContain('training_status!inner(');
-    expect(query.get('test_status.or')).toBe('(and(ssm_state.eq.passed,su_state.eq.passed))');
-  });
-
-  it('rejects an unknown training state', async () => {
-    mockUpstream({});
-    const response = await request(`${employeesPath}?trainingState=expired`);
-    expect(response.status).toBe(400);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+  it('counts the tab without the search and the filters once either narrows the list', async () => {
+    mockUpstream({
+      list: (init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/40' } })
+          : Response.json([employeeViewRow], { headers: { 'Content-Range': '0-0/1' } }),
+    });
+    const response = await request(`${employeesPath}?q=pop&ssmTraining=overdue`);
+    expect(employeeListResponseSchema.parse(await response.json())).toMatchObject({
+      total: 1,
+      unfilteredTotal: 40,
+    });
+    const [count] = countQueries();
+    expect(count!.get('client_id')).toBe(`eq.${clientId}`);
+    expect(count!.get('status')).toBe('neq.terminated');
+    expect(count!.has('or')).toBe(false);
+    expect(count!.has('ssm_training_state')).toBe(false);
   });
 
   it('rejects an unknown status', async () => {
@@ -384,7 +468,7 @@ describe('GET /clients/{clientId}/employees', () => {
     const response = await request(`${employeesPath}?status=fired`);
     expect(response.status).toBe(400);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
   });
 
   it('rejects a malformed client id before touching the database', async () => {
@@ -400,7 +484,7 @@ describe('GET /clients/{clientId}/employees', () => {
     const response = await request(employeesPath);
     expect(response.status).toBe(404);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('not_found');
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
   });
 
   it('still lists employees of an archived client', async () => {
@@ -409,6 +493,35 @@ describe('GET /clients/{clientId}/employees', () => {
     });
     expect((await request(employeesPath)).status).toBe(200);
   });
+
+  it.each([
+    ['an archived client', { ...activeClient, archived_at: '2026-01-01T00:00:00+00:00' }],
+    ['a lead', { ...activeClient, stage: 'lead' }],
+  ])(
+    'refuses to filter or sort the employees of %s by a state they do not have',
+    async (_, client) => {
+      for (const search of [
+        'ssmTraining=overdue',
+        'suTraining=current',
+        'test=pending',
+        'attention=toTrain',
+        'attention=trainingDue',
+        'sort=ssmTraining',
+        'sort=suTraining',
+      ]) {
+        mockUpstream({ clients: () => Response.json([client]) });
+        const response = await request(`${employeesPath}?${search}`);
+        expect(response.status).toBe(400);
+        expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
+      }
+      expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+      mockUpstream({ clients: () => Response.json([client]) });
+      const allowed = await request(
+        `${employeesPath}?status=terminated&attention=noPhone&attention=signaturesPending&sort=hiredAt`
+      );
+      expect(allowed.status).toBe(200);
+    }
+  );
 
   it('requires a bearer token', async () => {
     mockUpstream({});
@@ -421,7 +534,7 @@ describe('GET /clients/{clientId}/employees', () => {
     mockUpstream({ membership: () => Response.json([]) });
     const response = await request(employeesPath);
     expect(response.status).toBe(403);
-    expect(calls('/rest/v1/employees')).toHaveLength(0);
+    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
   });
 });
 
@@ -876,8 +989,8 @@ describe('job positions on employees (ADR 006)', () => {
   it('sorts the list by the name of the position', async () => {
     mockUpstream({});
     expect((await request(`${employeesPath}?sort=jobPosition&order=desc`)).status).toBe(200);
-    const order = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams.get('order');
-    expect(order).toBe('job_positions(name).desc,last_name.desc,first_name.desc,id.asc');
+    const order = new URL(String(calls('/rest/v1/employee_list')[0]![0])).searchParams.get('order');
+    expect(order).toBe('job_position_name.desc,last_name.desc,first_name.desc,id.asc');
   });
 
   it('leaves the position to the database when the form names none', async () => {

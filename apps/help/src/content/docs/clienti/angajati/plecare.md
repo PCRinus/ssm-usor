@@ -45,12 +45,12 @@ Ziua în care a încetat contractul. Dialogul propune ziua de azi și îți arat
 
 Din ziua în care marchezi plecarea:
 
-- lucrătorul apare la **Foști lucrători**, cu „până la” și data plecării sub data angajării, și în capul paginii lui scrie **Fost lucrător**;
+- lucrătorul apare la **Foști**, cu data plecării în coloana **Data încetării**, și în capul paginii lui scrie **Fost lucrător**;
 - nu mai are stare a instruirii sau a testării: pe pagina lui scrie „Fără termen: nu mai lucrează la client”, iar testele nu-l mai așteaptă;
 - nu mai intră în numărul de lucrători al clientului, după care se decide ce documente îi trebuie (vezi [Lucrători](/clienti/angajati/));
 - nu mai ocupă postul: un post ocupat doar de foști lucrători poate fi arhivat.
 
-Rămân neschimbate instruirile înregistrate, rezultatele testelor, fișierele și cele două fișe individuale de instruire, pe care le poți descărca oricând de la **Foști lucrători**, cât timp clientul există. Poți corecta în continuare datele lui și poți înregistra o instruire de pe o fișă pe hârtie mai veche.
+Rămân neschimbate instruirile înregistrate, rezultatele testelor, fișierele și cele două fișe individuale de instruire, pe care le poți descărca oricând de la **Foști**, cât timp clientul există. Poți corecta în continuare datele lui și poți înregistra o instruire de pe o fișă pe hârtie mai veche.
 
 Accesul la portal rămâne: lucrătorul își poate vedea în continuare instruirile și fișele. Dacă angajatorul cere, revocă-l din **Acces la portal**, pe pagina lucrătorului (vezi [Portalul și actul adițional](/clienti/angajati/portal-si-act-aditional/)).
 
@@ -62,7 +62,7 @@ Un fost lucrător nu poate fi reactivat cât timp un lucrător actual al clientu
 
 ## Reangajarea
 
-Cineva care revine după o pauză se adaugă ca lucrător nou, cu data noii angajări. Instruirea lui începe din nou cu instruirile la angajare, iar rândul vechi rămâne la **Foști lucrători**, cu evidența de atunci.
+Cineva care revine după o pauză se adaugă ca lucrător nou, cu data noii angajări. Instruirea lui începe din nou cu instruirile la angajare, iar rândul vechi rămâne la **Foști**, cu evidența de atunci.
 
 Rândul nou primește același CNP și, dacă clientul i-a păstrat-o, aceeași marcă: CNP-ul și marca sunt unice doar printre lucrătorii actuali, iar fostul rând nu le mai ține ocupate.
 

@@ -6,6 +6,7 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 
+import { CellNote } from '@/components/data-table/cell-note';
 import { formatDate } from '@/features/employees/employee-format';
 
 const stateBadges: Record<
@@ -51,12 +52,9 @@ export function TrainingStateCell({
     <>
       <TrainingStateBadge state={state} testId={`training-status-${domain}`} />
       {dueOn && (
-        <span
-          className="mt-0.5 block text-xs text-muted-foreground tabular-nums"
-          data-testid={`training-due-${domain}`}
-        >
+        <CellNote className="tabular-nums" data-testid={`training-due-${domain}`}>
           {state === 'overdue' ? 'din' : 'până la'} {formatDate(dueOn)}
-        </span>
+        </CellNote>
       )}
     </>
   );

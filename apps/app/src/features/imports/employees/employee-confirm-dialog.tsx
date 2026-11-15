@@ -291,7 +291,7 @@ export function EmployeeConfirmDialog({
                 icon={<UserMinus className="size-4" />}
                 count={summary.leavers.length}
                 label={count(summary.leavers.length, 'fost lucrător', 'foști lucrători')}
-                detail={maskPeople`${join(summary.leavers.map(nameOf))}, cu instruirile lor. Apar la Foști lucrători.`}
+                detail={maskPeople`${join(summary.leavers.map(nameOf))}, cu instruirile lor. Apar la Foști.`}
               />
             )}
             {summary.trainingsHeld > 0 && (

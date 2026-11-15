@@ -24,7 +24,7 @@ export const listEmployeesRoute = createRoute({
   operationId: 'listEmployees',
   summary: "List a client's employees",
   description:
-    'Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain; "attention" keeps those untrained or overdue in either, as the clients list counts them. The CNP is only returned by the detail route.',
+    'Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client\'s own. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. The CNP is only returned by the detail route.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: listEmployeesQuerySchema },
@@ -228,7 +228,7 @@ export const listOrganizationEmployeesRoute = createRoute({
   operationId: 'listOrganizationEmployees',
   summary: "List the organization's employees across its clients",
   description:
-    "Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain.",
+    "Paginated, searched, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients and of leads are never listed. `q` matches the name and the employee number, never the client: `client` filters by clients.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { query: listOrganizationEmployeesQuerySchema },

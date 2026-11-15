@@ -22,6 +22,13 @@ export function listQuerySchema<const Keys extends readonly [string, ...string[]
 
 export const listSearchSchema = z.string().trim().max(100);
 
+// One value arrives as a string and a repeated parameter as an array.
+export const repeatedQueryValue = <Value extends z.ZodType>(value: Value) =>
+  z.preprocess(
+    (input) => (typeof input === 'string' ? [input] : input),
+    z.array(value).min(1).max(50)
+  );
+
 // Lowercase and without diacritics, as the database's unaccent() leaves a name. Splitting on
 // anything but letters and digits also keeps PostgREST's filter syntax out of the terms.
 export function searchTerms(q: string | undefined) {

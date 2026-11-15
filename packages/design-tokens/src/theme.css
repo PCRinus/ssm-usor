@@ -41,6 +41,12 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-section-tab: var(--section-tab);
+  --color-section-tab-hover: var(--section-tab-hover);
+  --color-section-tab-foreground: var(--section-tab-foreground);
+  --color-table-head: var(--table-head);
+  --color-table-head-hover: var(--table-head-hover);
+  --color-table-head-foreground: var(--table-head-foreground);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);

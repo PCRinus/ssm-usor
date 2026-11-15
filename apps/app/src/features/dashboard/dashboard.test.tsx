@@ -89,9 +89,7 @@ describe('the dashboard', () => {
     expect(screen.getByTestId('dashboard-trainings-ssm-overdue-count').className).toContain(
       'text-destructive'
     );
-    expect(hrefOf('dashboard-trainings-ssm-overdue')).toBe(
-      '/angajati?trainingState=overdue&domain=ssm'
-    );
+    expect(hrefOf('dashboard-trainings-ssm-overdue')).toBe('/angajati?ssmTraining=overdue');
     expect(within(ssm).getByRole('img').getAttribute('aria-label')).toBe(
       'Instruiri SSM, 412 lucrători: 22 depășite, 41 scadente, 31 neinstruiți, 318 la zi'
     );
@@ -100,7 +98,7 @@ describe('the dashboard', () => {
         .getAllByRole('listitem')
         .map((item) => item.textContent)
     ).toEqual(['22 depășite', '41 scadente', '31 neinstruiți', '318 la zi']);
-    expect(hrefOf('dashboard-trainings-su-chip-due')).toBe('/angajati?trainingState=due&domain=su');
+    expect(hrefOf('dashboard-trainings-su-chip-due')).toBe('/angajati?suTraining=due');
     expect(screen.getByTestId('dashboard-trainings-su-chip-due').getAttribute('title')).toBe(
       'scadente în 30 de zile: 36'
     );
@@ -116,7 +114,7 @@ describe('the dashboard', () => {
     expect(within(waiting).getByTestId('dashboard-waiting-signatures').textContent).toBe(
       '27 de semnături Cea mai veche așteaptă de 12 zile'
     );
-    expect(hrefOf('dashboard-waiting-tests')).toBe('/angajati?testState=pending');
+    expect(hrefOf('dashboard-waiting-tests')).toBe('/angajati?test=pending');
 
     const portfolio = screen.getByTestId('dashboard-portfolio');
     expect(screen.getByTestId('dashboard-portfolio-clients').textContent).toBe('18 clienți activi');
