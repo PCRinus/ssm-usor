@@ -25,15 +25,17 @@ const columns = workerColumns<EmployeeRow>('employees');
 // Without `onStatusChange` the client is archived and the rows have no actions.
 export function employeeColumns({
   former,
+  withStates,
   onStatusChange,
 }: {
   former: boolean;
+  withStates: boolean;
   onStatusChange?: (change: EmployeeStatusChange) => void;
 }) {
   return helper.columns([
     columns.name,
     columns.jobPosition,
-    ...columns.training,
+    ...columns.training(withStates),
     columns.tests,
     columns.signatures,
     columns.hiredAt,

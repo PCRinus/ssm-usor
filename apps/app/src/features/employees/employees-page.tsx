@@ -39,7 +39,7 @@ import { isEmptyOrLoading } from '@/lib/list-state';
 import { employeeColumns, type EmployeeRow } from './employee-columns';
 import { employeeStatusLabels, pendingWorkersLabel, workerNoun } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
-import { clientWorkerFacets, clientWorkerFilterKeys } from './worker-filters';
+import { clientWorkerFacets, clientWorkerFilterKeys, trainingSortKeys } from './worker-filters';
 import { WorkersCount, WorkersListError, WorkersNoMatch } from './workers-list';
 
 const employeesRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/');
@@ -87,8 +87,15 @@ export function EmployeesPage() {
   const readOnly = client.archivedAt !== null;
   const [importing, setImporting] = useState<'found' | 'new' | 'documentation' | null>(null);
   const search = employeesRoute.useSearch();
-  const { status, page = 1, sort = defaultSort.sort, order = defaultSort.order, q } = search;
+  const { status, page = 1, order = defaultSort.order, q } = search;
   const former = status === 'terminated';
+  // The API refuses the states of an archived client's employees, whom the training rules no
+  // longer follow; a leaver has none.
+  const withStates = !former && !readOnly && client.stage !== 'lead';
+  const sort =
+    !search.sort || (!withStates && trainingSortKeys.has(search.sort))
+      ? defaultSort.sort
+      : search.sort;
   const navigate = employeesRoute.useNavigate();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -112,15 +119,14 @@ export function EmployeesPage() {
   const facets = useMemo(
     () =>
       clientWorkerFacets({
-        withStates: !former && !readOnly,
+        withStates,
         positions: positions.isError ? [] : positions.data?.items,
         workplaces: workplaces.isError ? [] : workplaces.data?.items,
         // One workplace filters nothing; while they load, a chosen one is still read.
         withWorkplaces: workplaceCount > 1 || (workplaces.isPending && Boolean(search.workplace)),
       }),
     [
-      former,
-      readOnly,
+      withStates,
       positions.data,
       positions.isError,
       workplaces.data,
@@ -157,8 +163,8 @@ export function EmployeesPage() {
   const startsFromEmpty = !readOnly && !former && !narrowed;
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
   const columns = useMemo(
-    () => employeeColumns({ former, onStatusChange: readOnly ? undefined : setChange }),
-    [former, readOnly]
+    () => employeeColumns({ former, withStates, onStatusChange: readOnly ? undefined : setChange }),
+    [former, withStates, readOnly]
   );
   const changeSearch = (next: Partial<typeof search>) =>
     void navigate({

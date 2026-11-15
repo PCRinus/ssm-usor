@@ -65,15 +65,17 @@ export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
       enableSorting: true,
       meta: { cellClassName: 'max-w-48 truncate', skeletonClassName: 'w-28' },
     }),
-    training: trainingDomains.map((domain) =>
-      helper.accessor((row) => row.training[domain].state, {
-        id: domain === 'ssm' ? 'ssmTraining' : 'suTraining',
-        header: twoLineHeader(`Instruire ${trainingDomainLabels[domain]}`),
-        enableSorting: true,
-        meta: { headerClassName: narrowHeader, skeletonClassName: 'w-20' },
-        cell: ({ row }) => <TrainingStateCell training={row.original.training} domain={domain} />,
-      })
-    ),
+    // Sorted only where the employees have a state: current employees of an active client.
+    training: (sortable: boolean) =>
+      trainingDomains.map((domain) =>
+        helper.accessor((row) => row.training[domain].state, {
+          id: domain === 'ssm' ? 'ssmTraining' : 'suTraining',
+          header: twoLineHeader(`Instruire ${trainingDomainLabels[domain]}`),
+          enableSorting: sortable,
+          meta: { headerClassName: narrowHeader, skeletonClassName: 'w-20' },
+          cell: ({ row }) => <TrainingStateCell training={row.original.training} domain={domain} />,
+        })
+      ),
     tests: helper.display({
       id: 'tests',
       header: 'Testare',

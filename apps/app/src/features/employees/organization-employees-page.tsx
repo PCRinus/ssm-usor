@@ -32,6 +32,7 @@ import {
 import {
   organizationWorkerFacets,
   organizationWorkerFilterKeys,
+  trainingSortKeys,
   useEveryClient,
 } from './worker-filters';
 import { WorkersCount, WorkersListError, WorkersNoMatch } from './workers-list';
@@ -77,8 +78,10 @@ function PendingEmployeesLabel({ params }: { params: ListOrganizationEmployeesPa
 
 export function OrganizationEmployeesPage() {
   const search = route.useSearch();
-  const { status, q, page = 1, sort = defaultSort.sort, order = defaultSort.order } = search;
+  const { status, q, page = 1, order = defaultSort.order } = search;
   const former = status === 'terminated';
+  const sort =
+    !search.sort || (former && trainingSortKeys.has(search.sort)) ? defaultSort.sort : search.sort;
   const navigate = route.useNavigate();
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });

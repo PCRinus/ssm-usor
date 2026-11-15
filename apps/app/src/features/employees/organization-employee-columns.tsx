@@ -30,16 +30,23 @@ const clientColumn = helper.accessor((row) => row.client.name, {
   ),
 });
 
-const shared = [
+export const organizationEmployeeColumns = helper.columns([
   columns.name,
   clientColumn,
   columns.jobPosition,
-  ...columns.training,
+  ...columns.training(true),
   columns.tests,
   columns.signatures,
   columns.hiredAt,
-] as const;
+]);
 
-export const organizationEmployeeColumns = helper.columns([...shared]);
-
-export const formerOrganizationEmployeeColumns = helper.columns([...shared, columns.terminatedAt]);
+export const formerOrganizationEmployeeColumns = helper.columns([
+  columns.name,
+  clientColumn,
+  columns.jobPosition,
+  ...columns.training(false),
+  columns.tests,
+  columns.signatures,
+  columns.hiredAt,
+  columns.terminatedAt,
+]);

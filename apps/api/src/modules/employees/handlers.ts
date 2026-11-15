@@ -440,8 +440,8 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
   const db = createDataClient(c);
   const client = await findClient(db, clientId);
   const readsStates =
-    Boolean(query.ssmTraining || query.suTraining || query.test || trainingState || testState) ||
-    Boolean(query.attention?.some((need) => need === 'toTrain' || need === 'trainingDue')) ||
+    Boolean(filters.ssmTraining || filters.suTraining || filters.test) ||
+    Boolean(filters.attention?.some((need) => need === 'toTrain' || need === 'trainingDue')) ||
     sort === 'ssmTraining' ||
     sort === 'suTraining';
   // The states follow the current employees of active clients alone; elsewhere they would match

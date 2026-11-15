@@ -39,6 +39,8 @@ export const workerFilterKeys = [
 
 export type WorkerFilterKey = (typeof workerFilterKeys)[number];
 
+export const trainingSortKeys = new Set<string>(['ssmTraining', 'suTraining']);
+
 export const clientWorkerFilterKeys = [
   'ssmTraining',
   'suTraining',

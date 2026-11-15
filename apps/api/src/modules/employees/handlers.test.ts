@@ -506,8 +506,6 @@ describe('GET /clients/{clientId}/employees', () => {
         'test=pending',
         'attention=toTrain',
         'attention=trainingDue',
-        'trainingState=attention',
-        'testState=none',
         'sort=ssmTraining',
         'sort=suTraining',
       ]) {

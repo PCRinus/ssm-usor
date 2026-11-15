@@ -497,6 +497,24 @@ describe('client employees list', () => {
     expect(screen.getByTestId('employees-count').textContent).toBe('1 lucrător');
   });
 
+  it("neither filters nor sorts an archived client's employees by a state they do not have", async () => {
+    mockApi({
+      client: () =>
+        Response.json({ client: { ...sampleClient, archivedAt: '2026-01-01T00:00:00+00:00' } }),
+      list: () => Response.json(page([sampleEmployee])),
+    });
+    mountApp(
+      authFixture(makeSession()).client,
+      `${employeesPage}?sort=ssmTraining&ssmTraining=overdue&attention=noPhone`
+    );
+    await screen.findByTestId('employees-row');
+    const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+    expect(sent.get('sort')).toBe('name');
+    expect(sent.has('ssmTraining')).toBe(false);
+    expect(sent.getAll('attention')).toEqual(['noPhone']);
+    expect(screen.queryByTestId('sort-ssmTraining')).toBeNull();
+  });
+
   it('offers no workplace filter to a client with one workplace', async () => {
     mockApi({
       list: () => Response.json(page([sampleEmployee])),
