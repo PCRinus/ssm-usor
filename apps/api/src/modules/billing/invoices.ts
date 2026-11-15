@@ -7,7 +7,7 @@ import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { creditsStore } from '../credits/store';
 import { grantWelcomeGift } from '../credits/usage';
-import { createOblioClient, type OblioClient, type OblioDocument } from './oblio';
+import { createOblioClient, type OblioClient, type OblioDocument, OblioRefused } from './oblio';
 import {
   type OblioDocuments,
   type PaidInvoiceLine,
@@ -16,6 +16,7 @@ import {
   toStorno,
   vatPercentage,
 } from './oblio-documents';
+import type { BillingAlerts, FailureCause, StripeInvoiceRef } from './operator-alerts';
 import { parseLookupKey } from './rules';
 import {
   findSubscriptionByCustomer,
@@ -30,7 +31,7 @@ import {
   recordChange,
   updateInvoice,
 } from './store';
-import { idOf, type StripeAccess, type StripeCatalogue } from './stripe';
+import { idOf, isStripeError, type StripeAccess, type StripeCatalogue } from './stripe';
 import { syncSubscription } from './sync';
 
 export type InvoiceDeps = {
@@ -38,6 +39,9 @@ export type InvoiceDeps = {
   db: AdminClient;
   access: StripeAccess;
   catalogue: StripeCatalogue;
+  alerts: BillingAlerts;
+  // The Stripe event being handled, and whether an earlier delivery of it failed.
+  delivery: { eventId: string; redelivered: boolean };
   oblio?: OblioClient;
   fetch?: typeof fetch;
 };
@@ -126,13 +130,50 @@ export function toPaidLines(
     });
 }
 
-export function checkLinesMakeTotal(invoice: Stripe.Invoice, lines: Stripe.InvoiceLineItem[]) {
-  const sum = lines.reduce((total, line) => total + line.amount + lineTax(line), 0);
-  if (sum !== invoice.total) {
-    throw new Error(
-      `Stripe invoice ${invoice.id}: its lines with their VAT make ${sum} cents, not the ${invoice.total} charged; no Oblio document was issued.`
+export class LinesTotalMismatch extends Error {
+  constructor(
+    invoice: Stripe.Invoice,
+    readonly linesCents: number
+  ) {
+    super(
+      `Stripe invoice ${invoice.id}: its lines with their VAT make ${linesCents} cents, not the ${invoice.total} charged; no Oblio document was issued.`
     );
   }
+}
+
+export class MissingCompanyDetails extends Error {
+  constructor(organizationId: string) {
+    super(`Organization ${organizationId} lacks its company name, CUI or an email.`);
+  }
+}
+
+export function failureCause(error: unknown): FailureCause {
+  if (error instanceof LinesTotalMismatch) return { kind: 'lines_total' };
+  if (error instanceof MissingCompanyDetails) return { kind: 'company_details' };
+  if (error instanceof OblioRefused) {
+    return error.reason === 'oblio_refused'
+      ? { kind: 'oblio_refused', status: error.status }
+      : { kind: 'oblio_unavailable' };
+  }
+  if (error instanceof ApiError) {
+    if (error.reason === 'oblio_unavailable') return { kind: 'oblio_unavailable' };
+    return { kind: 'other', code: `ApiError/${error.reason ?? error.code}` };
+  }
+  if (isStripeError(error)) return { kind: 'other', code: error.type };
+  return { kind: 'other', code: error instanceof Error ? error.constructor.name : 'unknown' };
+}
+
+const settingCodes = new Set(['ApiError/oblio_login_refused', 'ApiError/oblio_unset']);
+
+// These fail the same way on every retry until someone acts; anything else may pass on Stripe's
+// next delivery, so it is posted only once a redelivery fails too.
+export function failsUntilFixed(cause: FailureCause) {
+  return cause.kind === 'other' ? settingCodes.has(cause.code) : cause.kind !== 'oblio_unavailable';
+}
+
+export function checkLinesMakeTotal(invoice: Stripe.Invoice, lines: Stripe.InvoiceLineItem[]) {
+  const sum = lines.reduce((total, line) => total + line.amount + lineTax(line), 0);
+  if (sum !== invoice.total) throw new LinesTotalMismatch(invoice, sum);
 }
 
 async function allLines(stripe: Stripe, invoice: Stripe.Invoice) {
@@ -217,9 +258,20 @@ async function adoptFirstSubscription(
 
 // The document is issued and numbered by now, so a difference is recorded for a person to settle
 // with a storno; failing the event would only retry what cannot change.
-async function compareTotals(deps: InvoiceDeps, row: InvoiceRow, organizationId: string) {
+async function compareTotals(
+  deps: InvoiceDeps,
+  row: InvoiceRow,
+  organizationId: string,
+  invoice: StripeInvoiceRef
+) {
   const series = row.oblio_series!;
   const number = row.oblio_number!;
+  const alerted = {
+    organizationId,
+    invoice,
+    document: { kind: row.kind, series, number },
+    charged: { cents: row.amount_cents, currency: row.currency },
+  };
   const details = {
     stripe_invoice: row.stripe_invoice_id,
     oblio_document: `${series}-${number}`,
@@ -239,6 +291,11 @@ async function compareTotals(deps: InvoiceDeps, row: InvoiceRow, organizationId:
       reason: message,
       details,
     });
+    deps.alerts.notify({
+      ...alerted,
+      kind: 'oblio_total_unchecked',
+      cause: failureCause(error),
+    });
     return;
   }
   if (oblioTotal === row.amount_cents) return;
@@ -250,6 +307,47 @@ async function compareTotals(deps: InvoiceDeps, row: InvoiceRow, organizationId:
     change: 'oblio_total_mismatch',
     details: { ...details, oblio_total_cents: oblioTotal },
   });
+  deps.alerts.notify({ ...alerted, kind: 'oblio_total_mismatch', oblioCents: oblioTotal });
+}
+
+const invoiceRef = (deps: InvoiceDeps, invoice: Stripe.Invoice): StripeInvoiceRef => ({
+  id: invoice.id,
+  number: invoice.number,
+  accountId: deps.catalogue.accountId,
+  livemode: deps.access.livemode,
+});
+
+async function issueDocument(
+  deps: InvoiceDeps,
+  invoice: Stripe.Invoice,
+  row: InvoiceRow,
+  subscription: Awaited<ReturnType<typeof loadSubscription>>,
+  paidAt: Date
+) {
+  const organizationId = row.organization_id;
+  const company = await loadCompany(deps.db, organizationId);
+  const recipientEmail =
+    subscription?.invoice_email ??
+    (await ownerEmail(deps.db, organizationId)) ??
+    invoice.customer_email;
+  if (!company.name || !company.cui || !recipientEmail) {
+    throw new MissingCompanyDetails(organizationId);
+  }
+  const lines = await allLines(deps.access.stripe, invoice);
+  checkLinesMakeTotal(invoice, lines);
+  const request = toOblioDocument(
+    row.kind,
+    { ...company, name: company.name, cui: company.cui, recipientEmail },
+    {
+      id: invoice.id,
+      lines: toPaidLines(lines, deps.catalogue),
+      total: invoice.total,
+      paymentReference: paymentReference(invoice),
+      paidAt,
+    }
+  );
+  const document = await oblioFor(deps).issue(request);
+  return updateInvoice(deps.db, invoice.id, issued(document));
 }
 
 // Each step checks what is already done, so a retried event finishes the work without issuing
@@ -263,6 +361,36 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     console.warn(`Paid Stripe invoice ${invoice.id} names no organization here; left alone.`);
     return null;
   }
+  const progress: Progress = { issued: false, kind: oblioDocuments(deps.env) };
+  try {
+    return await settleInvoice(deps, invoice, byCustomer, organizationId, progress);
+  } catch (error) {
+    const cause = failureCause(error);
+    if (!progress.issued && (deps.delivery.redelivered || failsUntilFixed(cause))) {
+      deps.alerts.notify({
+        kind: 'invoice_not_issued',
+        organizationId,
+        invoice: invoiceRef(deps, invoice),
+        document: progress.kind,
+        charged: { cents: invoice.total, currency: invoice.currency },
+        linesCents: error instanceof LinesTotalMismatch ? error.linesCents : null,
+        eventId: deps.delivery.eventId,
+        cause,
+      });
+    }
+    throw error;
+  }
+}
+
+type Progress = { issued: boolean; kind: InvoiceRow['kind'] };
+
+async function settleInvoice(
+  deps: InvoiceDeps,
+  invoice: Stripe.Invoice,
+  byCustomer: Awaited<ReturnType<typeof findSubscriptionByCustomer>>,
+  organizationId: string,
+  progress: Progress
+) {
   const subscription = await adoptFirstSubscription(deps, invoice, byCustomer, organizationId);
   const paidAt = new Date((invoice.status_transitions.paid_at ?? invoice.created) * 1000);
   // A row still holding the trial would size the welcome credits, which never change after, from
@@ -296,32 +424,13 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
       amount_cents: invoice.total,
       currency: invoice.currency,
     }));
+  progress.kind = row.kind;
+  progress.issued = Boolean(row.issued_at);
 
   if (!row.issued_at) {
-    const company = await loadCompany(deps.db, organizationId);
-    const recipientEmail =
-      subscription?.invoice_email ??
-      (await ownerEmail(deps.db, organizationId)) ??
-      invoice.customer_email;
-    if (!company.name || !company.cui || !recipientEmail) {
-      throw new Error(`Organization ${organizationId} lacks its company name, CUI or an email.`);
-    }
-    const lines = await allLines(stripe, invoice);
-    checkLinesMakeTotal(invoice, lines);
-    const request = toOblioDocument(
-      row.kind,
-      { ...company, name: company.name, cui: company.cui, recipientEmail },
-      {
-        id: invoice.id,
-        lines: toPaidLines(lines, deps.catalogue),
-        total: invoice.total,
-        paymentReference: paymentReference(invoice),
-        paidAt,
-      }
-    );
-    const document = await oblioFor(deps).issue(request);
-    row = await updateInvoice(deps.db, invoice.id, issued(document));
-    await compareTotals(deps, row, organizationId);
+    row = await issueDocument(deps, invoice, row, subscription, paidAt);
+    progress.issued = true;
+    await compareTotals(deps, row, organizationId, invoiceRef(deps, invoice));
   }
   const stored = await storePdf(deps, row);
   // Stripe delivers the event again, and the first payment and its credits are recorded then.

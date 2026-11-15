@@ -114,13 +114,21 @@ const unreachable = (detail: string) =>
     'oblio_unavailable'
   );
 
-const refused = (status: number, message: string | undefined) =>
-  new ApiError(
-    status >= 500 || status === 429 ? 'service_unavailable' : 'unprocessable',
-    `Oblio answered ${status}: ${message || 'no message'}`,
-    undefined,
-    status >= 500 || status === 429 ? 'oblio_unavailable' : 'oblio_refused'
-  );
+export class OblioRefused extends ApiError {
+  constructor(
+    readonly status: number,
+    message: string | undefined
+  ) {
+    super(
+      status >= 500 || status === 429 ? 'service_unavailable' : 'unprocessable',
+      `Oblio answered ${status}: ${message || 'no message'}`,
+      undefined,
+      status >= 500 || status === 429 ? 'oblio_unavailable' : 'oblio_refused'
+    );
+  }
+}
+
+const refused = (status: number, message: string | undefined) => new OblioRefused(status, message);
 
 const loginRefused = (message: string | undefined) =>
   new ApiError(

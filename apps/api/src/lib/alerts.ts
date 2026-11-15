@@ -41,8 +41,12 @@ export function alertText(message: AlertMessage, environment: string, adminOrigi
   return `${clip(text, discordLimits.content - link.length)}${link}`;
 }
 
-export function alertSender(env: ApiEnv['Bindings'], fetcher?: typeof fetch): AlertSender {
-  const webhook = discordWebhook(env.DISCORD_ALERTS_WEBHOOK, {
+export function alertSender(
+  env: ApiEnv['Bindings'],
+  fetcher?: typeof fetch,
+  url = env.DISCORD_ALERTS_WEBHOOK
+): AlertSender {
+  const webhook = discordWebhook(url, {
     fetcher,
     what: 'An alert',
     // Alerts are sent from waitUntil, whose 30 seconds after the response are shared by every

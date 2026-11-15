@@ -1,5 +1,5 @@
 begin;
-select plan(32);
+select plan(33);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -256,6 +256,18 @@ select results_eq(
        and (qual like '%billing-invoices%' or with_check like '%billing-invoices%') $$,
   array[0],
   'no storage policy opens the invoices bucket to members'
+);
+
+insert into public.subscription_changes (organization_id, source, change, details)
+values ('11111111-0000-4000-8000-000000000001', 'stripe', 'operator_alerted',
+  '{"alert": "payment_failed", "alert_key": "payment_failed:in_1Test"}');
+
+select throws_ok(
+  $$ insert into public.subscription_changes (organization_id, source, change, details)
+     values ('11111111-0000-4000-8000-000000000001', 'stripe', 'operator_alerted',
+       '{"alert": "payment_failed", "alert_key": "payment_failed:in_1Test"}') $$,
+  '23505', null,
+  'an alert to the operator is claimed once'
 );
 
 select * from finish();

@@ -6,6 +6,7 @@ import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { handleChargeRefunded, handleInvoicePaid } from './invoices';
+import { type BillingAlerts, billingAlerts, laterOf } from './operator-alerts';
 import { findSubscriptionByCustomer, recordChange } from './store';
 import {
   idOf,
@@ -24,6 +25,8 @@ type Handling = {
   access: StripeAccess;
   catalogue: StripeCatalogue;
   event: Stripe.Event;
+  alerts: BillingAlerts;
+  delivery: { eventId: string; redelivered: boolean };
 };
 
 const subscriptionOfInvoice = (invoice: Stripe.Invoice) =>
@@ -31,7 +34,7 @@ const subscriptionOfInvoice = (invoice: Stripe.Invoice) =>
 
 async function syncById(handling: Handling, subscriptionId: string, failedAt?: Date) {
   const subscription = await handling.access.stripe.subscriptions.retrieve(subscriptionId);
-  return syncSubscription(handling.db, subscription, {
+  const row = await syncSubscription(handling.db, subscription, {
     accountId: handling.catalogue.accountId,
     now: new Date(),
     failedAt,
@@ -41,6 +44,23 @@ async function syncById(handling: Handling, subscriptionId: string, failedAt?: D
       details: { stripe_event: handling.event.id },
     },
   });
+  if (
+    row?.stripe_subscription_id === subscription.id &&
+    row.status === 'canceled' &&
+    subscription.cancellation_details?.reason === 'payment_failed'
+  ) {
+    handling.alerts.notify({
+      kind: 'canceled_unpaid',
+      organizationId: row.organization_id,
+      subscription: {
+        id: subscription.id,
+        accountId: handling.catalogue.accountId,
+        livemode: handling.access.livemode,
+      },
+      accessUntil: row.access_until,
+    });
+  }
+  return row;
 }
 
 // The first charge of a new subscription is confirmed in the browser and fails there, not as a
@@ -48,7 +68,20 @@ async function syncById(handling: Handling, subscriptionId: string, failedAt?: D
 async function paymentFailed(handling: Handling, invoice: Stripe.Invoice) {
   const subscriptionId = subscriptionOfInvoice(invoice);
   if (!subscriptionId || invoice.billing_reason === 'subscription_create') return;
-  await syncById(handling, subscriptionId, new Date(handling.event.created * 1000));
+  const row = await syncById(handling, subscriptionId, new Date(handling.event.created * 1000));
+  if (row?.stripe_subscription_id !== subscriptionId) return;
+  handling.alerts.notify({
+    kind: 'payment_failed',
+    organizationId: row.organization_id,
+    invoice: {
+      id: invoice.id,
+      number: invoice.number,
+      accountId: handling.catalogue.accountId,
+      livemode: handling.access.livemode,
+    },
+    due: { cents: invoice.amount_due, currency: invoice.currency },
+    accessUntil: row.status === 'past_due' ? row.access_until : null,
+  });
 }
 
 async function paymentActionRequired(handling: Handling, invoice: Stripe.Invoice) {
@@ -163,11 +196,14 @@ export async function stripeWebhook(c: Context<ApiEnv>) {
   const { event, access } = verified;
   const db = adminClient(c.env);
 
-  if ((await claim(db, event)) === 'done') return c.json({ received: true }, 200);
+  const claimed = await claim(db, event);
+  if (claimed === 'done') return c.json({ received: true }, 200);
 
   try {
     const catalogue = await stripeCatalogue(access);
-    await handleEvent({ env: c.env, db, access, catalogue, event });
+    const alerts = billingAlerts(c.env, db, laterOf(c));
+    const delivery = { eventId: event.id, redelivered: claimed === 'retry' };
+    await handleEvent({ env: c.env, db, access, catalogue, event, alerts, delivery });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Stripe event ${event.id} (${event.type}) failed: ${message}`);

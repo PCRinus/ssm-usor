@@ -195,6 +195,35 @@ sections can be edited without touching code; the gateway's own logs show every 
 and its cost. To rotate the token, create a new
 one, replace the secret, then delete the old token.
 
+### Discord alerts for invoicing
+
+The API tells the operator in Discord when invoicing goes wrong
+([ADR 029](architecture/adr-029-billing-plans-and-trials.md#amendment-2026-11-15-invoicing-problems-reach-the-operator)):
+a paid Stripe invoice left without its Oblio document, a document whose total differs from what
+Stripe charged or could not be read back, a renewal or change whose payment failed, and a
+subscription Stripe cancelled after failed payments. Each environment posts to its own channel,
+`#facturare-prod` and `#facturare-non-prod`, through the GitHub environment secret
+`DISCORD_BILLING_WEBHOOK`, which the deploy workflow uploads to the API Worker when it is set; without
+it the deployment warns, nothing is posted and invoicing works as before. Once, by hand, for each
+environment:
+
+1. In the Discord server, create the channel, and in its **Edit Channel → Integrations →
+   Webhooks** create a webhook and copy its URL.
+2. Save it as the environment's secret:
+   `gh secret set DISCORD_BILLING_WEBHOOK --env non-prod` (and `--env production`), pasting the URL.
+3. Merge to `main` or run **Deploy production**, which uploads it.
+
+A message names the problem, the environment, the organization's id, the Stripe invoice's number
+and id with a link to it in the Stripe dashboard, the totals, the Oblio series and number when a
+document exists, the kind of failure, and what to do. As with the imports' alerts it carries no
+name and no personal data, so Discord is not a sub-processor: no organization or company name, no
+address, CUI, email or card details, and no text from Oblio or from an error, which stays in the
+Worker's log. Each problem is posted once: a row `operator_alerted` in `subscription_changes`, under
+a unique key, claims it before the post and is removed when Discord does not take it. To stop the alerts, delete both the
+GitHub secret and the Worker's, with
+`pnpm --filter @ssm-usor/api exec wrangler secret delete DISCORD_BILLING_WEBHOOK`, adding
+`--env non-prod` for non-prod.
+
 ## Connect `ssmusor.ro` to Cloudflare
 
 The domain remains registered with RoTLD. Connecting it to Cloudflare changes only its authoritative
