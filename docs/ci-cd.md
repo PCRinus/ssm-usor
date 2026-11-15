@@ -142,8 +142,9 @@ an existing queue is left as it is. The API job also uploads the repository's `A
 variable and `AI_GATEWAY_TOKEN` secret to the Worker, as secrets, when they are set, for imports
 from documents ([deployment guide](deployment.md#the-same-gateway-for-imports-from-documents)),
 and the environment's `DISCORD_ALERTS_WEBHOOK` secret when it is set, for the imports' alerts
-([deployment guide](deployment.md#discord-alerts-for-imports)); without it the deployment warns
-and the alerts are skipped.
+([deployment guide](deployment.md#discord-alerts-for-imports)), and `DISCORD_BILLING_WEBHOOK`
+for the alerts on invoicing problems ([deployment guide](deployment.md#discord-alerts-for-invoicing));
+without either the deployment warns and those alerts are skipped.
 The legislation Worker deploys after the migrations, since its cron writes to a table they
 create, with the environment's `VITE_SUPABASE_URL` as its `SUPABASE_URL` and `SUPABASE_SECRET_KEY`
 as a secret, beside `LEGISLATION_RELAY_CLIENT_ID` and `LEGISLATION_RELAY_CLIENT_SECRET`, the Access
