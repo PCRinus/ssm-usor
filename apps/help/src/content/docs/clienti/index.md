@@ -39,6 +39,7 @@ sources:
   - apps/app/src/features/clients/offers-plan.ts
   - apps/app/src/features/clients/offers-plan-notice.tsx
   - apps/app/src/features/clients/leads-page.tsx
+  - apps/app/src/features/clients/lead-columns.tsx
 ---
 
 Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, lucrătorii, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client** sau, la primul client, cu **Adaugă primul client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
@@ -145,6 +146,25 @@ Un admin reactivează un client cu **Reactivează…**, din capul paginii client
 ## Ofertele
 
 O ofertă e o firmă cu care discuți și care nu e încă client. Le găsești în **Oferte**, în meniul lateral, pe care îl văd doar adminii. Pe pagina unei oferte ții datele firmei, persoana de contact, notițele, fișierele și contractul de prestări servicii, pe care îl poți trimite firmei. Când firma semnează, o transformi în client cu **Transformă în client…**, cu tot ce ai scris deja despre ea.
+
+### Lista ofertelor
+
+**Oferte** arată ofertele active; cele arhivate sunt la **Arhivate**. Fiecare rând arată:
+
+- **Companie**: denumirea, cu CUI-ul dedesubt, cu prefixul RO când firma e plătitoare de TVA;
+- **Persoană de contact**: numele, cu emailul dedesubt sau, dacă nu ai trecut un email, telefonul;
+- **Lucrători**: câți lucrători a declarat firma; o liniuță când nu ai trecut numărul;
+- **Contract**: unde a ajuns contractul de prestări servicii: **Fără contract**, **Ciornă**, **Emis**, **Trimis**, **Primit** sau **Semnat**. Sub stare vezi ziua în care contractul a ajuns acolo: ziua în care l-ai emis, ziua în care l-ai trimis ultima dată, ziua în care firma a încărcat copia semnată sau ziua în care ai confirmat-o;
+- **Adăugat**: ziua în care ai adăugat oferta.
+
+Două lucruri apar în galben, pentru că așteaptă ceva de la tine:
+
+- **Primit**: firma a încărcat copia semnată prin linkul din emailul cu contractul, iar copia așteaptă să o confirmi pe pagina ofertei;
+- „link expirat”, lângă data unui contract **Trimis**: linkul din email e valabil 60 de zile de la trimitere, iar după ele firma nu mai poate încărca copia semnată. Trimite contractul din nou ca să primească un link nou.
+
+Lista e ordonată după denumire și împărțită pe pagini. O poți ordona și după **Lucrători**, după **Contract**, în ordinea stărilor de mai sus, și după **Adăugat**. Un clic pe rând deschide oferta. Din meniul de la capătul rândului ajungi la **Modifică**, **Transformă în client…** și **Arhivează…**.
+
+Câmpul de căutare găsește ofertele după denumire, CUI sau localitate, ca la clienți; persoana de contact nu e căutată. Butonul **Filtre** are un singur filtru, **Contract**, cu cele șase stări; poți alege mai multe, iar o ofertă apare dacă are una dintre ele. Când cauți sau filtrezi, vezi câte oferte se potrivesc din total, de exemplu „6 din 18 oferte”. Dacă nu se potrivește niciuna, **Șterge filtrele** scoate filtrele și păstrează căutarea. La **Arhivate** poți căuta, dar nu și filtra.
 
 Ofertele, cu contractele lor, fac parte din planul **Profesional** și din perioada de probă. Pe planul **Start**:
 

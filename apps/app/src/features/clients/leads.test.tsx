@@ -42,7 +42,27 @@ const emptyDetails = {
   trainingDayTo: null,
 };
 
-const page = (items: unknown[]) => ({ items, page: 1, pageSize: 25, total: items.length });
+const page = (items: unknown[], counts: { total?: number; unfilteredTotal?: number } = {}) => ({
+  items,
+  page: 1,
+  pageSize: 25,
+  total: counts.total ?? items.length,
+  unfilteredTotal: counts.unfilteredTotal ?? counts.total ?? items.length,
+});
+
+const listed = (overrides: Record<string, unknown> = {}) => ({
+  ...lead,
+  currentEmployeeCount: 0,
+  serviceContractState: 'none',
+  serviceContractStateAt: null,
+  serviceContractReturnExpiresAt: null,
+  clientSince: null,
+  documentation: null,
+  fireSafetyDocumentation: null,
+  training: null,
+  canDelete: false,
+  ...overrides,
+});
 
 type Route = (init: RequestInit | undefined, url: URL) => Response;
 
@@ -72,7 +92,7 @@ function mockApi(
       });
     }
     if (path === '/clients' && method === 'GET') {
-      return routes.list?.(init, url) ?? Response.json(page([lead]));
+      return routes.list?.(init, url) ?? Response.json(page([listed()]));
     }
     if (path === '/clients' && method === 'POST') {
       return routes.create?.(init, url) ?? Response.json({ client: lead }, { status: 201 });
@@ -133,18 +153,250 @@ afterEach(() => {
 });
 
 describe('leads', () => {
-  it('lists the leads with their contact, asking the API for that stage', async () => {
-    mockApi();
+  it('lists the leads with their CUI, contact, workers and contract, asking the API for that stage', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([
+            listed({
+              vatPayer: true,
+              serviceContractState: 'sent',
+              serviceContractStateAt: '2026-10-28T09:00:00+00:00',
+              serviceContractReturnExpiresAt: '2099-01-01T00:00:00+00:00',
+            }),
+          ])
+        ),
+    });
     mount('/oferte');
     const row = await screen.findByTestId('leads-row');
-    expect(row.textContent).toContain('VELOCITA URBANA SRL');
+    expect(within(row).getByTestId('leads-open').textContent).toBe('VELOCITA URBANA SRL');
+    expect(within(row).getByTestId('leads-cui').textContent).toBe('RO41760933');
     expect(row.textContent).toContain('Andrei Pop');
     expect(row.textContent).toContain('andrei@velocita.example');
     expect(row.textContent).toContain('17.09.2026');
+    expect(within(row).getByTestId('leads-contract').textContent).toBe('Trimis');
+    expect(within(row).getByTestId('leads-contract-date').textContent).toBe('28.10.2026');
+    const headers = within(screen.getByTestId('leads-table'))
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent?.replace('\u2060', ''));
+    expect(headers).toEqual([
+      'Companie',
+      'Persoană de contact',
+      'Lucrători',
+      'Contract',
+      'Adăugat',
+      'Acțiuni',
+    ]);
+    expect(row.querySelectorAll('td')[2]!.textContent).toBe('6');
     expect(screen.getByTestId('leads-count').textContent).toBe('1 ofertă');
     const [input] = requests('/clients', 'GET')[0]!;
     expect(new URL(String(input)).searchParams.get('stage')).toBe('lead');
     expect(await screen.findByTestId('nav-leads')).toBeTruthy();
+  });
+
+  it.each([
+    ['draft', null, null, 'Ciornă', null],
+    ['issued', '2026-11-10T09:00:00+00:00', null, 'Emis', '10.11.2026'],
+    ['received', '2026-11-13T09:00:00+00:00', null, 'Primit', '13.11.2026'],
+    ['signed', '2026-11-07T09:00:00+00:00', null, 'Semnat', '07.11.2026'],
+    [
+      'sent',
+      '2026-09-12T09:00:00+00:00',
+      '2026-11-11T09:00:00+00:00',
+      'Trimis',
+      '12.09.2026, link expirat',
+    ],
+  ])(
+    'says where the contract stands and since when: %s',
+    async (state, stateAt, expiresAt, label, date) => {
+      mockApi({
+        list: () =>
+          Response.json(
+            page([
+              listed({
+                serviceContractState: state,
+                serviceContractStateAt: stateAt,
+                serviceContractReturnExpiresAt: expiresAt,
+              }),
+            ])
+          ),
+      });
+      mount('/oferte');
+      const row = await screen.findByTestId('leads-row');
+      const badge = within(row).getByTestId('leads-contract');
+      expect(badge.textContent).toBe(label);
+      expect(badge.className.includes('bg-warning')).toBe(state === 'received');
+      expect(within(row).queryByTestId('leads-contract-date')?.textContent ?? null).toBe(date);
+    }
+  );
+
+  it('shows a dash for a lead without a contact or a declared headcount', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([listed({ contactName: null, contactEmail: null, declaredEmployeeCount: null })])
+        ),
+    });
+    mount('/oferte');
+    const row = await screen.findByTestId('leads-row');
+    const cells = row.querySelectorAll('td');
+    expect(cells[1]!.textContent).toBe('—');
+    expect(cells[2]!.textContent).toBe('—');
+    expect(within(row).getByTestId('leads-contract').textContent).toBe('Fără contract');
+  });
+
+  it('searches through the URL, never the contact, and counts the matches out of every offer', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.get('q')
+            ? page([listed()], { total: 1, unfilteredTotal: 18 })
+            : page([listed()], { total: 18 })
+        ),
+    });
+    const runtime = mount('/oferte');
+    await screen.findByTestId('leads-row');
+    expect(screen.getByTestId('leads-count').textContent).toBe('18 oferte');
+    const search = screen.getByTestId('leads-search');
+    expect(search.getAttribute('placeholder')).toBe('Caută după nume, CUI sau localitate');
+    await userEvent.setup().type(search, 'Sibiu');
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'Sibiu' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('leads-count').textContent).toBe('1 din 18 oferte')
+    );
+    const query = new URL(String(requests('/clients', 'GET').at(-1)![0])).searchParams;
+    expect(query.get('q')).toBe('Sibiu');
+    expect(query.get('stage')).toBe('lead');
+  });
+
+  it('filters by the contract from the panel, names the filter in the strip, and removes it there', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.has('contractState')
+            ? page([listed({ serviceContractState: 'sent' })], { total: 6, unfilteredTotal: 18 })
+            : page([listed()], { total: 18 })
+        ),
+    });
+    const runtime = mount('/oferte');
+    const user = userEvent.setup();
+    await screen.findByTestId('leads-row');
+    await user.click(screen.getByTestId('leads-filters'));
+    const panel = await screen.findByTestId('leads-filters-panel');
+    expect(
+      within(panel)
+        .getAllByRole('checkbox')
+        .map((option) => option.closest('label')?.textContent)
+    ).toEqual(['Fără contract', 'Ciornă', 'Emis', 'Trimis', 'Primit', 'Semnat']);
+    await user.click(within(panel).getByTestId('leads-filters-contractState-sent'));
+    await user.click(within(panel).getByTestId('leads-filters-contractState-received'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.searchStr).toBe(
+        '?contractState=sent&contractState=received'
+      )
+    );
+    const query = new URL(String(requests('/clients', 'GET').at(-1)![0])).searchParams;
+    expect(query.getAll('contractState')).toEqual(['sent', 'received']);
+    expect(query.has('contract')).toBe(false);
+    await waitFor(() =>
+      expect(screen.getByTestId('leads-count').textContent).toBe('6 din 18 oferte')
+    );
+    expect(within(panel).getByTestId('leads-filters-show').textContent).toBe('Arată 6 oferte');
+    await user.click(within(panel).getByTestId('leads-filters-show'));
+    const strip = screen.getByTestId('leads-applied-filters');
+    expect(within(strip).getByTestId('leads-applied-filters-contractState').textContent).toContain(
+      'Trimis, Primit'
+    );
+    await user.click(within(strip).getByRole('button', { name: 'Scoate filtrul Contract' }));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('sorts by the workers, the contract and the date added through the URL, not by the contact', async () => {
+    mockApi();
+    const runtime = mount('/oferte');
+    const user = userEvent.setup();
+    await screen.findByTestId('leads-row');
+    expect(screen.queryByTestId('sort-contact')).toBeNull();
+    await user.click(screen.getByTestId('sort-declaredEmployeeCount'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'declaredEmployeeCount' })
+    );
+    await user.click(screen.getByTestId('sort-serviceContractState'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'serviceContractState' })
+    );
+    await user.click(screen.getByTestId('sort-createdAt'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'createdAt', order: 'desc' })
+    );
+    const sorts = requests('/clients', 'GET').map(([url]) =>
+      new URL(String(url)).searchParams.get('sort')
+    );
+    expect(sorts).toEqual(
+      expect.arrayContaining(['declaredEmployeeCount', 'serviceContractState', 'createdAt'])
+    );
+  });
+
+  it('says when no offer matches, and clears the filters only, keeping the search', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.has('contractState')
+            ? page([], { total: 0, unfilteredTotal: 18 })
+            : page([listed()], { total: 1, unfilteredTotal: 18 })
+        ),
+    });
+    const runtime = mount('/oferte?contractState=received&q=Sibiu');
+    const empty = await screen.findByTestId('leads-empty-filtered');
+    expect(empty.textContent).toContain('filtrelor alese și căutării');
+    expect(screen.getByTestId('leads-count').textContent).toBe('0 din 18 oferte');
+    expect(screen.getByTestId('leads-add')).toBeTruthy();
+    expect(screen.getByTestId('leads-search')).toBeTruthy();
+    const clear = within(empty).getByTestId('leads-empty-clear');
+    expect(clear.textContent).toBe('Șterge filtrele');
+    await userEvent.setup().click(clear);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'Sibiu' }));
+    await screen.findByTestId('leads-row');
+  });
+
+  it('clears a search that finds nothing from the empty state', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.get('q') ? page([], { total: 0, unfilteredTotal: 18 }) : page([listed()])
+        ),
+    });
+    const runtime = mount('/oferte?q=nimic');
+    const empty = await screen.findByTestId('leads-empty-filtered');
+    const clear = within(empty).getByTestId('leads-empty-clear');
+    expect(clear.textContent).toBe('Șterge căutarea');
+    await userEvent.setup().click(clear);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('offers the first offer and no search or filter while there is none', async () => {
+    mockApi({ list: () => Response.json(page([])) });
+    mount('/oferte');
+    const empty = await screen.findByTestId('leads-empty');
+    expect(empty.textContent).toContain('Nicio ofertă încă');
+    expect(within(empty).getByTestId('leads-add').textContent).toBe('Adaugă prima ofertă');
+    expect(screen.getAllByTestId('leads-add')).toHaveLength(1);
+    expect(screen.queryByTestId('leads-search')).toBeNull();
+    expect(screen.queryByTestId('leads-filters')).toBeNull();
+    expect(screen.getByTestId('leads-filter-archived')).toBeTruthy();
+  });
+
+  it('searches the archived offers but offers no filter there', async () => {
+    mockApi({
+      list: () => Response.json(page([listed({ archivedAt: '2026-10-01T08:00:00+00:00' })])),
+    });
+    mount('/oferte?status=archived&contractState=sent');
+    await screen.findByTestId('leads-row');
+    expect(screen.getByTestId('leads-search')).toBeTruthy();
+    expect(screen.queryByTestId('leads-filters')).toBeNull();
+    const query = new URL(String(requests('/clients', 'GET').at(-1)![0])).searchParams;
+    expect(query.get('status')).toBe('archived');
+    expect(query.has('contractState')).toBe(false);
   });
 
   it('is not in the navigation of a specialist, and says why the list is refused', async () => {

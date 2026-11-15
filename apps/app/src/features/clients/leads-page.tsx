@@ -1,24 +1,40 @@
-import { defaultPageSize } from '@ssm-usor/contracts';
+import {
+  defaultPageSize,
+  type LeadListFilters,
+  type LeadSortKey,
+  serviceContractStates,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { Archive, Handshake, Plus } from 'lucide-react';
+import { Archive, FileText, Handshake, Plus, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { getListClientsQueryKey, useListClients } from '@/api/generated/api';
+import {
+  getListClientsQueryKey,
+  type ListClientsParams,
+  useListClients,
+} from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
+import { AppliedFilters } from '@/components/list-filters/applied-filters';
+import { ListFilters } from '@/components/list-filters/list-filters';
+import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
+import { listFilterSearch } from '@/components/list-filters/url';
+import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import { roCount } from '@/features/employees/employee-format';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
 import type { ClientRow } from './client-columns';
 import { leadColumns } from './lead-columns';
-import type { LeadSortKey } from './lead-sort';
+import { contractStateLabels } from './lead-contract-states';
 import { useOffersInPlan } from './offers-plan';
 import { OffersPlanNotice } from './offers-plan-notice';
 import { PromoteLeadDialog } from './promote-lead-dialog';
@@ -27,31 +43,74 @@ const leadsRoute = getRouteApi('/_authenticated/oferte/');
 
 const defaultSort: DataTableSort & { sort: LeadSortKey } = { sort: 'legalName', order: 'asc' };
 
-const filters = [
+const filterKeys = ['contractState'] as const satisfies readonly (keyof LeadListFilters)[];
+
+type FilterKey = (typeof filterKeys)[number];
+
+const facets: ListFilterFacet<FilterKey>[] = [
+  {
+    key: 'contractState',
+    label: 'Contract',
+    icon: FileText,
+    column: 'left',
+    options: serviceContractStates.map((state) => ({
+      value: state,
+      label: contractStateLabels[state],
+    })),
+  },
+];
+
+const leadNoun = ['ofertă', 'oferte'] as const;
+const leadCount = (count: number) => roCount(count, ...leadNoun);
+
+const tabs = [
   { status: undefined, label: 'Active', testId: 'leads-filter-active' },
   { status: 'archived', label: 'Arhivate', testId: 'leads-filter-archived' },
 ] as const;
 
 const rowKey = (row: ClientRow) => row.id;
 
+function PendingLeadsLabel({ filters, q }: { filters: LeadListFilters; q: string | undefined }) {
+  const { session } = useAuth();
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const params: ListClientsParams = {
+    stage: 'lead',
+    page: 1,
+    pageSize: 1,
+    ...(q ? { q } : {}),
+    ...filters,
+  };
+  const total = useListClients(params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListClientsQueryKey(params), session?.user.id],
+      enabled: Boolean(session && apiRequest.baseUrl),
+      placeholderData: keepPreviousData,
+    },
+  }).data?.total;
+  return total === undefined ? 'Arată rezultatele' : `Arată ${leadCount(total)}`;
+}
+
 export function LeadsPage() {
-  const {
-    page = 1,
-    sort = defaultSort.sort,
-    order = defaultSort.order,
-    status,
-  } = leadsRoute.useSearch();
+  const search = leadsRoute.useSearch();
+  const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status, q } = search;
   const archived = status === 'archived';
   const navigate = leadsRoute.useNavigate();
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = {
-    stage: 'lead' as const,
+  const shownFacets = archived ? [] : facets;
+  const listFilters = listFilterSearch({ keys: filterKeys, facets: shownFacets, search });
+  const filters = listFilters.searchOf(listFilters.values) as LeadListFilters;
+  const filtered = listFilters.applied;
+  const params: ListClientsParams = {
+    stage: 'lead',
     ...(archived ? { status } : {}),
     page,
     pageSize: defaultPageSize,
     sort,
     order,
+    ...(q ? { q } : {}),
+    ...filters,
   };
   const leads = useListClients(params, {
     request: apiRequest,
@@ -62,17 +121,36 @@ export function LeadsPage() {
     },
   });
   const meta = leads.data ?? { page, pageSize: defaultPageSize, total: 0 };
+  const unfilteredTotal = leads.data?.unfilteredTotal ?? 0;
+  const narrowed = filtered || Boolean(q);
   const listStatus = !apiRequest.baseUrl ? 'error' : leads.status;
+  const phone = useIsMobile();
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState<ClientRow | null>(null);
   const offers = useOffersInPlan();
   const columns = useMemo(() => leadColumns(setArchiveChange, setPromoting, offers), [offers]);
+  const changeFilters = (values: ListFilterValues<FilterKey>) =>
+    void navigate({
+      replace: true,
+      resetScroll: false,
+      search: (prev) => ({
+        ...prev,
+        ...(listFilters.searchOf(values) as LeadListFilters),
+        page: undefined,
+      }),
+    });
+  const clearSearch = () =>
+    void navigate({
+      replace: true,
+      resetScroll: false,
+      search: (prev) => ({ ...prev, q: undefined, page: undefined }),
+    });
 
   return (
     <div data-testid="leads-page" className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Oferte</h1>
-        {offers && (archived || !isEmptyOrLoading(listStatus, meta.total)) && (
+        {offers && (archived || !isEmptyOrLoading(listStatus, unfilteredTotal)) && (
           <Button asChild>
             <Link to="/oferte/nou" state={openedHere} data-testid="leads-add">
               <Plus aria-hidden="true" />
@@ -91,25 +169,74 @@ export function LeadsPage() {
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
           <FilterTabs label="Filtrează ofertele">
-            {filters.map((filter) => (
+            {tabs.map((tab) => (
               <FilterTab
-                key={filter.label}
+                key={tab.label}
                 to="/oferte"
-                search={filter.status ? { status: filter.status } : {}}
-                data-testid={filter.testId}
-                active={filter.status === status}
+                search={tab.status ? { status: tab.status } : {}}
+                data-testid={tab.testId}
+                active={tab.status === status}
                 replace
+                resetScroll={false}
               >
-                {filter.label}
+                {tab.label}
               </FilterTab>
             ))}
           </FilterTabs>
+          {(unfilteredTotal > 0 || narrowed) && (
+            <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
+              <SearchInput
+                value={q}
+                onSearch={(next) =>
+                  void navigate({
+                    replace: true,
+                    resetScroll: false,
+                    search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
+                  })
+                }
+                placeholder={phone ? 'Caută oferte' : 'Caută după nume, CUI sau localitate'}
+                label="Caută oferte"
+                testId="leads-search"
+              />
+              {!archived && (
+                <ListFilters
+                  facets={shownFacets}
+                  values={filters}
+                  onChange={changeFilters}
+                  total={leads.isSuccess && !leads.isPlaceholderData ? meta.total : undefined}
+                  applyLabel={(pending) => (
+                    <PendingLeadsLabel
+                      filters={listFilters.searchOf(pending) as LeadListFilters}
+                      q={q}
+                    />
+                  )}
+                  countLabel={leadCount}
+                  testId="leads-filters"
+                />
+              )}
+            </div>
+          )}
           {leads.isSuccess && (
             <ListCount testId="leads-count">
-              {meta.total === 1 ? '1 ofertă' : `${meta.total} oferte`}
+              {narrowed ? (
+                <>
+                  <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
+                  {leadCount(unfilteredTotal)}
+                </>
+              ) : (
+                leadCount(meta.total)
+              )}
             </ListCount>
           )}
         </ListCardHeader>
+        {!archived && (
+          <AppliedFilters
+            facets={shownFacets}
+            values={filters}
+            onChange={changeFilters}
+            testId="leads-applied-filters"
+          />
+        )}
         <DataTable
           testId="leads-table"
           rowTestId="leads-row"
@@ -121,7 +248,7 @@ export function LeadsPage() {
             void navigate({ to: '/oferte/$leadId', params: { leadId: lead.id }, state: openedHere })
           }
           meta={meta}
-          noun={['ofertă', 'oferte']}
+          noun={leadNoun}
           status={listStatus}
           isFetching={leads.isFetching}
           isPlaceholderData={leads.isPlaceholderData}
@@ -165,7 +292,26 @@ export function LeadsPage() {
             </>
           }
           empty={
-            archived ? (
+            narrowed ? (
+              <EmptyState
+                icon={SearchX}
+                title="Nicio ofertă nu se potrivește"
+                data-testid="leads-empty-filtered"
+                actions={
+                  <Button
+                    variant="outline"
+                    data-testid="leads-empty-clear"
+                    onClick={filtered ? () => changeFilters({}) : clearSearch}
+                  >
+                    {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
+                  </Button>
+                }
+              >
+                {filtered
+                  ? `Nicio ofertă ${archived ? 'arhivată' : 'activă'} nu se potrivește filtrelor alese${q ? ' și căutării' : ''}. Scoate unul dintre filtrele de mai sus sau șterge-le pe toate.`
+                  : `Nicio ofertă ${archived ? 'arhivată' : 'activă'} nu se potrivește căutării „${q}”. Caută după nume, CUI sau localitate.`}
+              </EmptyState>
+            ) : archived ? (
               <EmptyState icon={Archive} title="Nicio ofertă arhivată" data-testid="leads-empty">
                 Ofertele arhivate vor apărea aici. Le poți reactiva oricând.
               </EmptyState>
