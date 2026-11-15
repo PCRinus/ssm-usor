@@ -595,7 +595,19 @@ their tab bars read.
   sort at a time, never removed), the pending skeleton, the error and empty slots, the rows,
   and the `Pager` footer; the page owns the query and maps the table's sort and page
   callbacks onto its search params. While another sort or page loads, the rows of the earlier
-  one stay, dimmed, and the table is `aria-busy` (`isPlaceholderData`).
+  one stay, dimmed, and the table is `aria-busy` (`isPlaceholderData`). `expansion` puts a
+  chevron before a row that opens details under it (`canExpand` leaves a row without one), and
+  `selection` a named checkbox before every row and one in the header for the page's rows; the
+  page owns what is chosen, so a choice survives a page turn, and a row it chose in part reads
+  as mixed.
+- `/semnaturi` (_Semnături_, ADR 023): the member's own pending signatures from
+  `GET /me/signatures`, one row per training or test sheet with every slot they hold on it.
+  The search (`?q=`, workers' names only), the Filtre panel (`client`, `domain`, `kind`, each
+  repeated), the sort and the page live in the URL. Choosing rows, or workers of an open row,
+  replaces the toolbar with a bar that counts signatures and opens the signing dialog with
+  requests chosen on any page; over the 30 a code signs, the button stays off and the bar says
+  what to untick. The choice is forgotten when the search or a filter changes, and the signed
+  requests leave it after a session.
 - A list searched by text puts `src/components/search-input.tsx` above its table: the text goes
   into `?q=` 300 ms after typing pauses (or at once on Enter), with replace navigation and back
   to page one; the clear button and Escape empty it. The box follows the URL when the search

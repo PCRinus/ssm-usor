@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } from './list';
 import { participantChannelSchema } from './participant-channels';
 import { signatureSlotStateSchema } from './signature-slot-states';
 import { type KnowledgeTest, knowledgeTestSchema } from './tests';
@@ -11,6 +12,7 @@ import {
   trainingDomainSchema,
   type TrainingPhase,
   trainingPhaseLabels,
+  trainingPhases,
   trainingPhaseSchema,
 } from './trainings';
 
@@ -342,6 +344,71 @@ export type SignatureRequestListResponse = z.infer<typeof signatureRequestListRe
 export const clientSignatureRequestsQuerySchema = z.object({
   state: signatureRequestStateSchema.default('pending'),
 });
+
+// The slots the Semnături place lists: every one but the trainee's, who signs in the portal.
+export const signatureListSlots = ['trainer', 'verifier', 'admitter', 'examiner'] as const;
+export const signatureListSlotSchema = z.enum(signatureListSlots);
+export type SignatureListSlot = z.infer<typeof signatureListSlotSchema>;
+
+export const signatureListSubjects = [...trainingPhases, 'test'] as const;
+export const signatureListSubjectSchema = z.enum(signatureListSubjects);
+export type SignatureListSubject = z.infer<typeof signatureListSubjectSchema>;
+
+export const signatureListSortKeys = ['issuedAt', 'day', 'client'] as const;
+export type SignatureListSortKey = (typeof signatureListSortKeys)[number];
+
+export const signatureListFiltersSchema = z.object({
+  client: repeatedQueryValue(z.uuid()).optional(),
+  domain: repeatedQueryValue(trainingDomainSchema).optional(),
+  kind: repeatedQueryValue(signatureListSubjectSchema).optional(),
+});
+
+export type SignatureListFilters = z.infer<typeof signatureListFiltersSchema>;
+
+export const listMySignaturesQuerySchema = listQuerySchema(signatureListSortKeys, 'issuedAt')
+  .extend({
+    // Matches the workers' names only, never a CNP: the search sits in the page's address.
+    q: listSearchSchema.optional(),
+  })
+  .extend(signatureListFiltersSchema.shape);
+
+export type ListMySignaturesQuery = z.infer<typeof listMySignaturesQuerySchema>;
+
+export const signatureListWorkerSchema = z.object({
+  employee: requestEmployeeSchema,
+  agreement: signingAgreementSummarySchema,
+  // One request for each slot the signer holds on the worker's record or sheet.
+  requests: z.array(z.object({ id: z.uuid(), slot: signatureListSlotSchema })).min(1),
+});
+
+export type SignatureListWorker = z.infer<typeof signatureListWorkerSchema>;
+
+/** A training, or a test sheet: `phase` for a training and `test` for a sheet, the other null. */
+export const signatureListItemSchema = z.object({
+  id: z.uuid(),
+  kind: z.enum(['training', 'test_sheet']),
+  client: z.object({ id: z.uuid(), name: z.string() }),
+  domain: trainingDomainSchema,
+  phase: trainingPhaseSchema.nullable(),
+  test: knowledgeTestSchema.nullable(),
+  day: z.iso.date(),
+  slots: z.array(signatureListSlotSchema).min(1),
+  // The oldest pending request on the row.
+  issuedAt: z.iso.datetime({ offset: true }),
+  signatures: z.int().min(1),
+  workers: z.array(signatureListWorkerSchema).min(1),
+});
+
+export type SignatureListItem = z.infer<typeof signatureListItemSchema>;
+
+/** `total` counts rows; `signatures` counts the requests on them, which is what a code signs. */
+export const signatureListResponseSchema = pageSchema(signatureListItemSchema).extend({
+  unfilteredTotal: z.int().min(0),
+  signatures: z.int().min(0),
+  unfilteredSignatures: z.int().min(0),
+});
+
+export type SignatureListResponse = z.infer<typeof signatureListResponseSchema>;
 
 const portalPersonSchema = z.object({ name: z.string(), jobTitle: z.string() });
 

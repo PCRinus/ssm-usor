@@ -1,5 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type { DashboardSummary } from '@ssm-usor/contracts';
+import { type DashboardSummary, signatureListSlots } from '@ssm-usor/contracts';
 
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
@@ -21,8 +21,9 @@ export const getDashboardSummary: RouteHandler<typeof getDashboardSummaryRoute, 
       .eq('organization_id', organizationId)
       .maybeSingle(),
     db.rpc('dashboard_employees_at_month_ends', { p_organization_id: organizationId }),
-    // The predicates of GET /me/signature-requests, so the count matches the page it links to;
-    // the inner join drops, as that list does, a request on a client the caller may not read.
+    // The predicates of GET /me/signatures, so the count matches the signatures of the page it
+    // links to; the inner join drops, as that list does, a request on a client the caller may
+    // not read.
     db
       .from('signature_requests')
       .select('id, clients!signature_requests_client_id_fkey!inner(id)', {
@@ -31,7 +32,7 @@ export const getDashboardSummary: RouteHandler<typeof getDashboardSummaryRoute, 
       })
       .eq('signer_account_id', c.get('user').id)
       .eq('organization_id', organizationId)
-      .neq('slot', 'trainee')
+      .in('slot', [...signatureListSlots])
       .eq('state', 'pending'),
   ]);
   if (summary.error) throw fromDatabaseError(summary.error, 'dashboard summary');

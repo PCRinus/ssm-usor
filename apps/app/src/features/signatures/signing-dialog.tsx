@@ -1,4 +1,5 @@
 import {
+  type ApiErrorResponse,
   formatEmployeeName,
   signatureErrorReasons,
   trainingDomainLabels,
@@ -20,12 +21,12 @@ import { CircleAlert, CircleCheck } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
-  type SignatureRequestListResponseItemsItem,
   type SigningSessionResponse,
   type SignSessionResponse,
   useCreateMySigningSession,
   useSignMySigningSession,
 } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -41,17 +42,29 @@ import {
   signAsLabel,
   signingFailure,
   signingItemFailures,
+  type SigningRequest,
   signingSessionFailure,
   trainingCount,
   wrongCodeMessage,
 } from './signature-format';
 import { invalidateSignatures } from './signature-queries';
 
-type SignatureRequest = SignatureRequestListResponseItemsItem;
+type SignatureRequest = SigningRequest;
 
 const codeLength = 6;
 
 const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
+
+// The refusal names the request that no longer waits by its place in the list sent.
+function namedRequests(cause: unknown, requests: readonly SignatureRequest[]) {
+  const issues =
+    cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>)?.issues : undefined;
+  return (issues ?? []).flatMap(({ path }) => {
+    const index = /^requestIds\.(\d+)$/.exec(path)?.[1];
+    const request = index === undefined ? undefined : requests[Number(index)];
+    return request ? [request.id] : [];
+  });
+}
 
 type Step =
   | { kind: 'review' }
@@ -62,14 +75,18 @@ export function SigningDialog({
   requests,
   open,
   onClose,
+  onGone,
 }: {
   requests: SignatureRequest[];
   open: boolean;
   onClose: () => void;
+  // The requests that no longer wait for this signer: signed now, or signed, voided or changed
+  // since they were chosen.
+  onGone?: (requestIds: string[]) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {open && <SigningFlow requests={requests} onClose={onClose} />}
+      {open && <SigningFlow requests={requests} onClose={onClose} onGone={onGone} />}
     </Dialog>
   );
 }
@@ -77,9 +94,11 @@ export function SigningDialog({
 function SigningFlow({
   requests: chosen,
   onClose,
+  onGone,
 }: {
   requests: SignatureRequest[];
   onClose: () => void;
+  onGone?: (requestIds: string[]) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const create = useCreateMySigningSession({ request: wordingRefusalHere(apiRequest) });
@@ -128,7 +147,10 @@ function SigningFlow({
       setSignError(null);
       wantsFocus.current = true;
     } catch (cause) {
-      if (reasonOf(cause) === signatureErrorReasons.signingItemNotFound) touched.current = true;
+      if (reasonOf(cause) === signatureErrorReasons.signingItemNotFound) {
+        touched.current = true;
+        onGone?.(namedRequests(cause, requests));
+      }
       setSendError(signingSessionFailure(cause));
     }
   }
@@ -145,6 +167,12 @@ function SigningFlow({
     try {
       const result = await sign.mutateAsync({ sessionId, data: { code } });
       setStep({ kind: 'result', result });
+      onGone?.([
+        ...result.signed.map((item) => item.requestId),
+        ...result.failed
+          .filter((item) => item.reason === 'request_not_pending')
+          .map((item) => item.requestId),
+      ]);
     } catch (cause) {
       const reason = reasonOf(cause);
       if (reason === signatureErrorReasons.codeInvalid) {

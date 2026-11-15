@@ -1,5 +1,6 @@
 import { pageCount, type PageMeta } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -47,9 +48,12 @@ export interface DataTableProps<TData extends RowData> {
   rowTestId?: string;
   onRowClick?: (row: TData) => void;
   expansion?: DataTableExpansion<TData>;
+  selection?: DataTableSelection<TData>;
 }
 
 export interface DataTableExpansion<TData> {
+  // Left out when every row opens; a row that does not keeps an empty cell.
+  canExpand?: (row: TData) => boolean;
   isOpen: (row: TData) => boolean;
   onToggle: (row: TData) => void;
   label: (row: TData) => string;
@@ -57,9 +61,23 @@ export interface DataTableExpansion<TData> {
   testId?: string;
 }
 
+/**
+ * A checkbox before every row and one in the header for the rows on the page. The caller owns
+ * what is chosen, so a choice survives a page turn, and a row it chose in part reads
+ * `indeterminate`.
+ */
+export interface DataTableSelection<TData> {
+  state: (row: TData) => boolean | 'indeterminate';
+  onChange: (rows: TData[], selected: boolean) => void;
+  label: (row: TData) => string;
+  pageLabel: string;
+  testId?: string;
+}
+
 const EMPTY: never[] = [];
 const skeletonRows = 3;
 const cellPadding = 'py-2.5';
+const selectCell = 'w-11 pr-0';
 
 export function DataTable<TData extends RowData>({
   columns,
@@ -80,6 +98,7 @@ export function DataTable<TData extends RowData>({
   rowTestId,
   onRowClick,
   expansion,
+  selection,
 }: DataTableProps<TData>) {
   const detailsId = useId();
   const sorting: SortingState = [{ id: sort.sort, desc: sort.order === 'desc' }];
@@ -101,8 +120,16 @@ export function DataTable<TData extends RowData>({
     enableMultiSort: false,
     enableSortingRemoval: false,
   });
-  const columnCount = table.getAllLeafColumns().length + (expansion ? 1 : 0);
+  const columnCount = table.getAllLeafColumns().length + (expansion ? 1 : 0) + (selection ? 1 : 0);
   const leafColumns = table.getAllLeafColumns();
+  const pageRows = table.getRowModel().rows.map((row) => row.original);
+  const pageStates = selection ? pageRows.map((row) => selection.state(row)) : [];
+  const pageSelected =
+    pageStates.length > 0 && pageStates.every((state) => state === true)
+      ? true
+      : pageStates.some(Boolean)
+        ? 'indeterminate'
+        : false;
 
   const pageEmpty = status === 'success' && table.getRowModel().rows.length === 0;
 
@@ -118,6 +145,17 @@ export function DataTable<TData extends RowData>({
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id}>
+              {selection && (
+                <TableHead className={selectCell}>
+                  <Checkbox
+                    aria-label={selection.pageLabel}
+                    data-testid={selection.testId && `${selection.testId}-page`}
+                    disabled={status !== 'success' || pageRows.length === 0}
+                    checked={pageSelected}
+                    onCheckedChange={() => selection.onChange(pageRows, pageSelected !== true)}
+                  />
+                </TableHead>
+              )}
               {expansion && (
                 <TableHead className="w-11">
                   <span className="sr-only">Detalii</span>
@@ -189,6 +227,7 @@ export function DataTable<TData extends RowData>({
           ) : status === 'pending' ? (
             Array.from({ length: skeletonRows }, (_, index) => (
               <TableRow key={index} className="hover:bg-transparent">
+                {selection && <TableCell className={cn(cellPadding, selectCell)} />}
                 {expansion && <TableCell className={cellPadding} />}
                 {leafColumns.map((column) => (
                   <TableCell
@@ -222,7 +261,9 @@ export function DataTable<TData extends RowData>({
             </TableRow>
           ) : (
             table.getRowModel().rows.map((row) => {
-              const open = expansion?.isOpen(row.original) ?? false;
+              const expandable = expansion?.canExpand?.(row.original) ?? Boolean(expansion);
+              const open = (expandable && expansion?.isOpen(row.original)) ?? false;
+              const selected = selection?.state(row.original) ?? false;
               const details = `${detailsId}-${row.id}`;
               const click = rowClickProps(onRowClick && (() => onRowClick(row.original)));
               return (
@@ -230,10 +271,24 @@ export function DataTable<TData extends RowData>({
                   <TableRow
                     data-testid={rowTestId}
                     data-open={expansion ? open : undefined}
+                    data-state={selected === true ? 'selected' : undefined}
                     {...click}
                     className={cn(click.className, open && 'border-b-0 bg-muted/50')}
                   >
-                    {expansion && (
+                    {selection && (
+                      <TableCell className={cn(cellPadding, selectCell)}>
+                        <Checkbox
+                          aria-label={selection.label(row.original)}
+                          data-testid={selection.testId}
+                          checked={selected}
+                          onCheckedChange={() =>
+                            selection.onChange([row.original], selected !== true)
+                          }
+                        />
+                      </TableCell>
+                    )}
+                    {expansion && !expandable && <TableCell className={cellPadding} />}
+                    {expansion && expandable && (
                       <TableCell className={cn(cellPadding, 'w-11 pr-0')}>
                         <Button
                           variant="ghost"

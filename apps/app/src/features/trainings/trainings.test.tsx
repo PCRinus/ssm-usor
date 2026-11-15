@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getListClientSignatureRequestsQueryKey,
-  getListMySignatureRequestsQueryKey,
+  getListMySignaturesQueryKey,
 } from '@/api/generated/api';
 import { todayIso } from '@/features/employees/employee-format';
 import { authFixture, makeSession } from '@/test/auth-fixture';
@@ -1403,7 +1403,7 @@ describe("an employee's knowledge tests", () => {
       `${employeePage}/instruire/ssm`
     );
     const requestLists = [
-      getListMySignatureRequestsQueryKey(),
+      getListMySignaturesQueryKey(),
       getListClientSignatureRequestsQueryKey(clientId),
     ];
     const user = userEvent.setup();

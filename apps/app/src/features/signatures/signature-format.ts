@@ -2,12 +2,14 @@ import {
   type ApiErrorResponse,
   clientConflictReasons,
   signatureErrorReasons,
+  type SignatureRequestKind,
   type SignatureRequestSlot,
   type SignatureSlotState,
   type SignatureVoidReason,
   type SignerKind,
   signerSlotLabels,
   type SigningAgreementState,
+  type SigningAgreementSummary,
   type TrainingDomain,
   type TrainingPhase,
   trainingPhaseLabels,
@@ -44,6 +46,16 @@ interface RequestDocument {
   label: string;
   record: { domain: TrainingDomain; phase: TrainingPhase; heldOn: string } | null;
   testSheet: { domain: TrainingDomain; takenOn: string } | null;
+}
+
+/** What the signing dialog lists of a request, whichever list it was chosen from. */
+export interface SigningRequest extends RequestDocument {
+  id: string;
+  kind: SignatureRequestKind;
+  slot: SignatureRequestSlot;
+  client: { id: string; name: string };
+  employee: { id: string; lastName: string; firstName: string };
+  agreement: SigningAgreementSummary;
 }
 
 // A request signs either a training record or a test sheet: exactly one of the two is set.

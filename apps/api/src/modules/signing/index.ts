@@ -10,7 +10,6 @@ import {
   getSigningAgreementLink,
   getSigningAgreementState,
   listClientSignatureRequests,
-  listMySignatureRequests,
   listPortalClientSignatureRequests,
   listPortalSignatureRequests,
   listPortalSigningAgreements,
@@ -32,7 +31,7 @@ import {
   getSigningAgreementRoute,
   getSigningAgreementStateRoute,
   listClientSignatureRequestsRoute,
-  listMySignatureRequestsRoute,
+  listMySignaturesRoute,
   listPortalClientSignatureRequestsRoute,
   listPortalSignatureRequestsRoute,
   listPortalSigningAgreementsRoute,
@@ -49,13 +48,14 @@ import {
   signMySigningSession,
   signPortalSigningSession,
 } from './session-signing';
+import { listMySignatures } from './signature-list';
 
 export const signingRouter = createRouter()
   .openapi(listSignerCandidatesRoute, listSignerCandidates)
   .openapi(getRecordSignaturesRoute, getRecordSignatures)
   .openapi(markPaperSignatureRoute, markPaperSignature)
   .openapi(voidRecordSignaturesRoute, voidRecordSignatures)
-  .openapi(listMySignatureRequestsRoute, listMySignatureRequests)
+  .openapi(listMySignaturesRoute, listMySignatures)
   .openapi(listClientSignatureRequestsRoute, listClientSignatureRequests)
   .openapi(getSigningAgreementRoute, getSigningAgreement)
   .openapi(getSigningAgreementLinkRoute, getSigningAgreementLink)

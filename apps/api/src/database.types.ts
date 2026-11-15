@@ -7701,6 +7701,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      signature_list: {
+        Row: {
+          client_id: string | null;
+          client_name: string | null;
+          day: string | null;
+          domain: Database['public']['Enums']['training_domain'] | null;
+          id: string | null;
+          issued_at: string | null;
+          kind: string | null;
+          organization_id: string | null;
+          phase: Database['public']['Enums']['training_phase'] | null;
+          search_names: string | null;
+          signature_count: number | null;
+          signer_account_id: string | null;
+          slots: string[] | null;
+          subject: string | null;
+          test: Database['public']['Enums']['knowledge_test'] | null;
+          worker_count: number | null;
+          workers: Json | null;
+        };
+        Relationships: [];
+      };
       training_list: {
         Row: {
           attendee_count: number | null;

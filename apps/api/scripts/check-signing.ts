@@ -266,6 +266,17 @@ async function cleanUp() {
   }
 }
 
+type SignatureRows = {
+  items: { id: string; workers: { employee: { id: string }; requests: { id: string }[] }[] }[];
+};
+
+const requestsOn = (rows: SignatureRows, trainingId: string, employeeId: string) =>
+  rows.items
+    .filter((row) => row.id === trainingId)
+    .flatMap((row) => row.workers)
+    .filter((worker) => worker.employee.id === employeeId)
+    .flatMap((worker) => worker.requests.map((request) => request.id));
+
 const secrets = await generateSigningCa();
 const trustRoots = [secrets.SIGNING_CA_CERT];
 
@@ -424,13 +435,9 @@ try {
   );
 
   console.log('member signs the trainer and verifier slots in the app:');
-  const mine = await call<{ items: { id: string; slot: string; record: { id: string } }[] }>(
-    member.token,
-    'GET',
-    '/me/signature-requests'
-  );
+  const mine = await call<SignatureRows>(member.token, 'GET', '/me/signatures');
   const memberSigned = await signAs(member, '/me', {
-    requestIds: mine.items.filter((item) => item.record.id === recordId).map((item) => item.id),
+    requestIds: requestsOn(mine, training.id, employee.id),
   });
 
   console.log('employee signs the agreement and the trainee slot in the portal:');
@@ -565,17 +572,11 @@ try {
     'corrected row'
   );
   console.log(`  the corrected record's row after the save ${JSON.stringify(corrected)}`);
-  const mineAgain = await call<{ items: { id: string; record: { id: string } }[] }>(
-    member.token,
-    'GET',
-    '/me/signature-requests'
-  );
+  const mineAgain = await call<SignatureRows>(member.token, 'GET', '/me/signatures');
   // One code a minute per account: the first round's codes went out moments ago.
   await new Promise((resolve) => setTimeout(resolve, 61_000));
   const memberResigned = await signAs(member, '/me', {
-    requestIds: mineAgain.items
-      .filter((item) => item.record.id === recordId)
-      .map((item) => item.id),
+    requestIds: requestsOn(mineAgain, training.id, employee.id),
   });
   const ownAgain = await call<{ items: { id: string }[] }>(
     worker.token,

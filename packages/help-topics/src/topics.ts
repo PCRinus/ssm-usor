@@ -465,6 +465,13 @@ export const helpTopics = {
     path: '/primii-pasi/',
     anchor: 'deschide-ajutorul-din-aplicație',
   },
+  'semnaturi.cautare': { path: '/semnaturi/', anchor: 'căutarea-filtrele-și-ordinea' },
+  'semnaturi.cereri-reluate': { path: '/semnaturi/', anchor: 'când-instruirea-se-schimbă' },
+  'semnaturi.cod': { path: '/semnaturi/', anchor: 'semnarea-cu-un-cod' },
+  'semnaturi.fisa-semnata': { path: '/semnaturi/', anchor: 'unde-ajunge-semnătura' },
+  'semnaturi.limita': { path: '/semnaturi/', anchor: 'cel-mult-30-de-semnături-cu-un-cod' },
+  'semnaturi.lista': { path: '/semnaturi/', anchor: 'ce-ai-de-semnat' },
+  'semnaturi.rubrici': { path: '/semnaturi/', anchor: 'ce-rubrici-semnezi' },
 } as const;
 
 export type HelpTopic = keyof typeof helpTopics;
