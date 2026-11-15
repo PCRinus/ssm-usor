@@ -360,10 +360,18 @@ refused before anything is read. The response's `draftOutdated` says that the dr
 print something else: its snapshot is compared, name by name, with the context of today. From
 then on the contract goes through `/documents/{documentId}` like any document: saving from the
 editor, issuing (which warns about `DE COMPLETAT`, where the prices go), a draft from the
-issued file, deleting a draft, downloading. `GET /clients?stage=lead` adds
-`serviceContractState` (`none`, `draft`, `issued`) to each lead, from an embedded read that
-names its relationships, because `clients`, `client_documents` and `document_revisions` are
-each linked twice, by id and by id with organization; it is null in every other response.
+issued file, deleting a draft, downloading. `GET /clients?stage=lead` reads the view
+`lead_list` and adds to each lead `serviceContractState` (`none`, `draft`, `issued`, `sent`,
+`received`, `signed`), `serviceContractStateAt` (when the contract was issued, last sent, its
+copy received or that copy confirmed; null for none and a draft) and
+`serviceContractReturnExpiresAt` (when the last return link stops working; null once a copy came
+back); they are null in every other response. Leads filter by `contractState`, any of the six
+states, repeated, and refuse the clients' filters; clients refuse `contractState`. Leads sort
+by `legalName`, `cui`, `declaredEmployeeCount` (none declared last), `serviceContractState` (in
+the order of the states, and within a state the oldest `serviceContractStateAt` first either
+way) and `createdAt`, and refuse the
+clients' other keys, as clients refuse these three; `q` matches the name, the CUI and the
+locality, never the contact.
 
 `POST …/service-contract/send` takes `to` and an optional `note`. Issuing sends nothing: an
 owner sends, knowingly. The PDF of the issued revision is read from Storage and handed to the

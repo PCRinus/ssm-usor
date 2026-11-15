@@ -149,6 +149,11 @@ export const clientListItemSchema = clientSchema.extend({
   training: clientTrainingSchema.nullable(),
   // Whether the caller may delete the client outright, as on clientResponseSchema.
   canDelete: z.boolean(),
+  // A lead's only: when its contract was issued, last sent, its copy received or that copy
+  // confirmed, by its state; null with no contract or a draft.
+  serviceContractStateAt: z.iso.datetime({ offset: true }).nullable(),
+  // When the last return link sent for the contract stops working; null once a copy came back.
+  serviceContractReturnExpiresAt: z.iso.datetime({ offset: true }).nullable(),
 });
 
 export type ClientListItem = z.infer<typeof clientListItemSchema>;
@@ -169,6 +174,26 @@ export const clientSortKeys = [
   'clientSince',
 ] as const;
 export type ClientSortKey = (typeof clientSortKeys)[number];
+
+export const leadSortKeys = [
+  'legalName',
+  'cui',
+  // Leads that declared no number come last either way.
+  'declaredEmployeeCount',
+  // In the order of serviceContractStates; within a state, either way, the one that reached it
+  // first leads.
+  'serviceContractState',
+  'createdAt',
+] as const;
+export type LeadSortKey = (typeof leadSortKeys)[number];
+
+export const clientListSortKeys = [
+  ...clientSortKeys,
+  'declaredEmployeeCount',
+  'serviceContractState',
+  'createdAt',
+] as const;
+export type ClientListSortKey = (typeof clientListSortKeys)[number];
 
 export const clientListStatuses = ['active', 'archived'] as const;
 export type ClientListStatus = (typeof clientListStatuses)[number];
@@ -207,13 +232,25 @@ export const clientListFilterKeys = Object.keys(
   clientListFiltersSchema.shape
 ) as (keyof ClientListFilters)[];
 
-export const listClientsQuerySchema = listQuerySchema(clientSortKeys, 'legalName')
+// Not `contract`, which on the clients list is about when the contract ends.
+export const leadListFiltersSchema = z.object({
+  contractState: repeatedQueryValue(z.enum(serviceContractStates)).optional(),
+});
+
+export type LeadListFilters = z.infer<typeof leadListFiltersSchema>;
+
+export const leadListFilterKeys = Object.keys(
+  leadListFiltersSchema.shape
+) as (keyof LeadListFilters)[];
+
+export const listClientsQuerySchema = listQuerySchema(clientListSortKeys, 'legalName')
   .extend({
     status: z.enum(clientListStatuses).default('active'),
     stage: z.enum(clientStages).default('client'),
     q: listSearchSchema.optional(),
   })
-  .extend(clientListFiltersSchema.shape);
+  .extend(clientListFiltersSchema.shape)
+  .extend(leadListFiltersSchema.shape);
 
 const legalForms = new Set(['sc', 'srl', 'sa', 'pfa', 'ii', 'if', 'snc', 'sca', 'scs']);
 
