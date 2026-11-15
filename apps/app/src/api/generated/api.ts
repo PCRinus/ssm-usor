@@ -853,6 +853,10 @@ export type ClientListResponseItemsItem = {
   /** @nullable */
   training: ClientListResponseItemsItemTraining;
   canDelete: boolean;
+  /** @nullable */
+  serviceContractStateAt: string | null;
+  /** @nullable */
+  serviceContractReturnExpiresAt: string | null;
 };
 
 export interface ClientListResponse {
@@ -15804,6 +15808,11 @@ export type ListClientsParams = {
    * @maxItems 50
    */
   contract?: ListClientsContractItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  contractState?: ListClientsContractStateItem[];
 };
 
 export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsSort];
@@ -15817,6 +15826,9 @@ export const ListClientsSort = {
   training: 'training',
   nextTrainingDueOn: 'nextTrainingDueOn',
   clientSince: 'clientSince',
+  declaredEmployeeCount: 'declaredEmployeeCount',
+  serviceContractState: 'serviceContractState',
+  createdAt: 'createdAt',
 } as const;
 
 export type ListClientsOrder = (typeof ListClientsOrder)[keyof typeof ListClientsOrder];
@@ -15931,6 +15943,18 @@ export type ListClientsContractItem =
 
 export const ListClientsContractItem = {
   endingWithin60Days: 'endingWithin60Days',
+} as const;
+
+export type ListClientsContractStateItem =
+  (typeof ListClientsContractStateItem)[keyof typeof ListClientsContractStateItem];
+
+export const ListClientsContractStateItem = {
+  none: 'none',
+  draft: 'draft',
+  issued: 'issued',
+  sent: 'sent',
+  received: 'received',
+  signed: 'signed',
 } as const;
 
 export type LookupCompanyParams = {
@@ -18313,6 +18337,7 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
       'attention',
       'county',
       'contract',
+      'contractState',
     ];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
@@ -18333,7 +18358,7 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
 };
 
 /**
- * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. `q` matches every term against the legal name, the CUI and the locality, ignoring diacritics, legal forms and an RO before the CUI. The filters (`documentation`, `fireSafetyDocumentation`, `training`, `attention`, `county`, `contract`) take one value or the parameter repeated; within one any value matches, across them every one must. They apply to clients only (`400` for leads), and `contract` only for an owner (`403` otherwise). The training filters never match an archived client, whose employees are not followed for training. One sort key at a time; "legalName" is the default, and leads sort only by "legalName", "cui" or "currentEmployeeCount" (`400` otherwise); "documentation" and "fireSafetyDocumentation" sort by the state of the set and then the number of issued documents, "training" by urgency, "nextTrainingDueOn" by the nearest due date with clients without one last, and "clientSince" by when the company became a client. A client carries where each of its documentation sets and the training of its employees stand; a lead carries null for these, and its contract state instead. `unfilteredTotal` counts the list with no search and no filter.
+ * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. `q` matches every term against the legal name, the CUI and the locality, ignoring diacritics, legal forms and an RO before the CUI. The filters (`documentation`, `fireSafetyDocumentation`, `training`, `attention`, `county`, `contract`) take one value or the parameter repeated; within one any value matches, across them every one must. They apply to clients only (`400` for leads), and `contract` only for an owner (`403` otherwise). The training filters never match an archived client, whose employees are not followed for training. Leads take `contractState` instead, the state of their service contract, which clients refuse (`400`). One sort key at a time; "legalName" is the default. Clients sort by "legalName", "cui", "currentEmployeeCount", "documentation", "fireSafetyDocumentation", "training", "nextTrainingDueOn" or "clientSince", and leads by "legalName", "cui", "declaredEmployeeCount", "serviceContractState" or "createdAt" (`400` otherwise). "documentation" and "fireSafetyDocumentation" sort by the state of the set and then the number of issued documents, "training" by urgency, "nextTrainingDueOn" by the nearest due date with clients without one last, and "clientSince" by when the company became a client; "declaredEmployeeCount" puts leads that declared none last, and "serviceContractState" sorts in the order of the states and, within a state and either way, puts first the contract that reached it earliest. A client carries where each of its documentation sets and the training of its employees stand; a lead carries null for these, and its contract state instead, with the date it reached it and when its last return link expires. `unfilteredTotal` counts the list with no search and no filter.
  * @summary List the organization's clients or its leads, active or archived
  */
 export const listClients = async (

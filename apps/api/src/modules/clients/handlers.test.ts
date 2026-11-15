@@ -58,6 +58,15 @@ const clientRow = {
   archived_at: null,
 };
 
+const leadRow = {
+  ...clientRow,
+  stage: 'lead',
+  current_employee_count: 0,
+  service_contract_state: 'none',
+  service_contract_state_at: null,
+  service_contract_return_expires_at: null,
+};
+
 const workRow = {
   client_since: '2026-09-17T10:00:00+00:00',
   documentation_issued_count: 18,
@@ -76,7 +85,7 @@ const workRow = {
   next_training_due_on: '2026-11-20',
 };
 
-type Handler = (init?: RequestInit) => Response | Promise<Response>;
+type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -101,9 +110,13 @@ function mockUpstream(
     if (url.pathname === '/rest/v1/rpc/current_membership') {
       return handlers.membership?.(init) ?? Response.json([membership]);
     }
-    if (url.pathname === '/rest/v1/clients' || url.pathname === '/rest/v1/client_list') {
+    if (
+      url.pathname === '/rest/v1/clients' ||
+      url.pathname === '/rest/v1/client_list' ||
+      url.pathname === '/rest/v1/lead_list'
+    ) {
       return (
-        handlers.clients?.(init) ??
+        handlers.clients?.(init, url) ??
         Response.json([clientRow], { headers: { 'Content-Range': '0-0/1' } })
       );
     }
@@ -198,6 +211,8 @@ describe('GET /clients', () => {
           updatedAt: clientRow.updated_at,
           archivedAt: null,
           canDelete: false,
+          serviceContractStateAt: null,
+          serviceContractReturnExpiresAt: null,
           clientSince: '2026-09-17T10:00:00+00:00',
           documentation: {
             state: 'in_progress',
@@ -322,11 +337,12 @@ describe('GET /clients', () => {
     expect(cui!.getAll('search_text')).toEqual(['ilike.*1590082*']);
   });
 
-  it('searches the leads by the same text', async () => {
+  it('searches the leads by the same text, and never by their contact', async () => {
     mockUpstream({});
     await request('/clients?stage=lead&q=alfa');
-    const query = new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams;
-    expect(query.get('client_search_text')).toBe('ilike.*alfa*');
+    const query = new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams;
+    expect(query.get('search_text')).toBe('ilike.*alfa*');
+    expect([...query.keys()].some((key) => key.startsWith('contact_'))).toBe(false);
   });
 
   it('filters by any value of one filter and by every filter', async () => {
@@ -372,7 +388,9 @@ describe('GET /clients', () => {
   it('filters clients only, and by contract only for an owner', async () => {
     mockUpstream({});
     expect((await request('/clients?stage=lead&county=CJ')).status).toBe(400);
+    expect((await request('/clients?stage=lead&contract=endingWithin60Days')).status).toBe(400);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
 
     fetchMock.mockClear();
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
@@ -423,15 +441,98 @@ describe('GET /clients', () => {
     'documentation',
     'fireSafetyDocumentation',
     'clientSince',
+    'currentEmployeeCount',
   ])('refuses to sort leads by %s, which only a client has', async (sort) => {
     mockUpstream({});
     expect((await request(`/clients?stage=lead&sort=${sort}`)).status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
   });
 
-  it.each(['legalName', 'cui'])('sorts leads by %s', async (sort) => {
+  it.each(['declaredEmployeeCount', 'serviceContractState', 'createdAt'])(
+    'refuses to sort clients by %s, which only a lead has',
+    async (sort) => {
+      mockUpstream({});
+      expect((await request(`/clients?sort=${sort}`)).status).toBe(400);
+      expect(calls('/rest/v1/client_list')).toHaveLength(0);
+    }
+  );
+
+  it.each([
+    ['legalName', 'asc', 'legal_name.asc,id.asc'],
+    ['cui', 'desc', 'cui.desc,id.asc'],
+    [
+      'declaredEmployeeCount',
+      'desc',
+      'declared_employee_count.desc.nullslast,legal_name.desc,id.asc',
+    ],
+    [
+      'serviceContractState',
+      'asc',
+      'service_contract_state.asc,service_contract_state_at.asc,legal_name.asc,id.asc',
+    ],
+    [
+      'serviceContractState',
+      'desc',
+      'service_contract_state.desc,service_contract_state_at.asc,legal_name.desc,id.asc',
+    ],
+    ['createdAt', 'desc', 'created_at.desc,id.asc'],
+  ])('sorts leads by %s %s', async (sort, order, expected) => {
     mockUpstream({});
-    expect((await request(`/clients?stage=lead&sort=${sort}`)).status).toBe(200);
+    expect((await request(`/clients?stage=lead&sort=${sort}&order=${order}`)).status).toBe(200);
+    const [listUrl] = calls('/rest/v1/lead_list')[0]!;
+    expect(new URL(String(listUrl)).searchParams.get('order')).toBe(expected);
+  });
+
+  it('filters the leads by any of the contract states chosen, and only the leads', async () => {
+    mockUpstream({
+      clients: (init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/18' } })
+          : Response.json([{ ...leadRow, service_contract_state: 'sent' }], {
+              headers: { 'Content-Range': '0-0/1' },
+            }),
+    });
+    const response = await request(
+      '/clients?stage=lead&contractState=sent&contractState=received&q=alfa'
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ total: 1, unfilteredTotal: 18 });
+    const query = new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams;
+    expect(query.get('service_contract_state')).toBe('in.(sent,received)');
+    expect(query.get('search_text')).toBe('ilike.*alfa*');
+    expect(query.get('archived_at')).toBe('is.null');
+    const [countUrl] = calls('/rest/v1/clients')[0]!;
+    const count = new URL(String(countUrl)).searchParams;
+    expect(count.get('stage')).toBe('eq.lead');
+    expect(count.get('service_contract_state')).toBeNull();
+
+    fetchMock.mockClear();
+    mockUpstream({});
+    expect((await request('/clients?contractState=sent')).status).toBe(400);
+    expect((await request('/clients?stage=lead&contractState=refused')).status).toBe(400);
+    expect(calls('/rest/v1/client_list')).toHaveLength(0);
+    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
+  });
+
+  it('counts the filtered leads again for a page past the end', async () => {
+    mockUpstream({
+      clients: (init, url) =>
+        init?.method !== 'HEAD'
+          ? Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
+              { status: 416 }
+            )
+          : new Response(null, {
+              headers: { 'Content-Range': url?.pathname === '/rest/v1/clients' ? '*/18' : '*/4' },
+            }),
+    });
+    const response = await request('/clients?stage=lead&page=3&contractState=signed');
+    expect(await response.json()).toMatchObject({ items: [], total: 4, unfilteredTotal: 18 });
+    const [recountUrl, recountInit] = calls('/rest/v1/lead_list')[1]!;
+    const recount = new URL(String(recountUrl)).searchParams;
+    expect(recountInit?.method).toBe('HEAD');
+    expect(recount.get('select')).toBe('id');
+    expect(recount.get('service_contract_state')).toBe('in.(signed)');
   });
 
   it('reads no contract for a client', async () => {
@@ -445,19 +546,18 @@ describe('GET /clients', () => {
 
   it('leaves the work columns out of the leads', async () => {
     mockUpstream({
-      clients: () =>
-        Response.json([{ ...clientRow, stage: 'lead', client_documents: [] }], {
-          headers: { 'Content-Range': '0-0/1' },
-        }),
+      clients: () => Response.json([leadRow], { headers: { 'Content-Range': '0-0/1' } }),
     });
     const body = clientListResponseSchema.parse(
       await (await request('/clients?stage=lead')).json()
     );
     expect(
-      new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select')
+      new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams.get('select')
     ).not.toContain('documentation_issued_count');
     expect(body.items[0]).toMatchObject({
       serviceContractState: 'none',
+      serviceContractStateAt: null,
+      serviceContractReturnExpiresAt: null,
       clientSince: null,
       documentation: null,
       fireSafetyDocumentation: null,
@@ -507,84 +607,48 @@ describe('GET /clients', () => {
   it('lists the leads instead for an owner, and tells anyone else why not', async () => {
     mockUpstream({});
     expect((await request('/clients?stage=lead')).status).toBe(200);
-    expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('stage')).toBe(
-      'eq.lead'
-    );
-    expect(new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams.get('select')).toContain(
-      'client_documents!client_documents_client_in_organization(type_key'
+    const query = new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams;
+    expect(query.get('stage')).toBeNull();
+    expect(query.get('order')).toBe('legal_name.asc,id.asc');
+    expect(query.get('select')).toContain(
+      'service_contract_state,service_contract_state_at,service_contract_return_expires_at'
     );
     expect(calls('/rest/v1/client_list')).toHaveLength(0);
 
     fetchMock.mockClear();
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
-    const refused = await request('/clients?stage=lead');
-    expect(refused.status).toBe(403);
+    for (const search of ['stage=lead', 'stage=lead&contractState=sent']) {
+      expect((await request(`/clients?${search}`)).status).toBe(403);
+    }
+    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 
-  it.each([
-    [[], 'none'],
-    [
-      [
-        {
-          type_key: 'service_contract',
-          document_revisions: [{ status: 'draft', service_contract_sends: [] }],
-        },
-      ],
-      'draft',
-    ],
-    [
-      [
-        {
-          type_key: 'service_contract',
-          document_revisions: [
-            // Sent, and then replaced: the contract in force was not sent yet.
-            { status: 'superseded', service_contract_sends: [{ id: 's1' }] },
-            { status: 'issued', service_contract_sends: [] },
-            { status: 'draft', service_contract_sends: [] },
-          ],
-        },
-      ],
-      'issued',
-    ],
-    [
-      [
-        {
-          type_key: 'service_contract',
-          document_revisions: [{ status: 'issued', service_contract_sends: [{ id: 's1' }] }],
-        },
-      ],
-      'sent',
-    ],
-    [
-      [
-        {
-          type_key: 'service_contract',
-          document_revisions: [
-            {
-              status: 'issued',
-              service_contract_sends: [],
-              document_signed_copies: {
-                revision_id: 'r1',
-                confirmed_at: '2026-09-21T11:00:00+00:00',
-              },
-            },
-          ],
-        },
-      ],
-      'signed',
-    ],
-  ])('says where the contract of a lead stands: %#', async (documents, state) => {
+  it('says where the contract of a lead stands, since when, and until when its link works', async () => {
     mockUpstream({
       clients: () =>
-        Response.json([{ ...clientRow, stage: 'lead', client_documents: documents }], {
-          headers: { 'Content-Range': '0-0/1' },
-        }),
+        Response.json(
+          [
+            {
+              ...leadRow,
+              service_contract_state: 'sent',
+              service_contract_state_at: '2026-09-12T10:00:00+00:00',
+              service_contract_return_expires_at: '2026-11-11T10:00:00+00:00',
+            },
+          ],
+          { headers: { 'Content-Range': '0-0/1' } }
+        ),
     });
     const body = clientListResponseSchema.parse(
       await (await request('/clients?stage=lead')).json()
     );
-    expect(body.items[0]!.serviceContractState).toBe(state);
+    expect(body.items[0]).toMatchObject({
+      stage: 'lead',
+      declaredEmployeeCount: 120,
+      serviceContractState: 'sent',
+      serviceContractStateAt: '2026-09-12T10:00:00+00:00',
+      serviceContractReturnExpiresAt: '2026-11-11T10:00:00+00:00',
+    });
   });
 
   it('requires a bearer token', async () => {

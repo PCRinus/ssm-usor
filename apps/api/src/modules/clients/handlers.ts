@@ -6,12 +6,16 @@ import {
   clientListFilterKeys,
   type ClientListFilters,
   type ClientListItem,
+  type ClientListSortKey,
   clientSearchTerms,
-  type ClientSortKey,
+  clientSortKeys,
   type ClientTrainingFilter,
+  leadListFilterKeys,
+  type LeadListFilters,
+  leadSortKeys,
   normalizeCui,
   pageRange,
-  serviceContractTypeKey,
+  type ServiceContractState,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
@@ -71,33 +75,9 @@ type SelectedClientRow = Pick<
   | 'current_employee_count'
 >;
 
-type ContractDocuments = {
-  client_documents?: {
-    type_key: string;
-    document_revisions: {
-      status: string;
-      service_contract_sends: { id: string }[];
-      // One to one: an object, or null.
-      document_signed_copies: { revision_id: string; confirmed_at: string | null } | null;
-    }[];
-  }[];
-};
+type ContractState = { service_contract_state?: ServiceContractState };
 
-function serviceContractState({ client_documents: documents }: ContractDocuments) {
-  if (!documents) return null;
-  const revisions =
-    documents.find((document) => document.type_key === serviceContractTypeKey)
-      ?.document_revisions ?? [];
-  // A draft beside an issued contract is a correction in progress: the contract is issued.
-  // Sent is about the revision in force, so one issued after the last send is not sent yet.
-  const issued = revisions.find((revision) => revision.status === 'issued');
-  if (issued?.document_signed_copies?.confirmed_at) return 'signed';
-  if (issued?.document_signed_copies) return 'received';
-  if (issued) return issued.service_contract_sends.length > 0 ? 'sent' : 'issued';
-  return revisions.some((revision) => revision.status === 'draft') ? 'draft' : 'none';
-}
-
-export function toClient(row: SelectedClientRow & ContractDocuments): Client {
+export function toClient(row: SelectedClientRow & ContractState): Client {
   return {
     id: row.id,
     legalName: row.legal_name,
@@ -118,7 +98,7 @@ export function toClient(row: SelectedClientRow & ContractDocuments): Client {
     contactEmail: row.contact_email,
     contactPhone: row.contact_phone,
     promotedAt: row.promoted_at,
-    serviceContractState: serviceContractState(row),
+    serviceContractState: row.service_contract_state ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at,
@@ -137,10 +117,15 @@ function requireOwnerForLeads(role: string) {
   }
 }
 
-type SortColumn = { column: string; reversed?: boolean; nullsLast?: boolean };
+type SortColumn = {
+  column: string;
+  reversed?: boolean;
+  alwaysAscending?: boolean;
+  nullsLast?: boolean;
+};
 
 // The id keeps every order stable across pages.
-const sortColumns: Record<ClientSortKey, SortColumn[]> = {
+const sortColumns: Record<ClientListSortKey, SortColumn[]> = {
   legalName: [{ column: 'legal_name' }],
   cui: [{ column: 'cui' }],
   currentEmployeeCount: [{ column: 'current_employee_count' }, { column: 'legal_name' }],
@@ -164,6 +149,17 @@ const sortColumns: Record<ClientSortKey, SortColumn[]> = {
     { column: 'legal_name' },
   ],
   clientSince: [{ column: 'client_since' }],
+  declaredEmployeeCount: [
+    { column: 'declared_employee_count', nullsLast: true },
+    { column: 'legal_name' },
+  ],
+  // Within a state, either way, the one that reached it first leads: it has waited longest.
+  serviceContractState: [
+    { column: 'service_contract_state' },
+    { column: 'service_contract_state_at', alwaysAscending: true },
+    { column: 'legal_name' },
+  ],
+  createdAt: [{ column: 'created_at' }],
 };
 
 const workColumns =
@@ -188,26 +184,63 @@ type WorkRow = Pick<
   | 'next_training_due_on'
 >;
 
-type ListedRow = SelectedClientRow & ContractDocuments & Partial<WorkRow>;
+type ListedRow = SelectedClientRow & Partial<WorkRow>;
 
-// Each pair of tables is linked twice, by id and by id with organization, so the relationship
-// is named.
-const contractEmbed =
-  'client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id, confirmed_at)))';
+const leadListColumns = `${clientColumns}, service_contract_state, service_contract_state_at, service_contract_return_expires_at`;
 
-// The generated types make every column of a view nullable.
-function toClientListItem(row: ListedRow, adminTools: boolean) {
-  const item: ClientListItem = {
+type LeadListView = Database['public']['Views']['lead_list']['Row'];
+
+// The generated types make every column of a view nullable; these come from not-null columns of
+// the client, or are never null by the view's own definition.
+type RequiredLeadColumn =
+  | 'id'
+  | 'legal_name'
+  | 'cui'
+  | 'vat_payer'
+  | 'stage'
+  | 'created_at'
+  | 'updated_at'
+  | 'current_employee_count'
+  | 'service_contract_state';
+
+type LeadRow = { [Column in RequiredLeadColumn]: NonNullable<LeadListView[Column]> } & Pick<
+  LeadListView,
+  | 'caen_code'
+  | 'trade_register_number'
+  | 'county_code'
+  | 'locality'
+  | 'address_line'
+  | 'legal_representative_name'
+  | 'declared_employee_count'
+  | 'contact_name'
+  | 'contact_email'
+  | 'contact_phone'
+  | 'promoted_at'
+  | 'archived_at'
+  | 'service_contract_state_at'
+  | 'service_contract_return_expires_at'
+>;
+
+function toLeadListItem(row: LeadRow, adminTools: boolean): ClientListItem {
+  return {
     ...toClient(row),
     canDelete: row.archived_at !== null && adminTools,
     clientSince: null,
     documentation: null,
     fireSafetyDocumentation: null,
     training: null,
+    serviceContractStateAt: row.service_contract_state_at,
+    serviceContractReturnExpiresAt: row.service_contract_return_expires_at,
   };
-  if (row.stage === 'lead') return item;
+}
+
+// The generated types make every column of a view nullable.
+function toClientListItem(row: ListedRow, adminTools: boolean): ClientListItem {
   return {
-    ...item,
+    ...toClient(row),
+    canDelete: row.archived_at !== null && adminTools,
+    serviceContractStateAt: null,
+    serviceContractReturnExpiresAt: null,
     clientSince: row.client_since ?? row.created_at,
     documentation: {
       state: row.documentation_state ?? 'none',
@@ -232,14 +265,8 @@ function toClientListItem(row: ListedRow, adminTools: boolean) {
   };
 }
 
-// A lead's row has none of the work these sort by.
-const clientOnlySortKeys = new Set<ClientSortKey>([
-  'documentation',
-  'fireSafetyDocumentation',
-  'training',
-  'nextTrainingDueOn',
-  'clientSince',
-]);
+const sortsBy = (keys: readonly ClientListSortKey[], sort: ClientListSortKey) =>
+  keys.includes(sort);
 
 const trainingMatches: Record<ClientTrainingFilter, string> = {
   untrained: 'training_untrained_count.gt.0',
@@ -299,69 +326,67 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
   const filters = Object.fromEntries(
     clientListFilterKeys.flatMap((key) => (query[key] ? [[key, query[key]]] : []))
   ) as ClientListFilters;
-  const filtered = Object.keys(filters).length > 0;
+  const leadFilters = Object.fromEntries(
+    leadListFilterKeys.flatMap((key) => (query[key] ? [[key, query[key]]] : []))
+  ) as LeadListFilters;
+  const clientFiltered = Object.keys(filters).length > 0;
+  const leadFiltered = Object.keys(leadFilters).length > 0;
   const role = c.get('membership').role;
-  if (stage === 'lead') requireOwnerForLeads(role);
-  if (stage === 'lead' && filtered) {
-    throw new ApiError('validation_error', 'Only clients, not leads, are filtered.');
-  }
-  if (stage === 'lead' && clientOnlySortKeys.has(sort)) {
-    throw new ApiError('validation_error', 'Leads are not sorted by the work on a client.');
+  if (stage === 'lead') {
+    requireOwnerForLeads(role);
+    if (clientFiltered) {
+      throw new ApiError('validation_error', 'Leads are filtered by their contract state only.');
+    }
+    if (!sortsBy(leadSortKeys, sort)) {
+      throw new ApiError('validation_error', 'Leads are not sorted by the work on a client.');
+    }
+  } else {
+    if (leadFiltered) {
+      throw new ApiError('validation_error', 'Only leads are filtered by their contract state.');
+    }
+    if (!sortsBy(clientSortKeys, sort)) {
+      throw new ApiError('validation_error', 'Clients are not sorted by what only a lead has.');
+    }
   }
   if (filters.contract && role !== 'owner') {
     throw new ApiError('forbidden', 'Only an owner of the organization filters by contract.');
   }
   const db = createDataClient(c);
   const archived = status === 'archived' ? 'not.is' : 'is';
+  // Owners only, as leads are; the contract state is what says where a lead stands.
+  const leads = (columns: string, head: boolean) => {
+    const listed = matchingEveryTerm(
+      db
+        .from('lead_list')
+        .select(columns, { count: 'exact', head })
+        .filter('archived_at', archived, null),
+      'search_text',
+      q
+    );
+    return leadFilters.contractState
+      ? listed.in('service_contract_state', leadFilters.contractState)
+      : listed;
+  };
+  const clients = (columns: string, head: boolean) =>
+    matchingFilters(
+      matchingEveryTerm(
+        db
+          .from('client_list')
+          .select(columns, { count: 'exact', head })
+          .eq('stage', stage)
+          .filter('archived_at', archived, null),
+        'search_text',
+        q
+      ),
+      filters
+    );
   const listed = () =>
     stage === 'lead'
-      ? // The contract of a lead is what says where the lead stands. Owners only, as leads are.
-        matchingEveryTerm(
-          db
-            .from('clients')
-            .select(`${clientColumns}, ${contractEmbed}`, { count: 'exact' })
-            .eq('stage', stage)
-            .filter('archived_at', archived, null),
-          'client_search_text',
-          q
-        ).returns<ListedRow[]>()
-      : matchingFilters(
-          matchingEveryTerm(
-            db
-              .from('client_list')
-              .select(`${clientColumns}, ${workColumns}`, { count: 'exact' })
-              .eq('stage', stage)
-              .filter('archived_at', archived, null),
-            'search_text',
-            q
-          ),
-          filters
-        ).returns<ListedRow[]>();
+      ? leads(leadListColumns, false).returns<LeadRow[]>()
+      : clients(`${clientColumns}, ${workColumns}`, false).returns<ListedRow[]>();
   // Counts only, so the page past the end does not compute every row's work again.
-  const counted = () =>
-    stage === 'lead'
-      ? matchingEveryTerm(
-          db
-            .from('clients')
-            .select('id', { count: 'exact', head: true })
-            .eq('stage', stage)
-            .filter('archived_at', archived, null),
-          'client_search_text',
-          q
-        )
-      : matchingFilters(
-          matchingEveryTerm(
-            db
-              .from('client_list')
-              .select('id', { count: 'exact', head: true })
-              .eq('stage', stage)
-              .filter('archived_at', archived, null),
-            'search_text',
-            q
-          ),
-          filters
-        );
-  const narrowed = filtered || clientSearchTerms(q).length > 0;
+  const counted = () => (stage === 'lead' ? leads('id', true) : clients('id', true));
+  const narrowed = clientFiltered || leadFiltered || clientSearchTerms(q).length > 0;
   const everyClient = narrowed
     ? db
         .from('clients')
@@ -370,9 +395,9 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
         .filter('archived_at', archived, null)
     : null;
   let listQuery = listed();
-  for (const { column, reversed, nullsLast } of sortColumns[sort]) {
+  for (const { column, reversed, alwaysAscending, nullsLast } of sortColumns[sort]) {
     listQuery = listQuery.order(column, {
-      ascending: reversed ? order === 'desc' : order === 'asc',
+      ascending: alwaysAscending || (reversed ? order === 'desc' : order === 'asc'),
       ...(nullsLast ? { nullsFirst: false } : {}),
     });
   }
@@ -396,16 +421,11 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
   if (error) throw fromDatabaseError(error, 'list clients');
   const adminTools = adminToolsAllowed(c);
   const total = count ?? 0;
-  return c.json(
-    {
-      items: data.map((row) => toClientListItem(row, adminTools)),
-      page,
-      pageSize,
-      total,
-      unfilteredTotal: unfilteredTotal(total),
-    },
-    200
-  );
+  const items =
+    stage === 'lead'
+      ? (data as LeadRow[]).map((row) => toLeadListItem(row, adminTools))
+      : (data as ListedRow[]).map((row) => toClientListItem(row, adminTools));
+  return c.json({ items, page, pageSize, total, unfilteredTotal: unfilteredTotal(total) }, 200);
 };
 
 // Row-level security hides other organizations' clients, so a missing row is a 404

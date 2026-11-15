@@ -331,6 +331,16 @@ only `authenticated` selects from it. These were computed fields of `clients` at
 query per client per column, which made the list slow; `current_employee_count(clients)`
 remains for the read of a single client and for the documents.
 
+The list of leads reads the view `lead_list`, also `security_invoker`: the leads with the same
+columns and `search_text`, and where each one's service contract stands, from one grouped read
+of its document, revisions, sends and signed copy. `service_contract_state` is the enum
+`service_contract_state` (`none`, `draft`, `issued`, `sent`, `received`, `signed`, declared in
+the order the list sorts them); sent and signed count only for the issued revision. Beside it
+are `service_contract_state_at` (issued, last sent, copy uploaded, copy confirmed; null for none
+and a draft) and `service_contract_return_expires_at` (the latest expiry among the issued
+revision's sends, null once a copy came back). A specialist reads no lead, and the contract's
+documents are an owner's.
+
 Every member corrects a client's data, and only an owner archives or restores one: the update
 policy covers the row, so the trigger `clients_protect_archiving` checks the role for a change
 of `archived_at` (`42501` otherwise). A caller without a user, which is the secret key of seeds

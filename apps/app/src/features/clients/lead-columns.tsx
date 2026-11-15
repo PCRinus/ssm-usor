@@ -1,5 +1,4 @@
 import { formatCui } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -13,15 +12,16 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, UserCheck } from 'luci
 
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
-import { createDataTableColumns } from '@/components/data-table/columns';
-import { formatRoDate } from '@/lib/dates';
+import { createDataTableColumns, narrowHeader } from '@/components/data-table/columns';
+import { formatRoDateOf } from '@/lib/dates';
 
 import type { ClientArchiveChange } from './client-archive-dialog';
 import type { ClientRow } from './client-columns';
+import { LeadContractCell } from './lead-contract-cell';
 
 const helper = createDataTableColumns<ClientRow>();
 
-// Sortable column ids are the API sort keys: legalName and cui.
+// Sortable column ids are the API sort keys.
 export function leadColumns(
   onArchiveChange: (change: ClientArchiveChange) => void,
   onPromote: (lead: ClientRow) => void,
@@ -32,83 +32,72 @@ export function leadColumns(
       id: 'legalName',
       header: 'Companie',
       meta: {
-        cellClassName: 'font-medium',
+        cellClassName: 'min-w-56 font-medium whitespace-normal',
         skeletonClassName: 'w-48',
       },
       cell: ({ row, getValue }) => (
-        <Link
-          to="/oferte/$leadId"
-          state={openedHere}
-          params={{ leadId: row.original.id }}
-          data-testid="leads-open"
-          className="hover:underline"
-        >
-          {getValue()}
-        </Link>
+        <>
+          <Link
+            to="/oferte/$leadId"
+            state={openedHere}
+            params={{ leadId: row.original.id }}
+            data-testid="leads-open"
+            className="hover:underline"
+          >
+            {getValue()}
+          </Link>
+          <CellNote data-testid="leads-cui" className="tabular-nums">
+            {formatCui(row.original.cui, row.original.vatPayer)}
+          </CellNote>
+        </>
       ),
     }),
     helper.display({
       id: 'contact',
       header: 'Persoană de contact',
-      meta: { skeletonClassName: 'w-40', personal: true },
+      meta: {
+        headerClassName: 'w-68',
+        skeletonClassName: 'w-40',
+        personal: true,
+      },
       cell: ({ row }) => {
         const { contactName, contactEmail, contactPhone } = row.original;
         const reach = contactEmail ?? contactPhone;
-        if (!contactName && !reach) return '—';
+        if (!contactName && !reach) return <span className="text-muted-foreground">—</span>;
         return (
           <>
-            {contactName ?? reach}
-            {contactName && reach && <CellNote>{reach}</CellNote>}
+            <span className="block max-w-60 truncate">{contactName ?? reach}</span>
+            {contactName && reach && <CellNote className="max-w-60 truncate">{reach}</CellNote>}
           </>
         );
       },
     }),
-    helper.display({
-      id: 'contract',
-      header: 'Contract',
-      meta: { skeletonClassName: 'w-20' },
-      cell: ({ row }) => {
-        const state = row.original.serviceContractState;
-        return state === 'signed' ? (
-          <Badge data-testid="leads-contract">Semnat</Badge>
-        ) : state === 'received' ? (
-          <Badge
-            variant="outline"
-            className="border-warning-border bg-warning text-warning-foreground"
-            data-testid="leads-contract"
-          >
-            Primit
-          </Badge>
-        ) : state === 'sent' ? (
-          <Badge variant="outline" data-testid="leads-contract">
-            Trimis
-          </Badge>
-        ) : state === 'issued' ? (
-          <Badge variant="outline" data-testid="leads-contract">
-            Emis
-          </Badge>
-        ) : state === 'draft' ? (
-          <Badge variant="secondary" data-testid="leads-contract">
-            Ciornă
-          </Badge>
-        ) : (
-          <span data-testid="leads-contract" className="text-muted-foreground">
-            Fără contract
-          </span>
-        );
+    helper.accessor('declaredEmployeeCount', {
+      id: 'declaredEmployeeCount',
+      header: 'Lucrători',
+      meta: {
+        headerClassName: 'w-px text-right',
+        cellClassName: 'text-right tabular-nums',
+        skeletonClassName: 'ml-auto w-10',
       },
+      cell: ({ getValue }) => getValue() ?? <span className="text-muted-foreground">—</span>,
     }),
-    helper.accessor('cui', {
-      id: 'cui',
-      header: 'CUI',
-      meta: { cellClassName: 'tabular-nums', skeletonClassName: 'w-24' },
-      cell: ({ row, getValue }) => formatCui(getValue(), row.original.vatPayer),
+    helper.accessor('serviceContractState', {
+      id: 'serviceContractState',
+      header: 'Contract',
+      meta: { headerClassName: 'w-44', skeletonClassName: 'w-20' },
+      cell: ({ row }) => <LeadContractCell lead={row.original} />,
     }),
-    helper.display({
+    helper.accessor('createdAt', {
       id: 'createdAt',
       header: 'Adăugat',
-      meta: { cellClassName: 'tabular-nums text-muted-foreground', skeletonClassName: 'w-20' },
-      cell: ({ row }) => formatRoDate(row.original.createdAt.slice(0, 10)),
+      sortDescFirst: true,
+      meta: {
+        headerClassName: narrowHeader,
+        cellClassName: 'tabular-nums text-muted-foreground',
+        skeletonClassName: 'w-20',
+      },
+      cell: ({ getValue }) => formatRoDateOf(getValue()),
     }),
     helper.display({
       id: 'actions',
