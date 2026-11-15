@@ -1,4 +1,5 @@
 import {
+  type ApiErrorResponse,
   formatEmployeeName,
   signatureErrorReasons,
   trainingDomainLabels,
@@ -25,6 +26,7 @@ import {
   useCreateMySigningSession,
   useSignMySigningSession,
 } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -52,6 +54,17 @@ type SignatureRequest = SigningRequest;
 const codeLength = 6;
 
 const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
+
+// The refusal names the request that no longer waits by its place in the list sent.
+function namedRequests(cause: unknown, requests: readonly SignatureRequest[]) {
+  const issues =
+    cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>)?.issues : undefined;
+  return (issues ?? []).flatMap(({ path }) => {
+    const index = /^requestIds\.(\d+)$/.exec(path)?.[1];
+    const request = index === undefined ? undefined : requests[Number(index)];
+    return request ? [request.id] : [];
+  });
+}
 
 type Step =
   | { kind: 'review' }
@@ -136,7 +149,7 @@ function SigningFlow({
     } catch (cause) {
       if (reasonOf(cause) === signatureErrorReasons.signingItemNotFound) {
         touched.current = true;
-        onGone?.(requests.map((request) => request.id));
+        onGone?.(namedRequests(cause, requests));
       }
       setSendError(signingSessionFailure(cause));
     }

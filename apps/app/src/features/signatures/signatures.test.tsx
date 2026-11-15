@@ -1061,16 +1061,62 @@ describe('the Semnături place', () => {
     await waitFor(() => expect(screen.queryByTestId('signatures-selection')).toBeNull());
   });
 
-  it('forgets what was chosen when a filter changes', async () => {
+  it('forgets what was chosen when a filter changes, and does not bring it back with the filter', async () => {
     mockApi({ 'GET /me/signatures': () => signaturePage([signatureRow()]) });
     const user = userEvent.setup();
-    const runtime = mount('/semnaturi?domain=ssm');
+    const runtime = mount('/semnaturi');
     await user.click(await screen.findByTestId('signatures-select'));
     expect(screen.getByTestId('signatures-selection')).toBeTruthy();
+    await runtime.router.navigate({ to: '/semnaturi', search: { domain: ['ssm'] } });
+    await waitFor(() => expect(screen.queryByTestId('signatures-selection')).toBeNull());
     await user.click(screen.getByRole('button', { name: 'Scoate filtrul Domeniu' }));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     expect(screen.queryByTestId('signatures-selection')).toBeNull();
     expect(screen.getByTestId('signatures-select').getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('names every slot the member holds, the admission included', async () => {
+    mockApi({
+      'GET /me/signatures': () =>
+        signaturePage([
+          signatureRow({
+            phase: 'workplace',
+            slots: ['verifier', 'admitter'],
+            signatures: 3,
+            workers: [
+              worker(employeeId, 'Popescu', 'Ion', [
+                { id: '0f0f0f0f-0000-4000-8000-000000000001', slot: 'verifier' },
+                { id: '0f0f0f0f-0000-4000-8000-000000000002', slot: 'admitter' },
+              ]),
+              worker(traineeTwoId, 'Ionescu', 'Ana', [
+                { id: '0f0f0f0f-0000-4000-8000-000000000003', slot: 'verifier' },
+              ]),
+            ],
+          }),
+          signatureRow({
+            id: '0f0f0f0f-0000-4000-8000-000000000010',
+            phase: 'workplace',
+            slots: ['admitter'],
+            signatures: 1,
+            workers: [
+              worker(employeeId, 'Popescu', 'Ion', [
+                { id: '0f0f0f0f-0000-4000-8000-000000000011', slot: 'admitter' },
+              ]),
+            ],
+          }),
+        ]),
+    });
+    const user = userEvent.setup();
+    mount('/semnaturi');
+    const rows = await screen.findAllByTestId('signatures-row');
+    expect(rows.map((row) => within(row).getByTestId('signatures-sign-as').textContent)).toEqual([
+      'Verificator și admite la lucru',
+      'Admite la lucru',
+    ]);
+    await user.click(within(rows[0]!).getByTestId('signatures-open'));
+    expect(screen.getByTestId('signatures-row-workers').querySelector('h3')!.textContent).toBe(
+      'Semnezi ca verificator și la „Admite la lucru” pe fișele a 2 lucrători'
+    );
   });
 
   it('keeps the sort, the filters and the search in the address and asks the API for them', async () => {
@@ -1870,11 +1916,16 @@ describe('signing from the Semnături place', () => {
     expect(screen.queryByTestId('signatures-selection')).toBeNull();
   });
 
-  it('forgets the choice when the code request finds a request gone', async () => {
+  it('lets go of only the request a refused code request names', async () => {
     const { user, dialog } = await openSigning({
       [`POST ${sessionPath}`]: () =>
         Response.json(
-          { error: 'not_found', message: 'gone', reason: 'signing_item_not_found' },
+          {
+            error: 'not_found',
+            message: 'gone',
+            reason: 'signing_item_not_found',
+            issues: [{ path: 'requestIds.1', message: 'This request is not pending.' }],
+          },
           { status: 404 }
         ),
     });
@@ -1882,7 +1933,46 @@ describe('signing from the Semnături place', () => {
     await within(dialog).findByTestId('signing-send-error');
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByTestId('signing-dialog')).toBeNull());
-    expect(screen.queryByTestId('signatures-selection')).toBeNull();
+    expect(screen.getByTestId('signatures-sign').textContent).toBe('Semnează (1)');
+  });
+
+  it('keeps a request the page no longer lists out of the choice after a page turn', async () => {
+    const other = signatureRow({
+      id: '0d0d0d0d-0000-4000-8000-000000000001',
+      phase: 'workplace',
+      slots: ['verifier'],
+      signatures: 1,
+      workers: [
+        worker(employeeId, 'Popescu', 'Ion', [
+          { id: '0d0d0d0d-0000-4000-8000-000000000002', slot: 'verifier' },
+        ]),
+      ],
+    });
+    let first = signatureRow();
+    mockApi({
+      'GET /me/signatures': (url) =>
+        url.searchParams.get('page') === '2'
+          ? signaturePage([other], { page: 2, total: 26, unfilteredTotal: 26 })
+          : signaturePage([first], { total: 26, unfilteredTotal: 26 }),
+    });
+    const user = userEvent.setup();
+    const runtime = mount('/semnaturi');
+    await user.click(await screen.findByTestId('signatures-select'));
+    expect(screen.getByTestId('signatures-sign').textContent).toBe('Semnează (2)');
+    first = signatureRow({
+      slots: ['verifier'],
+      signatures: 1,
+      workers: [worker(employeeId, 'Popescu', 'Ion', [{ id: secondId, slot: 'verifier' }])],
+    });
+    await runtime.queryClient.invalidateQueries();
+    await waitFor(() =>
+      expect(screen.getByTestId('signatures-sign').textContent).toBe('Semnează (1)')
+    );
+    await user.click(screen.getByRole('button', { name: /Următoarea/ }));
+    await waitFor(() =>
+      expect(screen.getByTestId('signatures-row').textContent).toContain('La locul de muncă')
+    );
+    expect(screen.getByTestId('signatures-sign').textContent).toBe('Semnează (1)');
   });
 
   it('refuses more than one code can sign until some sheets are unticked', async () => {
@@ -1910,6 +2000,36 @@ describe('signing from the Semnături place', () => {
     expect(screen.queryByTestId('signatures-limit')).toBeNull();
     expect(screen.getByTestId('signatures-sign')).toHaveProperty('disabled', false);
     expect(screen.getByTestId('signatures-sign').textContent).toBe('Semnează (30)');
+  });
+
+  it('counts the sheets to untick from the requests each worker really has', async () => {
+    const id = (base: string, index: number) =>
+      `00000000-0000-4000-${base}-${String(index).padStart(12, '0')}`;
+    const people = Array.from({ length: 30 }, (_, index) =>
+      worker(
+        id('8000', index),
+        `Lucrător${index}`,
+        'Ion',
+        index < 2
+          ? [
+              { id: id('9000', index * 2), slot: 'verifier' },
+              { id: id('9000', index * 2 + 1), slot: 'admitter' },
+            ]
+          : [{ id: id('9000', index * 2), slot: 'verifier' }]
+      )
+    );
+    mockApi({
+      'GET /me/signatures': () =>
+        signaturePage([
+          signatureRow({ slots: ['verifier', 'admitter'], signatures: 32, workers: people }),
+        ]),
+    });
+    const user = userEvent.setup();
+    mount('/semnaturi');
+    await user.click(await screen.findByTestId('signatures-select'));
+    expect(screen.getByTestId('signatures-limit').textContent).toBe(
+      'Cu un cod semnezi cel mult 30. Deschide rândul și debifează o fișă; pe ea o semnezi apoi cu alt cod.'
+    );
   });
 
   it('names how many signatures to untick when several rows go over', async () => {

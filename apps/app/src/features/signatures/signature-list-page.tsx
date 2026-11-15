@@ -47,8 +47,8 @@ import { WorkersListError } from '@/features/employees/workers-list';
 
 import { AgreementWarning } from './agreement-warning';
 import {
-  roleLabel,
   rowName,
+  signAsPhrase,
   signatureColumns,
   signatureNoun,
   workerNoun,
@@ -147,8 +147,18 @@ function overLimitMessage(chosen: Chosen, rows: number) {
   if (rows > 1) {
     return `${limit} Debifează ${signatureNoun(over)}, un rând întreg sau fișe dintr-un rând deschis; pe ele le semnezi apoi cu alt cod.`;
   }
-  const slots = new Set([...chosen.values()].map((request) => request.slot)).size;
-  const sheets = Math.ceil(over / slots);
+  const perSheet = new Map<string, number>();
+  for (const request of chosen.values()) {
+    const sheet = `${request.rowId}:${request.employee.id}`;
+    perSheet.set(sheet, (perSheet.get(sheet) ?? 0) + 1);
+  }
+  let sheets = 0;
+  let freed = 0;
+  for (const count of [...perSheet.values()].sort((a, b) => b - a)) {
+    if (freed >= over) break;
+    freed += count;
+    sheets += 1;
+  }
   return `${limit} Deschide rândul și debifează ${sheets === 1 ? 'o fișă; pe ea o semnezi' : `${sheets} fișe; pe ele le semnezi`} apoi cu alt cod.`;
 }
 
@@ -186,11 +196,17 @@ export function SignatureListPage() {
     scope,
     chosen: noneChosen,
   });
-  const chosen = stillListed(selection.scope === scope ? selection.chosen : noneChosen, rows);
+  const kept = selection.scope === scope ? selection.chosen : noneChosen;
+  const chosen = stillListed(kept, rows);
+  // Kept in the state, not only hidden: a pruned request must not come back on another page,
+  // nor an earlier search's choice when its filters come back.
+  if (selection.scope !== scope || chosen !== selection.chosen) {
+    setSelection({ scope, chosen });
+  }
   const update = (change: (current: Chosen) => Chosen) =>
     setSelection((current) => ({
       scope,
-      chosen: change(current.scope === scope ? current.chosen : noneChosen),
+      chosen: stillListed(change(current.scope === scope ? current.chosen : noneChosen), rows),
     }));
   const chosenRows = new Set([...chosen.values()].map((request) => request.rowId)).size;
   const overLimit = chosen.size > SIGNING_SESSION_MAX_ITEMS;
@@ -434,11 +450,10 @@ function SignatureWorkers({
   const picked = row.workers.filter(
     (worker) => chosenState(chosen, worker.requests) === true
   ).length;
-  const role = roleLabel(row.slots).toLocaleLowerCase('ro');
   return (
     <div data-testid="signatures-row-workers">
       <h3 className="mb-1 text-[13px] font-semibold text-section-tab-foreground">
-        Semnezi ca {role} pe fișele a {workerNoun(row.workers.length)}
+        Semnezi {signAsPhrase(row.slots)} pe fișele a {workerNoun(row.workers.length)}
         {picked > 0 && ` · ${picked === 1 ? 'una aleasă' : `${picked} alese`}`}
       </h3>
       <ul className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">

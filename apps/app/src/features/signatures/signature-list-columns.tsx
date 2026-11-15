@@ -27,13 +27,27 @@ export const subjectLabel = (row: SignatureRow) =>
   row.phase ? trainingPhaseLabels[row.phase] : testLabels[row.test!];
 
 const roleLabels: Record<SignatureListSlot, string> = {
-  trainer: 'Instructor',
-  verifier: 'Verificator',
-  examiner: 'Examinator',
+  trainer: 'instructor',
+  verifier: 'verificator',
+  admitter: 'admite la lucru',
+  examiner: 'examinator',
 };
 
-export const roleLabel = (slots: readonly SignatureListSlot[]) =>
-  slots.length > 1 ? 'Instructor și verificator' : roleLabels[slots[0]!];
+const joined = (parts: readonly string[]) =>
+  parts.length > 1 ? `${parts.slice(0, -1).join(', ')} și ${parts.at(-1)}` : (parts[0] ?? '');
+
+export function roleLabel(slots: readonly SignatureListSlot[]) {
+  const text = joined(slots.map((slot) => roleLabels[slot]));
+  return text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);
+}
+
+export function signAsPhrase(slots: readonly SignatureListSlot[]) {
+  const roles = slots.filter((slot) => slot !== 'admitter').map((slot) => roleLabels[slot]);
+  return joined([
+    ...(roles.length > 0 ? [`ca ${joined(roles)}`] : []),
+    ...(slots.includes('admitter') ? ['la „Admite la lucru”'] : []),
+  ]);
+}
 
 export const signatureNoun = (count: number) => roCount(count, 'semnătură', 'semnături');
 export const workerNoun = (count: number) => roCount(count, 'lucrător', 'lucrători');

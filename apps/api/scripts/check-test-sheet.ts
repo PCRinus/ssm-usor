@@ -259,6 +259,15 @@ async function cleanUp() {
   }
 }
 
+type SignatureRows = {
+  items: {
+    kind: string;
+    day: string;
+    slots: string[];
+    workers: { requests: { id: string }[] }[];
+  }[];
+};
+
 type Requests = {
   items: { id: string; kind: string; label: string; slot: string; testSheet: unknown }[];
 };
@@ -417,14 +426,16 @@ try {
   console.log(`after the change back ${JSON.stringify(restored.ssm.results[0]!.sheet)}`);
 
   console.log('the member signs the test sheet and the training record in one session:');
-  const mine = await call<Requests>(member.token, 'GET', '/me/signature-requests');
+  const mine = await call<SignatureRows>(member.token, 'GET', '/me/signatures');
   console.log(
-    `  listed ${mine.items.map((item) => `${item.kind}:${item.slot} ${item.label}`).join('; ')}`
+    `  listed ${mine.items.map((item) => `${item.kind}:${item.slots.join('+')} ${item.day}`).join('; ')}`
   );
   const memberSigned = await signAs(
     member,
     '/me',
-    mine.items.map((item) => item.id)
+    mine.items.flatMap((item) =>
+      item.workers.flatMap((worker) => worker.requests.map((request) => request.id))
+    )
   );
 
   const refused = await send(member.token, 'PATCH', resultPath, {

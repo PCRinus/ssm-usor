@@ -37,8 +37,8 @@ Fiecare rând e o instruire ținută sau o fișă de test care așteaptă semnă
 - **Ziua** instruirii sau a testului;
 - **Ce semnezi**: tipul instruirii (introductiv-generală, la locul de muncă, periodică, periodică suplimentară) sau testul (la angajare, anual), cu domeniul dedesubt;
 - **Client**: numele lui te duce la instruirile ținute ale clientului;
-- **Semnezi ca**: instructor, verificator, examinator sau „Instructor și verificator”, când ai ambele rubrici pe aceeași instruire;
-- **Lucrători**: câți lucrători așteaptă semnătura ta pe instruire sau, când e unul singur, numele lui, care te duce în tabul lui de instruire. Când ai două rubrici, dedesubt scrie câte semnături înseamnă: 3 lucrători la care ești instructor și verificator sunt 6 semnături. Tot aici vezi, ca avertisment, câți lucrători nu au semnat actul adițional privind semnarea electronică sau, pentru un singur lucrător, „Act adițional nesemnat” ori „Act adițional așteaptă angajatorul”. Avertismentul nu te oprește să semnezi: îți spune doar că e bine să vorbești întâi cu clientul (vezi [Actul adițional privind semnarea electronică](/clienti/angajati/portal-si-act-aditional/)).
+- **Semnezi ca**: rubricile tale pe rând, de exemplu „Verificator”, „Examinator” sau, când ai mai multe pe aceeași instruire, „Instructor și verificator”;
+- **Lucrători**: câți lucrători așteaptă semnătura ta pe instruire sau, când e unul singur, numele lui, care te duce în tabul lui de instruire. Când ai mai multe rubrici, dedesubt scrie câte semnături înseamnă: 3 lucrători la care ești instructor și verificator sunt 6 semnături. Tot aici vezi, ca avertisment, câți lucrători nu au semnat actul adițional privind semnarea electronică sau, pentru un singur lucrător, „Act adițional nesemnat” ori „Act adițional așteaptă angajatorul”. Avertismentul nu te oprește să semnezi: îți spune doar că e bine să vorbești întâi cu clientul (vezi [Actul adițional privind semnarea electronică](/clienti/angajati/portal-si-act-aditional/)).
 - **Așteaptă**: de câte zile a fost cerută semnătura, cu ziua cererii dedesubt.
 
 Săgeata de la începutul unui rând cu mai mulți lucrători îl deschide și îți arată lucrătorii, fiecare cu căsuța lui.
@@ -57,14 +57,14 @@ O instruire are rubrici pentru cel instruit, pentru instructor, pentru verificat
 - pe fișa SU semnezi ca instructor acolo unde tu, cadrul tehnic PSI, ai ținut instruirea;
 - la o fișă de test semnezi ca examinator.
 
-Aici apar doar rubricile de instructor, verificator și examinator. Rubrica lucrătorului o semnează el, în portal. Rubrica „Admite la lucru” e a conducătorului locului de muncă sau, unde clientul nu are unul, a reprezentantului legal: o semnează el, nu tu, așa că nu apare niciodată pe această pagină.
+Rubrica lucrătorului o semnează el, în portal, și nu apare aici. Rubrica „Admite la lucru” e de obicei a conducătorului locului de muncă sau, unde clientul nu are unul, a reprezentantului legal. Apare aici doar când te-ai ales chiar pe tine pentru ea, ceea ce se întâmplă rar; atunci rândul arată, de exemplu, „Verificator și admite la lucru”.
 
 ## Semnarea cu un cod
 
-1. Bifezi rândurile pe care vrei să le semnezi. Un rând bifat îți alege toate semnăturile de pe el: toți lucrătorii și, când le ai pe amândouă, rubrica de instructor și pe cea de verificator. Ca să lași un lucrător pe altă dată, deschide rândul și debifează-l; căsuța rândului arată atunci o liniuță.
+1. Bifezi rândurile pe care vrei să le semnezi. Un rând bifat îți alege toate semnăturile de pe el: toți lucrătorii și toate rubricile tale de pe ei. Ca să lași un lucrător pe altă dată, deschide rândul și debifează-l; căsuța rândului arată atunci o liniuță.
 2. În locul barei de căutare apare o bară verde cu numărul de semnături alese, **Deselectează tot** și **Semnează (N)**. N numără semnăturile, nu rândurile.
 3. **Semnează** îți arată lista a ceea ce semnezi, pe lucrători și zile. Dacă nu recunoști o instruire, închide fereastra și debifeaz-o: nu o semna.
-4. Ceri codul. Codul are 6 cifre și e valabil 10 minute. Vine pe adresa de email a contului tău; prin SMS vine doar unui semnatar care nu are email. Poți cere un cod nou după un minut.
+4. Ceri codul. Codul are 6 cifre și e valabil 10 minute. Vine pe adresa de email a contului tău. Poți cere un cod nou după un minut.
 5. Scrii codul. Ai 3 încercări; după a treia îți ceri un cod nou.
 
 Codul semnează exact lista de pe ecran din momentul în care l-ai cerut. O cerere de semnare apărută după aceea, de exemplu pentru o instruire salvată între timp, nu intră în acest cod: o semnezi cu următorul.
