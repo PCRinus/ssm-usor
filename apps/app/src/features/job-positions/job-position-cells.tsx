@@ -44,7 +44,7 @@ export function WorkersCell({
         {employeeCountLabel(position.employeeCount)}
       </Link>
       {toTrain > 0 && (
-        <CellBadge asChild tone="destructive" note className="tabular-nums">
+        <CellBadge asChild tone="destructive" note className="mt-1.25 tabular-nums">
           <Link
             to="/clienti/$clientId/angajati"
             params={{ clientId }}

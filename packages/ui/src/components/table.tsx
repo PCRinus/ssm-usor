@@ -46,7 +46,7 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
     // padded content the table still spans the card, its outer columns at the card's inset.
     <div
       data-slot="table-frame"
-      className="relative w-full min-w-0 [--table-inset:--spacing(5)] in-data-[slot=card-content]:-mx-6 in-data-[slot=card-content]:w-auto in-data-[slot=card-content]:[--table-inset:--spacing(6)]"
+      className="@container relative w-full min-w-0 [--table-inset:--spacing(5)] in-data-[slot=card-content]:-mx-6 in-data-[slot=card-content]:w-auto in-data-[slot=card-content]:[--table-inset:--spacing(6)]"
     >
       <div ref={scroller} data-slot="table-container" className="relative w-full overflow-x-auto">
         <table

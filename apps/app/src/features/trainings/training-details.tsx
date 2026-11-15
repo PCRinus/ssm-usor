@@ -150,6 +150,7 @@ function Details({
                   state={slot.state}
                   label={personSignatureLabels[slot.state]}
                   testId="training-details-slot"
+                  badgeClassName="py-0"
                 />
               }
             />
@@ -178,6 +179,7 @@ function Details({
                   state={record.signature}
                   label={personSignatureLabels[record.signature]}
                   testId="trainings-attendee-signature"
+                  badgeClassName="py-0"
                 />
               }
             />

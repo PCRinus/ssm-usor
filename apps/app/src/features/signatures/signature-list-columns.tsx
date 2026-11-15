@@ -152,7 +152,8 @@ export const signatureColumns = helper.columns([
     id: 'workers',
     header: 'Lucrători',
     meta: {
-      headerClassName: 'w-54 min-w-54',
+      // „Act adițional așteaptă angajatorul” fits on one line.
+      headerClassName: 'w-60 min-w-60',
       cellClassName: 'whitespace-normal break-words',
       skeletonClassName: 'w-28',
       personal: true,
@@ -172,12 +173,7 @@ export const signatureColumns = helper.columns([
           )}
           {signatures !== workers.length && <CellNote>{signatureNoun(signatures)}</CellNote>}
           {note && (
-            <CellBadge
-              tone="warning"
-              note
-              className="whitespace-normal"
-              data-testid="signatures-agreement"
-            >
+            <CellBadge tone="warning" note data-testid="signatures-agreement">
               {note}
             </CellBadge>
           )}

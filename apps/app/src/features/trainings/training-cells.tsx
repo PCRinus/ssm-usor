@@ -36,14 +36,16 @@ export function SignatureState({
   state,
   label,
   testId,
+  badgeClassName,
 }: {
   state: TrainingSignatureState;
   label: string;
   testId?: string;
+  badgeClassName?: string;
 }) {
   if (state === 'pending') {
     return (
-      <CellBadge tone="warning" data-testid={testId} data-state={state}>
+      <CellBadge tone="warning" className={badgeClassName} data-testid={testId} data-state={state}>
         {label}
       </CellBadge>
     );
