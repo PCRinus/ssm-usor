@@ -10,6 +10,7 @@ import {
   type LegalChangeListResponseItemsItem as LegalChange,
   useListLegalChanges,
 } from '@/api/generated/api';
+import { useScrollToHash } from '@/app/use-scroll-to-hash';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
@@ -18,6 +19,7 @@ import { AmendedUnits, ChangedPassages } from './legal-change-details';
 import {
   changeStatus,
   formatDayOf,
+  legalChangeAnchor,
   listOf,
   portalPage,
   resolutionLabels,
@@ -30,11 +32,9 @@ export function LegalChanges({ userId }: { userId: string }) {
     query: { queryKey: [...getListLegalChangesQueryKey(), userId] },
   });
   const items = changes.data?.items ?? [];
+  useScrollToHash(changes.isSuccess);
   return (
     <section aria-label="Modificări legislative" className="grid gap-4">
-      <p className="max-w-2xl text-sm text-muted-foreground">
-        Formele consolidate noi ale actelor urmărite, cele mai recente primele.
-      </p>
       <div className="overflow-hidden rounded-lg border bg-card">
         {changes.isPending ? (
           <div className="p-5">
@@ -67,7 +67,12 @@ export function LegalChanges({ userId }: { userId: string }) {
         ) : (
           <ul className="divide-y">
             {items.map((change) => (
-              <li key={change.id} data-testid="legal-change" className="grid gap-1.5 px-5 py-4">
+              <li
+                key={change.id}
+                id={legalChangeAnchor(change.id)}
+                data-testid="legal-change"
+                className="grid scroll-mt-24 gap-1.5 px-5 py-4"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                   <span className="font-medium">
                     {change.act.portalId ? (

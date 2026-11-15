@@ -24,10 +24,6 @@ export const legalActSchema = z.object({
 
 export type LegalAct = z.infer<typeof legalActSchema>;
 
-export const legalActListResponseSchema = z.object({ items: z.array(legalActSchema) });
-
-export type LegalActListResponse = z.infer<typeof legalActListResponseSchema>;
-
 export const legalChangeResolutions = ['open', 'no_impact', 'template_version'] as const;
 
 export const legalChangeResolutionSchema = z.enum(legalChangeResolutions);
@@ -39,6 +35,32 @@ export const legalChangeOutcomes = ['no_impact', 'quote_differs', 'needs_review'
 export const legalChangeOutcomeSchema = z.enum(legalChangeOutcomes);
 
 export type LegalChangeOutcome = z.infer<typeof legalChangeOutcomeSchema>;
+
+export const legalActDomains = ['ssm', 'su'] as const;
+
+export const legalActDomainSchema = z.enum(legalActDomains);
+
+export type LegalActDomain = z.infer<typeof legalActDomainSchema>;
+
+export const watchedLegalActSchema = legalActSchema.extend({
+  // The act's official title without its kind, number and date, "privind apărarea împotriva
+  // incendiilor"; null for an act the templates no longer cite.
+  subject: z.string().nullable(),
+  // The domains of the documents that cite it; the service contract covers both and counts for
+  // neither.
+  domains: z.array(legalActDomainSchema),
+  // Document types, and the passages they quote word for word; an act only referred to has no
+  // quotes.
+  citedIn: z.object({ documents: z.int().nonnegative(), quotes: z.int().nonnegative() }),
+  // The newest open legal change of the act, or null when none is open.
+  openChange: z.object({ id: z.uuid(), outcome: legalChangeOutcomeSchema.nullable() }).nullable(),
+});
+
+export type WatchedLegalAct = z.infer<typeof watchedLegalActSchema>;
+
+export const legalActListResponseSchema = z.object({ items: z.array(watchedLegalActSchema) });
+
+export type LegalActListResponse = z.infer<typeof legalActListResponseSchema>;
 
 export const legalAmendingActSchema = z.object({
   name: z.string(),

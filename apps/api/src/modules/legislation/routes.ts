@@ -15,7 +15,7 @@ export const listLegalActsRoute = createRoute({
   operationId: 'listLegalActs',
   summary: 'List the watched legal acts',
   description:
-    'The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017). The same for every organization; not paginated.',
+    'The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017), the subject of each, the documents that cite it and its newest open legal change. The same for every organization; not paginated.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   responses: {

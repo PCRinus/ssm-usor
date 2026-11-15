@@ -10,6 +10,7 @@ import {
   type LegalCheckRun,
   legalCheckRunErrorSchema,
   type LegalCheckRunStatus,
+  type WatchedLegalAct,
 } from '@ssm-usor/contracts';
 import { templateOfFile, templateOfType } from '@ssm-usor/document-engine/template-files';
 import { z } from 'zod';
@@ -17,6 +18,7 @@ import { z } from 'zod';
 import type { Database } from '../../database.types';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
+import { bundledActCitations, notCited } from './act-citations';
 import type {
   getLatestLegalCheckRunRoute,
   listLegalActsRoute,
@@ -129,10 +131,35 @@ const toChange = (
 });
 
 export const listLegalActs: RouteHandler<typeof listLegalActsRoute, ApiEnv> = async (c) => {
-  const { data, error } = await createDataClient(c).from('legal_acts').select(actColumns);
-  if (error) throw fromDatabaseError(error, 'list legal acts');
-  const items = data
-    .map(toAct)
+  const client = createDataClient(c);
+  const [acts, open] = await Promise.all([
+    client.from('legal_acts').select(actColumns),
+    client
+      .from('legal_changes')
+      .select('id, act_id, outcome')
+      .eq('resolution', 'open')
+      .order('consolidated_on', { ascending: false })
+      .order('seen_at', { ascending: false })
+      .order('id'),
+  ]);
+  if (acts.error) throw fromDatabaseError(acts.error, 'list legal acts');
+  if (open.error) throw fromDatabaseError(open.error, 'list the open legal changes');
+  const openChangeOf = new Map<string, WatchedLegalAct['openChange']>();
+  for (const change of open.data) {
+    if (!openChangeOf.has(change.act_id)) {
+      openChangeOf.set(change.act_id, {
+        id: change.id,
+        outcome: change.outcome as LegalChangeOutcome | null,
+      });
+    }
+  }
+  const citations = bundledActCitations();
+  const items = acts.data
+    .map((row): WatchedLegalAct => ({
+      ...toAct(row),
+      ...(citations.get(row.id) ?? notCited),
+      openChange: openChangeOf.get(row.id) ?? null,
+    }))
     .sort((a, b) => collator.compare(a.name, b.name) || a.id.localeCompare(b.id));
   return c.json({ items }, 200);
 };

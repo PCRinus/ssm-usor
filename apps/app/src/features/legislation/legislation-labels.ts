@@ -1,8 +1,8 @@
 import type {
   DocumentsBehindResponseItemsItemNewestVersionKind,
-  LegalActListResponseItemsItemPortalStatus,
   LegalChangeListResponseItemsItem,
   LegalChangeListResponseItemsItemAmendedUnitsItemOperation,
+  LegalChangeListResponseItemsItemOutcome,
   LegalChangeListResponseItemsItemResolution,
 } from '@/api/generated/api';
 
@@ -21,17 +21,6 @@ export const resolutionLabels: Record<LegalChangeListResponseItemsItemResolution
   template_version: 'Șablon actualizat',
 };
 
-export const portalStatusLabel = (status: LegalActListResponseItemsItemPortalStatus) =>
-  status === 'in_force' ? 'în vigoare' : status === 'repealed' ? 'abrogat' : 'neverificat';
-
-const momentFormat = new Intl.DateTimeFormat('ro-RO', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
-
 const dayFormat = new Intl.DateTimeFormat('ro-RO', {
   day: 'numeric',
   month: 'long',
@@ -42,7 +31,6 @@ const dayMonthFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month:
 
 const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
 
-export const formatMoment = (isoTimestamp: string) => momentFormat.format(new Date(isoTimestamp));
 export const formatDayOf = (isoTimestamp: string) => dayFormat.format(new Date(isoTimestamp));
 export const formatTimeOf = (isoTimestamp: string) => timeFormat.format(new Date(isoTimestamp));
 export const momentOf = (isoTimestamp: string) =>
@@ -90,10 +78,17 @@ export function listOf(items: string[]) {
     : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
 }
 
+export const openOutcomeSentences: Partial<
+  Record<NonNullable<LegalChangeListResponseItemsItemOutcome>, string>
+> = {
+  quote_differs: 'Modifică un text citat în documente.',
+  needs_review: 'Modifică un articol la care trimit documentele.',
+};
+
 export function changeStatus(change: LegalChangeListResponseItemsItem) {
   if (change.resolution !== 'open') return null;
   if (change.outcome === null) return 'Modificarea nu a fost încă analizată.';
-  if (change.outcome === 'quote_differs') return 'Modifică un text citat în documente.';
-  if (change.outcome === 'needs_review') return 'Modifică un articol la care trimit documentele.';
-  return null;
+  return openOutcomeSentences[change.outcome] ?? null;
 }
+
+export const legalChangeAnchor = (changeId: string) => `modificare-${changeId}`;

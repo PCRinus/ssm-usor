@@ -1,156 +1,187 @@
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { ExternalLink, ScrollText } from 'lucide-react';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
+import { getRouteApi } from '@tanstack/react-router';
+import { ScrollText, SearchX } from 'lucide-react';
+import { useMemo } from 'react';
 
-import type { LegalActListResponseItemsItem } from '@/api/generated/api';
-import { createDataTableColumns } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
-import { EmptyState } from '@/components/empty-state';
-import { formatRoDate } from '@/lib/dates';
+import { EmptyState, ListEmpty } from '@/components/empty-state';
+import { ListCardHeader, ListCount } from '@/components/list-card-header';
+import { AppliedFilters } from '@/components/list-filters/applied-filters';
+import { ListFilters } from '@/components/list-filters/list-filters';
+import type { ListFilterValues } from '@/components/list-filters/types';
+import { listFilterSearch } from '@/components/list-filters/url';
+import { SearchInput } from '@/components/search-input';
 
-import { formatMoment, portalPage, portalStatusLabel } from './legislation-labels';
 import { useLegalActs } from './use-legal-acts';
-import { lastReadOn, sortActs, type WatchedActSort } from './watched-act-sort';
+import { watchedActColumns } from './watched-act-columns';
+import {
+  actNoun,
+  pageOf,
+  shownWatchedActs,
+  tableSort,
+  type WatchedAct,
+  watchedActFacets,
+  type WatchedActFilterKey,
+  watchedActFilterKeys,
+  type WatchedActListSearch,
+  watchedActPageSize,
+  type WatchedActSortKey,
+} from './watched-act-list';
 
-type Act = LegalActListResponseItemsItem;
+const route = getRouteApi('/_authenticated/legislatie/acte');
 
-const dateOrDash = (value: string | null) => (value ? formatRoDate(value) : '—');
+const rowKey = (act: WatchedAct) => act.id;
 
-function lastRead(act: Act) {
-  const on = lastReadOn(act);
-  if (on === null) return '—';
-  return on === act.lastCheckedAt ? formatMoment(on) : `${formatRoDate(on)}, de mână`;
-}
-
-const helper = createDataTableColumns<Act>();
-
-const dateColumn = { cellClassName: 'tabular-nums', skeletonClassName: 'w-20' };
-
-const columns = helper.columns([
-  helper.accessor('name', {
-    id: 'name',
-    header: 'Act normativ',
-    meta: { cellClassName: 'font-medium', skeletonClassName: 'w-32' },
-    cell: ({ row, getValue }) =>
-      row.original.portalId ? (
-        <a
-          href={portalPage(row.original.portalId)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
-        >
-          {getValue()}
-          <ExternalLink
-            className="size-3.5 text-muted-foreground"
-            aria-label="(se deschide pe Portalul Legislativ)"
-          />
-        </a>
-      ) : (
-        getValue()
-      ),
-  }),
-  helper.accessor('portalStatus', {
-    id: 'status',
-    header: 'Stare',
-    meta: { skeletonClassName: 'w-20' },
-    cell: ({ getValue }) => {
-      const status = getValue();
-      return (
-        <Badge
-          data-testid="watched-act-status"
-          variant={
-            status === 'repealed' ? 'destructive' : status === 'in_force' ? 'secondary' : 'outline'
-          }
-        >
-          {portalStatusLabel(status)}
-        </Badge>
-      );
-    },
-  }),
-  helper.accessor('lastConsolidatedOn', {
-    id: 'consolidated',
-    header: () => (
-      <span title="Cea mai nouă formă consolidată găsită pe Portalul Legislativ.">
-        Ultima formă consolidată
-      </span>
-    ),
-    meta: dateColumn,
-    cell: ({ getValue }) => dateOrDash(getValue()),
-  }),
-  helper.accessor('verifiedConsolidatedOn', {
-    id: 'verified',
-    header: () => (
-      <span title="Forma consolidată față de care au fost verificate șabloanele.">
-        Șabloanele urmează forma din
-      </span>
-    ),
-    meta: dateColumn,
-    cell: ({ getValue }) => dateOrDash(getValue()),
-  }),
-  helper.accessor(lastReadOn, {
-    id: 'read',
-    header: 'Citit ultima dată',
-    meta: { cellClassName: 'text-muted-foreground tabular-nums', skeletonClassName: 'w-28' },
-    cell: ({ row }) => lastRead(row.original),
-  }),
-]);
-
-const rowKey = (act: Act) => act.id;
-
-export function WatchedActs({
-  userId,
-  sort,
-  onSortChange,
-}: {
-  userId: string;
-  sort: WatchedActSort;
-  onSortChange: (sort: WatchedActSort) => void;
-}) {
+export function WatchedActs({ userId }: { userId: string }) {
+  const search = route.useSearch();
+  const navigate = route.useNavigate();
+  const phone = useIsMobile();
   const acts = useLegalActs(userId);
-  const items = acts.data ? sortActs(acts.data.items, sort) : undefined;
-  const total = items?.length ?? 0;
+  const all = acts.data?.items;
+  const facets = useMemo(() => watchedActFacets(all), [all]);
+  const listFilters = listFilterSearch({ keys: watchedActFilterKeys, facets, search });
+  const filtered = listFilters.applied;
+  const narrowed = filtered || Boolean(search.q);
+  const shown = useMemo(() => (all ? shownWatchedActs(all, search) : undefined), [all, search]);
+  const page = search.page ?? 1;
+  const total = all?.length ?? 0;
+
+  const changeSearch = (next: Partial<WatchedActListSearch>) =>
+    void navigate({
+      replace: true,
+      resetScroll: false,
+      search: (prev) => ({ ...prev, ...next, page: undefined }),
+    });
+  const changeFilters = (values: ListFilterValues<WatchedActFilterKey>) =>
+    changeSearch(listFilters.searchOf(values) as Partial<WatchedActListSearch>);
 
   return (
     <section aria-label="Acte urmărite" className="grid gap-4">
-      <p className="max-w-2xl text-sm text-muted-foreground">
-        Actele normative pe care le citează șabloanele, citite zilnic pe Portalul Legislativ.
-      </p>
       <div className="overflow-hidden rounded-lg border bg-card">
-        <DataTable
-          testId="watched-acts"
-          rowTestId="watched-act"
-          label="Acte urmărite"
-          columns={columns}
-          data={items}
-          rowKey={rowKey}
-          meta={{ page: 1, pageSize: Math.max(total, 1), total }}
-          noun={['act', 'acte']}
-          status={acts.status}
-          isFetching={acts.isFetching}
-          sort={sort}
-          onSortChange={(next) => onSortChange(next as WatchedActSort)}
-          onPageChange={() => {}}
-          error={
-            <>
-              <p role="alert" className="text-sm">
-                Nu am putut încărca actele urmărite.
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                disabled={acts.isFetching}
-                onClick={() => void acts.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            </>
-          }
-          empty={
-            <EmptyState icon={ScrollText}>
-              Niciun act urmărit încă. Actele apar aici după prima verificare.
+        {acts.isSuccess && total === 0 ? (
+          <ListEmpty>
+            <EmptyState
+              icon={ScrollText}
+              title="Niciun act urmărit încă"
+              data-testid="watched-acts-empty"
+            >
+              Actele normative citate de documente apar aici după prima verificare pe Portalul
+              Legislativ.
             </EmptyState>
-          }
-        />
+          </ListEmpty>
+        ) : (
+          <>
+            {acts.isSuccess && (
+              <>
+                <ListCardHeader>
+                  <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
+                    <SearchInput
+                      value={search.q}
+                      onSearch={(next) => changeSearch({ q: next || undefined })}
+                      placeholder={phone ? 'Caută acte' : 'Caută după număr sau titlu'}
+                      label="Caută după numărul sau titlul actului"
+                      testId="watched-acts-search"
+                    />
+                    <ListFilters
+                      facets={facets}
+                      values={listFilters.values}
+                      onChange={changeFilters}
+                      total={shown?.length}
+                      applyLabel={(pending) =>
+                        `Arată ${actNoun(
+                          shownWatchedActs(all ?? [], {
+                            q: search.q,
+                            ...(listFilters.searchOf(pending) as Partial<WatchedActListSearch>),
+                          }).length
+                        )}`
+                      }
+                      countLabel={actNoun}
+                      testId="watched-acts-filters"
+                    />
+                  </div>
+                  <ListCount testId="watched-acts-count">
+                    {narrowed ? (
+                      <>
+                        <b className="font-semibold text-foreground">{shown?.length ?? 0}</b> din{' '}
+                        {phone ? total : `${actNoun(total)}`}
+                      </>
+                    ) : (
+                      actNoun(total)
+                    )}
+                  </ListCount>
+                </ListCardHeader>
+                <AppliedFilters
+                  facets={facets}
+                  values={listFilters.values}
+                  onChange={changeFilters}
+                  testId="watched-acts-applied-filters"
+                />
+              </>
+            )}
+            <DataTable
+              testId="watched-acts"
+              rowTestId="watched-act"
+              label="Acte urmărite"
+              columns={watchedActColumns}
+              data={shown && pageOf(shown, page)}
+              rowKey={rowKey}
+              meta={{ page, pageSize: watchedActPageSize, total: shown?.length ?? 0 }}
+              noun={['act', 'acte']}
+              status={acts.status}
+              isFetching={acts.isFetching}
+              sort={tableSort(search)}
+              onSortChange={(next) =>
+                changeSearch({
+                  sort: next.sort as WatchedActSortKey,
+                  order: next.order === 'asc' ? undefined : next.order,
+                })
+              }
+              onPageChange={(next) =>
+                void navigate({
+                  search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }),
+                })
+              }
+              error={
+                <>
+                  <p role="alert" className="text-sm">
+                    Nu am putut încărca actele urmărite.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    disabled={acts.isFetching}
+                    onClick={() => void acts.refetch()}
+                  >
+                    Încearcă din nou
+                  </Button>
+                </>
+              }
+              empty={
+                <EmptyState
+                  icon={SearchX}
+                  title="Niciun act nu se potrivește"
+                  data-testid="watched-acts-empty-filtered"
+                  actions={
+                    <Button
+                      variant="outline"
+                      data-testid="watched-acts-empty-clear"
+                      onClick={
+                        filtered ? () => changeFilters({}) : () => changeSearch({ q: undefined })
+                      }
+                    >
+                      {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
+                    </Button>
+                  }
+                >
+                  {filtered
+                    ? `Niciun act urmărit nu se potrivește filtrelor alese${search.q ? ' și căutării' : ''}. Scoate unul dintre filtrele de mai sus sau șterge-le pe toate.`
+                    : `Niciun act urmărit nu se potrivește căutării „${search.q}”. Caută după număr, nume sau subiect.`}
+                </EmptyState>
+              }
+            />
+          </>
+        )}
       </div>
     </section>
   );
