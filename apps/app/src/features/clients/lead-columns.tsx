@@ -13,15 +13,13 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, UserCheck } from 'luci
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns, narrowHeader } from '@/components/data-table/columns';
-import { formatRoDate } from '@/lib/dates';
+import { formatRoDateOf } from '@/lib/dates';
 
 import type { ClientArchiveChange } from './client-archive-dialog';
 import type { ClientRow } from './client-columns';
 import { LeadContractCell } from './lead-contract-cell';
 
 const helper = createDataTableColumns<ClientRow>();
-
-const roDay = (at: string) => formatRoDate(at.slice(0, 10));
 
 // Sortable column ids are the API sort keys.
 export function leadColumns(
@@ -99,7 +97,7 @@ export function leadColumns(
         cellClassName: 'tabular-nums text-muted-foreground',
         skeletonClassName: 'w-20',
       },
-      cell: ({ getValue }) => roDay(getValue()),
+      cell: ({ getValue }) => formatRoDateOf(getValue()),
     }),
     helper.display({
       id: 'actions',

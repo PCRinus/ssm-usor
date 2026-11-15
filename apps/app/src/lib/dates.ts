@@ -22,6 +22,9 @@ export function formatRoDate(value: string) {
   return match ? `${match[3]}.${match[2]}.${match[1]}` : '';
 }
 
+// The day a moment falls on where the reader is, not in UTC.
+export const formatRoDateOf = (timestamp: string) => formatRoDate(dateToIso(new Date(timestamp)));
+
 export function parseRoDate(text: string) {
   const match = romanian.exec(text);
   if (!match) return null;

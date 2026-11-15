@@ -230,6 +230,26 @@ describe('leads', () => {
     }
   );
 
+  it('dates the contract and the offer by the local day, just after midnight too', async () => {
+    const justAfterMidnight = (day: number) => new Date(2026, 9, day, 0, 30).toISOString();
+    mockApi({
+      list: () =>
+        Response.json(
+          page([
+            listed({
+              createdAt: justAfterMidnight(14),
+              serviceContractState: 'issued',
+              serviceContractStateAt: justAfterMidnight(28),
+            }),
+          ])
+        ),
+    });
+    mount('/oferte');
+    const row = await screen.findByTestId('leads-row');
+    expect(within(row).getByTestId('leads-contract-date').textContent).toBe('28.10.2026');
+    expect(row.textContent).toContain('14.10.2026');
+  });
+
   it('shows a dash for a lead without a contact or a declared headcount', async () => {
     mockApi({
       list: () =>
