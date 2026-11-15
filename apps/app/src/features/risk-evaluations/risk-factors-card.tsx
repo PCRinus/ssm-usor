@@ -314,13 +314,13 @@ function FactorList({
           <div
             role="row"
             className={cn(
-              'hidden items-center gap-x-3.5 px-6 py-2 @2xl:grid',
+              'hidden min-h-12 items-center gap-x-3.5 bg-table-head px-6 py-2 text-table-head-foreground @2xl:grid',
               cell && 'border-t',
               layout
             )}
           >
             <SortHeader sortKey="level" label="Nivel" sort={sort} onSort={setSort} />
-            <div role="columnheader" className="text-sm font-medium">
+            <div role="columnheader" className="text-[13px] font-semibold">
               Factor de risc
             </div>
             <SortHeader sortKey="gravity" label="Gravitate" sort={sort} onSort={setSort} centered />
@@ -386,16 +386,20 @@ function SortHeader({
         variant="ghost"
         size="sm"
         data-testid={`risk-factors-sort-${sortKey}`}
-        className={cn('gap-1.5', !centered && '-ml-2.5')}
+        className={cn(
+          'gap-1.5 text-[13px] font-semibold text-table-head-foreground hover:bg-table-head-hover hover:text-foreground data-[sorted=true]:text-foreground',
+          !centered && '-ml-2.5'
+        )}
+        data-sorted={Boolean(order)}
         onClick={() => onSort(nextSort(sort, sortKey))}
       >
         {label}
         {order === 'asc' ? (
-          <ArrowUp aria-hidden="true" />
+          <ArrowUp aria-hidden="true" className="size-3.5" />
         ) : order === 'desc' ? (
-          <ArrowDown aria-hidden="true" />
+          <ArrowDown aria-hidden="true" className="size-3.5" />
         ) : (
-          <ArrowUpDown aria-hidden="true" className="opacity-50" />
+          <ArrowUpDown aria-hidden="true" className="size-3.5 opacity-55" />
         )}
       </Button>
     </div>
