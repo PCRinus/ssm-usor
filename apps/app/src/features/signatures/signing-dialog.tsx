@@ -20,7 +20,6 @@ import { CircleAlert, CircleCheck } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
-  type SignatureRequestListResponseItemsItem,
   type SigningSessionResponse,
   type SignSessionResponse,
   useCreateMySigningSession,
@@ -41,13 +40,14 @@ import {
   signAsLabel,
   signingFailure,
   signingItemFailures,
+  type SigningRequest,
   signingSessionFailure,
   trainingCount,
   wrongCodeMessage,
 } from './signature-format';
 import { invalidateSignatures } from './signature-queries';
 
-type SignatureRequest = SignatureRequestListResponseItemsItem;
+type SignatureRequest = SigningRequest;
 
 const codeLength = 6;
 
@@ -62,14 +62,16 @@ export function SigningDialog({
   requests,
   open,
   onClose,
+  onSigned,
 }: {
   requests: SignatureRequest[];
   open: boolean;
   onClose: () => void;
+  onSigned?: (requestIds: string[]) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {open && <SigningFlow requests={requests} onClose={onClose} />}
+      {open && <SigningFlow requests={requests} onClose={onClose} onSigned={onSigned} />}
     </Dialog>
   );
 }
@@ -77,9 +79,11 @@ export function SigningDialog({
 function SigningFlow({
   requests: chosen,
   onClose,
+  onSigned,
 }: {
   requests: SignatureRequest[];
   onClose: () => void;
+  onSigned?: (requestIds: string[]) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const create = useCreateMySigningSession({ request: wordingRefusalHere(apiRequest) });
@@ -145,6 +149,7 @@ function SigningFlow({
     try {
       const result = await sign.mutateAsync({ sessionId, data: { code } });
       setStep({ kind: 'result', result });
+      onSigned?.(result.signed.map((item) => item.requestId));
     } catch (cause) {
       const reason = reasonOf(cause);
       if (reason === signatureErrorReasons.codeInvalid) {

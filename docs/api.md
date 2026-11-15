@@ -1696,7 +1696,6 @@ routes below, the signing sessions among them; the signed sheet they sign on is 
 | `GET /clients/{clientId}/training-records/{recordId}/signatures`         | `{ recordId, slots }`, each slot with its state                               |
 | `POST /clients/{clientId}/training-records/{recordId}/signatures/paper`  | The slots, after `{ slot, signerName, signerJobTitle? }` marked on paper      |
 | `POST /clients/{clientId}/training-records/{recordId}/signatures/void`   | The slots, after `{ reason }` voided every live signature and request         |
-| `GET /me/signature-requests`                                             | `{ items }`: the caller's own pending requests across clients, oldest first   |
 | `GET /me/signatures`                                                     | A page of the caller's pending signatures, a row per training or test sheet   |
 | `GET /clients/{clientId}/signature-requests`                             | `{ items }`: the client's requests in `?state=` (`pending` by default)        |
 | `GET /clients/{clientId}/employees/{employeeId}/signing-agreement`       | `200 application/pdf`, the act adițional drawn up on the spot                 |
@@ -1780,9 +1779,7 @@ request, the client, the record (its training, employee, day, domain and phase) 
 and `agreement`, the employee's signing agreement with its state and the two
 signing moments, null when none is recorded, which the app and the portal show as "act adițional
 nesemnat" unless it is `signed_electronically`, `signed_on_paper` or `in_contract`, and as
-"așteaptă angajatorul" once the employee has signed. `GET /me/signature-requests` is the
-member's own pending requests in the membership's organization, never a trainee's, which an
-account that is also an employee signs in the portal. A request whose client, record, employee or
+"așteaptă angajatorul" once the employee has signed. A request whose client, record, employee or
 training a policy hides is left out of a list rather than failing it. The portal's items carry
 the record as its row of the sheet prints it and `signerName`, the person the slot prints. Both
 portal lists read the request rows, the employee's addressed to them as the participant and the

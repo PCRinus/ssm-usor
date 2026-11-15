@@ -25167,6 +25167,192 @@
         },
         "required": ["reason"]
       },
+      "SignatureListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["training", "test_sheet"]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"]
+                },
+                "domain": {
+                  "type": "string",
+                  "enum": ["ssm", "su"]
+                },
+                "phase": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["introductory_general", "workplace", "periodic", "supplementary", null]
+                },
+                "test": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["hiring", "annual", null]
+                },
+                "day": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "slots": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["trainer", "verifier", "admitter", "examiner"]
+                  },
+                  "minItems": 1
+                },
+                "issuedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "signatures": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "workers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "employee": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "lastName": {
+                            "type": "string"
+                          },
+                          "firstName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "lastName", "firstName"]
+                      },
+                      "agreement": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "generated",
+                              "signed_electronically",
+                              "signed_on_paper",
+                              "withdrawn",
+                              "in_contract"
+                            ]
+                          },
+                          "employeeSignedAt": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          },
+                          "employerSignedAt": {
+                            "type": "string",
+                            "nullable": true,
+                            "format": "date-time"
+                          }
+                        },
+                        "required": ["state", "employeeSignedAt", "employerSignedAt"]
+                      },
+                      "requests": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "slot": {
+                              "type": "string",
+                              "enum": ["trainer", "verifier", "admitter", "examiner"]
+                            }
+                          },
+                          "required": ["id", "slot"]
+                        },
+                        "minItems": 1
+                      }
+                    },
+                    "required": ["employee", "agreement", "requests"]
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "client",
+                "domain",
+                "phase",
+                "test",
+                "day",
+                "slots",
+                "issuedAt",
+                "signatures",
+                "workers"
+              ]
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unfilteredTotal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "signatures": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unfilteredSignatures": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total",
+          "unfilteredTotal",
+          "signatures",
+          "unfilteredSignatures"
+        ]
+      },
       "SignatureRequestListResponse": {
         "type": "object",
         "properties": {
@@ -25364,192 +25550,6 @@
           }
         },
         "required": ["items"]
-      },
-      "SignatureListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "kind": {
-                  "type": "string",
-                  "enum": ["training", "test_sheet"]
-                },
-                "client": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  },
-                  "required": ["id", "name"]
-                },
-                "domain": {
-                  "type": "string",
-                  "enum": ["ssm", "su"]
-                },
-                "phase": {
-                  "type": "string",
-                  "nullable": true,
-                  "enum": ["introductory_general", "workplace", "periodic", "supplementary", null]
-                },
-                "test": {
-                  "type": "string",
-                  "nullable": true,
-                  "enum": ["hiring", "annual", null]
-                },
-                "day": {
-                  "type": "string",
-                  "format": "date"
-                },
-                "slots": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "enum": ["trainer", "verifier", "admitter", "examiner"]
-                  },
-                  "minItems": 1
-                },
-                "issuedAt": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "signatures": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "workers": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "employee": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "format": "uuid"
-                          },
-                          "lastName": {
-                            "type": "string"
-                          },
-                          "firstName": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["id", "lastName", "firstName"]
-                      },
-                      "agreement": {
-                        "type": "object",
-                        "nullable": true,
-                        "properties": {
-                          "state": {
-                            "type": "string",
-                            "enum": [
-                              "generated",
-                              "signed_electronically",
-                              "signed_on_paper",
-                              "withdrawn",
-                              "in_contract"
-                            ]
-                          },
-                          "employeeSignedAt": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time"
-                          },
-                          "employerSignedAt": {
-                            "type": "string",
-                            "nullable": true,
-                            "format": "date-time"
-                          }
-                        },
-                        "required": ["state", "employeeSignedAt", "employerSignedAt"]
-                      },
-                      "requests": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "format": "uuid"
-                            },
-                            "slot": {
-                              "type": "string",
-                              "enum": ["trainer", "verifier", "admitter", "examiner"]
-                            }
-                          },
-                          "required": ["id", "slot"]
-                        },
-                        "minItems": 1
-                      }
-                    },
-                    "required": ["employee", "agreement", "requests"]
-                  },
-                  "minItems": 1
-                }
-              },
-              "required": [
-                "id",
-                "kind",
-                "client",
-                "domain",
-                "phase",
-                "test",
-                "day",
-                "slots",
-                "issuedAt",
-                "signatures",
-                "workers"
-              ]
-            }
-          },
-          "page": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "pageSize": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100
-          },
-          "total": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "unfilteredTotal": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "signatures": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "unfilteredSignatures": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "required": [
-          "items",
-          "page",
-          "pageSize",
-          "total",
-          "unfilteredTotal",
-          "signatures",
-          "unfilteredSignatures"
-        ]
       },
       "SigningAgreementResponse": {
         "type": "object",
@@ -54108,80 +54108,6 @@
           },
           "409": {
             "description": "The client is archived (reason `client_archived`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected API error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "A dependency is temporarily unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/me/signature-requests": {
-      "get": {
-        "operationId": "listMySignatureRequests",
-        "summary": "The signed-in member's pending signature requests, across clients",
-        "description": "Oldest first, with the client, the employee, the day, the domain and the phase, and the employee's signing agreement, whose absence the app shows as a warning.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignatureRequestListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "A valid user access token is required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The account is not a member of an organization",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

@@ -188,21 +188,6 @@ export const voidRecordSignaturesRoute = createRoute({
   },
 });
 
-export const listMySignatureRequestsRoute = createRoute({
-  method: 'get',
-  path: '/me/signature-requests',
-  operationId: 'listMySignatureRequests',
-  summary: "The signed-in member's pending signature requests, across clients",
-  description:
-    "Oldest first, with the client, the employee, the day, the domain and the phase, and the employee's signing agreement, whose absence the app shows as a warning.",
-  security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
-  responses: {
-    200: { description: 'The requests', content: requestListContent },
-    ...membershipErrors,
-  },
-});
-
 export const listMySignaturesRoute = createRoute({
   method: 'get',
   path: '/me/signatures',

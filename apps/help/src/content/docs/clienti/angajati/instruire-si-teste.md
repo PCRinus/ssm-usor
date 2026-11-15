@@ -252,6 +252,6 @@ După prima semnătură electronică, fișa se păstrează semnată, rând cu r�
 
 Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **Instruit**, **Instructor** și, unde fișa le are, **Verificator** și **Admite la lucru**. Fișa SU are doar rubricile celui instruit și ale celui care a instruit.
 
-Rubricile le vezi deschizând rândul instruirii în tabul lucrătorului. Lucrătorul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
+Rubricile le vezi deschizând rândul instruirii în tabul lucrătorului. Lucrătorul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. Rubricile tale, de instructor, verificator sau examinator, le semnezi de pe pagina **Semnături**, mai multe deodată cu un singur cod (vezi [Semnături](/semnaturi/)). O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
 
 O instruire de pe fișa pe hârtie nu are rubrici de semnat și nu cere nicio semnătură, nici în aplicație, nici în portal: semnăturile ei sunt pe fișa pe hârtie. În locul rubricilor scrie „Semnat pe hârtie: instruit, instructor”, la care se adaugă verificatorul și cel care admite la lucru când instruirea îi are. Pe fișa individuală, rândul ei apare cu mențiunea „transcris; semnat pe hârtie”. O fișă semnată întocmită înainte ca fișele să scrie „transcris” rămâne cum era: rândurile adăugate pe ea mai târziu primesc tot mențiunea „semnat pe hârtie”.

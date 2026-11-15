@@ -15331,6 +15331,152 @@ export interface VoidSignaturesRequest {
   reason: string;
 }
 
+export type SignatureListResponseItemsItemKind =
+  (typeof SignatureListResponseItemsItemKind)[keyof typeof SignatureListResponseItemsItemKind];
+
+export const SignatureListResponseItemsItemKind = {
+  training: 'training',
+  test_sheet: 'test_sheet',
+} as const;
+
+export type SignatureListResponseItemsItemClient = {
+  id: string;
+  name: string;
+};
+
+export type SignatureListResponseItemsItemDomain =
+  (typeof SignatureListResponseItemsItemDomain)[keyof typeof SignatureListResponseItemsItemDomain];
+
+export const SignatureListResponseItemsItemDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureListResponseItemsItemPhase =
+  | (typeof SignatureListResponseItemsItemPhase)[keyof typeof SignatureListResponseItemsItemPhase]
+  | null;
+
+export const SignatureListResponseItemsItemPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureListResponseItemsItemTest =
+  | (typeof SignatureListResponseItemsItemTest)[keyof typeof SignatureListResponseItemsItemTest]
+  | null;
+
+export const SignatureListResponseItemsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type SignatureListResponseItemsItemSlotsItem =
+  (typeof SignatureListResponseItemsItemSlotsItem)[keyof typeof SignatureListResponseItemsItemSlotsItem];
+
+export const SignatureListResponseItemsItemSlotsItem = {
+  trainer: 'trainer',
+  verifier: 'verifier',
+  admitter: 'admitter',
+  examiner: 'examiner',
+} as const;
+
+export type SignatureListResponseItemsItemWorkersItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+};
+
+export type SignatureListResponseItemsItemWorkersItemAgreementState =
+  (typeof SignatureListResponseItemsItemWorkersItemAgreementState)[keyof typeof SignatureListResponseItemsItemWorkersItemAgreementState];
+
+export const SignatureListResponseItemsItemWorkersItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureListResponseItemsItemWorkersItemAgreement = {
+  state: SignatureListResponseItemsItemWorkersItemAgreementState;
+  /** @nullable */
+  employeeSignedAt: string | null;
+  /** @nullable */
+  employerSignedAt: string | null;
+} | null;
+
+export type SignatureListResponseItemsItemWorkersItemRequestsItemSlot =
+  (typeof SignatureListResponseItemsItemWorkersItemRequestsItemSlot)[keyof typeof SignatureListResponseItemsItemWorkersItemRequestsItemSlot];
+
+export const SignatureListResponseItemsItemWorkersItemRequestsItemSlot = {
+  trainer: 'trainer',
+  verifier: 'verifier',
+  admitter: 'admitter',
+  examiner: 'examiner',
+} as const;
+
+export type SignatureListResponseItemsItemWorkersItemRequestsItem = {
+  id: string;
+  slot: SignatureListResponseItemsItemWorkersItemRequestsItemSlot;
+};
+
+export type SignatureListResponseItemsItemWorkersItem = {
+  employee: SignatureListResponseItemsItemWorkersItemEmployee;
+  /** @nullable */
+  agreement: SignatureListResponseItemsItemWorkersItemAgreement;
+  /** @minItems 1 */
+  requests: SignatureListResponseItemsItemWorkersItemRequestsItem[];
+};
+
+export type SignatureListResponseItemsItem = {
+  id: string;
+  kind: SignatureListResponseItemsItemKind;
+  client: SignatureListResponseItemsItemClient;
+  domain: SignatureListResponseItemsItemDomain;
+  /** @nullable */
+  phase: SignatureListResponseItemsItemPhase;
+  /** @nullable */
+  test: SignatureListResponseItemsItemTest;
+  day: string;
+  /** @minItems 1 */
+  slots: SignatureListResponseItemsItemSlotsItem[];
+  issuedAt: string;
+  /** @minimum 1 */
+  signatures: number;
+  /** @minItems 1 */
+  workers: SignatureListResponseItemsItemWorkersItem[];
+};
+
+export interface SignatureListResponse {
+  items: SignatureListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
+  /** @minimum 0 */
+  signatures: number;
+  /** @minimum 0 */
+  unfilteredSignatures: number;
+}
+
 export type SignatureRequestListResponseItemsItemKind =
   (typeof SignatureRequestListResponseItemsItemKind)[keyof typeof SignatureRequestListResponseItemsItemKind];
 
@@ -15487,152 +15633,6 @@ export type SignatureRequestListResponseItemsItem = {
 
 export interface SignatureRequestListResponse {
   items: SignatureRequestListResponseItemsItem[];
-}
-
-export type SignatureListResponseItemsItemKind =
-  (typeof SignatureListResponseItemsItemKind)[keyof typeof SignatureListResponseItemsItemKind];
-
-export const SignatureListResponseItemsItemKind = {
-  training: 'training',
-  test_sheet: 'test_sheet',
-} as const;
-
-export type SignatureListResponseItemsItemClient = {
-  id: string;
-  name: string;
-};
-
-export type SignatureListResponseItemsItemDomain =
-  (typeof SignatureListResponseItemsItemDomain)[keyof typeof SignatureListResponseItemsItemDomain];
-
-export const SignatureListResponseItemsItemDomain = {
-  ssm: 'ssm',
-  su: 'su',
-} as const;
-
-/**
- * @nullable
- */
-export type SignatureListResponseItemsItemPhase =
-  | (typeof SignatureListResponseItemsItemPhase)[keyof typeof SignatureListResponseItemsItemPhase]
-  | null;
-
-export const SignatureListResponseItemsItemPhase = {
-  introductory_general: 'introductory_general',
-  workplace: 'workplace',
-  periodic: 'periodic',
-  supplementary: 'supplementary',
-} as const;
-
-/**
- * @nullable
- */
-export type SignatureListResponseItemsItemTest =
-  | (typeof SignatureListResponseItemsItemTest)[keyof typeof SignatureListResponseItemsItemTest]
-  | null;
-
-export const SignatureListResponseItemsItemTest = {
-  hiring: 'hiring',
-  annual: 'annual',
-} as const;
-
-export type SignatureListResponseItemsItemSlotsItem =
-  (typeof SignatureListResponseItemsItemSlotsItem)[keyof typeof SignatureListResponseItemsItemSlotsItem];
-
-export const SignatureListResponseItemsItemSlotsItem = {
-  trainer: 'trainer',
-  verifier: 'verifier',
-  admitter: 'admitter',
-  examiner: 'examiner',
-} as const;
-
-export type SignatureListResponseItemsItemWorkersItemEmployee = {
-  id: string;
-  lastName: string;
-  firstName: string;
-};
-
-export type SignatureListResponseItemsItemWorkersItemAgreementState =
-  (typeof SignatureListResponseItemsItemWorkersItemAgreementState)[keyof typeof SignatureListResponseItemsItemWorkersItemAgreementState];
-
-export const SignatureListResponseItemsItemWorkersItemAgreementState = {
-  generated: 'generated',
-  signed_electronically: 'signed_electronically',
-  signed_on_paper: 'signed_on_paper',
-  withdrawn: 'withdrawn',
-  in_contract: 'in_contract',
-} as const;
-
-/**
- * @nullable
- */
-export type SignatureListResponseItemsItemWorkersItemAgreement = {
-  state: SignatureListResponseItemsItemWorkersItemAgreementState;
-  /** @nullable */
-  employeeSignedAt: string | null;
-  /** @nullable */
-  employerSignedAt: string | null;
-} | null;
-
-export type SignatureListResponseItemsItemWorkersItemRequestsItemSlot =
-  (typeof SignatureListResponseItemsItemWorkersItemRequestsItemSlot)[keyof typeof SignatureListResponseItemsItemWorkersItemRequestsItemSlot];
-
-export const SignatureListResponseItemsItemWorkersItemRequestsItemSlot = {
-  trainer: 'trainer',
-  verifier: 'verifier',
-  admitter: 'admitter',
-  examiner: 'examiner',
-} as const;
-
-export type SignatureListResponseItemsItemWorkersItemRequestsItem = {
-  id: string;
-  slot: SignatureListResponseItemsItemWorkersItemRequestsItemSlot;
-};
-
-export type SignatureListResponseItemsItemWorkersItem = {
-  employee: SignatureListResponseItemsItemWorkersItemEmployee;
-  /** @nullable */
-  agreement: SignatureListResponseItemsItemWorkersItemAgreement;
-  /** @minItems 1 */
-  requests: SignatureListResponseItemsItemWorkersItemRequestsItem[];
-};
-
-export type SignatureListResponseItemsItem = {
-  id: string;
-  kind: SignatureListResponseItemsItemKind;
-  client: SignatureListResponseItemsItemClient;
-  domain: SignatureListResponseItemsItemDomain;
-  /** @nullable */
-  phase: SignatureListResponseItemsItemPhase;
-  /** @nullable */
-  test: SignatureListResponseItemsItemTest;
-  day: string;
-  /** @minItems 1 */
-  slots: SignatureListResponseItemsItemSlotsItem[];
-  issuedAt: string;
-  /** @minimum 1 */
-  signatures: number;
-  /** @minItems 1 */
-  workers: SignatureListResponseItemsItemWorkersItem[];
-};
-
-export interface SignatureListResponse {
-  items: SignatureListResponseItemsItem[];
-  /** @minimum 1 */
-  page: number;
-  /**
-   * @minimum 1
-   * @maximum 100
-   */
-  pageSize: number;
-  /** @minimum 0 */
-  total: number;
-  /** @minimum 0 */
-  unfilteredTotal: number;
-  /** @minimum 0 */
-  signatures: number;
-  /** @minimum 0 */
-  unfilteredSignatures: number;
 }
 
 export type SigningAgreementResponseAgreementState =
@@ -43865,133 +43865,6 @@ export const useVoidRecordSignatures = <TError = ErrorType<ApiErrorResponse>, TC
 > => {
   return useMutation(getVoidRecordSignaturesMutationOptions(options), queryClient);
 };
-
-export const getListMySignatureRequestsUrl = () => {
-  return `/me/signature-requests`;
-};
-
-/**
- * Oldest first, with the client, the employee, the day, the domain and the phase, and the employee's signing agreement, whose absence the app shows as a warning.
- * @summary The signed-in member's pending signature requests, across clients
- */
-export const listMySignatureRequests = async (
-  options?: Parameters<typeof apiFetch>[1]
-): Promise<SignatureRequestListResponse> => {
-  return apiFetch<SignatureRequestListResponse>(getListMySignatureRequestsUrl(), {
-    ...options,
-    method: 'GET',
-  });
-};
-
-export const getListMySignatureRequestsQueryKey = () => {
-  return [`/me/signature-requests`] as const;
-};
-
-export const getListMySignatureRequestsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
-  TError = ErrorType<ApiErrorResponse>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListMySignatureRequestsQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMySignatureRequests>>> = ({
-    signal,
-  }) => listMySignatureRequests({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listMySignatureRequests>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ListMySignatureRequestsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listMySignatureRequests>>
->;
-export type ListMySignatureRequestsQueryError = ErrorType<ApiErrorResponse>;
-
-export function useListMySignatureRequests<
-  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listMySignatureRequests>>,
-          TError,
-          Awaited<ReturnType<typeof listMySignatureRequests>>
-        >,
-        'initialData'
-      >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListMySignatureRequests<
-  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listMySignatureRequests>>,
-          TError,
-          Awaited<ReturnType<typeof listMySignatureRequests>>
-        >,
-        'initialData'
-      >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListMySignatureRequests<
-  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-/**
- * @summary The signed-in member's pending signature requests, across clients
- */
-
-export function useListMySignatureRequests<
-  TData = Awaited<ReturnType<typeof listMySignatureRequests>>,
-  TError = ErrorType<ApiErrorResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listMySignatureRequests>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListMySignatureRequestsQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
 
 export const getListMySignaturesUrl = (params?: ListMySignaturesParams) => {
   const normalizedParams = new URLSearchParams();

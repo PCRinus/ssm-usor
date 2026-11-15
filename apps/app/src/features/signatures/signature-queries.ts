@@ -3,7 +3,7 @@ import type { QueryClient, QueryFilters } from '@tanstack/react-query';
 
 import {
   getListClientSignatureRequestsQueryKey,
-  getListMySignatureRequestsQueryKey,
+  getListMySignaturesQueryKey,
 } from '@/api/generated/api';
 
 // Saving, voiding or marking a slot changes the record's slots, every list of requests and the
@@ -14,7 +14,7 @@ export async function invalidateSignatures(queryClient: QueryClient, clientId: s
   const employeesPrefix = `/clients/${clientId}/employees/`;
   const trainings = `/clients/${clientId}/trainings`;
   const clientRequests = getListClientSignatureRequestsQueryKey(clientId)[0];
-  const myRequests = getListMySignatureRequestsQueryKey()[0];
+  const myRequests = getListMySignaturesQueryKey()[0];
   const queries: QueryFilters = {
     predicate: ({ queryKey: [key, scope] }) =>
       typeof key === 'string' &&

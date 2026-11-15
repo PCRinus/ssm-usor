@@ -54,7 +54,6 @@ import type {
   getSigningAgreementRoute,
   getSigningAgreementStateRoute,
   listClientSignatureRequestsRoute,
-  listMySignatureRequestsRoute,
   listPortalClientSignatureRequestsRoute,
   listPortalSignatureRequestsRoute,
   listPortalSigningAgreementsRoute,
@@ -352,33 +351,6 @@ const agreementSummaryOf = (
         employerSignedAt: toIsoOrNull(row.employer_signed_at),
       }
     : null;
-};
-
-export const listMySignatureRequests: RouteHandler<
-  typeof listMySignatureRequestsRoute,
-  ApiEnv
-> = async (c) => {
-  // The member's own organization, and never a trainee's request, which the account signs in the
-  // portal when it is also an employee somewhere.
-  const { data, error } = await createDataClient(c)
-    .from('signature_requests')
-    .select(listColumns)
-    .eq('signer_account_id', c.get('user').id)
-    .eq('organization_id', c.get('membership').organizationId)
-    .neq('slot', 'trainee')
-    .eq('state', 'pending')
-    .order('issued_at')
-    .order('id')
-    .limit(1000);
-  if (error) throw fromDatabaseError(error, 'my signature requests');
-  return c.json(
-    {
-      items: (data as unknown as ListRow[])
-        .filter(visible)
-        .map((row) => toListItem(row, { accountId: c.get('user').id, name: null })),
-    },
-    200
-  );
 };
 
 export const listClientSignatureRequests: RouteHandler<

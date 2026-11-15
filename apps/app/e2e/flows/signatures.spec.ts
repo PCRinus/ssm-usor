@@ -85,11 +85,12 @@ test('a specialist records a training with signers, marks a slot on paper and vo
 
   await page.getByTestId('nav-signatures').click();
   await expect(page).toHaveURL(/\/semnaturi$/);
-  const group = page.getByTestId('signature-requests-client');
-  await expect(group).toHaveCount(1);
-  await expect(group).toContainText('S.C. CLIENT SEMNĂTURI E2E S.R.L.');
-  await expect(group.getByTestId('signature-request')).toHaveCount(2);
-  await expect(page.getByTestId('signature-requests-sign')).toBeDisabled();
+  const row = page.getByTestId('signatures-row');
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText('S.C. CLIENT SEMNĂTURI E2E S.R.L.');
+  await expect(row).toContainText('Instructor și verificator');
+  await expect(row).toContainText('2 semnături');
+  await expect(page.getByTestId('signatures-selection')).toBeHidden();
 
   await page.goto(`/clienti/${clientId}/portal`);
   await expect(page.getByTestId('client-signature-requests')).toContainText(
@@ -110,7 +111,7 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   await page.keyboard.press('Escape');
 
   await page.getByTestId('nav-signatures').click();
-  await expect(page.getByTestId('signature-requests-empty')).toBeVisible();
+  await expect(page.getByTestId('signatures-empty')).toBeVisible();
 });
 
 test('a member signs two requests with one code from Semnături', async ({ page }) => {
@@ -162,9 +163,10 @@ test('a member signs two requests with one code from Semnături', async ({ page 
   await signIn(page, owner.email);
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByTestId('nav-signatures').click();
-  await expect(page.getByTestId('signature-request')).toHaveCount(2);
-  await page.getByTestId('signature-requests-client-select').click();
-  await page.getByTestId('signature-requests-sign').click();
+  await expect(page.getByTestId('signatures-row')).toHaveCount(1);
+  await page.getByTestId('signatures-select').click();
+  await expect(page.getByTestId('signatures-sign')).toHaveText('Semnează (2)');
+  await page.getByTestId('signatures-sign').click();
 
   const dialog = page.getByTestId('signing-dialog');
   await expect(dialog.getByTestId('signing-item')).toHaveCount(2);
@@ -182,7 +184,7 @@ test('a member signs two requests with one code from Semnături', async ({ page 
   await expect(dialog.getByTestId('signing-signed')).toHaveCount(2);
   await dialog.getByTestId('signing-close').click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByTestId('signature-requests-empty')).toBeVisible();
+  await expect(page.getByTestId('signatures-empty')).toBeVisible();
 
   await page.goto(`/clienti/${clientId}/angajati/${employee.id}/instruire/ssm`);
   const record = page.getByTestId('training-record-item').first();

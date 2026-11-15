@@ -381,46 +381,11 @@ const listRow = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('the members’ request lists', () => {
-  it("GET /me/signature-requests lists the caller's own pending requests, with the agreement's state", async () => {
-    mockUpstream({ '/rest/v1/signature_requests': () => [listRow()] });
-
-    const response = await request('/me/signature-requests');
-
-    expect(response.status).toBe(200);
-    const { items } = signatureRequestListResponseSchema.parse(await response.json());
-    expect(items).toEqual([
-      {
-        id: 'f0000000-0000-4000-8000-000000000001',
-        kind: 'training_record',
-        label: 'Instruire periodică SSM · 01.10.2026',
-        slot: 'trainer',
-        state: 'pending',
-        issuedAt: '2026-10-02T08:00:00.000Z',
-        notifiedAt: null,
-        client: { id: clientId, name: 'Fabrica Sigma SRL' },
-        employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
-        record: {
-          id: recordId,
-          trainingId,
-          employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
-          domain: 'ssm',
-          phase: 'periodic',
-          heldOn: '2026-10-01',
-        },
-        testSheet: null,
-        signer: { accountId: user.id, name: null },
-        agreement: null,
-      },
-    ]);
-    const [call] = callsTo('/rest/v1/signature_requests');
-    expect(call!.url.searchParams.get('signer_account_id')).toBe(`eq.${user.id}`);
-    expect(call!.url.searchParams.get('state')).toBe('eq.pending');
-    expect(call!.url.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
-    expect(call!.url.searchParams.get('slot')).toBe('neq.trainee');
-  });
-
-  it('GET /me/signature-requests leaves out a request whose record a policy hides', async () => {
+  it('GET /clients/{clientId}/signature-requests leaves out a request whose record a policy hides', async () => {
     mockUpstream({
+      '/rest/v1/clients': () => [{ id: clientId }],
+      '/rest/v1/rpc/organization_member_list': () => members,
+      '/rest/v1/client_participants': () => [],
       '/rest/v1/signature_requests': () => [
         listRow(),
         { ...listRow({ id: 'f0000000-0000-4000-8000-000000000002' }), training_records: null },
@@ -428,15 +393,18 @@ describe('the members’ request lists', () => {
       ],
     });
 
-    const response = await request('/me/signature-requests');
+    const response = await request(`/clients/${clientId}/signature-requests`);
 
     expect(response.status).toBe(200);
     const { items } = signatureRequestListResponseSchema.parse(await response.json());
     expect(items.map((item) => item.id)).toEqual(['f0000000-0000-4000-8000-000000000001']);
   });
 
-  it('GET /me/signature-requests lists an examiner request of a test sheet in the same shape', async () => {
+  it('GET /clients/{clientId}/signature-requests lists an examiner request of a test sheet in the same shape', async () => {
     mockUpstream({
+      '/rest/v1/clients': () => [{ id: clientId }],
+      '/rest/v1/rpc/organization_member_list': () => members,
+      '/rest/v1/client_participants': () => [],
       '/rest/v1/signature_requests': () => [
         {
           ...listRow({ id: 'f0000000-0000-4000-8000-000000000004', slot: 'examiner' }),
@@ -456,7 +424,7 @@ describe('the members’ request lists', () => {
       ],
     });
 
-    const response = await request('/me/signature-requests');
+    const response = await request(`/clients/${clientId}/signature-requests`);
 
     const { items } = signatureRequestListResponseSchema.parse(await response.json());
     expect(items).toEqual([
