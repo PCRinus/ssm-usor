@@ -134,6 +134,8 @@ const proposal = {
 const record = (overrides: Record<string, unknown> = {}) => ({
   id: recordId,
   occupation: 'Sudor',
+  attendeeCount: 1,
+  signature: 'pending',
   admission: null,
   training: {
     id: trainingId,
@@ -264,7 +266,7 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
       case `GET /clients/${clientId}/files`:
         return Response.json({ items: [] });
       case `GET ${trainingsPath}`:
-        return Response.json({ items: [] });
+        return Response.json({ items: [], page: 1, pageSize: 25, total: 0, unfilteredTotal: 0 });
       case `GET ${trainingsPath}/proposal`:
         return Response.json(proposal);
       case `POST ${trainingsPath}`:
@@ -293,6 +295,21 @@ const conflict = (reason: string) =>
   Response.json({ error: 'conflict', message: reason, reason }, { status: 409 });
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
+
+async function openRecordRow() {
+  await userEvent.setup().click(await screen.findByTestId('training-record-open'));
+  return screen.findByTestId('record-signatures');
+}
+
+async function recordMenuItem(testId: string) {
+  if (!screen.queryByTestId(testId)) {
+    await userEvent.setup().click(await screen.findByTestId('training-record-row-menu'));
+  }
+  return screen.findByTestId(testId);
+}
+
+const menuDisabled = async (testId: string) =>
+  (await recordMenuItem(testId)).hasAttribute('data-disabled');
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -473,7 +490,7 @@ describe('signers on the training flow', () => {
   it('asks nobody for a training typed from a paper sheet', async () => {
     mockApi();
     const { user, dialog } = await openWorkplaceTraining();
-    await user.selectOptions(within(dialog).getByTestId('training-source'), 'paper');
+    await user.click(within(dialog).getByTestId('training-source'));
     expect(within(dialog).queryByTestId('training-trainer-signer')).toBeNull();
     await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
     await user.click(within(dialog).getByTestId('training-save'));
@@ -523,16 +540,16 @@ describe("a record's signatures", () => {
         }),
     });
     mount(`${employeePage}/instruire/ssm`);
-    const block = await screen.findByTestId('record-signatures');
+    const block = await openRecordRow();
     const slots = within(block).getAllByTestId('signature-slot');
     expect(slots.map((item) => item.textContent)).toEqual([
       'InstruitDe semnatPopescu Ion',
       'InstructorSemnat electronicMaria Pop · 2 sept. 2026',
       'VerificatorFără semnatar',
     ]);
-    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('training-record-lock').textContent).toBe(
+    expect(await menuDisabled('training-record-edit')).toBe(true);
+    expect(await menuDisabled('training-record-delete')).toBe(true);
+    expect((await recordMenuItem('training-record-lock')).textContent).toBe(
       'Instruirea este semnată electronic. Anulează semnăturile ca să o poți modifica sau șterge.'
     );
   });
@@ -554,10 +571,10 @@ describe("a record's signatures", () => {
         [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
       });
       mount(`${employeePage}/instruire/ssm`);
-      await screen.findByTestId('record-signatures');
-      expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', signing.signed);
-      expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
-      expect(screen.getByTestId('training-record-lock').textContent).toBe(lock);
+      await openRecordRow();
+      expect(await menuDisabled('training-record-edit')).toBe(signing.signed);
+      expect(await menuDisabled('training-record-delete')).toBe(true);
+      expect((await recordMenuItem('training-record-lock')).textContent).toBe(lock);
       expect(requests('GET', trainingsPath)).toHaveLength(0);
     }
   );
@@ -576,7 +593,7 @@ describe("a record's signatures", () => {
         }),
     });
     mount(`${employeePage}/instruire/ssm`);
-    const block = await screen.findByTestId('record-signatures');
+    const block = await openRecordRow();
     expect(
       within(block)
         .getAllByTestId('signature-slot')
@@ -614,8 +631,9 @@ describe("a record's signatures", () => {
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
-    await screen.findByTestId('record-signatures');
-    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
+    await openRecordRow();
+    expect(await menuDisabled('training-record-edit')).toBe(false);
+    await user.keyboard('{Escape}');
     await user.click(screen.getByTestId('record-signatures-paper'));
     const dialog = await screen.findByTestId('paper-signature-dialog');
     const slotSelect = within(dialog).getByTestId('paper-signature-slot') as HTMLSelectElement;
@@ -646,8 +664,8 @@ describe("a record's signatures", () => {
       return item;
     });
     expect(verifier.textContent).toContain('Dan Marin');
-    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
+    expect(await menuDisabled('training-record-delete')).toBe(true);
+    expect(await menuDisabled('training-record-edit')).toBe(false);
   });
 
   it('asks for a reason before voiding, and words a refusal', async () => {
@@ -658,6 +676,7 @@ describe("a record's signatures", () => {
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
+    await openRecordRow();
     await user.click(await screen.findByTestId('record-signatures-void'));
     const dialog = await screen.findByTestId('void-signatures-dialog');
     await user.click(within(dialog).getByTestId('void-signatures-confirm'));
@@ -697,6 +716,7 @@ describe("a record's signatures", () => {
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
+    await openRecordRow();
     await user.click(await screen.findByTestId('record-signatures-void'));
     const dialog = await screen.findByTestId('void-signatures-dialog');
     await user.type(within(dialog).getByTestId('void-signatures-reason'), 'Durata greșită');
@@ -720,8 +740,8 @@ describe("a record's signatures", () => {
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
-    await screen.findByTestId('record-signatures');
-    await user.click(screen.getByTestId('training-record-delete'));
+    await openRecordRow();
+    await user.click(await recordMenuItem('training-record-delete'));
     await user.click(await screen.findByTestId('training-delete-confirm'));
     expect((await screen.findByTestId('training-delete-error')).textContent).toBe(
       'Instruirea are semnături, pe hârtie sau electronice, care rămân în evidență; nu se mai poate șterge.'
@@ -750,8 +770,8 @@ describe("a record's signatures", () => {
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
-    await screen.findByTestId('record-signatures');
-    await user.click(screen.getByTestId('training-record-edit'));
+    await openRecordRow();
+    await user.click(await recordMenuItem('training-record-edit'));
     const dialog = await screen.findByTestId('training-dialog');
     await user.click(await within(dialog).findByTestId('training-save'));
     expect((await within(dialog).findByTestId('training-error')).textContent).toBe(
@@ -767,9 +787,9 @@ describe("a record's signatures", () => {
     });
     mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('training-record-item');
-    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true);
-    expect(screen.getByTestId('training-record-lock').textContent).toBe(
+    expect(await menuDisabled('training-record-edit')).toBe(true);
+    expect(await menuDisabled('training-record-delete')).toBe(true);
+    expect((await recordMenuItem('training-record-lock')).textContent).toBe(
       'Instruirea este trecută pe o fișă individuală semnată electronic, care nu se mai schimbă, așa că nu se mai poate modifica sau șterge.'
     );
   });
@@ -799,7 +819,7 @@ describe("a record's signatures", () => {
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
     await screen.findByTestId('training-record-item');
-    await user.click(screen.getByTestId('training-record-edit'));
+    await user.click(await recordMenuItem('training-record-edit'));
     const dialog = await screen.findByTestId('training-dialog');
     await user.click(await within(dialog).findByTestId('training-save'));
     expect((await within(dialog).findByTestId('training-error')).textContent).toBe(
@@ -1648,8 +1668,8 @@ describe('a saved training and its signers', () => {
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
-    await screen.findByTestId('record-signatures');
-    await user.click(screen.getByTestId('training-record-edit'));
+    await openRecordRow();
+    await user.click(await recordMenuItem('training-record-edit'));
     return { user, dialog: await screen.findByTestId('training-dialog') };
   }
 
@@ -1729,12 +1749,10 @@ describe('a saved training and its signers', () => {
         }),
     });
     mount(`${employeePage}/instruire/ssm`);
-    await screen.findByTestId('record-signatures');
-    await waitFor(() =>
-      expect(screen.getByTestId('training-record-delete')).toHaveProperty('disabled', true)
-    );
-    expect(screen.getByTestId('training-record-edit')).toHaveProperty('disabled', false);
-    expect(screen.getByTestId('training-record-lock').textContent).toBe(
+    await openRecordRow();
+    expect(await menuDisabled('training-record-delete')).toBe(true);
+    expect(await menuDisabled('training-record-edit')).toBe(false);
+    expect((await recordMenuItem('training-record-lock')).textContent).toBe(
       'Instruirea are semnături, chiar anulate sau pe hârtie, care rămân în evidență, așa că nu se mai poate șterge.'
     );
   });

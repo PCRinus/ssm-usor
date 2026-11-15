@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 
+import { formatRoDate } from '@/lib/dates';
+
 export interface ListFilterOption {
   value: string;
   label: string;
@@ -19,6 +21,9 @@ export interface ListFilterFacet<Key extends string = string> {
   search?: { placeholder: string; addLabel: string };
   // While the options load, the values the address names are kept rather than dropped.
   loading?: boolean;
+  // A period instead of options: its values are the first and the last day, ISO, either one
+  // empty when open-ended.
+  period?: true;
 }
 
 export type ListFilterValues<Key extends string = string> = Readonly<
@@ -29,7 +34,7 @@ export function appliedFacets<Key extends string>(
   facets: readonly ListFilterFacet<Key>[],
   values: ListFilterValues<Key>
 ) {
-  return facets.filter((facet) => (values[facet.key]?.length ?? 0) > 0);
+  return facets.filter((facet) => values[facet.key]?.some(Boolean) ?? false);
 }
 
 export function withFacet<Key extends string>(
@@ -37,7 +42,7 @@ export function withFacet<Key extends string>(
   key: Key,
   selected: readonly string[]
 ): ListFilterValues<Key> {
-  return { ...values, [key]: selected.length > 0 ? selected : undefined };
+  return { ...values, [key]: selected.some(Boolean) ? selected : undefined };
 }
 
 export function toggled(selected: readonly string[] | undefined, value: string) {
@@ -50,9 +55,20 @@ export function selectedLabels<Key extends string>(
   values: ListFilterValues<Key>
 ) {
   const selected = values[facet.key] ?? [];
+  if (facet.period) {
+    const label = periodLabel(selected[0] ?? '', selected[1] ?? '');
+    return label ? [label] : [];
+  }
   return facet.options
     .filter((option) => selected.includes(option.value))
     .map((option) => option.short ?? option.label);
 }
 
 export const noFilters = <Key extends string>() => ({}) as ListFilterValues<Key>;
+
+export function periodLabel(from: string, to: string) {
+  if (from && to) return `${formatRoDate(from)} – ${formatRoDate(to)}`;
+  if (from) return `din ${formatRoDate(from)}`;
+  if (to) return `până la ${formatRoDate(to)}`;
+  return '';
+}

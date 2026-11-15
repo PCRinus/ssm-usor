@@ -152,6 +152,8 @@ const workplaceRecord = {
     material: 'H.G. 1051/2006; I.P.S.S.M. Art. 1 – 290',
     source: 'paper',
   }),
+  attendeeCount: 1,
+  signature: 'paper',
   signed: false,
   hasSignatures: false,
   printed: false,
@@ -162,6 +164,8 @@ const periodicRecord = {
   occupation: 'Sudor',
   admission: null,
   training: training(),
+  attendeeCount: 2,
+  signature: 'pending',
   signed: false,
   hasSignatures: false,
   printed: false,
@@ -175,8 +179,10 @@ const detailOf = (attendees: { id: string; lastName: string; firstName: string }
       employee: { id: person.id, lastName: person.lastName, firstName: person.firstName },
       occupation: 'Sudor',
       admission: null,
+      signature: 'paper',
     })),
     signers: { trainer: null, verifier: null, admitter: null },
+    slotSignatures: { trainer: 'paper', verifier: 'paper', admitter: null },
   },
 });
 
@@ -193,11 +199,9 @@ const proposal = (overrides: Record<string, unknown> = {}) => ({
 const heldWith = (...attendees: { id: string; lastName: string; firstName: string }[]) => ({
   ...training(),
   attendeeCount: attendees.length,
-  attendees: attendees.map(({ id, lastName, firstName }) => ({
-    employeeId: id,
-    lastName,
-    firstName,
-  })),
+  signatureState: 'paper',
+  pendingTraineeSignatures: 0,
+  pendingSignerSignatures: 0,
 });
 
 const page = (items: unknown[], unfilteredTotal = items.length) => ({
@@ -249,7 +253,7 @@ function mockApi(routes: Partial<Record<string, Handler>> = {}) {
           items: [position(welderId, 'Sudor'), position(clerkId, 'Contabil')],
         });
       case `GET ${trainingsPath}`:
-        return Response.json({ items: [] });
+        return Response.json(page([]));
       case `GET ${trainingsPath}/proposal`:
         return Response.json(proposal());
       case `POST ${trainingsPath}`:
@@ -361,33 +365,53 @@ describe("an employee's training tabs", () => {
       within(screen.getByTestId('training-tab-actions')).getByTestId('training-sheet-ssm')
     ).toBeTruthy();
 
-    expect(items.map((item) => item.dataset.phase)).toEqual(['periodic', 'workplace']);
     const periodic = within(items[0]!);
     expect(periodic.getByText('Periodică')).toBeTruthy();
     expect(periodic.getByTestId('training-record-duration').textContent).toBe('120 min (2 h)');
-    expect(periodic.getByText(fullText('Maria Pop, Șef atelier'))).toBeTruthy();
-    expect(periodic.getByText(fullText('Dan Marin, Inspector SSM'))).toBeTruthy();
+    expect(periodic.getByText('Maria Pop')).toBeTruthy();
     expect(periodic.queryByTestId('training-record-paper')).toBeNull();
-    expect(periodic.queryByTestId('training-record-paper-signed')).toBeNull();
-    const toggle = periodic.getByTestId('training-material-toggle');
-    expect(periodic.getByTestId('training-material-text').className).toContain('line-clamp-2');
-    await user.click(toggle);
-    expect(periodic.getByTestId('training-material-text').className).not.toContain('line-clamp-2');
-    expect(toggle.textContent).toBe('mai puțin');
-
+    const session = periodic.getByTestId('training-record-session');
+    expect(session.textContent).toBe('Instruire de grup · 2 participanți');
+    expect(session.getAttribute('href')).toBe(`${trainingsPage}?domain=ssm&open=${trainingId}`);
+    expect(periodic.getByTestId('training-record-signature').textContent).toBe('De semnat');
     const workplace = within(items[1]!);
+    expect(workplace.getByText('La locul de muncă')).toBeTruthy();
     expect(workplace.getByTestId('training-record-paper').textContent).toBe(
-      'Transcris de pe fișa pe hârtie'
+      'Transcrisă de pe fișă'
     );
-    expect(workplace.getByTestId('training-record-paper-signed').textContent).toBe(
+    expect(workplace.queryByTestId('training-record-session')).toBeNull();
+    expect(workplace.getByTestId('training-record-duration').textContent).toBe('240 min (4 h)');
+    expect(workplace.getByTestId('training-record-signature').textContent).toBe('Semnată de mână');
+
+    const [openPeriodic, openWorkplace] = screen.getAllByTestId('training-record-open');
+    expect(openPeriodic!.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('training-record-details')).toBeNull();
+    await user.click(openPeriodic!);
+    expect(openPeriodic!.getAttribute('aria-expanded')).toBe('true');
+    const periodicDetails = screen.getByTestId('training-record-details');
+    expect(openPeriodic!.getAttribute('aria-controls')).toBe(periodicDetails.closest('tr')!.id);
+    const opened = within(periodicDetails);
+    expect(opened.getByText(fullText('Dan Marin, Inspector SSM'))).toBeTruthy();
+    expect(opened.queryByTestId('training-record-paper-signed')).toBeNull();
+    const toggle = opened.getByTestId('training-material-toggle');
+    expect(opened.getByTestId('training-material-text').className).toContain('line-clamp-2');
+    await user.click(toggle);
+    expect(opened.getByTestId('training-material-text').className).not.toContain('line-clamp-2');
+    expect(toggle.textContent).toBe('mai puțin');
+    await user.click(openPeriodic!);
+    expect(screen.queryByTestId('training-record-details')).toBeNull();
+
+    openWorkplace!.focus();
+    await user.keyboard('{Enter}');
+    const workplaceDetails = within(screen.getByTestId('training-record-details'));
+    expect(workplaceDetails.getByTestId('training-record-paper-signed').textContent).toBe(
       'Semnat pe hârtie: instruit, instructor, verificator, admite la lucru'
     );
-    expect(workplace.queryByTestId('record-signatures')).toBeNull();
-    expect(workplace.getByTestId('training-record-duration').textContent).toBe('240 min (4 h)');
-    expect(workplace.getByTestId('training-record-admission').textContent).toBe(
+    expect(workplaceDetails.queryByTestId('record-signatures')).toBeNull();
+    expect(workplaceDetails.getByTestId('training-record-admission').textContent).toBe(
       'Admis la lucru de Maria Pop, Șef atelier la 2 mar. 2020'
     );
-    expect(workplace.queryByTestId('training-material-toggle')).toBeNull();
+    expect(workplaceDetails.queryByTestId('training-material-toggle')).toBeNull();
   });
 
   it('offers to record the first training when there is none', async () => {
@@ -505,7 +529,7 @@ describe("an employee's training tabs", () => {
     expect(asked.get('employeeIds')).toBe(popescu.id);
     expect((within(dialog).getByTestId('training-duration') as HTMLInputElement).value).toBe('120');
     await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
-    await user.selectOptions(within(dialog).getByTestId('training-source'), 'paper');
+    await user.click(within(dialog).getByTestId('training-source'));
     await user.click(within(dialog).getByTestId('training-save'));
 
     expect(await screen.findByText('Instruirea a fost înregistrată.')).toBeTruthy();
@@ -574,6 +598,7 @@ describe("an employee's training tabs", () => {
     });
     mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm`);
     const user = userEvent.setup();
+    await user.click(await screen.findByTestId('training-record-row-menu'));
     await user.click(await screen.findByTestId('training-record-edit'));
     const dialog = await screen.findByTestId('training-dialog');
     expect((await within(dialog).findByTestId('training-shared-notice')).textContent).toBe(
@@ -621,14 +646,16 @@ describe("an employee's training tabs", () => {
     const user = userEvent.setup();
     const item = await screen.findByTestId('training-record-item');
     expect(within(item).getByTestId('training-record-duration').textContent).toBe(
-      'Durata necompletată pe fișă'
-    );
-    expect(within(item).getByTestId('training-material-text').textContent).toBe(
-      'Material necompletat pe fișă'
+      'necompletată pe fișă'
     );
     expect(within(item).getByText('nume neînscris pe fișă')).toBeTruthy();
+    await user.click(within(item).getByTestId('training-record-open'));
+    expect(screen.getByTestId('training-material-text').textContent).toBe(
+      'Material necompletat pe fișă'
+    );
 
-    await user.click(within(item).getByTestId('training-record-edit'));
+    await user.click(within(item).getByTestId('training-record-row-menu'));
+    await user.click(await screen.findByTestId('training-record-edit'));
     const dialog = await screen.findByTestId('training-dialog');
     for (const field of ['training-duration', 'training-material', 'training-trainer-name']) {
       expect((within(dialog).getByTestId(field) as HTMLInputElement).value).toBe('');
@@ -650,24 +677,25 @@ describe("a client's trainings held", () => {
   it('marks a training typed from a paper sheet', async () => {
     mockApi({
       [`GET ${trainingsPath}`]: () =>
-        Response.json({
-          items: [
+        Response.json(
+          page([
             { ...heldWith(popescu), source: 'paper' },
             { ...heldWith(taranu), id: '6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e' },
-          ],
-        }),
+          ])
+        ),
     });
     mountApp(authFixture(makeSession()).client, trainingsPage);
     const rows = await screen.findAllByTestId('trainings-row');
-    expect(within(rows[0]!).getByText('Transcris de pe fișa pe hârtie')).toBeTruthy();
-    expect(within(rows[1]!).queryByText('Transcris de pe fișa pe hârtie')).toBeNull();
+    expect(within(rows[0]!).getByText('SSM · Transcrisă de pe fișă')).toBeTruthy();
+    expect(within(rows[1]!).getByText('SSM')).toBeTruthy();
+    expect(within(rows[1]!).queryByText(/Transcrisă/)).toBeNull();
   });
 
   it('says in words what a paper sheet does not write in the list', async () => {
     mockApi({
       [`GET ${trainingsPath}`]: () =>
-        Response.json({
-          items: [
+        Response.json(
+          page([
             {
               ...heldWith(popescu),
               source: 'paper',
@@ -675,23 +703,21 @@ describe("a client's trainings held", () => {
               material: null,
               trainer: { name: null, jobTitle: 'Inspector SSM' },
             },
-          ],
-        }),
+          ])
+        ),
     });
     mountApp(authFixture(makeSession()).client, trainingsPage);
     const [row] = await screen.findAllByTestId('trainings-row');
     expect(within(row!).getByText('necompletată pe fișă')).toBeTruthy();
-    expect(within(row!).getByText('necompletat pe fișă')).toBeTruthy();
-    expect(within(row!).getByText('nume neînscris pe fișă').parentElement!.textContent).toBe(
-      'nume neînscris pe fișă, Inspector SSM'
-    );
+    expect(within(row!).getByText('nume neînscris pe fișă')).toBeTruthy();
+    expect(within(row!).getByText('Inspector SSM')).toBeTruthy();
   });
 
   it("is a tab of the client's page, filtered by domain and phase in the URL", async () => {
     const held = heldWith(popescu, taranu);
     mockApi({
       [`GET ${trainingsPath}`]: (url) =>
-        Response.json({ items: url.searchParams.get('phase') === 'workplace' ? [] : [held] }),
+        Response.json(url.searchParams.get('phase') === 'workplace' ? page([], 1) : page([held])),
     });
     const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
     const user = userEvent.setup();
@@ -708,9 +734,6 @@ describe("a client's trainings held", () => {
     expect(within(rows[0]!).getByTestId('trainings-attendee-count').textContent).toBe(
       '2 participanți'
     );
-    const attendees = within(rows[0]!).getAllByTestId('trainings-attendee');
-    expect(attendees.map((link) => link.textContent)).toEqual(['Popescu Ion', 'Țăranu Ștefan']);
-    expect(attendees[1]!.getAttribute('href')).toBe(`${employeesPage}/${taranu.id}/instruire/ssm`);
     expect(within(rows[0]!).getByText('120 min (2 h)')).toBeTruthy();
 
     const historyLength = runtime.router.history.length;
@@ -718,17 +741,22 @@ describe("a client's trainings held", () => {
       screen.getAllByTestId('trainings-filter-domain').find((link) => link.dataset.domain === 'su')!
     );
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({ domain: 'su' }));
-    await user.selectOptions(screen.getByTestId('trainings-filter-phase'), 'workplace');
+    await user.click(await screen.findByTestId('trainings-filters'));
+    await user.click(await screen.findByTestId('trainings-filters-phase-workplace'));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ domain: 'su', phase: 'workplace' })
+      expect(runtime.router.state.location.searchStr).toBe('?domain=su&phase=workplace')
     );
     expect(runtime.router.history.length).toBe(historyLength);
-    expect((await screen.findByTestId('trainings-empty')).textContent).toContain(
-      'Nicio instruire de tipul „La locul de muncă” în domeniul SU înregistrată încă.'
+    await user.keyboard('{Escape}');
+    expect((await screen.findByTestId('trainings-empty-filtered')).textContent).toContain(
+      'Nicio instruire SU nu se potrivește filtrelor alese.'
     );
+    expect(screen.getByTestId('trainings-count').textContent).toBe('0 din 1 instruire');
     const asked = requests('GET', trainingsPath).at(-1)!.url.searchParams;
-    expect(asked.get('domain')).toBe('su');
-    expect(asked.get('phase')).toBe('workplace');
+    expect(asked.getAll('domain')).toEqual(['su']);
+    expect(asked.getAll('phase')).toEqual(['workplace']);
+    expect(asked.get('sort')).toBe('heldOn');
+    expect(asked.get('order')).toBe('desc');
   });
 
   it('records a periodic training for everyone in a post, from the checklist', async () => {
@@ -811,7 +839,7 @@ describe("a client's trainings held", () => {
     const held = heldWith(popescu, taranu);
     let deleted = false;
     mockApi({
-      [`GET ${trainingsPath}`]: () => Response.json({ items: deleted ? [] : [held] }),
+      [`GET ${trainingsPath}`]: () => Response.json(page(deleted ? [] : [held])),
       [`DELETE ${trainingsPath}/${trainingId}`]: () => {
         deleted = true;
         return new Response(null, { status: 204 });
@@ -849,7 +877,7 @@ describe("a client's trainings held", () => {
   ])('locks a training by its signatures, %o', async (signing, editLocked, lock) => {
     mockApi({
       [`GET ${trainingsPath}`]: () =>
-        Response.json({ items: [{ ...heldWith(popescu, taranu), ...signing }] }),
+        Response.json(page([{ ...heldWith(popescu, taranu), ...signing }])),
     });
     mountApp(authFixture(makeSession()).client, trainingsPage);
     const user = userEvent.setup();
@@ -1710,5 +1738,86 @@ describe("a portal pass's test sheet", () => {
     expect(await screen.findByTestId('tests-sheet')).toBeTruthy();
     expect(screen.queryByTestId('tests-result-examiner-edit')).toBeNull();
     expect(screen.getAllByTestId('tests-sheet-paper')).toHaveLength(1);
+  });
+});
+
+describe('the trainings list', () => {
+  it('opens the row a worker links to, on the page that holds it, with each signature', async () => {
+    const held = {
+      ...heldWith(popescu, taranu),
+      signatureState: 'pending',
+      pendingTraineeSignatures: 1,
+      pendingSignerSignatures: 1,
+    };
+    const detail = detailOf([popescu, taranu]);
+    detail.training.records[0]!.signature = 'pending';
+    detail.training.slotSignatures = { trainer: 'electronic', verifier: 'pending', admitter: null };
+    mockApi({
+      [`GET ${trainingsPath}`]: (url) =>
+        Response.json({ ...page([held], 30), page: url.searchParams.get('open') ? 2 : 1 }),
+      [`GET ${trainingsPath}/${trainingId}`]: () => Response.json(detail),
+    });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${trainingsPage}?domain=ssm&open=${trainingId}`
+    );
+    const details = await screen.findByTestId('training-details');
+    expect(requests('GET', trainingsPath)[0]!.url.searchParams.get('open')).toBe(trainingId);
+    await waitFor(() => expect(runtime.router.state.location.search).toMatchObject({ page: 2 }));
+    expect(screen.getByTestId('trainings-open').getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('trainings-signatures').textContent).toBe('2 de semnat');
+    expect(
+      within(details)
+        .getAllByTestId('training-details-slot')
+        .map((slot) => slot.textContent)
+    ).toEqual(['Semnat', 'De semnat']);
+    const attendees = within(details).getAllByTestId('trainings-attendee');
+    expect(attendees.map((link) => link.textContent)).toEqual(['Popescu Ion', 'Țăranu Ștefan']);
+    expect(attendees[1]!.getAttribute('href')).toBe(`${employeesPage}/${taranu.id}/instruire/ssm`);
+    expect(
+      within(details)
+        .getAllByTestId('trainings-attendee-signature')
+        .map((state) => state.textContent)
+    ).toEqual(['De semnat', 'Semnat de mână']);
+  });
+
+  it('searches attendees by name and filters by the period, kept as two keys', async () => {
+    mockApi({ [`GET ${trainingsPath}`]: () => Response.json(page([heldWith(popescu)], 4)) });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${trainingsPage}?from=2026-01-01&to=2026-10-31`
+    );
+    const strip = await screen.findByTestId('trainings-applied-filters');
+    expect(within(strip).getByTestId('trainings-applied-filters-period').textContent).toContain(
+      '01.01.2026 – 31.10.2026'
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('trainings-count').textContent).toBe('1 din 4 instruiri')
+    );
+    const asked = requests('GET', trainingsPath).at(-1)!.url.searchParams;
+    expect([asked.get('from'), asked.get('to')]).toEqual(['2026-01-01', '2026-10-31']);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId('trainings-search'), 'Țăranu');
+    await waitFor(() =>
+      expect(requests('GET', trainingsPath).at(-1)!.url.searchParams.get('q')).toBe('Țăranu')
+    );
+    await user.click(within(strip).getByTestId('trainings-applied-filters-period-remove'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'Țăranu' }));
+  });
+
+  it("filters a worker's own trainings by the period, here, keeping the count of all", async () => {
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () =>
+        Response.json({ items: [periodicRecord, workplaceRecord] }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeePage}/instruire/ssm?from=2026-01-01`);
+    const items = await screen.findAllByTestId('training-record-item');
+    expect(items).toHaveLength(1);
+    expect(within(items[0]!).getByText('Periodică')).toBeTruthy();
+    expect(screen.getByTestId('training-records-count').textContent).toBe('1 din 2 instruiri');
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId('training-records-applied-filters-clear'));
+    await waitFor(() => expect(screen.getAllByTestId('training-record-item')).toHaveLength(2));
   });
 });

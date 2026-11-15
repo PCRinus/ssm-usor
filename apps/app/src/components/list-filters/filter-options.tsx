@@ -4,6 +4,7 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Search } from 'lucide-react';
 import { type Ref, useId, useState } from 'react';
 
+import { DatePicker } from '@/components/date-picker';
 import { normalizeSearch } from '@/lib/normalize-search';
 
 import type { ListFilterFacet, ListFilterOption } from './types';
@@ -127,6 +128,44 @@ export function SearchableFilterOptions<Key extends string>({
           <p className="px-2.5 py-3 text-sm text-muted-foreground">Niciun rezultat.</p>
         )}
       </div>
+    </div>
+  );
+}
+
+export function PeriodFilter<Key extends string>({
+  facet,
+  selected,
+  onChange,
+  testId,
+}: {
+  facet: ListFilterFacet<Key>;
+  selected: readonly string[] | undefined;
+  onChange: (selected: string[]) => void;
+  testId: string;
+}) {
+  const id = useId();
+  const [from = '', to = ''] = selected ?? [];
+  const ends = [
+    { end: 'from', label: 'De la', value: from, max: to || undefined },
+    { end: 'to', label: 'Până la', value: to, min: from || undefined },
+  ] as const;
+  return (
+    <div className="grid gap-2 px-2.5 pt-1" role="group" aria-label={facet.label}>
+      {ends.map((each) => (
+        <div key={each.end} className="grid gap-1">
+          <label htmlFor={`${id}-${each.end}`} className="text-[13px] text-muted-foreground">
+            {each.label}
+          </label>
+          <DatePicker
+            id={`${id}-${each.end}`}
+            value={each.value}
+            min={'min' in each ? each.min : undefined}
+            max={'max' in each ? each.max : undefined}
+            testId={`${testId}-${facet.key}-${each.end}`}
+            onChange={(value) => onChange(each.end === 'from' ? [value, to] : [from, value])}
+          />
+        </div>
+      ))}
     </div>
   );
 }

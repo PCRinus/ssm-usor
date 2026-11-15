@@ -64,6 +64,7 @@ export function WorkersListError({
   notFound,
   onRetry,
   retrying,
+  message = 'Nu am putut încărca lista lucrătorilor. Încearcă din nou.',
 }: {
   error: unknown;
   testId: string;
@@ -72,6 +73,7 @@ export function WorkersListError({
   // Left out without an API to try again.
   onRetry?: () => void;
   retrying: boolean;
+  message?: string;
 }) {
   const status = error instanceof ApiHttpError ? error.status : undefined;
   return (
@@ -83,7 +85,7 @@ export function WorkersListError({
             ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
             : status === 404 && notFound
               ? notFound
-              : 'Nu am putut încărca lista lucrătorilor. Încearcă din nou.'}
+              : message}
       </p>
       {onRetry && (
         <Button

@@ -24,6 +24,28 @@ describe('invalidateSignatures', () => {
     expect(invalidated(keys.otherTests)).toBe(false);
     expect(invalidated(keys.employee)).toBe(false);
   });
+
+  it("refreshes the signing state the client's trainings lists show, and nothing of another client", async () => {
+    const queryClient = new QueryClient();
+    const keys = {
+      employeeTrainings: [
+        `/clients/${clientId}/employees/${employeeId}/training-records`,
+        { domain: 'ssm' },
+      ],
+      trainings: [`/clients/${clientId}/trainings`, { page: 2, sort: 'heldOn' }],
+      training: [`/clients/${clientId}/trainings/t1`],
+      proposal: [`/clients/${clientId}/trainings/proposal`, { domain: 'ssm' }],
+      otherTrainings: [`/clients/${otherClientId}/trainings`],
+    };
+    for (const key of Object.values(keys)) queryClient.setQueryData(key, {});
+    await invalidateSignatures(queryClient, clientId);
+    const invalidated = (key: unknown[]) => queryClient.getQueryState(key)?.isInvalidated;
+    expect(invalidated(keys.employeeTrainings)).toBe(true);
+    expect(invalidated(keys.trainings)).toBe(true);
+    expect(invalidated(keys.training)).toBe(true);
+    expect(invalidated(keys.proposal)).toBe(false);
+    expect(invalidated(keys.otherTrainings)).toBe(false);
+  });
 });
 
 describe('signatures refresh prepared files of the client', () => {

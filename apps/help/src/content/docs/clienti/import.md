@@ -455,7 +455,7 @@ Lucrătorii apar în lista clientului, cu instruirile, testele și starea lor ca
 
 Fiecare lucrător are pe tabul **Documente** un folder „Fișe importate pe …” cu fotografiile fișelor lui. Dintr-un PDF scanat cu fișele mai multor persoane, fiecare lucrător primește doar paginile lui, ca imagini, iar PDF-ul întreg rămâne o singură dată la fișierele clientului, în **Alte documente**.
 
-Instruirile importate poartă eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …”, cu rubricile semnate pe fișă. Pentru ele nu se cere nicio semnătură, nici în aplicație, nici în portal, iar pe fișa individuală din aplicație apar cu mențiunea „transcris; semnat pe hârtie”. Sub titlul fișei scrie atunci că rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie și că originalul, cu semnăturile, se păstrează la angajator. Instruirile ținute de acum înainte se semnează ca de obicei.
+Instruirile importate apar ca **Transcrisă de pe fișă**, semnate de mână, iar deschise, cu rândul „Semnat pe hârtie: …”, cu rubricile semnate pe fișă. Pentru ele nu se cere nicio semnătură, nici în aplicație, nici în portal, iar pe fișa individuală din aplicație apar cu mențiunea „transcris; semnat pe hârtie”. Sub titlul fișei scrie atunci că rândurile cu mențiunea „transcris” sunt copiate de pe fișa pe hârtie și că originalul, cu semnăturile, se păstrează la angajator. Instruirile ținute de acum înainte se semnează ca de obicei.
 
 ### Originalele rămân la client
 

@@ -50,7 +50,7 @@ export function listFilterSearch<Key extends string>({
     Object.fromEntries(
       keys.map((key) => {
         const selected = values[key];
-        return [key, shown.has(key) && selected?.length ? [...selected] : undefined];
+        return [key, shown.has(key) && selected?.some(Boolean) ? [...selected] : undefined];
       })
     ) as Record<Key, string[] | undefined>;
   const offered = Object.fromEntries(
@@ -58,7 +58,7 @@ export function listFilterSearch<Key extends string>({
       const selected = search[facet.key];
       return [
         facet.key,
-        facet.loading
+        facet.loading || facet.period
           ? selected
           : selected?.filter((value) => facet.options.some((option) => option.value === value)),
       ];
@@ -67,8 +67,24 @@ export function listFilterSearch<Key extends string>({
   const values = searchOf(offered) as ListFilterValues<Key>;
   return {
     values,
-    applied: facets.some((facet) => (values[facet.key]?.length ?? 0) > 0),
+    applied: facets.some((facet) => values[facet.key]?.some(Boolean) ?? false),
     // For the URL and for the request alike: every key, undefined where nothing is chosen.
     searchOf,
+  };
+}
+
+const isoDay = z.iso.date();
+
+export const periodSearchSchema = isoDay.optional().catch(undefined);
+
+export function periodValue(from: string | undefined, to: string | undefined) {
+  return from || to ? [from ?? '', to ?? ''] : undefined;
+}
+
+export function periodSearch(selected: readonly string[] | undefined) {
+  const [from, to] = selected ?? [];
+  return {
+    from: from && isoDay.safeParse(from).success ? from : undefined,
+    to: to && isoDay.safeParse(to).success ? to : undefined,
   };
 }

@@ -6,11 +6,13 @@ import {
   getListMySignatureRequestsQueryKey,
 } from '@/api/generated/api';
 
-// Saving, voiding or marking a slot changes the record's slots and every list of requests; a
+// Saving, voiding or marking a slot changes the record's slots, every list of requests and the
+// signing state the trainings lists show: the client's, an employee's, and the open training; a
 // test sheet's slots are on its employee's tests.
 export async function invalidateSignatures(queryClient: QueryClient, clientId: string) {
   const recordsPrefix = `/clients/${clientId}/training-records/`;
   const employeesPrefix = `/clients/${clientId}/employees/`;
+  const trainings = `/clients/${clientId}/trainings`;
   const clientRequests = getListClientSignatureRequestsQueryKey(clientId)[0];
   const myRequests = getListMySignatureRequestsQueryKey()[0];
   const queries: QueryFilters = {
@@ -18,7 +20,10 @@ export async function invalidateSignatures(queryClient: QueryClient, clientId: s
       typeof key === 'string' &&
       ((scope === clientId && signatureFileLinkKinds.includes(key)) ||
         (key.startsWith(recordsPrefix) && key.endsWith('/signatures')) ||
-        (key.startsWith(employeesPrefix) && key.endsWith('/tests')) ||
+        (key.startsWith(employeesPrefix) &&
+          (key.endsWith('/tests') || key.endsWith('/training-records'))) ||
+        key === trainings ||
+        (key.startsWith(`${trainings}/`) && key !== `${trainings}/proposal`) ||
         key === clientRequests ||
         key === myRequests),
   };

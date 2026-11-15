@@ -924,6 +924,23 @@ through `organization_employees_in_state`, under Dashboard. A row costs a few in
 `training_records (employee_id)` and the primary keys; `trainings (client_id, domain, phase,
 held_on)` serves a client's list of trainings.
 
+### The trainings list
+
+The client's tab _Instruiri ținute_ reads the view `training_list`: the columns of `trainings`
+and what the list counts, searches and filters on, each a join grouped by the training and its
+client so that the list's client predicate reaches it: `attendee_count`, `search_names` (each
+attendee's last and first name, lowercase and without diacritics, joined by `" | "`, so that a
+search asks for every term within one name; never the CNP), `pending_trainee_count` and
+`pending_signer_count`, `signed`, `has_signatures` and `printed` (the lock rules the API applied
+per record before), and `signature_state`. A training transcribed from paper is `paper`, its
+sheet the signed original. In one held in the app a slot is signed only by a live signature,
+electronic or marked on paper; any other, requested, voided or never addressed, is to sign:
+`pending_trainee_count` counts the attendees without one, `pending_signer_count` the trainer,
+verifier and admitter slots without one on any record, each once, since every record has its
+own. `signature_state` is then `pending` while any slot is to sign, else `electronic` when any
+signature is, else `paper`. The view is `security_invoker` and only `authenticated` selects
+from it.
+
 ## Knowledge tests
 
 The **knowledge tests** of [ADR 024](architecture/adr-024-knowledge-tests.md) are three: the

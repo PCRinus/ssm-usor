@@ -21,7 +21,7 @@ import {
   useState,
 } from 'react';
 
-import { FilterOptions, SearchableFilterOptions } from './filter-options';
+import { FilterOptions, PeriodFilter, SearchableFilterOptions } from './filter-options';
 import {
   appliedFacets,
   type ListFilterFacet,
@@ -43,6 +43,9 @@ export interface ListFiltersProps<Key extends string> {
   // so it may load them. Rendered only while the sheet is open.
   applyLabel: (pending: ListFilterValues<Key>) => ReactNode;
   testId: string;
+  // The panel's edge that lines up with the button's: its end where the button closes the
+  // toolbar, its start where the button leads it.
+  align?: 'start' | 'end';
 }
 
 const closeClass =
@@ -133,7 +136,7 @@ export function ListFilters<Key extends string>(props: ListFiltersProps<Key>) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{button}</PopoverTrigger>
       <PopoverContent
-        align="end"
+        align={props.align ?? 'end'}
         sideOffset={8}
         collisionPadding={16}
         aria-label="Filtre"
@@ -177,7 +180,14 @@ function FilterPanel<Key extends string>({
               .map((facet) => (
                 <section key={facet.key} className="pb-3">
                   <FacetHeading facet={facet} />
-                  {facet.search ? (
+                  {facet.period ? (
+                    <PeriodFilter
+                      facet={facet}
+                      selected={values[facet.key]}
+                      onChange={(selected) => onChange(withFacet(values, facet.key, selected))}
+                      testId={testId}
+                    />
+                  ) : facet.search ? (
                     <SearchableFacet
                       facet={facet}
                       values={values}
@@ -433,14 +443,25 @@ function FilterSheet<Key extends string>({
                 />
               </button>
               {isOpen && (
-                <div className="pb-2 pl-5">
-                  <FilterOptions
-                    facet={facet}
-                    selected={pending[facet.key]}
-                    onToggle={(value) => toggle(facet, value)}
-                    roomy
-                    testId={testId}
-                  />
+                <div className={cn('pb-2', facet.period ? 'px-1 pb-4' : 'pl-5')}>
+                  {facet.period ? (
+                    <PeriodFilter
+                      facet={facet}
+                      selected={pending[facet.key]}
+                      onChange={(selected) =>
+                        setPending((current) => withFacet(current, facet.key, selected))
+                      }
+                      testId={testId}
+                    />
+                  ) : (
+                    <FilterOptions
+                      facet={facet}
+                      selected={pending[facet.key]}
+                      onToggle={(value) => toggle(facet, value)}
+                      roomy
+                      testId={testId}
+                    />
+                  )}
                 </div>
               )}
             </div>

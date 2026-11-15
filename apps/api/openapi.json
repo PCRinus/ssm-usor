@@ -3171,24 +3171,17 @@
                   "type": "integer",
                   "minimum": 0
                 },
-                "attendees": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "employeeId": {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      "lastName": {
-                        "type": "string"
-                      },
-                      "firstName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": ["employeeId", "lastName", "firstName"]
-                  }
+                "signatureState": {
+                  "type": "string",
+                  "enum": ["pending", "electronic", "paper"]
+                },
+                "pendingTraineeSignatures": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "pendingSignerSignatures": {
+                  "type": "integer",
+                  "minimum": 0
                 },
                 "signed": {
                   "type": "boolean"
@@ -3217,15 +3210,34 @@
                 "createdAt",
                 "updatedAt",
                 "attendeeCount",
-                "attendees",
+                "signatureState",
+                "pendingTraineeSignatures",
+                "pendingSignerSignatures",
                 "signed",
                 "hasSignatures",
                 "printed"
               ]
             }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unfilteredTotal": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items"]
+        "required": ["items", "page", "pageSize", "total", "unfilteredTotal"]
       },
       "TrainingProposal": {
         "type": "object",
@@ -3435,9 +3447,13 @@
                         }
                       },
                       "required": ["admittedOn", "name", "jobTitle"]
+                    },
+                    "signature": {
+                      "type": "string",
+                      "enum": ["pending", "electronic", "paper"]
                     }
                   },
-                  "required": ["id", "employee", "occupation", "admission"]
+                  "required": ["id", "employee", "occupation", "admission", "signature"]
                 }
               },
               "signed": {
@@ -3469,6 +3485,26 @@
                   }
                 },
                 "required": ["trainer", "verifier", "admitter"]
+              },
+              "slotSignatures": {
+                "type": "object",
+                "properties": {
+                  "trainer": {
+                    "type": "string",
+                    "enum": ["pending", "electronic", "paper"]
+                  },
+                  "verifier": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["pending", "electronic", "paper", null]
+                  },
+                  "admitter": {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": ["pending", "electronic", "paper", null]
+                  }
+                },
+                "required": ["trainer", "verifier", "admitter"]
               }
             },
             "required": [
@@ -3491,7 +3527,8 @@
               "signed",
               "hasSignatures",
               "printed",
-              "signers"
+              "signers",
+              "slotSignatures"
             ]
           }
         },
@@ -3786,6 +3823,14 @@
                     "updatedAt"
                   ]
                 },
+                "attendeeCount": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "signature": {
+                  "type": "string",
+                  "enum": ["pending", "electronic", "paper"]
+                },
                 "signed": {
                   "type": "boolean"
                 },
@@ -3801,6 +3846,8 @@
                 "occupation",
                 "admission",
                 "training",
+                "attendeeCount",
+                "signature",
                 "signed",
                 "hasSignatures",
                 "printed"
@@ -29487,7 +29534,7 @@
       "get": {
         "operationId": "listTrainings",
         "summary": "List a client's trainings held",
-        "description": "Every training held at the client, newest first, each with its number of attendees; not paginated. Filtered by domain and phase when given (ADR 021).",
+        "description": "A page of the trainings held at the client, newest first unless sorted otherwise, each with its number of attendees and its signing state: `paper` for a training transcribed from paper; for one held in the app, `pending` while any slot lacks a live signature, electronic or marked on paper, with how many attendees and how many of the trainer, verifier and admitter slots, each slot counted once; else `electronic` once any signature is electronic; else `paper` (ADR 021, ADR 023, ADR 042). `domain` scopes the list and its `unfilteredTotal`; the phase, the signing state, the way it was recorded (`mode`) and the period (`from`, `to`, inclusive) filter it, each repeatable key matching any of its values; `q` matches when every term is in one attendee's name, never a CNP. With `open` and no `page`, the answer is the page that holds that training, when the filters keep it.",
         "security": [
           {
             "bearerAuth": []
@@ -29505,8 +29552,54 @@
           },
           {
             "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "string",
-              "enum": ["ssm", "su"]
+              "enum": ["heldOn", "duration", "trainer", "attendees"],
+              "default": "heldOn"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "desc"
+            },
+            "required": false,
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["ssm", "su"]
+              },
+              "minItems": 1,
+              "maxItems": 50
             },
             "required": false,
             "name": "domain",
@@ -29515,10 +29608,79 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "open",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["introductory_general", "workplace", "periodic", "supplementary"]
+              },
+              "minItems": 1,
+              "maxItems": 50
             },
             "required": false,
             "name": "phase",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["pending", "electronic", "paper"]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "signatures",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["app", "paper"]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "mode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "to",
             "in": "query"
           }
         ],
@@ -30233,7 +30395,7 @@
       "get": {
         "operationId": "listEmployeeTrainingRecords",
         "summary": "List an employee's training records",
-        "description": "Each record with the facts of its training held, newest first, of one domain when given.",
+        "description": "Each record with the facts of its training held, its number of attendees and the employee's own signature, `pending`, `electronic` or `paper` as on the trainings list, newest first, of one domain when given.",
         "security": [
           {
             "bearerAuth": []

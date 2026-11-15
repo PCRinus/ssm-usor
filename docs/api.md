@@ -189,10 +189,10 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }` after replacing what was entered about them                                                                                                                                |
 | `PATCH /clients/{clientId}/employees/{employeeId}/status`              | Verified user with a membership       | `{ "employee": { … } }` after marking a leaver (with `terminatedAt`) or reactivating                                                                                                               |
 | `PATCH /clients/{clientId}/employees/{employeeId}/job-position`        | Verified user with a membership       | `{ "employee": { … } }` in the new job position                                                                                                                                                    |
-| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, `signed`, `hasSignatures`, newest first; `?domain=`                                                                                         |
+| `GET /clients/{clientId}/employees/{employeeId}/training-records`      | Verified user with a membership       | `{ "items": [ … ] }`, each record with its `training`, `attendeeCount`, own `signature`, newest first; `?domain=`                                                                                  |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheets`       | Verified user with a membership       | `{ "ssm": { ready, missing, stored, sequences, versions }, "su": { … } }`: whether each individual training sheet can be drawn up, or is stored                                                    |
 | `GET /clients/{clientId}/employees/{employeeId}/training-sheet`        | Verified user with a membership       | `200 application/pdf`, the stored signed sheet, a merged copy, or the sheet built on the spot; `?domain=ssm\|su&sequence=`; `409 missing_sheet_data`, `503 pdf_unavailable`                        |
-| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ "items": [ … ] }`, newest first, each with `attendeeCount`, `attendees`, `signed`, `hasSignatures`; `?domain=&phase=`                                                                           |
+| `GET /clients/{clientId}/trainings`                                    | Verified user with a membership       | `{ items, page, pageSize, total, unfilteredTotal }`, newest first, each with `attendeeCount` and `signatureState`; filters below                                                                   |
 | `GET /clients/{clientId}/trainings/proposal`                           | Verified user with a membership       | `{ durationMinutes, material, trainer, … }`; `?domain=&phase=&heldOn=&jobPositionId=&employeeIds=` (the attendees so far, comma-separated)                                                         |
 | `POST /clients/{clientId}/trainings`                                   | Verified user with a membership       | `201 { "training": { …, "records": [ … ] } }`                                                                                                                                                      |
 | `GET /clients/{clientId}/trainings/{trainingId}`                       | Verified user with a membership       | `{ "training": { …, "records": [ … ] } }`                                                                                                                                                          |
@@ -484,6 +484,21 @@ client lacks it. Employees carry `jobPosition: { id, name }` in the list and the
 the list sorts by `jobPosition` as well. `PATCH …/employees/{employeeId}/job-position` moves
 a person to another position; the contract title changes only when `jobTitle` is sent with
 it, since a post can change without a new contract.
+
+`GET …/trainings` pages the client's trainings held from the view `training_list`: `sort`
+`heldOn` (the default, newest first), `duration`, `trainer` or `attendees`, an unwritten
+duration or trainer last both ways, the id breaking ties. `domain` (repeatable) scopes the list
+and its `unfilteredTotal`; `phase`, `signatures` (`pending`, `electronic`, `paper`) and `mode`
+(`app`, `paper`) are repeatable keys matching any of their values, `from` and `to` an inclusive
+period, and `q` the attendees' names only, since the search sits in the address, every term
+within one attendee's name. Each item carries `signatureState`, with `pendingTraineeSignatures`
+and `pendingSignerSignatures` (the trainer, verifier and admitter slots, each once): in a
+training held in the app a slot is signed only by a live signature, electronic or marked on
+paper, and a training transcribed from paper is `paper`. With `open` and no `page`, the answer
+is the page that holds that training under the sort and filters asked for, found by counting
+the rows before it, or the first when the filters leave it out. `GET …/trainings/{trainingId}` gives
+each record's own `signature` and `slotSignatures: { trainer, verifier, admitter }` over every
+record, null where the training has no such slot.
 
 Training records ([ADR 021](architecture/adr-021-training-records-and-individual-sheets.md))
 hang off the client. A training held is recorded once with its attendees: `POST …/trainings`

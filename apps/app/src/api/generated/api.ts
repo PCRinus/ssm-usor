@@ -2468,11 +2468,14 @@ export const TrainingListResponseItemsItemSource = {
   paper: 'paper',
 } as const;
 
-export type TrainingListResponseItemsItemAttendeesItem = {
-  employeeId: string;
-  lastName: string;
-  firstName: string;
-};
+export type TrainingListResponseItemsItemSignatureState =
+  (typeof TrainingListResponseItemsItemSignatureState)[keyof typeof TrainingListResponseItemsItemSignatureState];
+
+export const TrainingListResponseItemsItemSignatureState = {
+  pending: 'pending',
+  electronic: 'electronic',
+  paper: 'paper',
+} as const;
 
 export type TrainingListResponseItemsItem = {
   id: string;
@@ -2498,7 +2501,11 @@ export type TrainingListResponseItemsItem = {
   updatedAt: string;
   /** @minimum 0 */
   attendeeCount: number;
-  attendees: TrainingListResponseItemsItemAttendeesItem[];
+  signatureState: TrainingListResponseItemsItemSignatureState;
+  /** @minimum 0 */
+  pendingTraineeSignatures: number;
+  /** @minimum 0 */
+  pendingSignerSignatures: number;
   signed: boolean;
   hasSignatures: boolean;
   printed: boolean;
@@ -2506,6 +2513,17 @@ export type TrainingListResponseItemsItem = {
 
 export interface TrainingListResponse {
   items: TrainingListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 /**
@@ -2623,12 +2641,22 @@ export type TrainingResponseTrainingRecordsItemAdmission = {
   jobTitle: string;
 } | null;
 
+export type TrainingResponseTrainingRecordsItemSignature =
+  (typeof TrainingResponseTrainingRecordsItemSignature)[keyof typeof TrainingResponseTrainingRecordsItemSignature];
+
+export const TrainingResponseTrainingRecordsItemSignature = {
+  pending: 'pending',
+  electronic: 'electronic',
+  paper: 'paper',
+} as const;
+
 export type TrainingResponseTrainingRecordsItem = {
   id: string;
   employee: TrainingResponseTrainingRecordsItemEmployee;
   occupation: string;
   /** @nullable */
   admission: TrainingResponseTrainingRecordsItemAdmission;
+  signature: TrainingResponseTrainingRecordsItemSignature;
 };
 
 export type TrainingResponseTrainingSigners = {
@@ -2638,6 +2666,49 @@ export type TrainingResponseTrainingSigners = {
   verifier: string | null;
   /** @nullable */
   admitter: string | null;
+};
+
+export type TrainingResponseTrainingSlotSignaturesTrainer =
+  (typeof TrainingResponseTrainingSlotSignaturesTrainer)[keyof typeof TrainingResponseTrainingSlotSignaturesTrainer];
+
+export const TrainingResponseTrainingSlotSignaturesTrainer = {
+  pending: 'pending',
+  electronic: 'electronic',
+  paper: 'paper',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TrainingResponseTrainingSlotSignaturesVerifier =
+  | (typeof TrainingResponseTrainingSlotSignaturesVerifier)[keyof typeof TrainingResponseTrainingSlotSignaturesVerifier]
+  | null;
+
+export const TrainingResponseTrainingSlotSignaturesVerifier = {
+  pending: 'pending',
+  electronic: 'electronic',
+  paper: 'paper',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TrainingResponseTrainingSlotSignaturesAdmitter =
+  | (typeof TrainingResponseTrainingSlotSignaturesAdmitter)[keyof typeof TrainingResponseTrainingSlotSignaturesAdmitter]
+  | null;
+
+export const TrainingResponseTrainingSlotSignaturesAdmitter = {
+  pending: 'pending',
+  electronic: 'electronic',
+  paper: 'paper',
+} as const;
+
+export type TrainingResponseTrainingSlotSignatures = {
+  trainer: TrainingResponseTrainingSlotSignaturesTrainer;
+  /** @nullable */
+  verifier: TrainingResponseTrainingSlotSignaturesVerifier;
+  /** @nullable */
+  admitter: TrainingResponseTrainingSlotSignaturesAdmitter;
 };
 
 export type TrainingResponseTraining = {
@@ -2667,6 +2738,7 @@ export type TrainingResponseTraining = {
   hasSignatures: boolean;
   printed: boolean;
   signers: TrainingResponseTrainingSigners;
+  slotSignatures: TrainingResponseTrainingSlotSignatures;
 };
 
 export interface TrainingResponse {
@@ -2907,12 +2979,24 @@ export type EmployeeTrainingRecordListResponseItemsItemTraining = {
   updatedAt: string;
 };
 
+export type EmployeeTrainingRecordListResponseItemsItemSignature =
+  (typeof EmployeeTrainingRecordListResponseItemsItemSignature)[keyof typeof EmployeeTrainingRecordListResponseItemsItemSignature];
+
+export const EmployeeTrainingRecordListResponseItemsItemSignature = {
+  pending: 'pending',
+  electronic: 'electronic',
+  paper: 'paper',
+} as const;
+
 export type EmployeeTrainingRecordListResponseItemsItem = {
   id: string;
   occupation: string;
   /** @nullable */
   admission: EmployeeTrainingRecordListResponseItemsItemAdmission;
   training: EmployeeTrainingRecordListResponseItemsItemTraining;
+  /** @minimum 1 */
+  attendeeCount: number;
+  signature: EmployeeTrainingRecordListResponseItemsItemSignature;
   signed: boolean;
   hasSignatures: boolean;
   printed: boolean;
@@ -16090,24 +16174,95 @@ export const ListOrganizationEmployeesAttentionItem = {
 } as const;
 
 export type ListTrainingsParams = {
-  domain?: ListTrainingsDomain;
-  phase?: ListTrainingsPhase;
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+  sort?: ListTrainingsSort;
+  order?: ListTrainingsOrder;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  domain?: ListTrainingsDomainItem[];
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  open?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  phase?: ListTrainingsPhaseItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  signatures?: ListTrainingsSignaturesItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  mode?: ListTrainingsModeItem[];
+  from?: string;
+  to?: string;
 };
 
-export type ListTrainingsDomain = (typeof ListTrainingsDomain)[keyof typeof ListTrainingsDomain];
+export type ListTrainingsSort = (typeof ListTrainingsSort)[keyof typeof ListTrainingsSort];
 
-export const ListTrainingsDomain = {
+export const ListTrainingsSort = {
+  heldOn: 'heldOn',
+  duration: 'duration',
+  trainer: 'trainer',
+  attendees: 'attendees',
+} as const;
+
+export type ListTrainingsOrder = (typeof ListTrainingsOrder)[keyof typeof ListTrainingsOrder];
+
+export const ListTrainingsOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
+
+export type ListTrainingsDomainItem =
+  (typeof ListTrainingsDomainItem)[keyof typeof ListTrainingsDomainItem];
+
+export const ListTrainingsDomainItem = {
   ssm: 'ssm',
   su: 'su',
 } as const;
 
-export type ListTrainingsPhase = (typeof ListTrainingsPhase)[keyof typeof ListTrainingsPhase];
+export type ListTrainingsPhaseItem =
+  (typeof ListTrainingsPhaseItem)[keyof typeof ListTrainingsPhaseItem];
 
-export const ListTrainingsPhase = {
+export const ListTrainingsPhaseItem = {
   introductory_general: 'introductory_general',
   workplace: 'workplace',
   periodic: 'periodic',
   supplementary: 'supplementary',
+} as const;
+
+export type ListTrainingsSignaturesItem =
+  (typeof ListTrainingsSignaturesItem)[keyof typeof ListTrainingsSignaturesItem];
+
+export const ListTrainingsSignaturesItem = {
+  pending: 'pending',
+  electronic: 'electronic',
+  paper: 'paper',
+} as const;
+
+export type ListTrainingsModeItem =
+  (typeof ListTrainingsModeItem)[keyof typeof ListTrainingsModeItem];
+
+export const ListTrainingsModeItem = {
+  app: 'app',
+  paper: 'paper',
 } as const;
 
 export type GetTrainingProposalParams = {
@@ -20241,6 +20396,15 @@ export const getListTrainingsUrl = (clientId: string, params?: ListTrainingsPara
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['domain', 'phase', 'signatures', 'mode'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -20254,7 +20418,7 @@ export const getListTrainingsUrl = (clientId: string, params?: ListTrainingsPara
 };
 
 /**
- * Every training held at the client, newest first, each with its number of attendees; not paginated. Filtered by domain and phase when given (ADR 021).
+ * A page of the trainings held at the client, newest first unless sorted otherwise, each with its number of attendees and its signing state: `paper` for a training transcribed from paper; for one held in the app, `pending` while any slot lacks a live signature, electronic or marked on paper, with how many attendees and how many of the trainer, verifier and admitter slots, each slot counted once; else `electronic` once any signature is electronic; else `paper` (ADR 021, ADR 023, ADR 042). `domain` scopes the list and its `unfilteredTotal`; the phase, the signing state, the way it was recorded (`mode`) and the period (`from`, `to`, inclusive) filter it, each repeatable key matching any of its values; `q` matches when every term is in one attendee's name, never a CNP. With `open` and no `page`, the answer is the page that holds that training, when the filters keep it.
  * @summary List a client's trainings held
  */
 export const listTrainings = async (
@@ -20995,7 +21159,7 @@ export const getListEmployeeTrainingRecordsUrl = (
 };
 
 /**
- * Each record with the facts of its training held, newest first, of one domain when given.
+ * Each record with the facts of its training held, its number of attendees and the employee's own signature, `pending`, `electronic` or `paper` as on the trainings list, newest first, of one domain when given.
  * @summary List an employee's training records
  */
 export const listEmployeeTrainingRecords = async (

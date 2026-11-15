@@ -56,7 +56,7 @@ export const listTrainingsRoute = createRoute({
   operationId: 'listTrainings',
   summary: "List a client's trainings held",
   description:
-    'Every training held at the client, newest first, each with its number of attendees; not paginated. Filtered by domain and phase when given (ADR 021).',
+    "A page of the trainings held at the client, newest first unless sorted otherwise, each with its number of attendees and its signing state: `paper` for a training transcribed from paper; for one held in the app, `pending` while any slot lacks a live signature, electronic or marked on paper, with how many attendees and how many of the trainer, verifier and admitter slots, each slot counted once; else `electronic` once any signature is electronic; else `paper` (ADR 021, ADR 023, ADR 042). `domain` scopes the list and its `unfilteredTotal`; the phase, the signing state, the way it was recorded (`mode`) and the period (`from`, `to`, inclusive) filter it, each repeatable key matching any of its values; `q` matches when every term is in one attendee's name, never a CNP. With `open` and no `page`, the answer is the page that holds that training, when the filters keep it.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams, query: listTrainingsQuerySchema },
@@ -189,7 +189,7 @@ export const listEmployeeTrainingRecordsRoute = createRoute({
   operationId: 'listEmployeeTrainingRecords',
   summary: "List an employee's training records",
   description:
-    'Each record with the facts of its training held, newest first, of one domain when given.',
+    "Each record with the facts of its training held, its number of attendees and the employee's own signature, `pending`, `electronic` or `paper` as on the trainings list, newest first, of one domain when given.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: employeeParams, query: listEmployeeTrainingRecordsQuerySchema },

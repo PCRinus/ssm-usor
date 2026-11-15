@@ -1,86 +1,83 @@
 import {
-  formatEmployeeName,
+  defaultPageSize,
   type TrainingDomain,
   trainingDomainLabels,
   trainingDomains,
-  type TrainingPhase,
-  trainingPhaseLabels,
-  trainingPhases,
+  type TrainingSortKey,
 } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
-import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
-import { cn } from '@ssm-usor/ui/lib/utils';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { ClipboardCheck, Lock, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { ClipboardCheck, Plus, SearchX } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   getListTrainingsQueryKey,
-  type TrainingListResponseItemsItem,
+  type ListTrainingsParams,
   useListTrainings,
 } from '@/api/generated/api';
-import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { keepOpener } from '@/app/opener';
-import { EmptyState, ListEmpty } from '@/components/empty-state';
+import type { DataTableSort } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
-import { Notice } from '@/components/notice';
+import { AppliedFilters } from '@/components/list-filters/applied-filters';
+import { ListFilters } from '@/components/list-filters/list-filters';
+import type { ListFilterValues } from '@/components/list-filters/types';
+import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
+import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
-import { formatDate } from '@/features/employees/employee-format';
-import { trainingLocks } from '@/features/signatures/use-record-signatures';
-import { isEmptyOrLoading } from '@/lib/list-state';
+import { WorkersListError } from '@/features/employees/workers-list';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
-import { TrainerName, TrainingDuration } from './not-on-sheet';
+import { trainingColumns, trainingLabel, type TrainingRow } from './training-columns';
+import { TrainingDetails } from './training-details';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
-import { attendeeCountLabel, paperTrainingBadge } from './training-format';
-import { TrainingMaterial } from './training-material';
+import {
+  clientTrainingFacets,
+  type TrainingFilterKey,
+  trainingFilterKeys,
+  trainingNoun,
+} from './training-filters';
 
 const route = getRouteApi('/_authenticated/clienti/$clientId/instruiri-tinute');
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
-const employeeTrainingTabs = {
-  ssm: '/clienti/$clientId/angajati/$employeeId/instruire/ssm',
-  su: '/clienti/$clientId/angajati/$employeeId/instruire/su',
-} as const satisfies Record<TrainingDomain, string>;
+const defaultSort: DataTableSort & { sort: TrainingSortKey } = { sort: 'heldOn', order: 'desc' };
 
 const domainFilters: { domain: TrainingDomain | undefined; label: string }[] = [
   { domain: undefined, label: 'Toate' },
   ...trainingDomains.map((domain) => ({ domain, label: trainingDomainLabels[domain] })),
 ];
 
-function emptyMessage(domain: TrainingDomain | undefined, phase: TrainingPhase | undefined) {
-  if (!domain && !phase) {
-    return 'Nicio instruire înregistrată încă. O instruire se înregistrează o dată, cu toți participanții, și apare în fișa fiecăruia.';
-  }
-  const what = [
-    phase ? `de tipul „${trainingPhaseLabels[phase]}”` : null,
-    domain ? `în domeniul ${trainingDomainLabels[domain]}` : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
-  return `Nicio instruire ${what} înregistrată încă.`;
+type Filters = Pick<ListTrainingsParams, 'phase' | 'signatures' | 'mode' | 'from' | 'to'>;
+
+const rowKey = (row: TrainingRow) => row.id;
+
+function PendingTrainingsLabel({
+  clientId,
+  params,
+}: {
+  clientId: string;
+  params: ListTrainingsParams;
+}) {
+  const { session } = useAuth();
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const total = useListTrainings(clientId, params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListTrainingsQueryKey(clientId, params), session?.user.id],
+      enabled: Boolean(session && apiRequest.baseUrl),
+      placeholderData: keepPreviousData,
+    },
+  }).data?.total;
+  return total === undefined ? 'Arată rezultatele' : `Arată ${trainingNoun(total)}`;
 }
 
 export function ClientTrainingsPage() {
-  const { domain, phase } = route.useSearch();
+  const search = route.useSearch();
+  const { domain, page, sort = defaultSort.sort, order = defaultSort.order, q, open } = search;
   const navigate = route.useNavigate();
   const { client } = clientRoute.useLoaderData();
   const clientId = client.id;
@@ -88,7 +85,28 @@ export function ClientTrainingsPage() {
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = { ...(domain ? { domain } : {}), ...(phase ? { phase } : {}) };
+  const phone = useIsMobile();
+  const listFilters = listFilterSearch({
+    keys: trainingFilterKeys,
+    facets: clientTrainingFacets,
+    search: { ...search, period: periodValue(search.from, search.to) },
+  });
+  const toSearch = (values: ListFilterValues<TrainingFilterKey>): Filters => {
+    const { period, ...rest } = listFilters.searchOf(values);
+    return { ...rest, ...periodSearch(period) } as Filters;
+  };
+  const filters = toSearch(listFilters.values);
+  const filtered = listFilters.applied;
+  const narrowed = filtered || Boolean(q);
+  const params: ListTrainingsParams = {
+    ...(domain ? { domain: [domain] } : {}),
+    ...(q ? { q } : {}),
+    ...(page ? { page } : open ? { open } : {}),
+    pageSize: defaultPageSize,
+    sort,
+    order,
+    ...filters,
+  };
   const trainings = useListTrainings(clientId, params, {
     request: apiRequest,
     query: {
@@ -97,21 +115,72 @@ export function ClientTrainingsPage() {
       placeholderData: keepPreviousData,
     },
   });
+  const meta = trainings.data ?? { page: page ?? 1, pageSize: defaultPageSize, total: 0 };
+  const unfilteredTotal = trainings.data?.unfilteredTotal ?? 0;
+  const listStatus = !apiRequest.baseUrl ? 'error' : trainings.status;
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set(open ? [open] : []));
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
   const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
-  const items = trainings.data?.items ?? [];
+
+  // A link from a worker's tab names the training, not its page: the answer says which page
+  // holds it, and the address keeps that page so that paging on goes from there.
+  const landedOn = !page && open && !trainings.isPlaceholderData ? trainings.data?.page : undefined;
+  useEffect(() => {
+    if (landedOn && landedOn > 1) {
+      void navigate({
+        state: keepOpener,
+        replace: true,
+        resetScroll: false,
+        search: (prev) => ({ ...prev, page: landedOn }),
+      });
+    }
+  }, [landedOn, navigate]);
+
+  const columns = useMemo(
+    () =>
+      trainingColumns({
+        onEdit: readOnly
+          ? undefined
+          : (training) => setTarget({ kind: 'edit', trainingId: training.id }),
+        onDelete: (training) =>
+          setDeleting({
+            id: training.id,
+            phase: training.phase,
+            heldOn: training.heldOn,
+            attendeeCount: training.attendeeCount,
+          }),
+      }),
+    [readOnly]
+  );
+  const toggle = (training: TrainingRow) =>
+    setOpened((current) => {
+      const next = new Set(current);
+      if (!next.delete(training.id)) next.add(training.id);
+      return next;
+    });
+  const changeSearch = (next: Partial<typeof search>) =>
+    void navigate({
+      state: keepOpener,
+      replace: true,
+      resetScroll: false,
+      search: (prev) => ({ ...prev, ...next, page: undefined, open: undefined }),
+    });
+  const changeFilters = (values: ListFilterValues<TrainingFilterKey>) =>
+    changeSearch(toSearch(values));
   const record = () => setTarget({ kind: 'new', domain: domain ?? 'ssm', phase: 'periodic' });
+  const recordButton = (
+    <Button data-testid="trainings-record" onClick={record}>
+      <Plus aria-hidden="true" />
+      Înregistrează o instruire
+    </Button>
+  );
+  const empty = trainings.isSuccess && !narrowed && unfilteredTotal === 0;
 
   return (
     <div data-testid="client-trainings-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Instruiri ținute</h2>
-        {!readOnly && !isEmptyOrLoading(trainings.status, items.length) && (
-          <Button data-testid="trainings-record" onClick={record}>
-            <Plus aria-hidden="true" />
-            Înregistrează o instruire
-          </Button>
-        )}
+        {!readOnly && trainings.isSuccess && !empty && recordButton}
       </div>
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
@@ -122,127 +191,155 @@ export function ClientTrainingsPage() {
                 to="/clienti/$clientId/instruiri-tinute"
                 params={{ clientId }}
                 state={keepOpener}
-                search={{ ...(filter.domain ? { domain: filter.domain } : {}), phase }}
+                search={{ ...search, domain: filter.domain, page: undefined, open: undefined }}
                 data-testid="trainings-filter-domain"
                 data-domain={filter.domain ?? 'all'}
                 active={filter.domain === domain}
                 replace
+                resetScroll={false}
               >
                 {filter.label}
               </FilterTab>
             ))}
           </FilterTabs>
-          <NativeSelect
-            aria-label="Tipul instruirii"
-            data-testid="trainings-filter-phase"
-            {...replayShow}
-            className="w-full sm:w-60"
-            value={phase ?? ''}
-            onChange={(event) =>
-              void navigate({
-                state: keepOpener,
-                replace: true,
-                resetScroll: false,
-                search: (prev) => ({
-                  ...prev,
-                  phase: (event.target.value || undefined) as TrainingPhase | undefined,
-                }),
-              })
-            }
-          >
-            <NativeSelectOption value="">Toate tipurile</NativeSelectOption>
-            {trainingPhases.map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {trainingPhaseLabels[value]}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+          {(unfilteredTotal > 0 || narrowed) && (
+            <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-xl md:grow">
+              <SearchInput
+                value={q}
+                onSearch={(next) => changeSearch({ q: next || undefined })}
+                placeholder={phone ? 'Caută un nume' : 'Caută după numele unui participant'}
+                label="Caută după participant"
+                testId="trainings-search"
+              />
+              <ListFilters
+                facets={clientTrainingFacets}
+                values={listFilters.values}
+                onChange={changeFilters}
+                total={trainings.isSuccess && !trainings.isPlaceholderData ? meta.total : undefined}
+                applyLabel={(pending) => (
+                  <PendingTrainingsLabel
+                    clientId={clientId}
+                    params={{
+                      ...params,
+                      page: 1,
+                      open: undefined,
+                      pageSize: 1,
+                      ...toSearch(pending),
+                    }}
+                  />
+                )}
+                countLabel={trainingNoun}
+                testId="trainings-filters"
+              />
+            </div>
+          )}
           {trainings.isSuccess && (
             <ListCount testId="trainings-count">
-              {items.length === 1 ? '1 instruire' : `${items.length} instruiri`}
+              {narrowed ? (
+                <>
+                  <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
+                  {phone ? unfilteredTotal : trainingNoun(unfilteredTotal)}
+                </>
+              ) : (
+                trainingNoun(meta.total)
+              )}
             </ListCount>
           )}
         </ListCardHeader>
-        {trainings.isError ? (
-          <div className="p-5">
-            <Notice
-              variant="destructive"
-              data-testid="trainings-error"
-              action={
-                <Button
-                  variant="outline"
-                  disabled={trainings.isFetching}
-                  onClick={() => void trainings.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              }
-            >
-              Nu am putut încărca instruirile. Încearcă din nou.
-            </Notice>
-          </div>
-        ) : !trainings.data ? (
-          <div className="grid gap-3 p-5" aria-busy="true">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : items.length === 0 ? (
-          <ListEmpty>
-            <EmptyState
-              icon={ClipboardCheck}
-              data-testid="trainings-empty"
-              actions={
-                !readOnly && (
-                  <Button data-testid="trainings-record" onClick={record}>
-                    <Plus aria-hidden="true" />
-                    Înregistrează o instruire
+        <AppliedFilters
+          facets={clientTrainingFacets}
+          values={listFilters.values}
+          onChange={changeFilters}
+          testId="trainings-applied-filters"
+        />
+        <DataTable
+          testId="trainings-table"
+          rowTestId="trainings-row"
+          label="Instruirile ținute"
+          columns={columns}
+          data={trainings.data?.items}
+          rowKey={rowKey}
+          onRowClick={toggle}
+          expansion={{
+            isOpen: (training) => opened.has(training.id),
+            onToggle: toggle,
+            label: (training) => `Detaliile instruirii ${trainingLabel(training)}`,
+            testId: 'trainings-open',
+            render: (training) => (
+              <TrainingDetails
+                clientId={clientId}
+                trainingId={training.id}
+                userId={userId}
+                scrollIntoView={training.id === open}
+              />
+            ),
+          }}
+          meta={meta}
+          noun={['instruire', 'instruiri']}
+          status={listStatus}
+          isFetching={trainings.isFetching}
+          isPlaceholderData={trainings.isPlaceholderData}
+          sort={{ sort, order }}
+          onSortChange={(next) =>
+            changeSearch({
+              sort: next.sort === defaultSort.sort ? undefined : (next.sort as TrainingSortKey),
+              order: next.order === defaultSort.order ? undefined : next.order,
+            })
+          }
+          onPageChange={(next) =>
+            void navigate({
+              search: (prev) => ({ ...prev, page: next > 1 ? next : undefined, open: undefined }),
+              state: keepOpener,
+            })
+          }
+          error={
+            <WorkersListError
+              error={trainings.error}
+              testId="trainings"
+              notFound="Clientul nu mai există în organizația ta."
+              onRetry={apiRequest.baseUrl ? () => void trainings.refetch() : undefined}
+              retrying={trainings.isFetching}
+              message="Nu am putut încărca instruirile. Încearcă din nou."
+            />
+          }
+          empty={
+            narrowed ? (
+              <EmptyState
+                icon={SearchX}
+                title="Nicio instruire nu se potrivește"
+                data-testid="trainings-empty-filtered"
+                actions={
+                  <Button
+                    variant="outline"
+                    data-testid="trainings-empty-filtered-clear"
+                    onClick={() => (filtered ? changeFilters({}) : changeSearch({ q: undefined }))}
+                  >
+                    {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                   </Button>
-                )
-              }
-            >
-              {emptyMessage(domain, phase)}
-            </EmptyState>
-          </ListEmpty>
-        ) : (
-          <Table
-            data-testid="trainings-table"
-            aria-label="Instruirile ținute"
-            className={cn(trainings.isPlaceholderData && 'opacity-60')}
-          >
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ziua</TableHead>
-                <TableHead>Instruirea</TableHead>
-                <TableHead>Durata</TableHead>
-                <TableHead>A instruit</TableHead>
-                <TableHead>Participanți</TableHead>
-                <TableHead className="min-w-64">Material</TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">Acțiuni</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((training) => (
-                <TrainingRow
-                  key={training.id}
-                  training={training}
-                  readOnly={readOnly}
-                  onEdit={() => setTarget({ kind: 'edit', trainingId: training.id })}
-                  onDelete={() =>
-                    setDeleting({
-                      id: training.id,
-                      phase: training.phase,
-                      heldOn: training.heldOn,
-                      attendeeCount: training.attendeeCount,
-                    })
-                  }
-                />
-              ))}
-            </TableBody>
-          </Table>
-        )}
+                }
+              >
+                {filtered
+                  ? `Nicio instruire${domain ? ` ${trainingDomainLabels[domain]}` : ''} nu se potrivește filtrelor alese${q ? ' și căutării' : ''}. Scoate unul dintre filtrele de mai sus sau pornește din nou de la toate instruirile.`
+                  : `Niciun participant nu se potrivește căutării „${q}”. Caută după numele unui participant.`}
+              </EmptyState>
+            ) : (
+              <EmptyState
+                icon={ClipboardCheck}
+                title={
+                  domain
+                    ? `Nicio instruire ${trainingDomainLabels[domain]} ținută încă`
+                    : 'Nicio instruire ținută încă'
+                }
+                data-testid="trainings-empty"
+                actions={!readOnly && recordButton}
+              >
+                O instruire se înregistrează o dată, cu toți participanții, și apare în fișa
+                fiecăruia. Instruirile de dinainte, de pe fișele pe hârtie, se transcriu din tab-ul
+                Lucrători.
+              </EmptyState>
+            )
+          }
+        />
       </div>
       <TrainingDialog
         clientId={clientId}
@@ -257,109 +354,5 @@ export function ClientTrainingsPage() {
         onClose={() => setDeleting(null)}
       />
     </div>
-  );
-}
-
-function TrainingRow({
-  training,
-  readOnly,
-  onEdit,
-  onDelete,
-}: {
-  training: TrainingListResponseItemsItem;
-  readOnly: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const label = `${trainingPhaseLabels[training.phase]} din ${formatDate(training.heldOn)}`;
-  const locks = trainingLocks(training);
-  const lock = locks.edit ?? locks.delete;
-  return (
-    <TableRow data-testid="trainings-row" className="align-top">
-      <TableCell className="whitespace-nowrap tabular-nums">
-        {formatDate(training.heldOn)}
-      </TableCell>
-      <TableCell>
-        <span className="block font-medium">{trainingPhaseLabels[training.phase]}</span>
-        <span className="mt-1 flex flex-wrap gap-1">
-          <Badge variant="secondary">{trainingDomainLabels[training.domain]}</Badge>
-          {training.source === 'paper' && <Badge variant="outline">{paperTrainingBadge}</Badge>}
-        </span>
-      </TableCell>
-      <TableCell className="whitespace-nowrap tabular-nums">
-        <TrainingDuration minutes={training.durationMinutes} />
-      </TableCell>
-      <TableCell className="max-w-48 whitespace-normal">
-        <TrainerName trainer={training.trainer} />
-      </TableCell>
-      <TableCell className="min-w-48 max-w-80 whitespace-normal" data-testid="trainings-attendees">
-        <span className="block text-muted-foreground" data-testid="trainings-attendee-count">
-          {attendeeCountLabel(training.attendeeCount)}
-        </span>
-        <span className="mt-1 block">
-          {training.attendees.map((attendee, index) => (
-            <Fragment key={attendee.employeeId}>
-              {index > 0 && ', '}
-              <Link
-                to={employeeTrainingTabs[training.domain]}
-                params={{ clientId: training.clientId, employeeId: attendee.employeeId }}
-                data-testid="trainings-attendee"
-                className="font-medium hover:underline"
-                {...replayMask}
-              >
-                {formatEmployeeName(attendee)}
-              </Link>
-            </Fragment>
-          ))}
-        </span>
-      </TableCell>
-      <TableCell className="max-w-96 whitespace-normal">
-        <TrainingMaterial text={training.material} />
-      </TableCell>
-      <TableCell className="text-right">
-        {!readOnly && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                data-testid="trainings-row-menu"
-                aria-label={`Acțiuni pentru instruirea ${label}`}
-              >
-                <MoreHorizontal aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-w-72">
-              {lock && (
-                <DropdownMenuLabel
-                  data-testid="trainings-lock"
-                  className="text-xs font-normal text-muted-foreground"
-                >
-                  <Lock aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" />
-                  {lock}
-                </DropdownMenuLabel>
-              )}
-              <DropdownMenuItem
-                data-testid="trainings-edit"
-                disabled={locks.edit !== null}
-                onSelect={onEdit}
-              >
-                <Pencil aria-hidden="true" />
-                Modifică
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                data-testid="trainings-delete"
-                variant="destructive"
-                disabled={locks.delete !== null}
-                onSelect={onDelete}
-              >
-                <Trash2 aria-hidden="true" />
-                Șterge
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </TableCell>
-    </TableRow>
   );
 }

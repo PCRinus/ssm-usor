@@ -123,7 +123,8 @@ type Upstream =
   | 'organizations'
   | 'persons'
   | 'fireSafety'
-  | 'requests';
+  | 'requests'
+  | 'list';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -148,6 +149,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
     persons: () => Response.json([{ full_name: 'Ion POP', job_title: 'Șef atelier' }]),
     fireSafety: () => Response.json([{ periodic_training_hours: 2 }]),
     requests: () => Response.json([]),
+    list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
   };
   const paths: Record<string, Upstream> = {
     '/auth/v1/user': 'auth',
@@ -164,6 +166,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
     '/rest/v1/client_responsible_persons': 'persons',
     '/rest/v1/client_fire_safety': 'fireSafety',
     '/rest/v1/signature_requests': 'requests',
+    '/rest/v1/training_list': 'list',
   };
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -230,20 +233,20 @@ afterEach(() => {
 });
 
 describe('GET /clients/{clientId}/trainings', () => {
-  it('lists the trainings held, newest first, with their attendees by name', async () => {
+  const viewRow = {
+    ...trainingRow,
+    attendee_count: 9,
+    pending_trainee_count: 2,
+    pending_signer_count: 1,
+    signature_state: 'pending',
+    signed: false,
+    has_signatures: true,
+    printed: false,
+  };
+
+  it('pages the trainings held, newest first, with their counts and signing state', async () => {
     mockUpstream({
-      trainings: () =>
-        Response.json([
-          {
-            ...trainingRow,
-            training_records: recordRows.map(({ employees }, index) => ({
-              employees,
-              training_signatures:
-                index === 0 ? [{ method: 'electronic', voided_at: '2026-10-18T09:00:00Z' }] : [],
-              signed_sheet_rows: [],
-            })),
-          },
-        ]),
+      list: () => Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } }),
     });
     const response = await request(trainingsPath);
     expect(response.status).toBe(200);
@@ -251,66 +254,170 @@ describe('GET /clients/{clientId}/trainings', () => {
       items: [
         {
           ...training,
+          attendeeCount: 9,
+          signatureState: 'pending',
+          pendingTraineeSignatures: 2,
+          pendingSignerSignatures: 1,
           signed: false,
           hasSignatures: true,
           printed: false,
-          attendeeCount: 2,
-          attendees: [
-            { employeeId, lastName: 'Popescu', firstName: 'Ion' },
-            { employeeId: otherEmployeeId, lastName: 'Ștefan', firstName: 'Ana' },
-          ],
         },
       ],
+      page: 1,
+      pageSize: 25,
+      total: 1,
+      unfilteredTotal: 1,
     });
-    const query = searchOf('/rest/v1/trainings');
+    expect(calls('/rest/v1/training_list')).toHaveLength(1);
+    const query = searchOf('/rest/v1/training_list');
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(query.get('select')).toContain(
-      'training_records(employees(id,last_name,first_name),training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at,signed_sheets!signed_sheet_rows_sheet_of_client(certified_at)))'
-    );
     expect(query.get('order')).toBe('held_on.desc,created_at.desc,id.asc');
+    expect(query.get('offset')).toBe('0');
+    expect(query.get('limit')).toBe('25');
     expect(query.get('domain')).toBeNull();
+    expect(query.get('select')).not.toContain('search_names');
   });
 
-  it('marks a training from paper printed on a certified sheet', async () => {
+  it('filters by repeated keys, the period and attendee names, and counts the domain unfiltered', async () => {
     mockUpstream({
-      trainings: () =>
-        Response.json([
-          {
-            ...trainingRow,
-            source: 'paper',
-            training_records: recordRows.map(({ employees }, index) => ({
-              employees,
-              training_signatures: [],
-              signed_sheet_rows: index === 0 ? [sheetRow({ certified: true })] : [],
-            })),
-          },
-        ]),
+      list: (_init, url) =>
+        url?.searchParams.has('phase')
+          ? Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } })
+          : new Response(null, { headers: { 'Content-Range': '*/12' } }),
     });
-    const response = await request(trainingsPath);
-    const [item] = trainingListResponseSchema.parse(await response.json()).items;
-    expect(item).toMatchObject({ signed: false, hasSignatures: true, printed: true });
-  });
-
-  it('filters by domain and phase', async () => {
-    mockUpstream({ trainings: () => Response.json([]) });
-    const response = await request(`${trainingsPath}?domain=su&phase=periodic`);
+    const response = await request(
+      `${trainingsPath}?domain=ssm&phase=periodic&phase=workplace&signatures=pending&mode=app&from=2026-01-01&to=2026-10-31&q=Ștefan%20ana`
+    );
     expect(response.status).toBe(200);
-    const query = searchOf('/rest/v1/trainings');
-    expect(query.get('domain')).toBe('eq.su');
-    expect(query.get('phase')).toBe('eq.periodic');
+    const body = trainingListResponseSchema.parse(await response.json());
+    expect(body).toMatchObject({ total: 1, unfilteredTotal: 12 });
+    const query = searchOf('/rest/v1/training_list');
+    expect(query.get('domain')).toBe('in.(ssm)');
+    expect(query.get('phase')).toBe('in.(periodic,workplace)');
+    expect(query.get('signature_state')).toBe('in.(pending)');
+    expect(query.get('source')).toBe('in.(app)');
+    expect(query.getAll('held_on')).toEqual(['gte.2026-01-01', 'lte.2026-10-31']);
+    expect(query.getAll('search_names')).toEqual(['match.(^|\\|)(?=[^|]*stefan)(?=[^|]*ana)']);
+    const unfiltered = searchOf('/rest/v1/training_list', 1);
+    expect(unfiltered.get('domain')).toBe('in.(ssm)');
+    expect(unfiltered.get('phase')).toBeNull();
+    expect(unfiltered.get('search_names')).toBeNull();
   });
 
-  it('rejects an unknown phase', async () => {
+  it('sorts by the duration with the unwritten ones last, then the day and the id', async () => {
+    mockUpstream({ list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }) });
+    await request(`${trainingsPath}?sort=duration&order=asc`);
+    expect(searchOf('/rest/v1/training_list').get('order')).toBe(
+      'duration_minutes.asc.nullslast,held_on.asc,created_at.asc,id.asc'
+    );
+  });
+
+  it('opens on the page that holds the training asked for, counting the rows before it', async () => {
+    mockUpstream({
+      list: (init, url) => {
+        if (url?.searchParams.get('id')) {
+          return Response.json({
+            duration_minutes: null,
+            held_on: '2026-03-02',
+            created_at: '2026-03-02T10:00:00+00:00',
+            id: trainingId,
+          });
+        }
+        if (init?.method === 'HEAD') {
+          return new Response(null, { headers: { 'Content-Range': '*/27' } });
+        }
+        return Response.json([viewRow], { headers: { 'Content-Range': '25-25/30' } });
+      },
+    });
+    const response = await request(
+      `${trainingsPath}?open=${trainingId}&sort=duration&phase=periodic`
+    );
+    expect(trainingListResponseSchema.parse(await response.json()).page).toBe(2);
+    const target = searchOf('/rest/v1/training_list', 0);
+    expect(target.get('select')).toBe('duration_minutes,held_on,created_at,id');
+    expect(target.get('id')).toBe(`eq.${trainingId}`);
+    expect(target.get('phase')).toBe('in.(periodic)');
+    const counted = searchOf('/rest/v1/training_list', 1);
+    expect(counted.get('phase')).toBe('in.(periodic)');
+    expect(counted.get('or')).toBe(
+      `(duration_minutes.not.is.null,and(duration_minutes.is.null,held_on.gt."2026-03-02"),and(duration_minutes.is.null,held_on.eq."2026-03-02",created_at.gt."2026-03-02T10:00:00+00:00"),and(duration_minutes.is.null,held_on.eq."2026-03-02",created_at.eq."2026-03-02T10:00:00+00:00",id.lt."${trainingId}"))`
+    );
+    expect(searchOf('/rest/v1/training_list', 2).get('offset')).toBe('25');
+  });
+
+  it('quotes a sort value that holds the filter syntax', async () => {
+    mockUpstream({
+      list: (init, url) =>
+        url?.searchParams.get('id')
+          ? Response.json({
+              trainer_name: 'Pop, "Ion" (șef)',
+              held_on: '2026-03-02',
+              created_at: '2026-03-02T10:00:00+00:00',
+              id: trainingId,
+            })
+          : init?.method === 'HEAD'
+            ? new Response(null, { headers: { 'Content-Range': '*/3' } })
+            : Response.json([viewRow], { headers: { 'Content-Range': '0-0/4' } }),
+    });
+    const response = await request(`${trainingsPath}?open=${trainingId}&sort=trainer&order=asc`);
+    expect(trainingListResponseSchema.parse(await response.json()).page).toBe(1);
+    expect(searchOf('/rest/v1/training_list', 1).get('or')).toContain(
+      'trainer_name.lt."Pop, \\"Ion\\" (șef)"'
+    );
+  });
+
+  it('stays on the first page when the filters leave the open training out', async () => {
+    mockUpstream({
+      list: (_init, url) =>
+        url?.searchParams.get('id')
+          ? Response.json(null)
+          : Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } }),
+    });
+    const response = await request(`${trainingsPath}?open=${trainingId}`);
+    expect(trainingListResponseSchema.parse(await response.json()).page).toBe(1);
+    expect(calls('/rest/v1/training_list')).toHaveLength(2);
+  });
+
+  it('keeps the page asked for and does not look for the open training', async () => {
+    mockUpstream({
+      list: () => Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } }),
+    });
+    await request(`${trainingsPath}?open=${trainingId}&page=1`);
+    expect(calls('/rest/v1/training_list')).toHaveLength(1);
+  });
+
+  it('answers a page past the end with no rows and the real total', async () => {
+    mockUpstream({
+      list: (init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/3' } })
+          : Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
+              { status: 416 }
+            ),
+    });
+    const response = await request(`${trainingsPath}?page=4`);
+    expect(trainingListResponseSchema.parse(await response.json())).toEqual({
+      items: [],
+      page: 4,
+      pageSize: 25,
+      total: 3,
+      unfilteredTotal: 3,
+    });
+  });
+
+  it('rejects an unknown phase or signature state', async () => {
     mockUpstream({});
     expect((await request(`${trainingsPath}?phase=annual`)).status).toBe(400);
-    expect(calls('/rest/v1/trainings')).toHaveLength(0);
+    expect((await request(`${trainingsPath}?signatures=maybe`)).status).toBe(400);
+    expect(calls('/rest/v1/training_list')).toHaveLength(0);
   });
 
   it('answers 404 when the client is not visible to the organization', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     const response = await request(trainingsPath);
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/trainings')).toHaveLength(0);
+    expect(calls('/rest/v1/training_list')).toHaveLength(0);
   });
 
   it('rejects verified users without an organization membership', async () => {
@@ -331,6 +438,12 @@ describe('POST /clients/{clientId}/trainings', () => {
       employee: { id: employeeId, lastName: 'Popescu', firstName: 'Ion' },
       occupation: 'Sudor autorizat',
       admission: { admittedOn: '2026-10-01', name: 'Ion POP', jobTitle: 'Șef atelier' },
+      signature: 'pending',
+    });
+    expect(saved.slotSignatures).toEqual({
+      trainer: 'pending',
+      verifier: 'pending',
+      admitter: 'pending',
     });
     const employees = searchOf('/rest/v1/employees');
     expect(employees.get('client_id')).toBe(`eq.${clientId}`);
@@ -565,6 +678,51 @@ describe('GET /clients/{clientId}/trainings/{trainingId}', () => {
     expect(query.get('signer_account_id')).toBe('not.is.null');
   });
 
+  it("reads each attendee's signature and each slot's over every record", async () => {
+    mockUpstream({
+      trainings: () =>
+        Response.json([
+          {
+            ...trainingRow,
+            training_records: [
+              {
+                ...recordRows[0],
+                training_signatures: [
+                  { slot: 'trainee', method: 'electronic', voided_at: null },
+                  { slot: 'trainer', method: 'electronic', voided_at: null },
+                  { slot: 'verifier', method: 'paper', voided_at: null },
+                  { slot: 'admitter', method: 'paper', voided_at: null },
+                ],
+              },
+              {
+                ...recordRows[1],
+                training_signatures: [
+                  { slot: 'trainee', method: 'electronic', voided_at: '2026-10-18T09:00:00Z' },
+                  { slot: 'trainer', method: 'paper', voided_at: null },
+                  { slot: 'admitter', method: 'paper', voided_at: null },
+                ],
+              },
+            ],
+          },
+        ]),
+    });
+    const response = await request(trainingPath);
+    const { training: read } = trainingResponseSchema.parse(await response.json());
+    expect(read.records.map((record) => [record.employee.lastName, record.signature])).toEqual([
+      ['Popescu', 'pending'],
+      ['Ștefan', 'electronic'],
+    ]);
+    expect(read.slotSignatures).toEqual({
+      trainer: 'electronic',
+      verifier: 'pending',
+      admitter: 'paper',
+    });
+    expect(searchOf('/rest/v1/trainings').get('select')).toContain(
+      'training_signatures(slot,method,voided_at),signed_sheet_rows'
+    );
+    expect(searchOf('/rest/v1/trainings').get('select')).not.toContain('signature_requests');
+  });
+
   it('answers 404 for a training of another client', async () => {
     mockUpstream({ trainings: () => Response.json([]) });
     const response = await request(trainingPath);
@@ -653,6 +811,8 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-records', () =
           occupation: 'Sudor',
           admission: null,
           training: { ...training, phase: 'periodic' },
+          attendeeCount: 2,
+          signature: 'pending',
           signed: false,
           hasSignatures: false,
           printed: false,
@@ -661,13 +821,71 @@ describe('GET /clients/{clientId}/employees/{employeeId}/training-records', () =
     });
     const query = searchOf('/rest/v1/training_records');
     expect(query.get('select')).toContain(
-      'trainings!inner(id,client_id,domain,phase,held_on,duration_minutes,material,trainer_name,trainer_job_title,verifier_name,verifier_job_title,supplementary_reason,source,themes_revision_id,notes,created_at,updated_at,training_records(training_signatures(method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at,signed_sheets!signed_sheet_rows_sheet_of_client(certified_at))))'
+      'admitted_by_job_title,training_signatures(slot,method,voided_at),trainings!inner('
+    );
+    expect(query.get('select')).toContain(
+      'trainings!inner(id,client_id,domain,phase,held_on,duration_minutes,material,trainer_name,trainer_job_title,verifier_name,verifier_job_title,supplementary_reason,source,themes_revision_id,notes,created_at,updated_at,training_records(training_signatures(slot,method,voided_at),signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at,signed_sheets!signed_sheet_rows_sheet_of_client(certified_at))))'
     );
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('trainings.domain')).toBe('eq.ssm');
     expect(query.get('order')).toBe('trainings(held_on).desc,trainings(created_at).desc,id.asc');
     expect(searchOf('/rest/v1/employees').get('client_id')).toBe(`eq.${clientId}`);
   });
+
+  it.each([
+    ['pending', 'a slot never addressed', [], 'app'],
+    [
+      'pending',
+      'a voided signature',
+      [{ slot: 'trainee', method: 'electronic', voided_at: '2026-10-18T09:00:00Z' }],
+      'app',
+    ],
+    [
+      'pending',
+      "only the trainer's signature",
+      [{ slot: 'trainer', method: 'paper', voided_at: null }],
+      'app',
+    ],
+    [
+      'electronic',
+      'a live electronic signature',
+      [{ slot: 'trainee', method: 'electronic', voided_at: null }],
+      'app',
+    ],
+    [
+      'paper',
+      'a slot marked signed on paper',
+      [{ slot: 'trainee', method: 'paper', voided_at: null }],
+      'app',
+    ],
+    ['paper', 'a training transcribed from paper', [], 'paper'],
+  ])(
+    "reads the employee's own signature as %s for %s",
+    async (expected, _case, signatures, source) => {
+      mockUpstream({
+        employees: () => Response.json([{ id: employeeId }]),
+        records: () =>
+          Response.json([
+            {
+              id: 'f1f1f1f1-0000-4000-8000-000000000001',
+              occupation: 'Sudor',
+              admitted_on: null,
+              admitted_by_name: null,
+              admitted_by_job_title: null,
+              training_signatures: signatures,
+              trainings: {
+                ...trainingRow,
+                source,
+                training_records: [{ training_signatures: [], signed_sheet_rows: [] }],
+              },
+            },
+          ]),
+      });
+      const response = await request(`${recordsPath}?domain=ssm`);
+      const [item] = employeeTrainingRecordListResponseSchema.parse(await response.json()).items;
+      expect(item!.signature).toBe(expected);
+    }
+  );
 
   it.each([
     [
