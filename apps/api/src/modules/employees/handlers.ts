@@ -4,6 +4,7 @@ import {
   type Employee,
   type EmployeeListItem,
   type EmployeeSortKey,
+  type EmployeeTrainingStateFilter,
   type ListOrganizationEmployeesQuery,
   normalizeCnp,
   orderedCommuteMeans,
@@ -12,7 +13,6 @@ import {
   pageRange,
   searchTerms,
   type TestStateFilter,
-  type TrainingStateFilter,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -51,7 +51,7 @@ export const employeeListColumns =
   `${employeeColumnsWithoutStatus}, training_status(${trainingStatusFields}), ${testStatusColumns}` as const;
 
 type StateFilters = {
-  trainingState?: TrainingStateFilter;
+  trainingState?: EmployeeTrainingStateFilter;
   testState?: TestStateFilter;
 };
 
@@ -66,7 +66,8 @@ function listColumnsFor<Columns extends string>(columns: Columns, filters: State
 }
 
 // "La zi" means up to date in both domains, and a passed test passed in both; every other state
-// flags someone the specialist has to see to in either.
+// flags someone the specialist has to see to in either. "attention" is the clients list's
+// "de instruit": untrained or overdue.
 function inStates<Q extends { or(filters: string, options: { referencedTable: string }): Q }>(
   query: Q,
   { trainingState, testState }: StateFilters
@@ -76,7 +77,11 @@ function inStates<Q extends { or(filters: string, options: { referencedTable: st
       ? `and(ssm_state.eq.${state},su_state.eq.${state})`
       : `ssm_state.eq.${state},su_state.eq.${state}`;
   let filtered = query;
-  if (trainingState) {
+  if (trainingState === 'attention') {
+    filtered = filtered.or('ssm_state.in.(untrained,overdue),su_state.in.(untrained,overdue)', {
+      referencedTable: 'training_status',
+    });
+  } else if (trainingState) {
     filtered = filtered.or(matching(trainingState, trainingState === 'current'), {
       referencedTable: 'training_status',
     });

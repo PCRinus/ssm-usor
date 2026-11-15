@@ -5,7 +5,7 @@ import { commuteMeanSchema, commuteMeansOtherMaxLength } from './commute-means';
 import { listQuerySchema, listSearchSchema, pageSchema } from './list';
 import { phoneSchema } from './phone';
 import { employeeTestsSchema, testStateFilterSchema } from './tests';
-import { employeeTrainingSchema, trainingStateFilterSchema } from './trainings';
+import { employeeTrainingSchema, employeeTrainingStateFilterSchema } from './trainings';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
@@ -112,8 +112,8 @@ export type EmployeeSortKey = (typeof employeeSortKeys)[number];
 
 export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name').extend({
   status: employeeStatusSchema.optional(),
-  // Matched in either domain.
-  trainingState: trainingStateFilterSchema.optional(),
+  // Matched in either domain; "attention" is untrained or overdue.
+  trainingState: employeeTrainingStateFilterSchema.optional(),
   // As the training state: passed means passed in both domains.
   testState: testStateFilterSchema.optional(),
   q: listSearchSchema.optional(),

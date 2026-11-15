@@ -790,6 +790,24 @@ export type ClientListResponseItemsItemFireSafetyDocumentation = {
   lastGeneratedAt: string | null;
 } | null;
 
+/**
+ * @nullable
+ */
+export type ClientListResponseItemsItemTraining = {
+  /** @minimum 0 */
+  employeeCount: number;
+  /** @minimum 0 */
+  untrainedCount: number;
+  /** @minimum 0 */
+  overdueCount: number;
+  /** @minimum 0 */
+  dueCount: number;
+  /** @minimum 0 */
+  attentionCount: number;
+  /** @nullable */
+  nextDueOn: string | null;
+} | null;
+
 export type ClientListResponseItemsItem = {
   id: string;
   legalName: string;
@@ -832,6 +850,8 @@ export type ClientListResponseItemsItem = {
   documentation: ClientListResponseItemsItemDocumentation;
   /** @nullable */
   fireSafetyDocumentation: ClientListResponseItemsItemFireSafetyDocumentation;
+  /** @nullable */
+  training: ClientListResponseItemsItemTraining;
   canDelete: boolean;
 };
 
@@ -846,6 +866,8 @@ export interface ClientListResponse {
   pageSize: number;
   /** @minimum 0 */
   total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 /**
@@ -15652,6 +15674,40 @@ export type ListClientsParams = {
   order?: ListClientsOrder;
   status?: ListClientsStatus;
   stage?: ListClientsStage;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  documentation?: ListClientsDocumentationItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  fireSafetyDocumentation?: ListClientsFireSafetyDocumentationItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  training?: ListClientsTrainingItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  attention?: ListClientsAttentionItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  county?: ListClientsCountyItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  contract?: ListClientsContractItem[];
 };
 
 export type ListClientsSort = (typeof ListClientsSort)[keyof typeof ListClientsSort];
@@ -15662,6 +15718,8 @@ export const ListClientsSort = {
   currentEmployeeCount: 'currentEmployeeCount',
   documentation: 'documentation',
   fireSafetyDocumentation: 'fireSafetyDocumentation',
+  training: 'training',
+  nextTrainingDueOn: 'nextTrainingDueOn',
   clientSince: 'clientSince',
 } as const;
 
@@ -15684,6 +15742,99 @@ export type ListClientsStage = (typeof ListClientsStage)[keyof typeof ListClient
 export const ListClientsStage = {
   lead: 'lead',
   client: 'client',
+} as const;
+
+export type ListClientsDocumentationItem =
+  (typeof ListClientsDocumentationItem)[keyof typeof ListClientsDocumentationItem];
+
+export const ListClientsDocumentationItem = {
+  none: 'none',
+  in_progress: 'in_progress',
+  issued: 'issued',
+} as const;
+
+export type ListClientsFireSafetyDocumentationItem =
+  (typeof ListClientsFireSafetyDocumentationItem)[keyof typeof ListClientsFireSafetyDocumentationItem];
+
+export const ListClientsFireSafetyDocumentationItem = {
+  none: 'none',
+  in_progress: 'in_progress',
+  issued: 'issued',
+} as const;
+
+export type ListClientsTrainingItem =
+  (typeof ListClientsTrainingItem)[keyof typeof ListClientsTrainingItem];
+
+export const ListClientsTrainingItem = {
+  untrained: 'untrained',
+  overdue: 'overdue',
+  due: 'due',
+  current: 'current',
+} as const;
+
+export type ListClientsAttentionItem =
+  (typeof ListClientsAttentionItem)[keyof typeof ListClientsAttentionItem];
+
+export const ListClientsAttentionItem = {
+  documentsBehind: 'documentsBehind',
+  missingBasicData: 'missingBasicData',
+  signaturesPending: 'signaturesPending',
+  testsPending: 'testsPending',
+} as const;
+
+export type ListClientsCountyItem =
+  (typeof ListClientsCountyItem)[keyof typeof ListClientsCountyItem];
+
+export const ListClientsCountyItem = {
+  AB: 'AB',
+  AR: 'AR',
+  AG: 'AG',
+  BC: 'BC',
+  BH: 'BH',
+  BN: 'BN',
+  BT: 'BT',
+  BV: 'BV',
+  BR: 'BR',
+  B: 'B',
+  BZ: 'BZ',
+  CS: 'CS',
+  CL: 'CL',
+  CJ: 'CJ',
+  CT: 'CT',
+  CV: 'CV',
+  DB: 'DB',
+  DJ: 'DJ',
+  GL: 'GL',
+  GR: 'GR',
+  GJ: 'GJ',
+  HR: 'HR',
+  HD: 'HD',
+  IL: 'IL',
+  IS: 'IS',
+  IF: 'IF',
+  MM: 'MM',
+  MH: 'MH',
+  MS: 'MS',
+  NT: 'NT',
+  OT: 'OT',
+  PH: 'PH',
+  SM: 'SM',
+  SJ: 'SJ',
+  SB: 'SB',
+  SV: 'SV',
+  TR: 'TR',
+  TM: 'TM',
+  TL: 'TL',
+  VS: 'VS',
+  VL: 'VL',
+  VN: 'VN',
+} as const;
+
+export type ListClientsContractItem =
+  (typeof ListClientsContractItem)[keyof typeof ListClientsContractItem];
+
+export const ListClientsContractItem = {
+  endingWithin60Days: 'endingWithin60Days',
 } as const;
 
 export type LookupCompanyParams = {
@@ -15746,6 +15897,7 @@ export const ListEmployeesTrainingState = {
   due: 'due',
   overdue: 'overdue',
   untrained: 'untrained',
+  attention: 'attention',
 } as const;
 
 export type ListEmployeesTestState =
@@ -17895,6 +18047,22 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      'documentation',
+      'fireSafetyDocumentation',
+      'training',
+      'attention',
+      'county',
+      'contract',
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -17906,7 +18074,7 @@ export const getListClientsUrl = (params?: ListClientsParams) => {
 };
 
 /**
- * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. One sort key at a time; "legalName" is the default, "documentation" and "fireSafetyDocumentation" sort by the number of issued documents of the occupational safety set and of the fire-safety set, and "clientSince" by when the company became a client. A client carries where each of its documentation sets stands; a lead carries null for both, and its contract state instead.
+ * Paginated. `stage` chooses the clients, the default, or the leads, which only an owner may ask for (`403` otherwise); `status` chooses the active ones, the default, or the archived ones. Never both of either. `q` matches every term against the legal name, the CUI and the locality, ignoring diacritics, legal forms and an RO before the CUI. The filters (`documentation`, `fireSafetyDocumentation`, `training`, `attention`, `county`, `contract`) take one value or the parameter repeated; within one any value matches, across them every one must. They apply to clients only (`400` for leads), and `contract` only for an owner (`403` otherwise). The training filters never match an archived client, whose employees are not followed for training. One sort key at a time; "legalName" is the default, and leads sort only by "legalName", "cui" or "currentEmployeeCount" (`400` otherwise); "documentation" and "fireSafetyDocumentation" sort by the state of the set and then the number of issued documents, "training" by urgency, "nextTrainingDueOn" by the nearest due date with clients without one last, and "clientSince" by when the company became a client. A client carries where each of its documentation sets and the training of its employees stand; a lead carries null for these, and its contract state instead. `unfilteredTotal` counts the list with no search and no filter.
  * @summary List the organization's clients or its leads, active or archived
  */
 export const listClients = async (
@@ -19094,7 +19262,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain; "attention" keeps those untrained or overdue in either, as the clients list counts them. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (

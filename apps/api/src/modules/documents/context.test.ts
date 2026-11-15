@@ -5,7 +5,6 @@ import {
   buildDocumentContext,
   buildPartialDocumentContext,
   documentApplies,
-  documentationProgress,
   documentData,
   type DocumentFacts,
   documentGapConcerns,
@@ -1164,17 +1163,5 @@ describe('the annex on the electronic signature', () => {
       false
     );
     expect(documentApplies({ currentEmployeeCount: 1, hasParticipants: true }, typeKey)).toBe(true);
-  });
-
-  it('counts towards the documentation only where it applies or exists', () => {
-    const progress = (hasParticipants: boolean, generatedTypeKeys: string[] = []) =>
-      documentationProgress('occupational_safety', {
-        currentEmployeeCount: 5,
-        hasParticipants,
-        generatedTypeKeys,
-        issuedCount: 0,
-      }).totalCount;
-    expect(progress(true) - progress(false)).toBe(1);
-    expect(progress(false, ['signing_regulation_annex'])).toBe(progress(true));
   });
 });

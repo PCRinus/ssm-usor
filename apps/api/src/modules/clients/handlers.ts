@@ -1,9 +1,14 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type Client,
+  type ClientAttentionFilter,
   clientConflictReasons,
+  clientListFilterKeys,
+  type ClientListFilters,
   type ClientListItem,
+  clientSearchTerms,
   type ClientSortKey,
+  type ClientTrainingFilter,
   normalizeCui,
   pageRange,
   serviceContractTypeKey,
@@ -23,7 +28,6 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { clientObjectBuckets, createAdminFileStore } from '../../lib/files';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
-import { documentationProgress } from '../documents/context';
 import type {
   archiveClientRoute,
   createClientRoute,
@@ -133,28 +137,55 @@ function requireOwnerForLeads(role: string) {
   }
 }
 
+type SortColumn = { column: string; reversed?: boolean; nullsLast?: boolean };
+
 // The id keeps every order stable across pages.
-const sortColumns: Record<ClientSortKey, string[]> = {
-  legalName: ['legal_name'],
-  cui: ['cui'],
-  currentEmployeeCount: ['current_employee_count', 'legal_name'],
-  documentation: ['documentation_issued_count', 'legal_name'],
-  fireSafetyDocumentation: ['fire_safety_issued_count', 'legal_name'],
-  clientSince: ['client_since'],
+const sortColumns: Record<ClientSortKey, SortColumn[]> = {
+  legalName: [{ column: 'legal_name' }],
+  cui: [{ column: 'cui' }],
+  currentEmployeeCount: [{ column: 'current_employee_count' }, { column: 'legal_name' }],
+  documentation: [
+    { column: 'documentation_state' },
+    { column: 'documentation_issued_count' },
+    { column: 'legal_name' },
+  ],
+  fireSafetyDocumentation: [
+    { column: 'fire_safety_state' },
+    { column: 'fire_safety_issued_count' },
+    { column: 'legal_name' },
+  ],
+  training: [
+    { column: 'training_rank' },
+    { column: 'training_flagged_count', reversed: true },
+    { column: 'legal_name' },
+  ],
+  nextTrainingDueOn: [
+    { column: 'next_training_due_on', nullsLast: true },
+    { column: 'legal_name' },
+  ],
+  clientSince: [{ column: 'client_since' }],
 };
 
 const workColumns =
-  'client_since, documentation_generated_type_keys, documentation_issued_count, documentation_last_generated_at, fire_safety_generated_type_keys, fire_safety_issued_count, fire_safety_last_generated_at';
+  'client_since, documentation_issued_count, documentation_total_count, documentation_state, documentation_last_generated_at, fire_safety_issued_count, fire_safety_total_count, fire_safety_state, fire_safety_last_generated_at, training_employee_count, training_untrained_count, training_overdue_count, training_due_count, training_attention_count, next_training_due_on';
 
 type WorkRow = Pick<
   Database['public']['Views']['client_list']['Row'],
   | 'client_since'
-  | 'documentation_generated_type_keys'
   | 'documentation_issued_count'
+  | 'documentation_total_count'
+  | 'documentation_state'
   | 'documentation_last_generated_at'
-  | 'fire_safety_generated_type_keys'
   | 'fire_safety_issued_count'
+  | 'fire_safety_total_count'
+  | 'fire_safety_state'
   | 'fire_safety_last_generated_at'
+  | 'training_employee_count'
+  | 'training_untrained_count'
+  | 'training_overdue_count'
+  | 'training_due_count'
+  | 'training_attention_count'
+  | 'next_training_due_on'
 >;
 
 type ListedRow = SelectedClientRow & ContractDocuments & Partial<WorkRow>;
@@ -164,106 +195,214 @@ type ListedRow = SelectedClientRow & ContractDocuments & Partial<WorkRow>;
 const contractEmbed =
   'client_documents!client_documents_client_in_organization(type_key, document_revisions!document_revisions_document_in_organization(status, service_contract_sends(id), document_signed_copies(revision_id, confirmed_at)))';
 
-/** The listed clients with a participant or an open invitation, for the annex of ADR 023. */
-async function clientsWithParticipants(db: DataClient, clientIds: string[]) {
-  if (clientIds.length === 0) return new Set<string>();
-  const [participants, invitations] = await Promise.all([
-    db
-      .from('client_participants')
-      .select('client_id')
-      .in('client_id', clientIds)
-      .is('revoked_at', null),
-    db
-      .from('participant_invitations')
-      .select('client_id')
-      .in('client_id', clientIds)
-      .is('accepted_at', null)
-      .is('revoked_at', null)
-      .gt('expires_at', new Date().toISOString()),
-  ]);
-  if (participants.error) throw fromDatabaseError(participants.error, 'list participants');
-  if (invitations.error) throw fromDatabaseError(invitations.error, 'list invitations');
-  return new Set([...participants.data, ...invitations.data].map((row) => row.client_id));
-}
-
 // The generated types make every column of a view nullable.
-function toClientListItem(row: ListedRow, hasParticipants: boolean, adminTools: boolean) {
+function toClientListItem(row: ListedRow, adminTools: boolean) {
   const item: ClientListItem = {
     ...toClient(row),
     canDelete: row.archived_at !== null && adminTools,
     clientSince: null,
     documentation: null,
     fireSafetyDocumentation: null,
+    training: null,
   };
   if (row.stage === 'lead') return item;
-  const currentEmployeeCount = row.current_employee_count ?? 0;
   return {
     ...item,
     clientSince: row.client_since ?? row.created_at,
     documentation: {
-      ...documentationProgress('occupational_safety', {
-        currentEmployeeCount,
-        hasParticipants,
-        generatedTypeKeys: row.documentation_generated_type_keys ?? [],
-        issuedCount: row.documentation_issued_count ?? 0,
-      }),
+      state: row.documentation_state ?? 'none',
+      issuedCount: row.documentation_issued_count ?? 0,
+      totalCount: row.documentation_total_count ?? 0,
       lastGeneratedAt: row.documentation_last_generated_at ?? null,
     },
     fireSafetyDocumentation: {
-      ...documentationProgress('fire_safety', {
-        currentEmployeeCount,
-        hasParticipants,
-        generatedTypeKeys: row.fire_safety_generated_type_keys ?? [],
-        issuedCount: row.fire_safety_issued_count ?? 0,
-      }),
+      state: row.fire_safety_state ?? 'none',
+      issuedCount: row.fire_safety_issued_count ?? 0,
+      totalCount: row.fire_safety_total_count ?? 0,
       lastGeneratedAt: row.fire_safety_last_generated_at ?? null,
+    },
+    training: {
+      employeeCount: row.training_employee_count ?? 0,
+      untrainedCount: row.training_untrained_count ?? 0,
+      overdueCount: row.training_overdue_count ?? 0,
+      dueCount: row.training_due_count ?? 0,
+      attentionCount: row.training_attention_count ?? 0,
+      nextDueOn: row.next_training_due_on ?? null,
     },
   };
 }
 
+// A lead's row has none of the work these sort by.
+const clientOnlySortKeys = new Set<ClientSortKey>([
+  'documentation',
+  'fireSafetyDocumentation',
+  'training',
+  'nextTrainingDueOn',
+  'clientSince',
+]);
+
+const trainingMatches: Record<ClientTrainingFilter, string> = {
+  untrained: 'training_untrained_count.gt.0',
+  overdue: 'training_overdue_count.gt.0',
+  due: 'training_due_count.gt.0',
+  current: 'training_rank.eq.2',
+};
+
+const attentionMatches: Record<ClientAttentionFilter, string> = {
+  documentsBehind: 'documents_behind.is.true',
+  missingBasicData: 'missing_basic_data.is.true',
+  signaturesPending: 'signatures_pending_count.gt.0',
+  testsPending: 'tests_pending_count.gt.0',
+};
+
+type FilterableQuery<Query> = {
+  in(column: string, values: readonly string[]): Query;
+  or(filters: string): Query;
+  eq(column: string, value: boolean): Query;
+};
+
+// The terms come lowercase and without diacritics, as the search column holds the text, and
+// hold only letters and digits, which keeps PostgREST's filter syntax out of them.
+function matchingEveryTerm<Query extends { ilike(column: string, pattern: string): Query }>(
+  query: Query,
+  column: string,
+  q: string | undefined
+) {
+  return clientSearchTerms(q).reduce(
+    (matching, term) => matching.ilike(column, `*${term}*`),
+    query
+  );
+}
+
+function matchingFilters<Query extends FilterableQuery<Query>>(
+  query: Query,
+  filters: ClientListFilters
+) {
+  let filtered = query;
+  if (filters.documentation) filtered = filtered.in('documentation_state', filters.documentation);
+  if (filters.fireSafetyDocumentation) {
+    filtered = filtered.in('fire_safety_state', filters.fireSafetyDocumentation);
+  }
+  if (filters.training) {
+    filtered = filtered.or(filters.training.map((state) => trainingMatches[state]).join(','));
+  }
+  if (filters.attention) {
+    filtered = filtered.or(filters.attention.map((need) => attentionMatches[need]).join(','));
+  }
+  if (filters.county) filtered = filtered.in('county_code', filters.county);
+  if (filters.contract) filtered = filtered.eq('contract_ending_within_60_days', true);
+  return filtered;
+}
+
 export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async (c) => {
-  const { page, pageSize, sort, order, status, stage } = c.req.valid('query');
-  if (stage === 'lead') requireOwnerForLeads(c.get('membership').role);
+  const { page, pageSize, sort, order, status, stage, q, ...query } = c.req.valid('query');
+  const filters = Object.fromEntries(
+    clientListFilterKeys.flatMap((key) => (query[key] ? [[key, query[key]]] : []))
+  ) as ClientListFilters;
+  const filtered = Object.keys(filters).length > 0;
+  const role = c.get('membership').role;
+  if (stage === 'lead') requireOwnerForLeads(role);
+  if (stage === 'lead' && filtered) {
+    throw new ApiError('validation_error', 'Only clients, not leads, are filtered.');
+  }
+  if (stage === 'lead' && clientOnlySortKeys.has(sort)) {
+    throw new ApiError('validation_error', 'Leads are not sorted by the work on a client.');
+  }
+  if (filters.contract && role !== 'owner') {
+    throw new ApiError('forbidden', 'Only an owner of the organization filters by contract.');
+  }
   const db = createDataClient(c);
   const archived = status === 'archived' ? 'not.is' : 'is';
   const listed = () =>
     stage === 'lead'
       ? // The contract of a lead is what says where the lead stands. Owners only, as leads are.
-        db
-          .from('clients')
-          .select(`${clientColumns}, ${contractEmbed}`, { count: 'exact' })
-          .eq('stage', stage)
-          .filter('archived_at', archived, null)
-          .returns<ListedRow[]>()
-      : db
-          .from('client_list')
-          .select(`${clientColumns}, ${workColumns}`, { count: 'exact' })
-          .eq('stage', stage)
-          .filter('archived_at', archived, null)
-          .returns<ListedRow[]>();
-  let query = listed();
-  for (const column of sortColumns[sort])
-    query = query.order(column, { ascending: order === 'asc' });
+        matchingEveryTerm(
+          db
+            .from('clients')
+            .select(`${clientColumns}, ${contractEmbed}`, { count: 'exact' })
+            .eq('stage', stage)
+            .filter('archived_at', archived, null),
+          'client_search_text',
+          q
+        ).returns<ListedRow[]>()
+      : matchingFilters(
+          matchingEveryTerm(
+            db
+              .from('client_list')
+              .select(`${clientColumns}, ${workColumns}`, { count: 'exact' })
+              .eq('stage', stage)
+              .filter('archived_at', archived, null),
+            'search_text',
+            q
+          ),
+          filters
+        ).returns<ListedRow[]>();
+  // Counts only, so the page past the end does not compute every row's work again.
+  const counted = () =>
+    stage === 'lead'
+      ? matchingEveryTerm(
+          db
+            .from('clients')
+            .select('id', { count: 'exact', head: true })
+            .eq('stage', stage)
+            .filter('archived_at', archived, null),
+          'client_search_text',
+          q
+        )
+      : matchingFilters(
+          matchingEveryTerm(
+            db
+              .from('client_list')
+              .select('id', { count: 'exact', head: true })
+              .eq('stage', stage)
+              .filter('archived_at', archived, null),
+            'search_text',
+            q
+          ),
+          filters
+        );
+  const narrowed = filtered || clientSearchTerms(q).length > 0;
+  const everyClient = narrowed
+    ? db
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .eq('stage', stage)
+        .filter('archived_at', archived, null)
+    : null;
+  let listQuery = listed();
+  for (const { column, reversed, nullsLast } of sortColumns[sort]) {
+    listQuery = listQuery.order(column, {
+      ascending: reversed ? order === 'desc' : order === 'asc',
+      ...(nullsLast ? { nullsFirst: false } : {}),
+    });
+  }
   const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await query.order('id').range(from, to);
+  const [{ data, error, count }, all] = await Promise.all([
+    listQuery.order('id').range(from, to),
+    everyClient,
+  ]);
+  if (all?.error) throw fromDatabaseError(all.error, 'count clients');
+  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
   if (error?.code === 'PGRST103') {
     // The page lies past the end: empty, with the real total.
-    const recount = await listed().range(0, 0);
+    const recount = await counted();
     if (recount.error) throw fromDatabaseError(recount.error, 'count clients');
-    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+    const total = recount.count ?? 0;
+    return c.json(
+      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
+      200
+    );
   }
   if (error) throw fromDatabaseError(error, 'list clients');
-  const withParticipants = await clientsWithParticipants(
-    db,
-    stage === 'lead' ? [] : data.map((row) => row.id)
-  );
   const adminTools = adminToolsAllowed(c);
+  const total = count ?? 0;
   return c.json(
     {
-      items: data.map((row) => toClientListItem(row, withParticipants.has(row.id), adminTools)),
+      items: data.map((row) => toClientListItem(row, adminTools)),
       page,
       pageSize,
-      total: count ?? 0,
+      total,
+      unfilteredTotal: unfilteredTotal(total),
     },
     200
   );

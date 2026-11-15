@@ -3,9 +3,6 @@ import {
   clientListResponseSchema,
   clientOwnerNotesResponseSchema,
   clientResponseSchema,
-  documentTypeKeys,
-  fireSafetyDocumentTypeKeys,
-  fireSafetyTypeKeysFromTenEmployees,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -61,17 +58,22 @@ const clientRow = {
   archived_at: null,
 };
 
-// The pack without the annex on the electronic signature, which applies only with participants.
-const providerPack = documentTypeKeys.filter((key) => key !== 'signing_regulation_annex');
-
 const workRow = {
   client_since: '2026-09-17T10:00:00+00:00',
-  documentation_generated_type_keys: providerPack.slice(6),
   documentation_issued_count: 18,
+  documentation_total_count: 22,
+  documentation_state: 'in_progress',
   documentation_last_generated_at: '2026-09-20T10:00:00+00:00',
-  fire_safety_generated_type_keys: [],
   fire_safety_issued_count: 0,
+  fire_safety_total_count: 22,
+  fire_safety_state: 'none',
   fire_safety_last_generated_at: null,
+  training_employee_count: 8,
+  training_untrained_count: 2,
+  training_overdue_count: 1,
+  training_due_count: 3,
+  training_attention_count: 3,
+  next_training_due_on: '2026-11-20',
 };
 
 type Handler = (init?: RequestInit) => Response | Promise<Response>;
@@ -209,8 +211,17 @@ describe('GET /clients', () => {
             totalCount: 22,
             lastGeneratedAt: null,
           },
+          training: {
+            employeeCount: 8,
+            untrainedCount: 2,
+            overdueCount: 1,
+            dueCount: 3,
+            attentionCount: 3,
+            nextDueOn: '2026-11-20',
+          },
         },
       ],
+      unfilteredTotal: 1,
     });
     const [rpcUrl, rpcInit] = calls('/rest/v1/rpc/current_membership')[0]!;
     expect(new URL(String(rpcUrl)).origin).toBe('https://example.supabase.co');
@@ -227,6 +238,7 @@ describe('GET /clients', () => {
     expect(headers.get('Authorization')).toBe('Bearer test-access-token');
     expect(headers.get('Prefer')).toContain('count=exact');
     expect(listInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
@@ -243,10 +255,20 @@ describe('GET /clients', () => {
   });
 
   it.each([
-    ['documentation', 'asc', 'documentation_issued_count.asc,legal_name.asc,id.asc'],
-    ['documentation', 'desc', 'documentation_issued_count.desc,legal_name.desc,id.asc'],
-    ['fireSafetyDocumentation', 'asc', 'fire_safety_issued_count.asc,legal_name.asc,id.asc'],
-    ['fireSafetyDocumentation', 'desc', 'fire_safety_issued_count.desc,legal_name.desc,id.asc'],
+    [
+      'documentation',
+      'asc',
+      'documentation_state.asc,documentation_issued_count.asc,legal_name.asc,id.asc',
+    ],
+    [
+      'fireSafetyDocumentation',
+      'desc',
+      'fire_safety_state.desc,fire_safety_issued_count.desc,legal_name.desc,id.asc',
+    ],
+    ['training', 'asc', 'training_rank.asc,training_flagged_count.desc,legal_name.asc,id.asc'],
+    ['training', 'desc', 'training_rank.desc,training_flagged_count.asc,legal_name.desc,id.asc'],
+    ['nextTrainingDueOn', 'asc', 'next_training_due_on.asc.nullslast,legal_name.asc,id.asc'],
+    ['nextTrainingDueOn', 'desc', 'next_training_due_on.desc.nullslast,legal_name.desc,id.asc'],
     ['clientSince', 'desc', 'client_since.desc,id.asc'],
   ])('sorts by %s %s through the computed fields', async (sort, order, expected) => {
     mockUpstream({});
@@ -265,133 +287,109 @@ describe('GET /clients', () => {
     const body = clientListResponseSchema.parse(await (await request('/clients')).json());
     return body.items[0]!;
   };
-  const documentationOf = async (row: Record<string, unknown>) => (await itemOf(row)).documentation;
-  const fireSafetyDocumentationOf = async (row: Record<string, unknown>) =>
-    (await itemOf(row)).fireSafetyDocumentation;
 
-  it('says the documentation is not generated while no document of the set has a revision', async () => {
-    expect(
-      await documentationOf({
-        documentation_generated_type_keys: [],
-        documentation_issued_count: 0,
-        documentation_last_generated_at: null,
-      })
-    ).toEqual({ state: 'none', issuedCount: 0, totalCount: 22, lastGeneratedAt: null });
-  });
-
-  it('counts the workers representative decision from 10 current employees', async () => {
-    const issuedSet = providerPack.filter((key) => key !== 'decision_workers_representative');
-    expect(
-      await documentationOf({
-        current_employee_count: 9,
-        documentation_generated_type_keys: issuedSet,
-        documentation_issued_count: issuedSet.length,
-      })
-    ).toMatchObject({ state: 'issued', issuedCount: 22, totalCount: 22 });
-    expect(
-      await documentationOf({
-        current_employee_count: 10,
-        documentation_generated_type_keys: issuedSet,
-        documentation_issued_count: issuedSet.length,
-      })
-    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 23 });
-  });
-
-  it('keeps a workers representative decision that exists below 10 employees', async () => {
-    expect(
-      await documentationOf({
-        current_employee_count: 4,
-        documentation_generated_type_keys: [...providerPack],
-        documentation_issued_count: providerPack.length,
-      })
-    ).toMatchObject({ state: 'issued', issuedCount: 23, totalCount: 23 });
-  });
-
-  it('counts the annex on the electronic signature for a client with a participant or an open invitation', async () => {
-    const listed = async (handlers: Partial<Record<'participants' | 'invitations', Handler>>) => {
-      mockUpstream({
-        clients: () =>
-          Response.json(
-            [{ ...clientRow, ...workRow, documentation_generated_type_keys: providerPack }],
-            { headers: { 'Content-Range': '0-0/1' } }
-          ),
-        ...handlers,
-      });
-      const body = clientListResponseSchema.parse(await (await request('/clients')).json());
-      return body.items[0]!.documentation!.totalCount;
-    };
-    const withNobody = await listed({});
-    expect(await listed({ participants: () => Response.json([{ client_id: clientRow.id }]) })).toBe(
-      withNobody + 1
-    );
-    expect(await listed({ invitations: () => Response.json([{ client_id: clientRow.id }]) })).toBe(
-      withNobody + 1
-    );
-    const [participantsUrl] = calls('/rest/v1/client_participants').at(-1)!;
-    const participants = new URL(String(participantsUrl)).searchParams;
-    expect(participants.get('client_id')).toBe(`in.(${clientRow.id})`);
-    expect(participants.get('revoked_at')).toBe('is.null');
-    const [invitationsUrl] = calls('/rest/v1/participant_invitations').at(-1)!;
-    const invitations = new URL(String(invitationsUrl)).searchParams;
-    expect(invitations.get('accepted_at')).toBe('is.null');
-    expect(invitations.get('revoked_at')).toBe('is.null');
-    expect(invitations.get('expires_at')).toMatch(/^gt\./);
-  });
-
-  it('counts training themes still waiting for generated own instructions as not done', async () => {
-    const generated = providerPack.filter(
-      (key) => key !== 'decision_workers_representative' && key !== 'training_themes'
-    );
-    expect(
-      await documentationOf({
-        documentation_generated_type_keys: generated,
-        documentation_issued_count: generated.length,
-      })
-    ).toMatchObject({ state: 'in_progress', issuedCount: 21, totalCount: 22 });
-  });
-
-  it('counts the fire-safety documents required from ten employees from ten, or once they exist', async () => {
-    const fromTen: readonly string[] = fireSafetyTypeKeysFromTenEmployees;
-    const generated = fireSafetyDocumentTypeKeys.filter((key) => !fromTen.includes(key));
-    expect(
-      await fireSafetyDocumentationOf({
-        current_employee_count: 9,
-        fire_safety_generated_type_keys: generated,
-        fire_safety_issued_count: generated.length,
-        fire_safety_last_generated_at: '2026-10-01T10:00:00+00:00',
-      })
-    ).toEqual({
-      state: 'issued',
-      issuedCount: 22,
-      totalCount: 22,
-      lastGeneratedAt: '2026-10-01T10:00:00+00:00',
-    });
-    expect(
-      await fireSafetyDocumentationOf({
-        current_employee_count: 10,
-        fire_safety_generated_type_keys: generated,
-        fire_safety_issued_count: generated.length,
-      })
-    ).toMatchObject({ state: 'in_progress', issuedCount: 22, totalCount: 28 });
-    expect(
-      await fireSafetyDocumentationOf({
-        current_employee_count: 3,
-        fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys, 'fire_own_annex'],
-        fire_safety_issued_count: 29,
-      })
-    ).toMatchObject({ state: 'issued', issuedCount: 29, totalCount: 29 });
-  });
-
-  it('keeps the two sets apart', async () => {
+  it('keeps the two sets apart, as the list counts them', async () => {
     const item = await itemOf({
-      documentation_generated_type_keys: [],
+      documentation_state: 'none',
       documentation_issued_count: 0,
-      fire_safety_generated_type_keys: [...fireSafetyDocumentTypeKeys],
-      fire_safety_issued_count: fireSafetyDocumentTypeKeys.length,
+      documentation_total_count: 22,
+      fire_safety_state: 'issued',
+      fire_safety_issued_count: 28,
+      fire_safety_total_count: 28,
     });
     expect(item.documentation).toMatchObject({ state: 'none', totalCount: 22 });
     expect(item.fireSafetyDocumentation).toMatchObject({ state: 'issued', totalCount: 28 });
   });
+
+  it('reads no participants: the list counts the signing annex itself', async () => {
+    await itemOf({});
+    expect(calls('/rest/v1/client_participants')).toHaveLength(0);
+    expect(calls('/rest/v1/participant_invitations')).toHaveLength(0);
+  });
+
+  it('matches every search term in the name, CUI and locality, without legal forms or RO', async () => {
+    mockUpstream({});
+    await request(`/clients?q=${encodeURIComponent('S.C. Alfa Bacău RO1590082 S.R.L.')}`);
+    await request(`/clients?q=${encodeURIComponent('RO 15 900 82')}`);
+    const [named, cui] = calls('/rest/v1/client_list').map(
+      ([url]) => new URL(String(url)).searchParams
+    );
+    expect(named!.getAll('search_text')).toEqual([
+      'ilike.*alfa*',
+      'ilike.*bacau*',
+      'ilike.*1590082*',
+    ]);
+    expect(cui!.getAll('search_text')).toEqual(['ilike.*1590082*']);
+  });
+
+  it('searches the leads by the same text', async () => {
+    mockUpstream({});
+    await request('/clients?stage=lead&q=alfa');
+    const query = new URL(String(calls('/rest/v1/clients')[0]![0])).searchParams;
+    expect(query.get('client_search_text')).toBe('ilike.*alfa*');
+  });
+
+  it('filters by any value of one filter and by every filter', async () => {
+    mockUpstream({});
+    const response = await request(
+      '/clients?documentation=none&documentation=in_progress&fireSafetyDocumentation=issued&training=untrained&training=current&attention=documentsBehind&attention=missingBasicData&attention=signaturesPending&attention=testsPending&county=CJ&county=BH&contract=endingWithin60Days'
+    );
+    expect(response.status).toBe(200);
+    const query = new URL(String(calls('/rest/v1/client_list')[0]![0])).searchParams;
+    expect(query.get('documentation_state')).toBe('in.(none,in_progress)');
+    expect(query.get('fire_safety_state')).toBe('in.(issued)');
+    expect(query.getAll('or')).toEqual([
+      '(training_untrained_count.gt.0,training_rank.eq.2)',
+      '(documents_behind.is.true,missing_basic_data.is.true,signatures_pending_count.gt.0,tests_pending_count.gt.0)',
+    ]);
+    expect(query.get('county_code')).toBe('in.(CJ,BH)');
+    expect(query.get('contract_ending_within_60_days')).toBe('eq.true');
+    const select = query.get('select')!;
+    expect(select).not.toContain('documents_behind');
+    expect(select).not.toContain('contract_ending_within_60_days');
+  });
+
+  it('counts the whole list beside the filtered one', async () => {
+    mockUpstream({
+      clients: (init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/80' } })
+          : Response.json([{ ...clientRow, ...workRow }], {
+              headers: { 'Content-Range': '0-0/1' },
+            }),
+    });
+    const response = await request('/clients?county=CJ');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ total: 1, unfilteredTotal: 80 });
+    const [countUrl, countInit] = calls('/rest/v1/clients')[0]!;
+    const count = new URL(String(countUrl)).searchParams;
+    expect(countInit?.method).toBe('HEAD');
+    expect(count.get('stage')).toBe('eq.client');
+    expect(count.get('archived_at')).toBe('is.null');
+    expect(count.get('county_code')).toBeNull();
+  });
+
+  it('filters clients only, and by contract only for an owner', async () => {
+    mockUpstream({});
+    expect((await request('/clients?stage=lead&county=CJ')).status).toBe(400);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+
+    fetchMock.mockClear();
+    mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
+    const refused = await request('/clients?contract=endingWithin60Days');
+    expect(refused.status).toBe(403);
+    expect(calls('/rest/v1/client_list')).toHaveLength(0);
+    expect((await request('/clients?county=CJ&training=due')).status).toBe(200);
+  });
+
+  it.each(['county=XX', 'training=late', 'documentation=done', 'attention=everything'])(
+    'rejects an unknown filter value: %s',
+    async (search) => {
+      mockUpstream({});
+      expect((await request(`/clients?${search}`)).status).toBe(400);
+      expect(calls('/rest/v1/client_list')).toHaveLength(0);
+    }
+  );
 
   it('answers a page past the end with no rows and the real total', async () => {
     let call = 0;
@@ -406,8 +404,34 @@ describe('GET /clients', () => {
     });
     const response = await request('/clients?page=9');
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+    expect(await response.json()).toEqual({
+      items: [],
+      page: 9,
+      pageSize: 25,
+      total: 3,
+      unfilteredTotal: 3,
+    });
     expect(calls('/rest/v1/client_list')).toHaveLength(2);
+    const [recountUrl, recountInit] = calls('/rest/v1/client_list')[1]!;
+    expect(recountInit?.method).toBe('HEAD');
+    expect(new URL(String(recountUrl)).searchParams.get('select')).toBe('id');
+  });
+
+  it.each([
+    'training',
+    'nextTrainingDueOn',
+    'documentation',
+    'fireSafetyDocumentation',
+    'clientSince',
+  ])('refuses to sort leads by %s, which only a client has', async (sort) => {
+    mockUpstream({});
+    expect((await request(`/clients?stage=lead&sort=${sort}`)).status).toBe(400);
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
+  });
+
+  it.each(['legalName', 'cui'])('sorts leads by %s', async (sort) => {
+    mockUpstream({});
+    expect((await request(`/clients?stage=lead&sort=${sort}`)).status).toBe(200);
   });
 
   it('reads no contract for a client', async () => {
@@ -415,6 +439,7 @@ describe('GET /clients', () => {
     await request('/clients');
     const select = new URL(String(calls('/rest/v1/client_list')[0]![0])).searchParams.get('select');
     expect(select).toContain('fire_safety_issued_count');
+    expect(select).toContain('training_attention_count');
     expect(select).not.toContain('client_documents');
   });
 
@@ -436,6 +461,7 @@ describe('GET /clients', () => {
       clientSince: null,
       documentation: null,
       fireSafetyDocumentation: null,
+      training: null,
     });
   });
 
