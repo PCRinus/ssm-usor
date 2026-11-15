@@ -1343,7 +1343,7 @@ role, and the locks their organization.
 [ADR 027](architecture/adr-027-dashboard.md). `GET /dashboard/summary` answers every count of
 the dashboard in one request, computed each time: the organization's row of the view
 `dashboard_summary`, the twelve month ends of `dashboard_employees_at_month_ends`, and a count
-of the caller's own pending signature slots with the predicates of `GET /me/signature-requests`
+of the caller's own pending signature slots with the predicates of `GET /me/signatures`
 ([data model](data-model.md#dashboard)). All three read with the caller's token. `contracts` is
 null for a member who is not an owner; the policies would give a specialist zeros anyway. An
 organization without a row answers zeros.
@@ -1697,6 +1697,7 @@ routes below, the signing sessions among them; the signed sheet they sign on is 
 | `POST /clients/{clientId}/training-records/{recordId}/signatures/paper`  | The slots, after `{ slot, signerName, signerJobTitle? }` marked on paper      |
 | `POST /clients/{clientId}/training-records/{recordId}/signatures/void`   | The slots, after `{ reason }` voided every live signature and request         |
 | `GET /me/signature-requests`                                             | `{ items }`: the caller's own pending requests across clients, oldest first   |
+| `GET /me/signatures`                                                     | A page of the caller's pending signatures, a row per training or test sheet   |
 | `GET /clients/{clientId}/signature-requests`                             | `{ items }`: the client's requests in `?state=` (`pending` by default)        |
 | `GET /clients/{clientId}/employees/{employeeId}/signing-agreement`       | `200 application/pdf`, the act adițional drawn up on the spot                 |
 | `GET /clients/{clientId}/employees/{employeeId}/signing-agreement/link`  | `{ url, fileName, expiresInSeconds }`, a ten-minute link to the stored file   |
@@ -1788,6 +1789,18 @@ portal lists read the request rows, the employee's addressed to them as the part
 administrator's for the client with the secret key, then those records and test sheets, by id and
 client, with the secret key: a workplace manager signs other employees' admissions, and an
 examiner who is a participant other employees' test sheets. The administrator's list is refused to an employee with `403`.
+
+`GET /me/signatures` is the app's _Semnături_ place: the caller's own pending requests as
+trainer, verifier or examiner in the membership's organization, read from the view
+`signature_list` ([data model](data-model.md#the-signatures-list)), one row per training or test
+sheet with `slots`, `issuedAt` (the oldest request), `signatures` and `workers`, each worker with
+their agreement and their requests, so that the app can choose a whole row for a signing session
+without opening it. The trainee's slot and the admitter's are not listed. `sort` is `issuedAt`
+(the default, ascending), `day` or `client`, the oldest request breaking ties; `client`, `domain`
+and `kind` (a phase or `test`) filter, repeated for several values, and `q` matches every term
+within one worker's name, never a CNP. `total` and `unfilteredTotal` count rows, `signatures` and
+`unfilteredSignatures` the requests on them; they are read from the rows, a thousand at a time,
+since PostgREST caps a response and has no aggregates here.
 
 **The signing agreement** is drawn up like an individual training sheet: merged from the
 `signing_agreement` template with `buildSigningAgreementData` (the employee, the client's legal

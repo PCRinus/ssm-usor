@@ -15489,6 +15489,150 @@ export interface SignatureRequestListResponse {
   items: SignatureRequestListResponseItemsItem[];
 }
 
+export type SignatureListResponseItemsItemKind =
+  (typeof SignatureListResponseItemsItemKind)[keyof typeof SignatureListResponseItemsItemKind];
+
+export const SignatureListResponseItemsItemKind = {
+  training: 'training',
+  test_sheet: 'test_sheet',
+} as const;
+
+export type SignatureListResponseItemsItemClient = {
+  id: string;
+  name: string;
+};
+
+export type SignatureListResponseItemsItemDomain =
+  (typeof SignatureListResponseItemsItemDomain)[keyof typeof SignatureListResponseItemsItemDomain];
+
+export const SignatureListResponseItemsItemDomain = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureListResponseItemsItemPhase =
+  | (typeof SignatureListResponseItemsItemPhase)[keyof typeof SignatureListResponseItemsItemPhase]
+  | null;
+
+export const SignatureListResponseItemsItemPhase = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureListResponseItemsItemTest =
+  | (typeof SignatureListResponseItemsItemTest)[keyof typeof SignatureListResponseItemsItemTest]
+  | null;
+
+export const SignatureListResponseItemsItemTest = {
+  hiring: 'hiring',
+  annual: 'annual',
+} as const;
+
+export type SignatureListResponseItemsItemSlotsItem =
+  (typeof SignatureListResponseItemsItemSlotsItem)[keyof typeof SignatureListResponseItemsItemSlotsItem];
+
+export const SignatureListResponseItemsItemSlotsItem = {
+  trainer: 'trainer',
+  verifier: 'verifier',
+  examiner: 'examiner',
+} as const;
+
+export type SignatureListResponseItemsItemWorkersItemEmployee = {
+  id: string;
+  lastName: string;
+  firstName: string;
+};
+
+export type SignatureListResponseItemsItemWorkersItemAgreementState =
+  (typeof SignatureListResponseItemsItemWorkersItemAgreementState)[keyof typeof SignatureListResponseItemsItemWorkersItemAgreementState];
+
+export const SignatureListResponseItemsItemWorkersItemAgreementState = {
+  generated: 'generated',
+  signed_electronically: 'signed_electronically',
+  signed_on_paper: 'signed_on_paper',
+  withdrawn: 'withdrawn',
+  in_contract: 'in_contract',
+} as const;
+
+/**
+ * @nullable
+ */
+export type SignatureListResponseItemsItemWorkersItemAgreement = {
+  state: SignatureListResponseItemsItemWorkersItemAgreementState;
+  /** @nullable */
+  employeeSignedAt: string | null;
+  /** @nullable */
+  employerSignedAt: string | null;
+} | null;
+
+export type SignatureListResponseItemsItemWorkersItemRequestsItemSlot =
+  (typeof SignatureListResponseItemsItemWorkersItemRequestsItemSlot)[keyof typeof SignatureListResponseItemsItemWorkersItemRequestsItemSlot];
+
+export const SignatureListResponseItemsItemWorkersItemRequestsItemSlot = {
+  trainer: 'trainer',
+  verifier: 'verifier',
+  examiner: 'examiner',
+} as const;
+
+export type SignatureListResponseItemsItemWorkersItemRequestsItem = {
+  id: string;
+  slot: SignatureListResponseItemsItemWorkersItemRequestsItemSlot;
+};
+
+export type SignatureListResponseItemsItemWorkersItem = {
+  employee: SignatureListResponseItemsItemWorkersItemEmployee;
+  /** @nullable */
+  agreement: SignatureListResponseItemsItemWorkersItemAgreement;
+  /** @minItems 1 */
+  requests: SignatureListResponseItemsItemWorkersItemRequestsItem[];
+};
+
+export type SignatureListResponseItemsItem = {
+  id: string;
+  kind: SignatureListResponseItemsItemKind;
+  client: SignatureListResponseItemsItemClient;
+  domain: SignatureListResponseItemsItemDomain;
+  /** @nullable */
+  phase: SignatureListResponseItemsItemPhase;
+  /** @nullable */
+  test: SignatureListResponseItemsItemTest;
+  day: string;
+  /** @minItems 1 */
+  slots: SignatureListResponseItemsItemSlotsItem[];
+  issuedAt: string;
+  /** @minimum 1 */
+  signatures: number;
+  /** @minItems 1 */
+  workers: SignatureListResponseItemsItemWorkersItem[];
+};
+
+export interface SignatureListResponse {
+  items: SignatureListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
+  /** @minimum 0 */
+  signatures: number;
+  /** @minimum 0 */
+  unfilteredSignatures: number;
+}
+
 export type SigningAgreementResponseAgreementState =
   (typeof SigningAgreementResponseAgreementState)[keyof typeof SigningAgreementResponseAgreementState];
 
@@ -16718,6 +16862,74 @@ export type UpdateInvoiceEmail200 = {
    */
   email: string | null;
 };
+
+export type ListMySignaturesParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
+  sort?: ListMySignaturesSort;
+  order?: ListMySignaturesOrder;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  client?: string[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  domain?: ListMySignaturesDomainItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  kind?: ListMySignaturesKindItem[];
+};
+
+export type ListMySignaturesSort = (typeof ListMySignaturesSort)[keyof typeof ListMySignaturesSort];
+
+export const ListMySignaturesSort = {
+  issuedAt: 'issuedAt',
+  day: 'day',
+  client: 'client',
+} as const;
+
+export type ListMySignaturesOrder =
+  (typeof ListMySignaturesOrder)[keyof typeof ListMySignaturesOrder];
+
+export const ListMySignaturesOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
+
+export type ListMySignaturesDomainItem =
+  (typeof ListMySignaturesDomainItem)[keyof typeof ListMySignaturesDomainItem];
+
+export const ListMySignaturesDomainItem = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type ListMySignaturesKindItem =
+  (typeof ListMySignaturesKindItem)[keyof typeof ListMySignaturesKindItem];
+
+export const ListMySignaturesKindItem = {
+  introductory_general: 'introductory_general',
+  workplace: 'workplace',
+  periodic: 'periodic',
+  supplementary: 'supplementary',
+  test: 'test',
+} as const;
 
 export type ListClientSignatureRequestsParams = {
   state?: ListClientSignatureRequestsState;
@@ -43771,6 +43983,147 @@ export function useListMySignatureRequests<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListMySignatureRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListMySignaturesUrl = (params?: ListMySignaturesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['client', 'domain', 'kind'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/me/signatures?${stringifiedParams}` : `/me/signatures`;
+};
+
+/**
+ * For the Semnături place: the member's own pending requests as trainer, verifier or examiner in the membership's organization, grouped by training (or test sheet), each row with the member's slots on it and every worker with their requests, so that one row chooses all of them for a signing session. Paged and sorted by the oldest request (`issuedAt`), the day or the client; filtered by client, domain and `kind` (the training's phase, or `test`); `q` matches the workers' names only, never a CNP. `total` counts rows, `signatures` the requests on them, and both have an unfiltered twin.
+ * @summary The signed-in member's pending signatures, one row per training or test sheet
+ */
+export const listMySignatures = async (
+  params?: ListMySignaturesParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SignatureListResponse> => {
+  return apiFetch<SignatureListResponse>(getListMySignaturesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListMySignaturesQueryKey = (params?: ListMySignaturesParams) => {
+  return [`/me/signatures`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMySignaturesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMySignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListMySignaturesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMySignatures>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMySignaturesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMySignatures>>> = ({ signal }) =>
+    listMySignatures(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMySignatures>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListMySignaturesQueryResult = NonNullable<Awaited<ReturnType<typeof listMySignatures>>>;
+export type ListMySignaturesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListMySignatures<
+  TData = Awaited<ReturnType<typeof listMySignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | ListMySignaturesParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMySignatures>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMySignatures>>,
+          TError,
+          Awaited<ReturnType<typeof listMySignatures>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMySignatures<
+  TData = Awaited<ReturnType<typeof listMySignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListMySignaturesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMySignatures>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMySignatures>>,
+          TError,
+          Awaited<ReturnType<typeof listMySignatures>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMySignatures<
+  TData = Awaited<ReturnType<typeof listMySignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListMySignaturesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMySignatures>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The signed-in member's pending signatures, one row per training or test sheet
+ */
+
+export function useListMySignatures<
+  TData = Awaited<ReturnType<typeof listMySignatures>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListMySignaturesParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listMySignatures>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListMySignaturesQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

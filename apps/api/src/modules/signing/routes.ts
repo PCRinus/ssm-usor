@@ -2,10 +2,12 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   clientSignatureRequestsQuerySchema,
   fileLinkResponseSchema,
+  listMySignaturesQuerySchema,
   paperSignatureRequestSchema,
   portalSignatureRequestsResponseSchema,
   portalSigningAgreementsResponseSchema,
   recordSignaturesResponseSchema,
+  signatureListResponseSchema,
   signatureRequestListResponseSchema,
   signCodeRequestSchema,
   signerCandidatesResponseSchema,
@@ -197,6 +199,26 @@ export const listMySignatureRequestsRoute = createRoute({
   middleware: [requireAuth, requireMembership] as const,
   responses: {
     200: { description: 'The requests', content: requestListContent },
+    ...membershipErrors,
+  },
+});
+
+export const listMySignaturesRoute = createRoute({
+  method: 'get',
+  path: '/me/signatures',
+  operationId: 'listMySignatures',
+  summary: "The signed-in member's pending signatures, one row per training or test sheet",
+  description:
+    "For the Semnături place: the member's own pending requests as trainer, verifier or examiner in the membership's organization, grouped by training (or test sheet), each row with the member's slots on it and every worker with their requests, so that one row chooses all of them for a signing session. Paged and sorted by the oldest request (`issuedAt`), the day or the client; filtered by client, domain and `kind` (the training's phase, or `test`); `q` matches the workers' names only, never a CNP. `total` counts rows, `signatures` the requests on them, and both have an unfiltered twin.",
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { query: listMySignaturesQuerySchema },
+  responses: {
+    200: {
+      description: 'A page of rows',
+      content: json(signatureListResponseSchema, 'SignatureListResponse'),
+    },
+    400: { description: 'Invalid query', content: errorContent },
     ...membershipErrors,
   },
 });
