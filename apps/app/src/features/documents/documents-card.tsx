@@ -71,6 +71,7 @@ import { openedHere } from '@/app/opener';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
+import { sheetFlushCard } from '@/features/clients/sheet-flush';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
@@ -813,7 +814,11 @@ export function DocumentsCard<Set extends DocumentSet>({
     );
 
   return (
-    <Card data-testid="documents-card" className="gap-0 overflow-hidden py-0">
+    <Card
+      data-testid="documents-card"
+      data-sheet-flush
+      className={cn('gap-0 py-0', sheetFlushCard)}
+    >
       {pack ? (
         <PackLayout
           set={set}

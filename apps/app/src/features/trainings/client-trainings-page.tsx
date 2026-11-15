@@ -28,6 +28,7 @@ import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import { sheetFlushList } from '@/features/clients/sheet-flush';
 import { WorkersListError } from '@/features/employees/workers-list';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
@@ -178,12 +179,14 @@ export function ClientTrainingsPage() {
 
   return (
     <div data-testid="client-trainings-page" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Instruiri ținute</h2>
-        {!readOnly && trainings.isSuccess && !empty && recordButton}
-      </div>
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <h2 className="sr-only">Instruiri ținute</h2>
+      <div className={sheetFlushList}>
         <ListCardHeader>
+          {!readOnly && trainings.isSuccess && !empty && (
+            <div className="grid w-full md:order-last md:ml-auto md:flex md:w-auto">
+              {recordButton}
+            </div>
+          )}
           <FilterTabs label="Filtrează după domeniu">
             {domainFilters.map((filter) => (
               <FilterTab
@@ -234,7 +237,7 @@ export function ClientTrainingsPage() {
             </div>
           )}
           {trainings.isSuccess && (
-            <ListCount testId="trainings-count">
+            <ListCount testId="trainings-count" className="md:ml-0">
               {narrowed ? (
                 <>
                   <b className="font-semibold text-foreground">{meta.total}</b> din{' '}

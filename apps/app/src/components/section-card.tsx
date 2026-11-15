@@ -15,6 +15,9 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   help?: HelpTopic;
   action?: ReactNode;
   headingLevel?: 2 | 3;
+  // A title the tab above already shows: it stays for screen readers, and the description takes
+  // its place.
+  hideTitle?: boolean;
   // A title too long to share a phone's width with the action: the action takes its own row
   // as soon as the title cannot stay on one line beside it.
   longTitle?: boolean;
@@ -28,6 +31,7 @@ export function SectionCard({
   help,
   action,
   headingLevel = 2,
+  hideTitle = false,
   longTitle = false,
   className,
   children,
@@ -51,7 +55,8 @@ export function SectionCard({
             <Heading
               className={cn(
                 'text-lg leading-snug font-semibold whitespace-normal',
-                help && 'inline'
+                help && 'inline',
+                hideTitle && 'sr-only'
               )}
             >
               {title}
@@ -64,9 +69,12 @@ export function SectionCard({
               />
             )}
           </div>
+          {hideTitle && description && (
+            <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
+          )}
         </div>
         {action && <div className="flex flex-wrap gap-2">{action}</div>}
-        {description && (
+        {description && !hideTitle && (
           <div className="w-full">
             <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
           </div>

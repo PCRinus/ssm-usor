@@ -25,6 +25,7 @@ import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import { sheetFlushList } from '@/features/clients/sheet-flush';
 import {
   EmployeeImportButtons,
   EmployeesImportedCard,
@@ -178,17 +179,17 @@ export function EmployeesPage() {
 
   return (
     <div data-testid="employees-page" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Lucrători</h2>
-        {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
-          <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
-        )}
-      </div>
+      <h2 className="sr-only">Lucrători</h2>
       {!readOnly && <EmployeesOverStepNotice />}
       <EmployeesImportedCard clientId={clientId} />
       {!readOnly && <OpenEmployeeImports clientId={clientId} />}
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className={sheetFlushList}>
         <ListCardHeader>
+          {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
+            <div className="w-full md:order-last md:ml-auto md:w-auto">
+              <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
+            </div>
+          )}
           <FilterTabs label="Filtrează lucrătorii">
             {tabs.map((tab) => (
               <FilterTab
@@ -242,7 +243,7 @@ export function EmployeesPage() {
             </div>
           )}
           {employees.isSuccess && (
-            <ListCount testId="employees-count">
+            <ListCount testId="employees-count" className="md:ml-0">
               <WorkersCount
                 total={meta.total}
                 unfilteredTotal={unfilteredTotal}

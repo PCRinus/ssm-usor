@@ -9,6 +9,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { FileUp, Upload } from 'lucide-react';
 import { type MouseEvent, type ReactNode, useState } from 'react';
@@ -24,6 +25,7 @@ import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
+import { sheetFlushCard } from '@/features/clients/sheet-flush';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
@@ -56,6 +58,7 @@ export function ClientFilesCard({
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const isOwner = useMe().data?.membership?.role === 'owner';
   const lead = client.stage === 'lead';
+  const ofClient = !employee && !lead;
   const params = employee ? { employeeId: employee.id } : undefined;
   const queryKey = [...getListClientFilesQueryKey(client.id, params), userId];
   // Every file comes with a signed link, so the list fetches itself again before they expire.
@@ -181,7 +184,9 @@ export function ClientFilesCard({
       <SectionCard
         data-testid={employee ? 'employee-files-card' : 'client-files-card'}
         title={employee ? 'Documente' : 'Alte documente'}
-        className="relative"
+        hideTitle={ofClient}
+        data-sheet-flush={ofClient || undefined}
+        className={cn('relative', ofClient && sheetFlushCard)}
         description={
           <>
             {employee
