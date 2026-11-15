@@ -124,7 +124,7 @@ export function DataTable<TData extends RowData>({
                         variant="ghost"
                         size="sm"
                         data-testid={`sort-${header.column.id}`}
-                        className="-ml-3 gap-1.5 data-[sorted=true]:text-foreground"
+                        className="-ml-3 h-auto min-h-8 gap-1.5 py-1 text-left data-[sorted=true]:text-foreground"
                         data-sorted={Boolean(sorted)}
                         onClick={header.column.getToggleSortingHandler()}
                       >

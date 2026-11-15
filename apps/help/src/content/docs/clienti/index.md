@@ -26,6 +26,9 @@ sources:
   - apps/api/src/modules/documents/context.ts
   - apps/app/src/routes/_authenticated/clienti/index.tsx
   - apps/app/src/features/clients/client-columns.tsx
+  - apps/app/src/features/clients/training-cell.tsx
+  - apps/app/src/components/list-filters/list-filters.tsx
+  - supabase/migrations/20261118100000_client_list_filters.sql
   - apps/app/src/features/clients/documentation-badge.tsx
   - apps/app/src/features/clients/client-layout.tsx
   - apps/app/src/features/clients/client-archive-dialog.tsx
@@ -44,13 +47,45 @@ Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi priveșt
 
 **Clienți** din meniul lateral arată clienții organizației tale. Fiecare rând arată:
 
-- **Companie**: denumirea, cu localitatea și județul sediului dedesubt;
-- **CUI**: cu prefixul RO când firma e plătitoare de TVA;
+- **Companie**: denumirea, cu CUI-ul dedesubt, cu prefixul RO când firma e plătitoare de TVA;
 - **Lucrători**: câți lucrători actuali are clientul; foștii lucrători nu intră în număr;
 - **Documentație SSM** și **Documentație SU**: cât din fiecare set de documente e emis (vezi [Documentația SSM și SU](#documentația-ssm-și-su));
+- **Instruire**: cum stau cu instruirea lucrătorii actuali ai clientului, la SSM și la SU (vezi [Instruirea lucrătorilor în listă](#instruirea-lucrătorilor-în-listă));
+- **Următorul termen**: cea mai apropiată zi, de azi înainte, la care un lucrător actual trebuie instruit din nou, la SSM sau la SU. O liniuță înseamnă că nu e niciun termen de azi înainte, de exemplu când toți lucrătorii sunt de instruit;
 - **Adăugat**: ziua în care firma a devenit client, adică ziua în care ai adăugat-o sau, dacă a fost întâi ofertă, ziua în care a devenit client.
 
 Lista e ordonată după denumire și împărțită pe pagini. O poți ordona după oricare dintre coloane. Un clic pe rând deschide pagina clientului, la tabul **Detalii**. Din meniul de la capătul rândului ajungi la **Modifică**, care deschide același tab, și, dacă ești admin, la **Arhivează…**.
+
+Deasupra listei vezi câți clienți are. Când cauți sau filtrezi, vezi câți se potrivesc din total, de exemplu „12 din 80 de clienți”.
+
+### Instruirea lucrătorilor în listă
+
+Coloana **Instruire** adună starea instruirii tuturor lucrătorilor actuali ai clientului, la SSM și la SU (vezi [Starea instruirii](/clienti/angajati/#starea-instruirii)):
+
+- în roșu, **de instruit**: câți lucrători sunt neinstruiți sau au instruirea depășită, în cel puțin unul dintre domenii;
+- în galben, **scadente**: câți lucrători au instruirea scadentă în următoarele 30 de zile, când niciunul nu e de instruit;
+- **La zi**: toți lucrătorii actuali sunt la zi în ambele domenii;
+- o liniuță: clientul nu are lucrători actuali, sau e arhivat.
+
+Un clic pe această valoare deschide lista lucrătorilor clientului, filtrată exact pe lucrătorii numărați: **De instruit**, **Scadente** sau **La zi**.
+
+Ordonată după **Instruire**, lista arată întâi clienții cu lucrători de instruit, apoi pe cei cu instruiri scadente, apoi pe cei la zi și la sfârșit clienții fără lucrători. Ordonată după **Următorul termen**, clienții fără termen ajung mereu la sfârșit.
+
+### Căutarea și filtrele
+
+Câmpul de căutare găsește clienții după denumire, CUI sau localitate. Nu contează diacriticele și nici forma juridică: „SC Alfa SRL” găsește „ALFA S.R.L.”. CUI-ul îl poți scrie cu sau fără RO și cu spații sau puncte între cifre.
+
+Butonul **Filtre** deschide filtrele listei. Le poți combina; un client apare dacă se potrivește cu cel puțin o valoare aleasă din fiecare filtru:
+
+- **Documentație SSM** și **Documentație SU**: **Negenerată**, **În lucru** sau **Emisă**;
+- **Instruire**: **Neinstruiți**, clienții cu cel puțin un lucrător neinstruit; **Depășită**, cu cel puțin un lucrător cu instruirea depășită; **Scadentă în 30 de zile**, cu cel puțin un lucrător cu instruirea scadentă în următoarele 30 de zile; **La zi**, clienții la care toți lucrătorii sunt la zi;
+- **Necesită atenție**: **Documente de actualizat**, adică documente de generat din nou, pentru că s-a schimbat modelul lor sau instrucțiunile proprii pe care le citează; **Date de bază lipsă**, adică lipsesc date despre reprezentantul legal, persoanele desemnate sau posturi; **Semnături în așteptare**, de la lucrători; **Teste în așteptare**, ale lucrătorilor care așteaptă testul de la angajare;
+- **Județ**: județul sediului; poți alege mai multe;
+- **Contract**, doar pentru admini: **Se încheie în 60 de zile**, contractele care nu se prelungesc singure și se încheie în următoarele 60 de zile.
+
+Filtrele alese apar sub câmpul de căutare; scoți unul cu semnul x de lângă el, sau pe toate cu **Șterge filtrele**. Pe telefon, filtrele se deschid într-un panou de jos; le aplici cu butonul care arată câți clienți se potrivesc. Căutarea și filtrele rămân în adresa paginii, așa că le regăsești când revii sau dai înapoi.
+
+La **Arhivați** poți căuta, dar nu și filtra.
 
 Ofertele nu apar aici. Au lista lor, **Oferte**, pe care o văd doar adminii (vezi [Ofertele](#ofertele)).
 
@@ -63,7 +98,7 @@ Lista arată implicit clienții **Activi**. Un client arhivat trece la **Arhiva�
 Fiecare dintre cele două coloane arată unde se află un set de documente al clientului:
 
 - **Negenerată**: niciun document din set nu a fost generat încă;
-- **În lucru**: o parte din set e generată, dar nu toate documentele care i se aplică clientului sunt emise. Lângă stare vezi câte sunt emise, de exemplu „3 din 12 emise”;
+- **În lucru**: o parte din set e generată, dar nu toate documentele care i se aplică clientului sunt emise. Lângă stare vezi câte sunt emise din câte i se aplică, de exemplu „3/12”;
 - **Emisă**: toate documentele care i se aplică clientului sunt emise.
 
 Un document se numără ca emis de când are o versiune emisă, chiar dacă i-ai generat între timp o versiune nouă, încă ciornă.

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -46,7 +46,27 @@ const listed = (client: object = sampleClient, work: object = {}) => ({
     totalCount: 24,
     lastGeneratedAt: '2026-10-01T10:00:00+00:00',
   },
+  training: {
+    employeeCount: 8,
+    untrainedCount: 0,
+    overdueCount: 0,
+    dueCount: 0,
+    attentionCount: 0,
+    nextDueOn: '2027-02-14',
+  },
   ...work,
+});
+
+const training = (counts: Partial<Record<string, number | string | null>>) => ({
+  training: {
+    employeeCount: 8,
+    untrainedCount: 0,
+    overdueCount: 0,
+    dueCount: 0,
+    attentionCount: 0,
+    nextDueOn: null,
+    ...counts,
+  },
 });
 
 const meAs = (role: 'owner' | 'specialist') => () =>
@@ -86,11 +106,15 @@ const emptyDetails = {
   trainingDayTo: null,
 };
 
-const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
+const page = (
+  items: unknown[],
+  meta: Partial<{ page: number; total: number; unfilteredTotal: number }> = {}
+) => ({
   items,
   page: meta.page ?? 1,
   pageSize: 25,
   total: meta.total ?? items.length,
+  unfilteredTotal: meta.unfilteredTotal ?? meta.total ?? items.length,
 });
 
 type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
@@ -194,15 +218,16 @@ afterEach(() => {
 });
 
 describe('clients list', () => {
-  it('lists clients from the API with the VAT prefix and registered office', async () => {
+  it('lists clients from the API with the VAT prefix under the name', async () => {
     mockApi({ list: () => Response.json(page([listed()])) });
     mountApp(authFixture(makeSession()).client, '/clienti');
     const row = await screen.findByTestId('clients-row');
     expect(within(row).getByText('OMV PETROM SA')).toBeTruthy();
     expect(within(row).queryByText('CAEN 0610')).toBeNull();
     expect(screen.queryByRole('columnheader', { name: 'Sediu social' })).toBeNull();
-    expect(within(row).getByText('RO1590082')).toBeTruthy();
-    expect(within(row).getByText('Sector 1 Mun. București, București')).toBeTruthy();
+    expect(within(row).getByTestId('clients-cui').textContent).toBe('RO1590082');
+    expect(within(row).queryByText(/Sector 1/)).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: /^CUI/ })).toBeNull();
     // The list count, not what was declared.
     expect(within(row).getByText('8')).toBeTruthy();
     expect(within(row).queryByText('120')).toBeNull();
@@ -268,21 +293,22 @@ describe('clients list', () => {
     expect(within(none!).queryByTestId('clients-fire-safety-documentation-progress')).toBeNull();
     expect(within(working!).getByTestId('clients-documentation').textContent).toBe('În lucru');
     expect(within(working!).getByTestId('clients-documentation-progress').textContent).toBe(
-      '18 din 24 emise'
+      '18/24'
     );
+    expect(within(working!).getByText('18 din 24 emise').className).toContain('sr-only');
     expect(within(working!).getByTestId('clients-fire-safety-documentation').textContent).toBe(
       'În lucru'
     );
     expect(
       within(working!).getByTestId('clients-fire-safety-documentation-progress').textContent
-    ).toBe('1 din 24 emis');
+    ).toBe('1/24');
     expect(within(done!).getByTestId('clients-documentation').textContent).toBe('Emisă');
     expect(within(done!).getByTestId('clients-fire-safety-documentation').textContent).toBe(
       'Emisă'
     );
     expect(
       within(done!).getByTestId('clients-fire-safety-documentation-progress').textContent
-    ).toBe('24 din 24 emise');
+    ).toBe('24/24');
   });
 
   it('sorts by the progress of either documentation set through the API', async () => {
@@ -322,7 +348,7 @@ describe('clients list', () => {
     let answerSorted: (response: Response) => void = () => {};
     mockApi({
       list: (_, url) =>
-        url.searchParams.get('sort') === 'cui'
+        url.searchParams.get('sort') === 'currentEmployeeCount'
           ? new Promise<Response>((resolve) => {
               answerSorted = resolve;
             })
@@ -332,7 +358,7 @@ describe('clients list', () => {
     await screen.findByTestId('clients-row');
     const table = screen.getByRole('table');
     expect(table.getAttribute('aria-busy')).toBeNull();
-    await userEvent.setup().click(screen.getByTestId('sort-cui'));
+    await userEvent.setup().click(screen.getByTestId('sort-currentEmployeeCount'));
     await waitFor(() => expect(table.getAttribute('aria-busy')).toBe('true'));
     expect(screen.getByTestId('clients-row').closest('tbody')?.className).toContain('opacity-50');
     answerSorted(Response.json(page([sampleClient])));
@@ -340,6 +366,392 @@ describe('clients list', () => {
     expect(screen.getByTestId('clients-row').closest('tbody')?.className).not.toContain(
       'opacity-50'
     );
+  });
+
+  it('rolls up the training of each client and opens its workers in that state', async () => {
+    mockApi({
+      list: () =>
+        Response.json(
+          page([
+            listed(
+              { ...sampleClient, id: 'a1', legalName: 'NEINSTRUITI SRL' },
+              training({ untrainedCount: 3, attentionCount: 3 })
+            ),
+            listed(
+              { ...sampleClient, id: 'a2', legalName: 'AMESTEC SRL' },
+              training({ untrainedCount: 1, overdueCount: 2, attentionCount: 3, dueCount: 1 })
+            ),
+            listed(
+              { ...sampleClient, id: 'a3', legalName: 'SCADENTE SRL' },
+              training({ dueCount: 1, nextDueOn: '2026-11-20' })
+            ),
+            listed({ ...sampleClient, id: 'a4', legalName: 'LA ZI SRL' }),
+            listed(
+              { ...sampleClient, id: 'a5', legalName: 'FARA OAMENI SRL' },
+              training({ employeeCount: 0 })
+            ),
+          ])
+        ),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
+    const [untrained, mixed, due, current, empty] = await screen.findAllByTestId('clients-row');
+    expect(within(untrained!).getByTestId('clients-training').textContent).toBe('3 de instruit');
+    expect(within(mixed!).getByTestId('clients-training').textContent).toBe('3 de instruit');
+    expect(within(due!).getByTestId('clients-training').textContent).toBe('1 scadentă');
+    expect(within(due!).getByText('20.11.2026')).toBeTruthy();
+    expect(within(current!).getByTestId('clients-training').textContent).toBe('La zi');
+    expect(within(current!).getByText('14.02.2027')).toBeTruthy();
+    expect(within(empty!).queryByTestId('clients-training')).toBeNull();
+    expect(within(untrained!).getByTestId('clients-training').getAttribute('href')).toBe(
+      '/clienti/a1/angajati?trainingState=attention'
+    );
+    expect(within(mixed!).getByTestId('clients-training').getAttribute('href')).toBe(
+      '/clienti/a2/angajati?trainingState=attention'
+    );
+    expect(within(current!).getByTestId('clients-training').getAttribute('href')).toBe(
+      '/clienti/a4/angajati?trainingState=current'
+    );
+    expect(within(due!).getByTestId('clients-training').getAttribute('href')).toBe(
+      '/clienti/a3/angajati?trainingState=due'
+    );
+    await userEvent.setup().click(screen.getByTestId('sort-training'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'training' }));
+    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.get('sort')).toBe(
+      'training'
+    );
+  });
+
+  it('searches through the URL and counts the matches out of every client', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.get('q')
+            ? page([listed()], { total: 1, unfilteredTotal: 80 })
+            : page([listed()], { total: 80 })
+        ),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
+    await screen.findByTestId('clients-row');
+    expect(screen.getByTestId('clients-count').textContent).toBe('80 de clienți');
+    await userEvent.setup().type(screen.getByTestId('clients-search'), 'RO 1590082');
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'RO 1590082' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('clients-count').textContent).toBe('1 din 80 de clienți')
+    );
+    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.get('q')).toBe(
+      'RO 1590082'
+    );
+  });
+
+  it('filters from the panel, shows each filter in the strip, and removes it there', async () => {
+    mockApi({
+      me: meAs('owner'),
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.has('training')
+            ? page([listed()], { total: 1, unfilteredTotal: 26 })
+            : page([listed()], { total: 26 })
+        ),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
+    const user = userEvent.setup();
+    await screen.findByTestId('clients-row');
+    await user.click(screen.getByTestId('clients-filters'));
+    const panel = await screen.findByTestId('clients-filters-panel');
+    expect(within(panel).getByText('Contract')).toBeTruthy();
+    await user.click(within(panel).getByTestId('clients-filters-training-untrained'));
+    await user.click(within(panel).getByTestId('clients-filters-training-overdue'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({
+        training: ['untrained', 'overdue'],
+      })
+    );
+    const query = new URL(String(requests('/clients').at(-1)![0])).searchParams;
+    expect(query.getAll('training')).toEqual(['untrained', 'overdue']);
+    await waitFor(() =>
+      expect(screen.getByTestId('clients-count').textContent).toBe('1 din 26 de clienți')
+    );
+    expect(screen.getByTestId('clients-filters-count').textContent).toBe('1');
+    expect(within(panel).getByTestId('clients-filters-show').textContent).toBe('Arată 1 client');
+    await user.click(within(panel).getByTestId('clients-filters-show'));
+    const strip = screen.getByTestId('clients-applied-filters');
+    expect(within(strip).getByTestId('clients-applied-filters-training').textContent).toContain(
+      'Neinstruiți, Depășită'
+    );
+    await user.click(within(strip).getByRole('button', { name: 'Scoate filtrul Instruire' }));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(screen.queryByTestId('clients-applied-filters')).toBeNull();
+  });
+
+  it('picks counties from their own searchable list', async () => {
+    mockApi({ list: () => Response.json(page([listed()])) });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
+    const user = userEvent.setup();
+    await screen.findByTestId('clients-row');
+    await user.click(screen.getByTestId('clients-filters'));
+    await user.click(await screen.findByTestId('clients-filters-county-add'));
+    await user.type(await screen.findByTestId('clients-filters-county-search'), 'bistrita');
+    await user.click(screen.getByTestId('clients-filters-county-BN'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ county: ['BN'] }));
+    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.getAll('county')).toEqual([
+      'BN',
+    ]);
+  });
+
+  it("keeps an owner's contract filter from a link while the role loads", async () => {
+    mockApi({ me: meAs('owner'), list: () => Response.json(page([listed()])) });
+    mountApp(authFixture(makeSession()).client, '/clienti?contract=%5B%22endingWithin60Days%22%5D');
+    await screen.findByTestId('clients-row');
+    expect(requests('/clients').length).toBeGreaterThan(0);
+    expect(
+      requests('/clients').every(
+        ([url]) => new URL(String(url)).searchParams.get('contract') === 'endingWithin60Days'
+      )
+    ).toBe(true);
+    expect(screen.getByTestId('clients-applied-filters-contract')).toBeTruthy();
+  });
+
+  it('keeps the contract filter away from a specialist, even from a link', async () => {
+    mockApi({ me: meAs('specialist'), list: () => Response.json(page([listed()])) });
+    mountApp(
+      authFixture(makeSession()).client,
+      '/clienti?contract=%5B%22endingWithin60Days%22%5D&county=%5B%22CJ%22%5D'
+    );
+    await screen.findByTestId('clients-row');
+    await waitFor(() =>
+      expect(
+        new URL(String(requests('/clients').at(-1)![0])).searchParams.getAll('county')
+      ).toEqual(['CJ'])
+    );
+    expect(
+      requests('/clients').every(([url]) => !new URL(String(url)).searchParams.has('contract'))
+    ).toBe(true);
+    await userEvent.setup().click(screen.getByTestId('clients-filters'));
+    const panel = await screen.findByTestId('clients-filters-panel');
+    expect(within(panel).queryByText('Contract')).toBeNull();
+  });
+
+  it('says when no client matches, and clears the filters from there', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.has('training')
+            ? page([], { total: 0, unfilteredTotal: 80 })
+            : page([listed()], { total: 80 })
+        ),
+    });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      '/clienti?training=%5B%22overdue%22%5D'
+    );
+    const empty = await screen.findByTestId('clients-empty-filtered');
+    expect(screen.queryByTestId('clients-empty')).toBeNull();
+    expect(screen.getByTestId('clients-count').textContent).toBe('0 din 80 de clienți');
+    expect(screen.getByTestId('clients-add')).toBeTruthy();
+    expect(screen.getByTestId('clients-applied-filters')).toBeTruthy();
+    await userEvent.setup().click(within(empty).getByTestId('clients-empty-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await screen.findByTestId('clients-row');
+  });
+
+  it('clears the filters from the panel and from the strip, leaving the search', async () => {
+    mockApi({ list: () => Response.json(page([listed()])) });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      '/clienti?q=alfa&county=%5B%22CJ%22%5D&training=%5B%22due%22%5D'
+    );
+    const user = userEvent.setup();
+    await screen.findByTestId('clients-row');
+    await user.click(screen.getByTestId('clients-applied-filters-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'alfa' }));
+
+    await act(() =>
+      runtime.router.navigate({
+        to: '/clienti',
+        search: { q: 'alfa', county: ['BH'] },
+      })
+    );
+    await user.click(await screen.findByTestId('clients-filters'));
+    const panel = await screen.findByTestId('clients-filters-panel');
+    await user.click(within(panel).getByTestId('clients-filters-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'alfa' }));
+  });
+
+  it('keeps the good values of a filter when a link holds a bad one', async () => {
+    mockApi({ list: () => Response.json(page([listed()])) });
+    mountApp(authFixture(makeSession()).client, '/clienti?county=%5B%22CJ%22%2C%22XX%22%5D');
+    await screen.findByTestId('clients-row');
+    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.getAll('county')).toEqual([
+      'CJ',
+    ]);
+  });
+
+  it('loads the list without the contract filter when the account cannot be read', async () => {
+    mockApi({
+      me: () => Response.json({ error: 'internal_error' }, { status: 500 }),
+      list: () => Response.json(page([listed()])),
+    });
+    mountApp(authFixture(makeSession()).client, '/clienti?contract=%5B%22endingWithin60Days%22%5D');
+    await screen.findByTestId('clients-row', {}, { timeout: 5000 });
+    expect(
+      requests('/clients').every(([url]) => !new URL(String(url)).searchParams.has('contract'))
+    ).toBe(true);
+  });
+
+  it('announces the count as it changes, in the list and in the panel', async () => {
+    mockApi({ list: () => Response.json(page([listed()])) });
+    mountApp(authFixture(makeSession()).client, '/clienti');
+    await screen.findByTestId('clients-row');
+    expect(screen.getByTestId('clients-count').getAttribute('aria-live')).toBe('polite');
+    await userEvent.setup().click(screen.getByTestId('clients-filters'));
+    const show = within(await screen.findByTestId('clients-filters-panel')).getByTestId(
+      'clients-filters-show'
+    );
+    expect(show.querySelector('[aria-live="polite"]')?.textContent).toBe('Arată 1 client');
+  });
+
+  it('clears a search that finds nothing from the empty state', async () => {
+    mockApi({
+      list: (_, url) =>
+        Response.json(
+          url.searchParams.get('q')
+            ? page([], { total: 0, unfilteredTotal: 25 })
+            : page([listed()], { total: 25 })
+        ),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti?q=zzz');
+    const empty = await screen.findByTestId('clients-empty-filtered');
+    expect(within(empty).getByText(/căutării „zzz”/)).toBeTruthy();
+    const clear = within(empty).getByTestId('clients-empty-clear');
+    expect(clear.textContent).toBe('Șterge căutarea');
+    await userEvent.setup().click(clear);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await screen.findByTestId('clients-row');
+  });
+
+  it('offers no filters among the archived clients, and still searches them', async () => {
+    mockApi({ list: () => Response.json(page([listed(archivedClient)])) });
+    mountApp(authFixture(makeSession()).client, '/clienti?status=archived&county=%5B%22CJ%22%5D');
+    await screen.findByTestId('clients-row');
+    expect(screen.getByTestId('clients-search')).toBeTruthy();
+    expect(screen.queryByTestId('clients-filters')).toBeNull();
+    expect(screen.queryByTestId('clients-applied-filters')).toBeNull();
+    expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.has('county')).toBe(false);
+  });
+
+  describe('on a phone', () => {
+    beforeEach(() => {
+      const media = window.matchMedia;
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({ ...media(query), matches: query === '(max-width: 767px)' }))
+      );
+    });
+
+    it('leaves the list as it was when the sheet closes without applying', async () => {
+      mockApi({ list: () => Response.json(page([listed()])) });
+      const runtime = mountApp(authFixture(makeSession()).client, '/clienti?county=%5B%22CJ%22%5D');
+      const user = userEvent.setup();
+      await screen.findByTestId('clients-row');
+      await user.click(screen.getByTestId('clients-filters'));
+      const sheet = await screen.findByTestId('clients-filters-sheet');
+      await user.click(within(sheet).getByTestId('clients-filters-group-training'));
+      await user.click(within(sheet).getByTestId('clients-filters-training-due'));
+      await user.click(within(sheet).getByTestId('clients-filters-clear'));
+      expect(within(sheet).getByTestId('clients-filters-open-county').textContent).toContain(
+        'Toate'
+      );
+      await user.click(within(sheet).getByRole('button', { name: 'Închide' }));
+      await waitFor(() => expect(screen.queryByTestId('clients-filters-sheet')).toBeNull());
+      expect(runtime.router.state.location.search).toEqual({ county: ['CJ'] });
+    });
+
+    it('clears every filter from the sheet once applied', async () => {
+      mockApi({ list: () => Response.json(page([listed()])) });
+      const runtime = mountApp(
+        authFixture(makeSession()).client,
+        '/clienti?county=%5B%22CJ%22%5D&training=%5B%22due%22%5D'
+      );
+      const user = userEvent.setup();
+      await screen.findByTestId('clients-row');
+      await user.click(screen.getByTestId('clients-filters'));
+      const sheet = await screen.findByTestId('clients-filters-sheet');
+      await user.click(within(sheet).getByTestId('clients-filters-clear'));
+      await user.click(within(sheet).getByTestId('clients-filters-apply'));
+      await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    });
+
+    it('moves focus into the county list and back to its row, and Escape goes back', async () => {
+      mockApi({ list: () => Response.json(page([listed()])) });
+      mountApp(authFixture(makeSession()).client, '/clienti');
+      const user = userEvent.setup();
+      await screen.findByTestId('clients-row');
+      await user.click(screen.getByTestId('clients-filters'));
+      const sheet = await screen.findByTestId('clients-filters-sheet');
+      await user.click(within(sheet).getByTestId('clients-filters-open-county'));
+      const search = await within(sheet).findByTestId('clients-filters-county-search');
+      await waitFor(() => expect(document.activeElement).toBe(search));
+      await user.click(within(sheet).getByTestId('clients-filters-county-CJ'));
+      await user.click(within(sheet).getByTestId('clients-filters-back'));
+      await waitFor(() =>
+        expect(document.activeElement).toBe(
+          within(sheet).getByTestId('clients-filters-open-county')
+        )
+      );
+      await user.click(within(sheet).getByTestId('clients-filters-open-county'));
+      await within(sheet).findByTestId('clients-filters-county-search');
+      await user.keyboard('{Escape}');
+      const row = await within(sheet).findByTestId('clients-filters-open-county');
+      expect(row.textContent).toContain('Cluj');
+      expect(screen.getByTestId('clients-filters-sheet')).toBeTruthy();
+    });
+
+    it('chooses in a sheet that counts the choice before showing it', async () => {
+      mockApi({
+        list: (_, url) =>
+          Response.json(
+            url.searchParams.has('county')
+              ? page([listed()], { total: 3, unfilteredTotal: 80 })
+              : page([listed()], { total: 80 })
+          ),
+      });
+      const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
+      const user = userEvent.setup();
+      await screen.findByTestId('clients-row');
+      const counts = () =>
+        requests('/clients').filter(
+          ([url]) => new URL(String(url)).searchParams.get('pageSize') === '1'
+        );
+      expect(counts()).toHaveLength(0);
+      await user.click(screen.getByTestId('clients-filters'));
+      const sheet = await screen.findByTestId('clients-filters-sheet');
+      expect(within(sheet).getByTestId('clients-filters-apply').textContent).toBe(
+        'Arată 80 de clienți'
+      );
+      await user.click(within(sheet).getByTestId('clients-filters-open-county'));
+      await user.click(await within(sheet).findByTestId('clients-filters-county-CJ'));
+      await waitFor(() =>
+        expect(within(sheet).getByTestId('clients-filters-apply').textContent).toBe(
+          'Arată 3 clienți'
+        )
+      );
+      expect(runtime.router.state.location.search).toEqual({});
+      await user.click(within(sheet).getByTestId('clients-filters-back'));
+      expect(within(sheet).getByTestId('clients-filters-open-county').textContent).toContain(
+        'Cluj'
+      );
+      await user.click(within(sheet).getByTestId('clients-filters-apply'));
+      await waitFor(() => expect(runtime.router.state.location.search).toEqual({ county: ['CJ'] }));
+      await waitFor(() => expect(screen.queryByTestId('clients-filters-sheet')).toBeNull());
+
+      await user.click(screen.getByRole('button', { name: 'Scoate filtrul Județ' }));
+      await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+      await user.click(screen.getByTestId('clients-filters'));
+      const reopened = await screen.findByTestId('clients-filters-sheet');
+      expect(within(reopened).getByTestId('clients-filters-open-county').textContent).toContain(
+        'Toate'
+      );
+    });
   });
 
   it('opens a client from anywhere on its row', async () => {
