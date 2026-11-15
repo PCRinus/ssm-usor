@@ -1176,7 +1176,7 @@ describe('POST /billing/stripe-webhook', () => {
           'Total Stripe: 180,30 EUR · liniile cu TVA: 180,29 EUR',
           'Motiv: Stripe invoice in_1Paid: its lines with their VAT make 18029 cents, not the 18030 charged; no Oblio document was issued.',
           'Clientul a plătit și nu are factură; reîncercările lui Stripe, timp de trei zile, vor eșua la fel.',
-          'Ce faci: emite-o manual în Oblio, sau corectează cauza și retrimite evenimentul din Stripe.',
+          'Ce faci: emite-o manual în Oblio și nu mai retrimite evenimentul, sau corectează cauza și retrimite-l din Stripe.',
         ].join('\n'),
       ]);
       expect(marks(fake)).toEqual([
@@ -1218,6 +1218,50 @@ describe('POST /billing/stripe-webhook', () => {
       expect(posted).toContain('[email]');
       expect(posted).not.toContain(owner.email);
       expect(posted).toContain('dacă o reîncercare reușește, documentul se emite singur');
+      expect(posted).toContain('Nu o emite manual cât timp Stripe reîncearcă');
+    });
+
+    it('tells the operator when the paid invoice fails before it reaches Oblio', async () => {
+      const fake = createFake();
+      fake.tables.subscriptions!.push(subscriptionRow({ stripe_customer_id: 'cus_1Test' }));
+      fake.stripe['GET /v1/invoices/in_1Paid'] = () =>
+        paidInvoice({ billing_reason: 'subscription_create' });
+      fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+        stripeSubscription({
+          choice: pro,
+          lines: [{ lookupKey: 'sms_overage_monthly_v2', quantity: undefined }],
+        });
+
+      const response = await deliver(paidEvent, alerting);
+
+      expect(response.status).toBe(500);
+      expect(discordPosts(fake)).toEqual([
+        expect.stringMatching(/emiterea în Oblio a eșuat[\s\S]*has no plan of the catalogue/),
+      ]);
+    });
+
+    it('posts nothing when the document is issued and only its PDF copy failed', async () => {
+      const fake = createFake();
+      paying(fake);
+      fake.tables.billing_invoices!.push({
+        stripe_invoice_id: 'in_1Paid',
+        organization_id: organizationId,
+        stripe_account: accountId,
+        kind: 'invoice',
+        amount_cents: 18029,
+        currency: 'eur',
+        issued_at: '2026-11-15T10:00:00Z',
+        oblio_series: 'SSMUSOR',
+        oblio_number: '0001',
+        oblio_link: 'https://www.oblio.eu/utils/missing',
+        pdf_path: null,
+      });
+      fake.oblio['GET /utils/missing'] = () => new Response('gone', { status: 404 });
+
+      const response = await deliver(paidEvent, alerting);
+
+      expect(response.status).toBe(500);
+      expect(discordPosts(fake)).toEqual([]);
     });
 
     it('tells the operator when the company details are missing', async () => {
@@ -1307,7 +1351,7 @@ describe('POST /billing/stripe-webhook', () => {
       expect(marks(fake)).toEqual([]);
     });
 
-    it('never lets a Discord that is down change the answer, and posts on the next delivery', async () => {
+    it('never lets a Discord that is down change the answer', async () => {
       const fake = createFake();
       paying(fake);
       fake.oblio['GET /api/docs/invoice/list'] = () => ({

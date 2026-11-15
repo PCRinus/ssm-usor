@@ -20,7 +20,7 @@ describe('billingAlertMessage', () => {
       'Factura Stripe: fără număr · in_1Live',
       '<https://dashboard.stripe.com/acct_1Live/invoices/in_1Live>',
       'De plată: 47,19 EUR',
-      'Stripe reîncearcă plata; acces complet până la necunoscută.',
+      'Stripe reîncearcă plata.',
       'Ce faci: nimic deocamdată; dacă plata nu trece, ia legătura cu clientul.',
     ]);
   });

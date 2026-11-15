@@ -73,7 +73,7 @@ const invoiceLines = (invoice: StripeInvoiceRef) => [
   stripeLink(invoice, 'invoices'),
 ];
 
-const day = (iso: string | null) => (iso ? iso.slice(0, 10) : 'necunoscută');
+const day = (iso: string) => iso.slice(0, 10);
 
 export function billingAlertMessage(alert: BillingAlert, organizationName: string): AlertMessage {
   const organization = `Organizația: ${organizationName} · ${alert.organizationId}`;
@@ -96,7 +96,9 @@ export function billingAlertMessage(alert: BillingAlert, organizationName: strin
           linesMismatch
             ? `Clientul a plătit și nu are ${document}; reîncercările lui Stripe, timp de trei zile, vor eșua la fel.`
             : `Clientul a plătit și nu are ${document}; Stripe reîncearcă evenimentul timp de trei zile, iar dacă o reîncercare reușește, documentul se emite singur.`,
-          `Ce faci: emite-o manual în Oblio, sau corectează cauza și retrimite evenimentul din Stripe.`,
+          linesMismatch
+            ? 'Ce faci: emite-o manual în Oblio și nu mai retrimite evenimentul, sau corectează cauza și retrimite-l din Stripe.'
+            : `Ce faci: corectează cauza, dacă nu trece singură, și retrimite evenimentul din Stripe. Nu o emite manual cât timp Stripe reîncearcă, ca să nu iasă două; verifică întâi în Oblio dacă nu există deja.`,
         ],
       };
     }
@@ -134,7 +136,9 @@ export function billingAlertMessage(alert: BillingAlert, organizationName: strin
           organization,
           ...invoiceLines(alert.invoice),
           `De plată: ${amount(alert.due)}`,
-          `Stripe reîncearcă plata; acces complet până la ${day(alert.accessUntil)}.`,
+          alert.accessUntil
+            ? `Stripe reîncearcă plata; acces complet până la ${day(alert.accessUntil)}.`
+            : 'Stripe reîncearcă plata.',
           'Ce faci: nimic deocamdată; dacă plata nu trece, ia legătura cu clientul.',
         ],
       };
@@ -146,7 +150,9 @@ export function billingAlertMessage(alert: BillingAlert, organizationName: strin
           organization,
           `Abonament Stripe: ${alert.subscription.id}`,
           stripeLink(alert.subscription, 'subscriptions'),
-          `Organizația trece pe doar citire la ${day(alert.accessUntil)}.`,
+          alert.accessUntil
+            ? `Organizația trece pe doar citire la ${day(alert.accessUntil)}.`
+            : 'Organizația trece pe doar citire.',
           'Ce faci: ia legătura cu clientul, dacă vrei să-l păstrezi.',
         ],
       };
@@ -179,8 +185,8 @@ async function organizationName(db: AdminClient, organizationId: string) {
   return data?.legal_name?.trim() || data?.name?.trim() || 'necunoscută';
 }
 
-// The mark is written only once Discord took the post, so a post lost while Discord is down goes
-// out on the next event Stripe delivers for the same problem.
+// The mark is written only once Discord took the post, so an invoice left unissued or a payment
+// that fails again is posted on Stripe's next delivery after Discord was down.
 async function post(db: AdminClient, sender: ReturnType<typeof alertSender>, alert: BillingAlert) {
   if (await alreadyPosted(db, alert)) return;
   const message = billingAlertMessage(alert, await organizationName(db, alert.organizationId));

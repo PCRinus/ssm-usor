@@ -329,6 +329,34 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
     console.warn(`Paid Stripe invoice ${invoice.id} names no organization here; left alone.`);
     return null;
   }
+  const progress: Progress = { issued: false, kind: oblioDocuments(deps.env) };
+  try {
+    return await settleInvoice(deps, invoice, byCustomer, organizationId, progress);
+  } catch (error) {
+    if (!progress.issued) {
+      deps.alerts.notify({
+        kind: 'invoice_not_issued',
+        organizationId,
+        invoice: invoiceRef(deps, invoice),
+        document: progress.kind,
+        charged: { cents: invoice.total, currency: invoice.currency },
+        linesCents: error instanceof LinesTotalMismatch ? error.linesCents : null,
+        reason: describeFailure(error),
+      });
+    }
+    throw error;
+  }
+}
+
+type Progress = { issued: boolean; kind: InvoiceRow['kind'] };
+
+async function settleInvoice(
+  deps: InvoiceDeps,
+  invoice: Stripe.Invoice,
+  byCustomer: Awaited<ReturnType<typeof findSubscriptionByCustomer>>,
+  organizationId: string,
+  progress: Progress
+) {
   const subscription = await adoptFirstSubscription(deps, invoice, byCustomer, organizationId);
   const paidAt = new Date((invoice.status_transitions.paid_at ?? invoice.created) * 1000);
   // A row still holding the trial would size the welcome credits, which never change after, from
@@ -362,24 +390,13 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
       amount_cents: invoice.total,
       currency: invoice.currency,
     }));
+  progress.kind = row.kind;
+  progress.issued = Boolean(row.issued_at);
 
   if (!row.issued_at) {
-    const ref = invoiceRef(deps, invoice);
-    try {
-      row = await issueDocument(deps, invoice, row, subscription, paidAt);
-    } catch (error) {
-      deps.alerts.notify({
-        kind: 'invoice_not_issued',
-        organizationId,
-        invoice: ref,
-        document: row.kind,
-        charged: { cents: invoice.total, currency: invoice.currency },
-        linesCents: error instanceof LinesTotalMismatch ? error.linesCents : null,
-        reason: describeFailure(error),
-      });
-      throw error;
-    }
-    await compareTotals(deps, row, organizationId, ref);
+    row = await issueDocument(deps, invoice, row, subscription, paidAt);
+    progress.issued = true;
+    await compareTotals(deps, row, organizationId, invoiceRef(deps, invoice));
   }
   const stored = await storePdf(deps, row);
   // Stripe delivers the event again, and the first payment and its credits are recorded then.
