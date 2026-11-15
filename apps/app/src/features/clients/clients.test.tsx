@@ -483,6 +483,24 @@ describe('clients list', () => {
     expect(screen.queryByTestId('clients-applied-filters')).toBeNull();
   });
 
+  it('keeps the scroll where it was when a filter or the sort changes', async () => {
+    mockApi({ list: () => Response.json(page([listed()])) });
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
+    const user = userEvent.setup();
+    await screen.findByTestId('clients-row');
+    vi.mocked(window.scrollTo).mockClear();
+    await user.click(screen.getByTestId('clients-filters'));
+    await user.click(await screen.findByTestId('clients-filters-county-add'));
+    await user.click(await screen.findByTestId('clients-filters-county-BN'));
+    await waitFor(() => expect(runtime.router.state.location.searchStr).toBe('?county=BN'));
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: /Lucrători/ }));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toMatchObject({ sort: 'currentEmployeeCount' })
+    );
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
   it('picks counties from their own searchable list', async () => {
     mockApi({ list: () => Response.json(page([listed()])) });
     const runtime = mountApp(authFixture(makeSession()).client, '/clienti');

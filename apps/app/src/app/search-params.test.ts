@@ -18,6 +18,10 @@ describe('stringifySearch', () => {
     expect(stringifySearch({ page: 2, q: 'Mureș', status: 'archived' })).toBe(
       '?page=2&q=Mure%C8%99&status=archived'
     );
+    expect(defaultParseSearch(stringifySearch({ q: '123', flag: 'true' }))).toEqual({
+      q: '123',
+      flag: 'true',
+    });
     expect(stringifySearch({})).toBe('');
     expect(stringifySearch({ documentation: [] })).toBe('');
   });
