@@ -232,7 +232,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare.tsx`           | `/clienti/:id/angajati/:employeeId/editare`            | Corrects an employee in the form that adds one (`employee-form.tsx`). Full page; returns to the employee page. `?focus=commute-route` or `workplace` points at that field.                                 |
 | `routes/_authenticated/clienti/$clientId/mijloace-de-aparare.tsx`                     | `/clienti/:id/mijloace-de-aparare`                     | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.             |
 | `routes/_authenticated/clienti/$clientId/instruire.tsx`                               | `/clienti/:id/instruire`                               | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                         |
-| `routes/_authenticated/clienti/$clientId/instruiri-tinute.tsx`                        | `/clienti/:id/instruiri-tinute`                        | "Instruiri ținute" (ADR 021), the tab after "Instruire și responsabili": the trainings held at the client, newest first, each naming its participants, with the domain and the phase in the search params. |
+| `routes/_authenticated/clienti/$clientId/instruiri-tinute.tsx`                        | `/clienti/:id/instruiri-tinute`                        | "Instruiri ținute" (ADR 021), the tab after "Instruire și responsabili": the client's trainings held, 25 to a page, with the domain, search, filters, sort, page and opened row kept in its search params. |
 | `routes/_authenticated/clienti/$clientId/documente-ssm/index.tsx`                     | `/clienti/:id/documente-ssm`                           | "Documente SSM", the client's generated SSM documentation: generating, downloading, regenerating, issuing.                                                                                                 |
 | `routes/_authenticated/clienti/$clientId/documente-ssm/$documentId.tsx`               | `/clienti/:id/documente-ssm/:documentId`               | One document in the in-app Word editor; a full page.                                                                                                                                                       |
 | `routes/_authenticated/clienti/$clientId/documente-su/index.tsx`                      | `/clienti/:id/documente-su`                            | "Documente PSI", the client's fire-safety set (ADR 016): the same card, sections and actions as "Documente SSM".                                                                                           |
@@ -655,29 +655,37 @@ their tab bars read.
   programul de instruire al clientului" / "din datele de instruire PSI ale clientului" to the
   client's training page opening that card; "Nestabilit" with "Stabilește intervalul" to the
   same card when undecided) and the last periodic training, from the employee's `training`
-  field, then the records from `GET …/employees/{employeeId}/training-records?domain=`, newest
-  first: phase, day, duration ("120 min (2 h)"), the occupation, the material clamped to two
-  lines behind "mai mult", who trained and verified with their functions, the supplementary
-  reason, "Admis la lucru de … la …" and, for a record taken from paper, the badge "Transcris de
-  pe fișa pe hârtie" and, in place of the signature slots, "Semnat pe hârtie: instruit, instructor",
-  with "verificator" and "admite la lucru" where the record has them. An empty
+  field, then the records from `GET …/employees/{employeeId}/training-records?domain=` as a
+  table: day, phase (with "Transcrisă de pe fișă" under it for a record from paper, or "Instruire
+  de grup · N participanți" linking to the client's tab with `?domain=&open=`), duration, trainer
+  and the employee's own signature ("De semnat", "Semnată" with a padlock, "Semnată de mână").
+  All the records are read at once and filtered and sorted in the browser, the choice kept in
+  the search params (`from`, `to`, `mode`, `phase`, `signature`, `sort` by day or duration). A
+  row opens to the material clamped to two lines behind "mai mult", the occupation, the
+  verifier, the supplementary reason, "Admis la lucru de … la …", the notes and the signature
+  slots or, for a record from paper, "Semnat pe hârtie: instruit, instructor", with
+  "verificator" and "admite la lucru" where the record has them. An empty
   `training-tab-actions` container at the top right is kept for the sheet's download.
   "Înregistrează o instruire" opens the recording dialog with the employee as the only
   attendee, proposing the next hiring phase until both are recorded; a record's "Modifică" and
-  "Șterge" act on its training held, which with other attendees turns the dialog into the
+  "Șterge", in its row's menu, act on its training held, which with other attendees turns the dialog into the
   attendee checklist and says "Această instruire are N participanți; modificarea îi privește
   pe toți".
 - `/clienti/:id/instruiri-tinute`, "Instruiri ținute", a tab of the client's page after "Instruire
-  și responsabili": the client's trainings held from `GET /clients/{clientId}/trainings`,
-  newest first, filtered by domain ("Toate", "SSM", "PSI" links, `?domain=`) and by phase (a
-  select, `?phase=`), both replacing the history entry; each row has the day, the phase with its
-  domain and paper badges, the duration, the trainer, the participants (their number, then
-  their names, each a link to that employee's training tab of the row's domain) and the
-  clamped material, with "Modifică" and "Șterge" (after a confirmation naming the attendees it
-  concerns) in its menu. An empty list says so for the filter chosen.
+  și responsabili": the client's trainings held from `GET /clients/{clientId}/trainings`, 25 a
+  page, newest first, by domain ("Toate", "SSM", "SU" links, `?domain=`), a search by attendee
+  name (`?q=`) and the Filtre panel (phase, signatures, period as `from` and `to`, way recorded),
+  all replacing the history entry. Each row has the day, the phase with the domain and
+  "Transcrisă de pe fișă" under it, the duration, the trainer, the number of participants and
+  "Semnături", with "Modifică" and "Șterge" (after a confirmation naming the attendees it
+  concerns) in its menu. A row opens, by its chevron or a click, to the training read with
+  `GET …/trainings/{trainingId}`: the material, the slots signing for the training and each
+  participant with their signature, a link to their training tab of the row's domain. `?open=`
+  arrives with that row open: without `?page=` the API answers the page that holds it, which
+  the address then keeps.
 - The recording dialog (`training-dialog.tsx`) creates with `POST …/trainings` or replaces with
-  `PUT …/trainings/{trainingId}`: domain, phase, day (today by default, never after), source
-  (in the app or from a paper sheet), the job position (required except for the
+  `PUT …/trainings/{trainingId}`: domain, phase, day (today by default, never after), the
+  "Transcrisă de pe fișa pe hârtie" box (off: held in the app), the job position (required except for the
   introductory general training), the attendees, then duration, material, trainer, verifier
   (SSM only) and, for the workplace training, "Admis la lucru"; the supplementary reason for a
   supplementary training, and notes. The attendees are the client's current employees of the

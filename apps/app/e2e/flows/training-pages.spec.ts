@@ -102,6 +102,12 @@ test('a specialist records trainings held and follows each employee’s state', 
   await expect(trainings).toHaveCount(3);
   await expect(trainings.first()).toContainText('Periodică');
   await expect(trainings.first()).toContainText('2 participanți');
+  await trainings.first().getByTestId('trainings-open').click();
+  const participants = page.getByTestId('training-details').getByTestId('trainings-attendee');
+  await expect(participants).toHaveText(['Instruitu Ion', 'Sudoru Maria']);
+  await participants.first().click();
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/angajati/[^/]+/instruire/ssm$`));
+  await expect(page.getByTestId('training-state')).toHaveText('La zi');
 
   for (const name of ['Instruitu Ion', 'Sudoru Maria']) {
     await page.goto(`/clienti/${clientId}/angajati`);
@@ -110,8 +116,11 @@ test('a specialist records trainings held and follows each employee’s state', 
     await expect(page.getByTestId('training-state')).toHaveText('La zi');
     const records = page.getByTestId('training-record-item');
     await expect(records).toHaveCount(2);
-    await expect(records.first()).toHaveAttribute('data-phase', 'periodic');
+    await expect(records.first()).toContainText('Periodică');
     await expect(records.first()).toContainText('120 min (2 h)');
+    await expect(records.first().getByTestId('training-record-session')).toHaveText(
+      'Instruire de grup · 2 participanți'
+    );
   }
 
   await page.goto(`/clienti/${clientId}/angajati?ssmTraining=overdue`);
@@ -129,7 +138,7 @@ test('a specialist records trainings held and follows each employee’s state', 
   await page.getByTestId('training-record').first().click();
   await expect(dialog.getByTestId('training-fixed-attendee')).toHaveText('Lăcătușu Vasile');
   await expect(dialog.getByTestId('training-phase')).toHaveValue('introductory_general');
-  await dialog.getByTestId('training-source').selectOption('paper');
+  await dialog.getByTestId('training-source').check();
   await dialog.getByTestId('training-held-on').fill('15.02.2024');
   await expect(dialog.getByTestId('training-duration')).toHaveValue('240');
   await expect(dialog.getByTestId('training-trainer-name')).toHaveValue('Dan MARIN');
@@ -144,7 +153,7 @@ test('a specialist records trainings held and follows each employee’s state', 
 
   await page.goto(`/clienti/${clientId}/instruiri-tinute?domain=ssm`);
   await expect(trainings).toHaveCount(3);
-  const paperRow = trainings.filter({ hasText: 'Transcris de pe fișa pe hârtie' });
+  const paperRow = trainings.filter({ hasText: 'Transcrisă de pe fișă' });
   await expect(paperRow).toHaveCount(1);
   await paperRow.getByTestId('trainings-row-menu').click();
   await page.getByTestId('trainings-edit').click();

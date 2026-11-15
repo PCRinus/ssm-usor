@@ -10,9 +10,9 @@ import {
   type TrainingPhase,
   trainingPhaseLabels,
   trainingPhases,
-  trainingSources,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
   Dialog,
   DialogBody,
@@ -50,6 +50,7 @@ import { ApiHttpError } from '@/api/http';
 import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { todayIso } from '@/features/employees/employee-format';
@@ -73,7 +74,7 @@ import {
   trainingFormSchema,
   type TrainingFormValues,
 } from './training-form-schema';
-import { notOnSheet, trainingSourceLabels } from './training-format';
+import { notOnSheet } from './training-format';
 import { type CurrentEmployee, invalidateTrainings, useCurrentEmployees } from './training-queries';
 
 export type TrainingDialogTarget =
@@ -592,28 +593,34 @@ function TrainingForm({
               )}
             />
           </Field>
-          <Field
-            id="training-source"
-            label="Sursa"
-            mark="required"
-            hint="O instruire de pe fișa pe hârtie are semnăturile pe hârtie."
-            error={errors.source}
-          >
-            <NativeSelect
-              id="training-source"
-              data-testid="training-source"
-              {...replayShow}
-              disabled={busy}
-              aria-describedby="training-source-hint"
-              {...form.register('source')}
-            >
-              {trainingSources.map((value) => (
-                <NativeSelectOption key={value} value={value}>
-                  {trainingSourceLabels[value]}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
+          <Controller
+            control={form.control}
+            name="source"
+            render={({ field }) => (
+              <div className="flex min-h-11 items-center gap-2 sm:mt-7 sm:self-start">
+                <label
+                  htmlFor="training-source"
+                  className="flex cursor-pointer items-center gap-2.5 text-sm font-medium"
+                >
+                  <Checkbox
+                    id="training-source"
+                    data-testid="training-source"
+                    {...replayShow}
+                    checked={field.value === 'paper'}
+                    disabled={busy}
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked === true ? 'paper' : 'app')
+                    }
+                  />
+                  Transcrisă de pe fișa pe hârtie
+                </label>
+                <HelpLink
+                  topic="angajati.instruire-de-pe-hartie"
+                  label="Despre instruirile transcrise de pe fișa pe hârtie"
+                />
+              </div>
+            )}
+          />
           <Field
             id="training-position"
             label="Post de lucru"

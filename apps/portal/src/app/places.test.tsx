@@ -386,7 +386,7 @@ describe('Instruiri', () => {
 
     const records = await screen.findAllByTestId('training-record');
     expect(within(records[0]!).getByTestId('training-record-paper').textContent).toBe(
-      'Transcris de pe fișa pe hârtie. Semnat pe hârtie.'
+      'Transcrisă de pe fișă. Semnată pe hârtie.'
     );
     expect(within(records[0]!).queryByTestId('training-record-signed')).toBeNull();
     expect(within(records[1]!).queryByTestId('training-record-paper')).toBeNull();

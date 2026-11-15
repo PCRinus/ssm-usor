@@ -63,21 +63,25 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   await expect(dialog).toBeHidden();
 
   const record = page.getByTestId('training-record-item').first();
+  await record.getByTestId('training-record-open').click();
+  const details = page.getByTestId('training-record-details');
   const slotOf = (name: string) =>
-    record.locator(`[data-testid="signature-slot"][data-slot="${name}"]`);
+    details.locator(`[data-testid="signature-slot"][data-slot="${name}"]`);
   await expect(slotOf('trainee')).toContainText('Fără semnatar');
   await expect(slotOf('trainer')).toContainText('De semnat');
   await expect(slotOf('trainer')).toContainText('Dan MARIN');
   await expect(slotOf('verifier')).toContainText('De semnat');
 
-  await record.getByTestId('record-signatures-paper').click();
+  await details.getByTestId('record-signatures-paper').click();
   const paper = page.getByTestId('paper-signature-dialog');
   await expect(paper.getByTestId('paper-signature-slot')).toHaveValue('trainee');
   await expect(paper.getByTestId('paper-signature-name')).toHaveValue('Instruitu Ion');
   await paper.getByTestId('paper-signature-submit').click();
   await expect(paper).toBeHidden();
   await expect(slotOf('trainee')).toContainText('Semnat pe hârtie');
-  await expect(record.getByTestId('training-record-delete')).toBeDisabled();
+  await record.getByTestId('training-record-row-menu').click();
+  await expect(page.getByTestId('training-record-delete')).toHaveAttribute('data-disabled');
+  await page.keyboard.press('Escape');
 
   await page.getByTestId('nav-signatures').click();
   await expect(page).toHaveURL(/\/semnaturi$/);
@@ -93,14 +97,17 @@ test('a specialist records a training with signers, marks a slot on paper and vo
   );
 
   await page.goto(`/clienti/${clientId}/angajati/${employee!.id}/instruire/ssm`);
-  await record.getByTestId('record-signatures-void').click();
+  await record.getByTestId('training-record-open').click();
+  await details.getByTestId('record-signatures-void').click();
   const voiding = page.getByTestId('void-signatures-dialog');
   await voiding.getByTestId('void-signatures-reason').fill('Durata greșită');
   await voiding.getByTestId('void-signatures-confirm').click();
   await expect(voiding).toBeHidden();
   await expect(slotOf('trainer')).toContainText('Anulat');
   await expect(slotOf('verifier')).toContainText('Anulat');
-  await expect(record.getByTestId('training-record-edit')).toBeEnabled();
+  await record.getByTestId('training-record-row-menu').click();
+  await expect(page.getByTestId('training-record-edit')).not.toHaveAttribute('data-disabled');
+  await page.keyboard.press('Escape');
 
   await page.getByTestId('nav-signatures').click();
   await expect(page.getByTestId('signature-requests-empty')).toBeVisible();
@@ -179,9 +186,14 @@ test('a member signs two requests with one code from Semnături', async ({ page 
 
   await page.goto(`/clienti/${clientId}/angajati/${employee.id}/instruire/ssm`);
   const record = page.getByTestId('training-record-item').first();
-  await expect(record.locator('[data-testid="signature-slot"][data-slot="trainer"]')).toContainText(
-    'Semnat electronic'
-  );
-  await expect(record.getByTestId('training-record-edit')).toBeDisabled();
-  await expect(record.getByTestId('training-record-delete')).toBeDisabled();
+  await expect(record.getByTestId('training-record-signature')).toHaveText('Semnată');
+  await record.getByTestId('training-record-open').click();
+  await expect(
+    page
+      .getByTestId('training-record-details')
+      .locator('[data-testid="signature-slot"][data-slot="trainer"]')
+  ).toContainText('Semnat electronic');
+  await record.getByTestId('training-record-row-menu').click();
+  await expect(page.getByTestId('training-record-edit')).toHaveAttribute('data-disabled');
+  await expect(page.getByTestId('training-record-delete')).toHaveAttribute('data-disabled');
 });

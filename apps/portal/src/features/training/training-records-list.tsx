@@ -125,7 +125,7 @@ function TrainingRecordRow({
             className="flex items-start gap-1.5 text-[0.8125rem] text-muted-foreground"
           >
             <Signature aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-            <Trans>Transcris de pe fișa pe hârtie. Semnat pe hârtie.</Trans>
+            <Trans>Transcrisă de pe fișă. Semnată pe hârtie.</Trans>
           </p>
         ) : (
           <SignedLines slots={record.slots} />

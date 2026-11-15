@@ -11,8 +11,8 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { type RowData, type SortingState, useTable } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from 'lucide-react';
+import { Fragment, type ReactNode, useId } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
 import { ListEmpty } from '@/components/empty-state';
@@ -45,6 +45,15 @@ export interface DataTableProps<TData extends RowData> {
   testId?: string;
   rowTestId?: string;
   onRowClick?: (row: TData) => void;
+  expansion?: DataTableExpansion<TData>;
+}
+
+export interface DataTableExpansion<TData> {
+  isOpen: (row: TData) => boolean;
+  onToggle: (row: TData) => void;
+  label: (row: TData) => string;
+  render: (row: TData) => ReactNode;
+  testId?: string;
 }
 
 const EMPTY: never[] = [];
@@ -69,7 +78,9 @@ export function DataTable<TData extends RowData>({
   testId,
   rowTestId,
   onRowClick,
+  expansion,
 }: DataTableProps<TData>) {
+  const detailsId = useId();
   const sorting: SortingState = [{ id: sort.sort, desc: sort.order === 'desc' }];
   const table = useTable({
     features: dataTableFeatures,
@@ -89,7 +100,7 @@ export function DataTable<TData extends RowData>({
     enableMultiSort: false,
     enableSortingRemoval: false,
   });
-  const columnCount = table.getAllLeafColumns().length;
+  const columnCount = table.getAllLeafColumns().length + (expansion ? 1 : 0);
   const leafColumns = table.getAllLeafColumns();
 
   const pageEmpty = status === 'success' && table.getRowModel().rows.length === 0;
@@ -106,6 +117,11 @@ export function DataTable<TData extends RowData>({
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id}>
+              {expansion && (
+                <TableHead className="w-11">
+                  <span className="sr-only">Detalii</span>
+                </TableHead>
+              )}
               {group.headers.map((header) => {
                 const sorted = header.column.getIsSorted();
                 return (
@@ -172,6 +188,7 @@ export function DataTable<TData extends RowData>({
           ) : status === 'pending' ? (
             Array.from({ length: skeletonRows }, (_, index) => (
               <TableRow key={index} className="hover:bg-transparent">
+                {expansion && <TableCell className={cellPadding} />}
                 {leafColumns.map((column) => (
                   <TableCell
                     key={column.id}
@@ -203,23 +220,63 @@ export function DataTable<TData extends RowData>({
               </TableCell>
             </TableRow>
           ) : (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-testid={rowTestId}
-                {...rowClickProps(onRowClick && (() => onRowClick(row.original)))}
-              >
-                {row.getAllCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    className={cn(cellPadding, cell.column.columnDef.meta?.cellClassName)}
-                    {...(cell.column.columnDef.meta?.personal && replayMask)}
+            table.getRowModel().rows.map((row) => {
+              const open = expansion?.isOpen(row.original) ?? false;
+              const details = `${detailsId}-${row.id}`;
+              const click = rowClickProps(onRowClick && (() => onRowClick(row.original)));
+              return (
+                <Fragment key={row.id}>
+                  <TableRow
+                    data-testid={rowTestId}
+                    data-open={expansion ? open : undefined}
+                    {...click}
+                    className={cn(click.className, open && 'border-b-0 bg-muted/50')}
                   >
-                    <table.FlexRender cell={cell} />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+                    {expansion && (
+                      <TableCell className={cn(cellPadding, 'w-11 pr-0')}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="-my-1 -ml-2"
+                          data-testid={expansion.testId}
+                          aria-expanded={open}
+                          aria-controls={open ? details : undefined}
+                          aria-label={expansion.label(row.original)}
+                          onClick={() => expansion.onToggle(row.original)}
+                        >
+                          <ChevronDown
+                            aria-hidden="true"
+                            className={cn('transition-transform', open && 'rotate-180')}
+                          />
+                        </Button>
+                      </TableCell>
+                    )}
+                    {row.getAllCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(cellPadding, cell.column.columnDef.meta?.cellClassName)}
+                        {...(cell.column.columnDef.meta?.personal && replayMask)}
+                      >
+                        <table.FlexRender cell={cell} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  {expansion && open && (
+                    <TableRow id={details} className="bg-muted/50 hover:bg-muted/50">
+                      <TableCell
+                        colSpan={columnCount}
+                        className="p-0 whitespace-normal first:pl-0 last:pr-0"
+                      >
+                        {/* Pinned to the visible part of a table that scrolls sideways on a phone. */}
+                        <div className="sticky left-0 max-w-[calc(100vw-42px)] px-(--table-inset) pt-2 pb-5 md:max-w-none">
+                          {expansion.render(row.original)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
+              );
+            })
           )}
         </TableBody>
       </Table>

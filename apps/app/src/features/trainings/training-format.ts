@@ -1,15 +1,34 @@
-import { type SignerSlot, signerSlotLabels, type TrainingSource } from '@ssm-usor/contracts';
+import {
+  type SignerSlot,
+  signerSlotLabels,
+  type TrainingSignatureState,
+} from '@ssm-usor/contracts';
 
 export function formatDuration(minutes: number) {
   return minutes % 60 === 0 ? `${minutes} min (${minutes / 60} h)` : `${minutes} min`;
 }
 
-export const trainingSourceLabels: Record<TrainingSource, string> = {
-  app: 'Înregistrată în aplicație',
-  paper: 'Preluată de pe fișa pe hârtie',
+// A training from the paper sheet is transcribed, an import being a faster way to transcribe:
+// "preluare" names the handover note and the ANAF data, "sursa" an import's file (ADR 042).
+export const transcribedLabel = 'Transcrisă de pe fișă';
+
+export const trainingSignatureLabels = {
+  pending: (count: number) => `${count} de semnat`,
+  electronic: 'Semnată',
+  paper: 'Semnată de mână',
+} as const;
+
+export const personSignatureLabels: Record<TrainingSignatureState, string> = {
+  pending: 'De semnat',
+  electronic: 'Semnat',
+  paper: 'Semnat de mână',
 };
 
-export const paperTrainingBadge = 'Transcris de pe fișa pe hârtie';
+export const ownSignatureLabels: Record<TrainingSignatureState, string> = {
+  pending: 'De semnat',
+  electronic: 'Semnată',
+  paper: 'Semnată de mână',
+};
 
 // What a paper sheet does not write is said in words, never left blank (ADR 042).
 export const notOnSheet = {

@@ -4,15 +4,13 @@ import {
   type TrainingDomain,
   trainingDomainLabels,
   type TrainingPhase,
-  trainingPhaseLabels,
   type TrainingStatus,
 } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
-import { ClipboardCheck, Lock, Pencil, Plus, Signature, Trash2 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { ClipboardCheck, Plus, SearchX, Signature } from 'lucide-react';
+import { type ReactNode, useMemo, useState } from 'react';
+import type { z } from 'zod';
 
 import {
   type EmployeeTrainingRecordListResponse,
@@ -20,12 +18,19 @@ import {
   useListEmployeeTrainingRecords,
 } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
+import { createDataTableColumns, type DataTableSort } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
-import { Notice } from '@/components/notice';
+import { ListCardHeader, ListCount } from '@/components/list-card-header';
+import { AppliedFilters } from '@/components/list-filters/applied-filters';
+import { ListFilters } from '@/components/list-filters/list-filters';
+import type { ListFilterValues } from '@/components/list-filters/types';
+import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
 import { useAuth } from '@/features/auth/auth-context';
 import { formatDate } from '@/features/employees/employee-format';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
+import { WorkersListError } from '@/features/employees/workers-list';
 import { intervalLabel } from '@/features/job-positions/job-position-schema';
 import { EmployeeTestsCard } from '@/features/knowledge-tests/employee-tests-card';
 import { RecordSignatures } from '@/features/signatures/record-signatures';
@@ -35,9 +40,23 @@ import { TrainingSheetReadiness } from '@/features/training-sheets/training-shee
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
-import { PersonWithTitle, TrainerName, TrainingDuration } from './not-on-sheet';
+import { PersonWithTitle, TrainingDuration } from './not-on-sheet';
+import { PhaseCell, SignatureState, TrainerCell, TrainingActions } from './training-cells';
+import { trainingLabel } from './training-columns';
 import { TrainingDialog, type TrainingDialogTarget } from './training-dialog';
-import { paperSignedLine, paperTrainingBadge } from './training-format';
+import {
+  ownTrainingFacets,
+  type OwnTrainingFilterKey,
+  ownTrainingFilterKeys,
+  type ownTrainingsSearchSchema,
+  trainingNoun,
+} from './training-filters';
+import {
+  attendeeCountLabel,
+  ownSignatureLabels,
+  paperSignedLine,
+  transcribedLabel,
+} from './training-format';
 import { TrainingMaterial } from './training-material';
 import { TrainingStateBadge } from './training-state-badge';
 
@@ -136,7 +155,50 @@ function IntervalFact({
   );
 }
 
-export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
+type OwnSearch = z.infer<typeof ownTrainingsSearchSchema>;
+type OwnSortKey = NonNullable<OwnSearch['sort']>;
+
+const defaultSort: DataTableSort & { sort: OwnSortKey } = { sort: 'heldOn', order: 'desc' };
+
+const rowKey = (row: EmployeeTrainingRecord) => row.id;
+
+// One person's records are few, all read at once: they filter and sort here, the address keeping
+// the choice as on every list.
+function shownRecords(items: EmployeeTrainingRecord[], search: OwnSearch) {
+  const { from, to, phase, mode, signature } = search;
+  const kept = items.filter(
+    ({ training, signature: own }) =>
+      (!from || training.heldOn >= from) &&
+      (!to || training.heldOn <= to) &&
+      (!phase || phase.includes(training.phase)) &&
+      (!mode || mode.includes(training.source)) &&
+      (!signature || signature.includes(own))
+  );
+  const sort = search.sort ?? defaultSort.sort;
+  const direction = (search.order ?? defaultSort.order) === 'asc' ? 1 : -1;
+  const byDay = (a: EmployeeTrainingRecord, b: EmployeeTrainingRecord) =>
+    a.training.heldOn.localeCompare(b.training.heldOn) ||
+    a.training.createdAt.localeCompare(b.training.createdAt);
+  return kept.sort((a, b) => {
+    if (sort === 'duration') {
+      const [x, y] = [a.training.durationMinutes, b.training.durationMinutes];
+      if (x === null || y === null) {
+        if (x !== y) return x === null ? 1 : -1;
+      } else if (x !== y) return (x - y) * direction;
+    }
+    return byDay(a, b) * direction;
+  });
+}
+
+export function EmployeeTrainingTab({
+  domain,
+  search,
+  onSearch,
+}: {
+  domain: TrainingDomain;
+  search: OwnSearch;
+  onSearch: (next: Partial<OwnSearch>) => void;
+}) {
   const { clientId, employeeId } = employeeRoute.useParams();
   const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const { session } = useAuth();
@@ -153,17 +215,57 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
   });
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
   const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
+  const listFilters = listFilterSearch({
+    keys: ownTrainingFilterKeys,
+    facets: ownTrainingFacets,
+    search: { ...search, period: periodValue(search.from, search.to) },
+  });
+  const toSearch = (values: ListFilterValues<OwnTrainingFilterKey>) => {
+    const { period, ...rest } = listFilters.searchOf(values);
+    return { ...rest, ...periodSearch(period) } as Partial<OwnSearch>;
+  };
+  const filtered = listFilters.applied;
+  const items = records.data?.items;
+  const shown = items && shownRecords(items, { ...search, ...toSearch(listFilters.values) });
+  const columns = useMemo(
+    () =>
+      ownTrainingColumns({
+        clientId,
+        userId,
+        onEdit: readOnly
+          ? undefined
+          : (record) => setTarget({ kind: 'edit', trainingId: record.training.id }),
+        onDelete: (record) =>
+          setDeleting({
+            id: record.training.id,
+            phase: record.training.phase,
+            heldOn: record.training.heldOn,
+            attendeeCount: record.attendeeCount,
+          }),
+      }),
+    [clientId, userId, readOnly]
+  );
   if (!employee) return <EmployeePending />;
   const status = employee.training[domain];
   const label = trainingDomainLabels[domain];
-  const items = records.data?.items ?? [];
-  const record = () => setTarget({ kind: 'new', domain, phase: nextPhase(items) });
+  const all = items ?? [];
+  const record = () => setTarget({ kind: 'new', domain, phase: nextPhase(all) });
   const recordButton = !readOnly && (
     <Button data-testid="training-record" disabled={!records.data} onClick={record}>
       <Plus aria-hidden="true" />
       Înregistrează o instruire
     </Button>
   );
+  const toggle = (row: EmployeeTrainingRecord) =>
+    setOpened((current) => {
+      const next = new Set(current);
+      if (!next.delete(row.id)) next.add(row.id);
+      return next;
+    });
+  const changeFilters = (values: ListFilterValues<OwnTrainingFilterKey>) =>
+    onSearch(toSearch(values));
+  const total = shown?.length ?? 0;
 
   return (
     <div data-testid="employee-training-tab" data-domain={domain} className="grid gap-5">
@@ -173,7 +275,7 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
           <div data-testid="training-tab-actions" className="flex flex-wrap gap-2">
             <TrainingSheetDownload clientId={clientId} employeeId={employeeId} domain={domain} />
           </div>
-          {!isEmptyOrLoading(records.status, items.length) && recordButton}
+          {!isEmptyOrLoading(records.status, all.length) && recordButton}
         </div>
       </div>
       <TrainingSheetReadiness clientId={clientId} employeeId={employeeId} domain={domain} />
@@ -234,28 +336,7 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
         readOnly={readOnly}
       />
 
-      {records.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="training-records-error"
-          action={
-            <Button
-              variant="outline"
-              disabled={records.isFetching}
-              onClick={() => void records.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
-        >
-          Nu am putut încărca instruirile. Încearcă din nou.
-        </Notice>
-      ) : !records.data ? (
-        <div className="grid gap-3" aria-busy="true">
-          <Skeleton className="h-28 w-full rounded-lg" />
-          <Skeleton className="h-28 w-full rounded-lg" />
-        </div>
-      ) : items.length === 0 ? (
+      {records.isSuccess && all.length === 0 ? (
         <ListEmpty className="rounded-lg border bg-card">
           <EmptyState
             icon={ClipboardCheck}
@@ -267,26 +348,109 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
           </EmptyState>
         </ListEmpty>
       ) : (
-        <ol className="grid gap-3" aria-label={`Instruirile ${label}`}>
-          {items.map((item) => (
-            <RecordItem
-              key={item.id}
-              clientId={clientId}
-              userId={userId}
-              employeeName={formatEmployeeName(employee)}
-              record={item}
-              readOnly={readOnly}
-              onEdit={() => setTarget({ kind: 'edit', trainingId: item.training.id })}
-              onDelete={() =>
-                setDeleting({
-                  id: item.training.id,
-                  phase: item.training.phase,
-                  heldOn: item.training.heldOn,
-                })
-              }
-            />
-          ))}
-        </ol>
+        <div className="overflow-hidden rounded-lg border bg-card">
+          {records.isSuccess && (
+            <>
+              <ListCardHeader>
+                <ListFilters
+                  facets={ownTrainingFacets}
+                  values={listFilters.values}
+                  onChange={changeFilters}
+                  total={total}
+                  applyLabel={(pending) =>
+                    `Arată ${trainingNoun(shownRecords(all, { ...search, ...toSearch(pending) }).length)}`
+                  }
+                  countLabel={trainingNoun}
+                  testId="training-records-filters"
+                  align="start"
+                />
+                <ListCount testId="training-records-count">
+                  {filtered ? (
+                    <>
+                      <b className="font-semibold text-foreground">{total}</b> din{' '}
+                      {trainingNoun(all.length)}
+                    </>
+                  ) : (
+                    trainingNoun(all.length)
+                  )}
+                </ListCount>
+              </ListCardHeader>
+              <AppliedFilters
+                facets={ownTrainingFacets}
+                values={listFilters.values}
+                onChange={changeFilters}
+                testId="training-records-applied-filters"
+              />
+            </>
+          )}
+          <DataTable
+            testId="training-records-table"
+            rowTestId="training-record-item"
+            label={`Instruirile ${label}`}
+            columns={columns}
+            data={shown}
+            rowKey={rowKey}
+            onRowClick={toggle}
+            expansion={{
+              isOpen: (row) => opened.has(row.id),
+              onToggle: toggle,
+              label: (row) => `Detaliile instruirii ${trainingLabel(row.training)}`,
+              testId: 'training-record-open',
+              render: (row) => (
+                <RecordDetails
+                  clientId={clientId}
+                  userId={userId}
+                  employeeName={formatEmployeeName(employee)}
+                  record={row}
+                  readOnly={readOnly}
+                />
+              ),
+            }}
+            meta={{ page: 1, pageSize: Math.max(total, 1), total }}
+            noun={['instruire', 'instruiri']}
+            status={records.status}
+            isFetching={records.isFetching}
+            sort={{
+              sort: search.sort ?? defaultSort.sort,
+              order: search.order ?? defaultSort.order,
+            }}
+            onSortChange={(next) =>
+              onSearch({
+                sort: next.sort === defaultSort.sort ? undefined : (next.sort as OwnSortKey),
+                order: next.order === defaultSort.order ? undefined : next.order,
+              })
+            }
+            onPageChange={() => undefined}
+            error={
+              <WorkersListError
+                error={records.error}
+                testId="training-records"
+                onRetry={() => void records.refetch()}
+                retrying={records.isFetching}
+                message="Nu am putut încărca instruirile. Încearcă din nou."
+              />
+            }
+            empty={
+              <EmptyState
+                icon={SearchX}
+                title="Nicio instruire nu se potrivește"
+                data-testid="training-records-empty-filtered"
+                actions={
+                  <Button
+                    variant="outline"
+                    data-testid="training-records-empty-filtered-clear"
+                    onClick={() => changeFilters({})}
+                  >
+                    Șterge filtrele
+                  </Button>
+                }
+              >
+                Nicio instruire {label} a lucrătorului nu se potrivește filtrelor alese. Scoate unul
+                dintre filtrele de mai sus sau pornește din nou de la toate instruirile.
+              </EmptyState>
+            }
+          />
+        </div>
       )}
 
       <TrainingDialog
@@ -306,98 +470,166 @@ export function EmployeeTrainingTab({ domain }: { domain: TrainingDomain }) {
   );
 }
 
-function RecordItem({
+function ownTrainingColumns({
+  clientId,
+  userId,
+  onEdit,
+  onDelete,
+}: {
+  clientId: string;
+  userId: string;
+  onEdit?: (record: EmployeeTrainingRecord) => void;
+  onDelete: (record: EmployeeTrainingRecord) => void;
+}) {
+  const helper = createDataTableColumns<EmployeeTrainingRecord>();
+  return helper.columns([
+    helper.accessor((row) => row.training.heldOn, {
+      id: 'heldOn',
+      header: 'Ziua',
+      enableSorting: true,
+      meta: { cellClassName: 'tabular-nums', skeletonClassName: 'w-24' },
+      cell: ({ getValue }) => formatDate(getValue()),
+    }),
+    helper.display({
+      id: 'phase',
+      header: 'Instruirea',
+      meta: { headerClassName: 'min-w-59', skeletonClassName: 'w-32' },
+      cell: ({ row }) => {
+        const { training, attendeeCount } = row.original;
+        const group = attendeeCount > 1 && (
+          <Link
+            to="/clienti/$clientId/instruiri-tinute"
+            params={{ clientId }}
+            search={{ domain: training.domain, open: training.id }}
+            state={openedHere}
+            data-testid="training-record-session"
+            className="font-medium text-foreground underline underline-offset-4 decoration-muted-foreground/50 hover:decoration-foreground"
+          >
+            Instruire de grup · {attendeeCountLabel(attendeeCount)}
+          </Link>
+        );
+        return (
+          <PhaseCell
+            phase={training.phase}
+            note={
+              training.source === 'paper' ? (
+                <span data-testid="training-record-paper">{transcribedLabel}</span>
+              ) : (
+                group || trainingDomainLabels[training.domain]
+              )
+            }
+          />
+        );
+      },
+    }),
+    helper.accessor((row) => row.training.durationMinutes, {
+      id: 'duration',
+      header: 'Durata',
+      enableSorting: true,
+      meta: {
+        headerClassName: 'min-w-38',
+        cellClassName: 'tabular-nums',
+        skeletonClassName: 'w-24',
+      },
+      cell: ({ getValue }) => (
+        <span data-testid="training-record-duration">
+          <TrainingDuration minutes={getValue()} />
+        </span>
+      ),
+    }),
+    helper.display({
+      id: 'trainer',
+      header: 'A instruit',
+      meta: {
+        headerClassName: 'w-full',
+        cellClassName: 'min-w-48 whitespace-normal',
+        skeletonClassName: 'w-40',
+      },
+      cell: ({ row }) => <TrainerCell trainer={row.original.training.trainer} />,
+    }),
+    helper.display({
+      id: 'signature',
+      header: 'Semnătura',
+      meta: { skeletonClassName: 'w-24' },
+      cell: ({ row }) => (
+        <SignatureState
+          state={row.original.signature}
+          label={ownSignatureLabels[row.original.signature]}
+          testId="training-record-signature"
+        />
+      ),
+    }),
+    helper.display({
+      id: 'actions',
+      header: () => <span className="sr-only">Acțiuni</span>,
+      meta: { headerClassName: 'w-12', cellClassName: 'text-right', skeletonClassName: 'hidden' },
+      cell: ({ row }) =>
+        onEdit ? (
+          <OwnTrainingActions
+            clientId={clientId}
+            userId={userId}
+            record={row.original}
+            onEdit={() => onEdit(row.original)}
+            onDelete={() => onDelete(row.original)}
+          />
+        ) : null,
+    }),
+  ]);
+}
+
+// The record's own slots lock it too, before the list's flags catch up with a signature.
+function OwnTrainingActions({
+  clientId,
+  userId,
+  record,
+  onEdit,
+  onDelete,
+}: {
+  clientId: string;
+  userId: string;
+  record: EmployeeTrainingRecord;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const signatures = useRecordSignatures(
+    clientId,
+    record.id,
+    userId,
+    record.training.source === 'app'
+  );
+  return (
+    <TrainingActions
+      locks={trainingLocks(record, signatures.data)}
+      label={trainingLabel(record.training)}
+      testId="training-record"
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
+  );
+}
+
+function RecordDetails({
   clientId,
   userId,
   employeeName,
   record,
   readOnly,
-  onEdit,
-  onDelete,
 }: {
   clientId: string;
   userId: string;
   employeeName: string;
   record: EmployeeTrainingRecord;
   readOnly: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
 }) {
   const { training, admission } = record;
   // A training typed from a paper sheet has its signatures on that sheet.
   const signs = training.source === 'app';
   const signatures = useRecordSignatures(clientId, record.id, userId, signs);
-  const locks = trainingLocks(record, signatures.data);
   return (
-    <li
-      data-testid="training-record-item"
-      data-phase={training.phase}
-      className="grid gap-3 rounded-lg border bg-card px-5 py-4"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-medium">{trainingPhaseLabels[training.phase]}</span>
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {formatDate(training.heldOn)}
-            </span>
-            {training.source === 'paper' && (
-              <Badge variant="outline" data-testid="training-record-paper">
-                {paperTrainingBadge}
-              </Badge>
-            )}
-          </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            <span data-testid="training-record-duration">
-              <TrainingDuration minutes={training.durationMinutes} named />
-            </span>{' '}
-            · {record.occupation}
-          </p>
-        </div>
-        {!readOnly && (
-          <div className="grid justify-items-end gap-1">
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                data-testid="training-record-edit"
-                disabled={locks.edit !== null}
-                aria-describedby={locks.edit ? `training-record-lock-${record.id}` : undefined}
-                onClick={onEdit}
-              >
-                <Pencil aria-hidden="true" />
-                Modifică
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                data-testid="training-record-delete"
-                disabled={locks.delete !== null}
-                aria-describedby={locks.delete ? `training-record-lock-${record.id}` : undefined}
-                onClick={onDelete}
-              >
-                <Trash2 aria-hidden="true" />
-                Șterge
-              </Button>
-            </div>
-            {(locks.edit ?? locks.delete) && (
-              <p
-                id={`training-record-lock-${record.id}`}
-                data-testid="training-record-lock"
-                className="max-w-72 text-right text-xs text-muted-foreground"
-              >
-                <Lock aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" />
-                {locks.edit ?? locks.delete}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+    <div data-testid="training-record-details" className="grid max-w-3xl gap-3 text-sm">
       <TrainingMaterial text={training.material} named />
-      <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-        <RecordFact label="A instruit">
-          <TrainerName trainer={training.trainer} />
-        </RecordFact>
+      <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+        <RecordFact label="Ocupația">{record.occupation}</RecordFact>
         {training.verifier && (
           <RecordFact label="A verificat">
             <PersonWithTitle person={training.verifier} />
@@ -425,7 +657,7 @@ function RecordItem({
       {training.source === 'paper' && (
         <p
           data-testid="training-record-paper-signed"
-          className="flex items-center gap-2 border-t pt-3 text-sm text-muted-foreground"
+          className="flex items-center gap-2 border-t pt-3 text-muted-foreground"
         >
           <Signature aria-hidden="true" className="size-4 shrink-0" />
           {paperSignedLine({ verifier: training.verifier, admission })}
@@ -448,7 +680,7 @@ function RecordItem({
           }}
         />
       )}
-    </li>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 ---
 title: Instruirea și testele unui lucrător
-description: Ce arată taburile Instruire SSM și Instruire SU ale unui lucrător, cum se calculează termenul, când îl așteaptă un test și cum se întocmește fișa individuală.
+description: Ce arată taburile Instruire SSM și Instruire SU ale unui lucrător și tabul Instruiri ținute al clientului, cum se calculează termenul, când îl așteaptă un test și cum se întocmește fișa individuală.
 topics:
   - id: angajati.instruire
     heading: Taburile de instruire
@@ -51,6 +51,10 @@ sources:
   - apps/api/src/modules/trainings/sheet.ts
   - apps/api/src/modules/documents/annual-report.ts
   - apps/app/src/features/trainings/employee-training-tab.tsx
+  - apps/app/src/features/trainings/client-trainings-page.tsx
+  - apps/app/src/features/trainings/training-filters.ts
+  - apps/app/src/features/trainings/training-dialog.tsx
+  - supabase/migrations/20261118140000_training_list.sql
   - apps/app/src/features/trainings/training-format.ts
   - apps/portal/src/features/training/training-records-list.tsx
   - apps/app/src/features/trainings/delete-training-dialog.tsx
@@ -77,7 +81,27 @@ Cele două taburi arată la fel. Sus ai **Descarcă fișa SSM** (sau **SU**), **
 - **Intervalul de instruire**: la câte luni se repetă instruirea periodică și de unde vine intervalul;
 - **Ultima instruire periodică**;
 - **Testare**: starea testării, rezultatele și încercările din portal;
-- lista instruirilor lucrătorului în acel domeniu.
+- tabelul instruirilor lucrătorului în acel domeniu.
+
+Tabelul are o instruire pe rând, cea mai nouă sus: ziua, tipul instruirii, durata, cine a instruit și **Semnătura** lucrătorului: **De semnat**, **Semnată**, cu un lacăt, când a semnat-o în aplicație sau în portal, sau **Semnată de mână**. Sub tip scrie **Transcrisă de pe fișă** pentru o instruire de pe fișa pe hârtie, iar la o instruire cu mai mulți participanți, **Instruire de grup** cu numărul lor: linkul te duce la ea în tabul **Instruiri ținute** al clientului, cu rândul ei deschis. Poți ordona după zi sau durată, apăsând pe titlul coloanei.
+
+Săgeata de la începutul rândului, sau un clic pe rând, îl deschide: vezi materialul, cine a verificat, motivul unei instruiri suplimentare, admiterea la lucru, observațiile și rubricile de semnătură (vezi „Semnăturile unei instruiri”).
+
+**Filtre** restrânge tabelul după **Perioada** (de la o zi până la alta, oricare dintre ele putând lipsi), **Mod de înregistrare** (ținute în aplicație sau transcrise de pe fișă), **Tipul instruirii** și **Semnătura**. Filtrele alese apar deasupra tabelului, fiecare cu un X care îl scoate, iar numărul arată câte instruiri rămân din câte are lucrătorul.
+
+## Instruirile ținute ale clientului
+
+Tabul **Instruiri ținute** de pe pagina clientului are câte un rând pentru fiecare instruire ținută, cu toți participanții ei. **Toate**, **SSM** și **SU** aleg domeniul; **Înregistrează o instruire** propune domeniul ales, iar la **Toate**, SSM.
+
+Fiecare rând arată ziua, tipul instruirii (cu domeniul sub el și, pentru o instruire de pe fișa pe hârtie, **Transcrisă de pe fișă**), durata, cine a instruit, câți participanți a avut și **Semnături**:
+
+- **N de semnat**: câte rubrici nu sunt încă semnate, ale participanților și ale celor care semnează pentru instruire, fiecare rubrică a lor socotită o dată. Intră aici și rubrica fără semnatar, cea semnată de mână dar nemarcată încă și cea a cărei semnătură a fost anulată;
+- **Semnată**, cu un lacăt: instruirea are semnături electronice și nu se mai poate modifica;
+- **Semnată de mână**: instruirea e transcrisă de pe fișa pe hârtie, al cărei original e semnat, sau toate rubricile ei au fost marcate cu **Marchează semnat pe hârtie**.
+
+Săgeata de la începutul rândului, sau un clic pe rând, îl deschide: materialul, cine semnează pentru instruire (cine a instruit, cine a verificat, cine a admis la lucru) și fiecare participant, cu semnătura lui. Numele unui participant te duce în tabul lui de instruire din acel domeniu.
+
+Caseta de căutare găsește instruirile după numele unui participant. Nu caută după CNP: ce cauți rămâne în adresa paginii. **Filtre** restrânge lista după **Tipul instruirii**, **Semnături** (de semnat, semnate în aplicație, semnate de mână), **Perioada** și **Mod de înregistrare**. Poți ordona după zi, durată, cine a instruit sau numărul de participanți. Lista are 25 de instruiri pe pagină.
 
 ## Termenul următoarei instruiri
 
@@ -129,7 +153,7 @@ Pe fișa SSM, instruirile suplimentare au tabelul lor. Pe fișa SU apar în tabe
 
 ### Instruirile de pe fișa pe hârtie
 
-Pentru un lucrător a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute cu sursa **Preluată de pe fișa pe hârtie**: ziua, durata, materialul și cine a instruit, ca pe fișă. Ce nu e scris pe fișă lași necompletat: o instruire de pe hârtie se salvează și fără durată, material sau instructor, iar în aplicație și în portal vezi în locul lor „necompletată pe fișă”, „necompletat pe fișă” sau „nume neînscris pe fișă”. Pe fișa individuală din aplicație căsuța rămâne goală. O instruire ținută în aplicație are nevoie de toate. Semnăturile rămân pe hârtie, iar instruirea apare cu eticheta **Transcris de pe fișa pe hârtie** și rândul „Semnat pe hârtie: …” (vezi „Semnăturile unei instruiri”).
+Pentru un lucrător a cărui instruire s-a ținut până acum pe hârtie, înregistrează instruirile trecute bifând **Transcrisă de pe fișa pe hârtie** în formular: ziua, durata, materialul și cine a instruit, ca pe fișă. Ce nu e scris pe fișă lași necompletat: o instruire de pe hârtie se salvează și fără durată, material sau instructor, iar în aplicație și în portal vezi în locul lor „necompletată pe fișă”, „necompletat pe fișă” sau „nume neînscris pe fișă”. Pe fișa individuală din aplicație căsuța rămâne goală. O instruire ținută în aplicație are nevoie de toate. Semnăturile unei instruiri transcrise rămân pe fișa pe hârtie: pentru ea nu se cere nicio semnătură electronică, nici în aplicație, nici în portal, chiar dacă lucrătorul are cont. În tabel apare cu **Transcrisă de pe fișă** și **Semnată de mână**, iar deschisă, cu rândul „Semnat pe hârtie: …” (vezi „Semnăturile unei instruiri”).
 
 Ca termenele să fie corecte, sunt de ajuns instruirile la angajare și ultima instruire periodică. Fotografia sau scanul fișei pe hârtie îl încarci pe tabul **Documente** al lucrătorului.
 
@@ -141,11 +165,11 @@ Poți înregistra astfel și instruirile unui fost lucrător.
 
 ### Modificarea și ștergerea unei instruiri
 
-**Modifică** și **Șterge** schimbă instruirea pentru toți participanții ei. Dacă a avut mai mulți, dialogul îți spune câți.
+**Modifică** și **Șterge** sunt în meniul cu trei puncte de la capătul rândului și schimbă instruirea pentru toți participanții ei. Dacă a avut mai mulți, dialogul îți spune câți.
 
-O instruire semnată electronic nu se mai poate modifica și nici șterge: sub butoane vezi de ce. Ca s-o corectezi, anulează întâi semnăturile, cu un motiv. O instruire care are orice semnătură, chiar anulată sau pe hârtie, nu se mai poate șterge, pentru că semnăturile rămân în evidență.
+O instruire semnată electronic nu se mai poate modifica și nici șterge: în meniu vezi de ce. Ca s-o corectezi, anulează întâi semnăturile, cu un motiv. O instruire care are orice semnătură, chiar anulată sau pe hârtie, nu se mai poate șterge, pentru că semnăturile rămân în evidență.
 
-O instruire de pe fișa pe hârtie nu are semnături electronice de anulat. La prima semnătură electronică pe fișa SSM sau SU a unui lucrător, fișa lui tipărește ca text instruirile de pe hârtie ale domeniului, iar o fișă semnată nu se mai schimbă. De atunci, acele instruiri nu se mai pot nici modifica, nici șterge. Verifică deci instruirile preluate de pe hârtie înainte ca lucrătorul să semneze electronic prima instruire ținută în aplicație.
+O instruire de pe fișa pe hârtie nu are semnături electronice de anulat. La prima semnătură electronică pe fișa SSM sau SU a unui lucrător, fișa lui tipărește ca text instruirile de pe hârtie ale domeniului, iar o fișă semnată nu se mai schimbă. De atunci, acele instruiri nu se mai pot nici modifica, nici șterge. Verifică deci instruirile transcrise de pe hârtie înainte ca lucrătorul să semneze electronic prima instruire ținută în aplicație.
 
 ## Testarea
 
@@ -228,6 +252,6 @@ După prima semnătură electronică, fișa se păstrează semnată, rând cu r�
 
 Fiecare instruire înregistrată în aplicație are rubrici de semnătură: **Instruit**, **Instructor** și, unde fișa le are, **Verificator** și **Admite la lucru**. Fișa SU are doar rubricile celui instruit și ale celui care a instruit.
 
-Lucrătorul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
+Rubricile le vezi deschizând rândul instruirii în tabul lucrătorului. Lucrătorul își semnează rubrica din portal, cu un cod primit pe email sau prin SMS. O rubrică semnată de mână o marchezi cu **Marchează semnat pe hârtie**.
 
 O instruire de pe fișa pe hârtie nu are rubrici de semnat și nu cere nicio semnătură, nici în aplicație, nici în portal: semnăturile ei sunt pe fișa pe hârtie. În locul rubricilor scrie „Semnat pe hârtie: instruit, instructor”, la care se adaugă verificatorul și cel care admite la lucru când instruirea îi are. Pe fișa individuală, rândul ei apare cu mențiunea „transcris; semnat pe hârtie”. O fișă semnată întocmită înainte ca fișele să scrie „transcris” rămâne cum era: rândurile adăugate pe ea mai târziu primesc tot mențiunea „semnat pe hârtie”.

@@ -1681,8 +1681,8 @@ msgid "Tot textul"
 msgstr "Tot textul"
 
 #: src/features/training/training-records-list.tsx
-msgid "Transcris de pe fișa pe hârtie. Semnat pe hârtie."
-msgstr "Transcris de pe fișa pe hârtie. Semnat pe hârtie."
+msgid "Transcrisă de pe fișă. Semnată pe hârtie."
+msgstr "Transcrisă de pe fișă. Semnată pe hârtie."
 
 #: src/features/my-data/my-data-page.tsx
 msgid "Transport asigurat de angajator"
