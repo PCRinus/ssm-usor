@@ -53,6 +53,7 @@ test('a member finds employees of every client from one page, without typing dia
   await search.fill('santierul');
   await expect(page.getByText('Niciun lucrător nu se potrivește')).toBeVisible();
   await search.fill('nimeni');
+  await expect(page).toHaveURL(/q=nimeni/);
   await expect(page.getByTestId('organization-employees-count')).toHaveText('0 din 2 lucrători');
   await page.getByTestId('organization-employees-empty-filtered-clear').click();
   await expect(rows).toHaveCount(2);

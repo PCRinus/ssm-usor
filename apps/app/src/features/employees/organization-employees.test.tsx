@@ -242,6 +242,23 @@ describe("the organization's employees", () => {
     ).toContain('Șantierul Naval SA');
   });
 
+  it('drops words still waiting to be searched when the search is cleared', async () => {
+    mockApi((url) =>
+      Response.json(url.searchParams.get('q') ? page([], 0, 2) : page([popescu, taranu]))
+    );
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati?q=zzz');
+    const user = userEvent.setup();
+    const search = await screen.findByTestId('organization-employees-search');
+    await screen.findByText('Niciun lucrător nu se potrivește');
+    await user.clear(search);
+    await user.type(search, 'nimeni');
+    await user.click(screen.getByTestId('organization-employees-empty-filtered-clear'));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(runtime.router.state.location.search).toEqual({});
+    expect((search as HTMLInputElement).value).toBe('');
+    expect(screen.getAllByTestId('organization-employees-row')).toHaveLength(2);
+  });
+
   it('tells an empty organization from a search that matches no one', async () => {
     mockApi((url) => Response.json(page([], 0, url.searchParams.get('q') ? 2 : 0)));
     const runtime = mountApp(authFixture(makeSession()).client, '/angajati?q=zzz');

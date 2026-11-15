@@ -119,7 +119,7 @@ test('a specialist records trainings held and follows each employee’s state', 
     await expect(records.first()).toContainText('120 min (2 h)');
   }
 
-  await page.goto(`/clienti/${clientId}/angajati?ssmTraining=current`);
+  await page.goto(`/clienti/${clientId}/angajati?ssmTraining=overdue`);
   await expect(page.getByText('Niciun lucrător nu se potrivește')).toBeVisible();
 
   await page.goto(`/clienti/${clientId}/angajati`);
