@@ -35,8 +35,8 @@ export function TestStateBadge({ state, testId }: { state: TestState; testId?: s
   );
 }
 
-// Only what asks for action: of both domains, the most pressing test, named with its domain when
-// the other one is not in that state; with none, "La zi" once a test passed.
+// Only what asks for action: of both domains, the most pressing test; with none, "La zi" once a
+// test passed. Only the annual test names its domain, as it is a fire-safety test alone.
 const pressing = ['annual_due', 'pending', 'unverified'] as const satisfies readonly TestState[];
 
 const lineTones: Record<(typeof pressing)[number], string> = {
@@ -65,12 +65,12 @@ export function TestStatesLine({
       </span>
     );
   }
-  const domains = trainingDomains.filter((domain) => tests[domain].state === state);
   const label = testStateLabels[state];
+  const domains = trainingDomains.filter((domain) => tests[domain].state === state);
   return (
     <span className={lineTones[state]} data-testid="test-status" data-state={state}>
-      {domains.length === 1
-        ? `${trainingDomainLabels[domains[0]!]}: ${label.charAt(0).toLowerCase()}${label.slice(1)}`
+      {state === 'annual_due'
+        ? `${domains.map((domain) => trainingDomainLabels[domain]).join(', ')}: ${label.toLowerCase()}`
         : label}
     </span>
   );

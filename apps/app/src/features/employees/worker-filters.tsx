@@ -109,7 +109,16 @@ export function fromLegacyWorkerFilters<Search extends LegacyWorkerFilters>({
   } else if (trainingState === 'due') mapped.attention = ['trainingDue'];
   else if (trainingState) mapped.attention = ['toTrain'];
   if (testState) mapped.test = [testState];
-  return { ...search, ...mapped, ...stripUndefined(search) };
+  // Named as undefined: a navigation keeps every key the address had, so a key left out would
+  // bring the earlier filter back once its new one is removed.
+  return {
+    ...search,
+    ...mapped,
+    ...stripUndefined(search),
+    trainingState: undefined,
+    testState: undefined,
+    domain: undefined,
+  };
 }
 
 function stripUndefined<Value extends object>(value: Value) {

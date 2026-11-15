@@ -943,6 +943,25 @@ describe('training state in the employee lists', () => {
     }
   );
 
+  it("drops an earlier link's filter from the address once it is removed", async () => {
+    mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([popescu])) });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${employeesPage}?trainingState=attention&testState=pending`
+    );
+    const user = userEvent.setup();
+    await screen.findAllByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-applied-filters-attention-remove'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ test: 'pending' }));
+    await user.click(screen.getByTestId('employees-applied-filters-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await waitFor(() => {
+      const sent = requests('GET', employeesPath).at(-1)!.url.searchParams;
+      expect(sent.has('attention')).toBe(false);
+      expect(sent.has('test')).toBe(false);
+    });
+  });
+
   it('opens a dashboard link of one domain on that domain alone', async () => {
     mockApi({
       'GET /employees': () =>

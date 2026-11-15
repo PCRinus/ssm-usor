@@ -21,12 +21,13 @@ const searchSchema = z
     // The single client the list filtered by before it took several.
     clientId: z.uuid().optional().catch(undefined),
   })
-  .transform(({ clientId, ...search }) =>
-    fromLegacyWorkerFilters({
+  .transform(({ clientId, ...search }) => ({
+    ...fromLegacyWorkerFilters({
       ...search,
       client: search.client ?? (clientId ? [clientId] : undefined),
-    })
-  );
+    }),
+    clientId: undefined,
+  }));
 
 export const Route = createFileRoute('/_authenticated/angajati/')({
   staticData: { title: 'Lucrători' },
