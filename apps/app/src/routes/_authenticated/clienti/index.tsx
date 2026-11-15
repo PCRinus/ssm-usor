@@ -252,6 +252,7 @@ function ClientsPage() {
   const changeFilters = (values: ListFilterValues<FilterKey>) =>
     void navigate({
       replace: true,
+      resetScroll: false,
       search: (prev) => ({
         ...prev,
         ...(listFilters.searchOf(values) as ClientFilters),
@@ -261,6 +262,7 @@ function ClientsPage() {
   const clearSearch = () =>
     void navigate({
       replace: true,
+      resetScroll: false,
       search: (prev) => ({ ...prev, q: undefined, page: undefined }),
     });
 
@@ -311,6 +313,7 @@ function ClientsPage() {
                 onSearch={(next) =>
                   void navigate({
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
                   })
                 }
@@ -380,6 +383,7 @@ function ClientsPage() {
           onSortChange={(next) =>
             void navigate({
               replace: true,
+              resetScroll: false,
               search: (prev) => ({
                 ...prev,
                 sort: next.sort === defaultSort.sort ? undefined : (next.sort as ClientSortKey),

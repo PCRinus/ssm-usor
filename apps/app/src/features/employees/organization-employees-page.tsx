@@ -116,6 +116,7 @@ export function OrganizationEmployeesPage() {
               onChange={(next) =>
                 void navigate({
                   replace: true,
+                  resetScroll: false,
                   search: (prev) => ({ ...prev, clientId: next, page: undefined }),
                 })
               }
@@ -126,6 +127,7 @@ export function OrganizationEmployeesPage() {
             onSearch={(next) =>
               void navigate({
                 replace: true,
+                resetScroll: false,
                 search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
               })
             }
@@ -141,6 +143,7 @@ export function OrganizationEmployeesPage() {
                 onChange={(next) =>
                   void navigate({
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({
                       ...prev,
                       trainingState: next,
@@ -156,6 +159,7 @@ export function OrganizationEmployeesPage() {
                 onChange={(next) =>
                   void navigate({
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({
                       ...prev,
                       testState: next,
@@ -196,6 +200,7 @@ export function OrganizationEmployeesPage() {
           onSortChange={(next) =>
             void navigate({
               replace: true,
+              resetScroll: false,
               search: (prev) => ({
                 ...prev,
                 sort:
@@ -240,6 +245,7 @@ export function OrganizationEmployeesPage() {
                 onClear={() =>
                   void navigate({
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({ ...prev, q: undefined, page: undefined }),
                   })
                 }
@@ -254,6 +260,7 @@ export function OrganizationEmployeesPage() {
                 onClear={() =>
                   void navigate({
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({
                       ...prev,
                       trainingState: undefined,
@@ -273,6 +280,7 @@ export function OrganizationEmployeesPage() {
                 onClear={() =>
                   void navigate({
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({
                       ...prev,
                       testState: undefined,

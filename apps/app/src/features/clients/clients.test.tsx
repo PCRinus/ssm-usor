@@ -492,7 +492,7 @@ describe('clients list', () => {
     await user.click(await screen.findByTestId('clients-filters-county-add'));
     await user.type(await screen.findByTestId('clients-filters-county-search'), 'bistrita');
     await user.click(screen.getByTestId('clients-filters-county-BN'));
-    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ county: ['BN'] }));
+    await waitFor(() => expect(runtime.router.state.location.searchStr).toBe('?county=BN'));
     expect(new URL(String(requests('/clients').at(-1)![0])).searchParams.getAll('county')).toEqual([
       'BN',
     ]);
@@ -741,7 +741,7 @@ describe('clients list', () => {
         'Cluj'
       );
       await user.click(within(sheet).getByTestId('clients-filters-apply'));
-      await waitFor(() => expect(runtime.router.state.location.search).toEqual({ county: ['CJ'] }));
+      await waitFor(() => expect(runtime.router.state.location.searchStr).toBe('?county=CJ'));
       await waitFor(() => expect(screen.queryByTestId('clients-filters-sheet')).toBeNull());
 
       await user.click(screen.getByRole('button', { name: 'Scoate filtrul Județ' }));

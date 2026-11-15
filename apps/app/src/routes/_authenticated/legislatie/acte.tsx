@@ -29,6 +29,7 @@ function WatchedActsRoute() {
       onSortChange={(next) =>
         void navigate({
           replace: true,
+          resetScroll: false,
           search: {
             sort: next.sort === defaultWatchedActSort.sort ? undefined : next.sort,
             order: next.order === defaultWatchedActSort.order ? undefined : next.order,
