@@ -49,7 +49,7 @@ function documentationColumn(
     meta: { headerClassName: narrowHeader, skeletonClassName: 'w-24' },
     cell: ({ row }) => {
       const documentation = row.original[id];
-      if (!documentation) return null;
+      if (!documentation) return <CellEmpty />;
       return (
         <span className="flex items-center gap-2">
           <DocumentationBadge state={documentation.state} testId={testId} />
@@ -145,7 +145,7 @@ export function clientColumns({
       },
       cell: ({ getValue }) => {
         const since = getValue();
-        return since ? formatRoDate(since.slice(0, 10)) : null;
+        return since ? formatRoDate(since.slice(0, 10)) : <CellEmpty />;
       },
     }),
     helper.display({

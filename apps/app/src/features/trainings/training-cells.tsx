@@ -51,7 +51,9 @@ export function SignatureState({
       )}
     >
       {state === 'pending' && <PenLine aria-hidden="true" className="size-3.5 shrink-0" />}
-      {state === 'electronic' && <Lock aria-hidden="true" className="size-3.5 shrink-0" />}
+      {state === 'electronic' && (
+        <Lock aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+      )}
       {label}
     </span>
   );
