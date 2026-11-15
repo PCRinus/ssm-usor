@@ -26,7 +26,7 @@ insert into public.client_workplaces (id, organization_id, client_id, name) valu
 
 insert into public.job_positions (id, organization_id, client_id, name, staff_category) values
   ('b1b1b1b1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', 'Sudor', 'execution'),
-  ('b1b1b1b1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Contabil', 'administrative');
+  ('b1b1b1b1-0000-4000-8000-000000000002', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', 'Contabil', 'technical_administrative');
 
 create temp table day as select (now() at time zone 'Europe/Bucharest')::date as today;
 grant select on day to authenticated;

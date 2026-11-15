@@ -81,3 +81,6 @@ comment on column public.employee_list.su_training_rank is
   'The order the list sorts the fire-safety training by: 0 overdue, 1 untrained, 2 due within 30 days, 3 current; null without a state.';
 comment on column public.employee_list.signatures_pending_count is
   'The trainee signatures the employee has still to give, for training records and test sheets alike.';
+
+revoke all on table public.employee_list from anon, authenticated;
+grant select on table public.employee_list to authenticated, service_role;
