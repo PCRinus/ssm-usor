@@ -39,11 +39,7 @@ function ExpiredLink({ expiresAt }: { expiresAt: string }) {
 export function LeadContractCell({ lead }: { lead: ClientRow }) {
   const state = lead.serviceContractState ?? 'none';
   if (state === 'none') {
-    return (
-      <span data-testid="leads-contract" className="text-muted-foreground">
-        {contractStateLabels.none}
-      </span>
-    );
+    return <span data-testid="leads-contract">{contractStateLabels.none}</span>;
   }
   const badge = contractStateBadges[state];
   const at = lead.serviceContractStateAt;

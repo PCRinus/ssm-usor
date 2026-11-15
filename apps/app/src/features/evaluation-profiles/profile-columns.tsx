@@ -12,6 +12,7 @@ import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { CellEmpty } from '@/components/data-table/cell-note';
 import { createDataTableColumns, type DataTableColumnMeta } from '@/components/data-table/columns';
 import { formatGlobalLevel } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { dateToIso, formatRoDate } from '@/lib/dates';
@@ -70,9 +71,7 @@ export function profileColumns({
         return (
           <span
             data-testid="risk-profile-unacceptable"
-            className={
-              count > 0 ? 'font-medium text-destructive-foreground' : 'text-muted-foreground'
-            }
+            className={cn(count > 0 && 'font-medium text-destructive-foreground')}
           >
             {count}
           </span>
@@ -86,16 +85,15 @@ export function profileColumns({
       meta: { ...numeric, skeletonClassName: 'ml-auto w-10' },
       cell: ({ getValue }) => {
         const level = getValue();
+        if (level === null) return <CellEmpty data-testid="risk-profile-level" />;
         return (
           <span
             data-testid="risk-profile-level"
             className={cn(
-              level === null
-                ? 'text-muted-foreground'
-                : isOverAcceptableLimit(level) && 'font-medium text-destructive-foreground'
+              isOverAcceptableLimit(level) && 'font-medium text-destructive-foreground'
             )}
           >
-            {level === null ? '—' : formatGlobalLevel(level)}
+            {formatGlobalLevel(level)}
           </span>
         );
       },
@@ -109,20 +107,18 @@ export function profileColumns({
         cellClassName: 'pl-8 tabular-nums',
         skeletonClassName: 'w-16',
       },
-      cell: ({ getValue }) => (
-        <span
-          data-testid="risk-profile-clients"
-          className={cn(getValue() === 0 && 'text-muted-foreground')}
-        >
-          {clientCountLabel(getValue())}
-        </span>
-      ),
+      cell: ({ getValue }) =>
+        getValue() === 0 ? (
+          <CellEmpty data-testid="risk-profile-clients" />
+        ) : (
+          <span data-testid="risk-profile-clients">{clientCountLabel(getValue())}</span>
+        ),
     }),
     helper.accessor('updatedAt', {
       id: 'updatedAt',
       header: 'Modificat',
       sortDescFirst: true,
-      meta: { cellClassName: 'text-muted-foreground tabular-nums', skeletonClassName: 'w-20' },
+      meta: { cellClassName: 'tabular-nums', skeletonClassName: 'w-20' },
       cell: ({ getValue }) => formatRoDate(dateToIso(new Date(getValue()))),
     }),
     helper.display({

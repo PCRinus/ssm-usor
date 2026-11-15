@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router';
 import { Check, CircleAlert, Clock } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { CellEmpty } from '@/components/data-table/cell-note';
 import { roCount } from '@/features/employees/employee-format';
 
 import type { ClientRow } from './client-columns';
@@ -26,7 +27,7 @@ function trainingLink(training: ClientTraining) {
 export function TrainingCell({ client }: { client: ClientRow }) {
   const training = client.training;
   if (!training || training.employeeCount === 0) {
-    return <span className="text-muted-foreground">—</span>;
+    return <CellEmpty />;
   }
   const { state, search } = trainingLink(training);
   const [Icon, label, tone, iconTone] =
@@ -44,7 +45,7 @@ export function TrainingCell({ client }: { client: ClientRow }) {
             'font-medium text-warning-foreground',
             'text-chart-3',
           ]
-        : [Check, 'La zi', 'text-muted-foreground', 'text-muted-foreground'];
+        : [Check, 'La zi', '', 'text-muted-foreground'];
   return (
     <Link
       to="/clienti/$clientId/angajati"

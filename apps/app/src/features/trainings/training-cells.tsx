@@ -47,11 +47,13 @@ export function SignatureState({
       data-state={state}
       className={cn(
         'inline-flex items-center gap-1.5 whitespace-nowrap',
-        state === 'pending' ? 'font-medium text-warning-foreground' : 'text-muted-foreground'
+        state === 'pending' && 'font-medium text-warning-foreground'
       )}
     >
       {state === 'pending' && <PenLine aria-hidden="true" className="size-3.5 shrink-0" />}
-      {state === 'electronic' && <Lock aria-hidden="true" className="size-3.5 shrink-0" />}
+      {state === 'electronic' && (
+        <Lock aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+      )}
       {label}
     </span>
   );

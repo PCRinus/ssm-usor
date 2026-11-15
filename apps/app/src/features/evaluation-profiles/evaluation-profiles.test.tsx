@@ -422,8 +422,7 @@ describe('the risk library', () => {
   });
 
   it('counts the clients that use a profile the Romanian way', () => {
-    expect([0, 1, 2, 19, 20, 120].map(clientCountLabel)).toEqual([
-      '—',
+    expect([1, 2, 19, 20, 120].map(clientCountLabel)).toEqual([
       '1 client',
       '2 clienți',
       '19 clienți',

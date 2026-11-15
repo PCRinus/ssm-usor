@@ -6,7 +6,7 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 
-import { CellNote } from '@/components/data-table/cell-note';
+import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import { formatDate } from '@/features/employees/employee-format';
 
 const stateBadges: Record<
@@ -47,7 +47,7 @@ export function TrainingStateCell({
   domain: TrainingDomain;
 }) {
   const { state, dueOn } = training[domain];
-  if (!state) return <span className="text-muted-foreground">—</span>;
+  if (!state) return <CellEmpty />;
   return (
     <>
       <TrainingStateBadge state={state} testId={`training-status-${domain}`} />
