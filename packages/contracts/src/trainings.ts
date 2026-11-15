@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+import {
+  listQuerySchema,
+  listSearchSchema,
+  pageSchema,
+  repeatedQueryValue,
+  sortOrderSchema,
+} from './list';
+
 export const trainingDomains = ['ssm', 'su'] as const;
 export const trainingDomainSchema = z.enum(trainingDomains);
 export type TrainingDomain = z.infer<typeof trainingDomainSchema>;
@@ -245,14 +253,6 @@ export const trainingSchema = z.object({
 
 export type Training = z.infer<typeof trainingSchema>;
 
-export const trainingAttendeeSchema = z.object({
-  employeeId: z.uuid(),
-  lastName: z.string(),
-  firstName: z.string(),
-});
-
-export type TrainingAttendee = z.infer<typeof trainingAttendeeSchema>;
-
 // The training's signing state (ADR 023), over all its records: `signed` while any carries a live
 // electronic signature, which freezes the training; `hasSignatures` once any carries a signature
 // row, voided and paper ones included, or sits on a stored sheet, which keeps it from deletion;
@@ -264,9 +264,21 @@ const trainingSigningSchema = {
   printed: z.boolean(),
 };
 
+// A training transcribed from paper is `paper`: the sheet is its signed original (ADR 042). One
+// held in the app is `pending` while any slot lacks a live signature, requested, voided or never
+// addressed; else `electronic` once any is electronic, which freezes it; else `paper`, every slot
+// marked signed by hand (ADR 023). The same three name one slot or one attendee's signature.
+export const trainingSignatureStates = ['pending', 'electronic', 'paper'] as const;
+export const trainingSignatureStateSchema = z.enum(trainingSignatureStates);
+export type TrainingSignatureState = z.infer<typeof trainingSignatureStateSchema>;
+
 export const trainingListItemSchema = trainingSchema.extend({
   attendeeCount: z.int().min(0),
-  attendees: z.array(trainingAttendeeSchema),
+  signatureState: trainingSignatureStateSchema,
+  // The attendees still to sign, each counted, and the trainer, verifier and admitter slots still
+  // to sign on any record, each counted once.
+  pendingTraineeSignatures: z.int().min(0),
+  pendingSignerSignatures: z.int().min(0),
   ...trainingSigningSchema,
 });
 
@@ -286,6 +298,7 @@ export const trainingRecordSchema = z.object({
   // The position's name when the record was made.
   occupation: z.string(),
   admission: trainingAdmissionSchema.nullable(),
+  signature: trainingSignatureStateSchema,
 });
 
 export type TrainingRecord = z.infer<typeof trainingRecordSchema>;
@@ -300,6 +313,12 @@ export const trainingDetailSchema = trainingSchema.extend({
     verifier: z.uuid().nullable(),
     admitter: z.uuid().nullable(),
   }),
+  // Each slot over every record: null where the training has no such slot.
+  slotSignatures: z.object({
+    trainer: trainingSignatureStateSchema,
+    verifier: trainingSignatureStateSchema.nullable(),
+    admitter: trainingSignatureStateSchema.nullable(),
+  }),
 });
 
 export type TrainingDetail = z.infer<typeof trainingDetailSchema>;
@@ -308,14 +327,36 @@ export const trainingResponseSchema = z.object({ training: trainingDetailSchema 
 
 export type TrainingResponse = z.infer<typeof trainingResponseSchema>;
 
-export const listTrainingsQuerySchema = z.object({
-  domain: trainingDomainSchema.optional(),
-  phase: trainingPhaseSchema.optional(),
+export const trainingSortKeys = ['heldOn', 'duration', 'trainer', 'attendees'] as const;
+export type TrainingSortKey = (typeof trainingSortKeys)[number];
+
+export const trainingListFiltersSchema = z.object({
+  phase: repeatedQueryValue(trainingPhaseSchema).optional(),
+  signatures: repeatedQueryValue(trainingSignatureStateSchema).optional(),
+  mode: repeatedQueryValue(trainingSourceSchema).optional(),
+  from: z.iso.date().optional(),
+  to: z.iso.date().optional(),
 });
+
+export type TrainingListFilters = z.infer<typeof trainingListFiltersSchema>;
+
+export const listTrainingsQuerySchema = listQuerySchema(trainingSortKeys, 'heldOn')
+  .extend({
+    order: sortOrderSchema.default('desc'),
+    domain: repeatedQueryValue(trainingDomainSchema).optional(),
+    // Matches attendees' names only, never a CNP.
+    q: listSearchSchema.optional(),
+    // Without `page`, the page that holds this training, when the filters keep it.
+    open: z.uuid().optional(),
+  })
+  .extend(trainingListFiltersSchema.shape);
 
 export type ListTrainingsQuery = z.infer<typeof listTrainingsQuerySchema>;
 
-export const trainingListResponseSchema = z.object({ items: z.array(trainingListItemSchema) });
+export const trainingListResponseSchema = pageSchema(trainingListItemSchema).extend({
+  // The count in the domains asked for, with no search and no filter.
+  unfilteredTotal: z.int().min(0),
+});
 
 export type TrainingListResponse = z.infer<typeof trainingListResponseSchema>;
 
@@ -324,6 +365,8 @@ export const employeeTrainingRecordSchema = z.object({
   occupation: z.string(),
   admission: trainingAdmissionSchema.nullable(),
   training: trainingSchema,
+  attendeeCount: z.int().min(1),
+  signature: trainingSignatureStateSchema,
   // The training's, over every attendee's record, not this record's alone.
   ...trainingSigningSchema,
 });

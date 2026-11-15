@@ -102,11 +102,6 @@ test('a specialist records trainings held and follows each employee’s state', 
   await expect(trainings).toHaveCount(3);
   await expect(trainings.first()).toContainText('Periodică');
   await expect(trainings.first()).toContainText('2 participanți');
-  const participants = trainings.first().getByTestId('trainings-attendee');
-  await expect(participants).toHaveText(['Instruitu Ion', 'Sudoru Maria']);
-  await participants.first().click();
-  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/angajati/[^/]+/instruire/ssm$`));
-  await expect(page.getByTestId('training-state')).toHaveText('La zi');
 
   for (const name of ['Instruitu Ion', 'Sudoru Maria']) {
     await page.goto(`/clienti/${clientId}/angajati`);

@@ -708,9 +708,6 @@ describe("a client's trainings held", () => {
     expect(within(rows[0]!).getByTestId('trainings-attendee-count').textContent).toBe(
       '2 participanți'
     );
-    const attendees = within(rows[0]!).getAllByTestId('trainings-attendee');
-    expect(attendees.map((link) => link.textContent)).toEqual(['Popescu Ion', 'Țăranu Ștefan']);
-    expect(attendees[1]!.getAttribute('href')).toBe(`${employeesPage}/${taranu.id}/instruire/ssm`);
     expect(within(rows[0]!).getByText('120 min (2 h)')).toBeTruthy();
 
     const historyLength = runtime.router.history.length;

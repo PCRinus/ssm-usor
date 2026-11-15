@@ -6545,6 +6545,13 @@ export type Database = {
             foreignKeyName: 'training_records_training_of_client';
             columns: ['training_id', 'client_id', 'phase'];
             isOneToOne: false;
+            referencedRelation: 'training_list';
+            referencedColumns: ['id', 'client_id', 'phase'];
+          },
+          {
+            foreignKeyName: 'training_records_training_of_client';
+            columns: ['training_id', 'client_id', 'phase'];
+            isOneToOne: false;
             referencedRelation: 'trainings';
             referencedColumns: ['id', 'client_id', 'phase'];
           },
@@ -7426,6 +7433,94 @@ export type Database = {
           unread: boolean | null;
         };
         Relationships: [];
+      };
+      training_list: {
+        Row: {
+          attendee_count: number | null;
+          client_id: string | null;
+          created_at: string | null;
+          domain: Database['public']['Enums']['training_domain'] | null;
+          duration_minutes: number | null;
+          has_signatures: boolean | null;
+          held_on: string | null;
+          id: string | null;
+          material: string | null;
+          notes: string | null;
+          organization_id: string | null;
+          pending_signer_count: number | null;
+          pending_trainee_count: number | null;
+          phase: Database['public']['Enums']['training_phase'] | null;
+          printed: boolean | null;
+          search_names: string | null;
+          signature_state: string | null;
+          signed: boolean | null;
+          source: Database['public']['Enums']['training_source'] | null;
+          supplementary_reason: Database['public']['Enums']['supplementary_training_reason'] | null;
+          themes_revision_id: string | null;
+          trainer_job_title: string | null;
+          trainer_name: string | null;
+          updated_at: string | null;
+          verifier_job_title: string | null;
+          verifier_name: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'trainings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trainings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trainings_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
+            foreignKeyName: 'trainings_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'trainings_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'trainings_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'trainings_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trainings_themes_revision_in_organization';
+            columns: ['themes_revision_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'document_revisions';
+            referencedColumns: ['id', 'organization_id'];
+          },
+        ];
       };
     };
     Functions: {

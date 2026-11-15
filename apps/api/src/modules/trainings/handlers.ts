@@ -1,15 +1,21 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import type {
   EmployeeTrainingRecord,
+  SignerSlot,
+  SortOrder,
   TrainingDetail,
   TrainingDomain,
+  TrainingListFilters,
+  TrainingListItem,
   TrainingRequest,
+  TrainingSignatureState,
+  TrainingSortKey,
   TrainingSource,
 } from '@ssm-usor/contracts';
-import { proposalEmployeeIds } from '@ssm-usor/contracts';
+import { pageRange, proposalEmployeeIds, searchTerms } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import type { Json } from '../../database.types';
+import type { Database, Json } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -35,15 +41,34 @@ import type {
 import { toAdmission, toTraining, trainingColumns } from './training-rows';
 
 const signingColumns =
-  'training_signatures(method, voided_at), signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at, signed_sheets!signed_sheet_rows_sheet_of_client(certified_at))';
+  'training_signatures(slot, method, voided_at), signed_sheet_rows!signed_sheet_rows_record_of_client(voided_at, signed_sheets!signed_sheet_rows_sheet_of_client(certified_at))';
 
 const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, employees(id, last_name, first_name), ${signingColumns}`;
 
 type RecordSigning = {
-  training_signatures: { method: string; voided_at: string | null }[] | null;
+  training_signatures: { slot: string; method: string; voided_at: string | null }[] | null;
   signed_sheet_rows:
     { voided_at: string | null; signed_sheets: { certified_at: string | null } }[] | null;
 };
+
+// The rule of the training_list view, for one slot of one record. The paper sheet a training was
+// transcribed from is its signed original. In the app a slot is signed only by a live signature,
+// electronic or marked on paper; one without, requested, voided or never addressed, is to sign.
+function slotStateOf(
+  source: TrainingSource,
+  record: Pick<RecordSigning, 'training_signatures'>,
+  slot: SignerSlot
+): TrainingSignatureState {
+  if (source === 'paper') return 'paper';
+  const live = record.training_signatures?.find((each) => each.slot === slot && !each.voided_at);
+  if (!live) return 'pending';
+  return live.method === 'electronic' ? 'electronic' : 'paper';
+}
+
+function overRecords(states: TrainingSignatureState[]): TrainingSignatureState {
+  if (states.includes('pending')) return 'pending';
+  return states.includes('electronic') ? 'electronic' : 'paper';
+}
 
 // `printed` is the rule of training_record_is_printed, by which the database refuses the change.
 function signingOf(source: TrainingSource, records: RecordSigning[]) {
@@ -88,9 +113,17 @@ async function loadTraining(db: DataClient, clientId: string, trainingId: string
   if (error) throw fromDatabaseError(error, 'get training');
   if (!data) throw noSuchTraining();
   const { training_records: records, ...training } = data;
+  const slotsOf = records as unknown as RecordSigning[];
+  const slotState = (slot: SignerSlot) =>
+    overRecords(slotsOf.map((record) => slotStateOf(training.source, record, slot)));
   return {
     ...toTraining(training),
     ...signingOf(training.source, records as unknown as RecordSigning[]),
+    slotSignatures: {
+      trainer: slotState('trainer'),
+      verifier: training.verifier_name ? slotState('verifier') : null,
+      admitter: records.some((record) => record.admitted_on) ? slotState('admitter') : null,
+    },
     signers: await slotSignersOf(
       db,
       records.map((record) => record.id)
@@ -105,6 +138,7 @@ async function loadTraining(db: DataClient, clientId: string, trainingId: string
         },
         occupation: record.occupation,
         admission: toAdmission(record),
+        signature: slotStateOf(training.source, record as unknown as RecordSigning, 'trainee'),
       }))
       .sort(
         (a, b) =>
@@ -214,41 +248,202 @@ async function saveTraining(
   return data;
 }
 
+const listViewColumns = `${trainingColumns}, attendee_count, pending_trainee_count, pending_signer_count, signature_state, signed, has_signatures, printed`;
+
+type TrainingListView = Database['public']['Views']['training_list']['Row'];
+
+// The generated types make every column of a view nullable; these come from not-null columns of
+// the training, and the view coalesces the counts and the flags.
+type RequiredListColumn =
+  | 'id'
+  | 'client_id'
+  | 'domain'
+  | 'phase'
+  | 'held_on'
+  | 'source'
+  | 'created_at'
+  | 'updated_at'
+  | 'attendee_count'
+  | 'pending_trainee_count'
+  | 'pending_signer_count'
+  | 'signature_state'
+  | 'signed'
+  | 'has_signatures'
+  | 'printed';
+
+type ListViewRow = {
+  [Column in RequiredListColumn]: NonNullable<TrainingListView[Column]>;
+} & Pick<
+  TrainingListView,
+  | 'duration_minutes'
+  | 'material'
+  | 'trainer_name'
+  | 'trainer_job_title'
+  | 'verifier_name'
+  | 'verifier_job_title'
+  | 'supplementary_reason'
+  | 'themes_revision_id'
+  | 'notes'
+>;
+
+type SortColumn = { column: string; nullsLast?: true };
+
+const byDay: SortColumn[] = [{ column: 'held_on' }, { column: 'created_at' }];
+
+// The id keeps every order stable across pages. A sheet that does not write the duration or the
+// trainer comes last both ways.
+const sortColumns: Record<TrainingSortKey, SortColumn[]> = {
+  heldOn: byDay,
+  duration: [{ column: 'duration_minutes', nullsLast: true }, ...byDay],
+  trainer: [{ column: 'trainer_name', nullsLast: true }, ...byDay],
+  attendees: [{ column: 'attendee_count' }, ...byDay],
+};
+
+const narrowingKeys = ['phase', 'signatures', 'mode', 'from', 'to'] as const;
+
+type ListQuery<Query> = {
+  eq(column: string, value: string): Query;
+  in(column: string, values: readonly string[]): Query;
+  gte(column: string, value: string): Query;
+  lte(column: string, value: string): Query;
+  filter(column: string, operator: string, value: string): Query;
+};
+
+type OrderableQuery<Query> = {
+  order(column: string, options: { ascending: boolean; nullsFirst?: boolean }): Query;
+};
+
+// The terms come lowercase and without diacritics, as the view holds the names, and hold only
+// letters and digits, which keeps PostgREST's and the regular expression's syntax out of them.
+// Every term must be in one attendee's name: from the start of a name, each lookahead stays
+// within it. Only names are searched: the search sits in the address, which reaches the history
+// and the analytics.
+function matching<Query extends ListQuery<Query>>(
+  query: Query,
+  filters: TrainingListFilters,
+  q: string | undefined
+) {
+  let filtered = query;
+  if (filters.phase) filtered = filtered.in('phase', filters.phase);
+  if (filters.signatures) filtered = filtered.in('signature_state', filters.signatures);
+  if (filters.mode) filtered = filtered.in('source', filters.mode);
+  if (filters.from) filtered = filtered.gte('held_on', filters.from);
+  if (filters.to) filtered = filtered.lte('held_on', filters.to);
+  const terms = searchTerms(q);
+  if (terms.length > 0) {
+    const sameName = terms.map((term) => `(?=[^|]*${term})`).join('');
+    filtered = filtered.filter('search_names', 'match', `(^|\\|)${sameName}`);
+  }
+  return filtered;
+}
+
+const quoted = (value: unknown) => `"${String(value).replace(/["\\]/g, (mark) => `\\${mark}`)}"`;
+
+// The rows that come before `row` in the list's order, as a PostgREST `or`: a first sort column
+// that sorts it earlier, or an equal one and a later column that does. A null sorts last both ways.
+function before(sort: TrainingSortKey, order: SortOrder, row: Record<string, unknown>) {
+  const columns = [...sortColumns[sort], { column: 'id' }];
+  const equal: string[] = [];
+  const earlier: string[] = [];
+  for (const { column } of columns) {
+    const value = row[column];
+    const direction = column === 'id' || order === 'asc' ? 'lt' : 'gt';
+    const first =
+      value === null ? `${column}.not.is.null` : `${column}.${direction}.${quoted(value)}`;
+    earlier.push(equal.length > 0 ? `and(${[...equal, first].join(',')})` : first);
+    equal.push(value === null ? `${column}.is.null` : `${column}.eq.${quoted(value)}`);
+  }
+  return earlier.join(',');
+}
+
+function ordered<Query extends OrderableQuery<Query>>(
+  query: Query,
+  sort: TrainingSortKey,
+  order: SortOrder
+) {
+  const sorted = sortColumns[sort].reduce(
+    (each, { column, nullsLast }) =>
+      each.order(column, {
+        ascending: order === 'asc',
+        ...(nullsLast ? { nullsFirst: false } : {}),
+      }),
+    query
+  );
+  return sorted.order('id', { ascending: true });
+}
+
+function toListItem(row: ListViewRow): TrainingListItem {
+  return {
+    ...toTraining(row),
+    attendeeCount: row.attendee_count,
+    signatureState: row.signature_state as TrainingSignatureState,
+    pendingTraineeSignatures: row.pending_trainee_count,
+    pendingSignerSignatures: row.pending_signer_count,
+    signed: row.signed,
+    hasSignatures: row.has_signatures,
+    printed: row.printed,
+  };
+}
+
 export const listTrainings: RouteHandler<typeof listTrainingsRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  const { domain, phase } = c.req.valid('query');
+  const { domain, q, open, page: asked, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  let query = db
-    .from('trainings')
-    .select(
-      `${trainingColumns}, training_records(employees(id, last_name, first_name), ${signingColumns})`
-    )
-    .eq('client_id', clientId);
-  if (domain) query = query.eq('domain', domain);
-  if (phase) query = query.eq('phase', phase);
-  const { data, error } = await query
-    .order('held_on', { ascending: false })
-    .order('created_at', { ascending: false })
-    .order('id');
+  const inScope = <Query extends ListQuery<Query>>(query: Query) => {
+    const ofClient = query.eq('client_id', clientId);
+    return domain ? ofClient.in('domain', domain) : ofClient;
+  };
+  const narrowed = narrowingKeys.some((key) => filters[key]) || searchTerms(q).length > 0;
+  const filtered = (columns: string, options?: { count: 'exact'; head?: true }) =>
+    matching(inScope(db.from('training_list').select(columns, options)), filters, q);
+
+  let page = asked;
+  if (open && c.req.query('page') === undefined) {
+    const columns = [...sortColumns[sort].map(({ column }) => column), 'id'];
+    const target = await filtered(columns.join(', '))
+      .eq('id', open)
+      .maybeSingle<Record<string, unknown>>();
+    if (target.error) throw fromDatabaseError(target.error, 'find the open training');
+    if (target.data) {
+      const earlier = await filtered('id', { count: 'exact', head: true }).or(
+        before(sort, order, target.data)
+      );
+      if (earlier.error) throw fromDatabaseError(earlier.error, 'place the open training');
+      page = Math.floor((earlier.count ?? 0) / pageSize) + 1;
+    }
+  }
+
+  const { from, to } = pageRange(page, pageSize);
+  const [{ data, error, count }, all] = await Promise.all([
+    ordered(filtered(listViewColumns, { count: 'exact' }), sort, order)
+      .range(from, to)
+      .returns<ListViewRow[]>(),
+    narrowed
+      ? inScope(db.from('training_list').select('id', { count: 'exact', head: true }))
+      : null,
+  ]);
+  if (all?.error) throw fromDatabaseError(all.error, 'count trainings');
+  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
+  if (error?.code === 'PGRST103') {
+    // The page lies past the end (trainings went since the caller last looked): empty, real total.
+    const recount = await filtered('id', { count: 'exact', head: true });
+    if (recount.error) throw fromDatabaseError(recount.error, 'count trainings');
+    const total = recount.count ?? 0;
+    return c.json(
+      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
+      200
+    );
+  }
   if (error) throw fromDatabaseError(error, 'list trainings');
+  const total = count ?? 0;
   return c.json(
     {
-      items: data.map(({ training_records: records, ...training }) => ({
-        ...toTraining(training),
-        ...signingOf(training.source, records as unknown as RecordSigning[]),
-        attendeeCount: records.length,
-        attendees: records
-          .map(({ employees: employee }) => ({
-            employeeId: employee.id,
-            lastName: employee.last_name,
-            firstName: employee.first_name,
-          }))
-          .sort(
-            (a, b) =>
-              collator.compare(a.lastName, b.lastName) || collator.compare(a.firstName, b.firstName)
-          ),
-      })),
+      items: data.map(toListItem),
+      page,
+      pageSize,
+      total,
+      unfilteredTotal: unfilteredTotal(total),
     },
     200
   );
@@ -351,7 +546,7 @@ export const listEmployeeTrainingRecords: RouteHandler<
   let query = db
     .from('training_records')
     .select(
-      `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(${trainingColumns}, training_records(${signingColumns}))`
+      `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, training_signatures(slot, method, voided_at), trainings!inner(${trainingColumns}, training_records(${signingColumns}))`
     )
     .eq('employee_id', employeeId);
   if (domain) query = query.eq('trainings.domain', domain);
@@ -369,6 +564,8 @@ export const listEmployeeTrainingRecords: RouteHandler<
           occupation: record.occupation,
           admission: toAdmission(record),
           training: toTraining(training),
+          attendeeCount: records.length,
+          signature: slotStateOf(training.source, record as unknown as RecordSigning, 'trainee'),
           ...signingOf(training.source, records as unknown as RecordSigning[]),
         };
       }),

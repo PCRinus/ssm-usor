@@ -1,5 +1,5 @@
 import {
-  formatEmployeeName,
+  maxPageSize,
   type TrainingDomain,
   trainingDomainLabels,
   trainingDomains,
@@ -28,16 +28,16 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, useRouteContext } from '@tanstack/react-router';
 import { ClipboardCheck, Lock, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 
 import {
   getListTrainingsQueryKey,
   type TrainingListResponseItemsItem,
   useListTrainings,
 } from '@/api/generated/api';
-import { replayMask, replayShow } from '@/app/observability/replay-masking';
+import { replayShow } from '@/app/observability/replay-masking';
 import { keepOpener } from '@/app/opener';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
@@ -55,11 +55,6 @@ import { TrainingMaterial } from './training-material';
 
 const route = getRouteApi('/_authenticated/clienti/$clientId/instruiri-tinute');
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
-
-const employeeTrainingTabs = {
-  ssm: '/clienti/$clientId/angajati/$employeeId/instruire/ssm',
-  su: '/clienti/$clientId/angajati/$employeeId/instruire/su',
-} as const satisfies Record<TrainingDomain, string>;
 
 const domainFilters: { domain: TrainingDomain | undefined; label: string }[] = [
   { domain: undefined, label: 'Toate' },
@@ -88,7 +83,11 @@ export function ClientTrainingsPage() {
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = { ...(domain ? { domain } : {}), ...(phase ? { phase } : {}) };
+  const params = {
+    ...(domain ? { domain: [domain] } : {}),
+    ...(phase ? { phase: [phase] } : {}),
+    pageSize: maxPageSize,
+  };
   const trainings = useListTrainings(clientId, params, {
     request: apiRequest,
     query: {
@@ -295,22 +294,6 @@ function TrainingRow({
       <TableCell className="min-w-48 max-w-80 whitespace-normal" data-testid="trainings-attendees">
         <span className="block text-muted-foreground" data-testid="trainings-attendee-count">
           {attendeeCountLabel(training.attendeeCount)}
-        </span>
-        <span className="mt-1 block">
-          {training.attendees.map((attendee, index) => (
-            <Fragment key={attendee.employeeId}>
-              {index > 0 && ', '}
-              <Link
-                to={employeeTrainingTabs[training.domain]}
-                params={{ clientId: training.clientId, employeeId: attendee.employeeId }}
-                data-testid="trainings-attendee"
-                className="font-medium hover:underline"
-                {...replayMask}
-              >
-                {formatEmployeeName(attendee)}
-              </Link>
-            </Fragment>
-          ))}
         </span>
       </TableCell>
       <TableCell className="max-w-96 whitespace-normal">
