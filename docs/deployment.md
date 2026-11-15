@@ -213,11 +213,13 @@ environment:
    `gh secret set DISCORD_BILLING_WEBHOOK --env non-prod` (and `--env production`), pasting the URL.
 3. Merge to `main` or run **Deploy production**, which uploads it.
 
-A message names the problem, the environment, the organization's name and id, the Stripe invoice's
-number and id with a link to it in the Stripe dashboard, the totals, the Oblio series and number
-when a document exists, and what to do. It carries no email address and no card details. Each
-problem is posted once: a row `operator_alerted` in `subscription_changes`, written once Discord
-took the post, keeps Stripe's retries of the same event quiet. To stop the alerts, delete both the
+A message names the problem, the environment, the organization's id, the Stripe invoice's number
+and id with a link to it in the Stripe dashboard, the totals, the Oblio series and number when a
+document exists, the kind of failure, and what to do. As with the imports' alerts it carries no
+name and no personal data, so Discord is not a sub-processor: no organization or company name, no
+address, CUI, email or card details, and no text from Oblio or from an error, which stays in the
+Worker's log. Each problem is posted once: a row `operator_alerted` in `subscription_changes`, under
+a unique key, claims it before the post and is removed when Discord does not take it. To stop the alerts, delete both the
 GitHub secret and the Worker's, with
 `pnpm --filter @ssm-usor/api exec wrangler secret delete DISCORD_BILLING_WEBHOOK`, adding
 `--env non-prod` for non-prod.
