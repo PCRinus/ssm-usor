@@ -49,7 +49,7 @@ Actele sunt aceleași pentru toate organizațiile, pentru că documentele pornes
 
 ## Verificarea zilnică
 
-Textele legilor vin de pe **Portalul Legislativ** al Ministerului Justiției, unde se publică forma oficială a actelor și formele lor consolidate. Aplicația citește pagina fiecărui act urmărit o dată pe zi, dimineața devreme, și compară cea mai nouă formă consolidată cu ce a văzut data trecută. O formă consolidată nouă devine o modificare pe secțiunea **Modificări**.
+Textele legilor vin de pe **Portalul Legislativ** al Ministerului Justiției, unde se publică textele actelor și formele lor consolidate, cu caracter informativ. Aplicația citește pagina fiecărui act urmărit o dată pe zi, dimineața devreme, și compară cea mai nouă formă consolidată cu ce a văzut data trecută. O formă consolidată nouă devine o modificare pe secțiunea **Modificări**.
 
 Sub titlul paginii vezi cum a mers ultima verificare:
 
@@ -92,14 +92,14 @@ O modificare rămâne **În verificare** până se încheie. Verificarea compar�
 - **Modifică un text citat în documente**: textul unui articol pe care un document îl preia s-a schimbat. Pe secțiunea **Modificări** vezi textul vechi și cel nou al articolului și documentele care îl preiau;
 - **Modifică un articol la care trimit documentele**: s-a schimbat un articol la care documentele doar trimit, sau modificarea trebuie citită de un om, de exemplu când un articol citat a fost abrogat ori actul a fost republicat și articolele lui pot avea alte numere.
 
-Până la prima comparație, modificarea apare pe **Modificări** ca neanalizată încă, iar în lista actelor vezi doar eticheta „În verificare”. Rândul de sub etichetă te duce la modificare.
+Până la prima comparație, sub eticheta „În verificare” scrie „Modificarea nu a fost încă analizată”. Rândul de sub etichetă te duce la modificare, pe secțiunea **Modificări**.
 
 ## Cum se încheie o modificare
 
 O modificare se încheie în unul din două feluri:
 
-- **Fără impact asupra documentelor**: articolele citate au rămas la fel. Verificarea închide singură modificarea, cu o notă despre articolele schimbate, sau o închidem noi după ce o citim;
-- **Șablon actualizat**: textul documentelor trebuia schimbat. Actualizăm șabloanele documentelor atinse, iar versiunea nouă ajunge în aplicație odată cu o actualizare. Pe **Modificări** vezi nota versiunii și documentele pe care le-a schimbat.
+- **Fără impact asupra documentelor**: articolele citate au rămas la fel. Când comparația arată asta, verificarea zilnică închide singură modificarea, cu o notă despre articolele schimbate. Pe celelalte le citește echipa SSM Ușor și le închide așa dacă nu ating documentele;
+- **Șablon actualizat**: textul documentelor trebuia schimbat. Echipa SSM Ușor actualizează șabloanele documentelor atinse, iar modificarea se închide odată cu versiunea nouă, care ajunge în aplicație cu o actualizare. Pe **Modificări** vezi nota versiunii și documentele pe care le-a schimbat.
 
 ## Documentele de actualizat
 
@@ -115,6 +115,6 @@ O schimbare care mută doar aranjarea în pagină nu cere regenerarea și nu apa
 
 - nu citești portalul și nu urmărești când apare o formă consolidată nouă: aplicația o face zilnic;
 - nu compari textul legii cu cel din documente și nu corectezi textul preluat în șabloane: le actualizăm noi;
-- nu închizi modificările: se închid singure când nu ating documentele, sau când apare șablonul actualizat.
+- nu închizi modificările: pe cele fără impact le închide verificarea zilnică, iar pe celelalte echipa SSM Ușor, după ce le citește sau când publică șablonul actualizat.
 
 Pagina nu trimite e-mailuri. Ce s-a schimbat vezi când o deschizi.

@@ -78,17 +78,19 @@ export function listOf(items: string[]) {
     : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
 }
 
-export const openOutcomeSentences: Partial<
-  Record<NonNullable<LegalChangeListResponseItemsItemOutcome>, string>
+const openChangeSentences: Partial<
+  Record<NonNullable<LegalChangeListResponseItemsItemOutcome> | 'unassessed', string>
 > = {
+  unassessed: 'Modificarea nu a fost încă analizată.',
   quote_differs: 'Modifică un text citat în documente.',
   needs_review: 'Modifică un articol la care trimit documentele.',
 };
 
+export const openChangeSentence = (outcome: LegalChangeListResponseItemsItemOutcome) =>
+  openChangeSentences[outcome ?? 'unassessed'] ?? null;
+
 export function changeStatus(change: LegalChangeListResponseItemsItem) {
-  if (change.resolution !== 'open') return null;
-  if (change.outcome === null) return 'Modificarea nu a fost încă analizată.';
-  return openOutcomeSentences[change.outcome] ?? null;
+  return change.resolution === 'open' ? openChangeSentence(change.outcome) : null;
 }
 
 export const legalChangeAnchor = (changeId: string) => `modificare-${changeId}`;

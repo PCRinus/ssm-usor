@@ -36,7 +36,6 @@ export const domainLabels: Record<(typeof legalActDomains)[number], string> = {
 export const watchedActSortKeys = ['name', 'consolidated', 'cited'] as const;
 export type WatchedActSortKey = (typeof watchedActSortKeys)[number];
 
-// Not a column: the order a list without a chosen sort opens in.
 export const attentionSort = 'attention';
 
 export const watchedActFilterKeys = ['domain', 'status'] as const;
@@ -88,8 +87,26 @@ export function watchedActFacets(
   ];
 }
 
+const fillerWords = new Set(['nr', 'nr.', 'din']);
+
+// "Legea nr. 319 din 2006" and "Ordinul 163/2007" are how acts are cited in full; the list names
+// them "Legea 319/2006" and "OMAI 163/2007".
 export const searchable = (text: string) =>
-  text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('ro').replace(/[.\s]/g, '');
+  text
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLocaleLowerCase('ro')
+    .split(/\s+/)
+    .filter((word) => !fillerWords.has(word))
+    .map((word) => (word === 'ordinul' ? 'ordin' : word))
+    .join('')
+    .replace(/[./]/g, '');
+
+const searchedNames = (act: WatchedAct) => [
+  act.name,
+  ...(act.name.startsWith('OMAI ') ? [act.name.replace(/^OMAI/, 'Ordin')] : []),
+  ...(act.subject === null ? [] : [act.subject]),
+];
 
 const collator = new Intl.Collator('ro', { numeric: true });
 const byName = (a: WatchedAct, b: WatchedAct) => collator.compare(a.name, b.name);
@@ -106,9 +123,7 @@ export function shownWatchedActs(acts: readonly WatchedAct[], search: WatchedAct
     (act) =>
       (!search.domain || search.domain.some((domain) => act.domains.includes(domain))) &&
       (!search.status || search.status.includes(actState(act))) &&
-      (!query ||
-        searchable(act.name).includes(query) ||
-        (act.subject !== null && searchable(act.subject).includes(query)))
+      (!query || searchedNames(act).some((text) => searchable(text).includes(query)))
   );
   if (!search.sort) {
     const rank = (act: WatchedAct) => (act.openChange ? 0 : 1);

@@ -52,7 +52,6 @@ export const watchedLegalActSchema = legalActSchema.extend({
   // Document types, and the passages they quote word for word; an act only referred to has no
   // quotes.
   citedIn: z.object({ documents: z.int().nonnegative(), quotes: z.int().nonnegative() }),
-  // The newest open legal change of the act, or null when none is open.
   openChange: z.object({ id: z.uuid(), outcome: legalChangeOutcomeSchema.nullable() }).nullable(),
 });
 

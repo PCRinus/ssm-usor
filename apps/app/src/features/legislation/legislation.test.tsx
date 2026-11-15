@@ -1217,7 +1217,7 @@ describe('the Legislație page', () => {
     expect(cells('Legea 307/2006')).toEqual([
       'Legea 307/2006privind apărarea împotriva incendiilor',
       'SSM, SU',
-      'În verificare',
+      'În verificareModificarea nu a fost încă analizată.',
       '08.05.2026documentele: forma de bază',
       '16 documente20 de preluări',
     ]);
@@ -1245,9 +1245,15 @@ describe('the Legislație page', () => {
     const runtime = mount('/legislatie/acte');
     const user = userEvent.setup();
     const links = await screen.findAllByTestId('watched-act-change');
-    expect(links.map((link) => link.textContent)).toEqual(['Modifică un text citat în documente.']);
+    expect(links.map((link) => link.textContent)).toEqual([
+      'Modificarea nu a fost încă analizată.',
+      'Modifică un text citat în documente.',
+    ]);
+    expect(links[0]!.getAttribute('href')).toBe(
+      '/legislatie/modificari#modificare-9e8d7c6b-5a49-4382-9172-6a5b4c3d2e1f'
+    );
 
-    await user.click(links[0]!);
+    await user.click(links[1]!);
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/legislatie/modificari')
     );
@@ -1388,6 +1394,19 @@ describe('the Legislație page', () => {
     await user.clear(screen.getByTestId('watched-acts-search'));
     await user.type(screen.getByTestId('watched-acts-search'), 'codul muncii');
     await waitFor(() => expect(actNamesInTable()).toEqual(['Legea 53/2003']));
+  });
+
+  it.each([
+    ['Legea nr. 319/2006', ['Legea 319/2006']],
+    ['HG nr 1425', ['H.G. 1425/2006']],
+    ['Legea 319 din 2006', ['Legea 319/2006']],
+    ['ordinul 163', ['OMAI 163/2007']],
+    ['ordin 106/2007', ['OMAI 106/2007']],
+    ['ordinul', ['OMAI 106/2007', 'OMAI 163/2007']],
+  ])('finds the act cited in full as „%s”', async (q, names) => {
+    mockApi();
+    mount(`/legislatie/acte?q=${encodeURIComponent(JSON.stringify(q))}`);
+    await waitFor(() => expect(actNamesInTable()).toEqual(names));
   });
 
   it('says when nothing matches, and clears only the filters', async () => {

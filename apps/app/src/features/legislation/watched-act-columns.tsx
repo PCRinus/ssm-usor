@@ -1,6 +1,7 @@
+import { CellEmpty } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
-import { ActName, ActStatus, CitedIn, ConsolidatedForm, EmptyCell } from './watched-act-cells';
+import { ActName, ActStatus, CitedIn, ConsolidatedForm } from './watched-act-cells';
 import { domainLabels, type WatchedAct } from './watched-act-list';
 
 const helper = createDataTableColumns<WatchedAct>();
@@ -34,7 +35,7 @@ export const watchedActColumns = helper.columns([
       row.original.domains.length > 0 ? (
         row.original.domains.map((domain) => domainLabels[domain]).join(', ')
       ) : (
-        <EmptyCell />
+        <CellEmpty />
       ),
   }),
   helper.display({

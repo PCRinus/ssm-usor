@@ -2,16 +2,12 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 import { Link } from '@tanstack/react-router';
 import { ExternalLink } from 'lucide-react';
 
-import { CellNote } from '@/components/data-table/cell-note';
+import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
 
-import { legalChangeAnchor, openOutcomeSentences, portalPage } from './legislation-labels';
+import { legalChangeAnchor, openChangeSentence, portalPage } from './legislation-labels';
 import { actState, actStateLabels, type WatchedAct } from './watched-act-list';
-
-export function EmptyCell() {
-  return <span className="text-muted-foreground">—</span>;
-}
 
 export function ActName({ act }: { act: WatchedAct }) {
   return (
@@ -47,7 +43,7 @@ export function ActName({ act }: { act: WatchedAct }) {
 export function ActStatus({ act }: { act: WatchedAct }) {
   const state = actState(act);
   if (state === 'open') {
-    const sentence = act.openChange?.outcome && openOutcomeSentences[act.openChange.outcome];
+    const sentence = act.openChange && openChangeSentence(act.openChange.outcome);
     return (
       <>
         <Badge
@@ -92,7 +88,7 @@ export function ConsolidatedForm({ act }: { act: WatchedAct }) {
         ) : read ? (
           'Forma de bază'
         ) : (
-          <EmptyCell />
+          <CellEmpty />
         )}
       </span>
       {act.openChange && (
@@ -107,7 +103,7 @@ export function ConsolidatedForm({ act }: { act: WatchedAct }) {
 
 export function CitedIn({ act }: { act: WatchedAct }) {
   const { documents, quotes } = act.citedIn;
-  if (documents === 0) return <EmptyCell />;
+  if (documents === 0) return <CellEmpty />;
   return (
     <>
       <span className="tabular-nums">{roCount(documents, 'document', 'documente')}</span>
