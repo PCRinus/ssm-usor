@@ -29,6 +29,7 @@ import { EvaluationLink } from './evaluation-link';
 import {
   clientEvaluationsSection,
   evaluationNameSchema,
+  evaluationNeedsAttention,
   evaluationStateLabel,
   evaluationTitle,
   type RiskEvaluationSummary,
@@ -242,7 +243,7 @@ function EvaluationRow({ evaluation }: { evaluation: RiskEvaluationSummary }) {
         </EvaluationLink>
       }
       state={
-        <DecisionBadge asChild decision={evaluation.factorCount > 0 || null}>
+        <DecisionBadge asChild decision={!evaluationNeedsAttention(evaluation) || null}>
           <EvaluationLink evaluation={evaluation} data-testid="client-risk-evaluation-state">
             {evaluationStateLabel(evaluation)}
             <ChevronRight aria-hidden="true" />

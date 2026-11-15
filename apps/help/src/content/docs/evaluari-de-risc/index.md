@@ -132,7 +132,7 @@ Doar o evaluare pe care nu o folosește niciun client se poate șterge: pentru u
 
 ## Fișa de evaluare a riscurilor
 
-Fișa unui post o găsești pe pagina postului, în cardul **Fișa de evaluare a riscurilor**, cu **Începe evaluarea** cât timp postul nu are fișă și **Deschide fișa** după aceea. Tabelul posturilor are o coloană **Fișa de evaluare a riscurilor** cu starea fiecărui post. Un post nu poate declara că nu are nevoie de evaluare.
+Fișa unui post o găsești pe pagina postului, în cardul **Fișa de evaluare a riscurilor**, cu **Începe evaluarea** cât timp postul nu are fișă și **Deschide fișa** după aceea. Tabelul posturilor are o coloană **Fișa de evaluare a riscurilor**: nivelul de risc global al postului, de exemplu „Nivel global 2,00”, cu numărul de factori sub el, sau **Neevaluat** și **Fără factori** cât timp fișa nu are un nivel. Un nivel peste limita acceptabilă de 3,5 apare cu galben, ca stările nedecise. Un clic pe capul coloanei ordonează posturile după nivel, cel mai mare întâi, iar posturile fără factori și cele neevaluate rămân la urmă. Un post nu poate declara că nu are nevoie de evaluare.
 
 Fișa are trei carduri:
 

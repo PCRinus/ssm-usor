@@ -9,6 +9,7 @@ import { disposeRuntimes, mountApp } from '@/test/mount';
 
 import { evaluationFailure } from './evaluation-failure';
 import {
+  evaluationLevelLabel,
   evaluationStateLabel,
   factorCountLabel,
   type RiskEvaluation,
@@ -352,10 +353,11 @@ describe('the positions table', () => {
     const rows = await screen.findAllByTestId('job-position-row');
     await waitFor(() => expect(within(rows[0]!).getByTestId('job-position-risk')).toBeTruthy());
     expect(rows.map((row) => within(row).getByTestId('job-position-risk').textContent)).toEqual([
-      '4 factori · 3,86',
-      'Neevaluat',
       'Fără factori',
+      'Neevaluat',
+      'Nivel global 3,86',
     ]);
+    expect(within(rows[2]!).getByTestId('job-position-factors').textContent).toBe('4 factori');
     expect(within(rows[1]!).getByTestId('job-position-risk').getAttribute('href')).toBe(
       `${positionsPage}/${fitter.id}/fisa-de-evaluare`
     );
@@ -1427,7 +1429,12 @@ describe('the factor list', () => {
     ]);
     expect(evaluationStateLabel(null)).toBe('Neevaluat');
     expect(evaluationStateLabel({ factorCount: 0, globalRiskLevel: null })).toBe('Fără factori');
-    expect(evaluationStateLabel({ factorCount: 1, globalRiskLevel: 2 })).toBe('1 factor · 2,00');
+    expect(evaluationStateLabel({ factorCount: 1, globalRiskLevel: 2 })).toBe(
+      'Nivel global 2,00 · 1 factor'
+    );
+    expect(evaluationLevelLabel({ factorCount: 5, globalRiskLevel: 3.919 })).toBe(
+      'Nivel global 3,92'
+    );
   });
 });
 

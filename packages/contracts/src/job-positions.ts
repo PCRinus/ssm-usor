@@ -51,6 +51,9 @@ export const jobPositionSchema = z.object({
   trainingIntervalMonths: trainingIntervalMonths.nullable(),
   // Current employees in it: those who left, and rows archived as mistakes, do not count.
   employeeCount: z.int().min(0),
+  // Of those, the ones untrained or overdue in either domain: what the workers list shows for
+  // this post with its "de instruit" filter. Zero for an archived client or a lead.
+  employeesToTrainCount: z.int().min(0),
   // Null until decided; false when the post needs none; true while it has entries (ADR 011).
   needsProtectiveEquipment: z.boolean().nullable(),
   equipmentCount: z.int().min(0),

@@ -1,12 +1,13 @@
 import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
 import { useAuth } from '@/features/auth/auth-context';
+import { jobPositionListSearch } from '@/features/job-positions/job-position-list';
 import { JobPositionsCard } from '@/features/job-positions/job-positions-card';
 import { focusSearch, jobPositionsFocus } from '@/features/missing-data/focus';
 import { ClientRiskEvaluationsCard } from '@/features/risk-evaluations/client-risk-evaluations-card';
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/posturi/')({
-  validateSearch: focusSearch(jobPositionsFocus),
+  validateSearch: focusSearch(jobPositionsFocus).extend(jobPositionListSearch),
   component: JobPositionsPage,
 });
 

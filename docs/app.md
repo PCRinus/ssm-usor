@@ -715,19 +715,30 @@ their tab bars read.
 
 - `/clienti/:clientId/posturi`: the "Posturi de lucru" section of a client, second after
   "Angajați", in `src/features/job-positions/` ([ADR 006](architecture/adr-006-job-positions.md)). The
-  card lists `GET /clients/{clientId}/job-positions`: the name with the activities under it,
-  the staff category as a badge ("Execuție", "Tehnico-administrativ", the full wording in its
-  title), the work zone, and the current employees counted the Romanian way ("2 angajați",
-  "20 de angajați"). The dialog adds or replaces a position; the category defaults to
-  execution, the shorter training interval, and the zone's hint says it is a kind of place,
-  not an address. A `409` with the reason `job_position_name_taken` goes on the name field
-  with the way out: name the two apart. Editing says that contract titles do not follow a
-  rename. "Șterge" confirms first, and its button stays off while the position has current
-  employees; a `409` with `job_position_held` covers people who joined in the meantime. The
-  empty state says positions also come from adding employees. An archived client is
-  read-only. The name links to the position's page, as does a click on the row, and an
-  "EIP" column says where each post stands with its equipment: "Nedecis" (in amber, since
-  it blocks generating), "Nu necesită", or the number of entries.
+  card has no heading: it opens with its toolbar, the Filtre button, the count ("17 posturi",
+  filtered "12 din 17 posturi") and "De stabilit: N posturi" in plain text (posts with the
+  equipment, either domain's instructions, or a sheet missing or without factors still to
+  decide), with "Adaugă un post" at the right end. The table is the shared `DataTable` over
+  `GET /clients/{clientId}/job-positions` and `GET …/risk-evaluations`, read whole: no
+  paging, and the browser sorts and filters (`job-position-list.ts`), the address keeping
+  `sort` (`name`, the default; `employees`; `risk`), `order` and `staffCategory` with
+  `replace`. Columns: Post (the name, and under it the short category, the work zone and an
+  own interval), Lucrători (the count linking to "Angajați" with `jobPosition`, and
+  "N de instruit" in red from `employeesToTrainCount`, linking with `attention=toTrain` too),
+  EIP, Instrucțiuni SSM, Instrucțiuni SU and Fișa de evaluare a riscurilor ("Nivel global
+  2,00" with the factors under it, amber over 3.5), each badge amber while undecided. On the
+  risk column the first click puts the highest level first, sheets without factors and posts
+  not evaluated stay last either way, and the name breaks ties; Lucrători also starts with
+  the most. The one filter group is "Categorie de personal". The dialog adds or replaces a
+  position; the category defaults to execution, the shorter training interval, and the
+  zone's hint says it is a kind of place, not an address. A `409` with the reason
+  `job_position_name_taken` goes on the name field with the way out: name the two apart.
+  Editing says that contract titles do not follow a rename. "Șterge" confirms first, and its
+  button stays off while the position has current employees; a `409` with
+  `job_position_held` covers people who joined in the meantime. A client with no posts gets
+  the empty state alone, with its own add button. An archived client is read-only: every
+  badge grey, no "de instruit" and no "De stabilit", the filter kept. The name links to the
+  position's page, as does a click on the row.
 - `/clienti/:clientId/posturi/:jobPositionId`: a position's page, full page like an
   employee's, in `src/features/protective-equipment/` ([ADR 011](architecture/adr-011-protective-equipment.md)).
   There is no request for one position: the page reads the client's list, which the section
@@ -1479,10 +1490,9 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   link per module, and saves the set through `PUT …/instructions` with the `domain`; a row's
   cross removes one module the same way; "Copiază de la alt post" adds another position's
   modules of the domain. The SSM card keeps the
-  `instructions-*` test ids and the PSI card uses `fire-instructions-*`. The positions table's
-  "Instrucțiuni" column shows both states, "SSM" and "PSI" each before its badge, amber while
-  undecided, each linking to its card; the row menu has both cards, and the notice above the
-  table names the positions undecided for each.
+  `instructions-*` test ids and the PSI card uses `fire-instructions-*`. The positions table has
+  an "Instrucțiuni SSM" and an "Instrucțiuni SU" column, each a badge amber while undecided,
+  linking to its card; the row menu has both cards.
 - Risk evaluations ([ADR 015](architecture/adr-015-risk-assessment.md)), in
   `src/features/risk-evaluations/`. The position page's last card, "Fișa de evaluare a riscurilor" (ADR 036), reads
   `GET …/job-positions/{id}/risk-evaluation`: without an evaluation it says that generating
@@ -1490,10 +1500,11 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   which opens the new evaluation; with one it gives the global level and whether it is over
   the acceptable limit, the factor count and the unacceptable count, and "Deschide fișa".
   The positions table has a "Fișa de evaluare a riscurilor" column from `GET …/risk-evaluations`:
-  "Neevaluat" and "Fără factori" in amber, otherwise "12 factori · 2,79"; it links to the
+  "Neevaluat" and "Fără factori" in amber, otherwise "Nivel global 2,79" with "12 factori"
+  under it, amber over the acceptable limit; it links to the
   evaluation page, as does the row menu. Below the table, the card "Fișe de evaluare a riscurilor în afara
   posturilor" lists the sensitive groups, with "Începe evaluarea" while they have none, and
-  the evaluations with a name; "Adaugă o fișă" asks for the name, and a `409` with
+  the evaluations with a name, each as "Nivel global 1,85 · 4 factori"; "Adaugă o fișă" asks for the name, and a `409` with
   `risk_evaluation_name_taken` goes on the field. These evaluations open on a page of their own
   under `/clienti/:clientId/posturi/fise-de-evaluare/:evaluationId`, the address of the
   section where their card is.

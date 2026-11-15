@@ -45,9 +45,21 @@ export const FilterTab: LinkComponent<typeof FilterTabAnchor> = (props) => (
   <FilterTabLink {...props} />
 );
 
-export function ListCount({ testId, children }: { testId: string; children: ReactNode }) {
+export function ListCount({
+  testId,
+  className,
+  children,
+}: {
+  testId: string;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <span className="ml-auto text-sm text-muted-foreground" data-testid={testId} aria-live="polite">
+    <span
+      className={cn('ml-auto text-sm text-muted-foreground', className)}
+      data-testid={testId}
+      aria-live="polite"
+    >
       {children}
     </span>
   );

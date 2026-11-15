@@ -5,6 +5,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { toTrainMatch } from '../employees/handlers';
 import type {
   createJobPositionRoute,
   listJobPositionsRoute,
@@ -35,6 +36,7 @@ export const jobPositionColumns =
 
 export type JobPositionCounts = {
   employees: number;
+  employeesToTrain: number;
   equipment: number;
   instructions: number;
   fireInstructions: number;
@@ -42,6 +44,7 @@ export type JobPositionCounts = {
 
 const noCounts: JobPositionCounts = {
   employees: 0,
+  employeesToTrain: 0,
   equipment: 0,
   instructions: 0,
   fireInstructions: 0,
@@ -59,6 +62,7 @@ export const toJobPosition = (
   activities: row.activities,
   trainingIntervalMonths: row.training_interval_months,
   employeeCount: counts.employees,
+  employeesToTrainCount: counts.employeesToTrain,
   needsProtectiveEquipment: row.needs_protective_equipment,
   equipmentCount: counts.equipment,
   instructionCount: counts.instructions,
@@ -110,18 +114,22 @@ async function findClient(db: DataClient, clientId: string) {
   return data;
 }
 
-/** How many current employees, equipment entries and applied modules of each domain each of the client's positions has. */
+/** How many current employees, of them to train, equipment entries and applied modules of each domain each of the client's positions has. */
 export async function jobPositionCounts(db: DataClient, clientId: string, jobPositionId?: string) {
   // Counted by the database, one row per position, so a large client is not cut short by the
   // limit on rows a request returns.
   let query = db
     .from('job_positions')
     .select(
-      'id, employees(count), job_position_equipment(count), instructions:job_position_instructions(count), fire_instructions:job_position_instructions(count)'
+      'id, employees(count), to_train:employee_list(count), job_position_equipment(count), instructions:job_position_instructions(count), fire_instructions:job_position_instructions(count)'
     )
     .eq('client_id', clientId)
     .neq('employees.status', 'terminated')
     .is('employees.archived_at', null)
+    // The workers list's scope and its "de instruit" filter, so the count is what its link shows.
+    .neq('to_train.status', 'terminated')
+    .is('to_train.archived_at', null)
+    .or(toTrainMatch, { referencedTable: 'to_train' })
     .eq('instructions.domain', 'ssm')
     .eq('fire_instructions.domain', 'su');
   if (jobPositionId) query = query.eq('id', jobPositionId);
@@ -129,6 +137,7 @@ export async function jobPositionCounts(db: DataClient, clientId: string, jobPos
     {
       id: string;
       employees: { count: number }[];
+      to_train: { count: number }[];
       job_position_equipment: { count: number }[];
       instructions: { count: number }[];
       fire_instructions: { count: number }[];
@@ -140,6 +149,7 @@ export async function jobPositionCounts(db: DataClient, clientId: string, jobPos
       row.id,
       {
         employees: row.employees[0]?.count ?? 0,
+        employeesToTrain: row.to_train[0]?.count ?? 0,
         equipment: row.job_position_equipment[0]?.count ?? 0,
         instructions: row.instructions[0]?.count ?? 0,
         fireInstructions: row.fire_instructions[0]?.count ?? 0,

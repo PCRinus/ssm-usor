@@ -27,16 +27,17 @@ export interface DataTableProps<TData extends RowData> {
   columns: DataTableColumn<TData>[];
   data: TData[] | undefined;
   rowKey: (row: TData) => string;
-  meta: PageMeta;
+  // Left out for a list read whole, which has no pages and no pager.
+  meta?: PageMeta;
   sort: DataTableSort;
   onSortChange: (sort: DataTableSort) => void;
-  onPageChange: (page: number) => void;
+  onPageChange?: (page: number) => void;
   status: 'pending' | 'error' | 'success';
   isFetching?: boolean;
   // The rows shown answer an earlier sort or page while the one asked for loads.
   isPlaceholderData?: boolean;
   // Singular and plural of what is counted, for the pager summary.
-  noun: readonly [string, string];
+  noun?: readonly [string, string];
   label: string;
   // Rendered inside the table in place of rows.
   error?: ReactNode;
@@ -107,7 +108,7 @@ export function DataTable<TData extends RowData>({
 
   // Outside the table: on a phone the column headers are wider than the screen, and the empty
   // state would be centred in that width, half out of view.
-  if (pageEmpty && meta.total === 0) {
+  if (pageEmpty && (!meta || meta.total === 0)) {
     return <ListEmpty>{empty}</ListEmpty>;
   }
 
@@ -201,7 +202,7 @@ export function DataTable<TData extends RowData>({
                 ))}
               </TableRow>
             ))
-          ) : pageEmpty ? (
+          ) : pageEmpty && meta && onPageChange ? (
             // A page past the last one, from an old link or after rows went away.
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={columnCount} className="h-48 px-5 text-center whitespace-normal">
@@ -280,7 +281,7 @@ export function DataTable<TData extends RowData>({
           )}
         </TableBody>
       </Table>
-      {status === 'success' && (
+      {status === 'success' && meta && onPageChange && noun && (
         <Pager meta={meta} noun={noun} disabled={isFetching} onPage={onPageChange} />
       )}
     </>

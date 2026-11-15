@@ -1,6 +1,7 @@
 import {
   defaultExposure,
   gravityConsequence,
+  isOverAcceptableLimit,
   isUnacceptableRiskLevel,
   maxAcceptableGlobalRiskLevel,
   maxAcceptableRiskLevel,
@@ -102,12 +103,34 @@ export function evaluationTitle(
   return evaluation.name ?? 'Fără denumire';
 }
 
-export function evaluationStateLabel(
-  summary: Pick<RiskEvaluationSummary, 'factorCount' | 'globalRiskLevel'> | null
-) {
+type EvaluationState = Pick<RiskEvaluationSummary, 'factorCount' | 'globalRiskLevel'> | null;
+
+/** "5 factori", "1 factor". */
+export const factorsNote = (count: number) =>
+  factorCountLabel(count).toLowerCase().replace(/^un /, '1 ');
+
+/** "Nivel global 2,00", or the state of a sheet without a level. */
+export function evaluationLevelLabel(summary: EvaluationState) {
   if (!summary) return 'Neevaluat';
   if (summary.factorCount === 0 || summary.globalRiskLevel === null) return 'Fără factori';
-  return `${factorCountLabel(summary.factorCount).toLowerCase().replace(/^un /, '1 ')} · ${formatGlobalLevel(summary.globalRiskLevel)}`;
+  return `Nivel global ${formatGlobalLevel(summary.globalRiskLevel)}`;
+}
+
+/** "Nivel global 2,00 · 5 factori", where a row has room for both. */
+export function evaluationStateLabel(summary: EvaluationState) {
+  const level = evaluationLevelLabel(summary);
+  return summary?.globalRiskLevel != null && summary.factorCount > 0
+    ? `${level} · ${factorsNote(summary.factorCount)}`
+    : level;
+}
+
+export function evaluationNeedsAttention(summary: EvaluationState) {
+  return (
+    !summary ||
+    summary.factorCount === 0 ||
+    summary.globalRiskLevel === null ||
+    isOverAcceptableLimit(summary.globalRiskLevel)
+  );
 }
 
 export interface FactorGroup {

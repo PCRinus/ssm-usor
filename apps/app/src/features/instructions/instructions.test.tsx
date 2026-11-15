@@ -1286,16 +1286,13 @@ describe("a job position's instructions", () => {
     const rows = await screen.findAllByTestId('job-position-row');
     expect(
       rows.map((row) => within(row).getByTestId('job-position-instructions').textContent)
-    ).toEqual(['1 instrucțiune', 'De stabilit']);
+    ).toEqual(['De stabilit', '1 instrucțiune']);
     expect(
       rows.map((row) => within(row).getByTestId('job-position-fire-instructions').textContent)
-    ).toEqual(['1 instrucțiune', 'De stabilit']);
+    ).toEqual(['De stabilit', '1 instrucțiune']);
     expect(
-      within(rows[1]!).getByTestId('job-position-fire-instructions').getAttribute('href')
+      within(rows[0]!).getByTestId('job-position-fire-instructions').getAttribute('href')
     ).toBe(`${positionsPage}/${fitter.id}#fire-instructions`);
-    expect(screen.getByTestId('job-positions-undecided-fire-instructions').textContent).toBe(
-      'Un post nu are instrucțiunile SU stabilite: Lăcătuș mecanic.'
-    );
   });
 
   it('decides the fire-safety modules on a card of its own, beside the occupational safety one', async () => {
