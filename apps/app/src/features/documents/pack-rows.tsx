@@ -17,10 +17,10 @@ export function PackTable({ children }: { children: ReactNode }) {
   return (
     <Table data-testid="pack-table" className="md:table-fixed">
       <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className="px-3 text-muted-foreground">Document</TableHead>
-          <TableHead className="w-66 px-3 text-muted-foreground">Stare</TableHead>
-          <TableHead className="w-37 px-3 text-muted-foreground">Data documentului</TableHead>
+        <TableRow>
+          <TableHead className="px-3">Document</TableHead>
+          <TableHead className="w-66 px-3">Stare</TableHead>
+          <TableHead className="w-37 px-3">Data documentului</TableHead>
           <TableHead className="w-11">
             <span className="sr-only">Acțiuni</span>
           </TableHead>

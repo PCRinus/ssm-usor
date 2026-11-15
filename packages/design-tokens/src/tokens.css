@@ -41,6 +41,12 @@
     --border: #d4ddd5;
     --input: #ccd6ce;
     --ring: #547067;
+    --section-tab: #e3e8e0;
+    --section-tab-hover: #d8dfd4;
+    --section-tab-foreground: #4d5c55;
+    --table-head: var(--section-tab);
+    --table-head-hover: var(--section-tab-hover);
+    --table-head-foreground: var(--section-tab-foreground);
     --sidebar: var(--card);
     --sidebar-foreground: var(--foreground);
     --sidebar-primary: var(--primary);

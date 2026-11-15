@@ -21,6 +21,8 @@ import { Pager } from '@/components/pager';
 import { type DataTableColumn, dataTableFeatures, type DataTableSort } from './columns';
 import { rowClickProps } from './row-click';
 
+const sortIcon = 'ml-1.5 inline size-3.5 align-[-2px]';
+
 export interface DataTableProps<TData extends RowData> {
   columns: DataTableColumn<TData>[];
   data: TData[] | undefined;
@@ -124,18 +126,25 @@ export function DataTable<TData extends RowData>({
                         variant="ghost"
                         size="sm"
                         data-testid={`sort-${header.column.id}`}
-                        className="-ml-3 h-auto min-h-8 gap-1.5 py-1 text-left data-[sorted=true]:text-foreground"
+                        className="-ml-3 h-auto min-h-8 py-1 text-left text-[13px] font-semibold text-table-head-foreground hover:bg-table-head-hover hover:text-foreground data-[sorted=true]:text-foreground"
                         data-sorted={Boolean(sorted)}
                         onClick={header.column.getToggleSortingHandler()}
                       >
-                        <table.FlexRender header={header} />
-                        {sorted === 'asc' ? (
-                          <ArrowUp aria-hidden="true" />
-                        ) : sorted === 'desc' ? (
-                          <ArrowDown aria-hidden="true" />
-                        ) : (
-                          <ArrowUpDown aria-hidden="true" className="opacity-50" />
-                        )}
+                        {/* One inline run, so a wrapped label keeps its arrow after the last word;
+                            the word joiner stops the arrow wrapping onto a line of its own. */}
+                        <span>
+                          <table.FlexRender header={header} />
+                          <span aria-hidden="true">
+                            {'\u2060'}
+                            {sorted === 'asc' ? (
+                              <ArrowUp className={sortIcon} />
+                            ) : sorted === 'desc' ? (
+                              <ArrowDown className={sortIcon} />
+                            ) : (
+                              <ArrowUpDown className={cn(sortIcon, 'opacity-55')} />
+                            )}
+                          </span>
+                        </span>
                       </Button>
                     ) : (
                       <table.FlexRender header={header} />
