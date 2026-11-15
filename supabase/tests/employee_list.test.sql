@@ -1,11 +1,12 @@
 begin;
-select plan(7);
+select plan(9);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), '{"provider":"email"}', '{}', now(), now()
 from (values
   ('aaaaaaaa-0000-4000-8000-000000000001', 'owner-a@example.com'),
   ('bbbbbbbb-0000-4000-8000-000000000001', 'owner-b@example.com'),
+  ('cccccccc-0000-4000-8000-000000000001', 'specialist-a@example.com'),
   ('dddddddd-0000-4000-8000-000000000001', 'ion@example.com')
 ) as v (id, email);
 
@@ -15,7 +16,8 @@ insert into public.organizations (id, name) values
 
 insert into public.organization_members (user_id, organization_id, role) values
   ('aaaaaaaa-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'owner'),
-  ('bbbbbbbb-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'owner');
+  ('bbbbbbbb-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'owner'),
+  ('cccccccc-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'specialist');
 
 insert into public.clients (id, organization_id, legal_name, cui, worker_training_interval_months, administrative_training_interval_months) values
   ('c1c1c1c1-0000-4000-8000-000000000001', '11111111-0000-4000-8000-000000000001', 'Alfa', '1590082', 3, 6),
@@ -70,7 +72,8 @@ insert into public.signature_requests (organization_id, client_id, training_reco
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000001', null, 'trainee', 'pending', null, null),
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', null, '75757575-0000-4000-8000-000000000001', 'trainee', 'pending', null, null),
   ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000002', null, 'trainer', 'pending', null, null),
-  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000002', null, 'trainee', 'void', now(), 'Greșit');
+  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000001', '7a7a7a7a-0000-4000-8000-000000000002', null, 'trainee', 'void', now(), 'Greșit'),
+  ('11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', '7a7a7a7a-0000-4000-8000-000000000003', null, 'trainee', 'signed', null, null);
 
 create or replace function pg_temp.act_as(user_id text)
 returns void language sql as $$
@@ -89,6 +92,17 @@ select results_eq(
     ('Popescu', 'overdue', 0, 'untrained'),
     ('Țăranu', 'due', 2, 'untrained') $$,
   'each current employee carries the state of each domain and the order the list sorts it in; a leaver none'
+);
+
+select results_eq(
+  $$ select last_name, ssm_test_state::text, su_test_state::text
+     from public.employee_list order by last_name $$,
+  $$ values
+    ('Ionescu', 'none', 'none'),
+    ('Plecat', null, null),
+    ('Popescu', 'passed', 'none'),
+    ('Țăranu', 'none', 'none') $$,
+  'each current employee carries the test state of each domain; a leaver none'
 );
 
 select results_eq(
@@ -114,11 +128,7 @@ select is(
   'the search name is lowercase and without diacritics'
 );
 
-select is(
-  (select count(*)::integer from public.employee_list where search_name like '%1900101400127%' or employee_number like '%1900101400127%'),
-  0,
-  'the CNP is never among what the search reads'
-);
+select hasnt_column('public', 'employee_list', 'cnp', 'the list never reads the CNP');
 
 update public.clients set archived_at = now() where id = 'c1c1c1c1-0000-4000-8000-000000000002';
 
@@ -126,6 +136,14 @@ select is(
   (select ssm_training_state::text from public.employee_list where id = 'e1e1e1e1-0000-4000-8000-000000000004'),
   null,
   'an employee of an archived client has no state, as the training rules no longer follow them'
+);
+
+select pg_temp.act_as('cccccccc-0000-4000-8000-000000000001');
+
+select results_eq(
+  $$ select last_name from public.employee_list order by last_name $$,
+  $$ values ('Ionescu'), ('Plecat'), ('Popescu'), ('Țăranu') $$,
+  'a member who is not an owner reads the same list; a lead has no employees to hide'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');

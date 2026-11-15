@@ -144,7 +144,7 @@ export function toEmployee(
 async function findClient(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
-    .select('id, archived_at')
+    .select('id, archived_at, stage')
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
@@ -458,7 +458,20 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
   const { status, trainingState, testState, q, page, pageSize, sort, order, ...query } =
     c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  const client = await findClient(db, clientId);
+  const readsStates =
+    Boolean(query.ssmTraining || query.suTraining || query.test || trainingState || testState) ||
+    Boolean(query.attention?.some((need) => need === 'toTrain' || need === 'trainingDue')) ||
+    sort === 'ssmTraining' ||
+    sort === 'suTraining';
+  // The states follow the current employees of active clients alone; elsewhere they would match
+  // nobody while the rows still show the state each one had.
+  if (readsStates && (client.archived_at || client.stage !== 'client')) {
+    throw new ApiError(
+      'validation_error',
+      'The employees of an archived client or a lead are not filtered or sorted by training or test state.'
+    );
+  }
   const { items, ...meta } = await listFromView(db, (scoped) => scoped.eq('client_id', clientId), {
     status,
     q,

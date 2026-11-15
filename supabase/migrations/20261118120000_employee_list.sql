@@ -1,3 +1,7 @@
+-- Every page of both lists counts the pending trainee signatures of the organization.
+create index signature_requests_pending_trainee_idx
+  on public.signature_requests (organization_id) where slot = 'trainee' and state = 'pending';
+
 -- Both workers lists search, filter and sort over every employee in scope, so what they filter
 -- on is computed here, once per query. The states and the pending signatures are each a grouped
 -- join on the employee, so a query that neither selects nor filters on them leaves them out.

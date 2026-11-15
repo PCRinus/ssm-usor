@@ -106,7 +106,7 @@ export const updateEmployeeStatusRequestSchema = z.discriminatedUnion('status', 
 export type UpdateEmployeeStatusRequest = z.infer<typeof updateEmployeeStatusRequestSchema>;
 
 // Without a status the list returns current employees. "name" orders by last name then
-// first name; a training orders overdue, untrained, due and current, then by the due date.
+// first name.
 export const employeeSortKeys = [
   'name',
   'jobTitle',
@@ -225,7 +225,6 @@ export const employeeListItemSchema = employeeSchema
     tests: true,
   })
   .extend({
-    // The trainee signatures the employee has still to give.
     signaturesPending: z.int().min(0),
   });
 

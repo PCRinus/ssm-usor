@@ -33,7 +33,7 @@ const membership = {
 };
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const activeClient = { id: clientId, archived_at: null };
+const activeClient = { id: clientId, archived_at: null, stage: 'client' };
 const positionId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const workplaceId = 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f';
 
@@ -510,6 +510,37 @@ describe('GET /clients/{clientId}/employees', () => {
     });
     expect((await request(employeesPath)).status).toBe(200);
   });
+
+  it.each([
+    ['an archived client', { ...activeClient, archived_at: '2026-01-01T00:00:00+00:00' }],
+    ['a lead', { ...activeClient, stage: 'lead' }],
+  ])(
+    'refuses to filter or sort the employees of %s by a state they do not have',
+    async (_, client) => {
+      for (const search of [
+        'ssmTraining=overdue',
+        'suTraining=current',
+        'test=pending',
+        'attention=toTrain',
+        'attention=trainingDue',
+        'trainingState=attention',
+        'testState=none',
+        'sort=ssmTraining',
+        'sort=suTraining',
+      ]) {
+        mockUpstream({ clients: () => Response.json([client]) });
+        const response = await request(`${employeesPath}?${search}`);
+        expect(response.status).toBe(400);
+        expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
+      }
+      expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+      mockUpstream({ clients: () => Response.json([client]) });
+      const allowed = await request(
+        `${employeesPath}?status=terminated&attention=noPhone&attention=signaturesPending&sort=hiredAt`
+      );
+      expect(allowed.status).toBe(200);
+    }
+  );
 
   it('requires a bearer token', async () => {
     mockUpstream({});
