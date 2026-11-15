@@ -1083,11 +1083,11 @@ cancels the proforma outside production; a partial refund is left alone.
 
 `modules/billing/operator-alerts.ts` posts invoicing problems to the Discord channel of
 `DISCORD_BILLING_WEBHOOK` ([deployment guide](deployment.md#discord-alerts-for-invoicing)),
-after the response (`waitUntil`) and never failing the event: a paid invoice whose document could
-not be issued (the lines do not make the total, missing company details, Oblio refused or was
-unreachable), `oblio_total_mismatch` and `oblio_total_unchecked`, the first failed payment of a
-renewal or change (not `subscription_create`), and a subscription Stripe cancelled for failed
-payments. Each is posted once per Stripe invoice or subscription, marked by an
+after the response (`waitUntil`) and never failing the event: a paid invoice of a known
+organization left without its document, whatever failed (the lines do not make the total, missing
+company details, Oblio refused or was unreachable), `oblio_total_mismatch` and
+`oblio_total_unchecked`, a failed payment of a renewal or change (not `subscription_create`), and
+a subscription Stripe cancelled for failed payments. Each is posted once per Stripe invoice or subscription, marked by an
 `operator_alerted` row in `subscription_changes` written after Discord took the post.
 
 ## SMS
