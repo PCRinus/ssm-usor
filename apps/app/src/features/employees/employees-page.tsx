@@ -127,6 +127,7 @@ export function EmployeesPage() {
               void navigate({
                 state: keepOpener,
                 replace: true,
+                resetScroll: false,
                 search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
               })
             }
@@ -144,6 +145,7 @@ export function EmployeesPage() {
                   void navigate({
                     state: keepOpener,
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
                   })
                 }
@@ -155,6 +157,7 @@ export function EmployeesPage() {
                   void navigate({
                     state: keepOpener,
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({ ...prev, testState: next, page: undefined }),
                   })
                 }
@@ -192,6 +195,7 @@ export function EmployeesPage() {
             void navigate({
               state: keepOpener,
               replace: true,
+              resetScroll: false,
               search: (prev) => ({
                 ...prev,
                 sort: next.sort === defaultSort.sort ? undefined : (next.sort as EmployeeSortKey),
@@ -239,6 +243,7 @@ export function EmployeesPage() {
                   void navigate({
                     state: keepOpener,
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({ ...prev, q: undefined, page: undefined }),
                   })
                 }
@@ -254,6 +259,7 @@ export function EmployeesPage() {
                   void navigate({
                     state: keepOpener,
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({ ...prev, trainingState: undefined, page: undefined }),
                   })
                 }
@@ -269,6 +275,7 @@ export function EmployeesPage() {
                   void navigate({
                     state: keepOpener,
                     replace: true,
+                    resetScroll: false,
                     search: (prev) => ({ ...prev, testState: undefined, page: undefined }),
                   })
                 }

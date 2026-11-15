@@ -5,8 +5,15 @@ import type { ListFilterFacet, ListFilterValues } from './types';
 // A value no option knows, from an old or edited link, drops alone, not the whole filter.
 export function filterSearchSchema<const Value extends string>(values: readonly Value[]) {
   return z
-    .array(z.unknown())
-    .optional()
+    .preprocess(
+      // One chosen value is one key in the URL, which the parser reads as a plain value, and a
+      // value that looks like a number arrives as one.
+      (input) =>
+        input === undefined || input === null
+          ? undefined
+          : (Array.isArray(input) ? input : [input]).map(String),
+      z.array(z.string()).optional()
+    )
     .catch(undefined)
     .transform((list) => {
       const kept = (list ?? []).filter((value): value is Value =>

@@ -142,6 +142,7 @@ export function ClientTrainingsPage() {
               void navigate({
                 state: keepOpener,
                 replace: true,
+                resetScroll: false,
                 search: (prev) => ({
                   ...prev,
                   phase: (event.target.value || undefined) as TrainingPhase | undefined,

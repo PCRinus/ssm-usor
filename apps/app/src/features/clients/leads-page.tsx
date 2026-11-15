@@ -129,6 +129,7 @@ export function LeadsPage() {
           onSortChange={(next) =>
             void navigate({
               replace: true,
+              resetScroll: false,
               search: (prev) => ({
                 ...prev,
                 sort: next.sort === defaultSort.sort ? undefined : (next.sort as LeadSortKey),
