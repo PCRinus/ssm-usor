@@ -176,11 +176,6 @@ export function DocumentsBehind({ userId }: { userId: string }) {
 
   return (
     <section aria-label="Documente de actualizat" className="grid gap-6">
-      <p className="max-w-2xl text-sm text-muted-foreground">
-        Documentele generate dintr-o versiune mai veche a șablonului, de dinaintea unei modificări
-        legislative sau a unei corecturi, și instrucțiunile proprii și tematicile generate din
-        instrucțiuni schimbate între timp în bibliotecă sau la posturile de lucru.
-      </p>
       {behind.isPending ? (
         <Skeleton className="h-40 w-full" />
       ) : behind.isError ? (

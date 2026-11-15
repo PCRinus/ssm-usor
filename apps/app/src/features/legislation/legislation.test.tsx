@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,8 @@ import { disposeRuntimes, mountApp } from '@/test/mount';
 import { pollIntervalMs } from './regeneration-job';
 
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
+
+const lawChangeId = '4f0d9a1e-6b2c-4c1d-9e3f-2a1b0c9d8e7f';
 
 const acts = [
   {
@@ -21,6 +23,10 @@ const acts = [
     lastAmendingAct: 'Legea 145/2026',
     lastCheckedAt: '2026-10-06T06:12:00Z',
     checkedByHandOn: null,
+    subject: 'a securității și sănătății în muncă',
+    domains: ['ssm'],
+    citedIn: { documents: 12, quotes: 66 },
+    openChange: { id: lawChangeId, outcome: 'quote_differs' },
   },
   {
     id: 'hg-1425-2006',
@@ -32,6 +38,11 @@ const acts = [
     lastAmendingAct: null,
     lastCheckedAt: '2026-10-06T06:12:00Z',
     checkedByHandOn: null,
+    subject:
+      'pentru aprobarea Normelor metodologice de aplicare a prevederilor Legii securității și sănătății în muncă nr. 319/2006',
+    domains: ['ssm'],
+    citedIn: { documents: 14, quotes: 121 },
+    openChange: null,
   },
   {
     id: 'lege-53-2003',
@@ -43,6 +54,10 @@ const acts = [
     lastAmendingAct: null,
     lastCheckedAt: null,
     checkedByHandOn: '2026-10-07',
+    subject: 'Codul muncii',
+    domains: ['ssm'],
+    citedIn: { documents: 5, quotes: 43 },
+    openChange: null,
   },
   {
     id: 'omai-163-2007',
@@ -54,6 +69,55 @@ const acts = [
     lastAmendingAct: null,
     lastCheckedAt: null,
     checkedByHandOn: null,
+    subject: 'pentru aprobarea Normelor generale de apărare împotriva incendiilor',
+    domains: ['su'],
+    citedIn: { documents: 17, quotes: 80 },
+    openChange: null,
+  },
+  {
+    id: 'lege-307-2006',
+    name: 'Legea 307/2006',
+    portalId: 75090,
+    portalStatus: 'in_force',
+    verifiedConsolidatedOn: null,
+    lastConsolidatedOn: '2026-05-08',
+    lastAmendingAct: null,
+    lastCheckedAt: '2026-10-06T06:12:00Z',
+    checkedByHandOn: null,
+    subject: 'privind apărarea împotriva incendiilor',
+    domains: ['ssm', 'su'],
+    citedIn: { documents: 16, quotes: 20 },
+    openChange: { id: '9e8d7c6b-5a49-4382-9172-6a5b4c3d2e1f', outcome: null },
+  },
+  {
+    id: 'omai-106-2007',
+    name: 'OMAI 106/2007',
+    portalId: 80731,
+    portalStatus: 'in_force',
+    verifiedConsolidatedOn: null,
+    lastConsolidatedOn: null,
+    lastAmendingAct: null,
+    lastCheckedAt: '2026-10-06T06:12:00Z',
+    checkedByHandOn: null,
+    subject: 'pentru aprobarea Criteriilor de stabilire a consiliilor locale',
+    domains: ['su'],
+    citedIn: { documents: 4, quotes: 0 },
+    openChange: null,
+  },
+  {
+    id: 'lege-126-1995',
+    name: 'Legea 126/1995',
+    portalId: 6350,
+    portalStatus: 'in_force',
+    verifiedConsolidatedOn: '2026-03-27',
+    lastConsolidatedOn: '2026-03-27',
+    lastAmendingAct: null,
+    lastCheckedAt: '2026-10-06T06:12:00Z',
+    checkedByHandOn: null,
+    subject: 'privind regimul materiilor explozive',
+    domains: [],
+    citedIn: { documents: 0, quotes: 0 },
+    openChange: null,
   },
 ];
 
@@ -115,7 +179,7 @@ const roadChange = {
 
 const changes = [
   {
-    id: '4f0d9a1e-6b2c-4c1d-9e3f-2a1b0c9d8e7f',
+    id: lawChangeId,
     act: { id: 'lege-319-2006', name: 'Legea 319/2006', portalId: 73772 },
     seenAt: '2026-10-06T06:12:00Z',
     consolidatedOn: '2026-09-12',
@@ -207,7 +271,9 @@ const extinguisherBehind = {
 };
 
 const actNamesInTable = () =>
-  screen.getAllByTestId('watched-act').map((row) => row.querySelector('td')!.textContent);
+  screen
+    .getAllByTestId('watched-act')
+    .map((row) => within(row).getByTestId('watched-act-name').textContent);
 
 const job = (overrides: Record<string, unknown> = {}) => ({
   job: {
@@ -300,6 +366,7 @@ function mockApi({
   polls = [finishedJob] as unknown[],
   readiness = alfaReadiness as unknown,
   legalChanges = changes as unknown[],
+  watchedActs = acts as unknown[],
 } = {}) {
   let jobDone = false;
   let pollCount = 0;
@@ -316,7 +383,7 @@ function mockApi({
         },
       });
     }
-    if (pathname === '/legislation/acts') return Response.json({ items: acts });
+    if (pathname === '/legislation/acts') return Response.json({ items: watchedActs });
     if (pathname === '/legislation/changes') return Response.json({ items: legalChanges });
     if (pathname === '/legislation/runs/latest') return Response.json({ run });
     if (pathname === '/documents/behind') {
@@ -448,7 +515,7 @@ describe('the Legislație page', () => {
     expect(screen.getByTestId('last-check-ok')).toBeTruthy();
 
     await user.click(screen.getAllByTestId('legislation-section')[2]!);
-    expect(await screen.findAllByTestId('watched-act')).toHaveLength(4);
+    expect(await screen.findAllByTestId('watched-act')).toHaveLength(7);
     expect(screen.getByTestId('last-check-ok')).toBeTruthy();
     expect(screen.queryByTestId('legal-change')).toBeNull();
   });
@@ -1101,73 +1168,293 @@ describe('the Legislație page', () => {
     expect(within(change).queryByTestId('legal-change-passages')).toBeNull();
   });
 
-  it('lists the watched acts by name, each linking to its portal page', async () => {
+  it('lists the acts with a change under review first, then by name', async () => {
     mockApi();
     mount('/legislatie/acte');
 
-    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(4));
-    const rows = screen.getAllByTestId('watched-act');
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
     expect(actNamesInTable()).toEqual([
+      'Legea 307/2006',
+      'Legea 319/2006',
       'H.G. 1425/2006',
       'Legea 53/2003',
-      'Legea 319/2006',
+      'Legea 126/1995',
+      'OMAI 106/2007',
       'OMAI 163/2007',
     ]);
-    expect(within(rows[2]!).getByRole('link').getAttribute('href')).toBe(
-      'https://legislatie.just.ro/Public/DetaliiDocument/73772'
-    );
-    expect(rows[2]!.textContent).toContain('12.09.2026');
-    expect(rows[2]!.textContent).toContain('03.11.2025');
-    expect(within(rows[1]!).getByTestId('watched-act-status').textContent).toBe('abrogat');
-    expect(within(rows[3]!).queryByRole('link')).toBeNull();
-    expect(within(rows[3]!).getByTestId('watched-act-status').textContent).toBe('neverificat');
-    expect(screen.getByTestId('pager-summary').textContent).toBe('1–4 din 4 acte');
+    expect(screen.getByTestId('watched-acts-count').textContent).toBe('7 acte');
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–7 din 7 acte');
+    expect(screen.getByTestId('sort-name')).toBeTruthy();
+    expect(screen.getByTestId('sort-consolidated')).toBeTruthy();
+    expect(screen.getByTestId('sort-cited')).toBeTruthy();
+    expect(screen.queryByTestId('sort-status')).toBeNull();
+    expect(screen.queryByTestId('sort-domain')).toBeNull();
   });
 
-  it('sorts the watched acts by any column, keeping the sort in the address', async () => {
+  it('shows each act with its subject, domain, state, consolidated form and citations', async () => {
+    mockApi();
+    mount('/legislatie/acte');
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
+    const row = (name: string) =>
+      screen
+        .getAllByTestId('watched-act')
+        .find((each) => within(each).getByTestId('watched-act-name').textContent === name)!;
+    const cells = (name: string) =>
+      [...row(name).querySelectorAll('td')].map((cell) => cell.textContent);
+
+    expect(
+      within(row('Legea 319/2006'))
+        .getByRole('link', { name: /Legea 319/ })
+        .getAttribute('href')
+    ).toBe('https://legislatie.just.ro/Public/DetaliiDocument/73772');
+    expect(cells('Legea 319/2006')).toEqual([
+      'Legea 319/2006a securității și sănătății în muncă',
+      'SSM',
+      'În verificareModifică un text citat în documente.',
+      '12.09.2026documentele: 03.11.2025',
+      '12 documente66 de preluări',
+    ]);
+    expect(cells('Legea 307/2006')).toEqual([
+      'Legea 307/2006privind apărarea împotriva incendiilor',
+      'SSM, SU',
+      'În verificareModificarea nu a fost încă analizată.',
+      '08.05.2026documentele: forma de bază',
+      '16 documente20 de preluări',
+    ]);
+    expect(cells('Legea 53/2003')[2]).toBe('Abrogat');
+    expect(cells('OMAI 106/2007').slice(1)).toEqual([
+      'SU',
+      'În vigoare',
+      'Forma de bază',
+      '4 documentedoar trimiteri',
+    ]);
+    expect(cells('OMAI 163/2007').slice(2, 4)).toEqual(['Neverificat', '—']);
+    expect(within(row('OMAI 163/2007')).queryByRole('link')).toBeNull();
+    expect(cells('Legea 126/1995').slice(1)).toEqual(['—', 'În vigoare', '27.03.2026', '—']);
+
+    const status = (name: string) => within(row(name)).getByTestId('watched-act-status');
+    expect(status('Legea 319/2006').getAttribute('data-slot')).toBe('badge');
+    expect(status('Legea 53/2003').getAttribute('data-slot')).toBe('badge');
+    expect(status('OMAI 163/2007').getAttribute('data-slot')).toBeNull();
+    expect(status('OMAI 163/2007').className).not.toContain('muted');
+    expect(status('H.G. 1425/2006').className).not.toContain('muted');
+  });
+
+  it("links a change's outcome to the change on Modificări", async () => {
     mockApi();
     const runtime = mount('/legislatie/acte');
     const user = userEvent.setup();
-    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(4));
-
-    await user.click(screen.getByTestId('sort-status'));
-    await waitFor(() =>
-      expect(actNamesInTable()).toEqual([
-        'Legea 53/2003',
-        'H.G. 1425/2006',
-        'Legea 319/2006',
-        'OMAI 163/2007',
-      ])
+    const links = await screen.findAllByTestId('watched-act-change');
+    expect(links.map((link) => link.textContent)).toEqual([
+      'Modificarea nu a fost încă analizată.',
+      'Modifică un text citat în documente.',
+    ]);
+    expect(links[0]!.getAttribute('href')).toBe(
+      '/legislatie/modificari#modificare-9e8d7c6b-5a49-4382-9172-6a5b4c3d2e1f'
     );
-    expect(runtime.router.state.location.search).toEqual({ sort: 'status' });
+
+    await user.click(links[1]!);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/legislatie/modificari')
+    );
+    expect(runtime.router.state.location.hash).toBe(`modificare-${lawChangeId}`);
+    await waitFor(() =>
+      expect(document.getElementById(`modificare-${lawChangeId}`)?.textContent).toContain(
+        'Legea 319/2006'
+      )
+    );
+  });
+
+  it('sorts by name, consolidated form and citations, keeping the sort in the address', async () => {
+    mockApi();
+    const runtime = mount('/legislatie/acte');
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
+
+    await user.click(screen.getByTestId('sort-name'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'name' }));
+    expect(actNamesInTable()).toEqual([
+      'H.G. 1425/2006',
+      'Legea 53/2003',
+      'Legea 126/1995',
+      'Legea 307/2006',
+      'Legea 319/2006',
+      'OMAI 106/2007',
+      'OMAI 163/2007',
+    ]);
 
     await user.click(screen.getByTestId('sort-consolidated'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({
+        sort: 'consolidated',
+        order: 'desc',
+      })
+    );
+    expect(actNamesInTable()).toEqual([
+      'Legea 319/2006',
+      'Legea 307/2006',
+      'Legea 126/1995',
+      'H.G. 1425/2006',
+      'Legea 53/2003',
+      'OMAI 106/2007',
+      'OMAI 163/2007',
+    ]);
     await user.click(screen.getByTestId('sort-consolidated'));
     await waitFor(() =>
-      expect(actNamesInTable()).toEqual([
-        'Legea 319/2006',
-        'H.G. 1425/2006',
-        'Legea 53/2003',
-        'OMAI 163/2007',
-      ])
+      expect(runtime.router.state.location.search).toEqual({ sort: 'consolidated' })
     );
-    expect(runtime.router.state.location.search).toEqual({ sort: 'consolidated', order: 'desc' });
-    expect(screen.getByTestId('sort-consolidated').closest('th')!.getAttribute('aria-sort')).toBe(
+    expect(actNamesInTable().slice(-2)).toEqual(['OMAI 106/2007', 'OMAI 163/2007']);
+
+    await user.click(screen.getByTestId('sort-cited'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'cited', order: 'desc' })
+    );
+    expect(actNamesInTable()).toEqual([
+      'OMAI 163/2007',
+      'Legea 307/2006',
+      'H.G. 1425/2006',
+      'Legea 319/2006',
+      'Legea 53/2003',
+      'OMAI 106/2007',
+      'Legea 126/1995',
+    ]);
+    expect(screen.getByTestId('sort-cited').closest('th')!.getAttribute('aria-sort')).toBe(
       'descending'
     );
   });
 
-  it('opens the watched acts sorted as the address says', async () => {
+  it('opens sorted as the address says, and in the default order for a sort it no longer has', async () => {
     mockApi();
-    mount('/legislatie/acte?sort=read&order=desc');
+    const runtime = mount('/legislatie/acte?sort=cited');
+    await waitFor(() => expect(actNamesInTable()[0]).toBe('Legea 126/1995'));
 
-    await waitFor(() =>
-      expect(actNamesInTable()).toEqual([
-        'Legea 53/2003',
-        'H.G. 1425/2006',
-        'Legea 319/2006',
-        'OMAI 163/2007',
-      ])
+    await act(() =>
+      runtime.router.navigate({ to: '/legislatie/acte', search: { sort: 'read' } as never })
     );
+    await waitFor(() => expect(actNamesInTable()[0]).toBe('Legea 307/2006'));
+  });
+
+  it('filters by domain and state from the Filtre panel, counting what is left', async () => {
+    mockApi();
+    const runtime = mount('/legislatie/acte');
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
+
+    await user.click(screen.getByTestId('watched-acts-filters'));
+    const panel = await screen.findByTestId('watched-acts-filters-panel');
+    for (const name of ['SSM', 'SU', 'În verificare', 'În vigoare', 'Abrogat', 'Neverificat']) {
+      expect(within(panel).getByRole('checkbox', { name })).toBeTruthy();
+    }
+    await user.click(within(panel).getByRole('checkbox', { name: 'SU' }));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ domain: 'su' }));
+    expect(actNamesInTable()).toEqual(['Legea 307/2006', 'OMAI 106/2007', 'OMAI 163/2007']);
+    expect(screen.getByTestId('watched-acts-count').textContent).toBe('3 din 7 acte');
+
+    await user.click(within(panel).getByRole('checkbox', { name: 'În verificare' }));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ domain: 'su', status: 'open' })
+    );
+    expect(actNamesInTable()).toEqual(['Legea 307/2006']);
+  });
+
+  it('offers only the states some act is in, and keeps one the address chose', async () => {
+    mockApi({ watchedActs: acts.filter((each) => each.portalStatus !== 'repealed') });
+    const user = userEvent.setup();
+    mount('/legislatie/acte?status=unchecked');
+    await waitFor(() => expect(actNamesInTable()).toEqual(['OMAI 163/2007']));
+
+    await user.click(screen.getByTestId('watched-acts-filters'));
+    const panel = await screen.findByTestId('watched-acts-filters-panel');
+    expect(within(panel).queryByRole('checkbox', { name: 'Abrogat' })).toBeNull();
+    expect(within(panel).getByRole('checkbox', { name: 'Neverificat' })).toBeTruthy();
+  });
+
+  it('keeps a state the address chose though no act is in it, and says nothing matches', async () => {
+    mockApi({ watchedActs: acts.filter((each) => each.portalStatus !== 'repealed') });
+    mount('/legislatie/acte?status=repealed');
+    expect(await screen.findByTestId('watched-acts-empty-filtered')).toBeTruthy();
+    expect(screen.getByTestId('watched-acts-applied-filters').textContent).toContain('Abrogat');
+  });
+
+  it('searches by number, name or subject, ignoring dots, spaces and diacritics', async () => {
+    mockApi();
+    const runtime = mount('/legislatie/acte');
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
+
+    await user.type(screen.getByTestId('watched-acts-search'), 'hg 1425');
+    await waitFor(() => expect(actNamesInTable()).toEqual(['H.G. 1425/2006']));
+    expect(runtime.router.state.location.search).toEqual({ q: 'hg 1425' });
+    expect(screen.getByTestId('watched-acts-count').textContent).toBe('1 din 7 acte');
+
+    await user.clear(screen.getByTestId('watched-acts-search'));
+    await user.type(screen.getByTestId('watched-acts-search'), 'aparare');
+    await waitFor(() => expect(actNamesInTable()).toEqual(['Legea 307/2006', 'OMAI 163/2007']));
+
+    await user.clear(screen.getByTestId('watched-acts-search'));
+    await user.type(screen.getByTestId('watched-acts-search'), 'codul muncii');
+    await waitFor(() => expect(actNamesInTable()).toEqual(['Legea 53/2003']));
+  });
+
+  it.each([
+    ['Legea nr. 319/2006', ['Legea 319/2006']],
+    ['HG nr 1425', ['H.G. 1425/2006']],
+    ['Legea 319 din 2006', ['Legea 319/2006']],
+    ['ordinul 163', ['OMAI 163/2007']],
+    ['ordin 106/2007', ['OMAI 106/2007']],
+    ['ordinul', ['OMAI 106/2007', 'OMAI 163/2007']],
+  ])('finds the act cited in full as „%s”', async (q, names) => {
+    mockApi();
+    mount(`/legislatie/acte?q=${encodeURIComponent(JSON.stringify(q))}`);
+    await waitFor(() => expect(actNamesInTable()).toEqual(names));
+  });
+
+  it('says when nothing matches, and clears only the filters', async () => {
+    mockApi();
+    const runtime = mount('/legislatie/acte?domain=su&q=1425');
+    const user = userEvent.setup();
+    const empty = await screen.findByTestId('watched-acts-empty-filtered');
+    expect(empty.textContent).toContain('Niciun act nu se potrivește');
+    expect(screen.getByTestId('watched-acts-count').textContent).toBe('0 din 7 acte');
+
+    await user.click(screen.getByTestId('watched-acts-empty-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: '1425' }));
+    expect(actNamesInTable()).toEqual(['H.G. 1425/2006']);
+  });
+
+  it('says that no act is watched yet before the first check', async () => {
+    mockApi({ watchedActs: [] });
+    mount('/legislatie/acte');
+    const empty = await screen.findByTestId('watched-acts-empty');
+    expect(empty.textContent).toContain('Niciun act urmărit încă');
+    expect(screen.queryByTestId('watched-acts-search')).toBeNull();
+    expect(screen.queryByTestId('watched-acts-filters')).toBeNull();
+  });
+
+  it('shows 25 acts a page and starts again from the first page on a new search', async () => {
+    const many = Array.from({ length: 30 }, (_, index) => ({
+      ...acts[1]!,
+      id: `hg-${index + 1}-2006`,
+      name: `H.G. ${index + 1}/2006`,
+    }));
+    mockApi({ watchedActs: many });
+    const runtime = mount('/legislatie/acte');
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(25));
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–25 din 30 de acte');
+
+    await user.click(screen.getByTestId('pager-next'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ page: 2 }));
+    expect(actNamesInTable()).toEqual([
+      'H.G. 26/2006',
+      'H.G. 27/2006',
+      'H.G. 28/2006',
+      'H.G. 29/2006',
+      'H.G. 30/2006',
+    ]);
+
+    await user.type(screen.getByTestId('watched-acts-search'), 'hg 2');
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'hg 2' }));
+    expect(screen.getByTestId('pager-summary').textContent).toBe('1–11 din 11 acte');
   });
 });

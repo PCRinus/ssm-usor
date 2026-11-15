@@ -228,7 +228,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/legislatie/index.tsx`                                          | `/legislatie`                                          | Redirects to "Documente de actualizat".                                                                                                                                                                    |
 | `routes/_authenticated/legislatie/documente.tsx`                                      | `/legislatie/documente`                                | "Documente de actualizat": the documents behind, under SSM and PSI, with bulk regeneration.                                                                                                                |
 | `routes/_authenticated/legislatie/modificari.tsx`                                     | `/legislatie/modificari`                               | "Modificări": the legal changes, newest first.                                                                                                                                                             |
-| `routes/_authenticated/legislatie/acte.tsx`                                           | `/legislatie/acte`                                     | "Acte urmărite": the watched acts, sortable, the sort in the search params.                                                                                                                                |
+| `routes/_authenticated/legislatie/acte.tsx`                                           | `/legislatie/acte`                                     | "Acte urmărite": the watched acts, searched, filtered, sorted and paged in the browser, all in the search params.                                                                                          |
 | `routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare.tsx`           | `/clienti/:id/angajati/:employeeId/editare`            | Corrects an employee in the form that adds one (`employee-form.tsx`). Full page; returns to the employee page. `?focus=commute-route` or `workplace` points at that field.                                 |
 | `routes/_authenticated/clienti/$clientId/mijloace-de-aparare.tsx`                     | `/clienti/:id/mijloace-de-aparare`                     | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.             |
 | `routes/_authenticated/clienti/$clientId/instruire.tsx`                               | `/clienti/:id/instruire`                               | "Instruire și responsabili": the two training schedules and the responsible persons the generated documents print.                                                                                         |
@@ -1663,7 +1663,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   employees.
 - `/legislatie`: the "Legislație" page ([ADR 017](architecture/adr-017-legislation-monitoring.md)),
   in `src/features/legislation/`, the sidebar entry after "Teste" for owners and specialists
-  alike, which opens to its three tabs while the page is open. `legislation-layout.tsx` keeps the title, its one-line description and the last check
+  alike, which opens to its three tabs while the page is open. `legislation-layout.tsx` keeps the title, with the question mark of the help article „Legislație”, and the last check
   above three tabs, child routes in the clients page's way (`SectionNav`):
   `/legislatie/documente` ("Documente de actualizat", where `/legislatie` leads),
   `/legislatie/modificari` ("Modificări") and `/legislatie/acte` ("Acte urmărite"). The last
@@ -1694,12 +1694,16 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   place with the result. "Modificări" lists `GET /legislation/changes` newest first, each "În
   verificare", "Fără impact asupra documentelor" or "Șablon actualizat" with the version's
   note. "Acte urmărite" is `GET /legislation/acts` in the shared data table: the act linked to
-  its page on the Portal Legislativ, "în vigoare", "abrogat" or "neverificat", the newest
-  consolidated form, the form the templates were verified against, and when it was last read.
-  Every column sorts, by name by default (numbers as numbers); the list is short, so the page
-  sorts it itself (`watched-act-sort.ts`), acts without a value last, and keeps `sort` and
-  `order` in the search params as the clients list does. These dates appear on this page and
-  nowhere else.
+  its page on the Portal Legislativ with its subject under it, "Domeniu" (SSM, SU or both, from
+  the documents that cite it), "Stare" ("În verificare" in amber with the open change's outcome,
+  as Modificări words it, linking to `/legislatie/modificari#modificare-<id>`; "Abrogat" in red;
+  "Neverificat" or "În vigoare" as plain text), the newest consolidated form ("Forma de bază"
+  for an act read with none, with the form the documents follow under it while a change is
+  open) and "Citat în" (documents, with the quotes or "doar trimiteri" under it). The page
+  searches (`q`, by number, name or subject, ignoring dots, spaces and diacritics), filters
+  (`domain`, `status`), sorts (acts with an open change first and then by name when `sort` is
+  absent; `name`, `consolidated`, `cited`) and pages by 25 itself (`watched-act-list.ts`). No
+  tab carries a sentence of its own; the help article explains the page.
 - `/profil`: a form for the user's name and optional professional title backed by
   `PATCH /me/profile`, with the email read-only. The title is printed next to the person's
   name in generated documents; emptying it sends `null`. Saving refreshes `/me`, so the

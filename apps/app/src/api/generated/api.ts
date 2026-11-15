@@ -14326,6 +14326,43 @@ export const LegalActListResponseItemsItemPortalStatus = {
   repealed: 'repealed',
 } as const;
 
+export type LegalActListResponseItemsItemDomainsItem =
+  (typeof LegalActListResponseItemsItemDomainsItem)[keyof typeof LegalActListResponseItemsItemDomainsItem];
+
+export const LegalActListResponseItemsItemDomainsItem = {
+  ssm: 'ssm',
+  su: 'su',
+} as const;
+
+export type LegalActListResponseItemsItemCitedIn = {
+  /** @minimum 0 */
+  documents: number;
+  /** @minimum 0 */
+  quotes: number;
+};
+
+/**
+ * @nullable
+ */
+export type LegalActListResponseItemsItemOpenChangeOutcome =
+  | (typeof LegalActListResponseItemsItemOpenChangeOutcome)[keyof typeof LegalActListResponseItemsItemOpenChangeOutcome]
+  | null;
+
+export const LegalActListResponseItemsItemOpenChangeOutcome = {
+  no_impact: 'no_impact',
+  quote_differs: 'quote_differs',
+  needs_review: 'needs_review',
+} as const;
+
+/**
+ * @nullable
+ */
+export type LegalActListResponseItemsItemOpenChange = {
+  id: string;
+  /** @nullable */
+  outcome: LegalActListResponseItemsItemOpenChangeOutcome;
+} | null;
+
 export type LegalActListResponseItemsItem = {
   id: string;
   name: string;
@@ -14346,6 +14383,12 @@ export type LegalActListResponseItemsItem = {
   lastCheckedAt: string | null;
   /** @nullable */
   checkedByHandOn: string | null;
+  /** @nullable */
+  subject: string | null;
+  domains: LegalActListResponseItemsItemDomainsItem[];
+  citedIn: LegalActListResponseItemsItemCitedIn;
+  /** @nullable */
+  openChange: LegalActListResponseItemsItemOpenChange;
 };
 
 export interface LegalActListResponse {
@@ -41248,7 +41291,7 @@ export const getListLegalActsUrl = () => {
 };
 
 /**
- * The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017). The same for every organization; not paginated.
+ * The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017), the subject of each, the documents that cite it and its newest open legal change. The same for every organization; not paginated.
  * @summary List the watched legal acts
  */
 export const listLegalActs = async (

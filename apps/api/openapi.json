@@ -22432,6 +22432,47 @@
                   "type": "string",
                   "nullable": true,
                   "format": "date"
+                },
+                "subject": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "domains": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["ssm", "su"]
+                  }
+                },
+                "citedIn": {
+                  "type": "object",
+                  "properties": {
+                    "documents": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "quotes": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["documents", "quotes"]
+                },
+                "openChange": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": ["no_impact", "quote_differs", "needs_review", null]
+                    }
+                  },
+                  "required": ["id", "outcome"]
                 }
               },
               "required": [
@@ -22443,7 +22484,11 @@
                 "lastConsolidatedOn",
                 "lastAmendingAct",
                 "lastCheckedAt",
-                "checkedByHandOn"
+                "checkedByHandOn",
+                "subject",
+                "domains",
+                "citedIn",
+                "openChange"
               ]
             }
           }
@@ -49203,7 +49248,7 @@
       "get": {
         "operationId": "listLegalActs",
         "summary": "List the watched legal acts",
-        "description": "The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017). The same for every organization; not paginated.",
+        "description": "The acts the built-in templates cite, by name, with what the Portal Legislativ showed when last checked (ADR 017), the subject of each, the documents that cite it and its newest open legal change. The same for every organization; not paginated.",
         "security": [
           {
             "bearerAuth": []

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
+import { bundledActCitations } from './act-citations';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -163,7 +164,10 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('GET /legislation/acts', () => {
   it('lists the watched acts by name', async () => {
-    mockUpstream({ legal_acts: () => Response.json([order, law, norms]) });
+    mockUpstream({
+      legal_acts: () => Response.json([order, law, norms]),
+      legal_changes: () => Response.json([]),
+    });
     const response = await request('/legislation/acts');
     expect(response.status).toBe(200);
     const body = legalActListResponseSchema.parse(await response.json());
@@ -182,8 +186,66 @@ describe('GET /legislation/acts', () => {
       lastAmendingAct: 'LEGE 208 21/07/2021',
       lastCheckedAt: '2026-10-07T04:00:00+00:00',
       checkedByHandOn: null,
+      subject: 'a securității și sănătății în muncă',
+      domains: ['ssm'],
+      citedIn: bundledActCitations().get('lege-319-2006')!.citedIn,
+      openChange: null,
     });
     expect(body.items[2]).toMatchObject({ portalId: null, portalStatus: null });
+  });
+
+  it('gives each act the subject, domains and citations of the bundled citation index', async () => {
+    mockUpstream({
+      legal_acts: () => Response.json([order, law, norms]),
+      legal_changes: () => Response.json([]),
+    });
+    const body = legalActListResponseSchema.parse(
+      await (await request('/legislation/acts')).json()
+    );
+    for (const act of body.items) {
+      const { subject, domains, citedIn } = bundledActCitations().get(act.id)!;
+      expect(act).toMatchObject({ subject, domains, citedIn });
+      expect(act.citedIn.documents).toBeGreaterThan(0);
+    }
+    expect(body.items.find((act) => act.id === 'omai-163-2007')!.domains).toEqual(['su']);
+  });
+
+  it('gives an act the templates no longer cite no subject and no citations', async () => {
+    mockUpstream({
+      legal_acts: () => Response.json([{ ...law, id: 'lege-1-2000', name: 'Legea 1/2000' }]),
+      legal_changes: () => Response.json([]),
+    });
+    const body = legalActListResponseSchema.parse(
+      await (await request('/legislation/acts')).json()
+    );
+    expect(body.items[0]).toMatchObject({
+      subject: null,
+      domains: [],
+      citedIn: { documents: 0, quotes: 0 },
+    });
+  });
+
+  it("names each act's newest open change, with its outcome", async () => {
+    mockUpstream({
+      legal_acts: () => Response.json([order, law, norms]),
+      legal_changes: () =>
+        Response.json([
+          { id: assessed.id, act_id: 'lege-319-2006', outcome: 'quote_differs' },
+          { id: change.id, act_id: 'lege-319-2006', outcome: null },
+          { id: 'd1d1d1d1-0000-4000-8000-000000000003', act_id: 'hg-1425-2006', outcome: null },
+        ]),
+    });
+    const body = legalActListResponseSchema.parse(
+      await (await request('/legislation/acts')).json()
+    );
+    expect(body.items.map((act) => act.openChange)).toEqual([
+      { id: 'd1d1d1d1-0000-4000-8000-000000000003', outcome: null },
+      { id: assessed.id, outcome: 'quote_differs' },
+      null,
+    ]);
+    const [query] = searchParams('legal_changes');
+    expect(query!.get('resolution')).toBe('eq.open');
+    expect(query!.get('order')).toBe('consolidated_on.desc,seen_at.desc,id.asc');
   });
 
   it('answers 403 to an account without an organization', async () => {
