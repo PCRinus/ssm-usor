@@ -1051,6 +1051,16 @@ describe('the Semnături place', () => {
     expect(within(dialog).getAllByTestId('signing-item')).toHaveLength(3);
   });
 
+  it('forgets what was chosen when the search changes', async () => {
+    mockApi({ 'GET /me/signatures': () => signaturePage([signatureRow()]) });
+    const user = userEvent.setup();
+    const runtime = mount('/semnaturi?q=popescu');
+    await user.click(await screen.findByTestId('signatures-select'));
+    expect(screen.getByTestId('signatures-selection')).toBeTruthy();
+    await runtime.router.navigate({ to: '/semnaturi', search: { q: 'ion' } });
+    await waitFor(() => expect(screen.queryByTestId('signatures-selection')).toBeNull());
+  });
+
   it('forgets what was chosen when a filter changes', async () => {
     mockApi({ 'GET /me/signatures': () => signaturePage([signatureRow()]) });
     const user = userEvent.setup();
@@ -1840,6 +1850,39 @@ describe('signing from the Semnături place', () => {
     await user.click(within(dialog).getByTestId('signing-send'));
     expect((await within(dialog).findByTestId('signing-send-error')).textContent).toBe(message);
     expect(within(dialog).queryByTestId('signing-code')).toBeNull();
+  });
+
+  it('lets go of a request that no longer waits, once the session says so', async () => {
+    const { user, dialog } = await openSigning({
+      [`POST ${sessionPath}`]: session,
+      [`POST ${signPath}`]: () =>
+        Response.json({
+          signed: [{ requestId: firstId, agreementState: null }],
+          failed: [{ requestId: secondId, reason: 'request_not_pending' }],
+          agreements: [],
+        }),
+    });
+    await user.type(await askForCode(user, dialog), '123456');
+    await user.click(within(dialog).getByTestId('signing-submit'));
+    await within(dialog).findByTestId('signing-result-summary');
+    await user.click(within(dialog).getByTestId('signing-close'));
+    await waitFor(() => expect(screen.queryByTestId('signing-dialog')).toBeNull());
+    expect(screen.queryByTestId('signatures-selection')).toBeNull();
+  });
+
+  it('forgets the choice when the code request finds a request gone', async () => {
+    const { user, dialog } = await openSigning({
+      [`POST ${sessionPath}`]: () =>
+        Response.json(
+          { error: 'not_found', message: 'gone', reason: 'signing_item_not_found' },
+          { status: 404 }
+        ),
+    });
+    await user.click(within(dialog).getByTestId('signing-send'));
+    await within(dialog).findByTestId('signing-send-error');
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByTestId('signing-dialog')).toBeNull());
+    expect(screen.queryByTestId('signatures-selection')).toBeNull();
   });
 
   it('refuses more than one code can sign until some sheets are unticked', async () => {

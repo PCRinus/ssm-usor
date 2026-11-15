@@ -62,16 +62,18 @@ export function SigningDialog({
   requests,
   open,
   onClose,
-  onSigned,
+  onGone,
 }: {
   requests: SignatureRequest[];
   open: boolean;
   onClose: () => void;
-  onSigned?: (requestIds: string[]) => void;
+  // The requests that no longer wait for this signer: signed now, or signed, voided or changed
+  // since they were chosen.
+  onGone?: (requestIds: string[]) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {open && <SigningFlow requests={requests} onClose={onClose} onSigned={onSigned} />}
+      {open && <SigningFlow requests={requests} onClose={onClose} onGone={onGone} />}
     </Dialog>
   );
 }
@@ -79,11 +81,11 @@ export function SigningDialog({
 function SigningFlow({
   requests: chosen,
   onClose,
-  onSigned,
+  onGone,
 }: {
   requests: SignatureRequest[];
   onClose: () => void;
-  onSigned?: (requestIds: string[]) => void;
+  onGone?: (requestIds: string[]) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const create = useCreateMySigningSession({ request: wordingRefusalHere(apiRequest) });
@@ -132,7 +134,10 @@ function SigningFlow({
       setSignError(null);
       wantsFocus.current = true;
     } catch (cause) {
-      if (reasonOf(cause) === signatureErrorReasons.signingItemNotFound) touched.current = true;
+      if (reasonOf(cause) === signatureErrorReasons.signingItemNotFound) {
+        touched.current = true;
+        onGone?.(requests.map((request) => request.id));
+      }
       setSendError(signingSessionFailure(cause));
     }
   }
@@ -149,7 +154,12 @@ function SigningFlow({
     try {
       const result = await sign.mutateAsync({ sessionId, data: { code } });
       setStep({ kind: 'result', result });
-      onSigned?.(result.signed.map((item) => item.requestId));
+      onGone?.([
+        ...result.signed.map((item) => item.requestId),
+        ...result.failed
+          .filter((item) => item.reason === 'request_not_pending')
+          .map((item) => item.requestId),
+      ]);
     } catch (cause) {
       const reason = reasonOf(cause);
       if (reason === signatureErrorReasons.codeInvalid) {

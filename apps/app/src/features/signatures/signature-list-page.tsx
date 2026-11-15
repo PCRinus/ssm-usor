@@ -359,7 +359,6 @@ export function SignatureListPage() {
           }
           onPageChange={(next) =>
             void navigate({
-              resetScroll: false,
               search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }),
             })
           }
@@ -409,7 +408,7 @@ export function SignatureListPage() {
         requests={forSigning(chosen)}
         open={signing}
         onClose={() => setSigning(false)}
-        onSigned={(ids) =>
+        onGone={(ids) =>
           update((current) =>
             choose(
               current,

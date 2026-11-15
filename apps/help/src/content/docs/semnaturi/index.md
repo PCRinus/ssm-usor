@@ -52,11 +52,12 @@ Dacă nu ai nimic de semnat, pagina îți spune asta. O instruire sau o fișă d
 O instruire are rubrici pentru cel instruit, pentru instructor, pentru verificator (unde fișa o are) și pentru cel care admite la lucru. Aplicația îți propune rubricile după cum se semnează de obicei fișele:
 
 - pe fișa SSM, la instruirea introductiv-generală ești instructor și verificator;
-- la instruirea la locul de muncă și la cea periodică ești verificator: instruirea o ține conducătorul locului de muncă. HG 1425/2006, art. 94, cere ca instruirea la locul de muncă să fie verificată de conducătorul ierarhic al celui care a instruit; dacă la un client verifică altcineva, treci-l pe el în rubrica de verificator;
+- la instruirea la locul de muncă ești verificator: instruirea o ține conducătorul locului de muncă. HG 1425/2006, art. 94, cere ca instruirea la locul de muncă să fie verificată de conducătorul ierarhic al celui care a instruit; dacă la un client verifică altcineva, treci-l pe el în rubrica de verificator;
+- la instruirea periodică și la cea periodică suplimentară ești verificator: instruirea o ține cel pe care tematica de instruire îl numește pentru post;
 - pe fișa SU semnezi ca instructor acolo unde tu, cadrul tehnic PSI, ai ținut instruirea;
 - la o fișă de test semnezi ca examinator.
 
-Aici apar doar rubricile de instructor, verificator și examinator. Rubrica lucrătorului o semnează el, în portal. Rubrica „Admite la lucru” e a conducătorului locului de muncă sau, unde clientul nu are unul, a reprezentantului legal, și se semnează pe hârtie; de aceea nu apare niciodată pe această pagină.
+Aici apar doar rubricile de instructor, verificator și examinator. Rubrica lucrătorului o semnează el, în portal. Rubrica „Admite la lucru” e a conducătorului locului de muncă sau, unde clientul nu are unul, a reprezentantului legal: o semnează el, nu tu, așa că nu apare niciodată pe această pagină.
 
 ## Semnarea cu un cod
 
