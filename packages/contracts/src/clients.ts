@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
-import { isValidCuiInput } from './cui';
-import { listQuerySchema, pageSchema } from './list';
+import { isValidCuiInput, normalizeCui } from './cui';
+import { listQuerySchema, listSearchSchema, pageSchema, searchTerms } from './list';
 
 const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
 
@@ -117,14 +117,30 @@ export const clientDocumentationSchema = z.object({
 
 export type ClientDocumentation = z.infer<typeof clientDocumentationSchema>;
 
+// The current employees of a client by their training (ADR 021), each counted once in every
+// state they are in, in either domain. An archived client counts none.
+export const clientTrainingSchema = z.object({
+  employeeCount: z.int().min(0),
+  untrainedCount: z.int().min(0),
+  overdueCount: z.int().min(0),
+  dueCount: z.int().min(0),
+  // Untrained or overdue: "de instruit".
+  attentionCount: z.int().min(0),
+  // The nearest due date not yet passed, in either domain.
+  nextDueOn: z.iso.date().nullable(),
+});
+
+export type ClientTraining = z.infer<typeof clientTrainingSchema>;
+
 // What the list of clients adds to each, to show which still need work. A lead has no
-// documentation set and is not a client yet, so all three are null for a lead.
+// documentation set and is not a client yet, so the work fields are null for a lead.
 export const clientListItemSchema = clientSchema.extend({
   // When the company became a client: its promotion for a former lead, otherwise its creation.
   clientSince: z.iso.datetime({ offset: true }).nullable(),
   // The occupational safety set.
   documentation: clientDocumentationSchema.nullable(),
   fireSafetyDocumentation: clientDocumentationSchema.nullable(),
+  training: clientTrainingSchema.nullable(),
   // Whether the caller may delete the client outright, as on clientResponseSchema.
   canDelete: z.boolean(),
 });
@@ -135,9 +151,15 @@ export const clientSortKeys = [
   'legalName',
   'cui',
   'currentEmployeeCount',
-  // Both by the number of issued documents, so that ascending puts the least done first.
+  // Both by their state, then the number of issued documents, so that ascending puts the least
+  // done first.
   'documentation',
   'fireSafetyDocumentation',
+  // The most urgent first: someone to train, then someone due, then everyone current, then
+  // nobody to train; the most people first within each.
+  'training',
+  // Clients with no date come last either way.
+  'nextTrainingDueOn',
   'clientSince',
 ] as const;
 export type ClientSortKey = (typeof clientSortKeys)[number];
@@ -145,10 +167,108 @@ export type ClientSortKey = (typeof clientSortKeys)[number];
 export const clientListStatuses = ['active', 'archived'] as const;
 export type ClientListStatus = (typeof clientListStatuses)[number];
 
-export const listClientsQuerySchema = listQuerySchema(clientSortKeys, 'legalName').extend({
-  status: z.enum(clientListStatuses).default('active'),
-  stage: z.enum(clientStages).default('client'),
+// A client matches a training state when at least one current employee is in it, in either
+// domain; "current" when every one is current in both, so never a client without employees,
+// and never an archived client, whose employees the training rules do not follow.
+export const clientTrainingFilters = ['untrained', 'overdue', 'due', 'current'] as const;
+export type ClientTrainingFilter = (typeof clientTrainingFilters)[number];
+
+export const clientAttentionFilters = [
+  'documentsBehind',
+  'missingBasicData',
+  'signaturesPending',
+  'testsPending',
+] as const;
+export type ClientAttentionFilter = (typeof clientAttentionFilters)[number];
+
+// Owners only, as the contracts are.
+export const clientContractFilters = ['endingWithin60Days'] as const;
+export type ClientContractFilter = (typeof clientContractFilters)[number];
+
+// One value arrives as a string and a repeated parameter as an array.
+const repeated = <Value extends z.ZodType>(value: Value) =>
+  z.preprocess(
+    (input) => (typeof input === 'string' ? [input] : input),
+    z.array(value).min(1).max(50)
+  );
+
+// Within one filter any value matches; across filters every one must.
+export const clientListFiltersSchema = z.object({
+  documentation: repeated(z.enum(documentationStates)).optional(),
+  fireSafetyDocumentation: repeated(z.enum(documentationStates)).optional(),
+  training: repeated(z.enum(clientTrainingFilters)).optional(),
+  attention: repeated(z.enum(clientAttentionFilters)).optional(),
+  county: repeated(countyCodeSchema).optional(),
+  contract: repeated(z.enum(clientContractFilters)).optional(),
 });
+
+export type ClientListFilters = z.infer<typeof clientListFiltersSchema>;
+
+export const clientListFilterKeys = Object.keys(
+  clientListFiltersSchema.shape
+) as (keyof ClientListFilters)[];
+
+export const listClientsQuerySchema = listQuerySchema(clientSortKeys, 'legalName')
+  .extend({
+    status: z.enum(clientListStatuses).default('active'),
+    stage: z.enum(clientStages).default('client'),
+    q: listSearchSchema.optional(),
+  })
+  .extend(clientListFiltersSchema.shape);
+
+const legalForms = new Set(['sc', 'srl', 'sa', 'pfa', 'ii', 'if', 'snc', 'sca', 'scs']);
+
+const isLetter = (term: string | undefined) => term?.length === 1;
+
+/**
+ * The terms the clients search matches against name, CUI and locality. A legal form at either
+ * end, dotted or not ("S.C.", "S.R.L.", "SA"), says nothing about which client is meant, nor
+ * does the RO before a CUI; inside a name the same letters may be a word, as in "Casa IF Design".
+ * A search that is a valid CUI alone, typed in groups ("RO 15 900 82", "15.900.82"), is one term;
+ * other digits stay apart, as in "24.7 Fitness".
+ */
+export function clientSearchTerms(q: string | undefined) {
+  const typed = (q ?? '').trim();
+  const asCui = isValidCuiInput(typed) ? normalizeCui(typed)?.cui : undefined;
+  const terms = searchTerms(asCui ?? typed).flatMap((term, index, all) => {
+    if (term === 'ro' && /^\d/.test(all[index + 1] ?? '')) return [];
+    return [/^ro\d+$/.test(term) ? term.slice(2) : term];
+  });
+  let first = 0;
+  let last = terms.length;
+  for (let stripped = true; stripped && first < last;) {
+    stripped = false;
+    // "S.C." is the form that opens a name, so dotted letters there are read as it alone.
+    if (
+      isLetter(terms[first]) &&
+      isLetter(terms[first + 1]) &&
+      terms[first] === 's' &&
+      terms[first + 1] === 'c'
+    ) {
+      first += 2;
+      stripped = true;
+    } else if (!isLetter(terms[first]) && legalForms.has(terms[first]!)) {
+      first += 1;
+      stripped = true;
+    }
+    if (first >= last) break;
+    if (!isLetter(terms[last - 1]) && legalForms.has(terms[last - 1]!)) {
+      last -= 1;
+      stripped = true;
+      continue;
+    }
+    for (const length of [3, 2]) {
+      const tail = terms.slice(Math.max(first, last - length), last);
+      if (tail.length === length && tail.every(isLetter) && legalForms.has(tail.join(''))) {
+        last -= length;
+        stripped = true;
+        break;
+      }
+    }
+  }
+  const kept = terms.slice(first, last);
+  return kept.length > 0 ? kept : searchTerms(typed);
+}
 
 // Reasons of a 409 that the app words itself.
 export const clientConflictReasons = {
@@ -162,7 +282,10 @@ export const clientConflictReasons = {
 
 export type ListClientsQuery = z.infer<typeof listClientsQuerySchema>;
 
-export const clientListResponseSchema = pageSchema(clientListItemSchema);
+export const clientListResponseSchema = pageSchema(clientListItemSchema).extend({
+  // The count with no search and no filter, the same as total without either.
+  unfilteredTotal: z.int().min(0),
+});
 
 export type ClientListResponse = z.infer<typeof clientListResponseSchema>;
 

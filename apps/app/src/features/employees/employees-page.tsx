@@ -138,6 +138,7 @@ export function EmployeesPage() {
             <>
               <TrainingStateFilter
                 value={trainingState}
+                withAttention
                 testId="employees-training-filter"
                 onChange={(next) =>
                   void navigate({

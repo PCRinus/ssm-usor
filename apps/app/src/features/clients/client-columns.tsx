@@ -1,4 +1,4 @@
-import { type CountyCode, countyNames, formatCui } from '@ssm-usor/contracts';
+import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -18,21 +18,24 @@ import { formatRoDate } from '@/lib/dates';
 import type { ClientArchiveChange } from './client-archive-dialog';
 import type { ClientToDelete } from './client-delete-dialog';
 import { DocumentationBadge } from './documentation-badge';
+import { TrainingCell } from './training-cell';
 
 export type ClientRow = ClientListResponse['items'][number];
 
 const helper = createDataTableColumns<ClientRow>();
 
+// Every column but the name keeps to its content, and the long headers break into two lines,
+// so the name gets the room: at 1440 px with the sidebar open a long one stays on one line.
+const narrow = 'w-px';
+const twoLines = (text: string) => () => (
+  <span className="whitespace-normal leading-tight">{text}</span>
+);
+
 const numeric = {
-  headerClassName: 'text-right',
+  headerClassName: 'w-px text-right',
   cellClassName: 'text-right tabular-nums',
   skeletonClassName: 'ml-auto w-10',
 };
-
-function registeredOffice(client: Pick<ClientRow, 'countyCode' | 'locality'>) {
-  const county = client.countyCode ? countyNames[client.countyCode as CountyCode] : null;
-  return [client.locality, county].filter(Boolean).join(', ');
-}
 
 function documentationColumn(
   id: 'documentation' | 'fireSafetyDocumentation',
@@ -41,8 +44,8 @@ function documentationColumn(
 ) {
   return helper.accessor((client) => client[id]?.issuedCount ?? 0, {
     id,
-    header,
-    meta: { skeletonClassName: 'w-24' },
+    header: twoLines(header),
+    meta: { headerClassName: narrow, skeletonClassName: 'w-24' },
     cell: ({ row }) => {
       const documentation = row.original[id];
       if (!documentation) return null;
@@ -50,11 +53,13 @@ function documentationColumn(
         <span className="flex items-center gap-2">
           <DocumentationBadge state={documentation.state} testId={testId} />
           {documentation.state !== 'none' && (
-            <span
-              data-testid={`${testId}-progress`}
-              className="text-xs text-muted-foreground tabular-nums"
-            >
-              {`${documentation.issuedCount} din ${documentation.totalCount} ${documentation.issuedCount === 1 ? 'emis' : 'emise'}`}
+            <span className="text-xs text-muted-foreground tabular-nums">
+              <span data-testid={`${testId}-progress`} aria-hidden="true">
+                {`${documentation.issuedCount}/${documentation.totalCount}`}
+              </span>
+              <span className="sr-only">
+                {`${documentation.issuedCount} din ${documentation.totalCount} ${documentation.issuedCount === 1 ? 'emis' : 'emise'}`}
+              </span>
             </span>
           )}
         </span>
@@ -63,9 +68,8 @@ function documentationColumn(
   });
 }
 
-// Sortable column ids are the API sort keys: legalName, cui, currentEmployeeCount,
-// documentation, fireSafetyDocumentation, clientSince. `onArchiveChange` is left out for a
-// member who is not an owner.
+// Sortable column ids are the API sort keys. `onArchiveChange` is left out for a member who is
+// not an owner.
 export function clientColumns({
   onArchiveChange,
   onDelete,
@@ -78,36 +82,28 @@ export function clientColumns({
       id: 'legalName',
       header: 'Companie',
       meta: {
-        cellClassName: 'min-w-52 font-medium whitespace-normal',
+        cellClassName: 'min-w-56 font-medium whitespace-normal',
         skeletonClassName: 'w-48',
       },
-      cell: ({ row, getValue }) => {
-        const office = registeredOffice(row.original);
-        return (
-          <>
-            <Link
-              to="/clienti/$clientId/detalii"
-              state={openedHere}
-              params={{ clientId: row.original.id }}
-              data-testid="clients-open"
-              className="hover:underline"
-            >
-              {getValue()}
-            </Link>
-            {office && (
-              <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                {office}
-              </span>
-            )}
-          </>
-        );
-      },
-    }),
-    helper.accessor('cui', {
-      id: 'cui',
-      header: 'CUI',
-      meta: { cellClassName: 'tabular-nums', skeletonClassName: 'w-24' },
-      cell: ({ row, getValue }) => formatCui(getValue(), row.original.vatPayer),
+      cell: ({ row, getValue }) => (
+        <>
+          <Link
+            to="/clienti/$clientId/detalii"
+            state={openedHere}
+            params={{ clientId: row.original.id }}
+            data-testid="clients-open"
+            className="hover:underline"
+          >
+            {getValue()}
+          </Link>
+          <span
+            data-testid="clients-cui"
+            className="mt-0.5 block text-xs font-normal text-muted-foreground tabular-nums"
+          >
+            {formatCui(row.original.cui, row.original.vatPayer)}
+          </span>
+        </>
+      ),
     }),
     helper.accessor('currentEmployeeCount', {
       id: 'currentEmployeeCount',
@@ -121,11 +117,34 @@ export function clientColumns({
       'Documentație SU',
       'clients-fire-safety-documentation'
     ),
+    helper.accessor((client) => client.training?.attentionCount ?? 0, {
+      id: 'training',
+      header: 'Instruire',
+      meta: { headerClassName: narrow, skeletonClassName: 'w-24' },
+      cell: ({ row }) => <TrainingCell client={row.original} />,
+    }),
+    helper.accessor((client) => client.training?.nextDueOn ?? null, {
+      id: 'nextTrainingDueOn',
+      header: twoLines('Următorul termen'),
+      meta: { headerClassName: narrow, cellClassName: 'tabular-nums', skeletonClassName: 'w-20' },
+      cell: ({ getValue }) => {
+        const nextDueOn = getValue();
+        return nextDueOn ? (
+          formatRoDate(nextDueOn)
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        );
+      },
+    }),
     helper.accessor('clientSince', {
       id: 'clientSince',
       header: 'Adăugat',
       sortDescFirst: true,
-      meta: { cellClassName: 'tabular-nums text-muted-foreground', skeletonClassName: 'w-20' },
+      meta: {
+        headerClassName: narrow,
+        cellClassName: 'tabular-nums text-muted-foreground',
+        skeletonClassName: 'w-20',
+      },
       cell: ({ getValue }) => {
         const since = getValue();
         return since ? formatRoDate(since.slice(0, 10)) : null;

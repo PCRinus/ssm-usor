@@ -321,6 +321,17 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(query.get('training_status.or')).toBe('(ssm_state.eq.overdue,su_state.eq.overdue)');
   });
 
+  it('filters those to train, untrained or overdue in either domain, as the clients list counts them', async () => {
+    mockUpstream({});
+    const response = await request(`${employeesPath}?trainingState=attention`);
+    expect(response.status).toBe(200);
+    const query = new URL(String(calls('/rest/v1/employees')[0]![0])).searchParams;
+    expect(query.get('select')).toContain('training_status!inner(');
+    expect(query.get('training_status.or')).toBe(
+      '(ssm_state.in.(untrained,overdue),su_state.in.(untrained,overdue))'
+    );
+  });
+
   it('reads the training status without filtering when no state is asked for', async () => {
     mockUpstream({});
     await request(employeesPath);

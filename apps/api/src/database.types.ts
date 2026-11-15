@@ -1003,6 +1003,7 @@ export type Database = {
           worker_training_interval_months: number | null;
           worker_training_not_applicable: boolean;
           client_search_name: string | null;
+          client_search_text: string | null;
           current_employee_count: number | null;
         };
         Insert: {
@@ -6857,6 +6858,7 @@ export type Database = {
           contact_email: string | null;
           contact_name: string | null;
           contact_phone: string | null;
+          contract_ending_within_60_days: boolean | null;
           county_code: string | null;
           created_at: string | null;
           cui: string | null;
@@ -6865,16 +6867,33 @@ export type Database = {
           documentation_generated_type_keys: string[] | null;
           documentation_issued_count: number | null;
           documentation_last_generated_at: string | null;
+          documentation_state: Database['public']['Enums']['documentation_state'] | null;
+          documentation_total_count: number | null;
+          documents_behind: boolean | null;
           fire_safety_generated_type_keys: string[] | null;
           fire_safety_issued_count: number | null;
           fire_safety_last_generated_at: string | null;
+          fire_safety_state: Database['public']['Enums']['documentation_state'] | null;
+          fire_safety_total_count: number | null;
           id: string | null;
           legal_name: string | null;
           legal_representative_name: string | null;
           locality: string | null;
+          missing_basic_data: boolean | null;
+          next_training_due_on: string | null;
           promoted_at: string | null;
+          search_text: string | null;
+          signatures_pending_count: number | null;
           stage: Database['public']['Enums']['client_stage'] | null;
+          tests_pending_count: number | null;
           trade_register_number: string | null;
+          training_attention_count: number | null;
+          training_due_count: number | null;
+          training_employee_count: number | null;
+          training_flagged_count: number | null;
+          training_overdue_count: number | null;
+          training_rank: number | null;
+          training_untrained_count: number | null;
           updated_at: string | null;
           vat_payer: boolean | null;
         };
@@ -7485,6 +7504,14 @@ export type Database = {
         Args: { p_address: string; p_channel: string };
         Returns: string;
       };
+      built_in_document_types: {
+        Args: never;
+        Returns: {
+          applies_when: string;
+          document_group: Database['public']['Enums']['document_group'];
+          type_key: string;
+        }[];
+      };
       can_access_document: { Args: { p_document_id: string }; Returns: boolean };
       change_organization_member_role: {
         Args: {
@@ -7549,6 +7576,12 @@ export type Database = {
         Returns: {
           error: true;
         } & 'the function public.client_search_name with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
+      client_search_text: {
+        Args: { '': Database['public']['Tables']['clients']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.client_search_text with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
       complete_import_copy: {
         Args: {
@@ -8962,6 +8995,7 @@ export type Database = {
         | 'safety_sheet_refund';
       document_group: 'documentation_set' | 'other' | 'fire_safety_set';
       document_revision_status: 'draft' | 'issued' | 'superseded';
+      documentation_state: 'none' | 'in_progress' | 'issued';
       employee_status: 'active' | 'terminated';
       equipment_allocation: 'personal_inventory' | 'section_inventory' | 'consumable';
       fire_building_classification: 'civil' | 'production' | 'storage' | 'mixed';
@@ -9191,6 +9225,7 @@ export const Constants = {
       ],
       document_group: ['documentation_set', 'other', 'fire_safety_set'],
       document_revision_status: ['draft', 'issued', 'superseded'],
+      documentation_state: ['none', 'in_progress', 'issued'],
       employee_status: ['active', 'terminated'],
       equipment_allocation: ['personal_inventory', 'section_inventory', 'consumable'],
       fire_building_classification: ['civil', 'production', 'storage', 'mixed'],

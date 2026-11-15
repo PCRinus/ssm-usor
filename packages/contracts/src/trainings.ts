@@ -69,6 +69,12 @@ export const trainingStateFilters = ['current', 'due', 'overdue', 'untrained'] a
 export const trainingStateFilterSchema = z.enum(trainingStateFilters);
 export type TrainingStateFilter = z.infer<typeof trainingStateFilterSchema>;
 
+// One client's workers can also be filtered to those "de instruit": untrained or overdue in
+// either domain, whom the clients list counts together.
+export const employeeTrainingStateFilters = [...trainingStateFilters, 'attention'] as const;
+export const employeeTrainingStateFilterSchema = z.enum(employeeTrainingStateFilters);
+export type EmployeeTrainingStateFilter = z.infer<typeof employeeTrainingStateFilterSchema>;
+
 export const trainingIntervalSources = ['position', 'client'] as const;
 export const trainingIntervalSourceSchema = z.enum(trainingIntervalSources);
 export type TrainingIntervalSource = z.infer<typeof trainingIntervalSourceSchema>;

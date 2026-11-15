@@ -889,7 +889,7 @@ describe('training state in the employee lists', () => {
       within(screen.getByTestId('employees-training-filter'))
         .getAllByRole('button')
         .map((chip) => chip.textContent)
-    ).toEqual(['Toate', 'La zi', 'Scadente', 'Depășite', 'Neinstruiți']);
+    ).toEqual(['Toate', 'La zi', 'Scadente', 'Depășite', 'Neinstruiți', 'De instruit']);
     const historyLength = runtime.router.history.length;
     await user.click(screen.getByTestId('employees-training-filter-overdue'));
     await waitFor(() =>
@@ -906,6 +906,28 @@ describe('training state in the employee lists', () => {
     );
     await user.click(screen.getByTestId('employees-training-filter-all'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('opens filtered to those to train, as the clients list links to them', async () => {
+    mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([popescu])) });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?trainingState=attention`);
+    await screen.findAllByTestId('employees-row');
+    expect(
+      screen.getByTestId('employees-training-filter-attention').getAttribute('aria-pressed')
+    ).toBe('true');
+    expect(requests('GET', employeesPath).at(-1)!.url.searchParams.get('trainingState')).toBe(
+      'attention'
+    );
+  });
+
+  it('offers no "De instruit" among all the organization\'s employees', async () => {
+    mockApi({
+      'GET /employees': () => Response.json(page([])),
+      'GET /clients': () => Response.json(page([sampleClient])),
+    });
+    mountApp(authFixture(makeSession()).client, '/angajati');
+    await screen.findByTestId('organization-employees-training-filter');
+    expect(screen.queryByTestId('organization-employees-training-filter-attention')).toBeNull();
   });
 
   it('says when no one is in the state asked for, and shows everyone again', async () => {

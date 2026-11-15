@@ -103,7 +103,8 @@ Caută după nume sau după marcă. Fiecare cuvânt scris trebuie să se regăse
 **Instruire:** și **Testare:** restrâng lista la o stare. Un filtru citește ambele domenii:
 
 - **La zi** înseamnă la zi și în SSM, și în SU;
-- celelalte stări (**Scadente**, **Depășite**, **Neinstruiți**; **De susținut**, **Anual scadent**, **Fără test**) îi arată pe cei care sunt în acea stare în cel puțin un domeniu.
+- celelalte stări (**Scadente**, **Depășite**, **Neinstruiți**; **De susținut**, **Anual scadent**, **Fără test**) îi arată pe cei care sunt în acea stare în cel puțin un domeniu;
+- **De instruit**, doar în lista lucrătorilor unui client, îi arată pe cei neinstruiți sau cu instruirea depășită, în cel puțin un domeniu. Sunt lucrătorii pe care lista clienților îi numără în coloana **Instruire**.
 
 Astfel, filtrul îți arată pe oricine are ceva de rezolvat, indiferent de domeniu. Când niciun lucrător nu e în starea aleasă, lista spune asta și îți oferă **Arată toți lucrătorii**.
 

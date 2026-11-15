@@ -47,7 +47,7 @@ export const FilterTab: LinkComponent<typeof FilterTabAnchor> = (props) => (
 
 export function ListCount({ testId, children }: { testId: string; children: ReactNode }) {
   return (
-    <span className="ml-auto text-sm text-muted-foreground" data-testid={testId}>
+    <span className="ml-auto text-sm text-muted-foreground" data-testid={testId} aria-live="polite">
       {children}
     </span>
   );
