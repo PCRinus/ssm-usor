@@ -6,11 +6,7 @@ import { Masked } from '@/components/replay';
 import { formatDuration, notOnSheet } from './training-format';
 
 export function NotOnSheet({ children }: { children: ReactNode }) {
-  return (
-    <span data-testid="not-on-sheet" className="text-muted-foreground">
-      {children}
-    </span>
-  );
+  return <span data-testid="not-on-sheet">{children}</span>;
 }
 
 export function TrainerName({ trainer }: { trainer: TrainingTrainer }) {

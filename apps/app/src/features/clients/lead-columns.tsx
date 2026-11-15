@@ -11,7 +11,7 @@ import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, UserCheck } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
-import { CellNote } from '@/components/data-table/cell-note';
+import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns, narrowHeader } from '@/components/data-table/columns';
 import { formatRoDateOf } from '@/lib/dates';
 
@@ -63,7 +63,7 @@ export function leadColumns(
       cell: ({ row }) => {
         const { contactName, contactEmail, contactPhone } = row.original;
         const reach = contactEmail ?? contactPhone;
-        if (!contactName && !reach) return <span className="text-muted-foreground">—</span>;
+        if (!contactName && !reach) return <CellEmpty />;
         return (
           <>
             <span className="block max-w-60 truncate">{contactName ?? reach}</span>
@@ -80,7 +80,7 @@ export function leadColumns(
         cellClassName: 'text-right tabular-nums',
         skeletonClassName: 'ml-auto w-10',
       },
-      cell: ({ getValue }) => getValue() ?? <span className="text-muted-foreground">—</span>,
+      cell: ({ getValue }) => getValue() ?? <CellEmpty />,
     }),
     helper.accessor('serviceContractState', {
       id: 'serviceContractState',
@@ -94,7 +94,7 @@ export function leadColumns(
       sortDescFirst: true,
       meta: {
         headerClassName: narrowHeader,
-        cellClassName: 'tabular-nums text-muted-foreground',
+        cellClassName: 'tabular-nums',
         skeletonClassName: 'w-20',
       },
       cell: ({ getValue }) => formatRoDateOf(getValue()),

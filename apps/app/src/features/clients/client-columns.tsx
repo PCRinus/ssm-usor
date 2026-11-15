@@ -12,7 +12,7 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-
 
 import type { ClientListResponse } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
-import { CellNote } from '@/components/data-table/cell-note';
+import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import {
   createDataTableColumns,
   narrowHeader,
@@ -54,7 +54,7 @@ function documentationColumn(
         <span className="flex items-center gap-2">
           <DocumentationBadge state={documentation.state} testId={testId} />
           {documentation.state !== 'none' && (
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-xs tabular-nums">
               <span data-testid={`${testId}-progress`} aria-hidden="true">
                 {`${documentation.issuedCount}/${documentation.totalCount}`}
               </span>
@@ -131,11 +131,7 @@ export function clientColumns({
       },
       cell: ({ getValue }) => {
         const nextDueOn = getValue();
-        return nextDueOn ? (
-          formatRoDate(nextDueOn)
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        );
+        return nextDueOn ? formatRoDate(nextDueOn) : <CellEmpty />;
       },
     }),
     helper.accessor('clientSince', {
@@ -144,7 +140,7 @@ export function clientColumns({
       sortDescFirst: true,
       meta: {
         headerClassName: narrowHeader,
-        cellClassName: 'tabular-nums text-muted-foreground',
+        cellClassName: 'tabular-nums',
         skeletonClassName: 'w-20',
       },
       cell: ({ getValue }) => {

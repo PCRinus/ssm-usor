@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
-import { CellNote } from '@/components/data-table/cell-note';
+import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import {
   instructionCountOf,
@@ -147,7 +147,7 @@ export function jobPositionColumns({
       meta: { headerClassName: 'min-w-43', skeletonClassName: 'w-28' },
       cell: ({ row }) => {
         const { position, evaluation } = row.original;
-        if (evaluation === undefined) return <span className="text-muted-foreground">—</span>;
+        if (evaluation === undefined) return <CellEmpty />;
         const evaluated = evaluation !== null && evaluation.factorCount > 0;
         return (
           <>

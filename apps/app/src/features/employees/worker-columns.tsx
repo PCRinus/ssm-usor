@@ -9,7 +9,7 @@ import {
 import { Link } from '@tanstack/react-router';
 
 import { openedHere } from '@/app/opener';
-import { CellNote } from '@/components/data-table/cell-note';
+import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
 import {
   createDataTableColumns,
   narrowHeader,
@@ -92,7 +92,7 @@ export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
         return pending > 0 ? (
           <span data-testid={`${testIdPrefix}-signatures`}>{pending} în așteptare</span>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <CellEmpty />
         );
       },
     }),
@@ -102,7 +102,7 @@ export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
       enableSorting: true,
       meta: {
         headerClassName: narrowHeader,
-        cellClassName: 'tabular-nums text-muted-foreground',
+        cellClassName: 'tabular-nums',
         skeletonClassName: 'w-24',
       },
       cell: ({ getValue }) => formatDate(getValue()),

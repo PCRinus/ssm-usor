@@ -7,6 +7,8 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 
+import { CellEmpty } from '@/components/data-table/cell-note';
+
 const stateBadges: Record<TestState, { variant: 'outline' | 'destructive'; className?: string }> = {
   none: { variant: 'outline', className: 'text-muted-foreground' },
   unverified: { variant: 'outline', className: 'text-muted-foreground' },
@@ -65,7 +67,7 @@ export function TestStatesLine({
   }
   if (states.every((each) => each === 'passed')) {
     return (
-      <span className="text-muted-foreground" data-testid="test-status" data-state="passed">
+      <span data-testid="test-status" data-state="passed">
         La zi
       </span>
     );
@@ -73,14 +75,10 @@ export function TestStatesLine({
   const untested = trainingDomains.filter((domain) => tests[domain].state === 'none');
   if (states.includes('passed') && untested.length > 0) {
     return (
-      <span className="text-muted-foreground" data-testid="test-status" data-state="none">
+      <span data-testid="test-status" data-state="none">
         {`${untested.map((domain) => trainingDomainLabels[domain]).join(', ')}: ${testStateLabels.none.toLowerCase()}`}
       </span>
     );
   }
-  return (
-    <span className="text-muted-foreground" data-testid="test-status">
-      —
-    </span>
-  );
+  return <CellEmpty data-testid="test-status" />;
 }

@@ -25,11 +25,7 @@ export function WorkersCell({
   readOnly: boolean;
 }) {
   if (position.employeeCount === 0) {
-    return (
-      <span className="text-muted-foreground" data-testid="job-position-employees">
-        {employeeCountLabel(0)}
-      </span>
-    );
+    return <span data-testid="job-position-employees">{employeeCountLabel(0)}</span>;
   }
   // The workers list refuses its training filters for an archived client.
   const toTrain = readOnly ? 0 : position.employeesToTrainCount;

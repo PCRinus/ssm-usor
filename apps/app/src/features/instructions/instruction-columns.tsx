@@ -60,7 +60,7 @@ export function instructionColumns({
       id: 'version',
       header: 'Versiune',
       sortDescFirst: true,
-      meta: { cellClassName: 'text-muted-foreground', skeletonClassName: 'w-32' },
+      meta: { skeletonClassName: 'w-32' },
       cell: ({ row }) => {
         const { version } = row.original;
         return (
@@ -78,7 +78,7 @@ export function instructionColumns({
     helper.accessor('appliedCount', {
       id: 'appliedCount',
       header: 'Aplicată la',
-      meta: { cellClassName: 'text-muted-foreground', skeletonClassName: 'w-20' },
+      meta: { skeletonClassName: 'w-20' },
       cell: ({ getValue }) => (
         <span data-testid="instruction-applied">{positionCountLabel(getValue())}</span>
       ),
