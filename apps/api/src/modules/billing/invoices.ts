@@ -7,7 +7,7 @@ import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { creditsStore } from '../credits/store';
 import { grantWelcomeGift } from '../credits/usage';
-import { createOblioClient, type OblioClient, type OblioDocument } from './oblio';
+import { createOblioClient, type OblioClient, type OblioDocument, OblioRefused } from './oblio';
 import {
   type OblioDocuments,
   type PaidInvoiceLine,
@@ -16,7 +16,7 @@ import {
   toStorno,
   vatPercentage,
 } from './oblio-documents';
-import { type BillingAlerts, describeFailure, type StripeInvoiceRef } from './operator-alerts';
+import type { BillingAlerts, FailureCause, StripeInvoiceRef } from './operator-alerts';
 import { parseLookupKey } from './rules';
 import {
   findSubscriptionByCustomer,
@@ -31,7 +31,7 @@ import {
   recordChange,
   updateInvoice,
 } from './store';
-import { idOf, type StripeAccess, type StripeCatalogue } from './stripe';
+import { idOf, isStripeError, type StripeAccess, type StripeCatalogue } from './stripe';
 import { syncSubscription } from './sync';
 
 export type InvoiceDeps = {
@@ -40,6 +40,8 @@ export type InvoiceDeps = {
   access: StripeAccess;
   catalogue: StripeCatalogue;
   alerts: BillingAlerts;
+  // The Stripe event being handled, and whether an earlier delivery of it failed.
+  delivery: { eventId: string; redelivered: boolean };
   oblio?: OblioClient;
   fetch?: typeof fetch;
 };
@@ -137,6 +139,36 @@ export class LinesTotalMismatch extends Error {
       `Stripe invoice ${invoice.id}: its lines with their VAT make ${linesCents} cents, not the ${invoice.total} charged; no Oblio document was issued.`
     );
   }
+}
+
+export class MissingCompanyDetails extends Error {
+  constructor(organizationId: string) {
+    super(`Organization ${organizationId} lacks its company name, CUI or an email.`);
+  }
+}
+
+export function failureCause(error: unknown): FailureCause {
+  if (error instanceof LinesTotalMismatch) return { kind: 'lines_total' };
+  if (error instanceof MissingCompanyDetails) return { kind: 'company_details' };
+  if (error instanceof OblioRefused) {
+    return error.reason === 'oblio_refused'
+      ? { kind: 'oblio_refused', status: error.status }
+      : { kind: 'oblio_unavailable' };
+  }
+  if (error instanceof ApiError) {
+    if (error.reason === 'oblio_unavailable') return { kind: 'oblio_unavailable' };
+    return { kind: 'other', code: `ApiError/${error.reason ?? error.code}` };
+  }
+  if (isStripeError(error)) return { kind: 'other', code: error.type };
+  return { kind: 'other', code: error instanceof Error ? error.constructor.name : 'unknown' };
+}
+
+const settingCodes = new Set(['ApiError/oblio_login_refused', 'ApiError/oblio_unset']);
+
+// These fail the same way on every retry until someone acts; anything else may pass on Stripe's
+// next delivery, so it is posted only once a redelivery fails too.
+export function failsUntilFixed(cause: FailureCause) {
+  return cause.kind === 'other' ? settingCodes.has(cause.code) : cause.kind !== 'oblio_unavailable';
 }
 
 export function checkLinesMakeTotal(invoice: Stripe.Invoice, lines: Stripe.InvoiceLineItem[]) {
@@ -262,7 +294,7 @@ async function compareTotals(
     deps.alerts.notify({
       ...alerted,
       kind: 'oblio_total_unchecked',
-      reason: describeFailure(error),
+      cause: failureCause(error),
     });
     return;
   }
@@ -299,7 +331,7 @@ async function issueDocument(
     (await ownerEmail(deps.db, organizationId)) ??
     invoice.customer_email;
   if (!company.name || !company.cui || !recipientEmail) {
-    throw new Error(`Organization ${organizationId} lacks its company name, CUI or an email.`);
+    throw new MissingCompanyDetails(organizationId);
   }
   const lines = await allLines(deps.access.stripe, invoice);
   checkLinesMakeTotal(invoice, lines);
@@ -333,7 +365,8 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
   try {
     return await settleInvoice(deps, invoice, byCustomer, organizationId, progress);
   } catch (error) {
-    if (!progress.issued) {
+    const cause = failureCause(error);
+    if (!progress.issued && (deps.delivery.redelivered || failsUntilFixed(cause))) {
       deps.alerts.notify({
         kind: 'invoice_not_issued',
         organizationId,
@@ -341,7 +374,8 @@ export async function handleInvoicePaid(deps: InvoiceDeps, invoiceId: string) {
         document: progress.kind,
         charged: { cents: invoice.total, currency: invoice.currency },
         linesCents: error instanceof LinesTotalMismatch ? error.linesCents : null,
-        reason: describeFailure(error),
+        eventId: deps.delivery.eventId,
+        cause,
       });
     }
     throw error;

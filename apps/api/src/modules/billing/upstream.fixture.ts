@@ -201,6 +201,8 @@ const json = (body: unknown, status = 200) =>
     headers: { 'content-type': 'application/json' },
   });
 
+let changeIds = 0;
+
 function database(fake: Fake, call: Call, headers: Headers) {
   const table = call.url.pathname.replace('/rest/v1/', '');
   const rows = (fake.tables[table] ??= []);
@@ -243,6 +245,21 @@ function database(fake: Fake, call: Call, headers: Headers) {
       if (key && rows.some((existing) => existing[key] === row[key])) {
         return json({ code: '23505', message: 'duplicate key', details: null, hint: null }, 409);
       }
+      if (table === 'subscription_changes' && row.change === 'operator_alerted') {
+        const alertKey = (row.details as Row).alert_key;
+        if (
+          rows.some(
+            (existing) =>
+              existing.change === 'operator_alerted' &&
+              (existing.details as Row).alert_key === alertKey
+          )
+        ) {
+          return json({ code: '23505', message: 'duplicate key', details: null, hint: null }, 409);
+        }
+      }
+    }
+    if (table === 'subscription_changes') {
+      for (const row of added) row.id ??= ++changeIds;
     }
     rows.push(...added);
     if (!call.url.searchParams.has('select')) return new Response(null, { status: 201 });

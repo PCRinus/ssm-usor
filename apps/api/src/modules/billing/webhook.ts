@@ -26,6 +26,7 @@ type Handling = {
   catalogue: StripeCatalogue;
   event: Stripe.Event;
   alerts: BillingAlerts;
+  delivery: { eventId: string; redelivered: boolean };
 };
 
 const subscriptionOfInvoice = (invoice: Stripe.Invoice) =>
@@ -79,7 +80,7 @@ async function paymentFailed(handling: Handling, invoice: Stripe.Invoice) {
       livemode: handling.access.livemode,
     },
     due: { cents: invoice.amount_due, currency: invoice.currency },
-    accessUntil: row.access_until,
+    accessUntil: row.status === 'past_due' ? row.access_until : null,
   });
 }
 
@@ -195,12 +196,14 @@ export async function stripeWebhook(c: Context<ApiEnv>) {
   const { event, access } = verified;
   const db = adminClient(c.env);
 
-  if ((await claim(db, event)) === 'done') return c.json({ received: true }, 200);
+  const claimed = await claim(db, event);
+  if (claimed === 'done') return c.json({ received: true }, 200);
 
   try {
     const catalogue = await stripeCatalogue(access);
     const alerts = billingAlerts(c.env, db, laterOf(c));
-    await handleEvent({ env: c.env, db, access, catalogue, event, alerts });
+    const delivery = { eventId: event.id, redelivered: claimed === 'retry' };
+    await handleEvent({ env: c.env, db, access, catalogue, event, alerts, delivery });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Stripe event ${event.id} (${event.type}) failed: ${message}`);

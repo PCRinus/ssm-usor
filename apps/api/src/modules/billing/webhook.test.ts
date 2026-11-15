@@ -1170,11 +1170,12 @@ describe('POST /billing/stripe-webhook', () => {
       expect(discordPosts(fake)).toEqual([
         [
           '🔴 **Plată fără factură: liniile nu dau totalul plătit** · production',
-          `Organizația: Prevenție Activă SRL · ${organizationId}`,
+          `Organizația: ${organizationId}`,
           'Factura Stripe: YZSR1GVQ-0025 · in_1Paid',
           `<https://dashboard.stripe.com/${accountId}/test/invoices/in_1Paid>`,
           'Total Stripe: 180,30 EUR · liniile cu TVA: 180,29 EUR',
-          'Motiv: Stripe invoice in_1Paid: its lines with their VAT make 18029 cents, not the 18030 charged; no Oblio document was issued.',
+          'Motiv: liniile cu TVA nu dau totalul plătit.',
+          'Detalii în jurnalul Worker-ului, la evenimentul Stripe evt_paid.',
           'Clientul a plătit și nu are factură; reîncercările lui Stripe, timp de trei zile, vor eșua la fel.',
           'Ce faci: emite-o manual în Oblio și nu mai retrimite evenimentul, sau corectează cauza și retrimite-l din Stripe.',
         ].join('\n'),
@@ -1182,7 +1183,12 @@ describe('POST /billing/stripe-webhook', () => {
       expect(marks(fake)).toEqual([
         expect.objectContaining({
           organization_id: organizationId,
-          details: { alert: 'invoice_not_issued', stripe_invoice: 'in_1Paid' },
+          details: {
+            alert: 'invoice_not_issued',
+            stripe_invoice: 'in_1Paid',
+            cause: 'lines_total',
+            alert_key: 'invoice_not_issued:in_1Paid:lines_total',
+          },
         }),
       ]);
     });
@@ -1197,9 +1203,11 @@ describe('POST /billing/stripe-webhook', () => {
       expect(posted.url.href).toBe(billingWebhook);
       expect(JSON.parse(posted.body!)).toMatchObject({ allowed_mentions: { parse: [] } });
       expect(posted.body).not.toContain('@');
+      expect(posted.body).not.toContain('Prevenție');
+      expect(posted.body).not.toContain('12345678');
     });
 
-    it('tells the operator when Oblio refuses the document, without the email Oblio names', async () => {
+    it("tells the operator when Oblio refuses the document, without Oblio's own text", async () => {
       const fake = createFake();
       paying(fake);
       fake.oblio['POST /api/docs/invoice'] = () =>
@@ -1215,13 +1223,41 @@ describe('POST /billing/stripe-webhook', () => {
         /^🔴 \*\*Plată fără factură: documentul nu a putut fi emis\*\* · production\n/
       );
       expect(posted).toContain('Total Stripe: 180,29 EUR\n');
-      expect(posted).toContain('[email]');
+      expect(posted).toContain('Motiv: Oblio a refuzat cererea (HTTP 400).\n');
+      expect(posted).not.toContain('Email invalid');
       expect(posted).not.toContain(owner.email);
       expect(posted).toContain('dacă o reîncercare reușește, documentul se emite singur');
       expect(posted).toContain('Nu o emite manual cât timp Stripe reîncearcă');
     });
 
-    it('tells the operator when the paid invoice fails before it reaches Oblio', async () => {
+    it('waits for a redelivery before telling the operator of a failure that may pass, and posts a later, different one again', async () => {
+      const fake = createFake();
+      paying(fake);
+      fake.oblio['POST /api/docs/invoice'] = () =>
+        new Response(JSON.stringify({ status: 503, statusMessage: 'Maintenance' }), {
+          status: 503,
+          headers: { 'content-type': 'application/json' },
+        });
+
+      await deliver(paidEvent, alerting);
+      expect(discordPosts(fake)).toEqual([]);
+
+      await deliver(paidEvent, alerting);
+      await deliver(paidEvent, alerting);
+      expect(discordPosts(fake)).toEqual([
+        expect.stringContaining('Motiv: Oblio nu a putut fi contactat.\n'),
+      ]);
+
+      fake.tables.organizations![0]!.cui = null;
+      await deliver(paidEvent, alerting);
+
+      expect(discordPosts(fake)).toHaveLength(2);
+      expect(discordPosts(fake)[1]).toContain(
+        'Motiv: lipsesc numele firmei, CUI-ul sau emailul pentru factură.'
+      );
+    });
+
+    it('tells the operator when the paid invoice fails before it reaches Oblio, once a redelivery fails too', async () => {
       const fake = createFake();
       fake.tables.subscriptions!.push(subscriptionRow({ stripe_customer_id: 'cus_1Test' }));
       fake.stripe['GET /v1/invoices/in_1Paid'] = () =>
@@ -1235,8 +1271,14 @@ describe('POST /billing/stripe-webhook', () => {
       const response = await deliver(paidEvent, alerting);
 
       expect(response.status).toBe(500);
+      expect(discordPosts(fake)).toEqual([]);
+
+      await deliver(paidEvent, alerting);
+
       expect(discordPosts(fake)).toEqual([
-        expect.stringMatching(/documentul nu a putut fi emis[\s\S]*has no plan of the catalogue/),
+        expect.stringMatching(
+          /documentul nu a putut fi emis[\s\S]*Motiv: altă eroare \(`Error`\)\./
+        ),
       ]);
     });
 
@@ -1272,7 +1314,7 @@ describe('POST /billing/stripe-webhook', () => {
       await deliver(paidEvent, alerting);
 
       expect(discordPosts(fake)).toEqual([
-        expect.stringContaining('lacks its company name, CUI or an email'),
+        expect.stringContaining('Motiv: lipsesc numele firmei, CUI-ul sau emailul pentru factură.'),
       ]);
     });
 
@@ -1305,7 +1347,7 @@ describe('POST /billing/stripe-webhook', () => {
       expect(discordPosts(fake)).toEqual([
         [
           '🔴 **Documentul emis are alt total decât plata** · production',
-          `Organizația: Prevenție Activă SRL · ${organizationId}`,
+          `Organizația: ${organizationId}`,
           'Factura Stripe: YZSR1GVQ-0025 · in_1Paid',
           `<https://dashboard.stripe.com/${accountId}/test/invoices/in_1Paid>`,
           'Document Oblio: factura SSMUSOR 0001',
@@ -1319,13 +1361,17 @@ describe('POST /billing/stripe-webhook', () => {
     it('tells the operator that an issued document could not be checked', async () => {
       const fake = createFake();
       paying(fake);
-      fake.oblio['GET /api/docs/invoice/list'] = () => ({ status: 503, data: undefined });
+      fake.oblio['GET /api/docs/invoice/list'] = () =>
+        new Response(JSON.stringify({ status: 503, statusMessage: 'Maintenance' }), {
+          status: 503,
+          headers: { 'content-type': 'application/json' },
+        });
 
       await deliver(paidEvent, alerting);
 
       expect(discordPosts(fake)).toEqual([
         expect.stringMatching(
-          /^🔴 \*\*Totalul documentului emis nu a putut fi verificat\*\*[\s\S]*Document Oblio: factura SSMUSOR 0001\nTotal Stripe: 180,29 EUR\nMotiv: /
+          /^🔴 \*\*Totalul documentului emis nu a putut fi verificat\*\*[\s\S]*Document Oblio: factura SSMUSOR 0001\nTotal Stripe: 180,29 EUR\nMotiv: Oblio nu a putut fi contactat\.\nDetalii în jurnalul Worker-ului, la factura Stripe in_1Paid\./
         ),
       ]);
     });
@@ -1412,13 +1458,27 @@ describe('POST /billing/stripe-webhook', () => {
         expect(discordPosts(fake)).toEqual([
           [
             '🟡 **Plata unei reînnoiri sau modificări a eșuat** · production',
-            `Organizația: Prevenție Activă SRL · ${organizationId}`,
+            `Organizația: ${organizationId}`,
             'Factura Stripe: YZSR1GVQ-0031 · in_1Open',
             `<https://dashboard.stripe.com/${accountId}/test/invoices/in_1Open>`,
             'De plată: 180,29 EUR',
             `Stripe reîncearcă plata; acces complet până la ${until}.`,
             'Ce faci: nimic deocamdată; dacă plata nu trece, ia legătura cu clientul.',
           ].join('\n'),
+        ]);
+      });
+
+      it('leaves the date out when the subscription is not past due', async () => {
+        const fake = createFake();
+        fake.tables.subscriptions!.push(paidRow(pro));
+        fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+          stripeSubscription({ status: 'active', choice: pro, cancelAt: now() + 5 * day });
+
+        await deliver(failed('evt_late'), alerting);
+
+        expect(row(fake)).toMatchObject({ status: 'active', access_until: expect.any(String) });
+        expect(discordPosts(fake)).toEqual([
+          expect.stringContaining('De plată: 180,29 EUR\nStripe reîncearcă plata.\nCe faci:'),
         ]);
       });
 
@@ -1442,13 +1502,16 @@ describe('POST /billing/stripe-webhook', () => {
         fake.tables.subscriptions!.push(paidRow(pro, { status: 'past_due', access_until: until }));
         fake.stripe['GET /v1/subscriptions/sub_1Test'] = deleted('payment_failed');
 
-        await deliver(subscriptionEvent('customer.subscription.deleted', 'evt_del1'), alerting);
-        await deliver(subscriptionEvent('customer.subscription.updated', 'evt_del2'), alerting);
+        await Promise.all([
+          deliver(subscriptionEvent('customer.subscription.deleted', 'evt_del1'), alerting),
+          deliver(subscriptionEvent('customer.subscription.updated', 'evt_del2'), alerting),
+        ]);
+        await deliver(subscriptionEvent('customer.subscription.updated', 'evt_del3'), alerting);
 
         expect(discordPosts(fake)).toEqual([
           [
             '🟡 **Abonament anulat de Stripe după plăți eșuate** · production',
-            `Organizația: Prevenție Activă SRL · ${organizationId}`,
+            `Organizația: ${organizationId}`,
             'Abonament Stripe: sub_1Test',
             `<https://dashboard.stripe.com/${accountId}/test/subscriptions/sub_1Test>`,
             `Organizația trece pe doar citire la ${until.slice(0, 10)}.`,

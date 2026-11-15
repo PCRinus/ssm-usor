@@ -5,7 +5,6 @@ import type { AdminClient } from '../../lib/admin-db';
 import { type AlertMessage, alertSender } from '../../lib/alerts';
 import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { recordChange } from './store';
 
 export type StripeObjectRef = { id: string; accountId: string; livemode: boolean };
 export type StripeInvoiceRef = StripeObjectRef & { number: string | null };
@@ -13,15 +12,26 @@ export type OblioDocumentRef = { kind: 'invoice' | 'proforma'; series: string; n
 
 type Money = { cents: number; currency: string };
 
+// A failure's own text never reaches Discord: Oblio's and validation messages can quote a
+// company's name, a PFA's CUI, an address or an email (ADR 037). It stays in the Worker's log.
+export type FailureCause =
+  | { kind: 'lines_total' }
+  | { kind: 'company_details' }
+  | { kind: 'oblio_refused'; status: number }
+  | { kind: 'oblio_unavailable' }
+  // Our own error class or code, such as ApiError/oblio_login_refused or StripeRateLimitError.
+  | { kind: 'other'; code: string };
+
 export type BillingAlert = { organizationId: string } & (
   | {
       kind: 'invoice_not_issued';
       invoice: StripeInvoiceRef;
+      eventId: string;
       document: 'invoice' | 'proforma';
       charged: Money;
       // Set when the lines and their VAT did not make the amount charged.
       linesCents: number | null;
-      reason: string;
+      cause: FailureCause;
     }
   | {
       kind: 'oblio_total_mismatch';
@@ -35,9 +45,15 @@ export type BillingAlert = { organizationId: string } & (
       invoice: StripeInvoiceRef;
       document: OblioDocumentRef;
       charged: Money;
-      reason: string;
+      cause: FailureCause;
     }
-  | { kind: 'payment_failed'; invoice: StripeInvoiceRef; due: Money; accessUntil: string | null }
+  | {
+      kind: 'payment_failed';
+      invoice: StripeInvoiceRef;
+      due: Money;
+      // Null unless the subscription is past due, when its full access ends then.
+      accessUntil: string | null;
+    }
   | { kind: 'canceled_unpaid'; subscription: StripeObjectRef; accessUntil: string | null }
 );
 
@@ -46,12 +62,24 @@ export interface BillingAlerts {
   notify(alert: BillingAlert): void;
 }
 
-const reasonOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const codePattern = /^[A-Za-z][A-Za-z0-9_./-]{0,59}$/;
 
-export const describeFailure = (error: unknown) =>
-  reasonOf(error)
-    .replace(/[^\s@<>()"',;]+@[^\s@<>()"',;]+\.[A-Za-z]{2,}/g, '[email]')
-    .slice(0, 300);
+export const ownCode = (code: string) => (codePattern.test(code) ? code : 'Error');
+
+function causeLine(cause: FailureCause) {
+  switch (cause.kind) {
+    case 'lines_total':
+      return 'Motiv: liniile cu TVA nu dau totalul plătit.';
+    case 'company_details':
+      return 'Motiv: lipsesc numele firmei, CUI-ul sau emailul pentru factură.';
+    case 'oblio_refused':
+      return `Motiv: Oblio a refuzat cererea (HTTP ${cause.status}).`;
+    case 'oblio_unavailable':
+      return 'Motiv: Oblio nu a putut fi contactat.';
+    case 'other':
+      return `Motiv: altă eroare (\`${ownCode(cause.code)}\`).`;
+  }
+}
 
 function stripeLink(ref: StripeObjectRef, path: string) {
   return noPreview(
@@ -75,8 +103,8 @@ const invoiceLines = (invoice: StripeInvoiceRef) => [
 
 const day = (iso: string) => iso.slice(0, 10);
 
-export function billingAlertMessage(alert: BillingAlert, organizationName: string): AlertMessage {
-  const organization = `Organizația: ${organizationName} · ${alert.organizationId}`;
+export function billingAlertMessage(alert: BillingAlert): AlertMessage {
+  const organization = `Organizația: ${alert.organizationId}`;
   switch (alert.kind) {
     case 'invoice_not_issued': {
       const linesMismatch = alert.linesCents !== null;
@@ -92,7 +120,8 @@ export function billingAlertMessage(alert: BillingAlert, organizationName: strin
           linesMismatch
             ? `Total Stripe: ${amount(alert.charged)} · liniile cu TVA: ${amount({ ...alert.charged, cents: alert.linesCents! })}`
             : `Total Stripe: ${amount(alert.charged)}`,
-          `Motiv: ${alert.reason}`,
+          causeLine(alert.cause),
+          `Detalii în jurnalul Worker-ului, la evenimentul Stripe ${alert.eventId}.`,
           linesMismatch
             ? `Clientul a plătit și nu are ${document}; reîncercările lui Stripe, timp de trei zile, vor eșua la fel.`
             : `Clientul a plătit și nu are ${document}; Stripe reîncearcă evenimentul timp de trei zile, iar dacă o reîncercare reușește, documentul se emite singur.`,
@@ -124,7 +153,8 @@ export function billingAlertMessage(alert: BillingAlert, organizationName: strin
           ...invoiceLines(alert.invoice),
           documentLine(alert.document),
           `Total Stripe: ${amount(alert.charged)}`,
-          `Motiv: ${alert.reason}`,
+          causeLine(alert.cause),
+          `Detalii în jurnalul Worker-ului, la factura Stripe ${alert.invoice.id}.`,
           'Ce faci: compară totalul din Oblio cu cel din Stripe; dacă diferă, stornează documentul și emite unul cu totalul plătit.',
         ],
       };
@@ -159,43 +189,58 @@ export function billingAlertMessage(alert: BillingAlert, organizationName: strin
   }
 }
 
-function subjectOf(alert: BillingAlert) {
-  return alert.kind === 'canceled_unpaid'
-    ? { stripe_subscription: alert.subscription.id }
-    : { stripe_invoice: alert.invoice.id };
+// A later failure of another kind for the same invoice is a new problem, posted once more.
+function claimDetails(alert: BillingAlert) {
+  switch (alert.kind) {
+    case 'canceled_unpaid':
+      return {
+        alert: alert.kind,
+        stripe_subscription: alert.subscription.id,
+        alert_key: `${alert.kind}:${alert.subscription.id}`,
+      };
+    case 'invoice_not_issued':
+      return {
+        alert: alert.kind,
+        stripe_invoice: alert.invoice.id,
+        cause: alert.cause.kind,
+        alert_key: `${alert.kind}:${alert.invoice.id}:${alert.cause.kind}`,
+      };
+    default:
+      return {
+        alert: alert.kind,
+        stripe_invoice: alert.invoice.id,
+        alert_key: `${alert.kind}:${alert.invoice.id}`,
+      };
+  }
 }
 
-async function alreadyPosted(db: AdminClient, alert: BillingAlert) {
-  const { count, error } = await db
+// The unique index on alert_key makes the insert the claim, so two deliveries at once post once.
+async function claim(db: AdminClient, alert: BillingAlert) {
+  const { data, error } = await db
     .from('subscription_changes')
-    .select('id', { count: 'exact', head: true })
-    .eq('organization_id', alert.organizationId)
-    .eq('change', 'operator_alerted')
-    .contains('details', { alert: alert.kind, ...subjectOf(alert) });
-  if (error) throw fromDatabaseError(error, 'billing alert lookup');
-  return (count ?? 0) > 0;
+    .insert({
+      organization_id: alert.organizationId,
+      source: 'stripe',
+      change: 'operator_alerted',
+      details: claimDetails(alert),
+    })
+    .select('id')
+    .single();
+  if (error?.code === '23505') return null;
+  if (error) throw fromDatabaseError(error, 'billing alert claim');
+  return data.id;
 }
 
-async function organizationName(db: AdminClient, organizationId: string) {
-  const { data } = await db
-    .from('organizations')
-    .select('name, legal_name')
-    .eq('id', organizationId)
-    .maybeSingle();
-  return data?.legal_name?.trim() || data?.name?.trim() || 'necunoscută';
+async function release(db: AdminClient, claimId: number) {
+  const { error } = await db.from('subscription_changes').delete().eq('id', claimId);
+  if (error) throw fromDatabaseError(error, 'billing alert release');
 }
 
-// The mark is written only once Discord took the post, so an invoice left unissued or a payment
-// that fails again is posted on Stripe's next delivery after Discord was down.
+// A claim Discord did not take is released, so the next delivery of the same problem posts it.
 async function post(db: AdminClient, sender: ReturnType<typeof alertSender>, alert: BillingAlert) {
-  if (await alreadyPosted(db, alert)) return;
-  const message = billingAlertMessage(alert, await organizationName(db, alert.organizationId));
-  if (!(await sender.send(message))) return;
-  await recordChange(db, alert.organizationId, {
-    source: 'stripe',
-    change: 'operator_alerted',
-    details: { alert: alert.kind, ...subjectOf(alert) },
-  });
+  const claimId = await claim(db, alert);
+  if (claimId === null) return;
+  if (!(await sender.send(billingAlertMessage(alert)))) await release(db, claimId);
 }
 
 export function billingAlerts(
@@ -211,7 +256,7 @@ export function billingAlerts(
       later(
         post(db, sender, alert).catch((error: unknown) => {
           console.error(
-            `A billing alert (${alert.kind}) was not posted: ${describeFailure(error)}`
+            `A billing alert (${alert.kind}) was not posted: ${error instanceof Error ? error.message : String(error)}`
           );
         })
       );
