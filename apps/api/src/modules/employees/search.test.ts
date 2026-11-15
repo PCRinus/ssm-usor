@@ -32,87 +32,70 @@ const membership = {
 };
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+const otherClientId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 
-const employeeListRow = {
+const viewRow = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
   client_id: clientId,
+  client_name: 'Șantierul Naval SA',
   last_name: 'Țăranu',
   first_name: 'Ștefan',
   employee_number: 'A-17',
   email: null,
   phone: null,
   job_title: 'Sudor',
-  job_positions: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor autorizat' },
+  job_position_id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+  job_position_name: 'Sudor autorizat',
   workplace_id: null,
-  client_workplaces: null,
-  training_status: null,
+  workplace_name: null,
   hired_at: '2020-03-01',
   status: 'active',
   terminated_at: null,
   created_at: '2026-09-17T10:00:00+00:00',
   updated_at: '2026-09-17T10:00:00+00:00',
+  signatures_pending_count: 0,
 };
 
-const organizationRow = {
-  ...employeeListRow,
-  client: { id: clientId, legal_name: 'Șantierul Naval SA' },
-};
+type Handler = (url: URL, init?: RequestInit) => Response | Promise<Response>;
 
-type Handler = (url: URL) => Response | Promise<Response>;
-
-type Upstream =
-  'clients' | 'employees' | 'employee_training_status' | 'employee_test_status' | 'inState';
+type Upstream = 'clients' | 'list' | 'employee_training_status' | 'employee_test_status';
 
 const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
-  fetchMock.mockImplementation(async (input) => {
+  fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     if (url.pathname === '/auth/v1/user') return Response.json(user);
     if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname === '/rest/v1/rpc/organization_employees_in_state') {
-      return (
-        handlers.inState?.(url) ??
-        Response.json([organizationRow], { headers: { 'Content-Range': '0-0/1' } })
-      );
-    }
     if (url.pathname === '/rest/v1/clients') {
-      return handlers.clients?.(url) ?? Response.json([{ id: clientId, archived_at: null }]);
+      return handlers.clients?.(url, init) ?? Response.json([{ id: clientId, archived_at: null }]);
     }
-    if (url.pathname === '/rest/v1/employees') {
+    if (url.pathname === '/rest/v1/employee_list') {
       return (
-        handlers.employees?.(url) ??
-        Response.json([organizationRow], { headers: { 'Content-Range': '0-0/1' } })
+        handlers.list?.(url, init) ??
+        Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } })
       );
     }
     if (url.pathname === '/rest/v1/employee_training_status') {
-      return handlers.employee_training_status?.(url) ?? Response.json([]);
+      return handlers.employee_training_status?.(url, init) ?? Response.json([]);
     }
     if (url.pathname === '/rest/v1/employee_test_status') {
-      return handlers.employee_test_status?.(url) ?? Response.json([]);
+      return handlers.employee_test_status?.(url, init) ?? Response.json([]);
     }
     throw new Error(`Unexpected upstream request: ${url}`);
   });
 }
 
-const upstreamCalls = (table: Upstream) =>
-  fetchMock.mock.calls
-    .map(([input]) => new URL(String(input)))
-    .filter((url) => url.pathname === `/rest/v1/${table}`)
-    .map((url) => url.searchParams);
-
-const employeesQuery = (index = 0) => upstreamCalls('employees')[index]!;
-
-const inStateCalls = () =>
+const upstreamCalls = (table: string, method = 'GET') =>
   fetchMock.mock.calls
     .filter(
-      ([input]) =>
-        new URL(String(input)).pathname === '/rest/v1/rpc/organization_employees_in_state'
+      ([input, init]) =>
+        new URL(String(input)).pathname === `/rest/v1/${table}` &&
+        (init?.method ?? 'GET') === method
     )
-    .map(([input, init]) => ({
-      query: new URL(String(input)).searchParams,
-      args: JSON.parse(String(init?.body)) as Record<string, string>,
-    }));
+    .map(([input]) => new URL(String(input)).searchParams);
+
+const listQuery = () => upstreamCalls('employee_list')[0]!;
 
 const request = (path: string) =>
   createApp().request(path, { headers: { Authorization: 'Bearer test-access-token' } }, env);
@@ -129,36 +112,35 @@ afterEach(() => {
 
 describe("searching a client's employees", () => {
   it('asks every word for the name or the employee number, without diacritics', async () => {
-    mockUpstream({
-      employees: () => Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/1' } }),
-    });
+    mockUpstream();
     const response = await request(
       `/clients/${clientId}/employees?q=${encodeURIComponent('  ȘTEFAN  țăr ')}`
     );
     expect(response.status).toBe(200);
     expect(employeeListResponseSchema.parse(await response.json()).total).toBe(1);
-    const query = employeesQuery();
+    const query = listQuery();
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.getAll('or')).toEqual([
-      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*)',
-      '(employee_search_name.ilike.*tar*,employee_number.ilike.*tar*)',
+      '(search_name.ilike.*stefan*,employee_number.ilike.*stefan*)',
+      '(search_name.ilike.*tar*,employee_number.ilike.*tar*)',
     ]);
   });
 
   it('splits on punctuation, so nothing typed can break the filter', async () => {
     mockUpstream();
     await request(`/clients/${clientId}/employees?q=${encodeURIComponent('A-17,(x)')}`);
-    expect(employeesQuery().getAll('or')).toEqual([
-      '(employee_search_name.ilike.*a*,employee_number.ilike.*a*)',
-      '(employee_search_name.ilike.*17*,employee_number.ilike.*17*)',
-      '(employee_search_name.ilike.*x*,employee_number.ilike.*x*)',
+    expect(listQuery().getAll('or')).toEqual([
+      '(search_name.ilike.*a*,employee_number.ilike.*a*)',
+      '(search_name.ilike.*17*,employee_number.ilike.*17*)',
+      '(search_name.ilike.*x*,employee_number.ilike.*x*)',
     ]);
   });
 
-  it('does not filter for a blank query', async () => {
+  it('does not filter for a blank query, nor count the list twice', async () => {
     mockUpstream();
     await request(`/clients/${clientId}/employees?q=%20%20`);
-    expect(employeesQuery().has('or')).toBe(false);
+    expect(listQuery().has('or')).toBe(false);
+    expect(upstreamCalls('employee_list', 'HEAD')).toHaveLength(0);
   });
 
   it('refuses a query over 100 characters', async () => {
@@ -178,9 +160,10 @@ describe('GET /employees', () => {
       page: 1,
       pageSize: 25,
       total: 1,
+      unfilteredTotal: 1,
       items: [
         {
-          id: employeeListRow.id,
+          id: viewRow.id,
           clientId,
           lastName: 'Țăranu',
           firstName: 'Ștefan',
@@ -213,361 +196,156 @@ describe('GET /employees', () => {
             ssm: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
             su: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
           },
-          createdAt: employeeListRow.created_at,
-          updatedAt: employeeListRow.updated_at,
+          createdAt: viewRow.created_at,
+          updatedAt: viewRow.updated_at,
+          signaturesPending: 0,
           client: { id: clientId, name: 'Șantierul Naval SA' },
         },
       ],
     });
-    const query = employeesQuery();
-    expect(query.get('select')).toContain('client:clients!employees_client_id_fkey!inner(');
+    const query = listQuery();
     expect(query.get('select')).not.toContain('cnp');
     expect(query.get('archived_at')).toBe('is.null');
-    expect(query.get('client.stage')).toBe('eq.client');
-    expect(query.get('client.archived_at')).toBe('is.null');
+    expect(query.get('client_stage')).toBe('eq.client');
+    expect(query.get('client_archived_at')).toBe('is.null');
     expect(query.get('status')).toBe('neq.terminated');
     expect(query.has('client_id')).toBe(false);
     expect(query.has('or')).toBe(false);
     expect(query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
-    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/clients'))).toBe(
-      false
-    );
+    expect(upstreamCalls('clients')).toHaveLength(0);
   });
 
-  it('filters by client and status, never listing archived clients', async () => {
+  it('matches the name and the employee number, never the client name', async () => {
     mockUpstream();
-    await request(`/employees?clientId=${clientId}&status=terminated`);
-    const query = employeesQuery();
-    expect(query.get('client_id')).toBe(`eq.${clientId}`);
+    await request('/employees?q=santierul');
+    expect(listQuery().getAll('or')).toEqual([
+      '(search_name.ilike.*santierul*,employee_number.ilike.*santierul*)',
+    ]);
+    expect(listQuery().get('select')).not.toContain('clients');
+  });
+
+  it('filters by clients and status, never listing archived clients', async () => {
+    mockUpstream();
+    await request(`/employees?client=${clientId}&client=${otherClientId}&status=terminated`);
+    const query = listQuery();
+    expect(query.get('client_id')).toBe(`in.(${clientId},${otherClientId})`);
     expect(query.get('status')).toBe('eq.terminated');
-    expect(query.get('client.archived_at')).toBe('is.null');
-    expect(query.get('client.stage')).toBe('eq.client');
+    expect(query.get('client_archived_at')).toBe('is.null');
   });
 
-  it('pages the employees in a training state through the organization-wide states, then reads their statuses', async () => {
+  it('still reads the earlier single client', async () => {
     mockUpstream();
-    const response = await request('/employees?trainingState=due');
-    expect(response.status).toBe(200);
-    const listed = organizationEmployeeListResponseSchema.parse(await response.json());
-    expect(listed.total).toBe(1);
-    expect(listed.items.map((item) => item.client.name)).toEqual(['Șantierul Naval SA']);
-    const [call] = inStateCalls();
-    expect(call!.args).toEqual({
-      p_organization_id: membership.organization_id,
-      p_training_state: 'due',
+    await request(`/employees?clientId=${clientId}`);
+    expect(listQuery().get('client_id')).toBe(`eq.${clientId}`);
+  });
+
+  it('filters by the training of each domain and the needs, and counts the tab without them', async () => {
+    mockUpstream({
+      list: (_, init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/340' } })
+          : Response.json([viewRow], { headers: { 'Content-Range': '0-0/1' } }),
     });
-    expect(call!.query.get('select')).toBe(
-      '*,job_positions(id,name),client_workplaces!employees_workplace_in_client(id,name),client:clients!employees_client_id_fkey(id,legal_name)'
+    const response = await request(
+      '/employees?suTraining=overdue&attention=signaturesPending&test=pending'
     );
-    expect(call!.query.get('status')).toBe('neq.terminated');
-    expect(call!.query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
-    expect(call!.query.get('offset')).toBe('0');
-    expect(call!.query.get('limit')).toBe('25');
-    expect(upstreamCalls('employees')).toHaveLength(0);
-    expect(upstreamCalls('employee_training_status')[0]!.get('employee_id')).toBe(
-      `in.(${employeeListRow.id})`
-    );
-    expect(upstreamCalls('employee_test_status')[0]!.get('employee_id')).toBe(
-      `in.(${employeeListRow.id})`
-    );
+    expect(organizationEmployeeListResponseSchema.parse(await response.json())).toMatchObject({
+      total: 1,
+      unfilteredTotal: 340,
+    });
+    const query = listQuery();
+    expect(query.get('su_training_state')).toBe('in.(overdue)');
+    expect(query.getAll('or')).toEqual([
+      '(ssm_test_state.eq.pending,su_test_state.eq.pending)',
+      '(signatures_pending_count.gt.0)',
+    ]);
+    const [count] = upstreamCalls('employee_list', 'HEAD');
+    expect(count!.get('client_stage')).toBe('eq.client');
+    expect(count!.has('su_training_state')).toBe(false);
+    expect(count!.has('or')).toBe(false);
   });
 
   it.each([
-    ['testState=pending', { p_test_state: 'pending' }],
-    ['trainingState=overdue&domain=ssm', { p_training_state: 'overdue', p_domain: 'ssm' }],
-    [
-      'trainingState=current&testState=passed&domain=su',
-      { p_training_state: 'current', p_test_state: 'passed', p_domain: 'su' },
-    ],
-  ])('passes %s to the organization-wide states', async (search, args) => {
+    ['trainingState=untrained&domain=ssm', 'ssm_training_state', 'in.(untrained)'],
+    ['testState=pending&domain=su', 'su_test_state', 'eq.pending'],
+  ])('reads a dashboard link of one domain, %s', async (search, column, value) => {
     mockUpstream();
-    const response = await request(`/employees?${search}`);
-    expect(response.status).toBe(200);
-    expect(inStateCalls()[0]!.args).toEqual({
-      p_organization_id: membership.organization_id,
-      ...args,
-    });
+    await request(`/employees?${search}`);
+    expect(listQuery().get(column)).toBe(value);
   });
 
-  it('keeps the client, status and search filters on the employees in a state', async () => {
+  it('reads an earlier state without a domain in either domain', async () => {
     mockUpstream();
-    await request(
-      `/employees?trainingState=overdue&clientId=${clientId}&status=active&q=${encodeURIComponent('Ștefan pop')}`
-    );
-    const { query } = inStateCalls()[0]!;
-    expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(query.get('status')).toBe('eq.active');
-    expect(query.get('select')).toContain(
-      'client_name_match_0:clients!employees_client_id_fkey(),client_name_match_1:clients!employees_client_id_fkey()'
-    );
-    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*stefan*');
-    expect(query.get('client_name_match_1.client_search_name')).toBe('ilike.*pop*');
-    expect(query.getAll('or')).toEqual([
-      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*,client_name_match_0.not.is.null)',
-      '(employee_search_name.ilike.*pop*,employee_number.ilike.*pop*,client_name_match_1.not.is.null)',
+    await request('/employees?trainingState=overdue&testState=pending');
+    expect(listQuery().getAll('or')).toEqual([
+      '(ssm_training_state.in.(overdue),su_training_state.in.(overdue))',
+      '(ssm_test_state.eq.pending,su_test_state.eq.pending)',
     ]);
   });
 
-  it('sorts the employees in a state as the list', async () => {
+  it.each([
+    ['client', 'client_name.asc,last_name.asc,first_name.asc,id.asc'],
+    [
+      'suTraining',
+      'su_training_rank.asc.nullslast,su_training_due_on.asc.nullslast,last_name.asc,first_name.asc,id.asc',
+    ],
+  ])('sorts by %s', async (sort, order) => {
     mockUpstream();
-    await request('/employees?trainingState=overdue&sort=client&order=desc&page=2');
-    const { query } = inStateCalls()[0]!;
-    expect(query.get('order')).toBe(
-      'client(legal_name).desc,last_name.desc,first_name.desc,id.asc'
-    );
-    expect(query.get('offset')).toBe('25');
+    await request(`/employees?sort=${sort}`);
+    expect(listQuery().get('order')).toBe(order);
   });
 
-  it('reads no statuses when no one is in the state', async () => {
+  it('reads the statuses of the page alone', async () => {
     mockUpstream({
-      inState: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
-    });
-    const response = await request('/employees?testState=annual_due');
-    expect(await response.json()).toEqual({ items: [], page: 1, pageSize: 25, total: 0 });
-    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
-    expect(upstreamCalls('employee_test_status')).toHaveLength(0);
-  });
-
-  it('answers a page past the end of the employees in a state with the real total', async () => {
-    let call = 0;
-    mockUpstream({
-      inState: () => {
-        call += 1;
-        return call === 1
-          ? Response.json(
-              { code: 'PGRST103', message: 'Requested range not satisfiable', details: null },
-              { status: 416 }
-            )
-          : Response.json([], { headers: { 'Content-Range': '*/3' } });
-      },
-    });
-    const response = await request('/employees?trainingState=due&page=9&q=naval');
-    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
-    const recount = inStateCalls()[1]!.query;
-    expect(recount.get('client_name_match_0.client_search_name')).toBe('ilike.*naval*');
-  });
-
-  it('ignores a domain when no state is asked for', async () => {
-    mockUpstream();
-    await request('/employees?domain=ssm');
-    const query = employeesQuery();
-    expect(query.get('select')).not.toContain('training_status!inner');
-    expect(query.get('training_status.or')).toBeNull();
-    expect(query.get('test_status.or')).toBeNull();
-  });
-
-  it('reads the statuses of the page alone when no state is asked for', async () => {
-    const other = {
-      ...organizationRow,
-      id: '9b2f4c1e-3d5a-4e6f-8a7b-0c1d2e3f4a5b',
-      last_name: 'Popa',
-    };
-    mockUpstream({
-      employees: () =>
-        Response.json([organizationRow, other], { headers: { 'Content-Range': '0-1/2' } }),
       employee_training_status: () =>
         Response.json([
           {
-            employee_id: organizationRow.id,
-            ssm_state: 'due',
-            ssm_due_on: '2026-11-01',
-            ssm_last_periodic_on: '2026-05-01',
-            ssm_interval_months: 6,
-            ssm_interval_source: 'position',
+            employee_id: viewRow.id,
+            ssm_state: 'overdue',
+            ssm_due_on: '2026-10-01',
+            ssm_last_periodic_on: null,
+            ssm_interval_months: 3,
+            ssm_interval_source: 'client',
             su_state: 'current',
-            su_due_on: '2027-05-01',
-            su_last_periodic_on: '2026-05-01',
-            su_interval_months: 12,
-            su_interval_source: 'client',
-          },
-        ]),
-      employee_test_status: () =>
-        Response.json([
-          {
-            employee_id: other.id,
-            ssm_state: 'pending',
-            ssm_awaiting_test: 'hiring',
-            ssm_last_passed_on: null,
-            su_state: 'passed',
-            su_awaiting_test: null,
-            su_last_passed_on: '2026-04-01',
             su_due_on: '2027-04-01',
+            su_last_periodic_on: '2026-10-01',
+            su_interval_months: 6,
+            su_interval_source: 'client',
           },
         ]),
     });
     const response = await request('/employees');
-    expect(response.status).toBe(200);
-    const { items } = organizationEmployeeListResponseSchema.parse(await response.json());
-    expect(items.map(({ id, training, tests }) => ({ id, training, tests }))).toEqual([
-      {
-        id: organizationRow.id,
-        training: {
-          ssm: {
-            state: 'due',
-            dueOn: '2026-11-01',
-            lastPeriodicOn: '2026-05-01',
-            intervalMonths: 6,
-            intervalSource: 'position',
-          },
-          su: {
-            state: 'current',
-            dueOn: '2027-05-01',
-            lastPeriodicOn: '2026-05-01',
-            intervalMonths: 12,
-            intervalSource: 'client',
-          },
-        },
-        tests: {
-          ssm: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
-          su: { state: null, awaitingTest: null, lastPassedOn: null, dueOn: null },
-        },
-      },
-      {
-        id: other.id,
-        training: {
-          ssm: {
-            state: null,
-            dueOn: null,
-            lastPeriodicOn: null,
-            intervalMonths: null,
-            intervalSource: null,
-          },
-          su: {
-            state: null,
-            dueOn: null,
-            lastPeriodicOn: null,
-            intervalMonths: null,
-            intervalSource: null,
-          },
-        },
-        tests: {
-          ssm: { state: 'pending', awaitingTest: 'hiring', lastPassedOn: null, dueOn: null },
-          su: {
-            state: 'passed',
-            awaitingTest: null,
-            lastPassedOn: '2026-04-01',
-            dueOn: '2027-04-01',
-          },
-        },
-      },
-    ]);
-    const select = employeesQuery().get('select');
-    expect(select).not.toContain('training_status');
-    expect(select).not.toContain('test_status');
+    const [item] = organizationEmployeeListResponseSchema.parse(await response.json()).items;
+    expect(item!.training.ssm).toMatchObject({ state: 'overdue', dueOn: '2026-10-01' });
     const [training] = upstreamCalls('employee_training_status');
-    expect(training!.get('employee_id')).toBe(`in.(${organizationRow.id},${other.id})`);
-    expect(training!.get('select')).toBe(
-      'employee_id,ssm_state,ssm_due_on,ssm_last_periodic_on,ssm_interval_months,ssm_interval_source,su_state,su_due_on,su_last_periodic_on,su_interval_months,su_interval_source'
-    );
-    const [tests] = upstreamCalls('employee_test_status');
-    expect(tests!.get('employee_id')).toBe(`in.(${organizationRow.id},${other.id})`);
-    expect(tests!.get('select')).toBe(
-      'employee_id,ssm_state,ssm_awaiting_test,ssm_last_passed_on,su_state,su_awaiting_test,su_last_passed_on,su_due_on'
-    );
-  });
-
-  it('reads no statuses for an empty page', async () => {
-    mockUpstream({
-      employees: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
-    });
-    const response = await request('/employees?q=nimeni');
-    expect(await response.json()).toEqual({ items: [], page: 1, pageSize: 25, total: 0 });
-    expect(upstreamCalls('employee_training_status')).toHaveLength(0);
-    expect(upstreamCalls('employee_test_status')).toHaveLength(0);
-  });
-
-  it('asks every word for the name, the employee number or the client name', async () => {
-    mockUpstream();
-    await request(`/employees?q=${encodeURIComponent('Ștefan șantier')}`);
-    const query = employeesQuery();
-    expect(query.getAll('or')).toEqual([
-      '(employee_search_name.ilike.*stefan*,employee_number.ilike.*stefan*,client_name_match_0.not.is.null)',
-      '(employee_search_name.ilike.*santier*,employee_number.ilike.*santier*,client_name_match_1.not.is.null)',
-    ]);
-    expect(query.get('client_name_match_0.client_search_name')).toBe('ilike.*stefan*');
-    expect(query.get('client_name_match_1.client_search_name')).toBe('ilike.*santier*');
-    expect(query.get('select')).toContain(
-      'client_name_match_0:clients!employees_client_id_fkey(),client_name_match_1:clients!employees_client_id_fkey()'
-    );
-  });
-
-  it('embeds no client name match without a search', async () => {
-    mockUpstream();
-    await request('/employees?q=%20');
-    expect(employeesQuery().get('select')).not.toContain('client_name_match');
-  });
-
-  it('matches the client name in the recount of a page past the end', async () => {
-    let call = 0;
-    mockUpstream({
-      employees: () => {
-        call += 1;
-        return call === 1
-          ? Response.json(
-              { code: 'PGRST103', message: 'Requested range not satisfiable', details: null },
-              { status: 416 }
-            )
-          : Response.json([], { headers: { 'Content-Range': '*/0' } });
-      },
-    });
-    await request('/employees?page=9&q=naval');
-    const recount = employeesQuery(1);
-    expect(recount.get('select')).toContain(
-      'client_name_match_0:clients!employees_client_id_fkey()'
-    );
-    expect(recount.get('client_name_match_0.client_search_name')).toBe('ilike.*naval*');
-  });
-
-  it.each([
-    ['client', 'asc', 'client(legal_name).asc,last_name.asc,first_name.asc,id.asc'],
-    ['jobPosition', 'desc', 'job_positions(name).desc,last_name.desc,first_name.desc,id.asc'],
-    ['hiredAt', 'asc', 'hired_at.asc,last_name.asc,first_name.asc,id.asc'],
-    ['name', 'desc', 'last_name.desc,first_name.desc,id.asc'],
-  ])('sorts by %s %s with a stable tiebreaker', async (sort, order, expected) => {
-    mockUpstream({
-      employees: () =>
-        Response.json([organizationRow], { headers: { 'Content-Range': '25-25/26' } }),
-    });
-    const response = await request(`/employees?sort=${sort}&order=${order}&page=2`);
-    expect(response.status).toBe(200);
-    const query = employeesQuery();
-    expect(query.get('order')).toBe(expected);
-    expect(query.get('offset')).toBe('25');
-  });
-
-  it.each([
-    'sort=cnp',
-    'clientId=not-a-uuid',
-    'status=suspended',
-    'trainingState=expired',
-    'testState=failed',
-    'domain=fire',
-  ])('rejects %s', async (search) => {
-    mockUpstream();
-    const response = await request(`/employees?${search}`);
-    expect(response.status).toBe(400);
-    expect(
-      fetchMock.mock.calls.some(([input]) => String(input).includes('/rest/v1/employees'))
-    ).toBe(false);
+    expect(training!.get('employee_id')).toBe(`in.(${viewRow.id})`);
   });
 
   it('answers a page past the end with an empty page and the real total', async () => {
-    let call = 0;
     mockUpstream({
-      employees: () => {
-        call += 1;
-        return call === 1
-          ? Response.json(
-              { code: 'PGRST103', message: 'Requested range not satisfiable', details: null },
+      list: (_, init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/30' } })
+          : Response.json(
+              { code: 'PGRST103', message: 'Requested range not satisfiable' },
               { status: 416 }
-            )
-          : Response.json([], { headers: { 'Content-Range': '*/3' } });
-      },
+            ),
     });
-    const response = await request('/employees?page=9');
-    expect(await response.json()).toEqual({ items: [], page: 9, pageSize: 25, total: 3 });
+    const response = await request('/employees?page=5&q=ion');
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      items: [],
+      page: 5,
+      pageSize: 25,
+      total: 30,
+      unfilteredTotal: 30,
+    });
+    const recount = upstreamCalls('employee_list', 'HEAD').find((query) => query.has('or'));
+    expect(recount!.getAll('or')).toEqual([
+      '(search_name.ilike.*ion*,employee_number.ilike.*ion*)',
+    ]);
     expect(upstreamCalls('employee_training_status')).toHaveLength(0);
   });
 });

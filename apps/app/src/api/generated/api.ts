@@ -1537,6 +1537,8 @@ export type EmployeeListResponseItemsItem = {
   updatedAt: string;
   training: EmployeeListResponseItemsItemTraining;
   tests: EmployeeListResponseItemsItemTests;
+  /** @minimum 0 */
+  signaturesPending: number;
 };
 
 export interface EmployeeListResponse {
@@ -1550,6 +1552,8 @@ export interface EmployeeListResponse {
   pageSize: number;
   /** @minimum 0 */
   total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 export type EmployeeResponseEmployeeJobPosition = {
@@ -2386,6 +2390,8 @@ export type OrganizationEmployeeListResponseItemsItem = {
   updatedAt: string;
   training: OrganizationEmployeeListResponseItemsItemTraining;
   tests: OrganizationEmployeeListResponseItemsItemTests;
+  /** @minimum 0 */
+  signaturesPending: number;
   client: OrganizationEmployeeListResponseItemsItemClient;
 };
 
@@ -2400,6 +2406,8 @@ export interface OrganizationEmployeeListResponse {
   pageSize: number;
   /** @minimum 0 */
   total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 export type TrainingListResponseItemsItemDomain =
@@ -15864,6 +15872,36 @@ export type ListEmployeesParams = {
    * @maxLength 100
    */
   q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  ssmTraining?: ListEmployeesSsmTrainingItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  suTraining?: ListEmployeesSuTrainingItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  test?: ListEmployeesTestItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  attention?: ListEmployeesAttentionItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  jobPosition?: string[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  workplace?: string[];
 };
 
 export type ListEmployeesSort = (typeof ListEmployeesSort)[keyof typeof ListEmployeesSort];
@@ -15873,6 +15911,9 @@ export const ListEmployeesSort = {
   jobTitle: 'jobTitle',
   jobPosition: 'jobPosition',
   hiredAt: 'hiredAt',
+  terminatedAt: 'terminatedAt',
+  ssmTraining: 'ssmTraining',
+  suTraining: 'suTraining',
 } as const;
 
 export type ListEmployeesOrder = (typeof ListEmployeesOrder)[keyof typeof ListEmployeesOrder];
@@ -15911,6 +15952,50 @@ export const ListEmployeesTestState = {
   none: 'none',
 } as const;
 
+export type ListEmployeesSsmTrainingItem =
+  (typeof ListEmployeesSsmTrainingItem)[keyof typeof ListEmployeesSsmTrainingItem];
+
+export const ListEmployeesSsmTrainingItem = {
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+  untrained: 'untrained',
+  attention: 'attention',
+} as const;
+
+export type ListEmployeesSuTrainingItem =
+  (typeof ListEmployeesSuTrainingItem)[keyof typeof ListEmployeesSuTrainingItem];
+
+export const ListEmployeesSuTrainingItem = {
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+  untrained: 'untrained',
+  attention: 'attention',
+} as const;
+
+export type ListEmployeesTestItem =
+  (typeof ListEmployeesTestItem)[keyof typeof ListEmployeesTestItem];
+
+export const ListEmployeesTestItem = {
+  passed: 'passed',
+  pending: 'pending',
+  annual_due: 'annual_due',
+  unverified: 'unverified',
+  none: 'none',
+} as const;
+
+export type ListEmployeesAttentionItem =
+  (typeof ListEmployeesAttentionItem)[keyof typeof ListEmployeesAttentionItem];
+
+export const ListEmployeesAttentionItem = {
+  signaturesPending: 'signaturesPending',
+  noPhone: 'noPhone',
+  noEmail: 'noEmail',
+  toTrain: 'toTrain',
+  trainingDue: 'trainingDue',
+} as const;
+
 export type ListOrganizationEmployeesParams = {
   /**
    * @minimum 1
@@ -15932,6 +16017,31 @@ export type ListOrganizationEmployeesParams = {
    * @maxLength 100
    */
   q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  ssmTraining?: ListOrganizationEmployeesSsmTrainingItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  suTraining?: ListOrganizationEmployeesSuTrainingItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  test?: ListOrganizationEmployeesTestItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  attention?: ListOrganizationEmployeesAttentionItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  client?: string[];
 };
 
 export type ListOrganizationEmployeesSort =
@@ -15942,6 +16052,9 @@ export const ListOrganizationEmployeesSort = {
   client: 'client',
   jobPosition: 'jobPosition',
   hiredAt: 'hiredAt',
+  terminatedAt: 'terminatedAt',
+  ssmTraining: 'ssmTraining',
+  suTraining: 'suTraining',
 } as const;
 
 export type ListOrganizationEmployeesOrder =
@@ -15987,6 +16100,50 @@ export type ListOrganizationEmployeesDomain =
 export const ListOrganizationEmployeesDomain = {
   ssm: 'ssm',
   su: 'su',
+} as const;
+
+export type ListOrganizationEmployeesSsmTrainingItem =
+  (typeof ListOrganizationEmployeesSsmTrainingItem)[keyof typeof ListOrganizationEmployeesSsmTrainingItem];
+
+export const ListOrganizationEmployeesSsmTrainingItem = {
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+  untrained: 'untrained',
+  attention: 'attention',
+} as const;
+
+export type ListOrganizationEmployeesSuTrainingItem =
+  (typeof ListOrganizationEmployeesSuTrainingItem)[keyof typeof ListOrganizationEmployeesSuTrainingItem];
+
+export const ListOrganizationEmployeesSuTrainingItem = {
+  current: 'current',
+  due: 'due',
+  overdue: 'overdue',
+  untrained: 'untrained',
+  attention: 'attention',
+} as const;
+
+export type ListOrganizationEmployeesTestItem =
+  (typeof ListOrganizationEmployeesTestItem)[keyof typeof ListOrganizationEmployeesTestItem];
+
+export const ListOrganizationEmployeesTestItem = {
+  passed: 'passed',
+  pending: 'pending',
+  annual_due: 'annual_due',
+  unverified: 'unverified',
+  none: 'none',
+} as const;
+
+export type ListOrganizationEmployeesAttentionItem =
+  (typeof ListOrganizationEmployeesAttentionItem)[keyof typeof ListOrganizationEmployeesAttentionItem];
+
+export const ListOrganizationEmployeesAttentionItem = {
+  signaturesPending: 'signaturesPending',
+  noPhone: 'noPhone',
+  noEmail: 'noEmail',
+  toTrain: 'toTrain',
+  trainingDue: 'trainingDue',
 } as const;
 
 export type ListTrainingsParams = {
@@ -19249,6 +19406,22 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      'ssmTraining',
+      'suTraining',
+      'test',
+      'attention',
+      'jobPosition',
+      'workplace',
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -19262,7 +19435,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain; "attention" keeps those untrained or overdue in either, as the clients list counts them. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own. The states are those of current employees of active clients. The older `trainingState` and `testState` are read in either domain. `unfilteredTotal` counts the status asked for without the search and the filters. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (
@@ -19971,6 +20144,15 @@ export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmploye
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['ssmTraining', 'suTraining', 'test', 'attention', 'client'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -19982,7 +20164,7 @@ export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmploye
 };
 
 /**
- * Paginated, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients are never listed. `q` keeps the employees whose name, employee number or client name contains every word of it, regardless of case and diacritics. `trainingState` keeps the employees in that training state in either domain.
+ * Paginated, searched, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients and of leads are never listed. `q` matches the name and the employee number, never the client: `client` filters by clients. The older `clientId`, and `trainingState` and `testState`, read in `domain` when given and in either domain otherwise, still filter.
  * @summary List the organization's employees across its clients
  */
 export const listOrganizationEmployees = async (

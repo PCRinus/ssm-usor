@@ -46,10 +46,6 @@ test('a member finds employees of every client from one page, without typing dia
   await expect(rows.first()).toContainText('Țăranu Ștefan');
   await expect(rows.first()).toContainText('Șantierul Naval E2E SA');
 
-  await search.fill('santierul');
-  await expect(rows).toHaveCount(1);
-  await expect(rows.first()).toContainText('Țăranu Ștefan');
-
   await search.fill('p-100');
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Popescu Ion');
