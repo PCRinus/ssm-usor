@@ -301,6 +301,7 @@ function ClientsPage() {
                 data-testid={filter.testId}
                 active={filter.status === status}
                 replace
+                resetScroll={false}
               >
                 {filter.label}
               </FilterTab>

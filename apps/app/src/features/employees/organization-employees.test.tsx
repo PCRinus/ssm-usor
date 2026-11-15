@@ -228,6 +228,20 @@ describe("the organization's employees", () => {
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
+  it('keeps a chosen client while the clients load, and drops one that is not among them', async () => {
+    mockApi();
+    const gone = 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f';
+    mountApp(authFixture(makeSession()).client, `/angajati?client=${navalId}&client=${gone}`);
+    await screen.findAllByTestId('organization-employees-row');
+    expect(listRequests()[0]!.searchParams.getAll('client')).toEqual([navalId, gone]);
+    await waitFor(() =>
+      expect(listRequests().at(-1)!.searchParams.getAll('client')).toEqual([navalId])
+    );
+    expect(
+      screen.getByTestId('organization-employees-applied-filters-client').textContent
+    ).toContain('Șantierul Naval SA');
+  });
+
   it('tells an empty organization from a search that matches no one', async () => {
     mockApi((url) => Response.json(page([], 0, url.searchParams.get('q') ? 2 : 0)));
     const runtime = mountApp(authFixture(makeSession()).client, '/angajati?q=zzz');

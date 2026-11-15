@@ -83,7 +83,7 @@ Lista unui client e în tabul **Lucrători** al clientului. Fiecare rând arată
 - **Lucrător**: numele, cu marca dedesubt când există;
 - **Post de lucru**: postul pe care îl ocupă; funcția din contract e pe pagina lui;
 - **Instruire SSM** și **Instruire SU**: starea instruirii în fiecare domeniu, cu termenul sub ea;
-- **Testare**: doar ce cere o acțiune, pe un singur rând, de exemplu „De susținut”, „Neverificat pe fișă” sau „SU: anual scadent”, pentru oricare dintre domenii. Când nu e nimic de făcut, vezi **La zi** dacă lucrătorul a promovat un test, altfel o liniuță;
+- **Testare**: doar ce cere o acțiune, pe un singur rând, de exemplu „De susținut”, „Neverificat pe fișă” sau „SU: anual scadent”, pentru oricare dintre domenii. Când nu e nimic de făcut, vezi **La zi** dacă lucrătorul a promovat testele din ambele domenii, ca la filtrul **La zi**; dacă a promovat într-un domeniu și în celălalt nu are încă test, vezi de exemplu „SU: fără test”; altfel o liniuță;
 - **De semnat**: câte semnături electronice îi mai cer lucrătorului instruirile și testele lui, de exemplu „2 în așteptare”;
 - **Angajat din**: data angajării.
 

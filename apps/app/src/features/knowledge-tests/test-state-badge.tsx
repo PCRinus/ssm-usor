@@ -35,8 +35,8 @@ export function TestStateBadge({ state, testId }: { state: TestState; testId?: s
   );
 }
 
-// Only what asks for action: of both domains, the most pressing test; with none, "La zi" once a
-// test passed. Only the annual test names its domain, as it is a fire-safety test alone.
+// "La zi" as the filter reads it, passed in both domains. Only the annual test names its domain
+// unasked, as it is a fire-safety test alone.
 const pressing = ['annual_due', 'pending', 'unverified'] as const satisfies readonly TestState[];
 
 const lineTones: Record<(typeof pressing)[number], string> = {
@@ -50,28 +50,37 @@ export function TestStatesLine({
 }: {
   tests: Record<TrainingDomain, { state: TestState | null }>;
 }) {
-  const state = pressing.find((each) =>
-    trainingDomains.some((domain) => tests[domain].state === each)
-  );
-  if (!state) {
-    const passed = trainingDomains.some((domain) => tests[domain].state === 'passed');
+  const states = trainingDomains.map((domain) => tests[domain].state);
+  const state = pressing.find((each) => states.includes(each));
+  if (state) {
+    const label = testStateLabels[state];
+    const domains = trainingDomains.filter((domain) => tests[domain].state === state);
     return (
-      <span
-        className="text-muted-foreground"
-        data-testid="test-status"
-        data-state={passed ? 'passed' : undefined}
-      >
-        {passed ? 'La zi' : '—'}
+      <span className={lineTones[state]} data-testid="test-status" data-state={state}>
+        {state === 'annual_due'
+          ? `${domains.map((domain) => trainingDomainLabels[domain]).join(', ')}: ${label.toLowerCase()}`
+          : label}
       </span>
     );
   }
-  const label = testStateLabels[state];
-  const domains = trainingDomains.filter((domain) => tests[domain].state === state);
+  if (states.every((each) => each === 'passed')) {
+    return (
+      <span className="text-muted-foreground" data-testid="test-status" data-state="passed">
+        La zi
+      </span>
+    );
+  }
+  const untested = trainingDomains.filter((domain) => tests[domain].state === 'none');
+  if (states.includes('passed') && untested.length > 0) {
+    return (
+      <span className="text-muted-foreground" data-testid="test-status" data-state="none">
+        {`${untested.map((domain) => trainingDomainLabels[domain]).join(', ')}: ${testStateLabels.none.toLowerCase()}`}
+      </span>
+    );
+  }
   return (
-    <span className={lineTones[state]} data-testid="test-status" data-state={state}>
-      {state === 'annual_due'
-        ? `${domains.map((domain) => trainingDomainLabels[domain]).join(', ')}: ${label.toLowerCase()}`
-        : label}
+    <span className="text-muted-foreground" data-testid="test-status">
+      —
     </span>
   );
 }

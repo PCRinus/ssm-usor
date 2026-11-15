@@ -1456,6 +1456,25 @@ describe('test state in the employee lists', () => {
     expect(await screen.findAllByTestId('employees-row')).toHaveLength(3);
   });
 
+  it.each([
+    [{ ssm: 'passed', su: 'passed' }, 'La zi'],
+    [{ ssm: 'passed', su: 'none' }, 'SU: fără test'],
+    [{ ssm: 'none', su: 'none' }, '—'],
+    [{ ssm: 'unverified', su: 'passed' }, 'Neverificat pe fișă'],
+  ] as const)(
+    'says "La zi" only when both domains passed, as the filter: %o',
+    async (states, text) => {
+      const row = {
+        ...employee(taranu.id, 'Țăranu', 'Ștefan'),
+        tests: { ssm: testStatus(states.ssm), su: testStatus(states.su) },
+      };
+      mockApi({ [`GET ${employeesPath}`]: () => Response.json(page([row])) });
+      mountApp(authFixture(makeSession()).client, employeesPage);
+      const [listed] = await screen.findAllByTestId('employees-row');
+      expect(within(listed!).getByTestId('test-status').textContent).toBe(text);
+    }
+  );
+
   it("filters the organization's employees by test state, dropping a value it does not know", async () => {
     mockApi({
       'GET /employees': () =>

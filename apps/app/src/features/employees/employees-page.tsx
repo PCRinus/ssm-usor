@@ -1,5 +1,4 @@
 import { defaultPageSize, type EmployeeSortKey } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, useRouteContext } from '@tanstack/react-router';
@@ -15,7 +14,6 @@ import {
   useListJobPositions,
   useListWorkplaces,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
 import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -39,10 +37,10 @@ import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { employeeColumns, type EmployeeRow } from './employee-columns';
-import { employeeStatusLabels, workerNoun } from './employee-format';
+import { employeeStatusLabels, pendingWorkersLabel, workerNoun } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
 import { clientWorkerFacets, clientWorkerFilterKeys } from './worker-filters';
-import { WorkersCount, WorkersNoMatch } from './workers-list';
+import { WorkersCount, WorkersListError, WorkersNoMatch } from './workers-list';
 
 const employeesRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/');
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
@@ -80,7 +78,7 @@ function PendingEmployeesLabel({
       placeholderData: keepPreviousData,
     },
   }).data?.total;
-  return total === undefined ? 'Arată rezultatele' : `Arată ${workerNoun(total)}`;
+  return pendingWorkersLabel(total);
 }
 
 export function EmployeesPage() {
@@ -115,8 +113,8 @@ export function EmployeesPage() {
     () =>
       clientWorkerFacets({
         withStates: !former && !readOnly,
-        positions: positions.data?.items ?? [],
-        workplaces: workplaces.data?.items ?? [],
+        positions: positions.isError ? [] : positions.data?.items,
+        workplaces: workplaces.isError ? [] : workplaces.data?.items,
         // One workplace filters nothing; while they load, a chosen one is still read.
         withWorkplaces: workplaceCount > 1 || (workplaces.isPending && Boolean(search.workplace)),
       }),
@@ -124,7 +122,9 @@ export function EmployeesPage() {
       former,
       readOnly,
       positions.data,
+      positions.isError,
       workplaces.data,
+      workplaces.isError,
       workplaceCount,
       workplaces.isPending,
       search.workplace,
@@ -199,6 +199,7 @@ export function EmployeesPage() {
                 data-testid={tab.testId}
                 active={tab.status === status}
                 replace
+                resetScroll={false}
               >
                 {tab.label}
               </FilterTab>
@@ -285,28 +286,13 @@ export function EmployeesPage() {
             })
           }
           error={
-            <>
-              <p data-testid="employees-error" role="alert" className="text-sm">
-                {employees.error instanceof ApiHttpError && employees.error.status === 401
-                  ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                  : employees.error instanceof ApiHttpError && employees.error.status === 403
-                    ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
-                    : employees.error instanceof ApiHttpError && employees.error.status === 404
-                      ? 'Clientul nu mai există în organizația ta.'
-                      : 'Nu am putut încărca lista lucrătorilor. Încearcă din nou.'}
-              </p>
-              {apiRequest.baseUrl && (
-                <Button
-                  data-testid="employees-retry"
-                  variant="outline"
-                  className="mt-4"
-                  disabled={employees.isFetching}
-                  onClick={() => void employees.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              )}
-            </>
+            <WorkersListError
+              error={employees.error}
+              testId="employees"
+              notFound="Clientul nu mai există în organizația ta."
+              onRetry={apiRequest.baseUrl ? () => void employees.refetch() : undefined}
+              retrying={employees.isFetching}
+            />
           }
           empty={
             narrowed ? (

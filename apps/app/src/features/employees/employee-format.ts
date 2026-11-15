@@ -32,6 +32,9 @@ export function roCount(value: number, one: string, many: string) {
 
 export const workerNoun = (count: number) => roCount(count, 'lucrător', 'lucrători');
 
+export const pendingWorkersLabel = (total: number | undefined) =>
+  total === undefined ? 'Arată rezultatele' : `Arată ${workerNoun(total)}`;
+
 export function formatTenure(fromIso: string, toIso: string) {
   const [fromYear = 0, fromMonth = 0, fromDay = 0] = fromIso.split('-').map(Number);
   const [toYear = 0, toMonth = 0, toDay = 0] = toIso.split('-').map(Number);

@@ -107,6 +107,7 @@ export function fromLegacyWorkerFilters<Search extends LegacyWorkerFilters>({
     mapped.ssmTraining = ['current'];
     mapped.suTraining = ['current'];
   } else if (trainingState === 'due') mapped.attention = ['trainingDue'];
+  // Untrained or overdue in either domain has no facet of its own; to train is the nearest wider one.
   else if (trainingState) mapped.attention = ['toTrain'];
   if (testState) mapped.test = [testState];
   // Named as undefined: a navigation keeps every key the address had, so a key left out would
@@ -205,8 +206,8 @@ export function clientWorkerFacets({
   withWorkplaces,
 }: {
   withStates: boolean;
-  positions: readonly Named[];
-  workplaces: readonly Named[];
+  positions: readonly Named[] | undefined;
+  workplaces: readonly Named[] | undefined;
   withWorkplaces: boolean;
 }): ListFilterFacet<WorkerFilterKey>[] {
   return [
@@ -217,8 +218,9 @@ export function clientWorkerFacets({
       label: 'Post de lucru',
       icon: Briefcase,
       column: 'right',
-      options: namedOptions(positions),
+      options: namedOptions(positions ?? []),
       search: { placeholder: 'Caută postul', addLabel: 'Adaugă un post' },
+      loading: positions === undefined,
     },
     ...(withWorkplaces
       ? [
@@ -227,7 +229,8 @@ export function clientWorkerFacets({
             label: 'Punct de lucru',
             icon: MapPin,
             column: 'right',
-            options: namedOptions(workplaces),
+            options: namedOptions(workplaces ?? []),
+            loading: workplaces === undefined,
           } as const,
         ]
       : []),
@@ -239,7 +242,7 @@ export function organizationWorkerFacets({
   clients,
 }: {
   withStates: boolean;
-  clients: readonly Named[];
+  clients: readonly Named[] | undefined;
 }): ListFilterFacet<WorkerFilterKey>[] {
   return [
     ...(withStates ? trainingFacets : []),
@@ -249,8 +252,9 @@ export function organizationWorkerFacets({
       label: 'Client',
       icon: Building2,
       column: 'right',
-      options: namedOptions(clients),
+      options: namedOptions(clients ?? []),
       search: { placeholder: 'Caută clientul', addLabel: 'Adaugă un client' },
+      loading: clients === undefined,
     },
   ];
 }

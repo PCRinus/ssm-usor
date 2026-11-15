@@ -11,7 +11,6 @@ import {
   type ListOrganizationEmployeesParams,
   useListOrganizationEmployees,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -24,7 +23,7 @@ import { listFilterSearch } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
 
-import { employeeStatusLabels, workerNoun } from './employee-format';
+import { employeeStatusLabels, pendingWorkersLabel, workerNoun } from './employee-format';
 import {
   formerOrganizationEmployeeColumns,
   organizationEmployeeColumns,
@@ -35,7 +34,7 @@ import {
   organizationWorkerFilterKeys,
   useEveryClient,
 } from './worker-filters';
-import { WorkersCount, WorkersNoMatch } from './workers-list';
+import { WorkersCount, WorkersListError, WorkersNoMatch } from './workers-list';
 
 const route = getRouteApi('/_authenticated/angajati/');
 
@@ -73,7 +72,7 @@ function PendingEmployeesLabel({ params }: { params: ListOrganizationEmployeesPa
       placeholderData: keepPreviousData,
     },
   }).data?.total;
-  return total === undefined ? 'Arată rezultatele' : `Arată ${workerNoun(total)}`;
+  return pendingWorkersLabel(total);
 }
 
 export function OrganizationEmployeesPage() {
@@ -86,8 +85,12 @@ export function OrganizationEmployeesPage() {
   const phone = useIsMobile();
   const clients = useEveryClient(session?.user.id);
   const facets = useMemo(
-    () => organizationWorkerFacets({ withStates: !former, clients: clients.data ?? [] }),
-    [former, clients.data]
+    () =>
+      organizationWorkerFacets({
+        withStates: !former,
+        clients: clients.isError ? [] : clients.data,
+      }),
+    [former, clients.data, clients.isError]
   );
   const listFilters = listFilterSearch({ keys: organizationWorkerFilterKeys, facets, search });
   const filters = listFilters.searchOf(listFilters.values) as Filters;
@@ -139,6 +142,7 @@ export function OrganizationEmployeesPage() {
                 data-testid={tab.testId}
                 active={tab.status === status}
                 replace
+                resetScroll={false}
               >
                 {tab.label}
               </FilterTab>
@@ -223,26 +227,12 @@ export function OrganizationEmployeesPage() {
             void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
           }
           error={
-            <>
-              <p data-testid="organization-employees-error" role="alert" className="text-sm">
-                {employees.error instanceof ApiHttpError && employees.error.status === 401
-                  ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                  : employees.error instanceof ApiHttpError && employees.error.status === 403
-                    ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
-                    : 'Nu am putut încărca lista lucrătorilor. Încearcă din nou.'}
-              </p>
-              {apiRequest.baseUrl && (
-                <Button
-                  data-testid="organization-employees-retry"
-                  variant="outline"
-                  className="mt-4"
-                  disabled={employees.isFetching}
-                  onClick={() => void employees.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              )}
-            </>
+            <WorkersListError
+              error={employees.error}
+              testId="organization-employees"
+              onRetry={apiRequest.baseUrl ? () => void employees.refetch() : undefined}
+              retrying={employees.isFetching}
+            />
           }
           empty={
             narrowed ? (

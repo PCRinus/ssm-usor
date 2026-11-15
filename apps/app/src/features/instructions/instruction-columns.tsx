@@ -11,6 +11,7 @@ import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
@@ -67,9 +68,9 @@ export function instructionColumns({
             <span data-testid="instruction-version">
               {`v${version.number} · ${articleCountLabel(version.articleCount).toLowerCase()}`}
             </span>
-            <span className="mt-0.5 block text-xs tabular-nums">
+            <CellNote className="tabular-nums">
               {`din ${formatRoDate(version.createdAt.slice(0, 10))}`}
-            </span>
+            </CellNote>
           </>
         );
       },

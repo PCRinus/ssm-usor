@@ -10,7 +10,11 @@ import { Link } from '@tanstack/react-router';
 
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
-import { createDataTableColumns } from '@/components/data-table/columns';
+import {
+  createDataTableColumns,
+  narrowHeader,
+  twoLineHeader,
+} from '@/components/data-table/columns';
 import { TestStatesLine } from '@/features/knowledge-tests/test-state-badge';
 import { TrainingStateCell } from '@/features/trainings/training-state-badge';
 
@@ -29,11 +33,6 @@ interface WorkerRow {
   tests: Record<TrainingDomain, { state: TestState | null }>;
   signaturesPending: number;
 }
-
-const narrow = 'w-px';
-const twoLines = (text: string) => () => (
-  <span className="whitespace-normal leading-tight">{text}</span>
-);
 
 // Sortable column ids are the API sort keys.
 export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
@@ -69,9 +68,9 @@ export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
     training: trainingDomains.map((domain) =>
       helper.accessor((row) => row.training[domain].state, {
         id: domain === 'ssm' ? 'ssmTraining' : 'suTraining',
-        header: twoLines(`Instruire ${trainingDomainLabels[domain]}`),
+        header: twoLineHeader(`Instruire ${trainingDomainLabels[domain]}`),
         enableSorting: true,
-        meta: { headerClassName: narrow, skeletonClassName: 'w-20' },
+        meta: { headerClassName: narrowHeader, skeletonClassName: 'w-20' },
         cell: ({ row }) => <TrainingStateCell training={row.original.training} domain={domain} />,
       })
     ),
@@ -97,10 +96,10 @@ export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
     }),
     hiredAt: helper.accessor((row) => row.hiredAt, {
       id: 'hiredAt',
-      header: twoLines('Angajat din'),
+      header: twoLineHeader('Angajat din'),
       enableSorting: true,
       meta: {
-        headerClassName: narrow,
+        headerClassName: narrowHeader,
         cellClassName: 'tabular-nums text-muted-foreground',
         skeletonClassName: 'w-24',
       },
@@ -108,9 +107,13 @@ export function workerColumns<TData extends WorkerRow>(testIdPrefix: string) {
     }),
     terminatedAt: helper.accessor((row) => row.terminatedAt, {
       id: 'terminatedAt',
-      header: twoLines('Data încetării'),
+      header: twoLineHeader('Data încetării'),
       enableSorting: true,
-      meta: { headerClassName: narrow, cellClassName: 'tabular-nums', skeletonClassName: 'w-24' },
+      meta: {
+        headerClassName: narrowHeader,
+        cellClassName: 'tabular-nums',
+        skeletonClassName: 'w-24',
+      },
       cell: ({ getValue }) => {
         const terminatedAt = getValue();
         return terminatedAt ? formatDate(terminatedAt) : null;

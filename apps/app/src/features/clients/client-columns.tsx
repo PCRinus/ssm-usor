@@ -13,7 +13,11 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-
 import type { ClientListResponse } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
-import { createDataTableColumns } from '@/components/data-table/columns';
+import {
+  createDataTableColumns,
+  narrowHeader,
+  twoLineHeader,
+} from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
 import type { ClientArchiveChange } from './client-archive-dialog';
@@ -27,10 +31,6 @@ const helper = createDataTableColumns<ClientRow>();
 
 // Every column but the name keeps to its content, and the long headers break into two lines,
 // so the name gets the room: at 1440 px with the sidebar open a long one stays on one line.
-const narrow = 'w-px';
-const twoLines = (text: string) => () => (
-  <span className="whitespace-normal leading-tight">{text}</span>
-);
 
 const numeric = {
   headerClassName: 'w-px text-right',
@@ -45,8 +45,8 @@ function documentationColumn(
 ) {
   return helper.accessor((client) => client[id]?.issuedCount ?? 0, {
     id,
-    header: twoLines(header),
-    meta: { headerClassName: narrow, skeletonClassName: 'w-24' },
+    header: twoLineHeader(header),
+    meta: { headerClassName: narrowHeader, skeletonClassName: 'w-24' },
     cell: ({ row }) => {
       const documentation = row.original[id];
       if (!documentation) return null;
@@ -118,13 +118,17 @@ export function clientColumns({
     helper.accessor((client) => client.training?.attentionCount ?? 0, {
       id: 'training',
       header: 'Instruire',
-      meta: { headerClassName: narrow, skeletonClassName: 'w-24' },
+      meta: { headerClassName: narrowHeader, skeletonClassName: 'w-24' },
       cell: ({ row }) => <TrainingCell client={row.original} />,
     }),
     helper.accessor((client) => client.training?.nextDueOn ?? null, {
       id: 'nextTrainingDueOn',
-      header: twoLines('Următorul termen'),
-      meta: { headerClassName: narrow, cellClassName: 'tabular-nums', skeletonClassName: 'w-20' },
+      header: twoLineHeader('Următorul termen'),
+      meta: {
+        headerClassName: narrowHeader,
+        cellClassName: 'tabular-nums',
+        skeletonClassName: 'w-20',
+      },
       cell: ({ getValue }) => {
         const nextDueOn = getValue();
         return nextDueOn ? (
@@ -139,7 +143,7 @@ export function clientColumns({
       header: 'Adăugat',
       sortDescFirst: true,
       meta: {
-        headerClassName: narrow,
+        headerClassName: narrowHeader,
         cellClassName: 'tabular-nums text-muted-foreground',
         skeletonClassName: 'w-20',
       },

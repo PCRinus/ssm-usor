@@ -128,7 +128,7 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
 
   await page.goto(`/clienti/${clientId}/angajati`);
   const row = page.getByTestId('employees-row').filter({ hasText: 'Testatu Ion' });
-  await expect(row.getByTestId('test-status')).toHaveText('La zi');
+  await expect(row.getByTestId('test-status')).toHaveText('SU: fără test');
 
   await page.getByTestId('employees-filters').click();
   const panel = page.getByTestId('employees-filters-panel');

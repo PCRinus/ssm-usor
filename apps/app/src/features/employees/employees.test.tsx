@@ -454,6 +454,49 @@ describe('client employees list', () => {
     });
   });
 
+  it('keeps the scroll where it was when a tab, a filter or the sort changes', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    vi.mocked(window.scrollTo).mockClear();
+    await user.click(screen.getByTestId('employees-filter-terminated'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ status: 'terminated' })
+    );
+    await screen.findByTestId('employees-row');
+    await user.click(screen.getByTestId('employees-filters'));
+    await user.click(await screen.findByTestId('employees-filters-attention-noPhone'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.searchStr).toBe('?status=terminated&attention=noPhone')
+    );
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByTestId('sort-hiredAt'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toMatchObject({ sort: 'hiredAt' })
+    );
+    await user.click(screen.getByTestId('employees-filter-current'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('reads no filter its list does not offer, so every one applied is named', async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(
+      authFixture(makeSession()).client,
+      `${employeesPage}?status=terminated&attention=toTrain&ssmTraining=overdue&jobPosition=${newPositionId}`
+    );
+    await screen.findByTestId('employees-row');
+    await waitFor(() => {
+      const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+      expect(sent.has('attention')).toBe(false);
+      expect(sent.has('ssmTraining')).toBe(false);
+      expect(sent.has('jobPosition')).toBe(false);
+    });
+    expect(screen.queryByTestId('employees-applied-filters')).toBeNull();
+    expect(screen.getByTestId('employees-count').textContent).toBe('1 lucrător');
+  });
+
   it('offers no workplace filter to a client with one workplace', async () => {
     mockApi({
       list: () => Response.json(page([sampleEmployee])),
