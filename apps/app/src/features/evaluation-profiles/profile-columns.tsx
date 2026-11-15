@@ -7,11 +7,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { CellBadge } from '@/components/data-table/cell-badge';
 import { CellEmpty } from '@/components/data-table/cell-note';
 import { createDataTableColumns, type DataTableColumnMeta } from '@/components/data-table/columns';
 import { formatGlobalLevel } from '@/features/risk-evaluations/risk-evaluation-schema';
@@ -68,13 +68,12 @@ export function profileColumns({
       meta: numeric,
       cell: ({ getValue }) => {
         const count = getValue();
-        return (
-          <span
-            data-testid="risk-profile-unacceptable"
-            className={cn(count > 0 && 'font-medium text-destructive-foreground')}
-          >
+        return count > 0 ? (
+          <CellBadge tone="destructive" data-testid="risk-profile-unacceptable">
             {count}
-          </span>
+          </CellBadge>
+        ) : (
+          <span data-testid="risk-profile-unacceptable">{count}</span>
         );
       },
     }),
@@ -86,15 +85,12 @@ export function profileColumns({
       cell: ({ getValue }) => {
         const level = getValue();
         if (level === null) return <CellEmpty data-testid="risk-profile-level" />;
-        return (
-          <span
-            data-testid="risk-profile-level"
-            className={cn(
-              isOverAcceptableLimit(level) && 'font-medium text-destructive-foreground'
-            )}
-          >
+        return isOverAcceptableLimit(level) ? (
+          <CellBadge tone="destructive" data-testid="risk-profile-level">
             {formatGlobalLevel(level)}
-          </span>
+          </CellBadge>
+        ) : (
+          <span data-testid="risk-profile-level">{formatGlobalLevel(level)}</span>
         );
       },
     }),

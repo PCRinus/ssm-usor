@@ -186,6 +186,7 @@ describe("a client's job positions", () => {
     );
     const toTrain = within(first!).getByTestId('job-position-to-train');
     expect(toTrain.textContent).toBe('1 de instruit');
+    expect(toTrain.dataset.variant).toBe('destructive');
     expect(screen.getByRole('link', { name: '1 de instruit pe postul Barman preparator' })).toBe(
       toTrain
     );

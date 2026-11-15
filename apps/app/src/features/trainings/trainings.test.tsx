@@ -1457,7 +1457,9 @@ describe('test state in the employee lists', () => {
     const second = within(rows[1]!).getByTestId('test-status');
     expect(second.textContent).toBe('SU: anual scadent');
     expect(second.dataset.state).toBe('annual_due');
+    expect(second.dataset.slot).toBe('badge');
     expect(within(rows[2]!).getByTestId('test-status').textContent).toBe('De susținut');
+    expect(within(rows[2]!).getByTestId('test-status').dataset.slot).toBe('badge');
 
     await user.click(screen.getByTestId('employees-filters'));
     const panel = await screen.findByTestId('employees-filters-panel');
@@ -1766,6 +1768,7 @@ describe('the trainings list', () => {
     await waitFor(() => expect(runtime.router.state.location.search).toMatchObject({ page: 2 }));
     expect(screen.getByTestId('trainings-open').getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByTestId('trainings-signatures').textContent).toBe('2 de semnat');
+    expect(screen.getByTestId('trainings-signatures').dataset.slot).toBe('badge');
     expect(
       within(details)
         .getAllByTestId('training-details-slot')

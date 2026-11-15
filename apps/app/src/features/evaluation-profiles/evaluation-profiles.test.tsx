@@ -387,6 +387,8 @@ describe('the risk library', () => {
       ].map((testId) => within(row).getByTestId(testId).textContent);
     expect(cells(rows[0]!)).toEqual(['2', '1', '3,33', '3 clienți']);
     expect(cells(rows[1]!)).toEqual(['0', '0', '—', '—']);
+    expect(within(rows[0]!).getByTestId('risk-profile-unacceptable').dataset.slot).toBe('badge');
+    expect(within(rows[1]!).getByTestId('risk-profile-unacceptable').dataset.slot).toBeUndefined();
     expect(screen.getByRole('columnheader', { name: 'Folosită la' })).toBeTruthy();
     expect(screen.getByTestId('risk-library-count').textContent).toBe('2 evaluări');
     expect(screen.getByTestId('risk-library-filter-active').getAttribute('aria-current')).toBe(

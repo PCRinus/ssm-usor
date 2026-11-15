@@ -1,9 +1,10 @@
 import type { ClientTraining } from '@ssm-usor/contracts';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { Check, CircleAlert, Clock } from 'lucide-react';
+import { Check } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { openedHere } from '@/app/opener';
+import { CellBadge } from '@/components/data-table/cell-badge';
 import { CellEmpty } from '@/components/data-table/cell-note';
 import { roCount } from '@/features/employees/employee-format';
 
@@ -30,23 +31,7 @@ export function TrainingCell({ client }: { client: ClientRow }) {
     return <CellEmpty />;
   }
   const { state, search } = trainingLink(training);
-  const [Icon, label, tone, iconTone] =
-    training.attentionCount > 0
-      ? [
-          CircleAlert,
-          `${training.attentionCount} de instruit`,
-          'font-medium text-destructive-foreground',
-          'text-destructive',
-        ]
-      : training.dueCount > 0
-        ? [
-            Clock,
-            roCount(training.dueCount, 'scadentă', 'scadente'),
-            'font-medium text-warning-foreground',
-            'text-chart-3',
-          ]
-        : [Check, 'La zi', '', 'text-muted-foreground'];
-  return (
+  const link = (label: ReactNode, className?: string) => (
     <Link
       to="/clienti/$clientId/angajati"
       params={{ clientId: client.id }}
@@ -54,10 +39,31 @@ export function TrainingCell({ client }: { client: ClientRow }) {
       state={openedHere}
       data-testid="clients-training"
       data-state={state}
-      className={cn('inline-flex items-center gap-1.5 tabular-nums hover:underline', tone)}
+      className={className}
     >
-      <Icon className={cn('size-4', iconTone)} aria-hidden="true" />
       {label}
     </Link>
+  );
+  if (state === 'current') {
+    return link(
+      <>
+        <Check className="size-4 text-muted-foreground" aria-hidden="true" />
+        La zi
+      </>,
+      'inline-flex items-center gap-1.5 hover:underline'
+    );
+  }
+  return (
+    <CellBadge
+      asChild
+      tone={state === 'attention' ? 'destructive' : 'warning'}
+      className="tabular-nums"
+    >
+      {link(
+        state === 'attention'
+          ? `${training.attentionCount} de instruit`
+          : roCount(training.dueCount, 'scadentă', 'scadente')
+      )}
+    </CellBadge>
   );
 }

@@ -142,7 +142,7 @@ function Details({
                   ) : (
                     <Masked>{slot.name}</Masked>
                   )}{' '}
-                  <span className="text-muted-foreground">{slot.role}</span>
+                  {slot.role}
                 </>
               }
               state={

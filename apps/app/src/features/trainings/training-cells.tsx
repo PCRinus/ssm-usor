@@ -8,10 +8,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
-import { cn } from '@ssm-usor/ui/lib/utils';
-import { Lock, MoreHorizontal, Pencil, PenLine, Trash2 } from 'lucide-react';
+import { Lock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { CellBadge } from '@/components/data-table/cell-badge';
 import { CellNote } from '@/components/data-table/cell-note';
 import { Masked } from '@/components/replay';
 import type { trainingLocks } from '@/features/signatures/use-record-signatures';
@@ -41,16 +41,19 @@ export function SignatureState({
   label: string;
   testId?: string;
 }) {
+  if (state === 'pending') {
+    return (
+      <CellBadge tone="warning" data-testid={testId} data-state={state}>
+        {label}
+      </CellBadge>
+    );
+  }
   return (
     <span
       data-testid={testId}
       data-state={state}
-      className={cn(
-        'inline-flex items-center gap-1.5 whitespace-nowrap',
-        state === 'pending' && 'font-medium text-warning-foreground'
-      )}
+      className="inline-flex items-center gap-1.5 whitespace-nowrap"
     >
-      {state === 'pending' && <PenLine aria-hidden="true" className="size-3.5 shrink-0" />}
       {state === 'electronic' && (
         <Lock aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
       )}

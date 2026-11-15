@@ -10,6 +10,7 @@ import { Link } from '@tanstack/react-router';
 import { ChevronRight, MoreHorizontal } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { CellBadge } from '@/components/data-table/cell-badge';
 
 import { DecisionBadge } from './decision-badge';
 import { employeeCountLabel, type JobPosition } from './job-position-schema';
@@ -43,17 +44,18 @@ export function WorkersCell({
         {employeeCountLabel(position.employeeCount)}
       </Link>
       {toTrain > 0 && (
-        <Link
-          to="/clienti/$clientId/angajati"
-          params={{ clientId }}
-          search={{ jobPosition: [position.id], attention: ['toTrain'] }}
-          state={openedHere}
-          aria-label={`${toTrain} de instruit pe postul ${position.name}`}
-          data-testid="job-position-to-train"
-          className="mt-1.5 block text-xs font-medium text-destructive tabular-nums hover:underline"
-        >
-          {toTrain} de instruit
-        </Link>
+        <CellBadge asChild tone="destructive" note className="tabular-nums">
+          <Link
+            to="/clienti/$clientId/angajati"
+            params={{ clientId }}
+            search={{ jobPosition: [position.id], attention: ['toTrain'] }}
+            state={openedHere}
+            aria-label={`${toTrain} de instruit pe postul ${position.name}`}
+            data-testid="job-position-to-train"
+          >
+            {toTrain} de instruit
+          </Link>
+        </CellBadge>
       )}
     </>
   );

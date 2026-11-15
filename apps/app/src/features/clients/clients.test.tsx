@@ -402,6 +402,10 @@ describe('clients list', () => {
     expect(within(current!).getByTestId('clients-training').textContent).toBe('La zi');
     expect(within(current!).getByText('14.02.2027')).toBeTruthy();
     expect(within(empty!).queryByTestId('clients-training')).toBeNull();
+    const variants = [untrained, due, current].map(
+      (row) => within(row!).getByTestId('clients-training').dataset.variant ?? null
+    );
+    expect(variants).toEqual(['destructive', 'outline', null]);
     expect(within(untrained!).getByTestId('clients-training').getAttribute('href')).toBe(
       '/clienti/a1/angajati?attention=toTrain'
     );

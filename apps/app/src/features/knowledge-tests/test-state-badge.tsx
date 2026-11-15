@@ -41,12 +41,6 @@ export function TestStateBadge({ state, testId }: { state: TestState; testId?: s
 // unasked, as it is a fire-safety test alone.
 const pressing = ['annual_due', 'pending', 'unverified'] as const satisfies readonly TestState[];
 
-const lineTones: Record<(typeof pressing)[number], string> = {
-  annual_due: 'font-medium text-destructive-foreground',
-  pending: 'font-medium text-warning-foreground',
-  unverified: 'text-foreground',
-};
-
 export function TestStatesLine({
   tests,
 }: {
@@ -54,15 +48,28 @@ export function TestStatesLine({
 }) {
   const states = trainingDomains.map((domain) => tests[domain].state);
   const state = pressing.find((each) => states.includes(each));
+  if (state === 'unverified') {
+    return (
+      <span data-testid="test-status" data-state={state}>
+        {testStateLabels[state]}
+      </span>
+    );
+  }
   if (state) {
     const label = testStateLabels[state];
     const domains = trainingDomains.filter((domain) => tests[domain].state === state);
+    const badge = stateBadges[state];
     return (
-      <span className={lineTones[state]} data-testid="test-status" data-state={state}>
+      <Badge
+        variant={badge.variant}
+        className={badge.className}
+        data-testid="test-status"
+        data-state={state}
+      >
         {state === 'annual_due'
           ? `${domains.map((domain) => trainingDomainLabels[domain]).join(', ')}: ${label.toLowerCase()}`
           : label}
-      </span>
+      </Badge>
     );
   }
   if (states.every((each) => each === 'passed')) {

@@ -63,12 +63,12 @@ Deasupra listei vezi câți clienți are. Când cauți sau filtrezi, vezi câți
 
 Coloana **Instruire** adună starea instruirii tuturor lucrătorilor actuali ai clientului, la SSM și la SU (vezi [Starea instruirii](/clienti/angajati/#starea-instruirii)):
 
-- în roșu, **de instruit**: câți lucrători sunt neinstruiți sau au instruirea depășită, în cel puțin unul dintre domenii;
-- în galben, **scadente**: câți lucrători au instruirea scadentă în următoarele 30 de zile, când niciunul nu e de instruit;
+- pe o etichetă roșie, **de instruit**: câți lucrători sunt neinstruiți sau au instruirea depășită, în cel puțin unul dintre domenii;
+- pe o etichetă galbenă, **scadente**: câți lucrători au instruirea scadentă în următoarele 30 de zile, când niciunul nu e de instruit;
 - **La zi**: toți lucrătorii actuali sunt la zi în ambele domenii;
 - o liniuță: clientul nu are lucrători actuali, sau e arhivat.
 
-Un clic pe această valoare deschide lista lucrătorilor clientului, filtrată exact pe lucrătorii numărați (vezi [Filtrele](/clienti/angajati/#filtrele)).
+Un clic pe etichetă sau pe **La zi** deschide lista lucrătorilor clientului, filtrată exact pe lucrătorii numărați (vezi [Filtrele](/clienti/angajati/#filtrele)).
 
 Ordonată după **Instruire**, lista arată întâi clienții cu lucrători de instruit, apoi pe cei cu instruiri scadente, apoi pe cei la zi și la sfârșit clienții fără lucrători. Ordonată după **Următorul termen**, clienții fără termen ajung mereu la sfârșit.
 
@@ -157,10 +157,10 @@ O ofertă e o firmă cu care discuți și care nu e încă client. Le găsești 
 - **Contract**: unde a ajuns contractul de prestări servicii: **Fără contract**, **Ciornă**, **Emis**, **Trimis**, **Primit** sau **Semnat**. Sub stare vezi ziua în care contractul a ajuns acolo: ziua în care l-ai emis, ziua în care l-ai trimis ultima dată, ziua în care firma a încărcat copia semnată sau ziua în care ai confirmat-o;
 - **Adăugat**: ziua în care ai adăugat oferta.
 
-Două lucruri apar în galben, pentru că așteaptă ceva de la tine:
+Două lucruri apar pe o etichetă galbenă, pentru că așteaptă ceva de la tine:
 
 - **Primit**: firma a încărcat copia semnată prin linkul din emailul cu contractul, iar copia așteaptă să o confirmi pe pagina ofertei;
-- „link expirat”, lângă data unui contract **Trimis**: linkul din email e valabil 60 de zile de la trimitere, iar după ele firma nu mai poate încărca copia semnată. Trimite contractul din nou ca să primească un link nou.
+- **Link expirat**, lângă starea unui contract **Trimis**: linkul din email e valabil 60 de zile de la trimitere, iar după ele firma nu mai poate încărca copia semnată. Trimite contractul din nou ca să primească un link nou.
 
 Lista e ordonată după denumire și împărțită pe pagini. O poți ordona și după **Lucrători**, după **Contract**, în ordinea stărilor de mai sus, și după **Adăugat**. Un clic pe rând deschide oferta. Din meniul de la capătul rândului ajungi la **Modifică**, **Transformă în client…** și **Arhivează…**.
 

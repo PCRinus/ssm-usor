@@ -1,6 +1,7 @@
 import type { ServiceContractState } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 
+import { CellBadge } from '@/components/data-table/cell-badge';
 import { CellNote } from '@/components/data-table/cell-note';
 import { useTimeReached } from '@/features/participants/use-time-reached';
 import { formatRoDateOf } from '@/lib/dates';
@@ -30,9 +31,9 @@ const contractStateBadges: Record<
 function ExpiredLink({ expiresAt }: { expiresAt: string }) {
   if (!useTimeReached(expiresAt)) return null;
   return (
-    <>
-      , <span className="font-medium text-warning-foreground">link expirat</span>
-    </>
+    <CellBadge tone="warning" className="ml-1" data-testid="leads-contract-expired">
+      Link expirat
+    </CellBadge>
   );
 }
 
@@ -54,10 +55,10 @@ export function LeadContractCell({ lead }: { lead: ClientRow }) {
       >
         {contractStateLabels[state]}
       </Badge>
+      {state === 'sent' && expiresAt && <ExpiredLink expiresAt={expiresAt} />}
       {at && (
         <CellNote data-testid="leads-contract-date" className="tabular-nums whitespace-normal">
           {formatRoDateOf(at)}
-          {state === 'sent' && expiresAt && <ExpiredLink expiresAt={expiresAt} />}
         </CellNote>
       )}
     </>

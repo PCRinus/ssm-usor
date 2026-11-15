@@ -8,6 +8,7 @@ import {
 import { Link } from '@tanstack/react-router';
 
 import { openedHere } from '@/app/opener';
+import { CellBadge } from '@/components/data-table/cell-badge';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatDate, roCount, todayIso } from '@/features/employees/employee-format';
@@ -80,8 +81,6 @@ export function workerTab(row: SignatureRow, worker: SignatureWorker) {
     state: openedHere,
   };
 }
-
-const warning = 'font-medium text-warning-foreground';
 
 function agreementNote(workers: readonly SignatureWorker[]) {
   const unsigned = workers.filter((worker) => !agreementSigned(worker.agreement?.state));
@@ -173,9 +172,14 @@ export const signatureColumns = helper.columns([
           )}
           {signatures !== workers.length && <CellNote>{signatureNoun(signatures)}</CellNote>}
           {note && (
-            <CellNote className={warning} data-testid="signatures-agreement">
+            <CellBadge
+              tone="warning"
+              note
+              className="whitespace-normal"
+              data-testid="signatures-agreement"
+            >
               {note}
-            </CellNote>
+            </CellBadge>
           )}
         </div>
       );

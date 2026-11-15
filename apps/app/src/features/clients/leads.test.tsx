@@ -199,13 +199,7 @@ describe('leads', () => {
     ['issued', '2026-11-10T09:00:00+00:00', null, 'Emis', '10.11.2026'],
     ['received', '2026-11-13T09:00:00+00:00', null, 'Primit', '13.11.2026'],
     ['signed', '2026-11-07T09:00:00+00:00', null, 'Semnat', '07.11.2026'],
-    [
-      'sent',
-      '2026-09-12T09:00:00+00:00',
-      '2026-11-11T09:00:00+00:00',
-      'Trimis',
-      '12.09.2026, link expirat',
-    ],
+    ['sent', '2026-09-12T09:00:00+00:00', '2026-11-11T09:00:00+00:00', 'Trimis', '12.09.2026'],
   ])(
     'says where the contract stands and since when: %s',
     async (state, stateAt, expiresAt, label, date) => {
@@ -227,6 +221,9 @@ describe('leads', () => {
       expect(badge.textContent).toBe(label);
       expect(badge.className.includes('bg-warning')).toBe(state === 'received');
       expect(within(row).queryByTestId('leads-contract-date')?.textContent ?? null).toBe(date);
+      expect(within(row).queryByTestId('leads-contract-expired')?.textContent ?? null).toBe(
+        state === 'sent' ? 'Link expirat' : null
+      );
     }
   );
 
