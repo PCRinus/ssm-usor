@@ -1,5 +1,5 @@
 begin;
-select plan(7);
+select plan(8);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select v.id::uuid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v.email, '', now(), '{"provider":"email"}', '{}', now(), now()
@@ -73,6 +73,7 @@ insert into public.signature_requests (id, organization_id, client_id, training_
   ('9e9e9e9e-0000-4000-8000-000000000010', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', '7a7a7a7a-0000-4000-8000-000000000004', null, 'trainer', 'aaaaaaaa-0000-4000-8000-000000000001', 'signed', '2026-09-16 08:00+00', null, null),
   ('9e9e9e9e-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', null, '75757575-0000-4000-8000-000000000001', 'examiner', 'aaaaaaaa-0000-4000-8000-000000000001', 'pending', '2026-10-15 10:00+00', null, null),
   ('9e9e9e9e-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', null, '75757575-0000-4000-8000-000000000001', 'trainee', null, 'pending', '2026-10-15 10:00+00', null, null),
+  ('9e9e9e9e-0000-4000-8000-000000000013', '11111111-0000-4000-8000-000000000001', 'c1c1c1c1-0000-4000-8000-000000000002', '7a7a7a7a-0000-4000-8000-000000000004', null, 'admitter', 'aaaaaaaa-0000-4000-8000-000000000002', 'pending', '2026-09-20 08:00+00', null, null),
   ('9f9f9f9f-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000002', 'c2c2c2c2-0000-4000-8000-000000000001', '7b7b7b7b-0000-4000-8000-000000000001', null, 'trainer', 'aaaaaaaa-0000-4000-8000-000000000001', 'pending', '2026-10-01 08:00+00', null, null);
 
 set local session_replication_role = origin;
@@ -91,10 +92,10 @@ select results_eq(
      where signer_account_id = 'aaaaaaaa-0000-4000-8000-000000000001'
      order by issued_at $$,
   $$ values
-    ('training', 'Alfa', '2026-10-01', 'introductory_general', array['trainer', 'verifier'], 4, 2, '2026-10-01 08:00+00'::timestamptz),
+    ('training', 'Alfa', '2026-10-01', 'introductory_general', array['trainer', 'verifier', 'admitter'], 5, 2, '2026-10-01 08:00+00'::timestamptz),
     ('training', 'Alfa', '2026-10-10', 'periodic', array['verifier'], 1, 1, '2026-10-11 08:00+00'::timestamptz),
     ('test_sheet', 'Beta', '2026-10-15', 'test', array['examiner'], 1, 1, '2026-10-15 10:00+00'::timestamptz) $$,
-  'a row per training or test sheet with every slot the member holds on it, never the trainee''s or the admitter''s, nor a signed or voided request, nor another organization''s'
+  'a row per training or test sheet with every slot the member holds on it, the admission included, never the trainee''s, nor a signed or voided request, nor another organization''s'
 );
 
 select is(
@@ -104,14 +105,15 @@ select is(
     jsonb_build_object('employeeId', 'e1e1e1e1-0000-4000-8000-000000000001', 'lastName', 'Popescu', 'firstName', 'Ion', 'agreement', null,
       'requests', jsonb_build_array(
         jsonb_build_object('id', '9e9e9e9e-0000-4000-8000-000000000001', 'slot', 'trainer'),
-        jsonb_build_object('id', '9e9e9e9e-0000-4000-8000-000000000002', 'slot', 'verifier'))),
+        jsonb_build_object('id', '9e9e9e9e-0000-4000-8000-000000000002', 'slot', 'verifier'),
+        jsonb_build_object('id', '9e9e9e9e-0000-4000-8000-000000000006', 'slot', 'admitter'))),
     jsonb_build_object('employeeId', 'e1e1e1e1-0000-4000-8000-000000000002', 'lastName', 'Țăranu', 'firstName', 'Ștefan',
       'agreement', jsonb_build_object('state', 'generated', 'employeeSignedAt', '2026-10-03T09:00:00+00:00'::timestamptz, 'employerSignedAt', null),
       'requests', jsonb_build_array(
         jsonb_build_object('id', '9e9e9e9e-0000-4000-8000-000000000003', 'slot', 'trainer'),
         jsonb_build_object('id', '9e9e9e9e-0000-4000-8000-000000000004', 'slot', 'verifier')))
   ),
-  'each worker carries their agreement and the member''s requests on their record'
+  'each worker carries their agreement and the member''s requests on their record, the admission only where the member was chosen for it'
 );
 
 select is(
@@ -129,10 +131,17 @@ select is(
 );
 
 select results_eq(
-  $$ select subject, slots from public.signature_list
-     where signer_account_id = 'aaaaaaaa-0000-4000-8000-000000000002' $$,
-  $$ values ('periodic', array['trainer']) $$,
+  $$ select client_name, subject, slots from public.signature_list
+     where signer_account_id = 'aaaaaaaa-0000-4000-8000-000000000002' order by day $$,
+  $$ values ('Beta', 'periodic', array['admitter']), ('Alfa', 'periodic', array['trainer']) $$,
   'another member''s requests are their own rows'
+);
+
+select results_eq(
+  $$ select slots, signature_count from public.signature_list
+     where signer_account_id = 'aaaaaaaa-0000-4000-8000-000000000002' and id = 'a1a1a1a1-0000-4000-8000-000000000003' $$,
+  $$ values (array['admitter'], 1) $$,
+  'a member chosen to admit to work signs that slot here, and only that one'
 );
 
 select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');

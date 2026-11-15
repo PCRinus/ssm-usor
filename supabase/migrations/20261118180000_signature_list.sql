@@ -1,8 +1,8 @@
 -- The Semnături place lists a member's own pending signatures one row per training, or per test
 -- sheet, with every slot the member holds on it folded into the row. Every level groups by the
 -- signer and the organization, so the list's predicates on both reach the pending signer index
--- and only that member's requests are read. The trainee's slot is signed in the portal and the
--- admitter's on paper, so neither is listed.
+-- and only that member's requests are read. The trainee's slot is signed in the portal, so it is
+-- never listed.
 create view public.signature_list
 with (security_invoker = true)
 as
@@ -21,7 +21,8 @@ select
   array_remove(
     array[
       case when bool_or(w.as_trainer) then 'trainer' end,
-      case when bool_or(w.as_verifier) then 'verifier' end
+      case when bool_or(w.as_verifier) then 'verifier' end,
+      case when bool_or(w.as_admitter) then 'admitter' end
     ],
     null
   ) as slots,
@@ -53,12 +54,13 @@ from (
     rec.employee_id,
     bool_or(r.slot = 'trainer') as as_trainer,
     bool_or(r.slot = 'verifier') as as_verifier,
+    bool_or(r.slot = 'admitter') as as_admitter,
     min(r.issued_at) as issued_at,
     count(*) as request_count,
     jsonb_agg(jsonb_build_object('id', r.id, 'slot', r.slot) order by r.slot) as requests
   from public.signature_requests r
   join public.training_records rec on rec.id = r.training_record_id and rec.client_id = r.client_id
-  where r.state = 'pending' and r.slot in ('trainer', 'verifier')
+  where r.state = 'pending' and r.slot in ('trainer', 'verifier', 'admitter')
   group by r.organization_id, r.signer_account_id, r.client_id, rec.training_id, rec.id
 ) w
 join public.trainings t on t.id = w.training_id and t.client_id = w.client_id
@@ -111,7 +113,7 @@ group by
   c.legal_name, tr.domain, tr.test, tr.taken_on, e.id, a.employee_id;
 
 comment on view public.signature_list is
-  'Each signer''s pending signatures as trainer, verifier or examiner, one row per training or test sheet, for the Semnături place (ADR 021, ADR 023, ADR 024).';
+  'Each signer''s pending signatures as trainer, verifier, admitter or examiner, one row per training or test sheet, for the Semnături place (ADR 021, ADR 023, ADR 024).';
 comment on column public.signature_list.id is
   'The training''s id, or the test sheet''s; unique for one signer, not across signers.';
 comment on column public.signature_list.subject is

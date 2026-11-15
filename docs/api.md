@@ -1791,11 +1791,11 @@ client, with the secret key: a workplace manager signs other employees' admissio
 examiner who is a participant other employees' test sheets. The administrator's list is refused to an employee with `403`.
 
 `GET /me/signatures` is the app's _Semnături_ place: the caller's own pending requests as
-trainer, verifier or examiner in the membership's organization, read from the view
+trainer, verifier, admitter or examiner in the membership's organization, read from the view
 `signature_list` ([data model](data-model.md#the-signatures-list)), one row per training or test
 sheet with `slots`, `issuedAt` (the oldest request), `signatures` and `workers`, each worker with
 their agreement and their requests, so that the app can choose a whole row for a signing session
-without opening it. The trainee's slot and the admitter's are not listed. `sort` is `issuedAt`
+without opening it. The trainee's slot is not listed. `sort` is `issuedAt`
 (the default, ascending), `day` or `client`, the oldest request breaking ties; `client`, `domain`
 and `kind` (a phase or `test`) filter, repeated for several values, and `q` matches every term
 within one worker's name, never a CNP. `total` and `unfilteredTotal` count rows, `signatures` and

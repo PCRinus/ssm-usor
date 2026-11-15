@@ -15542,6 +15542,7 @@ export type SignatureListResponseItemsItemSlotsItem =
 export const SignatureListResponseItemsItemSlotsItem = {
   trainer: 'trainer',
   verifier: 'verifier',
+  admitter: 'admitter',
   examiner: 'examiner',
 } as const;
 
@@ -15579,6 +15580,7 @@ export type SignatureListResponseItemsItemWorkersItemRequestsItemSlot =
 export const SignatureListResponseItemsItemWorkersItemRequestsItemSlot = {
   trainer: 'trainer',
   verifier: 'verifier',
+  admitter: 'admitter',
   examiner: 'examiner',
 } as const;
 
@@ -44015,7 +44017,7 @@ export const getListMySignaturesUrl = (params?: ListMySignaturesParams) => {
 };
 
 /**
- * For the Semnături place: the member's own pending requests as trainer, verifier or examiner in the membership's organization, grouped by training (or test sheet), each row with the member's slots on it and every worker with their requests, so that one row chooses all of them for a signing session. Paged and sorted by the oldest request (`issuedAt`), the day or the client; filtered by client, domain and `kind` (the training's phase, or `test`); `q` matches the workers' names only, never a CNP. `total` counts rows, `signatures` the requests on them, and both have an unfiltered twin.
+ * For the Semnături place: the member's own pending requests as trainer, verifier, admitter or examiner in the membership's organization, grouped by training (or test sheet), each row with the member's slots on it and every worker with their requests, so that one row chooses all of them for a signing session. Paged and sorted by the oldest request (`issuedAt`), the day or the client; filtered by client, domain and `kind` (the training's phase, or `test`); `q` matches the workers' names only, never a CNP. `total` counts rows, `signatures` the requests on them, and both have an unfiltered twin.
  * @summary The signed-in member's pending signatures, one row per training or test sheet
  */
 export const listMySignatures = async (

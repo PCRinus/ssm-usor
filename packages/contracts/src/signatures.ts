@@ -345,11 +345,8 @@ export const clientSignatureRequestsQuerySchema = z.object({
   state: signatureRequestStateSchema.default('pending'),
 });
 
-/**
- * The slots the Semnături place lists: the trainee signs in the portal, and „Admite la lucru” is
- * the workplace manager's, signed on paper.
- */
-export const signatureListSlots = ['trainer', 'verifier', 'examiner'] as const;
+// The slots the Semnături place lists: every one but the trainee's, who signs in the portal.
+export const signatureListSlots = ['trainer', 'verifier', 'admitter', 'examiner'] as const;
 export const signatureListSlotSchema = z.enum(signatureListSlots);
 export type SignatureListSlot = z.infer<typeof signatureListSlotSchema>;
 

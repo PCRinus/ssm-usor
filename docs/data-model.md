@@ -2394,10 +2394,10 @@ client (`CLA01`) and a blank reason or name (`SIG04`, `reason_required` or
 ### The signatures list
 
 The app's _Semnături_ place reads the view `signature_list`: each signer's pending requests as
-`trainer`, `verifier` or `examiner`, one row per training (`kind` `training`, `id` the
-training's) or per test sheet (`test_sheet`, `id` the sheet's), with every slot the signer holds
-on it folded in. The trainee's slot is signed in the portal and the admitter's on paper, so
-neither is listed. A row carries the client and its `client_name`, `domain`, `phase` or `test`,
+`trainer`, `verifier`, `admitter` or `examiner`, one row per training (`kind` `training`, `id`
+the training's) or per test sheet (`test_sheet`, `id` the sheet's), with every slot the signer
+holds on it folded in. The trainee's slot is signed in the portal, so it is never listed; the
+admitter's is listed only when a member was chosen for it. A row carries the client and its `client_name`, `domain`, `phase` or `test`,
 `day` (held or taken on), `subject` (the phase, or `test`), `slots`, `issued_at` (the oldest
 request), `signature_count` (the requests), `worker_count`, `search_names` (as the trainings
 list's) and `workers`, a JSON array of `{ employeeId, lastName, firstName, agreement, requests }`

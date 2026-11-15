@@ -161,7 +161,7 @@ describe('GET /dashboard/summary', () => {
       signer_account_id: `eq.${user.id}`,
       organization_id: `eq.${organizationId}`,
       select: 'id,clients!signature_requests_client_id_fkey!inner(id)',
-      slot: 'in.(trainer,verifier,examiner)',
+      slot: 'in.(trainer,verifier,admitter,examiner)',
       state: 'eq.pending',
     });
   });
