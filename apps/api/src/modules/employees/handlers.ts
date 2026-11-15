@@ -206,26 +206,32 @@ function conflictMessage(detail: string | undefined) {
 const listViewColumns =
   'id, client_id, client_name, last_name, first_name, employee_number, email, phone, job_title, job_position_id, job_position_name, workplace_id, workplace_name, hired_at, status, terminated_at, created_at, updated_at, signatures_pending_count';
 
-type ListViewRow = Pick<
-  Database['public']['Views']['employee_list']['Row'],
+type EmployeeListView = Database['public']['Views']['employee_list']['Row'];
+
+// The generated types make every column of a view nullable; these come from not-null columns of
+// the employee, its client and its post.
+type RequiredListColumn =
   | 'id'
   | 'client_id'
   | 'client_name'
   | 'last_name'
   | 'first_name'
-  | 'employee_number'
-  | 'email'
-  | 'phone'
   | 'job_title'
   | 'job_position_id'
   | 'job_position_name'
-  | 'workplace_id'
-  | 'workplace_name'
   | 'hired_at'
   | 'status'
-  | 'terminated_at'
   | 'created_at'
-  | 'updated_at'
+  | 'updated_at';
+
+type ListViewRow = { [Column in RequiredListColumn]: NonNullable<EmployeeListView[Column]> } & Pick<
+  EmployeeListView,
+  | 'employee_number'
+  | 'email'
+  | 'phone'
+  | 'workplace_id'
+  | 'workplace_name'
+  | 'terminated_at'
   | 'signatures_pending_count'
 >;
 
