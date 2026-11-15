@@ -4917,6 +4917,10 @@
                   "type": "integer",
                   "minimum": 0
                 },
+                "employeesToTrainCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "needsProtectiveEquipment": {
                   "type": "boolean",
                   "nullable": true
@@ -4951,6 +4955,7 @@
                 "activities",
                 "trainingIntervalMonths",
                 "employeeCount",
+                "employeesToTrainCount",
                 "needsProtectiveEquipment",
                 "equipmentCount",
                 "instructionCount",
@@ -5002,6 +5007,10 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "employeesToTrainCount": {
+                "type": "integer",
+                "minimum": 0
+              },
               "needsProtectiveEquipment": {
                 "type": "boolean",
                 "nullable": true
@@ -5036,6 +5045,7 @@
               "activities",
               "trainingIntervalMonths",
               "employeeCount",
+              "employeesToTrainCount",
               "needsProtectiveEquipment",
               "equipmentCount",
               "instructionCount",

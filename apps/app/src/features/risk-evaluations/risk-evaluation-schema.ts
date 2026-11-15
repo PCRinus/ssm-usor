@@ -1,6 +1,7 @@
 import {
   defaultExposure,
   gravityConsequence,
+  isOverAcceptableLimit,
   isUnacceptableRiskLevel,
   maxAcceptableGlobalRiskLevel,
   maxAcceptableRiskLevel,
@@ -99,15 +100,34 @@ export function evaluationTitle(
 ) {
   if (evaluation.kind === 'job_position') return evaluation.jobPosition?.name ?? 'Post de lucru';
   if (evaluation.kind === 'sensitive_groups') return 'Grupuri sensibile';
-  return evaluation.name ?? 'Evaluare';
+  return evaluation.name ?? 'Fără denumire';
 }
 
-export function evaluationStateLabel(
-  summary: Pick<RiskEvaluationSummary, 'factorCount' | 'globalRiskLevel'> | null
-) {
+type EvaluationState = Pick<RiskEvaluationSummary, 'factorCount' | 'globalRiskLevel'> | null;
+
+export const factorsNote = (count: number) =>
+  factorCountLabel(count).toLowerCase().replace(/^un /, '1 ');
+
+export function evaluationLevelLabel(summary: EvaluationState) {
   if (!summary) return 'Neevaluat';
   if (summary.factorCount === 0 || summary.globalRiskLevel === null) return 'Fără factori';
-  return `${factorCountLabel(summary.factorCount).toLowerCase().replace(/^un /, '1 ')} · ${formatGlobalLevel(summary.globalRiskLevel)}`;
+  return `Nivel global ${formatGlobalLevel(summary.globalRiskLevel)}`;
+}
+
+export function evaluationStateLabel(summary: EvaluationState) {
+  const level = evaluationLevelLabel(summary);
+  return summary?.globalRiskLevel != null && summary.factorCount > 0
+    ? `${level} · ${factorsNote(summary.factorCount)}`
+    : level;
+}
+
+export function evaluationNeedsAttention(summary: EvaluationState) {
+  return (
+    !summary ||
+    summary.factorCount === 0 ||
+    summary.globalRiskLevel === null ||
+    isOverAcceptableLimit(summary.globalRiskLevel)
+  );
 }
 
 export interface FactorGroup {

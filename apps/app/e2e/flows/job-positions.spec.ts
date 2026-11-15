@@ -38,7 +38,7 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Sudor');
   await expect(rows.first().getByTestId('job-position-employees')).toHaveText('2 lucrători');
-  await expect(rows.first().getByTestId('job-position-category-badge')).toHaveText('Execuție');
+  await expect(rows.first().getByTestId('job-position-facts')).toHaveText('Execuție');
 
   // A position nobody fills yet.
   await page.getByTestId('job-position-add').click();
@@ -50,16 +50,14 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   await page.getByTestId('job-position-save').click();
   await expect(page.getByText('Postul de lucru a fost adăugat.')).toBeVisible();
   const accountant = rows.filter({ hasText: 'Contabil' });
-  await expect(accountant.getByTestId('job-position-category-badge')).toHaveText(
-    'Tehnico-administrativ'
+  await expect(accountant.getByTestId('job-position-facts')).toHaveText(
+    'Tehnico-administrativ · Birou'
   );
   await expect(accountant.getByTestId('job-position-employees')).toHaveText('Niciun lucrător');
 
   // Both posts still have to decide their equipment and instructions; the list says so, and
   // each state leads to its section of the post's page, below the sticky header.
-  await expect(page.getByTestId('job-positions-undecided-equipment')).toContainText(
-    '2 posturi nu au echipamentul de protecție stabilit'
-  );
+  await expect(page.getByTestId('job-positions-undecided')).toHaveText('De stabilit: 2 posturi');
   await expect(accountant.getByTestId('job-position-equipment')).toHaveText('De stabilit');
   await accountant.getByTestId('job-position-instructions').click();
   await expect(page).toHaveURL(/\/posturi\/[0-9a-f-]+#instructions$/);
@@ -72,9 +70,6 @@ test('a client has the posts its employees fill, and a specialist keeps the list
   const heading = await instructions.getByRole('heading', { level: 2 }).boundingBox();
   expect(heading!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
   await page.getByTestId('job-position-page').getByTestId('page-back').click();
-  await expect(page.getByTestId('job-positions-undecided-fire-instructions')).toContainText(
-    '2 posturi nu au instrucțiunile SU stabilite'
-  );
   await accountant.getByTestId('job-position-fire-instructions').click();
   await expect(page).toHaveURL(/\/posturi\/[0-9a-f-]+#fire-instructions$/);
   await expect(page.getByTestId('fire-instructions-card')).toBeInViewport();

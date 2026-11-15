@@ -3855,6 +3855,8 @@ export type JobPositionListResponseItemsItem = {
   trainingIntervalMonths: number | null;
   /** @minimum 0 */
   employeeCount: number;
+  /** @minimum 0 */
+  employeesToTrainCount: number;
   /** @nullable */
   needsProtectiveEquipment: boolean | null;
   /** @minimum 0 */
@@ -3896,6 +3898,8 @@ export type JobPositionResponseJobPosition = {
   trainingIntervalMonths: number | null;
   /** @minimum 0 */
   employeeCount: number;
+  /** @minimum 0 */
+  employeesToTrainCount: number;
   /** @nullable */
   needsProtectiveEquipment: boolean | null;
   /** @minimum 0 */

@@ -29,6 +29,7 @@ import { EvaluationLink } from './evaluation-link';
 import {
   clientEvaluationsSection,
   evaluationNameSchema,
+  evaluationNeedsAttention,
   evaluationStateLabel,
   evaluationTitle,
   type RiskEvaluationSummary,
@@ -63,7 +64,8 @@ export function ClientRiskEvaluationsCard({
     <SectionCard
       id={clientEvaluationsSection}
       data-testid="client-risk-evaluations-card"
-      title="Fișe de evaluare în afara posturilor"
+      title="Fișe de evaluare a riscurilor în afara posturilor"
+      longTitle
       help="evaluari-de-risc.in-afara-posturilor"
       description="Grupurile sensibile la riscuri specifice se evaluează ca un post; la fel orice altă categorie de persoane expuse, cum sunt vizitatorii."
       action={
@@ -100,24 +102,25 @@ export function ClientRiskEvaluationsCard({
             </Button>
           }
         >
-          Nu am putut încărca fișele de evaluare ale clientului.
+          Nu am putut încărca fișele de evaluare a riscurilor ale clientului.
         </Notice>
       ) : (
         <ul className="grid divide-y">
           {sensitiveGroups ? (
-            <EvaluationRow evaluation={sensitiveGroups} />
+            <EvaluationRow evaluation={sensitiveGroups} readOnly={readOnly} />
           ) : (
             <SensitiveGroupsRow
               state={evaluations.data.sensitiveGroupsState}
               busy={pending || groupsState.pending}
               starting={pending}
               actions={!readOnly}
+              readOnly={readOnly}
               onStart={() => void start({ kind: 'sensitive_groups' })}
               onDeclare={(state) => void groupsState.declare(state)}
             />
           )}
           {others.map((evaluation) => (
-            <EvaluationRow key={evaluation.id} evaluation={evaluation} />
+            <EvaluationRow key={evaluation.id} evaluation={evaluation} readOnly={readOnly} />
           ))}
         </ul>
       )}
@@ -131,6 +134,7 @@ function SensitiveGroupsRow({
   busy,
   starting,
   actions,
+  readOnly,
   onStart,
   onDeclare,
 }: {
@@ -138,6 +142,7 @@ function SensitiveGroupsRow({
   busy: boolean;
   starting: boolean;
   actions: boolean;
+  readOnly: boolean;
   onStart: () => void;
   onDeclare: (state: 'none' | 'undecided') => void;
 }) {
@@ -151,7 +156,11 @@ function SensitiveGroupsRow({
           : 'Femei gravide, lăuze sau care alăptează, tineri sub 18 ani, persoane cu dizabilități.'
       }
       state={
-        <DecisionBadge decision={declared ? false : null} data-testid="sensitive-groups-state">
+        <DecisionBadge
+          decision={declared ? false : null}
+          readOnly={readOnly}
+          data-testid="sensitive-groups-state"
+        >
           {declared ? 'Declarat fără grupuri sensibile' : 'Neevaluat'}
         </DecisionBadge>
       }
@@ -229,7 +238,13 @@ function Row({
   );
 }
 
-function EvaluationRow({ evaluation }: { evaluation: RiskEvaluationSummary }) {
+function EvaluationRow({
+  evaluation,
+  readOnly,
+}: {
+  evaluation: RiskEvaluationSummary;
+  readOnly: boolean;
+}) {
   return (
     <Row
       title={
@@ -242,7 +257,11 @@ function EvaluationRow({ evaluation }: { evaluation: RiskEvaluationSummary }) {
         </EvaluationLink>
       }
       state={
-        <DecisionBadge asChild decision={evaluation.factorCount > 0 || null}>
+        <DecisionBadge
+          asChild
+          decision={!evaluationNeedsAttention(evaluation) || null}
+          readOnly={readOnly}
+        >
           <EvaluationLink evaluation={evaluation} data-testid="client-risk-evaluation-state">
             {evaluationStateLabel(evaluation)}
             <ChevronRight aria-hidden="true" />
@@ -296,7 +315,7 @@ function AddEvaluationForm({ clientId, onClose }: { clientId: string; onClose: (
         noValidate
       >
         <DialogHeader>
-          <DialogTitle>Adaugă o fișă de evaluare</DialogTitle>
+          <DialogTitle>Adaugă o fișă de evaluare a riscurilor</DialogTitle>
           <DialogDescription>
             Pentru persoane expuse care nu ocupă un post al clientului. Grupurile sensibile au fișa
             lor.

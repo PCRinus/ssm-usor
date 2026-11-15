@@ -56,7 +56,10 @@ const instructionsHelp = {
   label: 'Ajutor: Instrucțiuni proprii',
 } as const;
 
-const risksHelp = { topic: 'import.evaluari-de-risc', label: 'Ajutor: Evaluări de risc' } as const;
+const risksHelp = {
+  topic: 'import.evaluari-de-risc',
+  label: 'Ajutor: evaluările de risc din import',
+} as const;
 
 function stepOf(importId: string, part: ImportLibraryPart, now: number): Step {
   if (isRisksLibraryPart(part)) {

@@ -42,7 +42,7 @@ const sectionLinks = [
   { hash: positionSections.equipment, label: 'Echipament de protecție' },
   { hash: positionSections.instructions, label: 'Instrucțiuni SSM' },
   { hash: positionSections.fireInstructions, label: 'Instrucțiuni SU' },
-  { hash: positionSections.riskEvaluation, label: 'Fișa de evaluare' },
+  { hash: positionSections.riskEvaluation, label: 'Fișa de evaluare a riscurilor' },
 ] as const;
 
 export function JobPositionPage() {

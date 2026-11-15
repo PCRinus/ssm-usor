@@ -344,7 +344,7 @@ export const helpTopics = {
   },
   'evaluari-de-risc.evaluare-noua': { path: '/evaluari-de-risc/', anchor: 'o-evaluare-nouă' },
   'evaluari-de-risc.factori': { path: '/evaluari-de-risc/', anchor: 'factorii-de-risc' },
-  'evaluari-de-risc.fisa': { path: '/evaluari-de-risc/', anchor: 'fișa-de-evaluare-a-unui-client' },
+  'evaluari-de-risc.fisa': { path: '/evaluari-de-risc/', anchor: 'fișa-de-evaluare-a-riscurilor' },
   'evaluari-de-risc.grupuri-sensibile': {
     path: '/evaluari-de-risc/',
     anchor: 'grupurile-sensibile',

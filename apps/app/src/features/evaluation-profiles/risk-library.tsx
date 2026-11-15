@@ -204,8 +204,8 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
                 title="Nicio evaluare încă"
                 data-testid="risk-library-empty"
               >
-                Salvează fișa de evaluare a unui post de la un client cu „Salvează în bibliotecă”
-                sau pornește o evaluare goală cu „Evaluare nouă”.
+                Salvează fișa de evaluare a riscurilor pentru un post de la un client cu „Salvează
+                în bibliotecă” sau pornește o evaluare goală cu „Evaluare nouă”.
               </EmptyState>
             )
           }

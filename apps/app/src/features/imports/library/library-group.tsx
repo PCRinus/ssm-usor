@@ -227,12 +227,14 @@ export function RisksGroup({ detail }: { detail: ImportDetail }) {
       id="import-risks-heading"
       testId="import-risks-group"
       title="Evaluări de risc"
-      help={<HelpLink topic="import.evaluari-de-risc" label="Ajutor: Evaluări de risc" />}
+      help={
+        <HelpLink topic="import.evaluari-de-risc" label="Ajutor: evaluările de risc din import" />
+      }
       progress={null}
       intro={
         clientConfirmed
-          ? 'Evaluările de risc din pachet, pentru biblioteca ta și pentru posturile clientului. Le confirmi în cel mult 14 zile de la crearea clientului.'
-          : 'Evaluările de risc din pachet, pentru biblioteca ta și pentru posturile clientului. Le poți verifica de acum, dar le confirmi după client: nu te opresc să-l creezi.'
+          ? 'Evaluările de risc din pachet, pentru biblioteca ta și pentru fișele de evaluare a riscurilor ale posturilor clientului. Le confirmi în cel mult 14 zile de la crearea clientului.'
+          : 'Evaluările de risc din pachet, pentru biblioteca ta și pentru fișele de evaluare a riscurilor ale posturilor clientului. Le poți verifica de acum, dar le confirmi după client: nu te opresc să-l creezi.'
       }
       error={query.isError ? 'Nu am putut încărca evaluările de risc. Reîncarcă pagina.' : null}
       pending={query.isPending}

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
+import { toTrainMatch } from '../employees/handlers';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -77,6 +78,7 @@ function mockUpstream(handlers: { clients?: Handler; positions?: Handler } = {})
           {
             id: welderId,
             employees: [{ count: 3 }],
+            to_train: [{ count: 2 }],
             job_position_equipment: [{ count: 2 }],
             instructions: [{ count: 1 }],
             fire_instructions: [{ count: 0 }],
@@ -84,6 +86,7 @@ function mockUpstream(handlers: { clients?: Handler; positions?: Handler } = {})
           {
             id: accountantId,
             employees: [{ count: 0 }],
+            to_train: [{ count: 0 }],
             job_position_equipment: [{ count: 0 }],
             instructions: [{ count: 0 }],
             fire_instructions: [{ count: 0 }],
@@ -157,6 +160,22 @@ describe('GET /clients/{clientId}/job-positions', () => {
       [0, 0],
       [1, 0],
     ]);
+  });
+
+  it('counts the employees to train in each position as the workers list filters them', async () => {
+    mockUpstream();
+    const response = await request(path);
+    const { items } = jobPositionListResponseSchema.parse(await response.json());
+    expect(items.map((item) => [item.name, item.employeesToTrainCount])).toEqual([
+      ['Contabil', 0],
+      ['Sudor', 2],
+    ]);
+
+    const counts = new URL(String(calls('GET')[1]![0])).searchParams;
+    expect(counts.get('select')).toContain('to_train:employee_list(count)');
+    expect(counts.get('to_train.status')).toBe('neq.terminated');
+    expect(counts.get('to_train.archived_at')).toBe('is.null');
+    expect(counts.get('to_train.or')).toBe(`(${toTrainMatch})`);
   });
 
   it('answers 404 for a client of another organization', async () => {

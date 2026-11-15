@@ -313,11 +313,14 @@ const listFilterKeys = [
   'client',
 ] as const satisfies readonly (keyof ListFilters)[];
 
+export const toTrainMatch =
+  'ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue)';
+
 const attentionMatches: Record<EmployeeAttentionFilter, string> = {
   signaturesPending: 'signatures_pending_count.gt.0',
   noPhone: 'phone.is.null',
   noEmail: 'email.is.null',
-  toTrain: 'ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue)',
+  toTrain: toTrainMatch,
   trainingDue: 'ssm_training_state.eq.due,su_training_state.eq.due',
 };
 

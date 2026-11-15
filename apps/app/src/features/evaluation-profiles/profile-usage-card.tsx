@@ -94,7 +94,7 @@ export function ProfileUsageCard({
             </Button>
           }
         >
-          Nu am putut încărca fișele de evaluare care o folosesc.
+          Nu am putut încărca fișele de evaluare a riscurilor care o folosesc.
         </Notice>
       ) : items.length === 0 && inUse ? (
         <p data-testid="risk-profile-usage-archived-only" className="text-sm text-muted-foreground">
@@ -103,8 +103,8 @@ export function ProfileUsageCard({
         </p>
       ) : items.length === 0 ? (
         <p data-testid="risk-profile-usage-empty" className="text-sm text-muted-foreground">
-          Evaluarea nu este folosită încă la niciun client. Deschide fișa de evaluare a unui post și
-          alege „Aplică din bibliotecă”.
+          Evaluarea nu este folosită încă la niciun client. Deschide fișa de evaluare a riscurilor
+          pentru un post și alege „Aplică din bibliotecă”.
         </p>
       ) : (
         <ul className="grid divide-y">

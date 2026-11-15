@@ -9,6 +9,7 @@ import { disposeRuntimes, mountApp } from '@/test/mount';
 
 import { evaluationFailure } from './evaluation-failure';
 import {
+  evaluationLevelLabel,
   evaluationStateLabel,
   factorCountLabel,
   type RiskEvaluation,
@@ -352,10 +353,11 @@ describe('the positions table', () => {
     const rows = await screen.findAllByTestId('job-position-row');
     await waitFor(() => expect(within(rows[0]!).getByTestId('job-position-risk')).toBeTruthy());
     expect(rows.map((row) => within(row).getByTestId('job-position-risk').textContent)).toEqual([
-      '4 factori · 3,86',
-      'Neevaluat',
       'Fără factori',
+      'Neevaluat',
+      'Nivel global 3,86',
     ]);
+    expect(within(rows[2]!).getByTestId('job-position-factors').textContent).toBe('4 factori');
     expect(within(rows[1]!).getByTestId('job-position-risk').getAttribute('href')).toBe(
       `${positionsPage}/${fitter.id}/fisa-de-evaluare`
     );
@@ -371,6 +373,7 @@ describe("a position's risk evaluation card", () => {
     expect(within(card).getByTestId('position-risk-level').textContent).toBe(
       '3,86, peste limita acceptabilă de 3,50'
     );
+    expect(within(card).getByTestId('position-risk-state').className).toContain('bg-warning');
     expect(within(card).getByTestId('position-risk-factors').textContent).toBe('4');
     expect(within(card).getByTestId('position-risk-unacceptable').textContent).toBe('2');
 
@@ -492,7 +495,7 @@ describe("a position's risk evaluation page", () => {
     await screen.findByTestId('risk-evaluation-page');
     expect(screen.queryByTestId('client-page')).toBeNull();
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare · Sudor' })
+      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare a riscurilor · Sudor' })
     ).toBeTruthy();
     expect(screen.getAllByTestId('page-back')).toHaveLength(1);
     expect(
@@ -1229,7 +1232,7 @@ describe("a client's evaluations outside its positions", () => {
     );
     await userEvent.setup().click(await within(card).findByTestId('sensitive-groups-none'));
     expect((await within(card).findByTestId('client-risk-evaluations-error')).textContent).toBe(
-      'Grupurile sensibile au deja o fișă de evaluare; reîncarcă pagina ca s-o vezi.'
+      'Grupurile sensibile au deja o fișă de evaluare a riscurilor; reîncarcă pagina ca s-o vezi.'
     );
   });
 
@@ -1249,7 +1252,10 @@ describe("a client's evaluations outside its positions", () => {
       new RegExp(`^${positionsPage}/fise-de-evaluare/[0-9a-f-]+$`)
     );
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare · Grupuri sensibile' })
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Fișa de evaluare a riscurilor · Grupuri sensibile',
+      })
     ).toBeTruthy();
     expect(screen.getByTestId('page-back').getAttribute('aria-label')).toBe('Înapoi');
   });
@@ -1271,7 +1277,7 @@ describe("a client's evaluations outside its positions", () => {
       expect(requests(evaluationsPath, 'POST')).toEqual([{ kind: 'other', name: 'Vizitatori' }])
     );
     expect((await screen.findByTestId('client-risk-evaluation-name-error')).textContent).toBe(
-      'Clientul are deja o fișă de evaluare cu această denumire.'
+      'Clientul are deja o fișă de evaluare a riscurilor cu această denumire.'
     );
     expect(screen.getByTestId('client-risk-evaluation-dialog')).toBeTruthy();
   });
@@ -1281,7 +1287,7 @@ describe("a client's evaluations outside its positions", () => {
     mount(`${positionsPage}/fise-de-evaluare/${visitors.id}`);
     const card = await screen.findByTestId('work-system-card');
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare · Vizitatori' })
+      screen.getByRole('heading', { level: 1, name: 'Fișa de evaluare a riscurilor · Vizitatori' })
     ).toBeTruthy();
     expect(within(card).getByTestId('work-system-exposed-persons').textContent).toBe(
       'Min. 3 persoane'
@@ -1313,7 +1319,7 @@ describe("a client's evaluations outside its positions", () => {
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: 'Fișa de evaluare · Vizitatori și curieri',
+        name: 'Fișa de evaluare a riscurilor · Vizitatori și curieri',
       })
     ).toBeTruthy();
   });
@@ -1424,14 +1430,19 @@ describe('the factor list', () => {
     ]);
     expect(evaluationStateLabel(null)).toBe('Neevaluat');
     expect(evaluationStateLabel({ factorCount: 0, globalRiskLevel: null })).toBe('Fără factori');
-    expect(evaluationStateLabel({ factorCount: 1, globalRiskLevel: 2 })).toBe('1 factor · 2,00');
+    expect(evaluationStateLabel({ factorCount: 1, globalRiskLevel: 2 })).toBe(
+      'Nivel global 2,00 · 1 factor'
+    );
+    expect(evaluationLevelLabel({ factorCount: 5, globalRiskLevel: 3.919 })).toBe(
+      'Nivel global 3,92'
+    );
   });
 });
 
 describe('a failed change', () => {
   it('is put down to an archived client only when the API says so', () => {
     expect(evaluationFailure(new ApiHttpError(409, { reason: 'client_archived' }), 'Eroare.')).toBe(
-      'Clientul este arhivat; fișele lui de evaluare nu se mai schimbă.'
+      'Clientul este arhivat; fișele lui de evaluare a riscurilor nu se mai schimbă.'
     );
     expect(evaluationFailure(new ApiHttpError(409, { reason: 'other' }), 'Eroare.')).toBe(
       'Eroare.'

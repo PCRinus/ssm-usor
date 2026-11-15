@@ -35,6 +35,7 @@ const barista = {
   activities: 'Prepară și servește înghețată și cafea.',
   trainingIntervalMonths: null as number | null,
   employeeCount: 3,
+  employeesToTrainCount: 1,
   needsProtectiveEquipment: true as boolean | null,
   equipmentCount: 2,
   instructionCount: 0,
@@ -51,11 +52,29 @@ const manager = {
   workZone: 'Birou',
   activities: null,
   employeeCount: 0,
+  employeesToTrainCount: 0,
   needsProtectiveEquipment: null,
   equipmentCount: 0,
   instructionCount: 0,
   fireInstructionCount: 0,
 };
+
+const summaryFor = (
+  position: { id: string; name: string },
+  globalRiskLevel: number | null,
+  factorCount = 5
+) => ({
+  id: `e${position.id.slice(1)}`,
+  clientId,
+  kind: 'job_position',
+  jobPosition: { id: position.id, name: position.name },
+  name: null,
+  globalRiskLevel,
+  factorCount: globalRiskLevel === null ? 0 : factorCount,
+  unacceptableFactorCount: 0,
+  createdAt: '2026-09-20T10:00:00.000Z',
+  updatedAt: '2026-09-20T10:00:00.000Z',
+});
 
 const listPath = `/clients/${clientId}/job-positions`;
 const listPage = `/clienti/${clientId}/posturi`;
@@ -67,6 +86,7 @@ const fetchMock = vi.fn<typeof fetch>();
 function mockApi({
   client = sampleClient,
   items = [barista, manager] as unknown[],
+  evaluations = [] as unknown[],
   create = ((init) =>
     Response.json(
       { jobPosition: { ...manager, ...JSON.parse(String(init?.body)) } },
@@ -84,7 +104,9 @@ function mockApi({
     }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
-    if (pathname === `/clients/${clientId}/risk-evaluations`) return Response.json({ items: [] });
+    if (pathname === `/clients/${clientId}/risk-evaluations`) {
+      return Response.json({ items: evaluations });
+    }
     if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
     if (pathname.endsWith('/equipment')) {
       return Response.json({ items: [], needsProtectiveEquipment: null });
@@ -125,29 +147,56 @@ afterEach(() => {
 });
 
 describe("a client's job positions", () => {
-  it('is a section of the client page, listing each position with its category, zone and people', async () => {
-    mockApi();
+  it('is a section of the client page, listing each position with its facts and people', async () => {
+    mockApi({ items: [barista, { ...manager, trainingIntervalMonths: 12 }] });
     mount();
 
     const [first, second] = await screen.findAllByTestId('job-position-row');
-    expect(first!.textContent).toContain('Barman preparator');
-    expect(first!.textContent).toContain('Prepară și servește');
-    expect(within(first!).getByTestId('job-position-category-badge').textContent).toBe('Execuție');
-    expect(first!.textContent).toContain('Gelaterie');
-    expect(within(first!).getByTestId('job-position-employees').textContent).toBe('3 lucrători');
-    expect(within(second!).getByTestId('job-position-category-badge').textContent).toBe(
-      'Tehnico-administrativ'
+    expect(within(first!).getByTestId('job-position-open').textContent).toBe('Barman preparator');
+    expect(within(first!).getByTestId('job-position-facts').textContent).toBe(
+      'Execuție · Gelaterie'
     );
+    expect(first!.textContent).not.toContain('Prepară și servește');
+    expect(within(second!).getByTestId('job-position-facts').textContent).toBe(
+      'Tehnico-administrativ · Birou · instruire la 12 luni'
+    );
+    expect(within(first!).getByTestId('job-position-employees').textContent).toBe('3 lucrători');
     expect(within(second!).getByTestId('job-position-employees').textContent).toBe(
       'Niciun lucrător'
     );
     expect(within(first!).getByTestId('job-position-equipment').textContent).toBe('2 articole');
     expect(within(second!).getByTestId('job-position-equipment').textContent).toBe('De stabilit');
+    expect(screen.getByTestId('job-positions-count').textContent).toBe('2 posturi');
+    expect(screen.queryByTestId('pager-summary')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Posturi de lucru' })).toBeNull();
 
     const sections = screen.getAllByTestId('client-section').map((item) => item.textContent);
     expect(sections.slice(0, 3)).toEqual(['Detalii', 'Lucrători', 'Posturi de lucru']);
     expect(screen.getAllByTestId('page-back')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Înapoi la clienți' })).toBeTruthy();
+  });
+
+  it("links a post's workers, and those of them to train, to the workers list", async () => {
+    mockApi();
+    mount();
+
+    const [first, second] = await screen.findAllByTestId('job-position-row');
+    expect(within(first!).getByTestId('job-position-employees').getAttribute('href')).toBe(
+      `/clienti/${clientId}/angajati?jobPosition=${barista.id}`
+    );
+    const toTrain = within(first!).getByTestId('job-position-to-train');
+    expect(toTrain.textContent).toBe('1 de instruit');
+    expect(screen.getByRole('link', { name: '1 de instruit pe postul Barman preparator' })).toBe(
+      toTrain
+    );
+    expect(screen.getByRole('link', { name: '3 lucrători pe postul Barman preparator' })).toBe(
+      within(first!).getByTestId('job-position-employees')
+    );
+    expect(toTrain.getAttribute('href')).toBe(
+      `/clienti/${clientId}/angajati?jobPosition=${barista.id}&attention=toTrain`
+    );
+    expect(within(second!).queryByRole('link', { name: 'Niciun lucrător' })).toBeNull();
+    expect(within(second!).queryByTestId('job-position-to-train')).toBeNull();
   });
 
   it('opens a position on a page of its own, whose arrow goes back to the list', async () => {
@@ -223,9 +272,9 @@ describe("a client's job positions", () => {
     ]);
     expect(states).toEqual([
       ['2 articole', 'De stabilit'],
-      ['De stabilit', 'De stabilit'],
-      ['Nu necesită', '3 instrucțiuni'],
       ['20 de articole', '1 instrucțiune'],
+      ['Nu necesită', '3 instrucțiuni'],
+      ['De stabilit', 'De stabilit'],
     ]);
     const [first] = rows;
     expect(within(first!).getByTestId('job-position-equipment').getAttribute('href')).toBe(
@@ -258,7 +307,7 @@ describe("a client's job positions", () => {
       'Echipament de protecție',
       'Instrucțiuni SSM',
       'Instrucțiuni SU',
-      'Fișa de evaluare',
+      'Fișa de evaluare a riscurilor',
       'Modifică',
       'Șterge',
     ]);
@@ -268,61 +317,60 @@ describe("a client's job positions", () => {
     expect(runtime.router.state.location.hash).toBe('fire-instructions');
   });
 
-  it('names the positions still undecided about equipment or instructions, with links', async () => {
-    mockApi();
+  it('counts the posts with a decision still to take, the sheet included', async () => {
+    const done = {
+      ...barista,
+      id: '3f1d2c4b-5a6e-4f7a-8b9c-0d1e2f3a4b5c',
+      name: 'Casier',
+      instructionCount: 2,
+    };
+    mockApi({
+      items: [barista, manager, done],
+      evaluations: [summaryFor(barista, 2.1), summaryFor(manager, 2.2), summaryFor(done, 4.2)],
+    });
     mount();
-
-    const equipment = await screen.findByTestId('job-positions-undecided-equipment');
-    expect(equipment.textContent).toBe(
-      'Un post nu are echipamentul de protecție stabilit: Manager magazin – birou.'
-    );
-    expect(within(equipment).getByRole('link').getAttribute('href')).toBe(
-      `${listPage}/${manager.id}#protective-equipment`
-    );
-    const instructions = screen.getByTestId('job-positions-undecided-instructions');
-    expect(instructions.textContent).toBe(
-      '2 posturi nu au instrucțiunile SSM stabilite: Barman preparator și Manager magazin – birou.'
-    );
-    expect(
-      within(instructions)
-        .getAllByRole('link')
-        .map((link) => link.getAttribute('href'))
-    ).toEqual([`${listPage}/${barista.id}#instructions`, `${listPage}/${manager.id}#instructions`]);
-    const fireInstructions = screen.getByTestId('job-positions-undecided-fire-instructions');
-    expect(fireInstructions.textContent).toBe(
-      'Un post nu are instrucțiunile SU stabilite: Manager magazin – birou.'
-    );
-    expect(within(fireInstructions).getByRole('link').getAttribute('href')).toBe(
-      `${listPage}/${manager.id}#fire-instructions`
-    );
-  });
-
-  it('names only the first undecided positions when there are many', async () => {
-    const many = Array.from({ length: 7 }, (_, index) => ({
-      ...manager,
-      id: `9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5${index}`,
-      name: `Post ${index + 1}`,
-    }));
-    mockApi({ items: many });
-    mount();
-    expect((await screen.findByTestId('job-positions-undecided-equipment')).textContent).toBe(
-      '7 posturi nu au echipamentul de protecție stabilit: Post 1, Post 2, Post 3, Post 4, Post 5 și încă 2.'
+    await screen.findAllByTestId('job-position-row');
+    await waitFor(() =>
+      expect(screen.getByTestId('job-positions-undecided').textContent).toBe(
+        'De stabilit: 2 posturi'
+      )
     );
   });
 
   it('asks for nothing once every position has decided', async () => {
-    mockApi({ items: [{ ...barista, instructionCount: 2 }] });
+    mockApi({
+      items: [{ ...barista, instructionCount: 2 }],
+      evaluations: [summaryFor(barista, 2)],
+    });
     mount();
-    await screen.findAllByTestId('job-position-row');
+    await waitFor(() =>
+      expect(screen.getAllByTestId('job-position-risk')[0]!.textContent).toBe('Nivel global 2,00')
+    );
     expect(screen.queryByTestId('job-positions-undecided')).toBeNull();
   });
 
-  it('says how positions come to exist when there are none', async () => {
+  it('shows the sheet by its global level, amber over the acceptable limit', async () => {
+    mockApi({ evaluations: [summaryFor(barista, 3.919, 14)] });
+    mount();
+    const [first, second] = await screen.findAllByTestId('job-position-row');
+    await waitFor(() =>
+      expect(within(first!).getByTestId('job-position-risk').textContent).toBe('Nivel global 3,92')
+    );
+    expect(within(first!).getByTestId('job-position-factors').textContent).toBe('14 factori');
+    expect(within(first!).getByTestId('job-position-risk').className).toContain('bg-warning');
+    expect(within(second!).getByTestId('job-position-risk').textContent).toBe('Neevaluat');
+    expect(within(second!).queryByTestId('job-position-factors')).toBeNull();
+  });
+
+  it('opens with no toolbar and its own add button when there are no posts', async () => {
     mockApi({ items: [] });
     mount();
     expect((await screen.findByTestId('job-positions-empty')).textContent).toMatch(
       /fiecare funcție nouă devine un post/i
     );
+    expect(screen.queryByTestId('job-positions-filters')).toBeNull();
+    expect(screen.queryByTestId('job-positions-count')).toBeNull();
+    expect(screen.getAllByTestId('job-position-add')).toHaveLength(1);
   });
 
   it('adds a position, in the execution category unless told otherwise', async () => {
@@ -480,21 +528,124 @@ describe("a client's job positions", () => {
     );
   });
 
-  it('is read-only for an archived client', async () => {
+  it('is read-only for an archived client, every badge grey, and still filters', async () => {
     mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
-    mount();
+    const runtime = mount();
+    const user = userEvent.setup();
     expect(await screen.findAllByTestId('job-position-row')).toHaveLength(2);
     expect(screen.queryByTestId('job-position-add')).toBeNull();
     expect(screen.queryByTestId('job-positions-undecided')).toBeNull();
+    expect(screen.queryByTestId('job-position-to-train')).toBeNull();
+    await waitFor(() => expect(screen.getAllByTestId('job-position-risk')).toHaveLength(2));
+    await screen.findByTestId('sensitive-groups-state');
+    expect(screen.getByTestId('job-positions-page').querySelector('.bg-warning')).toBeNull();
 
-    await openRowMenu(userEvent.setup(), 'Manager magazin');
+    await user.click(screen.getByTestId('job-positions-filters'));
+    await user.click(await screen.findByRole('checkbox', { name: 'Personal de execuție' }));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ staffCategory: 'execution' })
+    );
+
+    await openRowMenu(user, 'Barman preparator');
     const items = await screen.findAllByRole('menuitem');
     expect(items.map((item) => item.textContent)).toEqual([
       'Echipament de protecție',
       'Instrucțiuni SSM',
       'Instrucțiuni SU',
-      'Fișa de evaluare',
+      'Fișa de evaluare a riscurilor',
     ]);
+  });
+
+  it('sorts by the global level, highest first on the first click, kept in the address', async () => {
+    const cashier = { ...manager, id: '3f1d2c4b-5a6e-4f7a-8b9c-0d1e2f3a4b5c', name: 'Casier' };
+    mockApi({
+      items: [barista, manager, cashier],
+      evaluations: [summaryFor(barista, 2.1), summaryFor(cashier, 3.6)],
+    });
+    const runtime = mount();
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByTestId('job-position-factors')).toHaveLength(2));
+
+    await user.click(screen.getByTestId('sort-risk'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'risk', order: 'desc' })
+    );
+    const names = () => screen.getAllByTestId('job-position-open').map((link) => link.textContent);
+    expect(names()).toEqual(['Casier', 'Barman preparator', 'Manager magazin – birou']);
+
+    await user.click(screen.getByTestId('sort-risk'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'risk' }));
+    expect(names()).toEqual(['Barman preparator', 'Casier', 'Manager magazin – birou']);
+
+    await user.click(screen.getByTestId('sort-employees'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'employees', order: 'desc' })
+    );
+    expect(names()[0]).toBe('Barman preparator');
+  });
+
+  it('filters by staff category from the address, and clears only the filter', async () => {
+    mockApi();
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${listPage}?staffCategory=technical_administrative&sort=employees&order=desc`
+    );
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('job-position-row');
+    expect(rows.map((row) => within(row).getByTestId('job-position-open').textContent)).toEqual([
+      'Manager magazin – birou',
+    ]);
+    expect(screen.getByTestId('job-positions-count').textContent).toBe('1 din 2 posturi');
+    expect(screen.getByTestId('job-positions-applied-filters').textContent).toContain(
+      'Tehnico-administrativ'
+    );
+
+    await act(() =>
+      runtime.router.navigate({
+        to: '/clienti/$clientId/posturi',
+        params: { clientId },
+        search: { staffCategory: ['technical_administrative'] },
+      })
+    );
+    mockApi({ items: [barista] });
+    await act(() => runtime.queryClient.invalidateQueries());
+    expect(await screen.findByTestId('job-positions-empty-filtered')).toBeTruthy();
+    expect(screen.getByTestId('job-positions-count').textContent).toBe('0 din 1 post');
+
+    await user.click(screen.getByTestId('job-positions-empty-filtered-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(await screen.findAllByTestId('job-position-row')).toHaveLength(1);
+  });
+
+  it('opens the new position dialog from the toolbar when asked to add one', async () => {
+    mockApi();
+    const runtime = mountApp(authFixture(makeSession()).client, `${listPage}?focus=add-position`);
+    expect(await screen.findByTestId('job-position-dialog')).toBeTruthy();
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('opens its one filter group at once in the phone sheet', async () => {
+    const media = window.matchMedia;
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({ ...media(query), matches: query === '(max-width: 767px)' }))
+    );
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+    await screen.findAllByTestId('job-position-row');
+    await user.click(screen.getByTestId('job-positions-filters'));
+    const sheet = await screen.findByTestId('job-positions-filters-sheet');
+    expect(
+      within(sheet)
+        .getByTestId('job-positions-filters-group-staffCategory')
+        .getAttribute('aria-expanded')
+    ).toBe('true');
+    await user.click(within(sheet).getByRole('checkbox', { name: 'Personal de execuție' }));
+    await user.click(within(sheet).getByTestId('job-positions-filters-apply'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ staffCategory: 'execution' })
+    );
   });
 
   it('opens the new position dialog when a row asks for a first position', async () => {

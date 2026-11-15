@@ -5,6 +5,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import {
   type EmployeeListResponse,
   getListEmployeesQueryKey,
+  getListJobPositionsQueryKey,
   getListOrganizationEmployeesQueryKey,
   getListTrainingsQueryKey,
   listEmployees,
@@ -14,7 +15,8 @@ import { invalidateSignatures } from '@/features/signatures/signature-queries';
 export type CurrentEmployee = EmployeeListResponse['items'][number];
 
 // A training changes the trainings held, every attendee's records and signature requests, their
-// training state on the employee page, and both employee lists that show that state.
+// training state on the employee page, both employee lists that show that state, and the
+// positions' count of workers to train.
 export function invalidateTrainings(queryClient: QueryClient, clientId: string) {
   const employeesPrefix = getListEmployeesQueryKey(clientId)[0];
   return Promise.all([
@@ -25,6 +27,7 @@ export function invalidateTrainings(queryClient: QueryClient, clientId: string) 
         (key === employeesPrefix || key.startsWith(`${employeesPrefix}/`)),
     }),
     queryClient.invalidateQueries({ queryKey: getListOrganizationEmployeesQueryKey() }),
+    queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
     invalidateSignatures(queryClient, clientId),
   ]);
 }

@@ -92,6 +92,7 @@ function mockUpstream(handlers: { positions?: Handler; equipment?: Handler } = {
           {
             id: welderId,
             employees: [{ count: 3 }],
+            to_train: [{ count: 1 }],
             job_position_equipment: [{ count: 2 }],
             instructions: [{ count: 0 }],
             fire_instructions: [{ count: 0 }],
