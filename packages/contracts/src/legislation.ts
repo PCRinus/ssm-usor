@@ -44,7 +44,7 @@ export type LegalActDomain = z.infer<typeof legalActDomainSchema>;
 
 export const watchedLegalActSchema = legalActSchema.extend({
   // The act's official title without its kind, number and date, "privind apărarea împotriva
-  // incendiilor"; null for an act the templates no longer cite.
+  // incendiilor"; null for an act missing from the act list bundled with the API.
   subject: z.string().nullable(),
   // The domains of the documents that cite it; the service contract covers both and counts for
   // neither.

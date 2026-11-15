@@ -55,19 +55,21 @@ Sub titlul paginii vezi cum a mers ultima verificare:
 
 - **Verificat pe …**: verificarea a rulat la timp, cu numărul de acte citite și, dacă au apărut, numărul modificărilor noi;
 - **Verificarea rulează**: verificarea de azi nu s-a terminat încă;
-- **Ultima verificare nu a reușit**: unele acte nu au putut fi citite, de obicei pentru că portalul nu a răspuns. Sub **Detalii** vezi actele și motivul. Modificările acestor acte apar după o verificare reușită;
+- **Ultima verificare nu a reușit**: unele acte nu au putut fi citite, de exemplu pentru că portalul nu a răspuns, sau verificarea s-a oprit înainte de final. Sub **Detalii** vezi actele și motivul. Modificările acestor acte apar după o verificare reușită;
 - **Verificarea nu a mai rulat de peste două zile**: ce vezi pe pagină poate fi în urmă față de portal;
 - **Verificarea nu a rulat încă**: actele nu au fost citite niciodată, cum se întâmplă doar înainte de prima verificare.
 
 ## Actele urmărite
 
-Fiecare rând al listei este un act normativ citat de documente:
+Fiecare rând al listei este un act normativ urmărit:
 
 - **Act normativ**: numele scurt al actului, care deschide pagina lui pe Portalul Legislativ, cu titlul lui dedesubt, de exemplu „privind apărarea împotriva incendiilor”;
 - **Domeniu**: SSM, SU sau amândouă, după documentele care citează actul. Contractul de prestări servicii acoperă ambele domenii, așa că nu schimbă domeniul unui act;
 - **Stare**: **În verificare** când actul are o modificare încă deschisă (vezi mai jos), **Abrogat** când portalul arată actul abrogat, **Neverificat** când actul nu a fost citit încă pe portal și **În vigoare** în rest;
 - **Ultima formă consolidată**: data celei mai noi forme consolidate găsite pe portal. **Forma de bază** înseamnă că actul nu a fost consolidat niciodată: portalul are doar textul publicat inițial. Cât timp o modificare e în verificare, dedesubt vezi forma pe care o urmează documentele, de exemplu „documentele: 25.08.2026”;
 - **Citat în**: câte documente citează actul, cu numărul preluărilor dedesubt.
+
+O liniuță („—”) la **Domeniu** și la **Citat în** înseamnă că niciun document nu mai citează actul; la **Ultima formă consolidată**, că actul nu a fost citit încă pe portal.
 
 ## Preluări și trimiteri
 
