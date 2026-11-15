@@ -85,7 +85,7 @@ export function billingAlertMessage(alert: BillingAlert, organizationName: strin
         severity: 'now',
         title: linesMismatch
           ? `Plată fără ${document}: liniile nu dau totalul plătit`
-          : `Plată fără ${document}: emiterea în Oblio a eșuat`,
+          : `Plată fără ${document}: documentul nu a putut fi emis`,
         lines: [
           organization,
           ...invoiceLines(alert.invoice),

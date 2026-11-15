@@ -1212,7 +1212,7 @@ describe('POST /billing/stripe-webhook', () => {
 
       const [posted] = discordPosts(fake);
       expect(posted).toMatch(
-        /^🔴 \*\*Plată fără factură: emiterea în Oblio a eșuat\*\* · production\n/
+        /^🔴 \*\*Plată fără factură: documentul nu a putut fi emis\*\* · production\n/
       );
       expect(posted).toContain('Total Stripe: 180,29 EUR\n');
       expect(posted).toContain('[email]');
@@ -1236,7 +1236,7 @@ describe('POST /billing/stripe-webhook', () => {
 
       expect(response.status).toBe(500);
       expect(discordPosts(fake)).toEqual([
-        expect.stringMatching(/emiterea în Oblio a eșuat[\s\S]*has no plan of the catalogue/),
+        expect.stringMatching(/documentul nu a putut fi emis[\s\S]*has no plan of the catalogue/),
       ]);
     });
 
