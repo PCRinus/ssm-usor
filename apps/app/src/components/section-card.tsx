@@ -15,6 +15,9 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   help?: HelpTopic;
   action?: ReactNode;
   headingLevel?: 2 | 3;
+  // A title too long to share a phone's width with the action: the action takes its own row
+  // as soon as the title cannot stay on one line beside it.
+  longTitle?: boolean;
 };
 
 // The action shares the title's row while both fit, and takes its own row before the title is
@@ -25,6 +28,7 @@ export function SectionCard({
   help,
   action,
   headingLevel = 2,
+  longTitle = false,
   className,
   children,
   ...props
@@ -37,7 +41,12 @@ export function SectionCard({
       <CardHeader className="flex flex-wrap items-start gap-x-4 gap-y-1">
         {/* The help link stays outside the heading, whose accessible name is the title alone, and
             follows its last word when the title wraps. */}
-        <div className="flex min-h-8 min-w-[min(100%,8rem)] flex-1 items-center">
+        <div
+          className={cn(
+            'flex min-h-8 min-w-[min(100%,8rem)] items-center',
+            longTitle ? 'flex-auto' : 'flex-1'
+          )}
+        >
           <div className="min-w-0 whitespace-nowrap">
             <Heading
               className={cn(

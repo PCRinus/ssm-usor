@@ -186,6 +186,12 @@ describe("a client's job positions", () => {
     );
     const toTrain = within(first!).getByTestId('job-position-to-train');
     expect(toTrain.textContent).toBe('1 de instruit');
+    expect(screen.getByRole('link', { name: '1 de instruit pe postul Barman preparator' })).toBe(
+      toTrain
+    );
+    expect(screen.getByRole('link', { name: '3 lucrători pe postul Barman preparator' })).toBe(
+      within(first!).getByTestId('job-position-employees')
+    );
     expect(toTrain.getAttribute('href')).toBe(
       `/clienti/${clientId}/angajati?jobPosition=${barista.id}&attention=toTrain`
     );
@@ -531,8 +537,8 @@ describe("a client's job positions", () => {
     expect(screen.queryByTestId('job-positions-undecided')).toBeNull();
     expect(screen.queryByTestId('job-position-to-train')).toBeNull();
     await waitFor(() => expect(screen.getAllByTestId('job-position-risk')).toHaveLength(2));
-    const card = screen.getByTestId('job-positions-card');
-    expect(card.querySelector('.bg-warning')).toBeNull();
+    await screen.findByTestId('sensitive-groups-state');
+    expect(screen.getByTestId('job-positions-page').querySelector('.bg-warning')).toBeNull();
 
     await user.click(screen.getByTestId('job-positions-filters'));
     await user.click(await screen.findByRole('checkbox', { name: 'Personal de execuție' }));
@@ -616,6 +622,30 @@ describe("a client's job positions", () => {
     const runtime = mountApp(authFixture(makeSession()).client, `${listPage}?focus=add-position`);
     expect(await screen.findByTestId('job-position-dialog')).toBeTruthy();
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('opens its one filter group at once in the phone sheet', async () => {
+    const media = window.matchMedia;
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({ ...media(query), matches: query === '(max-width: 767px)' }))
+    );
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+    await screen.findAllByTestId('job-position-row');
+    await user.click(screen.getByTestId('job-positions-filters'));
+    const sheet = await screen.findByTestId('job-positions-filters-sheet');
+    expect(
+      within(sheet)
+        .getByTestId('job-positions-filters-group-staffCategory')
+        .getAttribute('aria-expanded')
+    ).toBe('true');
+    await user.click(within(sheet).getByRole('checkbox', { name: 'Personal de execuție' }));
+    await user.click(within(sheet).getByTestId('job-positions-filters-apply'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ staffCategory: 'execution' })
+    );
   });
 
   it('opens the new position dialog when a row asks for a first position', async () => {

@@ -105,18 +105,15 @@ export function evaluationTitle(
 
 type EvaluationState = Pick<RiskEvaluationSummary, 'factorCount' | 'globalRiskLevel'> | null;
 
-/** "5 factori", "1 factor". */
 export const factorsNote = (count: number) =>
   factorCountLabel(count).toLowerCase().replace(/^un /, '1 ');
 
-/** "Nivel global 2,00", or the state of a sheet without a level. */
 export function evaluationLevelLabel(summary: EvaluationState) {
   if (!summary) return 'Neevaluat';
   if (summary.factorCount === 0 || summary.globalRiskLevel === null) return 'Fără factori';
   return `Nivel global ${formatGlobalLevel(summary.globalRiskLevel)}`;
 }
 
-/** "Nivel global 2,00 · 5 factori", where a row has room for both. */
 export function evaluationStateLabel(summary: EvaluationState) {
   const level = evaluationLevelLabel(summary);
   return summary?.globalRiskLevel != null && summary.factorCount > 0

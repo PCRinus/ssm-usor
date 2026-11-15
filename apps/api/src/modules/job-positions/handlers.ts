@@ -114,7 +114,6 @@ async function findClient(db: DataClient, clientId: string) {
   return data;
 }
 
-/** How many current employees, of them to train, equipment entries and applied modules of each domain each of the client's positions has. */
 export async function jobPositionCounts(db: DataClient, clientId: string, jobPositionId?: string) {
   // Counted by the database, one row per position, so a large client is not cut short by the
   // limit on rows a request returns.

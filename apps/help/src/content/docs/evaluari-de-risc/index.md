@@ -232,6 +232,6 @@ Evaluarea riscurilor (documentul 9) și planul de prevenire și protecție (docu
 
 Formularul de generare îți arată ce lipsește, fișă cu fișă, cu o legătură spre locul unde completezi. Evaluarea riscurilor mai numește echipa de evaluare a riscurilor, din persoanele responsabile ale clientului, și evaluatorul de riscuri al organizației; fără evaluator, numește specialistul care generează.
 
-Evaluarea riscurilor are un subcapitol pentru fiecare fișă: întâi posturile, în ordinea din tabelul posturilor, apoi grupurile sensibile și celelalte fișe. Planul are câte un tabel pentru fiecare fișă. Un rând al lui e un factor care are cel puțin o măsură, întâi cei inacceptabili, apoi după nivel.
+Evaluarea riscurilor are un subcapitol pentru fiecare fișă: întâi posturile, în ordinea alfabetică a denumirilor, apoi grupurile sensibile și celelalte fișe. Planul are câte un tabel pentru fiecare fișă. Un rând al lui e un factor care are cel puțin o măsură, întâi cei inacceptabili, apoi după nivel.
 
 Documentele generate nu se schimbă singure: dacă modifici o fișă după generare, generezi din nou evaluarea riscurilor și planul ca să ia schimbarea.

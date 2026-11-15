@@ -373,6 +373,7 @@ describe("a position's risk evaluation card", () => {
     expect(within(card).getByTestId('position-risk-level').textContent).toBe(
       '3,86, peste limita acceptabilă de 3,50'
     );
+    expect(within(card).getByTestId('position-risk-state').className).toContain('bg-warning');
     expect(within(card).getByTestId('position-risk-factors').textContent).toBe('4');
     expect(within(card).getByTestId('position-risk-unacceptable').textContent).toBe('2');
 

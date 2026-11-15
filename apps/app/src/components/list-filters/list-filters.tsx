@@ -306,7 +306,10 @@ function FilterSheet<Key extends string>({
   onClose: () => void;
 }) {
   const [pending, setPending] = useState(values);
-  const [expanded, setExpanded] = useState<Key | null>(null);
+  // A sheet of one group has nothing to choose between, so its options show at once.
+  const [expanded, setExpanded] = useState<Key | null>(() =>
+    facets.length === 1 && !facets[0]!.search ? facets[0]!.key : null
+  );
   const drilled = facets.find((facet) => facet.key === drilledKey) ?? null;
   const rows = useRef(new Map<Key, HTMLButtonElement>());
   const search = useRef<HTMLInputElement>(null);

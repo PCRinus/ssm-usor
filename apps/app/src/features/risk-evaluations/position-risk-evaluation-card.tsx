@@ -21,6 +21,7 @@ import type { JobPosition } from '@/features/job-positions/job-position-schema';
 
 import {
   acceptableLimitLabel,
+  evaluationNeedsAttention,
   evaluationStateLabel,
   formatGlobalLevel,
 } from './risk-evaluation-schema';
@@ -54,7 +55,6 @@ export function PositionRiskEvaluationCard({
     factorCount: evaluation.factors.length,
     globalRiskLevel: evaluation.globalRiskLevel,
   };
-  const evaluated = Boolean(evaluation && evaluation.factors.length > 0);
 
   const openLink = evaluation && (
     <Button asChild variant="outline" size="sm" data-testid="position-risk-open">
@@ -80,7 +80,8 @@ export function PositionRiskEvaluationCard({
           {query.data && (
             <DecisionBadge
               className="ml-3 align-middle"
-              decision={evaluated || null}
+              decision={!evaluationNeedsAttention(summary ?? null) || null}
+              readOnly={readOnly}
               data-testid="position-risk-state"
             >
               {evaluationStateLabel(summary ?? null)}

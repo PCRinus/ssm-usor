@@ -31,7 +31,6 @@ const headerLines = (first: string, second: string) => () => (
   </span>
 );
 
-/** "Execuție · Birou · instruire la 3 luni": the interval only when the post has its own. */
 export function positionFacts(position: JobPosition) {
   const interval = position.trainingIntervalMonths;
   return [
@@ -42,10 +41,6 @@ export function positionFacts(position: JobPosition) {
     .filter(Boolean)
     .join(' · ');
 }
-
-// An archived client's posts are only read: nothing is left to decide, so nothing is amber.
-const toneOf = (decision: boolean | null, readOnly: boolean) =>
-  readOnly ? (decision ?? false) : decision;
 
 // Sortable column ids are the list's sort keys.
 export function jobPositionColumns({
@@ -110,7 +105,8 @@ export function jobPositionColumns({
             clientId={clientId}
             position={position}
             section={positionSections.equipment}
-            decision={toneOf(position.needsProtectiveEquipment, readOnly)}
+            decision={position.needsProtectiveEquipment}
+            readOnly={readOnly}
             label={equipmentStateLabel(position)}
             testId="job-position-equipment"
           />
@@ -132,7 +128,8 @@ export function jobPositionColumns({
               section={
                 domain === 'ssm' ? positionSections.instructions : positionSections.fireInstructions
               }
-              decision={toneOf(count > 0 || null, readOnly)}
+              decision={count > 0 || null}
+              readOnly={readOnly}
               label={instructionStateLabel(count)}
               testId={
                 domain === 'ssm' ? 'job-position-instructions' : 'job-position-fire-instructions'
@@ -156,7 +153,8 @@ export function jobPositionColumns({
           <>
             <DecisionBadge
               asChild
-              decision={toneOf(!evaluationNeedsAttention(evaluation) || null, readOnly)}
+              decision={!evaluationNeedsAttention(evaluation) || null}
+              readOnly={readOnly}
             >
               <Link
                 to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"

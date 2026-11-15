@@ -40,6 +40,7 @@ export function WorkersCell({
         params={{ clientId }}
         search={{ jobPosition: [position.id] }}
         state={openedHere}
+        aria-label={`${employeeCountLabel(position.employeeCount)} pe postul ${position.name}`}
         data-testid="job-position-employees"
         className="tabular-nums hover:underline"
       >
@@ -51,6 +52,7 @@ export function WorkersCell({
           params={{ clientId }}
           search={{ jobPosition: [position.id], attention: ['toTrain'] }}
           state={openedHere}
+          aria-label={`${toTrain} de instruit pe postul ${position.name}`}
           data-testid="job-position-to-train"
           className="mt-1.5 block text-xs font-medium text-destructive tabular-nums hover:underline"
         >
@@ -66,6 +68,7 @@ export function StateLink({
   position,
   section,
   decision,
+  readOnly,
   label,
   testId,
 }: {
@@ -73,11 +76,12 @@ export function StateLink({
   position: JobPosition;
   section: PositionSection;
   decision: boolean | null;
+  readOnly: boolean;
   label: string;
   testId: string;
 }) {
   return (
-    <DecisionBadge asChild decision={decision}>
+    <DecisionBadge asChild decision={decision} readOnly={readOnly}>
       <Link
         to="/clienti/$clientId/posturi/$jobPositionId"
         state={openedHere}
