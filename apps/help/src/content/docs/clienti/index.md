@@ -67,7 +67,7 @@ Coloana **Instruire** adună starea instruirii tuturor lucrătorilor actuali ai 
 - **La zi**: toți lucrătorii actuali sunt la zi în ambele domenii;
 - o liniuță: clientul nu are lucrători actuali, sau e arhivat.
 
-Un clic pe această valoare deschide lista lucrătorilor clientului, filtrată exact pe lucrătorii numărați: **De instruit**, **Scadente** sau **La zi**.
+Un clic pe această valoare deschide lista lucrătorilor clientului, filtrată exact pe lucrătorii numărați (vezi [Filtrele](/clienti/angajati/#filtrele)).
 
 Ordonată după **Instruire**, lista arată întâi clienții cu lucrători de instruit, apoi pe cei cu instruiri scadente, apoi pe cei la zi și la sfârșit clienții fără lucrători. Ordonată după **Următorul termen**, clienții fără termen ajung mereu la sfârșit.
 

@@ -1,15 +1,15 @@
 ---
 title: Lucrători
-description: Lista lucrătorilor unui client, filtrele ei, stările instruirii și ale testării, și pagina fiecărui lucrător.
+description: Lista lucrătorilor unui client, căutarea și filtrele ei, stările instruirii și ale testării, și pagina fiecărui lucrător.
 topics:
   - id: angajati.lista
     heading: Lista lucrătorilor
   - id: angajati.actuali-si-fosti
-    heading: Lucrători actuali și foști lucrători
+    heading: Actuali și foști
   - id: angajati.cautare
     heading: Căutarea
   - id: angajati.filtre-stari
-    heading: Filtrele după stare
+    heading: Filtrele
   - id: angajati.toti-angajatii
     heading: Lucrătorii tuturor clienților
   - id: angajati.stare-instruire
@@ -57,13 +57,13 @@ sources:
   - apps/app/src/features/employees/employees-page.tsx
   - apps/app/src/features/employees/organization-employees-page.tsx
   - apps/app/src/features/employees/employee-columns.tsx
+  - apps/app/src/features/employees/worker-columns.tsx
+  - apps/app/src/features/employees/worker-filters.tsx
   - apps/app/src/features/employees/employee-layout.tsx
   - apps/app/src/features/employees/employee-page.tsx
   - apps/app/src/features/employees/employee-sections.ts
   - apps/app/src/features/client-files/employee-files-card.tsx
-  - apps/app/src/features/trainings/training-state-filter.tsx
   - apps/app/src/features/trainings/training-state-badge.tsx
-  - apps/app/src/features/knowledge-tests/test-state-filter.tsx
   - apps/app/src/features/knowledge-tests/test-state-badge.tsx
   - apps/app/src/features/client-files/client-files-card.tsx
   - apps/app/src/features/client-files/import-folder.tsx
@@ -71,6 +71,7 @@ sources:
   - supabase/migrations/20261017100000_training_interval_source.sql
   - supabase/migrations/20261020100000_knowledge_tests.sql
   - supabase/migrations/20260923110000_client_current_employee_count.sql
+  - supabase/migrations/20261118120000_employee_list.sql
 ---
 
 Aici ții evidența oamenilor fiecărui client: cine lucrează acolo, pe ce post, și dacă instruirea și testarea lor sunt la zi. De la lucrători pornesc fișele individuale de instruire, testele din portal și semnăturile.
@@ -82,37 +83,47 @@ Lista unui client e în tabul **Lucrători** al clientului. Fiecare rând arată
 - **Lucrător**: numele, cu marca dedesubt când există;
 - **Post de lucru**: postul pe care îl ocupă; funcția din contract e pe pagina lui;
 - **Instruire SSM** și **Instruire SU**: starea instruirii în fiecare domeniu, cu termenul sub ea;
-- **Testare**: starea testării, pe rânduri separate pentru SSM și SU;
-- **Contact**: emailul și telefonul;
-- **Angajat din**: data angajării și, la un fost lucrător, data plecării.
+- **Testare**: doar ce cere o acțiune, pe un singur rând, de exemplu „De susținut” sau „SU: anual scadent”; domeniul apare în față când starea e doar a unuia. Când nu e nimic de făcut, vezi **La zi** dacă lucrătorul a promovat un test, altfel o liniuță;
+- **De semnat**: câte semnături electronice îi mai cer lucrătorului instruirile și testele lui, de exemplu „2 în așteptare”;
+- **Angajat din**: data angajării.
 
-Poți ordona lista după nume, post sau data angajării. Din meniul de la capătul rândului ajungi la **Modifică** și **Marchează plecarea…**. Un clic pe rând deschide pagina lucrătorului.
+Poți ordona lista după nume, post, instruirea SSM, instruirea SU sau data angajării. Ordonată după instruire, lista arată întâi lucrătorii cu instruirea depășită, apoi pe cei neinstruiți, pe cei cu instruirea scadentă și la sfârșit pe cei la zi; în fiecare grupă, după termen. Din meniul de la capătul rândului ajungi la **Modifică** și **Marchează plecarea…**. Un clic pe rând deschide pagina lucrătorului. Pe un ecran îngust, tabelul se derulează în lateral.
+
+Deasupra listei vezi câți lucrători are. Când cauți sau filtrezi, vezi câți se potrivesc din total, de exemplu „5 din 25 de lucrători”.
 
 Adaugi un lucrător cu **Adaugă lucrător** sau, la un client fără lucrători, cu **Adaugă primul lucrător**. Ce cere formularul găsești în [Adăugarea și modificarea unui lucrător](/clienti/angajati/adaugare-si-editare/). Lucrătorii unui client pe care îl preiei îi poți aduce și din fotografiile fișelor lor de instruire: vezi [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).
 
-### Lucrători actuali și foști lucrători
+### Actuali și foști
 
-Lista arată implicit **Lucrători actuali**. Cine a plecat trece la **Foști lucrători**, cu toate instruirile, fișele și fișierele lui. Un fost lucrător nu mai are stare a instruirii sau a testării, așa că pe acest tab filtrele după stare nu apar. Vezi [Plecarea unui lucrător](/clienti/angajati/plecare/).
+Lista arată implicit tabul **Actuali**. Cine a plecat trece la **Foști**, cu toate instruirile, fișele și fișierele lui, iar lista lor are în plus coloana **Data încetării**, ziua în care i-a încetat contractul; o poți ordona și după ea. Un fost lucrător nu mai are stare a instruirii sau a testării, așa că pe acest tab filtrele după instruire și testare nu apar. Vezi [Plecarea unui lucrător](/clienti/angajati/plecare/).
+
+Când treci de pe un tab pe altul, căutarea și filtrele după post, punct de lucru sau client rămân.
 
 ### Căutarea
 
-Caută după nume sau după marcă. Fiecare cuvânt scris trebuie să se regăsească undeva în nume sau în marcă, iar diacriticele și literele mari nu contează: „stefan tar” îl găsește pe „Țăranu Ștefan”. Poți scrie și doar o parte dintr-un nume.
+Caută după nume sau după marcă. Fiecare cuvânt scris trebuie să se regăsească undeva în nume sau în marcă, iar diacriticele și literele mari nu contează: „stefan tar” îl găsește pe „Țăranu Ștefan”. Poți scrie și doar o parte dintr-un nume. Căutarea nu citește CNP-ul și nici numele clientului; pentru client folosești filtrul **Client**.
 
-### Filtrele după stare
+### Filtrele
 
-**Instruire:** și **Testare:** restrâng lista la o stare. Un filtru citește ambele domenii:
+Butonul **Filtre** deschide filtrele listei. Le poți combina; un lucrător apare dacă se potrivește cu cel puțin o valoare aleasă din fiecare filtru:
 
-- **La zi** înseamnă la zi și în SSM, și în SU;
-- celelalte stări (**Scadente**, **Depășite**, **Neinstruiți**; **De susținut**, **Anual scadent**, **Fără test**) îi arată pe cei care sunt în acea stare în cel puțin un domeniu;
-- **De instruit**, doar în lista lucrătorilor unui client, îi arată pe cei neinstruiți sau cu instruirea depășită, în cel puțin un domeniu. Sunt lucrătorii pe care lista clienților îi numără în coloana **Instruire**.
+- **Instruire SSM** și **Instruire SU**, fiecare citind doar domeniul lui: **De instruit (neinstruiți sau depășiți)**, **Neinstruiți**, **Depășită**, **Scadentă în 30 de zile** sau **La zi**;
+- **Testare**: **De susținut**, **Anual scadent**, **Neverificat pe fișă** și **Fără test** îi arată pe cei care sunt în acea stare în cel puțin un domeniu; **La zi** îi arată pe cei care au promovat în ambele domenii;
+- **Necesită atenție**: **Semnături în așteptare**, lucrătorii care au de semnat electronic o instruire sau un test; **Fără telefon** și **Fără email**, lucrătorii cărora le lipsește un mijloc de contact, de care au nevoie pentru portal și semnătură;
+- **Post de lucru**: posturile clientului; poți alege mai multe, căutându-le după nume;
+- **Punct de lucru**: punctele de lucru ale clientului, când are mai multe.
 
-Astfel, filtrul îți arată pe oricine are ceva de rezolvat, indiferent de domeniu. Când niciun lucrător nu e în starea aleasă, lista spune asta și îți oferă **Arată toți lucrătorii**.
+Filtrele alese apar sub câmpul de căutare; scoți unul cu semnul x de lângă el, sau pe toate cu **Șterge filtrele**, care lasă căutarea neatinsă. Pe telefon, filtrele se deschid într-un panou de jos: un filtru se desface la apăsare, iar posturile și clienții au lista lor, cu căutare; le aplici cu butonul care arată câți lucrători se potrivesc. Căutarea și filtrele rămân în adresa paginii, așa că le regăsești când revii sau dai înapoi.
+
+Când niciun lucrător nu se potrivește, lista spune asta, filtrele rămân vizibile și **Șterge filtrele** pornește din nou de la toți lucrătorii.
+
+Când ajungi din lista clienților, de la coloana **Instruire**, lista se deschide filtrată pe aceiași lucrători pe care îi numără coloana, în ambele domenii: la **Necesită atenție** vezi **De instruit, SSM sau SU** sau **Instruire scadentă în 30 de zile, SSM sau SU**; de la **La zi**, filtrele **Instruire SSM** și **Instruire SU** sunt amândouă pe **La zi**.
 
 ### Lucrătorii tuturor clienților
 
-**Lucrători** din meniul lateral strânge într-o singură listă lucrătorii tuturor clienților tăi activi, cu aceleași taburi și filtre. Are în plus coloana clientului și un filtru după client, iar căutarea găsește și după numele clientului. Ofertele și clienții arhivați nu apar aici. Lucrătorii se adaugă tot din pagina fiecărui client.
+**Lucrători** din meniul lateral strânge într-o singură listă lucrătorii tuturor clienților tăi activi, cu aceleași taburi, căutare și filtre. Are în plus coloana **Client**, un link spre pagina clientului, și filtrul **Client**, din care alegi unul sau mai mulți clienți, căutându-i după nume; filtrele **Post de lucru** și **Punct de lucru** nu apar aici, pentru că fiecare client are posturile și punctele lui. Ofertele și clienții arhivați nu apar aici. Lucrătorii se adaugă tot din pagina fiecărui client.
 
-Când ajungi aici din **Dashboard**, de la cifrele unui domeniu, filtrul citește doar acel domeniu: „La zi” din rândul SSM înseamnă la zi în SSM, oricum ar fi în SU. Dacă alegi sau ștergi un filtru pe pagină, lista revine la ambele domenii.
+Când ajungi aici din **Dashboard**, de la cifrele unui domeniu, lista se deschide cu filtrul acelui domeniu: de la **Depășite** din rândul SSM, **Instruire SSM** e pe **Depășită**, oricum ar fi în SU.
 
 ## Starea instruirii
 

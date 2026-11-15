@@ -1,86 +1,45 @@
-import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Link } from '@tanstack/react-router';
 
 import type { OrganizationEmployeeListResponse } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
-import { formatDate } from './employee-format';
-import { testStateColumn } from './test-state-column';
-import { trainingStateColumns } from './training-state-columns';
+import { workerColumns } from './worker-columns';
 
 export type OrganizationEmployeeRow = OrganizationEmployeeListResponse['items'][number];
 
 const helper = createDataTableColumns<OrganizationEmployeeRow>();
+const columns = workerColumns<OrganizationEmployeeRow>('organization-employees');
 
-export const organizationEmployeeColumns = helper.columns([
-  helper.accessor((row) => formatEmployeeName(row), {
-    id: 'name',
-    header: 'Lucrător',
-    enableSorting: true,
-    meta: {
-      cellClassName: 'font-medium',
-      skeletonClassName: 'w-40',
-      personal: true,
-    },
-    cell: ({ row, getValue }) => (
-      <>
-        <Link
-          to="/clienti/$clientId/angajati/$employeeId"
-          state={openedHere}
-          params={{ clientId: row.original.client.id, employeeId: row.original.id }}
-          data-testid="organization-employees-open"
-          className="hover:underline"
-        >
-          {getValue()}
-        </Link>
-        {row.original.employeeNumber && (
-          <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-            Marca {row.original.employeeNumber}
-          </span>
-        )}
-      </>
-    ),
-  }),
-  helper.accessor((row) => row.client.name, {
-    id: 'client',
-    header: 'Client',
-    enableSorting: true,
-    meta: { cellClassName: 'max-w-64', skeletonClassName: 'w-36' },
-    cell: ({ row, getValue }) => (
-      <Link
-        to="/clienti/$clientId/detalii"
-        state={openedHere}
-        params={{ clientId: row.original.client.id }}
-        data-testid="organization-employees-client"
-        className="block truncate hover:underline"
-      >
-        {getValue()}
-      </Link>
-    ),
-  }),
-  helper.accessor((row) => row.jobPosition.name, {
-    id: 'jobPosition',
-    header: 'Post de lucru',
-    enableSorting: true,
-    meta: { skeletonClassName: 'w-28' },
-  }),
-  ...trainingStateColumns<OrganizationEmployeeRow>(),
-  testStateColumn<OrganizationEmployeeRow>(),
-  helper.accessor('hiredAt', {
-    id: 'hiredAt',
-    header: 'Angajat din',
-    enableSorting: true,
-    meta: { cellClassName: 'tabular-nums', skeletonClassName: 'w-24' },
-    cell: ({ row, getValue }) => (
-      <>
-        {formatDate(getValue())}
-        {row.original.terminatedAt && (
-          <span className="mt-0.5 block text-xs text-muted-foreground">
-            până la {formatDate(row.original.terminatedAt)}
-          </span>
-        )}
-      </>
-    ),
-  }),
-]);
+const clientColumn = helper.accessor((row) => row.client.name, {
+  id: 'client',
+  header: 'Client',
+  enableSorting: true,
+  meta: { cellClassName: 'max-w-48', skeletonClassName: 'w-36' },
+  cell: ({ row, getValue }) => (
+    <Link
+      to="/clienti/$clientId/detalii"
+      state={openedHere}
+      params={{ clientId: row.original.client.id }}
+      data-testid="organization-employees-client"
+      className="block truncate hover:underline"
+      title={getValue()}
+    >
+      {getValue()}
+    </Link>
+  ),
+});
+
+const shared = [
+  columns.name,
+  clientColumn,
+  columns.jobPosition,
+  ...columns.training,
+  columns.tests,
+  columns.signatures,
+  columns.hiredAt,
+] as const;
+
+export const organizationEmployeeColumns = helper.columns([...shared]);
+
+export const formerOrganizationEmployeeColumns = helper.columns([...shared, columns.terminatedAt]);

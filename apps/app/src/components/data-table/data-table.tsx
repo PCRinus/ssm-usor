@@ -49,6 +49,7 @@ export interface DataTableProps<TData extends RowData> {
 
 const EMPTY: never[] = [];
 const skeletonRows = 3;
+const cellPadding = 'py-2.5';
 
 export function DataTable<TData extends RowData>({
   columns,
@@ -172,7 +173,10 @@ export function DataTable<TData extends RowData>({
             Array.from({ length: skeletonRows }, (_, index) => (
               <TableRow key={index} className="hover:bg-transparent">
                 {leafColumns.map((column) => (
-                  <TableCell key={column.id} className={column.columnDef.meta?.cellClassName}>
+                  <TableCell
+                    key={column.id}
+                    className={cn(cellPadding, column.columnDef.meta?.cellClassName)}
+                  >
                     <Skeleton
                       className={cn('h-4 w-32', column.columnDef.meta?.skeletonClassName)}
                     />
@@ -208,7 +212,7 @@ export function DataTable<TData extends RowData>({
                 {row.getAllCells().map((cell) => (
                   <TableCell
                     key={cell.id}
-                    className={cell.column.columnDef.meta?.cellClassName}
+                    className={cn(cellPadding, cell.column.columnDef.meta?.cellClassName)}
                     {...(cell.column.columnDef.meta?.personal && replayMask)}
                   >
                     <table.FlexRender cell={cell} />

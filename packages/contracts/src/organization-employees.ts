@@ -6,8 +6,6 @@ import {
   employeeStatusSchema,
 } from './employees';
 import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } from './list';
-import { testStateFilterSchema } from './tests';
-import { trainingDomainSchema, trainingStateFilterSchema } from './trainings';
 
 export const organizationEmployeeSortKeys = [
   'name',
@@ -32,11 +30,6 @@ export const listOrganizationEmployeesQuerySchema = listQuerySchema(
 )
   .extend({
     status: employeeStatusSchema.optional(),
-    clientId: z.uuid().optional(),
-    trainingState: trainingStateFilterSchema.optional(),
-    testState: testStateFilterSchema.optional(),
-    // Which domain the state filters read; both when absent.
-    domain: trainingDomainSchema.optional(),
     q: listSearchSchema.optional(),
   })
   .extend(organizationEmployeeListFiltersSchema.shape);

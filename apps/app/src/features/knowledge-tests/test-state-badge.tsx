@@ -35,31 +35,43 @@ export function TestStateBadge({ state, testId }: { state: TestState; testId?: s
   );
 }
 
-export function TestStatesCell({
+// Only what asks for action: of both domains, the most pressing test, named with its domain when
+// the other one is not in that state; with none, "La zi" once a test passed.
+const pressing = ['annual_due', 'pending', 'unverified'] as const satisfies readonly TestState[];
+
+const lineTones: Record<(typeof pressing)[number], string> = {
+  annual_due: 'font-medium text-destructive-foreground',
+  pending: 'font-medium text-warning-foreground',
+  unverified: 'text-foreground',
+};
+
+export function TestStatesLine({
   tests,
 }: {
   tests: Record<TrainingDomain, { state: TestState | null }>;
 }) {
-  if (trainingDomains.every((domain) => tests[domain].state === null)) {
-    return <span className="text-muted-foreground">—</span>;
+  const state = pressing.find((each) =>
+    trainingDomains.some((domain) => tests[domain].state === each)
+  );
+  if (!state) {
+    const passed = trainingDomains.some((domain) => tests[domain].state === 'passed');
+    return (
+      <span
+        className="text-muted-foreground"
+        data-testid="test-status"
+        data-state={passed ? 'passed' : undefined}
+      >
+        {passed ? 'La zi' : '—'}
+      </span>
+    );
   }
+  const domains = trainingDomains.filter((domain) => tests[domain].state === state);
+  const label = testStateLabels[state];
   return (
-    <span className="grid justify-items-start gap-1">
-      {trainingDomains.map((domain) => {
-        const { state } = tests[domain];
-        return (
-          <span key={domain} className="flex items-center gap-1.5">
-            <span className="w-6 text-xs text-muted-foreground">
-              {trainingDomainLabels[domain]}
-            </span>
-            {state ? (
-              <TestStateBadge state={state} testId={`test-status-${domain}`} />
-            ) : (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </span>
-        );
-      })}
+    <span className={lineTones[state]} data-testid="test-status" data-state={state}>
+      {domains.length === 1
+        ? `${trainingDomainLabels[domains[0]!]}: ${label.charAt(0).toLowerCase()}${label.slice(1)}`
+        : label}
     </span>
   );
 }

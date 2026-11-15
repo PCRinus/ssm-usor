@@ -235,12 +235,6 @@ describe('GET /employees', () => {
     expect(query.get('client_archived_at')).toBe('is.null');
   });
 
-  it('still reads the earlier single client', async () => {
-    mockUpstream();
-    await request(`/employees?clientId=${clientId}`);
-    expect(listQuery().get('client_id')).toBe(`eq.${clientId}`);
-  });
-
   it('filters by the training of each domain and the needs, and counts the tab without them', async () => {
     mockUpstream({
       list: (_, init) =>
@@ -265,24 +259,6 @@ describe('GET /employees', () => {
     expect(count!.get('client_stage')).toBe('eq.client');
     expect(count!.has('su_training_state')).toBe(false);
     expect(count!.has('or')).toBe(false);
-  });
-
-  it.each([
-    ['trainingState=untrained&domain=ssm', 'ssm_training_state', 'in.(untrained)'],
-    ['testState=pending&domain=su', 'su_test_state', 'eq.pending'],
-  ])('reads a dashboard link of one domain, %s', async (search, column, value) => {
-    mockUpstream();
-    await request(`/employees?${search}`);
-    expect(listQuery().get(column)).toBe(value);
-  });
-
-  it('reads an earlier state without a domain in either domain', async () => {
-    mockUpstream();
-    await request('/employees?trainingState=overdue&testState=pending');
-    expect(listQuery().getAll('or')).toEqual([
-      '(ssm_training_state.in.(overdue),su_training_state.in.(overdue))',
-      '(ssm_test_state.eq.pending,su_test_state.eq.pending)',
-    ]);
   });
 
   it.each([

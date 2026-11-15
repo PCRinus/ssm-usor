@@ -10,9 +10,12 @@ export const dashboardLinks = {
     }),
   clients: () => linkOptions({ to: '/clienti' }),
   employees: () => linkOptions({ to: '/angajati' }),
-  testsPending: () => linkOptions({ to: '/angajati', search: { testState: 'pending' as const } }),
+  testsPending: () => linkOptions({ to: '/angajati', search: { test: ['pending' as const] } }),
   trainingState: (trainingState: TrainingStateFilter, domain: TrainingDomain) =>
-    linkOptions({ to: '/angajati', search: { trainingState, domain } }),
+    linkOptions({
+      to: '/angajati',
+      search: domain === 'ssm' ? { ssmTraining: [trainingState] } : { suTraining: [trainingState] },
+    }),
   documentsBehind: () => linkOptions({ to: '/legislatie/documente' }),
 };
 

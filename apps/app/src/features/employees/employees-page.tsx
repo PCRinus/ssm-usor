@@ -1,17 +1,30 @@
 import { defaultPageSize, type EmployeeSortKey } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, useRouteContext } from '@tanstack/react-router';
 import { UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
+import {
+  getListEmployeesQueryKey,
+  getListJobPositionsQueryKey,
+  getListWorkplacesQueryKey,
+  type ListEmployeesParams,
+  useListEmployees,
+  useListJobPositions,
+  useListWorkplaces,
+} from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
+import { AppliedFilters } from '@/components/list-filters/applied-filters';
+import { ListFilters } from '@/components/list-filters/list-filters';
+import type { ListFilterValues } from '@/components/list-filters/types';
+import { listFilterSearch } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
 import {
@@ -22,22 +35,21 @@ import {
 } from '@/features/imports/employees/employee-import-entry';
 import { EmployeeUploadDialog } from '@/features/imports/employees/employee-upload-dialog';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
-import { TestStateFilter } from '@/features/knowledge-tests/test-state-filter';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
-import { TrainingStateFilter } from '@/features/trainings/training-state-filter';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { employeeColumns, type EmployeeRow } from './employee-columns';
-import { employeeStatusLabels, roCount } from './employee-format';
+import { employeeStatusLabels, workerNoun } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
-import { EmployeesNoMatch } from './employees-no-match';
+import { clientWorkerFacets, clientWorkerFilterKeys } from './worker-filters';
+import { WorkersCount, WorkersNoMatch } from './workers-list';
 
 const employeesRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/');
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
 
 const defaultSort: DataTableSort & { sort: EmployeeSortKey } = { sort: 'name', order: 'asc' };
 
-const filters = [
+const tabs = [
   { status: undefined, label: employeeStatusLabels.active, testId: 'employees-filter-current' },
   {
     status: 'terminated',
@@ -46,54 +58,123 @@ const filters = [
   },
 ] as const;
 
+type FilterKey = (typeof clientWorkerFilterKeys)[number];
+type Filters = Pick<ListEmployeesParams, FilterKey>;
+
 const rowKey = (row: EmployeeRow) => row.id;
 
-export function EmployeesPage() {
-  const { clientId } = employeesRoute.useParams();
-  const { client } = clientRoute.useLoaderData();
-  const readOnly = client.archivedAt !== null;
-  const [importing, setImporting] = useState<'found' | 'new' | 'documentation' | null>(null);
-  const {
-    status,
-    trainingState,
-    testState,
-    page = 1,
-    sort = defaultSort.sort,
-    order = defaultSort.order,
-    q,
-  } = employeesRoute.useSearch();
-  const navigate = employeesRoute.useNavigate();
+function PendingEmployeesLabel({
+  clientId,
+  params,
+}: {
+  clientId: string;
+  params: ListEmployeesParams;
+}) {
   const { session } = useAuth();
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = {
-    ...(status ? { status } : {}),
-    ...(trainingState ? { trainingState } : {}),
-    ...(testState ? { testState } : {}),
-    ...(q ? { q } : {}),
-    page,
-    pageSize: defaultPageSize,
-    sort,
-    order,
-  };
-  const employees = useListEmployees(clientId, params, {
+  const total = useListEmployees(clientId, params, {
     request: apiRequest,
     query: {
       queryKey: [...getListEmployeesQueryKey(clientId, params), session?.user.id],
       enabled: Boolean(session && apiRequest.baseUrl),
       placeholderData: keepPreviousData,
     },
+  }).data?.total;
+  return total === undefined ? 'Arată rezultatele' : `Arată ${workerNoun(total)}`;
+}
+
+export function EmployeesPage() {
+  const { clientId } = employeesRoute.useParams();
+  const { client } = clientRoute.useLoaderData();
+  const readOnly = client.archivedAt !== null;
+  const [importing, setImporting] = useState<'found' | 'new' | 'documentation' | null>(null);
+  const search = employeesRoute.useSearch();
+  const { status, page = 1, sort = defaultSort.sort, order = defaultSort.order, q } = search;
+  const former = status === 'terminated';
+  const navigate = employeesRoute.useNavigate();
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const phone = useIsMobile();
+  const positions = useListJobPositions(clientId, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListJobPositionsQueryKey(clientId), userId],
+      enabled: Boolean(userId && apiRequest.baseUrl),
+    },
+  });
+  const workplaces = useListWorkplaces(clientId, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListWorkplacesQueryKey(clientId), userId],
+      enabled: Boolean(userId && apiRequest.baseUrl),
+    },
+  });
+  const workplaceCount = workplaces.data?.items.length ?? 0;
+  const facets = useMemo(
+    () =>
+      clientWorkerFacets({
+        withStates: !former && !readOnly,
+        positions: positions.data?.items ?? [],
+        workplaces: workplaces.data?.items ?? [],
+        // One workplace filters nothing; while they load, a chosen one is still read.
+        withWorkplaces: workplaceCount > 1 || (workplaces.isPending && Boolean(search.workplace)),
+      }),
+    [
+      former,
+      readOnly,
+      positions.data,
+      workplaces.data,
+      workplaceCount,
+      workplaces.isPending,
+      search.workplace,
+    ]
+  );
+  const listFilters = listFilterSearch({ keys: clientWorkerFilterKeys, facets, search });
+  const filters = listFilters.searchOf(listFilters.values) as Filters;
+  const filtered = listFilters.applied;
+  const narrowed = filtered || Boolean(q);
+  const params: ListEmployeesParams = {
+    ...(status ? { status } : {}),
+    ...(q ? { q } : {}),
+    page,
+    pageSize: defaultPageSize,
+    sort,
+    order,
+    ...filters,
+  };
+  const employees = useListEmployees(clientId, params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListEmployeesQueryKey(clientId, params), userId],
+      enabled: Boolean(session && apiRequest.baseUrl),
+      placeholderData: keepPreviousData,
+    },
   });
   const meta = employees.data ?? { page, pageSize: defaultPageSize, total: 0 };
+  const unfilteredTotal = employees.data?.unfilteredTotal ?? 0;
   const listStatus = !apiRequest.baseUrl ? 'error' : employees.status;
-  const startsFromEmpty = !readOnly && !status && !q && !trainingState && !testState;
+  const startsFromEmpty = !readOnly && !former && !narrowed;
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
-  const columns = useMemo(() => employeeColumns(readOnly ? undefined : setChange), [readOnly]);
+  const columns = useMemo(
+    () => employeeColumns({ former, onStatusChange: readOnly ? undefined : setChange }),
+    [former, readOnly]
+  );
+  const changeSearch = (next: Partial<typeof search>) =>
+    void navigate({
+      state: keepOpener,
+      replace: true,
+      resetScroll: false,
+      search: (prev) => ({ ...prev, ...next, page: undefined }),
+    });
+  const changeFilters = (values: ListFilterValues<FilterKey>) =>
+    changeSearch(listFilters.searchOf(values) as Filters);
 
   return (
     <div data-testid="employees-page" className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Lucrători</h2>
-        {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, meta.total)) && (
+        {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
           <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
         )}
       </div>
@@ -103,73 +184,73 @@ export function EmployeesPage() {
       <div className="overflow-hidden rounded-lg border bg-card">
         <ListCardHeader>
           <FilterTabs label="Filtrează lucrătorii">
-            {filters.map((filter) => (
+            {tabs.map((tab) => (
               <FilterTab
-                key={filter.label}
+                key={tab.label}
                 to="/clienti/$clientId/angajati"
                 params={{ clientId }}
                 state={keepOpener}
                 search={{
-                  ...(filter.status ? { status: filter.status } : {}),
+                  ...(tab.status ? { status: tab.status } : {}),
                   q,
+                  jobPosition: filters.jobPosition,
+                  workplace: filters.workplace,
                 }}
-                data-testid={filter.testId}
-                active={filter.status === status}
+                data-testid={tab.testId}
+                active={tab.status === status}
                 replace
               >
-                {filter.label}
+                {tab.label}
               </FilterTab>
             ))}
           </FilterTabs>
-          <SearchInput
-            value={q}
-            onSearch={(next) =>
-              void navigate({
-                state: keepOpener,
-                replace: true,
-                resetScroll: false,
-                search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
-              })
-            }
-            placeholder="Caută după nume sau marcă"
-            label="Caută lucrători"
-            testId="employees-search"
-          />
-          {status !== 'terminated' && (
-            <>
-              <TrainingStateFilter
-                value={trainingState}
-                withAttention
-                testId="employees-training-filter"
-                onChange={(next) =>
-                  void navigate({
-                    state: keepOpener,
-                    replace: true,
-                    resetScroll: false,
-                    search: (prev) => ({ ...prev, trainingState: next, page: undefined }),
-                  })
-                }
+          {(unfilteredTotal > 0 || narrowed) && (
+            <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
+              <SearchInput
+                value={q}
+                onSearch={(next) => changeSearch({ q: next || undefined })}
+                placeholder={phone ? 'Caută lucrători' : 'Caută după nume sau marcă'}
+                label="Caută lucrători"
+                testId="employees-search"
               />
-              <TestStateFilter
-                value={testState}
-                testId="employees-test-filter"
-                onChange={(next) =>
-                  void navigate({
-                    state: keepOpener,
-                    replace: true,
-                    resetScroll: false,
-                    search: (prev) => ({ ...prev, testState: next, page: undefined }),
-                  })
-                }
+              <ListFilters
+                facets={facets}
+                values={filters}
+                onChange={changeFilters}
+                total={employees.isSuccess && !employees.isPlaceholderData ? meta.total : undefined}
+                applyLabel={(pending) => (
+                  <PendingEmployeesLabel
+                    clientId={clientId}
+                    params={{
+                      ...params,
+                      page: 1,
+                      pageSize: 1,
+                      ...(listFilters.searchOf(pending) as Filters),
+                    }}
+                  />
+                )}
+                countLabel={workerNoun}
+                testId="employees-filters"
               />
-            </>
+            </div>
           )}
           {employees.isSuccess && (
             <ListCount testId="employees-count">
-              {roCount(meta.total, 'lucrător', 'lucrători')}
+              <WorkersCount
+                total={meta.total}
+                unfilteredTotal={unfilteredTotal}
+                narrowed={narrowed}
+                short={phone}
+              />
             </ListCount>
           )}
         </ListCardHeader>
+        <AppliedFilters
+          facets={facets}
+          values={filters}
+          onChange={changeFilters}
+          testId="employees-applied-filters"
+        />
         <DataTable
           testId="employees-table"
           rowTestId="employees-row"
@@ -192,16 +273,9 @@ export function EmployeesPage() {
           sort={{ sort, order }}
           onSortChange={(next) =>
             // Filter and sort changes replace the entry: back returns to the previous page.
-            void navigate({
-              state: keepOpener,
-              replace: true,
-              resetScroll: false,
-              search: (prev) => ({
-                ...prev,
-                sort: next.sort === defaultSort.sort ? undefined : (next.sort as EmployeeSortKey),
-                order: next.order === defaultSort.order ? undefined : next.order,
-                page: undefined,
-              }),
+            changeSearch({
+              sort: next.sort === defaultSort.sort ? undefined : (next.sort as EmployeeSortKey),
+              order: next.order === defaultSort.order ? undefined : next.order,
             })
           }
           onPageChange={(next) =>
@@ -235,55 +309,18 @@ export function EmployeesPage() {
             </>
           }
           empty={
-            q ? (
-              <EmployeesNoMatch
-                hint="Verifică ce ai scris sau caută după alt nume ori altă marcă."
-                testId="employees-empty"
-                onClear={() =>
-                  void navigate({
-                    state: keepOpener,
-                    replace: true,
-                    resetScroll: false,
-                    search: (prev) => ({ ...prev, q: undefined, page: undefined }),
-                  })
-                }
-              />
-            ) : trainingState ? (
-              <EmployeesNoMatch
-                title="Niciun lucrător în această stare a instruirii"
-                hint="Ceilalți lucrători sunt în altă stare. Arată-i pe toți pentru a-i vedea."
-                testId="employees-empty"
-                clearLabel="Arată toți lucrătorii"
-                clearTestId="employees-empty-clear-training-state"
-                onClear={() =>
-                  void navigate({
-                    state: keepOpener,
-                    replace: true,
-                    resetScroll: false,
-                    search: (prev) => ({ ...prev, trainingState: undefined, page: undefined }),
-                  })
-                }
-              />
-            ) : testState ? (
-              <EmployeesNoMatch
-                title="Niciun lucrător în această stare a testării"
-                hint="Ceilalți lucrători sunt în altă stare. Arată-i pe toți pentru a-i vedea."
-                testId="employees-empty"
-                clearLabel="Arată toți lucrătorii"
-                clearTestId="employees-empty-clear-test-state"
-                onClear={() =>
-                  void navigate({
-                    state: keepOpener,
-                    replace: true,
-                    resetScroll: false,
-                    search: (prev) => ({ ...prev, testState: undefined, page: undefined }),
-                  })
-                }
+            narrowed ? (
+              <WorkersNoMatch
+                former={former}
+                filtered={filtered}
+                q={q}
+                testId="employees-empty-filtered"
+                onClear={() => (filtered ? changeFilters({}) : changeSearch({ q: undefined }))}
               />
             ) : (
               <EmptyState
                 icon={UserRound}
-                title={status === 'terminated' ? 'Niciun fost lucrător' : 'Niciun lucrător încă'}
+                title={former ? 'Niciun fost lucrător' : 'Niciun lucrător încă'}
                 data-testid="employees-empty"
                 actions={
                   startsFromEmpty && (
@@ -291,7 +328,7 @@ export function EmployeesPage() {
                   )
                 }
               >
-                {status === 'terminated'
+                {former
                   ? 'Lucrătorii care pleacă rămân aici, cu dovezile lor.'
                   : 'Adaugă lucrătorii clientului pentru a le organiza instruirile și documentele.'}
               </EmptyState>

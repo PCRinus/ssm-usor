@@ -43,7 +43,7 @@ test('a training held gives its attendee a record and ends their untrained state
     };
   };
 
-  const untrained = await api('/employees?trainingState=untrained');
+  const untrained = await api('/employees?ssmTraining=untrained');
   expect(untrained.status).toBe(200);
   expect(untrained.body.items).toHaveLength(1);
   const employee = untrained.body.items[0];
@@ -106,9 +106,8 @@ test('a training held gives its attendee a record and ends their untrained state
   expect(listed.body.items).toEqual([
     expect.objectContaining({ id: created.body.training.id, attendeeCount: 1 }),
   ]);
-  expect((await api('/employees?trainingState=overdue')).body.items).toHaveLength(0);
-  // Still untrained in fire safety, which the filter matches in either domain.
-  expect((await api('/employees?trainingState=untrained')).body.items).toHaveLength(1);
+  expect((await api('/employees?ssmTraining=attention')).body.items).toHaveLength(0);
+  expect((await api('/employees?suTraining=untrained')).body.items).toHaveLength(1);
 
   expect((await api(`/trainings/${created.body.training.id}`, { method: 'DELETE' })).status).toBe(
     204

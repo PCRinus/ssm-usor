@@ -50,16 +50,21 @@ test('a member finds employees of every client from one page, without typing dia
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Popescu Ion');
 
+  await search.fill('santierul');
+  await expect(page.getByText('Niciun lucrător nu se potrivește')).toBeVisible();
   await search.fill('nimeni');
-  await expect(page.getByText('Niciun lucrător nu corespunde căutării')).toBeVisible();
-  await page.getByTestId('organization-employees-empty-clear-search').click();
+  await expect(page.getByTestId('organization-employees-count')).toHaveText('0 din 2 lucrători');
+  await page.getByTestId('organization-employees-empty-filtered-clear').click();
   await expect(rows).toHaveCount(2);
 
-  await page.getByTestId('organization-employees-client-filter').click();
-  await page.getByTestId('organization-employees-client-filter-search').fill('naval');
-  await page.getByRole('option', { name: /Șantierul Naval E2E SA/ }).click();
+  await page.getByTestId('organization-employees-filters').click();
+  await page.getByTestId('organization-employees-filters-client-add').click();
+  await page.getByTestId('organization-employees-filters-client-search').fill('naval');
+  await page.getByTestId(`organization-employees-filters-client-${navalId}`).click();
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Țăranu Ștefan');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
 
   await rows.first().getByTestId('organization-employees-open').click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${navalId}/angajati/`));
@@ -68,5 +73,5 @@ test('a member finds employees of every client from one page, without typing dia
   await page.getByTestId('employees-search').fill('popesc');
   await expect(page.getByTestId('employees-row')).toHaveCount(1);
   await page.getByTestId('employees-search').fill('stefan');
-  await expect(page.getByText('Niciun lucrător nu corespunde căutării')).toBeVisible();
+  await expect(page.getByText('Niciun lucrător nu se potrivește')).toBeVisible();
 });

@@ -169,7 +169,13 @@ function mockEmployeeImport({
       return Response.json({}, { status: 404 });
     }
     if (url.pathname === `/clients/${clientId}/employees`) {
-      return Response.json({ items: employees, page: 1, pageSize: 25, total: employees.length });
+      return Response.json({
+        items: employees,
+        page: 1,
+        pageSize: 25,
+        total: employees.length,
+        unfilteredTotal: employees.length,
+      });
     }
     return undefined;
   });

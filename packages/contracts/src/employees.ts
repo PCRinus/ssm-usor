@@ -151,10 +151,6 @@ export type ClientEmployeeListFilters = z.infer<typeof clientEmployeeListFilters
 export const listEmployeesQuerySchema = listQuerySchema(employeeSortKeys, 'name')
   .extend({
     status: employeeStatusSchema.optional(),
-    // Matched in either domain; "attention" is untrained or overdue.
-    trainingState: employeeTrainingStateFilterSchema.optional(),
-    // As the training state: passed means passed in both domains.
-    testState: testStateFilterSchema.optional(),
     q: listSearchSchema.optional(),
   })
   .extend(clientEmployeeListFiltersSchema.shape);

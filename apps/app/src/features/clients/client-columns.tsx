@@ -12,6 +12,7 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-
 
 import type { ClientListResponse } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
+import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
@@ -96,12 +97,9 @@ export function clientColumns({
           >
             {getValue()}
           </Link>
-          <span
-            data-testid="clients-cui"
-            className="mt-0.5 block text-xs font-normal text-muted-foreground tabular-nums"
-          >
+          <CellNote data-testid="clients-cui" className="tabular-nums">
             {formatCui(row.original.cui, row.original.vatPayer)}
-          </span>
+          </CellNote>
         </>
       ),
     }),

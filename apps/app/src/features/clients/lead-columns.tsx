@@ -12,6 +12,7 @@ import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, UserCheck } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { formatRoDate } from '@/lib/dates';
 
@@ -57,9 +58,7 @@ export function leadColumns(
         return (
           <>
             {contactName ?? reach}
-            {contactName && reach && (
-              <span className="mt-0.5 block text-xs text-muted-foreground">{reach}</span>
-            )}
+            {contactName && reach && <CellNote>{reach}</CellNote>}
           </>
         );
       },

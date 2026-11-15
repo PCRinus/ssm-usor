@@ -67,7 +67,13 @@ const taranu = employee(
   'Șantierul Naval SA'
 );
 
-const page = (items: unknown[], total = items.length) => ({ items, page: 1, pageSize: 25, total });
+const page = (items: unknown[], total = items.length, unfilteredTotal = total) => ({
+  items,
+  page: 1,
+  pageSize: 25,
+  total,
+  unfilteredTotal,
+});
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -163,7 +169,7 @@ describe("the organization's employees", () => {
     );
   });
 
-  it('fills the search box from the URL and filters by client and status', async () => {
+  it('fills the search box from the URL, reads an earlier single client, and keeps it on the other tab', async () => {
     mockApi();
     const runtime = mountApp(
       authFixture(makeSession()).client,
@@ -176,13 +182,15 @@ describe("the organization's employees", () => {
     );
     const query = listRequests()[0]!.searchParams;
     expect(query.get('q')).toBe('popescu');
-    expect(query.get('clientId')).toBe(petromId);
-    expect(await screen.findByText('OMV PETROM SA', { selector: 'span' })).toBeTruthy();
+    expect(query.getAll('client')).toEqual([petromId]);
+    expect(query.has('clientId')).toBe(false);
+    const applied = await screen.findByTestId('organization-employees-applied-filters-client');
+    await waitFor(() => expect(applied.textContent).toContain('OMV PETROM SA'));
 
     await user.click(screen.getByTestId('organization-employees-filter-terminated'));
     expect(runtime.router.state.location.search).toEqual({
       status: 'terminated',
-      clientId: petromId,
+      client: petromId,
       q: 'popescu',
     });
     await waitFor(() =>
@@ -190,44 +198,48 @@ describe("the organization's employees", () => {
     );
   });
 
-  it('chooses a client from the filter and clears it', async () => {
+  it('chooses clients from the filters, searching them by name, and clears them', async () => {
     mockApi();
     const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
     const user = userEvent.setup();
     await screen.findAllByTestId('organization-employees-row');
-    const filter = screen.getByTestId('organization-employees-client-filter');
-    await waitFor(() => expect((filter as HTMLButtonElement).disabled).toBe(false));
-    await user.click(filter);
-    await user.type(screen.getByTestId('organization-employees-client-filter-search'), 'santier');
-    await user.click(
-      await within(await screen.findByRole('listbox')).findByRole('option', {
-        name: /Șantierul Naval SA/,
-      })
+    await user.click(screen.getByTestId('organization-employees-filters'));
+    const panel = await screen.findByTestId('organization-employees-filters-panel');
+    expect(within(panel).getByRole('heading', { name: 'Instruire SSM' })).toBeTruthy();
+    expect(within(panel).queryByRole('heading', { name: 'Post de lucru' })).toBeNull();
+    await user.click(within(panel).getByTestId('organization-employees-filters-client-add'));
+    await user.type(
+      await screen.findByTestId('organization-employees-filters-client-search'),
+      'santier'
     );
+    expect(screen.queryByTestId(`organization-employees-filters-client-${petromId}`)).toBeNull();
+    await user.click(screen.getByTestId(`organization-employees-filters-client-${navalId}`));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ client: navalId }));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ clientId: navalId })
+      expect(listRequests().at(-1)!.searchParams.getAll('client')).toEqual([navalId])
     );
-    await waitFor(() => expect(listRequests().at(-1)!.searchParams.get('clientId')).toBe(navalId));
+    expect(runtime.router.state.location.href).toBe(`/angajati?client=${navalId}`);
 
-    await user.click(screen.getByTestId('organization-employees-client-filter'));
-    await user.click(await screen.findByTestId('organization-employees-client-filter-clear'));
+    await user.keyboard('{Escape}');
+    await user.keyboard('{Escape}');
+    await user.click(
+      await screen.findByTestId('organization-employees-applied-filters-client-remove')
+    );
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
   it('tells an empty organization from a search that matches no one', async () => {
-    mockApi(() => Response.json(page([])));
-    const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
+    mockApi((url) => Response.json(page([], 0, url.searchParams.get('q') ? 2 : 0)));
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati?q=zzz');
     const user = userEvent.setup();
-    expect(await screen.findByText('Niciun lucrător încă')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Mergi la clienți' })).toBeTruthy();
-
-    await user.type(screen.getByTestId('organization-employees-search'), 'zzz');
-    expect(await screen.findByText('Niciun lucrător nu corespunde căutării')).toBeTruthy();
-    await user.click(screen.getByTestId('organization-employees-empty-clear-search'));
+    expect(await screen.findByText('Niciun lucrător nu se potrivește')).toBeTruthy();
+    expect(screen.getByTestId('organization-employees-count').textContent).toBe(
+      '0 din 2 lucrători'
+    );
+    await user.click(screen.getByTestId('organization-employees-empty-filtered-clear'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
     expect(await screen.findByText('Niciun lucrător încă')).toBeTruthy();
-    expect((screen.getByTestId('organization-employees-search') as HTMLInputElement).value).toBe(
-      ''
-    );
+    expect(screen.getByRole('link', { name: 'Mergi la clienți' })).toBeTruthy();
+    expect(screen.queryByTestId('organization-employees-search')).toBeNull();
   });
 });

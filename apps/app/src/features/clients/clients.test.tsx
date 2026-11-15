@@ -403,16 +403,16 @@ describe('clients list', () => {
     expect(within(current!).getByText('14.02.2027')).toBeTruthy();
     expect(within(empty!).queryByTestId('clients-training')).toBeNull();
     expect(within(untrained!).getByTestId('clients-training').getAttribute('href')).toBe(
-      '/clienti/a1/angajati?trainingState=attention'
+      '/clienti/a1/angajati?attention=toTrain'
     );
     expect(within(mixed!).getByTestId('clients-training').getAttribute('href')).toBe(
-      '/clienti/a2/angajati?trainingState=attention'
+      '/clienti/a2/angajati?attention=toTrain'
     );
     expect(within(current!).getByTestId('clients-training').getAttribute('href')).toBe(
-      '/clienti/a4/angajati?trainingState=current'
+      '/clienti/a4/angajati?ssmTraining=current&suTraining=current'
     );
     expect(within(due!).getByTestId('clients-training').getAttribute('href')).toBe(
-      '/clienti/a3/angajati?trainingState=due'
+      '/clienti/a3/angajati?attention=trainingDue'
     );
     await userEvent.setup().click(screen.getByTestId('sort-training'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'training' }));

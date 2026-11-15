@@ -65,11 +65,11 @@ export function importedSentence(notice: EmployeesImported) {
   const leavers =
     notice.leavers.length === 1 ? (
       <>
-        <Masked>{notice.leavers[0]}</Masked> e la Foști lucrători
+        <Masked>{notice.leavers[0]}</Masked> e la Foști
       </>
     ) : notice.leavers.length > 1 ? (
       <>
-        <Masked>{joinNames(notice.leavers)}</Masked> sunt la Foști lucrători
+        <Masked>{joinNames(notice.leavers)}</Masked> sunt la Foști
       </>
     ) : null;
   return (

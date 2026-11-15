@@ -592,8 +592,8 @@ export function EmployeePersonPage({
               >
                 <p className="text-sm" data-testid="person-leaver-note">
                   {included
-                    ? 'Îl preluăm ca fost lucrător, cu instruirile lui, și apare la Foști lucrători. Oprește comutatorul de lângă nume dacă nu vrei să-l preiei.'
-                    : 'Nu îl preluăm decât dacă pornești comutatorul de lângă nume: apare atunci la Foști lucrători, cu instruirile lui.'}
+                    ? 'Îl preluăm ca fost lucrător, cu instruirile lui, și apare la Foști. Oprește comutatorul de lângă nume dacă nu vrei să-l preiei.'
+                    : 'Nu îl preluăm decât dacă pornești comutatorul de lângă nume: apare atunci la Foști, cu instruirile lui.'}
                 </p>
               </DecideRow>
             )}

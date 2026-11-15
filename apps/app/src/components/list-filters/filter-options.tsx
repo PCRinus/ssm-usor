@@ -28,6 +28,7 @@ export function FilterOptions<Key extends string>({
     <ul className="grid gap-px" aria-label={facet.label}>
       {options.map((option) => {
         const checked = selected?.includes(option.value) ?? false;
+        if (option.onlyWhenChosen && !checked) return null;
         const optionId = `${id}-${option.value}`;
         return (
           <li key={option.value}>

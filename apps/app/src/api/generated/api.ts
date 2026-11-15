@@ -15866,8 +15866,6 @@ export type ListEmployeesParams = {
   sort?: ListEmployeesSort;
   order?: ListEmployeesOrder;
   status?: ListEmployeesStatus;
-  trainingState?: ListEmployeesTrainingState;
-  testState?: ListEmployeesTestState;
   /**
    * @maxLength 100
    */
@@ -15930,28 +15928,6 @@ export const ListEmployeesStatus = {
   terminated: 'terminated',
 } as const;
 
-export type ListEmployeesTrainingState =
-  (typeof ListEmployeesTrainingState)[keyof typeof ListEmployeesTrainingState];
-
-export const ListEmployeesTrainingState = {
-  current: 'current',
-  due: 'due',
-  overdue: 'overdue',
-  untrained: 'untrained',
-  attention: 'attention',
-} as const;
-
-export type ListEmployeesTestState =
-  (typeof ListEmployeesTestState)[keyof typeof ListEmployeesTestState];
-
-export const ListEmployeesTestState = {
-  passed: 'passed',
-  pending: 'pending',
-  annual_due: 'annual_due',
-  unverified: 'unverified',
-  none: 'none',
-} as const;
-
 export type ListEmployeesSsmTrainingItem =
   (typeof ListEmployeesSsmTrainingItem)[keyof typeof ListEmployeesSsmTrainingItem];
 
@@ -16009,10 +15985,6 @@ export type ListOrganizationEmployeesParams = {
   sort?: ListOrganizationEmployeesSort;
   order?: ListOrganizationEmployeesOrder;
   status?: ListOrganizationEmployeesStatus;
-  clientId?: string;
-  trainingState?: ListOrganizationEmployeesTrainingState;
-  testState?: ListOrganizationEmployeesTestState;
-  domain?: ListOrganizationEmployeesDomain;
   /**
    * @maxLength 100
    */
@@ -16071,35 +16043,6 @@ export type ListOrganizationEmployeesStatus =
 export const ListOrganizationEmployeesStatus = {
   active: 'active',
   terminated: 'terminated',
-} as const;
-
-export type ListOrganizationEmployeesTrainingState =
-  (typeof ListOrganizationEmployeesTrainingState)[keyof typeof ListOrganizationEmployeesTrainingState];
-
-export const ListOrganizationEmployeesTrainingState = {
-  current: 'current',
-  due: 'due',
-  overdue: 'overdue',
-  untrained: 'untrained',
-} as const;
-
-export type ListOrganizationEmployeesTestState =
-  (typeof ListOrganizationEmployeesTestState)[keyof typeof ListOrganizationEmployeesTestState];
-
-export const ListOrganizationEmployeesTestState = {
-  passed: 'passed',
-  pending: 'pending',
-  annual_due: 'annual_due',
-  unverified: 'unverified',
-  none: 'none',
-} as const;
-
-export type ListOrganizationEmployeesDomain =
-  (typeof ListOrganizationEmployeesDomain)[keyof typeof ListOrganizationEmployeesDomain];
-
-export const ListOrganizationEmployeesDomain = {
-  ssm: 'ssm',
-  su: 'su',
 } as const;
 
 export type ListOrganizationEmployeesSsmTrainingItem =
@@ -19435,7 +19378,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`, `trainingState`, `testState`) and the training sorts with `400`. The older `trainingState` and `testState` are read in either domain. `unfilteredTotal` counts the status asked for without the search and the filters. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (
@@ -20164,7 +20107,7 @@ export const getListOrganizationEmployeesUrl = (params?: ListOrganizationEmploye
 };
 
 /**
- * Paginated, searched, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients and of leads are never listed. `q` matches the name and the employee number, never the client: `client` filters by clients. The older `clientId`, and `trainingState` and `testState`, read in `domain` when given and in either domain otherwise, still filter.
+ * Paginated, searched, filtered and sorted like a client's list, each row with its client. Without a status filter the list holds current employees; employees of archived clients and of leads are never listed. `q` matches the name and the employee number, never the client: `client` filters by clients.
  * @summary List the organization's employees across its clients
  */
 export const listOrganizationEmployees = async (

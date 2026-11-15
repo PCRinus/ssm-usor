@@ -398,7 +398,7 @@ O instruire de pe fișă care e deja în aplicație, același domeniu, același 
 
 ### Cine a plecat din firmă
 
-O fișă cu data plecării e propusă cu comutatorul de lângă nume oprit, iar cardul plecării îți spune ce înseamnă. Pornește-l dacă vrei să-l ai în evidență: îl preluăm ca fost lucrător, cu instruirile lui, și apare la **Foști lucrători**. Dacă treci la persoana următoare fără să-l pornești, rămâne lăsat deoparte. Dacă ștergi data plecării înainte să treci mai departe, persoana e propusă inclusă, ca lucrător actual; dacă era deja lăsată deoparte, o iei înapoi cu comutatorul de lângă nume. Dacă scrii o dată a plecării la cineva verificat, care nu e deja lucrător al clientului, e lăsat deoparte până îl preiei.
+O fișă cu data plecării e propusă cu comutatorul de lângă nume oprit, iar cardul plecării îți spune ce înseamnă. Pornește-l dacă vrei să-l ai în evidență: îl preluăm ca fost lucrător, cu instruirile lui, și apare la **Foști**. Dacă treci la persoana următoare fără să-l pornești, rămâne lăsat deoparte. Dacă ștergi data plecării înainte să treci mai departe, persoana e propusă inclusă, ca lucrător actual; dacă era deja lăsată deoparte, o iei înapoi cu comutatorul de lângă nume. Dacă scrii o dată a plecării la cineva verificat, care nu e deja lucrător al clientului, e lăsat deoparte până îl preiei.
 
 Când persoana se potrivește cu un fost lucrător al clientului, vezi asta pe pagina ei. Dacă fișa scrie o dată a angajării de după plecarea lui, persoana a fost reangajată, iar în aplicație o reangajare e un lucrător nou (vezi [Reangajarea](/clienti/angajati/plecare/#reangajarea)). Importul nu reactivează fostul lucrător, iar persoana are ceva de hotărât până alegi una dintre:
 

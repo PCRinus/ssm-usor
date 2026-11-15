@@ -4,6 +4,15 @@ import type { ListFilterFacet, ListFilterValues } from './types';
 
 // A value no option knows, from an old or edited link, drops alone, not the whole filter.
 export function filterSearchSchema<const Value extends string>(values: readonly Value[]) {
+  return searchListSchema((value): value is Value => (values as readonly string[]).includes(value));
+}
+
+// For options the list loads, such as a client's job positions: any id, checked by the API.
+export function idFilterSearchSchema() {
+  return searchListSchema((value): value is string => z.uuid().safeParse(value).success);
+}
+
+function searchListSchema<Value extends string>(known: (value: string) => value is Value) {
   return z
     .preprocess(
       // One chosen value is one key in the URL, which the parser reads as a plain value, and a
@@ -16,9 +25,7 @@ export function filterSearchSchema<const Value extends string>(values: readonly 
     )
     .catch(undefined)
     .transform((list) => {
-      const kept = (list ?? []).filter((value): value is Value =>
-        (values as readonly unknown[]).includes(value)
-      );
+      const kept = (list ?? []).filter(known);
       return kept.length > 0 ? kept : undefined;
     });
 }

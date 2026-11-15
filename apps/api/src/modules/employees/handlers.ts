@@ -313,13 +313,6 @@ const listFilterKeys = [
   'client',
 ] as const satisfies readonly (keyof ListFilters)[];
 
-// The states of the earlier single filters, which old links still carry.
-type LegacyFilters = {
-  trainingState?: EmployeeTrainingStateFilter;
-  testState?: TestStateFilter;
-  domain?: TrainingDomain;
-};
-
 const attentionMatches: Record<EmployeeAttentionFilter, string> = {
   signaturesPending: 'signatures_pending_count.gt.0',
   noPhone: 'phone.is.null',
@@ -347,11 +340,7 @@ type FilterableQuery<Query> = {
   eq(column: string, value: string): Query;
 };
 
-function matchingFilters<Query extends FilterableQuery<Query>>(
-  query: Query,
-  filters: ListFilters,
-  { trainingState, testState, domain }: LegacyFilters
-) {
+function matchingFilters<Query extends FilterableQuery<Query>>(query: Query, filters: ListFilters) {
   let filtered = query;
   for (const trained of trainingDomains) {
     const chosen = filters[trained === 'ssm' ? 'ssmTraining' : 'suTraining'];
@@ -364,16 +353,6 @@ function matchingFilters<Query extends FilterableQuery<Query>>(
   if (filters.jobPosition) filtered = filtered.in('job_position_id', filters.jobPosition);
   if (filters.workplace) filtered = filtered.in('workplace_id', filters.workplace);
   if (filters.client) filtered = filtered.in('client_id', filters.client);
-  if (trainingState && domain) {
-    filtered = filtered.in(`${domain}_training_state`, trainingStates([trainingState]));
-  } else if (trainingState === 'current') {
-    filtered = filtered.eq('ssm_training_state', 'current').eq('su_training_state', 'current');
-  } else if (trainingState) {
-    const states = trainingStates([trainingState]).join(',');
-    filtered = filtered.or(`ssm_training_state.in.(${states}),su_training_state.in.(${states})`);
-  }
-  if (testState && domain) filtered = filtered.eq(`${domain}_test_state`, testState);
-  else if (testState) filtered = filtered.or(testMatches(testState));
   return filtered;
 }
 
@@ -398,25 +377,21 @@ type ListRequest = {
   sort: EmployeeSortKey | OrganizationEmployeeSortKey;
   order: SortOrder;
   filters: ListFilters;
-  legacy: LegacyFilters;
 };
 
 async function listFromView(
   db: DataClient,
   inScope: <Query extends ScopableQuery<Query>>(query: Query) => Query,
-  { status, q, page, pageSize, sort, order, filters, legacy }: ListRequest
+  { status, q, page, pageSize, sort, order, filters }: ListRequest
 ) {
   const current = <Query extends ScopableQuery<Query>>(query: Query) => {
     const scoped = inScope(query).is('archived_at', null);
     return status ? scoped.eq('status', status) : scoped.neq('status', 'terminated');
   };
-  const narrowed =
-    listFilterKeys.some((key) => filters[key]) ||
-    Boolean(legacy.trainingState || legacy.testState) ||
-    searchTerms(q).length > 0;
+  const narrowed = listFilterKeys.some((key) => filters[key]) || searchTerms(q).length > 0;
   const filtered = (columns: string, options: { count: 'exact'; head?: true }) =>
     matchingEveryTerm(
-      matchingFilters(current(db.from('employee_list').select(columns, options)), filters, legacy),
+      matchingFilters(current(db.from('employee_list').select(columns, options)), filters),
       q
     );
   let listQuery = filtered(listViewColumns, { count: 'exact' });
@@ -461,8 +436,7 @@ type ScopableQuery<Query> = {
 
 export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  const { status, trainingState, testState, q, page, pageSize, sort, order, ...query } =
-    c.req.valid('query');
+  const { status, q, page, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
   const client = await findClient(db, clientId);
   const readsStates =
@@ -485,8 +459,7 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
     pageSize,
     sort,
     order,
-    filters: query,
-    legacy: { trainingState, testState },
+    filters,
   });
   return c.json({ items: items.map(({ item }) => item), ...meta }, 200);
 };
@@ -686,26 +659,13 @@ export const listOrganizationEmployees: RouteHandler<
   typeof listOrganizationEmployeesRoute,
   ApiEnv
 > = async (c) => {
-  const {
-    status,
-    clientId,
-    trainingState,
-    testState,
-    domain,
-    q,
-    page,
-    pageSize,
-    sort,
-    order,
-    ...filters
-  } = c.req.valid('query');
+  const { status, q, page, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
   const { items, ...meta } = await listFromView(
     db,
     (query) => {
       // Only an owner reads leads, and the list should not change with the role.
-      const active = query.eq('client_stage', 'client').is('client_archived_at', null);
-      return clientId ? active.eq('client_id', clientId) : active;
+      return query.eq('client_stage', 'client').is('client_archived_at', null);
     },
     {
       status,
@@ -715,7 +675,6 @@ export const listOrganizationEmployees: RouteHandler<
       sort,
       order,
       filters,
-      legacy: { trainingState, testState, domain },
     }
   );
   return c.json({ items: items.map(({ item, client }) => ({ ...item, client })), ...meta }, 200);

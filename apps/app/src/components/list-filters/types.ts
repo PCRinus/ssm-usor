@@ -3,6 +3,10 @@ import type { LucideIcon } from 'lucide-react';
 export interface ListFilterOption {
   value: string;
   label: string;
+  // What the applied filters and the phone sheet's summary say, when the label explains more.
+  short?: string;
+  // Offered only once chosen, as a link sets it: the facet's other options say the same.
+  onlyWhenChosen?: boolean;
 }
 
 export interface ListFilterFacet<Key extends string = string> {
@@ -47,7 +51,7 @@ export function selectedLabels<Key extends string>(
   const selected = values[facet.key] ?? [];
   return facet.options
     .filter((option) => selected.includes(option.value))
-    .map((option) => option.label);
+    .map((option) => option.short ?? option.label);
 }
 
 export const noFilters = <Key extends string>() => ({}) as ListFilterValues<Key>;

@@ -463,23 +463,6 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(count!.has('ssm_training_state')).toBe(false);
   });
 
-  it('still reads the earlier single training filter in either domain', async () => {
-    mockUpstream({});
-    await request(`${employeesPath}?trainingState=attention`);
-    expect(listQuery().getAll('or')).toEqual([
-      '(ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue))',
-    ]);
-  });
-
-  it('reads the earlier "current" as current in both domains', async () => {
-    mockUpstream({});
-    await request(`${employeesPath}?trainingState=current&testState=passed`);
-    const query = listQuery();
-    expect(query.get('ssm_training_state')).toBe('eq.current');
-    expect(query.get('su_training_state')).toBe('eq.current');
-    expect(query.getAll('or')).toEqual(['(and(ssm_test_state.eq.passed,su_test_state.eq.passed))']);
-  });
-
   it('rejects an unknown status', async () => {
     mockUpstream({});
     const response = await request(`${employeesPath}?status=fired`);

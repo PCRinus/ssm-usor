@@ -30,7 +30,7 @@ const sampleClient = {
   archivedAt: null,
 };
 
-const sampleEmployee = {
+const sampleRecord = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
   clientId,
   lastName: 'Popescu',
@@ -50,8 +50,10 @@ const sampleEmployee = {
   updatedAt: '2026-09-17T10:00:00+00:00',
 };
 
+const sampleEmployee = { ...sampleRecord, signaturesPending: 2 };
+
 const createdEmployee = {
-  ...sampleEmployee,
+  ...sampleRecord,
   cnp: '1900101400127',
   birthDate: '1990-01-01',
   birthPlace: null,
@@ -107,6 +109,7 @@ const page = (items: unknown[], meta: Partial<{ page: number; total: number }> =
   page: meta.page ?? 1,
   pageSize: 25,
   total: meta.total ?? items.length,
+  unfilteredTotal: meta.total ?? items.length,
 });
 
 type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Response>;
@@ -298,9 +301,11 @@ describe('client employees list', () => {
     expect(within(row).getByText('Popescu Ion')).toBeTruthy();
     expect(within(row).getByText('Marca A-17')).toBeTruthy();
     expect(within(row).getByText('Sudor')).toBeTruthy();
-    expect(within(row).getByText('ion.popescu@example.com')).toBeTruthy();
+    expect(within(row).getByTestId('employees-signatures').textContent).toBe('2 în așteptare');
     expect(within(row).getByText('1 mar. 2020')).toBeTruthy();
-    expect(within(row).queryByText('Lucrători actuali')).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: /Data încetării/ })).toBeNull();
+    expect(screen.getByTestId('employees-filter-current').textContent).toBe('Actuali');
+    expect(screen.getByTestId('employees-filter-terminated').textContent).toBe('Foști');
     expect(screen.getByTestId('employees-count').textContent).toBe('1 lucrător');
     expect(screen.getByTestId('pager-summary').textContent).toBe('1 lucrător');
     expect(screen.queryByTestId('pager-next')).toBeNull();
@@ -343,7 +348,8 @@ describe('client employees list', () => {
     await screen.findByTestId('employees-row');
     await userEvent.setup().click(screen.getByTestId('employees-filter-terminated'));
     expect(runtime.router.state.location.search).toEqual({ status: 'terminated' });
-    expect(await screen.findByText('până la 31 dec. 2025')).toBeTruthy();
+    expect(await screen.findByText('31 dec. 2025')).toBeTruthy();
+    expect(screen.getByRole('columnheader', { name: /Data încetării/ })).toBeTruthy();
     expect(screen.getByTestId('employees-filter-terminated').getAttribute('aria-current')).toBe(
       'page'
     );
@@ -404,6 +410,63 @@ describe('client employees list', () => {
     );
   });
 
+  it('filters by the posts and workplaces of the client, and keeps them on the other tab', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      workplaces: () => Response.json({ items: [registeredOffice, workshop] }),
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, employeesPage);
+    const user = userEvent.setup();
+    await screen.findByTestId('employees-row');
+    expect((screen.getByTestId('employees-search') as HTMLInputElement).placeholder).toBe(
+      'Caută după nume sau marcă'
+    );
+    await user.click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    await user.click(
+      await within(panel).findByTestId(`employees-filters-workplace-${workshop.id}`)
+    );
+    await user.click(within(panel).getByTestId('employees-filters-jobPosition-add'));
+    await user.click(
+      await screen.findByTestId(`employees-filters-jobPosition-${welderPosition.id}`)
+    );
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({
+        workplace: workshop.id,
+        jobPosition: welderPosition.id,
+      })
+    );
+    await waitFor(() => {
+      const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+      expect(sent.getAll('workplace')).toEqual([workshop.id]);
+      expect(sent.getAll('jobPosition')).toEqual([welderPosition.id]);
+    });
+    await user.keyboard('{Escape}');
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('employees-applied-filters-jobPosition').textContent).toContain(
+      'Sudor'
+    );
+    await user.click(screen.getByTestId('employees-filter-terminated'));
+    expect(runtime.router.state.location.search).toEqual({
+      status: 'terminated',
+      workplace: workshop.id,
+      jobPosition: welderPosition.id,
+    });
+  });
+
+  it('offers no workplace filter to a client with one workplace', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      workplaces: () => Response.json({ items: [registeredOffice] }),
+    });
+    mountApp(authFixture(makeSession()).client, employeesPage);
+    await screen.findByTestId('employees-row');
+    await userEvent.setup().click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    expect(within(panel).getByRole('heading', { name: 'Post de lucru' })).toBeTruthy();
+    expect(within(panel).queryByRole('heading', { name: 'Punct de lucru' })).toBeNull();
+  });
+
   it('sorts by one column at a time through the URL', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?page=2`);
@@ -411,9 +474,8 @@ describe('client employees list', () => {
     await screen.findByTestId('employees-row');
     const nameHeader = screen.getByRole('columnheader', { name: /Lucrător$/ });
     expect(nameHeader.getAttribute('aria-sort')).toBe('ascending');
-    // Contact is not sortable: no button, no aria-sort.
     expect(
-      screen.getByRole('columnheader', { name: 'Contact' }).getAttribute('aria-sort')
+      screen.getByRole('columnheader', { name: 'De semnat' }).getAttribute('aria-sort')
     ).toBeNull();
     await user.click(screen.getByTestId('sort-hiredAt'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt' }));
@@ -1936,14 +1998,13 @@ describe('what a session replay of the employees shows', () => {
     commuteMeansOther: 'Trotinetă',
   };
 
-  it('masks the name and contact in a list row, and shows the post', async () => {
+  it('masks the name and marca in a list row, and shows the post', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
     mountApp(authFixture(makeSession()).client, employeesPage);
     const row = await screen.findByTestId('employees-row');
 
     expect(replayedText(within(row).getByText('Popescu Ion'))).toBe('******* ***');
-    expect(replayedText(within(row).getByText('ion.popescu@example.com'))).not.toContain('popescu');
-    expect(replayedText(within(row).getByText('0721 000 000'))).toBe('**** *** ***');
+    expect(replayedText(within(row).getByText('Marca A-17'))).not.toContain('A-17');
     expect(replayedText(within(row).getByText('Sudor'))).toBe('Sudor');
   });
 
