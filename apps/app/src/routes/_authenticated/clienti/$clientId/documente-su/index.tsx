@@ -11,6 +11,7 @@ const searchSchema = focusSearch(fireSafetyDocumentsFocus).extend({
 });
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/documente-su/')({
+  staticData: { flushSheet: true },
   validateSearch: searchSchema,
   component: FireSafetyDocumentsPage,
 });
@@ -25,7 +26,7 @@ function FireSafetyDocumentsPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="fire-safety-documents-page" className="grid gap-6">
+    <div data-testid="fire-safety-documents-page" className="grid gap-4">
       <DocumentsCard
         set="fire_safety"
         clientId={client.id}

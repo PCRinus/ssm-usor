@@ -21,7 +21,13 @@ import { keepOpener } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
-import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
+import {
+  FilterTab,
+  FilterTabs,
+  ListActions,
+  ListCardHeader,
+  ListCount,
+} from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
@@ -177,13 +183,10 @@ export function ClientTrainingsPage() {
   const empty = trainings.isSuccess && !narrowed && unfilteredTotal === 0;
 
   return (
-    <div data-testid="client-trainings-page" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Instruiri ținute</h2>
-        {!readOnly && trainings.isSuccess && !empty && recordButton}
-      </div>
-      <div className="overflow-hidden rounded-lg border bg-card">
-        <ListCardHeader>
+    <div data-testid="client-trainings-page">
+      <h2 className="sr-only">Instruiri ținute</h2>
+      <div>
+        <ListCardHeader data-testid="trainings-toolbar">
           <FilterTabs label="Filtrează după domeniu">
             {domainFilters.map((filter) => (
               <FilterTab
@@ -233,18 +236,24 @@ export function ClientTrainingsPage() {
               />
             </div>
           )}
-          {trainings.isSuccess && (
-            <ListCount testId="trainings-count">
-              {narrowed ? (
-                <>
-                  <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
-                  {phone ? unfilteredTotal : trainingNoun(unfilteredTotal)}
-                </>
-              ) : (
-                trainingNoun(meta.total)
-              )}
-            </ListCount>
-          )}
+          <ListActions
+            count={
+              trainings.isSuccess && (
+                <ListCount testId="trainings-count">
+                  {narrowed ? (
+                    <>
+                      <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
+                      {phone ? unfilteredTotal : trainingNoun(unfilteredTotal)}
+                    </>
+                  ) : (
+                    trainingNoun(meta.total)
+                  )}
+                </ListCount>
+              )
+            }
+          >
+            {!readOnly && trainings.isSuccess && !empty && recordButton}
+          </ListActions>
         </ListCardHeader>
         <AppliedFilters
           facets={clientTrainingFacets}

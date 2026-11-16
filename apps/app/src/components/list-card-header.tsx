@@ -64,3 +64,16 @@ export function ListCount({
     </span>
   );
 }
+
+// On a phone the two join the toolbar's own rows: the count stays beside the filter tabs and the
+// actions come after the search, the order they are read in.
+export function ListActions({ count, children }: { count?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="max-md:contents md:ml-auto md:flex md:flex-wrap md:items-center md:justify-end md:gap-3">
+      {count}
+      {children && (
+        <div className="grid w-full max-md:order-last md:flex md:w-auto">{children}</div>
+      )}
+    </div>
+  );
+}

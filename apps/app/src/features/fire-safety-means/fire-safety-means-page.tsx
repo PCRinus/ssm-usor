@@ -180,7 +180,7 @@ export function FireSafetyMeansPage({
     buildings.isPending
   ) {
     return (
-      <div data-testid="fire-means-page" className="grid gap-6">
+      <div data-testid="fire-means-page" className="grid gap-4">
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
@@ -251,7 +251,7 @@ export function FireSafetyMeansPage({
   );
   if (activeWorkplaces.length === 0) {
     return (
-      <div data-testid="fire-means-page" className="grid gap-6">
+      <div data-testid="fire-means-page" className="grid gap-4">
         <Card>
           <CardContent>
             <EmptyState
@@ -314,7 +314,7 @@ export function FireSafetyMeansPage({
   } as const;
 
   return (
-    <div data-testid="fire-means-page" className="grid gap-6">
+    <div data-testid="fire-means-page" className="grid gap-4">
       {error && (
         <Notice variant="destructive" data-testid="fire-means-error">
           {error}

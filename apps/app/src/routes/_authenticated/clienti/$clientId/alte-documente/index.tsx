@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { ClientFilesCard } from '@/features/client-files/client-files-card';
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/alte-documente/')({
+  staticData: { flushSheet: true },
   component: OtherDocumentsPage,
 });
 
@@ -16,11 +17,12 @@ function OtherDocumentsPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="other-documents-page" className="grid gap-6">
+    <div data-testid="other-documents-page" className="grid gap-4">
       <ClientFilesCard
         client={client}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
+        flush
       />
     </div>
   );

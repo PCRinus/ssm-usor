@@ -9,6 +9,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
 import { FileUp, Upload } from 'lucide-react';
 import { type MouseEvent, type ReactNode, useState } from 'react';
@@ -47,11 +48,14 @@ export function ClientFilesCard({
   employee,
   userId,
   readOnly,
+  flush = false,
 }: {
   client: Client;
   employee?: ClientFileEmployee;
   userId: string;
   readOnly: boolean;
+  // Alone in a tab whose name it repeats: it runs without a card's frame or a visible title.
+  flush?: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const isOwner = useMe().data?.membership?.role === 'owner';
@@ -181,7 +185,8 @@ export function ClientFilesCard({
       <SectionCard
         data-testid={employee ? 'employee-files-card' : 'client-files-card'}
         title={employee ? 'Documente' : 'Alte documente'}
-        className="relative"
+        hideTitle={flush}
+        className={cn('relative', flush && 'rounded-none border-0 shadow-none')}
         description={
           <>
             {employee

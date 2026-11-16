@@ -37,10 +37,11 @@ declare module '@tanstack/react-router' {
   }
   // `title` names the browser tab; a route whose title depends on data returns `crumb` from its
   // loader instead. A route under a client sets fullPage to render without the client summary
-  // and tabs.
+  // and tabs, or flushSheet for a tab whose content runs edge to edge in the tab's sheet.
   interface StaticDataRouteOption {
     title?: string;
     fullPage?: boolean;
+    flushSheet?: boolean;
     editorPage?: boolean;
   }
 }

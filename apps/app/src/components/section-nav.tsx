@@ -3,9 +3,12 @@ import { createLink, type LinkComponent, useLocation } from '@tanstack/react-rou
 import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
 import {
   type ComponentProps,
+  createContext,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -13,24 +16,36 @@ import {
 
 import { keepOpener } from '@/app/opener';
 
+import { phoneStripInset } from './page-spacing';
+
 const tabBase =
   'inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-t-[10px] border border-b-0 border-border text-sm outline-none transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring';
 const tabInactive =
   'mb-px h-10 bg-section-tab px-[15px] font-medium text-section-tab-foreground hover:bg-section-tab-hover hover:text-foreground';
 const tabActive =
   'h-[46px] bg-(--section-tab-surface) px-[18px] font-semibold text-foreground shadow-[0_-3px_8px_rgb(24_52_46/0.07)]';
+const folderTabActive =
+  'h-[46px] bg-card px-[15px] font-semibold text-foreground shadow-[0_-3px_8px_rgb(24_52_46/0.07)]';
+
+type SectionNavVariant = 'tabs' | 'folder';
+
+const SectionNavVariantContext = createContext<SectionNavVariant>('tabs');
 
 function TabsFrame({
   list: List,
   listProps,
   surface,
   revealKey,
+  revealInset = 0,
+  className,
   children,
 }: {
   list: 'ul' | 'div';
   listProps?: ComponentProps<'div'>;
   surface: string;
   revealKey?: unknown;
+  revealInset?: number;
+  className?: string;
   children: ReactNode;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -57,10 +72,12 @@ function TabsFrame({
     if (!viewport || !active) return;
     const bounds = active.getBoundingClientRect();
     const visible = viewport.getBoundingClientRect();
-    if (bounds.left < visible.left) viewport.scrollLeft -= visible.left - bounds.left + 8;
-    if (bounds.right > visible.right) viewport.scrollLeft += bounds.right - visible.right + 8;
+    const left = visible.left + revealInset;
+    const right = visible.right - revealInset;
+    if (bounds.left < left) viewport.scrollLeft -= left - bounds.left + 8;
+    if (bounds.right > right) viewport.scrollLeft += bounds.right - right + 8;
     updateScrollState();
-  }, [updateScrollState]);
+  }, [revealInset, updateScrollState]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -114,7 +131,7 @@ function TabsFrame({
         onScroll={updateScrollState}
       >
         {List === 'ul' ? (
-          <ul ref={attachList} className={listClass}>
+          <ul ref={attachList} className={cn(listClass, className)}>
             {children}
           </ul>
         ) : (
@@ -151,24 +168,67 @@ function TabsFrame({
   );
 }
 
+// The top bar is 64 px tall (top-16): a stuck strip sits right under it.
+const stuckTop = 64;
+
+function useStuck(ref: RefObject<HTMLElement | null>, watch: boolean) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const node = ref.current;
+    if (!watch || !node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) =>
+        setStuck(entry!.intersectionRatio < 1 && entry!.boundingClientRect.top <= stuckTop + 0.5),
+      { rootMargin: `-${stuckTop + 1}px 0px 0px 0px`, threshold: 1 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ref, watch]);
+  return stuck;
+}
+
 // Nested under another one, it stays in the flow: two sticky navs would cover each other.
+// The folder variant's line is the top edge of the sheet that follows it (ClientSheet).
 export function SectionNav({
   label,
   nested = false,
+  variant = 'tabs',
+  className,
   children,
 }: {
   label: string;
   nested?: boolean;
+  variant?: SectionNavVariant;
+  className?: string;
   children: ReactNode;
 }) {
+  const navRef = useRef<HTMLElement>(null);
+  const stuck = useStuck(navRef, variant === 'folder' && !nested);
   return (
     <nav
+      ref={navRef}
       aria-label={label}
-      className={cn('min-w-0 bg-background', !nested && 'sticky top-16 z-20')}
+      data-stuck={stuck || undefined}
+      className={cn(
+        'min-w-0 bg-background',
+        !nested && 'sticky top-16 z-20',
+        // The strip's line is close to the tab fill above it, so on its own it cannot part a stuck
+        // strip from the rows passing beneath. Forced colours drop the line and the shade alike.
+        stuck &&
+          'after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-2.5 after:bg-linear-to-b after:from-[rgb(24_52_46/0.08)] after:to-transparent forced-colors:after:border-t',
+        className
+      )}
     >
-      <TabsFrame list="ul" surface="var(--color-background)">
-        {children}
-      </TabsFrame>
+      <SectionNavVariantContext value={variant}>
+        <TabsFrame
+          list="ul"
+          surface="var(--color-background)"
+          className={variant === 'folder' ? phoneStripInset : undefined}
+          revealInset={variant === 'folder' ? 40 : 0}
+        >
+          {children}
+        </TabsFrame>
+      </SectionNavVariantContext>
     </nav>
   );
 }
@@ -179,13 +239,29 @@ function SectionNavAnchor({
   children,
   ...props
 }: ComponentProps<'a'> & { icon: LucideIcon }) {
+  const variant = useContext(SectionNavVariantContext);
+  const open = props['aria-current'] === 'page';
+  const folder = variant === 'folder';
   return (
     <a
       {...props}
-      className={cn(tabBase, props['aria-current'] === 'page' ? tabActive : tabInactive, className)}
+      className={cn(
+        tabBase,
+        open ? (folder ? folderTabActive : tabActive) : tabInactive,
+        className
+      )}
     >
       <Icon className="size-4 shrink-0" aria-hidden="true" />
-      {children}
+      {folder && typeof children === 'string' ? (
+        <span
+          data-label={children}
+          className="inline-flex flex-col after:invisible after:h-0 after:overflow-hidden after:font-semibold after:content-[attr(data-label)_/_'']"
+        >
+          {children}
+        </span>
+      ) : (
+        children
+      )}
     </a>
   );
 }

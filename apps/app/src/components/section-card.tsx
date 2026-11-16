@@ -15,25 +15,30 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   help?: HelpTopic;
   action?: ReactNode;
   headingLevel?: 2 | 3;
+  // A title the tab above already shows: screen readers still get it, without its help link.
+  hideTitle?: boolean;
   // A title too long to share a phone's width with the action: the action takes its own row
   // as soon as the title cannot stay on one line beside it.
   longTitle?: boolean;
 };
 
 // The action shares the title's row while both fit, and takes its own row before the title is
-// squeezed under it. The description runs the full width below both.
+// squeezed under it. The description runs the full width below both, or takes a hidden title's
+// place beside the action.
 export function SectionCard({
   title,
   description,
   help,
   action,
   headingLevel = 2,
+  hideTitle = false,
   longTitle = false,
   className,
   children,
   ...props
 }: SectionCardProps) {
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
+  const helpTopic = hideTitle ? undefined : help;
   return (
     // The scroll margin clears the sticky app header and a record's tab bar when a link scrolls
     // to the card by its id.
@@ -43,7 +48,8 @@ export function SectionCard({
             follows its last word when the title wraps. */}
         <div
           className={cn(
-            'flex min-h-8 min-w-[min(100%,8rem)] items-center',
+            'flex min-h-8 items-center',
+            hideTitle ? 'min-w-[min(100%,24rem)]' : 'min-w-[min(100%,8rem)]',
             longTitle ? 'flex-auto' : 'flex-1'
           )}
         >
@@ -51,22 +57,26 @@ export function SectionCard({
             <Heading
               className={cn(
                 'text-lg leading-snug font-semibold whitespace-normal',
-                help && 'inline'
+                helpTopic && 'inline',
+                hideTitle && 'sr-only'
               )}
             >
               {title}
             </Heading>
-            {help && (
+            {helpTopic && (
               <HelpLink
-                topic={help}
+                topic={helpTopic}
                 label={typeof title === 'string' ? `Ajutor: ${title}` : 'Ajutor'}
                 className="ml-1 align-middle"
               />
             )}
           </div>
+          {hideTitle && description && (
+            <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
+          )}
         </div>
         {action && <div className="flex flex-wrap gap-2">{action}</div>}
-        {description && (
+        {description && !hideTitle && (
           <div className="w-full">
             <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
           </div>

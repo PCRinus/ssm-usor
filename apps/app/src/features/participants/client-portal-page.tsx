@@ -19,7 +19,7 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
 
   if (list.isPending) {
     return (
-      <div data-testid="client-portal-page" className="grid gap-6">
+      <div data-testid="client-portal-page" className="grid gap-4">
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-40 w-full" />
       </div>
@@ -27,7 +27,7 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
   }
   if (list.isError) {
     return (
-      <div data-testid="client-portal-page" className="grid gap-6">
+      <div data-testid="client-portal-page" className="grid gap-4">
         <Notice
           variant="destructive"
           action={
@@ -58,7 +58,7 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
   const noEmployee = employees.length === 0;
 
   return (
-    <div data-testid="client-portal-page" className="grid gap-6">
+    <div data-testid="client-portal-page" className="grid gap-4">
       {(noAdministrator || noEmployee) && (
         <Notice variant="info" title="Fără acces încă" data-testid="client-portal-missing">
           <ul className="grid list-disc gap-1 pl-4">

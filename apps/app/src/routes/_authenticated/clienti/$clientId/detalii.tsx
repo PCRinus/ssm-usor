@@ -38,7 +38,7 @@ function ClientDetailsPage() {
   const readOnly = client.archivedAt !== null;
 
   return (
-    <div data-testid="client-details-page" className="grid gap-6">
+    <div data-testid="client-details-page" className="grid gap-4">
       <ImportedNotice clientId={client.id} />
       <LibraryTasksNotice clientId={client.id} />
       <CompanyCard client={client} readOnly={readOnly} focus={focusAmong(focus, companyFocus)} />

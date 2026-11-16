@@ -12,6 +12,7 @@ const searchSchema = focusSearch(occupationalSafetyDocumentsFocus).extend({
 });
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/documente-ssm/')({
+  staticData: { flushSheet: true },
   validateSearch: searchSchema,
   component: DocumentsPage,
 });
@@ -26,7 +27,7 @@ function DocumentsPage() {
   if (!session) return null;
 
   return (
-    <div data-testid="documents-page" className="grid gap-6">
+    <div data-testid="documents-page" className="grid gap-4">
       <DocumentsCard
         set="occupational_safety"
         clientId={client.id}

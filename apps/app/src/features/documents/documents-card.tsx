@@ -9,7 +9,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -813,7 +812,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     );
 
   return (
-    <Card data-testid="documents-card" className="gap-0 overflow-hidden py-0">
+    <div data-testid="documents-card" className="flex flex-col">
       {pack ? (
         <PackLayout
           set={set}
@@ -908,6 +907,6 @@ export function DocumentsCard<Set extends DocumentSet>({
           </DialogContent>
         )}
       </Dialog>
-    </Card>
+    </div>
   );
 }
