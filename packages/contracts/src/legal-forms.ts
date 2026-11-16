@@ -16,6 +16,8 @@ interface LegalForm {
   standsFor?: readonly string[];
 }
 
+const cooperativeGrades = ['', ' de gradul 1', ' de gradul I', ' de gradul 2', ' de gradul II'];
+
 const legalForms: readonly LegalForm[] = [
   { id: 'sc', initials: ['SC'], spelledOut: ['societate comercială'], inside: true },
   { id: 'srl', initials: ['SRL'], spelledOut: ['societate cu răspundere limitată'], inside: true },
@@ -48,8 +50,8 @@ const legalForms: readonly LegalForm[] = [
     initials: ['SCM'],
     spelledOut: [
       'societate civilă medicală',
-      'societate cooperativă meșteșugărească',
-      'societate cooperativă',
+      ...cooperativeGrades.map((grade) => `societate cooperativă meșteșugărească${grade}`),
+      ...cooperativeGrades.map((grade) => `societate cooperativă${grade}`),
       'cooperativă meșteșugărească',
     ],
   },
@@ -159,7 +161,7 @@ const articles = ['', 'a', 'l', 'ul', 'le'];
 function phraseAt(tokens: readonly Token[], at: number, phrase: readonly string[]) {
   return phrase.every((word, offset) => {
     const token = tokens[at + offset];
-    if (token?.kind !== 'word') return false;
+    if (token?.kind !== 'word' && token?.kind !== 'letter') return false;
     return offset === 0
       ? articles.some((article) => token.letters === word + article)
       : token.letters === word;
@@ -262,7 +264,6 @@ function stripInside(tokens: readonly Token[]) {
   });
 }
 
-/** The words of a name without SC, SRL, SA, PFA, I.I. and I.F. wherever they stand. */
 export function withoutInsideForms(value: string) {
   return wordsOf(stripInside(tokenize(value)));
 }
@@ -290,10 +291,8 @@ export interface CompanyName {
   form: { id: string; standsFor: readonly string[] } | null;
 }
 
-/**
- * A company's name without its legal form. A name carries one form besides the old "S.C."
- * prefix, at its end or else at its start, so "SCM Impex SRL" keeps SCM as part of its name.
- */
+// A name carries one form besides the old "S.C." prefix, at its end or else at its start, so
+// "SCM Impex SRL" keeps SCM as part of its name.
 export function companyName(value: string): CompanyName {
   const tokens = tokenize(value);
   let first = prefixEnd(tokens);
@@ -364,7 +363,6 @@ function lettersBefore(tokens: readonly Token[], first: number, end: number) {
   return tokens[end - 1]?.kind === 'initials' ? end - 1 : letterRunStart(tokens, first, end);
 }
 
-/** The words of a search without the legal forms that open or close it. */
 export function searchWithoutLegalForms(value: string) {
   const kept = tokenize(value);
   let first = 0;

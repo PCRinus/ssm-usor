@@ -29,6 +29,8 @@ export function sameName(a: string, b: string) {
   return foldName(a) === foldName(b) || similar(a, b) >= 0.8;
 }
 
+export const companyWords = (value: string) => companyName(value).words;
+
 /**
  * Whether two names written in a client's documents are one company: the legal form aside,
  * whether initials or spelled out, but never two different forms, as "Cabinet de avocat Ionescu"

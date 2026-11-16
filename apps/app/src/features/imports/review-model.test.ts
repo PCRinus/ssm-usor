@@ -172,29 +172,38 @@ describe('a registered office with no activity', () => {
 });
 
 describe('the company ANAF registers under the CUI', () => {
-  const named = (legalName: string) => {
+  const anafName = 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC';
+  const registered = (legalName: string) => ({ cui: '31458207', legalName, inactive: false });
+  const named = (legalName: string, flagged = false) => {
     const proposal = proposalFixture();
     proposal.client.legalName.options[0]!.value = legalName;
+    if (flagged) {
+      proposal.flags.push({
+        path: 'client.legalName',
+        code: 'legal_name_differs',
+        detail: anafName,
+      });
+    }
     return proposal;
   };
-  const registered = (legalName: string) => ({ cui: '31458207', legalName, inactive: false });
 
-  it('is still worth checking when the documents write only the legal form otherwise', () => {
-    const anaf = registered('SOCIETATEA PROFESIONALA NOTARIALA STANCIUC');
+  it('offers ANAF’s name, picked from the start, when the documents write only the form otherwise', () => {
+    const anaf = registered(anafName);
     for (const name of [
       'S.P.N. / STANCIUC',
       'SPN STANCIUC',
       'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
     ]) {
-      expect(anafMismatch(named(name), noChanges, anaf), name).toBe(anaf);
+      const proposal = named(name, true);
+      expect(anafMismatch(proposal, noChanges, anaf), name).toBe(anaf);
+      const state = fieldState(proposal, noChanges, 'client.legalName', undefined, anaf);
+      expect(state.value, name).toBe(anafName);
+      expect(state.anaf, name).toMatchObject({ documents: name, picked: null });
     }
   });
 
-  it('is the documents’ company when they write ANAF’s name, whatever the case or diacritics', () => {
-    const anaf = registered('SOCIETATEA PROFESIONALA NOTARIALA STANCIUC');
-    expect(
-      anafMismatch(named('Societatea Profesională Notarială Stănciuc'), noChanges, anaf)
-    ).toBeNull();
+  it('does not take a name ANAF writes with its form otherwise for another firm’s', () => {
+    expect(anafMismatch(named('SPN STANCIUC'), noChanges, registered(anafName))).toBeNull();
   });
 
   it('is another firm when the rest of the name differs', () => {

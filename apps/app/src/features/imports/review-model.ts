@@ -16,8 +16,8 @@ import {
   maxEquipmentDurationMonths,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
+  sameCompany,
   sameName,
-  sameSpelling,
 } from '@ssm-usor/contracts';
 
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
@@ -1358,7 +1358,8 @@ export function anafMismatch(
   const state = fieldState(proposal, changes, 'client.legalName', undefined, registered);
   if (state.anaf) return state.anaf.picked === null ? registered : null;
   const name = state.value;
-  if (name === null || sameSpelling(String(name), registered.legalName)) return null;
+  // Here only another firm's name is worth the warning; ANAF's spelling is offered above.
+  if (name === null || sameCompany(String(name), registered.legalName)) return null;
   return registered;
 }
 

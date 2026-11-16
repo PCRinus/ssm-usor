@@ -1,4 +1,5 @@
 import {
+  companyWords,
   foldName,
   foldText,
   nameTokens,
@@ -9,7 +10,7 @@ import {
   similar,
 } from '@ssm-usor/contracts';
 
-export { foldName, foldText, sameCompany, sameName, sameSpelling, similar };
+export { companyWords, foldName, foldText, sameCompany, sameName, sameSpelling, similar };
 
 const marks = /\p{M}/gu;
 const wordCharacter = /[\p{L}\p{N}]/u;

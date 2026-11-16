@@ -42,6 +42,36 @@ describe('checkQuotes', () => {
     ]);
   });
 
+  it('takes every way a company’s documents write its form as quoting its one name', () => {
+    const answer = wireAnswer();
+    const spellings = [
+      'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+      'S.P.N. / STANCIUC',
+      'SPN STANCIUC',
+    ];
+    answer.facts = [
+      ...answer.facts.filter((fact) => fact.field !== 'client.legalName'),
+      ...spellings.map((written, index) => ({
+        field: 'client.legalName',
+        value: written,
+        file: `Dosar/${index}.docx`,
+        quote: written,
+        otherCompany: '',
+      })),
+    ];
+    const value = fromWire(answer);
+    const texts = Object.fromEntries(
+      spellings.map((written, index) => [`Dosar/${index}.docx`, `Beneficiar: ${written}`])
+    );
+
+    expect(value.client.legalName.options).toHaveLength(1);
+    expect(
+      codes(checkQuotes(value, { ...files, ...texts })).filter((flag) =>
+        flag.startsWith('client.legalName')
+      )
+    ).toEqual([]);
+  });
+
   it('flags an equipment entry whose quote does not name its item or its duration', () => {
     const value = proposal();
     const decision = 'Dosar/Decizia 1.docx';

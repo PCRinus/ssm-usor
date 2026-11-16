@@ -51,6 +51,9 @@ describe('companyName', () => {
     ['Cabinet Medical Individual Dr. Popescu Ion', 'popescu ion', 'cmi'],
     ['C.M.I. Popescu Ion', 'popescu ion', 'cmi'],
     ['Cooperativa Meșteșugărească Arta Lemnului', 'arta lemnului', 'scm'],
+    ['Societate Cooperativă Meșteșugărească de Gradul 1 Arta Lemnului', 'arta lemnului', 'scm'],
+    ['Societatea Cooperativă de gradul I Unirea', 'unirea', 'scm'],
+    ['BNP Paribas', 'paribas', 'bnp'],
     ['ION IONESCU - Cabinet de avocat', 'ion ionescu', 'cab'],
     ['Ionescu S.P.A.R.L.', 'ionescu', 'sparl'],
     [

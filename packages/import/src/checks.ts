@@ -15,6 +15,7 @@ import {
 import { z } from 'zod';
 
 import {
+  companyWords,
   findQuote,
   foldName,
   foldText,
@@ -93,18 +94,17 @@ const holdsArea =
 const nameWords = (value: string) => foldName(value).split(' ').filter(Boolean);
 
 const holdsName =
-  (name: string): Holds =>
+  (name: string, wordsOfName = nameWords): Holds =>
   (quote) => {
     const words = new Set(nameWords(quote));
-    return nameWords(name).every((word) => words.has(word));
+    return wordsOfName(name).every((word) => words.has(word));
   };
 
+// The client's name is one option for every way its documents write the form (see reading).
+const holdsCompanyName = (name: string) => holdsName(name, companyWords);
+
 const digitFacts = new Set(['client.cui', 'client.caenCode']);
-const nameFacts = new Set([
-  'client.legalName',
-  'client.legalRepresentativeName',
-  'client.contactName',
-]);
+const nameFacts = new Set(['client.legalRepresentativeName', 'client.contactName']);
 
 const holdsIntervalWord =
   (months: number): Holds =>
@@ -130,6 +130,7 @@ function factHolds(field: string, value: string | number): Holds | undefined {
         : holdsNumber(value);
   }
   if (digitFacts.has(field)) return holdsDigits(value);
+  if (field === 'client.legalName') return holdsCompanyName(value);
   if (nameFacts.has(field)) return holdsName(value);
   return undefined;
 }
