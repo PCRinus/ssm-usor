@@ -9015,6 +9015,13 @@ export type Database = {
           status: string;
         }[];
       };
+      organization_member_activity: {
+        Args: never;
+        Returns: {
+          last_active_at: string;
+          user_id: string;
+        }[];
+      };
       organization_member_list: {
         Args: never;
         Returns: {

@@ -13567,10 +13567,25 @@ export type OrganizationMemberListResponseItemsItem = {
   professionalTitle: string | null;
   role: OrganizationMemberListResponseItemsItemRole;
   joinedAt: string;
+  /** @nullable */
+  lastActiveAt?: string | null;
 };
 
 export interface OrganizationMemberListResponse {
   items: OrganizationMemberListResponseItemsItem[];
+}
+
+export interface OrganizationSeatsResponse {
+  /** @minimum 0 */
+  members: number;
+  /** @minimum 0 */
+  invitations: number;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  limit: number | null;
+  canUpgrade: boolean;
 }
 
 export type ChangeMemberRoleRequestRole =
@@ -40026,7 +40041,7 @@ export const getListOrganizationMembersUrl = () => {
 };
 
 /**
- * Every member may read it. Ordered by when people joined; not paginated.
+ * Every member may read it. Ordered by when people joined; not paginated. `lastActiveAt` is an owner's only.
  * @summary List the organization's members
  */
 export const listOrganizationMembers = async (
@@ -40140,6 +40155,130 @@ export function useListOrganizationMembers<
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListOrganizationMembersQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetOrganizationSeatsUrl = () => {
+  return `/organization/seats`;
+};
+
+/**
+ * Every member may read it. The counts the invite check applies, read without Stripe, so the team page does not wait on it.
+ * @summary The plan's users: members, open invitations and the limit
+ */
+export const getOrganizationSeats = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<OrganizationSeatsResponse> => {
+  return apiFetch<OrganizationSeatsResponse>(getGetOrganizationSeatsUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetOrganizationSeatsQueryKey = () => {
+  return [`/organization/seats`] as const;
+};
+
+export const getGetOrganizationSeatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrganizationSeats>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSeats>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOrganizationSeatsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationSeats>>> = ({ signal }) =>
+    getOrganizationSeats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrganizationSeats>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetOrganizationSeatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrganizationSeats>>
+>;
+export type GetOrganizationSeatsQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetOrganizationSeats<
+  TData = Awaited<ReturnType<typeof getOrganizationSeats>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSeats>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationSeats>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationSeats>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationSeats<
+  TData = Awaited<ReturnType<typeof getOrganizationSeats>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSeats>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrganizationSeats>>,
+          TError,
+          Awaited<ReturnType<typeof getOrganizationSeats>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetOrganizationSeats<
+  TData = Awaited<ReturnType<typeof getOrganizationSeats>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSeats>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary The plan's users: members, open invitations and the limit
+ */
+
+export function useGetOrganizationSeats<
+  TData = Awaited<ReturnType<typeof getOrganizationSeats>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getOrganizationSeats>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetOrganizationSeatsQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

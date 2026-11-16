@@ -21403,6 +21403,11 @@
                 "joinedAt": {
                   "type": "string",
                   "format": "date-time"
+                },
+                "lastActiveAt": {
+                  "type": "string",
+                  "nullable": true,
+                  "format": "date-time"
                 }
               },
               "required": ["userId", "email", "fullName", "professionalTitle", "role", "joinedAt"]
@@ -21410,6 +21415,28 @@
           }
         },
         "required": ["items"]
+      },
+      "OrganizationSeatsResponse": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "invitations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "canUpgrade": {
+            "type": "boolean"
+          }
+        },
+        "required": ["members", "invitations", "limit", "canUpgrade"]
       },
       "ChangeMemberRoleRequest": {
         "type": "object",
@@ -48201,7 +48228,7 @@
       "get": {
         "operationId": "listOrganizationMembers",
         "summary": "List the organization's members",
-        "description": "Every member may read it. Ordered by when people joined; not paginated.",
+        "description": "Every member may read it. Ordered by when people joined; not paginated. `lastActiveAt` is an owner's only.",
         "security": [
           {
             "bearerAuth": []
@@ -48214,6 +48241,80 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OrganizationMemberListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid user access token is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account is not a member of an organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/seats": {
+      "get": {
+        "operationId": "getOrganizationSeats",
+        "summary": "The plan's users: members, open invitations and the limit",
+        "description": "Every member may read it. The counts the invite check applies, read without Stripe, so the team page does not wait on it.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The places taken and the limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSeatsResponse"
                 }
               }
             }

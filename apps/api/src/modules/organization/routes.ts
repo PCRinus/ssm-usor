@@ -4,6 +4,7 @@ import {
   createOrganizationRequestSchema,
   membershipSchema,
   organizationMemberListResponseSchema,
+  organizationSeatsSchema,
 } from '@ssm-usor/contracts';
 
 import { allowWhileReadOnly } from '../../lib/access';
@@ -60,7 +61,8 @@ export const listOrganizationMembersRoute = createRoute({
   path: '/organization/members',
   operationId: 'listOrganizationMembers',
   summary: "List the organization's members",
-  description: 'Every member may read it. Ordered by when people joined; not paginated.',
+  description:
+    "Every member may read it. Ordered by when people joined; not paginated. `lastActiveAt` is an owner's only.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   responses: {
@@ -123,5 +125,27 @@ export const removeMemberRoute = createRoute({
     404: { description: 'No such member in the organization', content: errorContent },
     409: { description: "The caller's own membership; see `reason`", content: errorContent },
     ...ownerErrors,
+  },
+});
+
+export const getOrganizationSeatsRoute = createRoute({
+  method: 'get',
+  path: '/organization/seats',
+  operationId: 'getOrganizationSeats',
+  summary: "The plan's users: members, open invitations and the limit",
+  description:
+    'Every member may read it. The counts the invite check applies, read without Stripe, so the team page does not wait on it.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  responses: {
+    200: {
+      description: 'The places taken and the limit',
+      content: {
+        'application/json': {
+          schema: organizationSeatsSchema.meta({ id: 'OrganizationSeatsResponse' }),
+        },
+      },
+    },
+    ...membershipErrors,
   },
 });
