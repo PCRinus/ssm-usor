@@ -160,6 +160,7 @@ export const ownerPart = (overrides: Partial<Owner> = {}): Owner => ({
   scheduledChange: null,
   choices: noChoices,
   invoices: [],
+  vatPayer: true,
   ...overrides,
 });
 

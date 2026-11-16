@@ -452,6 +452,8 @@ export const billingInvoiceSchema = z.object({
   issuedAt: timestamp.nullable(),
   // With VAT; negative for a storno.
   amountCents: cents,
+  // Without VAT, as Stripe charged it; null for an invoice recorded before it was kept.
+  subtotalCents: cents.nullable(),
   currency: z.string(),
   stornoOf: z.string().nullable(),
   hasPdf: z.boolean(),
@@ -545,6 +547,8 @@ export const billingOverviewSchema = z.object({
       // The smallest step each plan needs today, and what keeps it out.
       choices: z.object({ start: choiceLimitsSchema, profesional: choiceLimitsSchema }),
       invoices: z.array(billingInvoiceSchema),
+      // The „Plătitor de TVA” of Date firmă, as it is today, not as it was on each invoice.
+      vatPayer: z.boolean(),
     })
     .nullable(),
 });

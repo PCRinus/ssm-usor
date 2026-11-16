@@ -14017,6 +14017,8 @@ export type BillingOverviewOwnerInvoicesItem = {
   /** @nullable */
   issuedAt: string | null;
   amountCents: number;
+  /** @nullable */
+  subtotalCents: number | null;
   currency: string;
   /** @nullable */
   stornoOf: string | null;
@@ -14043,6 +14045,7 @@ export type BillingOverviewOwner = {
   scheduledChange: BillingOverviewOwnerScheduledChange;
   choices: BillingOverviewOwnerChoices;
   invoices: BillingOverviewOwnerInvoicesItem[];
+  vatPayer: boolean;
 } | null;
 
 export interface BillingOverview {

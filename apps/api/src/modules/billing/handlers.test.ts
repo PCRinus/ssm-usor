@@ -209,6 +209,7 @@ describe('GET /billing', () => {
       invoiceEmail: null,
       ownerEmail: owner.email,
       invoices: [],
+      vatPayer: true,
       choices: {
         start: { minimumStep: 500, problems: [] },
         profesional: { minimumStep: 500, problems: [] },
@@ -226,6 +227,7 @@ describe('GET /billing', () => {
       organization_id: organizationId,
       kind: 'invoice',
       amount_cents: 18029,
+      subtotal_cents: 14900,
       currency: 'eur',
       issued_at: '2026-10-01T10:00:00Z',
       oblio_series: 'SSMUSOR',
@@ -294,8 +296,40 @@ describe('GET /billing', () => {
       smsOverageCents: 1500,
       scheduledChange: { ...pro, at: new Date(renewal * 1000).toISOString() },
       invoices: [
-        { stripeInvoiceId: 'in_1Paid', number: 'SSMUSOR-0001', amountCents: 18029, hasPdf: true },
+        {
+          stripeInvoiceId: 'in_1Paid',
+          number: 'SSMUSOR-0001',
+          amountCents: 18029,
+          subtotalCents: 14900,
+          hasPdf: true,
+        },
       ],
+    });
+  });
+
+  it('tells the owner whether the organization pays VAT, and leaves the amount without VAT out of an invoice recorded before it was kept', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(subscriptionRow());
+    fake.tables.organizations![0]!.vat_payer = false;
+    fake.tables.billing_invoices!.push({
+      stripe_invoice_id: 'in_1Old',
+      organization_id: organizationId,
+      kind: 'invoice',
+      amount_cents: 18029,
+      subtotal_cents: null,
+      currency: 'eur',
+      issued_at: '2026-10-01T10:00:00Z',
+      oblio_series: 'SSMUSOR',
+      oblio_number: '0001',
+      storno_of: null,
+      pdf_path: null,
+    });
+
+    const body = billingOverviewSchema.parse(await (await request('GET', '/billing')).json());
+
+    expect(body.owner).toMatchObject({
+      vatPayer: false,
+      invoices: [{ stripeInvoiceId: 'in_1Old', amountCents: 18029, subtotalCents: null }],
     });
   });
 

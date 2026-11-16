@@ -22050,6 +22050,10 @@
                     "amountCents": {
                       "type": "integer"
                     },
+                    "subtotalCents": {
+                      "type": "integer",
+                      "nullable": true
+                    },
                     "currency": {
                       "type": "string"
                     },
@@ -22067,11 +22071,15 @@
                     "number",
                     "issuedAt",
                     "amountCents",
+                    "subtotalCents",
                     "currency",
                     "stornoOf",
                     "hasPdf"
                   ]
                 }
+              },
+              "vatPayer": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -22083,7 +22091,8 @@
               "ownerEmail",
               "scheduledChange",
               "choices",
-              "invoices"
+              "invoices",
+              "vatPayer"
             ]
           }
         },

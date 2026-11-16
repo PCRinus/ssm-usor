@@ -422,6 +422,7 @@ async function settleInvoice(
       stripe_account: subscription?.stripe_account ?? deps.catalogue.accountId,
       kind: oblioDocuments(deps.env),
       amount_cents: invoice.total,
+      subtotal_cents: invoice.subtotal,
       currency: invoice.currency,
     }));
   progress.kind = row.kind;
@@ -495,6 +496,7 @@ export async function handleChargeRefunded(deps: InvoiceDeps, charge: Stripe.Cha
       stripe_account: original.stripe_account,
       kind: 'invoice',
       amount_cents: -original.amount_cents,
+      subtotal_cents: original.subtotal_cents === null ? null : -original.subtotal_cents,
       currency: original.currency,
       storno_of: original.stripe_invoice_id,
       ...issued(document),
