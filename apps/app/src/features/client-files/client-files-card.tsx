@@ -34,6 +34,7 @@ import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
+import { roCount } from '@/features/employees/employee-format';
 
 import { clientFileColumns } from './client-file-columns';
 import { ClientFileList, type ClientFileListContext } from './client-file-context';
@@ -279,13 +280,14 @@ export function ClientFilesCard({
           {files.isSuccess && (
             <>
               <ListCardHeader className="px-4 sm:px-5">
-                <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
+                <div className="order-last flex w-full gap-2 md:order-none md:w-auto">
                   <SearchInput
                     value={search.q}
                     onSearch={(next) => onSearch({ ...search, q: next || undefined })}
                     placeholder="Caută după nume sau notă"
                     label="Caută fișiere după nume sau notă"
                     testId="client-files-search"
+                    className="md:w-lg md:grow-0 md:basis-auto"
                   />
                   <ListFilters
                     facets={clientFileFacets}
@@ -310,7 +312,7 @@ export function ClientFilesCard({
                   {shown.narrowed ? (
                     <>
                       <b className="font-semibold text-foreground">{shown.count}</b> din{' '}
-                      {phone ? all : fileCountLabel(all)}
+                      {phone ? all : roCount(all, 'fișier', 'fișiere')}
                     </>
                   ) : (
                     fileCountLabel(all)
@@ -330,77 +332,81 @@ export function ClientFilesCard({
             </>
           )}
           <ClientFileList.Provider value={list}>
-            <DataTable
-              testId="client-files-table"
-              rowTestId={(row) => rowTestIds[row.kind]}
-              label={employee ? 'Fișierele lucrătorului' : 'Fișierele clientului'}
-              columns={columns}
-              data={files.isSuccess ? shown.rows : undefined}
-              rowKey={rowKey}
-              onRowClick={(row) => {
-                if (row.kind === 'file') openRow(row.file);
-                else if (row.kind === 'more') setShowAll((current) => toggled(current, row.path));
-                else setSwitched((current) => toggled(current, row.key));
-              }}
-              status={files.status}
-              sort={{
-                sort: search.sort ?? defaultClientFileSort.sort,
-                order: search.order ?? defaultClientFileSort.order,
-              }}
-              onSortChange={(next: DataTableSort) =>
-                onSearch({
-                  ...search,
-                  sort:
-                    next.sort === defaultClientFileSort.sort
-                      ? undefined
-                      : (next.sort as ClientFileSortKey),
-                  order: next.order === defaultClientFileSort.order ? undefined : next.order,
-                })
-              }
-              error={
-                <Notice
-                  variant="destructive"
-                  action={
-                    <Button
-                      variant="outline"
-                      disabled={files.isFetching}
-                      onClick={() => void files.refetch()}
-                    >
-                      Încearcă din nou
-                    </Button>
-                  }
-                >
-                  Nu am putut încărca fișierele.
-                </Notice>
-              }
-              empty={
-                <EmptyState
-                  icon={SearchX}
-                  title="Niciun fișier nu se potrivește"
-                  data-testid="client-files-empty-filtered"
-                  actions={
-                    <Button
-                      variant="outline"
-                      data-testid="client-files-empty-filtered-clear"
-                      onClick={() =>
-                        filtered ? changeFilters({}) : onSearch({ ...search, q: undefined })
-                      }
-                    >
-                      {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
-                    </Button>
-                  }
-                >
-                  {filtered ? (
-                    'Scoate un filtru sau schimbă căutarea.'
-                  ) : (
-                    <>
-                      Niciun fișier nu are „{fileName({ name: search.q?.trim() ?? '' })}” în nume
-                      sau în notă.
-                    </>
-                  )}
-                </EmptyState>
-              }
-            />
+            {/* The shared row fills while it holds an open control; here an open folder or note is
+                told by its chevron or its text, as the design draws it. */}
+            <div className="[&_tr:has([aria-expanded=true]):not(:hover)]:bg-transparent">
+              <DataTable
+                testId="client-files-table"
+                rowTestId={(row) => rowTestIds[row.kind]}
+                label={employee ? 'Fișierele lucrătorului' : 'Fișierele clientului'}
+                columns={columns}
+                data={files.isSuccess ? shown.rows : undefined}
+                rowKey={rowKey}
+                onRowClick={(row) => {
+                  if (row.kind === 'file') openRow(row.file);
+                  else if (row.kind === 'more') setShowAll((current) => toggled(current, row.path));
+                  else setSwitched((current) => toggled(current, row.key));
+                }}
+                status={files.status}
+                sort={{
+                  sort: search.sort ?? defaultClientFileSort.sort,
+                  order: search.order ?? defaultClientFileSort.order,
+                }}
+                onSortChange={(next: DataTableSort) =>
+                  onSearch({
+                    ...search,
+                    sort:
+                      next.sort === defaultClientFileSort.sort
+                        ? undefined
+                        : (next.sort as ClientFileSortKey),
+                    order: next.order === defaultClientFileSort.order ? undefined : next.order,
+                  })
+                }
+                error={
+                  <Notice
+                    variant="destructive"
+                    action={
+                      <Button
+                        variant="outline"
+                        disabled={files.isFetching}
+                        onClick={() => void files.refetch()}
+                      >
+                        Încearcă din nou
+                      </Button>
+                    }
+                  >
+                    Nu am putut încărca fișierele.
+                  </Notice>
+                }
+                empty={
+                  <EmptyState
+                    icon={SearchX}
+                    title="Niciun fișier nu se potrivește"
+                    data-testid="client-files-empty-filtered"
+                    actions={
+                      <Button
+                        variant="outline"
+                        data-testid="client-files-empty-filtered-clear"
+                        onClick={() =>
+                          filtered ? changeFilters({}) : onSearch({ ...search, q: undefined })
+                        }
+                      >
+                        {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
+                      </Button>
+                    }
+                  >
+                    {filtered ? (
+                      'Scoate filtrul sau schimbă căutarea.'
+                    ) : (
+                      <>
+                        Niciun fișier nu are „{fileName({ name: search.q?.trim() ?? '' })}” în nume
+                        sau în notă.
+                      </>
+                    )}
+                  </EmptyState>
+                }
+              />
+            </div>
           </ClientFileList.Provider>
         </>
       )}

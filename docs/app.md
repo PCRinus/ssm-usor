@@ -1357,7 +1357,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   list; while the card is on screen a file dropped anywhere else is refused rather than opened
   by the browser in place of the app. An archived client gets the list and the downloads only:
   no dialog, no drop. The same card, titled "Alte documente", is on a lead's page, its search
-  kept in the page's state, where a notice says that the files stay the owners' until
+  and filters kept in the lead page's address beside `focus`, where a notice says that the files stay the owners' until
   promotion and there is no switch. The card lists the client's own files only: an employee's
   files stay on the employee page.
 - `/clienti/:clientId/portal`: "Portal", the last tab of a client, in

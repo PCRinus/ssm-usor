@@ -139,6 +139,7 @@ function FileFacts({
         onClick={() => setOpen(!open)}
       >
         {line}
+        <span className="sr-only"> Arată toată nota</span>
       </button>
     </CellNote>
   );

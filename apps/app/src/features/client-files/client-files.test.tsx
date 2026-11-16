@@ -767,7 +767,7 @@ describe('the files of a lead', () => {
   it('are all for owners only, which the card says once instead of on every file', async () => {
     const lead = { ...client, stage: 'lead', promotedAt: null };
     mockApi({ role: 'owner', company: lead, items: [{ ...offer, canChange: true }] });
-    mount(`/clienti/${clientId}`);
+    const runtime = mount(`/clienti/${clientId}`);
 
     const card = await screen.findByTestId('client-files-card');
     expect(screen.getByTestId('lead-page')).toBeTruthy();
@@ -777,6 +777,11 @@ describe('the files of a lead', () => {
     const [row] = await within(card).findAllByTestId('client-file-row');
     expect(within(row!).queryByTestId('client-file-owners-only')).toBeNull();
     const user = userEvent.setup();
+
+    await user.type(within(card).getByTestId('client-files-search'), 'oferta{Enter}');
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'oferta' }));
+    expect(runtime.router.state.location.pathname).toBe(`/oferte/${clientId}`);
+    expect(within(card).getByTestId('client-files-count').textContent).toBe('1 din 1 fișier');
 
     await user.click(within(row!).getByTestId('client-file-actions'));
     expect(await screen.findByTestId('client-file-rename')).toBeTruthy();
@@ -1045,7 +1050,7 @@ describe('finding a file', () => {
     expect(screen.queryByTestId('client-import-folder')).toBeNull();
     expect(screen.getByTestId('client-files-count').textContent).toBe('1 din 5 fișiere');
     expect(screen.getByTestId('client-file-facts').textContent).toBe(
-      'Dosar importat pe 27.10.2026 › Instruire · Doar admini · Semnate de toți'
+      'Dosar importat pe 27.10.2026 › Instruire · Doar admini · Semnate de toți Arată toată nota'
     );
   });
 
@@ -1114,6 +1119,21 @@ describe('finding a file', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(toggle.className).not.toContain('line-clamp-1');
     expect(open).not.toHaveBeenCalled();
+  });
+
+  it('keeps an opened note open when the list fetches itself again', async () => {
+    mockApi({ items: [certificate] });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('client-file-facts-toggle'));
+    const before = requests(filesPath, 'GET').length;
+    await act(() => runtime.queryClient.refetchQueries({ queryKey: [filesPath], exact: false }));
+    await waitFor(() => expect(requests(filesPath, 'GET').length).toBeGreaterThan(before));
+
+    expect(screen.getByTestId('client-file-facts-toggle').getAttribute('aria-expanded')).toBe(
+      'true'
+    );
   });
 
   it('keeps a download button on every file and folder', async () => {
