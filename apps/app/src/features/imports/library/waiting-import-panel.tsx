@@ -10,7 +10,7 @@ import { Masked } from '@/components/replay';
 import { roCount } from '@/features/employees/employee-format';
 
 import { filesLabel } from '../import-format';
-import { libraryDay, partLabels, partOrder, statusLabels } from './library-model';
+import { isReviewable, libraryDay, partLabels, partOrder, statusLabels } from './library-model';
 import { earliestExpiry } from './next-steps-model';
 
 const order: readonly ImportLibraryPart[] = [...partOrder, 'risk_evaluations'];
@@ -34,8 +34,15 @@ export function WaitingImportPanel({
   open: readonly OpenPart[];
 }) {
   const headingId = useId();
-  const until = earliestExpiry(open);
   const parts = [...open].sort((a, b) => order.indexOf(a.part) - order.indexOf(b.part));
+  const reviewable = parts.filter((part) => isReviewable(part.status));
+  const until = earliestExpiry(reviewable.length > 0 ? reviewable : parts);
+  const deadline = until ? ` până pe ${libraryDay(until)}` : '';
+  // Parts still being read, or whose reading stopped, are not ready to check yet.
+  const title =
+    reviewable.length > 0
+      ? `${roCount(reviewable.length, 'parte', 'părți')} de verificat${deadline}`
+      : `Ce mai ai de făcut${deadline}`;
   const who = item.createdBy?.fullName ?? null;
   const files = item.fileCount === 1 ? '1 fișier' : filesLabel(item.fileCount);
   return (
@@ -50,8 +57,7 @@ export function WaitingImportPanel({
       </span>
       <div className="min-w-0 flex-1">
         <h2 id={headingId} className="text-xl leading-7 font-semibold tracking-[-0.01em]">
-          {roCount(parts.length, 'parte', 'părți')} de verificat
-          {until && ` până pe ${libraryDay(until)}`}
+          {title}
         </h2>
         <p className="mt-0.5 text-[0.8125rem] leading-5 text-muted-foreground">
           Din importul de pe {dayFormat.format(new Date(item.confirmedAt ?? item.createdAt))}

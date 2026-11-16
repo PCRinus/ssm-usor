@@ -19,7 +19,6 @@ export function useConfirmedClientImports(clientId: string) {
   });
 }
 
-// An import with parts still open is shown as a task, so the list of past imports leaves it out.
 export function useClientImportGroups(clientId: string) {
   const confirmed = useConfirmedClientImports(clientId);
   const [now] = useState(() => Date.now());

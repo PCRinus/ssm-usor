@@ -42,21 +42,24 @@ export function NotesPanel({
       title="Notițe"
       help="detalii.notite"
       action={
-        notes.isSuccess &&
+        notes.data !== undefined &&
         !readOnly &&
         !editing && (
           <SheetAction
             ref={editRef}
             adding={body === ''}
+            subject={body === '' ? 'o notiță' : 'notițele'}
             data-testid="owner-notes-edit"
             onClick={open}
           />
         )
       }
     >
-      {notes.isPending ? (
+      {editing && !readOnly ? (
+        <NotesForm clientId={clientId} queryKey={queryKey} saved={body} onClose={close} />
+      ) : notes.isPending ? (
         <Skeleton className="h-10 w-full max-w-[70ch]" />
-      ) : notes.isError ? (
+      ) : notes.data === undefined ? (
         <Notice
           variant="destructive"
           action={
@@ -71,8 +74,6 @@ export function NotesPanel({
         >
           Nu am putut încărca notițele.
         </Notice>
-      ) : editing && !readOnly ? (
-        <NotesForm clientId={clientId} queryKey={queryKey} saved={body} onClose={close} />
       ) : body ? (
         <p
           data-testid="owner-notes-text"

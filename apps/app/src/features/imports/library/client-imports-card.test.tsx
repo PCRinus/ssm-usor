@@ -183,7 +183,7 @@ describe("the client's imports from documents", () => {
 
     const panel = await screen.findByTestId('client-library-tasks-notice');
     expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
-      '2 părți de verificat până pe 19 noiembrie'
+      '1 parte de verificat până pe 19 noiembrie'
     );
     expect(panel.textContent).toContain(
       'Din importul de pe 5 noiembrie 2026 · Mircea Casapu · 50 de fișiere'
@@ -239,6 +239,49 @@ describe("the client's imports from documents", () => {
       '1 parte de verificat până pe 19 noiembrie'
     );
     expect(screen.queryByTestId('client-imports-card')).toBeNull();
+  });
+
+  it('counts only the parts ready to check, beside one still being read', async () => {
+    mockClient([
+      {
+        ...latest,
+        libraryParts: [
+          { part: 'instructions_ssm', status: 'to_review', expiresAt: '2026-11-19T10:00:00Z' },
+          { part: 'risk_evaluations', status: 'reading', expiresAt: '2026-11-12T10:00:00Z' },
+        ],
+      },
+    ]);
+    mount();
+
+    const panel = await screen.findByTestId('client-library-tasks-notice');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      '1 parte de verificat până pe 19 noiembrie'
+    );
+    expect(
+      within(panel)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual(['IPSSM · de verificat', 'Evaluări de risc · se citește']);
+  });
+
+  it.each([
+    ['reading', 'Evaluări de risc · se citește'],
+    ['failed', 'Evaluări de risc · nu s-a putut citi'],
+  ])('claims nothing is ready to check while the only part is %s', async (status, line) => {
+    mockClient([
+      {
+        ...latest,
+        libraryParts: [{ part: 'risk_evaluations', status, expiresAt: '2026-11-19T10:00:00Z' }],
+      },
+    ]);
+    mount();
+
+    const panel = await screen.findByTestId('client-library-tasks-notice');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      'Ce mai ai de făcut până pe 19 noiembrie'
+    );
+    expect(panel.textContent).not.toContain('de verificat');
+    expect(within(panel).getByRole('listitem').textContent).toBe(line);
   });
 
   it('is left out for a client with no import', async () => {

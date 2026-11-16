@@ -118,9 +118,14 @@ export function CompanyPeoplePanel({
       action={
         !readOnly &&
         !companyEditing && (
-          <SheetAction ref={companyRef} data-testid="company-edit" onClick={openCompany}>
+          <SheetAction
+            ref={companyRef}
+            subject="datele firmei"
+            data-testid="company-edit"
+            onClick={openCompany}
+          >
             <span>
-              Modifică<span className="max-sm:sr-only"> datele firmei</span>
+              Modifică<span className="max-sm:hidden"> datele firmei</span>
             </span>
           </SheetAction>
         )
@@ -171,6 +176,7 @@ export function CompanyPeoplePanel({
               <SheetAction
                 ref={representativeRef}
                 adding={representativeEmpty}
+                subject="reprezentantul legal"
                 data-testid="legal-representative-edit"
                 onClick={openRepresentative}
               />
@@ -232,6 +238,7 @@ export function CompanyPeoplePanel({
               <SheetAction
                 ref={contactRef}
                 adding={contactEmpty}
+                subject="persoana de contact"
                 data-testid="contact-edit"
                 onClick={openContact}
               />

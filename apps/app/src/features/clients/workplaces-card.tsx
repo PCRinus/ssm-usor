@@ -156,6 +156,7 @@ export function WorkplacesCard({
           <SheetAction
             ref={addRef}
             adding
+            subject="un punct de lucru"
             data-testid="workplace-add"
             onClick={() => setEditing('new')}
           />
