@@ -115,7 +115,7 @@ const office = makeProfile({
   inUse: true,
 });
 const driver = makeProfile({ name: 'Șofer' });
-const clientCounts = new Map([[office.id, 3]]);
+const usages = new Map([[office.id, { sheetCount: 5, clientCount: 3 }]]);
 
 function makeEvaluation(fields: Partial<RiskEvaluation>): RiskEvaluation {
   const factors = fields.factors ?? [];
@@ -152,7 +152,7 @@ const summaryOf = ({ factors, ...rest }: { factors: RiskFactor[] } & Record<stri
 
 const profileSummaryOf = (profile: EvaluationProfile) => ({
   ...summaryOf(profile),
-  clientCount: clientCounts.get(profile.id) ?? 0,
+  ...(usages.get(profile.id) ?? { sheetCount: 0, clientCount: 0 }),
 });
 
 const collator = new Intl.Collator('ro');
@@ -252,12 +252,31 @@ function mockApi({
         );
       }
       const archived = url.searchParams.get('status') === 'archived';
-      const items = [...library.values()]
-        .filter((profile) => (profile.archivedAt !== null) === archived)
+      const tab = [...library.values()].filter(
+        (profile) => (profile.archivedAt !== null) === archived
+      );
+      const q = url.searchParams.get('q')?.toLowerCase();
+      const levels = url.searchParams.getAll('level');
+      const unused = url.searchParams.getAll('usage').includes('unused');
+      const levelOf = ({ globalRiskLevel: level }: EvaluationProfile) =>
+        level === null ? 'none' : level > 3.5 ? 'over' : 'within';
+      const items = tab
+        .filter(
+          (profile) =>
+            (!q || profile.name.toLowerCase().includes(q)) &&
+            (levels.length === 0 || levels.includes(levelOf(profile))) &&
+            (!unused || !usages.has(profile.id))
+        )
         .sort(byName)
         .map(profileSummaryOf);
       if (url.searchParams.get('order') === 'desc') items.reverse();
-      return Response.json({ items, page: 1, pageSize: 25, total: items.length });
+      return Response.json({
+        items,
+        page: 1,
+        pageSize: 25,
+        total: items.length,
+        unfilteredTotal: tab.length,
+      });
     }
     if (pathname === '/evaluation-profiles/choices') {
       return Response.json({
@@ -370,25 +389,43 @@ describe('the risk library', () => {
     );
   });
 
-  it('lists the profiles with their factors and global level', async () => {
-    mockApi();
+  it('lists each entry with its global level, its factors under it, and where active clients use it', async () => {
+    const crane = makeProfile({
+      name: 'Macaragiu',
+      factors: [
+        makeFactor({ description: 'Cădere de sarcină', gravityClass: 7, probabilityClass: 6 }),
+        makeFactor({ description: 'Strivire', gravityClass: 5, probabilityClass: 5 }),
+        makeFactor({ description: 'Zgomot', gravityClass: 2, probabilityClass: 4 }),
+      ],
+    });
+    mockApi({ profiles: [office, driver, crane] });
     mount('/evaluari-de-risc');
     const rows = await screen.findAllByTestId('risk-profile-row');
     expect(rows.map((row) => within(row).getByTestId('risk-profile-open').textContent)).toEqual([
       'Lucrător de birou',
+      'Macaragiu',
       'Șofer',
     ]);
-    const cells = (row: HTMLElement) =>
-      [
-        'risk-profile-factors',
-        'risk-profile-unacceptable',
-        'risk-profile-level',
-        'risk-profile-clients',
-      ].map((testId) => within(row).getByTestId(testId).textContent);
-    expect(cells(rows[0]!)).toEqual(['2', '1', '3,33', '3 clienți']);
-    expect(cells(rows[1]!)).toEqual(['0', '0', '—', '—']);
+    const level = (row: HTMLElement) =>
+      within(row).getByTestId('risk-profile-level').firstElementChild!;
+    const factors = (row: HTMLElement) => within(row).getByTestId('risk-profile-factors');
+    expect(level(rows[0]!).textContent).toBe('3,33');
+    expect(level(rows[0]!).className).not.toContain('destructive');
+    expect(factors(rows[0]!).textContent).toBe('2 factori, unul inacceptabil');
+    expect(factors(rows[0]!).querySelector('.text-destructive-foreground')?.textContent).toBe(
+      'unul inacceptabil'
+    );
+    expect(level(rows[1]!).textContent).toBe('5,57, peste limita acceptabilă');
+    expect(level(rows[1]!).className).toContain('text-destructive-foreground');
+    expect(factors(rows[1]!).textContent).toBe('3 factori, 2 inacceptabili');
+    expect(within(rows[2]!).getByTestId('risk-profile-level').textContent).toBe('—Niciun factor');
+    expect(within(rows[0]!).getByTestId('risk-profile-usage').textContent).toBe(
+      '5 fișela 3 clienți'
+    );
+    expect(within(rows[2]!).getByTestId('risk-profile-usage').textContent).toBe('—');
     expect(screen.getByRole('columnheader', { name: 'Folosită la' })).toBeTruthy();
-    expect(screen.getByTestId('risk-library-count').textContent).toBe('2 evaluări');
+    expect(screen.queryByRole('columnheader', { name: 'Factori' })).toBeNull();
+    expect(screen.getByTestId('risk-library-count').textContent).toBe('3 evaluări');
     expect(screen.getByTestId('risk-library-filter-active').getAttribute('aria-current')).toBe(
       'page'
     );
@@ -482,7 +519,9 @@ describe('the risk library', () => {
     );
     await waitFor(() => expect(listQuery(-1).get('status')).toBe('archived'));
     const [archived] = await screen.findAllByTestId('risk-profile-row');
-    expect(within(archived!).getByTestId('risk-profile-clients').textContent).toBe('3 clienți');
+    expect(within(archived!).getByTestId('risk-profile-usage').textContent).toBe(
+      '5 fișela 3 clienți'
+    );
     await user.click(within(archived!).getByTestId('risk-profile-actions'));
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
       'Reactivează…',
@@ -1072,5 +1111,131 @@ describe('an evaluation and the library', () => {
     expect(within(none).getByRole('link', { name: 'Evaluări de risc' }).getAttribute('href')).toBe(
       '/evaluari-de-risc'
     );
+  });
+});
+
+describe('searching and filtering the risk library', () => {
+  const crane = makeProfile({
+    name: 'Macaragiu',
+    factors: [
+      makeFactor({ description: 'Cădere de sarcină', gravityClass: 7, probabilityClass: 6 }),
+      makeFactor({ description: 'Strivire', gravityClass: 5, probabilityClass: 5 }),
+    ],
+  });
+
+  it('searches by post within the open tab, keeping the words in the address', async () => {
+    mockApi({ profiles: [office, driver, crane] });
+    const runtime = mount('/evaluari-de-risc');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('risk-profile-row');
+    const search = screen.getByTestId('risk-library-search');
+    expect(search.getAttribute('placeholder')).toBe('Caută după post');
+    await user.type(search, 'macara');
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'macara' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('risk-library-count').textContent).toBe('1 din 3 evaluări')
+    );
+    expect(listQuery(-1).get('q')).toBe('macara');
+    expect(listQuery(-1).get('page')).toBe('1');
+  });
+
+  it('filters by the global level and by Nefolosită, without counts beside the options', async () => {
+    mockApi({ profiles: [office, driver, crane] });
+    const runtime = mount('/evaluari-de-risc');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('risk-profile-row');
+    await user.click(screen.getByTestId('risk-library-filters'));
+    const panel = await screen.findByTestId('risk-library-filters-panel');
+    expect(
+      within(panel)
+        .getAllByRole('checkbox')
+        .map((option) => option.closest('label')?.textContent)
+    ).toEqual(['Peste limita acceptabilă (3,50)', 'În limită', 'Fără factori', 'Nefolosită']);
+    await user.click(within(panel).getByTestId('risk-library-filters-level-over'));
+    await user.click(within(panel).getByTestId('risk-library-filters-level-none'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.searchStr).toBe('?level=over&level=none')
+    );
+    expect(listQuery(-1).getAll('level')).toEqual(['over', 'none']);
+    await waitFor(() =>
+      expect(screen.getAllByTestId('risk-profile-open').map((link) => link.textContent)).toEqual([
+        'Macaragiu',
+        'Șofer',
+      ])
+    );
+    await user.click(within(panel).getByTestId('risk-library-filters-usage-unused'));
+    await waitFor(() => expect(listQuery(-1).getAll('usage')).toEqual(['unused']));
+    expect(screen.getByTestId('risk-library-count').textContent).toBe('2 din 3 evaluări');
+    await user.click(within(panel).getByTestId('risk-library-filters-show'));
+    const strip = screen.getByTestId('risk-library-applied-filters');
+    expect(within(strip).getByTestId('risk-library-applied-filters-level').textContent).toContain(
+      'Peste limită, Fără factori'
+    );
+    await user.click(within(strip).getByTestId('risk-library-applied-filters-clear'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('sorts by the global level, the highest first on the first click', async () => {
+    mockApi({ profiles: [office, driver, crane] });
+    const runtime = mount('/evaluari-de-risc');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('risk-profile-row');
+    await user.click(screen.getByTestId('sort-globalRiskLevel'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({
+        sort: 'globalRiskLevel',
+        order: 'desc',
+      })
+    );
+    expect(listQuery(-1).get('sort')).toBe('globalRiskLevel');
+    expect(listQuery(-1).get('order')).toBe('desc');
+    await user.click(screen.getByTestId('sort-usage'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'usage', order: 'desc' })
+    );
+  });
+
+  it('says when no entry matches, and clears the filters and the search together', async () => {
+    mockApi({ profiles: [office, driver] });
+    const runtime = mount('/evaluari-de-risc?level=over&q=birou');
+    const empty = await screen.findByTestId('risk-library-empty-filtered');
+    expect(empty.textContent).toContain('Nicio evaluare nu se potrivește');
+    expect(empty.textContent).toContain(
+      'Nicio evaluare activă nu se potrivește căutării și filtrelor alese.'
+    );
+    expect(screen.getByTestId('risk-library-count').textContent).toBe('0 din 2 evaluări');
+    expect(screen.getByTestId('risk-profile-new')).toBeTruthy();
+    const clear = within(empty).getByTestId('risk-library-empty-clear');
+    expect(clear.textContent).toBe('Șterge filtrele');
+    await userEvent.setup().click(clear);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await screen.findAllByTestId('risk-profile-row');
+  });
+
+  it('clears a search that finds nothing from the empty state', async () => {
+    mockApi();
+    const runtime = mount('/evaluari-de-risc?q=stivuitorist');
+    const empty = await screen.findByTestId('risk-library-empty-filtered');
+    expect(empty.textContent).toContain(
+      'Nicio evaluare activă nu are „stivuitorist” în numele postului.'
+    );
+    const clear = within(empty).getByTestId('risk-library-empty-clear');
+    expect(clear.textContent).toBe('Șterge căutarea');
+    await userEvent.setup().click(clear);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('puts Evaluare nouă in the message of an empty library, with no search, filters or count', async () => {
+    mockApi({ profiles: [] });
+    mount('/evaluari-de-risc');
+    const empty = await screen.findByTestId('risk-library-empty');
+    expect(empty.textContent).toContain('Nicio evaluare încă');
+    expect(empty.textContent).toContain('Importul documentației unui client adaugă aici');
+    expect(screen.getAllByTestId('risk-profile-new')).toHaveLength(1);
+    expect(within(empty).getByTestId('risk-profile-new')).toBeTruthy();
+    expect(screen.queryByTestId('risk-library-search')).toBeNull();
+    expect(screen.queryByTestId('risk-library-filters')).toBeNull();
+    expect(screen.queryByTestId('risk-library-count')).toBeNull();
+    expect(screen.getByTestId('risk-library-filter-archived')).toBeTruthy();
   });
 });

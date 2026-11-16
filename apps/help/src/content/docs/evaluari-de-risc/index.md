@@ -72,7 +72,9 @@ Două cuvinte numesc două lucruri diferite:
 
 Biblioteca e în meniul **Evaluări de risc**. Pornește goală: aplicația nu vine cu factori de risc scriși de noi, așa că biblioteca se umple din posturile pe care le evaluezi tu.
 
-Lista arată, pentru fiecare evaluare, câți factori are și câți dintre ei sunt inacceptabili, nivelul de risc global, la câți clienți e folosită și data ultimei modificări. Apeși pe capul unei coloane ca să ordonezi lista după nume, numărul de factori, numărul de clienți sau data modificării; după factorii inacceptabili și după nivelul global lista nu se ordonează. O bibliotecă mare se împarte în pagini. Deasupra listei alegi între **Active** și **Arhivate**.
+Lista arată, pentru fiecare evaluare, nivelul de risc global, cu roșu peste limita acceptabilă de 3,50, și sub el câți factori are și câți dintre ei sunt inacceptabili, numărul lor cu roșu când e cel puțin unul. O evaluare fără factori arată „—” și „Niciun factor”. Coloana **Folosită la** arată la câte fișe e folosită și, sub ele, la câți clienți, de exemplu „5 fișe” și „la 3 clienți” (vezi [Unde este folosită o evaluare](#unde-este-folosită-o-evaluare)), iar **Modificat**, data ultimei schimbări a numelui, a textelor sau a factorilor. Lista e ordonată după nume; apeși pe capul unei coloane ca s-o ordonezi după nivelul global, cel mai mare întâi, după folosire, cea mai folosită întâi, sau după data modificării. Evaluările fără factori rămân la urmă oricum ai ordona după nivel. O bibliotecă mare se împarte în pagini.
+
+Deasupra listei alegi între **Active** și **Arhivate**. Căsuța de căutare găsește evaluările tabului deschis după numele postului, fără să conteze diacriticele: „sofer” găsește „Șofer”. **Filtre** restrânge lista după nivelul global, peste limita acceptabilă, în limită sau fără factori, oricâte deodată, și, cu **Nefolosită**, la evaluările care arată „—” la **Folosită la**. Filtrele alese apar sub căutare; le scoți una câte una sau pe toate cu **Șterge filtrele**.
 
 Meniul unei evaluări, cele trei puncte de la capătul rândului, are:
 
@@ -109,7 +111,7 @@ Sus ai **Redenumește…**, **Arhivează…** sau **Reactivează…** și, pentr
 
 O evaluare e folosită cât timp cel puțin un factor din fișa unui client a venit din ea: prin aplicare, prin salvarea fișei în bibliotecă sau prin copierea factorilor de la altă fișă.
 
-- Coloana **Folosită la** din listă numără clienții, „3 clienți”. Fișele posturilor arhivate nu se numără, așa că o evaluare folosită doar la posturi arhivate arată „—”.
+- Coloana **Folosită la** din listă numără fișele care au cel puțin un factor din evaluare, fișa unui post sau una din afara posturilor, ca grupurile sensibile, și sub ele clienții lor: „5 fișe”, „la 3 clienți”. Se numără doar fișele clienților activi, fără cele ale posturilor arhivate, așa că o evaluare folosită doar la clienți sau posturi arhivate arată „—” și apare la filtrul **Nefolosită**.
 - Cardul **Unde este folosită**, pe pagina evaluării, arată fișele grupate pe clienți, cu câți factori din această evaluare are fiecare, și te duce la fiecare fișă. Un client arhivat apare cu „(arhivat)”. Pentru o evaluare folosită doar la posturi arhivate, cardul spune asta și că de aceea evaluarea nu se poate șterge.
 
 ## Aplicarea la o fișă

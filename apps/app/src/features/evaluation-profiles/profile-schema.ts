@@ -1,6 +1,8 @@
 import {
   type EvaluationProfileErrorReason,
   evaluationProfileSortKeys,
+  globalRiskLevelFilters,
+  libraryUsageFilters,
   sortOrderSchema,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
@@ -11,6 +13,7 @@ import type {
   EvaluationProfileResponse,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { filterSearchSchema } from '@/components/list-filters/url';
 import {
   factorCountLabel,
   unacceptableCountLabel,
@@ -24,6 +27,9 @@ export const riskLibrarySearchSchema = z.object({
   sort: z.enum(evaluationProfileSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   status: z.literal('archived').optional().catch(undefined),
+  q: z.string().max(100).optional().catch(undefined),
+  level: filterSearchSchema(globalRiskLevelFilters),
+  usage: filterSearchSchema(libraryUsageFilters),
 });
 
 export type RiskLibrarySearch = z.infer<typeof riskLibrarySearchSchema>;

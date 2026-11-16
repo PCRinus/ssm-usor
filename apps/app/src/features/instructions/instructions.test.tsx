@@ -102,6 +102,8 @@ const ladders = {
   archivedAt: null as string | null,
   version,
   appliedCount: 2,
+  positionCount: 2,
+  clientCount: 1,
   createdAt: '2026-09-26T09:00:00.000Z',
   updatedAt: '2026-09-26T10:00:00.000Z',
 };
@@ -112,6 +114,8 @@ const offices = {
   group: 'work_activity',
   version: { ...version, number: 1, articleCount: 4 },
   appliedCount: 0,
+  positionCount: 0,
+  clientCount: 0,
 };
 const welding = {
   ...ladders,
@@ -119,6 +123,8 @@ const welding = {
   title: 'Sudură oxiacetilenică',
   version: { ...version, number: 1 },
   appliedCount: 0,
+  positionCount: 0,
+  clientCount: 0,
 };
 const hotWork = {
   ...ladders,
@@ -128,6 +134,8 @@ const hotWork = {
   domain: 'su',
   version: { ...version, number: 1, articleCount: 7 },
   appliedCount: 1,
+  positionCount: 23,
+  clientCount: 21,
 };
 
 const welder = {
@@ -249,14 +257,24 @@ function mockApi({
     }
     if (pathname === '/instruction-modules') {
       const domain = url.searchParams.get('domain');
-      const items = (url.searchParams.get('status') === 'archived' ? archived : modules).filter(
+      const tab = (url.searchParams.get('status') === 'archived' ? archived : modules).filter(
         (module) => !domain || module.domain === domain
+      );
+      const q = url.searchParams.get('q')?.toLowerCase();
+      const categories = url.searchParams.getAll('category');
+      const unused = url.searchParams.getAll('usage').includes('unused');
+      const items = tab.filter(
+        (module) =>
+          (!q || module.title.toLowerCase().includes(q)) &&
+          (categories.length === 0 || categories.includes(module.group)) &&
+          (!unused || module.positionCount === 0)
       );
       return Response.json({
         items,
         page: Number(url.searchParams.get('page')),
         pageSize: Number(url.searchParams.get('pageSize')),
         total: items.length,
+        unfilteredTotal: tab.length,
       });
     }
     const moduleMatch = pathname.match(
@@ -345,8 +363,8 @@ afterEach(() => {
 });
 
 describe('the instruction library', () => {
-  it('opens on the occupational safety tab and lists its modules by group with their version and where they are applied', async () => {
-    mockApi();
+  it('opens on the occupational safety tab and lists its modules with their category, version and where active clients use them', async () => {
+    mockApi({ modules: [offices, ladders, { ...welding, positionCount: 41, clientCount: 23 }] });
     const runtime = mount();
     await screen.findByTestId('instruction-library');
     expect(await screen.findByTestId('instruction-library-ssm')).toBeTruthy();
@@ -355,12 +373,25 @@ describe('the instruction library', () => {
     expect(rows.map((row) => within(row).getByTestId('instruction-open').textContent)).toEqual([
       'Activități de birou',
       'Scări metalice',
+      'Sudură oxiacetilenică',
     ]);
-    expect(within(rows[1]!).getByTestId('instruction-version').textContent).toBe(
-      'v2 · 12 articole'
+    expect(within(rows[1]!).getByTestId('instruction-category').textContent).toBe(
+      'Echipamente de muncă'
     );
-    expect(within(rows[1]!).getByTestId('instruction-applied').textContent).toBe('2 posturi');
-    expect(within(rows[0]!).getByTestId('instruction-version').textContent).toBe('v1 · 4 articole');
+    expect(within(rows[1]!).getByTestId('instruction-version').textContent).toBe(
+      'v2, din 26.09.2026'
+    );
+    expect(within(rows[1]!).getByTestId('instruction-version').parentElement!.textContent).toBe(
+      'v2, din 26.09.202612 articole'
+    );
+    expect(within(rows[1]!).getByTestId('instruction-usage').textContent).toBe(
+      '2 posturila un client'
+    );
+    expect(within(rows[2]!).getByTestId('instruction-usage').textContent).toBe(
+      '41 de posturila 23 de clienți'
+    );
+    expect(within(rows[0]!).getByTestId('instruction-usage').textContent).toBe('—');
+    expect(screen.getByTestId('instruction-count').textContent).toBe('3 instrucțiuni');
   });
 
   it('shows the archived ones on their own tab, kept in the address', async () => {
@@ -381,6 +412,8 @@ describe('the instruction library', () => {
     expect(runtime.router.state.location.search).toEqual({ status: 'archived' });
     expect(screen.getByTestId('instruction-count').textContent).toBe('1 instrucțiune');
     expect(screen.getByTestId('instruction-filter-active').getAttribute('aria-current')).toBeNull();
+    expect(screen.queryByTestId('sort-appliedCount')).toBeNull();
+    expect(screen.queryByTestId('instruction-usage')).toBeNull();
     await user.click(screen.getByTestId('instruction-actions'));
     expect(await screen.findByTestId('instruction-restore')).toBeTruthy();
     expect(screen.queryByTestId('instruction-edit')).toBeNull();
@@ -410,7 +443,7 @@ describe('the instruction library', () => {
     await screen.findAllByTestId('instruction-row');
     await user.click(screen.getByTestId('sort-appliedCount'));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ sort: 'appliedCount' })
+      expect(runtime.router.state.location.search).toEqual({ sort: 'appliedCount', order: 'desc' })
     );
     await user.click(screen.getByTestId('sort-version'));
     await waitFor(() =>
@@ -1053,7 +1086,7 @@ describe('writing a new module', () => {
     const runtime = mount('/instructiuni/su');
     const user = userEvent.setup();
     await screen.findByTestId('instruction-library-su');
-    await user.click(screen.getByTestId('instruction-write'));
+    await user.click(await screen.findByTestId('instruction-write'));
     const dialog = await screen.findByTestId('instruction-start-dialog');
     expect(
       (within(dialog).getByTestId('instruction-start-domain') as HTMLSelectElement).value
@@ -1471,5 +1504,149 @@ describe('the module form across a reload', () => {
       )
     );
     expect(sectionCard('Calificarea necesară').dataset.empty).toBe('true');
+  });
+});
+
+describe('searching and filtering the instruction library', () => {
+  const listQuery = () =>
+    new URL(
+      String(
+        fetchMock.mock.calls
+          .map(([input]) => input)
+          .filter((input) => new URL(String(input)).pathname === '/instruction-modules')
+          .at(-1)
+      )
+    ).searchParams;
+
+  it('searches by title within the open tab, keeping the words in the address', async () => {
+    mockApi();
+    const runtime = mount('/instructiuni/ssm');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    const search = screen.getByTestId('instruction-search');
+    expect(search.getAttribute('placeholder')).toBe('Caută după titlu');
+    await user.type(search, 'scări');
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'scări' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('instruction-count').textContent).toBe('1 din 2 instrucțiuni')
+    );
+    expect(listQuery().get('q')).toBe('scări');
+    expect(listQuery().get('domain')).toBe('ssm');
+  });
+
+  it('filters by the tab’s categories and by Nefolosită, names them in the strip and removes them there', async () => {
+    mockApi({ modules: [offices, ladders, welding, hotWork] });
+    const runtime = mount('/instructiuni/ssm');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('instruction-filters'));
+    const panel = await screen.findByTestId('instruction-filters-panel');
+    expect(
+      within(panel)
+        .getAllByRole('checkbox')
+        .map((option) => option.closest('label')?.textContent)
+    ).toEqual(['Activități', 'Echipamente de muncă', 'Echipament de protecție', 'Nefolosită']);
+    await user.click(within(panel).getByTestId('instruction-filters-category-work_equipment'));
+    await user.click(within(panel).getByTestId('instruction-filters-usage-unused'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.searchStr).toBe('?category=work_equipment&usage=unused')
+    );
+    expect(listQuery().getAll('category')).toEqual(['work_equipment']);
+    expect(listQuery().getAll('usage')).toEqual(['unused']);
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByTestId('instruction-row')
+          .map((row) => within(row).getByTestId('instruction-open').textContent)
+      ).toEqual(['Sudură oxiacetilenică'])
+    );
+    expect(screen.getByTestId('instruction-count').textContent).toBe('1 din 3 instrucțiuni');
+    await user.click(within(panel).getByTestId('instruction-filters-show'));
+    const strip = screen.getByTestId('instruction-applied-filters');
+    expect(within(strip).getByTestId('instruction-applied-filters-category').textContent).toContain(
+      'Echipamente de muncă'
+    );
+    expect(within(strip).getByTestId('instruction-applied-filters-usage').textContent).toContain(
+      'Nefolosită'
+    );
+    await user.click(within(strip).getByRole('button', { name: 'Scoate filtrul Folosire' }));
+    await waitFor(() =>
+      expect(runtime.router.state.location.searchStr).toBe('?category=work_equipment')
+    );
+  });
+
+  it('offers the fire-safety categories on IPSU', async () => {
+    mockApi();
+    mount('/instructiuni/su');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    await user.click(screen.getByTestId('instruction-filters'));
+    const panel = await screen.findByTestId('instruction-filters-panel');
+    expect(
+      within(panel)
+        .getAllByRole('checkbox')
+        .map((option) => option.closest('label')?.textContent)
+    ).toEqual([
+      'Spații și activități',
+      'Instalații și echipamente',
+      'Lucrări periculoase',
+      'Nefolosită',
+    ]);
+  });
+
+  it('leaves Folosire out on Arhivate, where nothing applies a module', async () => {
+    mockApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
+    mount('/instructiuni/ssm?status=archived&usage=unused');
+    const user = userEvent.setup();
+    await screen.findAllByTestId('instruction-row');
+    expect(listQuery().has('usage')).toBe(false);
+    await user.click(screen.getByTestId('instruction-filters'));
+    const panel = await screen.findByTestId('instruction-filters-panel');
+    expect(within(panel).queryByTestId('instruction-filters-usage-unused')).toBeNull();
+  });
+
+  it('says when no instruction matches, and clears the filters and the search together', async () => {
+    mockApi();
+    const runtime = mount('/instructiuni/ssm?category=protective_equipment&q=sch');
+    const empty = await screen.findByTestId('instruction-empty-filtered');
+    expect(empty.textContent).toContain('Nicio instrucțiune nu se potrivește');
+    expect(empty.textContent).toContain(
+      'Nicio instrucțiune SSM activă nu se potrivește căutării și filtrelor alese.'
+    );
+    expect(screen.getByTestId('instruction-count').textContent).toBe('0 din 2 instrucțiuni');
+    expect(screen.getByTestId('instruction-search')).toBeTruthy();
+    expect(screen.getByTestId('instruction-write')).toBeTruthy();
+    const clear = within(empty).getByTestId('instruction-empty-clear');
+    expect(clear.textContent).toBe('Șterge filtrele');
+    await userEvent.setup().click(clear);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await screen.findAllByTestId('instruction-row');
+  });
+
+  it('clears a search that finds nothing from the empty state', async () => {
+    mockApi();
+    const runtime = mount('/instructiuni/ssm?q=stivuitor');
+    const empty = await screen.findByTestId('instruction-empty-filtered');
+    expect(empty.textContent).toContain(
+      'Nicio instrucțiune SSM activă nu are „stivuitor” în titlu.'
+    );
+    const clear = within(empty).getByTestId('instruction-empty-clear');
+    expect(clear.textContent).toBe('Șterge căutarea');
+    await userEvent.setup().click(clear);
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+  });
+
+  it('moves Scrie o instrucțiune into the message while the tab has none, with no search, filters or count', async () => {
+    mockApi({ modules: [hotWork] });
+    mount('/instructiuni/ssm');
+    const empty = await screen.findByTestId('instruction-empty');
+    expect(empty.textContent).toContain('Nicio instrucțiune proprie SSM încă');
+    expect(screen.getAllByTestId('instruction-write')).toHaveLength(1);
+    expect(screen.queryByTestId('instruction-search')).toBeNull();
+    expect(screen.queryByTestId('instruction-filters')).toBeNull();
+    expect(screen.queryByTestId('instruction-count')).toBeNull();
+    expect(screen.getByTestId('instruction-filter-archived')).toBeTruthy();
+    await userEvent.setup().click(within(empty).getByTestId('instruction-write'));
+    expect(await screen.findByTestId('instruction-start-dialog')).toBeTruthy();
   });
 });
