@@ -66,7 +66,6 @@ sources:
   - apps/app/src/features/trainings/training-state-badge.tsx
   - apps/app/src/features/knowledge-tests/test-state-badge.tsx
   - apps/app/src/features/client-files/client-files-card.tsx
-  - apps/app/src/features/client-files/import-folder.tsx
   - supabase/migrations/20261016210000_training_records.sql
   - supabase/migrations/20261017100000_training_interval_source.sql
   - supabase/migrations/20261020100000_knowledge_tests.sql
@@ -194,9 +193,7 @@ Accesul la portal și actul adițional sunt explicate în [Portalul și actul ad
 
 ### Documentele lucrătorului
 
-Pe tabul **Documente** încarci fotografiile sau scanurile fișelor de instruire completate pe hârtie, actul adițional semnat de mână și orice alt fișier despre lucrător. Fișierele unui lucrător apar doar pe pagina lui, nu și în **Alte documente** ale clientului, unde rămân fișierele clientului.
-
-Un lucrător adus dintr-un import din fișe are aici un folder „Fișe importate pe …”, cu fotografiile fișelor lui și, dintr-un PDF scanat cu fișele mai multor persoane, doar paginile lui. Folderul se descarcă întreg cu **Descarcă fișele (ZIP)**.
+Pe tabul **Documente** încarci fotografiile sau scanurile fișelor de instruire completate pe hârtie, actul adițional semnat de mână și orice alt fișier despre lucrător. Fișierele unui lucrător apar doar pe pagina lui, nu și în **Alte documente** ale clientului. Lista, căutarea, filtrele și fișele aduse dintr-un import sunt explicate în [Documentele lucrătorului](/clienti/fisiere/#documentele-lucrătorului).
 
 ## Lucrătorii unui client arhivat
 

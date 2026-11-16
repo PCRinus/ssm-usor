@@ -4,7 +4,14 @@ import {
   type ClientFileType,
   maxClientFileBytes,
 } from '@ssm-usor/contracts';
-import { FileImage, FileSpreadsheet, FileText, FileType, type LucideIcon } from 'lucide-react';
+import {
+  File as FileIcon,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileType,
+  type LucideIcon,
+} from 'lucide-react';
 
 import type { ApiErrorResponse, ClientFileListResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
@@ -19,30 +26,48 @@ export const clientFileAccept = Object.keys(clientFileExtensions)
   .map((extension) => `.${extension}`)
   .join(',');
 
-const kinds: Record<ClientFileType, { label: string; icon: LucideIcon }> = {
-  'application/pdf': { label: 'PDF', icon: FileText },
-  'image/jpeg': { label: 'Imagine', icon: FileImage },
-  'image/png': { label: 'Imagine', icon: FileImage },
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
-    label: 'Word',
-    icon: FileType,
-  },
-  'application/msword': { label: 'Word', icon: FileType },
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
-    label: 'Excel',
-    icon: FileSpreadsheet,
-  },
-  'application/vnd.ms-excel': { label: 'Excel', icon: FileSpreadsheet },
+export const fileKindKeys = ['pdf', 'image', 'word', 'excel'] as const;
+
+export type FileKindKey = (typeof fileKindKeys)[number];
+
+export const fileKindLabels: Record<FileKindKey, string> = {
+  pdf: 'PDF',
+  image: 'Imagine',
+  word: 'Word',
+  excel: 'Excel',
 };
 
-export const fileKind = (mimeType: ClientFileType) => kinds[mimeType];
+const kinds: Record<ClientFileType, { key: FileKindKey; icon: LucideIcon }> = {
+  'application/pdf': { key: 'pdf', icon: FileText },
+  'image/jpeg': { key: 'image', icon: FileImage },
+  'image/png': { key: 'image', icon: FileImage },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+    key: 'word',
+    icon: FileType,
+  },
+  'application/msword': { key: 'word', icon: FileType },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+    key: 'excel',
+    icon: FileSpreadsheet,
+  },
+  'application/vnd.ms-excel': { key: 'excel', icon: FileSpreadsheet },
+};
+
+const kindOf = (mimeType: ClientFileType) => {
+  const kind = Object.hasOwn(kinds, mimeType) ? kinds[mimeType] : undefined;
+  return kind && { ...kind, label: fileKindLabels[kind.key] };
+};
+
+// The contract allows only the four kinds; "Altul" covers a type a newer API sends first.
+export const fileKind = (mimeType: ClientFileType) =>
+  kindOf(mimeType) ?? { key: null, icon: FileIcon, label: 'Altul' };
 
 const extensionOf = (fileName: string) => /\.([^.]+)$/.exec(fileName)?.[1]?.toLowerCase();
 
 export function chosenFileKind(fileName: string) {
   const extension = extensionOf(fileName);
   if (!extension || !Object.hasOwn(clientFileExtensions, extension)) return null;
-  return kinds[clientFileExtensions[extension as keyof typeof clientFileExtensions]];
+  return kindOf(clientFileExtensions[extension as keyof typeof clientFileExtensions]) ?? null;
 }
 
 const decimal = new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 1 });

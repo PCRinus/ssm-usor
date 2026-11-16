@@ -6,13 +6,13 @@ import {
   renewalMs,
 } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@ssm-usor/ui/components/table';
+import { Card } from '@ssm-usor/ui/components/card';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { FileUp, Upload } from 'lucide-react';
-import { type MouseEvent, type ReactNode, useState } from 'react';
+import { FileUp, SearchX, Upload } from 'lucide-react';
+import { type MouseEvent, type ReactNode, useId, useMemo, useState } from 'react';
 
 import {
   type ClientFileListResponse,
@@ -20,27 +20,51 @@ import {
   setClientFileOwnersOnly,
   useListClientFiles,
 } from '@/api/generated/api';
+import type { DataTableSort } from '@/components/data-table/columns';
+import { DataTable } from '@/components/data-table/data-table';
+import { EmptyState } from '@/components/empty-state';
+import { HelpLink } from '@/components/help-link';
+import { ListCardHeader, ListCount } from '@/components/list-card-header';
+import { AppliedFilters } from '@/components/list-filters/applied-filters';
+import { ListFilters } from '@/components/list-filters/list-filters';
+import type { ListFilterValues } from '@/components/list-filters/types';
 import { Notice } from '@/components/notice';
+import { phoneBleed } from '@/components/page-spacing';
 import { Masked } from '@/components/replay';
-import { SectionCard } from '@/components/section-card';
+import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
-import { isEmptyOrLoading } from '@/lib/list-state';
 
+import { clientFileColumns } from './client-file-columns';
+import { ClientFileList, type ClientFileListContext } from './client-file-context';
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
-import { type ClientFile, type ClientFileEmployee } from './client-file-format';
-import { FileRow } from './client-file-row';
+import { type ClientFile, type ClientFileEmployee, fileCountLabel } from './client-file-format';
+import {
+  clientFileFacets,
+  type ClientFileFilterKey,
+  clientFileFilters,
+  type ClientFileListSearch,
+  type ClientFileRow,
+  clientFileRows,
+  type ClientFileSortKey,
+  defaultClientFileSort,
+  withFilters,
+} from './client-file-list';
 import { UploadClientFilesDialog } from './client-file-upload-dialog';
-import { ImportFolderRows } from './import-folder';
+import { useFolderZips } from './import-folder';
 import { useFileDrop, useRefuseStrayDrops } from './use-file-drop';
 
-function importFolders(items: ClientFile[]) {
-  const folders = new Map<string, ClientFile[]>();
-  for (const file of items) {
-    if (file.importId) folders.set(file.importId, [...(folders.get(file.importId) ?? []), file]);
-  }
-  return [...folders.entries()];
-}
+const rowKey = (row: ClientFileRow) => row.key;
+
+const rowTestIds = {
+  file: 'client-file-row',
+  folder: 'client-import-folder',
+  subfolder: 'client-import-subfolder',
+  more: 'client-import-folder-more-row',
+} as const;
+
+const toggled = (list: readonly string[], value: string) =>
+  list.includes(value) ? list.filter((each) => each !== value) : [...list, value];
 
 // `readOnly` is an archived company, or a lead on a plan without offers.
 export function ClientFilesCard({
@@ -48,17 +72,22 @@ export function ClientFilesCard({
   employee,
   userId,
   readOnly,
-  flush = false,
+  search,
+  onSearch,
+  title,
 }: {
   client: Client;
   employee?: ClientFileEmployee;
   userId: string;
   readOnly: boolean;
-  // Alone in a tab whose name it repeats: it runs without a card's frame or a visible title.
-  flush?: boolean;
+  // Among other cards, as on a lead's page, rather than alone in a tab that names it.
+  title?: string;
+  search: ClientFileListSearch;
+  onSearch: (next: ClientFileListSearch) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const isOwner = useMe().data?.membership?.role === 'owner';
+  const phone = useIsMobile();
   const lead = client.stage === 'lead';
   const params = employee ? { employeeId: employee.id } : undefined;
   const queryKey = [...getListClientFilesQueryKey(client.id, params), userId];
@@ -75,7 +104,10 @@ export function ClientFilesCard({
   const [renaming, setRenaming] = useState<ClientFile | null>(null);
   const [deleting, setDeleting] = useState<ClientFile | null>(null);
   const [switching, setSwitching] = useState<string[]>([]);
+  const [switched, setSwitched] = useState<string[]>([]);
+  const [showAll, setShowAll] = useState<string[]>([]);
   const [error, setError] = useState<ReactNode>(null);
+  const zips = useFolderZips(client.id);
   const fileName = (file: { name: string }) =>
     employee ? <Masked>{file.name}</Masked> : file.name;
   const drop = useFileDrop((dropped) => {
@@ -124,9 +156,8 @@ export function ClientFilesCard({
     };
   };
 
-  function openRow(file: ClientFile, event: MouseEvent<HTMLElement>) {
-    if (event.timeStamp + performance.timeOrigin >= linksStaleAt)
-      return void openFile(file, 'open');
+  function openRow(file: ClientFile) {
+    if (Date.now() >= linksStaleAt) return void openFile(file, 'open');
     const { href, disposition } = addressOf(file, 'open');
     openAddress(href, disposition);
   }
@@ -157,158 +188,269 @@ export function ClientFilesCard({
     setSwitching((current) => current.filter((id) => id !== file.id));
     await queryClient.invalidateQueries({ queryKey: getListClientFilesQueryKey(client.id) });
   }
-
-  const items = files.data?.items ?? [];
+  const items = files.data?.items;
+  const all = items?.length ?? 0;
+  const listFilters = clientFileFilters(search);
+  const filtered = listFilters.applied;
+  const shown = useMemo(
+    () => clientFileRows(items ?? [], search, { switched, showAll }, Boolean(employee)),
+    [items, search, switched, showAll, employee]
+  );
   const canUpload = !readOnly;
+  const empty = files.isSuccess && all === 0;
 
-  const renderFile = (file: ClientFile, depth: number) => (
-    <FileRow
-      key={file.id}
-      file={file}
-      depth={depth}
-      personal={Boolean(employee)}
-      changeable={file.canChange && !readOnly}
-      showOwnersOnly={!lead}
-      canSwitch={isOwner && !lead && !readOnly}
-      switching={switching.includes(file.id)}
-      open={linkProps(file, 'open')}
-      download={linkProps(file, 'download')}
-      onActivate={(event) => openRow(file, event)}
-      onRename={() => setRenaming(file)}
-      onDelete={() => setDeleting(file)}
-      onOwnersOnly={(ownersOnly) => void setOwnersOnly(file, ownersOnly)}
-    />
+  const personal = Boolean(employee);
+  const columns = useMemo(() => clientFileColumns(personal), [personal]);
+  const list: ClientFileListContext = {
+    clientId: client.id,
+    showOwnersOnly: !lead,
+    canSwitch: isOwner && !lead && !readOnly,
+    readOnly,
+    switching,
+    zips,
+    open: (file) => linkProps(file, 'open'),
+    download: (file) => linkProps(file, 'download'),
+    onToggle: (key) => setSwitched((current) => toggled(current, key)),
+    onShowAll: (key) => setShowAll((current) => toggled(current, key)),
+    onRename: setRenaming,
+    onDelete: setDeleting,
+    onOwnersOnly: (file, ownersOnly) => void setOwnersOnly(file, ownersOnly),
+  };
+
+  const changeFilters = (values: ListFilterValues<ClientFileFilterKey>) =>
+    onSearch(withFilters(search, values));
+  const help = employee ? 'fisiere.documentele-lucratorului' : 'fisiere.alte-documente';
+  const helpLabel = employee ? 'Ajutor: Documentele lucrătorului' : 'Ajutor: Alte documente';
+  const uploadButton = (label: string, className?: string) => (
+    <Button
+      data-testid="client-files-upload"
+      className={className}
+      onClick={() => setUploading([])}
+    >
+      <Upload aria-hidden="true" />
+      {label}
+    </Button>
   );
 
-  return (
+  const body = (
     <>
-      <SectionCard
-        data-testid={employee ? 'employee-files-card' : 'client-files-card'}
-        title={employee ? 'Documente' : 'Alte documente'}
-        hideTitle={flush}
-        className={cn('relative', flush && 'rounded-none border-0 shadow-none')}
-        description={
-          <>
-            {employee
-              ? 'Fișele de instruire completate pe hârtie, fotografiate sau scanate, și alte fișiere despre lucrător.'
-              : 'Certificatul de înregistrare, procese-verbale ITM, fișe de aptitudine și alte fișiere despre client.'}
-            {lead && (
-              <span data-testid="client-files-lead-hint">
-                {' '}
-                Până devine client, fișierele lui sunt vizibile doar adminilor.
-              </span>
-            )}
-          </>
-        }
-        action={
-          canUpload &&
-          !isEmptyOrLoading(files.status, items.length) && (
-            <Button
-              variant="tonal"
-              size="sm"
-              data-testid="client-files-upload"
-              onClick={() => setUploading([])}
-            >
-              <Upload aria-hidden="true" />
-              Încarcă fișiere
-            </Button>
-          )
-        }
-        {...(canUpload ? drop.handlers : {})}
-      >
-        {error && (
+      {lead && (
+        <div className="border-b px-4 py-3 sm:px-5">
+          <Notice variant="info" data-testid="client-files-lead-hint">
+            Până devine client, fișierele lui sunt vizibile doar adminilor.
+          </Notice>
+        </div>
+      )}
+      {error && (
+        <div className="border-b px-4 py-3 sm:px-5">
           <Notice variant="destructive" data-testid="client-files-error">
             {error}
           </Notice>
-        )}
-        {files.isPending ? (
-          <Skeleton className="h-24 w-full" />
-        ) : files.isError ? (
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={files.isFetching}
-                onClick={() => void files.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
-          >
-            Nu am putut încărca fișierele.
-          </Notice>
-        ) : items.length === 0 ? (
-          canUpload ? (
-            <div
-              data-testid="client-files-empty"
-              className="grid justify-items-center gap-3 rounded-lg border border-dashed p-6 text-center"
-            >
-              <FileUp className="size-6 text-muted-foreground" aria-hidden="true" />
-              <p className="max-w-md text-sm text-muted-foreground">
-                Niciun fișier încă. Trage fișierele aici sau alege-le de pe dispozitiv; poți încărca
-                mai multe deodată.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="client-files-upload"
-                onClick={() => setUploading([])}
-              >
-                <Upload aria-hidden="true" />
-                Alege fișiere
-              </Button>
-            </div>
-          ) : (
-            <p data-testid="client-files-empty" className="text-sm text-muted-foreground">
-              Nu a fost încărcat niciun fișier.
-            </p>
-          )
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nume</TableHead>
-                <TableHead className="text-right">Mărime</TableHead>
-                <TableHead>Încărcat</TableHead>
-                <TableHead className="w-20">
-                  <span className="sr-only">Acțiuni</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.filter((file) => !file.importId).map((file) => renderFile(file, 0))}
-              {importFolders(items).map(([importId, folderFiles]) => (
-                <ImportFolderRows
-                  key={importId}
-                  clientId={client.id}
-                  kind={
-                    employee
-                      ? 'employee'
-                      : folderFiles[0]!.importKind === 'employees'
-                        ? 'sheets'
-                        : 'client'
-                  }
-                  files={folderFiles}
-                  renderFile={renderFile}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        )}
-        {drop.dragging && (
+        </div>
+      )}
+      {empty ? (
+        <div className="p-4 sm:p-6">
           <div
-            aria-hidden="true"
-            data-testid="client-files-drop"
-            className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl border-2 border-dashed border-primary bg-background/90"
+            data-testid="client-files-empty"
+            className="rounded-xl border border-dashed px-5 py-10"
           >
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <FileUp className="size-5 text-primary" aria-hidden="true" />
-              Lasă fișierele aici ca să le încarci.
-            </span>
+            <EmptyState
+              icon={FileUp}
+              title="Niciun fișier încă"
+              actions={
+                <>
+                  {canUpload && uploadButton('Alege fișiere')}
+                  <HelpLink
+                    topic={help}
+                    label={helpLabel}
+                    className="my-0 size-9 self-center justify-self-center"
+                  />
+                </>
+              }
+            >
+              {canUpload
+                ? 'Trage fișierele aici sau alege-le de pe dispozitiv.'
+                : 'Nu a fost încărcat niciun fișier.'}
+            </EmptyState>
           </div>
-        )}
-      </SectionCard>
+        </div>
+      ) : (
+        <>
+          {files.isSuccess && (
+            <>
+              <ListCardHeader className="px-4 sm:px-5">
+                <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
+                  <SearchInput
+                    value={search.q}
+                    onSearch={(next) => onSearch({ ...search, q: next || undefined })}
+                    placeholder="Caută după nume sau notă"
+                    label="Caută fișiere după nume sau notă"
+                    testId="client-files-search"
+                  />
+                  <ListFilters
+                    facets={clientFileFacets}
+                    values={listFilters.values}
+                    onChange={changeFilters}
+                    total={shown.count}
+                    applyLabel={(pending) =>
+                      `Arată ${fileCountLabel(
+                        clientFileRows(
+                          items ?? [],
+                          withFilters(search, pending),
+                          { switched, showAll },
+                          Boolean(employee)
+                        ).count
+                      )}`
+                    }
+                    countLabel={fileCountLabel}
+                    testId="client-files-filters"
+                  />
+                </div>
+                <ListCount testId="client-files-count" className="ml-0">
+                  {shown.narrowed ? (
+                    <>
+                      <b className="font-semibold text-foreground">{shown.count}</b> din{' '}
+                      {phone ? all : fileCountLabel(all)}
+                    </>
+                  ) : (
+                    fileCountLabel(all)
+                  )}
+                </ListCount>
+                <div className="ml-auto flex items-center gap-1">
+                  <HelpLink topic={help} label={helpLabel} className="my-0 size-9" />
+                  {canUpload && uploadButton('Încarcă fișiere')}
+                </div>
+              </ListCardHeader>
+              <AppliedFilters
+                facets={clientFileFacets}
+                values={listFilters.values}
+                onChange={changeFilters}
+                testId="client-files-applied-filters"
+              />
+            </>
+          )}
+          <ClientFileList.Provider value={list}>
+            <DataTable
+              testId="client-files-table"
+              rowTestId={(row) => rowTestIds[row.kind]}
+              label={employee ? 'Fișierele lucrătorului' : 'Fișierele clientului'}
+              columns={columns}
+              data={files.isSuccess ? shown.rows : undefined}
+              rowKey={rowKey}
+              onRowClick={(row) => {
+                if (row.kind === 'file') openRow(row.file);
+                else if (row.kind === 'more') setShowAll((current) => toggled(current, row.path));
+                else setSwitched((current) => toggled(current, row.key));
+              }}
+              status={files.status}
+              sort={{
+                sort: search.sort ?? defaultClientFileSort.sort,
+                order: search.order ?? defaultClientFileSort.order,
+              }}
+              onSortChange={(next: DataTableSort) =>
+                onSearch({
+                  ...search,
+                  sort:
+                    next.sort === defaultClientFileSort.sort
+                      ? undefined
+                      : (next.sort as ClientFileSortKey),
+                  order: next.order === defaultClientFileSort.order ? undefined : next.order,
+                })
+              }
+              error={
+                <Notice
+                  variant="destructive"
+                  action={
+                    <Button
+                      variant="outline"
+                      disabled={files.isFetching}
+                      onClick={() => void files.refetch()}
+                    >
+                      Încearcă din nou
+                    </Button>
+                  }
+                >
+                  Nu am putut încărca fișierele.
+                </Notice>
+              }
+              empty={
+                <EmptyState
+                  icon={SearchX}
+                  title="Niciun fișier nu se potrivește"
+                  data-testid="client-files-empty-filtered"
+                  actions={
+                    <Button
+                      variant="outline"
+                      data-testid="client-files-empty-filtered-clear"
+                      onClick={() =>
+                        filtered ? changeFilters({}) : onSearch({ ...search, q: undefined })
+                      }
+                    >
+                      {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
+                    </Button>
+                  }
+                >
+                  {filtered ? (
+                    'Scoate un filtru sau schimbă căutarea.'
+                  ) : (
+                    <>
+                      Niciun fișier nu are „{fileName({ name: search.q?.trim() ?? '' })}” în nume
+                      sau în notă.
+                    </>
+                  )}
+                </EmptyState>
+              }
+            />
+          </ClientFileList.Provider>
+        </>
+      )}
+      {drop.dragging && (
+        <div
+          aria-hidden="true"
+          data-testid="client-files-drop"
+          className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl border-2 border-dashed border-primary bg-background/90"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <FileUp className="size-5 text-primary" aria-hidden="true" />
+            Lasă fișierele aici ca să le încarci.
+          </span>
+        </div>
+      )}
+    </>
+  );
+
+  const dropHandlers = canUpload ? drop.handlers : {};
+  const titleId = useId();
+  return (
+    <>
+      {employee || title ? (
+        <Card
+          data-testid={employee ? 'employee-files-card' : 'client-files-card'}
+          aria-label={employee ? 'Documentele lucrătorului' : undefined}
+          aria-labelledby={title ? titleId : undefined}
+          className={cn(
+            'relative gap-0 overflow-hidden py-0',
+            employee && [phoneBleed, 'max-sm:rounded-none max-sm:border-x-0']
+          )}
+          {...dropHandlers}
+        >
+          {title && (
+            <h2 id={titleId} className="px-4 pt-5 pb-1 text-lg leading-snug font-semibold sm:px-5">
+              {title}
+            </h2>
+          )}
+          {body}
+        </Card>
+      ) : (
+        <section
+          data-testid="client-files-card"
+          aria-label="Alte documente"
+          className="relative"
+          {...dropHandlers}
+        >
+          {body}
+        </section>
+      )}
       {canUpload && (
         <UploadClientFilesDialog
           clientId={client.id}

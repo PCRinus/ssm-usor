@@ -9,6 +9,7 @@ import { openedFromRecord, openedHere } from '@/app/opener';
 import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
+import type { ClientFileListSearch } from '@/features/client-files/client-file-list';
 import { ClientFilesCard } from '@/features/client-files/client-files-card';
 import {
   type ClientArchiveChange,
@@ -46,6 +47,7 @@ function LeadPage() {
   useEndWayBackOutside(lead.id, session?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState(false);
+  const [fileSearch, setFileSearch] = useState<ClientFileListSearch>({});
   const { apiRequest } = useRouteContext({ from: '__root__' });
   // The same query the contract card reads, so this costs no request of its own.
   const contract = useGetServiceContract(lead.id, {
@@ -163,7 +165,14 @@ function LeadPage() {
             </Button>
           )}
         />
-        <ClientFilesCard client={lead} userId={session.user.id} readOnly={readOnly} />
+        <ClientFilesCard
+          client={lead}
+          userId={session.user.id}
+          readOnly={readOnly}
+          title="Alte documente"
+          search={fileSearch}
+          onSearch={setFileSearch}
+        />
         <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={readOnly} />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />

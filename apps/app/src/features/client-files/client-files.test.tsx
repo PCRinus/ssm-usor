@@ -350,7 +350,13 @@ describe('the other documents of a client', () => {
     mount();
 
     const empty = await screen.findByTestId('client-files-empty');
-    expect(empty.textContent).toContain('Niciun fișier încă.');
+    expect(empty.textContent).toContain('Niciun fișier încă');
+    expect(empty.textContent).toContain('Trage fișierele aici sau alege-le de pe dispozitiv.');
+    expect(screen.queryByTestId('client-files-search')).toBeNull();
+    expect(screen.queryByTestId('client-files-count')).toBeNull();
+    expect(
+      within(empty).getByRole('link', { name: 'Ajutor: Alte documente' }).getAttribute('href')
+    ).toContain('/clienti/fisiere/#alte-documente');
     await userEvent.setup().click(within(empty).getByRole('button', { name: 'Alege fișiere' }));
     expect(await screen.findByTestId('client-files-upload-dialog')).toBeTruthy();
   });
@@ -671,9 +677,17 @@ describe('the files of an employee', () => {
     mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
-    expect(within(card).getByRole('heading', { level: 2, name: 'Documente' })).toBeTruthy();
     const [row] = await within(card).findAllByTestId('client-file-row');
-    expect(within(row!).getByTestId('client-file-open').textContent).toBe('Fișă de instruire 2019');
+    expect(within(card).queryByRole('heading', { name: 'Documente' })).toBeNull();
+    expect(
+      within(card)
+        .getByRole('link', { name: 'Ajutor: Documentele lucrătorului' })
+        .getAttribute('href')
+    ).toContain('/clienti/fisiere/#documentele-lucrătorului');
+    expect(within(card).getByTestId('client-files-count').textContent).toBe('un fișier');
+    const name = within(row!).getByTestId('client-file-open');
+    expect(name.textContent).toBe('Fișă de instruire 2019');
+    expect(name.closest('[data-replay-mask]')).not.toBeNull();
     expect(within(row!).getByTestId('client-file-actions')).toBeTruthy();
     expect(
       requests(filesPath, 'GET').map(([input]) =>
@@ -822,22 +836,35 @@ describe('the import folder', () => {
     mount();
 
     const folder = await screen.findByTestId('client-import-folder');
-    expect(folder.textContent).toContain('Dosar importat pe 27.10.2026 · 3 fișiere');
+    expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
+      'Dosar importat pe 27.10.2026'
+    );
+    expect(folder.textContent).toContain('3 fișiere într-un folder');
+    expect(within(folder).getByTestId('client-file-kind').textContent).toBe('Dosar');
     expect(screen.getAllByTestId('client-file-row')).toHaveLength(1);
 
-    await userEvent.click(within(folder).getByTestId('client-import-folder-toggle'));
+    const toggle = within(folder).getByTestId('client-import-folder-toggle');
+    expect(toggle.getAttribute('aria-label')).toBe('Deschide Dosar importat pe 27.10.2026');
+    await userEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getAllByTestId('client-file-row').map((row) => row.textContent)).toEqual([
-      expect.stringContaining('Certificat de înregistrare'),
       expect.stringContaining('Contract 2019'),
+      expect.stringContaining('Certificat de înregistrare'),
     ]);
     const subfolder = screen.getByTestId('client-import-subfolder');
-    expect(subfolder.textContent).toContain('dosar.zip/SSM');
+    expect(subfolder.textContent).toContain('dosar.zip › SSM');
     await userEvent.click(within(subfolder).getByRole('button'));
     const unread = screen
       .getAllByTestId('client-file-row')
       .find((row) => row.textContent?.includes('Evaluare riscuri 2019'))!;
-    expect(within(unread).getByTestId('client-file-unread').textContent).toBe('Necitit');
-    expect(unread.textContent).toContain('fișierul este protejat cu parolă');
+    expect(within(unread).getByTestId('client-file-unread').textContent).toBe(
+      'Necitit la import: fișierul este protejat cu parolă'
+    );
+    await userEvent.click(within(folder).getByTestId('client-import-folder-actions'));
+    expect((await screen.findByTestId('client-import-folder-view')).getAttribute('href')).toBe(
+      `/clienti/import/${importId}`
+    );
+    await userEvent.keyboard('{Escape}');
 
     await userEvent.click(within(folder).getByTestId('client-import-folder-zip'));
     await waitFor(() => expect(saved).toHaveLength(1));
@@ -858,14 +885,16 @@ describe('the import folder', () => {
 
     const folder = await screen.findByTestId('client-import-folder');
     expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
-      'Fișe importate pe 27.10.2026 · un fișier'
+      'Fișe importate pe 27.10.2026'
     );
-    expect(folder.textContent).toContain(
-      'Fișele scanate din care au fost transcrise instruirile. Fiecare lucrător are la fișierele sale doar paginile lui.'
-    );
+    expect(folder.textContent).toContain('un fișier');
     expect(
       within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')
-    ).toBe('Deschide fișele importate');
+    ).toBe('Deschide Fișe importate pe 27.10.2026');
+    await userEvent.click(within(folder).getByTestId('client-import-folder-actions'));
+    expect((await screen.findByTestId('client-import-folder-view')).getAttribute('href')).toBe(
+      `/clienti/${clientId}/angajati/import/${importId}`
+    );
   });
 
   it("shows an employee's sheet photographs from an import as an open folder of their own", async () => {
@@ -887,22 +916,20 @@ describe('the import folder', () => {
     const card = await screen.findByTestId('employee-files-card');
     const folder = await within(card).findByTestId('client-import-folder');
     expect(within(folder).getByTestId('client-import-folder-title').textContent).toBe(
-      'Fișe importate pe 27.10.2026 · 2 fișiere'
+      'Fișe importate pe 27.10.2026'
     );
-    expect(folder.textContent).toContain(
-      'Fotografiile și paginile scanate din care au fost transcrise instruirile. Originalele pe hârtie rămân la client.'
-    );
+    expect(folder.textContent).toContain('2 fișiere');
     expect(
       within(folder).getByTestId('client-import-folder-toggle').getAttribute('aria-label')
-    ).toBe('Restrânge fișele importate');
-    expect(within(folder).getByTestId('client-import-folder-zip').textContent).toBe(
+    ).toBe('Restrânge Fișe importate pe 27.10.2026');
+    expect(within(folder).getByTestId('client-import-folder-zip').getAttribute('aria-label')).toBe(
       'Descarcă fișele (ZIP)'
     );
     expect(
       within(card)
         .getAllByTestId('client-file-row')
         .map((row) => within(row).getByTestId('client-file-open').textContent)
-    ).toEqual(['Fișă de instruire 2019', 'IMG_3110', 'IMG_3111']);
+    ).toEqual(['IMG_3110', 'IMG_3111', 'Fișă de instruire 2019']);
   });
 
   it("lists an employee's pages of a scanned PDF in the order of the pages", async () => {
@@ -927,5 +954,262 @@ describe('the import folder', () => {
         .getAllByTestId('client-file-row')
         .map((row) => within(row).getByTestId('client-file-open').textContent)
     ).toEqual([1, 2, 3, 4, 5].map((n) => `Fise — pagina ${n}`));
+  });
+});
+
+describe('finding a file', () => {
+  const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
+  const photo = {
+    ...certificate,
+    id: '7a7a7a7a-7a7a-4a7a-8a7a-7a7a7a7a7a7a',
+    name: 'Hidrant curte',
+    note: null,
+    mimeType: 'image/png',
+    createdAt: '2026-10-30T09:00:00+00:00',
+  };
+  const fromImport = (id: string, name: string, path: string | null, extra = {}) => ({
+    ...certificate,
+    id,
+    name,
+    note: null,
+    importId,
+    importKind: 'client',
+    importPath: path,
+    importRead: true,
+    importReason: null,
+    createdAt: '2026-10-27T09:00:00+00:00',
+    ...extra,
+  });
+  const sheets = fromImport(
+    '8b8b8b8b-8b8b-4b8b-8b8b-8b8b8b8b8b8b',
+    'Fișe instructaj 2025',
+    'Instruire',
+    {
+      note: 'Semnate de toți',
+      ownersOnly: true,
+    }
+  );
+  const decision = fromImport('9c9c9c9c-9c9c-4c9c-8c9c-9c9c9c9c9c9c', 'Decizie numire', null, {
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+  const items = [certificate, offer, photo, sheets, decision];
+  const names = () =>
+    screen
+      .getAllByTestId(/^client-(file-row|import-folder)$/)
+      .map(
+        (row) =>
+          (within(row).queryByTestId('client-file-open') ??
+            within(row).getByTestId('client-import-folder-title'))!.textContent
+      );
+
+  it('lists the newest first, an import folder by its date among the files, and sorts by name', async () => {
+    mockApi({ role: 'owner', items });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await screen.findAllByTestId('client-file-row');
+    expect(names()).toEqual([
+      'Hidrant curte',
+      'Dosar importat pe 27.10.2026',
+      'Certificat de înregistrare',
+      'Ofertă 2026',
+    ]);
+    expect(screen.getByTestId('client-files-count').textContent).toBe('5 fișiere');
+    expect(
+      within(screen.getAllByTestId('client-file-row')[0]!).getByTestId('client-file-kind')
+        .textContent
+    ).toBe('Imagine');
+
+    await user.click(screen.getByTestId('sort-name'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ sort: 'name', order: 'asc' })
+    );
+    expect(names()).toEqual([
+      'Certificat de înregistrare',
+      'Dosar importat pe 27.10.2026',
+      'Hidrant curte',
+      'Ofertă 2026',
+    ]);
+  });
+
+  it('searches names and notes without diacritics, through the folders, with the folder under the name', async () => {
+    mockApi({ role: 'owner', items });
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await screen.findAllByTestId('client-file-row');
+    await user.type(screen.getByTestId('client-files-search'), 'semnate de toti{Enter}');
+
+    await waitFor(() => expect(names()).toEqual(['Fișe instructaj 2025']));
+    expect(runtime.router.state.location.search).toEqual({ q: 'semnate de toti' });
+    expect(screen.queryByTestId('client-import-folder')).toBeNull();
+    expect(screen.getByTestId('client-files-count').textContent).toBe('1 din 5 fișiere');
+    expect(screen.getByTestId('client-file-facts').textContent).toBe(
+      'Dosar importat pe 27.10.2026 › Instruire · Doar admini · Semnate de toți'
+    );
+  });
+
+  it('filters by type and by the way a file came in, read from and written to the address', async () => {
+    mockApi({ role: 'owner', items });
+    const runtime = mount(`/clienti/${clientId}/alte-documente?added=imported`);
+    const user = userEvent.setup();
+
+    await screen.findAllByTestId('client-file-row');
+    expect(names()).toEqual(['Decizie numire', 'Fișe instructaj 2025']);
+    expect(screen.getByTestId('client-files-count').textContent).toBe('2 din 5 fișiere');
+    expect(screen.getByTestId('client-files-applied-filters-added').textContent).toContain(
+      'Importate'
+    );
+    expect(
+      within(screen.getAllByTestId('client-file-row')[0]!).getByTestId('client-file-facts')
+        .textContent
+    ).toBe('Dosar importat pe 27.10.2026');
+
+    await user.click(screen.getByTestId('client-files-filters'));
+    await user.click(await screen.findByTestId('client-files-filters-added-imported'));
+    await user.click(screen.getByTestId('client-files-filters-added-uploaded'));
+    await user.click(screen.getByTestId('client-files-filters-type-pdf'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ type: 'pdf', added: 'uploaded' })
+    );
+    expect(names()).toEqual(['Certificat de înregistrare']);
+  });
+
+  it('says when nothing matches, and clears the filters while keeping the search', async () => {
+    mockApi({ role: 'owner', items });
+    const runtime = mount(`/clienti/${clientId}/alte-documente?q=hidrant&type=excel`);
+    const user = userEvent.setup();
+
+    const empty = await screen.findByTestId('client-files-empty-filtered');
+    expect(screen.getByTestId('client-files-count').textContent).toBe('0 din 5 fișiere');
+    await user.click(within(empty).getByRole('button', { name: 'Șterge filtrele' }));
+
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'hidrant' }));
+    expect(names()).toEqual(['Hidrant curte']);
+    expect((screen.getByTestId('client-files-search') as HTMLInputElement).value).toBe('hidrant');
+  });
+
+  it('offers to clear a search that alone finds nothing', async () => {
+    mockApi({ role: 'owner', items });
+    const runtime = mount(`/clienti/${clientId}/alte-documente?q=autorizatie`);
+    const user = userEvent.setup();
+
+    const empty = await screen.findByTestId('client-files-empty-filtered');
+    expect(empty.textContent).toContain('Niciun fișier nu are „autorizatie” în nume sau în notă.');
+    await user.click(within(empty).getByRole('button', { name: 'Șterge căutarea' }));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(names()).toHaveLength(4);
+  });
+
+  it('opens a long note in place instead of opening the file', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(window);
+    mockApi({ items: [certificate] });
+    mount();
+    const user = userEvent.setup();
+
+    const toggle = await screen.findByTestId('client-file-facts-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.className).toContain('line-clamp-1');
+    await user.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.className).not.toContain('line-clamp-1');
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('keeps a download button on every file and folder', async () => {
+    mockApi({ items });
+    mount();
+
+    await screen.findAllByTestId('client-file-row');
+    for (const row of screen.getAllByTestId('client-file-row')) {
+      const download = within(row).getByTestId('client-file-download');
+      expect(new URL(download.getAttribute('href')!).searchParams.get('disposition')).toBe(
+        'attachment'
+      );
+    }
+    expect(
+      within(screen.getByTestId('client-import-folder'))
+        .getByTestId('client-import-folder-zip')
+        .getAttribute('aria-label')
+    ).toBe('Descarcă tot dosarul (ZIP)');
+  });
+});
+
+describe('finding a file of an employee', () => {
+  const photo = (id: string, name: string, createdAt: string, extra = {}) => ({
+    ...trainingSheet,
+    id,
+    name,
+    createdAt,
+    ...extra,
+  });
+
+  it('searches and filters their files, masked, with the address on their own tab', async () => {
+    mockApi({
+      items: [
+        trainingSheet,
+        photo(
+          '1d1d1d1d-1d1d-4d1d-8d1d-1d1d1d1d1d1d',
+          'Fișă aptitudine',
+          '2026-10-02T09:00:00+00:00',
+          {
+            mimeType: 'application/pdf',
+            note: 'Apt, până la 2027',
+          }
+        ),
+        photo(
+          '2e2e2e2e-2e2e-4e2e-8e2e-2e2e2e2e2e2e',
+          'Fotografie fișă',
+          '2026-10-27T09:00:00+00:00',
+          {
+            importId: '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f',
+            importKind: 'employees',
+            importPath: null,
+            importRead: true,
+            importReason: null,
+          }
+        ),
+      ],
+    });
+    const runtime = mount(`${employeePage}?type=pdf`);
+
+    const card = await screen.findByTestId('employee-files-card');
+    const [row] = await within(card).findAllByTestId('client-file-row');
+    expect(within(card).getAllByTestId('client-file-row')).toHaveLength(1);
+    expect(within(row!).getByTestId('client-file-open').textContent).toBe('Fișă aptitudine');
+    expect(
+      within(row!).getByTestId('client-file-facts').closest('[data-replay-mask]')
+    ).not.toBeNull();
+    expect(within(card).getByTestId('client-files-count').textContent).toBe('1 din 3 fișiere');
+
+    const user = userEvent.setup();
+    await user.click(within(card).getByTestId('client-files-filters'));
+    await user.click(await screen.findByTestId('client-files-filters-type-pdf'));
+    await user.click(screen.getByTestId('client-files-filters-added-imported'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.search).toEqual({ added: 'imported' })
+    );
+    expect(runtime.router.state.location.pathname).toBe(employeePage);
+    expect(
+      within(card)
+        .getAllByTestId('client-file-row')
+        .map((each) => within(each).getByTestId('client-file-open').textContent)
+    ).toEqual(['Fotografie fișă']);
+    expect(within(card).getByTestId('client-file-facts').textContent).toBe(
+      'Fișe importate pe 27.10.2026'
+    );
+  });
+
+  it("says when the worker has no files, with the help on the worker's documents", async () => {
+    mockApi({ items: [], company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' } });
+    mount(employeePage);
+
+    const card = await screen.findByTestId('employee-files-card');
+    const empty = await within(card).findByTestId('client-files-empty');
+    expect(empty.textContent).toContain('Nu a fost încărcat niciun fișier.');
+    expect(within(empty).queryByRole('button', { name: 'Alege fișiere' })).toBeNull();
+    expect(
+      within(empty).getByRole('link', { name: 'Ajutor: Documentele lucrătorului' })
+    ).toBeTruthy();
   });
 });
