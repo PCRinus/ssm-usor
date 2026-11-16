@@ -40,7 +40,7 @@ import type {
   updateEvaluationProfileFactorRoute,
   updateEvaluationProfileRoute,
 } from './routes';
-import { storeRiskLevels } from './stored-risk-levels';
+import { storeMissingRiskLevels, storeRiskLevels } from './stored-risk-levels';
 
 type Tables = Database['public']['Tables'];
 
@@ -192,6 +192,7 @@ export const listEvaluationProfiles: RouteHandler<
 > = async (c) => {
   const { page, pageSize, sort, order, status } = c.req.valid('query');
   const db = createDataClient(c);
+  await storeMissingRiskLevels(db);
   const listed = () =>
     db
       .from('evaluation_profile_list')

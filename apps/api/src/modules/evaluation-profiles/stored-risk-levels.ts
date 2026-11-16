@@ -38,3 +38,21 @@ export async function storeRiskLevels(db: DataClient, profileIds: readonly strin
     if (failed) console.error(`The risk levels of a library entry were not kept: ${failed.code}`);
   }
 }
+
+// A store that failed leaves an entry with factors and no level, which would read and filter as
+// one without factors; the next list read writes it.
+export async function storeMissingRiskLevels(db: DataClient) {
+  const { data, error } = await db
+    .from('evaluation_profiles')
+    .select('id, evaluation_profile_factors!inner(id)')
+    .is('global_risk_level', null)
+    .limit(1, { referencedTable: 'evaluation_profile_factors' });
+  if (error) {
+    console.error(`The library entries missing their risk levels were not read: ${error.code}`);
+    return;
+  }
+  await storeRiskLevels(
+    db,
+    data.map((row) => row.id)
+  );
+}

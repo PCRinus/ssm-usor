@@ -122,6 +122,8 @@ const evaluation = {
 
 const storedLevelsColumns = 'id,evaluation_profile_factors(gravity_class,probability_class)';
 
+const missingLevelsColumns = 'id,evaluation_profile_factors!inner(id)';
+
 // Electrocution is level 4 and unacceptable, the rhythm level 2: (16 + 4) / (4 + 2).
 const officeLevels = { global_risk_level: 3.33, unacceptable_factor_count: 1 };
 
@@ -176,6 +178,7 @@ function mockUpstream(
           { id: profileId, evaluation_profile_factors: officeProfile.evaluation_profile_factors },
         ]);
       }
+      if (url.searchParams.get('select') === missingLevelsColumns) return Response.json([]);
     }
     if (url.pathname === '/rest/v1/evaluation_profile_factors') {
       const custom = handlers.factors?.(init, url);
@@ -305,6 +308,35 @@ describe('GET /evaluation-profiles', () => {
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
     expect(calls('risk_factors', 'GET')).toHaveLength(0);
+  });
+
+  it('first writes the levels an entry with factors is missing, before the list sorts by them', async () => {
+    mockUpstream({
+      profiles: (init, url) =>
+        isGet(init) && url.searchParams.get('select') === missingLevelsColumns
+          ? Response.json([{ id: profileId, evaluation_profile_factors: [{ id: factorId }] }])
+          : undefined,
+      list: () => Response.json([]),
+    });
+    expect((await request('/evaluation-profiles')).status).toBe(200);
+    const [missing] = calls('evaluation_profiles', 'GET');
+    const query = new URL(String(missing![0])).searchParams;
+    expect(query.get('global_risk_level')).toBe('is.null');
+    expect(query.get('evaluation_profile_factors.limit')).toBe('1');
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
+    const order = fetchMock.mock.calls.map(([input, init]) => {
+      const { pathname } = new URL(String(input));
+      return `${init?.method ?? 'GET'} ${pathname}`;
+    });
+    expect(order.indexOf('PATCH /rest/v1/evaluation_profiles')).toBeLessThan(
+      order.indexOf('GET /rest/v1/evaluation_profile_list')
+    );
+  });
+
+  it('writes nothing when every entry with factors has its levels', async () => {
+    mockUpstream({ list: () => Response.json([]) });
+    expect((await request('/evaluation-profiles')).status).toBe(200);
+    expect(storedLevels()).toEqual([]);
   });
 
   it('lists only the archived entries when asked for the archive', async () => {
