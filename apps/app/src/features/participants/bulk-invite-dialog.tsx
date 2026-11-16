@@ -65,50 +65,69 @@ type Phase =
 
 const storedAddress = (invitee: ImportInvitee) => invitee.email ?? invitee.phone ?? '';
 
+export type BulkInviteSource = { importId: string } | { chosen: ImportInvitee[] };
+
 export function BulkInviteDialog({
   clientId,
-  importId,
+  source,
   open,
   onClose,
 }: {
   clientId: string;
-  importId: string;
+  source: BulkInviteSource;
   open: boolean;
-  onClose: () => void;
+  onClose: (sent: boolean) => void;
 }) {
   const { queryClient } = useRouteContext({ from: '__root__' });
+  const [sent, setSent] = useState(false);
   const close = () => {
-    void queryClient.invalidateQueries({
-      queryKey: getListImportPortalInviteesQueryKey(clientId, importId),
-    });
-    void queryClient.invalidateQueries({
-      queryKey: getListImportsQueryKey({ clientId, kind: 'employees', status: 'confirmed' }),
-    });
-    onClose();
+    setSent(false);
+    if ('importId' in source) {
+      void queryClient.invalidateQueries({
+        queryKey: getListImportPortalInviteesQueryKey(clientId, source.importId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: getListImportsQueryKey({ clientId, kind: 'employees', status: 'confirmed' }),
+      });
+    }
+    onClose(sent);
   };
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
       {/* Mounted per opening, so a reopened dialog starts from the employees' rows again. */}
-      {open && <BulkInviteForm clientId={clientId} importId={importId} onClose={close} />}
+      {open && (
+        <BulkInviteForm
+          clientId={clientId}
+          source={source}
+          onSent={() => setSent(true)}
+          onClose={close}
+        />
+      )}
     </Dialog>
   );
 }
 
 function BulkInviteForm({
   clientId,
-  importId,
+  source,
+  onSent,
   onClose,
 }: {
   clientId: string;
-  importId: string;
+  source: BulkInviteSource;
+  onSent: () => void;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const invitees = useImportInvitees(clientId, importId, { refetchOnMount: 'always' });
-  // The rows as fetched on opening, not as cached: someone may have been invited elsewhere since.
-  // They stay while the dialog is open, since sending changes who is invited and each row keeps
-  // its result.
-  const [rows, setRows] = useState<ImportInvitee[] | null>(null);
+  const fromImport = 'importId' in source;
+  const invitees = useImportInvitees(clientId, fromImport ? source.importId : '', {
+    refetchOnMount: 'always',
+    enabled: fromImport,
+  });
+  // An import's rows as fetched on opening, not as cached: someone may have been invited elsewhere
+  // since. They stay while the dialog is open, since sending changes who is invited and each row
+  // keeps its result.
+  const [rows, setRows] = useState<ImportInvitee[] | null>(fromImport ? null : source.chosen);
   if (!rows && invitees.data && invitees.isFetchedAfterMount) setRows(invitees.data.items);
   const [typed, setTyped] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -194,13 +213,15 @@ function BulkInviteForm({
     setResults(outcome);
     const invited = Object.values(outcome).filter((row) => row.outcome === 'invited').length;
     setPhase({ step: 'sent', invited, notInvited: Object.keys(outcome).length - invited });
+    onSent();
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: getListClientParticipantsQueryKey(clientId) }),
       // The employees' rows hold the addresses typed here, and their pages their portal state.
       queryClient.invalidateQueries({
         predicate: (query) =>
           typeof query.queryKey[0] === 'string' &&
-          query.queryKey[0].startsWith(`/clients/${clientId}/employees`),
+          (query.queryKey[0].startsWith(`/clients/${clientId}/employees`) ||
+            query.queryKey[0] === `/clients/${clientId}/employee-invitees`),
       }),
     ]);
   }
@@ -242,11 +263,19 @@ function BulkInviteForm({
         noValidate
       >
         <DialogHeader>
-          <DialogTitle>Invită în portal lucrătorii din fișe</DialogTitle>
+          <DialogTitle>
+            {fromImport
+              ? 'Invită în portal lucrătorii din fișe'
+              : 'Invită în portal lucrătorii aleși'}
+          </DialogTitle>
           <DialogDescription>
             Fiecare primește adresa portalului și intră cu un cod primit la aceeași adresă, fără
             parolă. Invitația e valabilă 30 de zile.{' '}
-            <HelpLink topic="angajati.invitatie-din-fise">Află mai mult</HelpLink>
+            <HelpLink
+              topic={fromImport ? 'angajati.invitatie-din-fise' : 'portal.invitarea-mai-multor'}
+            >
+              Află mai mult
+            </HelpLink>
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-6">
@@ -265,9 +294,11 @@ function BulkInviteForm({
             <>
               {candidates.length === 0 && (
                 <Notice variant="info" data-testid="bulk-invite-nobody">
-                  {onPortal.length > 0
-                    ? 'Toți lucrătorii din fișe au deja acces la portal sau o invitație.'
-                    : 'Importul nu a adus lucrători actuali de invitat.'}
+                  {!fromImport
+                    ? 'Toți lucrătorii aleși au deja acces la portal sau o invitație.'
+                    : onPortal.length > 0
+                      ? 'Toți lucrătorii din fișe au deja acces la portal sau o invitație.'
+                      : 'Importul nu a adus lucrători actuali de invitat.'}
                 </Notice>
               )}
               {withAddress.length > 0 && (
@@ -283,7 +314,7 @@ function BulkInviteForm({
               {withoutAddress.length > 0 && (
                 <InviteeGroup
                   testId="bulk-invite-without-address"
-                  title="Fără email sau telefon pe fișă"
+                  title={fromImport ? 'Fără email sau telefon pe fișă' : 'Fără email sau telefon'}
                   count={withoutAddress.length}
                   description="Scrie unul ca să-l inviți acum. Gol, rămâne neinvitat; îl inviți oricând din pagina lui sau din fila Portal."
                 >

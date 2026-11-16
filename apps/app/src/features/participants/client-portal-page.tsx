@@ -1,14 +1,24 @@
+import type { ImportInvitee } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
+import { useCallback, useState } from 'react';
 
 import { getListClientParticipantsQueryKey, useListClientParticipants } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import type { Client } from '@/features/clients/client-form-schema';
 import { ClientSignatureRequests } from '@/features/signatures/client-signature-requests';
 
-import { ClientAdministratorCard } from './client-administrator-card';
-import { PortalEmployeesCard } from './portal-employees-card';
+import { BulkInviteDialog } from './bulk-invite-dialog';
+import { ClientAdministratorPanel } from './client-administrator-panel';
+import { InviteAdministratorDialog } from './invite-administrator-dialog';
+import { type InvitedEmployee, InviteEmployeeDialog } from './invite-employee-dialog';
+import type { ParticipantMessage } from './participant-actions';
+import { PortalGettingStarted } from './portal-getting-started';
+import { NoWorkers, PortalRoster } from './portal-roster';
+import type { RosterRow } from './portal-roster-columns';
+import { usePortalAccessActions } from './use-portal-access-actions';
+import { usePortalRoster } from './use-portal-roster';
 
 export function ClientPortalPage({ client, userId }: { client: Client; userId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -16,12 +26,25 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
     request: apiRequest,
     query: { queryKey: [...getListClientParticipantsQueryKey(client.id), userId] },
   });
+  const roster = usePortalRoster(client.id, userId);
+  const [message, setMessage] = useState<ParticipantMessage>(null);
+  const actions = usePortalAccessActions(client.id, setMessage);
+  const [invitingAdministrator, setInvitingAdministrator] = useState(false);
+  const [inviting, setInviting] = useState<InvitedEmployee | null>(null);
+  const [batch, setBatch] = useState<ImportInvitee[] | null>(null);
+  const readOnly = client.archivedAt !== null;
+  const inviteRow = useCallback(
+    (row: RosterRow) =>
+      setInviting({ id: row.id, clientId: row.clientId, email: row.email, phone: row.phone }),
+    []
+  );
 
-  if (list.isPending) {
+  const { employees, withAccess } = roster;
+  if (list.isPending || employees.isPending || withAccess.isPending) {
     return (
       <div data-testid="client-portal-page" className="grid gap-4">
         <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -46,46 +69,90 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
     );
   }
 
-  const administrators = list.data.participants.filter(
+  // A client has one administrator; a client invited before that rule shows its first.
+  const administrator = list.data.participants.find((item) => item.kind === 'client_administrator');
+  const administratorInvitation = list.data.invitations.find(
     (item) => item.kind === 'client_administrator'
   );
-  const administratorInvitations = list.data.invitations.filter(
-    (item) => item.kind === 'client_administrator'
+  const noAdministrator = !administrator && !administratorInvitation;
+  const noWorkers = employees.isSuccess && employees.data.unfilteredTotal === 0 && !roster.narrowed;
+  const gettingStarted =
+    !readOnly && noAdministrator && withAccess.isSuccess && withAccess.data.total === 0;
+
+  const dialogs = (
+    <>
+      <InviteAdministratorDialog
+        client={client}
+        userId={userId}
+        open={invitingAdministrator}
+        onClose={() => setInvitingAdministrator(false)}
+        onMessage={setMessage}
+      />
+      {inviting && (
+        <InviteEmployeeDialog
+          employee={inviting}
+          open
+          onClose={() => setInviting(null)}
+          onMessage={setMessage}
+        />
+      )}
+      {batch && (
+        <BulkInviteDialog
+          clientId={client.id}
+          source={{ chosen: batch }}
+          open
+          onClose={(sent) => {
+            setBatch(null);
+            if (sent) roster.clearChoice();
+          }}
+        />
+      )}
+      {actions.dialog}
+    </>
   );
-  const employees = list.data.participants.filter((item) => item.kind === 'employee');
-  const employeeInvitations = list.data.invitations.filter((item) => item.kind === 'employee');
-  const noAdministrator = administrators.length === 0 && administratorInvitations.length === 0;
-  const noEmployee = employees.length === 0;
+
+  if (noWorkers && noAdministrator) {
+    return (
+      <div data-testid="client-portal-page" className="py-10">
+        <NoWorkers clientId={client.id} />
+      </div>
+    );
+  }
 
   return (
     <div data-testid="client-portal-page" className="grid gap-4">
-      {(noAdministrator || noEmployee) && (
-        <Notice variant="info" title="Fără acces încă" data-testid="client-portal-missing">
-          <ul className="grid list-disc gap-1 pl-4">
-            {noAdministrator && <li>Administratorul clientului nu a fost invitat în portal.</li>}
-            {noEmployee && (
-              <li data-testid="client-employees-with-access">
-                {employeeInvitations.length === 0
-                  ? 'Niciun lucrător nu are încă acces la portal. Îi inviți de aici sau din pagina fiecărui lucrător.'
-                  : 'Niciun lucrător nu a intrat încă în portal; invitațiile trimise așteaptă primul cod.'}
-              </li>
-            )}
-          </ul>
-        </Notice>
+      {gettingStarted ? (
+        <PortalGettingStarted
+          choosing={roster.choosing}
+          onInviteAdministrator={() => setInvitingAdministrator(true)}
+          onInviteWorkers={() => void roster.chooseUninvited()}
+        />
+      ) : (
+        <ClientAdministratorPanel
+          clientId={client.id}
+          administrator={administrator}
+          invitation={administratorInvitation}
+          readOnly={readOnly}
+          actions={actions}
+          onInvite={() => setInvitingAdministrator(true)}
+        />
       )}
-      <ClientAdministratorCard
-        client={client}
-        userId={userId}
-        administrators={administrators}
-        invitations={administratorInvitations}
+      <PortalRoster
+        clientId={client.id}
+        roster={roster}
+        readOnly={readOnly}
+        gettingStarted={gettingStarted}
+        actions={actions}
+        message={message}
+        onInvite={inviteRow}
+        onInviteChosen={() => setBatch([...roster.chosen.values()])}
       />
-      <PortalEmployeesCard
-        client={client}
+      <ClientSignatureRequests
+        clientId={client.id}
         userId={userId}
-        participants={employees}
-        invitations={employeeInvitations}
+        hideWhenEmpty={gettingStarted}
       />
-      <ClientSignatureRequests clientId={client.id} userId={userId} />
+      {dialogs}
     </div>
   );
 }

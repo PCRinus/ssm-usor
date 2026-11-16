@@ -1169,7 +1169,7 @@ describe('the Semnături place', () => {
 });
 
 describe("the client's pending signatures", () => {
-  it('lists who has not signed, by employee, warning of an unsigned agreement', async () => {
+  it('lists who has not signed as a table sorted by worker, warning of an unsigned agreement', async () => {
     const ana = {
       id: '8d0f7780-8536-41ef-a55c-f18fd2fa1bf8',
       lastName: 'Ionescu',
@@ -1201,23 +1201,32 @@ describe("the client's pending signatures", () => {
         });
       },
     });
+    const user = userEvent.setup();
     mount(`/clienti/${clientId}/portal`);
     const card = await screen.findByTestId('client-signature-requests');
-    const people = await within(card).findAllByTestId('client-signature-requests-employee');
-    expect(within(card).getByRole('heading').textContent).toBe('3 semnături în așteptare');
-    expect(people.map((person) => person.querySelector('a')!.textContent)).toEqual([
-      'Ionescu Ana',
-      'Popescu Ion',
-    ]);
-    expect(within(people[0]!).queryByTestId('agreement-warning')).toBeNull();
-    expect(within(people[1]!).getByTestId('agreement-warning').textContent).toBe(
+    const rows = await within(card).findAllByTestId('client-signature-request');
+    expect(within(card).getByRole('heading', { level: 2 }).textContent).toBe(
+      '3 semnături în așteptare'
+    );
+    const names = () =>
+      within(card)
+        .getAllByTestId('client-signature-request-employee')
+        .map((link) => link.textContent);
+    expect(names()).toEqual(['Ionescu Ana', 'Popescu Ion', 'Popescu Ion']);
+    expect(within(rows[0]!).queryByTestId('agreement-warning')).toBeNull();
+    expect(within(rows[1]!).getByTestId('agreement-warning').textContent).toBe(
       'Act adițional nesemnat'
     );
     expect(
-      within(people[1]!)
+      within(card)
         .getAllByTestId('client-signature-request-signer')
         .map((signer) => signer.textContent)
-    ).toEqual(['Popescu Ion', 'Dan MARIN']);
+    ).toEqual(['Ionescu Ana', 'Popescu Ion', 'Dan MARIN']);
+
+    await user.click(within(card).getByTestId('sort-employee'));
+    expect(names()).toEqual(['Popescu Ion', 'Popescu Ion', 'Ionescu Ana']);
+    await user.click(within(card).getByTestId('sort-issuedAt'));
+    expect(within(card).getByTestId('sort-issuedAt').dataset.sorted).toBe('true');
   });
 
   it("names a test sheet's request by its label, linking to the employee's tab of its domain", async () => {
@@ -1227,14 +1236,14 @@ describe("the client's pending signatures", () => {
     });
     mount(`/clienti/${clientId}/portal`);
     const card = await screen.findByTestId('client-signature-requests');
-    const [item] = await within(card).findAllByTestId('client-signature-request');
+    const [item] = await within(card).findAllByTestId('client-signature-request-document');
     expect(item!.dataset.kind).toBe('test_sheet');
     const link = within(item!).getByRole('link');
     expect(link.textContent).toBe('Fișa de test · Test anual SU · 15.10.2026');
     expect(link.getAttribute('href')).toBe(
       `/clienti/${clientId}/angajati/${employeeId}/instruire/su`
     );
-    expect(item!.textContent).toContain('Instruit');
+    expect(within(card).getByTestId('client-signature-request').textContent).toContain('Instruit');
   });
 
   it('says so while every request is signed', async () => {

@@ -1,6 +1,6 @@
 ---
 title: Portalul și actul adițional
-description: Cum îi dai unui lucrător acces la portal și cum ții evidența actului adițional prin care acceptă să semneze electronic fișele de instruire.
+description: Cum îi dai unui lucrător acces la portal, ce găsești pe tabul Portal al clientului și cum ții evidența actului adițional prin care lucrătorul acceptă să semneze electronic fișele de instruire.
 topics:
   - id: angajati.portal
     heading: Accesul la portal
@@ -12,6 +12,20 @@ topics:
     heading: Invitarea lucrătorilor din fișe
   - id: angajati.revocare-acces
     heading: Revocarea
+  - id: portal.tab
+    heading: Tabul Portal al clientului
+  - id: portal.pornire
+    heading: Pornirea portalului
+  - id: portal.administrator
+    heading: Administratorul clientului
+  - id: portal.lucratori
+    heading: Lucrătorii și accesul la portal
+  - id: portal.invitarea-mai-multor
+    heading: Invitarea mai multor lucrători
+  - id: portal.semnaturi
+    heading: Semnăturile în așteptare
+  - id: portal.client-arhivat
+    heading: Portalul unui client arhivat
   - id: angajati.act-aditional
     heading: Actul adițional privind semnarea electronică
   - id: angajati.act-aditional-stari
@@ -39,6 +53,15 @@ sources:
   - apps/app/src/features/participants/participant-errors.ts
   - apps/app/src/features/participants/sms-rules.ts
   - apps/app/src/features/participants/invite-administrator-dialog.tsx
+  - apps/app/src/features/participants/client-portal-page.tsx
+  - apps/app/src/features/participants/client-administrator-panel.tsx
+  - apps/app/src/features/participants/portal-roster.tsx
+  - apps/app/src/features/participants/portal-roster-columns.tsx
+  - apps/app/src/features/participants/portal-access.tsx
+  - apps/app/src/features/participants/portal-access-format.ts
+  - apps/app/src/features/participants/use-portal-roster.ts
+  - apps/app/src/features/signatures/client-signature-requests.tsx
+  - supabase/migrations/20261120100000_employee_list_portal.sql
   - apps/app/src/features/signatures/signing-agreement-card.tsx
   - apps/app/src/features/signatures/agreement-warning.tsx
   - apps/app/src/features/signatures/signature-format.ts
@@ -102,6 +125,60 @@ Cu **Trimite**, fiecare invitație pleacă la fel ca atunci când inviți lucră
 **Revocă** anulează o invitație încă neacceptată. **Revocă accesul** îl oprește pe lucrător să mai intre în portal. Instruirile, fișele și celelalte date rămân la client, iar lucrătorul poate fi invitat din nou oricând.
 
 Un lucrător care pleacă de la client își păstrează accesul: evidența lui rămâne, și odată cu ea dreptul lui de a o vedea. Revocă-l doar dacă angajatorul cere.
+
+## Tabul Portal al clientului
+
+Tabul **Portal** al unui client adună tot ce ține de portal: administratorul clientului, lucrătorii cu accesul fiecăruia și semnăturile care așteaptă.
+
+### Pornirea portalului
+
+Cât timp clientul nu are administrator și niciun lucrător nu are acces, tabul începe cu **Pornește portalul pentru acest client**, în doi pași: **Invită administratorul** și **Invită lucrătorii**. Îi faci pe amândoi; începe cu administratorul, ca să poată pregăti portalul la client. **Invită lucrătorii** face același lucru ca **Invită lucrători** din listă (vezi mai jos). Panoul dispare de îndată ce cineva are acces, iar în locul lui apare administratorul clientului.
+
+Un client fără lucrători actuali nu are încă pe cine invita: tabul îți spune „Clientul nu are încă lucrători” și te trimite la tabul **Lucrători**, de unde îi adaugi.
+
+### Administratorul clientului
+
+Administratorul clientului e persoana care ține evidența SSM la client: vede în portal lucrătorii și fișele lor și contrasemnează actele adiționale. Un client are un singur administrator, așa că **Invită administratorul** apare doar cât timp clientul nu are nici administrator, nici o invitație pentru unul. Dialogul îți propune numele reprezentantului legal și adresa persoanei de contact; poți alege în locul lor un lucrător al clientului.
+
+Panoul arată trei rânduri:
+
+- **Administrator**: numele și, dacă e și lucrător al clientului, legătura spre pagina lui;
+- **Acces**: **Are acces**, din ziua în care a intrat prima dată, sau **Invitat**, cu data la care expiră invitația, ori **Invitație expirată**;
+- **Intră cu**: adresa la care a fost invitat, dacă primește codurile pe email sau prin SMS și, odată intrat, limba în care folosește portalul.
+
+Butoanele sunt pe rândul **Acces**: **Revocă accesul** când are acces, **Retrimite** și **Revocă invitația** cât timp invitația nu e acceptată. Ca să schimbi administratorul, revocă-l pe cel de acum, apoi invită-l pe cel nou.
+
+### Lucrătorii și accesul la portal
+
+Lista cuprinde toți lucrătorii actuali ai clientului, fiecare cu postul lui și cu accesul la portal. Foștii lucrători nu apar; accesul lor rămâne cum era (vezi [Revocarea](#revocarea)). Coloana **Acces** arată una dintre stări:
+
+- **Are acces**, din ziua în care lucrătorul a intrat prima dată în portal;
+- **Invitat**, cu data la care expiră invitația;
+- **Invitație expirată**, cu data la care a expirat;
+- **Fără invitație**;
+- **Acces revocat**, cu data revocării, fie că ai revocat accesul, fie o invitație încă neacceptată.
+
+**Intră cu** arată adresa, dacă e email sau telefon și limba în care lucrătorul folosește portalul. La lucrătorul care e și administratorul clientului scrie „administratorul clientului”.
+
+Pe fiecare rând găsești ce se poate face acum: **Invită** pentru un lucrător fără invitație sau cu accesul revocat, cu același dialog ca din pagina lui; **Retrimite** pentru o invitație deschisă sau expirată, cel mult o dată la 10 minute; din meniul cu trei puncte, **Revocă accesul** sau **Revocă invitația**.
+
+Cauți după nume sau marcă. **Filtre** alege după accesul la portal, postul de lucru și punctul de lucru. Ordonezi lista după lucrător sau după acces, în ordinea stărilor de mai sus. Deasupra listei vezi câți lucrători au acces din câți sunt, de exemplu „5 cu acces, din 14 lucrători”; cu un filtru sau o căutare, câți se potrivesc din total.
+
+### Invitarea mai multor lucrători
+
+Bifează lucrătorii pe care vrei să-i inviți; îi poți alege de pe mai multe pagini ale listei. Cât timp ai ales pe cineva, deasupra listei vezi câți lucrători ai ales, **Deselectează tot** și **Invită selectați**. Alegerea ține de căutare și de filtre: când le schimbi, o iei de la capăt.
+
+Fără nimic ales, **Invită lucrători** aplică filtrul **Fără invitație** și îi alege pe toți lucrătorii care se potrivesc, de pe toate paginile. Scoate apoi bifa celor pe care nu vrei să-i inviți acum. Se aleg odată cel mult 1000 de lucrători.
+
+**Invită selectați** deschide același dialog ca [invitarea lucrătorilor din fișe](#invitarea-lucrătorilor-din-fișe): cei cu email sau telefon în datele lor primesc invitația, iar pentru cei fără scrii un email sau un număr de telefon, care se salvează în datele lor. Cei care au deja acces sau o invitație deschisă apar separat și nu primesc nimic din nou. SMS-urile pleacă doar spre numere din România și nu pleacă în perioada de probă, ca la orice invitație.
+
+### Semnăturile în așteptare
+
+La sfârșitul tabului vezi rubricile din fișele clientului care așteaptă o semnătură: lucrătorul, ce se semnează, rubrica, cine semnează și când a fost cerută semnătura. Ordonezi lista după lucrător sau după data cererii. Lângă un lucrător fără actul adițional semnat apare avertismentul **Act adițional nesemnat**.
+
+### Portalul unui client arhivat
+
+La un client arhivat tabul rămâne de citit: nu mai inviți pe nimeni, nu retrimiți invitații și nu mai alegi lucrători. O invitație expirată nu mai apare ca avertisment, pentru că nu mai e nimic de făcut cu ea. Poți în continuare să revoci un acces sau o invitație, din meniul cu trei puncte al rândului sau din cel al administratorului, de exemplu când angajatorul cere asta după încheierea colaborării.
 
 ## Actul adițional privind semnarea electronică
 
