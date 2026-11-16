@@ -15,8 +15,7 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   help?: HelpTopic;
   action?: ReactNode;
   headingLevel?: 2 | 3;
-  // A title the tab above already shows: it stays for screen readers, and the description takes
-  // its place.
+  // A title the tab above already shows: screen readers still get it, without its help link.
   hideTitle?: boolean;
   // A title too long to share a phone's width with the action: the action takes its own row
   // as soon as the title cannot stay on one line beside it.
@@ -24,7 +23,8 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
 };
 
 // The action shares the title's row while both fit, and takes its own row before the title is
-// squeezed under it. The description runs the full width below both.
+// squeezed under it. The description runs the full width below both, or takes a hidden title's
+// place beside the action.
 export function SectionCard({
   title,
   description,
@@ -38,6 +38,7 @@ export function SectionCard({
   ...props
 }: SectionCardProps) {
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
+  const helpTopic = hideTitle ? undefined : help;
   return (
     // The scroll margin clears the sticky app header and a record's tab bar when a link scrolls
     // to the card by its id.
@@ -56,15 +57,15 @@ export function SectionCard({
             <Heading
               className={cn(
                 'text-lg leading-snug font-semibold whitespace-normal',
-                help && 'inline',
+                helpTopic && 'inline',
                 hideTitle && 'sr-only'
               )}
             >
               {title}
             </Heading>
-            {help && (
+            {helpTopic && (
               <HelpLink
-                topic={help}
+                topic={helpTopic}
                 label={typeof title === 'string' ? `Ajutor: ${title}` : 'Ajutor'}
                 className="ml-1 align-middle"
               />

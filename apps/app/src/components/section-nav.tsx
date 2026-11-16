@@ -15,15 +15,16 @@ import {
 
 import { keepOpener } from '@/app/opener';
 
+import { phoneStripInset } from './page-spacing';
+
 const tabBase =
   'inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-t-[10px] border border-b-0 border-border text-sm outline-none transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring';
 const tabInactive =
   'mb-px h-10 bg-section-tab px-[15px] font-medium text-section-tab-foreground hover:bg-section-tab-hover hover:text-foreground';
 const tabActive =
   'h-[46px] bg-(--section-tab-surface) px-[18px] font-semibold text-foreground shadow-[0_-3px_8px_rgb(24_52_46/0.07)]';
-// The clip keeps the lift off the neighbouring tabs.
 const folderTabActive =
-  'h-[46px] bg-card px-[15px] font-semibold text-foreground shadow-[0_-3px_8px_rgb(24_52_46/0.07)] [clip-path:inset(-12px_0_0_0)]';
+  'h-[46px] bg-card px-[15px] font-semibold text-foreground shadow-[0_-3px_8px_rgb(24_52_46/0.07)]';
 
 type SectionNavVariant = 'tabs' | 'folder';
 
@@ -190,7 +191,7 @@ export function SectionNav({
         <TabsFrame
           list="ul"
           surface="var(--color-background)"
-          className={variant === 'folder' ? 'max-sm:px-3' : undefined}
+          className={variant === 'folder' ? phoneStripInset : undefined}
           revealInset={variant === 'folder' ? 40 : 0}
         >
           {children}
@@ -222,7 +223,7 @@ function SectionNavAnchor({
       {folder && typeof children === 'string' ? (
         <span
           data-label={children}
-          className="inline-flex flex-col after:invisible after:h-0 after:overflow-hidden after:font-semibold after:content-[attr(data-label)]"
+          className="inline-flex flex-col after:invisible after:h-0 after:overflow-hidden after:font-semibold after:content-[attr(data-label)_/_'']"
         >
           {children}
         </span>
