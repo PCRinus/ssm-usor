@@ -98,6 +98,26 @@ describe('the import action bar', () => {
     expect(document.documentElement.style.scrollPaddingBottom).toBe(previousPadding);
   });
 
+  it('spans the whole content column, not the centred page width inside it', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement
+    ) {
+      if (this.tagName === 'MAIN') return new DOMRect(430, 0, 1280, 1200);
+      if (this.id === 'column') return new DOMRect(256, 0, 1627, 1200);
+      return new DOMRect(430, 0, 1280, this.hasAttribute('data-import-action-bar') ? 80 : 0);
+    });
+    render(
+      <div id="column">
+        <main>
+          <ReviewBar save={saved()} />
+        </main>
+      </div>
+    );
+    const bar = screen.getByRole('region', { name: 'Verificarea importului' });
+    expect(bar.style.left).toBe('256px');
+    expect(bar.style.width).toBe('1627px');
+  });
+
   it('keeps unresolved choices and missing data visible while saving completes', () => {
     const state = saved();
     const { rerender } = render(<ReviewBar save={{ ...state, saving: true }} />);

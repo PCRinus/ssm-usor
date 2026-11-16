@@ -79,12 +79,13 @@ export function ImportActionBar({
     const placeholder = space.current;
     if (!element || !placeholder) return;
     const content = placeholder.closest('main');
+    const column = content?.parentElement ?? placeholder;
     const root = document.documentElement;
     const previous = root.style.scrollPaddingBottom;
     const update = () => {
       const height = element.getBoundingClientRect().height;
       if (placeholder.style.height !== `${height}px`) placeholder.style.height = `${height}px`;
-      const { left, width } = placeholder.getBoundingClientRect();
+      const { left, width } = column.getBoundingClientRect();
       const boundary = content?.getBoundingClientRect();
       const bottom =
         !keyboard.open && boundary && boundary.height > 0
@@ -103,6 +104,7 @@ export function ImportActionBar({
     observer?.observe(element);
     observer?.observe(placeholder);
     if (content) observer?.observe(content);
+    if (column !== placeholder && column !== content) observer?.observe(column);
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, { passive: true });
     return () => {
@@ -123,7 +125,7 @@ export function ImportActionBar({
         data-keyboard-open={keyboard.open || undefined}
         style={{ ...bounds, bottom: keyboard.open ? keyboard.bottom : (bounds?.bottom ?? 0) }}
         className={cn(
-          'fixed bottom-0 z-20 grid gap-3 border-t border-sidebar-border bg-sidebar px-5 pt-3 text-sidebar-foreground shadow-[0_-4px_14px_rgb(24_52_46/0.08)] sm:px-8 sm:pt-4 lg:px-10',
+          'fixed bottom-0 z-20 border-t border-sidebar-border bg-sidebar pt-3 text-sidebar-foreground shadow-[0_-4px_14px_rgb(24_52_46/0.08)] sm:pt-4',
           leading && 'md:pt-2.5',
           keyboard.open
             ? 'pb-3'
@@ -132,68 +134,70 @@ export function ImportActionBar({
               : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))]'
         )}
       >
-        {error && (
-          <p role="alert" className="text-sm text-destructive" data-testid="import-action-error">
-            {error}
-          </p>
-        )}
-        {leading ? (
-          <div className="grid min-w-0 gap-2.5 md:flex md:items-center md:gap-6">
-            {!keyboard.open && (
-              <div className="min-w-0 md:flex-[0_1_auto]" data-testid="import-action-leading">
-                {leading}
+        <div className="mx-auto grid w-full max-w-7xl gap-3 px-5 sm:px-8 lg:px-10">
+          {error && (
+            <p role="alert" className="text-sm text-destructive" data-testid="import-action-error">
+              {error}
+            </p>
+          )}
+          {leading ? (
+            <div className="grid min-w-0 gap-2.5 md:flex md:items-center md:gap-6">
+              {!keyboard.open && (
+                <div className="min-w-0 md:flex-[0_1_auto]" data-testid="import-action-leading">
+                  {leading}
+                </div>
+              )}
+              <div className="flex min-w-0 items-center justify-between gap-3 md:ml-auto md:shrink-0 md:gap-6">
+                <div className="grid min-w-0 justify-items-start gap-0.5 md:shrink-0 md:border-l md:border-sidebar-border md:pl-6 md:whitespace-nowrap">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    {summary && (
+                      <div className="text-sm font-semibold" data-testid="import-action-summary">
+                        {summary}
+                      </div>
+                    )}
+                    {save && <SaveRecovery save={save} />}
+                  </div>
+                  {save && <SaveLabel save={save} />}
+                  {!keyboard.open && note && (
+                    <span className="text-[13px] text-muted-foreground">{note}</span>
+                  )}
+                </div>
+                {!keyboard.open && (
+                  <div
+                    className="flex shrink-0 items-center gap-2"
+                    data-testid="import-action-buttons"
+                  >
+                    {children}
+                  </div>
+                )}
               </div>
-            )}
-            <div className="flex min-w-0 items-center justify-between gap-3 md:ml-auto md:shrink-0 md:gap-6">
-              <div className="grid min-w-0 justify-items-start gap-0.5 md:shrink-0 md:border-l md:border-sidebar-border md:pl-6 md:whitespace-nowrap">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
+            </div>
+          ) : (
+            <div className="grid min-w-0 gap-3 lg:flex lg:items-center lg:justify-between lg:gap-6">
+              <div className="grid min-w-0 gap-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                   {summary && (
                     <div className="text-sm font-semibold" data-testid="import-action-summary">
                       {summary}
                     </div>
                   )}
-                  {save && <SaveRecovery save={save} />}
+                  {save && <ImportSaveStatus save={save} />}
                 </div>
-                {save && <SaveLabel save={save} />}
                 {!keyboard.open && note && (
                   <span className="text-[13px] text-muted-foreground">{note}</span>
                 )}
               </div>
               {!keyboard.open && (
                 <div
-                  className="flex shrink-0 items-center gap-2"
+                  className="flex min-w-0 flex-wrap items-center gap-2 max-sm:[&>[data-size=default]]:flex-1 max-sm:[&>*>svg]:shrink-0 sm:shrink-0 sm:justify-end"
                   data-testid="import-action-buttons"
                 >
                   {children}
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="grid min-w-0 gap-3 lg:flex lg:items-center lg:justify-between lg:gap-6">
-            <div className="grid min-w-0 gap-1">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                {summary && (
-                  <div className="text-sm font-semibold" data-testid="import-action-summary">
-                    {summary}
-                  </div>
-                )}
-                {save && <ImportSaveStatus save={save} />}
-              </div>
-              {!keyboard.open && note && (
-                <span className="text-[13px] text-muted-foreground">{note}</span>
-              )}
-            </div>
-            {!keyboard.open && (
-              <div
-                className="flex min-w-0 flex-wrap items-center gap-2 max-sm:[&>[data-size=default]]:flex-1 max-sm:[&>*>svg]:shrink-0 sm:shrink-0 sm:justify-end"
-                data-testid="import-action-buttons"
-              >
-                {children}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </section>
     </div>
   );
