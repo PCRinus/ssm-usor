@@ -1,0 +1,19 @@
+---
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+---
+
+<Default />
+
+<!-- Starlight restores the sidebar's scroll only from the last page read in this tab, so an article
+opened from the app would sit below the fold. Inline, it runs before the first paint. -->
+<script is:inline aria-hidden="true">
+  (() => {
+    const scroller = document.getElementById('starlight__sidebar');
+    const current = scroller?.querySelector('[aria-current="page"]');
+    if (!scroller || !current) return;
+    const pane = scroller.getBoundingClientRect();
+    const link = current.getBoundingClientRect();
+    if (!link.height || (link.top >= pane.top && link.bottom <= pane.bottom)) return;
+    scroller.scrollTop += link.top - pane.top - (pane.height - link.height) / 2;
+  })();
+</script>
