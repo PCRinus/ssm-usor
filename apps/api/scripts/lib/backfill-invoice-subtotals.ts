@@ -4,20 +4,32 @@ import type { Database } from '../../src/database.types';
 
 export type RecordedInvoice = Pick<
   Database['public']['Tables']['billing_invoices']['Row'],
-  'stripe_invoice_id' | 'stripe_account' | 'amount_cents' | 'storno_of' | 'subtotal_cents'
+  | 'stripe_invoice_id'
+  | 'stripe_account'
+  | 'amount_cents'
+  | 'storno_of'
+  | 'subtotal_cents'
+  | 'issued_at'
 >;
 
-// `printedNet` is worked out from the lines as they were sent to Oblio, by `printedNetCents`.
-export type ChargedInvoice = { total: number; printedNet: number };
+// `linesNet` is the sum of Stripe's line amounts, what a document issued before the rule that
+// sends some lines with their VAT printed; `printedNet` is `printedNetCents` of today's lines.
+export type ChargedInvoice = { total: number; linesNet: number; printedNet: number };
+
+// Which way the amount was worked out: `before_rule` from the Stripe lines as sent then,
+// `oblio_split` with Oblio's split of the lines sent with their VAT, `storno` from the original.
+export type FilledBy = 'before_rule' | 'oblio_split' | 'storno';
 
 export type BackfillOutcome =
-  | { id: string; outcome: 'filled'; subtotalCents: number }
+  | { id: string; outcome: 'filled'; by: FilledBy; subtotalCents: number }
   | { id: string; outcome: 'other_account' | 'not_in_stripe' | 'original_unknown' }
   | { id: string; outcome: 'total_differs'; stripeTotal: number; recorded: number };
 
 export type BackfillDeps = {
   rows: RecordedInvoice[];
   accountId: string;
+  // When the rule that sends some lines to Oblio with their VAT was deployed here.
+  ruleSince: Date;
   // Null when Stripe has no such invoice.
   retrieve: (stripeInvoiceId: string) => Promise<ChargedInvoice | null>;
 };
@@ -27,6 +39,7 @@ export type BackfillDeps = {
 export async function planSubtotals({
   rows,
   accountId,
+  ruleSince,
   retrieve,
 }: BackfillDeps): Promise<BackfillOutcome[]> {
   const known = new Map<string, number>();
@@ -53,8 +66,15 @@ export async function planSubtotals({
         recorded: row.amount_cents,
       });
     } else {
-      known.set(id, charged.printedNet);
-      outcomes.push({ id, outcome: 'filled', subtotalCents: charged.printedNet });
+      const beforeRule = Date.parse(row.issued_at!) < ruleSince.getTime();
+      const net = beforeRule ? charged.linesNet : charged.printedNet;
+      known.set(id, net);
+      outcomes.push({
+        id,
+        outcome: 'filled',
+        by: beforeRule ? 'before_rule' : 'oblio_split',
+        subtotalCents: net,
+      });
     }
   }
 
@@ -64,7 +84,7 @@ export async function planSubtotals({
     outcomes.push(
       original === undefined
         ? { id, outcome: 'original_unknown' }
-        : { id, outcome: 'filled', subtotalCents: -original }
+        : { id, outcome: 'filled', by: 'storno', subtotalCents: -original }
     );
   }
   return outcomes;
@@ -77,7 +97,10 @@ export async function recordedInvoices(client: SupabaseClient<Database>) {
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await client
       .from('billing_invoices')
-      .select('stripe_invoice_id, stripe_account, amount_cents, storno_of, subtotal_cents')
+      .select(
+        'stripe_invoice_id, stripe_account, amount_cents, storno_of, subtotal_cents, issued_at'
+      )
+      .not('issued_at', 'is', null)
       .order('created_at')
       .order('stripe_invoice_id')
       .range(from, from + pageSize - 1);
