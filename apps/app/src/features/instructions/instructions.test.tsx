@@ -608,6 +608,34 @@ describe('the instruction library', () => {
     expect(requests(`/instruction-modules/${ladders.id}`, 'PATCH')).toHaveLength(0);
   });
 
+  it.each([
+    [
+      { appliedCount: 1, positionCount: 0, clientCount: 0 },
+      '„Scări metalice” este aplicată la un post al unui client arhivat. Reactivează clientul, scoate-o de la acest post, apoi o poți arhiva.',
+    ],
+    [
+      { appliedCount: 3, positionCount: 0, clientCount: 0 },
+      '„Scări metalice” este aplicată la 3 posturi ale unor clienți arhivați. Reactivează acești clienți, scoate-o de la posturile lor, apoi o poți arhiva.',
+    ],
+    [
+      { appliedCount: 3, positionCount: 2, clientCount: 1 },
+      '„Scări metalice” este aplicată la 3 posturi, dintre care unul la un client arhivat. Scoate-o de la posturile clienților activi, iar de la celălalt după ce reactivezi clientul; apoi o poți arhiva.',
+    ],
+  ])(
+    'says that archiving waits for the posts of archived clients too, which change once the client is reactivated (%o)',
+    async (counts, text) => {
+      mockApi({ modules: [{ ...ladders, ...counts }] });
+      mount();
+      const user = userEvent.setup();
+      const [row] = await screen.findAllByTestId('instruction-row');
+      await user.click(within(row!).getByTestId('instruction-actions'));
+      await user.click(await screen.findByTestId('instruction-archive'));
+      const dialog = await screen.findByTestId('instruction-archive-dialog');
+      expect(within(dialog).getByRole('paragraph').textContent).toBe(text);
+      expect(within(dialog).queryByTestId('instruction-archive-confirm')).toBeNull();
+    }
+  );
+
   it('says so when a position applied the module in the meantime', async () => {
     mockApi({
       update: () =>
@@ -1605,9 +1633,9 @@ describe('searching and filtering the instruction library', () => {
     expect(within(panel).queryByTestId('instruction-filters-usage-unused')).toBeNull();
   });
 
-  it('says when no instruction matches, and clears the filters and the search together', async () => {
+  it('says when no instruction matches, and clears the filters only, keeping the search', async () => {
     mockApi();
-    const runtime = mount('/instructiuni/ssm?category=protective_equipment&q=sch');
+    const runtime = mount('/instructiuni/ssm?category=protective_equipment&q=sc');
     const empty = await screen.findByTestId('instruction-empty-filtered');
     expect(empty.textContent).toContain('Nicio instrucțiune nu se potrivește');
     expect(empty.textContent).toContain(
@@ -1619,7 +1647,7 @@ describe('searching and filtering the instruction library', () => {
     const clear = within(empty).getByTestId('instruction-empty-clear');
     expect(clear.textContent).toBe('Șterge filtrele');
     await userEvent.setup().click(clear);
-    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'sc' }));
     await screen.findAllByTestId('instruction-row');
   });
 

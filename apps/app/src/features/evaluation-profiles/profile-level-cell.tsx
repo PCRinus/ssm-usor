@@ -14,7 +14,7 @@ const attention = 'font-medium text-destructive-foreground';
 
 export function GlobalLevelCell({ profile }: { profile: EvaluationProfileSummary }) {
   const { globalRiskLevel: level, factorCount, unacceptableFactorCount: unacceptable } = profile;
-  if (level === null) {
+  if (factorCount === 0) {
     return (
       <span data-testid="risk-profile-level">
         <CellEmpty />
@@ -25,10 +25,14 @@ export function GlobalLevelCell({ profile }: { profile: EvaluationProfileSummary
   const over = isOverAcceptableLimit(level);
   return (
     <span data-testid="risk-profile-level" className="tabular-nums">
-      <span className={cn(over && attention)}>
-        {formatGlobalLevel(level)}
-        {over && <span className="sr-only">, peste limita acceptabilă</span>}
-      </span>
+      {level === null ? (
+        <CellEmpty />
+      ) : (
+        <span className={cn(over && attention)}>
+          {formatGlobalLevel(level)}
+          {over && <span className="sr-only">, peste limita acceptabilă</span>}
+        </span>
+      )}
       <CellNote data-testid="risk-profile-factors">
         {factorCountLabel(factorCount)},{' '}
         <span className={cn(unacceptable > 0 && attention)}>

@@ -30,7 +30,7 @@ export function InstructionLibraryLayout() {
         </div>
         {!tabEmpty && (
           <Button
-            className="w-full sm:w-auto"
+            className="h-11 w-full sm:h-9 sm:w-auto"
             data-testid="instruction-write"
             onClick={() => setStarting(true)}
           >

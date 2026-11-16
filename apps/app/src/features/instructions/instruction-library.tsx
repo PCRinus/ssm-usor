@@ -7,6 +7,7 @@ import {
   type InstructionModuleSortKey,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { Archive, BookOpenText, BriefcaseBusiness, PenLine, SearchX, Tag } from 'lucide-react';
@@ -127,6 +128,7 @@ export function InstructionLibrary({
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate({ from: libraryPaths[domain] });
   const { start, setTabEmpty } = useInstructionStart();
+  const phone = useIsMobile();
   const facets = useMemo(() => facetsOf(domain, archived), [domain, archived]);
   const listFilters = listFilterSearch({ keys: filterKeys, facets, search });
   const filters = listFilters.searchOf(listFilters.values) as InstructionModuleListFilters;
@@ -171,16 +173,11 @@ export function InstructionLibrary({
         page: undefined,
       }),
     });
-  const clearSearch = (clearFilters: boolean) =>
+  const clearSearch = () =>
     void navigate({
       replace: true,
       resetScroll: false,
-      search: (prev) => ({
-        ...prev,
-        ...(clearFilters ? listFilters.searchOf({}) : {}),
-        q: undefined,
-        page: undefined,
-      }),
+      search: (prev) => ({ ...prev, q: undefined, page: undefined }),
     });
 
   return (
@@ -243,7 +240,7 @@ export function InstructionLibrary({
             {narrowed ? (
               <>
                 <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
-                {moduleCount(unfilteredTotal)}
+                {phone ? unfilteredTotal : moduleCount(unfilteredTotal)}
               </>
             ) : (
               moduleCount(meta.total)
@@ -320,7 +317,7 @@ export function InstructionLibrary({
                 <Button
                   variant="outline"
                   data-testid="instruction-empty-clear"
-                  onClick={() => clearSearch(filtered)}
+                  onClick={filtered ? () => changeFilters({}) : clearSearch}
                 >
                   {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                 </Button>

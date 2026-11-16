@@ -1448,7 +1448,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   de instrucțiuni" while narrowed; page, sort, search, filters and tab are kept in the search.
   While the tab has no active module, "Scrie o instrucțiune" moves from the header into the
   empty message, through `instruction-start-context.ts`; a search or filter that finds none
-  says so with "Șterge filtrele", which clears the search too, or "Șterge căutarea". The row menu's "Modifică detaliile…" corrects a module's title, category and
+  says so with "Șterge filtrele", which keeps the search, or "Șterge căutarea". The row menu's "Modifică detaliile…" corrects a module's title, category and
   domain; "Arhivează…" and "Reactivează…" ask in a dialog first, which for a module positions
   apply says how many and offers no archiving. There is no upload of Word
   files (ADR 034). "Scrie o instrucțiune" asks for a title (one the library has is refused
@@ -1460,7 +1460,8 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   domain of a module a current position applies is shown read-only with how many positions
   apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
   meantime) goes on the field with the reason. A title the library already has is reported on
-  the field. Archiving a module a position applies is refused with the positions counted.
+  the field. Archiving a module a position applies is refused with the positions counted; those of
+  archived clients are named apart, with reactivating the client as the way to remove it there.
 - `/instructiuni/:moduleId` and `/instructiuni/nou`: the module's form (ADR 034, "Written in a
   guided form"), `instruction-form.tsx`, its blocks in order in a card: a heading is a one-line
   field, an article an auto-growing box labelled "Art. N" by its place among the articles that

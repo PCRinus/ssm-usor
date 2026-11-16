@@ -62,13 +62,6 @@ export const isProfileArchived = (cause: unknown) =>
 export const profileInUse =
   'Evaluarea este folosită la clienți, așa că nu se poate șterge. O poți arhiva: nu mai apare în „Aplică din bibliotecă”, iar clienții își păstrează fișele.';
 
-/** "1 client", "3 clienți", "20 de clienți". */
-export function clientCountLabel(count: number) {
-  if (count === 1) return '1 client';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de clienți` : `${count} clienți`;
-}
-
 /** "Niciun factor", "4 factori, unul inacceptabil". */
 export function profileTotalsLabel(
   profile: Pick<EvaluationProfileSummary, 'factorCount' | 'unacceptableFactorCount'>

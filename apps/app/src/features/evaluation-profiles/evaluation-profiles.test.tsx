@@ -10,12 +10,7 @@ import type {
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
-import {
-  clientCountLabel,
-  type EvaluationProfile,
-  profileCountLabel,
-  profileTotalsLabel,
-} from './profile-schema';
+import { type EvaluationProfile, profileCountLabel, profileTotalsLabel } from './profile-schema';
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const sampleClient = {
@@ -258,8 +253,8 @@ function mockApi({
       const q = url.searchParams.get('q')?.toLowerCase();
       const levels = url.searchParams.getAll('level');
       const unused = url.searchParams.getAll('usage').includes('unused');
-      const levelOf = ({ globalRiskLevel: level }: EvaluationProfile) =>
-        level === null ? 'none' : level > 3.5 ? 'over' : 'within';
+      const levelOf = ({ globalRiskLevel: level, factors }: EvaluationProfile) =>
+        factors.length === 0 ? 'none' : level !== null && level > 3.5 ? 'over' : 'within';
       const items = tab
         .filter(
           (profile) =>
@@ -437,6 +432,22 @@ describe('the risk library', () => {
     expect(query.get('page')).toBe('1');
   });
 
+  it('reads an entry with factors as having factors while its level is not stored yet', async () => {
+    const unstored = makeProfile({
+      name: 'Macaragiu',
+      factors: [
+        makeFactor({ description: 'Cădere de sarcină', gravityClass: 7, probabilityClass: 6 }),
+        makeFactor({ description: 'Zgomot', gravityClass: 2, probabilityClass: 4 }),
+      ],
+    });
+    mockApi({ profiles: [{ ...unstored, globalRiskLevel: null }] });
+    mount('/evaluari-de-risc');
+    const [row] = await screen.findAllByTestId('risk-profile-row');
+    expect(within(row!).getByTestId('risk-profile-level').textContent).toBe(
+      '—2 factori, unul inacceptabil'
+    );
+  });
+
   it('sorts by the columns the library can sort, in the URL and from the first page', async () => {
     mockApi();
     const runtime = mount('/evaluari-de-risc?page=2');
@@ -460,16 +471,6 @@ describe('the risk library', () => {
     await waitFor(() => expect(listQuery(-1).get('sort')).toBe('globalRiskLevel'));
     expect(listQuery(-1).get('order')).toBe('desc');
     expect(listQuery(-1).get('page')).toBe('1');
-  });
-
-  it('counts the clients that use a profile the Romanian way', () => {
-    expect([1, 2, 19, 20, 120].map(clientCountLabel)).toEqual([
-      '1 client',
-      '2 clienți',
-      '19 clienți',
-      '20 de clienți',
-      '120 de clienți',
-    ]);
   });
 
   it('offers deleting only a profile no client uses, and archiving in any case', async () => {
@@ -1150,7 +1151,7 @@ describe('searching and filtering the risk library', () => {
       within(panel)
         .getAllByRole('checkbox')
         .map((option) => option.closest('label')?.textContent)
-    ).toEqual(['Peste limita acceptabilă (3,50)', 'În limită', 'Fără factori', 'Nefolosită']);
+    ).toEqual(['Peste limită (3,50)', 'În limită', 'Fără factori', 'Nefolosită']);
     await user.click(within(panel).getByTestId('risk-library-filters-level-over'));
     await user.click(within(panel).getByTestId('risk-library-filters-level-none'));
     await waitFor(() =>
@@ -1195,7 +1196,7 @@ describe('searching and filtering the risk library', () => {
     );
   });
 
-  it('says when no entry matches, and clears the filters and the search together', async () => {
+  it('says when no entry matches, and clears the filters only, keeping the search', async () => {
     mockApi({ profiles: [office, driver] });
     const runtime = mount('/evaluari-de-risc?level=over&q=birou');
     const empty = await screen.findByTestId('risk-library-empty-filtered');
@@ -1208,7 +1209,7 @@ describe('searching and filtering the risk library', () => {
     const clear = within(empty).getByTestId('risk-library-empty-clear');
     expect(clear.textContent).toBe('Șterge filtrele');
     await userEvent.setup().click(clear);
-    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({ q: 'birou' }));
     await screen.findAllByTestId('risk-profile-row');
   });
 

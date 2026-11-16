@@ -57,7 +57,7 @@ Deasupra listei alegi între **Active** și **Arhivate**. Căsuța de căutare g
 Meniul unei instrucțiuni, cele trei puncte de la capătul rândului, are:
 
 - **Modifică detaliile…**: schimbi titlul, categoria sau domeniul.
-- **Arhivează…**: după ce confirmi, instrucțiunea trece la **Arhivate**. Nu mai poate fi aplicată la posturi și textul ei nu se mai schimbă; documentele care o anexează deja rămân cum sunt. O instrucțiune aplicată la un post nu se arhivează: fereastra îți spune la câte posturi e aplicată, ca s-o scoți întâi de pe ele. Aici se numără și posturile clienților arhivați, așa că o instrucțiune care arată „—” la **Folosită la** poate aștepta încă un astfel de post.
+- **Arhivează…**: după ce confirmi, instrucțiunea trece la **Arhivate**. Nu mai poate fi aplicată la posturi și textul ei nu se mai schimbă; documentele care o anexează deja rămân cum sunt. O instrucțiune aplicată la un post nu se arhivează: fereastra îți spune la câte posturi e aplicată, ca s-o scoți întâi de pe ele. Aici se numără și posturile clienților arhivați, așa că o instrucțiune care arată „—” la **Folosită la** poate aștepta încă un astfel de post: fereastra îți spune atunci să reactivezi clientul, ca s-o scoți de la postul lui. Altfel, un client reactivat mai târziu și-ar genera documentele cu o instrucțiune pe care n-o mai vede nimeni.
 - **Reactivează…**, la o instrucțiune arhivată: o aduci înapoi la **Active**.
 
 ## Scrierea unei instrucțiuni

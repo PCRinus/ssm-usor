@@ -4,6 +4,7 @@ import {
   type EvaluationProfileSortKey,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { keepPreviousData } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -64,7 +65,7 @@ const facets: ListFilterFacet<FilterKey>[] = [
     icon: Gauge,
     column: 'left',
     options: [
-      { value: 'over', label: 'Peste limita acceptabilă (3,50)', short: 'Peste limită' },
+      { value: 'over', label: 'Peste limită (3,50)', short: 'Peste limită' },
       { value: 'within', label: 'În limită' },
       { value: 'none', label: 'Fără factori' },
     ],
@@ -108,6 +109,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate({ from: libraryPath });
   const cache = useProfileCache();
+  const phone = useIsMobile();
   const listFilters = listFilterSearch({ keys: filterKeys, facets, search });
   const filters = listFilters.searchOf(listFilters.values) as EvaluationProfileListFilters;
   const filtered = listFilters.applied;
@@ -157,16 +159,11 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
         page: undefined,
       }),
     });
-  const clearSearch = (clearFilters: boolean) =>
+  const clearSearch = () =>
     void navigate({
       replace: true,
       resetScroll: false,
-      search: (prev) => ({
-        ...prev,
-        ...(clearFilters ? listFilters.searchOf({}) : {}),
-        q: undefined,
-        page: undefined,
-      }),
+      search: (prev) => ({ ...prev, q: undefined, page: undefined }),
     });
 
   const open = (profileId: string) =>
@@ -193,7 +190,11 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
     });
 
   const newProfile = (
-    <Button data-testid="risk-profile-new" onClick={startProfile}>
+    <Button
+      data-testid="risk-profile-new"
+      className="h-11 w-full sm:h-9 sm:w-auto"
+      onClick={startProfile}
+    >
       <Plus aria-hidden="true" />
       Evaluare nouă
     </Button>
@@ -269,7 +270,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
               {narrowed ? (
                 <>
                   <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
-                  {profileCount(unfilteredTotal)}
+                  {phone ? unfilteredTotal : profileCount(unfilteredTotal)}
                 </>
               ) : (
                 profileCount(meta.total)
@@ -340,7 +341,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
                   <Button
                     variant="outline"
                     data-testid="risk-library-empty-clear"
-                    onClick={() => clearSearch(filtered)}
+                    onClick={filtered ? () => changeFilters({}) : clearSearch}
                   >
                     {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                   </Button>
