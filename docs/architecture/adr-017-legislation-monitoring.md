@@ -79,7 +79,7 @@ The comparison is of the law with itself. The portal keeps every earlier consoli
 - one line for each change resolved as no impact, the run's lines in one post;
 - the changes the run read but could not assess, or left for the next run;
 - a failed or stopped run;
-- at the start of every cron run, no successful run in two days, since a run the platform killed never posts its own failure.
+- after a cron run that failed or stopped, no successful run in two days, so one bad morning stays a single failure; a run the platform killed posts nothing, and `legislation-fix.yml`'s warning below covers it. (Amended 2026-11-17: the check ran before every run, and one failed morning raised it minutes before a run that succeeded.)
 
 `legislation-fix.yml` posts to production's channel:
 
