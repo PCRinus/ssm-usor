@@ -855,6 +855,39 @@ describe('POST /billing/stripe-webhook', () => {
       );
     });
 
+    it('records the amount without VAT the issued document prints, a cent off Stripe’s on an extras line Oblio splits itself', async () => {
+      const fake = createFake();
+      const at = now();
+      const invoice = paidInvoice({ subtotal: 15200, total: 18393 });
+      invoice.lines.data.push({
+        id: 'il_2',
+        object: 'line_item',
+        amount: 300,
+        quantity: 2,
+        taxes: [vat(64)],
+        description: '2 × Credite AI (at €1.50 / month)',
+        period: { start: at, end: at + 30 * day },
+        pricing: {
+          type: 'price_details',
+          price_details: { price: priceIdOf('credits_extra_monthly_v2'), product: 'credits' },
+        },
+        parent: {
+          type: 'subscription_item_details',
+          subscription_item_details: { proration: false, subscription_item: 'si_1' },
+        },
+      });
+      paying(fake, invoice);
+
+      expect((await deliver(paidEvent)).status).toBe(200);
+      expect(oblioWrites(fake, '/api/docs/invoice')[0]!.products).toContainEqual(
+        expect.objectContaining({ price: 3.64, quantity: 1, vatIncluded: 1 })
+      );
+      expect(fake.tables.billing_invoices![0]).toMatchObject({
+        amount_cents: 18393,
+        subtotal_cents: 14900 + 301,
+      });
+    });
+
     it('records, loudly, an Oblio document whose total is not what Stripe charged', async () => {
       const fake = createFake();
       paying(fake);

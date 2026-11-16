@@ -1,7 +1,7 @@
 import type Stripe from 'stripe';
 import { describe, expect, it } from 'vitest';
 
-import { toPaidLines } from './invoices';
+import { printedNetCents, toPaidLines } from './invoices';
 import { toOblioDocument } from './oblio-documents';
 import type { StripeCatalogue } from './stripe';
 import { oblioTotalCents } from './upstream.fixture';
@@ -95,6 +95,42 @@ function invoiceOf(next: (below: number) => number) {
   const total = lines.reduce((sum, item) => sum + item.amount + item.taxes![0]!.amount, 0);
   return { lines, total };
 }
+
+describe('the amount without VAT the Oblio document prints', () => {
+  it('is the net Oblio splits from a line sent with its VAT, a cent off Stripe’s', () => {
+    const lines = toPaidLines([line('price_credits', 2, 300, 64)], catalogue);
+
+    expect(lines[0]).toMatchObject({ unitAmount: 364, quantity: 1, vatIncluded: true });
+    expect(printedNetCents(lines)).toBe(301);
+  });
+
+  it('adds whole-euro lines as they are to the lines Oblio splits, credits included', () => {
+    const lines = toPaidLines(
+      [
+        line('price_plan', 1, 14900, 3129),
+        line('price_credits', 2, 300, 64),
+        line('price_sms', 7, 70, 14),
+        line('price_plan', 1, -142017, -29823, true),
+        line('price_plan', 1, 170420, 35788, true),
+      ],
+      catalogue
+    );
+
+    expect(lines.map((paid) => paid.vatIncluded)).toEqual([false, true, true, true, false]);
+    expect(printedNetCents(lines)).toBe(14900 + 301 + 69 - 142017 + 170420);
+  });
+
+  it('is within a cent of Stripe’s for each line Oblio splits itself', () => {
+    const next = random(1116);
+    for (let run = 0; run < 2000; run++) {
+      const { lines } = invoiceOf(next);
+      const paid = toPaidLines(lines, catalogue);
+      const stripeNet = lines.reduce((sum, item) => sum + item.amount, 0);
+      const split = paid.filter((item) => item.vatIncluded).length;
+      expect(Math.abs(printedNetCents(paid) - stripeNet)).toBeLessThanOrEqual(split);
+    }
+  });
+});
 
 describe('the total of the Oblio document', () => {
   it('is what Stripe charged for the proration that Oblio once made a cent short', () => {

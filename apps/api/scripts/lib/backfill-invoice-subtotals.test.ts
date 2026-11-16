@@ -21,8 +21,8 @@ const stripeWith = (invoices: Record<string, ChargedInvoice>) =>
   vi.fn(async (id: string) => invoices[id] ?? null);
 
 describe('the amounts without VAT of invoices recorded before they were kept', () => {
-  it("takes Stripe's subtotal, and gives a storno its original's, negated", async () => {
-    const retrieve = stripeWith({ in_1Paid: { total: 18029, subtotal: 14900 } });
+  it("takes the net printed on the invoice, and gives a storno its original's, negated", async () => {
+    const retrieve = stripeWith({ in_1Paid: { total: 18029, printedNet: 14900 } });
 
     const outcomes = await planSubtotals({
       rows: [
@@ -63,7 +63,7 @@ describe('the amounts without VAT of invoices recorded before they were kept', (
         invoice({ stripe_invoice_id: 're_1Refund', amount_cents: -18029, storno_of: 'in_1Paid' }),
       ],
       accountId,
-      retrieve: stripeWith({ in_1Paid: { total: 18030, subtotal: 14900 } }),
+      retrieve: stripeWith({ in_1Paid: { total: 18030, printedNet: 14900 } }),
     });
 
     expect(outcomes).toEqual([

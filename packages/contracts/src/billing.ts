@@ -452,7 +452,8 @@ export const billingInvoiceSchema = z.object({
   issuedAt: timestamp.nullable(),
   // With VAT; negative for a storno.
   amountCents: cents,
-  // Without VAT, as Stripe charged it; null for an invoice recorded before it was kept.
+  // Without VAT, as the issued invoice prints it; null until it is issued, and for an invoice
+  // issued before it was kept.
   subtotalCents: cents.nullable(),
   currency: z.string(),
   stornoOf: z.string().nullable(),

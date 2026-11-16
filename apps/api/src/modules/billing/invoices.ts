@@ -130,6 +130,19 @@ export function toPaidLines(
     });
 }
 
+// The amount without VAT the Oblio document prints: Oblio splits a line sent with its VAT back
+// into a value and VAT itself, which can move a cent off Stripe's (ADR 029, amendment "the
+// invoice total is the amount charged"), so Stripe's subtotal is not it.
+export function printedNetCents(
+  lines: readonly Pick<PaidInvoiceLine, 'unitAmount' | 'quantity' | 'vatIncluded'>[]
+) {
+  return lines.reduce((sum, line) => {
+    const value = line.unitAmount * line.quantity;
+    if (!line.vatIncluded) return sum + value;
+    return sum + Math.sign(value) * Math.round((Math.abs(value) * 100) / (100 + vatPercentage));
+  }, 0);
+}
+
 export class LinesTotalMismatch extends Error {
   constructor(
     invoice: Stripe.Invoice,
@@ -176,7 +189,7 @@ export function checkLinesMakeTotal(invoice: Stripe.Invoice, lines: Stripe.Invoi
   if (sum !== invoice.total) throw new LinesTotalMismatch(invoice, sum);
 }
 
-async function allLines(stripe: Stripe, invoice: Stripe.Invoice) {
+export async function allLines(stripe: Stripe, invoice: Stripe.Invoice) {
   if (!invoice.lines.has_more) return invoice.lines.data;
   return stripe.invoices
     .listLineItems(invoice.id, { limit: 100 })
@@ -335,19 +348,23 @@ async function issueDocument(
   }
   const lines = await allLines(deps.access.stripe, invoice);
   checkLinesMakeTotal(invoice, lines);
+  const paidLines = toPaidLines(lines, deps.catalogue);
   const request = toOblioDocument(
     row.kind,
     { ...company, name: company.name, cui: company.cui, recipientEmail },
     {
       id: invoice.id,
-      lines: toPaidLines(lines, deps.catalogue),
+      lines: paidLines,
       total: invoice.total,
       paymentReference: paymentReference(invoice),
       paidAt,
     }
   );
   const document = await oblioFor(deps).issue(request);
-  return updateInvoice(deps.db, invoice.id, issued(document));
+  return updateInvoice(deps.db, invoice.id, {
+    ...issued(document),
+    subtotal_cents: printedNetCents(paidLines),
+  });
 }
 
 // Each step checks what is already done, so a retried event finishes the work without issuing
@@ -422,7 +439,6 @@ async function settleInvoice(
       stripe_account: subscription?.stripe_account ?? deps.catalogue.accountId,
       kind: oblioDocuments(deps.env),
       amount_cents: invoice.total,
-      subtotal_cents: invoice.subtotal,
       currency: invoice.currency,
     }));
   progress.kind = row.kind;

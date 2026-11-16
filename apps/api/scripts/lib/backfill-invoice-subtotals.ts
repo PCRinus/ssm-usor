@@ -7,7 +7,8 @@ export type RecordedInvoice = Pick<
   'stripe_invoice_id' | 'stripe_account' | 'amount_cents' | 'storno_of' | 'subtotal_cents'
 >;
 
-export type ChargedInvoice = { total: number; subtotal: number };
+// `printedNet` is worked out from the lines as they were sent to Oblio, by `printedNetCents`.
+export type ChargedInvoice = { total: number; printedNet: number };
 
 export type BackfillOutcome =
   | { id: string; outcome: 'filled'; subtotalCents: number }
@@ -21,8 +22,8 @@ export type BackfillDeps = {
   retrieve: (stripeInvoiceId: string) => Promise<ChargedInvoice | null>;
 };
 
-// An invoice whose Stripe total is not the amount recorded is left alone: its subtotal would
-// belong to some other charge.
+// An invoice whose Stripe total is not the amount recorded is left alone: its lines would belong
+// to some other charge.
 export async function planSubtotals({
   rows,
   accountId,
@@ -52,8 +53,8 @@ export async function planSubtotals({
         recorded: row.amount_cents,
       });
     } else {
-      known.set(id, charged.subtotal);
-      outcomes.push({ id, outcome: 'filled', subtotalCents: charged.subtotal });
+      known.set(id, charged.printedNet);
+      outcomes.push({ id, outcome: 'filled', subtotalCents: charged.printedNet });
     }
   }
 

@@ -5,14 +5,21 @@ import { parseArgs } from 'node:util';
 import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from '../src/database.types';
-import { createStripe, isStripeError } from '../src/modules/billing/stripe';
+import { allLines, printedNetCents, toPaidLines } from '../src/modules/billing/invoices';
+import {
+  createStripe,
+  isStripeError,
+  type StripeAccess,
+  stripeCatalogue,
+} from '../src/modules/billing/stripe';
 import { planSubtotals, recordedInvoices, writeSubtotal } from './lib/backfill-invoice-subtotals';
 import { localSupabase } from './lib/supabase-cli';
 
 //   STRIPE_SECRET_KEY=… SUPABASE_URL=… SUPABASE_SECRET_KEY=… pnpm invoice-subtotals:backfill [--apply]
 //   --apply      writes; without it, only says what it would write
 //   --local      against the local Docker stack instead of SUPABASE_URL and SUPABASE_SECRET_KEY
-// Fills the amount without VAT of the invoices recorded before it was kept. Stripe is only read.
+// Fills the amount without VAT printed on the invoices recorded before it was kept, from their
+// Stripe lines rebuilt as they were sent to Oblio. Stripe is only read.
 // Use the Stripe key of the environment whose database it fills: test mode for non-prod.
 
 const { values } = parseArgs({
@@ -35,14 +42,20 @@ try {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
   const stripe = createStripe(stripeKey);
-  const account = await stripe.accounts.retrieveCurrent();
+  const access: StripeAccess = {
+    stripe,
+    secretKey: stripeKey,
+    livemode: /^(sk|rk)_live_/.test(stripeKey),
+  };
+  const catalogue = await stripeCatalogue(access);
   const outcomes = await planSubtotals({
     rows: await recordedInvoices(client),
-    accountId: account.id,
+    accountId: catalogue.accountId,
     retrieve: async (id) => {
       try {
         const invoice = await stripe.invoices.retrieve(id);
-        return { total: invoice.total, subtotal: invoice.subtotal };
+        const lines = toPaidLines(await allLines(stripe, invoice), catalogue);
+        return { total: invoice.total, printedNet: printedNetCents(lines) };
       } catch (error) {
         if (isStripeError(error) && error.code === 'resource_missing') return null;
         throw error;
