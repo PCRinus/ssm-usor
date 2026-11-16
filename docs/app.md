@@ -1444,10 +1444,17 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   `/instructiuni/ssm` and "IPSU" at `/instructiuni/su`, the abbreviations the documents print,
   in the section navigation the client and organization pages use; `/instructiuni` opens the
   SSM tab. A tab lists `GET /instruction-modules?domain=` on the shared data table, in pages
-  sorted by title, category, version date or applied count, each module with its version, its
-  article count and date, and how many current positions apply it; the tabs "Active" and
-  "Arhivate" over the table switch to the archived ones of the domain, page, sort and tab kept
-  in the search. The row menu's "Modifică detaliile…" corrects a module's title, category and
+  sorted by title (the default, kept out of the URL), category, version date (newest first) or
+  use (most first), each module with its category as text, "v3, din 12.10.2026" with its
+  article count under it, and "Folosită la", the active clients' posts with "la N clienți"
+  under them, "—" when none; the tabs "Active" and "Arhivate" over the table switch to the
+  archived ones of the domain, without "Folosită la". The card's toolbar is the shared one:
+  the search by title (`q`), the "Filtre" panel with the tab's categories (`category`) and
+  "Nefolosită" (`usage=unused`, not on Arhivate), the applied strip, and the count, "5 din 64
+  de instrucțiuni" while narrowed; page, sort, search, filters and tab are kept in the search.
+  While the tab has no active module, "Scrie o instrucțiune" moves from the header into the
+  empty message, through `instruction-start-context.ts`; a search or filter that finds none
+  says so with "Șterge filtrele", which keeps the search, or "Șterge căutarea". The row menu's "Modifică detaliile…" corrects a module's title, category and
   domain; "Arhivează…" and "Reactivează…" ask in a dialog first, which for a module positions
   apply says how many and offers no archiving. There is no upload of Word
   files (ADR 034). "Scrie o instrucțiune" asks for a title (one the library has is refused
@@ -1459,7 +1466,8 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   domain of a module a current position applies is shown read-only with how many positions
   apply it, and a `409` with `instruction_module_domain_applied` (a position applied it in the
   meantime) goes on the field with the reason. A title the library already has is reported on
-  the field. Archiving a module a position applies is refused with the positions counted.
+  the field. Archiving a module a position applies is refused with the positions counted; those of
+  archived clients are named apart, with reactivating the client as the way to remove it there.
 - `/instructiuni/:moduleId` and `/instructiuni/nou`: the module's form (ADR 034, "Written in a
   guided form"), `instruction-form.tsx`, its blocks in order in a card: a heading is a one-line
   field, an article an auto-growing box labelled "Art. N" by its place among the articles that
@@ -1590,11 +1598,16 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   in `src/features/evaluation-profiles/`, "Evaluări de risc" in the sidebar for owners and
   specialists alike; the interface calls a profile an "evaluare" of the library and a client's
   evaluation its "fișă de evaluare a riscurilor" (ADR 036). The list is the shared data table over
-  `GET /evaluation-profiles`, its page, sort, order and status in the URL, under the tabs
-  "Active" and "Arhivate" with the count; each row has its factors, the unacceptable ones, the
-  global level, red above 3,50, and "Folosită la", "3 clienți" or "—", and only the name, the
-  factors, "Folosită la" and "Modificat" sort. Empty, it says that a profile comes from
-  "Salvează în bibliotecă" on an evaluation or from "Evaluare nouă". "Evaluare nouă" asks for a
+  `GET /evaluation-profiles`, its page, sort, order, status, search (`q`) and filters (`level`,
+  `usage`) in the URL, under the tabs "Active" and "Arhivate" with the shared toolbar: the
+  search by post, "Filtre" with "Nivel global" (over the limit, within it, without factors) and
+  "Nefolosită", the applied strip and the count. Each row has "Nivel global", the stored level
+  in the normal colour or red text above 3,50 with "N factori, M inacceptabili" under it, M red
+  above 0, or a grey "—" with "Niciun factor"; "Folosită la", the active clients' sheets with
+  "la N clienți" under them, or "—"; and "Modificat". The name (the default), the level
+  (highest first, those without factors last), "Folosită la" and "Modificat" sort. Empty, it
+  says that a profile comes from "Salvează în bibliotecă", from "Evaluare nouă", which moves
+  into the message, or from an import. "Evaluare nouă" asks for a
   name, creates an empty profile and opens it; the row menu has "Redenumește…" and "Arhivează…"
   on an active profile, "Reactivează…" on an archived one, and "Șterge…" only for a profile no
   client uses (`inUse` false). Archiving and reactivating ask first in

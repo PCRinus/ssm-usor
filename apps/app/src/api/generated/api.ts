@@ -4117,6 +4117,10 @@ export type InstructionModuleListResponseItemsItem = {
   version: InstructionModuleListResponseItemsItemVersion;
   /** @minimum 0 */
   appliedCount: number;
+  /** @minimum 0 */
+  positionCount: number;
+  /** @minimum 0 */
+  clientCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -4132,6 +4136,8 @@ export interface InstructionModuleListResponse {
   pageSize: number;
   /** @minimum 0 */
   total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 export type InstructionModuleResponseModuleGroup =
@@ -4179,6 +4185,10 @@ export type InstructionModuleResponseModule = {
   version: InstructionModuleResponseModuleVersion;
   /** @minimum 0 */
   appliedCount: number;
+  /** @minimum 0 */
+  positionCount: number;
+  /** @minimum 0 */
+  clientCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -4417,6 +4427,10 @@ export type SaveInstructionBodyResponseModule = {
   version: SaveInstructionBodyResponseModuleVersion;
   /** @minimum 0 */
   appliedCount: number;
+  /** @minimum 0 */
+  positionCount: number;
+  /** @minimum 0 */
+  clientCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -5142,6 +5156,8 @@ export type EvaluationProfileListResponseItemsItem = {
   /** @minimum 0 */
   unacceptableFactorCount: number;
   /** @minimum 0 */
+  sheetCount: number;
+  /** @minimum 0 */
   clientCount: number;
 };
 
@@ -5156,6 +5172,8 @@ export interface EvaluationProfileListResponse {
   pageSize: number;
   /** @minimum 0 */
   total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 export type EvaluationProfileResponseProfileFactorsItemComponent =
@@ -16604,6 +16622,20 @@ export type ListInstructionModulesParams = {
   order?: ListInstructionModulesOrder;
   status?: ListInstructionModulesStatus;
   domain?: ListInstructionModulesDomain;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  category?: ListInstructionModulesCategoryItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  usage?: ListInstructionModulesUsageItem[];
 };
 
 export type ListInstructionModulesSort =
@@ -16638,6 +16670,25 @@ export type ListInstructionModulesDomain =
 export const ListInstructionModulesDomain = {
   ssm: 'ssm',
   su: 'su',
+} as const;
+
+export type ListInstructionModulesCategoryItem =
+  (typeof ListInstructionModulesCategoryItem)[keyof typeof ListInstructionModulesCategoryItem];
+
+export const ListInstructionModulesCategoryItem = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type ListInstructionModulesUsageItem =
+  (typeof ListInstructionModulesUsageItem)[keyof typeof ListInstructionModulesUsageItem];
+
+export const ListInstructionModulesUsageItem = {
+  unused: 'unused',
 } as const;
 
 export type ListInstructionModuleChoicesParams = {
@@ -16700,6 +16751,20 @@ export type ListEvaluationProfilesParams = {
   sort?: ListEvaluationProfilesSort;
   order?: ListEvaluationProfilesOrder;
   status?: ListEvaluationProfilesStatus;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  level?: ListEvaluationProfilesLevelItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  usage?: ListEvaluationProfilesUsageItem[];
 };
 
 export type ListEvaluationProfilesSort =
@@ -16707,8 +16772,8 @@ export type ListEvaluationProfilesSort =
 
 export const ListEvaluationProfilesSort = {
   name: 'name',
-  factorCount: 'factorCount',
-  clientCount: 'clientCount',
+  globalRiskLevel: 'globalRiskLevel',
+  usage: 'usage',
   updatedAt: 'updatedAt',
 } as const;
 
@@ -16726,6 +16791,22 @@ export type ListEvaluationProfilesStatus =
 export const ListEvaluationProfilesStatus = {
   active: 'active',
   archived: 'archived',
+} as const;
+
+export type ListEvaluationProfilesLevelItem =
+  (typeof ListEvaluationProfilesLevelItem)[keyof typeof ListEvaluationProfilesLevelItem];
+
+export const ListEvaluationProfilesLevelItem = {
+  over: 'over',
+  within: 'within',
+  none: 'none',
+} as const;
+
+export type ListEvaluationProfilesUsageItem =
+  (typeof ListEvaluationProfilesUsageItem)[keyof typeof ListEvaluationProfilesUsageItem];
+
+export const ListEvaluationProfilesUsageItem = {
+  unused: 'unused',
 } as const;
 
 export type GetDocumentReadinessParams = {
@@ -24757,6 +24838,15 @@ export const getListInstructionModulesUrl = (params?: ListInstructionModulesPara
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['category', 'usage'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -24770,7 +24860,7 @@ export const getListInstructionModulesUrl = (params?: ListInstructionModulesPara
 };
 
 /**
- * A page of the library (ADR 012), each module with its current version and how many current positions apply it. `status=active` (the default) lists the modules in use, `status=archived` only the archived ones; `domain` lists the modules of one set only, `ssm` or `su`. Sorted by `title` by default, or by `group` (the categories in their order, then the title), `version` (when the current version was saved) or `appliedCount`; the id breaks ties so pages never overlap. A page past the end comes back empty with the real total. Modules without a version are left out.
+ * A page of the library (ADR 012, ADR 034), each module with its current version, `appliedCount` (current positions applying it, archived clients’ included) and `positionCount` and `clientCount` (the active clients’ current positions applying it, and those clients). `status=active` (the default) lists the modules in use, `status=archived` only the archived ones; `domain` lists the modules of one set only, `ssm` or `su`. `q` matches the title, every term somewhere in it, ignoring case and diacritics; `category` (repeated) keeps the categories named, and `usage=unused` the modules no active client’s position applies (`positionCount` 0). Sorted by `title` by default, or by `group` (the categories in their order), `version` (when the current version was saved) or `appliedCount` (`positionCount`, then `clientCount`); the title and then the id break ties so pages never overlap. `unfilteredTotal` counts the tab without the search and filters. A page past the end comes back empty with the real totals. Modules without a version are left out.
  * @summary List the organization's instruction modules
  */
 export const listInstructionModules = async (
@@ -27927,6 +28017,15 @@ export const getListEvaluationProfilesUrl = (params?: ListEvaluationProfilesPara
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['level', 'usage'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -27940,7 +28039,7 @@ export const getListEvaluationProfilesUrl = (params?: ListEvaluationProfilesPara
 };
 
 /**
- * A page of the risk library (ADR 015), each profile without its factors but with `factorCount`, `unacceptableFactorCount`, `globalRiskLevel`, `clientCount` (the clients its usage lists) and `inUse` (ADR 036). `status=active` (the default) lists the profiles in use, `status=archived` only the archived ones. Sorted by `name` by default, or by `factorCount`, `clientCount` (each then by name) or `updatedAt`; the id breaks ties so pages never overlap. The unacceptable count and the global level are not sort keys: they come from the method’s grid, which only code holds. A page past the end comes back empty with the real total.
+ * A page of the risk library (ADR 015, ADR 036), each profile without its factors but with `factorCount`, `unacceptableFactorCount` and `globalRiskLevel` as the entry stores them, `sheetCount` and `clientCount` (the active clients’ sheets holding one of its factors, a post’s or one outside the posts, archived posts’ left out, and those clients) and `inUse` (any client’s factor points at it, archived ones included). `status=active` (the default) lists the profiles in use, `status=archived` only the archived ones. `q` matches the name, every term somewhere in it, ignoring case and diacritics. `level` (repeated) keeps the profiles `over` the acceptable global level of 3.5, `within` it, or with `none` for want of factors; `usage=unused` keeps those no active client’s sheet uses (`sheetCount` 0). Sorted by `name` by default, or by `globalRiskLevel` (those without factors last in either order, then the unacceptable count), `usage` (`sheetCount`, then `clientCount`) or `updatedAt`; the name and then the id break ties so pages never overlap. `unfilteredTotal` counts the tab without the search and filters. A page past the end comes back empty with the real totals.
  * @summary List the organization's evaluation profiles
  */
 export const listEvaluationProfiles = async (

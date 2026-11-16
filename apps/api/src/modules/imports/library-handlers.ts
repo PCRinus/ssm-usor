@@ -35,6 +35,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { creditsStore } from '../credits/store';
+import { storeRiskLevels } from '../evaluation-profiles/stored-risk-levels';
 import { existingRecords, findImport, queueEnded, storedChanges, storedProposal } from './handlers';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
@@ -716,13 +717,14 @@ async function confirmRisks(
     );
   }
   if (error) throw partError(error, 'confirm risk part', 'risk_evaluations');
+  const result = data as { created: string[]; evaluations: string[]; factors: number };
+  await storeRiskLevels(db, result.created);
   await partConfirmed(
     c,
     row.id,
     'risk_evaluations',
     risksQuality(proposal, storedRiskChanges(current.changes))
   );
-  const result = data as { created: string[]; evaluations: string[]; factors: number };
   return {
     createdProfileIds: result.created,
     evaluationIds: result.evaluations,

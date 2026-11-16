@@ -50,12 +50,14 @@ Biblioteca e în meniul **Instrucțiuni proprii**, cu două taburi:
 
 Categoria ordonează anexele și grupează lista din care alegi instrucțiunile unui post. Nu se tipărește.
 
-Lista arată, pentru fiecare instrucțiune, categoria, versiunea cu data ei, câte articole are și la câte posturi e aplicată. Apeși pe capul unei coloane ca să ordonezi lista după ea; o bibliotecă mare se împarte în pagini. Deasupra listei alegi între **Active** și **Arhivate**.
+Lista arată, pentru fiecare instrucțiune, categoria, versiunea cu data ei, de exemplu „v3, din 12.10.2026”, cu numărul de articole sub ea, și coloana **Folosită la**: la câte posturi e aplicată și, sub ele, la câți clienți, de exemplu „41 de posturi” și „la 23 de clienți”. Se numără doar posturile clienților activi, așa că o instrucțiune aplicată doar la posturile unui client arhivat arată „—”. Lista e ordonată după titlu; apeși pe capul unei coloane ca s-o ordonezi după categorie, după versiune, cea mai nouă întâi, sau după folosire, cea mai folosită întâi. O bibliotecă mare se împarte în pagini.
+
+Deasupra listei alegi între **Active** și **Arhivate**. Căsuța de căutare găsește instrucțiunile tabului deschis după titlu, fără să conteze diacriticele: „inaltime” găsește „Lucrul la înălțime”. **Filtre** restrânge lista la una sau mai multe categorii ale tabului și, cu **Nefolosită**, la instrucțiunile care arată „—” la **Folosită la**. Filtrele alese apar sub căutare; le scoți una câte una sau pe toate cu **Șterge filtrele**. La **Arhivate** lipsesc coloana **Folosită la** și filtrul **Nefolosită**, pentru că o instrucțiune arhivată nu e aplicată la niciun post.
 
 Meniul unei instrucțiuni, cele trei puncte de la capătul rândului, are:
 
 - **Modifică detaliile…**: schimbi titlul, categoria sau domeniul.
-- **Arhivează…**: după ce confirmi, instrucțiunea trece la **Arhivate**. Nu mai poate fi aplicată la posturi și textul ei nu se mai schimbă; documentele care o anexează deja rămân cum sunt. O instrucțiune aplicată la un post nu se arhivează: fereastra îți spune la câte posturi e aplicată, ca s-o scoți întâi de pe ele.
+- **Arhivează…**: după ce confirmi, instrucțiunea trece la **Arhivate**. Nu mai poate fi aplicată la posturi și textul ei nu se mai schimbă; documentele care o anexează deja rămân cum sunt. O instrucțiune aplicată la un post nu se arhivează: fereastra îți spune la câte posturi e aplicată, ca s-o scoți întâi de pe ele. Aici se numără și posturile clienților arhivați, așa că o instrucțiune care arată „—” la **Folosită la** poate aștepta încă un astfel de post: fereastra îți spune atunci să reactivezi clientul, ca s-o scoți de la postul lui. Altfel, un client reactivat mai târziu și-ar genera documentele cu o instrucțiune pe care n-o mai vede nimeni.
 - **Reactivează…**, la o instrucțiune arhivată: o aduci înapoi la **Active**.
 
 ## Scrierea unei instrucțiuni

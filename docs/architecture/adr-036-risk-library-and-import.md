@@ -83,6 +83,8 @@ An entry is **in use** while any client's factor points at one of its factors (A
 
 That an entry once used can never be deleted is accepted. Unlinking, which would make it deletable again, is #801.
 
+_Note, 2026-11-16, the list (Mircea's decisions):_ **Folosită la** now counts sheets and, under them, clients, active clients only: a sheet is a post's "Fișa de evaluare a riscurilor" or one of the client's sheets outside the posts, grupuri sensibile included, holding a factor copied from the entry. An entry used only at archived clients or posts reads "—" and is **Nefolosită** in the list's filter, and still cannot be deleted. The list searches by name, ignoring diacritics, and sorts and filters by the stored global level; the factor count no longer sorts.
+
 ### What an entry holds
 
 An entry gains the evaluation's three work-system texts: **means of production**, **work environment** and **exposure**, all optional. Exposure has no default on an entry.
@@ -92,6 +94,10 @@ An entry gains the evaluation's three work-system texts: **means of production**
 - **The entry's page** shows them in the same "Sistemul de muncă" card as the evaluation page.
 
 The entry's factors keep their plan fields, which become **defaults**: applying copies them, and the specialist changes them on the client's sheet. The page says so above the factors.
+
+_Note, 2026-11-16, the stored level (Mircea's decision):_ an entry keeps its global level and its count of unacceptable factors, so the list can sort and filter by them before it pages. The API writes them from the method's code whenever the entry's factors change: a factor added, changed or removed, a client's sheet saved into the library, an entry an import creates. The grid stays in code alone; the migration that added the two columns filled them once from a copy of it that a test holds equal to the code's, and a test that reads every write of an entry's factors, in the migrations and in the code, fails on one that leaves them behind. Writing them counts as a change of the entry, so its date moves with its factors.
+
+The two columns are a stored cache, not a source: the API recomputes them from the factors on every factor write, which `stored-risk-levels.test.ts` holds to, and a list read first writes those of any entry left with factors and no level by a write that failed. Members may update them, as the API writes them as the member; one who writes them by hand through the database's interface changes only their own organization's list order, and the next factor write puts them back.
 
 ### The evaluations read from the pack
 

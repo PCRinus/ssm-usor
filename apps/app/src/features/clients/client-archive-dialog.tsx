@@ -18,6 +18,7 @@ import {
   getListClientDocumentsQueryKey,
   getListClientDocumentsQueryOptions,
   getListClientsQueryKey,
+  getListEvaluationProfilesQueryKey,
   useArchiveClient,
   useRestoreClient,
 } from '@/api/generated/api';
@@ -25,6 +26,7 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { setParams } from '@/features/documents/document-sets';
+import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import {
   isEmployeesOverStepError,
   refreshEmployeesOverStep,
@@ -115,6 +117,11 @@ export function ClientArchiveDialog({
       // The client page reads the record through its loader, which keeps whatever is cached.
       queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
       await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      // Both libraries count where active clients use each entry.
+      await Promise.all([
+        invalidateLibrary(queryClient),
+        queryClient.invalidateQueries({ queryKey: getListEvaluationProfilesQueryKey() }),
+      ]);
       await refreshEmployeesOverStep(queryClient);
       await router.invalidate();
       toast.success(

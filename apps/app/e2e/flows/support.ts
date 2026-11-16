@@ -5,6 +5,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import {
   type InstructionBody,
   type PreventionMeasureKind,
+  riskLevelTotals,
   textHash,
   type WorkSystemComponent,
 } from '@ssm-usor/contracts';
@@ -517,9 +518,20 @@ export async function createEvaluationProfile(
   factors: ProfileFactorFixture[]
 ): Promise<LibraryEvaluation> {
   const owner = { organization_id: organizationId, created_by: createdBy };
+  const totals = riskLevelTotals(
+    factors.map((factor) => ({
+      gravityClass: factor.gravity!,
+      probabilityClass: factor.probability!,
+    }))
+  );
   const profile = await admin
     .from('evaluation_profiles')
-    .insert({ ...owner, name })
+    .insert({
+      ...owner,
+      name,
+      global_risk_level: totals.globalRiskLevel,
+      unacceptable_factor_count: totals.unacceptableFactorCount,
+    })
     .select('id')
     .single();
   if (profile.error) throw profile.error;

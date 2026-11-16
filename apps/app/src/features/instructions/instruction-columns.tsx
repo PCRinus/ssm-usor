@@ -1,4 +1,3 @@
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -13,23 +12,38 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil } from 'lucide-react';
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
-import { formatRoDate } from '@/lib/dates';
+import { UsageCell } from '@/components/data-table/usage-cell';
+import { roCount } from '@/features/employees/employee-format';
+import { formatRoDateOf } from '@/lib/dates';
 
 import type { InstructionArchiveChange } from './instruction-archive-dialog';
-import {
-  articleCountLabel,
-  groupLabels,
-  type InstructionModule,
-  positionCountLabel,
-} from './instruction-schema';
+import { groupLabels, type InstructionModule } from './instruction-schema';
 
 const helper = createDataTableColumns<InstructionModule>();
 
-// Sortable column ids are the API sort keys: title, group, version, appliedCount.
+const usageColumn = helper.accessor('positionCount', {
+  id: 'appliedCount',
+  header: 'Folosită la',
+  sortDescFirst: true,
+  meta: { headerClassName: 'w-42', skeletonClassName: 'w-24' },
+  cell: ({ row }) => (
+    <UsageCell
+      count={row.original.positionCount}
+      noun={['post', 'posturi']}
+      clientCount={row.original.clientCount}
+      testId="instruction-usage"
+    />
+  ),
+});
+
+// Sortable column ids are the API sort keys: title, group, version, appliedCount. An archived
+// module is applied nowhere, so its tab leaves out "Folosită la".
 export function instructionColumns({
+  archived,
   onEdit,
   onArchiveChange,
 }: {
+  archived: boolean;
   onEdit: (module: InstructionModule) => void;
   onArchiveChange: (change: InstructionArchiveChange) => void;
 }) {
@@ -37,14 +51,14 @@ export function instructionColumns({
     helper.accessor('title', {
       id: 'title',
       header: 'Titlu',
-      meta: { cellClassName: 'min-w-52 font-medium whitespace-normal', skeletonClassName: 'w-48' },
+      meta: { cellClassName: 'min-w-60 font-medium whitespace-normal', skeletonClassName: 'w-48' },
       cell: ({ row, getValue }) => (
         <Link
           to="/instructiuni/$moduleId"
           params={{ moduleId: row.original.id }}
           state={openedHere}
           data-testid="instruction-open"
-          className="hover:underline"
+          className="wrap-anywhere hover:underline"
         >
           {getValue()}
         </Link>
@@ -53,36 +67,33 @@ export function instructionColumns({
     helper.accessor('group', {
       id: 'group',
       header: 'Categorie',
-      meta: { skeletonClassName: 'w-28' },
-      cell: ({ getValue }) => <Badge variant="outline">{groupLabels[getValue()]}</Badge>,
+      meta: {
+        headerClassName: 'w-48',
+        cellClassName: 'whitespace-normal',
+        skeletonClassName: 'w-28',
+      },
+      cell: ({ getValue }) => (
+        <span data-testid="instruction-category">{groupLabels[getValue()]}</span>
+      ),
     }),
     helper.accessor((module) => module.version.createdAt, {
       id: 'version',
       header: 'Versiune',
       sortDescFirst: true,
-      meta: { skeletonClassName: 'w-32' },
+      meta: { headerClassName: 'w-42', skeletonClassName: 'w-32' },
       cell: ({ row }) => {
         const { version } = row.original;
         return (
-          <>
+          <span className="tabular-nums">
             <span data-testid="instruction-version">
-              {`v${version.number} · ${articleCountLabel(version.articleCount).toLowerCase()}`}
+              {`v${version.number}, din ${formatRoDateOf(version.createdAt)}`}
             </span>
-            <CellNote className="tabular-nums">
-              {`din ${formatRoDate(version.createdAt.slice(0, 10))}`}
-            </CellNote>
-          </>
+            <CellNote>{roCount(version.articleCount, 'articol', 'articole')}</CellNote>
+          </span>
         );
       },
     }),
-    helper.accessor('appliedCount', {
-      id: 'appliedCount',
-      header: 'Aplicată la',
-      meta: { skeletonClassName: 'w-20' },
-      cell: ({ getValue }) => (
-        <span data-testid="instruction-applied">{positionCountLabel(getValue())}</span>
-      ),
-    }),
+    ...(archived ? [] : [usageColumn]),
     helper.display({
       id: 'actions',
       header: () => <span className="sr-only">Acțiuni</span>,

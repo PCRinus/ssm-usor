@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import { riskLevelTotals } from '@ssm-usor/contracts';
+
 import type { Database } from '../../src/database.types';
 import {
   officeEvaluation,
@@ -77,7 +79,21 @@ export async function seedEvaluationProfiles(
     .filter(([name]) => !taken.has(name.toLocaleLowerCase('ro')))
     .map(([name, fixture]) => profileRows({ organizationId, createdBy }, name, fixture));
   if (seeded.length === 0) return 0;
-  const profiles = await db.from('evaluation_profiles').insert(seeded.map((rows) => rows.profile));
+  const profiles = await db.from('evaluation_profiles').insert(
+    seeded.map((rows) => {
+      const totals = riskLevelTotals(
+        rows.factors.map((factor) => ({
+          gravityClass: factor.gravity_class,
+          probabilityClass: factor.probability_class,
+        }))
+      );
+      return {
+        ...rows.profile,
+        global_risk_level: totals.globalRiskLevel,
+        unacceptable_factor_count: totals.unacceptableFactorCount,
+      };
+    })
+  );
   if (profiles.error) throw new Error(`Could not seed profiles: ${profiles.error.message}`);
   const factors = await db
     .from('evaluation_profile_factors')

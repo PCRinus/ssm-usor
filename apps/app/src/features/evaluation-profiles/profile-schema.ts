@@ -1,6 +1,8 @@
 import {
   type EvaluationProfileErrorReason,
   evaluationProfileSortKeys,
+  globalRiskLevelFilters,
+  libraryUsageFilters,
   sortOrderSchema,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
@@ -11,6 +13,7 @@ import type {
   EvaluationProfileResponse,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { filterSearchSchema } from '@/components/list-filters/url';
 import {
   factorCountLabel,
   unacceptableCountLabel,
@@ -24,6 +27,9 @@ export const riskLibrarySearchSchema = z.object({
   sort: z.enum(evaluationProfileSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   status: z.literal('archived').optional().catch(undefined),
+  q: z.string().max(100).optional().catch(undefined),
+  level: filterSearchSchema(globalRiskLevelFilters),
+  usage: filterSearchSchema(libraryUsageFilters),
 });
 
 export type RiskLibrarySearch = z.infer<typeof riskLibrarySearchSchema>;
@@ -55,13 +61,6 @@ export const isProfileArchived = (cause: unknown) =>
 
 export const profileInUse =
   'Evaluarea este folosită la clienți, așa că nu se poate șterge. O poți arhiva: nu mai apare în „Aplică din bibliotecă”, iar clienții își păstrează fișele.';
-
-/** "1 client", "3 clienți", "20 de clienți". */
-export function clientCountLabel(count: number) {
-  if (count === 1) return '1 client';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de clienți` : `${count} clienți`;
-}
 
 /** "Niciun factor", "4 factori, unul inacceptabil". */
 export function profileTotalsLabel(

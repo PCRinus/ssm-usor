@@ -5,6 +5,7 @@ import {
   type InstructionModuleGroup,
   instructionModuleGroups,
   instructionModuleSortKeys,
+  libraryUsageFilters,
   sortOrderSchema,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
@@ -13,6 +14,7 @@ import type {
   InstructionModuleListResponse,
   PositionInstructionsResponse,
 } from '@/api/generated/api';
+import { filterSearchSchema } from '@/components/list-filters/url';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
 
 export type InstructionModule = InstructionModuleListResponse['items'][number];
@@ -93,6 +95,9 @@ export const librarySearchSchema = z.object({
   sort: z.enum(instructionModuleSortKeys).optional().catch(undefined),
   order: sortOrderSchema.optional().catch(undefined),
   status: z.literal('archived').optional().catch(undefined),
+  q: z.string().max(100).optional().catch(undefined),
+  category: filterSearchSchema(instructionModuleGroups),
+  usage: filterSearchSchema(libraryUsageFilters),
 });
 
 export type LibrarySearch = z.infer<typeof librarySearchSchema>;

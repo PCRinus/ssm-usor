@@ -6,7 +6,7 @@ import {
   type InstructionCategory,
   instructionCategorySchema,
 } from './instruction-body';
-import { listQuerySchema, pageSchema } from './list';
+import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } from './list';
 
 // The organization's own instructions, each a body of headings and articles that the own
 // instructions document annexes (ADR 012, ADR 034).
@@ -50,15 +50,21 @@ export const instructionModuleSchema = z.object({
   domain: instructionDomainSchema,
   archivedAt: z.iso.datetime({ offset: true }).nullable(),
   version: instructionModuleVersionSchema,
-  // Current positions applying it, across the organization's clients.
+  // Current positions applying it, archived clients' included: archiving the module waits for
+  // every one.
   appliedCount: z.int().min(0),
+  // Where active clients use it, as the list's "Folosită la" counts: their current positions
+  // applying it, and those clients.
+  positionCount: z.int().min(0),
+  clientCount: z.int().min(0),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
 
 export type InstructionModule = z.infer<typeof instructionModuleSchema>;
 
-// Column ids of the library table. `version` sorts by when the current version was saved.
+// Column ids of the library table. `version` sorts by when the current version was saved, and
+// `appliedCount` by `positionCount`, which the column shows.
 export const instructionModuleSortKeys = ['title', 'group', 'version', 'appliedCount'] as const;
 
 export type InstructionModuleSortKey = (typeof instructionModuleSortKeys)[number];
@@ -67,18 +73,34 @@ export const instructionModuleListStatuses = ['active', 'archived'] as const;
 
 export type InstructionModuleListStatus = (typeof instructionModuleListStatuses)[number];
 
-export const instructionModuleListQuerySchema = listQuerySchema(
-  instructionModuleSortKeys,
-  'title'
-).extend({
-  status: z.enum(instructionModuleListStatuses).default('active'),
-  // Left out, both domains.
-  domain: instructionDomainSchema.optional(),
+// `unused`: no active client's current position applies it, whatever an archived client holds.
+export const libraryUsageFilters = ['unused'] as const;
+
+export type LibraryUsageFilter = (typeof libraryUsageFilters)[number];
+
+export const instructionModuleListFiltersSchema = z.object({
+  category: repeatedQueryValue(instructionModuleGroupSchema).optional(),
+  usage: repeatedQueryValue(z.enum(libraryUsageFilters)).optional(),
 });
+
+export type InstructionModuleListFilters = z.infer<typeof instructionModuleListFiltersSchema>;
+
+export const instructionModuleListQuerySchema = listQuerySchema(instructionModuleSortKeys, 'title')
+  .extend({
+    status: z.enum(instructionModuleListStatuses).default('active'),
+    // Left out, both domains.
+    domain: instructionDomainSchema.optional(),
+    // Matches the title, ignoring case and diacritics, every term somewhere in it.
+    q: listSearchSchema.optional(),
+  })
+  .extend(instructionModuleListFiltersSchema.shape);
 
 export type InstructionModuleListQuery = z.infer<typeof instructionModuleListQuerySchema>;
 
-export const instructionModuleListResponseSchema = pageSchema(instructionModuleSchema);
+/** `unfilteredTotal` counts the tab, its status and domain, without the search or filters. */
+export const instructionModuleListResponseSchema = pageSchema(instructionModuleSchema).extend({
+  unfilteredTotal: z.int().min(0),
+});
 
 export type InstructionModuleListResponse = z.infer<typeof instructionModuleListResponseSchema>;
 

@@ -120,6 +120,19 @@ const evaluation = {
   ],
 };
 
+const storedLevelsColumns = 'id,evaluation_profile_factors(gravity_class,probability_class)';
+
+const missingLevelsColumns = 'id,evaluation_profile_factors!inner(id)';
+
+// Electrocution is level 4 and unacceptable, the rhythm level 2: (16 + 4) / (4 + 2).
+const officeLevels = { global_risk_level: 3.33, unacceptable_factor_count: 1 };
+
+const storedLevels = () =>
+  calls('evaluation_profiles', 'PATCH').map(([input, init]) => ({
+    id: new URL(String(input)).searchParams.get('id'),
+    levels: JSON.parse(String(init?.body)) as unknown,
+  }));
+
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
 
 const isGet = (init: RequestInit | undefined) => (init?.method ?? 'GET') === 'GET';
@@ -149,6 +162,11 @@ function mockUpstream(
       }
       if (url.pathname.endsWith('/apply_evaluation_profile')) return Response.json(2);
     }
+    if (url.pathname === '/rest/v1/evaluation_profile_list' && init?.method === 'HEAD') {
+      return (
+        handlers.list?.(init, url) ?? new Response(null, { headers: { 'Content-Range': '*/86' } })
+      );
+    }
     if (url.pathname === '/rest/v1/evaluation_profile_list' && isGet(init)) {
       return handlers.list?.(init, url) ?? Response.json([officeProfile]);
     }
@@ -160,6 +178,12 @@ function mockUpstream(
         return Response.json([{ id: profileId }]);
       }
       if (url.searchParams.get('select') === 'id') return Response.json([{ id: profileId }]);
+      if (url.searchParams.get('select') === storedLevelsColumns) {
+        return Response.json([
+          { id: profileId, evaluation_profile_factors: officeProfile.evaluation_profile_factors },
+        ]);
+      }
+      if (url.searchParams.get('select') === missingLevelsColumns) return Response.json([]);
     }
     if (url.pathname === '/rest/v1/evaluation_profile_factors') {
       const custom = handlers.factors?.(init, url);
@@ -238,29 +262,45 @@ describe('GET /evaluation-profiles', () => {
   const summary = (
     id: string,
     name: string,
-    fields: { clientCount: number; inUse: boolean; archivedAt?: string },
-    factors: { gravity_class: number; probability_class: number }[]
+    fields: {
+      sheetCount: number;
+      clientCount: number;
+      inUse: boolean;
+      archivedAt?: string;
+      factorCount?: number;
+      level?: number | null;
+      unacceptable?: number;
+    }
   ) => ({
     id,
     name,
     archived_at: fields.archivedAt ?? null,
     in_use: fields.inUse,
+    sheet_count: fields.sheetCount,
     client_count: fields.clientCount,
+    factor_count: fields.factorCount ?? 0,
+    global_risk_level: fields.level ?? null,
+    unacceptable_factor_count: fields.unacceptable ?? 0,
     created_at: stamp,
     updated_at: stamp,
-    evaluation_profile_factors: factors,
   });
 
-  it('lists a page of the active library by name, with counts, global levels and usage', async () => {
+  const headCalls = () => calls('evaluation_profile_list', 'HEAD');
+
+  it('lists a page of the active library by name, with its stored levels and usage', async () => {
     mockUpstream({
       list: () =>
         Response.json(
           [
-            summary(profileId, 'Lucrător de birou', { clientCount: 3, inUse: true }, [
-              { gravity_class: 5, probability_class: 2 },
-              { gravity_class: 2, probability_class: 4 },
-            ]),
-            summary(otherProfileId, 'Șofer', { clientCount: 0, inUse: true }, []),
+            summary(profileId, 'Lucrător de birou', {
+              sheetCount: 5,
+              clientCount: 3,
+              inUse: true,
+              factorCount: 2,
+              level: 3.33,
+              unacceptable: 1,
+            }),
+            summary(otherProfileId, 'Șofer', { sheetCount: 0, clientCount: 0, inUse: true }),
           ],
           { headers: { 'Content-Range': '0-1/2' } }
         ),
@@ -274,33 +314,65 @@ describe('GET /evaluation-profiles', () => {
         item.factorCount,
         item.unacceptableFactorCount,
         item.globalRiskLevel,
+        item.sheetCount,
         item.clientCount,
         item.inUse,
         item.archivedAt,
       ])
     ).toEqual([
-      ['Lucrător de birou', 2, 1, 3.33, 3, true, null],
-      ['Șofer', 0, 0, null, 0, true, null],
+      ['Lucrător de birou', 2, 1, 3.33, 5, 3, true, null],
+      ['Șofer', 0, 0, null, 0, 0, true, null],
     ]);
-    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2 });
+    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2, unfilteredTotal: 2 });
     const query = listQuery();
     expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('select')).not.toContain('evaluation_profile_factors');
     expect(query.get('order')).toBe('name.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
     expect(calls('risk_factors', 'GET')).toHaveLength(0);
+    expect(headCalls()).toHaveLength(0);
+  });
+
+  it('first writes the levels an entry with factors is missing, before the list sorts by them', async () => {
+    mockUpstream({
+      profiles: (init, url) =>
+        isGet(init) && url.searchParams.get('select') === missingLevelsColumns
+          ? Response.json([{ id: profileId, evaluation_profile_factors: [{ id: factorId }] }])
+          : undefined,
+      list: () => Response.json([]),
+    });
+    expect((await request('/evaluation-profiles')).status).toBe(200);
+    const [missing] = calls('evaluation_profiles', 'GET');
+    const query = new URL(String(missing![0])).searchParams;
+    expect(query.get('global_risk_level')).toBe('is.null');
+    expect(query.get('evaluation_profile_factors.limit')).toBe('1');
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
+    const order = fetchMock.mock.calls.map(([input, init]) => {
+      const { pathname } = new URL(String(input));
+      return `${init?.method ?? 'GET'} ${pathname}`;
+    });
+    expect(order.indexOf('PATCH /rest/v1/evaluation_profiles')).toBeLessThan(
+      order.indexOf('GET /rest/v1/evaluation_profile_list')
+    );
+  });
+
+  it('writes nothing when every entry with factors has its levels', async () => {
+    mockUpstream({ list: () => Response.json([]) });
+    expect((await request('/evaluation-profiles')).status).toBe(200);
+    expect(storedLevels()).toEqual([]);
   });
 
   it('lists only the archived entries when asked for the archive', async () => {
     mockUpstream({
       list: () =>
         Response.json([
-          summary(
-            profileId,
-            'Lucrător de birou',
-            { clientCount: 0, inUse: false, archivedAt: stamp },
-            []
-          ),
+          summary(profileId, 'Lucrător de birou', {
+            sheetCount: 0,
+            clientCount: 0,
+            inUse: false,
+            archivedAt: stamp,
+          }),
         ]),
     });
     const response = await request('/evaluation-profiles?status=archived');
@@ -310,10 +382,74 @@ describe('GET /evaluation-profiles', () => {
     expect(listQuery().get('archived_at')).toBe('not.is.null');
   });
 
+  it('searches the names without diacritics, every term, within the tab', async () => {
+    mockUpstream({ list: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    const response = await request(
+      `/evaluation-profiles?status=archived&q=${encodeURIComponent('ȘOFER  royal')}`
+    );
+    expect(response.status).toBe(200);
+    expect(listQuery().getAll('search_text')).toEqual(['ilike.*sofer*', 'ilike.*royal*']);
+    expect(listQuery().get('archived_at')).toBe('not.is.null');
+    expect(evaluationProfileListResponseSchema.parse(await response.json())).toMatchObject({
+      total: 0,
+      unfilteredTotal: 86,
+    });
+  });
+
   it.each([
-    ['factorCount', 'desc', 'factor_count.desc,name.desc,id.asc'],
-    ['clientCount', 'asc', 'client_count.asc,name.asc,id.asc'],
-    ['updatedAt', 'desc', 'updated_at.desc,id.asc'],
+    ['over', 'global_risk_level.gt.3.5'],
+    ['within', 'global_risk_level.lte.3.5'],
+    ['none', 'factor_count.eq.0'],
+  ])('filters by the global level %s the acceptable limit', async (level, expected) => {
+    mockUpstream({ list: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    expect((await request(`/evaluation-profiles?level=${level}`)).status).toBe(200);
+    expect(listQuery().get('or')).toBe(`(${expected})`);
+  });
+
+  it('filters by several levels at once and by the unused ones, counting the whole tab apart', async () => {
+    mockUpstream({
+      list: (init) =>
+        isGet(init)
+          ? Response.json(
+              [summary(profileId, 'Sudor', { sheetCount: 0, clientCount: 0, inUse: true })],
+              { headers: { 'Content-Range': '0-0/1' } }
+            )
+          : undefined,
+    });
+    const response = await request('/evaluation-profiles?level=over&level=none&usage=unused');
+    expect(response.status).toBe(200);
+    expect(evaluationProfileListResponseSchema.parse(await response.json())).toMatchObject({
+      total: 1,
+      unfilteredTotal: 86,
+    });
+    expect(listQuery().get('or')).toBe('(global_risk_level.gt.3.5,factor_count.eq.0)');
+    expect(listQuery().get('sheet_count')).toBe('eq.0');
+    const tab = new URL(String(headCalls()[0]![0])).searchParams;
+    expect(tab.get('archived_at')).toBe('is.null');
+    expect(tab.get('or')).toBeNull();
+    expect(tab.get('sheet_count')).toBeNull();
+  });
+
+  it('refuses a level or a usage it does not know', async () => {
+    mockUpstream();
+    expect((await request('/evaluation-profiles?level=high')).status).toBe(400);
+    expect((await request('/evaluation-profiles?usage=used')).status).toBe(400);
+    expect(calls('evaluation_profile_list', 'GET')).toHaveLength(0);
+  });
+
+  it.each([
+    [
+      'globalRiskLevel',
+      'desc',
+      'global_risk_level.desc.nullslast,unacceptable_factor_count.desc,name.asc,id.asc',
+    ],
+    [
+      'globalRiskLevel',
+      'asc',
+      'global_risk_level.asc.nullslast,unacceptable_factor_count.asc,name.asc,id.asc',
+    ],
+    ['usage', 'desc', 'sheet_count.desc,client_count.desc,name.asc,id.asc'],
+    ['updatedAt', 'desc', 'updated_at.desc,name.asc,id.asc'],
     ['name', 'desc', 'name.desc,id.asc'],
   ])('sorts by %s %s in the database', async (sort, order, expected) => {
     mockUpstream({ list: () => Response.json([]) });
@@ -325,9 +461,10 @@ describe('GET /evaluation-profiles', () => {
   it('asks the database for the page wanted', async () => {
     mockUpstream({
       list: () =>
-        Response.json([summary(profileId, 'Sudor', { clientCount: 0, inUse: false }, [])], {
-          headers: { 'Content-Range': '10-10/11' },
-        }),
+        Response.json(
+          [summary(profileId, 'Sudor', { sheetCount: 0, clientCount: 0, inUse: false })],
+          { headers: { 'Content-Range': '10-10/11' } }
+        ),
     });
     const listed = evaluationProfileListResponseSchema.parse(
       await (await request('/evaluation-profiles?page=3&pageSize=5')).json()
@@ -337,31 +474,45 @@ describe('GET /evaluation-profiles', () => {
     expect(listQuery().get('limit')).toBe('5');
   });
 
-  it('answers a page past the end with no profiles and the real total', async () => {
+  it('answers a page past the end with no profiles and the real totals', async () => {
     mockUpstream({
-      list: (_init, url) =>
-        url.searchParams.get('offset') === '25'
-          ? Response.json(
+      list: (init, url) =>
+        init?.method === 'HEAD'
+          ? new Response(null, {
+              headers: { 'Content-Range': url.searchParams.get('or') ? '*/3' : '*/86' },
+            })
+          : Response.json(
               { code: 'PGRST103', message: 'Requested range not satisfiable' },
               { status: 416 }
-            )
-          : Response.json([summary(profileId, 'Sudor', { clientCount: 0, inUse: false }, [])], {
-              headers: { 'Content-Range': '0-0/3' },
-            }),
+            ),
     });
-    const response = await request('/evaluation-profiles?page=2');
+    const response = await request('/evaluation-profiles?page=2&level=over');
     expect(response.status).toBe(200);
     expect(evaluationProfileListResponseSchema.parse(await response.json())).toEqual({
       items: [],
       page: 2,
       pageSize: 25,
       total: 3,
+      unfilteredTotal: 86,
     });
   });
 
-  it('refuses a sort by a level the database cannot order, or a page too large', async () => {
+  it('reads the list and both counts as the caller, so the policies keep to their organization', async () => {
     mockUpstream();
-    expect((await request('/evaluation-profiles?sort=globalRiskLevel')).status).toBe(400);
+    expect((await request('/evaluation-profiles?usage=unused')).status).toBe(200);
+    const sent = [
+      ...calls('evaluation_profile_list', 'GET'),
+      ...calls('evaluation_profile_list', 'HEAD'),
+    ];
+    expect(sent).toHaveLength(2);
+    for (const [, init] of sent) {
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    }
+  });
+
+  it('refuses a sort it no longer offers, or a page too large', async () => {
+    mockUpstream();
+    expect((await request('/evaluation-profiles?sort=factorCount')).status).toBe(400);
     expect((await request('/evaluation-profiles?sort=unacceptableFactorCount')).status).toBe(400);
     expect((await request('/evaluation-profiles?pageSize=101')).status).toBe(400);
     expect(calls('evaluation_profile_list', 'GET')).toHaveLength(0);
@@ -642,11 +793,13 @@ describe('the factors of a profile', () => {
       p_measures: [{ kind: 'technical', description: 'Buletine P.R.A.M.' }],
       p_deadline: 'Anual',
     });
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
   });
 
   it('answers 404 when the profile is not the caller’s', async () => {
     mockUpstream({ rpc: () => Response.json(null) });
     expect((await request(`${profilePath}/factors`, 'POST', factorBody)).status).toBe(404);
+    expect(storedLevels()).toEqual([]);
   });
 
   it('replaces a factor and its measures', async () => {
@@ -657,6 +810,7 @@ describe('the factors of a profile', () => {
       p_profile_id: profileId,
       p_factor_id: factorId,
     });
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
   });
 
   it('answers 404 for a factor that is not on the profile', async () => {
@@ -674,6 +828,36 @@ describe('the factors of a profile', () => {
     const params = new URL(String(deleted![0])).searchParams;
     expect(params.get('id')).toBe(`eq.${factorId}`);
     expect(params.get('profile_id')).toBe(`eq.${profileId}`);
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
+  });
+
+  it('keeps no level for an entry left without factors', async () => {
+    mockUpstream({
+      profiles: (init, url) =>
+        url.searchParams.get('select') === storedLevelsColumns
+          ? Response.json([{ id: profileId, evaluation_profile_factors: [] }])
+          : undefined,
+    });
+    expect((await request(`${profilePath}/factors/${factorId}`, 'DELETE')).status).toBe(200);
+    expect(storedLevels()).toEqual([
+      {
+        id: `eq.${profileId}`,
+        levels: { global_risk_level: null, unacceptable_factor_count: 0 },
+      },
+    ]);
+  });
+
+  it('still answers with the saved factor when its levels could not be kept', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockUpstream({
+      profiles: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ code: '42501', message: 'denied' }, { status: 403 })
+          : undefined,
+    });
+    expect((await request(`${profilePath}/factors`, 'POST', factorBody)).status).toBe(201);
+    expect(logged).toHaveBeenCalledWith('The risk levels of a library entry were not kept: 42501');
+    logged.mockRestore();
   });
 
   it('refuses a class the method does not have', async () => {
@@ -698,6 +882,7 @@ describe('POST …/risk-evaluations/{evaluationId}/save-as-profile', () => {
       p_evaluation_id: evaluationId,
       p_name: 'Lucrător de birou',
     });
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
   });
 
   it('answers 409 on a name the library already holds', async () => {

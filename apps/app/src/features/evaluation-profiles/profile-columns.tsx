@@ -1,4 +1,3 @@
-import { isOverAcceptableLimit } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -7,28 +6,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
-import { CellEmpty } from '@/components/data-table/cell-note';
-import { createDataTableColumns, type DataTableColumnMeta } from '@/components/data-table/columns';
-import { formatGlobalLevel } from '@/features/risk-evaluations/risk-evaluation-schema';
-import { dateToIso, formatRoDate } from '@/lib/dates';
+import { createDataTableColumns } from '@/components/data-table/columns';
+import { UsageCell } from '@/components/data-table/usage-cell';
+import { formatRoDateOf } from '@/lib/dates';
 
 import type { ProfileArchiveChange } from './profile-archive-dialog';
-import { clientCountLabel, type EvaluationProfileSummary } from './profile-schema';
+import { GlobalLevelCell } from './profile-level-cell';
+import type { EvaluationProfileSummary } from './profile-schema';
 
 const helper = createDataTableColumns<EvaluationProfileSummary>();
 
-const numeric: DataTableColumnMeta = {
-  headerClassName: 'text-right',
-  cellClassName: 'text-right tabular-nums',
-  skeletonClassName: 'ml-auto w-8',
-};
-
-// Sortable column ids are the API sort keys: name, factorCount, clientCount, updatedAt.
+// Sortable column ids are the API sort keys: name, globalRiskLevel, usage, updatedAt.
 export function profileColumns({
   onRename,
   onArchiveChange,
@@ -42,7 +34,7 @@ export function profileColumns({
     helper.accessor('name', {
       id: 'name',
       header: 'Post',
-      meta: { cellClassName: 'min-w-48 font-medium whitespace-normal', skeletonClassName: 'w-48' },
+      meta: { cellClassName: 'min-w-56 font-medium whitespace-normal', skeletonClassName: 'w-48' },
       cell: ({ row, getValue }) => (
         <Link
           to="/evaluari-de-risc/$profileId"
@@ -55,71 +47,33 @@ export function profileColumns({
         </Link>
       ),
     }),
-    helper.accessor('factorCount', {
-      id: 'factorCount',
-      header: 'Factori',
-      meta: numeric,
-      cell: ({ getValue }) => <span data-testid="risk-profile-factors">{getValue()}</span>,
-    }),
-    helper.accessor('unacceptableFactorCount', {
-      id: 'unacceptable',
-      header: 'Inacceptabili',
-      enableSorting: false,
-      meta: numeric,
-      cell: ({ getValue }) => {
-        const count = getValue();
-        return (
-          <span
-            data-testid="risk-profile-unacceptable"
-            className={cn(count > 0 && 'font-medium text-destructive-foreground')}
-          >
-            {count}
-          </span>
-        );
-      },
-    }),
     helper.accessor('globalRiskLevel', {
-      id: 'level',
+      id: 'globalRiskLevel',
       header: 'Nivel global',
-      enableSorting: false,
-      meta: { ...numeric, skeletonClassName: 'ml-auto w-10' },
-      cell: ({ getValue }) => {
-        const level = getValue();
-        if (level === null) return <CellEmpty data-testid="risk-profile-level" />;
-        return (
-          <span
-            data-testid="risk-profile-level"
-            className={cn(
-              isOverAcceptableLimit(level) && 'font-medium text-destructive-foreground'
-            )}
-          >
-            {formatGlobalLevel(level)}
-          </span>
-        );
-      },
+      sortDescFirst: true,
+      meta: { headerClassName: 'w-56', skeletonClassName: 'w-32' },
+      cell: ({ row }) => <GlobalLevelCell profile={row.original} />,
     }),
-    helper.accessor('clientCount', {
-      id: 'clientCount',
+    helper.accessor('sheetCount', {
+      id: 'usage',
       header: 'Folosită la',
       sortDescFirst: true,
-      meta: {
-        headerClassName: 'pl-8',
-        cellClassName: 'pl-8 tabular-nums',
-        skeletonClassName: 'w-16',
-      },
-      cell: ({ getValue }) =>
-        getValue() === 0 ? (
-          <CellEmpty data-testid="risk-profile-clients" />
-        ) : (
-          <span data-testid="risk-profile-clients">{clientCountLabel(getValue())}</span>
-        ),
+      meta: { headerClassName: 'w-38', skeletonClassName: 'w-20' },
+      cell: ({ row }) => (
+        <UsageCell
+          count={row.original.sheetCount}
+          noun={['fișă', 'fișe']}
+          clientCount={row.original.clientCount}
+          testId="risk-profile-usage"
+        />
+      ),
     }),
     helper.accessor('updatedAt', {
       id: 'updatedAt',
       header: 'Modificat',
       sortDescFirst: true,
-      meta: { cellClassName: 'tabular-nums', skeletonClassName: 'w-20' },
-      cell: ({ getValue }) => formatRoDate(dateToIso(new Date(getValue()))),
+      meta: { headerClassName: 'w-30', cellClassName: 'tabular-nums', skeletonClassName: 'w-20' },
+      cell: ({ getValue }) => formatRoDateOf(getValue()),
     }),
     helper.display({
       id: 'actions',
