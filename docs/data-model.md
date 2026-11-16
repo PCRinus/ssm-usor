@@ -168,7 +168,10 @@ Stripe invoice (for a storno, by the Stripe refund it reverses, with `storno_of`
 original): the `stripe_account` that issued it, its `kind` (`invoice` in production, `proforma`
 on non-prod), `amount_cents` with VAT in `currency` (negative for a storno), and the Oblio
 `oblio_series`, `oblio_number` and `oblio_link`, set together with `issued_at` once Oblio has
-issued it. `pdf_path` is our copy of Oblio's PDF in the private `billing-invoices` bucket
+issued it. `subtotal_cents` is the amount without VAT the document prints, written with them: the
+lines as sent, a line sent with its VAT counting the value Oblio splits from it (ADR 029). A storno
+takes its original's, negated; it is null before issue and on invoices issued before it was kept,
+until `pnpm invoice-subtotals:backfill` fills them. `pdf_path` is our copy of Oblio's PDF in the private `billing-invoices` bucket
 (`<organization id>/<series>-<number>.pdf`), downloaded once after issue; the bucket has no
 policies, so the file is reachable only through the API's signed link. Only the owner reads
 the organization's rows, as the invoices are the owner's (ADR 029); only the secret key writes.

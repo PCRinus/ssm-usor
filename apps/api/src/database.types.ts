@@ -186,6 +186,7 @@ export type Database = {
           storno_of: string | null;
           stripe_account: string;
           stripe_invoice_id: string;
+          subtotal_cents: number | null;
           updated_at: string;
         };
         Insert: {
@@ -202,6 +203,7 @@ export type Database = {
           storno_of?: string | null;
           stripe_account: string;
           stripe_invoice_id: string;
+          subtotal_cents?: number | null;
           updated_at?: string;
         };
         Update: {
@@ -218,6 +220,7 @@ export type Database = {
           storno_of?: string | null;
           stripe_account?: string;
           stripe_invoice_id?: string;
+          subtotal_cents?: number | null;
           updated_at?: string;
         };
         Relationships: [

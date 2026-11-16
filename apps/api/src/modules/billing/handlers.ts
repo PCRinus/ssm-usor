@@ -62,6 +62,7 @@ import {
   countUsage,
   type InvoiceRow,
   listInvoices,
+  loadCompany,
   loadInvoice,
   loadSubscription,
   ownerEmail,
@@ -148,6 +149,7 @@ function invoiceView(row: InvoiceRow): BillingInvoice {
     number: row.oblio_series && row.oblio_number ? `${row.oblio_series}-${row.oblio_number}` : null,
     issuedAt: iso(row.issued_at),
     amountCents: row.amount_cents,
+    subtotalCents: row.subtotal_cents,
     currency: row.currency,
     stornoOf: row.storno_of,
     hasPdf: row.pdf_path !== null,
@@ -236,8 +238,9 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
   let owner: BillingOverview['owner'] = null;
   let stripeCancelAt: string | null = null;
   if (ownerInPerson) {
-    const [invoices, email, details] = await Promise.all([
+    const [invoices, company, email, details] = await Promise.all([
       listInvoices(billing.db, billing.organizationId),
+      loadCompany(billing.db, billing.organizationId),
       ownerEmail(billing.db, billing.organizationId),
       hasLiveSubscription(row) ? stripeDetails(c, billing, row) : null,
     ]);
@@ -257,6 +260,7 @@ export const getBilling: RouteHandler<typeof getBillingRoute, ApiEnv> = async (c
       scheduledChange: details?.scheduledChange ?? null,
       choices: { start: choiceLimits('start'), profesional: choiceLimits('profesional') },
       invoices: invoices.map(invoiceView),
+      vatPayer: company.vatPayer,
     };
   }
 

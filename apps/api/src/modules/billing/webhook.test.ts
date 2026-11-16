@@ -554,6 +554,7 @@ describe('POST /billing/stripe-webhook', () => {
           stripe_account: accountId,
           kind: 'invoice',
           amount_cents: 18029,
+          subtotal_cents: 14900,
           oblio_series: 'SSMUSOR',
           oblio_number: '0001',
           pdf_path: `${organizationId}/SSMUSOR-0001.pdf`,
@@ -817,6 +818,7 @@ describe('POST /billing/stripe-webhook', () => {
       expect(fake.tables.billing_invoices![0]).toMatchObject({
         pdf_path: `${organizationId}/SSMUSOR-0001.pdf`,
       });
+      expect(fake.tables.billing_invoices![0]!.subtotal_cents).toBeUndefined();
     });
 
     it('names a prorated credit as such, as a negative quantity', async () => {
@@ -851,6 +853,39 @@ describe('POST /billing/stripe-webhook', () => {
           quantity: -1,
         })
       );
+    });
+
+    it('records the amount without VAT the issued document prints, a cent off Stripe’s on an extras line Oblio splits itself', async () => {
+      const fake = createFake();
+      const at = now();
+      const invoice = paidInvoice({ subtotal: 15200, total: 18393 });
+      invoice.lines.data.push({
+        id: 'il_2',
+        object: 'line_item',
+        amount: 300,
+        quantity: 2,
+        taxes: [vat(64)],
+        description: '2 × Credite AI (at €1.50 / month)',
+        period: { start: at, end: at + 30 * day },
+        pricing: {
+          type: 'price_details',
+          price_details: { price: priceIdOf('credits_extra_monthly_v2'), product: 'credits' },
+        },
+        parent: {
+          type: 'subscription_item_details',
+          subscription_item_details: { proration: false, subscription_item: 'si_1' },
+        },
+      });
+      paying(fake, invoice);
+
+      expect((await deliver(paidEvent)).status).toBe(200);
+      expect(oblioWrites(fake, '/api/docs/invoice')[0]!.products).toContainEqual(
+        expect.objectContaining({ price: 3.64, quantity: 1, vatIncluded: 1 })
+      );
+      expect(fake.tables.billing_invoices![0]).toMatchObject({
+        amount_cents: 18393,
+        subtotal_cents: 14900 + 301,
+      });
     });
 
     it('records, loudly, an Oblio document whose total is not what Stripe charged', async () => {
@@ -940,13 +975,18 @@ describe('POST /billing/stripe-webhook', () => {
       },
     };
 
-    function refunding(fake: Fake, kind: 'invoice' | 'proforma') {
+    function refunding(
+      fake: Fake,
+      kind: 'invoice' | 'proforma',
+      subtotalCents: number | null = 14900
+    ) {
       fake.tables.billing_invoices!.push({
         stripe_invoice_id: 'in_1Paid',
         organization_id: organizationId,
         stripe_account: accountId,
         kind,
         amount_cents: 18029,
+        subtotal_cents: subtotalCents,
         currency: 'eur',
         issued_at: '2026-10-27T10:00:00Z',
         oblio_series: kind === 'invoice' ? 'SSMUSOR' : 'TEST',
@@ -983,8 +1023,29 @@ describe('POST /billing/stripe-webhook', () => {
         stripe_invoice_id: 're_1Refund',
         storno_of: 'in_1Paid',
         amount_cents: -18029,
+        subtotal_cents: -14900,
         oblio_number: '0002',
         pdf_path: `${organizationId}/SSMUSOR-0002.pdf`,
+      });
+    });
+
+    it("leaves the storno's amount without VAT empty when the original's is", async () => {
+      const fake = createFake();
+      refunding(fake, 'invoice', null);
+      fake.oblio['POST /api/docs/invoice'] = () => ({
+        status: 200,
+        data: {
+          seriesName: 'SSMUSOR',
+          number: '0002',
+          link: 'https://www.oblio.eu/utils/show_file/?ic=1&id=2',
+        },
+      });
+
+      expect((await deliver(refundEvent)).status).toBe(200);
+      expect(fake.tables.billing_invoices![1]).toMatchObject({
+        stripe_invoice_id: 're_1Refund',
+        amount_cents: -18029,
+        subtotal_cents: null,
       });
     });
 

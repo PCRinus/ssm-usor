@@ -201,23 +201,13 @@ function SubscriptionContent({
           ) : !isOwner ? (
             <MemberNote overview={overview} />
           ) : null}
-          <p className="px-1 text-[13px] leading-relaxed text-muted-foreground">
-            Peste {employeesLabel(selfServeLimits.employees)} sau peste {selfServeLimits.members}{' '}
-            utilizatori? Scrie-ne pentru o ofertă, la{' '}
-            <a
-              href={`mailto:${contactEmail}?subject=${encodeURIComponent('Ofertă Enterprise SSM Ușor')}`}
-              className="font-semibold text-foreground underline-offset-2 hover:underline"
-            >
-              {contactEmail}
-            </a>
-            .
-          </p>
         </div>
       </div>
 
       {owner && (
         <InvoicesCard
           invoices={owner.invoices}
+          vatPayer={owner.vatPayer}
           emptyText={
             view === 'trialChosen' && subscription?.trialEndsAt
               ? `Prima factură apare aici după ${roDate(subscription.trialEndsAt)}.`

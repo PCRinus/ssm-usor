@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
+  getGetBillingQueryKey,
   getGetOrganizationCompanyDetailsQueryKey,
   lookupCompany,
   type OrganizationCompanyDetailsResponse,
@@ -198,9 +199,14 @@ function CompanyDetailsForm({
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await update.mutateAsync({ data: toCompanyDetailsRequest(values) });
-      await queryClient.invalidateQueries({
-        queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId],
+        }),
+        // Abonament shows the amounts without VAT by this box. Only marked stale: the billing
+        // overview asks Stripe, so it is read when Abonament opens, not now.
+        queryClient.invalidateQueries({ queryKey: getGetBillingQueryKey(), refetchType: 'none' }),
+      ]);
       savedToast('Datele firmei au fost salvate.');
     } catch (cause) {
       form.setError('root.server', {

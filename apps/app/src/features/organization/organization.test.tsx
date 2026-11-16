@@ -3,9 +3,10 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  OrganizationAuthorizationsResponse,
-  OrganizationCompanyDetailsResponse,
+import {
+  getGetBillingQueryKey,
+  type OrganizationAuthorizationsResponse,
+  type OrganizationCompanyDetailsResponse,
 } from '@/api/generated/api';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { authFixture, makeSession } from '@/test/auth-fixture';
@@ -714,6 +715,22 @@ describe('company details', () => {
       bankName: 'Banca Transilvania',
     });
     expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
+  });
+
+  it('marks the billing overview stale on save, so Abonament reads the VAT status afresh, without asking for it now', async () => {
+    mockApi();
+    const runtime = mountCompany();
+    const user = userEvent.setup();
+    const vat = await screen.findByTestId('company-vatPayer');
+    const billingKey = [...getGetBillingQueryKey(), 'user-one'];
+    runtime.queryClient.setQueryData(billingKey, { owner: { vatPayer: false } });
+
+    await user.click(vat);
+    await user.click(screen.getByTestId('company-details-save'));
+
+    expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
+    expect(runtime.queryClient.getQueryState(billingKey)?.isInvalidated).toBe(true);
+    expect(requests('/billing')).toHaveLength(0);
   });
 
   it('takes the VAT status from ANAF with the rest, and leaves it editable', async () => {
