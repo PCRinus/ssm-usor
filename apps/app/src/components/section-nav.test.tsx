@@ -5,10 +5,10 @@ import {
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { Circle } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SectionNav, SectionNavLink } from './section-nav';
 
@@ -43,6 +43,10 @@ function renderNavs() {
   render(<RouterProvider router={router} />);
 }
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('SectionNav', () => {
   it('reserves the bold width of a folder tab label without changing its name', async () => {
     renderNavs();
@@ -54,5 +58,37 @@ describe('SectionNav', () => {
     expect(
       within(tabs).getByRole('link', { name: 'Date' }).querySelector('[data-label]')
     ).toBeNull();
+  });
+
+  it('marks a folder strip stuck under the top bar, so it shades the rows beneath', async () => {
+    const watched: Array<{ node: Element; report: IntersectionObserverCallback }> = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(private report: IntersectionObserverCallback) {}
+        observe(node: Element) {
+          watched.push({ node, report: this.report });
+        }
+        disconnect() {}
+      }
+    );
+    renderNavs();
+    const folder = await screen.findByRole('navigation', { name: 'Folder' });
+    const tabs = screen.getByRole('navigation', { name: 'Tabs' });
+    expect(watched.map((entry) => entry.node)).toEqual([folder]);
+    expect(folder.hasAttribute('data-stuck')).toBe(false);
+
+    const report = (top: number, intersectionRatio: number) =>
+      act(() =>
+        watched[0]!.report(
+          [{ intersectionRatio, boundingClientRect: { top } } as IntersectionObserverEntry],
+          {} as IntersectionObserver
+        )
+      );
+    report(64, 0.98);
+    expect(folder.hasAttribute('data-stuck')).toBe(true);
+    report(300, 1);
+    expect(folder.hasAttribute('data-stuck')).toBe(false);
+    expect(tabs.hasAttribute('data-stuck')).toBe(false);
   });
 });

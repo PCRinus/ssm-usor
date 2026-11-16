@@ -6,6 +6,7 @@ import {
   createContext,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -167,6 +168,25 @@ function TabsFrame({
   );
 }
 
+// The top bar is 64 px tall (top-16): a stuck strip sits right under it.
+const stuckTop = 64;
+
+function useStuck(ref: RefObject<HTMLElement | null>, watch: boolean) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const node = ref.current;
+    if (!watch || !node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) =>
+        setStuck(entry!.intersectionRatio < 1 && entry!.boundingClientRect.top <= stuckTop + 0.5),
+      { rootMargin: `-${stuckTop + 1}px 0px 0px 0px`, threshold: 1 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ref, watch]);
+  return stuck;
+}
+
 // Nested under another one, it stays in the flow: two sticky navs would cover each other.
 // The folder variant's line is the top edge of the sheet that follows it (ClientSheet).
 export function SectionNav({
@@ -182,10 +202,22 @@ export function SectionNav({
   className?: string;
   children: ReactNode;
 }) {
+  const navRef = useRef<HTMLElement>(null);
+  const stuck = useStuck(navRef, variant === 'folder' && !nested);
   return (
     <nav
+      ref={navRef}
       aria-label={label}
-      className={cn('min-w-0 bg-background', !nested && 'sticky top-16 z-20', className)}
+      data-stuck={stuck || undefined}
+      className={cn(
+        'min-w-0 bg-background',
+        !nested && 'sticky top-16 z-20',
+        // The strip's line is close to the tab fill above it, so on its own it cannot part a stuck
+        // strip from the rows passing beneath. Forced colours drop the line and the shade alike.
+        stuck &&
+          'after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-2.5 after:bg-linear-to-b after:from-[rgb(24_52_46/0.08)] after:to-transparent forced-colors:after:border-t',
+        className
+      )}
     >
       <SectionNavVariantContext value={variant}>
         <TabsFrame
