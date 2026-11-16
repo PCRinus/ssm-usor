@@ -1,7 +1,7 @@
 import { type InstructionDomain, instructionDomains } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { cuiDigits, sameName } from './match';
+import { cuiDigits, sameCompany } from './match';
 import { answerFormat } from './wire';
 
 export const documentKinds = [
@@ -95,7 +95,7 @@ export function sortFiles(
   const providerName = options.provider?.name ?? null;
   const isProvider = (cui: string | null, name: string | null) =>
     (cui !== null && cui === providerCui) ||
-    (cui === null && name !== null && providerName !== null && sameName(name, providerName));
+    (cui === null && name !== null && providerName !== null && sameCompany(name, providerName));
 
   const groups: Group[] = [];
   const clientGroup: Group | null = options.client
@@ -117,7 +117,7 @@ export function sortFiles(
       group = { cui: entry.cui, names: [], paths: [] };
       groups.push(group);
     }
-    if (entry.name !== null && !group.names.some((name) => sameName(name, entry.name!))) {
+    if (entry.name !== null && !group.names.some((name) => sameCompany(name, entry.name!))) {
       group.names.push(entry.name);
     }
     group.paths.push(entry.path);
@@ -125,7 +125,7 @@ export function sortFiles(
   }
   for (const entry of named.filter((candidate) => candidate.cui === null)) {
     const matches = groups.filter((group) =>
-      group.names.some((name) => sameName(name, entry.name!))
+      group.names.some((name) => sameCompany(name, entry.name!))
     );
     let group = matches.sort((a, b) => b.paths.length - a.paths.length)[0];
     if (!group) {

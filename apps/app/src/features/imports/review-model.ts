@@ -17,6 +17,7 @@ import {
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
   sameName,
+  sameSpelling,
 } from '@ssm-usor/contracts';
 
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
@@ -1357,7 +1358,7 @@ export function anafMismatch(
   const state = fieldState(proposal, changes, 'client.legalName', undefined, registered);
   if (state.anaf) return state.anaf.picked === null ? registered : null;
   const name = state.value;
-  if (name === null || sameName(String(name), registered.legalName)) return null;
+  if (name === null || sameSpelling(String(name), registered.legalName)) return null;
   return registered;
 }
 

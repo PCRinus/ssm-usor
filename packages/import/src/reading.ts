@@ -13,7 +13,16 @@ import { z } from 'zod';
 
 import { substanceNameAllowed, substanceParts, workplaceValueAllowed } from './checks';
 import { inferValues, officeWithoutActivity } from './inference';
-import { contained, cuiDigits, foldName, foldText, sameAddress, similar, streetKey } from './match';
+import {
+  contained,
+  cuiDigits,
+  foldName,
+  foldText,
+  sameAddress,
+  sameCompany,
+  similar,
+  streetKey,
+} from './match';
 import { countedOnce } from './means-count';
 import {
   clientFieldNames,
@@ -396,7 +405,8 @@ const sameBy =
     key(a) === '' || key(b) === '' ? sameValue(a, b) : key(a) === key(b);
 
 const sameFactValue: Record<string, (a: string | number, b: string | number) => boolean> = {
-  'client.legalName': sameBy((value) => foldName(String(value))),
+  // One option whatever way the documents write the form, so ANAF's name can stand against it.
+  'client.legalName': (a, b) => sameCompany(String(a), String(b), 1),
   'client.addressLine': sameBy((value) => streetKey(String(value))),
   'client.contactPhone': sameBy(phoneDigits),
 };

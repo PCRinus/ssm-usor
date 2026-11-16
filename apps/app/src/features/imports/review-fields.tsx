@@ -3,7 +3,7 @@ import {
   fireSmokingPolicies,
   fireSmokingPolicyLabels,
   normalizeCui,
-  sameName,
+  sameSpelling,
   type StaffCategory,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -965,7 +965,7 @@ function ValueRow({
     state.path === 'client.legalName' &&
     registered &&
     state.value !== null &&
-    sameName(registered.legalName, String(state.value));
+    sameSpelling(registered.legalName, String(state.value));
   const spelling = fieldSpelling(state, change);
   const inferred =
     state.edited || state.status !== 'value' || state.option === null

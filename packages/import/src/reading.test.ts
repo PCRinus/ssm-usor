@@ -975,6 +975,29 @@ describe('a value written two ways', () => {
     ]);
   });
 
+  it('is one option for a company whose documents write its form as initials or in full', () => {
+    const answer = wireAnswer();
+    answer.facts = [
+      written('client.legalName', 'SOCIETATE PROFESIONALA NOTARIALA STANCIUC'),
+      written('client.legalName', 'S.P.N. / STANCIUC', 'Dosar/Contract.pdf'),
+      written('client.legalName', 'SPN STANCIUC', 'Dosar/PSI/Decizia 1.1.doc'),
+    ];
+
+    expect(fromWire(answer).client.legalName.options.map((option) => option.value)).toEqual([
+      'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+    ]);
+  });
+
+  it('stays a choice for two offices whose names differ only in their legal form', () => {
+    const answer = wireAnswer();
+    answer.facts = [
+      written('client.legalName', 'Cabinet de avocat Ionescu'),
+      written('client.legalName', 'Cabinet medical individual Ionescu', 'Dosar/Contract.pdf'),
+    ];
+
+    expect(fromWire(answer).client.legalName.options).toHaveLength(2);
+  });
+
   it('stays a choice when the values really differ', () => {
     const answer = wireAnswer();
     answer.facts = [

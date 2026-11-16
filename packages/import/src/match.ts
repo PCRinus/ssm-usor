@@ -1,16 +1,21 @@
-import { foldName, foldText, normalizeCui, sameName, similar } from '@ssm-usor/contracts';
+import {
+  foldName,
+  foldText,
+  nameTokens,
+  normalizeCui,
+  sameCompany,
+  sameName,
+  sameSpelling,
+  similar,
+} from '@ssm-usor/contracts';
 
-export { foldName, foldText, sameName, similar };
+export { foldName, foldText, sameCompany, sameName, sameSpelling, similar };
 
 const marks = /\p{M}/gu;
 const wordCharacter = /[\p{L}\p{N}]/u;
 
 function foldCharacter(character: string) {
   return character.normalize('NFD').toLowerCase().replace(marks, '');
-}
-
-function nameTokens(value: string) {
-  return new Set(foldName(value).split(' ').filter(Boolean));
 }
 
 // A prefix counts as found, so "Sediu social" is in "Sediul social al societății".

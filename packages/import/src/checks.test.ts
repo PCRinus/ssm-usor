@@ -437,9 +437,28 @@ describe('registrations', () => {
     ]);
   });
 
-  it('takes the registry’s name for the documents’ when only the form is written otherwise', async () => {
+  it('flags a name that differs from the registry’s only in how it writes the legal form', async () => {
+    const registered = 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC';
+    for (const written of [
+      'S.P.N. / STANCIUC',
+      'SPN STANCIUC',
+      'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+    ]) {
+      const value = proposal();
+      value.client.legalName.options[0]!.value = written;
+      const registrations = await lookUpRegistrations(value, {
+        lookup: async (cui: string) => ({ cui, legalName: registered }),
+      });
+
+      expect(checkRegistrations(value, registrations), written).toEqual([
+        { path: 'client.legalName', code: 'legal_name_differs', detail: registered },
+      ]);
+    }
+  });
+
+  it('takes the registry’s name as written, whatever its case, diacritics or points', async () => {
     const value = proposal();
-    value.client.legalName.options[0]!.value = 'S.P.N. / STANCIUC';
+    value.client.legalName.options[0]!.value = 'Societatea Profesională Notarială Stănciuc';
     const registrations = await lookUpRegistrations(value, {
       lookup: async (cui: string) => ({
         cui,

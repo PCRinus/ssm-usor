@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput, normalizeCui } from './cui';
-import { withoutLegalForms } from './legal-forms';
+import { searchWithoutLegalForms } from './legal-forms';
 import {
   listQuerySchema,
   listSearchSchema,
@@ -262,7 +262,7 @@ export const listClientsQuerySchema = listQuerySchema(clientListSortKeys, 'legal
 export function clientSearchTerms(q: string | undefined) {
   const typed = (q ?? '').trim();
   const asCui = isValidCuiInput(typed) ? normalizeCui(typed)?.cui : undefined;
-  const kept = withoutLegalForms(asCui ?? typed, 'ends').flatMap((term, index, all) => {
+  const kept = searchWithoutLegalForms(asCui ?? typed).flatMap((term, index, all) => {
     if (term === 'ro' && /^\d/.test(all[index + 1] ?? '')) return [];
     return [/^ro\d+$/.test(term) ? term.slice(2) : term];
   });

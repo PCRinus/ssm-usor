@@ -160,6 +160,32 @@ describe('sortFiles', () => {
     expect(sorting.otherCompanies).toEqual([]);
   });
 
+  it('knows a sole trader whose files write II after the name and one spells it out', () => {
+    const sorting = sortFiles([
+      triage('Contract.pdf', 'contract', 'POPESCU ION INTREPRINDERE INDIVIDUALA', '12345674'),
+      triage('Decizia 1.docx', 'decision', 'Popescu Ion II', null),
+      triage('Evaluare.doc', 'risk_assessment', 'Popescu Ion II', null),
+    ]);
+
+    expect(sorting.company).toEqual({
+      name: 'POPESCU ION INTREPRINDERE INDIVIDUALA',
+      cui: '12345674',
+    });
+    expect(sorting.otherCompanies).toEqual([]);
+  });
+
+  it('keeps apart two offices whose names differ only in their legal form', () => {
+    const sorting = sortFiles([
+      triage('Contract.pdf', 'contract', 'Cabinet de avocat Ionescu', '12345674'),
+      triage('Decizia 1.docx', 'decision', 'Cabinet de avocat Ionescu', null),
+      triage('Fisa medicala.pdf', 'other', 'Cabinet medical individual Ionescu', null),
+    ]);
+
+    expect(sorting.otherCompanies.map(({ company }) => company.name)).toEqual([
+      'Cabinet medical individual Ionescu',
+    ]);
+  });
+
   it('names no company when no file names one', () => {
     const sorting = sortFiles([triage('Decizia.docx', 'decision', null, null)]);
 

@@ -278,6 +278,15 @@ describe('namesClient', () => {
       false
     );
   });
+
+  it('does not take a surname in a body for the office it names', () => {
+    for (const client of ['S.P.N. / STANCIUC', 'SPN STANCIUC', 'CMI Dr. Popescu Ion']) {
+      expect(
+        namesClient(body('Instructajul îl face Stanciuc, cu Popescu Ion.'), client),
+        client
+      ).toBe(false);
+    }
+  });
 });
 
 describe('similarityRequest', () => {

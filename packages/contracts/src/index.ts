@@ -44,7 +44,6 @@ export * from './instruction-modules';
 export * from './instruction-splitter';
 export * from './invitations';
 export * from './job-positions';
-export * from './legal-forms';
 export * from './legislation';
 export * from './list';
 export * from './mail';

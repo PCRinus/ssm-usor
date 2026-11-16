@@ -179,15 +179,22 @@ describe('the company ANAF registers under the CUI', () => {
   };
   const registered = (legalName: string) => ({ cui: '31458207', legalName, inactive: false });
 
-  it('is the documents’ company when only the legal form is written otherwise', () => {
+  it('is still worth checking when the documents write only the legal form otherwise', () => {
     const anaf = registered('SOCIETATEA PROFESIONALA NOTARIALA STANCIUC');
     for (const name of [
       'S.P.N. / STANCIUC',
       'SPN STANCIUC',
       'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
     ]) {
-      expect(anafMismatch(named(name), noChanges, anaf), name).toBeNull();
+      expect(anafMismatch(named(name), noChanges, anaf), name).toBe(anaf);
     }
+  });
+
+  it('is the documents’ company when they write ANAF’s name, whatever the case or diacritics', () => {
+    const anaf = registered('SOCIETATEA PROFESIONALA NOTARIALA STANCIUC');
+    expect(
+      anafMismatch(named('Societatea Profesională Notarială Stănciuc'), noChanges, anaf)
+    ).toBeNull();
   });
 
   it('is another firm when the rest of the name differs', () => {
