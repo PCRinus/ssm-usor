@@ -50,7 +50,7 @@ export function WorkersCell({
           state={openedHere}
           aria-label={`${toTrain} de instruit pe postul ${position.name}`}
           data-testid="job-position-to-train"
-          className="mt-1.5 block text-xs font-medium text-destructive tabular-nums hover:underline"
+          className="mt-1.5 block text-xs font-medium text-destructive-foreground tabular-nums hover:underline"
         >
           {toTrain} de instruit
         </Link>
