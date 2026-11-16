@@ -120,6 +120,17 @@ const evaluation = {
   ],
 };
 
+const storedLevelsColumns = 'id,evaluation_profile_factors(gravity_class,probability_class)';
+
+// Electrocution is level 4 and unacceptable, the rhythm level 2: (16 + 4) / (4 + 2).
+const officeLevels = { global_risk_level: 3.33, unacceptable_factor_count: 1 };
+
+const storedLevels = () =>
+  calls('evaluation_profiles', 'PATCH').map(([input, init]) => ({
+    id: new URL(String(input)).searchParams.get('id'),
+    levels: JSON.parse(String(init?.body)) as unknown,
+  }));
+
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
 
 const isGet = (init: RequestInit | undefined) => (init?.method ?? 'GET') === 'GET';
@@ -160,6 +171,11 @@ function mockUpstream(
         return Response.json([{ id: profileId }]);
       }
       if (url.searchParams.get('select') === 'id') return Response.json([{ id: profileId }]);
+      if (url.searchParams.get('select') === storedLevelsColumns) {
+        return Response.json([
+          { id: profileId, evaluation_profile_factors: officeProfile.evaluation_profile_factors },
+        ]);
+      }
     }
     if (url.pathname === '/rest/v1/evaluation_profile_factors') {
       const custom = handlers.factors?.(init, url);
@@ -642,11 +658,13 @@ describe('the factors of a profile', () => {
       p_measures: [{ kind: 'technical', description: 'Buletine P.R.A.M.' }],
       p_deadline: 'Anual',
     });
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
   });
 
   it('answers 404 when the profile is not the caller’s', async () => {
     mockUpstream({ rpc: () => Response.json(null) });
     expect((await request(`${profilePath}/factors`, 'POST', factorBody)).status).toBe(404);
+    expect(storedLevels()).toEqual([]);
   });
 
   it('replaces a factor and its measures', async () => {
@@ -657,6 +675,7 @@ describe('the factors of a profile', () => {
       p_profile_id: profileId,
       p_factor_id: factorId,
     });
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
   });
 
   it('answers 404 for a factor that is not on the profile', async () => {
@@ -674,6 +693,36 @@ describe('the factors of a profile', () => {
     const params = new URL(String(deleted![0])).searchParams;
     expect(params.get('id')).toBe(`eq.${factorId}`);
     expect(params.get('profile_id')).toBe(`eq.${profileId}`);
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
+  });
+
+  it('keeps no level for an entry left without factors', async () => {
+    mockUpstream({
+      profiles: (init, url) =>
+        url.searchParams.get('select') === storedLevelsColumns
+          ? Response.json([{ id: profileId, evaluation_profile_factors: [] }])
+          : undefined,
+    });
+    expect((await request(`${profilePath}/factors/${factorId}`, 'DELETE')).status).toBe(200);
+    expect(storedLevels()).toEqual([
+      {
+        id: `eq.${profileId}`,
+        levels: { global_risk_level: null, unacceptable_factor_count: 0 },
+      },
+    ]);
+  });
+
+  it('still answers with the saved factor when its levels could not be kept', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockUpstream({
+      profiles: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json({ code: '42501', message: 'denied' }, { status: 403 })
+          : undefined,
+    });
+    expect((await request(`${profilePath}/factors`, 'POST', factorBody)).status).toBe(201);
+    expect(logged).toHaveBeenCalledWith('The risk levels of a library entry were not kept: 42501');
+    logged.mockRestore();
   });
 
   it('refuses a class the method does not have', async () => {
@@ -698,6 +747,7 @@ describe('POST …/risk-evaluations/{evaluationId}/save-as-profile', () => {
       p_evaluation_id: evaluationId,
       p_name: 'Lucrător de birou',
     });
+    expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
   });
 
   it('answers 409 on a name the library already holds', async () => {

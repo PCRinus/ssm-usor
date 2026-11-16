@@ -1242,6 +1242,11 @@ while any client's factor points at one of its factors, archived posts and clien
 ([ADR 036](architecture/adr-036-risk-library-and-import.md)). A trigger refuses deleting one in
 use (`RSK04`), for every caller; deleting one of its factors stays allowed and clears its
 copies' pointers. Archiving is allowed in use, since clients hold copies.
+`global_risk_level`, null without factors, and `unacceptable_factor_count` are the entry's
+global level and its factors above the acceptable level, written by the API from the method's
+code whenever the entry's factors change, so the list sorts and filters by them; the database
+never computes them, and the migration that added them filled them once from a copy of the
+grid that a test holds equal to the code's.
 
 `evaluation_profile_list` is a security-invoker view of the profiles, their texts included, with `client_count`, the
 clients that use one counted as the usage lists them (leaving out archived posts, keeping

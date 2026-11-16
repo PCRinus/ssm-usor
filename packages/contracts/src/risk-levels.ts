@@ -96,6 +96,17 @@ export function evaluationGlobalRiskLevel(factors: readonly ClassedRiskFactor[])
   return globalRiskLevel(factors.map((f) => riskLevel(f.gravityClass, f.probabilityClass)));
 }
 
+export function riskLevelTotals(factors: readonly ClassedRiskFactor[]): {
+  globalRiskLevel: number | null;
+  unacceptableFactorCount: number;
+} {
+  const levels = factors.map((f) => riskLevel(f.gravityClass, f.probabilityClass));
+  return {
+    globalRiskLevel: globalRiskLevel(levels),
+    unacceptableFactorCount: levels.filter(isUnacceptableRiskLevel).length,
+  };
+}
+
 export function isOverAcceptableLimit(globalLevel: number | null): boolean {
   return globalLevel !== null && globalLevel > maxAcceptableGlobalRiskLevel;
 }

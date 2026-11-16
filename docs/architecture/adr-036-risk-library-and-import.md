@@ -93,6 +93,8 @@ An entry gains the evaluation's three work-system texts: **means of production**
 
 The entry's factors keep their plan fields, which become **defaults**: applying copies them, and the specialist changes them on the client's sheet. The page says so above the factors.
 
+_Note, 2026-11-16, the stored level (Mircea's decision):_ an entry keeps its global level and its count of unacceptable factors, so the list can sort and filter by them before it pages. The API writes them from the method's code whenever the entry's factors change: a factor added, changed or removed, a client's sheet saved into the library, an entry an import creates. The grid stays in code alone; the migration that added the two columns filled them once from a copy of it that a test holds equal to the code's, and a test that reads every write of an entry's factors, in the migrations and in the code, fails on one that leaves them behind. Writing them counts as a change of the entry, so its date moves with its factors.
+
 ### The evaluations read from the pack
 
 **The library part.** The import gains a third library part, `risk_evaluations`, beside `instructions_ssm` and `instructions_su`. It has no domain: the documents it reads are SSM only, and fire risk lives in the SU data (ADR 019). It is created when sorting finds `risk_assessment` files, runs when the client proposal is ready, and follows the instructions parts' life: its own status, reading, retry and refund, review after the client, confirm on its own, expiry 14 days after the client, tokens and cost on the import and on the part, gateway metadata naming the part.

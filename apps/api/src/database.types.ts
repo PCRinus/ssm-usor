@@ -2225,10 +2225,12 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           exposure: string | null;
+          global_risk_level: number | null;
           id: string;
           means_of_production: string | null;
           name: string;
           organization_id: string;
+          unacceptable_factor_count: number;
           updated_at: string;
           work_environment: string | null;
         };
@@ -2237,10 +2239,12 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           exposure?: string | null;
+          global_risk_level?: number | null;
           id?: string;
           means_of_production?: string | null;
           name: string;
           organization_id: string;
+          unacceptable_factor_count?: number;
           updated_at?: string;
           work_environment?: string | null;
         };
@@ -2249,10 +2253,12 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           exposure?: string | null;
+          global_risk_level?: number | null;
           id?: string;
           means_of_production?: string | null;
           name?: string;
           organization_id?: string;
+          unacceptable_factor_count?: number;
           updated_at?: string;
           work_environment?: string | null;
         };

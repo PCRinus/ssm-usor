@@ -855,6 +855,23 @@ describe('the risk evaluations part', () => {
       if (url.pathname === '/rest/v1/organization_members' && admin) {
         return Response.json([{ user_id: user.id }]);
       }
+      if (url.pathname === '/rest/v1/evaluation_profiles' && call.method === 'PATCH') {
+        return new Response(null, { status: 204 });
+      }
+      if (
+        url.pathname === '/rest/v1/evaluation_profiles' &&
+        url.searchParams.get('select')?.includes('evaluation_profile_factors')
+      ) {
+        return Response.json([
+          {
+            id: createdEntryId,
+            evaluation_profile_factors: [
+              { gravity_class: 4, probability_class: 3 },
+              { gravity_class: 2, probability_class: 4 },
+            ],
+          },
+        ]);
+      }
       if (url.pathname === '/rest/v1/evaluation_profiles') {
         return Response.json([{ name: 'Șofer' }]);
       }
@@ -1066,6 +1083,16 @@ describe('the risk evaluations part', () => {
       evaluationIds: [evaluationId],
       factors: 5,
     });
+    const read = callsTo('/rest/v1/evaluation_profiles').find((call) =>
+      call.url.searchParams.get('select')?.includes('evaluation_profile_factors')
+    )!;
+    expect(read.url.searchParams.get('id')).toBe(`in.(${createdEntryId})`);
+    const stored = callsTo('/rest/v1/evaluation_profiles').filter(
+      (call) => call.method === 'PATCH'
+    );
+    expect(stored.map((call) => [call.url.searchParams.get('id'), call.body, call.admin])).toEqual([
+      [`eq.${createdEntryId}`, { global_risk_level: 3.33, unacceptable_factor_count: 1 }, false],
+    ]);
     const rpc = callsTo('/rest/v1/rpc/apply_risk_import')[0]!;
     expect(rpc.admin).toBe(false);
     const { p_payload: payload, ...rest } = rpc.body as {

@@ -2,7 +2,6 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   clientLevelEvaluationFields,
   evaluationGlobalRiskLevel,
-  isUnacceptableRiskLevel,
   type RiskEvaluation,
   type RiskEvaluationKind,
   type RiskEvaluationSummary,
@@ -11,6 +10,7 @@ import {
   type RiskFactorSourceProfile,
   type RiskFactorSuggestionField,
   riskLevel,
+  riskLevelTotals,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -144,13 +144,7 @@ export function factorTotals(
     gravityClass: f.gravity_class,
     probabilityClass: f.probability_class,
   }));
-  return {
-    globalRiskLevel: evaluationGlobalRiskLevel(classed),
-    factorCount: classed.length,
-    unacceptableFactorCount: classed.filter((f) =>
-      isUnacceptableRiskLevel(riskLevel(f.gravityClass, f.probabilityClass))
-    ).length,
-  };
+  return { ...riskLevelTotals(classed), factorCount: classed.length };
 }
 
 function toEvaluation(row: EvaluationRow): RiskEvaluation {

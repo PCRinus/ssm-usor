@@ -10,6 +10,7 @@ import {
   isUnacceptableRiskLevel,
   probabilityFrequency,
   riskLevel,
+  riskLevelTotals,
   unacceptableFactors,
 } from './risk-levels';
 
@@ -180,6 +181,14 @@ describe('the template’s first post, recomputed from its classes', () => {
 
   it('finds the unacceptable factors, the highest first', () => {
     expect(unacceptableFactors(managerFactors).map((f) => f.code)).toEqual(['F4', 'F9', 'F24']);
+  });
+
+  it('keeps the global level and the unacceptable count an entry of the library stores', () => {
+    expect(riskLevelTotals(managerFactors)).toEqual({
+      globalRiskLevel: 2.49,
+      unacceptableFactorCount: 3,
+    });
+    expect(riskLevelTotals([])).toEqual({ globalRiskLevel: null, unacceptableFactorCount: 0 });
   });
 
   it('shares the factors between the components as the interpretation prints them', () => {

@@ -40,6 +40,7 @@ import type {
   updateEvaluationProfileFactorRoute,
   updateEvaluationProfileRoute,
 } from './routes';
+import { storeRiskLevels } from './stored-risk-levels';
 
 type Tables = Database['public']['Tables'];
 
@@ -363,6 +364,7 @@ async function saveFactor(
     ...riskFactorArgs(body),
   });
   if (error) throw fromDatabaseError(error, 'save evaluation profile factor');
+  if (data) await storeRiskLevels(db, [profileId]);
   return data;
 }
 
@@ -404,6 +406,7 @@ export const removeEvaluationProfileFactor: RouteHandler<
     .select('id');
   if (error) throw fromDatabaseError(error, 'delete evaluation profile factor');
   if (data.length === 0) throw noSuchFactor();
+  await storeRiskLevels(db, [profileId]);
   return c.json({ profile: await loadProfile(db, profileId) }, 200);
 };
 
@@ -424,6 +427,7 @@ export const saveRiskEvaluationAsProfile: RouteHandler<
   if (!data) {
     throw new ApiError('not_found', 'This risk evaluation does not exist under this client.');
   }
+  await storeRiskLevels(db, [data]);
   return c.json({ profile: await loadProfile(db, data) }, 201);
 };
 
