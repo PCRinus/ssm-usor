@@ -227,7 +227,7 @@ Fiecare factură vine și pe email, după ce plata a reușit. Tot atunci apare �
 
 - Dacă organizația e plătitoare de TVA (căsuța **Plătitor de TVA** din **Organizație**, la **Date firmă**), sub sumă apare și suma fără TVA, de exemplu „fără TVA 119 €”.
 - O stornare are suma cu minus, iar sub numărul ei scrie ce factură anulează.
-- Cât timp factura se emite, în locul numărului scrie **Se emite**, iar data apare după emitere. O factură abia emisă poate arăta câteva minute **PDF în curând**, până e gata documentul.
+- Cât timp factura se emite, în locul numărului scrie **Se emite**, iar data și suma fără TVA apar după emitere. O factură abia emisă poate arăta câteva minute **PDF în curând**, până e gata documentul.
 
 ## Când plata nu reușește
 

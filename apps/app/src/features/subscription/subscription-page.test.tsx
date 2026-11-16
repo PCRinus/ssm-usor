@@ -247,7 +247,7 @@ describe('the Abonament tab', () => {
               number: null,
               issuedAt: null,
               amountCents: 315,
-              subtotalCents: 260,
+              subtotalCents: null,
               currency: 'eur',
               stornoOf: null,
               hasPdf: false,
@@ -274,7 +274,7 @@ describe('the Abonament tab', () => {
     expect(invoices.textContent).not.toContain('pe email');
     expect(within(invoices).getByTestId('invoices-count').textContent).toBe('2 facturi');
     const [issuing, issued] = within(invoices).getAllByTestId('invoice-row');
-    expect(issuing!.textContent).toBe('Se emite—3,15 €fără TVA 2,60 €PDF în curând');
+    expect(issuing!.textContent).toBe('Se emite—3,15 €PDF în curând');
     expect(within(issuing!).queryByTestId('invoice-download')).toBeNull();
     expect(issued!.textContent).toContain('SSMUSOR-0011');
     expect(issued!.textContent).toContain('2.468,40 €');
@@ -1331,7 +1331,13 @@ describe('the Facturi list', () => {
     ...overrides,
   });
   const invoices = [
-    invoice({ stripeInvoiceId: 'in_4', number: null, issuedAt: null, hasPdf: false }),
+    invoice({
+      stripeInvoiceId: 'in_4',
+      number: null,
+      issuedAt: null,
+      subtotalCents: null,
+      hasPdf: false,
+    }),
     invoice({
       stripeInvoiceId: 'in_3',
       number: 'SSMUSOR-0214',
@@ -1369,7 +1375,7 @@ describe('the Facturi list', () => {
     mountWith({ invoices, vatPayer: true });
 
     expect(await rowTexts()).toEqual([
-      'Se emite—143,99 €fără TVA 119 €PDF în curând',
+      'Se emite—143,99 €PDF în curând',
       'SSMUSOR-021416.10.2026156,09 €fără TVA 129 €',
       'SSMUSOR-0112Stornare a facturii SSMUSOR-009822.07.2026-143,99 €fără TVA -119 €',
       'SSMUSOR-009816.07.2026143,99 €fără TVA 119 €',
@@ -1430,5 +1436,14 @@ describe('the Facturi list', () => {
     mountWith({ invoices }, '/organizatie/abonament?sort=amount&order=desc');
 
     expect((await rowTexts())[0]).toContain('SSMUSOR-0214');
+  });
+
+  it('falls back to the newest first when the address holds a sort it does not know', async () => {
+    mountWith({ invoices }, '/organizatie/abonament?sort=number&order=sideways');
+
+    expect((await rowTexts())[0]).toContain('Se emite');
+    expect(screen.getByTestId('sort-issuedAt').closest('th')!.getAttribute('aria-sort')).toBe(
+      'descending'
+    );
   });
 });

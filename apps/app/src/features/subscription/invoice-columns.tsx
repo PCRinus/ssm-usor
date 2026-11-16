@@ -115,6 +115,7 @@ export function invoiceColumns({
           <Button
             variant="ghost"
             size="icon"
+            className="-mr-2.5"
             data-testid="invoice-download"
             aria-label={`Descarcă PDF-ul facturii ${invoice.number ?? ''}`.trim()}
             disabled={busy}
