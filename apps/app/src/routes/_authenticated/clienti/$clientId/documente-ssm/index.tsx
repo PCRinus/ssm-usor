@@ -12,6 +12,7 @@ const searchSchema = focusSearch(occupationalSafetyDocumentsFocus).extend({
 });
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/documente-ssm/')({
+  staticData: { flushSheet: true },
   validateSearch: searchSchema,
   component: DocumentsPage,
 });

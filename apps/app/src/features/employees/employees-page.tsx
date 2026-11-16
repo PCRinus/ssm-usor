@@ -1,5 +1,6 @@
 import { defaultPageSize, type EmployeeSortKey } from '@ssm-usor/contracts';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
+import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, useRouteContext } from '@tanstack/react-router';
 import { UserRound } from 'lucide-react';
@@ -18,14 +19,20 @@ import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
-import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
+import {
+  FilterTab,
+  FilterTabs,
+  ListActions,
+  ListCardHeader,
+  ListCount,
+} from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { sheetPadding } from '@/components/page-spacing';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
-import { sheetFlushList } from '@/features/clients/sheet-flush';
 import {
   EmployeeImportButtons,
   EmployeesImportedCard,
@@ -178,13 +185,15 @@ export function EmployeesPage() {
     changeSearch(listFilters.searchOf(values) as Filters);
 
   return (
-    <div data-testid="employees-page" className="space-y-5">
+    <div data-testid="employees-page">
       <h2 className="sr-only">Lucrători</h2>
-      {!readOnly && <EmployeesOverStepNotice />}
-      <EmployeesImportedCard clientId={clientId} />
-      {!readOnly && <OpenEmployeeImports clientId={clientId} />}
-      <div data-sheet-flush className={sheetFlushList}>
-        <ListCardHeader>
+      <div className={cn('grid gap-5 border-b empty:hidden', sheetPadding)}>
+        {!readOnly && <EmployeesOverStepNotice />}
+        <EmployeesImportedCard clientId={clientId} />
+        {!readOnly && <OpenEmployeeImports clientId={clientId} />}
+      </div>
+      <div>
+        <ListCardHeader data-testid="employees-toolbar">
           <FilterTabs label="Filtrează lucrătorii">
             {tabs.map((tab) => (
               <FilterTab
@@ -237,23 +246,24 @@ export function EmployeesPage() {
               />
             </div>
           )}
-          <div className="max-md:contents md:ml-auto md:flex md:flex-wrap md:items-center md:justify-end md:gap-3">
-            {employees.isSuccess && (
-              <ListCount testId="employees-count">
-                <WorkersCount
-                  total={meta.total}
-                  unfilteredTotal={unfilteredTotal}
-                  narrowed={narrowed}
-                  short={phone}
-                />
-              </ListCount>
-            )}
+          <ListActions
+            count={
+              employees.isSuccess && (
+                <ListCount testId="employees-count">
+                  <WorkersCount
+                    total={meta.total}
+                    unfilteredTotal={unfilteredTotal}
+                    narrowed={narrowed}
+                    short={phone}
+                  />
+                </ListCount>
+              )
+            }
+          >
             {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
-              <div className="w-full max-md:order-first md:w-auto">
-                <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
-              </div>
+              <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
             )}
-          </div>
+          </ListActions>
         </ListCardHeader>
         <AppliedFilters
           facets={facets}

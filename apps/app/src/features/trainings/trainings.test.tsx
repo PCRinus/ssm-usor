@@ -730,6 +730,9 @@ describe("a client's trainings held", () => {
     const rows = await screen.findAllByTestId('trainings-row');
     expect(runtime.router.state.location.pathname).toBe(trainingsPage);
     expect(screen.getByRole('heading', { name: 'Instruiri ținute' })).toBeTruthy();
+    expect(
+      within(screen.getByTestId('trainings-toolbar')).getByTestId('trainings-record')
+    ).toBeTruthy();
     expect(within(rows[0]!).getByText('Periodică')).toBeTruthy();
     expect(within(rows[0]!).getByTestId('trainings-attendee-count').textContent).toBe(
       '2 participanți'

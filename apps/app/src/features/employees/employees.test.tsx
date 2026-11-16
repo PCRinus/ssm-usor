@@ -380,6 +380,16 @@ describe('client employees list', () => {
     expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`);
   });
 
+  it("puts the ways to add workers in the list's toolbar, under a heading only screen readers see", async () => {
+    mockApi({ list: () => Response.json(page([sampleEmployee])) });
+    mountApp(authFixture(makeSession()).client, employeesPage);
+    await screen.findByTestId('employees-row');
+    const toolbar = screen.getByTestId('employees-toolbar');
+    expect(within(toolbar).getByTestId('employees-add')).toBeTruthy();
+    expect(within(toolbar).getByTestId('employees-import')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Lucrători' }).className).toContain('sr-only');
+  });
+
   it('pages through the list with the page in the URL', async () => {
     mockApi({
       list: (_, url) =>

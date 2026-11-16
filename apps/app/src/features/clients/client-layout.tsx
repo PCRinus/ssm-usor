@@ -31,6 +31,7 @@ import { openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
+import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { useMe } from '@/features/account/use-me';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
@@ -104,6 +105,9 @@ export function ClientLayout() {
   // Forms such as the new employee page stand on their own, and name the client themselves.
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
+  });
+  const flushSheet = useMatches({
+    select: (matches) => matches.some((match) => match.staticData.flushSheet),
   });
   const me = useMe();
   const isOwner = me.data?.membership?.role === 'owner';
@@ -200,7 +204,7 @@ export function ClientLayout() {
           </Notice>
         )}
       </div>
-      <SectionNav label="Secțiunile clientului" variant="folder" className="max-sm:-mx-5">
+      <SectionNav label="Secțiunile clientului" variant="folder" className={phoneBleed}>
         {sections
           .filter((section) => isOwner || !section.ownerOnly)
           .map(({ to, label, icon }) => (
@@ -215,7 +219,7 @@ export function ClientLayout() {
             </SectionNavLink>
           ))}
       </SectionNav>
-      <ClientSheet>
+      <ClientSheet flush={flushSheet}>
         <Outlet />
       </ClientSheet>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />

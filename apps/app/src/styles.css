@@ -193,15 +193,11 @@ tr[data-pointed] {
 }
 
 /* Un-layered so it outranks the card's utilities; :where keeps a [data-pointed] outline above it.
-   High-contrast mode drops shadows, so the transparent outline draws the panel's edge there. */
+   High-contrast mode drops shadows, so the transparent outline draws the panel's edge there.
+   A flush sheet's content runs edge to edge in it, so nothing there is raised. */
 :where(
-  [data-slot='client-sheet']
-    :is([data-slot='card'], [data-sheet-panel]):not(
-      [data-sheet-flush],
-      [data-sheet-flush] *,
-      [data-slot='card'] *,
-      [data-sheet-panel] *
-    )
+  [data-slot='client-sheet']:not([data-flush])
+    :is([data-slot='card'], [data-sheet-panel]):not([data-slot='card'] *, [data-sheet-panel] *)
 ) {
   border-width: 0;
   border-radius: var(--radius);

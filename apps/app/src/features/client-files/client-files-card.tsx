@@ -25,7 +25,6 @@ import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
 import { useMe } from '@/features/account/use-me';
 import type { Client } from '@/features/clients/client-form-schema';
-import { sheetFlushCard } from '@/features/clients/sheet-flush';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteClientFileDialog, RenameClientFileDialog } from './client-file-dialogs';
@@ -49,16 +48,18 @@ export function ClientFilesCard({
   employee,
   userId,
   readOnly,
+  flush = false,
 }: {
   client: Client;
   employee?: ClientFileEmployee;
   userId: string;
   readOnly: boolean;
+  // Alone in a tab whose name it repeats: it runs without a card's frame or a visible title.
+  flush?: boolean;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const isOwner = useMe().data?.membership?.role === 'owner';
   const lead = client.stage === 'lead';
-  const ofClient = !employee && !lead;
   const params = employee ? { employeeId: employee.id } : undefined;
   const queryKey = [...getListClientFilesQueryKey(client.id, params), userId];
   // Every file comes with a signed link, so the list fetches itself again before they expire.
@@ -184,9 +185,8 @@ export function ClientFilesCard({
       <SectionCard
         data-testid={employee ? 'employee-files-card' : 'client-files-card'}
         title={employee ? 'Documente' : 'Alte documente'}
-        hideTitle={ofClient}
-        data-sheet-flush={ofClient || undefined}
-        className={cn('relative', ofClient && sheetFlushCard)}
+        hideTitle={flush}
+        className={cn('relative', flush && 'rounded-none border-0 shadow-none')}
         description={
           <>
             {employee

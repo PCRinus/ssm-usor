@@ -11,6 +11,7 @@ const searchSchema = focusSearch(fireSafetyDocumentsFocus).extend({
 });
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/documente-su/')({
+  staticData: { flushSheet: true },
   validateSearch: searchSchema,
   component: FireSafetyDocumentsPage,
 });

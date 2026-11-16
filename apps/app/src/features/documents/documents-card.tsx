@@ -9,7 +9,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card } from '@ssm-usor/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -71,7 +70,6 @@ import { openedHere } from '@/app/opener';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
-import { sheetFlushCard } from '@/features/clients/sheet-flush';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
 import { formatRoDate } from '@/lib/dates';
@@ -814,11 +812,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     );
 
   return (
-    <Card
-      data-testid="documents-card"
-      data-sheet-flush
-      className={cn('gap-0 py-0', sheetFlushCard)}
-    >
+    <div data-testid="documents-card" className="flex flex-col">
       {pack ? (
         <PackLayout
           set={set}
@@ -913,6 +907,6 @@ export function DocumentsCard<Set extends DocumentSet>({
           </DialogContent>
         )}
       </Dialog>
-    </Card>
+    </div>
   );
 }

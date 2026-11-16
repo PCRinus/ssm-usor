@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { ClientFilesCard } from '@/features/client-files/client-files-card';
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/alte-documente/')({
+  staticData: { flushSheet: true },
   component: OtherDocumentsPage,
 });
 
@@ -21,6 +22,7 @@ function OtherDocumentsPage() {
         client={client}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
+        flush
       />
     </div>
   );

@@ -1,12 +1,17 @@
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { useMatches } from '@tanstack/react-router';
 
 import { backGap } from '@/components/back-gap';
 import { BackLink } from '@/components/back-link';
+import { phoneBleed, phoneStripInset } from '@/components/page-spacing';
 
 import { ClientSheet } from './client-sheet';
 
 export function ClientPending() {
+  const fullPage = useMatches({
+    select: (matches) => matches.some((match) => match.staticData.fullPage),
+  });
   return (
     <div aria-busy="true">
       <div className={cn('mb-5 flex items-center', backGap)}>
@@ -15,10 +20,14 @@ export function ClientPending() {
         </div>
         <Skeleton className="h-12 flex-1 rounded-lg" />
       </div>
-      <div className="pt-2 max-sm:-mx-5 max-sm:px-3">
-        <Skeleton className="h-10 w-full rounded-b-none" />
-      </div>
-      <ClientSheet />
+      {!fullPage && (
+        <>
+          <div className={cn('pt-2', phoneBleed, phoneStripInset)}>
+            <Skeleton className="h-10 w-full rounded-b-none" />
+          </div>
+          <ClientSheet />
+        </>
+      )}
     </div>
   );
 }

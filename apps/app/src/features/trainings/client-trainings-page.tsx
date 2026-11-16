@@ -21,14 +21,19 @@ import { keepOpener } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
-import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
+import {
+  FilterTab,
+  FilterTabs,
+  ListActions,
+  ListCardHeader,
+  ListCount,
+} from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
-import { sheetFlushList } from '@/features/clients/sheet-flush';
 import { WorkersListError } from '@/features/employees/workers-list';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';
@@ -178,10 +183,10 @@ export function ClientTrainingsPage() {
   const empty = trainings.isSuccess && !narrowed && unfilteredTotal === 0;
 
   return (
-    <div data-testid="client-trainings-page" className="space-y-5">
+    <div data-testid="client-trainings-page">
       <h2 className="sr-only">Instruiri ținute</h2>
-      <div data-sheet-flush className={sheetFlushList}>
-        <ListCardHeader>
+      <div>
+        <ListCardHeader data-testid="trainings-toolbar">
           <FilterTabs label="Filtrează după domeniu">
             {domainFilters.map((filter) => (
               <FilterTab
@@ -231,23 +236,24 @@ export function ClientTrainingsPage() {
               />
             </div>
           )}
-          <div className="max-md:contents md:ml-auto md:flex md:flex-wrap md:items-center md:justify-end md:gap-3">
-            {trainings.isSuccess && (
-              <ListCount testId="trainings-count">
-                {narrowed ? (
-                  <>
-                    <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
-                    {phone ? unfilteredTotal : trainingNoun(unfilteredTotal)}
-                  </>
-                ) : (
-                  trainingNoun(meta.total)
-                )}
-              </ListCount>
-            )}
-            {!readOnly && trainings.isSuccess && !empty && (
-              <div className="grid w-full max-md:order-first md:flex md:w-auto">{recordButton}</div>
-            )}
-          </div>
+          <ListActions
+            count={
+              trainings.isSuccess && (
+                <ListCount testId="trainings-count">
+                  {narrowed ? (
+                    <>
+                      <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
+                      {phone ? unfilteredTotal : trainingNoun(unfilteredTotal)}
+                    </>
+                  ) : (
+                    trainingNoun(meta.total)
+                  )}
+                </ListCount>
+              )
+            }
+          >
+            {!readOnly && trainings.isSuccess && !empty && recordButton}
+          </ListActions>
         </ListCardHeader>
         <AppliedFilters
           facets={clientTrainingFacets}

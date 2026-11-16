@@ -24,6 +24,7 @@ const searchSchema = z
   .transform(fromLegacyWorkerFilters);
 
 export const Route = createFileRoute('/_authenticated/clienti/$clientId/angajati/')({
+  staticData: { flushSheet: true },
   validateSearch: searchSchema,
   component: EmployeesPage,
 });
