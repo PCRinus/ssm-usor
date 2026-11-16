@@ -1,17 +1,23 @@
 import type { RouteHandler } from '@hono/zod-openapi';
-import type {
-  MemberErrorReason,
-  OnboardingErrorReason,
-  OrganizationMemberListResponse,
-  OrganizationMembership,
+import {
+  billingPlans,
+  type MemberErrorReason,
+  type OnboardingErrorReason,
+  type OrganizationMemberListResponse,
+  type OrganizationMembership,
+  type OrganizationSeats,
 } from '@ssm-usor/contracts';
 
+import { createAdminClient } from '../../lib/admin-db';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { usageLimits } from '../billing/rules';
+import { countMemberSeats, loadSubscription } from '../billing/store';
 import type {
   changeMemberRoleRoute,
   createOrganizationRoute,
+  getOrganizationSeatsRoute,
   listOrganizationMembersRoute,
   removeMemberRoute,
 } from './routes';
@@ -83,21 +89,32 @@ export const listOrganizationMembers: RouteHandler<
   typeof listOrganizationMembersRoute,
   ApiEnv
 > = async (c) => {
-  const { data, error } = await createDataClient(c)
-    .rpc('organization_member_list')
-    .order('joined_at', { ascending: true });
-  if (error) throw fromDatabaseError(error, 'organization members');
+  const db = createDataClient(c);
+  const owner = c.get('membership').role === 'owner';
+  const [members, activity] = await Promise.all([
+    db.rpc('organization_member_list').order('joined_at', { ascending: true }),
+    owner ? db.rpc('organization_member_activity') : null,
+  ]);
+  if (members.error) throw fromDatabaseError(members.error, 'organization members');
+  if (activity?.error) throw fromDatabaseError(activity.error, 'organization member activity');
+  const lastActive = new Map(
+    (activity?.data ?? []).map((row) => [row.user_id, row.last_active_at as string | null])
+  );
 
   return c.json(
     {
-      items: data.map((member) => ({
-        userId: member.user_id,
-        email: member.email,
-        fullName: member.full_name,
-        professionalTitle: member.professional_title,
-        role: member.role,
-        joinedAt: new Date(member.joined_at).toISOString(),
-      })),
+      items: members.data.map((member) => {
+        const active = lastActive.get(member.user_id);
+        return {
+          userId: member.user_id,
+          email: member.email,
+          fullName: member.full_name,
+          professionalTitle: member.professional_title,
+          role: member.role,
+          joinedAt: new Date(member.joined_at).toISOString(),
+          ...(owner && { lastActiveAt: active ? new Date(active).toISOString() : null }),
+        };
+      }),
     } satisfies OrganizationMemberListResponse,
     200
   );
@@ -127,4 +144,35 @@ export const removeMember: RouteHandler<typeof removeMemberRoute, ApiEnv> = asyn
   if (!removed) throw noSuchMember();
 
   return c.body(null, 204);
+};
+
+// Counts across the organization, which no member's own policies may read whole; the secret key is
+// scoped to the caller's organization here.
+export const getOrganizationSeats: RouteHandler<typeof getOrganizationSeatsRoute, ApiEnv> = async (
+  c
+) => {
+  const admin = createAdminClient(c);
+  const { organizationId, access } = c.get('membership');
+  const [row, seats] = await Promise.all([
+    loadSubscription(admin, organizationId),
+    countMemberSeats(admin, organizationId),
+  ]);
+
+  const limit = usageLimits(row, new Date()).members;
+
+  return c.json(
+    {
+      ...seats,
+      limit,
+      // A trial already has Profesional's users, so moving there would add none.
+      canUpgrade:
+        limit !== null &&
+        limit < billingPlans.profesional.members &&
+        row?.plan === 'start' &&
+        row.stripe_subscription_id !== null &&
+        row.status !== 'canceled' &&
+        access !== 'read_only',
+    } satisfies OrganizationSeats,
+    200
+  );
 };

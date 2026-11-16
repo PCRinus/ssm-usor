@@ -24,6 +24,7 @@ import {
   giftPanelFor,
 } from './credits-copy';
 import { creditsExtraMeter, smsExtraMeter } from './extras-copy';
+import { memberSeatsOf, seatsOfOverview, upgradeSearch } from './member-seats';
 import { toneInks } from './meter-tones';
 import { type MeterTone, type SmsMeter, smsMeterFor, stopOf } from './sms-copy';
 import { roDate } from './subscription-copy';
@@ -82,11 +83,9 @@ export function UsageCard({
   const owner = overview.owner !== null;
   const live = hasLiveSubscription(subscription) && view !== 'readOnly';
   const employees = overview.usage.employees.used ?? 0;
-  const members = overview.usage.members.used ?? 0;
 
   const inTrial = view === 'trial' || view === 'trialChosen';
   const employeeLimit = overview.usage.employees.limit;
-  const memberLimit = overview.usage.members.limit;
   const next = choice ? nextStepOf(choice, employees) : null;
   const profesionalStep = stepFor('profesional', employees);
 
@@ -112,7 +111,7 @@ export function UsageCard({
   }
 
   const invitations = overview.usage.invitations;
-  const taken = members + invitations;
+  const seats = memberSeatsOf(seatsOfOverview(overview), canAct);
   const invited =
     invitations === 0 || view === 'readOnly'
       ? ''
@@ -126,8 +125,7 @@ export function UsageCard({
     memberHint = `Start are ${billingPlans.start.members} utilizatori, Profesional ${billingPlans.profesional.members}.`;
   } else {
     const plan = billingPlans[choice.plan];
-    const full = memberLimit !== null && taken >= memberLimit;
-    memberHint = full
+    memberHint = seats.full
       ? choice.plan === 'start'
         ? `${shortPlanNames.start} are ${plan.members} utilizatori. Pentru un coleg nou, ${owner ? 'treci' : 'adminul trece'} pe Profesional, care are ${billingPlans.profesional.members}.`
         : `${shortPlanNames.profesional} are ${plan.members} utilizatori. Pentru mai mulți, scrie-ne pentru o ofertă.`
@@ -185,13 +183,11 @@ export function UsageCard({
     {
       key: 'members',
       label: 'Utilizatori',
-      used: members,
-      limit: memberLimit,
+      used: seats.taken,
+      limit: seats.limit,
+      tone: seats.full && seats.taken === seats.limit ? 'warning' : undefined,
       hint: memberHint,
-      action:
-        canAct && live && choice?.plan === 'start' && memberLimit !== null && taken >= memberLimit
-          ? { label: 'Treci pe Profesional', search: { plan: 'profesional' as const } }
-          : undefined,
+      action: seats.upgrade ? { label: 'Treci pe Profesional', search: upgradeSearch } : undefined,
     },
     {
       key: 'sms',

@@ -45,7 +45,7 @@ export interface DataTableProps<TData extends RowData> {
   // Rendered in place of the table and its pager when the whole list is empty.
   empty: ReactNode;
   testId?: string;
-  rowTestId?: string;
+  rowTestId?: string | ((row: TData) => string);
   onRowClick?: (row: TData) => void;
   expansion?: DataTableExpansion<TData>;
   selection?: DataTableSelection<TData>;
@@ -269,7 +269,9 @@ export function DataTable<TData extends RowData>({
               return (
                 <Fragment key={row.id}>
                   <TableRow
-                    data-testid={rowTestId}
+                    data-testid={
+                      typeof rowTestId === 'function' ? rowTestId(row.original) : rowTestId
+                    }
                     data-open={expansion ? open : undefined}
                     data-state={selected === true ? 'selected' : undefined}
                     {...click}

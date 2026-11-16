@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { billingPlans } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -11,23 +12,23 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
+import { Link, useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
-import {
-  type ApiErrorResponse,
-  getListInvitationsQueryKey,
-  useCreateInvitation,
-} from '@/api/generated/api';
+import { type ApiErrorResponse, useCreateInvitation } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { openedHere } from '@/app/opener';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
+import { type MemberSeats, upgradeSearch, userNoun } from '@/features/subscription/member-seats';
+import { contactEmail } from '@/features/subscription/subscription-copy';
 
 import { inviteFormSchema, type InviteFormValues } from './invite-schema';
 import { roleLabels } from './labels';
+import { refreshTeam } from './refresh-team';
 
 // The API words conflicts with a `reason`; these two belong next to the email field.
 const emailReasons: Record<string, string> = {
@@ -58,12 +59,55 @@ function serverMessage(cause: unknown) {
   return 'Nu am putut trimite invitația. Verifică conexiunea și încearcă din nou.';
 }
 
-export function InviteMemberDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function InviteMemberDialog({
+  open,
+  seats,
+  onClose,
+}: {
+  open: boolean;
+  seats: MemberSeats | null;
+  onClose: () => void;
+}) {
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       {/* Mounted per opening, so a reopened dialog starts empty. */}
-      {open && <InviteForm onClose={onClose} />}
+      {open &&
+        (seats?.full ? (
+          <PlanFull seats={seats} onClose={onClose} />
+        ) : (
+          <InviteForm onClose={onClose} />
+        ))}
     </Dialog>
+  );
+}
+
+// Before an address is typed: the API would refuse any new one.
+function PlanFull({ seats, onClose }: { seats: MemberSeats; onClose: () => void }) {
+  return (
+    <DialogContent data-testid="invite-dialog" className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Invită un membru</DialogTitle>
+        <DialogDescription data-testid="invite-plan-full">
+          Planul are {userNoun(seats.limit ?? seats.taken)} și toți sunt ocupați de membri sau de
+          invitații în așteptare.{' '}
+          {seats.upgrade
+            ? `Pentru un coleg nou, treci pe Profesional, care are ${billingPlans.profesional.members}, sau revocă o invitație în așteptare.`
+            : `Poți revoca o invitație în așteptare. Pentru mai mulți utilizatori, scrie-ne la ${contactEmail}.`}
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter className="mt-6">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          {seats.upgrade ? 'Renunță' : 'Închide'}
+        </Button>
+        {seats.upgrade && (
+          <Button asChild data-testid="invite-upgrade">
+            <Link to="/organizatie/abonament/alege" state={openedHere} search={upgradeSearch}>
+              Treci pe Profesional
+            </Link>
+          </Button>
+        )}
+      </DialogFooter>
+    </DialogContent>
   );
 }
 
@@ -81,7 +125,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const invitation = await create.mutateAsync({ data: values });
-      await queryClient.invalidateQueries({ queryKey: getListInvitationsQueryKey() });
+      await refreshTeam(queryClient);
       toast.success(`Invitația a fost trimisă la ${invitation.email}.`);
       onClose();
     } catch (cause) {
@@ -124,7 +168,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             id="invite-role"
             label="Rol"
             mark="required"
-            hint="Specialiștii lucrează cu clienții și cu lucrătorii lor. Adminii pot, în plus, să invite alți membri."
+            help="organizatie.roluri"
             error={errors.role}
           >
             <NativeSelect
@@ -132,7 +176,6 @@ function InviteForm({ onClose }: { onClose: () => void }) {
               data-testid="invite-role"
               {...replayShow}
               disabled={busy}
-              aria-describedby="invite-role-hint"
               {...form.register('role')}
             >
               <NativeSelectOption value="specialist">{roleLabels.specialist}</NativeSelectOption>

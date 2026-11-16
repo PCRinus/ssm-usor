@@ -22,6 +22,9 @@ export const organizationMemberSchema = z.object({
   professionalTitle: z.string().nullable(),
   role: organizationRoleSchema,
   joinedAt: z.iso.datetime({ offset: true }),
+  // The later of the last sign-in and the last session renewal. Left out for a specialist, who
+  // does not see colleagues' activity; null for an account that never signed in.
+  lastActiveAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
@@ -32,6 +35,20 @@ export const organizationMemberListResponseSchema = z.object({
 });
 
 export type OrganizationMemberListResponse = z.infer<typeof organizationMemberListResponseSchema>;
+
+// Read without Stripe, for the team page; the Abonament page reads the same counts from billing.
+export const organizationSeatsSchema = z.object({
+  members: z.int().min(0),
+  // Open invitations only: an expired one holds no place.
+  invitations: z.int().min(0),
+  // Null where nothing limits the users: Enterprise, or no subscription.
+  limit: z.int().min(0).nullable(),
+  // A paid, live Start, whose owner gains users by moving to Profesional. Says nothing of the
+  // caller's right to.
+  canUpgrade: z.boolean(),
+});
+
+export type OrganizationSeats = z.infer<typeof organizationSeatsSchema>;
 
 export const changeMemberRoleRequestSchema = z.object({ role: organizationRoleSchema });
 

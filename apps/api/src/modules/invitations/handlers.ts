@@ -15,7 +15,7 @@ import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createToken, hashToken } from '../../lib/tokens';
 import { usageLimits } from '../billing/rules';
-import { countOpenInvitations, loadSubscription } from '../billing/store';
+import { countMemberSeats, loadSubscription } from '../billing/store';
 import { accountExists, fromInvitationError, invitationNotOpen } from './errors';
 import type {
   acceptInvitationRoute,
@@ -145,15 +145,8 @@ async function assertRoomForMember(c: Context<ApiEnv>, email: string) {
   const organizationId = c.get('membership').organizationId;
   const limit = usageLimits(await loadSubscription(admin, organizationId), new Date()).members;
   if (limit === null) return;
-  const [members, pending] = await Promise.all([
-    admin
-      .from('organization_members')
-      .select('user_id', { count: 'exact', head: true })
-      .eq('organization_id', organizationId),
-    countOpenInvitations(admin, organizationId, email),
-  ]);
-  if (members.error) throw fromDatabaseError(members.error, 'invitation member count');
-  if ((members.count ?? 0) + pending < limit) return;
+  const seats = await countMemberSeats(admin, organizationId, email);
+  if (seats.members + seats.invitations < limit) return;
   // A member's own address answers `already_member` from the database function instead.
   const list = await createDataClient(c).rpc('organization_member_list');
   if (list.error) throw fromDatabaseError(list.error, 'invitation member list');

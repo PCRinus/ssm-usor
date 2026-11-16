@@ -340,11 +340,29 @@ describe('the Abonament tab', () => {
     mount();
 
     const meter = await screen.findByTestId('meter-members');
-    expect(meter.textContent).toContain('2 din 3');
+    expect(meter.textContent).toContain('3 din 3');
+    expect(within(meter).getByRole('meter').getAttribute('aria-valuenow')).toBe('3');
     expect(within(meter).getByTestId('meter-members-hint').textContent).toBe(
       'O invitație în așteptare ține un loc. Start are 3 utilizatori. Pentru un coleg nou, treci pe Profesional, care are 10.'
     );
     expect(within(meter).getByRole('link', { name: 'Treci pe Profesional' })).toBeTruthy();
+  });
+
+  it('offers no Profesional to a trial at ten users with Start chosen, which it would not add to', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: trialChosenSubscription(),
+        members: 9,
+        invitations: 1,
+        limits: { employees: 5000, members: 10, sms: null },
+        owner: ownerPart(),
+      }),
+    });
+    mount();
+
+    const meter = await screen.findByTestId('meter-members');
+    expect(meter.textContent).toContain('10 din 10');
+    expect(within(meter).queryByRole('link', { name: 'Treci pe Profesional' })).toBeNull();
   });
 
   it('opens an invoice PDF through a signed link', async () => {

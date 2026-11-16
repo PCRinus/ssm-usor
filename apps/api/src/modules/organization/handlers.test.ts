@@ -6,12 +6,14 @@ import type { ApiEnv } from '../../lib/env';
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
+  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
   CORS_ORIGINS: 'https://app.ssmusor.ro',
 };
 
 const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
 const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const memberId = '1e8b36cc-d87a-4318-9af2-acb1f6156112';
+const strangerId = '5b0d1f2e-3c4a-4b6d-8e9f-0a1b2c3d4e5f';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -20,6 +22,15 @@ function mockUpstream({
   change = () => Response.json(true),
   remove = () => Response.json(true),
   create = () => Response.json(organizationId),
+  activity = () =>
+    Response.json([
+      { user_id: user.id, last_active_at: '2026-11-16T08:15:00+00:00' },
+      { user_id: memberId, last_active_at: null },
+    ]),
+  subscription = (): Response => Response.json(null),
+  memberCount = 2,
+  invitationCount = 1,
+  access = 'full',
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -27,7 +38,7 @@ function mockUpstream({
       case '/auth/v1/user':
         return Response.json({ ...user, is_anonymous: false });
       case '/rest/v1/rpc/current_membership':
-        return Response.json([{ user_id: user.id, organization_id: organizationId, role }]);
+        return Response.json([{ user_id: user.id, organization_id: organizationId, role, access }]);
       case '/rest/v1/rpc/organization_member_list':
         return Response.json([
           {
@@ -37,17 +48,40 @@ function mockUpstream({
             role: 'owner',
             joined_at: '2026-09-01T10:00:00+00:00',
           },
+          {
+            user_id: memberId,
+            email: 'ion@example.ro',
+            full_name: 'Ion Ionescu',
+            role: 'specialist',
+            joined_at: '2026-10-01T10:00:00+00:00',
+          },
         ]);
+      case '/rest/v1/rpc/organization_member_activity':
+        return activity();
       case '/rest/v1/rpc/change_organization_member_role':
         return change();
       case '/rest/v1/rpc/remove_organization_member':
         return remove();
       case '/rest/v1/rpc/create_organization':
         return create();
+      case '/rest/v1/subscriptions':
+        return subscription();
+      case '/rest/v1/organization_members':
+        return counted(memberCount);
+      case '/rest/v1/organization_invitations':
+        return counted(invitationCount);
     }
     throw new Error(`Unexpected upstream request: ${init?.method} ${url}`);
   });
 }
+
+const counted = (count: number) =>
+  new Response(null, { status: 200, headers: { 'Content-Range': `*/${count}` } });
+
+const upstreamCalls = (pathname: string) =>
+  fetchMock.mock.calls
+    .map(([input]) => new URL(input instanceof Request ? input.url : String(input)))
+    .filter((url) => url.pathname === pathname);
 
 const rpcBodies = (name: string) =>
   fetchMock.mock.calls
@@ -78,22 +112,143 @@ afterEach(() => {
 });
 
 describe('GET /organization/members', () => {
-  it('lists members for any member, specialists included', async () => {
+  const ana = {
+    userId: user.id,
+    email: user.email,
+    fullName: 'Ana Popescu',
+    role: 'owner',
+    joinedAt: '2026-09-01T10:00:00.000Z',
+  };
+  const ion = {
+    userId: memberId,
+    email: 'ion@example.ro',
+    fullName: 'Ion Ionescu',
+    role: 'specialist',
+    joinedAt: '2026-10-01T10:00:00.000Z',
+  };
+
+  it('lists members for a specialist without anyone’s activity, never asking for it', async () => {
     mockUpstream({ role: 'specialist' });
+
+    const response = await request('GET', '/organization/members');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [ana, ion] });
+    expect(rpcBodies('organization_member_activity')).toHaveLength(0);
+  });
+
+  it('gives an owner each member’s last activity, null for one who never signed in', async () => {
+    mockUpstream();
 
     const response = await request('GET', '/organization/members');
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       items: [
-        {
-          userId: user.id,
-          email: user.email,
-          fullName: 'Ana Popescu',
-          role: 'owner',
-          joinedAt: '2026-09-01T10:00:00.000Z',
-        },
+        { ...ana, lastActiveAt: '2026-11-16T08:15:00.000Z' },
+        { ...ion, lastActiveAt: null },
       ],
+    });
+  });
+
+  it('attaches activity only to members of the list, ignoring any other account', async () => {
+    mockUpstream({
+      activity: () =>
+        Response.json([{ user_id: strangerId, last_active_at: '2026-11-16T08:15:00+00:00' }]),
+    });
+
+    const response = await request('GET', '/organization/members');
+    const body = (await response.json()) as {
+      items: { userId: string; lastActiveAt: string | null }[];
+    };
+
+    expect(body.items.map((member) => member.userId)).toEqual([user.id, memberId]);
+    expect(body.items.every((member) => member.lastActiveAt === null)).toBe(true);
+  });
+
+  it('fails rather than answering without the activity it was asked for', async () => {
+    mockUpstream({
+      activity: () => Response.json({ code: '42501', message: 'denied' }, { status: 403 }),
+    });
+
+    const response = await request('GET', '/organization/members');
+
+    expect(response.status).not.toBe(200);
+  });
+});
+
+describe('GET /organization/seats', () => {
+  const subscriptionRow = (fields: Record<string, unknown>) => () =>
+    Response.json({
+      organization_id: organizationId,
+      plan: 'start',
+      status: 'active',
+      trial_ends_at: null,
+      stripe_subscription_id: 'sub_1',
+      employee_step: 250,
+      ...fields,
+    });
+
+  it('counts the members and the open invitations, as the invite check does, for any member', async () => {
+    mockUpstream({ role: 'specialist', subscription: subscriptionRow({}) });
+
+    const response = await request('GET', '/organization/seats');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      members: 2,
+      invitations: 1,
+      limit: 3,
+      canUpgrade: true,
+    });
+    const [members] = upstreamCalls('/rest/v1/organization_members');
+    expect(members?.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
+    const [invitations] = upstreamCalls('/rest/v1/organization_invitations');
+    expect(invitations?.searchParams.get('organization_id')).toBe(`eq.${organizationId}`);
+    expect(invitations?.searchParams.get('accepted_at')).toBe('is.null');
+    expect(invitations?.searchParams.get('revoked_at')).toBe('is.null');
+    expect(invitations?.searchParams.get('expires_at')).toMatch(/^gt\./);
+  });
+
+  it('never asks Stripe, so a paid plan answers from the database alone', async () => {
+    mockUpstream({ subscription: subscriptionRow({}) });
+
+    const response = await request('GET', '/organization/seats');
+
+    expect(response.status).toBe(200);
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('stripe.com'))
+    ).toHaveLength(0);
+  });
+
+  it('offers no upgrade from a trial, Profesional, a canceled Start or a read-only account', async () => {
+    const trialEnds = new Date(Date.now() + 86_400_000).toISOString();
+    for (const [fields, access] of [
+      [{ status: 'trialing', trial_ends_at: trialEnds }, 'full'],
+      [{ plan: 'profesional', employee_step: 500 }, 'full'],
+      [{ status: 'canceled' }, 'full'],
+      [{ stripe_subscription_id: null, employee_step: null }, 'full'],
+      [{}, 'read_only'],
+    ] as const) {
+      fetchMock.mockReset();
+      mockUpstream({ subscription: subscriptionRow(fields), access });
+
+      const body = (await (await request('GET', '/organization/seats')).json()) as {
+        canUpgrade: boolean;
+      };
+
+      expect(body.canUpgrade).toBe(false);
+    }
+  });
+
+  it('has no limit without a subscription', async () => {
+    mockUpstream({ memberCount: 4, invitationCount: 0 });
+
+    expect(await (await request('GET', '/organization/seats')).json()).toEqual({
+      members: 4,
+      invitations: 0,
+      limit: null,
+      canUpgrade: false,
     });
   });
 });

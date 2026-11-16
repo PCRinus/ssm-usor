@@ -166,6 +166,24 @@ export async function countOpenInvitations(
   return count ?? 0;
 }
 
+// The plan's users the invite check counts (ADR 029). `exceptEmail` leaves out the invitation
+// being renewed, which already holds its place.
+export async function countMemberSeats(
+  db: AdminClient,
+  organizationId: string,
+  exceptEmail?: string
+) {
+  const [members, invitations] = await Promise.all([
+    db
+      .from('organization_members')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('organization_id', organizationId),
+    countOpenInvitations(db, organizationId, exceptEmail),
+  ]);
+  if (members.error) throw fromDatabaseError(members.error, 'member seats count');
+  return { members: members.count ?? 0, invitations };
+}
+
 export type Company = Omit<BillingOrganization, 'recipientEmail' | 'cui' | 'name'> & {
   name: string | null;
   cui: string | null;

@@ -49,6 +49,7 @@ sources:
   - apps/api/src/modules/extras/policy.ts
   - apps/app/src/features/subscription/extras-copy.ts
   - apps/app/src/features/subscription/checkout/*.tsx
+  - apps/app/src/features/subscription/member-seats.ts
 ---
 
 Abonamentul e al organizației, nu al unei persoane. Îl alege, îl schimbă și îl anulează adminul organizației; colegii văd planul și cât folosiți, fără sume și fără butoane.
@@ -115,7 +116,7 @@ Aplicația nu te lasă să alegi o treaptă sub câți lucrători ai azi: dacă 
 Se numără:
 
 - **lucrătorii la clienți**: lucrătorii actuali ai clienților activi, față de treapta ta. Foștii lucrători, ofertele și clienții arhivați nu intră în număr;
-- **utilizatorii**: membrii organizației, cu tine cu tot. O invitație trimisă și neacceptată ține și ea un loc, iar sub bară scrie câte sunt în așteptare: pe Start, cu 3 utilizatori, nu poți trimite o invitație dacă sunteți 2 și mai e una în așteptare. Când nu mai e loc, poți revoca o invitație sau, de pe Start, poți trece pe Profesional;
+- **utilizatorii**: membrii organizației, cu tine cu tot, și invitațiile în așteptare, fiindcă fiecare invitație trimisă și neacceptată ține un loc. Sub bară scrie câte invitații sunt în așteptare: pe Start, cu 3 utilizatori, dacă sunteți 2 și mai e o invitație în așteptare, bara arată „3 din 3” și nu mai poți trimite alta. Același număr apare și în tabul **Echipă** (vezi [Locurile din plan](/organizatie/echipa/#locurile-din-plan)). Când nu mai e loc, poți revoca o invitație sau, de pe Start, poți trece pe Profesional;
 - **codurile de semnare prin SMS**: câte au plecat luna aceasta, față de cât include treapta, de exemplu „252 din 300”. Luna e a abonamentului: începe în ziua în care se reînnoiește, de exemplu de pe 14.10 până pe 13.11, și pe un plan anual. Invitațiile în portal, codurile de conectare și anunțurile că sunt instruiri de semnat pleacă și ele prin SMS, dar nu se numără. În perioada de probă, fără un plan ales, rândul nu are bară: spune doar că totul pleacă pe email.
 
 Dacă treci de treapta ta, lucrezi mai departe cu tot ce ai. Pagina îți spune cu câți ai trecut, până în ce zi mai poți adăuga lucrători noi și îți propune treapta următoare, cu **Treci pe treapta următoare**. Adminul primește un email când treci de treaptă, cel târziu a doua zi, și încă unul cu trei zile înainte de termen.

@@ -456,6 +456,7 @@ export const helpTopics = {
     path: '/organizatie/abonament/',
     anchor: 'contul-doar-pentru-citire',
   },
+  'organizatie.echipa': { path: '/organizatie/echipa/', anchor: 'tabelul-echipei' },
   'organizatie.extra': { path: '/organizatie/abonament/', anchor: 'extra' },
   'organizatie.perioada-de-proba': { path: '/organizatie/abonament/', anchor: 'perioada-de-probă' },
   'organizatie.plata-nereusita': {
@@ -463,6 +464,7 @@ export const helpTopics = {
     anchor: 'când-plata-nu-reușește',
   },
   'organizatie.plata-si-facturi': { path: '/organizatie/abonament/', anchor: 'plata-și-facturile' },
+  'organizatie.roluri': { path: '/organizatie/echipa/', anchor: 'rolurile' },
   'organizatie.schimbarea-planului': {
     path: '/organizatie/abonament/',
     anchor: 'schimbarea-planului',

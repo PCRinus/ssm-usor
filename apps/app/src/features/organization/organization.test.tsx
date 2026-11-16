@@ -1,3 +1,4 @@
+import type { OrganizationSeats } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,6 +28,7 @@ const members = [
     fullName: 'Ana Popescu',
     role: 'owner',
     joinedAt: '2026-09-01T10:00:00.000Z',
+    lastActiveAt: '2026-11-16T08:00:00.000Z',
   },
   {
     userId: 'user-two',
@@ -34,8 +36,19 @@ const members = [
     fullName: null,
     role: 'specialist',
     joinedAt: '2026-09-10T10:00:00.000Z',
+    lastActiveAt: '2026-10-02T08:00:00.000Z',
+  },
+  {
+    userId: 'user-three',
+    email: 'bogdan@example.test',
+    fullName: 'Bogdan Ionescu',
+    role: 'specialist',
+    joinedAt: '2026-09-12T10:00:00.000Z',
+    lastActiveAt: null,
   },
 ];
+
+const withoutActivity = members.map((member) => ({ ...member, lastActiveAt: undefined }));
 
 const invitation = {
   id: '7a0e4c7e-4a59-4f8e-8d1e-3f1f6f0b9a11',
@@ -46,6 +59,24 @@ const invitation = {
   expiresAt: '2026-09-25T10:00:00.000Z',
   createdAt: '2026-09-18T10:00:00.000Z',
 };
+
+const expiredInvitation = {
+  ...invitation,
+  id: '9c2f6e9a-6b7a-4a0f-9f2e-5a3b8b2c1d22',
+  email: 'sorina@example.test',
+  status: 'expired',
+  expiresAt: '2026-09-08T10:00:00.000Z',
+  createdAt: '2026-09-01T10:00:00.000Z',
+};
+
+const trialSeats: OrganizationSeats = {
+  members: 3,
+  invitations: 1,
+  limit: 10,
+  canUpgrade: false,
+};
+
+const startFull: OrganizationSeats = { members: 2, invitations: 1, limit: 3, canUpgrade: true };
 
 const companyDetails: OrganizationCompanyDetailsResponse['companyDetails'] = {
   legalName: 'S.C. PROTECT SSM S.R.L.',
@@ -95,6 +126,7 @@ const fetchMock = vi.fn<typeof fetch>();
 function mockApi({
   role = 'owner' as 'owner' | 'specialist' | null,
   invitations = [invitation] as unknown[],
+  seats = trialSeats,
   create = (() => Response.json(invitation, { status: 201 })) as Route,
   resend = (() => Response.json(invitation)) as Route,
   revoke = (() => new Response(null, { status: 204 })) as Route,
@@ -111,7 +143,13 @@ function mockApi({
     const method = init?.method ?? 'GET';
     if (pathname === '/me') return Response.json(meAs(role));
     if (pathname === '/me/invitations') return Response.json({ items: [] });
-    if (pathname === '/organization/members') return Response.json({ items: members });
+    if (pathname === '/organization/members') {
+      return Response.json({ items: role === 'owner' ? members : withoutActivity });
+    }
+    if (pathname === '/organization/seats') return Response.json(seats);
+    if (pathname === '/billing') {
+      return Response.json({ error: 'service_unavailable', message: 'Stripe' }, { status: 503 });
+    }
     if (pathname === '/organization/company-details') {
       return method === 'PUT'
         ? saveCompanyDetails(init)
@@ -159,44 +197,174 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('organization page', () => {
-  it('shows the organization, its members, and the pending invitations to an owner', async () => {
-    mockApi();
+const headers = () =>
+  within(screen.getByTestId('team-table'))
+    .getAllByRole('columnheader')
+    .map((header) => header.textContent?.replace('\u2060', ''));
+
+const rowNames = () =>
+  screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[0]!.textContent);
+
+describe('team table', () => {
+  it('shows an owner the members and then the invitations in one table', async () => {
+    mockApi({ invitations: [expiredInvitation, invitation] });
     mount();
 
     const page = await screen.findByTestId('organization-page');
     expect(within(page).getByRole('heading', { level: 1 }).textContent).toBe('Protect SSM');
+    await screen.findAllByTestId('invitation-row');
+    expect(screen.getAllByTestId('team-table')).toHaveLength(1);
+    expect(headers()).toEqual(['Nume', 'Rol', 'Stare', 'Ultima activitate', 'Acțiuni']);
+    expect(rowNames()).toEqual([
+      'Ana Popescu (tu)review@example.test',
+      'Bogdan Ionescubogdan@example.test',
+      'ion@example.test',
+      'maria@example.test',
+      'sorina@example.test',
+    ]);
 
-    const rows = await screen.findAllByTestId('member-row');
-    expect(rows).toHaveLength(2);
-    expect(within(rows[0]!).getByText('Ana Popescu')).toBeTruthy();
-    expect(within(rows[0]!).getByText('(tu)')).toBeTruthy();
-    expect(within(rows[0]!).getByText('Admin')).toBeTruthy();
-    expect(within(rows[1]!).getByText('Fără nume')).toBeTruthy();
-    expect(within(rows[1]!).getByText('ion@example.test')).toBeTruthy();
+    const [own, bogdan, nameless] = screen.getAllByTestId('member-row');
+    expect(within(own!).getByText('Admin')).toBeTruthy();
+    expect(own!.textContent).toContain('Membrudin 01.09.2026');
+    expect(own!.textContent).toContain('16.11.2026');
+    expect(within(bogdan!).getByText('—')).toBeTruthy();
+    expect(within(nameless!).getByText('Specialist')).toBeTruthy();
 
-    const pending = await screen.findByTestId('invitation-row');
-    expect(within(pending).getByText('maria@example.test')).toBeTruthy();
-    expect(within(pending).getByText(/Expiră pe 25 sept\. 2026/)).toBeTruthy();
+    const [open, expired] = screen.getAllByTestId('invitation-row');
+    expect(open!.textContent).toContain('Invitație în așteptareexpiră pe 25.09.2026');
+    expect(within(expired!).getByText('Invitație expirată').className).toContain(
+      'text-warning-foreground'
+    );
+    expect(expired!.textContent).toContain('pe 08.09.2026');
   });
 
-  it('shows a specialist the members, without invitations or the invite button', async () => {
+  it('shows a specialist the members alone, without activity, invitations or menus', async () => {
     mockApi({ role: 'specialist' });
     mount();
 
     await screen.findAllByTestId('member-row');
+    expect(headers()).toEqual(['Nume', 'Rol', 'Stare']);
+    expect(screen.queryByTestId('invitation-row')).toBeNull();
     expect(screen.queryByTestId('invite-open')).toBeNull();
-    expect(screen.queryByTestId('invitations-card')).toBeNull();
+    expect(screen.queryByTestId('member-actions')).toBeNull();
     expect(requests('/organization/invitations')).toHaveLength(0);
+    expect((await screen.findByTestId('team-seats')).textContent).toBe(
+      '3 membri · 1 invitație în așteptare'
+    );
   });
 
-  it('keeps the invite action without an empty invitations card', async () => {
-    mockApi({ invitations: [] });
+  it('counts a specialist’s colleagues alone while no invitation waits', async () => {
+    mockApi({ role: 'specialist', seats: { ...trialSeats, invitations: 0 } });
     mount();
 
-    expect(await screen.findByTestId('invite-open')).toBeTruthy();
-    await waitFor(() => expect(requests('/organization/invitations')).toHaveLength(1));
-    await waitFor(() => expect(screen.queryByTestId('invitations-card')).toBeNull());
+    expect((await screen.findByTestId('team-seats')).textContent).toBe('3 membri');
+  });
+
+  it('sorts by the last activity, the least recent first, and keeps the invitations last', async () => {
+    mockApi();
+    const runtime = mount();
+    const user = userEvent.setup();
+
+    await screen.findByTestId('invitation-row');
+    await user.click(screen.getByTestId('sort-lastActive'));
+
+    await waitFor(() =>
+      expect(rowNames()).toEqual([
+        'Bogdan Ionescubogdan@example.test',
+        'ion@example.test',
+        'Ana Popescu (tu)review@example.test',
+        'maria@example.test',
+      ])
+    );
+    expect(runtime.router.state.location.search).toEqual({ sort: 'lastActive' });
+
+    await user.click(screen.getByTestId('sort-name'));
+    await waitFor(() => expect(rowNames()[0]).toBe('Ana Popescu (tu)review@example.test'));
+    expect(runtime.router.state.location.search).toEqual({});
+  });
+
+  it('sorts a specialist by name even when the address asks for the activity', async () => {
+    mockApi({ role: 'specialist' });
+    mount('/organizatie/echipa?sort=lastActive');
+
+    await screen.findAllByTestId('member-row');
+    expect(rowNames()).toEqual([
+      'Ana Popescu (tu)review@example.test',
+      'Bogdan Ionescubogdan@example.test',
+      'ion@example.test',
+    ]);
+  });
+
+  it('counts the members and the open invitations against the plan', async () => {
+    mockApi({ invitations: [invitation, expiredInvitation] });
+    mount();
+
+    const seats = await screen.findByTestId('team-seats');
+    expect(seats.textContent).toBe('4 din 10 utilizatori');
+    expect(seats.dataset.full).toBeUndefined();
+    expect(screen.getByTestId('invite-open').dataset.variant).toBe('default');
+    expect(screen.queryByTestId('team-upgrade')).toBeNull();
+  });
+
+  it('counts without the billing overview, so a Stripe failure leaves the count in place', async () => {
+    mockApi();
+    mount();
+
+    expect((await screen.findByTestId('team-seats')).textContent).toBe('4 din 10 utilizatori');
+    expect(requests('/organization/seats')).toHaveLength(1);
+    expect(requests('/billing')).toHaveLength(0);
+  });
+
+  it('turns the count amber on a full Start and makes the upgrade the one primary action', async () => {
+    mockApi({ seats: startFull });
+    mount();
+
+    const seats = await screen.findByTestId('team-seats');
+    expect(seats.textContent).toBe('3 din 3 utilizatori');
+    expect(seats.className).toContain('text-warning-foreground');
+    const upgrade = screen.getByTestId('team-upgrade');
+    expect(upgrade.textContent).toBe('Treci pe Profesional');
+    expect(upgrade.dataset.variant).toBe('default');
+    expect(upgrade.getAttribute('href')).toBe('/organizatie/abonament/alege?plan=profesional');
+    expect(screen.getByTestId('invite-open').dataset.variant).toBe('outline');
+  });
+
+  it('shows a specialist on a full Start the colleagues, without the upgrade', async () => {
+    mockApi({ role: 'specialist', seats: startFull });
+    mount();
+
+    const seats = await screen.findByTestId('team-seats');
+    expect(seats.textContent).toBe('2 membri · 1 invitație în așteptare');
+    expect(seats.className).not.toContain('text-warning-foreground');
+    expect(screen.queryByTestId('team-upgrade')).toBeNull();
+  });
+
+  it('offers no upgrade from a trial at ten users with Start chosen, where Profesional adds none', async () => {
+    mockApi({ seats: { members: 9, invitations: 1, limit: 10, canUpgrade: true } });
+    mount();
+
+    expect((await screen.findByTestId('team-seats')).dataset.full).toBe('true');
+    expect(screen.queryByTestId('team-upgrade')).toBeNull();
+    expect(screen.getByTestId('invite-open').dataset.variant).toBe('default');
+  });
+
+  it('offers no upgrade from a full Profesional, where no larger plan can be chosen', async () => {
+    mockApi({ seats: { members: 9, invitations: 1, limit: 10, canUpgrade: false } });
+    mount();
+
+    expect((await screen.findByTestId('team-seats')).dataset.full).toBe('true');
+    expect(screen.queryByTestId('team-upgrade')).toBeNull();
+    expect(screen.getByTestId('invite-open').dataset.variant).toBe('default');
+  });
+
+  it('counts the users without a limit on Enterprise', async () => {
+    mockApi({ seats: { members: 3, invitations: 1, limit: null, canUpgrade: false } });
+    mount();
+
+    expect((await screen.findByTestId('team-seats')).textContent).toBe('4 utilizatori');
   });
 
   it('sends an account without an organization to onboarding', async () => {
@@ -207,20 +375,14 @@ describe('organization page', () => {
     expect(runtime.router.state.location.pathname).toBe('/configurare');
     expect(requests('/organization/members')).toHaveLength(0);
   });
-
-  it('marks an expired invitation', async () => {
-    mockApi({ invitations: [{ ...invitation, status: 'expired' }] });
-    mount();
-
-    expect(within(await screen.findByTestId('invitation-row')).getByText('Expirată')).toBeTruthy();
-  });
 });
 
 describe('inviting a member', () => {
-  it('sends the address and the chosen role, confirms with a toast, and refreshes the list', async () => {
+  it('sends the address and the chosen role, confirms with a toast, and refreshes the rows and the count', async () => {
     mockApi();
     mount();
     const { user, dialog } = await openInviteDialog();
+    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(1));
 
     await user.type(within(dialog).getByTestId('invite-email'), 'Maria@Example.test');
     await user.selectOptions(within(dialog).getByTestId('invite-role'), 'owner');
@@ -234,6 +396,44 @@ describe('inviting a member', () => {
       role: 'owner',
     });
     await waitFor(() => expect(requests('/organization/invitations')).toHaveLength(2));
+    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(2));
+    expect(requests('/billing')).toHaveLength(0);
+  });
+
+  it('explains the roles in the help article, not under the field', async () => {
+    mockApi();
+    mount();
+    const { dialog } = await openInviteDialog();
+
+    expect(dialog.querySelector('[data-help-topic="organizatie.roluri"]')).toBeTruthy();
+    expect(dialog.textContent).not.toContain('Specialiștii lucrează');
+  });
+
+  it('says the plan is full before an address is typed, and offers Profesional on Start', async () => {
+    mockApi({ seats: startFull });
+    mount();
+    await screen.findByTestId('team-upgrade');
+    const { dialog } = await openInviteDialog();
+
+    expect(within(dialog).getByTestId('invite-plan-full').textContent).toBe(
+      'Planul are 3 utilizatori și toți sunt ocupați de membri sau de invitații în așteptare. Pentru un coleg nou, treci pe Profesional, care are 10, sau revocă o invitație în așteptare.'
+    );
+    expect(within(dialog).queryByTestId('invite-email')).toBeNull();
+    expect(within(dialog).getByTestId('invite-upgrade').getAttribute('href')).toBe(
+      '/organizatie/abonament/alege?plan=profesional'
+    );
+  });
+
+  it('points a full Profesional to an offer instead', async () => {
+    mockApi({ seats: { members: 10, invitations: 0, limit: 10, canUpgrade: false } });
+    mount();
+    await waitFor(() => expect(screen.getByTestId('team-seats').dataset.full).toBe('true'));
+    const { dialog } = await openInviteDialog();
+
+    expect(within(dialog).getByTestId('invite-plan-full').textContent).toContain(
+      'scrie-ne la contact@ssmusor.ro'
+    );
+    expect(within(dialog).queryByTestId('invite-upgrade')).toBeNull();
   });
 
   it('validates the address before calling the API', async () => {
@@ -308,10 +508,19 @@ describe('inviting a member', () => {
 });
 
 describe('pending invitation actions', () => {
-  it('resends and confirms with a toast', async () => {
+  async function openInvitationMenu(email = 'maria@example.test') {
+    const user = userEvent.setup();
+    const row = (await screen.findAllByTestId('invitation-row')).find((each) =>
+      each.textContent?.includes(email)
+    )!;
+    await user.click(within(row).getByTestId('invitation-actions'));
+    return user;
+  }
+
+  it('resends from the row menu and confirms with a toast', async () => {
     mockApi();
     mount();
-    const user = userEvent.setup();
+    const user = await openInvitationMenu();
 
     await user.click(await screen.findByTestId('invitation-resend'));
 
@@ -322,19 +531,35 @@ describe('pending invitation actions', () => {
   it('reports a resend made too soon inline', async () => {
     mockApi({ resend: () => conflict('sent_recently') });
     mount();
-    const user = userEvent.setup();
+    const user = await openInvitationMenu();
 
     await user.click(await screen.findByTestId('invitation-resend'));
 
-    expect((await screen.findByTestId('invitations-error')).textContent).toMatch(
+    expect((await screen.findByTestId('team-error')).textContent).toMatch(
       /maria@example\.test în ultimele 10 minute/
     );
   });
 
-  it('revokes, confirms with a toast, and refreshes the list', async () => {
+  it('says why an expired invitation cannot be renewed on a full plan', async () => {
+    mockApi({
+      invitations: [invitation, expiredInvitation],
+      resend: () => conflict('member_limit_reached'),
+    });
+    mount();
+    const user = await openInvitationMenu('sorina@example.test');
+
+    await user.click(await screen.findByTestId('invitation-resend'));
+
+    expect((await screen.findByTestId('team-error')).textContent).toMatch(
+      /sorina@example\.test a expirat și nu mai ține un loc/
+    );
+  });
+
+  it('revokes, confirms with a toast, and refreshes the rows and the count', async () => {
     mockApi();
     mount();
-    const user = userEvent.setup();
+    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(1));
+    const user = await openInvitationMenu();
 
     await user.click(await screen.findByTestId('invitation-revoke'));
 
@@ -343,13 +568,18 @@ describe('pending invitation actions', () => {
     ).toBeTruthy();
     expect(requests(`/organization/invitations/${invitation.id}/revoke`, 'POST')).toHaveLength(1);
     await waitFor(() => expect(requests('/organization/invitations')).toHaveLength(2));
+    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(2));
+    expect(requests('/billing')).toHaveLength(0);
   });
 });
 
 describe('managing members', () => {
   async function openMenu() {
     const user = userEvent.setup();
-    await user.click(await screen.findByTestId('member-actions'));
+    const row = (await screen.findAllByTestId('member-row')).find((each) =>
+      each.textContent?.includes('ion@example.test')
+    )!;
+    await user.click(within(row).getByTestId('member-actions'));
     return user;
   }
 
@@ -360,14 +590,7 @@ describe('managing members', () => {
     const rows = await screen.findAllByTestId('member-row');
     expect(within(rows[0]!).queryByTestId('member-actions')).toBeNull();
     expect(within(rows[1]!).getByTestId('member-actions')).toBeTruthy();
-  });
-
-  it('offers no menu to a specialist', async () => {
-    mockApi({ role: 'specialist' });
-    mount();
-
-    await screen.findAllByTestId('member-row');
-    expect(screen.queryByTestId('member-actions')).toBeNull();
+    expect(within(rows[2]!).getByTestId('member-actions')).toBeTruthy();
   });
 
   it('switches a specialist to admin and refreshes the list', async () => {
@@ -424,7 +647,7 @@ describe('managing members', () => {
 
     await user.click(await screen.findByTestId('member-switch-role'));
 
-    expect((await screen.findByTestId('members-error')).textContent).toBe(
+    expect((await screen.findByTestId('team-error')).textContent).toBe(
       'ion@example.test nu mai face parte din organizație.'
     );
     await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));
@@ -446,7 +669,6 @@ describe('organization sections', () => {
     ]);
     expect(requests('/organization/company-details')).toHaveLength(0);
     expect(requests('/organization/authorizations')).toHaveLength(0);
-    expect(requests('/billing')).toHaveLength(0);
   });
 
   it('moves between sections', async () => {
@@ -848,7 +1070,7 @@ describe('what a session replay of the organization shows', () => {
 
     expect(replayedText(within(rows[0]!).getByText('Ana Popescu'))).toBe('*** *******');
     expect(replayedText(within(rows[0]!).getByText('Admin'))).toBe('Admin');
-    expect(replayedText(within(rows[1]!).getByText('ion@example.test'))).toBe('****************');
+    expect(replayedText(within(rows[2]!).getByText('ion@example.test'))).toBe('****************');
     const pending = await screen.findByTestId('invitation-row');
     expect(replayedText(within(pending).getByText('maria@example.test'))).not.toContain('maria');
     expect(replayedText(screen.getByTestId('account-name'))).toBe('*** *******');
