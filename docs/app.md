@@ -196,7 +196,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/clienti/import/$importId/evaluari-de-risc.tsx`                 | `/clienti/import/:importId/evaluari-de-risc`           | The import's risk evaluations task (ADR 036): one card per sheet of the pack, confirmed after the client.                                                                                                  |
 | `routes/_authenticated/clienti/$clientId.tsx`                                         | `/clienti/:id`                                         | Client layout: loads the client through `GET /clients/{clientId}`, shows its summary card and section tabs, returns the tab title from its loader.                                                         |
 | `routes/_authenticated/clienti/$clientId/index.tsx`                                   | `/clienti/:id`                                         | Redirects to the details.                                                                                                                                                                                  |
-| `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": one card per kind of data: the company, the legal representative, the workplaces, the contact, the owners' notes for an owner, and the client's confirmed imports from documents.               |
+| `routes/_authenticated/clienti/$clientId/detalii.tsx`                                 | `/clienti/:id/detalii`                                 | "Detalii": a waiting import as a task, then panels for the company and its people, the workplaces and the owners' notes for an owner, and the client's other confirmed imports.                            |
 | `routes/_authenticated/clienti/$clientId/angajati.tsx`                                | pathless                                               | Employees section layout carrying the tab title.                                                                                                                                                           |
 | `routes/_authenticated/clienti/$clientId/angajati/index.tsx`                          | `/clienti/:id/angajati`                                | The client's employees with a status filter, the state filters (`trainingState`, `testState`) and a text search (`q`) in the search params.                                                                |
 | `routes/_authenticated/clienti/$clientId/angajati/nou.tsx`                            | `/clienti/:id/angajati/nou`                            | Form that adds an employee to the client.                                                                                                                                                                  |
@@ -832,9 +832,12 @@ their tab bars read.
   with `trainingMonths` from the contracts, the same function the documents will use. Workers
   are offered no interval above six months. `PUT /clients/{clientId}/document-details`
   replaces every field, so an emptied input clears what was saved. An archived client is
-  shown read-only. The legal representative and the workplaces are cards of "Detalii"; the
-  workplaces card lists the registered office and the points of work from
-  `GET /clients/{clientId}/workplaces`, the registered office first with a badge. "Adaugă" and
+  shown read-only. The legal representative is a row of "Detalii"'s "Date firmă și
+  persoane" panel, beside the company's registration data and the contact, each with its own
+  "Modifică" that opens its form in place; the workplaces panel lists the registered office and
+  the points of work from `GET /clients/{clientId}/workplaces`, the registered office first with
+  a badge, with each one's activity, a mobile site's kind under its name and "Date SU
+  incomplete" in amber. "Adaugă" and
   a row's "Modifică" open one dialog; the API's `409` for a second registered office is
   reported on the checkbox and keeps the dialog open. "Arhivează" asks first, and a `404`
   refreshes the list. An archived client gets the list without add or row actions. The
@@ -1234,11 +1237,14 @@ their tab bars read.
   primary. "Gata" lists the client's data, with "Deschide clientul", and each confirmed part with
   "Vezi"; an expired part goes under "Au expirat". Once nothing is open, a green panel says
   "Importul e încheiat." with what was taken and "Deschide clientul", above "Ce am preluat". The
-  client's "Detalii" links back while a part is open (`LibraryTasksNotice`), and its last card,
-  "Importuri din documente" (`client-imports-card.tsx`), lists every confirmed client import of
-  the client, newest first, with its day, who ran it, its files and what is left ("N de
-  verificat, până pe …", "Încheiat", or what expired), each row opening the import; both read
-  `GET /imports?clientId=&status=confirmed`, which for a client's client imports has no cap. A
+  client's "Detalii" opens with a panel per import while a part is open (`WaitingImportPanel`):
+  "N părți de verificat până pe …" by the earliest deadline, the import's day, who and files,
+  each open part with its status, and "Verifică importul". Its last section, "Importuri din
+  documente" (`client-imports-card.tsx`), lists the client's other confirmed client imports,
+  newest first, with their day, who ran them, their files and how they ended ("Încheiat" or what
+  expired), each row opening the import; both come from one
+  `GET /imports?clientId=&status=confirmed` (`useClientImportGroups`), which for a client's
+  client imports has no cap. A
   failed part offers "Citește din nou" (`POST …/retry`).
 - The import's risk evaluations ([ADR 036](architecture/adr-036-risk-library-and-import.md),
   `risks-task-page.tsx`, `risk-sheet-card.tsx`, `risks-model.ts`). After the instructions the hub

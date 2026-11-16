@@ -135,7 +135,9 @@ function mockApi(
       | 'delete'
       | 'details'
       | 'saveDetails'
-      | 'employees',
+      | 'employees'
+      | 'notes'
+      | 'saveNotes',
       Route
     >
   > = {}
@@ -191,8 +193,13 @@ function mockApi(
     if (url.pathname === `/clients/${sampleClient.id}/workplaces` && method === 'GET') {
       return Response.json({ items: [] });
     }
-    if (url.pathname === `/clients/${sampleClient.id}/owner-notes` && method === 'GET') {
-      return Response.json({ notes: { body: '', updatedAt: null } });
+    if (url.pathname === `/clients/${sampleClient.id}/owner-notes`) {
+      return method === 'PUT'
+        ? (routes.saveNotes?.(init, url) ??
+            Response.json({
+              notes: { ...JSON.parse(String(init?.body)), updatedAt: '2026-09-18T10:00:00+00:00' },
+            }))
+        : (routes.notes?.(init, url) ?? Response.json({ notes: { body: '', updatedAt: null } }));
     }
     if (url.pathname === '/companies/lookup') {
       return routes.lookup?.(init, url) ?? Response.json({ company: sampleCompany });
@@ -1231,24 +1238,75 @@ describe('client details', () => {
     const cards = Array.from(page.querySelectorAll(':scope > [data-testid]')).map((card) =>
       card.getAttribute('data-testid')
     );
-    expect(cards).toEqual([
-      'company-card',
-      'legal-representative-card',
-      'workplaces-card',
-      'contact-card',
-      'owner-notes-card',
-    ]);
+    expect(cards).toEqual(['company-people-panel', 'workplaces-card', 'owner-notes-card']);
     const header = screen.getByTestId('client-page').querySelector('header')!;
     expect(header.textContent).toContain('RO1590082');
     expect(header.textContent).not.toContain('CAEN');
     expect(header.textContent).not.toContain('Sediu');
     expect(within(header).queryByText('Modifică')).toBeNull();
-    const company = screen.getByTestId('company-card');
-    expect(within(company).getByTestId('company-cui').textContent).toBe('RO1590082');
-    expect(within(company).getByTestId('company-caen').textContent).toBe(
+    const panel = screen.getByTestId('company-people-panel');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      'Date firmă și persoane'
+    );
+    expect(within(panel).getByTestId('company-edit').textContent).toBe('Modifică datele firmei');
+    expect(
+      within(panel)
+        .getAllByRole('term')
+        .map((term) => term.textContent)
+    ).toEqual([
+      'Nr. Reg. Com.',
+      'Cod CAEN',
+      'Sediul social',
+      'Plătitor de TVA',
+      'Client din',
+      'Reprezentant legal',
+      'Persoană de contact',
+    ]);
+    expect(within(panel).getByTestId('company-trade-register').textContent).toBe('J1997008302407');
+    expect(within(panel).getByTestId('company-caen').textContent).toBe(
       '0610Extracția petrolului brut'
     );
-    expect(within(company).getByTestId('company-county').textContent).toBe('București');
+    expect(within(panel).getByTestId('company-address').textContent).toBe(
+      'Str. Coralilor, nr. 22, Sector 1 Mun. București, București'
+    );
+    expect(within(panel).getByTestId('company-vat-payer').textContent).toBe('Da');
+    expect(within(panel).getByTestId('company-client-since').textContent).toBe('17.09.2026');
+    expect(panel.textContent).not.toContain('jud.');
+    expect(panel.textContent).not.toContain('OMV PETROM SA');
+    expect(panel.textContent).not.toContain('1590082');
+  });
+
+  it('dates a promoted client from its promotion, says when it pays no VAT and names the county of its office', async () => {
+    mockApi({
+      get: () =>
+        Response.json({
+          client: {
+            ...sampleClient,
+            vatPayer: false,
+            promotedAt: '2026-10-02T09:00:00+00:00',
+            countyCode: 'CJ',
+            locality: 'Florești',
+          },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    expect((await screen.findByTestId('company-client-since')).textContent).toBe('02.10.2026');
+    expect(screen.getByTestId('company-vat-payer').textContent).toBe('Nu');
+    expect(screen.getByTestId('company-address').textContent).toBe(
+      'Str. Coralilor, nr. 22, Florești, jud. Cluj'
+    );
+  });
+
+  it('opens the company data at the address a missing-data row asks for', async () => {
+    mockApi({ get: () => Response.json({ client: { ...sampleClient, addressLine: null } }) });
+    const runtime = mountApp(
+      authFixture(makeSession()).client,
+      `${detailsPath}?focus=company-address`
+    );
+    expect(await screen.findByTestId('company-form')).toBeTruthy();
+    await waitFor(() => expect(document.activeElement?.id).toBe('addressLine'));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
+    expect(screen.getByTestId('legal-representative-row')).toBeTruthy();
   });
 
   it('corrects the registration data in place, leaving the contact alone', async () => {
@@ -1276,8 +1334,8 @@ describe('client details', () => {
       ...registration,
       legalName: 'Petrom Nou SA',
     });
-    expect((await screen.findByTestId('company-legal-name')).textContent).toBe('Petrom Nou SA');
-    expect(screen.queryByTestId('company-form')).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId('company-form')).toBeNull());
+    expect(screen.getByTestId('company-trade-register').textContent).toBe('J1997008302407');
     await waitFor(() =>
       expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Petrom Nou SA')
     );
@@ -1323,7 +1381,8 @@ describe('client details', () => {
     await user.click(await screen.findByTestId('company-edit'));
     await user.type(screen.getByTestId('client-legal-name'), ' X');
     await user.click(screen.getByTestId('company-cancel'));
-    expect(screen.getByTestId('company-legal-name').textContent).toBe('OMV PETROM SA');
+    expect(screen.queryByTestId('company-form')).toBeNull();
+    expect(screen.getByTestId('company-trade-register').textContent).toBe('J1997008302407');
     await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('company-edit')));
     expect(requests(clientPath, 'PUT')).toHaveLength(0);
   });
@@ -1340,7 +1399,9 @@ describe('client details', () => {
     mountApp(authFixture(makeSession()).client, detailsPath);
     const user = userEvent.setup();
     expect(await screen.findByTestId('contact-empty')).toBeTruthy();
-    expect(screen.getByTestId('contact-edit').textContent).toBe('Adaugă');
+    expect(screen.getByRole('button', { name: 'Adaugă persoana de contact' })).toBe(
+      screen.getByTestId('contact-edit')
+    );
     await user.click(screen.getByTestId('contact-edit'));
     await user.type(screen.getByTestId('client-contact-name'), 'Andrei Pop');
     await user.type(screen.getByTestId('client-contact-email'), 'andrei@');
@@ -1358,8 +1419,13 @@ describe('client details', () => {
       contactPhone: null,
     });
     expect((await screen.findByTestId('contact-name')).textContent).toBe('Andrei Pop');
-    expect(screen.getByTestId('contact-phone').textContent).toBe('—');
-    expect(screen.getByTestId('contact-edit').textContent).toBe('Modifică');
+    expect(screen.getByTestId('contact-email').getAttribute('href')).toBe(
+      'mailto:andrei@petrom.example'
+    );
+    expect(screen.queryByTestId('contact-phone')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Modifică persoana de contact' })).toBe(
+      screen.getByTestId('contact-edit')
+    );
   });
 
   it('shows the legal representative and corrects it in place', async () => {
@@ -1448,8 +1514,11 @@ describe('client details', () => {
       legalRepresentativeName: 'Maria Popescu',
       legalRepresentativeEmployeeId: owner.id,
     });
-    expect((await screen.findByTestId('legal-representative-employee')).textContent).toBe(
-      'Popescu Maria, Tâmplar'
+    const employee = await screen.findByTestId('legal-representative-employee');
+    expect(employee.textContent).toBe('Popescu Maria');
+    expect(employee.getAttribute('href')).toBe(`/clienti/${sampleClient.id}/angajati/${owner.id}`);
+    expect(screen.getByTestId('legal-representative-row').textContent).toContain(
+      'Administrator · și lucrător al firmei: Popescu Maria'
     );
   });
 
@@ -1487,7 +1556,7 @@ describe('client details', () => {
     mountApp(authFixture(makeSession()).client, detailsPath);
     const user = userEvent.setup();
     expect((await screen.findByTestId('legal-representative-employee')).textContent).toBe(
-      'Popescu Maria, Tâmplar'
+      'Popescu Maria'
     );
     await user.click(screen.getByTestId('legal-representative-edit'));
     expect(
@@ -1506,7 +1575,7 @@ describe('client details', () => {
     mockApi({ me: meAs('owner'), get: () => Response.json({ client: archivedClient }) });
     mountApp(authFixture(makeSession()).client, detailsPath);
     expect(await screen.findByTestId('client-archived-banner')).toBeTruthy();
-    expect(await screen.findByTestId('owner-notes-body')).toHaveProperty('readOnly', true);
+    expect((await screen.findByTestId('owner-notes-empty')).textContent).toBe('Nicio notiță.');
     expect(await screen.findByTestId('legal-representative-empty')).toBeTruthy();
     expect(await screen.findByTestId('workplaces-empty')).toBeTruthy();
     for (const testId of [
@@ -1514,19 +1583,212 @@ describe('client details', () => {
       'legal-representative-edit',
       'workplace-add',
       'contact-edit',
-      'owner-notes-save',
+      'owner-notes-edit',
     ]) {
       expect(screen.queryByTestId(testId)).toBeNull();
     }
+    expect(
+      within(screen.getByTestId('client-details-page')).queryAllByRole('button', {
+        name: /^(Modifică|Adaugă)/,
+      })
+    ).toHaveLength(0);
+  });
+
+  it('writes an address from the parts it has', async () => {
+    mockApi({
+      get: () =>
+        Response.json({
+          client: { ...sampleClient, countyCode: 'CJ', locality: null, addressLine: null },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    expect((await screen.findByTestId('company-address')).textContent).toBe('jud. Cluj');
+  });
+
+  it('shows a dash for an office without an address', async () => {
+    mockApi({
+      get: () =>
+        Response.json({
+          client: { ...sampleClient, countyCode: null, locality: null, addressLine: null },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    await screen.findByTestId('company-trade-register');
+    expect(screen.queryByTestId('company-address')).toBeNull();
+    const office = screen.getByText('Sediul social').closest('div')!;
+    expect(office.textContent).toBe('Sediul social—');
+  });
+
+  it('names each button by what it changes', async () => {
+    mockApi({
+      me: meAs('owner'),
+      details: () => Response.json({ documentDetails: representative }),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    await screen.findByTestId('legal-representative-name');
+    await screen.findByTestId('owner-notes-empty');
+    const names = within(screen.getByTestId('client-details-page'))
+      .getAllByRole('button', { name: /^(Modifică|Adaugă)/ })
+      .map((button) => button.getAttribute('data-testid'));
+    expect(names).toEqual([
+      'company-edit',
+      'legal-representative-edit',
+      'contact-edit',
+      'workplace-add',
+      'owner-notes-edit',
+    ]);
+    for (const name of [
+      'Modifică datele firmei',
+      'Modifică reprezentantul legal',
+      'Adaugă persoana de contact',
+      'Adaugă un punct de lucru',
+      'Adaugă o notiță',
+    ]) {
+      expect(screen.getByRole('button', { name })).toBeTruthy();
+    }
+  });
+
+  it('keeps each form open while another one opens and closes', async () => {
+    mockApi({ details: () => Response.json({ documentDetails: representative }) });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('legal-representative-edit'));
+    await user.click(screen.getByTestId('company-edit'));
+    expect(screen.getByTestId('company-form')).toBeTruthy();
+    expect(screen.getByTestId('legal-representative-form')).toBeTruthy();
+    await user.click(screen.getByTestId('company-cancel'));
+    expect(screen.queryByTestId('company-form')).toBeNull();
+    expect(screen.getByTestId('legal-representative-form')).toBeTruthy();
+    await user.click(screen.getByTestId('company-edit'));
+    await user.click(screen.getByTestId('legal-representative-cancel'));
+    expect(screen.queryByTestId('legal-representative-form')).toBeNull();
+    expect(screen.getByTestId('company-form')).toBeTruthy();
+  });
+
+  it.each([
+    ['legal-representative-edit', 'legal-representative-cancel'],
+    ['contact-edit', 'contact-cancel'],
+  ])('puts the focus back on %s when its form closes', async (button, cancel) => {
+    mockApi({ details: () => Response.json({ documentDetails: representative }) });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    await screen.findByTestId('legal-representative-name');
+    await user.click(screen.getByTestId(button));
+    await user.click(screen.getByTestId(cancel));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId(button)));
+  });
+
+  it.each([
+    ['legal-representative-name', 'details-representative-name'],
+    ['legal-representative-role', 'details-representative-role'],
+    ['company-trade-register', 'tradeRegisterNumber'],
+  ])('opens ?focus=%s at its field', async (focus, field) => {
+    mockApi({ details: () => Response.json({ documentDetails: representative }) });
+    const runtime = mountApp(authFixture(makeSession()).client, `${detailsPath}?focus=${focus}`);
+    await waitFor(() => expect(document.activeElement?.id).toBe(field));
+    await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
   });
 
   it('keeps the notes away from a specialist', async () => {
     mockApi({ me: meAs('specialist') });
     mountApp(authFixture(makeSession()).client, detailsPath);
-    await screen.findByTestId('contact-card');
+    await screen.findByTestId('contact-row');
     await waitFor(() => expect(requests('/me').length).toBeGreaterThan(0));
     expect(screen.queryByTestId('owner-notes-card')).toBeNull();
     expect(requests(`${clientPath}/owner-notes`)).toHaveLength(0);
+  });
+});
+
+describe('client notes', () => {
+  const notesPath = `/clients/${sampleClient.id}/owner-notes`;
+  const detailsPath = `/clienti/${sampleClient.id}/detalii`;
+
+  it('reads as text, and opens for editing only when asked', async () => {
+    mockApi({
+      me: meAs('owner'),
+      notes: () =>
+        Response.json({
+          notes: { body: 'Sunat pe 12.09.\nVrea ofertă.', updatedAt: '2026-09-12T10:00:00+00:00' },
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    const text = await screen.findByTestId('owner-notes-text');
+    expect(text.textContent).toBe('Sunat pe 12.09.\nVrea ofertă.');
+    expect(screen.queryByTestId('owner-notes-body')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Modifică notițele' })).toBe(
+      screen.getByTestId('owner-notes-edit')
+    );
+
+    await user.click(screen.getByTestId('owner-notes-edit'));
+    const body = screen.getByTestId<HTMLTextAreaElement>('owner-notes-body');
+    expect(body.value).toBe('Sunat pe 12.09.\nVrea ofertă.');
+    expect(document.activeElement).toBe(body);
+    expect(screen.getByTestId<HTMLButtonElement>('owner-notes-save').disabled).toBe(true);
+    await user.type(body, ' Revin luni.');
+    await user.click(screen.getByTestId('owner-notes-cancel'));
+    expect(screen.getByTestId('owner-notes-text').textContent).toBe(
+      'Sunat pe 12.09.\nVrea ofertă.'
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('owner-notes-edit'))
+    );
+    expect(requests(notesPath, 'PUT')).toHaveLength(0);
+  });
+
+  it('adds the first note and saves it with the button', async () => {
+    mockApi({ me: meAs('owner') });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    expect((await screen.findByTestId('owner-notes-empty')).textContent).toBe('Nicio notiță încă.');
+    expect(screen.getByRole('button', { name: 'Adaugă o notiță' })).toBe(
+      screen.getByTestId('owner-notes-edit')
+    );
+    await user.click(screen.getByTestId('owner-notes-edit'));
+    await user.type(screen.getByTestId('owner-notes-body'), 'Vrea ofertă.');
+    await user.click(screen.getByTestId('owner-notes-save'));
+    expect(await screen.findByText('Notițele au fost salvate.')).toBeTruthy();
+    expect(JSON.parse(String(requests(notesPath, 'PUT')[0]![1]?.body))).toEqual({
+      body: 'Vrea ofertă.',
+    });
+    expect((await screen.findByTestId('owner-notes-text')).textContent).toBe('Vrea ofertă.');
+    expect(screen.queryByTestId('owner-notes-form')).toBeNull();
+  });
+
+  it('keeps the note open with what was typed when a reload of the notes fails', async () => {
+    let reads = 0;
+    mockApi({
+      me: meAs('owner'),
+      notes: () => {
+        reads += 1;
+        return reads === 1
+          ? Response.json({ notes: { body: 'Vrea ofertă.', updatedAt: null } })
+          : Response.json({ error: 'not_found', message: 'gone' }, { status: 404 });
+      },
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('owner-notes-edit'));
+    await user.type(screen.getByTestId('owner-notes-body'), ' Revin luni.');
+    await act(() => runtime.queryClient.refetchQueries({ type: 'active' }));
+    await waitFor(() => expect(reads).toBeGreaterThan(1));
+    expect(screen.getByTestId<HTMLTextAreaElement>('owner-notes-body').value).toBe(
+      'Vrea ofertă. Revin luni.'
+    );
+  });
+
+  it('keeps the note open with what was typed when saving fails', async () => {
+    mockApi({
+      me: meAs('owner'),
+      saveNotes: () => Response.json({ error: 'internal_error', message: 'boom' }, { status: 500 }),
+    });
+    mountApp(authFixture(makeSession()).client, detailsPath);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('owner-notes-edit'));
+    await user.type(screen.getByTestId('owner-notes-body'), 'Vrea ofertă.');
+    await user.click(screen.getByTestId('owner-notes-save'));
+    expect(await screen.findByTestId('owner-notes-error')).toBeTruthy();
+    expect(screen.getByTestId<HTMLTextAreaElement>('owner-notes-body').value).toBe('Vrea ofertă.');
   });
 });
 

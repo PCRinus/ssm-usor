@@ -385,6 +385,33 @@ describe('client workplaces', () => {
     expect(within(rows[1]!).queryByTestId('workplace-fire-incomplete')).toBeNull();
   });
 
+  it("shows each workplace's activity, and names a mobile site under its name", async () => {
+    mockApi({
+      items: [
+        { ...office, ...fireData },
+        { ...shop, ...fireData, activity: 'Construcții', kind: 'mobile_site' },
+        { ...shop, id: '9f6d1c2b-3a4e-4f5a-8b6c-7d8e9f0a1b2c', name: 'Depozit', activity: null },
+      ],
+    });
+    mount();
+
+    const rows = await screen.findAllByTestId('workplace-row');
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Denumire',
+      'Adresă',
+      'Activitate',
+      'Acțiuni',
+    ]);
+    expect(
+      rows.map((row) => within(row).getByTestId('workplace-activity-cell').textContent)
+    ).toEqual(['Gelaterie', 'Construcții', '—']);
+    expect(within(rows[0]!).queryByTestId('workplace-kind')).toBeNull();
+    expect(within(rows[1]!).getByTestId('workplace-kind').textContent).toBe(
+      'Șantier temporar sau mobil'
+    );
+    expect(within(rows[2]!).queryByTestId('workplace-kind')).toBeNull();
+  });
+
   it('asks a mobile site for neither an area nor a norm', async () => {
     mockApi({
       items: [

@@ -141,35 +141,31 @@ afterEach(() => {
 });
 
 describe("the client's imports from documents", () => {
-  it('lists every confirmed client import, newest first, with who ran it, its files and what is left', async () => {
+  it('lists the confirmed client imports with nothing left to check, newest first, with who ran them and their files', async () => {
     mockClient([latest, finished, lapsed]);
     mount();
 
     const card = await screen.findByTestId('client-imports-card');
     expect(within(card).getByRole('heading', { name: 'Importuri din documente' })).toBeDefined();
+    expect(
+      within(card).getByRole('link', { name: 'Ajutor: Importuri din documente' })
+    ).toBeDefined();
     const rows = within(card).getAllByTestId('client-import-row');
-    expect(rows.map((row) => row.getAttribute('data-outcome'))).toEqual([
-      'open',
-      'done',
-      'expired',
-    ]);
+    expect(rows.map((row) => row.getAttribute('data-outcome'))).toEqual(['done', 'expired']);
     expect(
       within(card)
         .getAllByTestId('client-import-date')
         .map((date) => date.textContent)
-    ).toEqual(['5 noiembrie 2026', '12 octombrie 2026', '2 septembrie 2026']);
+    ).toEqual(['12 octombrie 2026', '2 septembrie 2026']);
     expect(
       within(card)
         .getAllByTestId('client-import-status')
         .map((tag) => tag.textContent)
-    ).toEqual(['2 de verificat, până pe 19 nov.', 'Încheiat', 'Instrucțiunile au expirat']);
-    expect(rows[0]!.textContent).toContain('Mircea Casapu · client creat din documente');
-    expect(rows[0]!.textContent).toContain('50 de fișiere');
-    expect(rows[1]!.textContent).toContain('Ana Pop · client completat din documente');
-    expect(rows[2]!.textContent).toContain('Client completat din documente');
-    expect(rows[2]!.textContent).toContain('1 fișier');
+    ).toEqual(['Încheiat', 'Instrucțiunile au expirat']);
+    expect(rows[0]!.textContent).toContain('Ana Pop · client completat din documente · 8 fișiere');
+    expect(rows[1]!.textContent).toContain('Client completat din documente · 1 fișier');
     expect(within(rows[0]!).getByRole('link').getAttribute('href')).toBe(
-      `/clienti/import/${latest.id}`
+      `/clienti/import/${finished.id}`
     );
 
     const lists = confirmedLists();
@@ -181,16 +177,111 @@ describe("the client's imports from documents", () => {
     });
   });
 
-  it('agrees with the reminder above it on what is left and by when', async () => {
+  it('puts an import with parts to check at the top, as a task with its deadline', async () => {
     mockClient([latest, finished]);
     mount();
 
-    const notice = await screen.findByTestId('client-library-tasks-notice');
-    expect(notice.textContent).toContain('până pe 19 noiembrie');
-    const card = screen.getByTestId('client-imports-card');
-    expect(within(card).getAllByTestId('client-import-status')[0]!.textContent).toBe(
-      '2 de verificat, până pe 19 nov.'
+    const panel = await screen.findByTestId('client-library-tasks-notice');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      '1 parte de verificat până pe 19 noiembrie'
     );
+    expect(panel.textContent).toContain(
+      'Din importul de pe 5 noiembrie 2026 · Mircea Casapu · 50 de fișiere'
+    );
+    expect(
+      within(within(panel).getByTestId('client-library-tasks-parts'))
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual(['IPSSM · de verificat', 'Evaluări de risc · se citește']);
+    const open = within(panel).getByTestId('client-library-tasks-open');
+    expect(open.textContent).toBe('Verifică importul');
+    expect(open.getAttribute('href')).toBe(`/clienti/import/${latest.id}`);
+
+    const page = screen.getByTestId('client-details-page');
+    expect(page.firstElementChild).toBe(panel);
+    const rows = within(screen.getByTestId('client-imports-card')).getAllByTestId(
+      'client-import-row'
+    );
+    expect(rows.map((row) => row.getAttribute('data-outcome'))).toEqual(['done']);
+  });
+
+  it('names the earliest deadline when the parts end on different days', async () => {
+    mockClient([
+      {
+        ...latest,
+        libraryParts: [
+          { part: 'instructions_ssm', status: 'to_review', expiresAt: '2026-11-21T10:00:00Z' },
+          { part: 'risk_evaluations', status: 'to_review', expiresAt: '2026-11-12T10:00:00Z' },
+        ],
+      },
+    ]);
+    mount();
+
+    const panel = await screen.findByTestId('client-library-tasks-notice');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      '2 părți de verificat până pe 12 noiembrie'
+    );
+  });
+
+  it('says one part in the singular, and lists no import twice', async () => {
+    mockClient([
+      {
+        ...latest,
+        libraryParts: [
+          { part: 'instructions_su', status: 'to_review', expiresAt: '2026-11-19T10:00:00Z' },
+        ],
+      },
+    ]);
+    mount();
+
+    const panel = await screen.findByTestId('client-library-tasks-notice');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      '1 parte de verificat până pe 19 noiembrie'
+    );
+    expect(screen.queryByTestId('client-imports-card')).toBeNull();
+  });
+
+  it('counts only the parts ready to check, beside one still being read', async () => {
+    mockClient([
+      {
+        ...latest,
+        libraryParts: [
+          { part: 'instructions_ssm', status: 'to_review', expiresAt: '2026-11-19T10:00:00Z' },
+          { part: 'risk_evaluations', status: 'reading', expiresAt: '2026-11-12T10:00:00Z' },
+        ],
+      },
+    ]);
+    mount();
+
+    const panel = await screen.findByTestId('client-library-tasks-notice');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      '1 parte de verificat până pe 19 noiembrie'
+    );
+    expect(
+      within(panel)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual(['IPSSM · de verificat', 'Evaluări de risc · se citește']);
+  });
+
+  it.each([
+    ['reading', 'Evaluări de risc · se citește'],
+    ['failed', 'Evaluări de risc · nu s-a putut citi'],
+  ])('claims nothing is ready to check while the only part is %s', async (status, line) => {
+    mockClient([
+      {
+        ...latest,
+        libraryParts: [{ part: 'risk_evaluations', status, expiresAt: '2026-11-19T10:00:00Z' }],
+      },
+    ]);
+    mount();
+
+    const panel = await screen.findByTestId('client-library-tasks-notice');
+    expect(within(panel).getByRole('heading', { level: 2 }).textContent).toBe(
+      'Ce mai ai de făcut până pe 19 noiembrie'
+    );
+    expect(panel.textContent).not.toContain('de verificat');
+    expect(within(panel).getByRole('listitem').textContent).toBe(line);
   });
 
   it('is left out for a client with no import', async () => {
@@ -200,5 +291,6 @@ describe("the client's imports from documents", () => {
     await screen.findByTestId('client-details-page');
     await waitFor(() => expect(confirmedLists()).toHaveLength(1));
     expect(screen.queryByTestId('client-imports-card')).toBeNull();
+    expect(screen.queryByTestId('client-library-tasks-notice')).toBeNull();
   });
 });

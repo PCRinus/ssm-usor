@@ -149,7 +149,7 @@ Numele reprezentantului legal îl poți scrie de la început, în **Alte informa
 
 ## Modificarea datelor
 
-Un client îl modifici pe tabul **Detalii**, card cu card. **Modifică** de pe cardul **Date firmă** deschide pe loc câmpurile din **Identificare**, **Înregistrare** și **Sediu social**, inclusiv **Caută la ANAF**. **Salvează** devine activ după ce schimbi ceva.
+Un client îl modifici pe tabul **Detalii**, parte cu parte. **Modifică datele firmei**, de pe panoul **Date firmă și persoane**, deschide pe loc câmpurile din **Identificare**, **Înregistrare** și **Sediu social**, inclusiv **Caută la ANAF**. Tot aici schimbi denumirea și CUI-ul, chiar dacă panoul nu le arată: le vezi în capul paginii clientului. **Salvează** devine activ după ce schimbi ceva.
 
 Documentele deja generate nu se schimbă când modifici datele clientului: fiecare păstrează datele din ziua generării. Ca să apară datele noi, generează documentul din nou.
 

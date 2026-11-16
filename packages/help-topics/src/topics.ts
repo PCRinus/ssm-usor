@@ -290,6 +290,7 @@ export const helpTopics = {
     anchor: 'materialele-sursele-de-aprindere-și-echipamentele',
   },
   'detalii.functia-reprezentantului': { path: '/clienti/detalii/', anchor: 'funcția' },
+  'detalii.importuri': { path: '/clienti/detalii/', anchor: 'importurile-din-documente' },
   'detalii.masuri-specifice': {
     path: '/clienti/detalii/puncte-de-lucru/',
     anchor: 'măsurile-specifice',

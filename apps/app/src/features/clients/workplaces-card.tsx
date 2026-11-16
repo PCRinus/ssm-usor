@@ -1,4 +1,4 @@
-import { workplaceConflictReasons } from '@ssm-usor/contracts';
+import { workplaceConflictReasons, workplaceKindLabels } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -28,7 +28,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { MoreHorizontal, TriangleAlert } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import {
@@ -45,6 +45,7 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useFocusRequest, type WorkplacesFocus } from '@/features/missing-data/focus';
 
+import { SheetAction } from './details/sheet-action';
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
 import {
   differingClientAddress,
@@ -142,23 +143,23 @@ export function WorkplacesCard({
     await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
   }
 
+  const listed = workplaces.isSuccess && workplaces.data.items.length > 0;
+
   return (
     <SectionCard
       data-testid="workplaces-card"
+      className={cn('gap-4', listed && 'overflow-hidden pb-0')}
       title="Sediu și puncte de lucru"
       help="detalii.puncte-de-lucru"
       action={
         !readOnly && (
-          <Button
+          <SheetAction
             ref={addRef}
-            variant="tonal"
-            size="sm"
+            adding
+            subject="un punct de lucru"
             data-testid="workplace-add"
             onClick={() => setEditing('new')}
-          >
-            <Plus aria-hidden="true" />
-            Adaugă
-          </Button>
+          />
         )
       }
     >
@@ -196,6 +197,7 @@ export function WorkplacesCard({
             <TableRow>
               <TableHead>Denumire</TableHead>
               <TableHead>Adresă</TableHead>
+              <TableHead>Activitate</TableHead>
               {!readOnly && (
                 <TableHead className="w-12">
                   <span className="sr-only">Acțiuni</span>
@@ -221,10 +223,18 @@ export function WorkplacesCard({
                         <Badge variant="secondary">Sediu social</Badge>
                       )}
                     </span>
+                    {workplace.kind === 'mobile_site' && (
+                      <span
+                        data-testid="workplace-kind"
+                        className="mt-0.5 block text-[0.8125rem] font-normal text-muted-foreground"
+                      >
+                        {workplaceKindLabels[workplace.kind]}
+                      </span>
+                    )}
                     {!workplace.officeHasActivity && (
                       <span
                         data-testid="workplace-no-activity"
-                        className="mt-0.5 block text-xs font-normal text-muted-foreground"
+                        className="mt-0.5 block text-[0.8125rem] font-normal text-muted-foreground"
                       >
                         Fără activitate la sediu
                       </span>
@@ -232,8 +242,9 @@ export function WorkplacesCard({
                     {firstMissingFireField(workplace) !== null && (
                       <span
                         data-testid="workplace-fire-incomplete"
-                        className="mt-0.5 block text-xs font-normal text-muted-foreground"
+                        className="mt-0.5 flex items-center gap-1 text-[0.8125rem] font-normal text-warning-foreground"
                       >
+                        <TriangleAlert aria-hidden="true" className="size-3.5 shrink-0" />
                         Date SU incomplete
                       </span>
                     )}
@@ -260,6 +271,12 @@ export function WorkplacesCard({
                         )}
                       </span>
                     )}
+                  </TableCell>
+                  <TableCell
+                    data-testid="workplace-activity-cell"
+                    className="min-w-40 whitespace-normal"
+                  >
+                    {workplace.activity || <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   {!readOnly && (
                     <TableCell>

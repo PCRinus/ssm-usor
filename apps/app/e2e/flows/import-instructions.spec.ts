@@ -126,9 +126,9 @@ test("a pack's own instructions are reviewed before the client is created, confi
 
   const clientId = await clientOfImport(importId);
   await page.goto(`/clienti/${clientId}/detalii`);
-  await expect(page.getByTestId('client-import-row')).toHaveAttribute('data-outcome', 'open');
+  await expect(page.getByTestId('client-import-row')).toHaveCount(0);
   const reminder = page.getByTestId('client-library-tasks-notice');
-  await expect(reminder).toContainText('IPSSM: de verificat');
+  await expect(reminder).toContainText('IPSSM · de verificat');
   await reminder.getByTestId('client-library-tasks-open').click();
   await page.getByTestId('import-next-step-open').click();
   await expect(page.getByTestId('library-confirm')).toHaveText('Confirmă instrucțiunile');

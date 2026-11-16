@@ -17,7 +17,7 @@ test('a member corrects what was entered about a client, one card at a time', as
   await page.getByTestId('client-legal-name').fill('S.C. CLIENT CORECT E2E S.R.L.');
   await page.getByTestId('client-address').fill('Str. Corectă, nr. 1');
   await page.getByTestId('company-save').click();
-  await expect(page.getByTestId('company-address')).toHaveText('Str. Corectă, nr. 1');
+  await expect(page.getByTestId('company-address')).toHaveText(/^Str\. Corectă, nr\. 1\b/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('S.C. CLIENT CORECT E2E S.R.L.');
 
   await page.getByTestId('contact-edit').click();
@@ -28,8 +28,8 @@ test('a member corrects what was entered about a client, one card at a time', as
 
   // The saved record, not the cache, after a reload: neither card took back the other's data.
   await page.reload();
-  await expect(page.getByTestId('company-legal-name')).toHaveText('S.C. CLIENT CORECT E2E S.R.L.');
-  await expect(page.getByTestId('company-address')).toHaveText('Str. Corectă, nr. 1');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('S.C. CLIENT CORECT E2E S.R.L.');
+  await expect(page.getByTestId('company-address')).toHaveText(/^Str\. Corectă, nr\. 1\b/);
   await expect(page.getByTestId('contact-name')).toHaveText('Andrei Pop');
 });
 
@@ -63,7 +63,7 @@ test('an owner archives a client, finds it among the archived, and restores it',
   await page.getByTestId('clients-open').click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/detalii$`));
   await expect(page.getByTestId('client-archived-banner')).toBeVisible();
-  await expect(page.getByTestId('company-card')).toBeVisible();
+  await expect(page.getByTestId('company-people-panel')).toBeVisible();
   await expect(page.getByTestId('company-edit')).toHaveCount(0);
   await expect(page.getByTestId('contact-edit')).toHaveCount(0);
 

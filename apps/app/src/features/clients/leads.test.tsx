@@ -520,6 +520,27 @@ describe('leads', () => {
     expect(within(company).getByTestId('company-locality').textContent).toBe('București');
   });
 
+  it("keeps its own cards when the client's details read as one summary", async () => {
+    mockApi();
+    mount(`/oferte/${leadId}`);
+    const company = await screen.findByTestId('company-card');
+    expect(within(company).getByRole('heading', { level: 2 }).textContent).toBe('Date firmă');
+    expect(within(company).getByTestId('company-legal-name').textContent).toBe(
+      'VELOCITA URBANA SRL'
+    );
+    expect(within(company).getByTestId('company-cui').textContent).toBe('41760933');
+    expect(within(company).getByTestId('company-edit').getAttribute('data-variant')).toBe(
+      'outline'
+    );
+    expect(screen.queryByTestId('company-people-panel')).toBeNull();
+    expect(within(screen.getByTestId('contact-card')).getByRole('heading').textContent).toBe(
+      'Persoană de contact'
+    );
+    expect(await screen.findByTestId('owner-notes-body')).toBeTruthy();
+    expect(screen.getByTestId('owner-notes-save').textContent).toBe('Salvează notițele');
+    expect(screen.queryByTestId('owner-notes-edit')).toBeNull();
+  });
+
   it('corrects the company data of a lead in place, keeping its declared headcount', async () => {
     let saved = lead;
     mockApi({

@@ -153,7 +153,7 @@ describe('client document data', () => {
       'Portal',
     ]);
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
-    expect(screen.queryByTestId('legal-representative-card')).toBeNull();
+    expect(screen.queryByTestId('legal-representative-row')).toBeNull();
     expect(screen.queryByTestId('workplaces-card')).toBeNull();
   });
 
