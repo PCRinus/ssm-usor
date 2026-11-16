@@ -101,7 +101,7 @@ export function Field({
             <span className="ml-1 font-normal text-muted-foreground">(opțional)</span>
           )}
         </Label>
-        {help && <HelpLink topic={help} label={`Ajutor: ${label}`} className="ml-1 align-middle" />}
+        {help && <HelpLink topic={help} label={`Ajutor: ${label}`} className="ml-1" />}
       </div>
       {children}
       {hint && !error && (

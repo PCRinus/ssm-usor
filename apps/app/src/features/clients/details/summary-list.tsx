@@ -41,9 +41,7 @@ export function SummaryRow({
       >
         <span className="whitespace-nowrap">
           {label}
-          {help && (
-            <HelpLink topic={help} label={`Ajutor: ${label}`} className="ml-1 align-middle" />
-          )}
+          {help && <HelpLink topic={help} label={`Ajutor: ${label}`} className="ml-1" />}
         </span>
       </dt>
       {form ? (
