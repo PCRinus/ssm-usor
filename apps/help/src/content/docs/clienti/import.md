@@ -135,6 +135,8 @@ sources:
   - supabase/migrations/20261101140000_import_found_sheets.sql
   - apps/app/src/features/imports/spotlight.tsx
   - apps/app/src/features/imports/employees/spot-targets.ts
+  - packages/import/src/sorting.ts
+  - packages/contracts/src/legal-forms.ts
 ---
 
 Un client pe care îl preiei vine cu un dosar: documentația SSM și SU (în dosarele mai vechi, PSI) scrisă de-a lungul anilor și fișele individuale de instruire completate de mână. Aplicația le citește și îți face o propunere. Alegerile tale se păstrează în propunere; datele se aplică la client sau la lucrători doar după confirmare.
@@ -175,6 +177,8 @@ Dacă un import se oprește înainte să fie gata de verificat, primești înapo
 ## Importul unui client din documente
 
 Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră. Un fișier ales de două ori, chiar sub alt nume sau din alt folder, se încarcă, se citește și se socotește o singură dată: copia apare la „Puse deoparte, nu se încarcă”, cu fișierul pe care îl repetă. Când scoți un fișier, îi scoți și copiile.
+
+Firma o recunoaștem după CUI și după denumire, oricum ar scrie documentele forma juridică: „S.P.N. Popescu”, „SPN Popescu” și „Societatea Profesională Notarială Popescu” sunt aceeași firmă, la fel „Popescu Ion PFA” și „Popescu Ion Persoană Fizică Autorizată”. Ținem seama de formele societăților, ale persoanelor fizice autorizate și ale întreprinderilor individuale și familiale, de birourile și societățile notariale, de cabinetele și societățile de avocați, medicale, de executori judecătorești și de insolvență. Dacă printre documente apare totuși altă firmă, îți spunem, iar documentele ei le încarci separat.
 
 Aplicația pune deoparte ce nu poartă date despre client (coperți, formulare goale, texte de lege), citește restul și îți propune datele firmei, punctele de lucru, posturile, persoanele cu atribuții, programul de instruire, datele SU și echipamentul de protecție. Le verifici pe secțiuni, apoi confirmi. Cu **Vezi în document**, lângă fiecare valoare, deschizi locul din document de unde a fost luată. La un client existent, o valoare pe care o ai deja în aplicație nu se schimbă decât dacă alegi tu valoarea din documente.
 

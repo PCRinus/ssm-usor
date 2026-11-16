@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { proposalFixture } from '@/test/import-fixture';
 
 import {
+  anafMismatch,
   type Changes,
   type ExistingWorkplace,
   fieldState,
@@ -167,5 +168,30 @@ describe('a registered office with no activity', () => {
     expect([...inactiveOffices(office(), picked(null), into([own(true)]))]).toEqual([
       'workplace-1',
     ]);
+  });
+});
+
+describe('the company ANAF registers under the CUI', () => {
+  const named = (legalName: string) => {
+    const proposal = proposalFixture();
+    proposal.client.legalName.options[0]!.value = legalName;
+    return proposal;
+  };
+  const registered = (legalName: string) => ({ cui: '31458207', legalName, inactive: false });
+
+  it('is the documents’ company when only the legal form is written otherwise', () => {
+    const anaf = registered('SOCIETATEA PROFESIONALA NOTARIALA STANCIUC');
+    for (const name of [
+      'S.P.N. / STANCIUC',
+      'SPN STANCIUC',
+      'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+    ]) {
+      expect(anafMismatch(named(name), noChanges, anaf), name).toBeNull();
+    }
+  });
+
+  it('is another firm when the rest of the name differs', () => {
+    const anaf = registered('BIROU INDIVIDUAL NOTARIAL IONESCU ANA');
+    expect(anafMismatch(named('S.P.N. / STANCIUC'), noChanges, anaf)).toBe(anaf);
   });
 });

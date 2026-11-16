@@ -16,6 +16,7 @@ import {
   maxEquipmentDurationMonths,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
+  sameName,
 } from '@ssm-usor/contracts';
 
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
@@ -784,26 +785,6 @@ export type ReviewScope = {
   existingWorkplaces: ExistingWorkplace[];
 };
 
-const legalFormWords =
-  /\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|s\.?a\.?|p\.?\s?f\.?\s?a\.?|i\.\s?i\.?|i\.\s?f\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu;
-
-const workplaceNameTokens = (name: string) =>
-  foldText(withoutMarks(name).toLowerCase().replace(legalFormWords, ' '))
-    .split(' ')
-    .filter(Boolean);
-
-// As the API's import matches a proposed workplace to one the client has, by name.
-function sameWorkplaceName(a: string, b: string) {
-  const x = workplaceNameTokens(a);
-  const y = workplaceNameTokens(b);
-  if (x.join(' ') === y.join(' ')) return true;
-  const xs = new Set(x);
-  const ys = new Set(y);
-  if (xs.size === 0 || ys.size === 0) return false;
-  const shared = [...xs].filter((token) => ys.has(token)).length;
-  return shared / Math.max(xs.size, ys.size) >= 0.8;
-}
-
 /** The client's own workplace confirming writes a proposed one into, as the API's payload picks it. */
 export function linkedWorkplace(
   state: Pick<ItemState, 'item' | 'values'>,
@@ -821,7 +802,7 @@ export function linkedWorkplace(
   return (
     scope.existingWorkplaces.find(
       (workplace) =>
-        sameWorkplaceName(workplace.name, String(state.values.name ?? '')) ||
+        sameName(workplace.name, String(state.values.name ?? '')) ||
         (address !== null &&
           workplace.addressLine !== null &&
           foldText(workplace.addressLine) === address)
@@ -1356,20 +1337,6 @@ const advisoryFlags = new Set([
 
 export type RegisteredCompany = { cui: string; legalName: string; inactive: boolean };
 
-const legalForms = /\b(s ?c|s ?r ?l|s ?a|s ?n ?c|s ?c ?s|pfa|i ?i|i ?f)\b/g;
-
-const companyWords = (name: string) =>
-  new Set(foldText(name).replace(legalForms, ' ').split(' ').filter(Boolean));
-
-// As the API's check compares them: the legal form aside, most words shared.
-export function sameCompanyName(a: string, b: string) {
-  const x = companyWords(a);
-  const y = companyWords(b);
-  if (x.size === 0 || y.size === 0) return false;
-  const shared = [...x].filter((word) => y.has(word)).length;
-  return shared / Math.max(x.size, y.size) >= 0.8;
-}
-
 const bareCui = (value: unknown) =>
   String(value ?? '')
     .replace(/^RO/i, '')
@@ -1390,7 +1357,7 @@ export function anafMismatch(
   const state = fieldState(proposal, changes, 'client.legalName', undefined, registered);
   if (state.anaf) return state.anaf.picked === null ? registered : null;
   const name = state.value;
-  if (name === null || sameCompanyName(String(name), registered.legalName)) return null;
+  if (name === null || sameName(String(name), registered.legalName)) return null;
   return registered;
 }
 

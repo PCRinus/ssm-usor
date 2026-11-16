@@ -437,6 +437,19 @@ describe('registrations', () => {
     ]);
   });
 
+  it('takes the registry’s name for the documents’ when only the form is written otherwise', async () => {
+    const value = proposal();
+    value.client.legalName.options[0]!.value = 'S.P.N. / STANCIUC';
+    const registrations = await lookUpRegistrations(value, {
+      lookup: async (cui: string) => ({
+        cui,
+        legalName: 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC',
+      }),
+    });
+
+    expect(checkRegistrations(value, registrations)).toEqual([]);
+  });
+
   it('leaves a CUI unconfirmed when the registry cannot answer', async () => {
     const registrations = await lookUpRegistrations(proposal(), {
       lookup: () => Promise.reject(new Error('ANAF is down')),

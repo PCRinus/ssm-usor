@@ -115,6 +115,51 @@ describe('sortFiles', () => {
     expect(sorting.files.map((file) => file.outcome)).toEqual(['read', 'read', 'read']);
   });
 
+  const notaryPack = [
+    triage('Contract SSM.pdf', 'contract', 'SOCIETATE PROFESIONALA NOTARIALA STANCIUC', '37516222'),
+    triage('Contract SU.pdf', 'contract', 'SOCIETATE PROFESIONALA NOTARIALA STANCIUC.', '37516222'),
+    triage('Decizie SSM.docx', 'decision', 'SOCIETATE PROFESIONALA NOTARIALA STANCIUC', null),
+    triage('Decizie.docx', 'decision', 'S.P.N. / STANCIUC', null),
+    triage('Evaluare riscuri.docx', 'risk_assessment', 'S.P.N. / STANCIUC', null),
+    triage('Tematica SSM.docx', 'training_themes', 'S.P.N. / STANCIUC', null),
+    triage('Plan prevenire.docx', 'risk_assessment', 'SPN STANCIUC', null),
+  ];
+
+  it('keeps a notary office whose files write its form spelled out, as initials or both', () => {
+    const sorting = sortFiles(notaryPack, { provider });
+
+    expect(sorting.company).toEqual({
+      name: 'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+      cui: '37516222',
+    });
+    expect(sorting.otherCompanies).toEqual([]);
+    expect(sorting.files.every((file) => file.outcome === 'read')).toBe(true);
+  });
+
+  it('keeps those files to the client being completed under its registered name', () => {
+    const sorting = sortFiles(notaryPack, {
+      provider,
+      client: { legalName: 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC', cui: '37516222' },
+    });
+
+    expect(sorting.otherCompanies).toEqual([]);
+    expect(sorting.files.every((file) => file.outcome === 'read')).toBe(true);
+  });
+
+  it('knows a sole trader whose form one file spells out', () => {
+    const sorting = sortFiles([
+      triage('Decizia 1.docx', 'decision', 'Casapu Mircea Adrian PFA', '12345674'),
+      triage(
+        'Evaluare.doc',
+        'risk_assessment',
+        'Casapu Mircea Adrian Persoană Fizică Autorizată',
+        null
+      ),
+    ]);
+
+    expect(sorting.otherCompanies).toEqual([]);
+  });
+
   it('names no company when no file names one', () => {
     const sorting = sortFiles([triage('Decizia.docx', 'decision', null, null)]);
 
