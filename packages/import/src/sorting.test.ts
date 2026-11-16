@@ -228,6 +228,16 @@ describe('sortFiles', () => {
     expect(sorting.otherCompanies).toEqual([]);
   });
 
+  it('joins a name to the company whose CUI files write it, whatever forms they also write', () => {
+    const sorting = sortFiles([
+      triage('Contract.pdf', 'contract', 'Alfa SRL', '12345674'),
+      triage('Act aditional.pdf', 'contract', 'Alfa SA', '12345674'),
+      triage('Decizia 1.docx', 'decision', 'Alfa SA', null),
+    ]);
+
+    expect(sorting.otherCompanies).toEqual([]);
+  });
+
   it('groups names without a CUI the same whatever the order of the files', () => {
     const names = ['Alfa', 'Alfa SA', 'Alfa SRL', 'Alfa SA'];
     const orders = [

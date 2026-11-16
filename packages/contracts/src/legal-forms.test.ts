@@ -71,7 +71,6 @@ describe('companyName', () => {
     ['Societatea Cooperativă de gradul I Unirea', 'unirea', 'scm'],
     ['Societatea Agricolă Holda', 'holda', 'sag'],
     ['Asociația Familială Popescu', 'popescu', 'af'],
-    ['Popescu Ion PFI', 'popescu ion', 'pfi'],
     ['BNP Paribas', 'paribas', 'bnp'],
     ['ION IONESCU - Cabinet de avocat', 'ion ionescu', 'cab'],
     ['Cabinet Avocat Ionescu Maria', 'ionescu maria', 'cab'],
@@ -127,6 +126,7 @@ describe('sameCompany', () => {
     ['BIN Trans SRL', 'BIN Trans'],
     ['Spn Trans SRL', 'SPN Trans'],
     ['IF Construct', 'IF Construct SRL'],
+    ['Euro Bin SRL', 'Euro Bin'],
     ['SOCIETATEA COOPERATIVA MESTESUGAREASCA UNIREA', 'S.C.M. Unirea'],
     ['S.C.A. Popescu și Asociații', 'SCA Popescu și Asociații'],
     ['S.C.P.E.J. Marinescu și Asociații', 'SCPEJ Marinescu și Asociații'],
@@ -193,6 +193,15 @@ describe('registeredNameAsWritten', () => {
     expect(
       registeredNameAsWritten('ȘTEFĂNESCU ANA PFA', 'Ștefănescu Ana Persoană Fizică Autorizată')
     ).toBe('Ștefănescu Ana PFA');
+  });
+
+  it('spells the words of the form only ANAF writes as the form is, in the documents’ capitals', () => {
+    expect(
+      registeredNameAsWritten('POPESCU ION PERSOANA FIZICA AUTORIZATA', 'Popescu Ion PFA')
+    ).toBe('Popescu Ion Persoană Fizică Autorizată');
+    expect(
+      registeredNameAsWritten('SOCIETATEA PROFESIONALA NOTARIALA STANCIUC', 'S.P.N. / Stănciuc')
+    ).toBe('Societatea Profesională Notarială Stănciuc');
   });
 
   it('keeps ANAF’s name for documents in capitals or another firm', () => {

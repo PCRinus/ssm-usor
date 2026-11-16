@@ -2,7 +2,7 @@ import { foldText } from './fold-text';
 import {
   type CompanyName,
   companyName,
-  isFormInitials,
+  formWordAsWritten,
   spellingKey,
   withoutInsideForms,
 } from './legal-forms';
@@ -50,9 +50,9 @@ const sameWords = (x: CompanyName, y: CompanyName, likeness: number) =>
  * Whether two names written in a client's documents are one company: the legal form aside,
  * whether initials or spelled out, but never two different forms, as "Cabinet de avocat Ionescu"
  * and "Cabinet Medical Individual Ionescu" are two offices. Where the forms agree, the names are
- * also compared as any name is, so reading forms only adds to what matched before. A form read
- * from a word that may be part of the name ("Alfa II", "SCM Impex") yields to the other name's
- * form when the words are otherwise the same.
+ * also compared as any name is, so they still match wherever they matched before the forms were
+ * read. A form read from a word that may be part of the name ("Alfa II", "SCM Impex") yields to
+ * the other name's form when the words are otherwise the same.
  */
 export function sameCompany(a: string, b: string, likeness = 0.8) {
   const x = companyName(a);
@@ -60,13 +60,16 @@ export function sameCompany(a: string, b: string, likeness = 0.8) {
   if (formsFit(x, y)) {
     return sameWords(x, y, likeness) || foldName(a) === foldName(b) || similar(a, b) >= likeness;
   }
-  if (!x.bare && !y.bare) return false;
-  const xAsWords = x.bare ? companyName(a, true) : x;
-  const yAsWords = y.bare ? companyName(b, true) : y;
-  return formsFit(xAsWords, yAsWords) && sameWords(xAsWords, yAsWords, 1);
+  const readings = (value: string, read: CompanyName) =>
+    read.bare ? [read, companyName(value, true)] : [read];
+  return readings(a, x).some((xRead) =>
+    readings(b, y).some(
+      (yRead) =>
+        (xRead !== x || yRead !== y) && formsFit(xRead, yRead) && sameWords(xRead, yRead, 1)
+    )
+  );
 }
 
-// Whether nothing in two names' legal forms tells them apart.
 export const formsAgree = (a: string, b: string) => sameCompany(a, b, 0);
 
 // ANAF's name is the one to keep, so a name read in the documents is ANAF's only as written,
@@ -75,10 +78,7 @@ export function sameSpelling(a: string, b: string) {
   return spellingKey(a) === spellingKey(b);
 }
 
-/**
- * Whether the review offers ANAF's name against the documents' ones: none is written as ANAF
- * writes it, and they are one name, or every one is ANAF's firm written another way.
- */
+// Not while a document writes ANAF's name, nor between names that are a real choice.
 export function registeredNameOffered(written: readonly string[], registered: string) {
   if (written.length === 0 || written.some((name) => sameSpelling(name, registered))) return false;
   return written.length === 1 || written.every((name) => sameCompany(name, registered));
@@ -91,8 +91,8 @@ const allCapitals = (text: string) => text === text.toUpperCase();
 
 /**
  * ANAF's name with the documents' diacritics and capitals where both write a word, since ANAF
- * writes capitals without diacritics and the name goes into the client's documents. A word only
- * ANAF writes follows the documents' capitals, without the diacritics nobody wrote.
+ * writes capitals without diacritics and the name goes into the client's documents. A word of
+ * the form that only ANAF writes is spelled as the form is, in the documents' capitals.
  */
 export function registeredNameAsWritten(registered: string, documents: string) {
   if (!sameCompany(documents, registered)) return registered;
@@ -104,7 +104,7 @@ export function registeredNameAsWritten(registered: string, documents: string) {
   return registered.normalize('NFC').replace(wordPattern, (word) => {
     const asWritten = written.get(foldWord(word));
     if (asWritten) return asWritten;
-    if (!lowered || !allCapitals(word) || word.length < 2 || isFormInitials(word)) return word;
-    return word.charAt(0) + word.slice(1).toLowerCase();
+    const formWord = lowered && allCapitals(word) ? formWordAsWritten(word) : undefined;
+    return formWord ? formWord.charAt(0).toUpperCase() + formWord.slice(1) : word;
   });
 }

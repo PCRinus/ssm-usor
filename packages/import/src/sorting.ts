@@ -128,7 +128,8 @@ export function sortFiles(
     nameOnly.set(entry.name!, [...(nameOnly.get(entry.name!) ?? []), entry.path]);
   }
   // A name without a form could join companies of two forms ("Alfa" with "Alfa SA" and "Alfa
-  // SRL"), so the names with one go first, and the order of the files decides nothing.
+  // SRL"), so the names with one go first, and the order of the files decides nothing. A CUI
+  // already says which company its names are, whatever forms they write.
   const byName = [...nameOnly].sort(
     ([a, aPaths], [b, bPaths]) =>
       Number(hasLegalForm(b)) - Number(hasLegalForm(a)) ||
@@ -139,7 +140,7 @@ export function sortFiles(
     const matches = groups.filter(
       (group) =>
         group.names.some((known) => sameCompany(known, name)) &&
-        group.names.every((known) => formsAgree(known, name))
+        (group.cui !== null || group.names.every((known) => formsAgree(known, name)))
     );
     let group = matches.reduce<Group | undefined>(
       (best, each) => (best && best.paths.length >= each.paths.length ? best : each),

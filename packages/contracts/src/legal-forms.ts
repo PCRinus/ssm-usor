@@ -5,10 +5,10 @@ interface LegalForm {
   id: string;
   initials: readonly string[];
   spelledOut: readonly string[];
-  // Dropped wherever they stand in any name, a person's or a workplace's too, as names were
-  // always compared: `spaced` letters may stand a space apart, `joined` ones not ("S. A." are a
-  // person's initials), and `dotted` ones need a point after the first ("Hala II"). The other
-  // forms count only at an end of a company's name: inside one, "SCM", "Bin" or "bej" are words.
+  // Dropped wherever they stand in any name, a person's or a workplace's too: `spaced` letters
+  // may stand a space apart, `joined` ones not ("S. A." are a person's initials), and `dotted`
+  // ones need a point after the first ("Hala II"). The other forms count only at an end of a
+  // company's name: inside one, "SCM", "Bin" or "bej" are words.
   inside?: 'spaced' | 'joined' | 'dotted';
   // "II" numbers a building ("Hala II") and "IF" stands inside names ("Casa IF Design"): as a
   // bare word they count only at the end of a company's name or of a search.
@@ -59,7 +59,6 @@ const legalForms: readonly LegalForm[] = [
     inside: 'dotted',
     alsoAWord: true,
   },
-  { id: 'pfi', initials: ['PFI'], spelledOut: ['persoană fizică independentă'] },
   { id: 'af', initials: ['AF'], spelledOut: ['asociație familială'], alsoAWord: true },
   { id: 'sag', initials: [], spelledOut: ['societate agricolă'] },
   {
@@ -212,8 +211,7 @@ const asKept = (letters: readonly string[]): Token[] =>
 interface Found {
   length: number;
   form: LegalForm;
-  // Read from a word that may be part of the name: a bare "II" or "IF", or initials at its
-  // start written as a word ("SCM Impex").
+  // Initials written as a word, which may be part of the name: "Alfa II", "Euro Bin", "SCM Impex".
   bare: boolean;
 }
 
@@ -295,15 +293,32 @@ function letterRunStart(tokens: readonly Token[], first: number, end: number) {
   return start;
 }
 
+const longestForm = Math.max(
+  ...legalForms.flatMap((form) => folded.get(form)!.phrases.map((phrase) => phrase.length)),
+  2
+);
+
 const letters = (tokens: readonly Token[]) => tokens.map((token) => token.letters).join('');
 
 const opening = legalForms.find((form) => form.id === 'sc')!;
 const companyForms = legalForms.filter((form) => form !== opening);
 const companyLetters = lettersIn(companyForms);
 const insideLetters = lettersIn(insideForms);
-const formInitials = lettersIn(legalForms);
 
-export const isFormInitials = (word: string) => formInitials.has(foldText(word).replace(/ /g, ''));
+// How the forms' words are written, with their diacritics and the head noun's article.
+const formWords = new Map(
+  legalForms.flatMap((form) =>
+    form.spelledOut.flatMap((phrase) =>
+      phrase
+        .split(' ')
+        .flatMap((word, index) =>
+          (index === 0 ? withArticle(word) : [word]).map((each) => [foldText(each), each] as const)
+        )
+    )
+  )
+);
+
+export const formWordAsWritten = (word: string) => formWords.get(foldText(word));
 
 // "S.C." opens most old names, so initials that start with it ("S.C.A.B.") lose it, unless they
 // are a form of their own ("S.C.M.", "S.C.P.E.J.").
@@ -371,9 +386,12 @@ export function companyName(value: string, asWords = false): CompanyName {
   const closingRun = letterRunStart(tokens, first + 1, last);
   const closing = formEndingAt(tokens, first + 1, last, companyForms, true);
   const closingLetters = runForm(tokens, closingRun, last);
-  const closingBare = closing !== null && closing.bare && closing.form.alsoAWord === true;
-  if (closing && !(asWords && closingBare)) {
-    found = { ...closing, bare: closingBare };
+  const asWord = (at: number) => {
+    tokens[at] = { ...tokens[at]!, kind: 'kept' };
+  };
+  if (asWords && closing?.bare) asWord(last - 1);
+  if (closing && !(asWords && closing.bare)) {
+    found = closing;
     last -= closing.length;
   } else if (closingLetters) {
     found = { length: last - closingRun, form: closingLetters, bare: false };
@@ -382,6 +400,7 @@ export function companyName(value: string, asWords = false): CompanyName {
     const openingRun = letterRunEnd(tokens, first, last - 1);
     const opened = formAt(tokens.slice(0, last - 1), first, companyForms, true);
     const openingLetters = runForm(tokens, first, openingRun);
+    if (asWords && opened?.bare) asWord(first);
     if (opened && !(asWords && opened.bare)) {
       found = opened;
       first += opened.length;
@@ -407,10 +426,8 @@ export function spellingKey(value: string) {
   return key || letters(tokenize(value));
 }
 
-/**
- * Whether a text names the company, its name written with a legal form beside it, so a bare
- * surname of a notary's or a doctor's office does not count.
- */
+// Only with a legal form beside it: a notary's or a doctor's office is named by a surname a text
+// may hold for another person.
 export function namesCompany(text: string, legalName: string) {
   const company = companyName(legalName);
   if (!company.form || company.words.join('').length < 3) return false;
@@ -425,7 +442,8 @@ export function namesCompany(text: string, legalName: string) {
     if (!company.words.every((word, offset) => words[at + offset] === word)) continue;
     const end = at + company.words.length;
     const before = at > 0 && words[at - 1] === 'dr' ? at - 1 : at;
-    if (fits(formEndingAt(tokens, 0, before, companyForms, true))) return true;
+    const from = Math.max(0, before - longestForm);
+    if (fits(formEndingAt(tokens, from, before, companyForms, true))) return true;
     if (fits(formAt(tokens, end, companyForms, true))) return true;
   }
   return false;
