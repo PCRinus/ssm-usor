@@ -20,9 +20,7 @@ export function FormSection({
         {/* Inline, so the help link follows the title's last word when the title wraps. */}
         <div className="whitespace-nowrap">
           <h2 className="inline text-base font-semibold whitespace-normal">{title}</h2>
-          {help && (
-            <HelpLink topic={help} label={`Ajutor: ${title}`} className="ml-1 align-middle" />
-          )}
+          {help && <HelpLink topic={help} label={`Ajutor: ${title}`} className="ml-1" />}
         </div>
         {description && (
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>

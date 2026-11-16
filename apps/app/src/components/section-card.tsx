@@ -53,11 +53,12 @@ export function SectionCard({
             longTitle ? 'flex-auto' : 'flex-1'
           )}
         >
-          <div className="min-w-0 whitespace-nowrap">
+          {/* The heading's size sits here because the help link aligns by the font it inherits. */}
+          <div className="min-w-0 text-lg leading-snug whitespace-nowrap">
             <Heading
               data-slot="section-card-title"
               className={cn(
-                'text-lg leading-snug font-semibold whitespace-normal',
+                'font-semibold whitespace-normal',
                 helpTopic && 'inline',
                 hideTitle && 'sr-only'
               )}
@@ -68,7 +69,7 @@ export function SectionCard({
               <HelpLink
                 topic={helpTopic}
                 label={typeof title === 'string' ? `Ajutor: ${title}` : 'Ajutor'}
-                className="ml-1 align-middle"
+                className="ml-1"
               />
             )}
           </div>

@@ -30,7 +30,10 @@ export function HelpLink({ topic, label, children, className, onClick, ...props 
           ? 'font-medium text-foreground underline underline-offset-4'
           : // A 24 px target around a 16 px icon, with negative margins so it does not make the
             // label's line taller than a label without one.
-            '-my-1.5 inline-flex size-6 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground',
+            // In running text the icon's centre goes half a capital above the baseline (the box's
+            // baseline is the icon's bottom edge): `middle` uses half the lowercase height and
+            // leaves it visibly low beside a heading. A flex row ignores this and centres it.
+            '-my-1.5 inline-flex size-6 shrink-0 items-center justify-center align-middle text-muted-foreground hover:text-foreground supports-[vertical-align:1cap]:align-[calc(0.5cap-0.5rem)]',
         className
       )}
       {...props}
