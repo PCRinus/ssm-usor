@@ -394,11 +394,66 @@ describe('toClientPayload', () => {
       'BRUTĂRIA FICTIVĂ S.R.L.'
     );
     expect(mapped({}, { proposal: proposalOf(reading()) }).client.legal_name).toBe(
-      'BRUTĂRIA FICTIVĂ S.R.L.'
+      'PANIFICAȚIA NOUĂ S.R.L.'
     );
     expect(mapped({}, { intoExistingClient: true }).client.legal_name).toBe(
       'BRUTĂRIA FICTIVĂ S.R.L.'
     );
+  });
+
+  describe("ANAF's name against the documents' spellings of its firm", () => {
+    const named = (...names: string[]): Proposal => {
+      const proposal = proposalOf(reading());
+      const [option] = proposal.client.legalName.options;
+      return {
+        ...proposal,
+        client: {
+          ...proposal.client,
+          legalName: { options: names.map((value) => ({ ...option!, value })) },
+        },
+      };
+    };
+    const legalName = (
+      proposal: Proposal,
+      registered: string,
+      fields: ImportChanges['fields'] = {}
+    ) =>
+      toClientPayload({
+        proposal,
+        changes: { fields, items: {} },
+        intoExistingClient: false,
+        existing: noExistingRecords,
+        registeredCompany: {
+          cui: '12345674',
+          legalName: registered,
+          vatPayer: false,
+          inactive: false,
+        },
+      }).payload.client.legal_name;
+
+    it('keeps the documents’ name when only the old S.C. prefix or the points differ', () => {
+      expect(legalName(named('S.C. Brutăria Fictivă S.R.L.'), 'BRUTARIA FICTIVA SRL')).toBe(
+        'S.C. Brutăria Fictivă S.R.L.'
+      );
+    });
+
+    it('takes ANAF’s name, with the documents’ diacritics, when they write only the form otherwise', () => {
+      expect(
+        legalName(
+          named('Societate Profesională Notarială Stănciuc'),
+          'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC'
+        )
+      ).toBe('Societatea Profesională Notarială Stănciuc');
+    });
+
+    it('takes ANAF’s name against several spellings of its firm, unless the member picks one', () => {
+      const proposal = named('SPN STANCIUC', 'S.P.N. / STANCIUC');
+      const registered = 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC';
+      expect(legalName(proposal, registered)).toBe(registered);
+      expect(legalName(proposal, registered, { 'client.legalName': { option: 1 } })).toBe(
+        'S.P.N. / STANCIUC'
+      );
+    });
   });
 
   it('applies what the member chose, wrote, ticked and unticked, and counts it without values', () => {

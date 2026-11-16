@@ -186,6 +186,73 @@ describe('sortFiles', () => {
     ]);
   });
 
+  it.each([
+    ['ALFA II S.R.L.', ['Alfa II', 'Alfa II']],
+    ['SCM IMPEX SRL', ['SCM Impex', 'S.C.M. Impex S.R.L.']],
+    ['Arta IF SRL', ['Arta IF']],
+    ['BIN Trans SRL', ['BIN Trans']],
+    ['Spn Trans SRL', ['SPN Trans']],
+    ['IF Construct SRL', ['IF Construct']],
+    [
+      'CABINET MEDICAL INDIVIDUAL DR. POPESCU ION',
+      [
+        'Cabinet Medical Dr. Popescu Ion',
+        'Cabinet Medical Dr. Popescu Ion',
+        'Dr. Popescu Ion - Cabinet Medical Individual',
+        'CMI Dr. Popescu Ion',
+      ],
+    ],
+    ['BIROUL INDIVIDUAL NOTARIAL POPESCU ANA', ['Biroul Notarial Individual Popescu Ana']],
+    ['SOCIETATEA COOPERATIVA MESTESUGAREASCA UNIREA', ['S.C.M. Unirea', 'S.C.M. UNIREA']],
+    ['S.C.A. POPESCU SI ASOCIATII', ['SCA Popescu și Asociații']],
+    ['S.C.P.E.J. MARINESCU SI ASOCIATII', ['SCPEJ Marinescu și Asociații']],
+  ])('keeps the files of %j that name it %j with its CUI', (registered, written) => {
+    const sorting = sortFiles([
+      triage('Contract.pdf', 'contract', registered, '12345674'),
+      ...written.map((name, index) => triage(`Decizia ${index}.docx`, 'decision', name, null)),
+    ]);
+
+    expect(sorting.company).toEqual({ name: registered, cui: '12345674' });
+    expect(sorting.otherCompanies).toEqual([]);
+  });
+
+  it('keeps the files of a client being completed whose documents write the form otherwise', () => {
+    const sorting = sortFiles(
+      [
+        triage('Decizia 1.docx', 'decision', 'Cabinet de avocat Ionescu Maria', null),
+        triage('Evaluare.doc', 'risk_assessment', 'Cabinet de avocat Ionescu Maria', null),
+      ],
+      { client: { legalName: 'CABINET AVOCAT IONESCU MARIA', cui: '12345674' } }
+    );
+
+    expect(sorting.otherCompanies).toEqual([]);
+  });
+
+  it('groups names without a CUI the same whatever the order of the files', () => {
+    const names = ['Alfa', 'Alfa SA', 'Alfa SRL', 'Alfa SA'];
+    const orders = [
+      [0, 1, 2, 3],
+      [1, 2, 3, 0],
+      [2, 0, 3, 1],
+      [3, 2, 1, 0],
+    ];
+    const outcomes = orders.map((order) => {
+      const sorting = sortFiles(
+        order.map((index) => triage(`${index}.docx`, 'decision', names[index]!, null))
+      );
+      return {
+        company: sorting.company,
+        apart: sorting.otherCompanies.map(({ paths }) => [...paths].sort()),
+      };
+    });
+
+    expect(outcomes[0]).toEqual({
+      company: { name: 'Alfa SA', cui: null },
+      apart: [['2.docx']],
+    });
+    for (const outcome of outcomes) expect(outcome).toEqual(outcomes[0]);
+  });
+
   it('names no company when no file names one', () => {
     const sorting = sortFiles([triage('Decizia.docx', 'decision', null, null)]);
 

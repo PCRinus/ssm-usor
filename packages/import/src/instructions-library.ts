@@ -8,7 +8,7 @@ import {
 import { z } from 'zod';
 
 import type { CompletionRequest } from './gateway';
-import { foldName } from './match';
+import { foldName, namesCompany } from './match';
 import { similarityModel } from './models';
 import { dataNotInstructions } from './prompts';
 import { type AnswerFormat, answerFormat } from './wire';
@@ -364,8 +364,12 @@ export async function compareWithLibrary(input: CompareInput): Promise<ComparedI
 
 export function namesClient(body: Body, legalName: string) {
   const name = foldName(legalName);
-  if (name.length < 3) return false;
-  return ` ${bodyWords(body).join(' ')} `.includes(` ${name} `);
+  if (name.length >= 3 && ` ${bodyWords(body).join(' ')} `.includes(` ${name} `)) return true;
+  return body.blocks.some((block) =>
+    (block.kind === 'heading' ? [block.text] : block.paragraphs).some((text) =>
+      namesCompany(text, legalName)
+    )
+  );
 }
 
 const similaritySchema = z.object({

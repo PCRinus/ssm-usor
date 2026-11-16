@@ -486,6 +486,16 @@ describe('registrations', () => {
     }
   });
 
+  it('takes the registry’s name for one written with the old S.C. prefix', async () => {
+    const value = proposal();
+    value.client.legalName.options[0]!.value = 'S.C. Brutăria Fictivă S.R.L.';
+    const registrations = await lookUpRegistrations(value, {
+      lookup: async (cui: string) => ({ cui, legalName: 'BRUTARIA FICTIVA SRL' }),
+    });
+
+    expect(checkRegistrations(value, registrations)).toEqual([]);
+  });
+
   it('takes the registry’s name as written, whatever its case, diacritics or points', async () => {
     const value = proposal();
     value.client.legalName.options[0]!.value = 'Societatea Profesională Notarială Stănciuc';

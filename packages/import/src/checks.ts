@@ -94,14 +94,19 @@ const holdsArea =
 const nameWords = (value: string) => foldName(value).split(' ').filter(Boolean);
 
 const holdsName =
-  (name: string, wordsOfName = nameWords): Holds =>
+  (name: string): Holds =>
   (quote) => {
     const words = new Set(nameWords(quote));
-    return wordsOfName(name).every((word) => words.has(word));
+    return nameWords(name).every((word) => words.has(word));
   };
 
 // The client's name is one option for every way its documents write the form (see reading).
-const holdsCompanyName = (name: string) => holdsName(name, companyWords);
+const holdsCompanyName =
+  (name: string): Holds =>
+  (quote) => {
+    const words = new Set([...nameWords(quote), ...companyWords(quote)]);
+    return companyWords(name).every((word) => words.has(word));
+  };
 
 const digitFacts = new Set(['client.cui', 'client.caenCode']);
 const nameFacts = new Set(['client.legalRepresentativeName', 'client.contactName']);

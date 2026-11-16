@@ -1,7 +1,7 @@
 import { type InstructionDomain, instructionDomains } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { cuiDigits, sameCompany } from './match';
+import { cuiDigits, formsAgree, hasLegalForm, sameCompany } from './match';
 import { answerFormat } from './wire';
 
 export const documentKinds = [
@@ -123,18 +123,38 @@ export function sortFiles(
     group.paths.push(entry.path);
     companyOf.set(entry.path, group);
   }
+  const nameOnly = new Map<string, string[]>();
   for (const entry of named.filter((candidate) => candidate.cui === null)) {
-    const matches = groups.filter((group) =>
-      group.names.some((name) => sameCompany(name, entry.name!))
+    nameOnly.set(entry.name!, [...(nameOnly.get(entry.name!) ?? []), entry.path]);
+  }
+  // A name without a form could join companies of two forms ("Alfa" with "Alfa SA" and "Alfa
+  // SRL"), so the names with one go first, and the order of the files decides nothing.
+  const byName = [...nameOnly].sort(
+    ([a, aPaths], [b, bPaths]) =>
+      Number(hasLegalForm(b)) - Number(hasLegalForm(a)) ||
+      bPaths.length - aPaths.length ||
+      (a < b ? -1 : a > b ? 1 : 0)
+  );
+  for (const [name, paths] of byName) {
+    const matches = groups.filter(
+      (group) =>
+        group.names.some((known) => sameCompany(known, name)) &&
+        group.names.every((known) => formsAgree(known, name))
     );
-    let group = matches.sort((a, b) => b.paths.length - a.paths.length)[0];
+    let group = matches.reduce<Group | undefined>(
+      (best, each) => (best && best.paths.length >= each.paths.length ? best : each),
+      undefined
+    );
     if (!group) {
-      group = { cui: null, names: [entry.name!], paths: [] };
+      group = { cui: null, names: [], paths: [] };
       groups.push(group);
     }
-    group.paths.push(entry.path);
-    companyOf.set(entry.path, group);
+    group.names.push(name);
+    group.paths.push(...paths);
+    for (const path of paths) companyOf.set(path, group);
   }
+  const order = new Map(entries.map((entry, index) => [entry.path, index]));
+  for (const group of groups) group.paths.sort((a, b) => order.get(a)! - order.get(b)!);
 
   const chosen =
     clientGroup ??

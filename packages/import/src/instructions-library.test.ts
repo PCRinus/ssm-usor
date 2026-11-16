@@ -279,6 +279,15 @@ describe('namesClient', () => {
     );
   });
 
+  it('finds an office written with its form otherwise than its legal name', () => {
+    expect(
+      namesClient(
+        body('Angajații S.P.N. Stanciuc poartă ecuson.'),
+        'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC'
+      )
+    ).toBe(true);
+  });
+
   it('does not take a surname in a body for the office it names', () => {
     for (const client of ['S.P.N. / STANCIUC', 'SPN STANCIUC', 'CMI Dr. Popescu Ion']) {
       expect(

@@ -2,6 +2,9 @@ import {
   companyWords,
   foldName,
   foldText,
+  formsAgree,
+  hasLegalForm,
+  namesCompany,
   nameTokens,
   normalizeCui,
   sameCompany,
@@ -10,7 +13,18 @@ import {
   similar,
 } from '@ssm-usor/contracts';
 
-export { companyWords, foldName, foldText, sameCompany, sameName, sameSpelling, similar };
+export {
+  companyWords,
+  foldName,
+  foldText,
+  formsAgree,
+  hasLegalForm,
+  namesCompany,
+  sameCompany,
+  sameName,
+  sameSpelling,
+  similar,
+};
 
 const marks = /\p{M}/gu;
 const wordCharacter = /[\p{L}\p{N}]/u;

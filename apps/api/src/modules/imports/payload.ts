@@ -6,6 +6,8 @@ import {
   maxEquipmentDurationMonths,
   offeredTrainingInterval,
   postsAfterImport,
+  registeredNameAsWritten,
+  registeredNameOffered,
   staffCategoriesWithPosts,
   type StaffCategory,
   type TrainingDomain,
@@ -317,23 +319,19 @@ export function anafLegalName(
   registered: RegisteredCompany | null | undefined
 ): string | null {
   if (!registered) return null;
-  const differs = proposal.flags.some(
-    (flag: Flag) =>
-      flag.path === 'client.legalName' &&
-      flag.code === 'legal_name_differs' &&
-      flag.detail === registered.legalName
-  );
-  if (!differs) return null;
   const own = proposal.client.legalName.options.filter(
     (option) => option.otherCompanyName === null
   );
-  if (own.length !== 1) return null;
+  const written = own.map((option) => String(option.value));
+  if (!registeredNameOffered(written, registered.legalName)) return null;
   const cui = resolveField(proposal.client.cui, changes.fields['client.cui']).value;
   if (cui === null || bareCui(cui) !== registered.cui) return null;
   const change = changes.fields['client.legalName'];
   if (change?.option !== undefined || change?.included === false) return null;
-  if (change?.value !== undefined && change.value !== registered.legalName) return null;
-  return registered.legalName;
+  const name = registeredNameAsWritten(registered.legalName, written[0]!);
+  const picked = change?.value;
+  if (picked !== undefined && picked !== name && picked !== registered.legalName) return null;
+  return name;
 }
 
 // `client_fire_safety` takes a smoking place only beside designated places, and a pack whose

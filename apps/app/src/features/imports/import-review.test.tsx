@@ -694,6 +694,34 @@ describe("a new client's name ANAF registers otherwise", () => {
     );
   });
 
+  it('says it is the same firm when the documents write only its legal form otherwise', async () => {
+    const proposal = proposalFixture();
+    proposal.client.legalName.options[0]!.value = 'Societate Profesională Notarială Stănciuc';
+    mockReview(
+      readyDetail({
+        proposal,
+        blockers: [],
+        registeredCompany: {
+          cui: '31458207',
+          legalName: 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC',
+          vatPayer: true,
+          inactive: false,
+        },
+      })
+    );
+    mount('/identity');
+
+    const row = await screen.findByTestId('review-anaf-choice');
+    expect(row.textContent).toContain(
+      'Documentele scriu altfel decât ANAF forma juridică a firmei'
+    );
+    expect(row.textContent).toContain('E aceeași firmă');
+    expect(row.textContent).not.toContain('verifică întâi CUI-ul');
+    expect(within(row).getByTestId('review-anaf-pick').textContent).toContain(
+      'Societatea Profesională Notarială Stănciuc'
+    );
+  });
+
   it("names the client by ANAF's name on the hub until the documents' is picked", async () => {
     mockReview(anafDetail());
     mount();
@@ -933,12 +961,15 @@ describe('what the checks found', () => {
     expect(list.textContent).not.toContain('Modificat de tine');
   });
 
-  it("warns on both rows when ANAF knows the CUI as another firm's, and leaves it to check", async () => {
+  it('warns on both rows when ANAF knows the CUI as the firm of another name the member wrote', async () => {
     const proposal = proposalFixture();
-    proposal.client.legalName.options[0]!.value = 'S.C. BRUTĂRIA SPICUL AURIU S.R.L.';
     const detail = readyDetail({
       proposal,
       blockers: [],
+      changes: {
+        fields: { 'client.legalName': { value: 'S.C. BRUTĂRIA SPICUL AURIU S.R.L.' } },
+        items: {},
+      },
       registeredCompany: {
         cui: '31458207',
         legalName: 'BARS COMPANY S.R.L.',

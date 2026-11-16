@@ -14,6 +14,8 @@ import {
   fireSmokingPolicyLabels,
   formatCui,
   maxEquipmentDurationMonths,
+  registeredNameAsWritten,
+  registeredNameOffered,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
   sameCompany,
@@ -511,21 +513,15 @@ export type FieldState = {
   anaf: AnafName | null;
 };
 
-// `picked` is null while ANAF's name stands by default.
+// `picked` is null while ANAF's name stands by default. `sameFirm` when the documents write
+// ANAF's firm, only its legal form otherwise.
 export type AnafName = {
   name: string;
   documents: string | number;
   documentsOption: number;
   picked: 'anaf' | 'documents' | null;
+  sameFirm: boolean;
 };
-
-const legalNameDiffers = (proposal: Proposal, registered: RegisteredCompany) =>
-  proposal.flags.some(
-    (flag) =>
-      flag.path === 'client.legalName' &&
-      flag.code === 'legal_name_differs' &&
-      flag.detail === registered.legalName
-  );
 
 /** ANAF's name offered against the documents' one, as the API's payload takes it by default. */
 function anafName(
@@ -533,21 +529,26 @@ function anafName(
   changes: Changes,
   registered: RegisteredCompany | null | undefined
 ): AnafName | null {
-  if (!registered || !legalNameDiffers(proposal, registered)) return null;
+  if (!registered) return null;
   const { options } = proposedField(proposal, 'client.legalName');
   const own = options.flatMap((option, index) => (option.otherCompanyName === null ? [index] : []));
-  if (own.length !== 1) return null;
+  const written = own.map((index) => String(options[index]!.value));
+  if (!registeredNameOffered(written, registered.legalName)) return null;
   const cui = fieldState(proposal, changes, 'client.cui').value;
   if (cui === null || bareCui(cui) !== registered.cui) return null;
   const change = changes.fields['client.legalName'];
-  const documentsOption = own[0]!;
+  const documentsOption =
+    change?.option !== undefined && own.includes(change.option) ? change.option : own[0]!;
+  const documents = options[documentsOption]!.value;
   const offer = {
-    name: registered.legalName,
-    documents: options[documentsOption]!.value,
+    name: registeredNameAsWritten(registered.legalName, String(documents)),
+    documents,
     documentsOption,
+    sameFirm: sameCompany(String(documents), registered.legalName),
   };
   if (change?.value !== undefined) {
-    return change.value === registered.legalName ? { ...offer, picked: 'anaf' } : null;
+    const anaf = change.value === offer.name || change.value === registered.legalName;
+    return anaf ? { ...offer, picked: 'anaf' } : null;
   }
   if (change?.option !== undefined) {
     return change.option === documentsOption ? { ...offer, picked: 'documents' } : null;
@@ -608,6 +609,7 @@ export function fieldState(
       ? anafName(proposal, changes, registered)
       : null;
   if (anaf && anaf.picked !== 'documents') {
+    status = 'value';
     value = anaf.name;
     option = null;
     edited = false;
