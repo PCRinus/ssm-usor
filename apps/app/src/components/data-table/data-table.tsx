@@ -323,8 +323,8 @@ export function DataTable<TData extends RowData>({
                         colSpan={columnCount}
                         className="p-0 whitespace-normal first:pl-0 last:pr-0"
                       >
-                        {/* Pinned to the visible part of a table that scrolls sideways on a phone. */}
-                        <div className="sticky left-0 max-w-[calc(100vw-42px)] px-(--table-inset) pt-2 pb-5 md:max-w-none">
+                        {/* Pinned to the visible part of a table that scrolls sideways. */}
+                        <div className="sticky left-0 max-w-[100cqw] px-(--table-inset) pt-2 pb-5">
                           {expansion.render(row.original)}
                         </div>
                       </TableCell>
