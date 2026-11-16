@@ -2,8 +2,13 @@ import { z } from 'zod';
 
 import { commuteMeanSchema } from './commute-means';
 import { responsiblePersonRoleSchema } from './document-data';
-import { bloodGroupSchema, rhFactorSchema } from './employees';
-import { type ParticipantChannel, participantChannelSchema } from './participant-channels';
+import { bloodGroupSchema, clientEmployeeListFiltersSchema, rhFactorSchema } from './employees';
+import { listSearchSchema } from './list';
+import {
+  type ParticipantChannel,
+  participantChannelSchema,
+  portalLanguageSchema,
+} from './participant-channels';
 import { normalizePhone } from './phone';
 import { portalSignatureSlotSchema } from './signatures';
 import { employeeTestsSchema } from './tests';
@@ -108,12 +113,6 @@ export const participantInvitationSchema = z.object({
 });
 
 export type ParticipantInvitation = z.infer<typeof participantInvitationSchema>;
-
-export const portalLanguages = ['ro', 'en'] as const;
-
-export const portalLanguageSchema = z.enum(portalLanguages);
-
-export type PortalLanguage = z.infer<typeof portalLanguageSchema>;
 
 export const clientParticipantSchema = z.object({
   id: z.uuid(),
@@ -282,6 +281,23 @@ export const importInviteesResponseSchema = z.object({
 });
 
 export type ImportInviteesResponse = z.infer<typeof importInviteesResponseSchema>;
+
+// The Portal tab's search and filters without a page, so that a choice can span every page.
+export const listEmployeeInviteesQuerySchema = clientEmployeeListFiltersSchema
+  .pick({ portal: true, jobPosition: true, workplace: true })
+  .extend({ q: listSearchSchema.optional() });
+
+export type ListEmployeeInviteesQuery = z.infer<typeof listEmployeeInviteesQuerySchema>;
+
+export const employeeInviteesLimit = 1000;
+
+/** The current employees the search and filters match, by name; `total` counts past the limit. */
+export const employeeInviteesResponseSchema = z.object({
+  items: z.array(importInviteeSchema),
+  total: z.int().min(0),
+});
+
+export type EmployeeInviteesResponse = z.infer<typeof employeeInviteesResponseSchema>;
 
 /** One client the signed-in account is a participant of, from `current_participations()`. */
 export const portalParticipationSchema = z.object({

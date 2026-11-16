@@ -205,6 +205,8 @@ describe('GET /employees', () => {
     });
     const query = listQuery();
     expect(query.get('select')).not.toContain('cnp');
+    // Unselected, the standing on the portal leaves the view's join out of the organization's list.
+    expect(query.get('select')).not.toContain('portal_');
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('client_stage')).toBe('eq.client');
     expect(query.get('client_archived_at')).toBe('is.null');

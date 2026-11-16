@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { decodeCnp, isValidCnpInput, normalizeCnp } from './cnp';
 import { commuteMeanSchema, commuteMeansOtherMaxLength } from './commute-means';
 import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } from './list';
+import { participantChannelSchema, portalLanguageSchema } from './participant-channels';
 import { phoneSchema } from './phone';
 import { employeeTestsSchema, testStateFilterSchema } from './tests';
 import { employeeTrainingSchema, employeeTrainingStateFilterSchema } from './trainings';
@@ -115,6 +116,7 @@ export const employeeSortKeys = [
   'terminatedAt',
   'ssmTraining',
   'suTraining',
+  'portal',
 ] as const;
 export type EmployeeSortKey = (typeof employeeSortKeys)[number];
 
@@ -141,9 +143,17 @@ export const employeeListFiltersSchema = z.object({
 
 export type EmployeeListFilters = z.infer<typeof employeeListFiltersSchema>;
 
+// An employee's standing on the portal (ADR 022), in the order the Portal tab sorts it.
+// "expired": an invitation neither accepted nor revoked past its 30 days. "revoked": the latest
+// access or invitation was revoked and nothing newer is pending.
+export const portalAccessStates = ['active', 'invited', 'expired', 'none', 'revoked'] as const;
+export const portalAccessStateSchema = z.enum(portalAccessStates);
+export type PortalAccessState = z.infer<typeof portalAccessStateSchema>;
+
 export const clientEmployeeListFiltersSchema = employeeListFiltersSchema.extend({
   jobPosition: repeatedQueryValue(z.uuid()).optional(),
   workplace: repeatedQueryValue(z.uuid()).optional(),
+  portal: repeatedQueryValue(portalAccessStateSchema).optional(),
 });
 
 export type ClientEmployeeListFilters = z.infer<typeof clientEmployeeListFiltersSchema>;
@@ -226,6 +236,34 @@ export const employeeListItemSchema = employeeSchema
 
 export type EmployeeListItem = z.infer<typeof employeeListItemSchema>;
 
+export const employeePortalAccessSchema = z.object({
+  state: portalAccessStateSchema,
+  // Active: when access began. Invited or expired: when the invitation was last sent.
+  since: z.iso.datetime({ offset: true }).nullable(),
+  expiresAt: z.iso.datetime({ offset: true }).nullable(),
+  revokedAt: z.iso.datetime({ offset: true }).nullable(),
+  // When a pending invitation may be sent again; null for any other state.
+  resendableAt: z.iso.datetime({ offset: true }).nullable(),
+  channel: participantChannelSchema.nullable(),
+  address: z.string().nullable(),
+  // Chosen by an active participant in the portal; null before the choice.
+  language: portalLanguageSchema.nullable(),
+  // Set while active.
+  participantId: z.uuid().nullable(),
+  // Set while invited or expired.
+  invitationId: z.uuid().nullable(),
+  // The employee is the client administrator, and the standing is theirs as such.
+  administrator: z.boolean(),
+});
+
+export type EmployeePortalAccess = z.infer<typeof employeePortalAccessSchema>;
+
+export const clientEmployeeListItemSchema = employeeListItemSchema.extend({
+  portal: employeePortalAccessSchema,
+});
+
+export type ClientEmployeeListItem = z.infer<typeof clientEmployeeListItemSchema>;
+
 /** Moves an employee to another of the client's job positions. */
 export const updateEmployeeJobPositionRequestSchema = z.object({
   jobPositionId: z.uuid(),
@@ -241,7 +279,7 @@ export const employeeResponseSchema = z.object({ employee: employeeSchema });
 
 export type EmployeeResponse = z.infer<typeof employeeResponseSchema>;
 
-export const employeeListResponseSchema = pageSchema(employeeListItemSchema).extend({
+export const employeeListResponseSchema = pageSchema(clientEmployeeListItemSchema).extend({
   // The count of the status asked for, with no search and no filter.
   unfilteredTotal: z.int().min(0),
 });

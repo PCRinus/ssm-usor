@@ -182,7 +182,8 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /documents/{documentId}/draft/file`                               | Verified user with a membership       | `{ "document": { … } }` after replacing the draft's Word file                                                                                                                                      |
 | `POST /clients/{clientId}/documents/{typeKey}/upload`                  | Verified user with a membership       | `{ "document": { … } }` with the uploaded file as its draft                                                                                                                                        |
 | `GET /companies/lookup`                                                | Member, or confirmed email            | `{ "company": { … } }` from ANAF, by `?cui=`                                                                                                                                                       |
-| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total" }`; `?page=&pageSize=&sort=&order=&status=&trainingState=&testState=&q=`                                                                            |
+| `GET /clients/{clientId}/employees`                                    | Verified user with a membership       | `{ "items": [ … ], "page", "pageSize", "total", "unfilteredTotal" }`, each with its `portal` standing; `?page=&pageSize=&sort=&order=&status=&q=&jobPosition=&workplace=&portal=`                  |
+| `GET /clients/{clientId}/employee-invitees`                            | Verified user with a membership       | `{ "items": [ … ], "total" }`: the current employees the same `q` and filters match, as invitees, at most 1000                                                                                     |
 | `GET /employees`                                                       | Verified user with a membership       | The organization's employees across its active clients, each with `client`; `?clientId=&status=&trainingState=&testState=&domain=&q=`                                                              |
 | `POST /clients/{clientId}/employees`                                   | Verified user with a membership       | `201 { "employee": { … } }`                                                                                                                                                                        |
 | `GET /clients/{clientId}/employees/{employeeId}`                       | Verified user with a membership       | `{ "employee": { … } }`, the only response carrying the CNP                                                                                                                                        |
@@ -472,6 +473,19 @@ envelope, current employees by default and `?status=terminated` for the leavers,
 for one client, and `q` matching the client's name as well. Only employees of active clients
 are listed, never those of archived ones. Leads are never included, so an owner and a specialist see the same list. It sorts by `name` (the default),
 `client`, `jobPosition` or `hiredAt`, and takes `?trainingState=` as a client's list does.
+
+A client's list also carries each employee's `portal` standing (ADR 022), computed by the
+`employee_list` view: `active` for the active participant, else `invited` or `expired` for the
+newest invitation neither accepted nor revoked, else `revoked` for the latest revoked one, else
+`none`. It holds the dates the Portal tab shows (`since`, `expiresAt`, `revokedAt`,
+`resendableAt`), the address, its channel and the language chosen, `participantId` while active
+and `invitationId` while pending, for the revoke and resend routes, and `administrator` when the
+employee is the client administrator. `?portal=` filters by any of the five and `sort=portal`
+orders them in that sequence, then by name; both work for an archived client, whose access can
+still be revoked. `GET /clients/{clientId}/employee-invitees` answers the same search and
+filters without a page, as the invitees of `POST …/employee-participant-invitations`, so that the
+Portal tab can choose every matching employee across its pages; it lists at most 1000 and says
+how many match in `total`.
 `?domain=ssm|su` narrows the state filters to one domain: `?trainingState=overdue&domain=ssm`
 keeps those overdue in SSM, `current` with a domain those up to date in it whatever the other
 says, and a `testState` likewise; without it the filters read both domains as below

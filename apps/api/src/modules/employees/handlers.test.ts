@@ -1,5 +1,6 @@
 import {
   apiErrorResponseSchema,
+  employeeInviteesResponseSchema,
   employeeListResponseSchema,
   employeeResponseSchema,
 } from '@ssm-usor/contracts';
@@ -92,6 +93,20 @@ const employeeRow = {
     su_last_passed_on: '2026-03-02',
     su_due_on: '2027-03-02',
   },
+};
+
+const noAccess = {
+  state: 'none',
+  since: null,
+  expiresAt: null,
+  revokedAt: null,
+  resendableAt: null,
+  channel: null,
+  address: null,
+  language: null,
+  participantId: null,
+  invitationId: null,
+  administrator: false,
 };
 
 const tests = {
@@ -288,6 +303,7 @@ describe('GET /clients/{clientId}/employees', () => {
           training,
           tests,
           signaturesPending: 2,
+          portal: noAccess,
         },
       ],
     });
@@ -296,6 +312,7 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(new URL(String(clientUrl)).searchParams.get('id')).toBe(`eq.${clientId}`);
     const [list] = listCalls();
     expect(list!.query.get('select')).not.toContain('cnp');
+    expect(list!.query.get('select')).toContain('portal_state');
     expect(list!.query.get('client_id')).toBe(`eq.${clientId}`);
     expect(list!.query.get('archived_at')).toBe('is.null');
     expect(list!.query.get('status')).toBe('neq.terminated');
@@ -523,6 +540,167 @@ describe('GET /clients/{clientId}/employees', () => {
     }
   );
 
+  describe('the standing on the portal', () => {
+    const participantId = '88888888-0000-4000-8000-000000000001';
+    const invitationId = '99999999-0000-4000-8000-000000000001';
+    const standing = {
+      portal_state: 'none',
+      portal_since: null,
+      portal_expires_at: null,
+      portal_revoked_at: null,
+      portal_channel: null,
+      portal_address: null,
+      portal_language: null,
+      portal_participant_id: null,
+      portal_invitation_id: null,
+      portal_administrator: false,
+    };
+    const rowWith = (id: string, portal: Record<string, string | boolean | null>) => ({
+      ...employeeViewRow,
+      id,
+      ...standing,
+      ...portal,
+    });
+
+    it('carries each standing with the dates it shows and the ids its actions need', async () => {
+      const ids = [
+        '10000000-0000-4000-8000-000000000001',
+        '10000000-0000-4000-8000-000000000002',
+        '10000000-0000-4000-8000-000000000003',
+        '10000000-0000-4000-8000-000000000004',
+      ];
+      mockUpstream({
+        list: () =>
+          Response.json(
+            [
+              rowWith(ids[0]!, {
+                portal_state: 'active',
+                portal_since: '2026-10-10T09:00:00+00:00',
+                portal_channel: 'email',
+                portal_address: 'calin@example.ro',
+                portal_language: 'en',
+                portal_participant_id: participantId,
+                portal_administrator: true,
+              }),
+              rowWith(ids[1]!, {
+                portal_state: 'invited',
+                portal_since: '2026-11-12T08:00:00+00:00',
+                portal_expires_at: '2026-12-12T08:00:00+00:00',
+                portal_channel: 'sms',
+                portal_address: '+40752330417',
+                portal_invitation_id: invitationId,
+              }),
+              rowWith(ids[2]!, {
+                portal_state: 'expired',
+                portal_since: '2026-10-02T08:00:00+00:00',
+                portal_expires_at: '2026-11-01T08:00:00+00:00',
+                portal_channel: 'email',
+                portal_address: 'florin@example.ro',
+                portal_invitation_id: invitationId,
+              }),
+              rowWith(ids[3]!, {
+                portal_state: 'revoked',
+                portal_since: '2026-10-01T08:00:00+00:00',
+                portal_revoked_at: '2026-11-05T08:00:00+00:00',
+                portal_channel: 'email',
+                portal_address: 'gabriel@example.ro',
+                portal_language: 'ro',
+                portal_participant_id: participantId,
+              }),
+            ],
+            { headers: { 'Content-Range': '0-3/4' } }
+          ),
+      });
+      const response = await request(employeesPath);
+      expect(response.status).toBe(200);
+      const { items } = employeeListResponseSchema.parse(await response.json());
+      expect(items.map((item) => item.portal)).toEqual([
+        {
+          ...noAccess,
+          state: 'active',
+          since: '2026-10-10T09:00:00.000Z',
+          channel: 'email',
+          address: 'calin@example.ro',
+          language: 'en',
+          participantId,
+          administrator: true,
+        },
+        {
+          ...noAccess,
+          state: 'invited',
+          since: '2026-11-12T08:00:00.000Z',
+          expiresAt: '2026-12-12T08:00:00.000Z',
+          resendableAt: '2026-11-12T08:10:00.000Z',
+          channel: 'sms',
+          address: '+40752330417',
+          invitationId,
+        },
+        {
+          ...noAccess,
+          state: 'expired',
+          since: '2026-10-02T08:00:00.000Z',
+          expiresAt: '2026-11-01T08:00:00.000Z',
+          resendableAt: '2026-10-02T08:10:00.000Z',
+          channel: 'email',
+          address: 'florin@example.ro',
+          invitationId,
+        },
+        {
+          ...noAccess,
+          state: 'revoked',
+          revokedAt: '2026-11-05T08:00:00.000Z',
+          channel: 'email',
+          address: 'gabriel@example.ro',
+        },
+      ]);
+    });
+
+    it('filters by the standing, and counts the tab without it', async () => {
+      mockUpstream({
+        list: (init) =>
+          init?.method === 'HEAD'
+            ? new Response(null, { headers: { 'Content-Range': '*/14' } })
+            : Response.json([employeeViewRow], { headers: { 'Content-Range': '0-0/1' } }),
+      });
+      const response = await request(`${employeesPath}?portal=none&portal=revoked`);
+      expect(employeeListResponseSchema.parse(await response.json())).toMatchObject({
+        total: 1,
+        unfilteredTotal: 14,
+      });
+      expect(listQuery().get('portal_state')).toBe('in.(none,revoked)');
+      const [count] = countQueries();
+      expect(count!.get('client_id')).toBe(`eq.${clientId}`);
+      expect(count!.has('portal_state')).toBe(false);
+    });
+
+    it('sorts by the standing in the order of the tab, then by name', async () => {
+      mockUpstream({});
+      await request(`${employeesPath}?sort=portal`);
+      expect(listQuery().get('order')).toBe('portal_rank.asc,last_name.asc,first_name.asc,id.asc');
+      await request(`${employeesPath}?sort=portal&order=desc`);
+      expect(listCalls().at(-1)!.query.get('order')).toBe(
+        'portal_rank.desc,last_name.desc,first_name.desc,id.asc'
+      );
+    });
+
+    it("filters and sorts an archived client's employees by it, whose access can still be revoked", async () => {
+      mockUpstream({
+        clients: () =>
+          Response.json([{ ...activeClient, archived_at: '2026-01-01T00:00:00+00:00' }]),
+      });
+      const response = await request(`${employeesPath}?portal=active&sort=portal`);
+      expect(response.status).toBe(200);
+      expect(listQuery().get('portal_state')).toBe('in.(active)');
+    });
+
+    it('rejects a standing it does not know', async () => {
+      mockUpstream({});
+      const response = await request(`${employeesPath}?portal=pending`);
+      expect(response.status).toBe(400);
+      expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    });
+  });
+
   it('requires a bearer token', async () => {
     mockUpstream({});
     const response = await request(employeesPath, {}, '');
@@ -534,6 +712,101 @@ describe('GET /clients/{clientId}/employees', () => {
     mockUpstream({ membership: () => Response.json([]) });
     const response = await request(employeesPath);
     expect(response.status).toBe(403);
+    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+  });
+});
+
+describe('GET /clients/{clientId}/employee-invitees', () => {
+  const inviteesPath = `/clients/${clientId}/employee-invitees`;
+  const inviteeQuery = () => {
+    const [input, init] = calls('/rest/v1/employee_list')[0]!;
+    return { query: new URL(String(input)).searchParams, headers: new Headers(init?.headers) };
+  };
+  const inviteeRow = (id: string, last: string, portal_state: string) => ({
+    id,
+    last_name: last,
+    first_name: 'Ion',
+    job_position_name: 'Zidar',
+    email: null,
+    phone: '+40721000000',
+    portal_state,
+  });
+
+  it('lists every current employee the search and filters match, as invitees, with the total past the limit', async () => {
+    mockUpstream({
+      list: () =>
+        Response.json(
+          [
+            inviteeRow('20000000-0000-4000-8000-000000000001', 'Activ', 'active'),
+            inviteeRow('20000000-0000-4000-8000-000000000002', 'Invitat', 'invited'),
+            inviteeRow('20000000-0000-4000-8000-000000000003', 'Expirat', 'expired'),
+            inviteeRow('20000000-0000-4000-8000-000000000004', 'Revocat', 'revoked'),
+            inviteeRow('20000000-0000-4000-8000-000000000005', 'Neinvitat', 'none'),
+          ],
+          { headers: { 'Content-Range': '0-4/1200' } }
+        ),
+    });
+    const response = await request(
+      `${inviteesPath}?portal=none&portal=revoked&jobPosition=${positionId}&workplace=${workplaceId}&q=Pop`
+    );
+    expect(response.status).toBe(200);
+    const body = employeeInviteesResponseSchema.parse(await response.json());
+    expect(body.total).toBe(1200);
+    expect(body.items.map((item) => [item.lastName, item.portal, item.current])).toEqual([
+      ['Activ', 'participant', true],
+      ['Invitat', 'invited', true],
+      ['Expirat', null, true],
+      ['Revocat', null, true],
+      ['Neinvitat', null, true],
+    ]);
+    expect(body.items[0]).toEqual({
+      employeeId: '20000000-0000-4000-8000-000000000001',
+      lastName: 'Activ',
+      firstName: 'Ion',
+      position: 'Zidar',
+      email: null,
+      phone: '+40721000000',
+      current: true,
+      portal: 'participant',
+    });
+    const { query, headers } = inviteeQuery();
+    expect(query.get('select')).not.toContain('cnp');
+    expect(query.get('client_id')).toBe(`eq.${clientId}`);
+    expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('status')).toBe('eq.active');
+    expect(query.get('portal_state')).toBe('in.(none,revoked)');
+    expect(query.get('job_position_id')).toBe(`in.(${positionId})`);
+    expect(query.get('workplace_id')).toBe(`in.(${workplaceId})`);
+    expect(query.getAll('or')).toEqual(['(search_name.ilike.*pop*,employee_number.ilike.*pop*)']);
+    expect(query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
+    expect(query.get('limit')).toBe('1000');
+    expect(query.has('offset')).toBe(false);
+    expect(headers.get('Authorization')).toBe('Bearer test-access-token');
+    expect(headers.get('Prefer')).toContain('count=exact');
+  });
+
+  it('answers 404 for a client the organization does not see, before reading its employees', async () => {
+    mockUpstream({ clients: () => Response.json([]) });
+    const response = await request(inviteesPath);
+    expect(response.status).toBe(404);
+    expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+  });
+
+  it.each(['portal=pending', 'jobPosition=not-a-uuid', 'workplace=1'])(
+    'rejects an invalid filter: %s',
+    async (search) => {
+      mockUpstream({});
+      const response = await request(`${inviteesPath}?${search}`);
+      expect(response.status).toBe(400);
+      expect(calls('/rest/v1/employee_list')).toHaveLength(0);
+    }
+  );
+
+  it('requires a member of an organization', async () => {
+    mockUpstream({ membership: () => Response.json([]) });
+    expect((await request(inviteesPath)).status).toBe(403);
+    mockUpstream({});
+    expect((await request(inviteesPath, {}, '')).status).toBe(401);
     expect(calls('/rest/v1/employee_list')).toHaveLength(0);
   });
 });
