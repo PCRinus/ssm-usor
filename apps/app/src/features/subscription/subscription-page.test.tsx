@@ -101,8 +101,14 @@ describe('the Abonament tab', () => {
       'Pentru 312 lucrători, treapta potrivită e de 500 pe Start sau de 500 pe Profesional.'
     );
     expect(screen.getByTestId('payment-card').textContent).toContain('Nu ai salvat un card');
-    expect(screen.getByTestId('invoices-card').textContent).toContain(
-      'Prima factură apare aici după prima plată.'
+    const invoices = screen.getByTestId('invoices-card');
+    expect(within(invoices).getByTestId('invoices-empty').textContent).toBe(
+      'Nicio factură încăPrima factură apare aici după prima plată.'
+    );
+    expect(invoices.textContent).not.toContain('pe email');
+    expect(within(invoices).queryByTestId('invoices-count')).toBeNull();
+    expect(screen.getByTestId('subscription-page').textContent).not.toContain(
+      'Scrie-ne pentru o ofertă'
     );
   });
 
@@ -264,15 +270,17 @@ describe('the Abonament tab', () => {
     expect(within(card).getByRole('link', { name: 'Schimbă planul sau treapta' })).toBeTruthy();
     expect(within(card).getByRole('button', { name: 'Treci la plata lunară' })).toBeTruthy();
 
-    const rows = within(screen.getByTestId('invoices-card')).getAllByTestId('invoice-row');
-    expect(rows[0]!.textContent).toContain('SSMUSOR-0011');
-    expect(rows[0]!.textContent).toContain('2.468,40 €');
-    const [ready, pending] = within(screen.getByTestId('invoices-card')).getAllByTestId(
-      'invoice-download'
-    );
-    expect((ready as HTMLButtonElement).disabled).toBe(false);
-    expect((pending as HTMLButtonElement).disabled).toBe(true);
-    expect(pending!.textContent).toBe('PDF în curând');
+    const invoices = screen.getByTestId('invoices-card');
+    expect(invoices.textContent).not.toContain('pe email');
+    expect(within(invoices).getByTestId('invoices-count').textContent).toBe('2 facturi');
+    const [issuing, issued] = within(invoices).getAllByTestId('invoice-row');
+    expect(issuing!.textContent).toBe('Se emite—3,15 €fără TVA 2,60 €PDF în curând');
+    expect(within(issuing!).queryByTestId('invoice-download')).toBeNull();
+    expect(issued!.textContent).toContain('SSMUSOR-0011');
+    expect(issued!.textContent).toContain('2.468,40 €');
+    const download = within(issued!).getByTestId('invoice-download') as HTMLButtonElement;
+    expect(download.disabled).toBe(false);
+    expect(download.getAttribute('aria-label')).toBe('Descarcă PDF-ul facturii SSMUSOR-0011');
   });
 
   it("offers the plan's own next step when over the step, with its price plus VAT", async () => {
@@ -1305,5 +1313,122 @@ describe('the Extra card', () => {
       'Se poate porni după ce alegi un plan.'
     );
     expect(within(card).queryByRole('switch')).toBeNull();
+  });
+});
+
+describe('the Facturi list', () => {
+  type Invoice = Owner['invoices'][number];
+  const invoice = (overrides: Partial<Invoice>): Invoice => ({
+    stripeInvoiceId: 'in_1',
+    kind: 'invoice',
+    number: 'SSMUSOR-0001',
+    issuedAt: '2026-05-16T09:00:00.000Z',
+    amountCents: 14399,
+    subtotalCents: 11900,
+    currency: 'eur',
+    stornoOf: null,
+    hasPdf: true,
+    ...overrides,
+  });
+  const invoices = [
+    invoice({ stripeInvoiceId: 'in_4', number: null, issuedAt: null, hasPdf: false }),
+    invoice({
+      stripeInvoiceId: 'in_3',
+      number: 'SSMUSOR-0214',
+      issuedAt: '2026-10-16T09:00:00.000Z',
+      amountCents: 15609,
+      subtotalCents: 12900,
+    }),
+    invoice({
+      stripeInvoiceId: 're_2',
+      number: 'SSMUSOR-0112',
+      issuedAt: '2026-07-22T09:00:00.000Z',
+      amountCents: -14399,
+      subtotalCents: -11900,
+      stornoOf: 'in_2',
+    }),
+    invoice({
+      stripeInvoiceId: 'in_2',
+      number: 'SSMUSOR-0098',
+      issuedAt: '2026-07-16T09:00:00.000Z',
+    }),
+    invoice({ stripeInvoiceId: 'in_1', subtotalCents: null }),
+  ];
+
+  const mountWith = (owner: Partial<Owner>, path?: string) => {
+    mockApi({
+      overview: overviewWith({ subscription: activeSubscription(), owner: ownerPart(owner) }),
+    });
+    return path ? mountApp(authFixture(makeSession()).client, path) : mount();
+  };
+
+  const rowTexts = async () =>
+    (await screen.findAllByTestId('invoice-row')).map((row) => row.textContent);
+
+  it('shows a VAT payer each total with its amount without VAT under it, newest first', async () => {
+    mountWith({ invoices, vatPayer: true });
+
+    expect(await rowTexts()).toEqual([
+      'Se emite—143,99 €fără TVA 119 €PDF în curând',
+      'SSMUSOR-021416.10.2026156,09 €fără TVA 129 €',
+      'SSMUSOR-0112Stornare a facturii SSMUSOR-009822.07.2026-143,99 €fără TVA -119 €',
+      'SSMUSOR-009816.07.2026143,99 €fără TVA 119 €',
+      'SSMUSOR-000116.05.2026143,99 €',
+    ]);
+    expect(screen.getByTestId('invoices-count').textContent).toBe('5 facturi');
+    expect(screen.getAllByTestId('invoice-download')).toHaveLength(4);
+    expect(screen.getByTestId('sort-issuedAt').closest('th')!.getAttribute('aria-sort')).toBe(
+      'descending'
+    );
+  });
+
+  it('shows an organization that pays no VAT only the totals', async () => {
+    mountWith({ invoices, vatPayer: false });
+
+    expect((await rowTexts())[1]).toBe('SSMUSOR-021416.10.2026156,09 €');
+    expect(screen.queryByTestId('invoice-net')).toBeNull();
+  });
+
+  it('names a storno whose original is not in the list only as a storno', async () => {
+    mountWith({ invoices: [invoices[2]!] });
+
+    expect(await rowTexts()).toEqual(['SSMUSOR-0112Stornare22.07.2026-143,99 €fără TVA -119 €']);
+  });
+
+  it('sorts by amount and by date, and keeps the choice in the address', async () => {
+    const runtime = mountWith({ invoices });
+    const user = userEvent.setup();
+    const numbers = async () =>
+      (await rowTexts()).map((text) => /^(SSMUSOR-\d{4}|Se emite)/.exec(text ?? '')?.[1]);
+
+    await user.click(await screen.findByTestId('sort-amount'));
+    await waitFor(async () =>
+      expect(await numbers()).toEqual([
+        'SSMUSOR-0112',
+        'Se emite',
+        'SSMUSOR-0098',
+        'SSMUSOR-0001',
+        'SSMUSOR-0214',
+      ])
+    );
+    expect(runtime.router.state.location.search).toEqual({ sort: 'amount', order: 'asc' });
+
+    await user.click(screen.getByTestId('sort-issuedAt'));
+    await waitFor(async () =>
+      expect(await numbers()).toEqual([
+        'SSMUSOR-0001',
+        'SSMUSOR-0098',
+        'SSMUSOR-0112',
+        'SSMUSOR-0214',
+        'Se emite',
+      ])
+    );
+    expect(runtime.router.state.location.search).toEqual({ order: 'asc' });
+  });
+
+  it('opens on the sort the address holds', async () => {
+    mountWith({ invoices }, '/organizatie/abonament?sort=amount&order=desc');
+
+    expect((await rowTexts())[0]).toContain('SSMUSOR-0214');
   });
 });

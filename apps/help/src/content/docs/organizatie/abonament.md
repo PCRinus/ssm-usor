@@ -50,6 +50,7 @@ sources:
   - apps/app/src/features/subscription/extras-copy.ts
   - apps/app/src/features/subscription/checkout/*.tsx
   - apps/app/src/features/subscription/member-seats.ts
+  - apps/app/src/features/subscription/invoice-list.ts
 ---
 
 Abonamentul e al organizației, nu al unei persoane. Îl alege, îl schimbă și îl anulează adminul organizației; colegii văd planul și cât folosiți, fără sume și fără butoane.
@@ -222,7 +223,11 @@ O schimbare programată pentru reînnoire apare pe pagină, cu data ei. O poți 
 
 **Email pentru facturi** e opțional. Dacă îl completezi, de exemplu cu adresa contabilității, facturile pleacă acolo. Dacă îl lași gol, pleacă la adresa ta.
 
-Fiecare factură vine pe email după ce plata a reușit și apare și în lista **Facturi**, de unde o descarci cu **Descarcă PDF**. O factură abia emisă poate arăta câteva minute **PDF în curând**, până e gata documentul.
+Fiecare factură vine și pe email, după ce plata a reușit. Tot atunci apare în lista **Facturi**, la sfârșitul paginii, cu cele mai noi întâi: numărul, data și suma cu TVA, în euro, ca pe factură. O descarci cu butonul de descărcare de la capătul rândului. O ordonezi după **Data** sau după **Suma, cu TVA**, cu un clic pe numele coloanei.
+
+- Dacă organizația e plătitoare de TVA (căsuța **Plătitor de TVA** din **Organizație**, la **Date firmă**), sub sumă apare și suma fără TVA, de exemplu „fără TVA 119 €”.
+- O stornare are suma cu minus, iar sub numărul ei scrie ce factură anulează.
+- Cât timp factura se emite, în locul numărului scrie **Se emite**, iar data apare după emitere. O factură abia emisă poate arăta câteva minute **PDF în curând**, până e gata documentul.
 
 ## Când plata nu reușește
 
