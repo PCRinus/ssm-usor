@@ -1,0 +1,103 @@
+import { Button } from '@ssm-usor/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@ssm-usor/ui/components/dropdown-menu';
+import { toast } from '@ssm-usor/ui/lib/toast';
+import { useRouteContext } from '@tanstack/react-router';
+import { MoreHorizontal } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+import {
+  type ApiErrorResponse,
+  type InvitationResponse,
+  useResendInvitation,
+  useRevokeInvitation,
+} from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
+
+import { refreshTeam } from './refresh-team';
+
+function actionMessage(cause: unknown, email: string) {
+  const refused = impersonationRefusal(cause);
+  if (refused) return refused;
+  if (cause instanceof ApiHttpError) {
+    const body = cause.body as Partial<ApiErrorResponse> | undefined;
+    if (body?.reason === 'sent_recently') {
+      return `Am trimis deja o invitație la ${email} în ultimele 10 minute. Încearcă mai târziu.`;
+    }
+    if (body?.reason === 'member_limit_reached') {
+      return `Toți utilizatorii planului sunt ocupați, iar invitația pentru ${email} a expirat și nu mai ține un loc. Revocă o invitație în așteptare sau schimbă planul din Abonament.`;
+    }
+    if (cause.status === 404) return `Invitația pentru ${email} nu mai este în așteptare.`;
+    if (cause.status === 503) {
+      return 'Invitația nu a putut fi trimisă pe email. Încearcă din nou în câteva momente.';
+    }
+  }
+  return 'Acțiunea nu a reușit. Verifică conexiunea și încearcă din nou.';
+}
+
+// `onError` reports to the card, where the message persists.
+export function InvitationActions({
+  invitation,
+  onError,
+}: {
+  invitation: InvitationResponse;
+  onError: (message: ReactNode) => void;
+}) {
+  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const resend = useResendInvitation({ request: wordingRefusalHere(apiRequest) });
+  const revoke = useRevokeInvitation({ request: apiRequest });
+  const busy = resend.isPending || revoke.isPending;
+  const { email } = invitation;
+
+  async function run(action: 'resend' | 'revoke') {
+    onError(null);
+    try {
+      if (action === 'resend') {
+        await resend.mutateAsync({ invitationId: invitation.id });
+        toast.success(`Am retrimis invitația la ${email}.`);
+      } else {
+        await revoke.mutateAsync({ invitationId: invitation.id });
+        toast.success(`Invitația pentru ${email} a fost revocată.`);
+      }
+    } catch (cause) {
+      onError(actionMessage(cause, email));
+    }
+    // Also after a failure: a 404 means the list on screen is out of date.
+    await refreshTeam(queryClient);
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          data-testid="invitation-actions"
+          aria-label={`Acțiuni pentru invitația trimisă la ${email}`}
+          disabled={busy}
+        >
+          <MoreHorizontal aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem data-testid="invitation-resend" onSelect={() => void run('resend')}>
+          Retrimite invitația
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          data-testid="invitation-revoke"
+          variant="destructive"
+          onSelect={() => void run('revoke')}
+        >
+          Revocă invitația
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

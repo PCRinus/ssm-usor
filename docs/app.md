@@ -180,7 +180,7 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/dashboard.tsx`                                                 | `/dashboard`                                           | The Dashboard: what to do, the clients' trainings, the portfolio, and the contracts for owners.                                                                                                            |
 | `routes/_authenticated/organizatie.tsx`                                               | `/organizatie`                                         | The organization's name, the caller's role, and the row of sections.                                                                                                                                       |
 | `routes/_authenticated/organizatie/index.tsx`                                         | `/organizatie`                                         | Redirects to the team.                                                                                                                                                                                     |
-| `routes/_authenticated/organizatie/echipa.tsx`                                        | `/organizatie/echipa`                                  | The members for everyone; invitations, the invite dialog and the row menus for owners.                                                                                                                     |
+| `routes/_authenticated/organizatie/echipa.tsx`                                        | `/organizatie/echipa`                                  | One table of the members for everyone; invitations, activity, the invite dialog and the row menus for owners.                                                                                              |
 | `routes/_authenticated/organizatie/date-firma.tsx`                                    | `/organizatie/date-firma`                              | "Date firmă": what documents print about the provider as a company. Owners edit.                                                                                                                           |
 | `routes/_authenticated/organizatie/abilitari.tsx`                                     | `/organizatie/abilitari`                               | "Abilitări": the certificate of authorization, the fire-safety technician and their authorization. Owners edit.                                                                                            |
 | `routes/_authenticated/profil.tsx`                                                    | `/profil`                                              | The user's name and professional title (editable), email, and organization.                                                                                                                                |
@@ -1414,13 +1414,24 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - `/organizatie`: the organization's name, the caller's role, and a row of sections as on a
   client's page, each its own route; `/organizatie` itself redirects to the team, which is
   what the page is opened for day to day.
-- `/organizatie/echipa` ("Echipă"): the members from `GET /organization/members`. An owner also
-  gets the pending invitations with resend and revoke, and the "Invită un membru" dialog with
-  a role picker. The API's `reason` on a conflict decides the wording: an address that is
-  already a member or was emailed in the last 10 minutes is reported on the email field, the
-  20-invitation limit on the form. An owner's members table has a row menu for everyone but
-  themselves: switch the role, or remove the member after a confirmation that says what
-  stays. Hiding the owner's tools is a courtesy; the API and the database enforce the rule.
+- `/organizatie/echipa` ("Echipă"): one table on the shared list table, read whole: the
+  members from `GET /organization/members` by name, then, for an owner, the open and then the
+  expired invitations, newest first, whatever the sort. Nume (email under it), Rol as text,
+  Stare ("Membru", "Invitație în așteptare", "Invitație expirată" in amber) and, for an owner,
+  Ultima activitate (`lastActiveAt`, the later of the last sign-in and the last session
+  renewal) and a row menu: switch the role or remove a member (not on one's own row), resend
+  or revoke an invitation. Sorts by Nume and Ultima activitate, in the URL. Above it, the
+  plan's places from `GET /organization/seats`, which never asks Stripe
+  (`features/subscription/member-seats.ts`): members plus open invitations, counted by the
+  invite check's own function, the same number the Abonament meter shows; amber at the limit,
+  where an owner in person on a paid Start below Profesional's users gets "Treci pe
+  Profesional" as the primary button and "Invită un membru" turns outline. A specialist reads
+  "6 membri · 1 invitație în așteptare" instead. At the limit the invite dialog says the
+  plan is full instead of showing the form; otherwise the API's `reason` on a conflict decides
+  the wording: an address that is already a member or was emailed in the last 10 minutes is
+  reported on the email field, the 20-invitation limit on the form. Every change refreshes the
+  members, the invitations and the places, and only marks the billing overview stale. Hiding the owner's tools is a courtesy; the API
+  and the database enforce the rule.
 - `/organizatie/date-firma` ("Date firmă"): what generated documents and contracts print about
   the provider as a company (ADR 005, ADR 007), from `GET /organization/company-details`, in
   the sections of the client form: identification, registered office and phone, legal

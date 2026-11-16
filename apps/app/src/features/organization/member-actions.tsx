@@ -19,19 +19,14 @@ import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
-import {
-  getListOrganizationMembersQueryKey,
-  type OrganizationMemberListResponse,
-  useChangeMemberRole,
-  useRemoveMember,
-} from '@/api/generated/api';
+import { useChangeMemberRole, useRemoveMember } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
 
 import { roleLabels } from './labels';
-
-type Member = OrganizationMemberListResponse['items'][number];
+import { refreshTeam } from './refresh-team';
+import type { Member } from './team-list';
 
 function actionMessage(cause: unknown, name: string) {
   if (cause instanceof ApiHttpError) {
@@ -61,8 +56,7 @@ export function MemberActions({
   const busy = changeRole.isPending || remove.isPending;
 
   // Also after a failure: a 404 means the list on screen is out of date.
-  const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: getListOrganizationMembersQueryKey() });
+  const refresh = () => refreshTeam(queryClient);
 
   async function switchRole() {
     onError(null);
