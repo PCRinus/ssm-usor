@@ -5,10 +5,11 @@ import { Archive, ArchiveRestore, Pencil, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
-import { openedFromRecord, openedHere } from '@/app/opener';
+import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
+import { clientFileListSearch } from '@/features/client-files/client-file-list';
 import { ClientFilesCard } from '@/features/client-files/client-files-card';
 import {
   type ClientArchiveChange,
@@ -32,7 +33,7 @@ import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 import { ServiceContractCard } from '@/features/service-contracts/service-contract-card';
 
 export const Route = createFileRoute('/_authenticated/oferte/$leadId/')({
-  validateSearch: focusSearch(leadFocus),
+  validateSearch: focusSearch(leadFocus).extend(clientFileListSearch),
   component: LeadPage,
 });
 
@@ -42,7 +43,9 @@ const leadRoute = getRouteApi('/_authenticated/oferte/$leadId');
 function LeadPage() {
   const { lead } = leadRoute.useLoaderData();
   const { session } = useAuth();
-  const { focus } = Route.useSearch();
+  const search = Route.useSearch();
+  const { focus } = search;
+  const navigate = Route.useNavigate();
   useEndWayBackOutside(lead.id, session?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState(false);
@@ -163,7 +166,21 @@ function LeadPage() {
             </Button>
           )}
         />
-        <ClientFilesCard client={lead} userId={session.user.id} readOnly={readOnly} />
+        <ClientFilesCard
+          client={lead}
+          userId={session.user.id}
+          readOnly={readOnly}
+          title="Alte documente"
+          search={search}
+          onSearch={(next) =>
+            void navigate({
+              search: (prev) => ({ ...prev, ...next }),
+              state: keepOpener,
+              replace: true,
+              resetScroll: false,
+            })
+          }
+        />
         <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={readOnly} />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />

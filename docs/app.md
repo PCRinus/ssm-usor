@@ -1315,12 +1315,16 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   drawn by `pdfjs-dist` with a text layer, the quote marked on its runs; a page read as an image,
   or a photograph, is shown with zoom and no mark. When the passage is not found the page says
   so. Both viewers load lazily. "Descarcă originalul" asks Storage for the file under its name.
-- In "Alte documente", the files of an import (`importId`) sit under one collapsed row, "Dosar
-  importat pe … · N fișiere", with their folders beneath it and "Necitit" on the files the
-  import did not read; the scanned PDFs of an employee import (`importKind` `employees`) under
-  "Fișe importate pe … · N fișiere", "Fișele scanate din care au fost transcrise instruirile.
-  Fiecare angajat are la fișierele sale doar paginile lui." "Descarcă tot dosarul (ZIP)" fetches them one by one and stores them in a
-  ZIP built in the browser with `fflate`, uncompressed.
+- In "Alte documente", the files of an import (`importId`) are one row among the files, sorted
+  by the import's first file like a file and closed at first: "Dosar importat pe …", or "Fișe
+  importate pe …" for the scanned PDFs of an employee import (`importKind` `employees`), with
+  "N fișiere în M foldere" under it, "Dosar" and the total size as its type, and, opened, its
+  folders as rows of their own, five files each until "Arată toate cele N"; a file the import
+  did not read says "Necitit la import: …" in amber text. The folder's download button
+  fetches its files one by one and stores them in a ZIP built in the browser with `fflate`,
+  uncompressed; its menu has "Vezi importul", the import's page (`/clienti/import/:id`, or the
+  employee import's under the client). The descriptive sentences moved to the help article
+  "Alte documente" (`fisiere.*` topics).
 - The editor is one view for both kinds of document. `DocumentEditorView` takes a
   `DocumentSource` (the document, the state of its query, how to refetch and invalidate, and
   the way back); `DocumentEditorPage` builds one from the client's list of documents, and
@@ -1328,22 +1332,34 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   documentation set only. "Modifică" on an issued contract works as for any document.
 - `/clienti/:clientId/alte-documente`: "Alte documente", the tab before "Portal", for owners
   and specialists alike, in `src/features/client-files/` ([ADR 013](architecture/adr-013-client-files.md)).
-  `ClientFilesCard` lists `GET /clients/{clientId}/files`: the kind as an icon and a word (PDF,
-  Imagine, Word, Excel), the name with the note under it, the size, the day of the upload and
-  who uploaded it, and "Doar administratori" on a file for owners only; on a phone each row
-  stacks. The row or the name opens a PDF or an image in a new tab and downloads anything
-  else; the download button always downloads. The tab is opened on the click, before the link
-  arrives, so that the browser does not take it for a popup, and then pointed at
-  `/files/download` with `inline`. For the uploader and for owners (`canChange`) the row menu
-  has "Redenumește", whose dialog edits the note too, an owner's "Doar pentru administratori"
-  switch, which changes the row at once and confirms with a toast, and "Șterge", behind a
-  confirmation that names the file and says it cannot be recovered. "Încarcă fișiere", the
-  empty state's "Alege fișiere" and files dropped on the card all open the upload dialog, the
-  dropped files already in its list; while the card is on screen a file dropped anywhere else
-  is refused rather than opened by the browser in place of the app. An archived client gets
-  the list and the downloads only: no dialog, no drop. The same card is on a lead's page,
-  where it says that the files stay the owners' until promotion and has no switch. The card
-  lists the client's own files only: an employee's files stay on the employee page.
+  `ClientFilesCard` lists `GET /clients/{clientId}/files` on the shared data table, edge to edge
+  in the tab's sheet, unpaged: every file is read at once, so `clientFileRows` in
+  `client-file-list.ts` sorts, searches and filters in the browser and the search keeps the
+  choice (`q`, `sort`, `order`, `type`, `added`, the default newest first left out). Columns:
+  "Nume", the only flexible one, with one muted line under it, clamped to one line and opened
+  in place by a click, joining the folder path (found through a search or filter), "Doar
+  admini" with a lock and the note with " · "; "Tip", PDF, Imagine, Word or Excel ("Altul" only
+  for a type the contract does not list), with the size under it; "Încărcat", the day with the
+  uploader under it; then the download button and the menu. "Nume" and "Încărcat" sort. The
+  toolbar holds the search by name and note, "Filtre" with "Tip" and "Mod de adăugare"
+  ("Încărcate", "Importate"), the count ("4 din 47 de fișiere" while narrowed), the help link
+  and "Încarcă fișiere". While searching or filtering the list is flat: every matching file,
+  those of an import folder with the folder's path under the name. Nothing found offers
+  "Șterge filtrele", which keeps the search, or "Șterge căutarea" when only a search narrows.
+  The cells are fixed columns that read what changes from `ClientFileList`, a context, since
+  the table renders each cell function as a component. The row or the name opens a PDF or an
+  image in a new tab and downloads anything else; the download button always downloads. For
+  the uploader and for owners (`canChange`) the row menu has "Modifică numele și nota", an
+  owner's "Doar pentru admini" switch, which changes the row at once and confirms with a toast,
+  and "Șterge", behind a confirmation that names the file and says it cannot be recovered.
+  "Încarcă fișiere", the empty tab's "Alege fișiere" (a dashed drop area with the help link)
+  and files dropped on the tab all open the upload dialog, the dropped files already in its
+  list; while the card is on screen a file dropped anywhere else is refused rather than opened
+  by the browser in place of the app. An archived client gets the list and the downloads only:
+  no dialog, no drop. The same card, titled "Alte documente", is on a lead's page, its search
+  and filters kept in the lead page's address beside `focus`, where a notice says that the files stay the owners' until
+  promotion and there is no switch. The card lists the client's own files only: an employee's
+  files stay on the employee page.
 - `/clienti/:clientId/portal`: "Portal", the last tab of a client, in
   `src/features/participants/` ([ADR 022](architecture/adr-022-participants-and-the-portal.md),
   [ADR 023](architecture/adr-023-advanced-electronic-signature.md)). `ClientPortalPage` reads
@@ -1382,15 +1398,16 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   showing "Trimisă" or its reason; a request refused as a whole marks its own rows not sent and
   the next one still goes.
   Sending refreshes the participants and the client's employees; closing, the list.
-- The employee page ends with "Fișiere", the same card for that employee's files
-  (`EmployeeFilesCard` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)):
-  it lists `GET /clients/{clientId}/files?employeeId=`, and its upload dialog names the
-  employee and sends every file with `employeeId`; there is no way to choose another
-  employee. Renaming, the owners' switch, deleting and an archived client's read-only list
-  work as on the tab. The photographs and scanned page images an employee import kept of the
-  employee's paper sheets ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md))
-  sit under one row per import, open at first, "Fișe importate pe … · N fișiere", with
-  "Descarcă fișele (ZIP)".
+- The employee page's "Documente" tab is the same card for that employee's files
+  (`EmployeeFilesTab` in `src/features/client-files/`, [ADR 021](architecture/adr-021-training-records-and-individual-sheets.md)),
+  without a heading, with the same search, filters and address keys on its own route: it lists
+  `GET /clients/{clientId}/files?employeeId=`, every name and note masked in session replays,
+  and its upload dialog names the employee and sends every file with `employeeId`; there is no
+  way to choose another employee. Renaming, the owners' switch, deleting and an archived
+  client's read-only list work as on the tab. The photographs and scanned page images an
+  employee import kept of the employee's paper sheets ([ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md))
+  are one folder row per import, open at first, "Fișe importate pe …", whose download makes
+  "Fișe importate ….zip".
 - The upload dialog (`src/features/client-files/client-file-upload-dialog.tsx`) has a drop zone with
   "Alege fișiere" and the accepted types and the 25 MB limit under it, the list of chosen
   files (name, kind, size, a button to take each out), an owner's "Doar pentru

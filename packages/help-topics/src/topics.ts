@@ -377,6 +377,13 @@ export const helpTopics = {
     path: '/evaluari-de-risc/',
     anchor: 'unde-este-folosită-o-evaluare',
   },
+  'fisiere.alte-documente': { path: '/clienti/fisiere/', anchor: 'alte-documente' },
+  'fisiere.cautare-filtre': { path: '/clienti/fisiere/', anchor: 'căutarea-și-filtrele' },
+  'fisiere.documentele-lucratorului': {
+    path: '/clienti/fisiere/',
+    anchor: 'documentele-lucrătorului',
+  },
+  'fisiere.dosare-importate': { path: '/clienti/fisiere/', anchor: 'dosarele-importate' },
   'import.angajat-existent': {
     path: '/clienti/import/',
     anchor: 'un-lucrător-pe-care-clientul-îl-are-deja',

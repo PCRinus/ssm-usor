@@ -221,7 +221,7 @@ Nu trebuie să aștepți citirea: importul rămâne în **Clienți**, la **Impor
 
 Cât timp ai un import pornit de tine care se citește, te așteaptă la verificare sau s-a oprit, în capul paginii apare butonul **Importuri**, lângă **Ghid de configurare**; pe telefon e butonul rotund de lângă ghid, cu numărul importurilor de verificat. Îl deschizi de pe orice pagină și vezi importurile grupate: **De verificat**, cu butonul care te duce la verificare, **Se citesc**, cu cât s-a citit, și **S-au oprit**, cu **Vezi importul**. Un import confirmat sau la care ai renunțat iese din listă, iar butonul dispare când nu mai ai niciunul deschis.
 
-Documentele încărcate rămân la client, în **Alte documente**, într-un folder „Dosar importat pe …”. Fotografiile fișelor de instruire găsite printre ele sunt păstrate pentru importul lucrătorilor.
+Documentele încărcate rămân la client, în **Alte documente**, pe un rând „Dosar importat pe …”, cu folderele lor. Vezi [Dosarele importate](/clienti/fisiere/#dosarele-importate). Fotografiile fișelor de instruire găsite printre ele sunt păstrate pentru importul lucrătorilor.
 
 ### Instrucțiunile proprii din documentație
 
