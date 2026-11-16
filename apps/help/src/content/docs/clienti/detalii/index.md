@@ -1,6 +1,6 @@
 ---
 title: Detalii
-description: Tabul Detalii al clientului, card cu card, cu datele firmei, reprezentantul legal, persoana de contact și notițele, și documentele care le folosesc.
+description: Tabul Detalii al clientului, parte cu parte, cu datele firmei, reprezentantul legal, persoana de contact, notițele și importurile din documente, și documentele care le folosesc.
 topics:
   - id: detalii.date-firma
     heading: Datele firmei
@@ -20,6 +20,8 @@ topics:
     heading: Telefonul
   - id: detalii.notite
     heading: Notițele
+  - id: detalii.importuri
+    heading: Importurile din documente
   - id: detalii.date-lipsa
     heading: Când documentele cer date de aici
 sources:
@@ -36,27 +38,41 @@ sources:
   - apps/api/src/modules/service-contracts/context.ts
   - apps/app/src/routes/_authenticated/clienti/$clientId/detalii.tsx
   - apps/app/src/features/clients/company-card.tsx
-  - apps/app/src/features/clients/legal-representative-card.tsx
+  - apps/app/src/features/clients/legal-representative-form.tsx
   - apps/app/src/features/clients/contact-card.tsx
   - apps/app/src/features/clients/owner-notes-card.tsx
+  - apps/app/src/features/clients/details/company-people-panel.tsx
+  - apps/app/src/features/clients/details/notes-panel.tsx
   - apps/app/src/features/imports/library/client-imports-card.tsx
+  - apps/app/src/features/imports/library/waiting-import-panel.tsx
   - apps/app/src/features/clients/client-form-schema.ts
   - apps/app/src/features/training/document-details-schema.ts
   - apps/app/src/features/missing-data/missing-rows.ts
   - supabase/migrations/20261022100000_legal_representative_employee.sql
 ---
 
-**Detalii** e primul tab al clientului și ține ce știi despre firmă: datele ei, reprezentantul legal, sediul și punctele de lucru, persoana de contact și, pentru admini, notițele. Fiecare card se modifică separat: **Modifică** deschide pe loc câmpurile lui, iar pe un card gol butonul se numește **Adaugă**.
+**Detalii** e primul tab al clientului și ține ce știi despre firmă: datele ei, reprezentantul legal și persoana de contact, sediul și punctele de lucru și, pentru admini, notițele. Fiecare parte se modifică separat: **Modifică** deschide pe loc câmpurile ei, iar unde nu e încă nimic completat butonul se numește **Adaugă**.
 
-Pe un client arhivat cardurile se pot doar citi (vezi [Un client arhivat](/clienti/#un-client-arhivat)).
+Pe un client arhivat tabul se poate doar citi (vezi [Un client arhivat](/clienti/#un-client-arhivat)).
 
 ## Datele firmei
 
-Cardul **Date firmă** arată denumirea, CUI-ul, numărul din Registrul Comerțului, codul CAEN cu denumirea activității și adresa sediului social. Câmpurile lor, căutarea la ANAF și regulile lor sunt explicate în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/#identificare).
+Panoul **Date firmă și persoane** arată, rând cu rând:
+
+- **Nr. Reg. Com.**, numărul din Registrul Comerțului;
+- **Cod CAEN**, cu denumirea activității dedesubt;
+- **Sediul social**, adresa, localitatea și județul, pe un singur rând;
+- **Plătitor de TVA**, „Da” sau „Nu”;
+- **Client din**, ziua în care clientul a fost adăugat sau, pentru o ofertă transformată în client, ziua transformării;
+- **Reprezentant legal** și **Persoană de contact**, fiecare cu butonul lui (vezi mai jos).
+
+Denumirea și CUI-ul sunt deasupra tabului, în capul paginii clientului, așa că panoul nu le mai repetă. Le modifici tot de aici: **Modifică datele firmei** deschide pe loc câmpurile firmei, cu denumirea și CUI-ul, numărul din Registrul Comerțului, codul CAEN și sediul social, inclusiv **Caută la ANAF**. Pe telefon butonul se numește doar **Modifică**. Câmpurile, căutarea la ANAF și regulile lor sunt explicate în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/#identificare).
 
 ## Reprezentantul legal
 
-Persoana care reprezintă legal firma, de obicei administratorul. Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și SU, cum e fișa obiectivului, și în actul adițional privind semnarea electronică.
+Persoana care reprezintă legal firma, de obicei administratorul. Pe rândul **Reprezentant legal** vezi numele, iar dedesubt funcția și, când e legat de un lucrător, „și lucrător al firmei” cu numele lucrătorului, care îi deschide pagina. **Modifică** de pe rând deschide câmpurile lui; cât timp nu are nici nume, nici funcție, butonul se numește **Adaugă**.
+
+Numele și funcția lui se tipăresc în deciziile generate, în alte documente din seturile SSM și SU, cum e fișa obiectivului, și în actul adițional privind semnarea electronică.
 
 Cât timp lipsește numele sau funcția, seturile de documente SSM și SU nu se pot genera, iar lucrătorii nu pot primi actul adițional în portal. Contractul de prestări servicii le cere și el.
 
@@ -85,7 +101,7 @@ Ca să-ți fie mai ușor:
 
 ## Persoana de contact
 
-Omul cu care vorbești la client. Poate fi altcineva decât reprezentantul legal. Toate câmpurile sunt opționale: **Nume**, între 2 și 160 de caractere, **Email** și **Telefon**.
+Omul cu care vorbești la client. Poate fi altcineva decât reprezentantul legal. Pe rândul **Persoană de contact** vezi numele, iar dedesubt emailul și telefonul, pe care le poți folosi direct. **Modifică** de pe rând, sau **Adaugă** cât timp rândul e gol, deschide câmpurile ei. Toate câmpurile sunt opționale: **Nume**, între 2 și 160 de caractere, **Email** și **Telefon**.
 
 Fișa obiectivului din setul SU tipărește telefonul și emailul ca date de contact ale firmei. Dacă persoana de contact e chiar reprezentantul legal, cu același nume, fișa tipărește telefonul și ca telefon de serviciu al administratorului. Contractul de prestări servicii tipărește telefonul.
 
@@ -101,13 +117,17 @@ Scrie-l cum vrei să apară pe documente, de exemplu „0721 000 000”. Aplica�
 
 ## Notițele
 
-Cardul **Notițe** îl văd doar adminii organizației. Aici ții discuțiile, prețurile și pașii următori cu clientul, în cel mult 5000 de caractere. Notițele nu apar în niciun document și nici în portal.
+Notițele le văd doar adminii organizației. Aici ții discuțiile, prețurile și pașii următori cu clientul, în cel mult 5000 de caractere. Notițele nu apar în niciun document și nici în portal.
 
-Salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate”. Un client care a fost întâi ofertă își păstrează notițele de atunci.
+Pe tabul **Detalii** notițele se citesc ca text. **Modifică**, sau **Adaugă** cât timp nu ai scris nimic, deschide câmpul. **Salvează** le păstrează și închide câmpul, iar **Renunță** îl închide fără să schimbe nimic.
+
+Pe pagina unei oferte câmpul notițelor e mereu deschis: scrii direct în el și salvezi cu **Salvează notițele**. Până atunci vezi „Modificări nesalvate”. Un client care a fost întâi ofertă își păstrează notițele de atunci.
 
 ## Importurile din documente
 
-Un client creat sau completat din documente are la sfârșitul tabului cardul **Importuri din documente**, cu fiecare import confirmat, cel mai nou primul: ziua, cine l-a pornit, câte fișiere a avut și ce a mai rămas din el, de exemplu „2 de verificat, până pe 19 nov.” sau **Încheiat**. Rândul deschide pagina importului, cu fișierele lui și cu instrucțiunile și evaluările de risc din pachet. Totul despre import e în [După crearea clientului](/clienti/import/#după-crearea-clientului).
+Cât timp un import al clientului are instrucțiuni proprii sau evaluări de risc pe care nu le-ai confirmat, tabul începe cu ele. Titlul spune câte părți mai ai de verificat și până când, de exemplu „2 părți de verificat până pe 26 noiembrie”: le poți confirma în cele 14 zile de după crearea sau completarea clientului, iar ziua din titlu e prima la care expiră una dintre ele. Dedesubt vezi importul, cu ziua, cine l-a pornit și câte fișiere a avut, apoi părțile, de exemplu **IPSSM**, **IPSU** sau **Evaluări de risc**, fiecare cu starea ei. **Verifică importul** deschide pagina importului, de unde ajungi la fiecare parte. După ce le confirmi pe toate sau trece termenul, panoul dispare.
+
+Celelalte importuri confirmate sunt la sfârșitul tabului, sub **Importuri din documente**, cel mai nou primul: ziua, cine l-a pornit, dacă a creat sau a completat clientul, câte fișiere a avut și cum s-a încheiat, **Încheiat** sau, când a trecut termenul, „Instrucțiunile au expirat” ori „Evaluările au expirat”. Un import cu părți de verificat nu apare și aici, ca să nu-l vezi de două ori. Rândul deschide pagina importului, cu fișierele lui și cu instrucțiunile și evaluările de risc din pachet. Totul despre import e în [După crearea clientului](/clienti/import/#după-crearea-clientului).
 
 ## Când documentele cer date de aici
 
@@ -117,6 +137,6 @@ Când generezi documentele, lista datelor lipsă te trimite aici pentru:
 - „Datele SU ale locurilor de muncă”, la documentele SU (vezi [Datele SU](/clienti/detalii/puncte-de-lucru/#datele-su));
 - numărul din Registrul Comerțului, adresa sediului și reprezentantul legal, la contractul de prestări servicii.
 
-Linkul deschide cardul cu câmpul de completat. După salvare, mesajul de confirmare îți oferă **Înapoi la generare** sau **Înapoi la contract**, ca să revii de unde ai plecat.
+Linkul deschide pe loc câmpurile de completat, cu cursorul în câmpul care lipsește. După salvare, mesajul de confirmare îți oferă **Înapoi la generare** sau **Înapoi la contract**, ca să revii de unde ai plecat.
 
 Despre sediu și punctele de lucru, vezi [Sediul și punctele de lucru](/clienti/detalii/puncte-de-lucru/).

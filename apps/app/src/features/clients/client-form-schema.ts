@@ -8,6 +8,11 @@ import type { ClientResponse, CreateClientRequest, UpdateClientRequest } from '@
 export type Client = ClientResponse['client'];
 export type ClientStage = Client['stage'];
 
+export function addressField(client: Client) {
+  if (!client.countyCode) return 'countyCode';
+  return client.locality ? 'addressLine' : 'locality';
+}
+
 export const clientMessages = {
   cuiInvalid: 'CUI invalid. Verifică cifrele și cifra de control.',
   cuiTaken: 'Există deja un client cu acest CUI în organizația ta.',

@@ -60,13 +60,15 @@ Un punct de lucru e un loc în care lucrează lucrătorii clientului: sediul, un
 
 ## Lista punctelor de lucru
 
-Punctele de lucru sunt pe tabul **Detalii**, în cardul **Sediu și puncte de lucru**. Fiecare rând arată denumirea și adresa. Sediul social are eticheta **Sediu social**, iar un punct de lucru căruia îi lipsesc date cerute de documentele SU are dedesubt **Date SU incomplete**. Sub sediul social la care nu se desfășoară activitate vezi **Fără activitate la sediu**.
+Punctele de lucru sunt pe tabul **Detalii**, în tabelul **Sediu și puncte de lucru**. Fiecare rând arată denumirea, adresa și activitatea (vezi [Activitatea](#activitatea)). Sediul social are eticheta **Sediu social**, iar sub un șantier vezi **Șantier temporar sau mobil** (vezi [Felul locului de muncă](#felul-locului-de-muncă)). Un punct de lucru căruia îi lipsesc date cerute de documentele SU are dedesubt, cu un semn de avertizare, **Date SU incomplete**. Sub sediul social la care nu se desfășoară activitate vezi **Fără activitate la sediu**.
+
+Pe telefon tabelul se derulează spre dreapta, ca să vezi adresa și activitatea.
 
 Un clic pe rând deschide punctul de lucru ca să-l modifici. Din meniul de la capătul rândului ajungi la **Modifică** și **Arhivează**.
 
 ## Adăugarea unui punct de lucru
 
-Alege **Adaugă** pe cardul **Sediu și puncte de lucru**. Același dialog se deschide și din formularul lucrătorului, cu **Adaugă un punct de lucru nou…**.
+Alege **Adaugă** de lângă titlul **Sediu și puncte de lucru**. Același dialog se deschide și din formularul lucrătorului, cu **Adaugă un punct de lucru nou…**.
 
 Doar denumirea e obligatorie. Poți salva și fără datele SU: ce lipsește îți cere aplicația când generezi documentele SU.
 

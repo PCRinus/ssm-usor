@@ -205,6 +205,12 @@ tr[data-pointed] {
   outline: 1px solid transparent;
 }
 
+[data-slot='client-sheet'] h2[data-slot='section-card-title'] {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  letter-spacing: -0.01em;
+}
+
 /* The cream fill of an outline button reads as a tint on white. Not keyed on data-slot, which a
    menu trigger replaces with its own. */
 [data-slot='client-sheet'] [data-variant='outline'] {

@@ -95,7 +95,7 @@ test('an owner adds a lead, keeps notes, and turns it into a client the team the
   await page.getByTestId('promote-lead-confirm').click();
   await expect(page.getByTestId('client-details-page')).toBeVisible();
   await expect(page).toHaveURL(/\/clienti\/[0-9a-f-]+\/detalii$/);
-  await expect(page.getByTestId('owner-notes-body')).toHaveValue(
+  await expect(page.getByTestId('owner-notes-text')).toHaveText(
     'A cerut ofertă pentru 12 lucrători.'
   );
   await page.goto('/oferte');

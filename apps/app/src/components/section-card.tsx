@@ -55,6 +55,7 @@ export function SectionCard({
         >
           <div className="min-w-0 whitespace-nowrap">
             <Heading
+              data-slot="section-card-title"
               className={cn(
                 'text-lg leading-snug font-semibold whitespace-normal',
                 helpTopic && 'inline',

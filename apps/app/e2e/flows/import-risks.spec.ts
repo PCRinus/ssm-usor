@@ -180,9 +180,9 @@ test("a pack's risk evaluations are reviewed before the client is created, confi
   await evaluateJobPosition(organizationId, clientId, chambermaidPost);
 
   await page.goto(`/clienti/${clientId}/detalii`);
-  await expect(page.getByTestId('client-import-row')).toHaveAttribute('data-outcome', 'open');
+  await expect(page.getByTestId('client-import-row')).toHaveCount(0);
   const reminder = page.getByTestId('client-library-tasks-notice');
-  await expect(reminder).toContainText('Evaluări de risc: de verificat');
+  await expect(reminder).toContainText('Evaluări de risc · de verificat');
   await reminder.getByTestId('client-library-tasks-open').click();
   await expect(page.getByTestId('import-next-step-open')).toHaveText('Verifică evaluările');
   await page.getByTestId('import-next-step-open').click();

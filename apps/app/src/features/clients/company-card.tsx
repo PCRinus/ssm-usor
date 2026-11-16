@@ -8,7 +8,7 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import { type CompanyFocus, useFocusRequest } from '@/features/missing-data/focus';
 
 import { IdentificationFields, RegisteredOfficeFields, RegistrationFields } from './client-fields';
-import type { Client, ClientFormValues } from './client-form-schema';
+import { addressField, type Client, type ClientFormValues } from './client-form-schema';
 import { useClientFieldsForm } from './use-client-fields-form';
 import { useCompanyLookup } from './use-company-lookup';
 
@@ -22,11 +22,6 @@ const fields: readonly (keyof ClientFormValues)[] = [
   'locality',
   'addressLine',
 ];
-
-function addressField(client: Client) {
-  if (!client.countyCode) return 'countyCode';
-  return client.locality ? 'addressLine' : 'locality';
-}
 
 // `readOnly` is an archived client, or a lead on a plan without offers.
 export function CompanyCard({
@@ -96,7 +91,7 @@ export function CompanyCard({
   );
 }
 
-function CompanyForm({ client, onClose }: { client: Client; onClose: () => void }) {
+export function CompanyForm({ client, onClose }: { client: Client; onClose: () => void }) {
   const { form, onSubmit, isSaving } = useClientFieldsForm({
     client,
     fields,

@@ -2,7 +2,6 @@ import { formatEmployeeName, maxPageSize, samePersonName } from '@ssm-usor/contr
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
@@ -11,16 +10,13 @@ import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api'
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
-import { EditAction, Fact, FactList, FormActions, SectionCard } from '@/components/section-card';
-import { useInPlaceEdit } from '@/components/use-in-place-edit';
+import { FormActions } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { type LegalRepresentativeFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { EmployeeCombobox } from '@/features/training/employee-combobox';
 import {
   type ClientSummary,
   describedBy,
   type DocumentDetails,
-  useDocumentDetails,
   useDocumentDetailsForm,
 } from '@/features/training/use-document-details-form';
 
@@ -33,104 +29,7 @@ const fields = [
 
 const listParams = { page: 1, pageSize: maxPageSize, sort: 'name', order: 'asc' } as const;
 
-export function LegalRepresentativeCard({
-  client,
-  userId,
-  focus,
-}: {
-  client: ClientSummary;
-  userId: string;
-  focus?: LegalRepresentativeFocus;
-}) {
-  const details = useDocumentDetails(client.id, userId);
-  const { editing, editRef, open, close } = useInPlaceEdit();
-  const readOnly = client.archivedAt !== null;
-  const saved = details.data?.documentDetails;
-  const empty = !saved?.legalRepresentativeName && !saved?.legalRepresentativeRole;
-  useFocusRequest(focus !== undefined, {
-    ready: !details.isPending,
-    anchor: () => editRef.current,
-    open: readOnly ? undefined : open,
-    field:
-      readOnly || !saved
-        ? undefined
-        : focus === 'legal-representative-role'
-          ? 'details-representative-role'
-          : 'details-representative-name',
-  });
-
-  return (
-    <SectionCard
-      data-testid="legal-representative-card"
-      title="Reprezentant legal"
-      help="detalii.reprezentant-legal"
-      action={
-        saved &&
-        !readOnly &&
-        !editing && (
-          <EditAction
-            ref={editRef}
-            empty={empty}
-            data-testid="legal-representative-edit"
-            onClick={open}
-          />
-        )
-      }
-    >
-      {details.isPending ? (
-        <Skeleton className="h-12 w-full" />
-      ) : details.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="legal-representative-unavailable"
-          action={
-            <Button
-              variant="outline"
-              disabled={details.isFetching}
-              onClick={() => void details.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
-        >
-          Nu am putut încărca reprezentantul legal.
-        </Notice>
-      ) : editing && !readOnly ? (
-        <LegalRepresentativeForm
-          saved={details.data.documentDetails}
-          client={client}
-          userId={userId}
-          onClose={close}
-        />
-      ) : empty ? (
-        <p data-testid="legal-representative-empty" className="text-sm text-muted-foreground">
-          Niciun reprezentant legal încă.
-        </p>
-      ) : (
-        <FactList>
-          <Fact label="Nume și prenume" testId="legal-representative-name" replay="mask">
-            {details.data.documentDetails.legalRepresentativeName}
-          </Fact>
-          <Fact label="Funcția" testId="legal-representative-role">
-            {details.data.documentDetails.legalRepresentativeRole}
-          </Fact>
-          {details.data.documentDetails.legalRepresentativeEmployee && (
-            <Fact
-              label="Și lucrător al firmei"
-              testId="legal-representative-employee"
-              replay="mask"
-            >
-              {formatEmployeeName(details.data.documentDetails.legalRepresentativeEmployee)},{' '}
-              {details.data.documentDetails.legalRepresentativeEmployee.jobTitle}
-            </Fact>
-          )}
-        </FactList>
-      )}
-    </SectionCard>
-  );
-}
-
-function LegalRepresentativeForm({
+export function LegalRepresentativeForm({
   saved,
   client,
   userId,

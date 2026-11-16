@@ -115,9 +115,7 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByTestId('legal-representative-save').click();
   await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
   await expect(page.getByTestId('legal-representative-role')).toHaveText('Administrator');
-  await expect(page.getByTestId('legal-representative-employee')).toHaveText(
-    'Popescu Maria, Tâmplar'
-  );
+  await expect(page.getByTestId('legal-representative-employee')).toHaveText('Popescu Maria');
 
   await page.getByRole('link', { name: 'Instruire și responsabili' }).click();
   await page.getByTestId('details-day-from').fill('12');
@@ -154,9 +152,7 @@ test("a specialist sets a client's representative role and training schedule", a
   await page.getByRole('link', { name: 'Detalii' }).click();
   await expect(page.getByTestId('legal-representative-name')).toHaveText('Maria-Ioana Popescu');
   await expect(page.getByTestId('legal-representative-role')).toHaveText('Administrator');
-  await expect(page.getByTestId('legal-representative-employee')).toHaveText(
-    'Popescu Maria, Tâmplar'
-  );
+  await expect(page.getByTestId('legal-representative-employee')).toHaveText('Popescu Maria');
 });
 
 test('a client gets a registered office and a point of work, one of which is then archived', async ({

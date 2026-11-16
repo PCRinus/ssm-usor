@@ -2,14 +2,13 @@ import { createFileRoute, getRouteApi } from '@tanstack/react-router';
 
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
-import { CompanyCard } from '@/features/clients/company-card';
-import { ContactCard } from '@/features/clients/contact-card';
-import { LegalRepresentativeCard } from '@/features/clients/legal-representative-card';
-import { OwnerNotesCard } from '@/features/clients/owner-notes-card';
+import { CompanyPeoplePanel } from '@/features/clients/details/company-people-panel';
+import { NotesPanel } from '@/features/clients/details/notes-panel';
 import { WorkplacesCard } from '@/features/clients/workplaces-card';
 import { ImportedNotice } from '@/features/imports/imported-notice';
 import { ClientImportsCard } from '@/features/imports/library/client-imports-card';
-import { LibraryTasksNotice } from '@/features/imports/library/library-tasks-notice';
+import { useClientImportGroups } from '@/features/imports/library/use-confirmed-client-imports';
+import { WaitingImportPanel } from '@/features/imports/library/waiting-import-panel';
 import {
   clientDetailsFocus,
   companyFocus,
@@ -32,6 +31,7 @@ function ClientDetailsPage() {
   const { session } = useAuth();
   const isOwner = useMe().data?.membership?.role === 'owner';
   const { focus } = Route.useSearch();
+  const imports = useClientImportGroups(client.id);
   // The shell renders this only for a signed-in user.
   if (!session) return null;
   const userId = session.user.id;
@@ -40,12 +40,15 @@ function ClientDetailsPage() {
   return (
     <div data-testid="client-details-page" className="grid gap-4">
       <ImportedNotice clientId={client.id} />
-      <LibraryTasksNotice clientId={client.id} />
-      <CompanyCard client={client} readOnly={readOnly} focus={focusAmong(focus, companyFocus)} />
-      <LegalRepresentativeCard
+      {imports.waiting.map(({ item, open }) => (
+        <WaitingImportPanel key={item.id} item={item} open={open} />
+      ))}
+      <CompanyPeoplePanel
         client={client}
         userId={userId}
-        focus={focusAmong(focus, legalRepresentativeFocus)}
+        readOnly={readOnly}
+        companyFocus={focusAmong(focus, companyFocus)}
+        representativeFocus={focusAmong(focus, legalRepresentativeFocus)}
       />
       <WorkplacesCard
         client={client}
@@ -53,9 +56,8 @@ function ClientDetailsPage() {
         readOnly={readOnly}
         focus={focusAmong(focus, workplacesFocus)}
       />
-      <ContactCard client={client} readOnly={readOnly} />
-      {isOwner && <OwnerNotesCard clientId={client.id} userId={userId} readOnly={readOnly} />}
-      <ClientImportsCard clientId={client.id} />
+      {isOwner && <NotesPanel clientId={client.id} userId={userId} readOnly={readOnly} />}
+      <ClientImportsCard items={imports.past} now={imports.now} />
     </div>
   );
 }

@@ -65,7 +65,7 @@ export function ContactCard({ client, readOnly }: { client: Client; readOnly: bo
   );
 }
 
-function ContactForm({ client, onClose }: { client: Client; onClose: () => void }) {
+export function ContactForm({ client, onClose }: { client: Client; onClose: () => void }) {
   const { form, onSubmit, isSaving } = useClientFieldsForm({
     client,
     fields,
