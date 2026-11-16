@@ -1,4 +1,9 @@
-import { caenClassName, formatEmployeeName } from '@ssm-usor/contracts';
+import {
+  caenClassName,
+  type CountyCode,
+  countyNames,
+  formatEmployeeName,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -25,9 +30,20 @@ import { addressField, type Client } from '../client-form-schema';
 import { CompanyForm } from '../company-card';
 import { ContactForm } from '../contact-card';
 import { LegalRepresentativeForm } from '../legal-representative-form';
-import { workplaceAddress } from '../workplace-schema';
 import { SheetAction } from './sheet-action';
 import { SummaryEmpty, SummaryList, SummaryNote, SummaryRow } from './summary-list';
+
+// Bucharest is a municipality, not a county, so it takes no "jud.".
+function registeredOffice(client: Client) {
+  const county = client.countyCode ? countyNames[client.countyCode as CountyCode] : null;
+  return [
+    client.addressLine,
+    client.locality,
+    county && (client.countyCode === 'B' ? county : `jud. ${county}`),
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
 
 const joined = (parts: ReactNode[]) =>
   parts.flatMap((part, index) => (index === 0 ? [part] : [' · ', part]));
@@ -91,7 +107,7 @@ export function CompanyPeoplePanel({
   const representativeEmpty = !saved?.legalRepresentativeName && !saved?.legalRepresentativeRole;
   const contactEmpty = !client.contactName && !client.contactEmail && !client.contactPhone;
   const caen = client.caenCode ? caenClassName(client.caenCode) : null;
-  const address = workplaceAddress(client);
+  const address = registeredOffice(client);
 
   return (
     <SectionCard

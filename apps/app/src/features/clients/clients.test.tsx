@@ -1275,16 +1275,25 @@ describe('client details', () => {
     expect(panel.textContent).not.toContain('1590082');
   });
 
-  it('dates a promoted client from its promotion, and says when it pays no VAT', async () => {
+  it('dates a promoted client from its promotion, says when it pays no VAT and names the county of its office', async () => {
     mockApi({
       get: () =>
         Response.json({
-          client: { ...sampleClient, vatPayer: false, promotedAt: '2026-10-02T09:00:00+00:00' },
+          client: {
+            ...sampleClient,
+            vatPayer: false,
+            promotedAt: '2026-10-02T09:00:00+00:00',
+            countyCode: 'CJ',
+            locality: 'Florești',
+          },
         }),
     });
     mountApp(authFixture(makeSession()).client, detailsPath);
     expect((await screen.findByTestId('company-client-since')).textContent).toBe('02.10.2026');
     expect(screen.getByTestId('company-vat-payer').textContent).toBe('Nu');
+    expect(screen.getByTestId('company-address').textContent).toBe(
+      'Str. Coralilor, nr. 22, Florești, jud. Cluj'
+    );
   });
 
   it('opens the company data at the address a missing-data row asks for', async () => {
