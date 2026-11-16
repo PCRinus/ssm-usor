@@ -555,16 +555,45 @@ describe("the client's Portal tab", () => {
     await waitFor(() => expect(screen.queryByTestId('portal-selection')).toBeNull());
   });
 
-  it('clears the choice with Deselectează tot and when the search changes', async () => {
+  it('clears the choice with Deselectează tot', async () => {
     mockApi();
     const user = userEvent.setup();
     mountPortal();
     const people = await rows();
     await user.click(within(people[3]!).getByTestId('portal-roster-select'));
-    await user.click(
-      within(await screen.findByTestId('portal-selection')).getByTestId('portal-clear-selection')
-    );
+    const bar = await screen.findByTestId('portal-selection');
+    await user.click(within(bar).getByTestId('portal-clear-selection'));
     expect(screen.queryByTestId('portal-selection')).toBeNull();
+    expect(screen.getByTestId('portal-roster-toolbar')).toBeTruthy();
+  });
+
+  it('starts the choice again when the filters change, so nothing hidden is invited', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    const runtime = mountPortal();
+    const people = await rows();
+    await user.click(within(people[3]!).getByTestId('portal-roster-select'));
+    expect(await screen.findByTestId('portal-selection')).toBeTruthy();
+    await runtime.router.navigate({
+      to: '/clienti/$clientId/portal',
+      params: { clientId },
+      search: { portal: ['none'] },
+    });
+    await waitFor(() => expect(screen.queryByTestId('portal-selection')).toBeNull());
+    await runtime.router.navigate({ to: '/clienti/$clientId/portal', params: { clientId } });
+    await rows();
+    expect(screen.queryByTestId('portal-selection')).toBeNull();
+  });
+
+  it('offers no way to add workers to an archived client without any', async () => {
+    mockApi({
+      workers: [],
+      participants: [],
+      client: { ...sampleClient, archivedAt: '2026-11-10T09:00:00+00:00' },
+    });
+    mountPortal();
+    const empty = await screen.findByTestId('portal-no-workers');
+    expect(within(empty).queryByRole('link')).toBeNull();
   });
 
   it('applies Fără invitație and chooses every worker it matches, past the page', async () => {
@@ -608,7 +637,7 @@ describe("the client's Portal tab", () => {
     await rows();
     await user.click(screen.getByTestId('portal-invite-uninvited'));
     expect((await screen.findByTestId('portal-selection-capped')).textContent).toContain(
-      'Am ales primii 1 lucrători'
+      'Se aleg odată cel mult 1000 de lucrători'
     );
   });
 

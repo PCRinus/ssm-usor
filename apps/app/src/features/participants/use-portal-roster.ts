@@ -6,7 +6,7 @@ import {
 } from '@ssm-usor/contracts';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, useRouteContext } from '@tanstack/react-router';
-import { Briefcase, KeyRound, MapPin } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import {
@@ -23,6 +23,7 @@ import {
 import { keepOpener } from '@/app/opener';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { clientPlaceFacets } from '@/features/employees/worker-filters';
 
 import { portalAccessLabels } from './portal-access-format';
 import type { RosterRow } from './portal-roster-columns';
@@ -35,51 +36,17 @@ export type RosterFilters = Pick<ListEmployeesParams, RosterFilterKey>;
 
 const defaultSort = { sort: 'name', order: 'asc' } as const;
 
-type Named = { id: string; name: string };
-
 const accessOrder: PortalAccessState[] = ['active', 'invited', 'expired', 'none', 'revoked'];
 
-function rosterFacets({
-  positions,
-  workplaces,
-  withWorkplaces,
-}: {
-  positions: readonly Named[] | undefined;
-  workplaces: readonly Named[] | undefined;
-  withWorkplaces: boolean;
-}): ListFilterFacet<RosterFilterKey>[] {
-  const named = (items: readonly Named[]) =>
-    items.map((item) => ({ value: item.id, label: item.name }));
-  return [
-    {
-      key: 'portal',
-      label: 'Acces la portal',
-      icon: KeyRound,
-      column: 'left',
-      options: accessOrder.map((state) => ({ value: state, label: portalAccessLabels[state] })),
-    },
-    {
-      key: 'jobPosition',
-      label: 'Post de lucru',
-      icon: Briefcase,
-      column: 'right',
-      options: named(positions ?? []),
-      search: { placeholder: 'Caută postul', addLabel: 'Adaugă un post' },
-      loading: positions === undefined,
-    },
-    ...(withWorkplaces
-      ? [
-          {
-            key: 'workplace',
-            label: 'Punct de lucru',
-            icon: MapPin,
-            column: 'right',
-            options: named(workplaces ?? []),
-            loading: workplaces === undefined,
-          } as const,
-        ]
-      : []),
-  ];
+function rosterFacets(places: Parameters<typeof clientPlaceFacets>[0]) {
+  const portal: ListFilterFacet<RosterFilterKey> = {
+    key: 'portal',
+    label: 'Acces la portal',
+    icon: KeyRound,
+    column: 'left',
+    options: accessOrder.map((state) => ({ value: state, label: portalAccessLabels[state] })),
+  };
+  return [portal, ...clientPlaceFacets(places)] as ListFilterFacet<RosterFilterKey>[];
 }
 
 export const inviteeOf = (row: ClientEmployeeListItem): ImportInvitee => ({
@@ -169,6 +136,8 @@ export function usePortalRoster(clientId: string, userId: string) {
     chosen: noneChosen,
     capped: false,
   });
+  // Dropped, not only hidden, so an earlier search's choice does not return with its filters.
+  if (selection.scope !== scope) setSelection({ scope, chosen: noneChosen, capped: false });
   const chosen = selection.scope === scope ? selection.chosen : noneChosen;
   const capped = selection.scope === scope && selection.capped;
   const choose = (rows: RosterRow[], on: boolean) =>

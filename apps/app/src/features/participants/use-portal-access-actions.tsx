@@ -1,6 +1,6 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   useResendParticipantInvitation,
@@ -102,16 +102,27 @@ export function usePortalAccessActions(
     </ConfirmDialog>
   );
 
-  return {
-    resending: resend.isPending ? resend.variables?.invitationId : undefined,
-    resend: (invitationId: string, resendableAt: string | null, target: AccessTarget) =>
-      void resendInvitation(invitationId, resendableAt, target),
-    askRevokeAccess: (participantId: string, target: AccessTarget) =>
-      setPending({ kind: 'access', participantId, target }),
-    askRevokeInvitation: (invitationId: string, target: AccessTarget) =>
-      setPending({ kind: 'invitation', invitationId, target }),
-    dialog,
-  };
+  // The table's columns are built from these, so they keep one identity across renders: a new
+  // column set remounts the cells, closing an open row menu.
+  const latest = useRef(resendInvitation);
+  useEffect(() => {
+    latest.current = resendInvitation;
+  });
+  const resending = resend.isPending ? resend.variables?.invitationId : undefined;
+  const actions = useMemo(
+    () => ({
+      resending,
+      resend: (invitationId: string, resendableAt: string | null, target: AccessTarget) =>
+        void latest.current(invitationId, resendableAt, target),
+      askRevokeAccess: (participantId: string, target: AccessTarget) =>
+        setPending({ kind: 'access', participantId, target }),
+      askRevokeInvitation: (invitationId: string, target: AccessTarget) =>
+        setPending({ kind: 'invitation', invitationId, target }),
+    }),
+    [resending]
+  );
+
+  return { actions, dialog };
 }
 
-export type PortalAccessActions = ReturnType<typeof usePortalAccessActions>;
+export type PortalAccessActions = ReturnType<typeof usePortalAccessActions>['actions'];

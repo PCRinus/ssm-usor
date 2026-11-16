@@ -1,4 +1,4 @@
-import { defaultPageSize, formatEmployeeName } from '@ssm-usor/contracts';
+import { defaultPageSize, employeeInviteesLimit, formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -81,7 +81,7 @@ export function PortalRoster({
       </div>
       {unfilteredTotal === 0 && !narrowed && employees.isSuccess ? (
         <ListEmpty className="border-t">
-          <NoWorkers clientId={clientId} />
+          <NoWorkers clientId={clientId} readOnly={readOnly} />
         </ListEmpty>
       ) : (
         <>
@@ -115,8 +115,8 @@ export function PortalRoster({
               </Button>
               {roster.capped && (
                 <p data-testid="portal-selection-capped" className="w-full text-sm">
-                  Am ales primii {chosen.size} lucrători, după nume. Invită-i, apoi alege-i pe
-                  ceilalți.
+                  Se aleg odată cel mult {workerNoun(employeeInviteesLimit)}, primii după nume.
+                  Invită-i, apoi alege-i pe ceilalți.
                 </p>
               )}
             </div>
@@ -282,23 +282,26 @@ function PendingLabel({ clientId, params }: { clientId: string; params: ListEmpl
   return pendingWorkersLabel(total);
 }
 
-export function NoWorkers({ clientId }: { clientId: string }) {
+export function NoWorkers({ clientId, readOnly }: { clientId: string; readOnly: boolean }) {
   return (
     <EmptyState
       icon={UsersRound}
       title="Clientul nu are încă lucrători"
       data-testid="portal-no-workers"
       actions={
-        <Button asChild data-testid="portal-add-workers">
-          <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
-            <Plus aria-hidden="true" />
-            Adaugă lucrători
-          </Link>
-        </Button>
+        !readOnly && (
+          <Button asChild data-testid="portal-add-workers">
+            <Link to="/clienti/$clientId/angajati" params={{ clientId }}>
+              <Plus aria-hidden="true" />
+              Adaugă lucrători
+            </Link>
+          </Button>
+        )
       }
     >
-      Portalul e pentru lucrătorii clientului și pentru administratorul lui. Adaugă întâi
-      lucrătorii, pe tabul Lucrători; apoi îi inviți de aici.
+      {readOnly
+        ? 'Clientul arhivat nu are lucrători actuali, deci nimeni de invitat în portal.'
+        : 'Portalul e pentru lucrătorii clientului și pentru administratorul lui. Adaugă întâi lucrătorii, pe tabul Lucrători; apoi îi inviți de aici.'}
     </EmptyState>
   );
 }

@@ -28,7 +28,7 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
   });
   const roster = usePortalRoster(client.id, userId);
   const [message, setMessage] = useState<ParticipantMessage>(null);
-  const actions = usePortalAccessActions(client.id, setMessage);
+  const { actions, dialog: accessDialog } = usePortalAccessActions(client.id, setMessage);
   const [invitingAdministrator, setInvitingAdministrator] = useState(false);
   const [inviting, setInviting] = useState<InvitedEmployee | null>(null);
   const [batch, setBatch] = useState<ImportInvitee[] | null>(null);
@@ -107,14 +107,14 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
           }}
         />
       )}
-      {actions.dialog}
+      {accessDialog}
     </>
   );
 
   if (noWorkers && noAdministrator) {
     return (
       <div data-testid="client-portal-page" className="py-10">
-        <NoWorkers clientId={client.id} />
+        <NoWorkers clientId={client.id} readOnly={readOnly} />
       </div>
     );
   }
