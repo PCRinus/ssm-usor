@@ -1141,8 +1141,11 @@ deleted, so a document snapshot can name the version it annexed. There are no mo
 no bucket: the document engine prints a version's body when a document needs it.
 
 `instruction_module_list` is a security-invoker view of the modules that have a version, each with
-its current version's id, number, hash, article count and date, and `applied_count`, the current
-(non-archived) positions applying it: the library list pages and sorts on it in the database.
+its current version's id, number, hash, article count and date, `applied_count`, the current
+(non-archived) positions applying it, archived clients' included, which archiving waits for,
+`position_count` and `client_count`, those of active clients and the clients, and `search_text`,
+the title lowercase and without diacritics: the library list searches, filters, counts, pages
+and sorts on it in the database.
 
 `job_position_instructions` says which modules a job position applies, one row per pair,
 with the same composite foreign keys as the equipment entries and a third one tying the
@@ -1248,11 +1251,13 @@ code whenever the entry's factors change, so the list sorts and filters by them;
 never computes them, and the migration that added them filled them once from a copy of the
 grid that a test holds equal to the code's.
 
-`evaluation_profile_list` is a security-invoker view of the profiles, their texts included, with `client_count`, the
-clients that use one counted as the usage lists them (leaving out archived posts, keeping
-archived clients), `in_use`, any pointer at all, and `factor_count`; the API's list and
-profile reads go through it, one grouped read for the whole library, so the list pages and
-sorts in the database. It holds no risk level: those come from the method's grid in code.
+`evaluation_profile_list` is a security-invoker view of the profiles, their texts and stored
+levels included, with `sheet_count`, the sheets of active clients holding a factor copied from
+the entry (a post's sheet or one outside the posts, archived posts' left out), `client_count`,
+those clients, `in_use`, any pointer at all, archived posts and clients included,
+`factor_count`, and `search_text`, the name lowercase and without diacritics; the API's list and
+profile reads go through it, one grouped read for the whole library, so the list searches,
+filters, counts, pages and sorts in the database.
 
 Each function is one transaction. `save_evaluation_profile_factor` and
 `apply_evaluation_profile` run as the caller. `save_evaluation_profile_factor` is

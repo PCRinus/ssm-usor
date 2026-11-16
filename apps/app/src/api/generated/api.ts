@@ -4117,6 +4117,10 @@ export type InstructionModuleListResponseItemsItem = {
   version: InstructionModuleListResponseItemsItemVersion;
   /** @minimum 0 */
   appliedCount: number;
+  /** @minimum 0 */
+  positionCount: number;
+  /** @minimum 0 */
+  clientCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -4132,6 +4136,8 @@ export interface InstructionModuleListResponse {
   pageSize: number;
   /** @minimum 0 */
   total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 export type InstructionModuleResponseModuleGroup =
@@ -4179,6 +4185,10 @@ export type InstructionModuleResponseModule = {
   version: InstructionModuleResponseModuleVersion;
   /** @minimum 0 */
   appliedCount: number;
+  /** @minimum 0 */
+  positionCount: number;
+  /** @minimum 0 */
+  clientCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -4417,6 +4427,10 @@ export type SaveInstructionBodyResponseModule = {
   version: SaveInstructionBodyResponseModuleVersion;
   /** @minimum 0 */
   appliedCount: number;
+  /** @minimum 0 */
+  positionCount: number;
+  /** @minimum 0 */
+  clientCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -5142,6 +5156,8 @@ export type EvaluationProfileListResponseItemsItem = {
   /** @minimum 0 */
   unacceptableFactorCount: number;
   /** @minimum 0 */
+  sheetCount: number;
+  /** @minimum 0 */
   clientCount: number;
 };
 
@@ -5156,6 +5172,8 @@ export interface EvaluationProfileListResponse {
   pageSize: number;
   /** @minimum 0 */
   total: number;
+  /** @minimum 0 */
+  unfilteredTotal: number;
 }
 
 export type EvaluationProfileResponseProfileFactorsItemComponent =
@@ -16604,6 +16622,20 @@ export type ListInstructionModulesParams = {
   order?: ListInstructionModulesOrder;
   status?: ListInstructionModulesStatus;
   domain?: ListInstructionModulesDomain;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  category?: ListInstructionModulesCategoryItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  usage?: ListInstructionModulesUsageItem[];
 };
 
 export type ListInstructionModulesSort =
@@ -16638,6 +16670,25 @@ export type ListInstructionModulesDomain =
 export const ListInstructionModulesDomain = {
   ssm: 'ssm',
   su: 'su',
+} as const;
+
+export type ListInstructionModulesCategoryItem =
+  (typeof ListInstructionModulesCategoryItem)[keyof typeof ListInstructionModulesCategoryItem];
+
+export const ListInstructionModulesCategoryItem = {
+  work_activity: 'work_activity',
+  work_equipment: 'work_equipment',
+  protective_equipment: 'protective_equipment',
+  premises_activity: 'premises_activity',
+  installation_equipment: 'installation_equipment',
+  hazardous_work: 'hazardous_work',
+} as const;
+
+export type ListInstructionModulesUsageItem =
+  (typeof ListInstructionModulesUsageItem)[keyof typeof ListInstructionModulesUsageItem];
+
+export const ListInstructionModulesUsageItem = {
+  unused: 'unused',
 } as const;
 
 export type ListInstructionModuleChoicesParams = {
@@ -16700,6 +16751,20 @@ export type ListEvaluationProfilesParams = {
   sort?: ListEvaluationProfilesSort;
   order?: ListEvaluationProfilesOrder;
   status?: ListEvaluationProfilesStatus;
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  level?: ListEvaluationProfilesLevelItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  usage?: ListEvaluationProfilesUsageItem[];
 };
 
 export type ListEvaluationProfilesSort =
@@ -16707,8 +16772,8 @@ export type ListEvaluationProfilesSort =
 
 export const ListEvaluationProfilesSort = {
   name: 'name',
-  factorCount: 'factorCount',
-  clientCount: 'clientCount',
+  globalRiskLevel: 'globalRiskLevel',
+  usage: 'usage',
   updatedAt: 'updatedAt',
 } as const;
 
@@ -16726,6 +16791,22 @@ export type ListEvaluationProfilesStatus =
 export const ListEvaluationProfilesStatus = {
   active: 'active',
   archived: 'archived',
+} as const;
+
+export type ListEvaluationProfilesLevelItem =
+  (typeof ListEvaluationProfilesLevelItem)[keyof typeof ListEvaluationProfilesLevelItem];
+
+export const ListEvaluationProfilesLevelItem = {
+  over: 'over',
+  within: 'within',
+  none: 'none',
+} as const;
+
+export type ListEvaluationProfilesUsageItem =
+  (typeof ListEvaluationProfilesUsageItem)[keyof typeof ListEvaluationProfilesUsageItem];
+
+export const ListEvaluationProfilesUsageItem = {
+  unused: 'unused',
 } as const;
 
 export type GetDocumentReadinessParams = {
@@ -24757,6 +24838,15 @@ export const getListInstructionModulesUrl = (params?: ListInstructionModulesPara
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['category', 'usage'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -27927,6 +28017,15 @@ export const getListEvaluationProfilesUrl = (params?: ListEvaluationProfilesPara
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['level', 'usage'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }

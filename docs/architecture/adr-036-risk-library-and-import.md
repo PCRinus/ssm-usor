@@ -83,6 +83,8 @@ An entry is **in use** while any client's factor points at one of its factors (A
 
 That an entry once used can never be deleted is accepted. Unlinking, which would make it deletable again, is #801.
 
+_Note, 2026-11-16, the list (Mircea's decisions):_ **Folosită la** now counts sheets and, under them, clients, active clients only: a sheet is a post's "Fișa de evaluare a riscurilor" or one of the client's sheets outside the posts, grupuri sensibile included, holding a factor copied from the entry. An entry used only at archived clients or posts reads "—" and is **Nefolosită** in the list's filter, and still cannot be deleted. The list searches by name, ignoring diacritics, and sorts and filters by the stored global level; the factor count no longer sorts.
+
 ### What an entry holds
 
 An entry gains the evaluation's three work-system texts: **means of production**, **work environment** and **exposure**, all optional. Exposure has no default on an entry.

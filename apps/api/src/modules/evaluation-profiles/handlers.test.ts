@@ -162,6 +162,11 @@ function mockUpstream(
       }
       if (url.pathname.endsWith('/apply_evaluation_profile')) return Response.json(2);
     }
+    if (url.pathname === '/rest/v1/evaluation_profile_list' && init?.method === 'HEAD') {
+      return (
+        handlers.list?.(init, url) ?? new Response(null, { headers: { 'Content-Range': '*/86' } })
+      );
+    }
     if (url.pathname === '/rest/v1/evaluation_profile_list' && isGet(init)) {
       return handlers.list?.(init, url) ?? Response.json([officeProfile]);
     }
@@ -257,29 +262,45 @@ describe('GET /evaluation-profiles', () => {
   const summary = (
     id: string,
     name: string,
-    fields: { clientCount: number; inUse: boolean; archivedAt?: string },
-    factors: { gravity_class: number; probability_class: number }[]
+    fields: {
+      sheetCount: number;
+      clientCount: number;
+      inUse: boolean;
+      archivedAt?: string;
+      factorCount?: number;
+      level?: number | null;
+      unacceptable?: number;
+    }
   ) => ({
     id,
     name,
     archived_at: fields.archivedAt ?? null,
     in_use: fields.inUse,
+    sheet_count: fields.sheetCount,
     client_count: fields.clientCount,
+    factor_count: fields.factorCount ?? 0,
+    global_risk_level: fields.level ?? null,
+    unacceptable_factor_count: fields.unacceptable ?? 0,
     created_at: stamp,
     updated_at: stamp,
-    evaluation_profile_factors: factors,
   });
 
-  it('lists a page of the active library by name, with counts, global levels and usage', async () => {
+  const headCalls = () => calls('evaluation_profile_list', 'HEAD');
+
+  it('lists a page of the active library by name, with its stored levels and usage', async () => {
     mockUpstream({
       list: () =>
         Response.json(
           [
-            summary(profileId, 'Lucrător de birou', { clientCount: 3, inUse: true }, [
-              { gravity_class: 5, probability_class: 2 },
-              { gravity_class: 2, probability_class: 4 },
-            ]),
-            summary(otherProfileId, 'Șofer', { clientCount: 0, inUse: true }, []),
+            summary(profileId, 'Lucrător de birou', {
+              sheetCount: 5,
+              clientCount: 3,
+              inUse: true,
+              factorCount: 2,
+              level: 3.33,
+              unacceptable: 1,
+            }),
+            summary(otherProfileId, 'Șofer', { sheetCount: 0, clientCount: 0, inUse: true }),
           ],
           { headers: { 'Content-Range': '0-1/2' } }
         ),
@@ -293,21 +314,24 @@ describe('GET /evaluation-profiles', () => {
         item.factorCount,
         item.unacceptableFactorCount,
         item.globalRiskLevel,
+        item.sheetCount,
         item.clientCount,
         item.inUse,
         item.archivedAt,
       ])
     ).toEqual([
-      ['Lucrător de birou', 2, 1, 3.33, 3, true, null],
-      ['Șofer', 0, 0, null, 0, true, null],
+      ['Lucrător de birou', 2, 1, 3.33, 5, 3, true, null],
+      ['Șofer', 0, 0, null, 0, 0, true, null],
     ]);
-    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2 });
+    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2, unfilteredTotal: 2 });
     const query = listQuery();
     expect(query.get('archived_at')).toBe('is.null');
+    expect(query.get('select')).not.toContain('evaluation_profile_factors');
     expect(query.get('order')).toBe('name.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
     expect(calls('risk_factors', 'GET')).toHaveLength(0);
+    expect(headCalls()).toHaveLength(0);
   });
 
   it('first writes the levels an entry with factors is missing, before the list sorts by them', async () => {
@@ -343,12 +367,12 @@ describe('GET /evaluation-profiles', () => {
     mockUpstream({
       list: () =>
         Response.json([
-          summary(
-            profileId,
-            'Lucrător de birou',
-            { clientCount: 0, inUse: false, archivedAt: stamp },
-            []
-          ),
+          summary(profileId, 'Lucrător de birou', {
+            sheetCount: 0,
+            clientCount: 0,
+            inUse: false,
+            archivedAt: stamp,
+          }),
         ]),
     });
     const response = await request('/evaluation-profiles?status=archived');
@@ -358,10 +382,74 @@ describe('GET /evaluation-profiles', () => {
     expect(listQuery().get('archived_at')).toBe('not.is.null');
   });
 
+  it('searches the names without diacritics, every term, within the tab', async () => {
+    mockUpstream({ list: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    const response = await request(
+      `/evaluation-profiles?status=archived&q=${encodeURIComponent('ȘOFER  royal')}`
+    );
+    expect(response.status).toBe(200);
+    expect(listQuery().getAll('search_text')).toEqual(['ilike.*sofer*', 'ilike.*royal*']);
+    expect(listQuery().get('archived_at')).toBe('not.is.null');
+    expect(evaluationProfileListResponseSchema.parse(await response.json())).toMatchObject({
+      total: 0,
+      unfilteredTotal: 86,
+    });
+  });
+
   it.each([
-    ['factorCount', 'desc', 'factor_count.desc,name.desc,id.asc'],
-    ['clientCount', 'asc', 'client_count.asc,name.asc,id.asc'],
-    ['updatedAt', 'desc', 'updated_at.desc,id.asc'],
+    ['over', 'global_risk_level.gt.3.5'],
+    ['within', 'global_risk_level.lte.3.5'],
+    ['none', 'global_risk_level.is.null'],
+  ])('filters by the global level %s the acceptable limit', async (level, expected) => {
+    mockUpstream({ list: (init) => (isGet(init) ? Response.json([]) : undefined) });
+    expect((await request(`/evaluation-profiles?level=${level}`)).status).toBe(200);
+    expect(listQuery().get('or')).toBe(`(${expected})`);
+  });
+
+  it('filters by several levels at once and by the unused ones, counting the whole tab apart', async () => {
+    mockUpstream({
+      list: (init) =>
+        isGet(init)
+          ? Response.json(
+              [summary(profileId, 'Sudor', { sheetCount: 0, clientCount: 0, inUse: true })],
+              { headers: { 'Content-Range': '0-0/1' } }
+            )
+          : undefined,
+    });
+    const response = await request('/evaluation-profiles?level=over&level=none&usage=unused');
+    expect(response.status).toBe(200);
+    expect(evaluationProfileListResponseSchema.parse(await response.json())).toMatchObject({
+      total: 1,
+      unfilteredTotal: 86,
+    });
+    expect(listQuery().get('or')).toBe('(global_risk_level.gt.3.5,global_risk_level.is.null)');
+    expect(listQuery().get('sheet_count')).toBe('eq.0');
+    const tab = new URL(String(headCalls()[0]![0])).searchParams;
+    expect(tab.get('archived_at')).toBe('is.null');
+    expect(tab.get('or')).toBeNull();
+    expect(tab.get('sheet_count')).toBeNull();
+  });
+
+  it('refuses a level or a usage it does not know', async () => {
+    mockUpstream();
+    expect((await request('/evaluation-profiles?level=high')).status).toBe(400);
+    expect((await request('/evaluation-profiles?usage=used')).status).toBe(400);
+    expect(calls('evaluation_profile_list', 'GET')).toHaveLength(0);
+  });
+
+  it.each([
+    [
+      'globalRiskLevel',
+      'desc',
+      'global_risk_level.desc.nullslast,unacceptable_factor_count.desc,name.asc,id.asc',
+    ],
+    [
+      'globalRiskLevel',
+      'asc',
+      'global_risk_level.asc.nullslast,unacceptable_factor_count.asc,name.asc,id.asc',
+    ],
+    ['usage', 'desc', 'sheet_count.desc,client_count.desc,name.asc,id.asc'],
+    ['updatedAt', 'desc', 'updated_at.desc,name.asc,id.asc'],
     ['name', 'desc', 'name.desc,id.asc'],
   ])('sorts by %s %s in the database', async (sort, order, expected) => {
     mockUpstream({ list: () => Response.json([]) });
@@ -373,9 +461,10 @@ describe('GET /evaluation-profiles', () => {
   it('asks the database for the page wanted', async () => {
     mockUpstream({
       list: () =>
-        Response.json([summary(profileId, 'Sudor', { clientCount: 0, inUse: false }, [])], {
-          headers: { 'Content-Range': '10-10/11' },
-        }),
+        Response.json(
+          [summary(profileId, 'Sudor', { sheetCount: 0, clientCount: 0, inUse: false })],
+          { headers: { 'Content-Range': '10-10/11' } }
+        ),
     });
     const listed = evaluationProfileListResponseSchema.parse(
       await (await request('/evaluation-profiles?page=3&pageSize=5')).json()
@@ -385,31 +474,45 @@ describe('GET /evaluation-profiles', () => {
     expect(listQuery().get('limit')).toBe('5');
   });
 
-  it('answers a page past the end with no profiles and the real total', async () => {
+  it('answers a page past the end with no profiles and the real totals', async () => {
     mockUpstream({
-      list: (_init, url) =>
-        url.searchParams.get('offset') === '25'
-          ? Response.json(
+      list: (init, url) =>
+        init?.method === 'HEAD'
+          ? new Response(null, {
+              headers: { 'Content-Range': url.searchParams.get('or') ? '*/3' : '*/86' },
+            })
+          : Response.json(
               { code: 'PGRST103', message: 'Requested range not satisfiable' },
               { status: 416 }
-            )
-          : Response.json([summary(profileId, 'Sudor', { clientCount: 0, inUse: false }, [])], {
-              headers: { 'Content-Range': '0-0/3' },
-            }),
+            ),
     });
-    const response = await request('/evaluation-profiles?page=2');
+    const response = await request('/evaluation-profiles?page=2&level=over');
     expect(response.status).toBe(200);
     expect(evaluationProfileListResponseSchema.parse(await response.json())).toEqual({
       items: [],
       page: 2,
       pageSize: 25,
       total: 3,
+      unfilteredTotal: 86,
     });
   });
 
-  it('refuses a sort by a level the database cannot order, or a page too large', async () => {
+  it('reads the list and both counts as the caller, so the policies keep to their organization', async () => {
     mockUpstream();
-    expect((await request('/evaluation-profiles?sort=globalRiskLevel')).status).toBe(400);
+    expect((await request('/evaluation-profiles?usage=unused')).status).toBe(200);
+    const sent = [
+      ...calls('evaluation_profile_list', 'GET'),
+      ...calls('evaluation_profile_list', 'HEAD'),
+    ];
+    expect(sent).toHaveLength(2);
+    for (const [, init] of sent) {
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    }
+  });
+
+  it('refuses a sort it no longer offers, or a page too large', async () => {
+    mockUpstream();
+    expect((await request('/evaluation-profiles?sort=factorCount')).status).toBe(400);
     expect((await request('/evaluation-profiles?sort=unacceptableFactorCount')).status).toBe(400);
     expect((await request('/evaluation-profiles?pageSize=101')).status).toBe(400);
     expect(calls('evaluation_profile_list', 'GET')).toHaveLength(0);

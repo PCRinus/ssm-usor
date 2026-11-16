@@ -69,6 +69,8 @@ The sidebar entry and the page title read **Instrucțiuni proprii**. Its tabs re
 
 The position page's cards keep "Instrucțiuni specifice SSM" and "Instrucțiuni specifice PSI": on one post they are the instructions specific to that post. The import's set-aside reason, the empty states and the help topics follow the new name.
 
+_Note, 2026-11-16, the list (Mircea's decisions):_ each tab's list searches by title, ignoring diacritics, filters by category and by **Nefolosită**, and reads **Folosită la** as the posts and, under them, the clients that apply a module, counting active clients only: a module only an archived client's post applies reads "—" and is Nefolosită, though archiving it still waits for that post. The risk library's list reads the same way (ADR 036).
+
 ### A module is a body of articles, stored as data
 
 An **instruction module** keeps its title, its **category** (_categoria_) and its **domain** (SSM or PSI). Its version now holds a **body** (_textul instrucțiunii_) instead of a file: an ordered list of blocks. Each block is one of two kinds:

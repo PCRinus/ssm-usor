@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { listQuerySchema, pageSchema } from './list';
+import { libraryUsageFilters } from './instruction-modules';
+import { listQuerySchema, listSearchSchema, pageSchema, repeatedQueryValue } from './list';
 import {
   evaluatedJobPositionSchema,
   riskEvaluationKindSchema,
@@ -42,20 +43,18 @@ export const evaluationProfileSummarySchema = z.object({
   ...evaluationProfileFields,
   factorCount: z.int().min(0),
   unacceptableFactorCount: z.int().min(0),
-  // The clients the usage lists, which leaves out archived posts: possibly 0 while `inUse`.
+  // Where active clients use it, as the list's "Folosită la" counts: their sheets holding one of
+  // its factors, a post's or one outside the posts, archived posts' left out, and those
+  // clients. Possibly 0 while `inUse`.
+  sheetCount: z.int().min(0),
   clientCount: z.int().min(0),
 });
 
 export type EvaluationProfileSummary = z.infer<typeof evaluationProfileSummarySchema>;
 
-// Column ids of the library table. The unacceptable count and the global level are left out:
-// they come from the method's grid, which the database does not hold (ADR 015).
-export const evaluationProfileSortKeys = [
-  'name',
-  'factorCount',
-  'clientCount',
-  'updatedAt',
-] as const;
+// Column ids of the library table. `globalRiskLevel` puts the entries without factors last in
+// either order, and `usage` sorts by `sheetCount`.
+export const evaluationProfileSortKeys = ['name', 'globalRiskLevel', 'usage', 'updatedAt'] as const;
 
 export type EvaluationProfileSortKey = (typeof evaluationProfileSortKeys)[number];
 
@@ -63,16 +62,32 @@ export const evaluationProfileListStatuses = ['active', 'archived'] as const;
 
 export type EvaluationProfileListStatus = (typeof evaluationProfileListStatuses)[number];
 
-export const evaluationProfileListQuerySchema = listQuerySchema(
-  evaluationProfileSortKeys,
-  'name'
-).extend({
-  status: z.enum(evaluationProfileListStatuses).default('active'),
+// Against the acceptable global level, 3.5: `none` is an entry without factors.
+export const globalRiskLevelFilters = ['over', 'within', 'none'] as const;
+
+export type GlobalRiskLevelFilter = (typeof globalRiskLevelFilters)[number];
+
+export const evaluationProfileListFiltersSchema = z.object({
+  level: repeatedQueryValue(z.enum(globalRiskLevelFilters)).optional(),
+  usage: repeatedQueryValue(z.enum(libraryUsageFilters)).optional(),
 });
+
+export type EvaluationProfileListFilters = z.infer<typeof evaluationProfileListFiltersSchema>;
+
+export const evaluationProfileListQuerySchema = listQuerySchema(evaluationProfileSortKeys, 'name')
+  .extend({
+    status: z.enum(evaluationProfileListStatuses).default('active'),
+    // Matches the name, ignoring case and diacritics, every term somewhere in it.
+    q: listSearchSchema.optional(),
+  })
+  .extend(evaluationProfileListFiltersSchema.shape);
 
 export type EvaluationProfileListQuery = z.infer<typeof evaluationProfileListQuerySchema>;
 
-export const evaluationProfileListResponseSchema = pageSchema(evaluationProfileSummarySchema);
+/** `unfilteredTotal` counts the tab, active or archived, without the search or filters. */
+export const evaluationProfileListResponseSchema = pageSchema(
+  evaluationProfileSummarySchema
+).extend({ unfilteredTotal: z.int().min(0) });
 
 export type EvaluationProfileListResponse = z.infer<typeof evaluationProfileListResponseSchema>;
 

@@ -7,8 +7,10 @@ import {
   type InstructionDomain,
   type InstructionModule,
   type InstructionModuleGroup,
+  type InstructionModuleListFilters,
   type InstructionModuleSortKey,
   pageRange,
+  searchTerms,
   spacedBody,
   textHash,
   unfilledMark,
@@ -49,7 +51,10 @@ type VersionRow = Pick<
   'id' | 'number' | 'text_hash' | 'article_count' | 'created_at'
 >;
 
-type ListRow = Database['public']['Views']['instruction_module_list']['Row'];
+type ListRow = Omit<
+  Database['public']['Views']['instruction_module_list']['Row'],
+  'organization_id' | 'search_text'
+>;
 
 // A view's columns are all nullable to the type generator; of these only archived_at can be.
 type ModuleRow = {
@@ -59,7 +64,7 @@ type ModuleRow = {
 const versionColumns = 'id, number, text_hash, article_count, created_at';
 
 const moduleColumns =
-  'id, title, module_group, domain, archived_at, created_at, updated_at, version_id, version_number, version_text_hash, version_article_count, version_created_at, applied_count';
+  'id, title, module_group, domain, archived_at, created_at, updated_at, version_id, version_number, version_text_hash, version_article_count, version_created_at, applied_count, position_count, client_count';
 
 const collator = new Intl.Collator('ro');
 
@@ -93,6 +98,8 @@ function toModule(row: ModuleRow): InstructionModule {
       createdAt: row.version_created_at,
     },
     appliedCount: row.applied_count,
+    positionCount: row.position_count,
+    clientCount: row.client_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -127,13 +134,35 @@ const categoryOfOtherDomain = () =>
     'instruction_module_category_domain'
   );
 
-// The enum's order is the categories' order; the title breaks ties within one.
+// The enum's order is the categories' order. Ties go by title, A to Z in either order.
 const sortColumns: Record<InstructionModuleSortKey, string[]> = {
   title: ['title'],
-  group: ['module_group', 'title'],
+  group: ['module_group'],
   version: ['version_created_at'],
-  appliedCount: ['applied_count'],
+  appliedCount: ['position_count', 'client_count'],
 };
+
+type ListQuery<Query> = {
+  ilike(column: string, pattern: string): Query;
+  in(column: string, values: readonly string[]): Query;
+  eq(column: string, value: number): Query;
+};
+
+// The terms come lowercase and without diacritics, as the search column holds the title, and hold
+// only letters and digits, which keeps PostgREST's filter syntax out of them.
+function matching<Query extends ListQuery<Query>>(
+  query: Query,
+  filters: InstructionModuleListFilters,
+  q: string | undefined
+) {
+  let filtered = searchTerms(q).reduce(
+    (each, term) => each.ilike('search_text', `*${term}*`),
+    query
+  );
+  if (filters.category) filtered = filtered.in('module_group', filters.category);
+  if (filters.usage?.includes('unused')) filtered = filtered.eq('position_count', 0);
+  return filtered;
+}
 
 function moduleQuery(db: DataClient) {
   return db.from('instruction_module_list').select(moduleColumns);
@@ -237,29 +266,48 @@ export const listInstructionModules: RouteHandler<
   typeof listInstructionModulesRoute,
   ApiEnv
 > = async (c) => {
-  const { page, pageSize, sort, order, status, domain } = c.req.valid('query');
+  const { page, pageSize, sort, order, status, domain, q, category, usage } = c.req.valid('query');
+  const filters: InstructionModuleListFilters = { category, usage };
   const db = createDataClient(c);
-  const listed = () => {
+  const inTab = (columns: string, head: boolean) => {
     const query = db
       .from('instruction_module_list')
-      .select(moduleColumns, { count: 'exact' })
+      .select(columns, { count: 'exact', head })
       .filter('archived_at', status === 'archived' ? 'not.is' : 'is', null);
     return domain ? query.eq('domain', domain) : query;
   };
-  let query = listed();
+  const listed = (columns: string, head: boolean) => matching(inTab(columns, head), filters, q);
+  const narrowed = Boolean(category || usage) || searchTerms(q).length > 0;
+  let query = listed(moduleColumns, false);
   for (const column of sortColumns[sort]) {
     query = query.order(column, { ascending: order === 'asc' });
   }
   const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await query.order('id').range(from, to).returns<ModuleRow[]>();
+  const [{ data, error, count }, all] = await Promise.all([
+    (sort === 'title' ? query : query.order('title'))
+      .order('id')
+      .range(from, to)
+      .returns<ModuleRow[]>(),
+    narrowed ? inTab('id', true) : null,
+  ]);
+  if (all?.error) throw fromDatabaseError(all.error, 'count instruction modules');
+  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
   if (error?.code === 'PGRST103') {
     // The page lies past the end: empty, with the real total.
-    const recount = await listed().range(0, 0);
+    const recount = await listed('id', true);
     if (recount.error) throw fromDatabaseError(recount.error, 'count instruction modules');
-    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+    const total = recount.count ?? 0;
+    return c.json(
+      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
+      200
+    );
   }
   if (error) throw fromDatabaseError(error, 'list instruction modules');
-  return c.json({ items: data.map(toModule), page, pageSize, total: count ?? 0 }, 200);
+  const total = count ?? 0;
+  return c.json(
+    { items: data.map(toModule), page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
+    200
+  );
 };
 
 export const listInstructionModuleChoices: RouteHandler<

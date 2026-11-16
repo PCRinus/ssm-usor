@@ -377,9 +377,9 @@ select results_eq(
        ('Birou extins', 1, true),
        ('Lucrător de birou', 2, true),
        ('Lucrător în atelier', 0, false),
-       ('Profil vechi', 1, true),
+       ('Profil vechi', 0, true),
        ('Sudor', 0, true) $$,
-  'the list counts the clients using each profile, archived clients but not archived posts, and says whether any factor points at it'
+  'the list counts the active clients using each profile, not archived clients or archived posts, and says whether any factor points at it'
 );
 
 select results_eq(

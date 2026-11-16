@@ -90,7 +90,7 @@ const hotWork = {
 };
 const library = [ladders, offices, welding, hotWork];
 
-function listRow(module: typeof ladders, appliedCount = 0) {
+function listRow(module: typeof ladders, appliedCount = 0, clientCount = appliedCount) {
   const {
     instruction_module_versions: [current],
     ...fields
@@ -103,6 +103,8 @@ function listRow(module: typeof ladders, appliedCount = 0) {
     version_article_count: current!.article_count,
     version_created_at: current!.created_at,
     applied_count: appliedCount,
+    position_count: appliedCount,
+    client_count: clientCount,
   };
 }
 
@@ -157,6 +159,9 @@ function mockUpstream(
     if (url.pathname === '/rest/v1/instruction_module_list') {
       const custom = handlers.list?.(init, url);
       if (custom) return custom;
+      if (init?.method === 'HEAD') {
+        return new Response(null, { headers: { 'Content-Range': '*/64' } });
+      }
       if (url.searchParams.get('id')) return Response.json([listRow(ladders, 2)]);
       return Response.json([listRow(offices), listRow(ladders, 2)], {
         headers: { 'Content-Range': '0-1/2' },
@@ -232,8 +237,13 @@ const listQuery = (index = 0) =>
   new URL(String(calls('/rest/v1/instruction_module_list', 'GET')[index]![0])).searchParams;
 
 describe('GET /instruction-modules', () => {
-  it('lists a page of the library by title with the current version and where each is applied', async () => {
-    mockUpstream();
+  it('lists a page of the library by title with the current version and where each is used', async () => {
+    mockUpstream({
+      list: () =>
+        Response.json([listRow(offices), { ...listRow(ladders, 3, 2), position_count: 2 }], {
+          headers: { 'Content-Range': '0-1/2' },
+        }),
+    });
     const response = await request('/instruction-modules');
     expect(response.status).toBe(200);
     const listed = instructionModuleListResponseSchema.parse(await response.json());
@@ -244,18 +254,22 @@ describe('GET /instruction-modules', () => {
         item.version.number,
         item.version.articleCount,
         item.appliedCount,
+        item.positionCount,
+        item.clientCount,
       ])
     ).toEqual([
-      ['Birouri', 'work_activity', 1, 2, 0],
-      ['Scări metalice', 'work_equipment', 2, 2, 2],
+      ['Birouri', 'work_activity', 1, 2, 0, 0, 0],
+      ['Scări metalice', 'work_equipment', 2, 2, 3, 2, 2],
     ]);
-    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2 });
+    expect(listed).toMatchObject({ page: 1, pageSize: 25, total: 2, unfilteredTotal: 2 });
     const query = listQuery();
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('domain')).toBeNull();
+    expect(query.get('search_text')).toBeNull();
     expect(query.get('order')).toBe('title.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
+    expect(calls('/rest/v1/instruction_module_list', 'HEAD')).toHaveLength(0);
   });
 
   it('lists only the archived ones when asked', async () => {
@@ -271,10 +285,57 @@ describe('GET /instruction-modules', () => {
     expect((await request('/instruction-modules?domain=other')).status).toBe(400);
   });
 
+  it('searches the titles without diacritics, every term, within the tab', async () => {
+    mockUpstream();
+    const response = await request(
+      `/instruction-modules?domain=ssm&q=${encodeURIComponent('Lucrul  la ÎNĂLȚIME!')}`
+    );
+    expect(response.status).toBe(200);
+    expect(listQuery().getAll('search_text')).toEqual([
+      'ilike.*lucrul*',
+      'ilike.*la*',
+      'ilike.*inaltime*',
+    ]);
+    expect(listQuery().get('domain')).toBe('eq.ssm');
+  });
+
+  it('filters by category and by the ones no active client uses, counting the whole tab apart', async () => {
+    mockUpstream({
+      list: (init) =>
+        init?.method === 'HEAD'
+          ? new Response(null, { headers: { 'Content-Range': '*/64' } })
+          : Response.json([listRow(welding)], { headers: { 'Content-Range': '0-0/1' } }),
+    });
+    const response = await request(
+      '/instruction-modules?domain=ssm&category=work_equipment&category=protective_equipment&usage=unused'
+    );
+    expect(response.status).toBe(200);
+    expect(instructionModuleListResponseSchema.parse(await response.json())).toMatchObject({
+      total: 1,
+      unfilteredTotal: 64,
+    });
+    const query = listQuery();
+    expect(query.get('module_group')).toBe('in.(work_equipment,protective_equipment)');
+    expect(query.get('position_count')).toBe('eq.0');
+    const [counted] = calls('/rest/v1/instruction_module_list', 'HEAD');
+    const tab = new URL(String(counted![0])).searchParams;
+    expect(tab.get('domain')).toBe('eq.ssm');
+    expect(tab.get('archived_at')).toBe('is.null');
+    expect(tab.get('module_group')).toBeNull();
+    expect(tab.get('position_count')).toBeNull();
+  });
+
+  it('refuses a category or a usage it does not know', async () => {
+    mockUpstream();
+    expect((await request('/instruction-modules?category=other')).status).toBe(400);
+    expect((await request('/instruction-modules?usage=used')).status).toBe(400);
+    expect(calls('/rest/v1/instruction_module_list', 'GET')).toHaveLength(0);
+  });
+
   it.each([
     ['group', 'asc', 'module_group.asc,title.asc,id.asc'],
-    ['version', 'desc', 'version_created_at.desc,id.asc'],
-    ['appliedCount', 'asc', 'applied_count.asc,id.asc'],
+    ['version', 'desc', 'version_created_at.desc,title.asc,id.asc'],
+    ['appliedCount', 'desc', 'position_count.desc,client_count.desc,title.asc,id.asc'],
     ['title', 'desc', 'title.desc,id.asc'],
   ])('sorts by %s %s in the database', async (sort, order, expected) => {
     mockUpstream();
@@ -295,24 +356,43 @@ describe('GET /instruction-modules', () => {
     expect(listQuery().get('limit')).toBe('5');
   });
 
-  it('answers a page past the end with no modules and the real total', async () => {
+  it('answers a page past the end with no modules and the real totals', async () => {
     mockUpstream({
-      list: (_init, url) =>
-        url.searchParams.get('offset') === '25'
-          ? Response.json(
-              { code: 'PGRST103', message: 'Requested range not satisfiable' },
-              { status: 416 }
-            )
-          : Response.json([listRow(ladders)], { headers: { 'Content-Range': '0-0/3' } }),
+      list: (init, url) => {
+        if (init?.method === 'HEAD') {
+          const filtered = url.searchParams.get('position_count') !== null;
+          return new Response(null, {
+            headers: { 'Content-Range': filtered ? '*/3' : '*/64' },
+          });
+        }
+        return Response.json(
+          { code: 'PGRST103', message: 'Requested range not satisfiable' },
+          { status: 416 }
+        );
+      },
     });
-    const response = await request('/instruction-modules?page=2');
+    const response = await request('/instruction-modules?page=2&usage=unused');
     expect(response.status).toBe(200);
     expect(instructionModuleListResponseSchema.parse(await response.json())).toEqual({
       items: [],
       page: 2,
       pageSize: 25,
       total: 3,
+      unfilteredTotal: 64,
     });
+  });
+
+  it('reads the list and both counts as the caller, so the policies keep to their organization', async () => {
+    mockUpstream();
+    expect((await request('/instruction-modules?usage=unused')).status).toBe(200);
+    const sent = [
+      ...calls('/rest/v1/instruction_module_list', 'GET'),
+      ...calls('/rest/v1/instruction_module_list', 'HEAD'),
+    ];
+    expect(sent).toHaveLength(2);
+    for (const [, init] of sent) {
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    }
   });
 
   it('refuses an unknown sort key or a page too large', async () => {

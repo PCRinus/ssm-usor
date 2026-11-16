@@ -5360,6 +5360,14 @@
                   "type": "integer",
                   "minimum": 0
                 },
+                "positionCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "clientCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
@@ -5377,6 +5385,8 @@
                 "archivedAt",
                 "version",
                 "appliedCount",
+                "positionCount",
+                "clientCount",
                 "createdAt",
                 "updatedAt"
               ]
@@ -5394,9 +5404,13 @@
           "total": {
             "type": "integer",
             "minimum": 0
+          },
+          "unfilteredTotal": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items", "page", "pageSize", "total"]
+        "required": ["items", "page", "pageSize", "total", "unfilteredTotal"]
       },
       "InstructionModuleResponse": {
         "type": "object",
@@ -5463,6 +5477,14 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "positionCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "clientCount": {
+                "type": "integer",
+                "minimum": 0
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -5480,6 +5502,8 @@
               "archivedAt",
               "version",
               "appliedCount",
+              "positionCount",
+              "clientCount",
               "createdAt",
               "updatedAt"
             ]
@@ -5803,6 +5827,14 @@
                 "type": "integer",
                 "minimum": 0
               },
+              "positionCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "clientCount": {
+                "type": "integer",
+                "minimum": 0
+              },
               "createdAt": {
                 "type": "string",
                 "format": "date-time"
@@ -5820,6 +5852,8 @@
               "archivedAt",
               "version",
               "appliedCount",
+              "positionCount",
+              "clientCount",
               "createdAt",
               "updatedAt"
             ]
@@ -6913,6 +6947,10 @@
                   "type": "integer",
                   "minimum": 0
                 },
+                "sheetCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "clientCount": {
                   "type": "integer",
                   "minimum": 0
@@ -6928,6 +6966,7 @@
                 "updatedAt",
                 "factorCount",
                 "unacceptableFactorCount",
+                "sheetCount",
                 "clientCount"
               ]
             }
@@ -6944,9 +6983,13 @@
           "total": {
             "type": "integer",
             "minimum": 0
+          },
+          "unfilteredTotal": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items", "page", "pageSize", "total"]
+        "required": ["items", "page", "pageSize", "total", "unfilteredTotal"]
       },
       "EvaluationProfileResponse": {
         "type": "object",
@@ -33880,6 +33923,50 @@
             "required": false,
             "name": "domain",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "work_activity",
+                  "work_equipment",
+                  "protective_equipment",
+                  "premises_activity",
+                  "installation_equipment",
+                  "hazardous_work"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["unused"]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "usage",
+            "in": "query"
           }
         ],
         "responses": {
@@ -36722,7 +36809,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["name", "factorCount", "clientCount", "updatedAt"],
+              "enum": ["name", "globalRiskLevel", "usage", "updatedAt"],
               "default": "name"
             },
             "required": false,
@@ -36747,6 +36834,43 @@
             },
             "required": false,
             "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["over", "within", "none"]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "level",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["unused"]
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "required": false,
+            "name": "usage",
             "in": "query"
           }
         ],

@@ -407,17 +407,21 @@ describe('the risk library', () => {
     await screen.findAllByTestId('risk-profile-row');
     expect(listQuery().get('page')).toBe('2');
     expect(
-      ['name', 'factorCount', 'clientCount', 'updatedAt'].map(
+      ['name', 'globalRiskLevel', 'usage', 'updatedAt'].map(
         (id) => screen.queryByTestId(`sort-${id}`) !== null
       )
     ).toEqual([true, true, true, true]);
     expect(screen.queryByTestId('sort-unacceptable')).toBeNull();
-    expect(screen.queryByTestId('sort-level')).toBeNull();
-    await user.click(screen.getByTestId('sort-factorCount'));
+    expect(screen.queryByTestId('sort-factorCount')).toBeNull();
+    await user.click(screen.getByTestId('sort-globalRiskLevel'));
     await waitFor(() =>
-      expect(runtime.router.state.location.search).toEqual({ sort: 'factorCount' })
+      expect(runtime.router.state.location.search).toEqual({
+        sort: 'globalRiskLevel',
+        order: 'desc',
+      })
     );
-    await waitFor(() => expect(listQuery(-1).get('sort')).toBe('factorCount'));
+    await waitFor(() => expect(listQuery(-1).get('sort')).toBe('globalRiskLevel'));
+    expect(listQuery(-1).get('order')).toBe('desc');
     expect(listQuery(-1).get('page')).toBe('1');
   });
 

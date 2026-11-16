@@ -28,7 +28,7 @@ const numeric: DataTableColumnMeta = {
   skeletonClassName: 'ml-auto w-8',
 };
 
-// Sortable column ids are the API sort keys: name, factorCount, clientCount, updatedAt.
+// Sortable column ids are the API sort keys: name, globalRiskLevel, usage, updatedAt.
 export function profileColumns({
   onRename,
   onArchiveChange,
@@ -58,6 +58,7 @@ export function profileColumns({
     helper.accessor('factorCount', {
       id: 'factorCount',
       header: 'Factori',
+      enableSorting: false,
       meta: numeric,
       cell: ({ getValue }) => <span data-testid="risk-profile-factors">{getValue()}</span>,
     }),
@@ -79,9 +80,9 @@ export function profileColumns({
       },
     }),
     helper.accessor('globalRiskLevel', {
-      id: 'level',
+      id: 'globalRiskLevel',
       header: 'Nivel global',
-      enableSorting: false,
+      sortDescFirst: true,
       meta: { ...numeric, skeletonClassName: 'ml-auto w-10' },
       cell: ({ getValue }) => {
         const level = getValue();
@@ -99,7 +100,7 @@ export function profileColumns({
       },
     }),
     helper.accessor('clientCount', {
-      id: 'clientCount',
+      id: 'usage',
       header: 'Folosită la',
       sortDescFirst: true,
       meta: {

@@ -7606,11 +7606,15 @@ export type Database = {
           created_at: string | null;
           exposure: string | null;
           factor_count: number | null;
+          global_risk_level: number | null;
           id: string | null;
           in_use: boolean | null;
           means_of_production: string | null;
           name: string | null;
           organization_id: string | null;
+          search_text: string | null;
+          sheet_count: number | null;
+          unacceptable_factor_count: number | null;
           updated_at: string | null;
           work_environment: string | null;
         };
@@ -7635,11 +7639,14 @@ export type Database = {
         Row: {
           applied_count: number | null;
           archived_at: string | null;
+          client_count: number | null;
           created_at: string | null;
           domain: Database['public']['Enums']['instruction_domain'] | null;
           id: string | null;
           module_group: Database['public']['Enums']['instruction_module_group'] | null;
           organization_id: string | null;
+          position_count: number | null;
+          search_text: string | null;
           title: string | null;
           updated_at: string | null;
           version_article_count: number | null;

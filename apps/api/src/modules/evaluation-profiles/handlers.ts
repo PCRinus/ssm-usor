@@ -2,11 +2,15 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   evaluationGlobalRiskLevel,
   type EvaluationProfile,
+  type EvaluationProfileListFilters,
   type EvaluationProfileSortKey,
   type EvaluationProfileSummary,
   type EvaluationProfileUse,
+  type GlobalRiskLevelFilter,
+  maxAcceptableGlobalRiskLevel,
   pageRange,
   type RiskFactorRequest,
+  searchTerms,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -67,7 +71,25 @@ type ClassedFactors = {
   evaluation_profile_factors: Pick<RiskFactorFields, 'gravity_class' | 'probability_class'>[];
 };
 
-type SummaryRow = ProfileRow & ClassedFactors & { client_count: number };
+type ListView = Database['public']['Views']['evaluation_profile_list']['Row'];
+
+// The generated types make every column of a view nullable; these are never null by the view's
+// own definition.
+type SummaryColumn =
+  | 'id'
+  | 'name'
+  | 'in_use'
+  | 'created_at'
+  | 'updated_at'
+  | 'client_count'
+  | 'sheet_count'
+  | 'factor_count'
+  | 'unacceptable_factor_count';
+
+type SummaryRow = { [Column in SummaryColumn]: NonNullable<ListView[Column]> } & Pick<
+  ListView,
+  'archived_at' | 'global_risk_level'
+>;
 
 type ChoiceRow = Pick<ProfileRow, 'id' | 'name'> & ClassedFactors;
 
@@ -90,15 +112,47 @@ const profileColumns = `${profileFieldColumns}, means_of_production, work_enviro
 
 const classedFactorColumns = 'evaluation_profile_factors(gravity_class, probability_class)';
 
-const summaryColumns = `${profileFieldColumns}, client_count, ${classedFactorColumns}`;
+const summaryColumns = `${profileFieldColumns}, client_count, sheet_count, factor_count, global_risk_level, unacceptable_factor_count`;
 
-// The id keeps every order stable across pages.
-const sortColumns: Record<EvaluationProfileSortKey, string[]> = {
-  name: ['name'],
-  factorCount: ['factor_count', 'name'],
-  clientCount: ['client_count', 'name'],
-  updatedAt: ['updated_at'],
+// Ties go by name, A to Z in either order, and the id keeps every order stable across pages.
+const sortColumns: Record<EvaluationProfileSortKey, { column: string; nullsLast?: true }[]> = {
+  name: [{ column: 'name' }],
+  globalRiskLevel: [
+    { column: 'global_risk_level', nullsLast: true },
+    { column: 'unacceptable_factor_count' },
+  ],
+  usage: [{ column: 'sheet_count' }, { column: 'client_count' }],
+  updatedAt: [{ column: 'updated_at' }],
 };
+
+const levelFilters: Record<GlobalRiskLevelFilter, string> = {
+  over: `global_risk_level.gt.${maxAcceptableGlobalRiskLevel}`,
+  within: `global_risk_level.lte.${maxAcceptableGlobalRiskLevel}`,
+  none: 'global_risk_level.is.null',
+};
+
+type ListQuery<Query> = {
+  ilike(column: string, pattern: string): Query;
+  or(filters: string): Query;
+  eq(column: string, value: number): Query;
+};
+
+// The terms come lowercase and without diacritics, as the search column holds the name, and hold
+// only letters and digits, which keeps PostgREST's filter syntax out of them.
+function matching<Query extends ListQuery<Query>>(
+  query: Query,
+  filters: EvaluationProfileListFilters,
+  q: string | undefined
+) {
+  let filtered = searchTerms(q).reduce(
+    (each, term) => each.ilike('search_text', `*${term}*`),
+    query
+  );
+  if (filters.level)
+    filtered = filtered.or(filters.level.map((level) => levelFilters[level]).join(','));
+  if (filters.usage?.includes('unused')) filtered = filtered.eq('sheet_count', 0);
+  return filtered;
+}
 
 const collator = new Intl.Collator('ro');
 
@@ -125,9 +179,12 @@ function toSummary(row: SummaryRow): EvaluationProfileSummary {
   return {
     id: row.id,
     name: row.name,
-    ...factorTotals(row.evaluation_profile_factors),
+    globalRiskLevel: row.global_risk_level,
+    factorCount: row.factor_count,
+    unacceptableFactorCount: row.unacceptable_factor_count,
     archivedAt: row.archived_at,
     inUse: row.in_use,
+    sheetCount: row.sheet_count,
     clientCount: row.client_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -190,28 +247,50 @@ export const listEvaluationProfiles: RouteHandler<
   typeof listEvaluationProfilesRoute,
   ApiEnv
 > = async (c) => {
-  const { page, pageSize, sort, order, status } = c.req.valid('query');
+  const { page, pageSize, sort, order, status, q, level, usage } = c.req.valid('query');
+  const filters: EvaluationProfileListFilters = { level, usage };
   const db = createDataClient(c);
   await storeMissingRiskLevels(db);
-  const listed = () =>
+  const inTab = (columns: string, head: boolean) =>
     db
       .from('evaluation_profile_list')
-      .select(summaryColumns, { count: 'exact' })
+      .select(columns, { count: 'exact', head })
       .filter('archived_at', status === 'archived' ? 'not.is' : 'is', null);
-  let query = listed();
-  for (const column of sortColumns[sort]) {
-    query = query.order(column, { ascending: order === 'asc' });
+  const listed = (columns: string, head: boolean) => matching(inTab(columns, head), filters, q);
+  const narrowed = Boolean(level || usage) || searchTerms(q).length > 0;
+  let query = listed(summaryColumns, false);
+  for (const { column, nullsLast } of sortColumns[sort]) {
+    query = query.order(column, {
+      ascending: order === 'asc',
+      ...(nullsLast ? { nullsFirst: false } : {}),
+    });
   }
   const { from, to } = pageRange(page, pageSize);
-  const { data, error, count } = await query.order('id').range(from, to).returns<SummaryRow[]>();
+  const [{ data, error, count }, all] = await Promise.all([
+    (sort === 'name' ? query : query.order('name'))
+      .order('id')
+      .range(from, to)
+      .returns<SummaryRow[]>(),
+    narrowed ? inTab('id', true) : null,
+  ]);
+  if (all?.error) throw fromDatabaseError(all.error, 'count evaluation profiles');
+  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
   if (error?.code === 'PGRST103') {
     // The page lies past the end: empty, with the real total.
-    const recount = await listed().range(0, 0);
+    const recount = await listed('id', true);
     if (recount.error) throw fromDatabaseError(recount.error, 'count evaluation profiles');
-    return c.json({ items: [], page, pageSize, total: recount.count ?? 0 }, 200);
+    const total = recount.count ?? 0;
+    return c.json(
+      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
+      200
+    );
   }
   if (error) throw fromDatabaseError(error, 'list evaluation profiles');
-  return c.json({ items: data.map(toSummary), page, pageSize, total: count ?? 0 }, 200);
+  const total = count ?? 0;
+  return c.json(
+    { items: data.map(toSummary), page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
+    200
+  );
 };
 
 export const listEvaluationProfileChoices: RouteHandler<
