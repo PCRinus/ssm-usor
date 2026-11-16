@@ -248,9 +248,7 @@ export const employeePortalAccessSchema = z.object({
   address: z.string().nullable(),
   // Chosen by an active participant in the portal; null before the choice.
   language: portalLanguageSchema.nullable(),
-  // Set while active.
   participantId: z.uuid().nullable(),
-  // Set while invited or expired.
   invitationId: z.uuid().nullable(),
   // The employee is the client administrator, and the standing is theirs as such.
   administrator: z.boolean(),

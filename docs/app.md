@@ -1363,20 +1363,35 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - `/clienti/:clientId/portal`: "Portal", the last tab of a client, in
   `src/features/participants/` ([ADR 022](architecture/adr-022-participants-and-the-portal.md),
   [ADR 023](architecture/adr-023-advanced-electronic-signature.md)). `ClientPortalPage` reads
-  `GET /clients/{clientId}/participants` once and, while the client has no administrator in
-  the portal or no employee with access, opens with the notice "Fără acces încă" naming what
-  is missing. Then three cards: "Administratorul clientului" (`ClientAdministratorCard`) with
-  "Invită administratorul", whose dialog proposes the legal representative's name and the
-  contact's address; "Angajații în portal" (`PortalEmployeesCard`), the employees with access
-  and the invited ones, each named with a link to their page, their standing (`ParticipantStatus`
-  or `InvitationStatus`: the address they sign in with, since when or until when, the language
-  they chose in the portal, and resend or revoke), and "Invită un angajat", which picks one of
-  the client's employees (`InviteEmployeePicker`) and then opens the same dialog as the
-  employee page's "Acces la portal" card; and "Semnături în așteptare"
-  (`ClientSignatureRequests`), the client's pending signature requests by employee, each
-  linking the record's training tab, or "Nicio semnătură în așteptare.". An archived client
-  gets no invite or resend. The employee page keeps its own "Acces la portal" card for that
-  one employee; nothing else of the client's page names the portal.
+  `GET /clients/{clientId}/participants` for the administrator and the roster through
+  `usePortalRoster`. While the client has no administrator, no administrator invitation and no
+  worker with access, `PortalGettingStarted` opens the tab, "Pornește portalul pentru acest
+  client", with two equal steps: "Invită administratorul" (the dialog proposes the legal
+  representative's name and the contact's address) and "Invită lucrătorii". Otherwise
+  `ClientAdministratorPanel` shows the one administrator as a summary list like Detalii's
+  (Administrator, with a link to their worker page when they are one; Acces, a badge and a
+  date; Intră cu, the address, the channel and the portal's language), with "Revocă accesul",
+  or "Retrimite" and "Revocă invitația", as grey buttons on the Acces row; "Invită
+  administratorul" shows only while there is neither an administrator nor an invitation for
+  one. "Lucrătorii și accesul la portal" (`PortalRoster`) is the client's current workers from
+  `GET /clients/{clientId}/employees`, each with its `portal` standing: the Lucrători list's
+  search, Filtre (Acces la portal, Post de lucru, Punct de lucru) and pager, its state in the
+  address (`?q=&portal=&jobPosition=&workplace=&sort=name|portal&order=&page=`), columns
+  Lucrător, Acces (sortable, a badge and a date line) and Intră cu, and on each row Invită
+  (opening the employee page's invite dialog), Retrimite with its wait shown under the date,
+  or a ⋯ menu to revoke. The count line reads "N cu acces, din M lucrători" from a second
+  `?portal=active&pageSize=1` read. Ticking rows, across pages, swaps the toolbar for the
+  selection bar ("N lucrători aleși", "Deselectează tot", "Invită selectați (N)"); a choice
+  belongs to one search and set of filters, and a chosen worker whose row comes back with
+  access or an open invitation leaves it. "Invită lucrători" applies Fără invitație and chooses
+  every match through `GET /clients/{clientId}/employee-invitees`, or says nobody is left
+  without an invitation; "Invită selectați" reads that endpoint again for the current standing
+  and opens `BulkInviteDialog` with the chosen invitees. A client with no current workers gets
+  "Clientul nu are încă lucrători", linking the Lucrători tab. Last, "Semnături în așteptare"
+  (`ClientSignatureRequests`), the client's pending signature requests as a table sortable by
+  worker and by request date, hidden while empty during getting started. An archived client
+  gets no checkboxes, no invite or resend and no forest action; revoking stays in the ⋯ menus.
+  The employee page keeps its own "Acces la portal" card for that one employee.
 - "Invită în portal angajații din fișe" (`BulkInviteDialog` in `src/features/participants/`,
   [ADR 032](architecture/adr-032-employees-imported-from-training-sheets.md), canvas board
   EmpInvite) invites the people of a confirmed employee import at once. `useBulkInvite(clientId)`

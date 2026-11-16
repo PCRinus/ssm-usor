@@ -2,6 +2,8 @@ import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Send } from 'lucide-react';
 
+import { CellNote } from '@/components/data-table/cell-note';
+
 import { RevokeMenu } from './client-administrator-panel';
 import { formatTime } from './participant-format';
 import type { AccessTarget } from './portal-access-format';
@@ -88,15 +90,20 @@ function ResendButton({
       size="sm"
       data-testid="portal-roster-resend"
       aria-label={`Retrimite invitația lui ${name}`}
-      title={
-        resendable || !resendableAt
-          ? undefined
-          : `Poți retrimite după ora ${formatTime(resendableAt)}.`
-      }
       disabled={!resendable || busy}
       onClick={onResend}
     >
       {busy ? 'Se trimite…' : 'Retrimite'}
     </Button>
+  );
+}
+
+export function ResendHint({ resendableAt }: { resendableAt: string }) {
+  const resendable = useTimeReached(resendableAt);
+  if (resendable) return null;
+  return (
+    <CellNote data-testid="portal-resend-hint">
+      Poți retrimite după ora {formatTime(resendableAt)}.
+    </CellNote>
   );
 }

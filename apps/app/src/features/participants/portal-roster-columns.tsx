@@ -8,7 +8,7 @@ import { Masked } from '@/components/replay';
 
 import { PortalAccessBadge } from './portal-access';
 import { accessDateLine, channelLine, shownAddress } from './portal-access-format';
-import { RowActions } from './portal-roster-cells';
+import { ResendHint, RowActions } from './portal-roster-cells';
 import type { PortalAccessActions } from './use-portal-access-actions';
 
 export type RosterRow = ClientEmployeeListItem;
@@ -64,6 +64,9 @@ export function portalRosterColumns({
               <CellNote className="tabular-nums" data-testid="portal-access-date">
                 {line}
               </CellNote>
+            )}
+            {!readOnly && row.original.portal.invitationId && row.original.portal.resendableAt && (
+              <ResendHint resendableAt={row.original.portal.resendableAt} />
             )}
           </>
         );

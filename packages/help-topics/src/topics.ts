@@ -484,10 +484,6 @@ export const helpTopics = {
     path: '/clienti/angajati/portal-si-act-aditional/',
     anchor: 'administratorul-clientului',
   },
-  'portal.client-arhivat': {
-    path: '/clienti/angajati/portal-si-act-aditional/',
-    anchor: 'portalul-unui-client-arhivat',
-  },
   'portal.invitarea-mai-multor': {
     path: '/clienti/angajati/portal-si-act-aditional/',
     anchor: 'invitarea-mai-multor-lucrători',
@@ -503,10 +499,6 @@ export const helpTopics = {
   'portal.semnaturi': {
     path: '/clienti/angajati/portal-si-act-aditional/',
     anchor: 'semnăturile-în-așteptare',
-  },
-  'portal.tab': {
-    path: '/clienti/angajati/portal-si-act-aditional/',
-    anchor: 'tabul-portal-al-clientului',
   },
   'primii-pasi.deschide-ajutorul': {
     path: '/primii-pasi/',

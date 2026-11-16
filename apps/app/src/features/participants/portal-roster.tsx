@@ -22,9 +22,7 @@ import { WorkersCount, WorkersListError, WorkersNoMatch } from '@/features/emplo
 import type { ParticipantMessage } from './participant-actions';
 import { portalRosterColumns, type RosterRow } from './portal-roster-columns';
 import type { PortalAccessActions } from './use-portal-access-actions';
-import type { PortalRosterState, RosterFilters } from './use-portal-roster';
-
-const defaultSort = { sort: 'name', order: 'asc' } as const;
+import { defaultSort, type PortalRosterState, type RosterFilters } from './use-portal-roster';
 
 export function PortalRoster({
   clientId,
@@ -35,6 +33,7 @@ export function PortalRoster({
   message,
   onInvite,
   onInviteChosen,
+  openingBatch,
 }: {
   clientId: string;
   roster: PortalRosterState;
@@ -44,6 +43,7 @@ export function PortalRoster({
   message: ParticipantMessage;
   onInvite: (row: RosterRow) => void;
   onInviteChosen: () => void;
+  openingBatch: boolean;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const phone = useIsMobile();
@@ -108,6 +108,7 @@ export function PortalRoster({
               <Button
                 className="w-full sm:ml-auto sm:w-auto"
                 data-testid="portal-invite-chosen"
+                disabled={openingBatch}
                 onClick={onInviteChosen}
               >
                 <Send aria-hidden="true" />
@@ -183,10 +184,18 @@ export function PortalRoster({
               </ListActions>
             </ListCardHeader>
           )}
-          {roster.chooseFailed && (
+          {roster.chooseOutcome === 'failed' && (
             <div className="border-t px-6 py-3">
               <Notice variant="destructive" data-testid="portal-choose-error">
                 Nu am putut alege lucrătorii fără invitație. Încearcă din nou.
+              </Notice>
+            </div>
+          )}
+          {roster.chooseOutcome === 'nobody' && (
+            <div className="border-t px-6 py-3">
+              <Notice variant="info" data-testid="portal-choose-nobody">
+                Toți lucrătorii au deja acces sau o invitație. Cei cu invitația expirată sau cu
+                accesul revocat au Retrimite sau Invită pe rândul lor.
               </Notice>
             </div>
           )}

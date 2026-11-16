@@ -18,6 +18,7 @@ import {
   type ParticipantChannel,
   type PortalAccessState,
   type PortalLanguage,
+  portalStandingOf,
   searchTerms,
   type SortOrder,
   type TestStateFilter,
@@ -577,12 +578,7 @@ export const listEmployeeInvitees: RouteHandler<typeof listEmployeeInviteesRoute
         email: row.email,
         phone: row.phone,
         current: true,
-        portal:
-          row.portal_state === 'active'
-            ? ('participant' as const)
-            : row.portal_state === 'invited'
-              ? ('invited' as const)
-              : null,
+        portal: portalStandingOf((row.portal_state ?? 'none') as PortalAccessState),
       })),
       total: count ?? data.length,
     },

@@ -39,6 +39,18 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
     []
   );
 
+  const [opening, setOpening] = useState(false);
+  async function openBatch() {
+    setOpening(true);
+    try {
+      setBatch(await roster.freshChoice());
+    } catch {
+      setBatch([...roster.chosen.values()]);
+    } finally {
+      setOpening(false);
+    }
+  }
+
   const { employees, withAccess } = roster;
   if (list.isPending || employees.isPending || withAccess.isPending) {
     return (
@@ -145,7 +157,8 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
         actions={actions}
         message={message}
         onInvite={inviteRow}
-        onInviteChosen={() => setBatch([...roster.chosen.values()])}
+        openingBatch={opening}
+        onInviteChosen={() => void openBatch()}
       />
       <ClientSignatureRequests
         clientId={client.id}

@@ -12,8 +12,6 @@ topics:
     heading: Invitarea lucrătorilor din fișe
   - id: angajati.revocare-acces
     heading: Revocarea
-  - id: portal.tab
-    heading: Tabul Portal al clientului
   - id: portal.pornire
     heading: Pornirea portalului
   - id: portal.administrator
@@ -24,8 +22,6 @@ topics:
     heading: Invitarea mai multor lucrători
   - id: portal.semnaturi
     heading: Semnăturile în așteptare
-  - id: portal.client-arhivat
-    heading: Portalul unui client arhivat
   - id: angajati.act-aditional
     heading: Actul adițional privind semnarea electronică
   - id: angajati.act-aditional-stari
@@ -132,7 +128,7 @@ Tabul **Portal** al unui client adună tot ce ține de portal: administratorul c
 
 ### Pornirea portalului
 
-Cât timp clientul nu are administrator și niciun lucrător nu are acces, tabul începe cu **Pornește portalul pentru acest client**, în doi pași: **Invită administratorul** și **Invită lucrătorii**. Îi faci pe amândoi; începe cu administratorul, ca să poată pregăti portalul la client. **Invită lucrătorii** face același lucru ca **Invită lucrători** din listă (vezi mai jos). Panoul dispare de îndată ce cineva are acces, iar în locul lui apare administratorul clientului.
+Cât timp clientul nu are administrator și nicio invitație pentru unul, iar niciun lucrător nu are acces, tabul începe cu **Pornește portalul pentru acest client**, în doi pași: **Invită administratorul** și **Invită lucrătorii**. Îi faci pe amândoi; începe cu administratorul, ca să poată pregăti portalul la client. **Invită lucrătorii** face același lucru ca **Invită lucrători** din listă (vezi mai jos). Panoul dispare de îndată ce administratorul e invitat sau un lucrător are acces, iar în locul lui apare panoul administratorului.
 
 Un client fără lucrători actuali nu are încă pe cine invita: tabul îți spune „Clientul nu are încă lucrători” și te trimite la tabul **Lucrători**, de unde îi adaugi.
 
@@ -168,7 +164,9 @@ Cauți după nume sau marcă. **Filtre** alege după accesul la portal, postul d
 
 Bifează lucrătorii pe care vrei să-i inviți; îi poți alege de pe mai multe pagini ale listei. Cât timp ai ales pe cineva, deasupra listei vezi câți lucrători ai ales, **Deselectează tot** și **Invită selectați**. Alegerea ține de căutare și de filtre: când le schimbi, o iei de la capăt.
 
-Fără nimic ales, **Invită lucrători** aplică filtrul **Fără invitație** și îi alege pe toți lucrătorii care se potrivesc, de pe toate paginile. Scoate apoi bifa celor pe care nu vrei să-i inviți acum. Se aleg odată cel mult 1000 de lucrători.
+Fără nimic ales, **Invită lucrători** aplică filtrul **Fără invitație** și îi alege pe toți lucrătorii care se potrivesc, de pe toate paginile. Scoate apoi bifa celor pe care nu vrei să-i inviți acum. Se aleg odată cel mult 1000 de lucrători. Butonul nu-i alege pe cei cu invitația expirată sau cu accesul revocat: lor le trimiți din nou invitația cu **Retrimite** sau **Invită** de pe rândul fiecăruia, ori îi bifezi. Când toți lucrătorii au deja acces sau o invitație, îți spune asta și nu alege pe nimeni.
+
+Un lucrător ales care între timp a primit acces sau o invitație, de pe rândul lui sau de la un coleg, iese din alegere, ca să nu fie invitat din nou.
 
 **Invită selectați** deschide același dialog ca [invitarea lucrătorilor din fișe](#invitarea-lucrătorilor-din-fișe): cei cu email sau telefon în datele lor primesc invitația, iar pentru cei fără scrii un email sau un număr de telefon, care se salvează în datele lor. Cei care au deja acces sau o invitație deschisă apar separat și nu primesc nimic din nou. SMS-urile pleacă doar spre numere din România și nu pleacă în perioada de probă, ca la orice invitație.
 

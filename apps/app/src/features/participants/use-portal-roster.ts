@@ -2,7 +2,8 @@ import {
   type ClientEmployeeListItem,
   defaultPageSize,
   type ImportInvitee,
-  type PortalAccessState,
+  portalAccessStates,
+  portalStandingOf,
 } from '@ssm-usor/contracts';
 import { keepPreviousData } from '@tanstack/react-query';
 import { getRouteApi, useRouteContext } from '@tanstack/react-router';
@@ -34,9 +35,7 @@ const rosterFilterKeys = ['portal', 'jobPosition', 'workplace'] as const;
 export type RosterFilterKey = (typeof rosterFilterKeys)[number];
 export type RosterFilters = Pick<ListEmployeesParams, RosterFilterKey>;
 
-const defaultSort = { sort: 'name', order: 'asc' } as const;
-
-const accessOrder: PortalAccessState[] = ['active', 'invited', 'expired', 'none', 'revoked'];
+export const defaultSort = { sort: 'name', order: 'asc' } as const;
 
 function rosterFacets(places: Parameters<typeof clientPlaceFacets>[0]) {
   const portal: ListFilterFacet<RosterFilterKey> = {
@@ -44,7 +43,10 @@ function rosterFacets(places: Parameters<typeof clientPlaceFacets>[0]) {
     label: 'Acces la portal',
     icon: KeyRound,
     column: 'left',
-    options: accessOrder.map((state) => ({ value: state, label: portalAccessLabels[state] })),
+    options: portalAccessStates.map((state) => ({
+      value: state,
+      label: portalAccessLabels[state],
+    })),
   };
   return [portal, ...clientPlaceFacets(places)] as ListFilterFacet<RosterFilterKey>[];
 }
@@ -57,12 +59,7 @@ export const inviteeOf = (row: ClientEmployeeListItem): ImportInvitee => ({
   email: row.email,
   phone: row.phone,
   current: true,
-  portal:
-    row.portal.state === 'active'
-      ? 'participant'
-      : row.portal.state === 'invited'
-        ? 'invited'
-        : null,
+  portal: portalStandingOf(row.portal.state),
 });
 
 export type Chosen = ReadonlyMap<string, ImportInvitee>;
@@ -138,6 +135,16 @@ export function usePortalRoster(clientId: string, userId: string) {
   });
   // Dropped, not only hidden, so an earlier search's choice does not return with its filters.
   if (selection.scope !== scope) setSelection({ scope, chosen: noneChosen, capped: false });
+  // A worker invited meanwhile, from their row or by a colleague, leaves the choice once the list
+  // shows it, so that the batch does not invite them again.
+  const taken = (employees.data?.items ?? []).filter(
+    (row) => selection.chosen.has(row.id) && portalStandingOf(row.portal.state) !== null
+  );
+  if (selection.scope === scope && taken.length > 0) {
+    const kept = new Map(selection.chosen);
+    for (const row of taken) kept.delete(row.id);
+    setSelection({ ...selection, chosen: kept });
+  }
   const chosen = selection.scope === scope ? selection.chosen : noneChosen;
   const capped = selection.scope === scope && selection.capped;
   const choose = (rows: RosterRow[], on: boolean) =>
@@ -162,30 +169,49 @@ export function usePortalRoster(clientId: string, userId: string) {
     void changeSearch(listFilters.searchOf(values) as RosterFilters);
 
   const [choosing, setChoosing] = useState(false);
-  const [chooseFailed, setChooseFailed] = useState(false);
+  const [chooseOutcome, setChooseOutcome] = useState<'failed' | 'nobody' | null>(null);
+  const readInvitees = (values: RosterFilters) => {
+    const inviteesParams = { ...(q ? { q } : {}), ...values };
+    return queryClient.fetchQuery({
+      queryKey: [...getListEmployeeInviteesQueryKey(clientId, inviteesParams), userId],
+      queryFn: ({ signal }) =>
+        listEmployeeInvitees(clientId, inviteesParams, { ...apiRequest, signal }),
+      staleTime: 0,
+    });
+  };
+
   async function chooseUninvited() {
     const next = listFilters.searchOf({ ...listFilters.values, portal: ['none'] }) as RosterFilters;
     setChoosing(true);
-    setChooseFailed(false);
+    setChooseOutcome(null);
     try {
+      const answer = await readInvitees(next);
+      if (answer.items.length === 0) {
+        setChooseOutcome('nobody');
+        return;
+      }
       await changeSearch(next);
-      const inviteesParams = { ...(q ? { q } : {}), ...next };
-      const answer = await queryClient.fetchQuery({
-        queryKey: [...getListEmployeeInviteesQueryKey(clientId, inviteesParams), userId],
-        queryFn: ({ signal }) =>
-          listEmployeeInvitees(clientId, inviteesParams, { ...apiRequest, signal }),
-        staleTime: 0,
-      });
       setSelection({
         scope: scopeOf(next, q),
         chosen: new Map(answer.items.map((item) => [item.employeeId, item])),
         capped: answer.total > answer.items.length,
       });
     } catch {
-      setChooseFailed(true);
+      setChooseOutcome('failed');
     } finally {
       setChoosing(false);
     }
+  }
+
+  // The standing is read again as the batch opens: a choice may have waited on other pages while
+  // someone was invited.
+  async function freshChoice() {
+    const answer = await readInvitees(filters);
+    const now = new Map(answer.items.map((item) => [item.employeeId, item]));
+    return [...chosen.keys()].flatMap((id) => {
+      const current = now.get(id) ?? chosen.get(id);
+      return current ? [current] : [];
+    });
   }
 
   return {
@@ -209,7 +235,8 @@ export function usePortalRoster(clientId: string, userId: string) {
     changeFilters,
     chooseUninvited,
     choosing,
-    chooseFailed,
+    chooseOutcome,
+    freshChoice,
   };
 }
 

@@ -237,6 +237,12 @@ function mockApi({
         })),
       });
     }
+    if (pathname.endsWith('/participant-invitations') && pathname.includes('/employees/')) {
+      return Response.json(
+        { ...administratorInvitation, kind: 'employee', employeeId: pathname.split('/')[4] },
+        { status: 201 }
+      );
+    }
     if (pathname === administratorPath && method === 'POST') {
       return Response.json(administratorInvitation, { status: 201 });
     }
@@ -594,6 +600,83 @@ describe("the client's Portal tab", () => {
     mountPortal();
     const empty = await screen.findByTestId('portal-no-workers');
     expect(within(empty).queryByRole('link')).toBeNull();
+  });
+
+  it('drops a chosen worker once their row comes back invited', async () => {
+    const workers = mixed();
+    mockApi({ workers });
+    const user = userEvent.setup();
+    mountPortal();
+    const people = await rows();
+    await user.click(within(people[3]!).getByTestId('portal-roster-select'));
+    await user.click(within(people[4]!).getByTestId('portal-roster-select'));
+    expect((await screen.findByTestId('portal-selection')).textContent).toContain(
+      '2 lucrători aleși'
+    );
+
+    workers[3] = { ...workers[3]!, portal: { ...workers[3]!.portal, state: 'invited' } };
+    await user.click(within(people[3]!).getByTestId('portal-roster-invite'));
+    const dialog = await screen.findByTestId('participant-invite-dialog');
+    await user.click(within(dialog).getByTestId('participant-invite-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('portal-selection').textContent).toContain('1 lucrător ales')
+    );
+  });
+
+  it('reads the standing again as the batch opens, setting apart whoever a colleague invited', async () => {
+    const workers = mixed();
+    mockApi({
+      workers,
+      invitees: () =>
+        Response.json({
+          items: [3, 4].map((index) => ({
+            employeeId: workers[index]!.id,
+            lastName: workers[index]!.lastName,
+            firstName: 'Ion',
+            position: 'Barista',
+            email: workers[index]!.email,
+            phone: null,
+            current: true,
+            portal: index === 3 ? 'invited' : null,
+          })),
+          total: 2,
+        }),
+    });
+    const user = userEvent.setup();
+    mountPortal();
+    const people = await rows();
+    await user.click(within(people[3]!).getByTestId('portal-roster-select'));
+    await user.click(within(people[4]!).getByTestId('portal-roster-select'));
+    await user.click(await screen.findByTestId('portal-invite-chosen'));
+    const dialog = await screen.findByTestId('bulk-invite-dialog');
+    expect(within(dialog).getByTestId('bulk-invite-on-portal').textContent).toContain('Dobre Ion');
+    expect(within(dialog).getByTestId('bulk-invite-with-address').textContent).toContain('Ene Ion');
+    expect(within(dialog).getByTestId('bulk-invite-with-address').textContent).not.toContain(
+      'Dobre'
+    );
+  });
+
+  it('says when nobody is left without an invitation, keeping the list as it was', async () => {
+    mockApi({ workers: mixed().filter((row) => row.portal.state !== 'none') });
+    const user = userEvent.setup();
+    const runtime = mountPortal();
+    await rows();
+    await user.click(screen.getByTestId('portal-invite-uninvited'));
+    expect((await screen.findByTestId('portal-choose-nobody')).textContent).toContain(
+      'Toți lucrătorii au deja acces sau o invitație.'
+    );
+    expect(runtime.router.state.location.search).not.toHaveProperty('portal');
+    expect(screen.queryByTestId('portal-selection')).toBeNull();
+  });
+
+  it('shows in the row when an invitation can be sent again', async () => {
+    mockApi();
+    mountPortal();
+    const people = await rows();
+    expect(within(people[5]!).getByTestId('portal-resend-hint').textContent).toMatch(
+      /^Poți retrimite după ora \d{2}:\d{2}\.$/
+    );
+    expect(within(people[1]!).queryByTestId('portal-resend-hint')).toBeNull();
   });
 
   it('applies Fără invitație and chooses every worker it matches, past the page', async () => {

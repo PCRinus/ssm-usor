@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 import { commuteMeanSchema } from './commute-means';
 import { responsiblePersonRoleSchema } from './document-data';
-import { bloodGroupSchema, clientEmployeeListFiltersSchema, rhFactorSchema } from './employees';
+import {
+  bloodGroupSchema,
+  clientEmployeeListFiltersSchema,
+  type PortalAccessState,
+  rhFactorSchema,
+} from './employees';
 import { listSearchSchema } from './list';
 import {
   type ParticipantChannel,
@@ -259,6 +264,10 @@ export type BulkEmployeeInvitationResponse = z.infer<typeof bulkEmployeeInvitati
 export const portalStandings = ['participant', 'invited'] as const;
 export const portalStandingSchema = z.enum(portalStandings);
 export type PortalStanding = z.infer<typeof portalStandingSchema>;
+
+// An expired or revoked invitation is no standing: a batch invitation may invite the person again.
+export const portalStandingOf = (state: PortalAccessState): PortalStanding | null =>
+  state === 'active' ? 'participant' : state === 'invited' ? 'invited' : null;
 
 export const importInviteeSchema = z.object({
   employeeId: z.uuid(),
