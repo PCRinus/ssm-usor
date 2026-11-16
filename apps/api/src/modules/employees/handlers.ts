@@ -1,10 +1,13 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
+  type ClientEmployeeListItem,
   type CreateEmployeeRequest,
   type Employee,
   type EmployeeAttentionFilter,
+  employeeInviteesLimit,
   type EmployeeListFilters,
   type EmployeeListItem,
+  type EmployeePortalAccess,
   type EmployeeSortKey,
   type EmployeeStatus,
   type EmployeeTrainingStateFilter,
@@ -12,6 +15,10 @@ import {
   orderedCommuteMeans,
   type OrganizationEmployeeSortKey,
   pageRange,
+  type ParticipantChannel,
+  type PortalAccessState,
+  type PortalLanguage,
+  portalStandingOf,
   searchTerms,
   type SortOrder,
   type TestStateFilter,
@@ -35,6 +42,7 @@ import { toEmployeeTraining, type TrainingStatusRow } from '../trainings/status'
 import type {
   createEmployeeRoute,
   getEmployeeRoute,
+  listEmployeeInviteesRoute,
   listEmployeesRoute,
   listOrganizationEmployeesRoute,
   updateEmployeeJobPositionRoute,
@@ -206,6 +214,9 @@ function conflictMessage(detail: string | undefined) {
 const listViewColumns =
   'id, client_id, client_name, last_name, first_name, employee_number, email, phone, job_title, job_position_id, job_position_name, workplace_id, workplace_name, hired_at, status, terminated_at, created_at, updated_at, signatures_pending_count';
 
+const portalColumns =
+  'portal_state, portal_since, portal_expires_at, portal_revoked_at, portal_channel, portal_address, portal_language, portal_participant_id, portal_invitation_id, portal_administrator';
+
 type EmployeeListView = Database['public']['Views']['employee_list']['Row'];
 
 // The generated types make every column of a view nullable; these come from not-null columns of
@@ -233,9 +244,54 @@ type ListViewRow = { [Column in RequiredListColumn]: NonNullable<EmployeeListVie
   | 'workplace_name'
   | 'terminated_at'
   | 'signatures_pending_count'
+> &
+  Partial<PortalViewColumns>;
+
+type PortalViewColumns = Pick<
+  EmployeeListView,
+  | 'portal_state'
+  | 'portal_since'
+  | 'portal_expires_at'
+  | 'portal_revoked_at'
+  | 'portal_channel'
+  | 'portal_address'
+  | 'portal_language'
+  | 'portal_participant_id'
+  | 'portal_invitation_id'
+  | 'portal_administrator'
 >;
 
-type ListedEmployee = { item: EmployeeListItem; client: { id: string; name: string } };
+// The database refuses a resend inside this window (PRT05).
+const RESEND_AFTER_MS = 10 * 60 * 1000;
+
+const isoOrNull = (value: string | null | undefined) =>
+  value ? new Date(value).toISOString() : null;
+
+export function toPortalAccess(row: Partial<PortalViewColumns>): EmployeePortalAccess {
+  const state = (row.portal_state ?? 'none') as PortalAccessState;
+  const pending = state === 'invited' || state === 'expired';
+  const since = isoOrNull(row.portal_since);
+  return {
+    state,
+    since: state === 'revoked' ? null : since,
+    expiresAt: pending ? isoOrNull(row.portal_expires_at) : null,
+    revokedAt: state === 'revoked' ? isoOrNull(row.portal_revoked_at) : null,
+    resendableAt:
+      pending && since ? new Date(Date.parse(since) + RESEND_AFTER_MS).toISOString() : null,
+    channel: (row.portal_channel as ParticipantChannel | null) ?? null,
+    address: row.portal_address ?? null,
+    language: state === 'active' ? ((row.portal_language as PortalLanguage | null) ?? null) : null,
+    participantId: state === 'active' ? (row.portal_participant_id ?? null) : null,
+    invitationId: pending ? (row.portal_invitation_id ?? null) : null,
+    administrator: state !== 'none' && state !== 'revoked' && Boolean(row.portal_administrator),
+  };
+}
+
+type ListedEmployee = {
+  item: EmployeeListItem;
+  client: { id: string; name: string };
+  row: ListViewRow;
+};
 
 // The statuses are read for the page only: they carry more than the view, which computes only
 // what the list filters and sorts on.
@@ -271,6 +327,7 @@ async function listedEmployees(db: DataClient, rows: ListViewRow[]): Promise<Lis
       signaturesPending: row.signatures_pending_count ?? 0,
     },
     client: { id: row.client_id, name: row.client_name },
+    row,
   }));
 }
 
@@ -292,6 +349,7 @@ const sortColumns: Record<EmployeeSortKey | OrganizationEmployeeSortKey, SortCol
   jobPosition: [{ column: 'job_position_name' }, ...byName],
   client: [{ column: 'client_name' }, ...byName],
   hiredAt: [{ column: 'hired_at' }, ...byName],
+  portal: [{ column: 'portal_rank' }, ...byName],
   terminatedAt: [{ column: 'terminated_at', nullsLast: true }, ...byName],
   ssmTraining: trainingOrder('ssm'),
   suTraining: trainingOrder('su'),
@@ -301,6 +359,7 @@ type ListFilters = EmployeeListFilters & {
   jobPosition?: string[];
   workplace?: string[];
   client?: string[];
+  portal?: PortalAccessState[];
 };
 
 const listFilterKeys = [
@@ -311,6 +370,7 @@ const listFilterKeys = [
   'jobPosition',
   'workplace',
   'client',
+  'portal',
 ] as const satisfies readonly (keyof ListFilters)[];
 
 export const toTrainMatch =
@@ -356,6 +416,7 @@ function matchingFilters<Query extends FilterableQuery<Query>>(query: Query, fil
   if (filters.jobPosition) filtered = filtered.in('job_position_id', filters.jobPosition);
   if (filters.workplace) filtered = filtered.in('workplace_id', filters.workplace);
   if (filters.client) filtered = filtered.in('client_id', filters.client);
+  if (filters.portal) filtered = filtered.in('portal_state', filters.portal);
   return filtered;
 }
 
@@ -380,12 +441,13 @@ type ListRequest = {
   sort: EmployeeSortKey | OrganizationEmployeeSortKey;
   order: SortOrder;
   filters: ListFilters;
+  withPortal?: boolean;
 };
 
 async function listFromView(
   db: DataClient,
   inScope: <Query extends ScopableQuery<Query>>(query: Query) => Query,
-  { status, q, page, pageSize, sort, order, filters }: ListRequest
+  { status, q, page, pageSize, sort, order, filters, withPortal = false }: ListRequest
 ) {
   const current = <Query extends ScopableQuery<Query>>(query: Query) => {
     const scoped = inScope(query).is('archived_at', null);
@@ -397,7 +459,9 @@ async function listFromView(
       matchingFilters(current(db.from('employee_list').select(columns, options)), filters),
       q
     );
-  let listQuery = filtered(listViewColumns, { count: 'exact' });
+  let listQuery = filtered(withPortal ? `${listViewColumns}, ${portalColumns}` : listViewColumns, {
+    count: 'exact',
+  });
   for (const { column, nullsLast } of sortColumns[sort]) {
     listQuery = listQuery.order(column, {
       ascending: order === 'asc',
@@ -463,8 +527,63 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
     sort,
     order,
     filters,
+    withPortal: true,
   });
-  return c.json({ items: items.map(({ item }) => item), ...meta }, 200);
+  const listed: ClientEmployeeListItem[] = items.map(({ item, row }) => ({
+    ...item,
+    portal: toPortalAccess(row),
+  }));
+  return c.json({ items: listed, ...meta }, 200);
+};
+
+type InviteeViewRow = Pick<
+  EmployeeListView,
+  'id' | 'last_name' | 'first_name' | 'job_position_name' | 'email' | 'phone' | 'portal_state'
+>;
+
+export const listEmployeeInvitees: RouteHandler<typeof listEmployeeInviteesRoute, ApiEnv> = async (
+  c
+) => {
+  const { clientId } = c.req.valid('param');
+  const { q, ...filters } = c.req.valid('query');
+  const db = createDataClient(c);
+  await findClient(db, clientId);
+  const { data, error, count } = await matchingEveryTerm(
+    matchingFilters(
+      db
+        .from('employee_list')
+        .select('id, last_name, first_name, job_position_name, email, phone, portal_state', {
+          count: 'exact',
+        })
+        .eq('client_id', clientId)
+        .is('archived_at', null)
+        .eq('status', 'active'),
+      filters
+    ),
+    q
+  )
+    .order('last_name')
+    .order('first_name')
+    .order('id')
+    .limit(employeeInviteesLimit)
+    .returns<InviteeViewRow[]>();
+  if (error) throw fromDatabaseError(error, 'list employee invitees');
+  return c.json(
+    {
+      items: data.map((row) => ({
+        employeeId: row.id!,
+        lastName: row.last_name!,
+        firstName: row.first_name!,
+        position: row.job_position_name ?? '',
+        email: row.email,
+        phone: row.phone,
+        current: true,
+        portal: portalStandingOf((row.portal_state ?? 'none') as PortalAccessState),
+      })),
+      total: count ?? data.length,
+    },
+    200
+  );
 };
 
 export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = async (c) => {

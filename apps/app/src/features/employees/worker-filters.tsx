@@ -199,22 +199,16 @@ type Named = { id: string; name: string };
 const namedOptions = (items: readonly Named[]) =>
   items.map((item) => ({ value: item.id, label: item.name }));
 
-// The training and test states are those of current employees of active clients: a former
-// employee and an archived client's employees have none, so their facets would match nobody.
-export function clientWorkerFacets({
-  withStates,
+export function clientPlaceFacets({
   positions,
   workplaces,
   withWorkplaces,
 }: {
-  withStates: boolean;
   positions: readonly Named[] | undefined;
   workplaces: readonly Named[] | undefined;
   withWorkplaces: boolean;
-}): ListFilterFacet<WorkerFilterKey>[] {
+}): ListFilterFacet<'jobPosition' | 'workplace'>[] {
   return [
-    ...(withStates ? trainingFacets : []),
-    attentionFacet(withStates),
     {
       key: 'jobPosition',
       label: 'Post de lucru',
@@ -236,6 +230,24 @@ export function clientWorkerFacets({
           } as const,
         ]
       : []),
+  ];
+}
+
+// The training and test states are those of current employees of active clients: a former
+// employee and an archived client's employees have none, so their facets would match nobody.
+export function clientWorkerFacets({
+  withStates,
+  ...places
+}: {
+  withStates: boolean;
+  positions: readonly Named[] | undefined;
+  workplaces: readonly Named[] | undefined;
+  withWorkplaces: boolean;
+}): ListFilterFacet<WorkerFilterKey>[] {
+  return [
+    ...(withStates ? trainingFacets : []),
+    attentionFacet(withStates),
+    ...clientPlaceFacets(places),
   ];
 }
 

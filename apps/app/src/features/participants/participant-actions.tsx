@@ -279,7 +279,7 @@ function StatusRow({
   );
 }
 
-function ConfirmDialog({
+export function ConfirmDialog({
   open,
   busy,
   testId,

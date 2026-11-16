@@ -2,6 +2,7 @@ import { createRouter } from '../../router';
 import {
   createEmployee,
   getEmployee,
+  listEmployeeInvitees,
   listEmployees,
   listOrganizationEmployees,
   updateEmployee,
@@ -11,6 +12,7 @@ import {
 import {
   createEmployeeRoute,
   getEmployeeRoute,
+  listEmployeeInviteesRoute,
   listEmployeesRoute,
   listOrganizationEmployeesRoute,
   updateEmployeeJobPositionRoute,
@@ -20,6 +22,7 @@ import {
 
 export const employeesRouter = createRouter()
   .openapi(listEmployeesRoute, listEmployees)
+  .openapi(listEmployeeInviteesRoute, listEmployeeInvitees)
   .openapi(createEmployeeRoute, createEmployee)
   .openapi(getEmployeeRoute, getEmployee)
   .openapi(updateEmployeeRoute, updateEmployee)

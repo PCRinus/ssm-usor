@@ -57,22 +57,23 @@ test('a member invites an employee to the portal by email and revokes the invita
   await page.goto(`/clienti/${clientId}/angajati`);
   await page.getByTestId('client-section').filter({ hasText: 'Portal' }).click();
   await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/portal$`));
-  const employees = page.getByTestId('portal-employees-card');
-  const row = employees.getByTestId('portal-employee-row');
+  await expect(page.getByTestId('portal-getting-started')).toBeVisible();
+  await expect(page.getByTestId('client-signature-requests')).toBeHidden();
+  const roster = page.getByTestId('portal-roster');
+  const row = roster.getByTestId('portal-roster-row');
   await expect(row).toHaveCount(1);
   await expect(row).toContainText('Portalu Ion');
-  await expect(row.getByTestId('participant-invitation-text')).toContainText(
-    `Invitat pe ${email} prin email la`
+  await expect(row).toContainText(email);
+  await expect(row.getByTestId('portal-access-state')).toHaveText('Invitat');
+  await expect(roster.getByTestId('portal-roster-count')).toHaveText(
+    'Niciunul cu acces, din 1 lucrător'
   );
-  await expect(page.getByTestId('client-portal-missing')).toContainText(
-    'invitațiile trimise așteaptă primul cod'
-  );
-  await expect(page.getByTestId('client-administrator-empty')).toBeVisible();
-  await expect(page.getByTestId('client-signature-requests-empty')).toBeVisible();
 
-  await row.getByTestId('participant-invitation-revoke').click();
+  await row.getByTestId('portal-access-menu').click();
+  await page.getByTestId('portal-access-menu-revoke').click();
   await page.getByTestId('participant-invitation-revoke-dialog-confirm').click();
-  await expect(employees.getByTestId('portal-employees-empty')).toBeVisible();
+  await expect(row.getByTestId('portal-access-state')).toHaveText('Acces revocat');
+  await expect(row.getByTestId('portal-roster-invite')).toBeVisible();
 
   await page.goto(`/clienti/${clientId}/angajati/${employee.id}`);
   await expect(card.getByTestId('participant-none')).toBeVisible();

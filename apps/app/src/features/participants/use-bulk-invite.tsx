@@ -9,7 +9,7 @@ export function useBulkInvite(clientId: string) {
     bulkInviteDialog: importId ? (
       <BulkInviteDialog
         clientId={clientId}
-        importId={importId}
+        source={{ importId }}
         open
         onClose={() => setImportId(null)}
       />

@@ -7360,6 +7360,17 @@ export type Database = {
           last_name: string | null;
           organization_id: string | null;
           phone: string | null;
+          portal_address: string | null;
+          portal_administrator: boolean | null;
+          portal_channel: string | null;
+          portal_expires_at: string | null;
+          portal_invitation_id: string | null;
+          portal_language: string | null;
+          portal_participant_id: string | null;
+          portal_rank: number | null;
+          portal_revoked_at: string | null;
+          portal_since: string | null;
+          portal_state: string | null;
           search_name: string | null;
           signatures_pending_count: number | null;
           ssm_test_state: Database['public']['Enums']['test_state'] | null;

@@ -1518,6 +1518,64 @@ export type EmployeeListResponseItemsItemTests = {
   su: EmployeeListResponseItemsItemTestsSu;
 };
 
+export type EmployeeListResponseItemsItemPortalState =
+  (typeof EmployeeListResponseItemsItemPortalState)[keyof typeof EmployeeListResponseItemsItemPortalState];
+
+export const EmployeeListResponseItemsItemPortalState = {
+  active: 'active',
+  invited: 'invited',
+  expired: 'expired',
+  none: 'none',
+  revoked: 'revoked',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemPortalChannel =
+  | (typeof EmployeeListResponseItemsItemPortalChannel)[keyof typeof EmployeeListResponseItemsItemPortalChannel]
+  | null;
+
+export const EmployeeListResponseItemsItemPortalChannel = {
+  email: 'email',
+  sms: 'sms',
+} as const;
+
+/**
+ * @nullable
+ */
+export type EmployeeListResponseItemsItemPortalLanguage =
+  | (typeof EmployeeListResponseItemsItemPortalLanguage)[keyof typeof EmployeeListResponseItemsItemPortalLanguage]
+  | null;
+
+export const EmployeeListResponseItemsItemPortalLanguage = {
+  ro: 'ro',
+  en: 'en',
+} as const;
+
+export type EmployeeListResponseItemsItemPortal = {
+  state: EmployeeListResponseItemsItemPortalState;
+  /** @nullable */
+  since: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  revokedAt: string | null;
+  /** @nullable */
+  resendableAt: string | null;
+  /** @nullable */
+  channel: EmployeeListResponseItemsItemPortalChannel;
+  /** @nullable */
+  address: string | null;
+  /** @nullable */
+  language: EmployeeListResponseItemsItemPortalLanguage;
+  /** @nullable */
+  participantId: string | null;
+  /** @nullable */
+  invitationId: string | null;
+  administrator: boolean;
+};
+
 export type EmployeeListResponseItemsItem = {
   id: string;
   clientId: string;
@@ -1543,6 +1601,7 @@ export type EmployeeListResponseItemsItem = {
   tests: EmployeeListResponseItemsItemTests;
   /** @minimum 0 */
   signaturesPending: number;
+  portal: EmployeeListResponseItemsItemPortal;
 };
 
 export interface EmployeeListResponse {
@@ -1558,6 +1617,38 @@ export interface EmployeeListResponse {
   total: number;
   /** @minimum 0 */
   unfilteredTotal: number;
+}
+
+/**
+ * @nullable
+ */
+export type EmployeeInviteesResponseItemsItemPortal =
+  | (typeof EmployeeInviteesResponseItemsItemPortal)[keyof typeof EmployeeInviteesResponseItemsItemPortal]
+  | null;
+
+export const EmployeeInviteesResponseItemsItemPortal = {
+  participant: 'participant',
+  invited: 'invited',
+} as const;
+
+export type EmployeeInviteesResponseItemsItem = {
+  employeeId: string;
+  lastName: string;
+  firstName: string;
+  position: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  phone: string | null;
+  current: boolean;
+  /** @nullable */
+  portal: EmployeeInviteesResponseItemsItemPortal;
+};
+
+export interface EmployeeInviteesResponse {
+  items: EmployeeInviteesResponseItemsItem[];
+  /** @minimum 0 */
+  total: number;
 }
 
 export type EmployeeResponseEmployeeJobPosition = {
@@ -16237,6 +16328,11 @@ export type ListEmployeesParams = {
    * @maxItems 50
    */
   workplace?: string[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  portal?: ListEmployeesPortalItem[];
 };
 
 export type ListEmployeesSort = (typeof ListEmployeesSort)[keyof typeof ListEmployeesSort];
@@ -16249,6 +16345,7 @@ export const ListEmployeesSort = {
   terminatedAt: 'terminatedAt',
   ssmTraining: 'ssmTraining',
   suTraining: 'suTraining',
+  portal: 'portal',
 } as const;
 
 export type ListEmployeesOrder = (typeof ListEmployeesOrder)[keyof typeof ListEmployeesOrder];
@@ -16307,6 +16404,50 @@ export const ListEmployeesAttentionItem = {
   noEmail: 'noEmail',
   toTrain: 'toTrain',
   trainingDue: 'trainingDue',
+} as const;
+
+export type ListEmployeesPortalItem =
+  (typeof ListEmployeesPortalItem)[keyof typeof ListEmployeesPortalItem];
+
+export const ListEmployeesPortalItem = {
+  active: 'active',
+  invited: 'invited',
+  expired: 'expired',
+  none: 'none',
+  revoked: 'revoked',
+} as const;
+
+export type ListEmployeeInviteesParams = {
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  portal?: ListEmployeeInviteesPortalItem[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  jobPosition?: string[];
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  workplace?: string[];
+  /**
+   * @maxLength 100
+   */
+  q?: string;
+};
+
+export type ListEmployeeInviteesPortalItem =
+  (typeof ListEmployeeInviteesPortalItem)[keyof typeof ListEmployeeInviteesPortalItem];
+
+export const ListEmployeeInviteesPortalItem = {
+  active: 'active',
+  invited: 'invited',
+  expired: 'expired',
+  none: 'none',
+  revoked: 'revoked',
 } as const;
 
 export type ListOrganizationEmployeesParams = {
@@ -19896,6 +20037,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
       'attention',
       'jobPosition',
       'workplace',
+      'portal',
     ];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
@@ -19918,7 +20060,7 @@ export const getListEmployeesUrl = (clientId: string, params?: ListEmployeesPara
 };
 
 /**
- * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. The CNP is only returned by the detail route.
+ * Paginated. Without a status filter the list holds current employees. Archived rows are never listed. One sort key at a time; "name" orders by last name then first name, and a training by its state (overdue, untrained, due, current) then its due date, employees without a state last either way. `q` keeps the employees whose name or employee number contains every word of it, regardless of case and diacritics; never the CNP. Each filter takes repeated values, any of which matches, and every filter given must match: `ssmTraining` and `suTraining` the training state in that domain ("attention" untrained or overdue), `test` the test state in either domain ("passed" in both), `attention` the needs ("toTrain" untrained or overdue in either domain and "trainingDue" due in either, as the clients list counts them), `jobPosition` and `workplace` the client's own, `portal` the standing on the portal. The states are those of current employees of active clients, so an archived client refuses the state filters (`ssmTraining`, `suTraining`, `test`, the training needs of `attention`) and the training sorts with `400`. `unfilteredTotal` counts the status asked for without the search and the filters. Each employee carries their standing on the portal (ADR 022): the active participant, else the newest invitation neither accepted nor revoked ("invited", or "expired" past its 30 days), else the latest revoked one, else "none"; with the ids its actions need. "portal" sorts by it in that order, then by name, and is read for an archived client too, whose access can still be revoked. The CNP is only returned by the detail route.
  * @summary List a client's employees
  */
 export const listEmployees = async (
@@ -20148,6 +20290,176 @@ export const useCreateEmployee = <TError = ErrorType<ApiErrorResponse>, TContext
 > => {
   return useMutation(getCreateEmployeeMutationOptions(options), queryClient);
 };
+
+export const getListEmployeeInviteesUrl = (
+  clientId: string,
+  params?: ListEmployeeInviteesParams
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['portal', 'jobPosition', 'workplace'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/clients/${clientId}/employee-invitees?${stringifiedParams}`
+    : `/clients/${clientId}/employee-invitees`;
+};
+
+/**
+ * Without a page: a choice made from the Portal tab spans every page of it. The search and the filters read as on `listEmployees`. At most 1000 employees by name, with `total` counting them all. Each comes as an invitee of `inviteEmployeeParticipants`: `portal` is `participant` for active access, `invited` for an invitation still open, and null otherwise, an expired or revoked invitation included.
+ * @summary Every current employee the Portal tab's search and filters match, to invite them at once
+ */
+export const listEmployeeInvitees = async (
+  clientId: string,
+  params?: ListEmployeeInviteesParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<EmployeeInviteesResponse> => {
+  return apiFetch<EmployeeInviteesResponse>(getListEmployeeInviteesUrl(clientId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListEmployeeInviteesQueryKey = (
+  clientId: string,
+  params?: ListEmployeeInviteesParams
+) => {
+  return [`/clients/${clientId}/employee-invitees`, ...(params ? [params] : [])] as const;
+};
+
+export const getListEmployeeInviteesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEmployeeInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListEmployeeInviteesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeInvitees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListEmployeeInviteesQueryKey(clientId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmployeeInvitees>>> = ({ signal }) =>
+    listEmployeeInvitees(clientId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: clientId !== null && clientId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listEmployeeInvitees>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListEmployeeInviteesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEmployeeInvitees>>
+>;
+export type ListEmployeeInviteesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListEmployeeInvitees<
+  TData = Awaited<ReturnType<typeof listEmployeeInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params: undefined | ListEmployeeInviteesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeInvitees>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEmployeeInvitees>>,
+          TError,
+          Awaited<ReturnType<typeof listEmployeeInvitees>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEmployeeInvitees<
+  TData = Awaited<ReturnType<typeof listEmployeeInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListEmployeeInviteesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeInvitees>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEmployeeInvitees>>,
+          TError,
+          Awaited<ReturnType<typeof listEmployeeInvitees>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListEmployeeInvitees<
+  TData = Awaited<ReturnType<typeof listEmployeeInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListEmployeeInviteesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeInvitees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Every current employee the Portal tab's search and filters match, to invite them at once
+ */
+
+export function useListEmployeeInvitees<
+  TData = Awaited<ReturnType<typeof listEmployeeInvitees>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  clientId: string,
+  params?: ListEmployeeInviteesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listEmployeeInvitees>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListEmployeeInviteesQueryOptions(clientId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetEmployeeUrl = (clientId: string, employeeId: string) => {
   return `/clients/${clientId}/employees/${employeeId}`;

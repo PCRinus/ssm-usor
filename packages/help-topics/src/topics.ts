@@ -480,6 +480,26 @@ export const helpTopics = {
     path: '/organizatie/abonament/',
     anchor: 'treptele-de-lucrători-și-utilizatorii',
   },
+  'portal.administrator': {
+    path: '/clienti/angajati/portal-si-act-aditional/',
+    anchor: 'administratorul-clientului',
+  },
+  'portal.invitarea-mai-multor': {
+    path: '/clienti/angajati/portal-si-act-aditional/',
+    anchor: 'invitarea-mai-multor-lucrători',
+  },
+  'portal.lucratori': {
+    path: '/clienti/angajati/portal-si-act-aditional/',
+    anchor: 'lucrătorii-și-accesul-la-portal',
+  },
+  'portal.pornire': {
+    path: '/clienti/angajati/portal-si-act-aditional/',
+    anchor: 'pornirea-portalului',
+  },
+  'portal.semnaturi': {
+    path: '/clienti/angajati/portal-si-act-aditional/',
+    anchor: 'semnăturile-în-așteptare',
+  },
   'primii-pasi.deschide-ajutorul': {
     path: '/primii-pasi/',
     anchor: 'deschide-ajutorul-din-aplicație',
