@@ -198,6 +198,7 @@ tr[data-pointed] {
   [data-slot='client-sheet']
     :is([data-slot='card'], [data-sheet-panel]):not(
       [data-sheet-flush],
+      [data-sheet-flush] *,
       [data-slot='card'] *,
       [data-sheet-panel] *
     )

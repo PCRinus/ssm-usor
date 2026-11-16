@@ -21,9 +21,9 @@ const tabInactive =
   'mb-px h-10 bg-section-tab px-[15px] font-medium text-section-tab-foreground hover:bg-section-tab-hover hover:text-foreground';
 const tabActive =
   'h-[46px] bg-(--section-tab-surface) px-[18px] font-semibold text-foreground shadow-[0_-3px_8px_rgb(24_52_46/0.07)]';
-// The white shadow covers the strip's line under the tab; the clip keeps the lift off the sheet.
+// The clip keeps the lift off the neighbouring tabs.
 const folderTabActive =
-  'h-[46px] bg-card px-[15px] font-semibold text-foreground shadow-[0_3px_0_-1px_var(--color-card),0_-3px_8px_rgb(24_52_46/0.07)] [clip-path:inset(-12px_0_-2px_0)]';
+  'h-[46px] bg-card px-[15px] font-semibold text-foreground shadow-[0_-3px_8px_rgb(24_52_46/0.07)] [clip-path:inset(-12px_0_0_0)]';
 
 type SectionNavVariant = 'tabs' | 'folder';
 

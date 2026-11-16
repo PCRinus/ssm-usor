@@ -183,13 +183,8 @@ export function EmployeesPage() {
       {!readOnly && <EmployeesOverStepNotice />}
       <EmployeesImportedCard clientId={clientId} />
       {!readOnly && <OpenEmployeeImports clientId={clientId} />}
-      <div className={sheetFlushList}>
+      <div data-sheet-flush className={sheetFlushList}>
         <ListCardHeader>
-          {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
-            <div className="w-full md:order-last md:ml-auto md:w-auto">
-              <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
-            </div>
-          )}
           <FilterTabs label="Filtrează lucrătorii">
             {tabs.map((tab) => (
               <FilterTab
@@ -242,16 +237,23 @@ export function EmployeesPage() {
               />
             </div>
           )}
-          {employees.isSuccess && (
-            <ListCount testId="employees-count" className="md:ml-0">
-              <WorkersCount
-                total={meta.total}
-                unfilteredTotal={unfilteredTotal}
-                narrowed={narrowed}
-                short={phone}
-              />
-            </ListCount>
-          )}
+          <div className="max-md:contents md:ml-auto md:flex md:flex-wrap md:items-center md:justify-end md:gap-3">
+            {employees.isSuccess && (
+              <ListCount testId="employees-count">
+                <WorkersCount
+                  total={meta.total}
+                  unfilteredTotal={unfilteredTotal}
+                  narrowed={narrowed}
+                  short={phone}
+                />
+              </ListCount>
+            )}
+            {!readOnly && !(startsFromEmpty && isEmptyOrLoading(listStatus, unfilteredTotal)) && (
+              <div className="w-full max-md:order-first md:w-auto">
+                <EmployeeImportButtons clientId={clientId} onStart={setImporting} />
+              </div>
+            )}
+          </div>
         </ListCardHeader>
         <AppliedFilters
           facets={facets}

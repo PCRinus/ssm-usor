@@ -180,13 +180,8 @@ export function ClientTrainingsPage() {
   return (
     <div data-testid="client-trainings-page" className="space-y-5">
       <h2 className="sr-only">Instruiri ținute</h2>
-      <div className={sheetFlushList}>
+      <div data-sheet-flush className={sheetFlushList}>
         <ListCardHeader>
-          {!readOnly && trainings.isSuccess && !empty && (
-            <div className="grid w-full md:order-last md:ml-auto md:flex md:w-auto">
-              {recordButton}
-            </div>
-          )}
           <FilterTabs label="Filtrează după domeniu">
             {domainFilters.map((filter) => (
               <FilterTab
@@ -236,18 +231,23 @@ export function ClientTrainingsPage() {
               />
             </div>
           )}
-          {trainings.isSuccess && (
-            <ListCount testId="trainings-count" className="md:ml-0">
-              {narrowed ? (
-                <>
-                  <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
-                  {phone ? unfilteredTotal : trainingNoun(unfilteredTotal)}
-                </>
-              ) : (
-                trainingNoun(meta.total)
-              )}
-            </ListCount>
-          )}
+          <div className="max-md:contents md:ml-auto md:flex md:flex-wrap md:items-center md:justify-end md:gap-3">
+            {trainings.isSuccess && (
+              <ListCount testId="trainings-count">
+                {narrowed ? (
+                  <>
+                    <b className="font-semibold text-foreground">{meta.total}</b> din{' '}
+                    {phone ? unfilteredTotal : trainingNoun(unfilteredTotal)}
+                  </>
+                ) : (
+                  trainingNoun(meta.total)
+                )}
+              </ListCount>
+            )}
+            {!readOnly && trainings.isSuccess && !empty && (
+              <div className="grid w-full max-md:order-first md:flex md:w-auto">{recordButton}</div>
+            )}
+          </div>
         </ListCardHeader>
         <AppliedFilters
           facets={clientTrainingFacets}

@@ -47,7 +47,8 @@ export function SectionCard({
             follows its last word when the title wraps. */}
         <div
           className={cn(
-            'flex min-h-8 min-w-[min(100%,8rem)] items-center',
+            'flex min-h-8 items-center',
+            hideTitle ? 'min-w-[min(100%,24rem)]' : 'min-w-[min(100%,8rem)]',
             longTitle ? 'flex-auto' : 'flex-1'
           )}
         >
