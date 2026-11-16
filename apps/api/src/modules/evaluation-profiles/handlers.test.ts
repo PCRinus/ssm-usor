@@ -399,7 +399,7 @@ describe('GET /evaluation-profiles', () => {
   it.each([
     ['over', 'global_risk_level.gt.3.5'],
     ['within', 'global_risk_level.lte.3.5'],
-    ['none', 'global_risk_level.is.null'],
+    ['none', 'factor_count.eq.0'],
   ])('filters by the global level %s the acceptable limit', async (level, expected) => {
     mockUpstream({ list: (init) => (isGet(init) ? Response.json([]) : undefined) });
     expect((await request(`/evaluation-profiles?level=${level}`)).status).toBe(200);
@@ -422,7 +422,7 @@ describe('GET /evaluation-profiles', () => {
       total: 1,
       unfilteredTotal: 86,
     });
-    expect(listQuery().get('or')).toBe('(global_risk_level.gt.3.5,global_risk_level.is.null)');
+    expect(listQuery().get('or')).toBe('(global_risk_level.gt.3.5,factor_count.eq.0)');
     expect(listQuery().get('sheet_count')).toBe('eq.0');
     const tab = new URL(String(headCalls()[0]![0])).searchParams;
     expect(tab.get('archived_at')).toBe('is.null');

@@ -128,7 +128,7 @@ const sortColumns: Record<EvaluationProfileSortKey, { column: string; nullsLast?
 const levelFilters: Record<GlobalRiskLevelFilter, string> = {
   over: `global_risk_level.gt.${maxAcceptableGlobalRiskLevel}`,
   within: `global_risk_level.lte.${maxAcceptableGlobalRiskLevel}`,
-  none: 'global_risk_level.is.null',
+  none: 'factor_count.eq.0',
 };
 
 type ListQuery<Query> = {

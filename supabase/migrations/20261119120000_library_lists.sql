@@ -1,7 +1,6 @@
 -- Both library lists search, filter, count and sort in the database, by where each entry is used
 -- at the active clients: an archived client's copy no longer counts, so an entry only such a
--- client holds reads as unused. The columns the API already reads keep their meaning, but for the
--- risk library's client_count, which is the list's "Folosită la".
+-- client holds reads as unused.
 
 create or replace view public.instruction_module_list
 with (security_invoker = true)
