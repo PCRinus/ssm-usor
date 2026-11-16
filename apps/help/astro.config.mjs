@@ -111,6 +111,7 @@ export default defineConfig({
       components: {
         Head: './src/components/Head.astro',
         SiteTitle: './src/components/SiteTitle.astro',
+        Sidebar: './src/components/Sidebar.astro',
       },
       customCss: ['./src/styles/theme.css'],
       sidebar,
