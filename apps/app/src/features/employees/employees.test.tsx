@@ -575,7 +575,7 @@ describe('client employees list', () => {
     await screen.findByTestId('employees-empty');
     expect(screen.getByTestId('employees-count').textContent).toBe('0 lucrători');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('link', { name: /^Adaugă primul lucrător/ }));
+    await user.click(screen.getByRole('link', { name: /^Adaugă manual/ }));
     await screen.findByTestId('new-employee-page');
     expect(runtime.router.state.location.pathname).toBe(`${employeesPage}/nou`);
     // The form stands on its own: no client summary card or section tabs above it.
@@ -863,7 +863,7 @@ describe('a month over the step of employees', () => {
     expect(
       within(notice).getByRole('link', { name: 'Vezi abonamentul' }).getAttribute('href')
     ).toBe('/organizatie/abonament');
-    expect(screen.getByRole('link', { name: /Adaugă lucrător/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Adaugă manual/ })).toBeTruthy();
   });
 
   it('explains the block in visible text and stops adding, but not editing or leaving', async () => {

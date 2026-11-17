@@ -287,9 +287,9 @@ Documentația nu are lista lucrătorilor. Oamenii, cu CNP-ul, data angajării ș
 
 Importul lucrătorilor pornește doar din tabul **Lucrători** al unui client. Ai trei căi:
 
-- **Adaugă lucrător**: completezi tu datele unei persoane, fără import;
-- **Importă din fișele găsite în documentație**, cu numărul de fotografii: deschide încărcarea cu fotografiile de fișe găsite la importul documentației deja adăugate;
-- **Importă din fotografii noi**: încarci tu fotografiile. Când nu există fișe găsite în documentație, butonul se numește **Importă din fișele de instruire**.
+- **Adaugă manual**: completezi tu datele unei persoane, fără AI;
+- **Adaugă cu AI din fișele găsite**, cu numărul de fotografii: deschide încărcarea cu fotografiile de fișe găsite la importul documentației deja adăugate;
+- **Adaugă cu AI din fotografii noi**: încarci tu fotografiile. Când nu există fișe găsite în documentație, butonul se numește **Adaugă cu AI din fișe**.
 
 La un client fără lucrători, cele trei căi apar ca trei carduri în locul listei. La un client cu lucrători, sunt butoane deasupra listei.
 

@@ -568,10 +568,12 @@ describe('the steps', () => {
     const user = userEvent.setup();
 
     const card = step('employees');
-    const action = within(card).getByTestId('setup-step-action-0');
-    expect(action.textContent).toBe('Adaugă lucrător');
+    const withAi = within(card).getByTestId('setup-step-action-0');
+    expect(withAi.textContent).toBe('Adaugă cu AI');
+    expect(withAi.getAttribute('href')).toBe(`/clienti/${clientId}/angajati?import=true`);
+    const action = within(card).getByTestId('setup-step-action-1');
+    expect(action.textContent).toBe('Adaugă manual');
     expect(action.getAttribute('href')).toBe(`/clienti/${clientId}/angajati/nou`);
-    expect(within(card).queryByText('Importă din fișe')).toBeNull();
     expect(step('responsible-persons').getAttribute('href')).toBe(`/clienti/${clientId}/instruire`);
     expect(step('client').getAttribute('href')).toBe('/clienti?import=true');
 

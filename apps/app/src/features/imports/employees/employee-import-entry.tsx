@@ -3,16 +3,7 @@ import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useRouteContext } from '@tanstack/react-router';
-import {
-  Camera,
-  CircleAlert,
-  FileCheck2,
-  LoaderCircle,
-  PenLine,
-  Plus,
-  ScanText,
-  Send,
-} from 'lucide-react';
+import { CircleAlert, FileCheck2, LoaderCircle, PenLine, Send, Sparkles } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import {
@@ -61,44 +52,43 @@ export function EmployeeImportButtons({
   const blocked = useEmployeesBlocked();
   return (
     <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
-      {count > 0 ? (
-        <>
-          <Button
-            variant="outline"
-            className="max-sm:h-auto max-sm:min-h-9 max-sm:py-2 max-sm:whitespace-normal"
-            data-testid="employees-import-found"
-            onClick={() => onStart('found')}
-          >
-            <ScanText aria-hidden="true" />
-            Importă din fișele găsite în documentație ({photosLabel(count)})
-          </Button>
-          <Button variant="outline" data-testid="employees-import" onClick={() => onStart('new')}>
-            <Camera aria-hidden="true" />
-            Importă din fotografii noi
-          </Button>
-        </>
-      ) : (
-        <Button variant="outline" data-testid="employees-import" onClick={() => onStart('new')}>
-          <Camera aria-hidden="true" />
-          Importă din fișele de instruire
-        </Button>
-      )}
       {blocked ? (
-        <Button disabled data-testid="employees-add">
-          <Plus aria-hidden="true" />
-          Adaugă lucrător
+        <Button variant="outline" disabled data-testid="employees-add">
+          <PenLine aria-hidden="true" />
+          Adaugă manual
         </Button>
       ) : (
-        <Button asChild>
+        <Button variant="outline" asChild>
           <Link
             to="/clienti/$clientId/angajati/nou"
             params={{ clientId }}
             state={openedHere}
             data-testid="employees-add"
           >
-            <Plus aria-hidden="true" />
-            Adaugă lucrător
+            <PenLine aria-hidden="true" />
+            Adaugă manual
           </Link>
+        </Button>
+      )}
+      {count > 0 ? (
+        <>
+          <Button variant="outline" data-testid="employees-import" onClick={() => onStart('new')}>
+            <Sparkles aria-hidden="true" />
+            Adaugă cu AI din fotografii noi
+          </Button>
+          <Button
+            className="max-sm:h-auto max-sm:min-h-9 max-sm:py-2 max-sm:whitespace-normal"
+            data-testid="employees-import-found"
+            onClick={() => onStart('found')}
+          >
+            <Sparkles aria-hidden="true" />
+            Adaugă cu AI din fișele găsite ({photosLabel(count)})
+          </Button>
+        </>
+      ) : (
+        <Button data-testid="employees-import" onClick={() => onStart('new')}>
+          <Sparkles aria-hidden="true" />
+          Adaugă cu AI din fișe
         </Button>
       )}
     </div>
@@ -121,7 +111,7 @@ export function EmployeeStartWays({
       <WayBadge>
         <PenLine className="size-5" />
       </WayBadge>
-      <span className="text-[15px] font-semibold">Adaugă primul lucrător</span>
+      <span className="text-[15px] font-semibold">Adaugă manual</span>
       <span className="text-sm leading-snug text-muted-foreground">
         Completezi tu datele persoanei, pornind de la nume și post.
       </span>
@@ -129,6 +119,45 @@ export function EmployeeStartWays({
   );
   return (
     <div className="grid w-full max-w-[40rem] gap-3 text-left" data-testid="employees-start-ways">
+      {sheets.length > 0 && (
+        <button
+          type="button"
+          className={cn(wayClass, 'border-primary/40')}
+          data-testid="employees-start-found"
+          onClick={() => onStart('found')}
+        >
+          <WayBadge primary>
+            <Sparkles className="size-5" />
+          </WayBadge>
+          <span className="text-[15px] font-semibold">
+            Adaugă cu AI din fișele găsite în documentație
+          </span>
+          <span className="grid gap-2.5">
+            <span className="text-sm leading-snug text-muted-foreground">
+              Ai deja {photosLabel(sheets.length)} de fișe, din documentația importată pe{' '}
+              {foundOn(batches[0]!)}. Pornim de la ele; poți adăuga și altele.
+            </span>
+            <FoundStrip clientId={clientId} sheets={sheets} />
+          </span>
+        </button>
+      )}
+      <button
+        type="button"
+        className={cn(wayClass, sheets.length === 0 && 'border-primary/40')}
+        data-testid="employees-start-import"
+        onClick={() => onStart('new')}
+      >
+        <WayBadge primary={sheets.length === 0}>
+          <Sparkles className="size-5" />
+        </WayBadge>
+        <span className="text-[15px] font-semibold">
+          {sheets.length > 0 ? 'Adaugă cu AI din fotografii noi' : 'Adaugă primul lucrător cu AI'}
+        </span>
+        <span className="text-sm leading-snug text-muted-foreground">
+          Fotografiezi fișele individuale pe hârtie, iar AI-ul îți propune lucrătorii și instruirile
+          lor.
+        </span>
+      </button>
       {blocked ? (
         <div
           aria-disabled="true"
@@ -148,45 +177,6 @@ export function EmployeeStartWays({
           {addFirst}
         </Link>
       )}
-      {sheets.length > 0 && (
-        <button
-          type="button"
-          className={wayClass}
-          data-testid="employees-start-found"
-          onClick={() => onStart('found')}
-        >
-          <WayBadge>
-            <ScanText className="size-5" />
-          </WayBadge>
-          <span className="text-[15px] font-semibold">
-            Importă din fișele găsite în documentație
-          </span>
-          <span className="grid gap-2.5">
-            <span className="text-sm leading-snug text-muted-foreground">
-              Ai deja {photosLabel(sheets.length)} de fișe, din documentația importată pe{' '}
-              {foundOn(batches[0]!)}. Pornim de la ele; poți adăuga și altele.
-            </span>
-            <FoundStrip clientId={clientId} sheets={sheets} />
-          </span>
-        </button>
-      )}
-      <button
-        type="button"
-        className={wayClass}
-        data-testid="employees-start-import"
-        onClick={() => onStart('new')}
-      >
-        <WayBadge>
-          <Camera className="size-5" />
-        </WayBadge>
-        <span className="text-[15px] font-semibold">
-          {sheets.length > 0 ? 'Importă din fotografii noi' : 'Importă din fișele de instruire'}
-        </span>
-        <span className="text-sm leading-snug text-muted-foreground">
-          Fotografiezi fișele individuale pe hârtie, iar noi îți propunem lucrătorii și instruirile
-          lor.
-        </span>
-      </button>
     </div>
   );
 }

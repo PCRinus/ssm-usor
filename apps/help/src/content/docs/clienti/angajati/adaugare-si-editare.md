@@ -88,7 +88,7 @@ Formularul lucrătorului e același când adaugi pe cineva și când corectezi c
 
 ## Adăugarea unui lucrător
 
-Din tabul **Lucrători** al clientului alege **Adaugă lucrător** (la un client fără lucrători, **Adaugă primul lucrător**, în locul listei). Angajatorul e clientul din care ai pornit și nu se poate schimba; pentru alt angajator, revino la lista de clienți.
+Din tabul **Lucrători** al clientului alege **Adaugă manual** (la un client fără lucrători, cardul **Adaugă manual**, în locul listei). Angajatorul e clientul din care ai pornit și nu se poate schimba; pentru alt angajator, revino la lista de clienți.
 
 Obligatorii sunt:
 
@@ -275,7 +275,7 @@ Funcția din contract se schimbă odată cu postul doar dacă avea aceeași denu
 Când un câmp nu e bun, mesajul apare sub el și pagina te duce la primul câmp greșit. Celelalte mesaje apar sub formular:
 
 - „Clientul este arhivat; nu mai pot fi adăugați lucrători.”: clientul a fost arhivat între timp.
-- „Nu mai poți adăuga lucrători noi: de mai bine de o lună ai mai mulți lucrători activi decât treapta abonamentului.”: organizația a trecut de treapta abonamentului de mai bine de o lună. Adăugarea revine când treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți (vezi [Abonamentul](/organizatie/abonament/#cât-folosești)). Același lucru îl spune și caseta de deasupra listei, iar butonul **Adaugă lucrător** e inactiv până atunci.
+- „Nu mai poți adăuga lucrători noi: de mai bine de o lună ai mai mulți lucrători activi decât treapta abonamentului.”: organizația a trecut de treapta abonamentului de mai bine de o lună. Adăugarea revine când treci pe o treaptă mai mare sau arhivezi clienții cu care nu mai lucrezi, ori marchezi plecarea lucrătorilor care nu mai lucrează la clienți (vezi [Abonamentul](/organizatie/abonament/#cât-folosești)). Același lucru îl spune și caseta de deasupra listei, iar butonul **Adaugă manual** e inactiv până atunci.
 - „Datele intră în conflict cu alt lucrător al clientului.”: un alt lucrător are deja CNP-ul sau marca acestuia; verifică CNP-ul și marca.
 - „Lucrătorul nu mai există la acest client.” sau „Clientul nu mai există în organizația ta.”: reîncarcă lista.
 - „Nu am putut salva lucrătorul. Verifică conexiunea și încearcă din nou.”: salvarea nu a ajuns la aplicație; ce ai scris rămâne în formular, încearcă din nou.

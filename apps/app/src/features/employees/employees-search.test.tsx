@@ -139,7 +139,7 @@ describe("searching a client's employees", () => {
         'Niciun lucrător actual nu se potrivește căutării „zzz”. Caută după nume sau marcă.'
       )
     ).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Adaugă primul lucrător' })).toBeNull();
+    expect(screen.queryByTestId('employees-start-ways')).toBeNull();
     expect(screen.getByTestId('employees-count').textContent).toBe('0 din 1 lucrător');
     await user.click(screen.getByTestId('employees-empty-filtered-clear'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));

@@ -277,9 +277,11 @@ describe("the client's Lucrători tab", () => {
     mockEmployeeImport({ found: foundSheets, employees: [baker] });
     mount(`/clienti/${clientId}/angajati`);
     expect((await screen.findByTestId('employees-import-found')).textContent).toBe(
-      'Importă din fișele găsite în documentație (2 fotografii)'
+      'Adaugă cu AI din fișele găsite (2 fotografii)'
     );
-    expect(screen.getByTestId('employees-import').textContent).toBe('Importă din fotografii noi');
+    expect(screen.getByTestId('employees-import').textContent).toBe(
+      'Adaugă cu AI din fotografii noi'
+    );
   });
 
   it('offers the found sheets in the start ways of an empty list, without the header buttons', async () => {
@@ -290,8 +292,9 @@ describe("the client's Lucrători tab", () => {
       'Ai deja 2 fotografii de fișe, din documentația importată pe 27 oct.'
     );
     expect(within(ways).getByTestId('employees-start-import').textContent).toContain(
-      'Importă din fotografii noi'
+      'Adaugă cu AI din fotografii noi'
     );
+    expect(within(ways).getByTestId('employees-start-add').textContent).toContain('Adaugă manual');
     expect(screen.queryByTestId('employees-import-found')).toBeNull();
     expect(screen.queryByTestId('employees-import')).toBeNull();
     expect(screen.queryByTestId('employees-add')).toBeNull();
@@ -301,9 +304,19 @@ describe("the client's Lucrători tab", () => {
     mockEmployeeImport({ employees: [baker] });
     mount(`/clienti/${clientId}/angajati`);
     expect((await screen.findByTestId('employees-import')).textContent).toBe(
-      'Importă din fișele de instruire'
+      'Adaugă cu AI din fișe'
     );
     expect(screen.queryByTestId('employees-import-found')).toBeNull();
+    expect(screen.getByTestId('employees-add').textContent).toBe('Adaugă manual');
+  });
+
+  it('opens the import on a link from the setup guide and leaves the address when closed', async () => {
+    mockEmployeeImport({ employees: [baker] });
+    const runtime = mount(`/clienti/${clientId}/angajati?import=true`);
+    await screen.findByTestId('employee-upload-dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('employee-upload-dialog')).toBeNull());
+    expect(runtime.router.state.location.search).toEqual({});
   });
 
   it('shows the open import with its progress, its expiry and the way back to it', async () => {
