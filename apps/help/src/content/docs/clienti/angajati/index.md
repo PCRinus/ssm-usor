@@ -90,7 +90,7 @@ Poți ordona lista după nume, post, instruirea SSM, instruirea SU sau data anga
 
 Deasupra listei vezi câți lucrători are. Când cauți sau filtrezi, vezi câți se potrivesc din total, de exemplu „5 din 25 de lucrători”.
 
-Adaugi un lucrător cu **Adaugă manual** (la un client fără lucrători, cardul **Adaugă manual**, în locul listei). Ce cere formularul găsești în [Adăugarea și modificarea unui lucrător](/clienti/angajati/adaugare-si-editare/). Lucrătorii unui client pe care îl preiei îi poți aduce și din fotografiile fișelor lor de instruire: vezi [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).
+Adaugi un lucrător cu **Adaugă manual** (la un client fără lucrători, cardul **Adaugă manual**, în locul listei). Ce cere formularul găsești în [Adăugarea și modificarea unui lucrător](/clienti/angajati/adaugare-si-editare/). Lucrătorii unui client pe care îl preiei îi poți aduce și cu **Adaugă cu AI**, din fotografiile fișelor lor de instruire, pe care AI-ul le citește și îți propune lucrătorii: vezi [Importul lucrătorilor din fișe](/clienti/import/#importul-lucrătorilor-din-fișe).
 
 ### Actuali și foști
 
