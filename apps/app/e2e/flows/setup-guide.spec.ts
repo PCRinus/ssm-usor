@@ -37,6 +37,13 @@ test('a new organization’s owner follows the guide to the first client, closes
   await expect(step(page, 'workplaces-positions')).toHaveAttribute('data-state', 'locked');
 
   await step(page, 'client').getByTestId('setup-step-action-0').click();
+  await expect(page).toHaveURL(/\/clienti\?import=true$/);
+  await expect(page.getByTestId('import-upload-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('import-upload-dialog')).toBeHidden();
+  await expect(page).toHaveURL(/\/clienti$/);
+
+  await step(page, 'client').getByTestId('setup-step-action-1').click();
   await expect(page).toHaveURL(/\/clienti\/nou$/);
   await page.getByTestId('client-cui').fill('1590082');
   await page.getByTestId('client-legal-name').fill('Alfa Construct SRL');
