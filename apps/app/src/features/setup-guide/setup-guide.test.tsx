@@ -263,10 +263,12 @@ describe('the setup guide on a first load', () => {
     const card = step('client');
     expect(card.dataset.state).toBe('next');
     expect(card.textContent).toContain('Adaugă primul client');
-    const action = within(card).getByTestId('setup-step-action-0');
-    expect(action.textContent).toBe('Adaugă manual');
-    expect(action.getAttribute('href')).toBe('/clienti/nou');
-    expect(within(card).queryByText('Adaugă cu AI')).toBeNull();
+    const withAi = within(card).getByTestId('setup-step-action-0');
+    expect(withAi.textContent).toBe('Adaugă cu AI');
+    expect(withAi.getAttribute('href')).toBe('/clienti?import=true');
+    const manual = within(card).getByTestId('setup-step-action-1');
+    expect(manual.textContent).toBe('Adaugă manual');
+    expect(manual.getAttribute('href')).toBe('/clienti/nou');
     expect(within(card).getByTestId('setup-step-skip').textContent).toBe('Știu deja');
     expect(step('workplaces-positions').dataset.state).toBe('locked');
   });
@@ -280,7 +282,7 @@ describe('the setup guide on a first load', () => {
     expect(guide.dataset.view).toBe('collapsed');
     const next = screen.getByTestId('setup-guide-next');
     expect(next.textContent).toBe('Adaugă primul client');
-    expect(next.getAttribute('href')).toBe('/clienti/nou');
+    expect(next.getAttribute('href')).toBe('/clienti?import=true');
   });
 
   it('remembers that it opened, so the next load is collapsed', async () => {
@@ -571,7 +573,7 @@ describe('the steps', () => {
     expect(action.getAttribute('href')).toBe(`/clienti/${clientId}/angajati/nou`);
     expect(within(card).queryByText('Importă din fișe')).toBeNull();
     expect(step('responsible-persons').getAttribute('href')).toBe(`/clienti/${clientId}/instruire`);
-    expect(step('client').getAttribute('href')).toBe('/clienti/nou');
+    expect(step('client').getAttribute('href')).toBe('/clienti?import=true');
 
     await user.click(action);
     expect(captureEvent).toHaveBeenCalledWith('setup_step_clicked', {

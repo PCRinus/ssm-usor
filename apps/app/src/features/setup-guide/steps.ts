@@ -32,6 +32,7 @@ const to = {
   profile: (focus: ProfileFocus) => linkOptions({ to: '/profil', search: { focus } }),
   newClient: () => linkOptions({ to: '/clienti/nou' }),
   clients: () => linkOptions({ to: '/clienti' }),
+  clientImport: () => linkOptions({ to: '/clienti', search: { import: true } }),
   details: (clientId: string) =>
     linkOptions({ to: '/clienti/$clientId/detalii', params: { clientId } }),
   positions: (clientId: string) =>
@@ -139,8 +140,11 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
     label: 'Adaugă primul client',
     neutralLabel: 'Adaugă un client',
     sentence:
-      'Completezi datele firmei pornind de la CUI. De la Clienți poți și să încarci dosarul, iar AI-ul îți propune datele.',
-    actions: () => [{ label: 'Adaugă manual', kind: 'form', target: to.newClient() }],
+      'Încarci dosarul SSM și SU pe care îl ai, iar AI-ul îți propune datele, sau le completezi tu pornind de la CUI.',
+    actions: () => [
+      { label: 'Adaugă cu AI', kind: 'form', target: to.clientImport() },
+      { label: 'Adaugă manual', kind: 'form', target: to.newClient() },
+    ],
   },
   'workplaces-positions': {
     label: 'Adaugă punctele de lucru și posturile',

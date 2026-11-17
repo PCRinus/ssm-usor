@@ -148,6 +148,16 @@ describe('starting an import from the client list', () => {
     );
   });
 
+  it('opens on a link from the setup guide and leaves the address when closed', async () => {
+    mockImportApi();
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti?import=true');
+
+    await screen.findByTestId('import-upload-dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('import-upload-dialog')).toBeNull());
+    expect(runtime.router.state.location.search).toEqual({});
+  });
+
   it('shows what a zip holds and what is set aside, then hashes, registers, uploads and starts', async () => {
     mockImportApi();
     const runtime = mountApp(authFixture(makeSession()).client, '/clienti');

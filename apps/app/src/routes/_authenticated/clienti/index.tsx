@@ -75,6 +75,7 @@ const searchSchema = z.object({
   attention: filterSearchSchema(clientAttentionFilters),
   county: filterSearchSchema(countyCodes),
   contract: filterSearchSchema(clientContractFilters),
+  import: z.literal(true).optional().catch(undefined),
 });
 
 const filterKeys = [
@@ -249,6 +250,15 @@ function ClientsPage() {
     [isOwner]
   );
   const [importing, setImporting] = useState(false);
+  const closeImport = () => {
+    setImporting(false);
+    if (search.import)
+      void navigate({
+        replace: true,
+        resetScroll: false,
+        search: (prev) => ({ ...prev, import: undefined }),
+      });
+  };
   const changeFilters = (values: ListFilterValues<FilterKey>) =>
     void navigate({
       replace: true,
@@ -454,8 +464,8 @@ function ClientsPage() {
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <ClientDeleteDialog client={deleting} onClose={() => setDeleting(null)} />
       <ImportUploadDialog
-        open={importing}
-        onClose={() => setImporting(false)}
+        open={importing || search.import === true}
+        onClose={closeImport}
         onStarted={(importId) =>
           void navigate({
             to: '/clienti/import/$importId',
