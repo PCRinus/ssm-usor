@@ -829,7 +829,7 @@ describe('clients list', () => {
     expect(screen.queryByTestId('page-back')).toBeNull();
     expect(screen.getByTestId('clients-count').textContent).toBe('0 clienți');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('link', { name: /^Adaugă primul client/ }));
+    await user.click(screen.getByRole('link', { name: /^Adaugă manual/ }));
     await screen.findByTestId('new-client-page');
     await waitFor(() => expect(document.title).toBe('Client nou — Clienți — SSM Ușor'));
     expect(runtime.router.state.location.pathname).toBe('/clienti/nou');

@@ -22,9 +22,9 @@ import {
   Flame,
   GraduationCap,
   MapPin,
-  Plus,
-  ScanText,
+  PenLine,
   SearchX,
+  Sparkles,
   TriangleAlert,
   Users,
 } from 'lucide-react';
@@ -272,19 +272,15 @@ function ClientsPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
         {(archived || !isEmptyOrLoading(listStatus, unfilteredTotal)) && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              data-testid="clients-import"
-              onClick={() => setImporting(true)}
-            >
-              <ScanText aria-hidden="true" />
-              Importă din documente
-            </Button>
-            <Button asChild>
+            <Button variant="outline" asChild>
               <Link to="/clienti/nou" state={openedHere} data-testid="clients-add">
-                <Plus aria-hidden="true" />
-                Adaugă client
+                <PenLine aria-hidden="true" />
+                Adaugă manual
               </Link>
+            </Button>
+            <Button data-testid="clients-import" onClick={() => setImporting(true)}>
+              <Sparkles aria-hidden="true" />
+              Adaugă cu AI
             </Button>
           </div>
         )}

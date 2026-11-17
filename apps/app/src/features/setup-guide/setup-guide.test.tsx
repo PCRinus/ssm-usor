@@ -264,9 +264,9 @@ describe('the setup guide on a first load', () => {
     expect(card.dataset.state).toBe('next');
     expect(card.textContent).toContain('Adaugă primul client');
     const action = within(card).getByTestId('setup-step-action-0');
-    expect(action.textContent).toBe('Adaugă client');
+    expect(action.textContent).toBe('Adaugă manual');
     expect(action.getAttribute('href')).toBe('/clienti/nou');
-    expect(within(card).queryByText('Importă din documente')).toBeNull();
+    expect(within(card).queryByText('Adaugă cu AI')).toBeNull();
     expect(within(card).getByTestId('setup-step-skip').textContent).toBe('Știu deja');
     expect(step('workplaces-positions').dataset.state).toBe('locked');
   });

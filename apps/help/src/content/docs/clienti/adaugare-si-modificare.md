@@ -56,7 +56,7 @@ Formularul clientului cere doar CUI-ul și denumirea. Restul îl completezi cân
 
 ## Adăugarea unui client
 
-Din **Clienți**, alege **Adaugă client** (cât timp lista e goală, **Adaugă primul client**, în mijlocul ei). Orice membru al organizației poate adăuga un client. Obligatorii sunt:
+Din **Clienți**, alege **Adaugă manual** (cât timp lista e goală, **Adaugă manual**, în căsuța din mijlocul ei). Dacă ai deja dosarul SSM și SU al firmei, **Adaugă cu AI** citește documentele și îți propune datele, fără formular de completat; cum merge, vezi [Importul din documente și din fișe](/clienti/import/). Orice membru al organizației poate adăuga un client. Obligatorii sunt:
 
 - **CUI**;
 - **Denumire**.

@@ -138,8 +138,9 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
   client: {
     label: 'Adaugă primul client',
     neutralLabel: 'Adaugă un client',
-    sentence: 'Completezi datele firmei pornind de la CUI.',
-    actions: () => [{ label: 'Adaugă client', kind: 'form', target: to.newClient() }],
+    sentence:
+      'Completezi datele firmei pornind de la CUI. De la Clienți poți și să încarci dosarul, iar AI-ul îți propune datele.',
+    actions: () => [{ label: 'Adaugă manual', kind: 'form', target: to.newClient() }],
   },
   'workplaces-positions': {
     label: 'Adaugă punctele de lucru și posturile',

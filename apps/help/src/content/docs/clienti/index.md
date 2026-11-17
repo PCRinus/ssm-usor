@@ -43,7 +43,7 @@ sources:
   - packages/contracts/src/legal-forms.ts
 ---
 
-Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, lucrătorii, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client** sau, la primul client, cu **Adaugă primul client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
+Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, lucrătorii, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă cu AI**, când pornești din dosarul SSM și SU pe care îl ai deja și AI-ul citește documentele și îți propune datele, sau cu **Adaugă manual**, când completezi tu datele firmei, pornind de la CUI. La primul client, cele două apar ca două căsuțe în mijlocul listei; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
 
 ## Lista clienților
 

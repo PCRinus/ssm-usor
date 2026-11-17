@@ -139,9 +139,7 @@ describe('starting an import from the client list', () => {
     mountApp(authFixture(makeSession()).client, '/clienti');
 
     const ways = await screen.findByTestId('clients-start-ways');
-    expect(within(ways).getByTestId('clients-start-form').textContent).toContain(
-      'Adaugă primul client'
-    );
+    expect(within(ways).getByTestId('clients-start-form').textContent).toContain('Adaugă manual');
     await userEvent.click(within(ways).getByTestId('clients-start-import'));
     const dialog = await screen.findByTestId('import-upload-dialog');
     expect(within(dialog).getByRole('heading', { name: 'Client nou din documente' })).toBeTruthy();
