@@ -14,7 +14,16 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import { findQuote, foldName, foldText, sameAddress, similar, streetKey } from './match';
+import {
+  companyWords,
+  findQuote,
+  foldName,
+  foldText,
+  sameAddress,
+  sameSpelling,
+  similar,
+  streetKey,
+} from './match';
 import { withNameSpellings } from './name-spellings';
 import {
   type Field,
@@ -91,12 +100,16 @@ const holdsName =
     return nameWords(name).every((word) => words.has(word));
   };
 
+// The client's name is one option for every way its documents write the form (see reading).
+const holdsCompanyName =
+  (name: string): Holds =>
+  (quote) => {
+    const words = new Set([...nameWords(quote), ...companyWords(quote)]);
+    return companyWords(name).every((word) => words.has(word));
+  };
+
 const digitFacts = new Set(['client.cui', 'client.caenCode']);
-const nameFacts = new Set([
-  'client.legalName',
-  'client.legalRepresentativeName',
-  'client.contactName',
-]);
+const nameFacts = new Set(['client.legalRepresentativeName', 'client.contactName']);
 
 const holdsIntervalWord =
   (months: number): Holds =>
@@ -122,6 +135,7 @@ function factHolds(field: string, value: string | number): Holds | undefined {
         : holdsNumber(value);
   }
   if (digitFacts.has(field)) return holdsDigits(value);
+  if (field === 'client.legalName') return holdsCompanyName(value);
   if (nameFacts.has(field)) return holdsName(value);
   return undefined;
 }
@@ -602,10 +616,8 @@ export function checkRegistrations(proposal: Proposal, registrations: Registrati
     if (!registrations.has(option.value)) return [];
     const registered = registrations.get(option.value);
     if (!registered) return [{ path: `client.cui.options.${index}`, code: 'cui_not_registered' }];
-    const named = proposal.client.legalName.options.some(
-      (name) =>
-        foldName(name.value) === foldName(registered.legalName) ||
-        similar(name.value, registered.legalName) >= 0.8
+    const named = proposal.client.legalName.options.some((name) =>
+      sameSpelling(name.value, registered.legalName)
     );
     return named
       ? []

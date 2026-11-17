@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { proposalFixture } from '@/test/import-fixture';
 
 import {
+  anafMismatch,
   type Changes,
   type ExistingWorkplace,
   fieldState,
@@ -12,6 +13,7 @@ import {
   noChanges,
   officeActivityStates,
   type Proposal,
+  type RegisteredCompany,
   type ReviewScope,
 } from './review-model';
 
@@ -167,5 +169,80 @@ describe('a registered office with no activity', () => {
     expect([...inactiveOffices(office(), picked(null), into([own(true)]))]).toEqual([
       'workplace-1',
     ]);
+  });
+});
+
+describe('the company ANAF registers under the CUI', () => {
+  const anafName = 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC';
+  const registered = (legalName: string) => ({ cui: '31458207', legalName, inactive: false });
+  const named = (...legalNames: string[]) => {
+    const proposal = proposalFixture();
+    const [option] = proposal.client.legalName.options;
+    proposal.client.legalName.options = legalNames.map((value) => ({ ...option!, value }));
+    return proposal;
+  };
+  const legalName = (proposal: Proposal, anaf: RegisteredCompany, changes = noChanges) =>
+    fieldState(proposal, changes, 'client.legalName', undefined, anaf);
+
+  it('offers ANAF’s name, picked from the start, when the documents write only the form otherwise', () => {
+    const anaf = registered(anafName);
+    for (const name of [
+      'S.P.N. / STANCIUC',
+      'SPN STANCIUC',
+      'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+    ]) {
+      const proposal = named(name);
+      expect(anafMismatch(proposal, noChanges, anaf), name).toBe(anaf);
+      const state = legalName(proposal, anaf);
+      expect(state.value, name).toBe(anafName);
+      expect(state.anaf, name).toMatchObject({ documents: name, picked: null, sameFirm: true });
+    }
+  });
+
+  it('offers ANAF’s name against several spellings of its firm, then against the one picked', () => {
+    const anaf = registered(anafName);
+    const proposal = named('SPN STANCIUC', 'S.P.N. / STANCIUC');
+    const state = legalName(proposal, anaf);
+    expect(state).toMatchObject({ status: 'value', value: anafName });
+    expect(state.anaf).toMatchObject({ documentsOption: 0, picked: null });
+
+    const picked = legalName(proposal, anaf, {
+      fields: { 'client.legalName': { option: 1 } },
+      items: {},
+    });
+    expect(picked).toMatchObject({ value: 'S.P.N. / STANCIUC' });
+    expect(picked.anaf).toMatchObject({ documentsOption: 1, picked: 'documents' });
+  });
+
+  it('keeps the documents’ diacritics on the words ANAF writes too', () => {
+    const state = legalName(
+      named('Societate Profesională Notarială Stănciuc'),
+      registered(anafName)
+    );
+    expect(state.value).toBe('Societatea Profesională Notarială Stănciuc');
+  });
+
+  it('keeps the documents’ name when only the old S.C. prefix or the points differ', () => {
+    const anaf = registered('BRUTARIA SPICUL AURIU SRL');
+    const proposal = named('S.C. Brutăria Spicul Auriu S.R.L.');
+    expect(legalName(proposal, anaf)).toMatchObject({
+      value: 'S.C. Brutăria Spicul Auriu S.R.L.',
+      anaf: null,
+    });
+    expect(anafMismatch(proposal, noChanges, anaf)).toBeNull();
+  });
+
+  it('offers ANAF’s name for another firm, which is not the same firm', () => {
+    const anaf = registered('BIROU INDIVIDUAL NOTARIAL IONESCU ANA');
+    const proposal = named('S.P.N. / STANCIUC');
+    expect(anafMismatch(proposal, noChanges, anaf)).toBe(anaf);
+    expect(legalName(proposal, anaf).anaf).toMatchObject({ sameFirm: false });
+  });
+
+  it('warns of another firm only for another company the member writes', () => {
+    const anaf = registered(anafName);
+    const wrote = (value: string) => ({ fields: { 'client.legalName': { value } }, items: {} });
+    expect(anafMismatch(named('SPN STANCIUC'), wrote('SPN Stanciuc'), anaf)).toBeNull();
+    expect(anafMismatch(named('SPN STANCIUC'), wrote('Alfa SRL'), anaf)).toBe(anaf);
   });
 });

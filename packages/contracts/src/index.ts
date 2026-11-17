@@ -47,6 +47,7 @@ export * from './job-positions';
 export * from './legislation';
 export * from './list';
 export * from './mail';
+export * from './name-match';
 export * from './organization-employees';
 export * from './organizations';
 export * from './participant-channels';

@@ -42,6 +42,36 @@ describe('checkQuotes', () => {
     ]);
   });
 
+  it('takes every way a company’s documents write its form as quoting its one name', () => {
+    const answer = wireAnswer();
+    const spellings = [
+      'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+      'S.P.N. / STANCIUC',
+      'SPN STANCIUC',
+    ];
+    answer.facts = [
+      ...answer.facts.filter((fact) => fact.field !== 'client.legalName'),
+      ...spellings.map((written, index) => ({
+        field: 'client.legalName',
+        value: written,
+        file: `Dosar/${index}.docx`,
+        quote: written,
+        otherCompany: '',
+      })),
+    ];
+    const value = fromWire(answer);
+    const texts = Object.fromEntries(
+      spellings.map((written, index) => [`Dosar/${index}.docx`, `Beneficiar: ${written}`])
+    );
+
+    expect(value.client.legalName.options).toHaveLength(1);
+    expect(
+      codes(checkQuotes(value, { ...files, ...texts })).filter((flag) =>
+        flag.startsWith('client.legalName')
+      )
+    ).toEqual([]);
+  });
+
   it('flags an equipment entry whose quote does not name its item or its duration', () => {
     const value = proposal();
     const decision = 'Dosar/Decizia 1.docx';
@@ -435,6 +465,48 @@ describe('registrations', () => {
       { path: 'client.legalName', code: 'legal_name_differs', detail: 'PANIFICAȚIE EXEMPLU SRL' },
       { path: 'client.cui.options.1', code: 'cui_not_registered' },
     ]);
+  });
+
+  it('flags a name that differs from the registry’s only in how it writes the legal form', async () => {
+    const registered = 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC';
+    for (const written of [
+      'S.P.N. / STANCIUC',
+      'SPN STANCIUC',
+      'SOCIETATE PROFESIONALA NOTARIALA STANCIUC',
+    ]) {
+      const value = proposal();
+      value.client.legalName.options[0]!.value = written;
+      const registrations = await lookUpRegistrations(value, {
+        lookup: async (cui: string) => ({ cui, legalName: registered }),
+      });
+
+      expect(checkRegistrations(value, registrations), written).toEqual([
+        { path: 'client.legalName', code: 'legal_name_differs', detail: registered },
+      ]);
+    }
+  });
+
+  it('takes the registry’s name for one written with the old S.C. prefix', async () => {
+    const value = proposal();
+    value.client.legalName.options[0]!.value = 'S.C. Brutăria Fictivă S.R.L.';
+    const registrations = await lookUpRegistrations(value, {
+      lookup: async (cui: string) => ({ cui, legalName: 'BRUTARIA FICTIVA SRL' }),
+    });
+
+    expect(checkRegistrations(value, registrations)).toEqual([]);
+  });
+
+  it('takes the registry’s name as written, whatever its case, diacritics or points', async () => {
+    const value = proposal();
+    value.client.legalName.options[0]!.value = 'Societatea Profesională Notarială Stănciuc';
+    const registrations = await lookUpRegistrations(value, {
+      lookup: async (cui: string) => ({
+        cui,
+        legalName: 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC',
+      }),
+    });
+
+    expect(checkRegistrations(value, registrations)).toEqual([]);
   });
 
   it('leaves a CUI unconfirmed when the registry cannot answer', async () => {

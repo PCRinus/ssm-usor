@@ -1,6 +1,6 @@
 import { foldText, riskLevel } from '@ssm-usor/contracts';
 
-import { foldName } from './match';
+import { foldName, namesCompany } from './match';
 import {
   compareRiskSheets,
   type LibraryEvaluation,
@@ -136,7 +136,10 @@ export function workplaceOf(heading: string) {
 
 const namesClient = (name: string, client: string) => {
   const folded = foldName(client);
-  return folded.length >= 3 && ` ${foldName(name)} `.includes(` ${folded} `);
+  return (
+    (folded.length >= 3 && ` ${foldName(name)} `.includes(` ${folded} `)) ||
+    namesCompany(name, client)
+  );
 };
 
 interface Owners {

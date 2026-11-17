@@ -14,8 +14,12 @@ import {
   fireSmokingPolicyLabels,
   formatCui,
   maxEquipmentDurationMonths,
+  registeredNameAsWritten,
+  registeredNameOffered,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
+  sameCompany,
+  sameName,
 } from '@ssm-usor/contracts';
 
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
@@ -509,21 +513,15 @@ export type FieldState = {
   anaf: AnafName | null;
 };
 
-// `picked` is null while ANAF's name stands by default.
+// `picked` is null while ANAF's name stands by default. `sameFirm` when the documents write
+// ANAF's firm, only its legal form otherwise.
 export type AnafName = {
   name: string;
   documents: string | number;
   documentsOption: number;
   picked: 'anaf' | 'documents' | null;
+  sameFirm: boolean;
 };
-
-const legalNameDiffers = (proposal: Proposal, registered: RegisteredCompany) =>
-  proposal.flags.some(
-    (flag) =>
-      flag.path === 'client.legalName' &&
-      flag.code === 'legal_name_differs' &&
-      flag.detail === registered.legalName
-  );
 
 /** ANAF's name offered against the documents' one, as the API's payload takes it by default. */
 function anafName(
@@ -531,21 +529,26 @@ function anafName(
   changes: Changes,
   registered: RegisteredCompany | null | undefined
 ): AnafName | null {
-  if (!registered || !legalNameDiffers(proposal, registered)) return null;
+  if (!registered) return null;
   const { options } = proposedField(proposal, 'client.legalName');
   const own = options.flatMap((option, index) => (option.otherCompanyName === null ? [index] : []));
-  if (own.length !== 1) return null;
+  const written = own.map((index) => String(options[index]!.value));
+  if (!registeredNameOffered(written, registered.legalName)) return null;
   const cui = fieldState(proposal, changes, 'client.cui').value;
   if (cui === null || bareCui(cui) !== registered.cui) return null;
   const change = changes.fields['client.legalName'];
-  const documentsOption = own[0]!;
+  const documentsOption =
+    change?.option !== undefined && own.includes(change.option) ? change.option : own[0]!;
+  const documents = options[documentsOption]!.value;
   const offer = {
-    name: registered.legalName,
-    documents: options[documentsOption]!.value,
+    name: registeredNameAsWritten(registered.legalName, String(documents)),
+    documents,
     documentsOption,
+    sameFirm: sameCompany(String(documents), registered.legalName),
   };
   if (change?.value !== undefined) {
-    return change.value === registered.legalName ? { ...offer, picked: 'anaf' } : null;
+    const anaf = change.value === offer.name || change.value === registered.legalName;
+    return anaf ? { ...offer, picked: 'anaf' } : null;
   }
   if (change?.option !== undefined) {
     return change.option === documentsOption ? { ...offer, picked: 'documents' } : null;
@@ -606,6 +609,7 @@ export function fieldState(
       ? anafName(proposal, changes, registered)
       : null;
   if (anaf && anaf.picked !== 'documents') {
+    status = 'value';
     value = anaf.name;
     option = null;
     edited = false;
@@ -784,26 +788,6 @@ export type ReviewScope = {
   existingWorkplaces: ExistingWorkplace[];
 };
 
-const legalFormWords =
-  /\b(s\.?\s?c\.?|s\.?\s?r\.?\s?l\.?|s\.?a\.?|p\.?\s?f\.?\s?a\.?|i\.\s?i\.?|i\.\s?f\.?|d-na|dl\.?|d-l)(?=\s|$|[^\p{L}])/gu;
-
-const workplaceNameTokens = (name: string) =>
-  foldText(withoutMarks(name).toLowerCase().replace(legalFormWords, ' '))
-    .split(' ')
-    .filter(Boolean);
-
-// As the API's import matches a proposed workplace to one the client has, by name.
-function sameWorkplaceName(a: string, b: string) {
-  const x = workplaceNameTokens(a);
-  const y = workplaceNameTokens(b);
-  if (x.join(' ') === y.join(' ')) return true;
-  const xs = new Set(x);
-  const ys = new Set(y);
-  if (xs.size === 0 || ys.size === 0) return false;
-  const shared = [...xs].filter((token) => ys.has(token)).length;
-  return shared / Math.max(xs.size, ys.size) >= 0.8;
-}
-
 /** The client's own workplace confirming writes a proposed one into, as the API's payload picks it. */
 export function linkedWorkplace(
   state: Pick<ItemState, 'item' | 'values'>,
@@ -821,7 +805,7 @@ export function linkedWorkplace(
   return (
     scope.existingWorkplaces.find(
       (workplace) =>
-        sameWorkplaceName(workplace.name, String(state.values.name ?? '')) ||
+        sameName(workplace.name, String(state.values.name ?? '')) ||
         (address !== null &&
           workplace.addressLine !== null &&
           foldText(workplace.addressLine) === address)
@@ -1356,20 +1340,6 @@ const advisoryFlags = new Set([
 
 export type RegisteredCompany = { cui: string; legalName: string; inactive: boolean };
 
-const legalForms = /\b(s ?c|s ?r ?l|s ?a|s ?n ?c|s ?c ?s|pfa|i ?i|i ?f)\b/g;
-
-const companyWords = (name: string) =>
-  new Set(foldText(name).replace(legalForms, ' ').split(' ').filter(Boolean));
-
-// As the API's check compares them: the legal form aside, most words shared.
-export function sameCompanyName(a: string, b: string) {
-  const x = companyWords(a);
-  const y = companyWords(b);
-  if (x.size === 0 || y.size === 0) return false;
-  const shared = [...x].filter((word) => y.has(word)).length;
-  return shared / Math.max(x.size, y.size) >= 0.8;
-}
-
 const bareCui = (value: unknown) =>
   String(value ?? '')
     .replace(/^RO/i, '')
@@ -1390,7 +1360,8 @@ export function anafMismatch(
   const state = fieldState(proposal, changes, 'client.legalName', undefined, registered);
   if (state.anaf) return state.anaf.picked === null ? registered : null;
   const name = state.value;
-  if (name === null || sameCompanyName(String(name), registered.legalName)) return null;
+  // Here only another firm's name is worth the warning; ANAF's spelling is offered above.
+  if (name === null || sameCompany(String(name), registered.legalName)) return null;
   return registered;
 }
 

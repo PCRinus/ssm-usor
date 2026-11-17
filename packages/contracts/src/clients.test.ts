@@ -27,6 +27,20 @@ describe('clientSearchTerms', () => {
     ['Popescu Ana I.I.', ['popescu', 'ana']],
     ['S.C. Ion Pop P.F.A.', ['ion', 'pop']],
     ['Cluj-Napoca', ['cluj', 'napoca']],
+    ['S.P.N. / Stanciuc', ['stanciuc']],
+    ['Societatea Profesională Notarială Stanciuc', ['stanciuc']],
+    ['Casapu Mircea Persoană Fizică Autorizată', ['casapu', 'mircea']],
+    ['CMI Dr Popescu', ['dr', 'popescu']],
+    ['Ionescu S.P.A.R.L.', ['ionescu']],
+    ['Alfa SRL-D', ['alfa']],
+    ['Alfa S.R.L.D.', ['alfa']],
+    ['Alfa SRLD', ['alfa']],
+    ['BNP Paribas', ['bnp', 'paribas']],
+    ['Birou Notarial Popescu', ['birou', 'notarial', 'popescu']],
+    ['Hala II', ['hala']],
+    ['Cabinet medical Dentis', ['cabinet', 'medical', 'dentis']],
+    ['Dentis SCM Prod', ['dentis', 'scm', 'prod']],
+    ['RO 1590082 SRL', ['1590082']],
   ])('reads %j as %j', (q, terms) => {
     expect(clientSearchTerms(q)).toEqual(terms);
   });

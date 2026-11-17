@@ -3,6 +3,7 @@ import {
   fireSmokingPolicies,
   fireSmokingPolicyLabels,
   normalizeCui,
+  sameSpelling,
   type StaffCategory,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -64,7 +65,6 @@ import {
   personalPaths,
   type Proposal,
   type RegisteredCompany,
-  sameCompanyName,
   sameValue,
   type SectionId,
   smokingPlaceAsked,
@@ -816,12 +816,18 @@ function AnafRow({
       label={<span id={`${name}-label`}>{state.label}</span>}
       actions={rowActions(state, context, onEdit, documentsSources)}
     >
-      <KindLine
-        icon={<TriangleAlert aria-hidden="true" />}
-        tone={anaf.picked === null ? 'warning' : undefined}
-      >
-        Documentele dau altă denumire decât ANAF pentru CUI-ul {cui}
-      </KindLine>
+      {anaf.sameFirm ? (
+        <KindLine icon={<GitCompare aria-hidden="true" />}>
+          Documentele scriu altfel decât ANAF forma juridică a firmei
+        </KindLine>
+      ) : (
+        <KindLine
+          icon={<TriangleAlert aria-hidden="true" />}
+          tone={anaf.picked === null ? 'warning' : undefined}
+        >
+          Documentele dau altă denumire decât ANAF pentru CUI-ul {cui}
+        </KindLine>
+      )}
       <PickList labelledBy={`${name}-label`}>
         <PickOption
           name={name}
@@ -842,12 +848,18 @@ function AnafRow({
           {String(anaf.documents)}
         </PickOption>
       </PickList>
-      {anaf.picked === null && (
-        <RowNote>
-          Am ales denumirea de la ANAF: e cea mai nouă și cea valabilă legal. Dacă ai dreptate cu
-          documentele, verifică întâi CUI-ul.
-        </RowNote>
-      )}
+      {anaf.picked === null &&
+        (anaf.sameFirm ? (
+          <RowNote>
+            Am ales denumirea de la ANAF, scrisă cum e înregistrată firma. E aceeași firmă, doar
+            forma juridică e scrisă altfel în documente.
+          </RowNote>
+        ) : (
+          <RowNote>
+            Am ales denumirea de la ANAF: e cea mai nouă și cea valabilă legal. Dacă ai dreptate cu
+            documentele, verifică întâi CUI-ul.
+          </RowNote>
+        ))}
     </DecisionRow>
   );
 }
@@ -965,7 +977,7 @@ function ValueRow({
     state.path === 'client.legalName' &&
     registered &&
     state.value !== null &&
-    sameCompanyName(registered.legalName, String(state.value));
+    sameSpelling(registered.legalName, String(state.value));
   const spelling = fieldSpelling(state, change);
   const inferred =
     state.edited || state.status !== 'value' || state.option === null

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput, normalizeCui } from './cui';
+import { searchWithoutLegalForms } from './legal-forms';
 import {
   listQuerySchema,
   listSearchSchema,
@@ -252,57 +253,19 @@ export const listClientsQuerySchema = listQuerySchema(clientListSortKeys, 'legal
   .extend(clientListFiltersSchema.shape)
   .extend(leadListFiltersSchema.shape);
 
-const legalForms = new Set(['sc', 'srl', 'sa', 'pfa', 'ii', 'if', 'snc', 'sca', 'scs']);
-
-const isLetter = (term: string | undefined) => term?.length === 1;
-
 /**
  * The terms the clients search matches against name, CUI and locality. A legal form at either
- * end, dotted or not ("S.C.", "S.R.L.", "SA"), says nothing about which client is meant, nor
- * does the RO before a CUI; inside a name the same letters may be a word, as in "Casa IF Design".
- * A search that is a valid CUI alone, typed in groups ("RO 15 900 82", "15.900.82"), is one term;
- * other digits stay apart, as in "24.7 Fitness".
+ * end, dotted or not ("S.C.", "S.R.L.", "SA") or spelled out, says nothing about which client is
+ * meant, nor does the RO before a CUI. A search that is a valid CUI alone, typed in groups
+ * ("RO 15 900 82", "15.900.82"), is one term; other digits stay apart, as in "24.7 Fitness".
  */
 export function clientSearchTerms(q: string | undefined) {
   const typed = (q ?? '').trim();
   const asCui = isValidCuiInput(typed) ? normalizeCui(typed)?.cui : undefined;
-  const terms = searchTerms(asCui ?? typed).flatMap((term, index, all) => {
+  const kept = searchWithoutLegalForms(asCui ?? typed).flatMap((term, index, all) => {
     if (term === 'ro' && /^\d/.test(all[index + 1] ?? '')) return [];
     return [/^ro\d+$/.test(term) ? term.slice(2) : term];
   });
-  let first = 0;
-  let last = terms.length;
-  for (let stripped = true; stripped && first < last;) {
-    stripped = false;
-    // "S.C." is the form that opens a name, so dotted letters there are read as it alone.
-    if (
-      isLetter(terms[first]) &&
-      isLetter(terms[first + 1]) &&
-      terms[first] === 's' &&
-      terms[first + 1] === 'c'
-    ) {
-      first += 2;
-      stripped = true;
-    } else if (!isLetter(terms[first]) && legalForms.has(terms[first]!)) {
-      first += 1;
-      stripped = true;
-    }
-    if (first >= last) break;
-    if (!isLetter(terms[last - 1]) && legalForms.has(terms[last - 1]!)) {
-      last -= 1;
-      stripped = true;
-      continue;
-    }
-    for (const length of [3, 2]) {
-      const tail = terms.slice(Math.max(first, last - length), last);
-      if (tail.length === length && tail.every(isLetter) && legalForms.has(tail.join(''))) {
-        last -= length;
-        stripped = true;
-        break;
-      }
-    }
-  }
-  const kept = terms.slice(first, last);
   return kept.length > 0 ? kept : searchTerms(typed);
 }
 

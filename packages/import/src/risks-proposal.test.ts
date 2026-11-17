@@ -188,6 +188,26 @@ describe('proposeRisks', () => {
     expect(sheet).toMatchObject({ libraryName: 'Brutărie', workName: null, workplace: 'Brutărie' });
   });
 
+  it('passes over a name that writes the client’s form otherwise', () => {
+    const [sheet] = propose({
+      read: { ...read, sheets: [{ ...read.sheets[0]!, workName: 'S.P.N. Stanciuc' }] },
+      client: { name: 'SOCIETATEA PROFESIONALA NOTARIALA STANCIUC' },
+    }).sheets;
+
+    expect(sheet).toMatchObject({ workName: null });
+  });
+
+  it('keeps a name that only shares a surname with the office that is the client', () => {
+    for (const client of ['S.P.N. / STANCIUC', 'CMI Dr. Popescu']) {
+      const [sheet] = propose({
+        read: { ...read, sheets: [{ ...read.sheets[0]!, workName: 'Stanciuc' }] },
+        client: { name: client },
+      }).sheets;
+
+      expect(sheet, client).toMatchObject({ workName: 'Stanciuc' });
+    }
+  });
+
   it('passes over a workplace that names one of the client’s people', () => {
     const [sheet] = propose({
       read: {

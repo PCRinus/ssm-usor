@@ -40,6 +40,7 @@ sources:
   - apps/app/src/features/clients/offers-plan-notice.tsx
   - apps/app/src/features/clients/leads-page.tsx
   - apps/app/src/features/clients/lead-columns.tsx
+  - packages/contracts/src/legal-forms.ts
 ---
 
 Un client e o firmă pentru care lucrezi. Pe pagina lui ții tot ce îi privește: datele firmei, lucrătorii, posturile, mijloacele de apărare împotriva incendiilor, instruirile și documentele SSM și SU. Adaugi un client din **Clienți**, cu **Adaugă client** sau, la primul client, cu **Adaugă primul client**; ce cere formularul găsești în [Adăugarea și modificarea unui client](/clienti/adaugare-si-modificare/).
@@ -74,7 +75,7 @@ Ordonată după **Instruire**, lista arată întâi clienții cu lucrători de i
 
 ### Căutarea și filtrele
 
-Câmpul de căutare găsește clienții după denumire, CUI sau localitate. Nu contează diacriticele și nici forma juridică: „SC Alfa SRL” găsește „ALFA S.R.L.”. CUI-ul îl poți scrie cu sau fără RO și cu spații sau puncte între cifre.
+Câmpul de căutare găsește clienții după denumire, CUI sau localitate. Nu contează diacriticele și nici forma juridică de la începutul sau de la sfârșitul denumirii, prescurtată sau scrisă în întregime: „SC Alfa SRL” găsește „ALFA S.R.L.”, iar „Societatea Profesională Notarială Popescu” găsește „S.P.N. POPESCU”. CUI-ul îl poți scrie cu sau fără RO și cu spații sau puncte între cifre.
 
 Butonul **Filtre** deschide filtrele listei. Le poți combina; un client apare dacă se potrivește cu cel puțin o valoare aleasă din fiecare filtru:
 

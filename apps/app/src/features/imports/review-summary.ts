@@ -160,7 +160,9 @@ export function sectionDescription(
       const anaf = !registered
         ? 'Denumire, CUI, adresă, reprezentant legal și persoană de contact.'
         : states['client.legalName']?.anaf?.picked === null
-          ? 'Documentele dau altă denumire decât ANAF. Am ales-o pe cea de la ANAF.'
+          ? states['client.legalName'].anaf.sameFirm
+            ? 'Documentele scriu altfel forma juridică. Am ales denumirea de la ANAF.'
+            : 'Documentele dau altă denumire decât ANAF. Am ales-o pe cea de la ANAF.'
           : anafMismatch(proposal, changes, registered)
             ? 'La ANAF, CUI-ul aparține altei firme.'
             : registered.inactive
