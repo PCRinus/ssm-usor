@@ -35,6 +35,7 @@ import { collator } from '../../lib/romanian';
 import { mergeBuiltIn } from '../../lib/templates';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
 import { awaitedParty, awaits } from './agreement-state';
+import { printedSlot, printedTestSheetName } from './printed-signers';
 import {
   nameIn,
   recordSlots,
@@ -411,21 +412,6 @@ type PortalRecordRow = {
   };
 };
 
-function printedSigner(slot: SignatureRequestSlot, record: PortalRecordRow) {
-  switch (slot) {
-    case 'trainee':
-      return `${record.employees.last_name} ${record.employees.first_name}`;
-    case 'trainer':
-      return record.trainings.trainer_name;
-    case 'verifier':
-      return record.trainings.verifier_name ?? '';
-    case 'admitter':
-      return record.admitted_by_name ?? '';
-    case 'examiner':
-      return '';
-  }
-}
-
 type PortalRequestRow = {
   id: string;
   slot: SignatureRequestSlot;
@@ -455,7 +441,7 @@ function toPortalRequest(
     }),
     slot: request.slot,
     issuedAt: toIso(request.issued_at),
-    signerName: printedSigner(request.slot, record),
+    signerName: request.slot === 'examiner' ? '' : printedSlot(request.slot, record).name,
     employee,
     record: {
       id: record.id,
@@ -523,10 +509,7 @@ function toPortalSheetRequest(
     }),
     slot: request.slot,
     issuedAt: toIso(request.issued_at),
-    signerName:
-      request.slot === 'trainee'
-        ? `${sheet.employees.last_name} ${sheet.employees.first_name}`
-        : (examiner?.name ?? ''),
+    signerName: printedTestSheetName(request.slot === 'trainee' ? 'trainee' : 'examiner', sheet),
     employee,
     record: null,
     testSheet: {
