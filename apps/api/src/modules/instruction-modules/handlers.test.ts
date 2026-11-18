@@ -10,30 +10,20 @@ import {
   textHash,
 } from '@ssm-usor/contracts';
 import { documentText } from '@ssm-usor/document-engine';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest, testAccessToken } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'specialist' };
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const welderId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
@@ -128,8 +118,6 @@ type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined
 
 const isGet = (init: RequestInit | undefined) => (init?.method ?? 'GET') === 'GET';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(
   handlers: {
     modules?: Handler;
@@ -140,55 +128,50 @@ function mockUpstream(
     create?: Handler;
   } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname === '/rest/v1/organizations') return Response.json(organization);
-    if (url.pathname === '/rest/v1/rpc/create_instruction_module') {
-      return handlers.create?.(init, url) ?? Response.json(weldingId);
-    }
-    if (url.pathname === '/rest/v1/instruction_modules') {
-      const custom = handlers.modules?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'POST') return Response.json({ id: weldingId }, { status: 201 });
-      if (init?.method === 'PATCH') return Response.json([{ id: laddersId }]);
-      const wanted = url.searchParams.get('id')!.slice(4, -1).split(',');
+  const custom = (handler: Handler | undefined, { method, url }: UpstreamCall) =>
+    handler?.({ method }, url);
+  mockSignedInUpstream({
+    '/rest/v1/organizations': () => Response.json(organization),
+    '/rest/v1/rpc/create_instruction_module': (call) =>
+      custom(handlers.create, call) ?? Response.json(weldingId),
+    '/rest/v1/instruction_modules': (call) => {
+      const answer = custom(handlers.modules, call);
+      if (answer) return answer;
+      if (call.method === 'POST') return Response.json({ id: weldingId }, { status: 201 });
+      if (call.method === 'PATCH') return Response.json([{ id: laddersId }]);
+      const wanted = call.url.searchParams.get('id')!.slice(4, -1).split(',');
       return Response.json(library.filter((module) => wanted.includes(module.id)));
-    }
-    if (url.pathname === '/rest/v1/instruction_module_list') {
-      const custom = handlers.list?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'HEAD') {
+    },
+    '/rest/v1/instruction_module_list': (call) => {
+      const answer = custom(handlers.list, call);
+      if (answer) return answer;
+      if (call.method === 'HEAD') {
         return new Response(null, { headers: { 'Content-Range': '*/64' } });
       }
-      if (url.searchParams.get('id')) return Response.json([listRow(ladders, 2)]);
+      if (call.url.searchParams.get('id')) return Response.json([listRow(ladders, 2)]);
       return Response.json([listRow(offices), listRow(ladders, 2)], {
         headers: { 'Content-Range': '0-1/2' },
       });
-    }
-    if (url.pathname === '/rest/v1/instruction_module_versions') {
-      const custom = handlers.versions?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'POST') return new Response(null, { status: 201 });
-      if (url.searchParams.get('select')?.includes('body')) {
+    },
+    '/rest/v1/instruction_module_versions': (call) => {
+      const answer = custom(handlers.versions, call);
+      if (answer) return answer;
+      if (call.method === 'POST') return new Response(null, { status: 201 });
+      if (call.url.searchParams.get('select')?.includes('body')) {
         return Response.json([{ ...version, body: laddersBody }]);
       }
       return Response.json([{ number: 2, text_hash: laddersHash }]);
-    }
-    if (url.pathname === '/rest/v1/job_position_instructions') {
-      const custom = handlers.applied?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'POST') return new Response(null, { status: 201 });
-      if (init?.method === 'DELETE') return new Response(null, { status: 204 });
+    },
+    '/rest/v1/job_position_instructions': (call) => {
+      const answer = custom(handlers.applied, call);
+      if (answer) return answer;
+      if (call.method === 'POST') return new Response(null, { status: 201 });
+      if (call.method === 'DELETE') return new Response(null, { status: 204 });
       return Response.json([applied(ladders)]);
-    }
-    if (url.pathname === '/rest/v1/job_positions') {
-      const custom = handlers.positions?.(init, url);
-      if (custom) return custom;
-      return Response.json([{ id: welderId, needs_protective_equipment: true }]);
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
+    },
+    '/rest/v1/job_positions': (call) =>
+      custom(handlers.positions, call) ??
+      Response.json([{ id: welderId, needs_protective_equipment: true }]),
   });
 }
 
@@ -202,18 +185,7 @@ const sent = (pathname: string, method: string, index = 0) =>
   JSON.parse(String(calls(pathname, method)[index]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -224,14 +196,7 @@ const officeBody: InstructionBody = {
   ],
 };
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  fetchMock.mockReset();
-});
+stubFetch();
 
 const listQuery = (index = 0) =>
   new URL(String(calls('/rest/v1/instruction_module_list', 'GET')[index]![0])).searchParams;
@@ -391,7 +356,7 @@ describe('GET /instruction-modules', () => {
     ];
     expect(sent).toHaveLength(2);
     for (const [, init] of sent) {
-      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     }
   });
 
