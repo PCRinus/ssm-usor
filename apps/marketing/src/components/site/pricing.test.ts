@@ -1,6 +1,7 @@
 import {
   billingPlans,
   creditsExtra,
+  paidPlans,
   selfServeLimits,
   smsOverage,
   trialDays as appTrialDays,
@@ -132,6 +133,10 @@ describe('the steps', () => {
 // ADR 029 keeps two copies: the page computes its prices from a formula, the app lists each
 // step for Stripe. A change to one alone would promise one price and charge another.
 describe('the app catalogue', () => {
+  it('has the same plans', () => {
+    expect(steppedPlans.map((plan) => plan.id)).toEqual(paidPlans);
+  });
+
   it.each(steppedPlans.map((plan) => [plan.id, plan] as const))(
     '%s has the steps, users and allowances the app sells',
     (id, plan) => {
