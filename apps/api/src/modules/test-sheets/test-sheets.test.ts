@@ -6,13 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminClient } from '../../lib/admin-db';
 import {
   callsTo,
-  clientId,
-  env,
   fetchMock,
-  mockUpstream,
-  organizationId,
+  stubFetch,
+  testOrganizationId as organizationId,
   type UpstreamRoute,
-} from '../signing/upstream.fixture';
+} from '../../test/upstream';
+import { clientId, env, mockUpstream } from '../signing/upstream.fixture';
 import {
   applyTestSheetSignature,
   ensureTestSheet,
@@ -114,9 +113,9 @@ async function sha256(text: string) {
   return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
   for (const mock of [...Object.values(files), convertForm, ...Object.values(signer)]) {
     mock.mockReset();
@@ -130,7 +129,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 

@@ -8,16 +8,6 @@ import {
   type UpstreamRoutes,
 } from '../../test/upstream';
 
-export {
-  callsTo,
-  databaseError,
-  fetchMock,
-  testOrganizationId as organizationId,
-  type UpstreamCall,
-  type UpstreamRoute,
-  testUser as user,
-} from '../../test/upstream';
-
 export const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
 export const sendSignatureRequestEmail = vi.fn<MailService['sendSignatureRequest']>();
