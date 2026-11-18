@@ -47,8 +47,23 @@ describe('formatTrainingDuration', () => {
 });
 
 describe('updateClientDocumentDetailsRequestSchema', () => {
-  it('accepts an empty body, which clears everything', () => {
-    expect(updateClientDocumentDetailsRequestSchema.parse({})).toEqual({});
+  it('takes a single field, and refuses a body with none', () => {
+    expect(
+      updateClientDocumentDetailsRequestSchema.parse({ legalRepresentativeRole: null })
+    ).toEqual({ legalRepresentativeRole: null });
+    expect(updateClientDocumentDetailsRequestSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('takes the two days together, and an interval with its not-applicable choice', () => {
+    const parse = (body: object) => updateClientDocumentDetailsRequestSchema.safeParse(body);
+    expect(parse({ trainingDayFrom: 2, trainingDayTo: null }).success).toBe(true);
+    expect(parse({ trainingDayTo: 7 }).error?.issues[0]?.path).toEqual(['trainingDayTo']);
+    expect(parse({ workerTrainingIntervalMonths: 3 }).error?.issues[0]?.path).toEqual([
+      'workerTrainingNotApplicable',
+    ]);
+    expect(parse({ administrativeTrainingNotApplicable: true }).error?.issues[0]?.path).toEqual([
+      'administrativeTrainingNotApplicable',
+    ]);
   });
 
   it('refuses days out of order, on the last day', () => {
@@ -71,16 +86,27 @@ describe('updateClientDocumentDetailsRequestSchema', () => {
   });
 
   it('stops the worker interval at six months and the administrative one at twelve', () => {
-    const parse = (body: object) => updateClientDocumentDetailsRequestSchema.safeParse(body);
-    expect(parse({ workerTrainingIntervalMonths: 6 }).success).toBe(true);
-    expect(parse({ workerTrainingIntervalMonths: 7 }).success).toBe(false);
-    expect(parse({ administrativeTrainingIntervalMonths: 12 }).success).toBe(true);
-    expect(parse({ administrativeTrainingIntervalMonths: 13 }).success).toBe(false);
+    const worker = (months: number) =>
+      updateClientDocumentDetailsRequestSchema.safeParse({
+        workerTrainingIntervalMonths: months,
+        workerTrainingNotApplicable: false,
+      }).success;
+    const administrative = (months: number) =>
+      updateClientDocumentDetailsRequestSchema.safeParse({
+        administrativeTrainingIntervalMonths: months,
+        administrativeTrainingNotApplicable: false,
+      }).success;
+    expect(worker(6)).toBe(true);
+    expect(worker(7)).toBe(false);
+    expect(administrative(12)).toBe(true);
+    expect(administrative(13)).toBe(false);
   });
 
   it('keeps an excluded category separate from an interval', () => {
     const parse = (body: object) => updateClientDocumentDetailsRequestSchema.safeParse(body);
-    expect(parse({ workerTrainingNotApplicable: true }).success).toBe(true);
+    expect(
+      parse({ workerTrainingNotApplicable: true, workerTrainingIntervalMonths: null }).success
+    ).toBe(true);
     expect(
       parse({ workerTrainingNotApplicable: true, workerTrainingIntervalMonths: 3 }).success
     ).toBe(false);

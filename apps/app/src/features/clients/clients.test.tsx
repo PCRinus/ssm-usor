@@ -185,7 +185,7 @@ function mockApi(
       return routes.employees?.(init, url) ?? Response.json(page([]));
     }
     if (url.pathname === `/clients/${sampleClient.id}/document-details`) {
-      return method === 'PUT'
+      return method === 'PATCH'
         ? (routes.saveDetails?.(init, url) ??
             Response.json({ documentDetails: JSON.parse(String(init?.body)) }))
         : (routes.details?.(init, url) ?? Response.json({ documentDetails: emptyDetails }));
@@ -1452,10 +1452,11 @@ describe('client details', () => {
     await user.click(screen.getByTestId('legal-representative-save'));
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests(`${clientPath}/document-details`, 'PUT')[0]![1]?.body))
-    ).toMatchObject({
+      JSON.parse(String(requests(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
+    ).toEqual({
       legalRepresentativeName: 'Maria Popescu',
       legalRepresentativeRole: 'Director general',
+      legalRepresentativeEmployeeId: null,
     });
     await waitFor(() => expect(screen.queryByTestId('legal-representative-form')).toBeNull());
   });
@@ -1509,7 +1510,7 @@ describe('client details', () => {
     await user.click(screen.getByTestId('legal-representative-save'));
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests(`${clientPath}/document-details`, 'PUT')[0]![1]?.body))
+      JSON.parse(String(requests(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
     ).toMatchObject({
       legalRepresentativeName: 'Maria Popescu',
       legalRepresentativeEmployeeId: owner.id,
@@ -1538,7 +1539,7 @@ describe('client details', () => {
     expect((await screen.findByTestId('details-representative-employee-error')).textContent).toBe(
       'Alege lucrătorul din listă sau debifează căsuța.'
     );
-    expect(requests(`${clientPath}/document-details`, 'PUT')).toHaveLength(0);
+    expect(requests(`${clientPath}/document-details`, 'PATCH')).toHaveLength(0);
   });
 
   it('clears the link when the box is unticked', async () => {
@@ -1567,7 +1568,7 @@ describe('client details', () => {
     await user.click(screen.getByTestId('legal-representative-save'));
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests(`${clientPath}/document-details`, 'PUT')[0]![1]?.body))
+      JSON.parse(String(requests(`${clientPath}/document-details`, 'PATCH')[0]![1]?.body))
     ).toMatchObject({ legalRepresentativeEmployeeId: null });
   });
 
@@ -1957,17 +1958,24 @@ describe('client archiving', () => {
     });
 
     it('keeps the dialog open with the reason when the API refuses', async () => {
+      let refuse: (response: Response) => void = () => undefined;
       mockApi({
         me: meAs('owner'),
         get: archivedResponse(true),
         delete: () =>
-          Response.json({ error: 'forbidden', message: 'Only an admin' }, { status: 403 }),
+          new Promise<Response>((resolve) => {
+            refuse = resolve;
+          }),
       });
       mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
       const user = userEvent.setup();
       await user.click(await screen.findByTestId('client-delete'));
       await user.type(await screen.findByTestId('client-delete-name'), 'OMV PETROM SA');
       await user.click(screen.getByTestId('client-delete-confirm'));
+      await waitFor(() => expect(requests(clientPath, 'DELETE')).toHaveLength(1));
+      await user.keyboard('{Escape}');
+      expect(screen.getByTestId('client-delete-dialog')).toBeTruthy();
+      refuse(Response.json({ error: 'forbidden', message: 'Only an admin' }, { status: 403 }));
       expect((await screen.findByTestId('client-delete-error')).textContent).toContain(
         'administrator al platformei'
       );

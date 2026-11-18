@@ -1,14 +1,6 @@
 import { gravityConsequence, probabilityFrequency } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -22,6 +14,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal, Plus, TriangleAlert } 
 import { type KeyboardEvent, type ReactNode, useId, useState } from 'react';
 
 import { replayShow } from '@/app/observability/replay-masking';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -175,35 +168,21 @@ export function RiskFactorsCard({
         clientId={clientId}
         onClose={() => setEditing(null)}
       />
-      <Dialog
-        open={removing !== null}
-        onOpenChange={(open) => !open && !pending && setRemoving(null)}
-      >
-        {removing && (
-          <DialogContent data-testid="risk-factor-remove-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Ștergi factorul de risc?</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{removing.description}</span> și
-                măsurile lui {removalConsequence}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={pending} onClick={() => setRemoving(null)}>
-                Renunță
-              </Button>
-              <Button
-                variant="destructive"
-                data-testid="risk-factor-remove-confirm"
-                disabled={pending}
-                onClick={() => void removeFactor(removing)}
-              >
-                {pending ? 'Se șterge…' : 'Șterge'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {removing && (
+        <ConfirmDialog
+          open
+          busy={pending}
+          testId="risk-factor-remove"
+          title="Ștergi factorul de risc?"
+          confirmLabel="Șterge"
+          pendingLabel="Se șterge…"
+          onConfirm={() => void removeFactor(removing)}
+          onClose={() => setRemoving(null)}
+        >
+          <span className="font-medium text-foreground">{removing.description}</span> și măsurile
+          lui {removalConsequence}
+        </ConfirmDialog>
+      )}
     </SectionCard>
   );
 }

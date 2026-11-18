@@ -5,6 +5,7 @@ import { isValidCuiInput } from './cui';
 import { portalAccessStateSchema } from './employees';
 import { fireExtinguisherNormSchema, workplaceKindSchema } from './fire-safety';
 import { isValidIban } from './iban';
+import { sentTogether, somethingSent } from './partial-update';
 
 // Every field is optional while it is being filled in; generating a document is what
 // requires them.
@@ -185,7 +186,7 @@ export const clientDocumentDetailsResponseSchema = z.object({
 
 export type ClientDocumentDetailsResponse = z.infer<typeof clientDocumentDetailsResponseSchema>;
 
-// Replaces all of them: a field left out or null is cleared.
+// A field left out stays as saved, and null clears it (ADR 044).
 export const updateClientDocumentDetailsRequestSchema = z
   .object({
     legalRepresentativeName: optionalText(2, 160),
@@ -200,6 +201,22 @@ export const updateClientDocumentDetailsRequestSchema = z
     trainingFirstMonth: trainingScheduleFields.trainingFirstMonth.nullish(),
     trainingDayFrom: trainingScheduleFields.trainingDayFrom.nullish(),
     trainingDayTo: trainingScheduleFields.trainingDayTo.nullish(),
+  })
+  .refine(somethingSent, { message: 'Send at least one field.' })
+  .refine(sentTogether('trainingDayFrom', 'trainingDayTo'), {
+    path: ['trainingDayTo'],
+    message: 'The first and the last day are sent together.',
+  })
+  .refine(
+    sentTogether('administrativeTrainingIntervalMonths', 'administrativeTrainingNotApplicable'),
+    {
+      path: ['administrativeTrainingNotApplicable'],
+      message: "A category's interval and its not-applicable choice are sent together.",
+    }
+  )
+  .refine(sentTogether('workerTrainingIntervalMonths', 'workerTrainingNotApplicable'), {
+    path: ['workerTrainingNotApplicable'],
+    message: "A category's interval and its not-applicable choice are sent together.",
   })
   .refine(
     (value) =>

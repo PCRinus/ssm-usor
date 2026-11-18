@@ -1,12 +1,4 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { getRouteApi, useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -23,6 +15,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { keepOpener, openedHere } from '@/app/opener';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { ListCardHeader, ListCount } from '@/components/list-card-header';
@@ -303,37 +296,24 @@ export function JobPositionsCard({
         </>
       )}
       <JobPositionDialog clientId={clientId} editing={editing} onClose={() => setEditing(null)} />
-      <Dialog
-        open={removing !== null}
-        onOpenChange={(open) => !open && !remove.isPending && setRemoving(null)}
-      >
-        {removing && (
-          <DialogContent data-testid="job-position-remove-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Ștergi postul de lucru?</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{removing.name}</span>
-                {removing.employeeCount > 0
-                  ? ` este ocupat acum: ${employeeCountLabel(removing.employeeCount).toLowerCase()}. Un post se poate șterge doar după ce oamenii de pe el trec pe alt post sau pleacă.`
-                  : ' nu va mai apărea în listă și nu va mai putea fi ales pentru un lucrător. Dacă l-au ocupat oameni care au plecat, istoricul lor îl păstrează.'}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={remove.isPending} onClick={() => setRemoving(null)}>
-                Renunță
-              </Button>
-              <Button
-                variant="destructive"
-                data-testid="job-position-remove-confirm"
-                disabled={remove.isPending || removing.employeeCount > 0}
-                onClick={() => void removePosition(removing)}
-              >
-                {remove.isPending ? 'Se șterge…' : 'Șterge'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {removing && (
+        <ConfirmDialog
+          open
+          busy={remove.isPending}
+          confirmDisabled={removing.employeeCount > 0}
+          testId="job-position-remove"
+          title="Ștergi postul de lucru?"
+          confirmLabel="Șterge"
+          pendingLabel="Se șterge…"
+          onConfirm={() => void removePosition(removing)}
+          onClose={() => setRemoving(null)}
+        >
+          <span className="font-medium text-foreground">{removing.name}</span>
+          {removing.employeeCount > 0
+            ? ` este ocupat acum: ${employeeCountLabel(removing.employeeCount).toLowerCase()}. Un post se poate șterge doar după ce oamenii de pe el trec pe alt post sau pleacă.`
+            : ' nu va mai apărea în listă și nu va mai putea fi ales pentru un lucrător. Dacă l-au ocupat oameni care au plecat, istoricul lor îl păstrează.'}
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

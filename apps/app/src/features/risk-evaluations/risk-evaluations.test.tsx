@@ -937,6 +937,29 @@ describe("a position's risk evaluation page", () => {
     expect((await screen.findByTestId('position-risk-state')).textContent).toBe('Neevaluat');
   });
 
+  it('forgets a failed deletion once the dialog is closed', async () => {
+    mockApi();
+    const own = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      init?.method === 'DELETE' &&
+      new URL(String(input)).pathname === `${evaluationsPath}/${welderEvaluation.id}`
+        ? Response.json({ error: 'internal', message: 'down' }, { status: 500 })
+        : own(input, init)
+    );
+    mount(welderEvaluationPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-evaluation-remove'));
+    await user.click(await screen.findByTestId('risk-evaluation-remove-confirm'));
+    expect(await screen.findByTestId('risk-evaluation-remove-error')).toBeTruthy();
+    await user.click(
+      within(screen.getByTestId('risk-evaluation-remove-dialog')).getByText('Renunță')
+    );
+    await waitFor(() => expect(screen.queryByTestId('risk-evaluation-remove-dialog')).toBeNull());
+    await user.click(screen.getByTestId('risk-evaluation-remove'));
+    await screen.findByTestId('risk-evaluation-remove-dialog');
+    expect(screen.queryByTestId('risk-evaluation-remove-error')).toBeNull();
+  });
+
   it('is read-only for an archived client', async () => {
     mockEvaluationsApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     mount(welderEvaluationPage);

@@ -27,6 +27,7 @@ import {
 } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { sentColumns } from '../../lib/partial-update';
 import type {
   archiveResponsiblePersonRoute,
   archiveWorkplaceRoute,
@@ -281,22 +282,24 @@ export const updateClientDocumentDetails: RouteHandler<
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await refuseEmployeeOfAnotherClient(db, clientId, body.legalRepresentativeEmployeeId);
-  await refuseIntervalOutsideList(db, clientId, body);
+  refuseIntervalOutsideList(body);
   const { data, error } = await db
     .from('clients')
-    .update({
-      legal_representative_name: body.legalRepresentativeName ?? null,
-      legal_representative_role: body.legalRepresentativeRole ?? null,
-      legal_representative_employee_id: body.legalRepresentativeEmployeeId ?? null,
-      periodic_training_minutes: body.periodicTrainingMinutes ?? null,
-      administrative_training_interval_months: body.administrativeTrainingIntervalMonths ?? null,
-      administrative_training_not_applicable: body.administrativeTrainingNotApplicable ?? false,
-      worker_training_interval_months: body.workerTrainingIntervalMonths ?? null,
-      worker_training_not_applicable: body.workerTrainingNotApplicable ?? false,
-      training_first_month: body.trainingFirstMonth ?? null,
-      training_day_from: body.trainingDayFrom ?? null,
-      training_day_to: body.trainingDayTo ?? null,
-    })
+    .update(
+      sentColumns({
+        legal_representative_name: body.legalRepresentativeName,
+        legal_representative_role: body.legalRepresentativeRole,
+        legal_representative_employee_id: body.legalRepresentativeEmployeeId,
+        periodic_training_minutes: body.periodicTrainingMinutes,
+        administrative_training_interval_months: body.administrativeTrainingIntervalMonths,
+        administrative_training_not_applicable: body.administrativeTrainingNotApplicable,
+        worker_training_interval_months: body.workerTrainingIntervalMonths,
+        worker_training_not_applicable: body.workerTrainingNotApplicable,
+        training_first_month: body.trainingFirstMonth,
+        training_day_from: body.trainingDayFrom,
+        training_day_to: body.trainingDayTo,
+      })
+    )
     .eq('id', clientId)
     .select(documentDetailsColumns)
     .maybeSingle();
@@ -307,42 +310,24 @@ export const updateClientDocumentDetails: RouteHandler<
 };
 
 const intervalFields = {
-  execution: ['workerTrainingIntervalMonths', 'worker_training_interval_months'],
-  technical_administrative: [
-    'administrativeTrainingIntervalMonths',
-    'administrative_training_interval_months',
-  ],
-} as const satisfies Record<StaffCategory, readonly [string, string]>;
+  execution: 'workerTrainingIntervalMonths',
+  technical_administrative: 'administrativeTrainingIntervalMonths',
+} as const satisfies Record<StaffCategory, keyof UpdateClientDocumentDetailsRequest>;
 
-// The database takes any month up to a category's longest, and every card of the client's details
-// sends the schedule back, so an interval saved outside the list goes through as long as it is
-// unchanged.
-async function refuseIntervalOutsideList(
-  db: DataClient,
-  clientId: string,
-  body: UpdateClientDocumentDetailsRequest
-) {
+// The database takes any month up to a category's longest, so the list is checked here.
+function refuseIntervalOutsideList(body: UpdateClientDocumentDetailsRequest) {
   const outside = (
     Object.entries(intervalFields) as [StaffCategory, (typeof intervalFields)[StaffCategory]][]
-  ).filter(([category, [field]]) => {
+  ).filter(([category, field]) => {
     const months = body[field];
     return months != null && !offeredTrainingInterval('ssm', category, months);
   });
   if (outside.length === 0) return;
-  const { data, error } = await db
-    .from('clients')
-    .select('administrative_training_interval_months, worker_training_interval_months')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'client document details');
-  if (!data) throw noSuchClient();
-  const changed = outside.filter(([, [field, column]]) => data[column] !== body[field]);
-  if (changed.length === 0) return;
   const message = 'Pick a training interval from the list.';
   throw new ApiError(
     'validation_error',
     message,
-    changed.map(([, [field]]) => ({ path: field, message }))
+    outside.map(([, field]) => ({ path: field, message }))
   );
 }
 

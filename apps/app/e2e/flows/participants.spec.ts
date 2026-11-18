@@ -71,7 +71,7 @@ test('a member invites an employee to the portal by email and revokes the invita
 
   await row.getByTestId('portal-access-menu').click();
   await page.getByTestId('portal-access-menu-revoke').click();
-  await page.getByTestId('participant-invitation-revoke-dialog-confirm').click();
+  await page.getByTestId('participant-invitation-revoke-confirm').click();
   await expect(row.getByTestId('portal-access-state')).toHaveText('Acces revocat');
   await expect(row.getByTestId('portal-roster-invite')).toBeVisible();
 

@@ -22,6 +22,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { sentColumns } from '../../lib/partial-update';
 import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../document-data/handlers';
 import type {
   createFireEquipmentRoute,
@@ -127,21 +128,25 @@ const noFireSafety: ClientFireSafety = {
   hasThirdParties: false,
 };
 
-const fireSafetyFields = (body: UpdateClientFireSafetyRequest) => ({
-  periodic_training_hours: body.periodicTrainingHours ?? null,
-  administrative_training_interval_months: body.administrativeTrainingIntervalMonths ?? null,
-  worker_training_interval_months: body.workerTrainingIntervalMonths ?? null,
-  training_first_month: body.trainingFirstMonth ?? null,
-  training_day_from: body.trainingDayFrom ?? null,
-  training_day_to: body.trainingDayTo ?? null,
-  smoking_policy: body.smokingPolicy ?? null,
-  // Dropped rather than refused, so switching to another policy saves without emptying the field first (ADR 019).
-  smoking_place: body.smokingPolicy === 'designated_places' ? (body.smokingPlace ?? null) : null,
-  waste_kinds: body.wasteKinds,
-  waste_contractor: body.wasteContractor ?? null,
-  waste_collectors: body.wasteCollectors ?? null,
-  has_third_parties: body.hasThirdParties,
-});
+const fireSafetyFields = (body: UpdateClientFireSafetyRequest) =>
+  sentColumns({
+    periodic_training_hours: body.periodicTrainingHours,
+    administrative_training_interval_months: body.administrativeTrainingIntervalMonths,
+    worker_training_interval_months: body.workerTrainingIntervalMonths,
+    training_first_month: body.trainingFirstMonth,
+    training_day_from: body.trainingDayFrom,
+    training_day_to: body.trainingDayTo,
+    smoking_policy: body.smokingPolicy,
+    // Dropped rather than refused, so switching to another policy saves without emptying the field first (ADR 019).
+    smoking_place:
+      body.smokingPolicy === undefined || body.smokingPolicy === 'designated_places'
+        ? body.smokingPlace
+        : null,
+    waste_kinds: body.wasteKinds,
+    waste_contractor: body.wasteContractor,
+    waste_collectors: body.wasteCollectors,
+    has_third_parties: body.hasThirdParties,
+  });
 
 // Saving the substances state alone creates the row too; the card still opens on its starting
 // values then, so a row counts as the card's only once it holds something of the card.

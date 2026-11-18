@@ -30428,8 +30428,8 @@ export const getUpdateClientDocumentDetailsUrl = (clientId: string) => {
 };
 
 /**
- * A field left out or null is cleared. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. An interval outside the list the app offers for its category is refused unless it is the one already saved. The first month and the days say when in the year trainings fall.
- * @summary Replace the representative's role and the training schedule of a client
+ * Changes only the fields sent: a field left out stays as saved, and null clears it. At least one field is sent. The two days are sent together, and so are a category's interval and its not-applicable choice. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. An interval outside the list the app offers for its category is refused, even the one already saved. The first month and the days say when in the year trainings fall.
+ * @summary Change the representative and the training schedule of a client
  */
 export const updateClientDocumentDetails = async (
   clientId: string,
@@ -30457,7 +30457,7 @@ export const updateClientDocumentDetails = async (
   };
   return apiFetch<ClientDocumentDetailsResponse>(getUpdateClientDocumentDetailsUrl(clientId), {
     ...options,
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateClientDocumentDetailsRequest),
   });
@@ -30513,7 +30513,7 @@ export type UpdateClientDocumentDetailsMutationVariables = {
 };
 
 /**
- * @summary Replace the representative's role and the training schedule of a client
+ * @summary Change the representative and the training schedule of a client
  */
 export const useUpdateClientDocumentDetails = <
   TError = ErrorType<ApiErrorResponse>,
@@ -31573,8 +31573,8 @@ export const getUpdateClientFireSafetyUrl = (clientId: string) => {
 };
 
 /**
- * Created on the first save. A field left out or null is cleared, and `wasteKinds` left out is empty.
- * @summary Replace a client's fire-safety training schedule, smoking policy and waste
+ * Created on the first save, with what is not sent empty. Changes only the fields sent: a field left out stays as saved, and null clears it. At least one field is sent. The two days are sent together, and the smoking place only with the smoking policy; a policy other than designated places clears the place.
+ * @summary Change a client's fire-safety training schedule, smoking policy and waste
  */
 export const updateClientFireSafety = async (
   clientId: string,
@@ -31602,7 +31602,7 @@ export const updateClientFireSafety = async (
   };
   return apiFetch<ClientFireSafetyResponse>(getUpdateClientFireSafetyUrl(clientId), {
     ...options,
-    method: 'PUT',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateClientFireSafetyRequest),
   });
@@ -31657,7 +31657,7 @@ export type UpdateClientFireSafetyMutationVariables = {
 };
 
 /**
- * @summary Replace a client's fire-safety training schedule, smoking policy and waste
+ * @summary Change a client's fire-safety training schedule, smoking policy and waste
  */
 export const useUpdateClientFireSafety = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
   options?: {

@@ -1,19 +1,10 @@
-import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useRemoveEvaluationProfile } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { Notice } from '@/components/notice';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { factorCountLabel } from '@/features/risk-evaluations/risk-evaluation-schema';
 
 import { isProfileInUse, profileFailure } from './profile-schema';
@@ -49,7 +40,6 @@ export function RemoveProfileDialog({
     try {
       await remove.mutateAsync({ profileId: target.id });
     } catch (cause) {
-      if (isProfileInUse(cause)) await cache.refresh(target.id);
       if (!(cause instanceof ApiHttpError && cause.status === 404)) {
         setError(
           profileFailure(
@@ -57,6 +47,7 @@ export function RemoveProfileDialog({
             'Nu am putut șterge evaluarea. Verifică conexiunea și încearcă din nou.'
           )
         );
+        if (isProfileInUse(cause)) await cache.refresh(target.id);
         return;
       }
     }
@@ -67,42 +58,27 @@ export function RemoveProfileDialog({
   }
 
   return (
-    <Dialog open={profile !== null} onOpenChange={(open) => !open && !remove.isPending && close()}>
-      {profile && (
-        <DialogContent data-testid="risk-profile-remove-dialog" className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ștergi evaluarea?</DialogTitle>
-            <DialogDescription>
-              Evaluarea <span className="font-medium text-foreground">{profile.name}</span> se
-              șterge din bibliotecă
-              {profile.factorCount === 1
-                ? ', împreună cu factorul ei'
-                : profile.factorCount > 1
-                  ? `, împreună cu cei ${factorCountLabel(profile.factorCount).toLowerCase()} ai ei`
-                  : ''}
-              . Nu o folosește niciun client.
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <Notice variant="destructive" data-testid="risk-profile-remove-error">
-              {error}
-            </Notice>
-          )}
-          <DialogFooter className="mt-2">
-            <Button variant="ghost" disabled={remove.isPending} onClick={close}>
-              Renunță
-            </Button>
-            <Button
-              variant="destructive"
-              data-testid="risk-profile-remove-confirm"
-              disabled={remove.isPending}
-              onClick={() => void removeProfile(profile)}
-            >
-              {remove.isPending ? 'Se șterge…' : 'Șterge evaluarea'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
+    profile && (
+      <ConfirmDialog
+        open
+        busy={remove.isPending}
+        error={error}
+        testId="risk-profile-remove"
+        title="Ștergi evaluarea?"
+        confirmLabel="Șterge evaluarea"
+        pendingLabel="Se șterge…"
+        onConfirm={() => removeProfile(profile)}
+        onClose={close}
+      >
+        Evaluarea <span className="font-medium text-foreground">{profile.name}</span> se șterge din
+        bibliotecă
+        {profile.factorCount === 1
+          ? ', împreună cu factorul ei'
+          : profile.factorCount > 1
+            ? `, împreună cu cei ${factorCountLabel(profile.factorCount).toLowerCase()} ai ei`
+            : ''}
+        . Nu o folosește niciun client.
+      </ConfirmDialog>
+    )
   );
 }

@@ -131,7 +131,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `GET /legislation/changes`                                             | Verified user with a membership       | `{ "items": [ … ] }`, legal changes newest first, each with its `act`, `passages` and `updatedDocuments`; not paginated                                                                            |
 | `GET /legislation/runs/latest`                                         | Verified user with a membership       | `{ "run": { … } }`, the run of the daily check that started last, or `{ "run": null }`                                                                                                             |
 | `GET /clients/{clientId}/document-details`                             | Verified user with a membership       | `{ "documentDetails": { … } }`: the representative's name and role, the employee they also are (`legalRepresentativeEmployeeId`, `legalRepresentativeEmployee`) or null, and the training schedule |
-| `PUT /clients/{clientId}/document-details`                             | Verified user with a membership       | The document details after replacing them                                                                                                                                                          |
+| `PATCH /clients/{clientId}/document-details`                           | Verified user with a membership       | The document details after changing the fields sent                                                                                                                                                |
 | `GET /clients/{clientId}/workplaces`                                   | Verified user with a membership       | `{ "items": [ … ] }`, registered office first; not paginated                                                                                                                                       |
 | `POST /clients/{clientId}/workplaces`                                  | Verified user with a membership       | `201 { "workplace": { … } }`                                                                                                                                                                       |
 | `PUT /clients/{clientId}/workplaces/{workplaceId}`                     | Verified user with a membership       | `{ "workplace": { … } }` after replacing it                                                                                                                                                        |
@@ -141,7 +141,7 @@ access token in the Authorization header; the publishable API key is not a user 
 | `PUT /clients/{clientId}/responsible-persons/{responsiblePersonId}`    | Verified user with a membership       | `{ "responsiblePerson": { … } }` after replacing it                                                                                                                                                |
 | `DELETE /clients/{clientId}/responsible-persons/{responsiblePersonId}` | Verified user with a membership       | `204` after archiving it                                                                                                                                                                           |
 | `GET /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | `{ "fireSafety": { … }, "exists" }`: the fire-safety training schedule, smoking rule and waste                                                                                                     |
-| `PUT /clients/{clientId}/fire-safety`                                  | Verified user with a membership       | The same after replacing them; the first save creates them                                                                                                                                         |
+| `PATCH /clients/{clientId}/fire-safety`                                | Verified user with a membership       | The same after changing the fields sent; the first save creates them                                                                                                                               |
 | `GET /clients/{clientId}/fire-equipment`                               | Verified user with a membership       | `{ "items": [ … ] }` on active workplaces, by workplace, kind, agent, capacity and label                                                                                                           |
 | `POST /clients/{clientId}/fire-equipment`                              | Verified user with a membership       | `201 { "equipment": { … } }`                                                                                                                                                                       |
 | `PUT /clients/{clientId}/fire-equipment/{equipmentId}`                 | Verified user with a membership       | `{ "equipment": { … } }` after replacing it                                                                                                                                                        |
@@ -1996,14 +1996,20 @@ The `document-data` module holds the facts a client's SSM documentation prints
 describes the columns. Every field is optional while it is being filled in; generating a
 document is what will require them.
 
-The two `PUT` routes on details replace the whole set, so a field left out or null is
-cleared, which is what a form that shows every field wants. The organization's CUI accepts an
+The organization's `PUT /organization/company-details` replaces the whole set, so a field left
+out or null is cleared: one owner's form writes it, and shows every field (ADR 004). A client's
+`PATCH /clients/{clientId}/document-details` changes only the fields it is sent, so the legal
+representative's card and the training schedule's card each send their own and neither takes
+back what the other saved; a field left out stays as saved, null clears it, an empty body is
+`400`, and the two days, and a category's interval with its not-applicable choice, are sent
+together ([ADR 044](architecture/adr-044-partial-saves-of-client-details.md)). The organization's CUI accepts an
 `RO` prefix and spacing and is stored as digits. The training days must be in order, and the
 worker interval stops at six months, as the database checks too. Each interval is one of the
 app's list for its category (`trainingIntervalChoices`, ADR 039): every month from one to six
 for execution staff, and 1, 2, 3, 4, 6 or 12 for technical-administrative staff, whose column
 takes any month up to twelve. A value outside the list is `400` with the issue on the field,
-unless it is the one already saved, which every card of the client's details sends back.
+even the one already saved: a value saved before the list narrowed stays until the schedule's
+card sends another.
 
 Workplaces and responsible persons are created with `POST`, replaced with `PUT`, and archived
 with `DELETE`; archived rows leave the lists. An archived client takes no new ones (`409`). A
@@ -2034,14 +2040,15 @@ fire-safety lists leave out what is stored on it.
 
 The `fire-safety` module holds the rest of the fire-safety set's client data (ADR 018).
 `GET …/fire-safety` answers with every field null, `wasteKinds` empty and `exists` false until
-the first `PUT` creates the row; the app then opens the form on its starting values (two hours,
+the first `PATCH` creates the row; the app then opens the form on its starting values (two hours,
 three months for execution staff and six for technical-administrative staff, and the
-occupational safety schedule's first month and days), which `fireSafetyStartingValues` names. The `PUT` replaces the whole set like the details above,
-with OMAI 712/2005's bounds: two to eight hours, one to six months for each category, the days
+occupational safety schedule's first month and days), which `fireSafetyStartingValues` names. The `PATCH` changes only the fields it is sent, like a client's document details above (the schedule's
+card and the smoking and waste card each send their own; the first save leaves what it is not
+sent empty), with OMAI 712/2005's bounds: two to eight hours, one to six months for each category, the days
 in order, at most twelve distinct kinds of waste of up to 240 characters each, and
-`wasteCollectors` up to 160 characters (ADR 018, amended); `hasThirdParties` left out is false
-(ADR 019, amended). `smokingPlace` (up to 240 characters) is kept
-only when `smokingPolicy` is `designated_places`; with the other policy or none the `PUT` stores
+`wasteCollectors` up to 160 characters (ADR 018, amended); `hasThirdParties` is false until set
+(ADR 019, amended). `smokingPlace` (up to 240 characters) is sent only with `smokingPolicy`
+and kept only when that is `designated_places`; with the other policy or none the `PATCH` stores
 it as null rather than refusing it, so a switch to `forbidden_everywhere` saves the card in one
 request and clears the place (ADR 019). Equipment and installations are one row per
 unit, each on a workplace in `workplaceId`, which must be an active workplace of the client and

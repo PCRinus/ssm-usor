@@ -2,7 +2,10 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ClientDocumentDetailsResponse } from '@/api/generated/api';
+import {
+  type ClientDocumentDetailsResponse,
+  getGetClientDocumentDetailsQueryKey,
+} from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -41,10 +44,13 @@ const emptyDetails = {
   trainingDayTo: null,
 };
 
-const savedDetails = {
+const savedRepresentative = {
   legalRepresentativeName: 'Maria Popescu',
   legalRepresentativeRole: 'Administrator',
   legalRepresentativeEmployeeId: null,
+};
+
+const savedProgram = {
   periodicTrainingMinutes: 120,
   administrativeTrainingIntervalMonths: 6,
   administrativeTrainingNotApplicable: false,
@@ -54,6 +60,8 @@ const savedDetails = {
   trainingDayFrom: 2,
   trainingDayTo: 7,
 };
+
+const savedDetails = { ...savedRepresentative, ...savedProgram };
 
 const detailsPath = `/clients/${clientId}/document-details`;
 
@@ -107,9 +115,9 @@ function mockApi({
         Response.json({
           documentDetails: { legalRepresentativeEmployee: null, ...(current as object) },
         });
-      if (method !== 'PUT') return read();
+      if (method !== 'PATCH') return read();
       if (save) return save(init);
-      current = JSON.parse(String(init?.body));
+      current = { ...(current as object), ...(JSON.parse(String(init?.body)) as object) };
       return read();
     }
     throw new Error(`Unexpected request: ${method} ${pathname}`);
@@ -118,7 +126,7 @@ function mockApi({
 
 const saves = () =>
   fetchMock.mock.calls
-    .filter(([input, init]) => String(input).endsWith(detailsPath) && init?.method === 'PUT')
+    .filter(([input, init]) => String(input).endsWith(detailsPath) && init?.method === 'PATCH')
     .map(([, init]) => JSON.parse(String(init?.body)) as unknown);
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire`);
@@ -216,7 +224,7 @@ describe('client document data', () => {
     await user.click(screen.getByTestId('details-administrative-interval-6'));
     await user.click(screen.getByTestId('training-program-save'));
     await waitFor(() =>
-      expect(saves()).toEqual([{ ...savedDetails, administrativeTrainingIntervalMonths: 6 }])
+      expect(saves()).toEqual([{ ...savedProgram, administrativeTrainingIntervalMonths: 6 }])
     );
   });
 
@@ -235,7 +243,7 @@ describe('client document data', () => {
     expect(screen.getByTestId<HTMLInputElement>('details-worker-interval-6').checked).toBe(true);
   });
 
-  it('saves the representative and the program apart, each over what the other saved', async () => {
+  it('saves the representative and the program apart, each sending only its own fields', async () => {
     mockApi({ positions: [welder, director] });
     mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
     const user = userEvent.setup();
@@ -245,15 +253,7 @@ describe('client document data', () => {
     await user.type(screen.getByTestId('details-representative-name'), ' Maria Popescu ');
     await user.type(screen.getByTestId('details-representative-role'), ' Administrator ');
     await user.click(screen.getByTestId('legal-representative-save'));
-    await waitFor(() =>
-      expect(saves()).toEqual([
-        {
-          ...emptyDetails,
-          legalRepresentativeName: 'Maria Popescu',
-          legalRepresentativeRole: 'Administrator',
-        },
-      ])
-    );
+    await waitFor(() => expect(saves()).toEqual([savedRepresentative]));
     expect(await screen.findByText('Reprezentantul legal a fost salvat.')).toBeTruthy();
 
     await user.click(screen.getByRole('link', { name: 'Instruire și responsabili' }));
@@ -265,8 +265,7 @@ describe('client document data', () => {
     await user.type(screen.getByTestId('details-day-to'), '7');
     await user.click(screen.getByTestId('training-program-save'));
 
-    // Numbers, not text, and the representative saved a moment ago is sent back unchanged.
-    await waitFor(() => expect(saves()[1]).toEqual(savedDetails));
+    await waitFor(() => expect(saves()[1]).toEqual(savedProgram));
     expect(await screen.findByText('Programul de instruire a fost salvat.')).toBeTruthy();
   });
 
@@ -308,7 +307,18 @@ describe('client document data', () => {
     await user.clear(screen.getByTestId('details-day-to'));
     await user.type(screen.getByTestId('details-day-to'), '9');
     await user.click(screen.getByTestId('training-program-save'));
-    await waitFor(() => expect(saves()).toEqual([{ ...savedDetails, trainingDayTo: 9 }]));
+    await waitFor(() =>
+      expect(saves()).toEqual([
+        {
+          periodicTrainingMinutes: 120,
+          workerTrainingIntervalMonths: 3,
+          workerTrainingNotApplicable: false,
+          trainingFirstMonth: 2,
+          trainingDayFrom: 2,
+          trainingDayTo: 9,
+        },
+      ])
+    );
   });
 
   it('asks for the interval of a category marked as not applicable that has posts', async () => {
@@ -352,7 +362,6 @@ describe('client document data', () => {
 
     await waitFor(() =>
       expect(saves()[0]).toEqual({
-        ...emptyDetails,
         periodicTrainingMinutes: 60,
         trainingFirstMonth: 3,
         trainingDayFrom: 5,
@@ -361,6 +370,46 @@ describe('client document data', () => {
     );
     expect(await screen.findByTestId('training-program-session')).toBeTruthy();
     expect(screen.getByTestId('training-no-positions')).toBeTruthy();
+  });
+
+  it('keeps the row the save answered with before the page reads it again', async () => {
+    mockApi({ details: savedDetails, positions: [welder, director] });
+    const answer = fetchMock.getMockImplementation()!;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (input, init) => {
+      const read =
+        new URL(String(input)).pathname === detailsPath && (init?.method ?? 'GET') === 'GET';
+      if (read && saves().length > 0) await held;
+      return answer(input, init);
+    });
+    const { queryClient } = mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('training-program-edit'));
+    await user.selectOptions(screen.getByTestId('details-first-month'), '3');
+    await user.click(screen.getByTestId('training-program-save'));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueriesData({ queryKey: getGetClientDocumentDetailsQueryKey(clientId) })
+      ).toEqual([
+        [
+          expect.anything(),
+          {
+            documentDetails: {
+              legalRepresentativeEmployee: null,
+              ...savedDetails,
+              trainingFirstMonth: 3,
+            },
+          },
+        ],
+      ])
+    );
+    release();
+    expect(await screen.findByText('Programul de instruire a fost salvat.')).toBeTruthy();
   });
 
   it('edits a saved program from the blocks, and clears a field that is emptied', async () => {
@@ -372,7 +421,7 @@ describe('client document data', () => {
     await user.selectOptions(screen.getByTestId('details-first-month'), '');
     await user.click(screen.getByTestId('training-program-save'));
 
-    await waitFor(() => expect(saves()).toEqual([{ ...savedDetails, trainingFirstMonth: null }]));
+    await waitFor(() => expect(saves()).toEqual([{ ...savedProgram, trainingFirstMonth: null }]));
     // An incomplete program has no summary to show, so the form stays.
     expect(await screen.findByTestId('training-program-form')).toBeTruthy();
   });

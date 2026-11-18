@@ -7,11 +7,12 @@ import {
   useRevokeClientParticipant,
   useRevokeParticipantInvitation,
 } from '@/api/generated/api';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
 
-import { ConfirmDialog, type ParticipantMessage } from './participant-actions';
+import { type ParticipantMessage } from './participant-actions';
 import { participantFailure } from './participant-errors';
 import type { AccessTarget } from './portal-access-format';
 import { useRefreshParticipants } from './use-refresh-participants';
@@ -74,9 +75,7 @@ export function usePortalAccessActions(
       open={pending !== null}
       busy={revoking}
       testId={
-        pending?.kind === 'invitation'
-          ? 'participant-invitation-revoke-dialog'
-          : 'participant-revoke-dialog'
+        pending?.kind === 'invitation' ? 'participant-invitation-revoke' : 'participant-revoke'
       }
       title={pending?.kind === 'invitation' ? 'Revoci invitația?' : 'Revoci accesul la portal?'}
       confirmLabel={pending?.kind === 'invitation' ? 'Revocă invitația' : 'Revocă accesul'}

@@ -115,11 +115,33 @@ const numberOrNull = (value: string) => (value ? Number(value) : null);
 const categoryIntervalOrNull = (value: string) =>
   value === notApplicable ? null : numberOrNull(value);
 
-// The route replaces every field, so an emptied input clears what was saved.
+type RequestField = keyof UpdateClientDocumentDetailsRequest;
+
+// The route takes a category's interval with its not-applicable choice, and the days together.
+const requestFields: Record<keyof DocumentDetailsFormValues, readonly RequestField[]> = {
+  legalRepresentativeName: ['legalRepresentativeName'],
+  legalRepresentativeRole: ['legalRepresentativeRole'],
+  legalRepresentativeIsEmployee: ['legalRepresentativeEmployeeId'],
+  legalRepresentativeEmployeeId: ['legalRepresentativeEmployeeId'],
+  periodicTrainingMinutes: ['periodicTrainingMinutes'],
+  administrativeTrainingIntervalMonths: [
+    'administrativeTrainingIntervalMonths',
+    'administrativeTrainingNotApplicable',
+  ],
+  workerTrainingIntervalMonths: ['workerTrainingIntervalMonths', 'workerTrainingNotApplicable'],
+  trainingFirstMonth: ['trainingFirstMonth'],
+  trainingDayFrom: ['trainingDayFrom', 'trainingDayTo'],
+  trainingDayTo: ['trainingDayFrom', 'trainingDayTo'],
+};
+
+// Only the card's own fields: the route leaves the others as saved, and an emptied input sends
+// null, which clears it.
 export function toDocumentDetailsRequest(
-  values: DocumentDetailsFormValues
+  values: DocumentDetailsFormValues,
+  fields: readonly (keyof DocumentDetailsFormValues)[]
 ): UpdateClientDocumentDetailsRequest {
-  return {
+  const sent = new Set(fields.flatMap((field) => requestFields[field]));
+  const request: Required<UpdateClientDocumentDetailsRequest> = {
     legalRepresentativeName: values.legalRepresentativeName || null,
     legalRepresentativeRole: values.legalRepresentativeRole || null,
     legalRepresentativeEmployeeId: values.legalRepresentativeIsEmployee
@@ -137,6 +159,9 @@ export function toDocumentDetailsRequest(
     trainingDayFrom: numberOrNull(values.trainingDayFrom),
     trainingDayTo: numberOrNull(values.trainingDayTo),
   };
+  return Object.fromEntries(
+    Object.entries(request).filter(([field]) => sent.has(field as RequestField))
+  );
 }
 
 export const monthNames = [

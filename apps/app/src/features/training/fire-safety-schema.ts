@@ -201,28 +201,11 @@ export function toFireRulesForm(saved: FireSafety): FireRulesFormValues {
 
 const numberOrNull = (value: string) => (value ? Number(value) : null);
 
-export function fireSafetyRequest(saved: FireSafety): UpdateClientFireSafetyRequest {
-  return {
-    periodicTrainingHours: saved.periodicTrainingHours,
-    administrativeTrainingIntervalMonths: saved.administrativeTrainingIntervalMonths,
-    workerTrainingIntervalMonths: saved.workerTrainingIntervalMonths,
-    trainingFirstMonth: saved.trainingFirstMonth,
-    trainingDayFrom: saved.trainingDayFrom,
-    trainingDayTo: saved.trainingDayTo,
-    smokingPolicy: saved.smokingPolicy,
-    smokingPlace: saved.smokingPlace,
-    wasteKinds: saved.wasteKinds,
-    wasteContractor: saved.wasteContractor,
-    wasteCollectors: saved.wasteCollectors,
-    hasThirdParties: saved.hasThirdParties,
-  };
-}
-
-// An interval saved for a category without posts is sent back as it was (ADR 039).
+// An interval saved for a category without posts is not sent, so it stays as saved (ADR 039).
 export function fireScheduleChange(
   values: FireScheduleFormValues,
   categories: readonly CategoryPosts[]
-): Partial<UpdateClientFireSafetyRequest> {
+): UpdateClientFireSafetyRequest {
   return {
     periodicTrainingHours: numberOrNull(values.periodicTrainingHours),
     trainingFirstMonth: numberOrNull(values.trainingFirstMonth),
@@ -237,9 +220,7 @@ export function fireScheduleChange(
   };
 }
 
-export function fireRulesChange(
-  values: FireRulesFormValues
-): Partial<UpdateClientFireSafetyRequest> {
+export function fireRulesChange(values: FireRulesFormValues): UpdateClientFireSafetyRequest {
   const draft = values.wasteDraft.trim();
   return {
     smokingPolicy: (values.smokingPolicy || null) as FireSmokingPolicy | null,

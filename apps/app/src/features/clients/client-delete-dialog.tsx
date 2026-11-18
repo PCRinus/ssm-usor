@@ -45,12 +45,15 @@ export function ClientDeleteDialog({
   onClose,
   onDeleted,
 }: ClientDeleteProps & { client: ClientToDelete | null }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const remove = useDeleteClient({ request: apiRequest });
   return (
-    <Dialog open={client !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={client !== null} onOpenChange={(open) => !open && !remove.isPending && onClose()}>
       {client && (
         <ClientDeleteContent
           key={client.id}
           client={client}
+          remove={remove}
           onClose={onClose}
           onDeleted={onDeleted}
         />
@@ -61,11 +64,11 @@ export function ClientDeleteDialog({
 
 function ClientDeleteContent({
   client,
+  remove,
   onClose,
   onDeleted,
-}: ClientDeleteProps & { client: ClientToDelete }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteClient({ request: apiRequest });
+}: ClientDeleteProps & { client: ClientToDelete; remove: ReturnType<typeof useDeleteClient> }) {
+  const { queryClient } = useRouteContext({ from: '__root__' });
   const [typed, setTyped] = useState('');
   const [error, setError] = useState<string | null>(null);
   const confirmed = typed.trim() === client.legalName.trim();

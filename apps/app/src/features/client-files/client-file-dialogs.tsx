@@ -23,6 +23,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -201,33 +202,24 @@ export function DeleteClientFileDialog({
   }
 
   return (
-    <Dialog open={file !== null} onOpenChange={(open) => !open && !remove.isPending && onClose()}>
-      {file && (
-        <DialogContent data-testid="client-file-delete-dialog" className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ștergi fișierul?</DialogTitle>
-            <DialogDescription className="wrap-anywhere">
-              <span className="font-medium text-foreground" {...(personal && replayMask)}>
-                {file.name}
-              </span>{' '}
-              se șterge definitiv și nu mai poate fi recuperat.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-2">
-            <Button variant="ghost" disabled={remove.isPending} onClick={onClose}>
-              Renunță
-            </Button>
-            <Button
-              variant="destructive"
-              data-testid="client-file-delete-confirm"
-              disabled={remove.isPending}
-              onClick={() => void deleteFile(file)}
-            >
-              {remove.isPending ? 'Se șterge…' : 'Șterge definitiv'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
+    file && (
+      <ConfirmDialog
+        open
+        busy={remove.isPending}
+        testId="client-file-delete"
+        title="Ștergi fișierul?"
+        confirmLabel="Șterge definitiv"
+        pendingLabel="Se șterge…"
+        onConfirm={() => void deleteFile(file)}
+        onClose={onClose}
+      >
+        <span className="wrap-anywhere">
+          <span className="font-medium text-foreground" {...(personal && replayMask)}>
+            {file.name}
+          </span>{' '}
+          se șterge definitiv și nu mai poate fi recuperat.
+        </span>
+      </ConfirmDialog>
+    )
   );
 }
