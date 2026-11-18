@@ -375,7 +375,7 @@ describe("a client's job positions", () => {
   });
 
   it('says the client is archived when a stale page adds a position to it', async () => {
-    mockApi({
+    mockPositionsApi({
       create: () =>
         Response.json(
           { code: 'conflict', message: 'Archived.', reason: 'client_archived' },
