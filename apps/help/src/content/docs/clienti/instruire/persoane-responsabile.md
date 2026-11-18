@@ -21,7 +21,7 @@ Persoanele responsabile sunt oamenii pe care clientul îi numește prin decizii:
 
 Fiecare rând arată o persoană:
 
-- **Nume și prenume**, iar dedesubt legătura ei cu clientul: **Lucrător · acces la portal**, **Lucrător · invitație în portal trimisă**, **Lucrător · fără acces la portal** sau **Nu e în lista lucrătorilor**, pentru cineva care nu e lucrător al clientului, de obicei administratorul;
+- **Nume și prenume**, iar dedesubt legătura ei cu clientul: **Lucrător · acces la portal**, **Lucrător · invitație în portal trimisă**, **Lucrător · fără acces la portal**, **Nu mai e lucrător**, pentru cineva care a plecat de la client, sau **Nu e în lista lucrătorilor**, pentru cineva care nu e lucrător al clientului, de obicei administratorul;
 - **Funcția**, așa cum o tipăresc deciziile;
 - **Responsabilități**, în ordinea din decizii, iar dedesubt punctul de lucru, când persoana răspunde doar de unul.
 
@@ -33,7 +33,7 @@ Un clic pe rând deschide persoana ca s-o modifici. Din meniul de la capătul r�
 
 Lângă titlul cardului, **Fără persoană numită** spune ce responsabilitate nu are încă pe nimeni, deși documentele o cer. Un clic pe responsabilitate deschide adăugarea unei persoane, cu ea deja bifată.
 
-Documentele cer întotdeauna un conducător al locului de muncă, o persoană pentru primul ajutor, echipa de evaluare a riscurilor, o persoană pentru pericol grav și iminent, un coordonator privind apărarea împotriva incendiilor și un șef al echipei de primă intervenție. Reprezentantul lucrătorilor e cerut de la 10 lucrători actuali, iar de la 50 sunt ceruți doi; când lipsește doar al doilea, vezi **Reprezentantul lucrătorilor (al doilea)**.
+Documentele cer întotdeauna un conducător al locului de muncă, o persoană pentru primul ajutor, echipa de evaluare a riscurilor, o persoană pentru pericol grav și iminent, un coordonator privind apărarea împotriva incendiilor și un șef al echipei de primă intervenție. Reprezentantul lucrătorilor e cerut de la 10 lucrători actuali, iar de la 50 sunt ceruți doi, și se numără doar reprezentanții care sunt încă lucrători ai clientului; când lipsește doar al doilea, vezi **Reprezentantul lucrătorilor (al doilea)**.
 
 ## Adăugarea unei persoane
 
@@ -51,10 +51,10 @@ Funcția unei persoane se copiază din fișa lucrătorului când o alegi și ră
 
 - **Conducător al locului de muncă**: face instruirea la locul de muncă și instruirea periodică. Îl numește decizia privind instruirea (1.1), iar tematica și documentele SU îl tipăresc la fiecare punct de lucru.
 - **Echipa de evaluare a riscurilor**: decizia 1.2.
-- **Prim ajutor**: decizia 1.3. Angajatorul desemnează lucrătorii care aplică măsurile de prim ajutor (Legea 319/2006, art. 10).
-- **Pericol grav și iminent**: decizia 1.4, care spune ce se face în caz de pericol grav și iminent: oprirea lucrului, evacuarea, anunțarea (Legea 319/2006, art. 11; HG 1425/2006, art. 103).
-- **Reprezentantul lucrătorilor**: decizia 1.5. Îl aleg lucrătorii dintre ei: unul între 10 și 49 de lucrători, doi între 50 și 100 (Legea 319/2006, art. 18; HG 1425/2006, art. 52 și art. 53 alin. (2)). Se alege dintre lucrătorii clientului și nu poate fi reprezentantul legal.
-- **Coordonator privind apărarea împotriva incendiilor** și **Șef echipă de primă intervenție**: decizia de organizare a apărării împotriva incendiilor din setul SU (Legea 307/2006, art. 19).
+- **Prim ajutor**: decizia 1.3. Angajatorul desemnează lucrătorii care aplică măsurile de prim ajutor (Legea 319/2006, art. 10 alin. (2)).
+- **Pericol grav și iminent**: decizia 1.4, care spune ce se face în caz de pericol grav și iminent: oprirea lucrului, evacuarea, anunțarea (Legea 319/2006, art. 11; HG 1425/2006, art. 102–103).
+- **Reprezentantul lucrătorilor**: decizia 1.5. E reprezentantul lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă (Legea 319/2006, art. 5 lit. d)), pe care lucrătorii îl aleg dintre ei (HG 1425/2006, art. 52): cel puțin unul între 10 și 49 de lucrători, doi între 50 și 100 (HG 1425/2006, art. 53 alin. (2)). Se alege dintre lucrătorii clientului și nu poate fi reprezentantul legal. Un reprezentant care nu mai e lucrător al clientului nu se mai numără; în listă vezi sub numele lui **Nu mai e lucrător**. Când reprezentantul lucrătorilor e și reprezentantul legal, sub responsabilitățile lui vezi cu portocaliu că nu poate fi amândouă.
+- **Coordonator privind apărarea împotriva incendiilor** și **Șef echipă de primă intervenție**: decizia de organizare a apărării împotriva incendiilor din setul SU, prin care administratorul stabilește în scris responsabilitățile și organizarea apărării împotriva incendiilor (Legea 307/2006, art. 19 alin. (1) lit. a)).
 
 ## Scoaterea din listă
 
