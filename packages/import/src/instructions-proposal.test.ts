@@ -59,7 +59,18 @@ describe('libraryTitle', () => {
     const long =
       'Utilizarea mașinii de tocat carne și a feliatorului din laboratorul de cofetărie '.repeat(4);
 
-    expect(libraryTitle(long)).toBe(long.slice(0, 200).trim());
+    const title = libraryTitle(long);
+
+    expect(title.length).toBeLessThanOrEqual(200);
+    expect(title.length).toBeGreaterThan(180);
+    expect(long.startsWith(title)).toBe(true);
+    expect(long.charAt(title.length)).toBe(' ');
+  });
+
+  it('cuts a title with no space before 200 characters at 200', () => {
+    const unbroken = `Feliator${'x'.repeat(250)}`;
+
+    expect(libraryTitle(unbroken)).toBe(unbroken.slice(0, 200));
   });
 });
 

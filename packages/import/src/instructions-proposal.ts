@@ -109,7 +109,12 @@ const genitiveLead = /^activitatilor desfasurate (?:in|la) /u;
 
 // "Instrucțiuni proprii în domeniul securității și sănătății în muncă privind utilizarea
 // autoturismelor" names the library's module "Utilizarea autoturismelor".
-export const libraryTitle = (written: string) => shortTitle(written).slice(0, titleMax).trim();
+export function libraryTitle(written: string) {
+  const title = shortTitle(written);
+  if (title.length <= titleMax) return title;
+  const space = title.lastIndexOf(' ', titleMax);
+  return title.slice(0, space > 0 ? space : titleMax).trim();
+}
 
 function shortTitle(written: string) {
   const words = written.trim().split(/\s+/u);
