@@ -2,6 +2,7 @@ import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import { knowledgeTestData } from '../../tools/knowledge-test-samples';
+import { described } from '../../tools/set-samples';
 import { renderDocument, templatePlaceholders } from '../render';
 import { documentText } from '../text';
 import { bodyOf, documentTextOf, knowledgeTests, read, typesetFiles } from './read';
@@ -74,9 +75,6 @@ const people = [
   { name: 'Ion MARIN', jobTitle: 'Manager magazin' },
   { name: 'Elena DUMITRU', jobTitle: 'Lucrător comercial' },
 ];
-
-const described = (list: typeof people) =>
-  list.map((person) => `${person.name}, având funcția de ${person.jobTitle}`).join(', și ');
 
 const shared = {
   branding: false,

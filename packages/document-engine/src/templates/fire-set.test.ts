@@ -1,6 +1,7 @@
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import { person as personOf } from '../../tools/set-samples';
 import { renderDocument, templatePlaceholders } from '../render';
 import { documentText } from '../text';
 import {
@@ -78,7 +79,7 @@ describe('fire-safety set', () => {
     certificate: 'seria A nr. 1234/2024',
     authorization: 'nr. 12 din 15.09.2026, ISU Timiș',
   };
-  const person = { name: 'Ion VLAD', jobTitle: 'Șef magazin', jobTitleRunOn: 'șef magazin' };
+  const person = personOf('Ion VLAD', 'Șef magazin');
   const workplace = {
     first: true,
     name: 'Magazin',
