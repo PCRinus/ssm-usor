@@ -1,5 +1,4 @@
 import {
-  type ApiErrorResponse,
   clientConflictReasons,
   signatureErrorReasons,
   type SignatureRequestKind,
@@ -17,9 +16,9 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { SignSessionResponseFailedItemReason } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, apiErrorReason, ApiHttpError } from '@/api/http';
 import { formatDate, roCount } from '@/features/employees/employee-format';
-import { impersonationRefusal } from '@/features/impersonation/refusal';
+import { commonFailure } from '@/lib/api-errors';
 
 export const slotStateLabels: Record<SignatureSlotState, string> = {
   pending: 'De semnat',
@@ -118,9 +117,6 @@ export const agreementAwaitsEmployer = <T extends AgreementSignatures>(
   Boolean(agreement.employeeSignedAt) &&
   !agreement.employerSignedAt;
 
-export const reasonOf = (cause: unknown) =>
-  cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null)?.reason : null;
-
 const signingMessages: Partial<Record<string, string>> = {
   [signatureErrorReasons.recordSigned]:
     'Instruirea are semnături electronice și nu se mai poate modifica. Anulează semnăturile, apoi modifică instruirea.',
@@ -153,7 +149,7 @@ export function signingMessage(
   cause: unknown,
   training?: { source: TrainingSource } | null
 ): string | null {
-  const reason = reasonOf(cause);
+  const reason = apiErrorReason(cause);
   if (reason === signatureErrorReasons.recordSigned && training?.source === 'paper') {
     return printedTrainingMessage;
   }
@@ -161,15 +157,11 @@ export function signingMessage(
 }
 
 export function signingFailure(cause: unknown, fallback: string) {
-  const refused = impersonationRefusal(cause);
-  if (refused) return refused;
-  if (cause instanceof ApiHttpError && cause.status === 401) {
-    return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-  }
-  return signingMessage(cause) ?? fallback;
+  return commonFailure(cause) ?? signingMessage(cause) ?? fallback;
 }
 
-export const hasSigningReason = (cause: unknown, reason: string) => reasonOf(cause) === reason;
+export const hasSigningReason = (cause: unknown, reason: string) =>
+  apiErrorReason(cause) === reason;
 
 const sessionMessages: Partial<Record<string, string>> = {
   [signatureErrorReasons.signerHasNoAddress]:
@@ -184,11 +176,8 @@ const sessionMessages: Partial<Record<string, string>> = {
     'Actul adițional se semnează în portal, de lucrător și de administratorul clientului.',
 };
 
-const errorBody = (cause: unknown) =>
-  cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null) : null;
-
 export function signingSessionFailure(cause: unknown) {
-  const body = errorBody(cause);
+  const body = apiErrorBody(cause);
   if (body?.reason === signatureErrorReasons.codeRateLimited) {
     const wait = body.retryAfterSeconds;
     return wait
@@ -205,7 +194,7 @@ export function signingSessionFailure(cause: unknown) {
 }
 
 // Null when the refusal carries no count.
-export const attemptsLeftOf = (cause: unknown) => errorBody(cause)?.attemptsLeft ?? null;
+export const attemptsLeftOf = (cause: unknown) => apiErrorBody(cause)?.attemptsLeft ?? null;
 
 // The code is spent or dead: only a new one goes on.
 export const codeNeedsRenewal: ReadonlySet<string> = new Set([

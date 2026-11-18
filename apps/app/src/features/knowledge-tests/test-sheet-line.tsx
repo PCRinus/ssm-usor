@@ -27,11 +27,11 @@ import {
   getTestSheetLink,
   useMarkTestSheetPaperSignature,
 } from '@/api/generated/api';
+import { apiErrorReason } from '@/api/http';
 import { FileLinkButton } from '@/components/file-link-button';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import {
-  reasonOf,
   signingFailure,
   slotStateBadgeClasses,
   slotStateLabels,
@@ -48,7 +48,7 @@ function previewFailure(cause: unknown) {
   if (cause instanceof PreviewBlockedError) {
     return 'Browserul a blocat fereastra nouă. Permite ferestrele noi pentru această pagină.';
   }
-  const reason = reasonOf(cause);
+  const reason = apiErrorReason(cause);
   if (reason === testErrorReasons.testSheetNotAvailable || reason === 'pdf_unavailable') {
     return 'Fișa de test nu a putut fi întocmită acum. Încearcă din nou peste câteva minute.';
   }
@@ -200,7 +200,7 @@ function PaperSlotDialog({
       await mark.mutateAsync({ clientId, employeeId, resultId: result.id, data: { slot: target } });
     } catch (cause) {
       setError(
-        reasonOf(cause) === signatureErrorReasons.examinerRequired
+        apiErrorReason(cause) === signatureErrorReasons.examinerRequired
           ? 'Rezultatul nu are examinator. Numește-l întâi, ca fișa să-l tipărească în rubrică.'
           : signingFailure(
               cause,
