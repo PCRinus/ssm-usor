@@ -1,15 +1,12 @@
 import { apiErrorResponseSchema, apiHealthSchema, meResponseSchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app';
-import type { ApiEnv } from './lib/env';
 import { openApiConfig } from './lib/openapi';
+import { apiRequest } from './test/request';
+import { fetchMock, stubFetch, testEnv } from './test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const user = {
   id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
@@ -21,8 +18,6 @@ const user = {
   app_metadata: { provider: 'email' },
   user_metadata: { role: 'admin', private_note: 'Never return this' },
 };
-
-const fetchMock = vi.fn<typeof fetch>();
 
 // Supabase Auth answers with the token's user; the account has no profile or membership.
 function mockAccount(accountFor: (token: string | null) => unknown) {
@@ -39,15 +34,11 @@ function mockAccount(accountFor: (token: string | null) => unknown) {
 }
 
 const requestMe = (authorization = 'Bearer test-access-token', bindings = env) =>
-  createApp().request('/me', { headers: { Authorization: authorization } }, bindings);
+  apiRequest('/me', { token: null, headers: { Authorization: authorization } }, bindings);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
