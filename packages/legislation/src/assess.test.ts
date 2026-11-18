@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 
-import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -11,7 +10,6 @@ import {
   readableUnit,
 } from './assess';
 import { checkLegislation, describeOutcome, type LegalAct, summarize } from './check';
-import type { LegislationDatabase } from './database';
 import { type PortalAct, PortalError } from './portal';
 import { describeRun, runLegislationCheck } from './run';
 import {
@@ -20,6 +18,7 @@ import {
   storedHunksSchema,
   storedReviewSchema,
 } from './stored';
+import { fakeDatabase } from './testing/fake-database';
 
 const fixture = (name: string) =>
   readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8');
@@ -115,60 +114,33 @@ function database({
   outcomeTaken?: boolean;
   advanceFails?: boolean;
 }) {
-  const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
-    const url = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    const table = url.pathname.replace('/rest/v1/', '');
-    if (table === 'legal_acts' && method === 'POST') {
-      return Response.json([
+  const noContent = () => new Response(null, { status: 204 });
+  return fakeDatabase({
+    'legal_acts POST': () =>
+      Response.json([
         {
           id: roads.id,
           last_consolidated_on: lastSeen,
           verified_consolidated_on: verified,
           last_checked_at: '2026-11-12T03:17:00Z',
         },
-      ]);
-    }
-    if (table === 'legal_changes' && method === 'GET') return Response.json(pending);
-    if (table === 'legal_changes' && method === 'POST') {
-      return Response.json([{ id: 'c-new' }], { status: 201 });
-    }
-    if (table === 'legal_changes' && method === 'PATCH') {
-      return Response.json(outcomeTaken ? [] : [{ id: url.searchParams.get('id')?.slice(3) }]);
-    }
-    if (table === 'legal_acts' && method === 'PATCH' && advanceFails) {
-      const body = JSON.parse(String(init?.body));
-      if ('verified_consolidated_on' in body) {
-        return Response.json(
-          { message: 'canceling statement due to statement timeout' },
-          { status: 500 }
-        );
-      }
-    }
-    if (table === 'legal_check_runs' && method === 'POST') {
-      return Response.json({ id: 'r1' }, { status: 201 });
-    }
-    if (method === 'PATCH' || method === 'DELETE') return new Response(null, { status: 204 });
-    if (table === 'legal_change_passages' && method === 'POST') {
-      return new Response(null, { status: 201 });
-    }
-    throw new Error(`Unexpected request: ${method} ${url}`);
+      ]),
+    'legal_acts PATCH': ({ body }) =>
+      advanceFails && 'verified_consolidated_on' in (body as object)
+        ? Response.json(
+            { message: 'canceling statement due to statement timeout' },
+            { status: 500 }
+          )
+        : noContent(),
+    'legal_changes GET': () => Response.json(pending),
+    'legal_changes POST': () => Response.json([{ id: 'c-new' }], { status: 201 }),
+    'legal_changes PATCH': ({ url }) =>
+      Response.json(outcomeTaken ? [] : [{ id: url.searchParams.get('id')?.slice(3) }]),
+    'legal_change_passages POST': () => new Response(null, { status: 201 }),
+    'legal_change_passages DELETE': noContent,
+    'legal_check_runs POST': () => Response.json({ id: 'r1' }, { status: 201 }),
+    'legal_check_runs PATCH': noContent,
   });
-  const db = createClient<LegislationDatabase>('https://example.supabase.co', 'sb_secret_test', {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: fetchMock },
-  });
-  const sent = (table: string, method: string) =>
-    fetchMock.mock.calls
-      .filter(([input, init]) => {
-        const url = new URL(String(input));
-        return url.pathname === `/rest/v1/${table}` && (init?.method ?? 'GET') === method;
-      })
-      .map(([input, init]) => ({
-        url: new URL(String(input)),
-        body: init?.body ? JSON.parse(String(init.body)) : null,
-      }));
-  return { db, sent };
 }
 
 const check = (
