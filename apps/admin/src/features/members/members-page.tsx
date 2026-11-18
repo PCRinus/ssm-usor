@@ -3,27 +3,19 @@ import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
-import { cn } from '@ssm-usor/ui/lib/utils';
+import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { apiFetch } from '@/api/http';
-import { AdminShell, LoadFailure } from '@/components/admin-shell';
-import { Pager } from '@/components/pager';
+import { AdminShell } from '@/components/admin-shell';
+import { ListTable } from '@/components/list-table';
 import { useActiveImpersonation } from '@/features/impersonation/api';
 import { RecentImpersonations } from '@/features/impersonation/recent-impersonations';
 import { StartImpersonationDialog } from '@/features/impersonation/start-dialog';
 import { formatDateTime } from '@/lib/format';
+import { pageParam } from '@/lib/search';
 
 import {
   fetchMembers,
@@ -34,7 +26,17 @@ import {
   subscriptionStatusLabels,
 } from './api';
 
-const columns = ['Name', 'Email', 'Organization', 'Role', 'Plan', 'Last sign-in', ''] as const;
+const columns = [
+  'Name',
+  'Email',
+  'Organization',
+  'Role',
+  'Plan',
+  'Last sign-in',
+  <span key="actions" className="sr-only">
+    Actions
+  </span>,
+];
 
 const searchDelay = 300;
 
@@ -110,112 +112,66 @@ export function MembersPage({ search }: { search: MembersSearch }) {
         />
       </div>
 
-      {members.isError && !members.data ? (
-        <LoadFailure error={members.error} onRetry={() => void members.refetch()} />
-      ) : (
-        <div className="bg-background overflow-hidden rounded-xl border">
-          <Table
-            data-testid="members-table"
-            aria-label="Members"
-            aria-busy={members.isPlaceholderData || undefined}
+      <ListTable
+        query={members}
+        testId="members-table"
+        label="Members"
+        columns={columns}
+        empty={search.search ? 'No member matches this search.' : 'No members yet.'}
+        row={(member) => (
+          <TableRow
+            key={`${member.userId}:${member.organization.id}`}
+            data-testid="member-row"
+            className="align-top"
           >
-            <TableHeader>
-              <TableRow>
-                {columns.map((column, index) => (
-                  <TableHead key={index}>
-                    {column || <span className="sr-only">Actions</span>}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody className={cn(members.isPlaceholderData && 'opacity-50')}>
-              {members.isPending ? (
-                Array.from({ length: 3 }, (_, index) => (
-                  <TableRow key={index} className="hover:bg-transparent">
-                    {columns.map((column, cell) => (
-                      <TableCell key={cell}>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : members.data.items.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={columns.length}
-                    className="text-muted-foreground h-40 text-center"
-                  >
-                    {search.search ? 'No member matches this search.' : 'No members yet.'}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                members.data.items.map((member) => (
-                  <TableRow
-                    key={`${member.userId}:${member.organization.id}`}
-                    data-testid="member-row"
-                    className="align-top"
-                  >
-                    <TableCell className="max-w-56 min-w-36 font-medium whitespace-normal">
-                      {member.fullName ?? <span className="text-muted-foreground">—</span>}
-                      {member.userId === actingAs && (
-                        <Badge
-                          variant="outline"
-                          data-testid="member-acting"
-                          className="border-warning-border bg-warning text-warning-foreground ml-2 align-middle"
-                        >
-                          Acting
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{member.email ?? '—'}</TableCell>
-                    <TableCell className="max-w-56 min-w-36 whitespace-normal">
-                      {member.organization.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{roleLabels[member.role]}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Plan subscription={member.subscription} />
-                    </TableCell>
-                    <TableCell className="tabular-nums">
-                      {formatDateTime(member.lastSignInAt)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {me.data && member.userId !== me.data.id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          data-testid="act-as"
-                          onClick={(event) => {
-                            opener.current = event.currentTarget;
-                            setChosen(member);
-                          }}
-                        >
-                          Act as
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+            <TableCell className="max-w-56 min-w-36 font-medium whitespace-normal">
+              {member.fullName ?? <span className="text-muted-foreground">—</span>}
+              {member.userId === actingAs && (
+                <Badge
+                  variant="outline"
+                  data-testid="member-acting"
+                  className="border-warning-border bg-warning text-warning-foreground ml-2 align-middle"
+                >
+                  Acting
+                </Badge>
               )}
-            </TableBody>
-          </Table>
-          {members.data && (
-            <Pager
-              noun={{ one: 'member', many: 'members' }}
-              page={members.data.page}
-              pageSize={members.data.pageSize}
-              total={members.data.total}
-              disabled={members.isFetching}
-              onPage={(page) =>
-                void navigate({
-                  search: (previous) => ({ ...previous, page: page > 1 ? page : undefined }),
-                })
-              }
-            />
-          )}
-        </div>
-      )}
+            </TableCell>
+            <TableCell>{member.email ?? '—'}</TableCell>
+            <TableCell className="max-w-56 min-w-36 whitespace-normal">
+              {member.organization.name}
+            </TableCell>
+            <TableCell>
+              <Badge variant="outline">{roleLabels[member.role]}</Badge>
+            </TableCell>
+            <TableCell>
+              <Plan subscription={member.subscription} />
+            </TableCell>
+            <TableCell className="tabular-nums">{formatDateTime(member.lastSignInAt)}</TableCell>
+            <TableCell className="text-right">
+              {me.data && member.userId !== me.data.id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="act-as"
+                  onClick={(event) => {
+                    opener.current = event.currentTarget;
+                    setChosen(member);
+                  }}
+                >
+                  Act as
+                </Button>
+              )}
+            </TableCell>
+          </TableRow>
+        )}
+        pager={{
+          noun: { one: 'member', many: 'members' },
+          onPage: (page) =>
+            void navigate({
+              search: (previous) => ({ ...previous, page: pageParam(page) }),
+            }),
+        }}
+      />
 
       <RecentImpersonations />
 

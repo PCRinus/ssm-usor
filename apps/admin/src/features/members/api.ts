@@ -6,6 +6,7 @@ import type {
 } from '@ssm-usor/contracts';
 
 import { apiFetch, type ApiRequestOptions } from '@/api/http';
+import { pageParam } from '@/lib/search';
 
 export interface MembersSearch {
   search?: string;
@@ -15,14 +16,13 @@ export interface MembersSearch {
 export const maxMemberSearchLength = 100;
 
 export function membersSearchOf(search: Record<string, unknown>): MembersSearch {
-  const page = Number(search.page);
   const text =
     typeof search.search === 'string'
       ? search.search.trim().slice(0, maxMemberSearchLength)
       : undefined;
   return {
     search: text || undefined,
-    page: Number.isInteger(page) && page > 1 ? page : undefined,
+    page: pageParam(search.page),
   };
 }
 

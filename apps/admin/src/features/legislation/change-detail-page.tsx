@@ -5,14 +5,13 @@ import type {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
-import { ApiHttpError } from '@/api/http';
-import { AdminShell, LoadFailure } from '@/components/admin-shell';
+import { AdminShell } from '@/components/admin-shell';
+import { DetailQuery, Fact, Section } from '@/components/detail';
 import { formatDateTime } from '@/lib/format';
 
 import { fetchChange, legislationKey } from './api';
@@ -27,35 +26,6 @@ import {
 } from './format';
 import { LinkVersionDialog, NoImpactDialog } from './resolve-dialogs';
 import { WordDiff } from './word-diff-view';
-
-function Section({
-  title,
-  description,
-  children,
-  testId,
-}: {
-  title: string;
-  description?: ReactNode;
-  children: ReactNode;
-  testId?: string;
-}) {
-  return (
-    <section data-testid={testId} className="bg-background rounded-xl border p-4 sm:p-5">
-      <h2 className="font-semibold">{title}</h2>
-      {description && <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>}
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-function Fact({ term, children }: { term: string; children: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-muted-foreground text-xs">{term}</dt>
-      <dd className="mt-0.5 text-sm break-words">{children}</dd>
-    </div>
-  );
-}
 
 function PortalLink({ portalId, children }: { portalId: number | null; children: ReactNode }) {
   if (!portalId) return <>{children}</>;
@@ -385,25 +355,19 @@ export function ChangeDetailPage({ id }: { id: string }) {
 
   return (
     <AdminShell testId="legal-change-page" wide>
-      {change.isPending ? (
-        <div role="status" aria-label="Loading" className="space-y-4">
-          <Skeleton className="h-8 w-56" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      ) : change.isError ? (
-        change.error instanceof ApiHttpError && change.error.status === 404 ? (
+      <DetailQuery
+        query={change}
+        notFound={
           <div data-testid="change-not-found" className="space-y-3">
             <h1 className="text-2xl font-semibold tracking-tight">No such change</h1>
             <Link to="/legislation" className="text-sm font-medium underline underline-offset-4">
               Back to the changes
             </Link>
           </div>
-        ) : (
-          <LoadFailure error={change.error} onRetry={() => void change.refetch()} />
-        )
-      ) : (
-        <DetailBody change={change.data} />
-      )}
+        }
+      >
+        {(data) => <DetailBody change={data} />}
+      </DetailQuery>
     </AdminShell>
   );
 }

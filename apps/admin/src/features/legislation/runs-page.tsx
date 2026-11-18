@@ -1,21 +1,13 @@
 import type { LegalCheckRun } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
-import { cn } from '@ssm-usor/ui/lib/utils';
+import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 
-import { AdminShell, LoadFailure } from '@/components/admin-shell';
-import { Pager } from '@/components/pager';
+import { AdminShell } from '@/components/admin-shell';
+import { ListTable } from '@/components/list-table';
 import { formatDateTime, formatTime } from '@/lib/format';
+import { pageParam } from '@/lib/search';
 
 import { fetchRuns, legislationKey, type RunsSearch } from './api';
 import { runStatusLabels } from './format';
@@ -80,85 +72,44 @@ export function RunsPage({ search }: { search: RunsSearch }) {
   return (
     <AdminShell testId="legislation-runs-page" wide>
       <LegislationHeader />
-      {runs.isError && !runs.data ? (
-        <LoadFailure error={runs.error} onRetry={() => void runs.refetch()} />
-      ) : (
-        <div className="bg-background overflow-hidden rounded-xl border">
-          <Table
-            data-testid="legal-runs-table"
-            aria-label="Runs of the daily check"
-            aria-busy={runs.isPlaceholderData || undefined}
-          >
-            <TableHeader>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableHead key={column}>{column}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody className={cn(runs.isPlaceholderData && 'opacity-50')}>
-              {runs.isPending ? (
-                Array.from({ length: 3 }, (_, index) => (
-                  <TableRow key={index} className="hover:bg-transparent">
-                    {columns.map((column) => (
-                      <TableCell key={column}>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : runs.data.items.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={columns.length}
-                    className="text-muted-foreground h-40 text-center"
-                  >
-                    The daily check has not run yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                runs.data.items.map((run) => (
-                  <TableRow key={run.id} data-testid="legal-run-row" className="align-top">
-                    <TableCell className="tabular-nums">
-                      {formatDateTime(run.startedAt)}
-                      <div className="text-muted-foreground text-xs">
-                        {run.finishedAt
-                          ? `ended ${formatTime(run.finishedAt)}`
-                          : run.status === 'running'
-                            ? 'no end recorded'
-                            : ''}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <RunStatus run={run} />
-                    </TableCell>
-                    <TableCell className="tabular-nums">
-                      {run.actsChecked}
-                      {run.actsSkipped > 0 && (
-                        <span className="text-muted-foreground"> · {run.actsSkipped} skipped</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="tabular-nums">{run.changesFound}</TableCell>
-                    <TableCell className="whitespace-normal">
-                      <Errors run={run} />
-                    </TableCell>
-                  </TableRow>
-                ))
+      <ListTable
+        query={runs}
+        testId="legal-runs-table"
+        label="Runs of the daily check"
+        columns={columns}
+        empty="The daily check has not run yet."
+        row={(run) => (
+          <TableRow key={run.id} data-testid="legal-run-row" className="align-top">
+            <TableCell className="tabular-nums">
+              {formatDateTime(run.startedAt)}
+              <div className="text-muted-foreground text-xs">
+                {run.finishedAt
+                  ? `ended ${formatTime(run.finishedAt)}`
+                  : run.status === 'running'
+                    ? 'no end recorded'
+                    : ''}
+              </div>
+            </TableCell>
+            <TableCell>
+              <RunStatus run={run} />
+            </TableCell>
+            <TableCell className="tabular-nums">
+              {run.actsChecked}
+              {run.actsSkipped > 0 && (
+                <span className="text-muted-foreground"> · {run.actsSkipped} skipped</span>
               )}
-            </TableBody>
-          </Table>
-          {runs.data && (
-            <Pager
-              noun={{ one: 'run', many: 'runs' }}
-              page={runs.data.page}
-              pageSize={runs.data.pageSize}
-              total={runs.data.total}
-              disabled={runs.isFetching}
-              onPage={(page) => void navigate({ search: { page: page > 1 ? page : undefined } })}
-            />
-          )}
-        </div>
-      )}
+            </TableCell>
+            <TableCell className="tabular-nums">{run.changesFound}</TableCell>
+            <TableCell className="whitespace-normal">
+              <Errors run={run} />
+            </TableCell>
+          </TableRow>
+        )}
+        pager={{
+          noun: { one: 'run', many: 'runs' },
+          onPage: (page) => void navigate({ search: { page: pageParam(page) } }),
+        }}
+      />
     </AdminShell>
   );
 }

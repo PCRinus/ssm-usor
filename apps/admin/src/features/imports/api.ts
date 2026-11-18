@@ -7,6 +7,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { apiFetch, type ApiRequestOptions } from '@/api/http';
+import { oneOf, pageParam } from '@/lib/search';
 
 export interface ImportsSearch {
   page?: number;
@@ -16,17 +17,11 @@ export interface ImportsSearch {
   hasCopy?: boolean;
 }
 
-const oneOf = <T extends string>(values: readonly T[], value: unknown): T | undefined =>
-  typeof value === 'string' && (values as readonly string[]).includes(value)
-    ? (value as T)
-    : undefined;
-
 const flag = (value: unknown) => (value === true || value === 'true' ? true : undefined);
 
 export function importsSearchOf(search: Record<string, unknown>): ImportsSearch {
-  const page = Number(search.page);
   return {
-    page: Number.isInteger(page) && page > 1 ? page : undefined,
+    page: pageParam(search.page),
     kind: oneOf(importKinds, search.kind),
     status: oneOf(adminImportStatusFilters, search.status),
     reported: flag(search.reported),
