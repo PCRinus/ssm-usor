@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { Notice } from '@/components/notice';
 
@@ -36,12 +36,25 @@ export function ConfirmDialog({
   destructive?: boolean;
   confirmDisabled?: boolean;
   error?: string | null;
-  onConfirm: () => void;
+  // A returned promise keeps the dialog busy until it settles, refreshes after the request included.
+  onConfirm: () => unknown;
   onClose: () => void;
   children: ReactNode;
 }) {
+  const [running, setRunning] = useState(false);
+  const pending = busy || running;
+
+  async function confirm() {
+    setRunning(true);
+    try {
+      await onConfirm();
+    } finally {
+      setRunning(false);
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
+    <Dialog open={open} onOpenChange={(next) => !next && !pending && onClose()}>
       <DialogContent data-testid={`${testId}-dialog`} className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -53,16 +66,16 @@ export function ConfirmDialog({
           </Notice>
         )}
         <DialogFooter className="mt-2">
-          <Button variant="ghost" disabled={busy} onClick={onClose}>
+          <Button variant="ghost" disabled={pending} onClick={onClose}>
             Renunță
           </Button>
           <Button
             variant={destructive ? 'destructive' : 'default'}
             data-testid={`${testId}-confirm`}
-            disabled={busy || confirmDisabled}
-            onClick={onConfirm}
+            disabled={pending || confirmDisabled}
+            onClick={() => void confirm()}
           >
-            {busy ? pendingLabel : confirmLabel}
+            {pending ? pendingLabel : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

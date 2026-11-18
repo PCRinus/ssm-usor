@@ -40,7 +40,6 @@ export function RemoveProfileDialog({
     try {
       await remove.mutateAsync({ profileId: target.id });
     } catch (cause) {
-      if (isProfileInUse(cause)) await cache.refresh(target.id);
       if (!(cause instanceof ApiHttpError && cause.status === 404)) {
         setError(
           profileFailure(
@@ -48,6 +47,7 @@ export function RemoveProfileDialog({
             'Nu am putut șterge evaluarea. Verifică conexiunea și încearcă din nou.'
           )
         );
+        if (isProfileInUse(cause)) await cache.refresh(target.id);
         return;
       }
     }
@@ -67,7 +67,7 @@ export function RemoveProfileDialog({
         title="Ștergi evaluarea?"
         confirmLabel="Șterge evaluarea"
         pendingLabel="Se șterge…"
-        onConfirm={() => void removeProfile(profile)}
+        onConfirm={() => removeProfile(profile)}
         onClose={close}
       >
         Evaluarea <span className="font-medium text-foreground">{profile.name}</span> se șterge din

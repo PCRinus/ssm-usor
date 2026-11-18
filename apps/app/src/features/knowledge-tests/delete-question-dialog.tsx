@@ -54,7 +54,7 @@ export function DeleteQuestionDialog({
         title="Ștergi întrebarea?"
         confirmLabel="Șterge întrebarea"
         pendingLabel="Se șterge…"
-        onConfirm={() => void deleteQuestion(question)}
+        onConfirm={() => deleteQuestion(question)}
         onClose={close}
       >
         <span className="font-medium text-foreground">„{question.text}”</span> iese din bancă și din

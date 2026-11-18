@@ -399,6 +399,11 @@ function RemoveEvaluationDialog({
   const [error, setError] = useState<string | null>(null);
   const count = evaluation.factors.length;
 
+  function close() {
+    setError(null);
+    onClose();
+  }
+
   async function removeEvaluation() {
     setError(null);
     try {
@@ -429,8 +434,8 @@ function RemoveEvaluationDialog({
       title="Ștergi fișa de evaluare a riscurilor?"
       confirmLabel="Șterge fișa"
       pendingLabel="Se șterge…"
-      onConfirm={() => void removeEvaluation()}
-      onClose={onClose}
+      onConfirm={removeEvaluation}
+      onClose={close}
     >
       {count === 0
         ? 'Fișa nu are factori de risc.'

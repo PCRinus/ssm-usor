@@ -69,6 +69,41 @@ describe('ConfirmDialog', () => {
     expect(screen.getByTestId('thing-delete-confirm').textContent).toBe('Șterge');
   });
 
+  it('stays busy until a returned promise settles, past the end of the request', async () => {
+    let finish: () => void = () => undefined;
+    const onClose = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        busy={false}
+        testId="thing-delete"
+        title="Ștergi?"
+        confirmLabel="Șterge"
+        pendingLabel="Se șterge…"
+        onConfirm={() =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          })
+        }
+        onClose={onClose}
+      >
+        Nu se poate anula.
+      </ConfirmDialog>
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId('thing-delete-confirm'));
+    const confirm = screen.getByTestId<HTMLButtonElement>('thing-delete-confirm');
+    expect(confirm.textContent).toBe('Se șterge…');
+    expect(confirm.disabled).toBe(true);
+    await user.keyboard('{Escape}');
+    expect(onClose).not.toHaveBeenCalled();
+
+    finish();
+    await waitFor(() => expect(confirm.textContent).toBe('Șterge'));
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it('closes on Escape when nothing runs', async () => {
     render(<DeleteFlow deletion={vi.fn()} />);
     await userEvent.setup().keyboard('{Escape}');

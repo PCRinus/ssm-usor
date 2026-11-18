@@ -69,7 +69,7 @@ export function ProfileArchiveDialog({
         title={change.action === 'archive' ? 'Arhivezi evaluarea?' : 'Reactivezi evaluarea?'}
         confirmLabel={change.action === 'archive' ? 'Arhivează' : 'Reactivează'}
         pendingLabel={change.action === 'archive' ? 'Se arhivează…' : 'Se reactivează…'}
-        onConfirm={() => void confirm(change)}
+        onConfirm={() => confirm(change)}
         onClose={close}
       >
         <span className="font-medium text-foreground">„{change.profile.name}”</span>
