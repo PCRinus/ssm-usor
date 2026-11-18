@@ -5,30 +5,21 @@ import {
   testQuestionResponseSchema,
   testResultResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser as user,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'specialist' };
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const resultId = '7e7e7e7e-0000-4000-8000-000000000001';
@@ -124,8 +115,6 @@ type Upstream =
   | 'testSheetSignatures'
   | 'paperMark';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   const defaults: Record<Upstream, Handler> = {
     questions: (init, url) => {
@@ -166,14 +155,17 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/test_sheet_signatures': 'testSheetSignatures',
     '/rest/v1/rpc/mark_test_sheet_paper_signature': 'paperMark',
   };
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    const upstream = paths[url.pathname];
-    if (!upstream) throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
-    return handlers[upstream]?.(init, url) ?? defaults[upstream](init, url)!;
-  });
+  mockSignedInUpstream(
+    Object.fromEntries(
+      Object.entries(paths).map(([pathname, upstream]) => [
+        pathname,
+        ({ method, url }) => {
+          const init = { method };
+          return handlers[upstream]?.(init, url) ?? defaults[upstream](init, url)!;
+        },
+      ])
+    )
+  );
 }
 
 const calls = (pathname: string, method = 'GET') =>
@@ -186,30 +178,12 @@ const sent = (pathname: string, method: string) =>
   JSON.parse(String(calls(pathname, method)[0]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown, bindings = env) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    bindings
-  );
+  apiRequest(path, { method, body }, bindings);
 
 const raised = (code: string, message: string) =>
   Response.json({ code, message, details: null, hint: null }, { status: 400 });
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  fetchMock.mockReset();
-});
+stubFetch();
 
 describe('GET /organization/tests/questions', () => {
   it('lists every test with its questions in the printed order, flagged built-in and hidden, and the fixed rules', async () => {
@@ -532,7 +506,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
     });
     const response = await request(`${testsPath}/results`, 'POST', paper, {
       ...env,
-      SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+      SUPABASE_SECRET_KEY: testSecretKey,
     });
     expect(response.status).toBe(201);
     const sheets = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
@@ -716,7 +690,7 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/tests/results/{result
 
 describe('the test sheet of a result', () => {
   const path = `${testsPath}/results/${resultId}`;
-  const withSecret = { ...env, SUPABASE_SECRET_KEY: 'sb_secret_test_key_value' };
+  const withSecret = { ...env, SUPABASE_SECRET_KEY: testSecretKey };
   const portalResult = {
     ...resultRow,
     source: 'portal',
@@ -808,9 +782,7 @@ describe('the test sheet of a result', () => {
       expiresInSeconds: 600,
     });
     const [signing] = calls(`/storage/v1/object/sign/documents/${storagePath}`, 'POST');
-    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
-      'Bearer sb_secret_test_key_value'
-    );
+    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(`Bearer ${testSecretKey}`);
   });
 
   it('has no link for a sheet the pass could not draw up', async () => {
