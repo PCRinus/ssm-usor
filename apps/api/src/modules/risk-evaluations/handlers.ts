@@ -5,12 +5,9 @@ import {
   type RiskEvaluation,
   type RiskEvaluationKind,
   type RiskEvaluationSummary,
-  type RiskFactor,
   type RiskFactorRequest,
   type RiskFactorSourceProfile,
   type RiskFactorSuggestionField,
-  riskLevel,
-  riskLevelTotals,
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
@@ -23,6 +20,16 @@ import {
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { findJobPosition } from '../job-positions/handlers';
+import {
+  bySortOrder,
+  factorTotals,
+  preventionMeasureFieldColumns,
+  type PreventionMeasureFields,
+  riskFactorArgs,
+  riskFactorFieldColumns,
+  type RiskFactorFields,
+  toRiskFactor,
+} from './factors';
 import type {
   copyRiskFactorsRoute,
   createRiskEvaluationRoute,
@@ -40,33 +47,6 @@ import type {
 } from './routes';
 
 type Tables = Database['public']['Tables'];
-
-export type RiskFactorFields = Pick<
-  Tables['risk_factors']['Row'],
-  | 'id'
-  | 'component'
-  | 'factor_group'
-  | 'description'
-  | 'gravity_class'
-  | 'probability_class'
-  | 'actions'
-  | 'deadline'
-  | 'responsible_person'
-  | 'observations'
-  | 'sort_order'
-  | 'created_at'
-  | 'updated_at'
->;
-
-export type PreventionMeasureFields = Pick<
-  Tables['prevention_measures']['Row'],
-  'id' | 'kind' | 'description' | 'sort_order'
->;
-
-export const riskFactorFieldColumns =
-  'id, component, factor_group, description, gravity_class, probability_class, actions, deadline, responsible_person, observations, sort_order, created_at, updated_at';
-
-export const preventionMeasureFieldColumns = 'id, kind, description, sort_order';
 
 type SourceProfileFactor = { evaluation_profiles: RiskFactorSourceProfile } | null;
 
@@ -103,49 +83,6 @@ const evaluationColumns = `id, client_id, kind, name, means_of_production, work_
 
 const summaryColumns =
   'id, client_id, kind, name, created_at, updated_at, job_positions(id, name, archived_at), risk_factors(gravity_class, probability_class)';
-
-export const bySortOrder = (
-  a: { sort_order: number; id: string },
-  b: { sort_order: number; id: string }
-) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
-
-export function toRiskFactor(
-  factor: RiskFactorFields,
-  measures: PreventionMeasureFields[],
-  sourceProfile: RiskFactorSourceProfile | null = null
-): RiskFactor {
-  return {
-    id: factor.id,
-    component: factor.component,
-    group: factor.factor_group,
-    description: factor.description,
-    gravityClass: factor.gravity_class,
-    probabilityClass: factor.probability_class,
-    riskLevel: riskLevel(factor.gravity_class, factor.probability_class),
-    measures: [...measures].sort(bySortOrder).map((measure) => ({
-      id: measure.id,
-      kind: measure.kind,
-      description: measure.description,
-    })),
-    actions: factor.actions,
-    deadline: factor.deadline,
-    responsiblePerson: factor.responsible_person,
-    observations: factor.observations,
-    sourceProfile,
-    createdAt: factor.created_at,
-    updatedAt: factor.updated_at,
-  };
-}
-
-export function factorTotals(
-  factors: Pick<RiskFactorFields, 'gravity_class' | 'probability_class'>[]
-) {
-  const classed = factors.map((f) => ({
-    gravityClass: f.gravity_class,
-    probabilityClass: f.probability_class,
-  }));
-  return { ...riskLevelTotals(classed), factorCount: classed.length };
-}
 
 function toEvaluation(row: EvaluationRow): RiskEvaluation {
   const factors = [...row.risk_factors]
@@ -436,22 +373,6 @@ export const removeRiskEvaluation: RouteHandler<typeof removeRiskEvaluationRoute
   if (data.length === 0) throw noSuchEvaluation();
   return c.body(null, 204);
 };
-
-export function riskFactorArgs(body: RiskFactorRequest) {
-  return {
-    p_component: body.component,
-    p_factor_group: body.group,
-    p_description: body.description,
-    p_gravity_class: body.gravityClass,
-    p_probability_class: body.probabilityClass,
-    p_measures: body.measures,
-    // Left out, the database sets null: the generated types do not take null for these.
-    p_actions: body.actions ?? undefined,
-    p_deadline: body.deadline ?? undefined,
-    p_responsible_person: body.responsiblePerson ?? undefined,
-    p_observations: body.observations ?? undefined,
-  };
-}
 
 async function saveFactor(
   db: DataClient,

@@ -18,18 +18,16 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import {
-  byEvaluationOrder,
   bySortOrder,
   factorTotals,
-  findEvaluation,
-  loadEvaluation,
   preventionMeasureFieldColumns,
   type PreventionMeasureFields,
   riskFactorArgs,
   riskFactorFieldColumns,
   type RiskFactorFields,
   toRiskFactor,
-} from '../risk-evaluations/handlers';
+} from '../risk-evaluations/factors';
+import { byEvaluationOrder, findEvaluation, loadEvaluation } from '../risk-evaluations/handlers';
 import type {
   applyEvaluationProfileRoute,
   createEvaluationProfileFactorRoute,
