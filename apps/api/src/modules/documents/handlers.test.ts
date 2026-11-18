@@ -4497,9 +4497,12 @@ describe('the document a change answers with', () => {
   it('loads the facts for a saved draft, which is compared with them', async () => {
     mockUpstream({
       documents: changing({ ...documentRow, document_revisions: [revisionRow] }, () => null),
+      clients: () => Response.json({ ...clientRow, legal_representative_name: 'Alt NUME' }),
     });
     const response = await send(`/documents/${documentId}/draft/file`, 'PUT', docx, wordType);
     expect(response.status).toBe(200);
+    const { document } = clientDocumentResponseSchema.parse(await response.json());
+    expect(document.draft!.dataChanged).toBe(true);
     expect(factLoads()).toBe(1);
   });
 

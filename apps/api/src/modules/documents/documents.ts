@@ -92,6 +92,20 @@ const typeOrders = Object.fromEntries(
 
 export type Actor = { userId: string; organizationId: string; createdBy: string };
 
+type ComparedDraft = RevisionRow & {
+  data_snapshot: NonNullable<RevisionRow['data_snapshot']>;
+  document_generations: NonNullable<RevisionRow['document_generations']>;
+};
+
+function isComparedDraft(document: DocumentRow, revision: RevisionRow): revision is ComparedDraft {
+  return (
+    setOfGroup(document.document_group) !== null &&
+    revision.status === 'draft' &&
+    Boolean(revision.data_snapshot) &&
+    Boolean(revision.document_generations)
+  );
+}
+
 /**
  * Whether the stored facts would print differently from what the draft was generated from.
  * Nothing to compare for an uploaded file. Data missing that this document prints changes it;
@@ -102,16 +116,8 @@ function dataChanged(
   revision: RevisionRow,
   facts: StoredDocumentFacts | null
 ) {
-  const set = setOfGroup(document.document_group);
-  if (
-    !facts ||
-    !set ||
-    revision.status !== 'draft' ||
-    !revision.data_snapshot ||
-    !revision.document_generations
-  ) {
-    return false;
-  }
+  if (!facts || !isComparedDraft(document, revision)) return false;
+  const set = setOfGroup(document.document_group)!;
   const rules = setRules[set];
   const input = {
     ...facts,
@@ -309,18 +315,9 @@ async function presentDocument(
   return presented!;
 }
 
-// Kept in step with the guard of `dataChanged`: a load it lets past costs some 25 subrequests
-// for an answer that cannot differ, and one it stops leaves a changed draft unflagged.
-const comparesWithFacts = (document: DocumentRow) =>
-  setOfGroup(document.document_group) !== null &&
-  document.document_revisions.some(
-    (revision) =>
-      revision.status === 'draft' && revision.data_snapshot && revision.document_generations
-  );
-
 async function presentChanged(db: DataClient, actor: Actor, documentId: string) {
   const document = await readDocument(db, documentId);
-  const facts = comparesWithFacts(document)
+  const facts = document.document_revisions.some((revision) => isComparedDraft(document, revision))
     ? await loadDocumentFacts(db, document.client_id, actor)
     : null;
   return presentDocument(db, document, facts);
@@ -889,7 +886,8 @@ export async function regenerateDocument(
   return presentDocument(db, await readDocument(db, documentId), facts);
 }
 
-// The queue's way in: it answers no one with the document, so it skips presenting it.
+// The queue's way in: it answers no one with the document, so it skips presenting it. The
+// facts it returns are for `regenerateDocument`, which presents the draft with them.
 export async function regenerateDraft(
   db: DataClient,
   files: FileStore,
