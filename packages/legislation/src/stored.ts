@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-// The `.catch` fallbacks read rows written before the field existed.
-
 export const amendmentOperations = [
   'modified',
   'supplemented',
@@ -25,6 +23,7 @@ export const storedList = <T extends z.ZodType>(item: T) =>
       })
     );
 
+// A detail the reader cannot read is left out, and the act or unit still shows by its name.
 export const storedAmendingActSchema = z.object({
   name: z.string(),
   date: z.iso.date().nullable().catch(null),
@@ -50,6 +49,7 @@ export const storedReviewReasonSchema = z.string();
 
 export const storedRunErrorSchema = z.object({
   act: z.string().nullable(),
+  // Errors recorded before the runs kept a kind carry only the act and the message.
   kind: z.enum(failureKinds).catch('other'),
   status: z.int().optional(),
   message: z.string(),
