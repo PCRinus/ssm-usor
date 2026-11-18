@@ -5,7 +5,7 @@ import { render, toPlainText } from 'react-email';
 import type { MailEnv } from './env';
 import { createProvider, type MailProvider } from './provider';
 
-type Message = {
+export type Message = {
   to: string;
   subject: string;
   body: ReactElement;

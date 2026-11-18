@@ -54,6 +54,26 @@ describe('libraryTitle', () => {
       'Instrucțiuni proprii în domeniul securității în muncă'
     );
   });
+
+  it('keeps a title within the database’s 200 characters', () => {
+    const long =
+      'Utilizarea mașinii de tocat carne și a feliatorului din laboratorul de cofetărie '.repeat(4);
+
+    const title = libraryTitle(long);
+
+    expect(title.length).toBeLessThanOrEqual(200);
+    expect(title.length).toBeGreaterThan(180);
+    expect(long.startsWith(title)).toBe(true);
+    expect(long.charAt(title.length)).toBe(' ');
+  });
+
+  it('cuts a title at 200 when a word boundary would leave much less', () => {
+    const unbroken = `Feliator${'x'.repeat(250)}`;
+    const oneLongWord = `Utilizarea ${'x'.repeat(250)}`;
+
+    expect(libraryTitle(unbroken)).toBe(unbroken.slice(0, 200));
+    expect(libraryTitle(oneLongWord)).toBe(oneLongWord.slice(0, 200));
+  });
 });
 
 const named = packFile('SSM/Client.docx', [

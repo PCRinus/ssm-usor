@@ -21,6 +21,7 @@ import {
   startImport,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { roCount } from '@/features/employees/employee-format';
 
 import { shrinkSelected } from './employees/shrink-photo';
 import { importErrorMessage, importErrorReason } from './import-format';
@@ -79,7 +80,7 @@ function overAfterShrinking(files: SelectedFile[], foundBytes: number) {
     return `Fotografia „${large[0]!.name}” are peste 25 MB și nu am putut-o micșora. Salveaz-o mai mică sau fotografiaz-o din nou, apoi alege fotografiile din nou.`;
   }
   if (large.length > 1) {
-    return `${large.length} fotografii au peste 25 MB și nu le-am putut micșora, între ele „${large[0]!.name}”. Salvează-le mai mici, apoi alege fotografiile din nou.`;
+    return `${roCount(large.length, 'fotografie', 'fotografii')} au peste 25 MB și nu le-am putut micșora, între ele „${large[0]!.name}”. Salvează-le mai mici, apoi alege fotografiile din nou.`;
   }
   const bytes = files.reduce((total, file) => total + file.size, foundBytes);
   if (bytes > limits.totalBytes) {

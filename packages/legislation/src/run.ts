@@ -9,6 +9,7 @@ import {
   tally,
 } from './check';
 import type { LegislationClient } from './database';
+import type { StoredRunError } from './stored';
 
 // `act` is null when the run itself failed, not one act's page.
 export type RunError = { act: string | null } & Failure;
@@ -73,7 +74,7 @@ export async function runLegislationCheck(
         (outcome) => outcome.result === 'checked' && outcome.change?.recorded
       ).length,
       acts_skipped: outcomes.filter((outcome) => outcome.result === 'skipped').length,
-      errors: errors.length > 0 ? errors : null,
+      errors: errors.length > 0 ? (errors satisfies StoredRunError[]) : null,
     })
     .eq('id', id);
   if (finished.error) {

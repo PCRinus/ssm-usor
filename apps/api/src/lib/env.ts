@@ -184,6 +184,10 @@ export function appOrigin(env: ApiEnv['Bindings']) {
   return requiredOrigin(env, 'APP_ORIGIN');
 }
 
+export function subscriptionUrl(env: ApiEnv['Bindings']) {
+  return new URL('/organizatie/abonament', appOrigin(env)).href;
+}
+
 export function portalOrigin(env: ApiEnv['Bindings']) {
   return requiredOrigin(env, 'PORTAL_ORIGIN');
 }

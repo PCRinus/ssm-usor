@@ -68,6 +68,18 @@ describe('convertDocx', () => {
     await expect(convertDocx(refusing, docx, 0)).rejects.toThrow(pdfConversionFailed);
     expect(refusing).toHaveBeenCalledTimes(1);
   });
+
+  it('fails as a conversion when the second attempt breaks off while answering', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const broken = new ReadableStream({
+      start: (controller) => controller.error(new Error('connection reset')),
+    });
+    const waking = vi
+      .fn<(request: Request) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response('Failed to start container', { status: 500 }))
+      .mockResolvedValueOnce(new Response(broken));
+    await expect(convertDocx(waking, docx, 0)).rejects.toThrow(new Error(pdfConversionFailed));
+  });
 });
 
 describe('convertForm', () => {

@@ -10,6 +10,7 @@ import { type LawHunk, type UnitChange, unitLabel } from './forms';
 import { assessImpact, type Impact, type ImpactOutcome } from './impact';
 import type { CitedPassage } from './locator';
 import { pause, PortalError, type PortalOptions, portalPauseMs } from './portal';
+import type { StoredAmendedUnit, StoredAmendingAct, StoredHunk } from './stored';
 
 export type IndexedCitation = CitedPassage & {
   manifest: string;
@@ -297,7 +298,7 @@ export async function storeAssessment(
         status: passage.status,
         old_text: passage.old,
         new_text: passage.new,
-        hunks: passage.hunks,
+        hunks: passage.hunks satisfies StoredHunk[],
       }))
     );
     if (inserted.error) {
@@ -309,8 +310,8 @@ export async function storeAssessment(
     .update({
       outcome: assessment.outcome,
       compared_with: assessment.comparedWith,
-      amending_acts: assessment.amendingActs,
-      amended_units: assessment.amendedUnits,
+      amending_acts: assessment.amendingActs satisfies StoredAmendingAct[],
+      amended_units: assessment.amendedUnits satisfies StoredAmendedUnit[],
       review: assessment.review,
       assessed_at: now,
       ...(assessment.resolved && {

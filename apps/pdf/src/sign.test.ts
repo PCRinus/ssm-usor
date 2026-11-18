@@ -1,7 +1,7 @@
 import { signerFailed, signerOverHttp, signerRefusalCode } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Fetcher } from './convert';
+import type { Fetcher } from './container-call';
 import { postToSigner } from './sign';
 
 const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;

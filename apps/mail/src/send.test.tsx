@@ -1,31 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import WaitlistConfirmation, { subject } from './emails/waitlist-confirmation';
-import type { MailEnv } from './env';
-import type { OutgoingEmail } from './provider';
 import { sendEmail } from './send';
-
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
+import { captureProvider, testEnv } from './testing';
 
 const confirmUrl = 'https://api.ssmusor.ro/waitlist/confirm?token=abc123';
 
 async function sendWaitlistConfirmation() {
-  const sent: OutgoingEmail[] = [];
+  const provider = captureProvider();
   const receipt = await sendEmail(
-    env,
+    testEnv,
     { to: 'ana@example.ro', subject, body: <WaitlistConfirmation confirmUrl={confirmUrl} /> },
-    {
-      send: async (email) => {
-        sent.push(email);
-        return { id: 'msg_1' };
-      },
-    }
+    provider
   );
 
-  return { receipt, email: sent[0]! };
+  return { receipt, email: provider.sent[0]! };
 }
 
 describe('sendEmail', () => {
@@ -34,8 +23,8 @@ describe('sendEmail', () => {
 
     expect(receipt).toEqual({ id: 'msg_1' });
     expect(email).toMatchObject({
-      from: env.MAIL_FROM,
-      replyTo: env.MAIL_REPLY_TO,
+      from: testEnv.MAIL_FROM,
+      replyTo: testEnv.MAIL_REPLY_TO,
       to: 'ana@example.ro',
       subject,
     });

@@ -1,12 +1,13 @@
 import type { BillingSmsUsage } from '@ssm-usor/contracts';
 
-import { smsPolicy, smsState, type SmsSubscription } from './policy';
+import type { EntitlementRow } from '../billing/entitlements';
+import { smsPolicy, smsState } from './policy';
 import type { SmsUsageStore } from './store';
 
 export async function smsUsageOf(
   store: Pick<SmsUsageStore, 'periodUsage' | 'smsCeiling'>,
   organizationId: string,
-  row: SmsSubscription | null,
+  row: EntitlementRow | null,
   now: Date
 ): Promise<BillingSmsUsage> {
   const policy = smsPolicy(row, now);

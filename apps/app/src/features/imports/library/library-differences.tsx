@@ -4,6 +4,7 @@ import { useRouteContext } from '@tanstack/react-router';
 
 import { getGetInstructionModuleQueryKey, useGetInstructionModule } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
+import { roCount } from '@/features/employees/employee-format';
 
 import type { ProposedInstruction } from './library-model';
 
@@ -75,11 +76,10 @@ export function LibraryDifferences({ instruction }: { instruction: ProposedInstr
         Față de „{match.title}”:{' '}
         {[
           counts.added > 0 &&
-            `${counts.added} ${counts.added === 1 ? 'articol adăugat' : 'articole adăugate'} în pachet`,
+            `${roCount(counts.added, 'articol adăugat', 'articole adăugate')} în pachet`,
           counts.removed > 0 &&
-            `${counts.removed} ${counts.removed === 1 ? 'articol care lipsește' : 'articole care lipsesc'} din pachet`,
-          counts.changed > 0 &&
-            `${counts.changed} ${counts.changed === 1 ? 'articol schimbat' : 'articole schimbate'}`,
+            `${roCount(counts.removed, 'articol care lipsește', 'articole care lipsesc')} din pachet`,
+          counts.changed > 0 && roCount(counts.changed, 'articol schimbat', 'articole schimbate'),
         ]
           .filter(Boolean)
           .join(', ')}

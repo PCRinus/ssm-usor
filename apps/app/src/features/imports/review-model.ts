@@ -23,6 +23,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
+import { roNoun } from '@/features/employees/employee-format';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
 export type Proposal = NonNullable<ImportDetail['proposal']>;
@@ -407,7 +408,7 @@ export function formatFieldValue(
     case 'trainingSchedule.workerTrainingIntervalMonths':
     case 'fireSafety.administrativeTrainingIntervalMonths':
     case 'fireSafety.workerTrainingIntervalMonths':
-      return Number(text) === 1 ? 'lunar' : `la ${text} luni`;
+      return Number(text) === 1 ? 'lunar' : `la ${text} ${roNoun(Number(text), 'lună', 'luni')}`;
     case 'trainingSchedule.trainingFirstMonth':
     case 'fireSafety.trainingFirstMonth':
       return months[Number(text) - 1] ?? text;

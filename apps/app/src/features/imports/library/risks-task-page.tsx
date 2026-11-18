@@ -19,6 +19,7 @@ import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { roCount } from '@/features/employees/employee-format';
 import { scrollAndFocus } from '@/features/missing-data/focus';
 import type { FactorStore } from '@/features/risk-evaluations/factor-store';
 import type { EditableFactor } from '@/features/risk-evaluations/risk-evaluation-schema';
@@ -500,7 +501,9 @@ function TaskContent({
                   tone="destructive"
                   onClick={() => pointToSheet(names[0]!.state.sheet.key)}
                 >
-                  {names.length === 1 ? 'Un nume de schimbat' : `${names.length} nume de schimbat`}
+                  {names.length === 1
+                    ? 'Un nume de schimbat'
+                    : `${roCount(names.length, 'nume', 'nume')} de schimbat`}
                 </ImportIssueBadge>
               )}
               {reviewable && choicesCount > 0 && (
@@ -510,7 +513,7 @@ function TaskContent({
                 >
                   {choicesCount === 1
                     ? 'O alegere de verificat'
-                    : `${choicesCount} alegeri de verificat`}
+                    : `${roCount(choicesCount, 'alegere', 'alegeri')} de verificat`}
                 </ImportIssueBadge>
               )}
             </div>

@@ -1,6 +1,8 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { use } from 'react';
 
+import { roCount } from '@/features/employees/employee-format';
+
 import type { FieldName, SheetPage } from './employee-review-model';
 import { pageIndex } from './person-sections';
 import { ShowPageContext, ViewedPhotoContext } from './show-page';
@@ -85,7 +87,7 @@ export function PhotoNumbers({
           type="button"
           tabIndex={tabIndex}
           onClick={() => more && show(more, { choice })}
-          aria-label={`${rest.length === 1 ? 'Încă o fotografie' : `Încă ${rest.length} fotografii`}, ${about}: ${rest.map((pageId) => pageIndex(pages, pageId) + 1).join(', ')}`}
+          aria-label={`${rest.length === 1 ? 'Încă o fotografie' : `Încă ${roCount(rest.length, 'fotografie', 'fotografii')}`}, ${about}: ${rest.map((pageId) => pageIndex(pages, pageId) + 1).join(', ')}`}
           data-testid="person-page-more"
           className={cn(
             chip,

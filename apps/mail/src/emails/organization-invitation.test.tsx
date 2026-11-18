@@ -1,42 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail } from '../testing';
 import OrganizationInvitation, { subject } from './organization-invitation';
-
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
 
 const acceptUrl = 'https://app.ssmusor.ro/invitatie?token=abc123';
 
 async function sendInvitation(inviterName: string | null) {
-  const sent: OutgoingEmail[] = [];
-  await sendEmail(
-    env,
-    {
-      to: 'ion@example.ro',
-      subject: subject('Protect SSM'),
-      body: (
-        <OrganizationInvitation
-          acceptUrl={acceptUrl}
-          organizationName="Protect SSM"
-          inviterName={inviterName}
-          expiresAt="2026-09-25T21:30:00.000Z"
-        />
-      ),
-    },
-    {
-      send: async (email) => {
-        sent.push(email);
-        return { id: 'msg_1' };
-      },
-    }
-  );
-
-  return sent[0]!;
+  return sentEmail({
+    to: 'ion@example.ro',
+    subject: subject('Protect SSM'),
+    body: (
+      <OrganizationInvitation
+        acceptUrl={acceptUrl}
+        organizationName="Protect SSM"
+        inviterName={inviterName}
+        expiresAt="2026-09-25T21:30:00.000Z"
+      />
+    ),
+  });
 }
 
 describe('organization invitation', () => {

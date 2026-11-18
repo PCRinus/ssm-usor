@@ -1,87 +1,96 @@
-export type DiffPart =
-  { kind: 'same'; text: string } | { kind: 'changed'; deleted: string; inserted: string };
+import { diff, type DiffOp, tokenize } from '@ssm-usor/document-engine/token-diff';
 
-type Op = { kind: 'same' | 'deleted' | 'inserted'; token: string };
-
-const tokenPattern = /\s+|[\p{L}\p{M}\p{N}]+|[^\s\p{L}\p{M}\p{N}]/gu;
+export type DiffSegment = { kind: 'same' | 'deleted' | 'inserted'; text: string };
 
 // Past this many cells the table outgrows a tab's patience; an article is a few hundred words.
 const maxCells = 4_000_000;
 
-function operations(a: string[], b: string[]) {
-  const width = b.length + 1;
-  const lengths = new Uint32Array((a.length + 1) * width);
-  for (let i = a.length - 1; i >= 0; i -= 1) {
-    for (let j = b.length - 1; j >= 0; j -= 1) {
-      lengths[i * width + j] =
-        a[i] === b[j]
-          ? lengths[(i + 1) * width + j + 1]! + 1
-          : Math.max(lengths[(i + 1) * width + j]!, lengths[i * width + j + 1]!);
-    }
-  }
-  const ops: Op[] = [];
-  let i = 0;
-  let j = 0;
-  while (i < a.length || j < b.length) {
-    if (i < a.length && j < b.length && a[i] === b[j]) {
-      ops.push({ kind: 'same', token: a[i]! });
-      i += 1;
-      j += 1;
-    } else if (
-      j < b.length &&
-      (i === a.length || lengths[i * width + j + 1]! >= lengths[(i + 1) * width + j]!)
-    ) {
-      ops.push({ kind: 'inserted', token: b[j]! });
-      j += 1;
-    } else {
-      ops.push({ kind: 'deleted', token: a[i]! });
-      i += 1;
-    }
-  }
-  return ops;
+const space = /^\s+$/;
+const leading = (text: string) => /^\s*/.exec(text)![0];
+const trailing = (text: string) => /\s*$/.exec(text)![0];
+
+function commonPrefix(a: string, b: string) {
+  let length = 0;
+  while (length < a.length && length < b.length && a[length] === b[length]) length += 1;
+  return a.slice(0, length);
 }
 
-function pushSame(parts: DiffPart[], text: string) {
-  const last = parts.at(-1);
-  if (last?.kind === 'same') last.text += text;
-  else parts.push({ kind: 'same', text });
+function commonSuffix(a: string, b: string) {
+  let length = 0;
+  while (length < a.length && length < b.length && a.at(-1 - length) === b.at(-1 - length)) {
+    length += 1;
+  }
+  return length === 0 ? '' : a.slice(-length);
 }
 
-const blank = (op: Op | undefined) => op?.kind === 'same' && /^\s+$/.test(op.token);
-
-// A space kept between two changed words is part of the change: "casca" → "pe cap cască" reads
-// as one replacement, not as three edits around kept spaces.
-export function wordDiff(before: string, after: string): DiffPart[] | null {
-  const a = before.match(tokenPattern) ?? [];
-  const b = after.match(tokenPattern) ?? [];
+export function wordDiff(before: string, after: string): DiffSegment[] | null {
+  const a = tokenize(before);
+  const b = tokenize(after);
   if ((a.length + 1) * (b.length + 1) > maxCells) return null;
-  const ops = operations(a, b);
-  const parts: DiffPart[] = [];
-  let index = 0;
-  while (index < ops.length) {
-    const op = ops[index]!;
-    if (op.kind === 'same') {
-      pushSame(parts, op.token);
-      index += 1;
+
+  const segments: DiffSegment[] = [];
+  const push = (kind: DiffSegment['kind'], text: string) => {
+    if (!text) return;
+    const last = segments.at(-1);
+    if (last?.kind === kind) last.text += text;
+    else segments.push({ kind, text });
+  };
+
+  let deleted = '';
+  let inserted = '';
+  let held = '';
+  let run: DiffOp<string>[] = [];
+  const flush = () => {
+    if (!deleted && !inserted) return;
+    const before = deleted && inserted ? commonPrefix(leading(deleted), leading(inserted)) : '';
+    const after =
+      deleted && inserted
+        ? commonSuffix(
+            trailing(deleted.slice(before.length)),
+            trailing(inserted.slice(before.length))
+          )
+        : '';
+    const gone = deleted.slice(before.length, deleted.length - after.length);
+    const added = inserted.slice(before.length, inserted.length - after.length);
+    // Joined spacing that leaves one side as bare spacing would mark a change that is not one.
+    if ((gone && !gone.trim()) || (added && !added.trim())) {
+      for (const op of run) {
+        if (op.kind === 'equal') push('same', op.after);
+        else if (op.kind === 'delete') push('deleted', op.before);
+        else push('inserted', op.after);
+      }
+    } else {
+      push('same', before);
+      push('deleted', gone);
+      push('inserted', added);
+      push('same', after);
+    }
+    deleted = '';
+    inserted = '';
+    run = [];
+  };
+
+  for (const op of diff(a, b)) {
+    if (op.kind === 'equal') {
+      // Spacing between two changed words joins them, so a phrase reads as one change.
+      if ((deleted || inserted) && space.test(op.after)) {
+        held += op.after;
+        continue;
+      }
+      flush();
+      push('same', held + op.after);
+      held = '';
       continue;
     }
-    let deleted = '';
-    let inserted = '';
-    const start = index;
-    while (index < ops.length) {
-      const current = ops[index]!;
-      if (current.kind === 'deleted') deleted += current.token;
-      else if (current.kind === 'inserted') inserted += current.token;
-      else if (blank(current) && ops[index + 1] && ops[index + 1]!.kind !== 'same') {
-        deleted += current.token;
-        inserted += current.token;
-      } else break;
-      index += 1;
-    }
-    const space = (op: Op) => /^\s+$/.test(op.token);
-    if (space(ops[start]!)) pushSame(parts, ' ');
-    parts.push({ kind: 'changed', deleted: deleted.trim(), inserted: inserted.trim() });
-    if (index - 1 > start && space(ops[index - 1]!)) pushSame(parts, ' ');
+    deleted += held;
+    inserted += held;
+    if (held) run.push({ kind: 'equal', before: held, after: held });
+    held = '';
+    run.push(op);
+    if (op.kind === 'delete') deleted += op.before;
+    else inserted += op.after;
   }
-  return parts;
+  flush();
+  push('same', held);
+  return segments;
 }

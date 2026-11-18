@@ -21,7 +21,7 @@ import type { Context } from 'hono';
 import type Stripe from 'stripe';
 
 import { createAdminClient } from '../../lib/admin-db';
-import { type ApiEnv, appOrigin } from '../../lib/env';
+import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
@@ -70,8 +70,6 @@ import {
   type SubscriptionRow,
 } from './store';
 import { stripeCatalogue, stripeFor } from './stripe';
-
-const subscriptionTab = '/organizatie/abonament';
 
 function billingOf(c: Context<ApiEnv>): Billing {
   return {
@@ -376,7 +374,7 @@ export const createPortalSession: RouteHandler<typeof createPortalSessionRoute, 
     );
   }
   const stripeBilling = await withStripe(c, billing);
-  const returnUrl = new URL(subscriptionTab, appOrigin(c.env)).href;
+  const returnUrl = subscriptionUrl(c.env);
   const session = await stripeBilling.access.stripe.billingPortal.sessions.create({
     customer: row.stripe_customer_id,
     ...(stripeBilling.catalogue.portalConfigurationId

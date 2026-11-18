@@ -8,6 +8,8 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { TriangleAlert } from 'lucide-react';
 import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
 
+import { roCount } from '@/features/employees/employee-format';
+
 import { editorStrings } from './editor-strings.ro';
 
 // The Word editor itself, in a module of its own so that its three megabytes are only
@@ -51,7 +53,7 @@ function UnfilledNavigator() {
       onClick={next}
     >
       <TriangleAlert aria-hidden="true" />
-      {matches.length === 1 ? '1 loc de completat' : `${matches.length} locuri de completat`}
+      {roCount(matches.length, 'loc', 'locuri')} de completat
       <span className="font-normal">
         {activeIndex < 0 ? '· arată' : `· ${activeIndex + 1} din ${matches.length}`}
       </span>

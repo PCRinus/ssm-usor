@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail } from '../testing';
 import EmployeesOverStepNotice, {
   type EmployeesOverStepNoticeProps,
   subject,
   workers,
 } from './employees-over-step-notice';
-
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
 
 const over: EmployeesOverStepNoticeProps = {
   kind: 'employees_over',
@@ -24,17 +17,11 @@ const over: EmployeesOverStepNoticeProps = {
 };
 
 async function sendNotice(props: EmployeesOverStepNoticeProps) {
-  const sent: OutgoingEmail[] = [];
-  await sendEmail(
-    env,
-    {
-      to: 'olga@exemplu.example',
-      subject: subject(props),
-      body: <EmployeesOverStepNotice {...props} />,
-    },
-    { send: async (email) => (sent.push(email), { id: 'msg_1' }) }
-  );
-  return sent[0]!;
+  return sentEmail({
+    to: 'olga@exemplu.example',
+    subject: subject(props),
+    body: <EmployeesOverStepNotice {...props} />,
+  });
 }
 
 describe('employees over the step notice', () => {

@@ -21,6 +21,7 @@ import {
   docxToText,
   employeeImportProposalSchema,
   type ExistingClient,
+  fileHeader,
   type FileTriage,
   GatewayError,
   libraryFiles,
@@ -820,7 +821,7 @@ async function triageScan(
     {
       role: 'user',
       content: [
-        { type: 'text', text: `=== FILE: ${file.upload_path} (image follows) ===` },
+        { type: 'text', text: fileHeader(file.upload_path) },
         { type: 'image_url', image_url: { url: dataUrl(first.bytes, first.type) } },
       ],
     },

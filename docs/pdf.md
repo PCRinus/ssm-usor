@@ -212,8 +212,9 @@ a new draft.
 
 `pnpm --filter @ssm-usor/pdf start` is the other way: it runs `wrangler dev` for the Worker
 itself, which builds the image and starts the container on the first conversion, for working
-on `apps/pdf`. Tests (`src/convert.test.ts`) cover the request and the failure handling
-without a container.
+on `apps/pdf`. Tests cover the request (`src/convert.test.ts`) and the retry, timeout and
+logging it shares with the signer and the extractor (`src/container-call.test.ts`) without a
+container.
 
 ## Signer
 
@@ -421,10 +422,6 @@ pdfPageImage(pdf: ArrayBuffer, page: number): Promise<ArrayBuffer>;
 imageToJpeg(image: ArrayBuffer): Promise<ArrayBuffer>;
 ```
 
-The entrypoint also answers to `heicToJpeg`, `imageToJpeg`'s earlier name, because the API
-deploys after this Worker and the API before it still calls that name. It goes once that API is
-gone from both environments.
-
 A method rejects with `extraction_failed:<reason>` when the file is refused, and with
 `extraction_failed` alone for anything else: an unreachable container, a 5xx, a timeout, or an
 answer that is not what the route makes. `extractionRefusalOf` in the contracts reads the reason
@@ -439,9 +436,9 @@ back. A refusal is about the file, so trying again does not help:
 | `timeout`            | The tool did not finish within its limit: two minutes for LibreOffice and `pdftotext`, one for the rest                                    |
 | `page_out_of_range`  | A page below 1 or past the PDF's last                                                                                                      |
 
-The forwarding is `convertDocx`'s: a container that did not start, or answered 5xx, is tried once
-more after two seconds, on either instance, and a request unanswered after three minutes is
-aborted and not tried again. The reason is logged
+The forwarding is `callContainer`'s, which the conversions and the signer share: a container that
+did not start, or answered 5xx, is tried once more after two seconds, on either instance, and a
+request unanswered after three minutes is aborted and not tried again. The reason is logged
 as one JSON line (`extraction_refused`, `extraction_unreachable`, `extraction_timeout`), and the
 container logs its own (`extractor_refused`, `extractor_busy`, `extractor_abandoned`,
 `extractor_failed`), without the file's content.

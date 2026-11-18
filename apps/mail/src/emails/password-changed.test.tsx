@@ -1,35 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail } from '../testing';
 import PasswordChanged, { subject } from './password-changed';
-
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
 
 const forgotPasswordUrl = 'https://app.ssmusor.ro/parola-uitata';
 
 describe('password changed', () => {
   it('says what happened and gives the way out, in the HTML and in the plain text', async () => {
-    const sent: OutgoingEmail[] = [];
-    await sendEmail(
-      env,
-      {
-        to: 'ion@example.ro',
-        subject,
-        body: <PasswordChanged forgotPasswordUrl={forgotPasswordUrl} />,
-      },
-      {
-        send: async (email) => {
-          sent.push(email);
-          return { id: 'msg_1' };
-        },
-      }
-    );
-    const email = sent[0]!;
+    const email = await sentEmail({
+      to: 'ion@example.ro',
+      subject,
+      body: <PasswordChanged forgotPasswordUrl={forgotPasswordUrl} />,
+    });
 
     expect(email.subject).toBe('Parola contului tău SSM Ușor a fost schimbată');
     expect(email.html).toContain('lang="ro"');

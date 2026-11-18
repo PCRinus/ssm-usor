@@ -861,6 +861,25 @@ describe("a client's trainings held", () => {
     expect(await screen.findByTestId('trainings-empty')).toBeTruthy();
   });
 
+  it('counts 25 attendees with "de", in the list and when deleting', async () => {
+    mockApi({
+      [`GET ${trainingsPath}`]: () =>
+        Response.json(page([{ ...heldWith(popescu, taranu), attendeeCount: 25 }])),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    const [row] = await screen.findAllByTestId('trainings-row');
+    expect(within(row!).getByTestId('trainings-attendee-count').textContent).toBe(
+      '25 de participanți'
+    );
+    await user.click(within(row!).getByTestId('trainings-row-menu'));
+    await user.click(await screen.findByTestId('trainings-delete'));
+    const dialog = await screen.findByTestId('training-delete-dialog');
+    expect(within(dialog).getByTestId('training-delete-count').textContent).toBe(
+      'Are 25 de participanți; ștergerea îi privește pe toți.'
+    );
+  });
+
   it.each([
     [
       { signed: true, hasSignatures: true },

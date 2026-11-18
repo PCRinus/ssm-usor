@@ -1,14 +1,14 @@
 import type { SmsService } from '@ssm-usor/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SmsSubscription } from './policy';
+import type { EntitlementRow } from '../billing/entitlements';
 import { createSmsSender } from './sender';
 import type { Claim, SmsUsageStore } from './store';
 
 const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const now = new Date('2026-12-01T10:00:00.000Z');
 
-const paid: SmsSubscription = {
+const paid: EntitlementRow = {
   plan: 'start',
   status: 'active',
   created_at: '2026-10-14T08:00:00.000Z',
@@ -23,7 +23,7 @@ const paid: SmsSubscription = {
 };
 
 function setUp(
-  subscription: SmsSubscription | null,
+  subscription: EntitlementRow | null,
   claim: Claim = { id: 'row-1', overage: false }
 ) {
   const store = {
@@ -34,8 +34,6 @@ function setUp(
     release: vi.fn(async () => undefined),
     periodUsage: vi.fn(),
     smsCeiling: vi.fn(),
-    recordNotice: vi.fn(),
-    forgetNotice: vi.fn(),
   } satisfies SmsUsageStore;
   const sendSigningCode = vi.fn(async () => ({ id: 'SM1' }));
   const onOverage = vi.fn();

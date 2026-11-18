@@ -9,6 +9,8 @@ import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { Sparkles } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
+import { roCount } from '@/features/employees/employee-format';
+
 import { DecisionRow } from './library/decision-row';
 import { FieldCard, type FieldContext } from './review-fields';
 import {
@@ -420,7 +422,7 @@ export function Suggestions({ context }: { context: ItemsContext }) {
           ? null
           : open === 1
             ? 'Mai ai de confirmat o sugestie'
-            : `Mai ai ${open} lucruri de făcut`
+            : `Mai ai ${roCount(open, 'lucru', 'lucruri')} de făcut`
       }
       testId="review-suggestions-card"
     >

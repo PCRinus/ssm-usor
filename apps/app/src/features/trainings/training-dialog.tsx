@@ -74,7 +74,7 @@ import {
   trainingFormSchema,
   type TrainingFormValues,
 } from './training-form-schema';
-import { notOnSheet } from './training-format';
+import { attendeeCountLabel, notOnSheet } from './training-format';
 import { type CurrentEmployee, invalidateTrainings, useCurrentEmployees } from './training-queries';
 
 export type TrainingDialogTarget =
@@ -537,7 +537,8 @@ function TrainingForm({
         <DialogBody className="mt-5 grid gap-5 sm:grid-cols-2">
           {attendeeCount > 1 && (
             <Notice variant="info" data-testid="training-shared-notice" className="sm:col-span-2">
-              Această instruire are {attendeeCount} participanți; modificarea îi privește pe toți.
+              Această instruire are {attendeeCountLabel(attendeeCount)}; modificarea îi privește pe
+              toți.
             </Notice>
           )}
           <Field id="training-domain" label="Domeniu" mark="required" error={errors.domain}>

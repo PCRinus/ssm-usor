@@ -140,7 +140,7 @@ const positionDetail = (position: Position) =>
     roCount(position.employeeCount, 'lucrător', 'lucrători'),
     staffCategoryLabels[position.staffCategory],
     position.trainingIntervalMonths
-      ? `instruire periodică la ${position.trainingIntervalMonths} luni`
+      ? `instruire periodică la ${roCount(position.trainingIntervalMonths, 'lună', 'luni')}`
       : null,
   ]
     .filter(Boolean)
@@ -187,7 +187,7 @@ export function PostDecision({
   const shared =
     count > 1 ? (
       <p className="text-[13px] text-muted-foreground">
-        Se aplică tuturor celor {count} persoane cu funcția{' '}
+        Se aplică tuturor celor {roCount(count, 'persoană', 'persoane')} cu funcția{' '}
         <span className="font-semibold text-foreground">{title}</span>:{' '}
         <Masked>{names.join(', ')}</Masked>. Funcția de pe fișă se păstrează oricum la fiecare.
       </p>
