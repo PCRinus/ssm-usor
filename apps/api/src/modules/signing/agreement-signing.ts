@@ -9,6 +9,7 @@ import { checkToSign } from '../../lib/signed-attributes';
 import { signedOn } from '../signed-sheets/form';
 import { signedSheetContext } from '../signed-sheets/signed-sheets';
 import { type AgreementStateRow, awaits } from './agreement-state';
+import { sessionEvidence } from './evidence';
 import { signingAgreementDocx } from './handlers';
 import type { createSigningIdentities } from './identities';
 import type { SigningSession } from './signing-sessions';
@@ -235,19 +236,16 @@ export async function signAgreement(
     client_id: clientId,
     employee_id: employeeId,
     party,
-    signer_account_id: signer.accountId,
-    signer_name: signer.name,
-    channel: session.channel,
-    address: session.address,
-    code_sent_at: session.codeSentAt.toISOString(),
-    code_verified_at: (session.verifiedAt ?? signedAt).toISOString(),
-    signed_at: signedAt.toISOString(),
-    digest_before: await sha256(before),
-    digest_after: await sha256(signed),
-    certificate_serial: identity.certificateSerial,
-    client_ip: input.clientIp,
-    user_agent: input.userAgent?.slice(0, 500) ?? null,
-    signing_session_id: session.id,
+    ...sessionEvidence({
+      session,
+      signer,
+      certificateSerial: identity.certificateSerial,
+      signedAt,
+      digestBefore: await sha256(before),
+      digestAfter: await sha256(signed),
+      clientIp: input.clientIp,
+      userAgent: input.userAgent,
+    }),
     storage_path: path,
   });
   if (evidence.error) {

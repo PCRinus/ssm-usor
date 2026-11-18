@@ -25,6 +25,7 @@ import { applySignature, placeRecord, signedSheetContext } from '../signed-sheet
 import { applyTestSheetSignature, testSheetDeps } from '../test-sheets/test-sheets';
 import { agreementDigest, signAgreement } from './agreement-signing';
 import { awaits } from './agreement-state';
+import { sessionEvidence } from './evidence';
 import { createSigningIdentities } from './identities';
 import type {
   createMySigningSessionRoute,
@@ -365,6 +366,23 @@ const signedWith =
     return signing.identities.signWithIdentity(identity, toSign);
   };
 
+const evidenceOf = (
+  signing: Signing,
+  identity: { certificateSerial: string },
+  name: string,
+  result: { signedAt: Date; digestBefore: string; digestAfter: string }
+) =>
+  sessionEvidence({
+    session: signing.session,
+    signer: { accountId: signing.session.accountId, name },
+    certificateSerial: identity.certificateSerial,
+    signedAt: result.signedAt,
+    digestBefore: result.digestBefore,
+    digestAfter: result.digestAfter,
+    clientIp: signing.clientIp,
+    userAgent: signing.userAgent,
+  });
+
 type RequestForSigning = {
   id: string;
   organization_id: string;
@@ -433,20 +451,8 @@ async function signRecordRequest(c: Context<ApiEnv>, request: RequestForSigning,
     slot,
     request_id: requestId,
     method: 'electronic',
-    signer_account_id: session.accountId,
-    signer_name: printed.name,
     signer_job_title: printed.jobTitle || null,
-    channel: session.channel,
-    address: session.address,
-    code_sent_at: session.codeSentAt.toISOString(),
-    code_verified_at: (session.verifiedAt ?? result.signedAt).toISOString(),
-    signed_at: result.signedAt.toISOString(),
-    digest_before: result.digestBefore,
-    digest_after: result.digestAfter,
-    certificate_serial: identity.certificateSerial,
-    client_ip: signing.clientIp,
-    user_agent: signing.userAgent?.slice(0, 500) ?? null,
-    signing_session_id: session.id,
+    ...evidenceOf(signing, identity, printed.name, result),
   });
   if (evidence.error) {
     // The sheet carries a signature without evidence and its field is spent: the request stays
@@ -521,20 +527,8 @@ async function signTestSheetRequest(
     slot,
     request_id: request.id,
     method: 'electronic',
-    signer_account_id: session.accountId,
-    signer_name: printed.name,
     signer_job_title: printed.jobTitle || null,
-    channel: session.channel,
-    address: session.address,
-    code_sent_at: session.codeSentAt.toISOString(),
-    code_verified_at: (session.verifiedAt ?? result.signedAt).toISOString(),
-    signed_at: result.signedAt.toISOString(),
-    digest_before: result.digestBefore,
-    digest_after: result.digestAfter,
-    certificate_serial: identity.certificateSerial,
-    client_ip: signing.clientIp,
-    user_agent: signing.userAgent?.slice(0, 500) ?? null,
-    signing_session_id: session.id,
+    ...evidenceOf(signing, identity, printed.name, result),
   });
   if (evidence.error) {
     // As on a sheet row: the field is spent, and the request stays as the database left it.
