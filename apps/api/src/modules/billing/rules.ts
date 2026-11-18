@@ -118,6 +118,19 @@ export function parseLookupKey(lookupKey: string | null | undefined): ParsedLook
 export const isPlanProduct = (product: string | undefined): product is PaidPlan =>
   product === 'start' || product === 'profesional';
 
+export const productOf = (lookupKey: string | null | undefined) =>
+  parseLookupKey(lookupKey)?.product;
+
+export type ItemGroup = 'plan' | 'pack' | 'member';
+
+export function itemGroupOf(lookupKey: string | null | undefined): ItemGroup | null {
+  const product = productOf(lookupKey);
+  if (isPlanProduct(product)) return 'plan';
+  if (product === 'employees50' || product === 'employees500') return 'pack';
+  if (product === 'member') return 'member';
+  return null;
+}
+
 const v1Covered = {
   start: { included: 250, pack: 50 },
   profesional: { included: 1500, pack: 500 },

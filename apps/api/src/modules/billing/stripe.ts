@@ -182,3 +182,9 @@ export function idOf(value: string | { id: string } | null | undefined) {
   if (!value) return null;
   return typeof value === 'string' ? value : value.id;
 }
+
+export const priceIdOfLine = (line: Stripe.InvoiceLineItem) =>
+  idOf(line.pricing?.price_details?.price);
+
+export const lookupKeyOfLine = (line: Stripe.InvoiceLineItem, catalogue: StripeCatalogue) =>
+  catalogue.lookupKeys.get(priceIdOfLine(line) ?? '');

@@ -1,11 +1,14 @@
+import { cataloguePrices, meteredProducts } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
   addInterval,
   choiceFromItems,
+  itemGroupOf,
   minimumStepFor,
   parseLookupKey,
   problemsWith,
+  productOf,
   recurringPrice,
   splitChange,
   usageLimits,
@@ -175,6 +178,45 @@ describe('a subscription read back from its items', () => {
       version: 'v1',
     });
     expect(parseLookupKey('nonsense')).toBeNull();
+  });
+});
+
+describe('what a Stripe item is, by its lookup key', () => {
+  const v1Keys = ['monthly', 'annual'].flatMap((interval) =>
+    [
+      'start',
+      'profesional',
+      'employees50',
+      'employees500',
+      'member',
+      'sms_overage',
+      'credits_extra',
+    ].map((product) => `${product}_${interval}_v1`)
+  );
+  const keys = [...cataloguePrices.map((price) => price.lookupKey), ...v1Keys];
+
+  it('groups every catalogue key, v1 and v2, as plan, pack or member', () => {
+    const groups = Object.fromEntries(keys.map((key) => [key, itemGroupOf(key)]));
+    for (const key of keys) {
+      const expected = /^(start|profesional)_/.test(key)
+        ? 'plan'
+        : /^employees/.test(key)
+          ? 'pack'
+          : /^member_/.test(key)
+            ? 'member'
+            : null;
+      expect(groups[key], key).toBe(expected);
+    }
+    expect(itemGroupOf(null)).toBeNull();
+    expect(itemGroupOf('start_plus_monthly')).toBeNull();
+  });
+
+  it('names the metered product of every version of its price', () => {
+    for (const product of meteredProducts) {
+      expect(keys.filter((key) => productOf(key) === product.key)).toEqual(
+        keys.filter((key) => key.startsWith(`${product.key}_`))
+      );
+    }
   });
 });
 

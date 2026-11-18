@@ -44,7 +44,7 @@ import type {
   resumeSubscriptionRoute,
   updateInvoiceEmailRoute,
 } from './routes';
-import { minimumStepFor, problemsWith, usageLimits } from './rules';
+import { minimumStepFor, problemsWith, productOf, usageLimits } from './rules';
 import {
   type Billing,
   cancelSubscription,
@@ -69,7 +69,7 @@ import {
   saveSubscription,
   type SubscriptionRow,
 } from './store';
-import { stripeCatalogue, stripeFor } from './stripe';
+import { lookupKeyOfLine, priceIdOfLine, stripeCatalogue, stripeFor } from './stripe';
 
 function billingOf(c: Context<ApiEnv>): Billing {
   return {
@@ -184,18 +184,12 @@ async function stripeDetails(c: Context<ApiEnv>, billing: Billing, row: Subscrip
     const upcoming = await stripe.invoices.createPreview({ subscription: subscription.id });
     const smsPrice = stripeBilling.catalogue.priceIds.get(smsOverage.price.lookupKey);
     smsOverageCents = upcoming.lines.data
-      .filter((line) => {
-        const price = line.pricing?.price_details?.price;
-        return (typeof price === 'string' ? price : price?.id) === smsPrice;
-      })
+      .filter((line) => priceIdOfLine(line) === smsPrice)
       .reduce((sum, line) => sum + line.amount, 0);
     extrasInPreviewCents = upcoming.lines.data
       .filter((line) => {
-        const price = line.pricing?.price_details?.price;
-        const key = stripeBilling.catalogue.lookupKeys.get(
-          (typeof price === 'string' ? price : price?.id) ?? ''
-        );
-        return meteredProducts.some((product) => key?.startsWith(`${product.key}_`));
+        const product = productOf(lookupKeyOfLine(line, stripeBilling.catalogue));
+        return meteredProducts.some((metered) => metered.key === product);
       })
       .reduce((sum, line) => sum + line.amount, 0);
     nextPayment = {
