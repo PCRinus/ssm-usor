@@ -77,14 +77,15 @@ import {
 import {
   characterCount,
   describe,
+  fileToRead,
   isImage,
   loadPrepared,
   pageLocationsPathOf,
   type PreparedPages,
+  readingCapBreach,
   sendAll,
   startCreditsOf,
   textPathOf,
-  tooMuchText,
 } from './pipeline';
 import { importRecords } from './records';
 import type {
@@ -104,7 +105,7 @@ import type {
   startImportRoute,
 } from './routes';
 import { importUnavailable, requireImportService } from './settings';
-import { importFileColumns, type ImportFileRow } from './store';
+import { importFileColumns, type ImportFileRow, importStore } from './store';
 
 // Members read imports through their own policies; every write is the secret key's, after the
 // import was found under the caller's token, or one of the functions that check the caller
@@ -283,7 +284,7 @@ async function requireKind(db: DataClient, importId: string, kind: ImportKind) {
   if (data.kind !== kind) throw wrongKind();
 }
 
-async function listFilesOf(db: DataClient | AdminClient, importId: string) {
+async function listFilesOf(db: DataClient, importId: string) {
   const { data, error } = await db
     .from('import_files')
     .select(importFileColumns)
@@ -752,7 +753,7 @@ export const registerImportFiles: RouteHandler<typeof registerImportFilesRoute, 
   if (row.status !== 'uploading') throw notUploading();
   if (row.kind === 'employees') onlySheets(files);
   const admin = createAdminClient(c);
-  const known = await listFilesOf(admin, importId);
+  const known = await adminImportStore(c, admin).listFiles(importId);
   if (known.some((file) => files.some((each) => each.uploadPath === file.upload_path))) {
     throw conflict(
       'A file with this path is in the import already.',
@@ -843,7 +844,8 @@ async function beginReading(
   organizationId: string,
   kind: ImportKind
 ) {
-  const files = await listFilesOf(admin, importId);
+  const store = adminImportStore(c, admin);
+  const files = await store.listFiles(importId);
   const objects = createAdminFileStore(c);
   const stored = new Map(
     (await objects.listImportFolder(`${organizationId}/${importId}`)).map((object) => [
@@ -903,14 +905,11 @@ async function beginReading(
       arrived.map((file) => file.id)
     );
   if (marked.error) throw fromDatabaseError(marked.error, 'mark files uploaded');
-  const moved = await admin
-    .from('imports')
-    .update({ status: 'preparing', started_at: new Date().toISOString() })
-    .eq('id', importId)
-    .eq('status', 'uploading')
-    .select('id');
-  if (moved.error) throw fromDatabaseError(moved.error, 'start import');
-  if (moved.data.length === 0) throw notUploading();
+  const started = await store.advance(importId, 'uploading', {
+    status: 'preparing',
+    started_at: new Date().toISOString(),
+  });
+  if (!started) throw notUploading();
   try {
     await sendAll(
       queue,
@@ -918,11 +917,11 @@ async function beginReading(
     );
   } catch (error) {
     console.error(`Import ${importId} could not be queued: ${describe(error)}`);
-    await admin
-      .from('imports')
-      .update({ status: 'uploading' })
-      .eq('id', importId)
-      .eq('status', 'preparing');
+    await store
+      .advance(importId, 'preparing', { status: 'uploading' })
+      .catch((undo: unknown) =>
+        console.error(`Import ${importId} stays preparing unqueued: ${describe(undo)}`)
+      );
     await charges
       .releaseStart(importId)
       .catch((release: unknown) =>
@@ -938,6 +937,10 @@ async function beginReading(
     )
   );
 }
+
+// Built from the request, so that its writes name the member as their audit actor.
+export const adminImportStore = (c: Context<ApiEnv>, admin: AdminClient = createAdminClient(c)) =>
+  importStore(admin, blocksReporterOf(c));
 
 // Hono's executionCtx throws where the runtime gives none, as in tests.
 export function later(c: Context<ApiEnv>, work: Promise<unknown>) {
@@ -1422,16 +1425,15 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
     );
   }
   const objects = createAdminFileStore(c);
-  const toRead = await Promise.all(
-    files
-      .filter((each) => each.state === 'read' || each === file)
-      .map((each) => loadPrepared({ read: objects.readImportObject }, each))
-  );
-  const texts = toRead.map((entry) => ({
-    name: entry.file.original_file_name,
-    characters: entry.text.length,
-  }));
-  if (tooMuchText(texts)) {
+  const toRead = (
+    await Promise.all(
+      files
+        .filter((each) => each.state === 'read' || each === file)
+        .map((each) => loadPrepared({ read: objects.readImportObject }, each))
+    )
+  ).map(fileToRead);
+  const breach = readingCapBreach(toRead, row.kind);
+  if (breach?.cap === 'text') {
     throw new ApiError(
       'unprocessable',
       'With this file the documents have more text than one import reads.',
@@ -1439,11 +1441,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
       importErrorReasons.tooMuchText
     );
   }
-  const scannedPages = toRead.reduce(
-    (sum, entry) => sum + (entry.pages?.pages.filter((page) => page.isScan).length ?? 0),
-    0
-  );
-  if (scannedPages > importLimits[row.kind].scannedPages) {
+  if (breach?.cap === 'scans') {
     throw new ApiError(
       'unprocessable',
       'With this file the documents have more scanned pages than one import reads.',
@@ -1451,43 +1449,37 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
       importErrorReasons.tooManyScans
     );
   }
-  const admin = createAdminClient(c);
-  const moved = await admin
-    .from('imports')
-    .update({
+  const store = adminImportStore(c);
+  const moved = await store.advance(
+    importId,
+    'ready',
+    {
       status: 'reading',
       proposal: null,
       changes: null,
       ready_at: null,
       version: row.version + 1,
-      read_characters: characterCount(texts),
-    })
-    .eq('id', importId)
-    .eq('status', 'ready')
-    .eq('version', row.version)
-    .select('id');
-  if (moved.error) throw fromDatabaseError(moved.error, 'read a file set aside');
-  if (moved.data.length === 0) throw decisionError({ code: 'IMP02' }, 'read a file set aside');
-  const marked = await admin
-    .from('import_files')
-    .update({ state: file.is_scan ? 'prepared' : 'read', reason: null })
-    .eq('id', fileId);
+      read_characters: characterCount(toRead),
+    },
+    row.version
+  );
+  if (!moved) throw decisionError({ code: 'IMP02' }, 'read a file set aside');
   const messages: ImportMessage[] = [
     ...(file.is_scan ? [{ type: 'scan' as const, importId, fileId }] : []),
     { type: 'read', importId, waits: 0 },
   ];
   try {
-    if (marked.error) throw fromDatabaseError(marked.error, 'mark a file to read');
+    await store.updateFile(fileId, { state: file.is_scan ? 'prepared' : 'read', reason: null });
     await sendAll(queue, messages);
   } catch (error) {
     console.error(`Import ${importId} could not read ${fileId} again: ${describe(error)}`);
-    await admin
-      .from('import_files')
-      .update({ state: 'set_aside', reason: file.reason })
-      .eq('id', fileId);
-    await admin
-      .from('imports')
-      .update({
+    await store
+      .updateFile(fileId, { state: 'set_aside', reason: file.reason })
+      .catch((undo: unknown) =>
+        console.error(`File ${fileId} stays marked to read: ${describe(undo)}`)
+      );
+    await store
+      .advance(importId, 'reading', {
         status: 'ready',
         proposal: row.proposal,
         changes: row.changes,
@@ -1495,8 +1487,9 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
         version: row.version + 2,
         read_characters: row.read_characters,
       })
-      .eq('id', importId)
-      .eq('status', 'reading');
+      .catch((undo: unknown) =>
+        console.error(`Import ${importId} stays reading unqueued: ${describe(undo)}`)
+      );
     throw importUnavailable();
   }
   return c.json({ import: await summaryOf(db, importId) }, 200);
@@ -1699,6 +1692,12 @@ export const addFoundSheets: RouteHandler<typeof addFoundSheetsRoute, ApiEnv> = 
     throw noFoundSheets();
   }
   const admin = createAdminClient(c);
-  await copyFoundSheets(c, admin, importId, chosen, await listFilesOf(admin, importId));
+  await copyFoundSheets(
+    c,
+    admin,
+    importId,
+    chosen,
+    await adminImportStore(c, admin).listFiles(importId)
+  );
   return c.json({ import: await summaryOf(db, importId) }, 201);
 };

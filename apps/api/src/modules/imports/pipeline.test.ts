@@ -1,4 +1,4 @@
-import { extractionRefused, type ExtractorService } from '@ssm-usor/contracts';
+import { extractionRefused, type ExtractorService, importLimits } from '@ssm-usor/contracts';
 import {
   createModelClient,
   type EmployeeImportClient,
@@ -28,6 +28,7 @@ import {
   maxReadingCharacters,
   maxReadWaits,
   type PipelineDeps,
+  readingCapBreach,
   tooMuchText,
 } from './pipeline';
 import {
@@ -1223,6 +1224,26 @@ describe('tooMuchText', () => {
     expect(tooMuchText([{ name, characters: maxReadingCharacters + 1 }])).toBe(
       `Documentele au cu 1% mai mult text decât încape într-un import. Tot textul este în „${name.slice(0, 59)}…”.`
     );
+  });
+});
+
+describe('readingCapBreach', () => {
+  const file = (characters: number, scannedPages: number) => ({
+    name: 'Dosar.pdf',
+    characters,
+    scannedPages,
+  });
+
+  it('counts the text first, then the scanned pages of the kind', () => {
+    const scans = importLimits.client.scannedPages;
+
+    expect(readingCapBreach([file(1_000, scans)], 'client')).toBeNull();
+    expect(readingCapBreach([file(1_000, scans), file(0, 1)], 'client')).toEqual({ cap: 'scans' });
+    expect(readingCapBreach([file(1_000, scans), file(0, 1)], 'employees')).toBeNull();
+    expect(readingCapBreach([file(maxReadingCharacters + 1, scans + 1)], 'client')).toEqual({
+      cap: 'text',
+      reason: tooMuchText([file(maxReadingCharacters + 1, 0)]),
+    });
   });
 });
 

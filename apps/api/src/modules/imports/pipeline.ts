@@ -212,6 +212,19 @@ export function tooMuchText(files: TextOfFile[]): string | null {
   return `${over} Cele mai lungi: ${named.slice(0, -1).join(', ')} și ${named.at(-1)}. Scoate-le pe cele care nu trebuie citite.`;
 }
 
+export interface FileToRead extends TextOfFile {
+  scannedPages: number;
+}
+
+export type ReadingCapBreach = { cap: 'text'; reason: string } | { cap: 'scans' };
+
+export function readingCapBreach(files: FileToRead[], kind: ImportKind): ReadingCapBreach | null {
+  const overText = tooMuchText(files);
+  if (overText) return { cap: 'text', reason: overText };
+  const scanned = files.reduce((sum, file) => sum + file.scannedPages, 0);
+  return scanned > importLimits[kind].scannedPages ? { cap: 'scans' } : null;
+}
+
 const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const wordTypes = new Set(['application/msword', docxType]);
 
@@ -293,6 +306,12 @@ export interface LoadedFile {
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+
+export const fileToRead = (entry: LoadedFile): FileToRead => ({
+  name: entry.file.original_file_name,
+  characters: entry.text.length,
+  scannedPages: entry.pages?.pages.filter((page) => page.isScan).length ?? 0,
+});
 
 export async function loadPrepared(
   objects: Pick<ImportObjects, 'read'>,
@@ -644,9 +663,7 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
       domainOf.set(path, domain as InstructionDomain);
     }
   }
-  const kept: TextOfFile[] = [];
-  let scannedPages = 0;
-  let toRead = 0;
+  const kept: FileToRead[] = [];
   const scans: string[] = [];
   for (const outcome of sorting.files) {
     const entry = byPath.get(outcome.path)!;
@@ -658,12 +675,10 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
       reason: null,
     };
     if (outcome.outcome === 'read') {
-      const pages = entry.pages?.pages.filter((page) => page.isScan).length ?? 0;
-      kept.push({ name: entry.file.original_file_name, characters: entry.text.length });
-      scannedPages += pages;
-      toRead++;
-      if (pages > 0) scans.push(entry.file.id);
-      patch.state = pages > 0 ? 'prepared' : 'read';
+      const read = fileToRead(entry);
+      kept.push(read);
+      if (read.scannedPages > 0) scans.push(entry.file.id);
+      patch.state = read.scannedPages > 0 ? 'prepared' : 'read';
     } else if (outcome.outcome === 'set_aside') {
       patch.state = 'set_aside';
       patch.reason =
@@ -686,11 +701,12 @@ export async function sortImport(deps: PipelineDeps, importId: string) {
     await deps.store.updateFile(entry.file.id, patch);
   }
   await deps.store.advance(importId, 'sorting', { read_characters: characterCount(kept) });
-  if (toRead === 0) throw new ImportFailure(importReasons.nothingToRead);
-  const overCap = tooMuchText(kept);
-  if (overCap) throw new ImportFailure(overCap);
-  if (scannedPages > importLimits[row.kind].scannedPages) {
-    throw new ImportFailure(importReasons.tooManyScans[row.kind]);
+  if (kept.length === 0) throw new ImportFailure(importReasons.nothingToRead);
+  const breach = readingCapBreach(kept, row.kind);
+  if (breach) {
+    throw new ImportFailure(
+      breach.cap === 'text' ? breach.reason : importReasons.tooManyScans[row.kind]
+    );
   }
 
   const companyName = sorting.company?.name?.trim().slice(0, 200) ?? null;

@@ -36,7 +36,14 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { creditsStore } from '../credits/store';
 import { storeRiskLevels } from '../evaluation-profiles/stored-risk-levels';
-import { existingRecords, findImport, queueEnded, storedChanges, storedProposal } from './handlers';
+import {
+  adminImportStore,
+  existingRecords,
+  findImport,
+  queueEnded,
+  storedChanges,
+  storedProposal,
+} from './handlers';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
@@ -841,17 +848,15 @@ export const retryImportLibraryPart: RouteHandler<
     console.error(
       `Library part ${part} of import ${importId} was not queued: ${describe(failure)}`
     );
-    await createAdminClient(c)
-      .from('import_library_parts')
-      .update({
+    await adminImportStore(c)
+      .updateLibraryPart(importId, part, attempt, {
         status: 'failed',
         failure_reason: isInstructionsPart(part) ? libraryReasons.failed : riskReasons.failed,
         failed_at: new Date().toISOString(),
       })
-      .eq('import_id', importId)
-      .eq('part', part)
-      .eq('attempt', attempt)
-      .eq('status', 'reading');
+      .catch((undo: unknown) =>
+        console.error(`Library part ${part} of import ${importId} stays reading: ${describe(undo)}`)
+      );
     throw new ApiError('service_unavailable', undefined, undefined, importErrorReasons.unavailable);
   }
   const row = await findImport(db, importId);
