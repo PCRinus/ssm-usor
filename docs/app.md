@@ -1443,16 +1443,16 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
 - `/clienti/:id/contact`: the "Contact" section of a client, with the same two cards. The
   notes card is rendered for an owner only, and the API refuses anyone else.
 
-- `/organizatie`: the organization's name, the caller's role, and a row of sections as on a
-  client's page, each its own route; `/organizatie` itself redirects to the team, which is
+- `/organizatie`: the organization's name, the caller's role as a tag with the help on roles,
+  and folder tabs onto one sheet as on a client's page, each its own route; `/organizatie` itself redirects to the team, which is
   what the page is opened for day to day.
 - `/organizatie/echipa` ("Echipă"): one table on the shared list table, read whole: the
   members from `GET /organization/members` by name, then, for an owner, the open and then the
   expired invitations, newest first, whatever the sort. Nume (email under it), Rol as text,
-  Stare ("Membru", "Invitație în așteptare", "Invitație expirată" in amber) and, for an owner,
+  Stare ("Membru", an "Invitat" tag, an amber "Invitație expirată" tag) and, for an owner,
   Ultima activitate (`lastActiveAt`, the later of the last sign-in and the last session
-  renewal) and a row menu: switch the role or remove a member (not on one's own row), resend
-  or revoke an invitation. Sorts by Nume and Ultima activitate, in the URL. Above it, the
+  renewal) and the row's actions: a menu to switch the role or remove a member (not on one's
+  own row); on an invitation a Retrimite button and a menu to revoke it. Sorts by Nume and Ultima activitate, in the URL. Above it, the
   plan's places from `GET /organization/seats`, which never asks Stripe
   (`features/subscription/member-seats.ts`): members plus open invitations, counted by the
   invite check's own function, the same number the Abonament meter shows; amber at the limit,
