@@ -28,15 +28,11 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
+import { requireClient, requireWritableClient } from '../clients/lookup';
 import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
 import {
   testStatusColumns,
@@ -151,19 +147,6 @@ export function toEmployee(
     commuteMinutes: row.commute_minutes,
     contractNumber: row.contract_number,
   };
-}
-
-// Row-level security hides other organizations' clients, so a missing row is a 404
-// whether the client belongs to someone else or does not exist at all.
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, archived_at, stage')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  return data;
 }
 
 // A position of another client, or an archived one, is a wrong choice on the form.
@@ -520,7 +503,7 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
   const { clientId } = c.req.valid('param');
   const { status, q, page, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
+  const client = await requireClient(db, clientId);
   const readsStates =
     Boolean(filters.ssmTraining || filters.suTraining || filters.test) ||
     Boolean(filters.attention?.some((need) => need === 'toTrain' || need === 'trainingDue')) ||
@@ -562,7 +545,7 @@ export const listEmployeeInvitees: RouteHandler<typeof listEmployeeInviteesRoute
   const { clientId } = c.req.valid('param');
   const { q, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error, count } = await matchingEveryTerm(
     matchingFilters(
       db
@@ -606,8 +589,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
   const body = c.req.valid('json');
   const membership = c.get('membership');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
-  if (client.archived_at) throw archivedClientError();
+  await requireWritableClient(db, clientId);
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const workplaceId =

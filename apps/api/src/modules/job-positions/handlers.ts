@@ -2,14 +2,10 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import type { JobPosition, JobPositionRequest } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { requireClient, requireWritableClient } from '../clients/lookup';
 import { toTrainMatch } from '../employees/handlers';
 import type {
   createJobPositionRoute,
@@ -108,17 +104,6 @@ export async function findJobPosition(db: DataClient, clientId: string, jobPosit
   return data;
 }
 
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, archived_at')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  return data;
-}
-
 export async function jobPositionCounts(db: DataClient, clientId: string, jobPositionId?: string) {
   // Counted by the database, one row per position, so a large client is not cut short by the
   // limit on rows a request returns.
@@ -165,7 +150,7 @@ export async function jobPositionCounts(db: DataClient, clientId: string, jobPos
 export const listJobPositions: RouteHandler<typeof listJobPositionsRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('job_positions')
     .select(jobPositionColumns)
@@ -181,8 +166,7 @@ export const listJobPositions: RouteHandler<typeof listJobPositionsRoute, ApiEnv
 export const createJobPosition: RouteHandler<typeof createJobPositionRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
-  if (client.archived_at) throw archivedClientError();
+  await requireWritableClient(db, clientId);
   const { data, error } = await db
     .from('job_positions')
     .insert({

@@ -32,6 +32,7 @@ import { createAdminFileStore, createFileStore } from '../../lib/files';
 import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
+import { requireClient } from '../clients/lookup';
 import { builtInTemplates, merge } from '../documents/documents';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
 import { awaitedParty, awaits } from './agreement-state';
@@ -64,8 +65,6 @@ import type {
 } from './routes';
 import { contactOf, signersOfClient } from './signers';
 
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
 const noSuchRecord = () =>
   new ApiError('not_found', 'This training record does not exist under this client.');
 const noSuchEmployee = () =>
@@ -99,18 +98,12 @@ const representativeMissing = (client: RepresentativeColumns) =>
 const toIso = (value: string) => new Date(value).toISOString();
 const toIsoOrNull = (value: string | null) => (value ? toIso(value) : null);
 
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
-  if (error) throw fromDatabaseError(error, 'signing client');
-  if (!data) throw noSuchClient();
-}
-
 export const listSignerCandidates: RouteHandler<typeof listSignerCandidatesRoute, ApiEnv> = async (
   c
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const seen = new Set<string>();
   const items = (await signersOfClient(db, clientId)).flatMap(
     ({ accountId, name, jobTitle, kind, employeeId }) => {
@@ -360,7 +353,7 @@ export const listClientSignatureRequests: RouteHandler<
   const { clientId } = c.req.valid('param');
   const { state } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('signature_requests')
     .select(listColumns)

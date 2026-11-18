@@ -32,6 +32,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { clientObjectBuckets, createAdminFileStore } from '../../lib/files';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
+import { clientNotFound, requireClient } from './lookup';
 import type {
   archiveClientRoute,
   createClientRoute,
@@ -439,7 +440,7 @@ export const getClient: RouteHandler<typeof getClientRoute, ApiEnv> = async (c) 
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'get client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
+  if (!data) throw clientNotFound();
   return c.json(clientResponse(c, toClient(data)), 200);
 };
 
@@ -543,11 +544,7 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
       : fromDatabaseError(error, 'update client');
   }
   if (data) return c.json(clientResponse(c, toClient(data)), 200);
-  const existing = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
-  if (existing.error) throw fromDatabaseError(existing.error, 'find client');
-  if (!existing.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  await requireClient(db, clientId);
   throw new ApiError(
     'conflict',
     'An archived client is not edited.',
@@ -572,9 +569,7 @@ async function setArchived(db: DataClient, clientId: string, archived: boolean) 
   if (changed.data) return toClient(changed.data);
   const current = await db.from('clients').select(clientColumns).eq('id', clientId).maybeSingle();
   if (current.error) throw fromDatabaseError(current.error, 'find client');
-  if (!current.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!current.data) throw clientNotFound();
   return toClient(current.data);
 }
 
@@ -589,9 +584,6 @@ export const restoreClient: RouteHandler<typeof restoreClientRoute, ApiEnv> = as
   noticeEmployeesOverStepLater(c);
   return c.json(clientResponse(c, client), 200);
 };
-
-const clientNotFound = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
 
 const clientNotArchived = () =>
   new ApiError(
@@ -611,14 +603,8 @@ export const deleteClient: RouteHandler<typeof deleteClientRoute, ApiEnv> = asyn
     );
   }
   const { clientId } = c.req.valid('param');
-  const found = await createDataClient(c)
-    .from('clients')
-    .select('id, archived_at')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (found.error) throw fromDatabaseError(found.error, 'find client');
-  if (!found.data) throw clientNotFound();
-  if (!found.data.archived_at) throw clientNotArchived();
+  const found = await requireClient(createDataClient(c), clientId);
+  if (!found.archived_at) throw clientNotArchived();
 
   const deleted = await createAdminClient(c).rpc('delete_archived_client', {
     p_organization_id: c.get('membership').organizationId,
@@ -656,9 +642,7 @@ export const promoteLead: RouteHandler<typeof promoteLeadRoute, ApiEnv> = async 
   if (promoted.data) return c.json(clientResponse(c, toClient(promoted.data)), 200);
   const current = await db.from('clients').select(clientColumns).eq('id', clientId).maybeSingle();
   if (current.error) throw fromDatabaseError(current.error, 'find client');
-  if (!current.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!current.data) throw clientNotFound();
   if (current.data.stage === 'lead') throw archivedClientError();
   return c.json(clientResponse(c, toClient(current.data)), 200);
 };
@@ -678,9 +662,7 @@ export const getClientOwnerNotes: RouteHandler<typeof getClientOwnerNotesRoute, 
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'find client');
   if (notes.error) throw fromDatabaseError(notes.error, 'get client owner notes');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   return c.json(
     { notes: { body: notes.data?.body ?? '', updatedAt: notes.data?.updated_at ?? null } },
     200
@@ -707,9 +689,7 @@ export const saveClientOwnerNotes: RouteHandler<typeof saveClientOwnerNotesRoute
     .select('body, updated_at')
     .single();
   // The pair of client and organization is a foreign key: a client of someone else fails it.
-  if (error?.code === '23503') {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (error?.code === '23503') throw clientNotFound();
   if (error) throw fromDatabaseError(error, 'save client owner notes');
   return c.json({ notes: { body: data.body, updatedAt: data.updated_at } }, 200);
 };

@@ -22,6 +22,7 @@ import {
 } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { clientNotFound, requireClient } from '../clients/lookup';
 import { findJobPosition } from '../job-positions/handlers';
 import type {
   copyRiskFactorsRoute,
@@ -203,9 +204,6 @@ export const byEvaluationOrder = (a: Listed, b: Listed) =>
   listedLabel(a).localeCompare(listedLabel(b), 'ro') ||
   a.id.localeCompare(b.id);
 
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
-
 const noSuchEvaluation = () =>
   new ApiError('not_found', 'This risk evaluation does not exist under this client.');
 
@@ -228,14 +226,14 @@ const alreadyEvaluated = () =>
     'risk_evaluation_exists'
   );
 
-async function findClient(db: DataClient, clientId: string) {
+async function findClientWithGroupsState(db: DataClient, clientId: string) {
   const { data, error } = await db
     .from('clients')
     .select('id, sensitive_groups_state')
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw noSuchClient();
+  if (!data) throw clientNotFound();
   return data;
 }
 
@@ -268,7 +266,7 @@ export const listRiskEvaluations: RouteHandler<typeof listRiskEvaluationsRoute, 
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
+  const client = await findClientWithGroupsState(db, clientId);
   const { data, error } = await db
     .from('risk_evaluations')
     .select(summaryColumns)
@@ -289,7 +287,7 @@ export const updateSensitiveGroupsState: RouteHandler<
   const { clientId } = c.req.valid('param');
   const { state } = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('clients')
     .update({ sensitive_groups_state: state })
@@ -316,7 +314,7 @@ export const createRiskEvaluation: RouteHandler<typeof createRiskEvaluationRoute
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   if (body.kind === 'job_position') {
     await findJobPosition(db, clientId, body.jobPositionId).catch((error: unknown) => {
       if (error instanceof ApiError && error.code === 'not_found') {

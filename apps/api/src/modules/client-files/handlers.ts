@@ -9,17 +9,13 @@ import {
 import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
 import { requireOffersFor } from '../../lib/offers';
+import { requireClient, requireWritableClient } from '../clients/lookup';
 import { contentMatches, splitFileName, typeOfExtension } from './file-type';
 import type {
   deleteClientFileRoute,
@@ -108,17 +104,6 @@ async function present(c: Context<ApiEnv>, db: DataClient, row: FileRow) {
   return toClientFile(c, row, await uploaderNames(db, [row]));
 }
 
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, stage, archived_at')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  return data;
-}
-
 async function findFile(db: DataClient, clientId: string, fileId: string) {
   const { data, error } = await db
     .from('client_files')
@@ -154,12 +139,6 @@ function requireChangeable(c: Context<ApiEnv>, row: FileRow) {
       'Only the member who uploaded a file, or an owner, changes it.'
     );
   }
-}
-
-async function requireActiveClient(db: DataClient, clientId: string) {
-  const client = await findClient(db, clientId);
-  if (client.archived_at) throw archivedClientError();
-  await requireOffersFor(db, client);
 }
 
 const leadOwnersOnly = () =>
@@ -198,7 +177,7 @@ export const listClientFiles: RouteHandler<typeof listClientFilesRoute, ApiEnv> 
   const { clientId } = c.req.valid('param');
   const { employeeId } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const files = db.from('client_files').select(fileColumns).eq('client_id', clientId);
   const { data, error } = await (
     employeeId ? files.eq('employee_id', employeeId) : files.is('employee_id', null)
@@ -244,8 +223,7 @@ export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv
   const bytes = new Uint8Array(await c.req.arrayBuffer());
   const type = checkedType(query.fileName, bytes);
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
-  if (client.archived_at) throw archivedClientError();
+  const client = await requireWritableClient(db, clientId);
   await requireOffersFor(db, client);
   const asked = query.ownersOnly === 'true';
   if (asked && !isOwner(c)) {
@@ -338,7 +316,7 @@ export const deleteClientFile: RouteHandler<typeof deleteClientFileRoute, ApiEnv
   const db = createDataClient(c);
   const file = await findFile(db, clientId, fileId);
   requireChangeable(c, file);
-  await requireActiveClient(db, clientId);
+  await requireOffersFor(db, await requireWritableClient(db, clientId));
   await createFileStore(c).removeClientFile(file.storage_path);
   const { error } = await db.from('client_files').delete().eq('id', fileId);
   if (error) throw fromDatabaseError(error, 'delete client file');

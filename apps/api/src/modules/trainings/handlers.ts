@@ -20,6 +20,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { collator } from '../../lib/romanian';
+import { clientNotFound } from '../clients/lookup';
 import { romanianDay } from '../documents/context';
 import { signedSheetContext, syncTrainingRows } from '../signed-sheets/signed-sheets';
 import {
@@ -87,8 +88,6 @@ function signingOf(source: TrainingSource, records: RecordSigning[]) {
   };
 }
 
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
 const noSuchTraining = () =>
   new ApiError('not_found', 'This training does not exist under this client.');
 
@@ -103,7 +102,7 @@ async function findClient(db: DataClient, clientId: string) {
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw noSuchClient();
+  if (!data) throw clientNotFound();
   return data;
 }
 
@@ -495,7 +494,7 @@ export const createTraining: RouteHandler<typeof createTrainingRoute, ApiEnv> = 
   const body = c.req.valid('json');
   const plan = await planSignatureRequests(db, clientId, body);
   const trainingId = await saveTraining(db, clientId, undefined, body);
-  if (!trainingId) throw noSuchClient();
+  if (!trainingId) throw clientNotFound();
   await afterSave(c, db, { clientId, trainingId, plan });
   return c.json({ training: await loadTraining(db, clientId, trainingId) }, 201);
 };

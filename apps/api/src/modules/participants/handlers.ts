@@ -3,7 +3,6 @@ import {
   bulkInvitationFailureReasons,
   type BulkInvitationResult,
   bulkInvitationSkipReasons,
-  clientConflictReasons,
   type ClientParticipant,
   type EmployeeStatus,
   type ImportInvitee,
@@ -22,12 +21,14 @@ import type { Context } from 'hono';
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import {
   archivedClientError,
+  clientIsLeadError,
   createDataClient,
   type DataClient,
   fromDatabaseError,
 } from '../../lib/db';
 import { type ApiEnv, portalOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { clientNotFound } from '../clients/lookup';
 import { smsRefusalError, smsSenderOf } from '../sms-usage/sender';
 import { ensureParticipantAccount } from './account';
 import { fromParticipantError } from './errors';
@@ -423,9 +424,7 @@ export const listClientParticipants: RouteHandler<
   if (client.error) throw fromDatabaseError(client.error, 'participants client');
   if (participants.error) throw fromDatabaseError(participants.error, 'client participants');
   if (invitations.error) throw fromDatabaseError(invitations.error, 'client invitations');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   return c.json(
     {
       participants: (participants.data as ParticipantRow[]).map(toParticipant),
@@ -620,18 +619,9 @@ export const inviteEmployeeParticipants: RouteHandler<
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'bulk invitation client');
   if (employees.error) throw fromDatabaseError(employees.error, 'bulk invitation employees');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   if (client.data.archived_at) throw archivedClientError();
-  if (client.data.stage === 'lead') {
-    throw new ApiError(
-      'conflict',
-      'The company is still a lead; it has no safety records until it is promoted.',
-      undefined,
-      clientConflictReasons.clientIsLead
-    );
-  }
+  if (client.data.stage === 'lead') throw clientIsLeadError();
   const names = await senderNames(db, clientId, client.data.organization_id);
   const employeeOf = new Map(employees.data.map((row) => [row.id, row]));
   const admin = createAdminClient(c);
