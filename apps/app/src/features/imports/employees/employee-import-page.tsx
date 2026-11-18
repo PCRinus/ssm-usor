@@ -6,7 +6,7 @@ import { useState } from 'react';
 import type { ImportDetail } from '@/api/generated/api';
 import { BackLink } from '@/components/back-link';
 
-import { ImportLoader } from '../import-processing-page';
+import { ImportLoader } from '../import-loader';
 import { ChangesStores, ChangesStoresContext } from '../versioned-changes-store';
 import { EmployeeHub } from './employee-hub';
 import { EmployeeProcessing } from './employee-processing';
