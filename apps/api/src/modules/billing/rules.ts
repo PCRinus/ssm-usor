@@ -13,7 +13,7 @@ import {
   vatPercent,
 } from '@ssm-usor/contracts';
 
-import { addMonths } from '../sms-usage/policy';
+import { addMonths } from './entitlements';
 
 export type Usage = { employees: number; members: number };
 
