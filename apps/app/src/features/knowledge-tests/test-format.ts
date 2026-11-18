@@ -2,7 +2,6 @@ import { clientConflictReasons, testErrorReasons } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 
 import {
-  type ApiErrorResponse,
   getGetEmployeeQueryKey,
   getGetEmployeeTestsQueryKey,
   getGetTestBankQueryKey,
@@ -10,8 +9,9 @@ import {
   getListOrganizationEmployeesQueryKey,
   type TestBankResponse,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { roCount } from '@/features/employees/employee-format';
+import { commonFailure } from '@/lib/api-errors';
 
 export type BankTest = TestBankResponse['tests'][number];
 export type BankQuestion = BankTest['questions'][number];
@@ -36,8 +36,7 @@ export function testFailure(
   fallback: string,
   gone = 'Întrebarea nu mai există: altcineva a șters-o între timp. Reîncarcă pagina.'
 ) {
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  switch (body?.reason) {
+  switch (apiErrorReason(cause)) {
     case testErrorReasons.belowMinimum:
       return belowMinimumMessage;
     case testErrorReasons.builtIn:
@@ -52,10 +51,7 @@ export function testFailure(
       return 'Clientul este arhivat; rezultatele testelor lui nu se mai schimbă.';
   }
   if (cause instanceof ApiHttpError && cause.status === 404) return gone;
-  if (cause instanceof ApiHttpError && cause.status === 401) {
-    return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-  }
-  return fallback;
+  return commonFailure(cause) ?? fallback;
 }
 
 export function invalidateTestBank(queryClient: QueryClient) {

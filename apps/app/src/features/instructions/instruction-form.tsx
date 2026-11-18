@@ -14,7 +14,6 @@ import { ClipboardPaste, Download, Eye, Pencil } from 'lucide-react';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   createInstructionModule,
   downloadInstructionModule,
   getGetInstructionModuleQueryKey,
@@ -23,12 +22,13 @@ import {
   saveInstructionBody,
   useListClients,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { keepOpener } from '@/app/opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { keptFieldNames } from '@/features/reload-prompts/kept-text';
+import { commonFailure } from '@/lib/api-errors';
 import { saveFile } from '@/lib/save-file';
 
 import { InstructionBlocks } from './instruction-blocks';
@@ -74,11 +74,13 @@ function bodyProblem(body: DraftBody) {
 }
 
 function saveFailure(cause: unknown) {
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  if (body?.reason === 'instruction_module_title_taken') {
+  const common = commonFailure(cause);
+  if (common) return common;
+  const reason = apiErrorReason(cause);
+  if (reason === 'instruction_module_title_taken') {
     return 'Biblioteca are deja o instrucțiune cu acest titlu. Schimbă-l din „Titlu, categorie și domeniu”, apoi salvează.';
   }
-  if (body?.reason === 'instruction_module_archived') {
+  if (reason === 'instruction_module_archived') {
     return 'Instrucțiunea a fost arhivată între timp. Reactiveaz-o din bibliotecă ca să o modifici.';
   }
   if (cause instanceof ApiHttpError && cause.status === 404) {
@@ -86,9 +88,6 @@ function saveFailure(cause: unknown) {
   }
   if (cause instanceof ApiHttpError && cause.status === 409) {
     return 'Instrucțiunea a fost salvată între timp din altă fereastră. Salvează din nou ca să păstrezi textul de aici, sau reîncarcă pagina ca să vezi ce s-a salvat.';
-  }
-  if (cause instanceof ApiHttpError && cause.status === 401) {
-    return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
   }
   return 'Nu am putut salva instrucțiunea. Verifică conexiunea și încearcă din nou.';
 }

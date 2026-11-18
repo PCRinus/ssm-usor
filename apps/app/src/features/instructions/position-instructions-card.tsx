@@ -27,7 +27,6 @@ import { BookOpenText, Copy, ListChecks, X } from 'lucide-react';
 import { useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   getListInstructionModuleChoicesQueryKey,
   getListJobPositionsQueryKey,
   getListPositionInstructionsQueryKey,
@@ -37,7 +36,7 @@ import {
   useListJobPositions,
   useListPositionInstructions,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
@@ -47,6 +46,7 @@ import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   type AppliedInstruction,
@@ -91,11 +91,13 @@ const domainCopy = {
 } satisfies Record<InstructionDomain, unknown>;
 
 const failureMessage = (cause: unknown, fallback: string) => {
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  if (body?.reason === 'instruction_module_archived') {
+  const common = commonFailure(cause);
+  if (common) return common;
+  const reason = apiErrorReason(cause);
+  if (reason === 'instruction_module_archived') {
     return 'O instrucțiune aleasă a fost arhivată între timp. Alege din nou.';
   }
-  if (body?.reason === 'instruction_module_other_domain') {
+  if (reason === 'instruction_module_other_domain') {
     return 'O instrucțiune aleasă a fost mutată în celălalt domeniu între timp. Alege din nou.';
   }
   if (cause instanceof ApiHttpError && cause.status === 409) {

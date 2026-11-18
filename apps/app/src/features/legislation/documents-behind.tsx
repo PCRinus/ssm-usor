@@ -21,7 +21,6 @@ import { FileCheck2, FileText, FireExtinguisher, RefreshCw } from 'lucide-react'
 import { type ReactNode, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   type DocumentsBehindResponseItemsItem,
   getListClientDocumentsQueryKey,
   getListDocumentsBehindQueryKey,
@@ -29,13 +28,14 @@ import {
   useListDocumentsBehind,
   useStartDocumentRegeneration,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { behindInstructions, instructionChangesHint } from '@/features/documents/behind-labels';
 import { documentRowLink, documentSetCopy } from '@/features/documents/document-sets';
+import { commonFailure } from '@/lib/api-errors';
 
 import { countOf, kindLabels } from './legislation-labels';
 import { RegenerationJob } from './regeneration-job';
@@ -80,15 +80,16 @@ export function DocumentsBehind({ userId }: { userId: string }) {
         [type.typeKey]: { jobId: job.id, title: type.title, finished: false },
       }));
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       const answered =
         cause instanceof ApiHttpError && (cause.status === 409 || cause.status === 503);
       setFailures((current) => ({
         ...current,
         [type.typeKey]:
-          answered && body?.message
+          commonFailure(cause) ??
+          (answered && body?.message
             ? body.message
-            : 'Regenerarea nu a putut porni. Verifică conexiunea și încearcă din nou.',
+            : 'Regenerarea nu a putut porni. Verifică conexiunea și încearcă din nou.'),
       }));
     }
     setConfirming(null);
