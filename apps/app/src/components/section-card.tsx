@@ -14,6 +14,8 @@ type SectionCardProps = Omit<ComponentProps<typeof Card>, 'title'> & {
   description?: ReactNode;
   help?: HelpTopic;
   action?: ReactNode;
+  // `max-sm:contents` lets an action's parts take their own places in the header on a phone.
+  actionClassName?: string;
   headingLevel?: 2 | 3;
   // A title the tab above already shows: screen readers still get it, without its help link.
   hideTitle?: boolean;
@@ -30,6 +32,7 @@ export function SectionCard({
   description,
   help,
   action,
+  actionClassName,
   headingLevel = 2,
   hideTitle = false,
   longTitle = false,
@@ -77,7 +80,7 @@ export function SectionCard({
             <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
           )}
         </div>
-        {action && <div className="flex flex-wrap gap-2">{action}</div>}
+        {action && <div className={cn('flex flex-wrap gap-2', actionClassName)}>{action}</div>}
         {description && !hideTitle && (
           <div className="w-full">
             <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>

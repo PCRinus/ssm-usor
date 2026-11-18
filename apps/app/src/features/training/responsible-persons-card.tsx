@@ -198,7 +198,7 @@ export function ResponsiblePersonsCard({
   }
 
   const empty = persons.isSuccess && persons.data.items.length === 0;
-  const listed = persons.isSuccess && !empty;
+  const showMissing = persons.isSuccess && !empty && missing.length > 0;
 
   return (
     <SectionCard
@@ -206,13 +206,14 @@ export function ResponsiblePersonsCard({
       className={cn('gap-4', !empty && !persons.isError && 'overflow-hidden pb-0')}
       title="Persoane responsabile"
       help="instruire.persoane-responsabile"
+      actionClassName="max-sm:contents"
       action={
-        (listed && missing.length > 0) || !readOnly ? (
-          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-            {listed && missing.length > 0 && (
+        (showMissing || !readOnly) && (
+          <>
+            {showMissing && (
               <p
                 data-testid="responsible-missing"
-                className="text-sm font-medium text-warning-foreground"
+                className="self-center text-sm font-medium text-warning-foreground max-sm:order-last max-sm:basis-full sm:mr-2"
               >
                 Fără persoană numită:{' '}
                 {missing.map(({ role, label }, index) => (
@@ -243,8 +244,8 @@ export function ResponsiblePersonsCard({
                 onClick={() => setEditing('new')}
               />
             )}
-          </div>
-        ) : undefined
+          </>
+        )
       }
     >
       {error && (
