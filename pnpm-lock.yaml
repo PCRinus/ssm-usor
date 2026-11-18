@@ -101,6 +101,9 @@ importers:
       '@ssm-usor/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@ssm-usor/document-engine':
+        specifier: workspace:*
+        version: link:../../packages/document-engine
       '@ssm-usor/ui':
         specifier: workspace:*
         version: link:../../packages/ui
