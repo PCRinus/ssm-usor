@@ -708,7 +708,7 @@ describe('the credits an import uses', () => {
     expect(screen.getByTestId('import-credits-subscription').textContent).toBe(
       'Deschide Abonament'
     );
-    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Închide' })[0]!);
+    await userEvent.click(within(dialog).getByTestId('import-credits-close'));
     await waitFor(() => expect(screen.queryByTestId('import-upload-dialog')).toBeNull());
   });
 

@@ -4,7 +4,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { CloseLabelContext } from '@ssm-usor/ui/components/close-label';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
-import { useSyncExternalStore } from 'react';
+import { type ReactNode, useSyncExternalStore } from 'react';
 
 import { AuthContext } from '@/features/auth/auth-context';
 import { ReloadPrompts } from '@/features/reload/reload-prompts';
@@ -16,10 +16,17 @@ import { PublicFrame } from './public-frame';
 export default function App({ runtime }: { runtime: PortalRuntime }) {
   return (
     <I18nProvider i18n={i18n}>
-      <Portal runtime={runtime} />
-      <ReloadPrompts />
+      <CloseLabel>
+        <Portal runtime={runtime} />
+        <ReloadPrompts />
+      </CloseLabel>
     </I18nProvider>
   );
+}
+
+function CloseLabel({ children }: { children: ReactNode }) {
+  const { t } = useLingui();
+  return <CloseLabelContext value={t`Închide`}>{children}</CloseLabelContext>;
 }
 
 function Portal({ runtime }: { runtime: PortalRuntime }) {
@@ -57,12 +64,10 @@ function Portal({ runtime }: { runtime: PortalRuntime }) {
   }
 
   return (
-    <CloseLabelContext value={t`Închide`}>
-      <QueryClientProvider client={queryClient}>
-        <AuthContext.Provider value={auth}>
-          <RouterProvider router={router} />
-        </AuthContext.Provider>
-      </QueryClientProvider>
-    </CloseLabelContext>
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={auth}>
+        <RouterProvider router={router} />
+      </AuthContext.Provider>
+    </QueryClientProvider>
   );
 }
