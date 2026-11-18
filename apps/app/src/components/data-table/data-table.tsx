@@ -47,7 +47,6 @@ export interface DataTableProps<TData extends RowData> {
   empty: ReactNode;
   testId?: string;
   rowTestId?: string | ((row: TData) => string);
-  // An element id, for a link or a focus request that scrolls to the row.
   rowElementId?: (row: TData) => string | undefined;
   onRowClick?: (row: TData) => void;
   // Left out when every row opens.

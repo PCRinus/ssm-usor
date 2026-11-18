@@ -86,13 +86,28 @@ export function WorkplacesCard({
   const [error, setError] = useState<string | null>(null);
   const addRef = useRef<HTMLButtonElement>(null);
 
+  const fireSettled = !equipment.isPending && !installations.isPending;
+  const rows = useMemo(
+    () =>
+      workplaces.data && fireSettled
+        ? workplaceRows(
+            workplaces.data,
+            equipment.data && installations.data
+              ? { equipment: equipment.data.items, installations: installations.data.items }
+              : null,
+            dateToIso(new Date())
+          )
+        : undefined,
+    [workplaces.data, fireSettled, equipment.data, installations.data]
+  );
   const incomplete =
     focus === 'workplace-fire-data'
       ? workplaces.data?.items.find((workplace) => firstMissingFireField(workplace) !== null)
       : undefined;
   const nothingYet = workplaces.data?.items.length === 0;
   useFocusRequest(focus !== undefined, {
-    ready: !workplaces.isPending,
+    // The rows the anchor scrolls to wait for the equipment lists too.
+    ready: workplaces.isError || rows !== undefined,
     anchor: () =>
       incomplete ? document.getElementById(workplaceRowId(incomplete.id)) : addRef.current,
     open:
@@ -151,20 +166,6 @@ export function WorkplacesCard({
     await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
   }
 
-  const fireSettled = !equipment.isPending && !installations.isPending;
-  const rows = useMemo(
-    () =>
-      workplaces.data && fireSettled
-        ? workplaceRows(
-            workplaces.data,
-            equipment.data && installations.data
-              ? { equipment: equipment.data.items, installations: installations.data.items }
-              : null,
-            dateToIso(new Date())
-          )
-        : undefined,
-    [workplaces.data, fireSettled, equipment.data, installations.data]
-  );
   const columns = useMemo(
     () =>
       workplaceColumns({

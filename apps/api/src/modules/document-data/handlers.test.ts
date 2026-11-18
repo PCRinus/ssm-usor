@@ -571,7 +571,6 @@ describe('/clients/{clientId}/workplaces', () => {
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('order')).toBe('is_registered_office.desc,name.asc,id.asc');
-    // Counted as the workers list filtered by `none` counts its current employees.
     const [countUrl, countInit] = calls('/rest/v1/employees')[0]!;
     expect(countInit?.method).toBe('HEAD');
     const counted = new URL(String(countUrl)).searchParams;

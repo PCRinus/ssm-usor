@@ -78,7 +78,6 @@ export function missingRoles(
   });
 }
 
-/** Under a person's name: whether they are one of the client's workers, and on the portal. */
 export function personStanding(
   person: ResponsiblePerson,
   portal: ClientParticipantsResponse | undefined

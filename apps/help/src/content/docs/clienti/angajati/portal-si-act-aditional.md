@@ -158,7 +158,7 @@ Lista cuprinde toți lucrătorii actuali ai clientului, fiecare cu postul lui ș
 
 Pe fiecare rând găsești ce se poate face acum: **Invită** pentru un lucrător fără invitație sau cu accesul revocat, cu același dialog ca din pagina lui; **Retrimite** pentru o invitație deschisă sau expirată, cel mult o dată la 10 minute; din meniul cu trei puncte, **Revocă accesul** sau **Revocă invitația**.
 
-Cauți după nume sau marcă. **Filtre** alege după accesul la portal, postul de lucru și punctul de lucru. Ordonezi lista după lucrător sau după acces, în ordinea stărilor de mai sus. Deasupra listei vezi câți lucrători au acces din câți sunt, de exemplu „5 cu acces, din 14 lucrători”; cu un filtru sau o căutare, câți se potrivesc din total.
+Cauți după nume sau marcă. **Filtre** alege după accesul la portal, postul de lucru și punctul de lucru, inclusiv **Fără punct de lucru**, când unii lucrători nu au unul. Ordonezi lista după lucrător sau după acces, în ordinea stărilor de mai sus. Deasupra listei vezi câți lucrători au acces din câți sunt, de exemplu „5 cu acces, din 14 lucrători”; cu un filtru sau o căutare, câți se potrivesc din total.
 
 ### Invitarea mai multor lucrători
 
