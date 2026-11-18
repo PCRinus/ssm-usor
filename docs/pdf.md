@@ -436,9 +436,9 @@ back. A refusal is about the file, so trying again does not help:
 | `timeout`            | The tool did not finish within its limit: two minutes for LibreOffice and `pdftotext`, one for the rest                                    |
 | `page_out_of_range`  | A page below 1 or past the PDF's last                                                                                                      |
 
-The forwarding is `convertDocx`'s: a container that did not start, or answered 5xx, is tried once
-more after two seconds, on either instance, and a request unanswered after three minutes is
-aborted and not tried again. The reason is logged
+The forwarding is `callContainer`'s, which the conversions and the signer share: a container that
+did not start, or answered 5xx, is tried once more after two seconds, on either instance, and a
+request unanswered after three minutes is aborted and not tried again. The reason is logged
 as one JSON line (`extraction_refused`, `extraction_unreachable`, `extraction_timeout`), and the
 container logs its own (`extractor_refused`, `extractor_busy`, `extractor_abandoned`,
 `extractor_failed`), without the file's content.

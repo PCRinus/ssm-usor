@@ -3,7 +3,7 @@ import { signerAnswerError, signerFailed, type SignerPost } from '@ssm-usor/cont
 import { callContainer, type Fetcher } from './container-call';
 
 /**
- * Posts to the signer container with the discipline of `convertDocx`: a failure that is not
+ * Posts to the signer container through `callContainer`: a failure that is not
  * about the request, such as a container that did not start, is tried once more after a pause.
  * A refusal rejects with the service's code (`signer_failed:locked_field`), which a service
  * binding carries to the caller in the error's message.

@@ -3,7 +3,7 @@ import { extractionFailed, extractorAnswerError, type ExtractorPost } from '@ssm
 import { callContainer, type Fetcher } from './container-call';
 
 /**
- * Posts to the extractor container with the discipline of `postToSigner`: a container that did
+ * Posts to the extractor container through `callContainer`: a container that did
  * not start, or answered 5xx (503 when it has too many files waiting), is tried once more after a
  * pause. A refusal rejects with its reason
  * (`extraction_failed:password_protected`), which a service binding carries to the caller.
