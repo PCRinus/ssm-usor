@@ -21,6 +21,7 @@ import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { sessionExpiredMessage } from '@/lib/api-errors';
 
 import {
   countOf,
@@ -99,7 +100,7 @@ export function DashboardPage() {
           }
         >
           {summary.error instanceof ApiHttpError && summary.error.status === 401
-            ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+            ? sessionExpiredMessage
             : 'Nu am putut încărca cifrele dashboardului.'}
         </Notice>
       ) : data ? (
