@@ -14,7 +14,6 @@ import {
   FileWarning,
   Image as ImageIcon,
   LoaderCircle,
-  X,
 } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 
@@ -45,6 +44,7 @@ import {
 } from './import-format';
 import { ImportThumbnail } from './import-thumbnail';
 import { inPathOrder } from './path-order';
+import { ImportSteps } from './processing-parts';
 import { ReadSetAsideButton } from './read-set-aside-button';
 import { ReportImportButton } from './report-import-button';
 import { useCanReportImport } from './use-can-report-import';
@@ -599,51 +599,14 @@ function StepsCard({ detail }: { detail: ImportDetail }) {
   return (
     <Card className="gap-4 px-5 py-4" data-testid="import-steps">
       <h2 className="text-lg font-semibold">Pașii importului</h2>
-      <ol className="grid gap-3">
-        {steps.map((step, index) => {
-          const state =
-            index < reached ? 'done' : index === reached ? (failed ? 'failed' : 'current') : 'next';
-          const text = state === 'next' && index < 3 ? null : step.detail(detail);
-          return (
-            <li
-              key={step.label}
-              data-testid="import-step"
-              data-state={state}
-              aria-current={state === 'current' ? 'step' : undefined}
-              className="grid grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-x-3 sm:grid-cols-[1.75rem_minmax(0,14rem)_minmax(0,1fr)]"
-            >
-              <span
-                className={cn(
-                  'grid size-7 place-items-center rounded-full text-xs font-semibold',
-                  state === 'done' && 'bg-primary text-primary-foreground',
-                  state === 'current' && 'bg-accent text-accent-foreground',
-                  state === 'failed' && 'bg-destructive text-white',
-                  state === 'next' && 'border text-muted-foreground'
-                )}
-                aria-hidden="true"
-              >
-                {state === 'done' ? (
-                  <Check className="size-4" />
-                ) : state === 'failed' ? (
-                  <X className="size-4" />
-                ) : (
-                  index + 1
-                )}
-              </span>
-              <span
-                className={cn('text-sm font-medium', state === 'next' && 'text-muted-foreground')}
-              >
-                {step.label}
-              </span>
-              {text && (
-                <span className="col-start-2 text-sm text-muted-foreground tabular-nums sm:col-start-3">
-                  {text}
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <ImportSteps
+        steps={steps.map((step, index) => ({
+          label: step.label,
+          detail: index > reached && index < 3 ? null : step.detail(detail),
+        }))}
+        reached={reached}
+        failed={failed}
+      />
       {isRunning(detail.status) && (
         <div className="grid gap-4 rounded-lg bg-muted/50 p-4" data-testid="import-now">
           {detail.status === 'preparing' && (
