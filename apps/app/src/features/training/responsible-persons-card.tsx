@@ -1,4 +1,5 @@
 import {
+  clientConflictReasons,
   isLegalRepresentative,
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
@@ -18,6 +19,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Fragment, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
 import {
+  type ApiErrorResponse,
   getListResponsiblePersonsQueryKey,
   getListWorkplacesQueryKey,
   useArchiveResponsiblePerson,
@@ -38,9 +40,16 @@ import { responsiblePersonColumns } from './responsible-person-columns';
 import {
   ResponsiblePersonDialog,
   type ResponsiblePersonEditing,
+  responsiblePersonsOfArchivedClientMessage,
 } from './responsible-person-dialog';
 import { missingRoles, type ResponsiblePerson } from './responsible-person-schema';
 import { useDocumentDetails } from './use-document-details-form';
+
+function reasonOf(cause: unknown) {
+  return cause instanceof ApiHttpError
+    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
+    : undefined;
+}
 
 const focusRoles: Record<ResponsiblePersonFocus, ResponsiblePersonRole> = {
   'workplace-manager': 'workplace_manager',
@@ -148,8 +157,12 @@ export function ResponsiblePersonsCard({
           },
         });
         toast.success(maskPeople`Funcția lui ${person.fullName} a fost actualizată.`);
-      } catch {
-        setError('Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.');
+      } catch (cause) {
+        setError(
+          reasonOf(cause) === clientConflictReasons.clientArchived
+            ? responsiblePersonsOfArchivedClientMessage
+            : 'Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.'
+        );
       }
       await queryClient.invalidateQueries({
         queryKey: getListResponsiblePersonsQueryKey(clientId),
@@ -185,9 +198,11 @@ export function ResponsiblePersonsCard({
       toast.success(maskPeople`${person.fullName} a fost scos din listă.`);
     } catch (cause) {
       setError(
-        cause instanceof ApiHttpError && cause.status === 404
-          ? maskPeople`${person.fullName} nu mai este în lista acestui client.`
-          : 'Nu am putut scoate persoana din listă. Verifică conexiunea și încearcă din nou.'
+        reasonOf(cause) === clientConflictReasons.clientArchived
+          ? responsiblePersonsOfArchivedClientMessage
+          : cause instanceof ApiHttpError && cause.status === 404
+            ? maskPeople`${person.fullName} nu mai este în lista acestui client.`
+            : 'Nu am putut scoate persoana din listă. Verifică conexiunea și încearcă din nou.'
       );
     }
     setArchiving(null);

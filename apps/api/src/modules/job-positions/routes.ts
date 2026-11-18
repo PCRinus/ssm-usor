@@ -69,7 +69,7 @@ export const createJobPositionRoute = createRoute({
     404: noSuchClient,
     409: {
       description:
-        'The client is archived, or already has a position of this name (reason `job_position_name_taken`)',
+        'The client is archived (reason `client_archived`), or already has a position of this name (reason `job_position_name_taken`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -92,7 +92,7 @@ export const updateJobPositionRoute = createRoute({
     404: noSuchJobPosition,
     409: {
       description:
-        'The client already has a position of this name (reason `job_position_name_taken`)',
+        'The client is archived (reason `client_archived`), or already has a position of this name (reason `job_position_name_taken`)',
       content: errorContent,
     },
     ...membershipErrors,

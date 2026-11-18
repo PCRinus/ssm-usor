@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  clientConflictReasons,
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   fireExtinguisherNorms,
@@ -91,6 +92,9 @@ const sheetTexts = [
 
 // `null` is closed, 'new' adds a workplace, and a workplace edits it.
 export type WorkplaceEditing = Workplace | 'new' | null;
+
+export const workplacesOfArchivedClientMessage =
+  'Clientul este arhivat; punctele lui de lucru nu se mai schimbă.';
 
 const officeNeedsWorkplaceMessage =
   'Clientul nu are alt punct de lucru activ. Adaugă întâi punctul de lucru în care se desfășoară activitatea.';
@@ -224,8 +228,11 @@ function WorkplaceForm({
         });
         return;
       }
+      if (body?.reason === clientConflictReasons.clientArchived) {
+        form.setError('root.server', { message: workplacesOfArchivedClientMessage });
+        return;
+      }
       if (cause instanceof ApiHttpError && cause.status === 409) {
-        // The API answers 409 for an archived client too, which this page shows read-only.
         form.setError('isRegisteredOffice', {
           message: 'Clientul are deja un sediu social. Modifică-l pe acela sau debifează opțiunea.',
         });

@@ -2,7 +2,12 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import type { JobPosition, JobPositionRequest } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { toTrainMatch } from '../employees/handlers';
@@ -177,9 +182,7 @@ export const createJobPosition: RouteHandler<typeof createJobPositionRoute, ApiE
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
   const client = await findClient(db, clientId);
-  if (client.archived_at) {
-    throw new ApiError('conflict', 'This client is archived; job positions cannot be added.');
-  }
+  if (client.archived_at) throw archivedClientError();
   const { data, error } = await db
     .from('job_positions')
     .insert({

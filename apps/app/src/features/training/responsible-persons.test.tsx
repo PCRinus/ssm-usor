@@ -728,6 +728,29 @@ describe('client responsible persons', () => {
     expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
   });
 
+  it('says the client is archived, not that the employee is listed, when a stale page adds to it', async () => {
+    mockApi({
+      items: [],
+      create: () =>
+        Response.json(
+          { error: 'conflict', message: 'Archived', reason: 'client_archived' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.type(await screen.findByTestId('responsible-name'), 'Paolo-Antonio Luca');
+    await user.type(screen.getByTestId('responsible-job-title'), 'Manager magazin');
+    await user.click(screen.getByTestId('responsible-role-first_aid'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    expect((await screen.findByTestId('responsible-error')).textContent).toContain('arhivat');
+    expect(screen.queryByTestId('responsible-employee-error')).toBeNull();
+    expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
+  });
+
   it("takes a workers' representative only from the employees", async () => {
     mockApi({ items: [] });
     mount();
@@ -817,6 +840,35 @@ describe('client responsible persons', () => {
       roles: ['workplace_manager', 'first_aid'],
     });
     expect(screen.queryByTestId('responsible-dialog')).toBeNull();
+  });
+
+  it('says the client is archived when a stale page adopts the title or removes a person', async () => {
+    const archived = () =>
+      Response.json(
+        { error: 'conflict', message: 'Archived', reason: 'client_archived' },
+        { status: 409 }
+      );
+    mockApi({
+      items: [{ ...manager, employeeJobTitle: 'Director magazin' }],
+      update: archived,
+      archive: archived,
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const drift = await screen.findByTestId('responsible-title-drift');
+    await user.click(within(drift).getByTestId('responsible-title-adopt'));
+    expect((await screen.findByTestId('responsible-persons-error')).textContent).toContain(
+      'arhivat'
+    );
+
+    await user.click(await screen.findByTestId('responsible-actions'));
+    await user.click(await screen.findByTestId('responsible-archive'));
+    await user.click(await screen.findByTestId('responsible-archive-confirm'));
+    await waitFor(() => expect(requests(itemPath, 'DELETE')).toHaveLength(1));
+    expect((await screen.findByTestId('responsible-persons-error')).textContent).toContain(
+      'arhivat'
+    );
   });
 
   it('says nothing while the two titles agree', async () => {

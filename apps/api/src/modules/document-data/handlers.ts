@@ -19,7 +19,12 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import type {
@@ -201,9 +206,9 @@ async function findClient(db: DataClient, clientId: string) {
   return data;
 }
 
-async function findActiveClient(db: DataClient, clientId: string, refusal: string) {
+async function findActiveClient(db: DataClient, clientId: string) {
   const client = await findClient(db, clientId);
-  if (client.archived_at) throw new ApiError('conflict', refusal);
+  if (client.archived_at) throw archivedClientError();
   return client;
 }
 
@@ -543,7 +548,7 @@ export const createWorkplace: RouteHandler<typeof createWorkplaceRoute, ApiEnv> 
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findActiveClient(db, clientId, 'This client is archived; workplaces cannot be added.');
+  await findActiveClient(db, clientId);
   await refuseOfficeWithoutActivity(db, clientId, body);
   const { data, error } = await db
     .from('client_workplaces')
@@ -779,11 +784,7 @@ export const createResponsiblePerson: RouteHandler<
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findActiveClient(
-    db,
-    clientId,
-    'This client is archived; responsible persons cannot be added.'
-  );
+  await findActiveClient(db, clientId);
   await refuseLegalRepresentative(db, clientId, body);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
