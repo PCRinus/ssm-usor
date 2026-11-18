@@ -1758,6 +1758,11 @@ describe('confirming', () => {
     );
     const submit = within(dialog).getByTestId('employee-confirm-submit');
     expect(submit.textContent).toBe('Creează un lucrător, fără cel neverificat');
+    expect(
+      within(dialog)
+        .getAllByTestId('employee-confirm-line')
+        .some((line) => line.textContent!.startsWith('1lucrător nouCu postul ales'))
+    ).toBe(true);
     await user.click(submit);
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/angajati`)

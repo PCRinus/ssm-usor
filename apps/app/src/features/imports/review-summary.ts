@@ -142,11 +142,13 @@ export function sectionDescription(
     itemStates(proposal, changes, list).filter(
       (state) => state.untickedReason === reason && !state.included
     );
-  const others = (lists: ItemList[], noun: string) => {
+  const others = (lists: ItemList[], one: string, many: string) => {
     const left = lists.flatMap((list) => leftOut(list, 'other_company')).length;
     return left === 0
       ? ''
-      : ` Alte ${roCount(left, noun, noun)} apar doar în pasaje copiate de la altă firmă și sunt lăsate deoparte.`;
+      : left === 1
+        ? ` ${one} apare doar în pasaje copiate de la altă firmă și rămâne deoparte.`
+        : ` Alte ${roCount(left, many, many)} apar doar în pasaje copiate de la altă firmă și sunt lăsate deoparte.`;
   };
   const choices = Object.values(states).filter(
     (state) =>
@@ -182,7 +184,7 @@ export function sectionDescription(
         (total, state) => total + ((state.values.rooms as string[] | undefined)?.length ?? 0),
         0
       );
-      return `${count(kept.length, 'punct de lucru', 'puncte de lucru')}${rooms > 0 ? `, cu ${rooms === 1 ? 'o încăpere' : roCount(rooms, 'încăpere', 'încăperi')} pentru mijloacele de apărare împotriva incendiilor` : ''}.${others(['workplaces'], 'puncte de lucru')}`;
+      return `${count(kept.length, 'punct de lucru', 'puncte de lucru')}${rooms > 0 ? `, cu ${rooms === 1 ? 'o încăpere' : roCount(rooms, 'încăpere', 'încăperi')} pentru mijloacele de apărare împotriva incendiilor` : ''}.${others(['workplaces'], 'Un alt punct de lucru', 'puncte de lucru')}`;
     }
     case 'job-positions': {
       const kept = included(proposal, changes, 'jobPositions');
@@ -193,7 +195,7 @@ export function sectionDescription(
           : management.length === 1
             ? ` Postul «${String(management[0]!.values.name)}» se preia doar dacă e ocupat cu contract de muncă.`
             : ` ${roCount(management.length, 'post de conducere', 'posturi de conducere')} se preiau doar dacă sunt ocupate cu contract de muncă.`;
-      return `${count(kept.length, 'post', 'posturi')}.${managementText}${others(['jobPositions'], 'posturi')}`;
+      return `${count(kept.length, 'post', 'posturi')}.${managementText}${others(['jobPositions'], 'Un alt post', 'posturi')}`;
     }
     case 'responsible': {
       const people = included(proposal, changes, 'responsiblePersons');
@@ -210,7 +212,7 @@ export function sectionDescription(
         representative
           ? ` ${roleLabel('workers_representative')} devine lucrător${missingDate ? ' și are nevoie de data angajării' : ''}.`
           : ''
-      }${others(['responsiblePersons'], 'persoane')}`;
+      }${others(['responsiblePersons'], 'O altă persoană', 'persoane')}`;
     }
     case 'training': {
       const schedule = (label: string, root: 'trainingSchedule' | 'fireSafety') => {
@@ -249,7 +251,7 @@ export function sectionDescription(
           : answer === 'none'
             ? ', fără substanțe periculoase'
             : '';
-      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : roCount(equipment, 'mijloc de stingere', 'mijloace de stingere')}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'mijloace')}`;
+      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : roCount(equipment, 'mijloc de stingere', 'mijloace de stingere')}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'Un alt mijloc', 'mijloace')}`;
     }
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');
@@ -271,7 +273,7 @@ export function sectionDescription(
           : withPosition === 1
             ? ' Un articol rămâne deoparte cu postul lui.'
             : ` Alte ${roCount(withPosition, 'articol', 'articole')} rămân deoparte cu posturile lor.`;
-      return `${items.length === 1 ? 'Un articol' : roCount(items.length, 'articol', 'articole')} pentru ${positions === 1 ? 'un post' : roCount(positions, 'post', 'posturi')}.${withPositionText}${others(['protectiveEquipment'], 'articole')}`;
+      return `${items.length === 1 ? 'Un articol' : roCount(items.length, 'articol', 'articole')} pentru ${positions === 1 ? 'un post' : roCount(positions, 'post', 'posturi')}.${withPositionText}${others(['protectiveEquipment'], 'Un alt articol', 'articole')}`;
     }
   }
 }
