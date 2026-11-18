@@ -7,10 +7,10 @@ import {
 import type { Context } from 'hono';
 
 import { adminClient } from '../../lib/admin-db';
-import type { ApiEnv } from '../../lib/env';
+import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import type { EntitlementRow } from '../billing/entitlements';
-import { noticeRecipient, subscriptionUrl, usageNoticeStore } from '../billing/usage-notices';
+import { noticeRecipient, usageNoticeStore } from '../billing/usage-notices';
 import { createExtrasNotices, extrasNoticeDeps } from '../extras/notices';
 import { extrasUnavailable } from '../extras/policy';
 import { createUsageNotices } from './notices';

@@ -2,7 +2,6 @@ import type { MailService } from '@ssm-usor/contracts';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ownerEmail } from './store';
 
 export type NoticeRecipient = { to: string; organizationName: string };
@@ -44,9 +43,6 @@ export async function noticeRecipient(
   if (!to || !organization.data) return null;
   return { to, organizationName: organization.data.name };
 }
-
-export const subscriptionUrl = (env: ApiEnv['Bindings']) =>
-  new URL('/organizatie/abonament', appOrigin(env)).href;
 
 export type NoticeDeps = {
   store: UsageNoticeStore;

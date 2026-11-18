@@ -13,7 +13,7 @@ import {
 } from '../billing/entitlements';
 import { smsExtraCents } from '../extras/policy';
 
-// billing/rules imports it from here until it is pointed at billing/entitlements.
+// Kept so that code importing it from here keeps working until it imports billing/entitlements.
 export { addMonths } from '../billing/entitlements';
 
 export type SmsPolicy =

@@ -21,7 +21,7 @@ import type { Context } from 'hono';
 import type Stripe from 'stripe';
 
 import { createAdminClient } from '../../lib/admin-db';
-import type { ApiEnv } from '../../lib/env';
+import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
@@ -70,7 +70,6 @@ import {
   type SubscriptionRow,
 } from './store';
 import { stripeCatalogue, stripeFor } from './stripe';
-import { subscriptionUrl } from './usage-notices';
 
 function billingOf(c: Context<ApiEnv>): Billing {
   return {

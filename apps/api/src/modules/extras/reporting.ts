@@ -4,9 +4,9 @@ import type Stripe from 'stripe';
 
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import type { ApiEnv } from '../../lib/env';
+import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { stripeFor } from '../billing/stripe';
-import { noticeRecipient, subscriptionUrl } from '../billing/usage-notices';
+import { noticeRecipient } from '../billing/usage-notices';
 import type { CreditsHooks } from '../credits/store';
 import { createExtrasNotices, extrasNoticeDeps } from './notices';
 
