@@ -938,7 +938,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('forgets a failed deletion once the dialog is closed', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const own = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (input, init) =>
       init?.method === 'DELETE' &&

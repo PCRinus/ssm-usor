@@ -404,7 +404,7 @@ describe('the question bank', () => {
     let deleted = false;
     let held = 0;
     const questions = ssmQuestions([ownQuestion]);
-    mockApi(
+    mockBankApi(
       {
         [`DELETE /organization/tests/questions/${ownQuestion.id}`]: () => {
           deleted = true;

@@ -731,7 +731,7 @@ describe('a profile page', () => {
     });
     let refused = false;
     let held = 0;
-    mockApi();
+    mockProfilesApi();
     const ownLibrary = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (input, init) => {
       const pathname = new URL(String(input)).pathname;
