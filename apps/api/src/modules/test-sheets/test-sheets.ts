@@ -19,7 +19,12 @@ import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { type PdfSigningServices, pdfSigningServices, signField } from '../../lib/pdf-signing';
+import {
+  type PdfSigningServices,
+  pdfSigningServices,
+  rewriteVersioned,
+  signField,
+} from '../../lib/pdf-signing';
 import { mergeBuiltIn } from '../../lib/templates';
 import type { MarkedQuestion } from '../tests/rows';
 
@@ -107,8 +112,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
 
 const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
-// Every version is a file of its own, as a signed sheet's: the evidence's digest before a
-// signature names a file that still exists.
 const storagePathOf = (
   sheet: Pick<TestSheetRow, 'organization_id' | 'client_id' | 'employee_id' | 'test_result_id'>,
   version: number
@@ -244,8 +247,6 @@ export async function ensureTestSheet(
   return data as TestSheetRow;
 }
 
-// Serialized by the version, not a Postgres lock, for the signed sheet's reason: a write spans
-// calls to the signer, and PostgREST holds no transaction across requests.
 async function rewriteTestSheet(
   deps: TestSheetDeps,
   sheetId: string,
@@ -255,45 +256,48 @@ async function rewriteTestSheet(
   ) => Promise<{ bytes: Uint8Array; certify?: string }>
 ): Promise<{ before: TestSheetRow; after: TestSheetRow }> {
   const { admin, sheets } = deps;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const read = await admin
-      .from('test_sheets')
-      .select(testSheetColumns)
-      .eq('id', sheetId)
-      .maybeSingle();
-    if (read.error) throw fromDatabaseError(read.error, 'test sheet');
-    const sheet = read.data as TestSheetRow | null;
-    if (!sheet) throw new ApiError('not_found', 'The test sheet does not exist.');
-    const bytes = await sheets.files.readDocument(sheet.storage_path);
-    if ((await sha256(bytes)) !== sheet.digest) {
+  return rewriteVersioned(sheets.files, {
+    async read() {
+      const read = await admin
+        .from('test_sheets')
+        .select(testSheetColumns)
+        .eq('id', sheetId)
+        .maybeSingle();
+      if (read.error) throw fromDatabaseError(read.error, 'test sheet');
+      const sheet = read.data as TestSheetRow | null;
+      if (!sheet) throw new ApiError('not_found', 'The test sheet does not exist.');
+      return sheet;
+    },
+    pathOf: (sheet) => sheet.storage_path,
+    nextPathOf: (sheet) => storagePathOf(sheet, sheet.version + 1),
+    unverified(sheet) {
       console.error(
         `Test sheet ${sheet.id} does not match its digest at version ${sheet.version}.`
       );
-      throw new ApiError('internal_error', 'The stored test sheet could not be verified.');
-    }
-    const next = await rewrite(sheet, bytes);
-    const path = storagePathOf(sheet, sheet.version + 1);
-    await sheets.files.writeDocument(path, next.bytes, { replace: false });
-    const moved = await admin
-      .from('test_sheets')
-      .update({
-        storage_path: path,
-        digest: await sha256(next.bytes),
-        version: sheet.version + 1,
-        ...(next.certify && !sheet.certified_at ? { certified_at: next.certify } : {}),
-      })
-      .eq('id', sheet.id)
-      .eq('version', sheet.version)
-      .select(testSheetColumns)
-      .maybeSingle();
-    if (moved.error) {
-      await sheets.files.removeDocument(path).catch(() => undefined);
-      throw fromDatabaseError(moved.error, 'advance test sheet');
-    }
-    if (moved.data) return { before: sheet, after: moved.data as TestSheetRow };
-    await sheets.files.removeDocument(path).catch(() => undefined);
-  }
-  throw sheetBusy();
+      return new ApiError('internal_error', 'The stored test sheet could not be verified.');
+    },
+    rewrite,
+    async advance(sheet, next, { path, digest }) {
+      const moved = await admin
+        .from('test_sheets')
+        .update({
+          storage_path: path,
+          digest,
+          version: sheet.version + 1,
+          ...(next.certify && !sheet.certified_at ? { certified_at: next.certify } : {}),
+        })
+        .eq('id', sheet.id)
+        .eq('version', sheet.version)
+        .select(testSheetColumns)
+        .maybeSingle();
+      if (moved.error) {
+        await sheets.files.removeDocument(path).catch(() => undefined);
+        throw fromDatabaseError(moved.error, 'advance test sheet');
+      }
+      return moved.data as TestSheetRow | null;
+    },
+    busy: sheetBusy,
+  });
 }
 
 // Never after the examiner signed: the database refuses the change, and the signature locks the

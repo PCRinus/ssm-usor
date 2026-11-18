@@ -19,7 +19,12 @@ import { createLastingAdminClient } from '../../lib/admin-db';
 import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { type PdfSigningServices, pdfSigningServices, signField } from '../../lib/pdf-signing';
+import {
+  type PdfSigningServices,
+  pdfSigningServices,
+  rewriteVersioned,
+  signField,
+} from '../../lib/pdf-signing';
 import { mergeBuiltIn } from '../../lib/templates';
 import {
   chronological,
@@ -59,11 +64,6 @@ import {
 } from './store';
 
 export { currentSheetPdf, sheetCopyText } from './stored';
-
-// Writes to one sheet are serialized by its version: each makes the next version from the current
-// bytes and moves the row on only if nobody else did first, and the loser tries once more. Not a
-// Postgres advisory lock: a write spans calls to the signer, and PostgREST holds no transaction
-// across requests.
 
 export type SignedSheetContext = PdfSigningServices & {
   store: SignedSheetStore;
@@ -118,8 +118,6 @@ export function rowDigest(values: Record<string, string>) {
   return sha256(new TextEncoder().encode(JSON.stringify(sorted)));
 }
 
-// A version gets a path of its own, so that a write that loses the race never overwrites the
-// bytes the row points to, and every version stays for the evidence's digests.
 function storagePathOf(
   sheet: Pick<StoredSheet, 'organizationId' | 'clientId' | 'employeeId' | 'domain' | 'sequence'>,
   version: number
@@ -179,41 +177,48 @@ async function rewriteSheet(
   sheetId: string,
   rewrite: (sheet: StoredSheet, bytes: Uint8Array) => Promise<Rewrite>
 ): Promise<{ before: StoredSheet; after: StoredSheet }> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const sheet = await ctx.store.sheet(sheetId);
-    if (!sheet) throw new ApiError('not_found', 'The signed sheet does not exist.');
-    let bytes = await ctx.files.readDocument(sheet.storagePath);
-    if ((await sha256(bytes)) !== sheet.digest) {
+  let notes: ReturnType<typeof notesToWrite> = [];
+  return rewriteVersioned(ctx.files, {
+    async read() {
+      const sheet = await ctx.store.sheet(sheetId);
+      if (!sheet) throw new ApiError('not_found', 'The signed sheet does not exist.');
+      return sheet;
+    },
+    pathOf: (sheet) => sheet.storagePath,
+    nextPathOf: (sheet) => storagePathOf(sheet, sheet.version + 1),
+    unverified(sheet) {
       console.error(
         `Signed sheet ${sheet.id} does not match its digest at version ${sheet.version}.`
       );
-      throw new ApiError('internal_error', 'The stored training sheet could not be verified.');
-    }
-    const notes = notesToWrite(sheet, await ctx.store.rowsOf(sheet.id));
-    if (notes.length > 0) {
-      const values = Object.fromEntries(notes.map(({ note }) => [note, voidedNote]));
-      bytes = new Uint8Array(
-        await need(ctx.signer, signerUnavailable).fillFields(buffer(bytes), values)
-      );
-    }
-    const next = await rewrite(sheet, bytes);
-    const path = storagePathOf(sheet, sheet.version + 1);
-    await ctx.files.writeDocument(path, next.bytes, { replace: false });
-    const after = await ctx.store.advance(sheet, {
-      ...next.changes,
-      storagePath: path,
-      digest: await sha256(next.bytes),
-    });
-    if (after) {
-      await ctx.store.markVoidNoted(
-        notes.map(({ row }) => row.id),
-        ctx.now().toISOString()
-      );
-      return { before: sheet, after };
-    }
-    await forget(ctx, path);
-  }
-  throw sheetBusy();
+      return new ApiError('internal_error', 'The stored training sheet could not be verified.');
+    },
+    async rewrite(sheet, stored) {
+      let bytes = stored;
+      notes = notesToWrite(sheet, await ctx.store.rowsOf(sheet.id));
+      if (notes.length > 0) {
+        const values = Object.fromEntries(notes.map(({ note }) => [note, voidedNote]));
+        bytes = new Uint8Array(
+          await need(ctx.signer, signerUnavailable).fillFields(buffer(bytes), values)
+        );
+      }
+      return rewrite(sheet, bytes);
+    },
+    async advance(sheet, next, { path, digest }) {
+      const after = await ctx.store.advance(sheet, {
+        ...next.changes,
+        storagePath: path,
+        digest,
+      });
+      if (after) {
+        await ctx.store.markVoidNoted(
+          notes.map(({ row }) => row.id),
+          ctx.now().toISOString()
+        );
+      }
+      return after;
+    },
+    busy: sheetBusy,
+  });
 }
 
 async function createSheet(
