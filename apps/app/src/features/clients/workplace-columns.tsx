@@ -67,7 +67,7 @@ export function workplaceColumns({
       id: 'address',
       header: 'Adresă',
       meta: {
-        headerClassName: 'w-full min-w-55',
+        headerClassName: 'w-full min-w-48',
         cellClassName: 'whitespace-normal',
         skeletonClassName: 'w-48',
       },
@@ -102,7 +102,7 @@ export function workplaceColumns({
       id: 'activity',
       header: 'Activitate',
       meta: {
-        headerClassName: 'w-50 min-w-45',
+        headerClassName: 'w-50 min-w-40',
         cellClassName: 'whitespace-normal',
         skeletonClassName: 'w-32',
       },
@@ -155,7 +155,7 @@ export function workplaceColumns({
       id: 'means',
       header: 'Mijloace de apărare',
       meta: {
-        headerClassName: 'w-44 min-w-44',
+        headerClassName: 'w-50 min-w-50',
         cellClassName: 'whitespace-normal',
         skeletonClassName: 'w-24',
       },

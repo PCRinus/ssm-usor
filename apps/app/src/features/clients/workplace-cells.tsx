@@ -58,7 +58,8 @@ export function MeansCell({
       ) : (
         means.nextCheck && (
           <CellNote data-testid="workplace-means-next">
-            verificare până la <span className="tabular-nums">{formatRoDate(means.nextCheck)}</span>
+            verificare până la{' '}
+            <span className="whitespace-nowrap tabular-nums">{formatRoDate(means.nextCheck)}</span>
           </CellNote>
         )
       )}
