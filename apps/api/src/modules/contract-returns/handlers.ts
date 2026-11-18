@@ -12,6 +12,7 @@ import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { hashToken } from '../../lib/tokens';
+import { contractFileName } from '../service-contracts/context';
 import type {
   downloadContractReturnRoute,
   lookupContractReturnRoute,
@@ -130,8 +131,6 @@ const closed = () =>
     contractReturnConflictReasons.closed
   );
 
-const printedDate = (isoDate: string) => isoDate.split('-').reverse().join('.');
-
 export const lookupContractReturn: RouteHandler<typeof lookupContractReturnRoute, ApiEnv> = async (
   c
 ) => {
@@ -150,7 +149,7 @@ export const downloadContractReturn: RouteHandler<
   // The page keeps a link ready on a real button and renews it; a phone may leave it asleep
   // for a while.
   const expiresInSeconds = 600;
-  const fileName = `Contract nr. ${found.contract.contract_number} din ${printedDate(found.contract.contract_date)}.pdf`;
+  const fileName = contractFileName(found.contract.contract_number, found.contract.contract_date);
   const url = await createAdminFileStore(c).documentLink(found.revision.pdf_path, expiresInSeconds);
   return c.json({ url, fileName, expiresInSeconds }, 200);
 };
