@@ -1,14 +1,9 @@
 import { type ActText, type ActUnit, fetchActText, plainLabel } from './act-text';
 import type { PortalOptions } from './portal';
+import type { StoredArticleAnchor } from './stored';
 
-// As `legal_acts.article_anchors` holds them: one entry per article and per annex of the act's
-// form, an annex's own articles under its label. `article` is in `plainLabel` form, "80^1".
-export type ArticleAnchor = {
-  annex: string | null;
-  article: string | null;
-  path: string;
-  anchor: string;
-};
+// One entry per article and per annex of the act's form, an annex's own articles under its label.
+export type ArticleAnchor = StoredArticleAnchor;
 
 export type ActAnchors = {
   // Null for the act as published, never consolidated.

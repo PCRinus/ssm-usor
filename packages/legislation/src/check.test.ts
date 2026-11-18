@@ -39,6 +39,7 @@ function database(rows: Row[], options: { changeExists?: boolean } = {}) {
     if (url.pathname === '/rest/v1/legal_acts' && method === 'PATCH') {
       return new Response(null, { status: 204 });
     }
+    if (url.pathname === '/rest/v1/legal_changes' && method === 'GET') return Response.json([]);
     if (url.pathname === '/rest/v1/legal_changes' && method === 'POST') {
       return Response.json(options.changeExists ? [] : [{ id: 'c1' }], { status: 201 });
     }
@@ -287,6 +288,20 @@ describe('reading the anchors of the acts’ articles', () => {
       anchors_read_at: expect.any(String),
     });
     expect(outcomes[0]).toMatchObject({ result: 'checked' });
+  });
+
+  it('reads them in the daily run too, which assesses changes against the citations', async () => {
+    const { db, sent } = database([row(law.id, '2021-07-25')]);
+    const readAnchors = vi.fn(async () => ({ consolidatedOn: '2021-07-25', anchors }));
+    const outcomes = await checkLegislation(db, [law], {
+      readAct,
+      readAnchors,
+      citations: [],
+      pauseMs: 0,
+    });
+    expect(readAnchors).toHaveBeenCalledWith(73772);
+    expect(sent('legal_acts', 'PATCH').at(-1)!.body).toMatchObject({ article_anchors: anchors });
+    expect(outcomes[0]).toMatchObject({ result: 'checked', assessments: [] });
   });
 
   it('reads them again only when the portal shows a newer form', async () => {
