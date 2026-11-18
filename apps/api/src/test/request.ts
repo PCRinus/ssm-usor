@@ -10,6 +10,7 @@ export type ApiRequestInit = Omit<RequestInit, 'body'> & {
   body?: unknown;
   token?: string | null;
   client?: ContractClient | null;
+  app?: Pick<ReturnType<typeof createApp>, 'request'>;
 };
 
 const isBodyInit = (body: unknown) =>
@@ -23,8 +24,15 @@ const isBodyInit = (body: unknown) =>
 
 export function apiRequest(
   path: string,
-  { body, token = testAccessToken, client = 'app', headers, ...init }: ApiRequestInit = {},
-  bindings: ApiEnv['Bindings'] = testEnv()
+  {
+    body,
+    token = testAccessToken,
+    client = 'app',
+    app = createApp(),
+    headers,
+    ...init
+  }: ApiRequestInit = {},
+  bindings: Partial<ApiEnv['Bindings']> = testEnv()
 ) {
   const json = body !== undefined && !isBodyInit(body);
   const merged = new Headers({
@@ -33,7 +41,7 @@ export function apiRequest(
     ...(json ? { 'Content-Type': 'application/json' } : {}),
   });
   new Headers(headers).forEach((value, name) => merged.set(name, value));
-  return createApp().request(
+  return app.request(
     path,
     { ...init, headers: merged, body: json ? JSON.stringify(body) : (body as BodyInit) },
     bindings
