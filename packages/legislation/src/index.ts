@@ -11,6 +11,7 @@ export {
   parseActText,
   parseConsolidations,
   textLink,
+  type UnitAnchor,
   type UnitKind,
   unitLines,
   type UnitMatch,
@@ -24,6 +25,13 @@ export {
   parseNote,
   type UnitPath,
 } from './amendments';
+export {
+  type ActAnchors,
+  type AnchorReader,
+  type ArticleAnchor,
+  articleAnchors,
+  portalAnchorReader,
+} from './anchors';
 export {
   type AmendedUnit,
   amendedUnitsOf,

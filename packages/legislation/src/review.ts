@@ -111,6 +111,7 @@ export function locateQuote(text: ActText, citation: CitedPassage): LocatedQuote
         heading: null,
         content: text.content,
         notes: [],
+        anchor: null,
       };
       options.push({ match: null, candidate: { lines: unitLines(whole), excerpt: true } });
     }

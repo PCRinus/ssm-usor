@@ -334,7 +334,10 @@ export async function linkTemplateVersion(c: Context<ApiEnv>) {
 }
 
 const toAct = (
-  row: Omit<ActRow, 'created_at' | 'updated_at'>,
+  row: Omit<
+    ActRow,
+    'created_at' | 'updated_at' | 'article_anchors' | 'anchors_consolidated_on' | 'anchors_read_at'
+  >,
   openChanges: number
 ): AdminLegalAct => ({
   id: row.id,

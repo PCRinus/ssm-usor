@@ -140,7 +140,14 @@ function quotedAfter(line: string, quoted: boolean) {
 // An amending act's points are often plain paragraphs, "1. La articolul 80^1 …", each running to
 // the next one outside the text it quotes.
 function plainPoint(units: (string | ActUnit)[], label: string): ActUnit | null {
-  const holder: ActUnit = { kind: 'block', label: '', heading: null, content: units, notes: [] };
+  const holder: ActUnit = {
+    kind: 'block',
+    label: '',
+    heading: null,
+    content: units,
+    notes: [],
+    anchor: null,
+  };
   const lines: string[] = [];
   let inside = false;
   let quoted = false;
@@ -151,7 +158,7 @@ function plainPoint(units: (string | ActUnit)[], label: string): ActUnit | null 
     quoted = quotedAfter(line, quoted);
   }
   return lines.length > 0
-    ? { kind: 'block', label: '', heading: null, content: lines, notes: [] }
+    ? { kind: 'block', label: '', heading: null, content: lines, notes: [], anchor: null }
     : null;
 }
 

@@ -161,6 +161,7 @@ describe('reading the consolidated text of an act', () => {
       heading: null,
       content: text.content,
       notes: [],
+      anchor: null,
     });
     expect(all.some((line) => /navigator|Copyright/.test(line))).toBe(false);
     expect(unitLines(article(html, '35')).at(-1)).toMatch(/baston de culoare alba\.$/);

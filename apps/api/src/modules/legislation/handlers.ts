@@ -45,7 +45,12 @@ const collator = new Intl.Collator('ro');
 
 // The casts below are safe: check constraints keep portal_status, resolution, outcome and status
 // to these values.
-const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
+const toAct = (
+  row: Omit<
+    ActRow,
+    'created_at' | 'updated_at' | 'article_anchors' | 'anchors_consolidated_on' | 'anchors_read_at'
+  >
+): LegalAct => ({
   id: row.id,
   name: row.name,
   portalId: row.portal_id,
