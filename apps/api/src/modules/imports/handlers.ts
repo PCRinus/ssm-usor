@@ -3,6 +3,7 @@ import {
   clientConflictReasons,
   confirmedListed,
   type CreditsShort,
+  type EmployeeImportChanges,
   type EmployeeImportPeople,
   type FoundSheet,
   type ImportChanges,
@@ -26,6 +27,7 @@ import {
 } from '@ssm-usor/contracts';
 import {
   type EmployeeImportPayload,
+  type EmployeeImportProposal,
   placeQuote,
   proposalSchema,
   toEmployeePayload,
@@ -600,7 +602,9 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
   const visible = stored !== null && (row.status === 'ready' || row.status === 'confirmed');
   const changes = visible ? storedChanges(row.changes) : null;
   const blockers =
-    visible && row.status === 'ready' ? await clientBlockers(db, row, stored, changes) : [];
+    visible && row.status === 'ready'
+      ? (await clientMapping(db, row, stored, changes)).blockers
+      : [];
   const detail = {
     ...toSummary(row, await creatorNames(db, [row])),
     version: row.version,
@@ -621,12 +625,12 @@ export const getImport: RouteHandler<typeof getImportRoute, ApiEnv> = async (c) 
 
 type FoundImport = Awaited<ReturnType<typeof findImport>>;
 
-async function clientBlockers(
+async function clientMapping(
   db: DataClient,
   row: Pick<FoundImport, 'into_existing_client' | 'client_id'>,
   stored: NonNullable<ReturnType<typeof storedProposal>>,
   changes: ImportChanges | null
-): Promise<ImportDetail['blockers']> {
+) {
   return toClientPayload({
     proposal: stored.proposal,
     changes,
@@ -636,7 +640,21 @@ async function clientBlockers(
         ? await existingRecords(db, row.client_id)
         : noExistingRecords,
     registeredCompany: stored.registeredCompany,
-  }).blockers;
+  });
+}
+
+async function employeeMapping(
+  db: DataClient,
+  clientId: string,
+  proposal: EmployeeImportProposal,
+  changes: EmployeeImportChanges | null
+) {
+  return toEmployeePayload({
+    proposal,
+    changes,
+    records: await employeeImportClient(db, clientId),
+    today: romanianToday(),
+  });
 }
 
 async function employeeImportDetail(c: Context<ApiEnv>, db: DataClient, row: FoundImport) {
@@ -647,12 +665,7 @@ async function employeeImportDetail(c: Context<ApiEnv>, db: DataClient, row: Fou
   const states = proposal ? personStates(proposal, changes) : null;
   let blockers: ImportDetail['blockers'] = [];
   if (proposal && row.status === 'ready' && row.client_id) {
-    blockers = toEmployeePayload({
-      proposal,
-      changes,
-      records: await employeeImportClient(db, row.client_id),
-      today: romanianToday(),
-    }).blockers;
+    blockers = (await employeeMapping(db, row.client_id, proposal, changes)).blockers;
   }
   return {
     ...toSummary(
@@ -1097,7 +1110,7 @@ export const saveImportChanges: RouteHandler<typeof saveImportChangesRoute, ApiE
   if (row.kind !== 'client') throw wrongKind();
   const saved = await saveChanges(db, importId, version, changes);
   const stored = storedProposal(row.proposal);
-  const blockers = stored ? await clientBlockers(db, row, stored, changes) : [];
+  const blockers = stored ? (await clientMapping(db, row, stored, changes)).blockers : [];
   return c.json({ version: saved, blockers }, 200);
 };
 
@@ -1208,16 +1221,7 @@ export const confirmImport: RouteHandler<typeof confirmImportRoute, ApiEnv> = as
     throw conflict('The import is not ready for review.', importErrorReasons.notReady);
   }
   if (row.version !== version) throw decisionError({ code: 'IMP02' }, 'confirm import');
-  const { payload, blockers } = toClientPayload({
-    proposal: stored.proposal,
-    changes: storedChanges(row.changes),
-    intoExistingClient: row.into_existing_client,
-    existing:
-      row.into_existing_client && row.client_id
-        ? await existingRecords(db, row.client_id)
-        : noExistingRecords,
-    registeredCompany: stored.registeredCompany,
-  });
+  const { payload, blockers } = await clientMapping(db, row, stored, storedChanges(row.changes));
   if (blockers.length > 0) {
     throw incomplete(blockers.map((blocker) => ({ path: blocker.path, message: blocker.code })));
   }
@@ -1269,12 +1273,12 @@ async function confirmEmployeeImport(
     throw conflict('The import is not ready for review.', importErrorReasons.notReady);
   }
   if (row.version !== version) throw decisionError({ code: 'IMP02' }, 'confirm import');
-  const { payload, blockers } = toEmployeePayload({
+  const { payload, blockers } = await employeeMapping(
+    db,
+    row.client_id,
     proposal,
-    changes: storedEmployeeChanges(row.changes),
-    records: await employeeImportClient(db, row.client_id),
-    today: romanianToday(),
-  });
+    storedEmployeeChanges(row.changes)
+  );
   if (blockers.length > 0) {
     throw incomplete(blockers.map((blocker) => ({ path: blocker.path, message: blocker.code })));
   }
