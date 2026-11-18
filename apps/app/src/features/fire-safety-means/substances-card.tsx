@@ -2,14 +2,6 @@ import { type FireSubstancesState, missingSubstanceEssentials } from '@ssm-usor/
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -39,6 +31,7 @@ import {
   useUpdateFireSubstancesState,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -428,37 +421,23 @@ export function SubstancesCard({
         </>
       )}
       <SubstanceDialog clientId={clientId} editing={editing} onClose={() => setEditing(null)} />
-      <Dialog
-        open={deleting !== null}
-        onOpenChange={(open) => !open && !remove.isPending && setDeleting(null)}
-      >
-        {deleting && (
-          <DialogContent data-testid="fire-substance-delete-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Ștergi substanța?</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{deleting.name}</span> nu va mai
-                apărea în documentele SU generate de acum înainte.
-                {items.length === 1 &&
-                  ' Este singura din listă: fără ea, documentele SU nu se pot genera până nu adaugi alta sau declari că nu se utilizează substanțe periculoase.'}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={remove.isPending} onClick={() => setDeleting(null)}>
-                Renunță
-              </Button>
-              <Button
-                variant="destructive"
-                data-testid="fire-substance-delete-confirm"
-                disabled={remove.isPending}
-                onClick={() => void confirmDelete(deleting)}
-              >
-                {remove.isPending ? 'Se șterge…' : 'Șterge'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {deleting && (
+        <ConfirmDialog
+          open
+          busy={remove.isPending}
+          testId="fire-substance-delete"
+          title="Ștergi substanța?"
+          confirmLabel="Șterge"
+          pendingLabel="Se șterge…"
+          onConfirm={() => void confirmDelete(deleting)}
+          onClose={() => setDeleting(null)}
+        >
+          <span className="font-medium text-foreground">{deleting.name}</span> nu va mai apărea în
+          documentele SU generate de acum înainte.
+          {items.length === 1 &&
+            ' Este singura din listă: fără ea, documentele SU nu se pot genera până nu adaugi alta sau declari că nu se utilizează substanțe periculoase.'}
+        </ConfirmDialog>
+      )}
     </SectionCard>
   );
 }

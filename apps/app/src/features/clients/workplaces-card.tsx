@@ -1,13 +1,5 @@
 import { noWorkplace, workplaceConflictReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -27,6 +19,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -253,39 +246,23 @@ export function WorkplacesCard({
         />
       )}
       <WorkplaceDialog clientId={clientId} editing={editing} onClose={() => setEditing(null)} />
-      <Dialog
-        open={archiving !== null}
-        onOpenChange={(open) => !open && !archive.isPending && setArchiving(null)}
-      >
-        {archiving && (
-          <DialogContent data-testid="workplace-archive-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Arhivezi punctul de lucru?</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{archiving.name}</span> nu va mai
-                apărea în listă și în documentele generate de acum înainte. Documentele deja emise
-                rămân neschimbate.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button
-                variant="ghost"
-                disabled={archive.isPending}
-                onClick={() => setArchiving(null)}
-              >
-                Renunță
-              </Button>
-              <Button
-                data-testid="workplace-archive-confirm"
-                disabled={archive.isPending}
-                onClick={() => void archiveWorkplace(archiving)}
-              >
-                {archive.isPending ? 'Se arhivează…' : 'Arhivează'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {archiving && (
+        <ConfirmDialog
+          open
+          busy={archive.isPending}
+          destructive={false}
+          testId="workplace-archive"
+          title="Arhivezi punctul de lucru?"
+          confirmLabel="Arhivează"
+          pendingLabel="Se arhivează…"
+          onConfirm={() => void archiveWorkplace(archiving)}
+          onClose={() => setArchiving(null)}
+        >
+          <span className="font-medium text-foreground">{archiving.name}</span> nu va mai apărea în
+          listă și în documentele generate de acum înainte. Documentele deja emise rămân
+          neschimbate.
+        </ConfirmDialog>
+      )}
     </SectionCard>
   );
 }

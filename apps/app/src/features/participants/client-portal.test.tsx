@@ -462,7 +462,7 @@ describe("the client's Portal tab", () => {
     );
     await user.click(within(access).getByTestId('participant-invitation-revoke'));
     const dialog = await screen.findByTestId('participant-invitation-revoke-dialog');
-    await user.click(within(dialog).getByTestId('participant-invitation-revoke-dialog-confirm'));
+    await user.click(within(dialog).getByTestId('participant-invitation-revoke-confirm'));
     await waitFor(() =>
       expect(calls(`/participant-invitations/${invitationIdOf(100)}/revoke`, 'POST')).toHaveLength(
         1
@@ -490,7 +490,7 @@ describe("the client's Portal tab", () => {
     await user.click(within(panel).getByTestId('portal-access-menu'));
     await user.click(await screen.findByTestId('portal-access-menu-revoke'));
     const dialog = await screen.findByTestId('participant-revoke-dialog');
-    await user.click(within(dialog).getByTestId('participant-revoke-dialog-confirm'));
+    await user.click(within(dialog).getByTestId('participant-revoke-confirm'));
     await waitFor(() =>
       expect(calls(`/client-participants/${participantIdOf(1)}/revoke`, 'POST')).toHaveLength(1)
     );
@@ -509,7 +509,7 @@ describe("the client's Portal tab", () => {
     await user.click(await screen.findByTestId('portal-access-menu-revoke'));
     await user.click(
       within(await screen.findByTestId('participant-revoke-dialog')).getByTestId(
-        'participant-revoke-dialog-confirm'
+        'participant-revoke-confirm'
       )
     );
     await waitFor(() =>
