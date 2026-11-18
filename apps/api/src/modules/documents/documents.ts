@@ -309,6 +309,23 @@ async function presentDocument(
   return presented!;
 }
 
+// Kept in step with the guard of `dataChanged`: a load it lets past costs some 25 subrequests
+// for an answer that cannot differ, and one it stops leaves a changed draft unflagged.
+const comparesWithFacts = (document: DocumentRow) =>
+  setOfGroup(document.document_group) !== null &&
+  document.document_revisions.some(
+    (revision) =>
+      revision.status === 'draft' && revision.data_snapshot && revision.document_generations
+  );
+
+async function presentChanged(db: DataClient, actor: Actor, documentId: string) {
+  const document = await readDocument(db, documentId);
+  const facts = comparesWithFacts(document)
+    ? await loadDocumentFacts(db, document.client_id, actor)
+    : null;
+  return presentDocument(db, document, facts);
+}
+
 // The pack's own order first, then anything a provider added, by title; a dated type's newest
 // period first.
 export const inSetOrder = (set: DocumentSet) => {
@@ -385,9 +402,9 @@ export async function listClientDocuments(
   clientId: string,
   set: DocumentSet = 'occupational_safety'
 ) {
-  // Also answers 404 for a client of another organization.
-  const facts = await loadDocumentFacts(db, clientId, actor);
-  const [documents, generation] = await Promise.all([
+  const [facts, documents, generation] = await Promise.all([
+    // Also answers 404 for a client of another organization.
+    loadDocumentFacts(db, clientId, actor),
     readDocuments(db, clientId, set),
     lastGeneration(db, clientId, set),
   ]);
@@ -868,6 +885,18 @@ export async function regenerateDocument(
   documentId: string,
   request: RegenerateDocumentRequest
 ) {
+  const facts = await regenerateDraft(db, files, actor, documentId, request);
+  return presentDocument(db, await readDocument(db, documentId), facts);
+}
+
+// The queue's way in: it answers no one with the document, so it skips presenting it.
+export async function regenerateDraft(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  documentId: string,
+  request: RegenerateDocumentRequest
+) {
   const document = await readDocument(db, documentId);
   const set = setOfGroup(document.document_group);
   if (!set) {
@@ -944,7 +973,7 @@ export async function regenerateDocument(
     bytes,
     snapshot,
   });
-  return presentDocument(db, await readDocument(db, documentId), facts);
+  return facts;
 }
 
 // The PDF lives beside the Word file, under its name; the database holds them to that.
@@ -1011,8 +1040,7 @@ export async function issueDocument(
   if (error?.code === 'DOC01') throw new ApiError('not_found', 'This draft no longer exists.');
   if (error?.code === 'DOC02') throw new ApiError('conflict', 'This draft was already issued.');
   if (error) throw fromDatabaseError(error, 'issue document revision');
-  const facts = await loadDocumentFacts(db, document.client_id, actor);
-  return presentDocument(db, await readDocument(db, documentId), facts);
+  return presentChanged(db, actor, documentId);
 }
 
 /**
@@ -1060,8 +1088,7 @@ export async function saveDraftFile(
     .update({ edited_at: new Date().toISOString(), edited_by: actor.createdBy })
     .eq('id', draft.id);
   if (updated.error) throw fromDatabaseError(updated.error, 'mark document revision edited');
-  const facts = await loadDocumentFacts(db, document.client_id, actor);
-  return presentDocument(db, await readDocument(db, documentId), facts);
+  return presentChanged(db, actor, documentId);
 }
 
 /**
@@ -1079,12 +1106,19 @@ export async function uploadDocumentFile(
   period?: number
 ) {
   requireDocx(bytes);
-  const facts = await loadDocumentFacts(db, clientId, actor);
-  if (facts.clientArchived) {
+  const [client, documents] = await Promise.all([
+    db.from('clients').select('archived_at').eq('id', clientId).maybeSingle(),
+    readDocuments(db, clientId, documentSetOf(typeKey)),
+  ]);
+  if (client.error) throw fromDatabaseError(client.error, 'find client of upload');
+  if (!client.data) {
+    throw new ApiError('not_found', 'This client does not exist in your organization.');
+  }
+  if (client.data.archived_at) {
     throw new ApiError('conflict', 'Documents are only uploaded for an active client.');
   }
   // Without a period, a dated type's newest one.
-  const existing = (await readDocuments(db, clientId, documentSetOf(typeKey)))
+  const existing = documents
     .filter(
       (document) =>
         document.type_key === typeKey && (period === undefined || document.period === period)
@@ -1133,7 +1167,7 @@ export async function uploadDocumentFile(
     await db.from('document_revisions').delete().eq('id', revision.data.id);
     throw error;
   }
-  return presentDocument(db, await readDocument(db, documentId), facts);
+  return presentChanged(db, actor, documentId);
 }
 
 /**
@@ -1190,8 +1224,7 @@ export async function startDraftFromIssued(
     await db.from('document_revisions').delete().eq('id', revision.data.id);
     throw error;
   }
-  const facts = await loadDocumentFacts(db, document.client_id, actor);
-  return presentDocument(db, await readDocument(db, documentId), facts);
+  return presentChanged(db, actor, documentId);
 }
 
 /** What was issued before stays as it is. */
@@ -1268,8 +1301,7 @@ export async function attachSignedCopy(
     }
     throw error;
   }
-  const facts = await loadDocumentFacts(db, document.client_id, actor);
-  return presentDocument(db, await readDocument(db, documentId), facts);
+  return presentChanged(db, actor, documentId);
 }
 
 /** The owner accepts what came through the return link as the signed copy. */
@@ -1290,8 +1322,7 @@ export async function confirmSignedCopy(db: DataClient, actor: Actor, documentId
     .update({ confirmed_at: new Date().toISOString(), confirmed_by: actor.createdBy })
     .eq('revision_id', issued.id);
   if (error) throw fromDatabaseError(error, 'confirm signed copy');
-  const facts = await loadDocumentFacts(db, document.client_id, actor);
-  return presentDocument(db, await readDocument(db, documentId), facts);
+  return presentChanged(db, actor, documentId);
 }
 
 export async function removeSignedCopy(db: DataClient, files: FileStore, documentId: string) {
