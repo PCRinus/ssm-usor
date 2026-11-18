@@ -1,63 +1,39 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { openedHere } from '@/app/opener';
+import { bodiesOf, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, jobPositionRecord, userOnlyMe } from '@/test/records';
 
 import { employeeCountLabel } from './job-position-schema';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord();
 
-const barista = {
+const barista = jobPositionRecord({
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   name: 'Barman preparator',
-  staffCategory: 'execution',
   workZone: 'Gelaterie',
   activities: 'Prepară și servește înghețată și cafea.',
-  trainingIntervalMonths: null as number | null,
   employeeCount: 3,
   employeesToTrainCount: 1,
-  needsProtectiveEquipment: true as boolean | null,
+  needsProtectiveEquipment: true,
   equipmentCount: 2,
-  instructionCount: 0,
   fireInstructionCount: 1,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
-};
+});
 
-const manager = {
-  ...barista,
+const manager = jobPositionRecord({
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Manager magazin – birou',
   staffCategory: 'technical_administrative',
   workZone: 'Birou',
-  activities: null,
-  employeeCount: 0,
-  employeesToTrainCount: 0,
-  needsProtectiveEquipment: null,
-  equipmentCount: 0,
-  instructionCount: 0,
-  fireInstructionCount: 0,
-};
+  createdAt: '2026-09-20T10:00:00.000Z',
+  updatedAt: '2026-09-20T10:00:00.000Z',
+});
 
 const summaryFor = (
   position: { id: string; name: string },
@@ -81,9 +57,7 @@ const listPage = `/clienti/${clientId}/posturi`;
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockPositionsApi({
   client = sampleClient,
   items = [barista, manager] as unknown[],
   evaluations = [] as unknown[],
@@ -96,37 +70,27 @@ function mockApi({
     Response.json({ jobPosition: { ...manager, ...JSON.parse(String(init?.body)) } })) as Route,
   remove = (() => new Response(null, { status: 204 })) as Route,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
-    if (pathname === `/clients/${clientId}/risk-evaluations`) {
-      return Response.json({ items: evaluations });
-    }
-    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
-    if (pathname.endsWith('/equipment')) {
-      return Response.json({ items: [], needsProtectiveEquipment: null });
-    }
-    if (pathname.startsWith(`${listPath}/`))
-      return method === 'DELETE' ? remove(init) : update(init);
-    if (pathname.endsWith('/instructions')) {
-      return Response.json({ items: [] });
-    }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
+  mockApi(
+    (init, { pathname }) => {
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
+      if (pathname === `/clients/${clientId}/risk-evaluations`) {
+        return Response.json({ items: evaluations });
+      }
+      if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
+      if (pathname.endsWith('/equipment')) {
+        return Response.json({ items: [], needsProtectiveEquipment: null });
+      }
+      if (pathname.startsWith(`${listPath}/`))
+        return method === 'DELETE' ? remove(init) : update(init);
+      if (pathname.endsWith('/instructions')) {
+        return Response.json({ items: [] });
+      }
+    },
+    { me: userOnlyMe }
+  );
 }
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/posturi`);
 
@@ -136,19 +100,11 @@ async function openRowMenu(user: ReturnType<typeof userEvent.setup>, name: strin
   await user.click(within(row).getByTestId('job-position-actions'));
 }
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe("a client's job positions", () => {
   it('is a section of the client page, listing each position with its facts and people', async () => {
-    mockApi({ items: [barista, { ...manager, trainingIntervalMonths: 12 }] });
+    mockPositionsApi({ items: [barista, { ...manager, trainingIntervalMonths: 12 }] });
     mount();
 
     const [first, second] = await screen.findAllByTestId('job-position-row');
@@ -177,7 +133,7 @@ describe("a client's job positions", () => {
   });
 
   it("links a post's workers, and those of them to train, to the workers list", async () => {
-    mockApi();
+    mockPositionsApi();
     mount();
 
     const [first, second] = await screen.findAllByTestId('job-position-row');
@@ -200,7 +156,7 @@ describe("a client's job positions", () => {
   });
 
   it('opens a position on a page of its own, whose arrow goes back to the list', async () => {
-    mockApi();
+    mockPositionsApi();
     const runtime = mount();
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('job-position-row');
@@ -222,7 +178,7 @@ describe("a client's job positions", () => {
   });
 
   it("leaves the client's arrow its own opener after a position", async () => {
-    mockApi();
+    mockPositionsApi();
     const runtime = mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('job-position-row');
@@ -262,7 +218,7 @@ describe("a client's job positions", () => {
       equipmentCount: 20,
       instructionCount: 1,
     };
-    mockApi({ items: [barista, manager, cashier, cook] });
+    mockPositionsApi({ items: [barista, manager, cashier, cook] });
     mount();
 
     const rows = await screen.findAllByTestId('job-position-row');
@@ -286,7 +242,7 @@ describe("a client's job positions", () => {
   });
 
   it('opens the section a state link names, not only the top of the page', async () => {
-    mockApi();
+    mockPositionsApi();
     const runtime = mount();
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('job-position-row');
@@ -297,7 +253,7 @@ describe("a client's job positions", () => {
   });
 
   it("offers the position's equipment and instructions first in the row menu", async () => {
-    mockApi();
+    mockPositionsApi();
     const runtime = mount();
     const user = userEvent.setup();
 
@@ -324,7 +280,7 @@ describe("a client's job positions", () => {
       name: 'Casier',
       instructionCount: 2,
     };
-    mockApi({
+    mockPositionsApi({
       items: [barista, manager, done],
       evaluations: [summaryFor(barista, 2.1), summaryFor(manager, 2.2), summaryFor(done, 4.2)],
     });
@@ -338,7 +294,7 @@ describe("a client's job positions", () => {
   });
 
   it('asks for nothing once every position has decided', async () => {
-    mockApi({
+    mockPositionsApi({
       items: [{ ...barista, instructionCount: 2 }],
       evaluations: [summaryFor(barista, 2)],
     });
@@ -350,7 +306,7 @@ describe("a client's job positions", () => {
   });
 
   it('shows the sheet by its global level, amber over the acceptable limit', async () => {
-    mockApi({ evaluations: [summaryFor(barista, 3.919, 14)] });
+    mockPositionsApi({ evaluations: [summaryFor(barista, 3.919, 14)] });
     mount();
     const [first, second] = await screen.findAllByTestId('job-position-row');
     await waitFor(() =>
@@ -363,7 +319,7 @@ describe("a client's job positions", () => {
   });
 
   it('opens with no toolbar and its own add button when there are no posts', async () => {
-    mockApi({ items: [] });
+    mockPositionsApi({ items: [] });
     mount();
     expect((await screen.findByTestId('job-positions-empty')).textContent).toMatch(
       /fiecare funcție nouă devine un post/i
@@ -374,7 +330,7 @@ describe("a client's job positions", () => {
   });
 
   it('adds a position, in the execution category unless told otherwise', async () => {
-    mockApi();
+    mockPositionsApi();
     mount();
     const user = userEvent.setup();
 
@@ -387,8 +343,8 @@ describe("a client's job positions", () => {
     await user.type(screen.getByTestId('job-position-zone'), 'Gelaterie');
     await user.click(screen.getByTestId('job-position-save'));
 
-    await waitFor(() => expect(requests(listPath, 'POST')).toHaveLength(1));
-    expect(requests(listPath, 'POST')[0]).toEqual({
+    await waitFor(() => expect(bodiesOf(listPath, 'POST')).toHaveLength(1));
+    expect(bodiesOf(listPath, 'POST')[0]).toEqual({
       name: 'Lucrător comercial',
       staffCategory: 'execution',
       workZone: 'Gelaterie',
@@ -400,7 +356,7 @@ describe("a client's job positions", () => {
   });
 
   it('puts a taken name on the field, with the way out', async () => {
-    mockApi({
+    mockPositionsApi({
       create: () =>
         Response.json(
           { code: 'conflict', message: 'Taken.', reason: 'job_position_name_taken' },
@@ -419,7 +375,7 @@ describe("a client's job positions", () => {
   });
 
   it('edits a position and says that contract titles stay as they are', async () => {
-    mockApi();
+    mockPositionsApi();
     mount();
     const user = userEvent.setup();
 
@@ -437,8 +393,8 @@ describe("a client's job positions", () => {
     await user.type(screen.getByTestId('job-position-activities'), 'Conduce magazinul.');
     await user.click(screen.getByTestId('job-position-save'));
 
-    await waitFor(() => expect(requests(`${listPath}/${manager.id}`, 'PUT')).toHaveLength(1));
-    expect(requests(`${listPath}/${manager.id}`, 'PUT')[0]).toEqual({
+    await waitFor(() => expect(bodiesOf(`${listPath}/${manager.id}`, 'PUT')).toHaveLength(1));
+    expect(bodiesOf(`${listPath}/${manager.id}`, 'PUT')[0]).toEqual({
       name: 'Manager magazin',
       staffCategory: 'technical_administrative',
       workZone: 'Birou',
@@ -448,7 +404,7 @@ describe("a client's job positions", () => {
   });
 
   it('gives a post an interval of its own, within what its category allows', async () => {
-    mockApi();
+    mockPositionsApi();
     mount();
     const user = userEvent.setup();
 
@@ -484,12 +440,12 @@ describe("a client's job positions", () => {
 
     await user.selectOptions(interval, '2');
     await user.click(screen.getByTestId('job-position-save'));
-    await waitFor(() => expect(requests(listPath, 'POST')).toHaveLength(1));
-    expect(requests(listPath, 'POST')[0]).toMatchObject({ trainingIntervalMonths: 2 });
+    await waitFor(() => expect(bodiesOf(listPath, 'POST')).toHaveLength(1));
+    expect(bodiesOf(listPath, 'POST')[0]).toMatchObject({ trainingIntervalMonths: 2 });
   });
 
   it('removes an empty position, and will not offer it for one people are in', async () => {
-    mockApi();
+    mockPositionsApi();
     mount();
     const user = userEvent.setup();
 
@@ -505,12 +461,12 @@ describe("a client's job positions", () => {
     await openRowMenu(user, 'Manager magazin');
     await user.click(await screen.findByTestId('job-position-remove'));
     await user.click(await screen.findByTestId('job-position-remove-confirm'));
-    await waitFor(() => expect(requests(`${listPath}/${manager.id}`, 'DELETE')).toHaveLength(1));
+    await waitFor(() => expect(bodiesOf(`${listPath}/${manager.id}`, 'DELETE')).toHaveLength(1));
     expect(await screen.findByText(/a fost șters\./)).toBeTruthy();
   });
 
   it('says so when people joined the position in the meantime', async () => {
-    mockApi({
+    mockPositionsApi({
       remove: () =>
         Response.json(
           { code: 'conflict', message: 'Held.', reason: 'job_position_held' },
@@ -529,7 +485,7 @@ describe("a client's job positions", () => {
   });
 
   it('is read-only for an archived client, every badge grey, and still filters', async () => {
-    mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
+    mockPositionsApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     const runtime = mount();
     const user = userEvent.setup();
     expect(await screen.findAllByTestId('job-position-row')).toHaveLength(2);
@@ -558,7 +514,7 @@ describe("a client's job positions", () => {
 
   it('sorts by the global level, highest first on the first click, kept in the address', async () => {
     const cashier = { ...manager, id: '3f1d2c4b-5a6e-4f7a-8b9c-0d1e2f3a4b5c', name: 'Casier' };
-    mockApi({
+    mockPositionsApi({
       items: [barista, manager, cashier],
       evaluations: [summaryFor(barista, 2.1), summaryFor(cashier, 3.6)],
     });
@@ -585,7 +541,7 @@ describe("a client's job positions", () => {
   });
 
   it('filters by staff category from the address, and clears only the filter', async () => {
-    mockApi();
+    mockPositionsApi();
     const runtime = mountApp(
       authFixture(makeSession()).client,
       `${listPage}?staffCategory=technical_administrative&sort=employees&order=desc`
@@ -607,7 +563,7 @@ describe("a client's job positions", () => {
         search: { staffCategory: ['technical_administrative'] },
       })
     );
-    mockApi({ items: [barista] });
+    mockPositionsApi({ items: [barista] });
     await act(() => runtime.queryClient.invalidateQueries());
     expect(await screen.findByTestId('job-positions-empty-filtered')).toBeTruthy();
     expect(screen.getByTestId('job-positions-count').textContent).toBe('0 din 1 post');
@@ -618,7 +574,7 @@ describe("a client's job positions", () => {
   });
 
   it('opens the new position dialog from the toolbar when asked to add one', async () => {
-    mockApi();
+    mockPositionsApi();
     const runtime = mountApp(authFixture(makeSession()).client, `${listPage}?focus=add-position`);
     expect(await screen.findByTestId('job-position-dialog')).toBeTruthy();
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({}));
@@ -630,7 +586,7 @@ describe("a client's job positions", () => {
       'matchMedia',
       vi.fn((query: string) => ({ ...media(query), matches: query === '(max-width: 767px)' }))
     );
-    mockApi();
+    mockPositionsApi();
     const runtime = mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('job-position-row');
@@ -649,7 +605,7 @@ describe("a client's job positions", () => {
   });
 
   it('opens the new position dialog when a row asks for a first position', async () => {
-    mockApi({ items: [] });
+    mockPositionsApi({ items: [] });
     const runtime = mountApp(
       authFixture(makeSession()).client,
       `/clienti/${clientId}/posturi?focus=add-position`
