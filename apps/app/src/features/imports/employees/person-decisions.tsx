@@ -187,7 +187,7 @@ export function PostDecision({
   const shared =
     count > 1 ? (
       <p className="text-[13px] text-muted-foreground">
-        Se aplică tuturor celor {count} persoane cu funcția{' '}
+        Se aplică tuturor celor {roCount(count, 'persoană', 'persoane')} cu funcția{' '}
         <span className="font-semibold text-foreground">{title}</span>:{' '}
         <Masked>{names.join(', ')}</Masked>. Funcția de pe fișă se păstrează oricum la fiecare.
       </p>

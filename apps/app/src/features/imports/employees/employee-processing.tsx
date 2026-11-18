@@ -10,6 +10,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { CurrentClientFact } from '@/features/clients/client-fact';
+import { roCount } from '@/features/employees/employee-format';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { refundedSentence } from '../import-credits';
@@ -54,7 +55,7 @@ const secondsPerPage = 9.4;
 function remaining(pages: number) {
   const minutes = Math.ceil((pages * secondsPerPage) / 60);
   if (minutes <= 1) return 'Mai durează cam un minut.';
-  return `Mai durează cam ${minutes} minute.`;
+  return `Mai durează cam ${roCount(minutes, 'minut', 'minute')}.`;
 }
 
 const fileState = (file: ImportFile) =>

@@ -5,6 +5,7 @@ import { Search } from 'lucide-react';
 import { useState } from 'react';
 
 import { Masked } from '@/components/replay';
+import { roCount } from '@/features/employees/employee-format';
 import { normalizeSearch } from '@/lib/normalize-search';
 
 export interface AttendeeOption {
@@ -87,8 +88,7 @@ export function AttendeeChecklist({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground" data-testid="training-attendees-count">
-        {value.length === 1 ? '1 participant ales' : `${value.length} participanți aleși`} din{' '}
-        {options.length}
+        {roCount(value.length, 'participant ales', 'participanți aleși')} din {options.length}
       </p>
       {visible.length === 0 ? (
         <p className="py-3 text-center text-sm text-muted-foreground">

@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
 import { maskPeople } from '@/components/mask-people';
+import { roCount } from '@/features/employees/employee-format';
 
 import { filesLabel } from './import-format';
 import {
@@ -98,10 +99,12 @@ export function smokingRule(states: Record<string, FieldState>, changes: Changes
 }
 
 const count = (value: number, one: string, many: string) =>
-  value === 1 ? `un ${one}` : `${value} ${many}`;
+  value === 1 ? `un ${one}` : roCount(value, one, many);
 
 const substancesCount = (value: number) =>
-  value === 1 ? 'o substanță periculoasă' : `${value} substanțe periculoase`;
+  value === 1
+    ? 'o substanță periculoasă'
+    : roCount(value, 'substanță periculoasă', 'substanțe periculoase');
 
 // `existingSubstances` are the names an existing client lists already, null for a new client.
 export type ExistingScope = ReviewScope & { existingSubstances: string[] | null };
@@ -143,7 +146,7 @@ export function sectionDescription(
     const left = lists.flatMap((list) => leftOut(list, 'other_company')).length;
     return left === 0
       ? ''
-      : ` Alte ${left} ${noun} apar doar în pasaje copiate de la altă firmă și sunt lăsate deoparte.`;
+      : ` Alte ${roCount(left, noun, noun)} apar doar în pasaje copiate de la altă firmă și sunt lăsate deoparte.`;
   };
   const choices = Object.values(states).filter(
     (state) =>
@@ -152,7 +155,10 @@ export function sectionDescription(
       appliesAt(states, state.path)
   );
   const choiceText = choices
-    .map((state) => ` ${state.label}: ${state.own.length} variante în documente.`)
+    .map(
+      (state) =>
+        ` ${state.label}: ${roCount(state.own.length, 'variantă', 'variante')} în documente.`
+    )
     .join('');
   switch (section) {
     case 'identity': {
@@ -176,7 +182,7 @@ export function sectionDescription(
         (total, state) => total + ((state.values.rooms as string[] | undefined)?.length ?? 0),
         0
       );
-      return `${count(kept.length, 'punct de lucru', 'puncte de lucru')}${rooms > 0 ? `, cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`} pentru mijloacele de apărare împotriva incendiilor` : ''}.${others(['workplaces'], 'puncte de lucru')}`;
+      return `${count(kept.length, 'punct de lucru', 'puncte de lucru')}${rooms > 0 ? `, cu ${rooms === 1 ? 'o încăpere' : roCount(rooms, 'încăpere', 'încăperi')} pentru mijloacele de apărare împotriva incendiilor` : ''}.${others(['workplaces'], 'puncte de lucru')}`;
     }
     case 'job-positions': {
       const kept = included(proposal, changes, 'jobPositions');
@@ -186,7 +192,7 @@ export function sectionDescription(
           ? ''
           : management.length === 1
             ? ` Postul «${String(management[0]!.values.name)}» se preia doar dacă e ocupat cu contract de muncă.`
-            : ` ${management.length} posturi de conducere se preiau doar dacă sunt ocupate cu contract de muncă.`;
+            : ` ${roCount(management.length, 'post de conducere', 'posturi de conducere')} se preiau doar dacă sunt ocupate cu contract de muncă.`;
       return `${count(kept.length, 'post', 'posturi')}.${managementText}${others(['jobPositions'], 'posturi')}`;
     }
     case 'responsible': {
@@ -200,7 +206,7 @@ export function sectionDescription(
         (state) => state.values.role === 'workers_representative'
       );
       const missingDate = representative && !representative.values.hiredAt;
-      return `${people.length === 1 ? 'O persoană' : `${people.length} persoane`} cu ${roles === 1 ? 'un rol' : `${roles} roluri`}.${
+      return `${people.length === 1 ? 'O persoană' : roCount(people.length, 'persoană', 'persoane')} cu ${roles === 1 ? 'un rol' : roCount(roles, 'rol', 'roluri')}.${
         representative
           ? ` ${roleLabel('workers_representative')} devine lucrător${missingDate ? ' și are nevoie de data angajării' : ''}.`
           : ''
@@ -231,7 +237,10 @@ export function sectionDescription(
       const smoking = smokingRule(states, changes);
       const countsText = askedCounts(proposal, changes, inactive)
         .filter((each) => chosenCountOption(each, changes) === null)
-        .map((each) => ` ${countName(each)}: ${each.options.length} numere în documente.`)
+        .map(
+          (each) =>
+            ` ${countName(each)}: ${roCount(each.options.length, 'număr', 'numere')} în documente.`
+        )
         .join('');
       const answer = substancesAnswer(states[substancesStatePath]);
       const substances =
@@ -240,7 +249,7 @@ export function sectionDescription(
           : answer === 'none'
             ? ', fără substanțe periculoase'
             : '';
-      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : `${equipment} mijloace de stingere`}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'mijloace')}`;
+      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : roCount(equipment, 'mijloc de stingere', 'mijloace de stingere')}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'mijloace')}`;
     }
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');
@@ -261,8 +270,8 @@ export function sectionDescription(
           ? ''
           : withPosition === 1
             ? ' Un articol rămâne deoparte cu postul lui.'
-            : ` Alte ${withPosition} articole rămân deoparte cu posturile lor.`;
-      return `${items.length === 1 ? 'Un articol' : `${items.length} articole`} pentru ${positions === 1 ? 'un post' : `${positions} posturi`}.${withPositionText}${others(['protectiveEquipment'], 'articole')}`;
+            : ` Alte ${roCount(withPosition, 'articol', 'articole')} rămân deoparte cu posturile lor.`;
+      return `${items.length === 1 ? 'Un articol' : roCount(items.length, 'articol', 'articole')} pentru ${positions === 1 ? 'un post' : roCount(positions, 'post', 'posturi')}.${withPositionText}${others(['protectiveEquipment'], 'articole')}`;
     }
   }
 }
@@ -347,16 +356,36 @@ export function blockerHeading(blockers: Blocker[]) {
   ).length;
   const invalid = blockers.filter((blocker) => blocker.code === 'invalid').length;
   const parts = [
-    choices === 1 ? 'o alegere' : choices > 1 ? `${choices} alegeri` : null,
-    missing === 1 ? 'o dată obligatorie' : missing > 1 ? `${missing} date obligatorii` : null,
-    invalid === 1 ? 'o valoare de corectat' : invalid > 1 ? `${invalid} valori de corectat` : null,
+    choices === 1 ? 'o alegere' : choices > 1 ? roCount(choices, 'alegere', 'alegeri') : null,
+    missing === 1
+      ? 'o dată obligatorie'
+      : missing > 1
+        ? roCount(missing, 'dată obligatorie', 'date obligatorii')
+        : null,
+    invalid === 1
+      ? 'o valoare de corectat'
+      : invalid > 1
+        ? roCount(invalid, 'valoare de corectat', 'valori de corectat')
+        : null,
   ].filter(Boolean) as string[];
   const join = (list: string[]) =>
     list.length > 1 ? `${list.slice(0, -1).join(', ')} și ${list.at(-1)}` : (list[0] ?? '');
   const resolve = [
-    choices === 1 ? 'alegerea' : choices > 1 ? `cele ${choices} alegeri` : null,
-    missing === 1 ? 'data lipsă' : missing > 1 ? `cele ${missing} date lipsă` : null,
-    invalid === 1 ? 'valoarea greșită' : invalid > 1 ? `cele ${invalid} valori greșite` : null,
+    choices === 1
+      ? 'alegerea'
+      : choices > 1
+        ? `cele ${roCount(choices, 'alegere', 'alegeri')}`
+        : null,
+    missing === 1
+      ? 'data lipsă'
+      : missing > 1
+        ? `cele ${roCount(missing, 'dată lipsă', 'date lipsă')}`
+        : null,
+    invalid === 1
+      ? 'valoarea greșită'
+      : invalid > 1
+        ? `cele ${roCount(invalid, 'valoare greșită', 'valori greșite')}`
+        : null,
   ].filter(Boolean) as string[];
   return { heading: `Mai ai ${join(parts)}`, resolve: `Rezolvă ${join(resolve)}` };
 }
@@ -396,7 +425,7 @@ export function confirmLines(
       label: workplaces.length === 1 ? 'punct de lucru' : 'puncte de lucru',
       detail:
         rooms > 0
-          ? `Cu ${rooms === 1 ? 'o încăpere' : `${rooms} încăperi`}, locurile mijloacelor de apărare împotriva incendiilor`
+          ? `Cu ${rooms === 1 ? 'o încăpere' : roCount(rooms, 'încăpere', 'încăperi')}, locurile mijloacelor de apărare împotriva incendiilor`
           : 'Cu adresele din documente',
     });
   }
@@ -441,7 +470,7 @@ export function confirmLines(
       icon: 'person',
       count: people.length,
       label: people.length === 1 ? 'responsabil' : 'responsabili',
-      detail: `Cu ${roles === 1 ? 'un rol' : `${roles} roluri`}, și programul de instruire`,
+      detail: `Cu ${roles === 1 ? 'un rol' : roCount(roles, 'rol', 'roluri')}, și programul de instruire`,
     });
   }
   if (employees.length > 0) {

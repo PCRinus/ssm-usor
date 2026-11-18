@@ -14,6 +14,7 @@ import {
 import { type ReactNode, useId, useState } from 'react';
 
 import { Segmented } from '@/components/segmented';
+import { roCount } from '@/features/employees/employee-format';
 import { dayOrderProblem, monthNames } from '@/features/training/document-details-schema';
 import { TrainingScheduleFields } from '@/features/training/schedule-fields';
 import {
@@ -744,7 +745,7 @@ export function TrainingImportCard({
                 ? null
                 : pending === 1
                   ? 'Mai ai un lucru de făcut'
-                  : `Mai ai ${pending} lucruri de făcut`
+                  : `Mai ai ${roCount(pending, 'lucru', 'lucruri')} de făcut`
             }
             testId="review-group-pending"
           />
