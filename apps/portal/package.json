@@ -22,6 +22,7 @@
     "@lingui/react": "catalog:",
     "@ssm-usor/api-http": "workspace:*",
     "@ssm-usor/contracts": "workspace:*",
+    "@ssm-usor/spa-runtime": "workspace:*",
     "@ssm-usor/ui": "workspace:*",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.104.5",
