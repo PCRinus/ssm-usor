@@ -120,7 +120,6 @@ export function PositionRiskEvaluationCard({
           actions={
             !readOnly && (
               <Button
-                variant="secondary"
                 size="sm"
                 data-testid="position-risk-start"
                 disabled={pending}

@@ -15,7 +15,7 @@ export function PositionsLink({ clientId }: { clientId: string }) {
 
 export function PositionsButton({ clientId }: { clientId: string }) {
   return (
-    <Button asChild variant="secondary" size="sm">
+    <Button asChild variant="outline" size="sm" className="bg-card">
       <Link to="/clienti/$clientId/posturi" params={{ clientId }}>
         Deschide Posturi de lucru
       </Link>

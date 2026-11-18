@@ -261,7 +261,7 @@ function ReturnForm({
               </Button>
             ) : link.isError && !closed ? (
               <Button
-                variant="secondary"
+                variant="outline"
                 data-testid="return-download-retry"
                 onClick={() => void link.refetch()}
               >
