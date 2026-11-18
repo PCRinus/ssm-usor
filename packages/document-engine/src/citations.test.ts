@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { buildCitationIndex, templateSources, templatesUrl } from '../tools/template-sources';
 import {
   markerPrefix,
   parseAct,
@@ -11,6 +10,7 @@ import {
   readsLikeArticle,
   templateCitations,
 } from './citations';
+import { buildCitationIndex, templateSources, templatesUrl } from './template-store';
 import { paragraphsOf } from './text';
 
 const escape = (text: string) =>

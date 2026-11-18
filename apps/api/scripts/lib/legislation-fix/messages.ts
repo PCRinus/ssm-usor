@@ -1,14 +1,8 @@
 import { clip, codeBlock, diffBlock, type DiscordMessage, noPreview } from '@ssm-usor/discord';
+import type { LineChange } from '@ssm-usor/document-engine/legal-quote';
 
 import { changeKey, type ChangePassage, type OpenChange } from './changes';
 import type { Reading } from './model';
-
-export interface LineChange {
-  kind: 'changed' | 'added' | 'removed';
-  paragraph: number;
-  before: string | null;
-  after: string | null;
-}
 
 export interface AppliedQuote {
   file: string;

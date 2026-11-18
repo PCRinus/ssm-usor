@@ -12,9 +12,9 @@
       "types": "./dist/citation-index.d.ts",
       "import": "./dist/citation-index.js"
     },
-    "./quotes": {
-      "types": "./dist/quote-replacement.d.ts",
-      "import": "./dist/quote-replacement.js"
+    "./legal-quote": {
+      "types": "./dist/legal-quote.d.ts",
+      "import": "./dist/legal-quote.js"
     },
     "./signing": {
       "types": "./dist/signing.d.ts",

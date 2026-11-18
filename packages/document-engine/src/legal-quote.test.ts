@@ -7,16 +7,17 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import PizZip from 'pizzip';
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { type Citation, templateCitations } from '../src/citations';
+import { type Citation, templateCitations } from './citations';
 import {
   type LegalQuoteResult,
   type PassageInput,
   type PatchInput,
+  PendingChangeError,
   type ReleasedManifest,
   releasedManifestAt,
   replaceLegalQuote,
 } from './legal-quote';
-import { buildCitationIndex, templateSources } from './template-sources';
+import { buildCitationIndex, templateSources } from './template-store';
 
 const templatesFolder = fileURLToPath(new URL('../templates/', import.meta.url));
 const folders: string[] = [];
@@ -383,6 +384,19 @@ describe('a quote replaced in a templates folder', () => {
       });
       const fire = JSON.parse(readFileSync(join(root, 'fire/manifest.json'), 'utf8'));
       expect(fire.templates[0].change).toEqual({ kind: 'legal', ...change });
+    });
+
+    it('refuses a note that the pending one leaves no room for', () => {
+      const root = folder();
+      const pending = { kind: 'correction', note: 'X.' };
+      const text = readFileSync(join(root, 'manifest.json'), 'utf8');
+      writeFileSync(
+        join(root, 'manifest.json'),
+        text.replace('"note": "Prima versiune."', `"note": "${'N'.repeat(495)}."`)
+      );
+      expect(() => replace(root, { ...patch, change }, released(root, pending))).toThrow(
+        PendingChangeError
+      );
     });
 
     it('lists every change of an act it resolves', () => {

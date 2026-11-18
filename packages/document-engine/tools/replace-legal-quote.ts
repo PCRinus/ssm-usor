@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import { type LegalQuoteInput, releasedManifestAt, replaceLegalQuote } from './legal-quote';
+import { type LegalQuoteInput, releasedManifestAt, replaceLegalQuote } from '../src/legal-quote';
 
 const usage = [
   'Usage: replace-quote <input.json> [--templates <folder>] [--released <git ref>] [--summary <file.json>]',
@@ -34,7 +34,6 @@ try {
     writeFileSync(resolve(values.summary), `${JSON.stringify(result, null, 2)}\n`);
   }
   console.log(result.markdown);
-  // The scheduled fix opens an issue instead of a pull request on 3 and 4.
   if (result.status === 'needs-review') {
     process.exitCode = 3;
   } else if (result.status === 'nothing-to-apply') {

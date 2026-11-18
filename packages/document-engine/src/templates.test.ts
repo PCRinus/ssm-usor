@@ -9,7 +9,6 @@ import {
   knowledgeTestData,
   knowledgeTestTemplates,
 } from '../tools/knowledge-test-samples';
-import { templatesUrl } from '../tools/template-sources';
 import {
   testResult,
   trainingSheetFormSample,
@@ -20,6 +19,7 @@ import {
 import { annexTemplate } from './annex-template';
 import { renderDocument, templatePlaceholders } from './render';
 import { templateChangeProblems } from './template-change';
+import { templatesUrl } from './template-store';
 import { documentText } from './text';
 
 const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));

@@ -7,7 +7,7 @@ import {
   templateCitations,
   type TemplateSet,
   type TemplateSource,
-} from '../src/citations';
+} from './citations';
 
 // The tests check an edited copy of the folder when DOCUMENT_TEMPLATES_DIR names one, as the
 // replacement of a quote does before its pull request is opened (ADR 017).
