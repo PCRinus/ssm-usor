@@ -196,7 +196,7 @@ tr[data-pointed] {
    High-contrast mode drops shadows, so the transparent outline draws the panel's edge there.
    A flush sheet's content runs edge to edge in it, so nothing there is raised. */
 :where(
-  [data-slot='client-sheet']:not([data-flush])
+  [data-slot='tab-sheet']:not([data-flush])
     :is([data-slot='card'], [data-sheet-panel]):not([data-slot='card'] *, [data-sheet-panel] *)
 ) {
   border-width: 0;
@@ -205,7 +205,7 @@ tr[data-pointed] {
   outline: 1px solid transparent;
 }
 
-[data-slot='client-sheet'] h2[data-slot='section-card-title'] {
+[data-slot='tab-sheet'] h2[data-slot='section-card-title'] {
   font-size: 1.25rem;
   line-height: 1.75rem;
   letter-spacing: -0.01em;
@@ -213,6 +213,6 @@ tr[data-pointed] {
 
 /* The cream fill of an outline button reads as a tint on white. Not keyed on data-slot, which a
    menu trigger replaces with its own. */
-[data-slot='client-sheet'] [data-variant='outline'] {
+[data-slot='tab-sheet'] [data-variant='outline'] {
   --background: var(--card);
 }

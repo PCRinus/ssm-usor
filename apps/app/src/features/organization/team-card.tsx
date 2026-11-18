@@ -93,7 +93,8 @@ export function TeamCard({
   };
 
   return (
-    <div data-testid="team-card" className="overflow-hidden rounded-lg border bg-card">
+    <div data-testid="team-card">
+      <h2 className="sr-only">Echipă</h2>
       <ListCardHeader
         className={cn('max-sm:px-4', seats?.upgrade ? 'max-sm:gap-y-2' : 'flex-nowrap')}
       >

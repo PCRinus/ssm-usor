@@ -28,7 +28,7 @@ Pentru fiecare rând vezi:
 
 - **Nume**: numele și, sub el, adresa de email. Pe rândul tău scrie „(tu)” după nume. La o invitație apare adresa la care a plecat;
 - **Rol**: admin sau specialist (vezi [Rolurile](#rolurile));
-- **Stare**: „Membru”, cu ziua în care a intrat în organizație; „Invitație în așteptare”, cu ziua în care expiră linkul; sau „Invitație expirată”, scris cu galben, cu ziua în care a expirat;
+- **Stare**: „Membru”, cu ziua în care a intrat în organizație; eticheta „Invitat”, pentru o invitație în așteptare, cu ziua în care expiră linkul; sau eticheta galbenă „Invitație expirată”, cu ziua în care a expirat;
 - **Ultima activitate**, doar pentru admini (vezi [Ultima activitate](#ultima-activitate)).
 
 Deasupra tabelului, adminii văd câți utilizatori folosiți din cât include planul, de exemplu „7 din 10 utilizatori” (vezi [Locurile din plan](#locurile-din-plan)). Pe telefon, tabelul își păstrează coloanele și se derulează în lateral.
@@ -40,16 +40,16 @@ Colegii care nu sunt admini văd membrii, cu rolul și starea lor. Deasupra tabe
 - **Specialist**: lucrează cu clienții și cu lucrătorii lor.
 - **Admin**: poate tot ce poate un specialist și, în plus, invită membri noi, le schimbă rolul, îi elimină din organizație și se ocupă de abonament.
 
-Rolul îl alegi când trimiți invitația. Adminul îl poate schimba oricând din meniul de la capătul rândului, cu **Schimbă rolul în admin** sau **Schimbă rolul în specialist**. Din același meniu, **Elimină din organizație** îi ia colegului accesul la clienții și lucrătorii organizației; contul lui și datele introduse rămân. Propriul rol nu ți-l poți schimba și nici nu te poți elimina singur: o face alt admin.
+Rolul tău apare sus pe pagina **Organizație**, lângă numele ei, de exemplu „Rolul tău: Admin”. Rolul unui coleg îl alegi când îi trimiți invitația. Adminul îl poate schimba oricând din meniul de la capătul rândului, cu **Schimbă rolul în admin** sau **Schimbă rolul în specialist**. Din același meniu, **Elimină din organizație** îi ia colegului accesul la clienții și lucrătorii organizației; contul lui și datele introduse rămân. Propriul rol nu ți-l poți schimba și nici nu te poți elimina singur: o face alt admin.
 
 ## Invitațiile
 
 Cu **Invită un membru** trimiți pe email un link valabil 7 zile. Persoana își creează contul din link sau, dacă are deja unul, intră cu el și se alătură organizației. După ce acceptă, apare în tabel ca membru.
 
-Din meniul de la capătul rândului unei invitații poți:
+La capătul rândului unei invitații poți:
 
-- **Retrimite invitația**: pleacă un email nou, cu un link valabil încă 7 zile, iar linkul de dinainte nu mai merge. La aceeași adresă poți retrimite cel mult o dată la 10 minute;
-- **Revocă invitația**: linkul nu mai merge, iar rândul dispare din tabel.
+- apăsa **Retrimite**: pleacă un email nou, cu un link valabil încă 7 zile, iar linkul de dinainte nu mai merge. La aceeași adresă poți retrimite cel mult o dată la 10 minute;
+- alege **Revocă invitația** din meniul de lângă buton: linkul nu mai merge, iar rândul dispare din tabel.
 
 Ca să schimbi rolul unei invitații în așteptare, trimite din nou o invitație la aceeași adresă, cu rolul nou. Când planul e plin, fereastra **Invită un membru** nu mai arată formularul: revocă întâi invitația, apoi trimite-o din nou cu rolul nou.
 

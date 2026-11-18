@@ -188,7 +188,7 @@ function useStuck(ref: RefObject<HTMLElement | null>, watch: boolean) {
 }
 
 // Nested under another one, it stays in the flow: two sticky navs would cover each other.
-// The folder variant's line is the top edge of the sheet that follows it (ClientSheet).
+// The folder variant's line is the top edge of the sheet that follows it (TabSheet).
 export function SectionNav({
   label,
   nested = false,

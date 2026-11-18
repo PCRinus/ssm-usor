@@ -152,6 +152,7 @@ describe('choosing a plan', () => {
 
     const page = await screen.findByTestId('choose-plan-page');
     expect(within(page).getByRole('heading', { level: 1 }).textContent).toBe('Alege planul');
+    expect(document.querySelector('[data-slot="tab-sheet"]')).toBeNull();
     expect(screen.getByTestId('plan-option-start').getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByTestId('step-value').textContent).toBe('500');
     expect((screen.getByTestId('step-less') as HTMLButtonElement).disabled).toBe(true);

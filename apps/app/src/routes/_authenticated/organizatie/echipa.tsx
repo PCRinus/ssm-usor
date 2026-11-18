@@ -6,7 +6,7 @@ import { TeamCard } from '@/features/organization/team-card';
 import { teamListSearch } from '@/features/organization/team-list';
 
 export const Route = createFileRoute('/_authenticated/organizatie/echipa')({
-  staticData: { title: 'Echipă' },
+  staticData: { title: 'Echipă', flushSheet: true },
   validateSearch: z.object(teamListSearch),
   component: OrganizationTeamPage,
 });

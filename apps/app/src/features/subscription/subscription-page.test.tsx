@@ -89,6 +89,11 @@ describe('the Abonament tab', () => {
     const card = await screen.findByTestId('plan-card');
     const tabs = screen.getAllByTestId('organization-section').map((tab) => tab.textContent);
     expect(tabs).toEqual(['Echipă', 'Date firmă', 'Abilitări', 'Abonament']);
+    const sheet = card.closest('[data-slot="tab-sheet"]');
+    expect(sheet?.hasAttribute('data-flush')).toBe(false);
+    for (const panel of ['plan-card', 'usage-card', 'payment-card', 'invoices-card']) {
+      expect(screen.getByTestId(panel).hasAttribute('data-sheet-panel')).toBe(true);
+    }
     expect(within(card).getByRole('heading', { name: 'Perioada de probă' })).toBeTruthy();
     expect(within(card).getByTestId('plan-amount').textContent).toContain('12 zile');
     expect(within(card).getByRole('link', { name: 'Alege un plan' }).getAttribute('href')).toBe(

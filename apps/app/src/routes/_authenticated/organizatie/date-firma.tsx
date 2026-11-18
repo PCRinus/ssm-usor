@@ -5,7 +5,7 @@ import { focusSearch, organizationCompanyFocus } from '@/features/missing-data/f
 import { CompanyDetailsCard } from '@/features/organization/company-details-card';
 
 export const Route = createFileRoute('/_authenticated/organizatie/date-firma')({
-  staticData: { title: 'Date firmă' },
+  staticData: { title: 'Date firmă', flushSheet: true },
   validateSearch: focusSearch(organizationCompanyFocus),
   component: OrganizationCompanyPage,
 });

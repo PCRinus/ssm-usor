@@ -82,12 +82,17 @@ export function InvoicesCard({
   return (
     <section
       data-testid="invoices-card"
+      data-sheet-panel
       aria-labelledby="invoices-title"
       className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-sm"
     >
       <ListCardHeader className="flex-nowrap max-sm:px-4">
         <div className="flex min-h-9 items-center gap-1">
-          <h2 id="invoices-title" className="text-base font-semibold">
+          <h2
+            id="invoices-title"
+            data-slot="section-card-title"
+            className="text-base font-semibold"
+          >
             Facturi
           </h2>
           <HelpLink topic="organizatie.plata-si-facturi" label="Ajutor: plată și facturi" />

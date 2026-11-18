@@ -5,7 +5,7 @@ import { authorizationsFocus, focusSearch } from '@/features/missing-data/focus'
 import { AuthorizationsCard } from '@/features/organization/authorizations-card';
 
 export const Route = createFileRoute('/_authenticated/organizatie/abilitari')({
-  staticData: { title: 'Abilitări' },
+  staticData: { title: 'Abilitări', flushSheet: true },
   validateSearch: focusSearch(authorizationsFocus),
   component: OrganizationAuthorizationsPage,
 });

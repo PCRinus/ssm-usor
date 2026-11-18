@@ -5,8 +5,7 @@ import { useMatches } from '@tanstack/react-router';
 import { backGap } from '@/components/back-gap';
 import { BackLink } from '@/components/back-link';
 import { phoneBleed, phoneStripInset } from '@/components/page-spacing';
-
-import { ClientSheet } from './client-sheet';
+import { TabSheet } from '@/components/tab-sheet';
 
 export function ClientPending() {
   const fullPage = useMatches({
@@ -25,7 +24,7 @@ export function ClientPending() {
           <div className={cn('pt-2', phoneBleed, phoneStripInset)}>
             <Skeleton className="h-10 w-full rounded-b-none" />
           </div>
-          <ClientSheet />
+          <TabSheet />
         </>
       )}
     </div>
