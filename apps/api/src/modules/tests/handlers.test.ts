@@ -5,7 +5,7 @@ import {
   testQuestionResponseSchema,
   testResultResponseSchema,
 } from '@ssm-usor/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
@@ -308,6 +308,47 @@ describe('GET /organization/tests/questions', () => {
       url: 'https://legislatie.just.ro/Public/DetaliiDocument/73772',
       target: 'act',
     });
+  });
+
+  it('links to the acts, and still answers, when the anchors cannot be read', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpstream({
+      questions: () => Response.json([question(1)]),
+      legalActs: () => raised('42P01', 'relation does not exist'),
+    });
+    const response = await request('/organization/tests/questions?domain=ssm');
+    expect(response.status).toBe(200);
+    const [hiring] = testBankResponseSchema.parse(await response.json()).tests;
+    expect(hiring!.questions[0]!.citationParts.at(-1)).toMatchObject({
+      article: '1',
+      url: 'https://legislatie.just.ro/Public/DetaliiDocument/73772',
+      target: 'act',
+    });
+    expect(logged).toHaveBeenCalledWith(
+      'Legal act anchors not read, citations link to their acts: 42P01'
+    );
+    logged.mockRestore();
+  });
+
+  it('saves an own question and answers it when its anchors cannot be read', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpstream({
+      legalActs: () => new Response('upstream timed out', { status: 504 }),
+    });
+    const response = await request('/organization/tests/questions', 'POST', {
+      domain: 'ssm',
+      test: 'hiring',
+      text: 'Ce lege reglementează securitatea muncii?',
+      options,
+      citation: 'Legea 319/2006, art. 1',
+    });
+    expect(response.status).toBe(201);
+    const { question: saved } = testQuestionResponseSchema.parse(await response.json());
+    expect(saved.citationParts.at(-1)).toMatchObject({ target: 'act' });
+    expect(logged).toHaveBeenCalledWith(
+      'Legal act anchors not read, citations link to their acts: no code'
+    );
+    logged.mockRestore();
   });
 
   it('narrows the list to one test', async () => {

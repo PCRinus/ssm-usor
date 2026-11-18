@@ -1613,7 +1613,7 @@ the current form does not have, or for a number both the act and the norms it ap
 (O.M.A.I. 712/2005 art. 1–4). Text that names no watched act, the provider's own instructions
 (`IPSU, art. 151`) included, is one plain part with `act`, `url` and `target` null; a question
 without a citation has none. The anchors are read with the member's token, once per response for
-every act its questions name.
+every act its questions name. A failed read is logged and the articles link to their acts: the question, saved already, and the bank still answer.
 
 **Errors.** `fromDatabaseError` (`src/lib/db.ts`) translates the schema's codes, the raised text
 being the `reason` (the contracts' `testErrorReasons`) and the message Romanian: `TST01`, `TST02`,

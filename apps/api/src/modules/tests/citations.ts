@@ -10,7 +10,7 @@ import {
   storedArticleAnchorsSchema,
 } from '@ssm-usor/legislation-check/stored';
 
-import { type DataClient, fromDatabaseError } from '../../lib/db';
+import type { DataClient } from '../../lib/db';
 
 const portalOrigin = 'https://legislatie.just.ro';
 
@@ -24,13 +24,29 @@ const portalIds = () =>
 export const citationReferences = (citation: string | null): CitationReference[] =>
   citation === null ? [] : parseCitation(citation, (act) => portalIds().has(act));
 
+// Links are a convenience: without the anchors every article links to its act, and a question
+// already written, or the bank, still answers rather than failing on them.
+async function readAnchorRows(db: DataClient, actIds: string[]) {
+  try {
+    const { data, error } = await db
+      .from('legal_acts')
+      .select('id, article_anchors, anchors_consolidated_on, last_consolidated_on')
+      .in('id', actIds);
+    if (!error) return data;
+    console.error(
+      `Legal act anchors not read, citations link to their acts: ${error.code || 'no code'}`
+    );
+  } catch (error) {
+    console.error(
+      `Legal act anchors not read, citations link to their acts: ${error instanceof Error ? error.name : 'unknown'}`
+    );
+  }
+  return [];
+}
+
 async function anchorsOf(db: DataClient, actIds: string[]) {
   if (actIds.length === 0) return new Map<string, StoredArticleAnchor[]>();
-  const { data, error } = await db
-    .from('legal_acts')
-    .select('id, article_anchors, anchors_consolidated_on, last_consolidated_on')
-    .in('id', actIds);
-  if (error) throw fromDatabaseError(error, 'legal act anchors');
+  const data = await readAnchorRows(db, actIds);
   return new Map(
     // Anchors of an older form than the portal shows point at renumbered articles until the
     // check reads them again; the act's page is the safer link meanwhile.
