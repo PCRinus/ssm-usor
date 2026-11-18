@@ -1,7 +1,8 @@
 import { I18nProvider } from '@lingui/react';
+import { deployWindow } from '@ssm-usor/spa-runtime/version-watch';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { apiFetch } from '@/api/http';
 import { activateLocale, i18n } from '@/app/i18n';
@@ -10,14 +11,12 @@ import * as posthog from '@/app/observability/posthog';
 import { showNewVersionToast } from './new-version-toast';
 import { ReloadPrompts } from './reload-prompts';
 import {
-  deployWindowMs,
   openOutdatedDialog,
   pageReload,
   type ReloadContext,
   resetReloadStore,
   useReloadContext,
 } from './reload-store';
-import { fetchDeployedCommit, versionCheckIntervalMs, watchDeployedVersion } from './version-check';
 
 afterEach(() => {
   act(() => resetReloadStore());
@@ -39,74 +38,6 @@ function mountPrompts(context?: ReloadContext) {
 }
 
 const dialog = () => screen.queryByTestId('reload-dialog');
-
-function setVisibility(state: DocumentVisibilityState) {
-  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(state);
-  document.dispatchEvent(new Event('visibilitychange'));
-}
-
-describe('watching the deployed version', () => {
-  beforeEach(() => vi.useFakeTimers());
-
-  it('checks when the tab becomes visible and every ten minutes while visible', async () => {
-    const fetchCommit = vi.fn(async () => 'abc');
-    const onNewer = vi.fn();
-    const stop = watchDeployedVersion({ running: 'abc', fetchCommit, onNewer });
-
-    setVisibility('visible');
-    await vi.advanceTimersByTimeAsync(0);
-    expect(fetchCommit).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(versionCheckIntervalMs);
-    expect(fetchCommit).toHaveBeenCalledTimes(2);
-
-    setVisibility('hidden');
-    await vi.advanceTimersByTimeAsync(versionCheckIntervalMs);
-    expect(fetchCommit).toHaveBeenCalledTimes(2);
-    expect(onNewer).not.toHaveBeenCalled();
-    stop();
-  });
-
-  it('announces a newer build once, and again only for a build newer than that', async () => {
-    let deployed = 'def';
-    const onNewer = vi.fn();
-    const stop = watchDeployedVersion({
-      running: 'abc',
-      fetchCommit: async () => deployed,
-      onNewer,
-    });
-
-    setVisibility('visible');
-    await vi.advanceTimersByTimeAsync(versionCheckIntervalMs);
-    setVisibility('visible');
-    await vi.advanceTimersByTimeAsync(0);
-    expect(onNewer).toHaveBeenCalledTimes(1);
-    expect(onNewer).toHaveBeenLastCalledWith('def');
-
-    deployed = 'ghi';
-    await vi.advanceTimersByTimeAsync(versionCheckIntervalMs);
-    expect(onNewer).toHaveBeenCalledTimes(2);
-    expect(onNewer).toHaveBeenLastCalledWith('ghi');
-    stop();
-  });
-
-  it('never checks a local build', async () => {
-    const fetchCommit = vi.fn(async () => 'def');
-    watchDeployedVersion({ running: 'local', fetchCommit, onNewer: vi.fn() });
-    setVisibility('visible');
-    await vi.advanceTimersByTimeAsync(versionCheckIntervalMs * 2);
-    expect(fetchCommit).not.toHaveBeenCalled();
-  });
-
-  it('reads the commit without the cache and ignores an answer that is not a version', async () => {
-    const fetcher = vi.fn(async () => Response.json({ commit: 'def' }));
-    expect(await fetchDeployedCommit(fetcher)).toBe('def');
-    expect(fetcher).toHaveBeenCalledWith('/version.json', { cache: 'no-store' });
-
-    expect(await fetchDeployedCommit(async () => new Response('<!doctype html>'))).toBeNull();
-    expect(await fetchDeployedCommit(async () => new Response('', { status: 404 }))).toBeNull();
-  });
-});
 
 describe('the new-version toast', () => {
   it('offers a reload and records that it was shown and used', async () => {
@@ -224,7 +155,7 @@ describe('the reload dialog', () => {
     expect(action.disabled).toBe(true);
     expect(action.textContent).toBe('Reîncarcă în 0:42');
 
-    await act(() => vi.advanceTimersByTimeAsync(deployWindowMs - 18_000));
+    await act(() => vi.advanceTimersByTimeAsync(deployWindow - 18_000));
 
     expect(action.disabled).toBe(false);
     expect(action.textContent).toBe('Reîncarcă');

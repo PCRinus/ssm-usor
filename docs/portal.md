@@ -220,7 +220,8 @@ attributes. There is no Support widget. Sign-out resets the identity and stops r
 ## New builds and an outdated portal
 
 [ADR 040](architecture/adr-040-client-contract-and-reload-prompts.md) gives the portal the
-app's two prompts, worded for a participant (`src/features/reload`):
+app's two prompts, worded for a participant (`src/features/reload`, on the app's mechanics in
+`@ssm-usor/spa-runtime`):
 
 - **A toast** when a newer build is deployed. The build writes `/version.json` with its commit
   (`VITE_COMMIT_SHA`); an open tab fetches it without cache when it becomes visible and every

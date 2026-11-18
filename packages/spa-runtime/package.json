@@ -8,7 +8,9 @@
     "./auth-context": "./src/auth-context.ts",
     "./captcha": "./src/captcha.ts",
     "./query-client": "./src/query-client.ts",
-    "./testing/*": "./src/testing/*.ts"
+    "./testing/*": "./src/testing/*.ts",
+    "./version-watch": "./src/version-watch.ts",
+    "./vite": "./src/vite.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
