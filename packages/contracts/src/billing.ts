@@ -234,6 +234,15 @@ export const billingAmountsSchema = z.object({
 });
 export type BillingAmounts = z.infer<typeof billingAmountsSchema>;
 
+export function vatOf(subtotalCents: number) {
+  return Math.round((subtotalCents * vatPercent) / 100);
+}
+
+export function amountsWithVat(subtotalCents: number): BillingAmounts {
+  const vatCents = vatOf(subtotalCents);
+  return { subtotalCents, vatCents, totalCents: subtotalCents + vatCents };
+}
+
 export const billingPreviewLineSchema = z.object({
   product: billingProductKeySchema,
   quantity: z.int().min(1),
