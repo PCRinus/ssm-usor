@@ -1,4 +1,5 @@
 import {
+  apiErrorBody as readApiErrorBody,
   type ApiRequestOptions as BaseRequestOptions,
   createApiHttp,
   type ErrorType as ApiErrorType,
@@ -6,6 +7,7 @@ import {
 import { clientContract } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 
+import type { ApiErrorResponse } from '@/api/generated/api';
 import { captureEvent } from '@/app/observability/posthog';
 import { actingAsHeader } from '@/features/impersonation/acting-as';
 import {
@@ -15,7 +17,9 @@ import {
 } from '@/features/impersonation/refusal';
 import { openReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 
-export { ApiHttpError, isClientOutdatedError } from '@ssm-usor/api-http';
+export { apiErrorReason, ApiHttpError, isClientOutdatedError } from '@ssm-usor/api-http';
+
+export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorResponse>(cause);
 
 export interface ApiRequestOptions extends BaseRequestOptions {
   pageIdentity?: { header: () => string | undefined; identityChanged: () => void };

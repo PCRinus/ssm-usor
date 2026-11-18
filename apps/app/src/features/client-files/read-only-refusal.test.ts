@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { ApiHttpError } from '@/api/http';
-import { uploadFailureMessage } from '@/features/client-files/client-file-format';
+import { isReadOnlyError, readOnlyMessage } from '@/lib/api-errors';
 
-import { isReadOnlyError, readOnlyMessage } from './read-only';
+import { uploadFailureMessage } from './client-file-format';
 
 describe('read-only refusals', () => {
   const refused = new ApiHttpError(403, {

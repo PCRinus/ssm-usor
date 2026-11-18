@@ -1,6 +1,28 @@
+import { readOnlyReason } from '@ssm-usor/contracts';
 import type { FieldValues, Path, UseFormSetError } from 'react-hook-form';
 
 import type { ApiErrorResponse } from '@/api/generated/api';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { impersonationRefusal } from '@/features/impersonation/refusal';
+
+export const sessionExpiredMessage =
+  'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
+
+export const readOnlyMessage =
+  'Contul este doar pentru citire, așa că nu se mai pot face modificări.';
+
+export const isReadOnlyError = (cause: unknown) => apiErrorReason(cause) === readOnlyReason;
+
+export const isSessionExpired = (cause: unknown) =>
+  cause instanceof ApiHttpError && cause.status === 401;
+
+// The refusals that mean the same on every page, whatever the page was doing; a page words the
+// rest itself.
+export function commonFailure(cause: unknown): string | undefined {
+  if (isSessionExpired(cause)) return sessionExpiredMessage;
+  if (isReadOnlyError(cause)) return readOnlyMessage;
+  return impersonationRefusal(cause);
+}
 
 export const rejectedValueMessage = 'Valoarea nu a fost acceptată. Verifică acest câmp.';
 

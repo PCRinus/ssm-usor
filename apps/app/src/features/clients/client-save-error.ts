@@ -3,8 +3,7 @@ import type { UseFormReturn } from 'react-hook-form';
 
 import type { ApiErrorResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { isReadOnlyError, readOnlyMessage } from '@/features/subscription/read-only';
-import { setApiIssues } from '@/lib/api-issues';
+import { isReadOnlyError, readOnlyMessage, setApiIssues } from '@/lib/api-errors';
 
 import {
   type ClientFormValues,

@@ -15,7 +15,7 @@ import {
 
 import type { ApiErrorResponse, ClientFileListResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { isReadOnlyError, readOnlyMessage } from '@/features/subscription/read-only';
+import { isReadOnlyError, readOnlyMessage } from '@/lib/api-errors';
 import { dateToIso, formatRoDate } from '@/lib/dates';
 
 export type ClientFile = ClientFileListResponse['items'][number];

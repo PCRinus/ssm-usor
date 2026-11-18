@@ -28,7 +28,7 @@ import {
   isEmployeesOverStepError,
   refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
-import { type IssueTarget, setApiIssues } from '@/lib/api-issues';
+import { type IssueTarget, setApiIssues } from '@/lib/api-errors';
 
 import {
   birthDateFromCnp,
