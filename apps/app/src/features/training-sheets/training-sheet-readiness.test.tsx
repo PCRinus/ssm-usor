@@ -10,13 +10,14 @@ import {
 } from '@tanstack/react-router';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { AuthContext } from '@/features/auth/auth-context';
 import type { AuthStore } from '@/features/auth/auth-store';
 import { currentWayBack } from '@/features/missing-data/way-back';
 import { createQueryClient } from '@/lib/query-client';
 import type { RouterContext } from '@/routes/__root';
+import { fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { makeSession } from '@/test/auth-fixture';
 
 import { TrainingSheetReadiness } from './training-sheet-readiness';
@@ -36,15 +37,14 @@ const sheetStatus = (readiness: Readiness) => ({
   ...readiness,
 });
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({ ssm = ready, su = ready }: { ssm?: Readiness; su?: Readiness } = {}) {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(String(input));
-    if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
-    throw new Error(`Unexpected request: ${url}`);
-  });
+function mockSheetsApi({ ssm = ready, su = ready }: { ssm?: Readiness; su?: Readiness } = {}) {
+  mockApi(
+    (_init, url) => {
+      if (url.pathname === `${employeePath}/training-sheets`)
+        return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
+    },
+    { me: null }
+  );
 }
 
 const snapshot = { status: 'ready', session: makeSession() };
@@ -94,18 +94,13 @@ function mount(...domains: TrainingDomain[]) {
   return router;
 }
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('TrainingSheetReadiness', () => {
   it('counts what the sheet lacks and lists it in a dialog, each row to its field on the edit form', async () => {
-    mockApi({ ssm: { ready: false, missing: ['employee.commute_route', 'employee.workplace'] } });
+    mockSheetsApi({
+      ssm: { ready: false, missing: ['employee.commute_route', 'employee.workplace'] },
+    });
     mount('ssm');
     const notice = await screen.findByTestId('training-sheet-ssm-missing');
     expect(notice.textContent).toContain('Fișa SSM nu se poate întocmi încă: 2 date de completat.');
@@ -127,7 +122,7 @@ describe('TrainingSheetReadiness', () => {
   });
 
   it('starts the way back to the tab when a row is followed, and closes the dialog', async () => {
-    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    mockSheetsApi({ su: { ready: false, missing: ['employee.workplace'] } });
     const router = mount('su');
     const notice = await screen.findByTestId('training-sheet-su-missing');
     expect(notice.textContent).toContain('Fișa SU nu se poate întocmi încă: 1 dată de completat.');
@@ -148,7 +143,7 @@ describe('TrainingSheetReadiness', () => {
   });
 
   it('shows nothing while the sheet can be drawn up', async () => {
-    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    mockSheetsApi({ su: { ready: false, missing: ['employee.workplace'] } });
     mount('ssm', 'su');
     await screen.findByTestId('training-sheet-su-missing');
     expect(screen.queryByTestId('training-sheet-ssm-missing')).toBeNull();

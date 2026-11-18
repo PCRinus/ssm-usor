@@ -1,12 +1,15 @@
 import type { BillingCreditsUsage } from '@ssm-usor/contracts';
-import { vi } from 'vitest';
 
+import type { MeResponse } from '@/api/generated/api';
 import type { Proposal } from '@/features/imports/review-model';
 
 import { activeSubscription, summaryOf as subscriptionSummaryOf } from './billing-fixture';
+import { clientId, meResponse } from './records';
+
+export { bodyOf, fetchMock, mockApi, requestsTo, type Route } from './api';
+export { clientId, meResponse };
 
 export const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
-export const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
 let fileNumber = 0;
 
@@ -86,19 +89,10 @@ export const summaryOf = (detail: ReturnType<typeof importDetail>) => {
   };
 };
 
-export const meResponse = {
-  user: { id: 'user-one', email: 'review@example.test' },
-  profile: { fullName: 'Radu Pop', professionalTitle: null },
-  membership: {
-    organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Prevent SSM Consult' },
-    role: 'owner',
-  },
-};
-
 export function meWithCredits(
   credits: Partial<BillingCreditsUsage> = {},
   subscription = subscriptionSummaryOf(activeSubscription({ interval: 'month' }))
-) {
+): MeResponse {
   const creditsThisMonth: BillingCreditsUsage = {
     used: 230,
     included: 1500,
@@ -118,32 +112,6 @@ export function meWithCredits(
   };
   return { ...meResponse, subscription, creditsThisMonth };
 }
-
-export type Route = (
-  init: RequestInit | undefined,
-  url: URL
-) => Response | Promise<Response> | undefined;
-
-export const fetchMock = vi.fn<typeof fetch>();
-
-export function mockApi(route: Route) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const answer = route(init, url);
-    if (answer) return answer;
-    if (url.pathname === '/me') return Response.json(meResponse);
-    throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url.pathname}`);
-  });
-}
-
-export const requestsTo = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
-export const bodyOf = (pathname: string, method: string, index = 0) =>
-  JSON.parse(String(requestsTo(pathname, method)[index]?.[1]?.body)) as unknown;
 
 const src = (file: string, quote: string) => [{ file, quote }];
 const one = <T extends string | number>(value: T, file = 'dosar-ssm.zip/Decizie 1.docx') => ({

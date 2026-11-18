@@ -1,12 +1,14 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getGetInstructionModuleQueryKey } from '@/api/generated/api';
 import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
+import { bodiesOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientId, clientRecord, jobPositionRecord, pageOf, userOnlyMe } from '@/test/records';
 
 import { instructionStateLabel, moduleCountLabel } from './instruction-schema';
 
@@ -66,23 +68,7 @@ vi.mock('./annex-word-view', async () => {
   };
 });
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord();
 
 const version = {
   id: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
@@ -138,14 +124,10 @@ const hotWork = {
   clientCount: 21,
 };
 
-const welder = {
+const welder = jobPositionRecord({
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   name: 'Sudor',
-  staffCategory: 'execution',
   workZone: 'Atelier',
-  activities: null,
-  trainingIntervalMonths: null,
   employeeCount: 3,
   needsProtectiveEquipment: true,
   equipmentCount: 2,
@@ -153,14 +135,14 @@ const welder = {
   fireInstructionCount: 1,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
-};
-const fitter = {
+});
+const fitter = jobPositionRecord({
   ...welder,
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Lăcătuș mecanic',
   instructionCount: 0,
   fireInstructionCount: 0,
-};
+});
 
 const applied = (module: typeof ladders) => ({
   moduleId: module.id,
@@ -171,9 +153,7 @@ const applied = (module: typeof ladders) => ({
 
 type Route = (init: RequestInit | undefined, url: URL) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockInstructionsApi({
   modules = [offices, ladders, hotWork] as (typeof ladders)[],
   archived = [] as (typeof ladders)[],
   instructions = {
@@ -219,123 +199,114 @@ function mockApi({
   clients = [sampleClient] as (typeof sampleClient)[],
   moduleBody = body as unknown,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const { pathname } = url;
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client: sampleClient });
-    if (pathname === `/clients/${clientId}/job-positions`) {
-      return Response.json({ items: [welder, fitter] });
-    }
-    if (pathname === '/clients') {
-      return Response.json({ items: clients, page: 1, pageSize: 100, total: clients.length });
-    }
-    if (pathname === '/instruction-modules' && method === 'POST') return create(init, url);
-    if (pathname === '/instruction-modules/preview') {
-      return new Response(new Uint8Array([80, 75, 3, 4, 7]), {
-        headers: {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        },
-      });
-    }
-    if (/^\/instruction-modules\/[^/]+\/body$/.test(pathname)) return saveBody(init, url);
-    if (pathname === '/instruction-modules/choices') {
-      const domain = url.searchParams.get('domain');
-      return Response.json({
-        items: modules
-          .filter((module) => !domain || module.domain === domain)
-          .map(({ id, title, group, domain: moduleDomain }) => ({
-            id,
-            title,
-            group,
-            domain: moduleDomain,
-          })),
-      });
-    }
-    if (pathname === '/instruction-modules') {
-      const domain = url.searchParams.get('domain');
-      const tab = (url.searchParams.get('status') === 'archived' ? archived : modules).filter(
-        (module) => !domain || module.domain === domain
-      );
-      const q = url.searchParams.get('q')?.toLowerCase();
-      const categories = url.searchParams.getAll('category');
-      const unused = url.searchParams.getAll('usage').includes('unused');
-      const items = tab.filter(
-        (module) =>
-          (!q || module.title.toLowerCase().includes(q)) &&
-          (categories.length === 0 || categories.includes(module.group)) &&
-          (!unused || module.positionCount === 0)
-      );
-      return Response.json({
-        items,
-        page: Number(url.searchParams.get('page')),
-        pageSize: Number(url.searchParams.get('pageSize')),
-        total: items.length,
-        unfilteredTotal: tab.length,
-      });
-    }
-    const moduleMatch = pathname.match(
-      /^\/instruction-modules\/([^/]+)(?:\/(download)|\/versions\/([^/]+))?$/
-    );
-    if (moduleMatch) {
-      const [, moduleId, download, versionId] = moduleMatch;
-      if (download) {
-        return new Response(new Uint8Array([80, 75, 3, 4]), {
+  mockApi(
+    (init, url) => {
+      const { pathname } = url;
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${clientId}`) return Response.json({ client: sampleClient });
+      if (pathname === `/clients/${clientId}/job-positions`) {
+        return Response.json({ items: [welder, fitter] });
+      }
+      if (pathname === '/clients') {
+        return Response.json(pageOf(clients, { pageSize: 100 }));
+      }
+      if (pathname === '/instruction-modules' && method === 'POST') return create(init, url);
+      if (pathname === '/instruction-modules/preview') {
+        return new Response(new Uint8Array([80, 75, 3, 4, 7]), {
           headers: {
             'Content-Type':
               'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('Scări metalice.docx')}`,
           },
         });
       }
-      if (versionId) {
+      if (/^\/instruction-modules\/[^/]+\/body$/.test(pathname)) return saveBody(init, url);
+      if (pathname === '/instruction-modules/choices') {
+        const domain = url.searchParams.get('domain');
         return Response.json({
-          version: { ...version, id: versionId, number: 1, createdAt: '2026-09-20T10:00:00.000Z' },
-          body,
+          items: modules
+            .filter((module) => !domain || module.domain === domain)
+            .map(({ id, title, group, domain: moduleDomain }) => ({
+              id,
+              title,
+              group,
+              domain: moduleDomain,
+            })),
         });
       }
-      if (method === 'PATCH') return update(init, url);
-      const module = [...(modules as (typeof ladders)[]), welding, hotWork].find(
-        (item) => item.id === moduleId
+      if (pathname === '/instruction-modules') {
+        const domain = url.searchParams.get('domain');
+        const tab = (url.searchParams.get('status') === 'archived' ? archived : modules).filter(
+          (module) => !domain || module.domain === domain
+        );
+        const q = url.searchParams.get('q')?.toLowerCase();
+        const categories = url.searchParams.getAll('category');
+        const unused = url.searchParams.getAll('usage').includes('unused');
+        const items = tab.filter(
+          (module) =>
+            (!q || module.title.toLowerCase().includes(q)) &&
+            (categories.length === 0 || categories.includes(module.group)) &&
+            (!unused || module.positionCount === 0)
+        );
+        return Response.json({
+          items,
+          page: Number(url.searchParams.get('page')),
+          pageSize: Number(url.searchParams.get('pageSize')),
+          total: items.length,
+          unfilteredTotal: tab.length,
+        });
+      }
+      const moduleMatch = pathname.match(
+        /^\/instruction-modules\/([^/]+)(?:\/(download)|\/versions\/([^/]+))?$/
       );
-      return module
-        ? Response.json({ module, body: moduleBody })
-        : Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
-    }
-    const instructionsMatch = pathname.match(
-      /\/job-positions\/([^/]+)\/instructions(?:\/(copy))?$/
-    );
-    if (instructionsMatch) {
-      const positionId = instructionsMatch[1]!;
-      if (instructionsMatch[2] === 'copy') return Response.json({ items: [applied(ladders)] });
-      if (method === 'PUT') return apply(init, url);
-      return Response.json(
-        (url.searchParams.get('domain') === 'su' ? fireInstructions : instructions)[positionId]
+      if (moduleMatch) {
+        const [, moduleId, download, versionId] = moduleMatch;
+        if (download) {
+          return new Response(new Uint8Array([80, 75, 3, 4]), {
+            headers: {
+              'Content-Type':
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('Scări metalice.docx')}`,
+            },
+          });
+        }
+        if (versionId) {
+          return Response.json({
+            version: {
+              ...version,
+              id: versionId,
+              number: 1,
+              createdAt: '2026-09-20T10:00:00.000Z',
+            },
+            body,
+          });
+        }
+        if (method === 'PATCH') return update(init, url);
+        const module = [...(modules as (typeof ladders)[]), welding, hotWork].find(
+          (item) => item.id === moduleId
+        );
+        return module
+          ? Response.json({ module, body: moduleBody })
+          : Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
+      }
+      const instructionsMatch = pathname.match(
+        /\/job-positions\/([^/]+)\/instructions(?:\/(copy))?$/
       );
-    }
-    if (pathname.endsWith('/equipment')) {
-      return Response.json({ items: [], needsProtectiveEquipment: null });
-    }
-    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
-}
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => init);
-
-const bodies = (pathname: string, method: string) =>
-  requests(pathname, method).map((init) =>
-    init?.body ? (JSON.parse(String(init.body)) as unknown) : null
+      if (instructionsMatch) {
+        const positionId = instructionsMatch[1]!;
+        if (instructionsMatch[2] === 'copy') return Response.json({ items: [applied(ladders)] });
+        if (method === 'PUT') return apply(init, url);
+        return Response.json(
+          (url.searchParams.get('domain') === 'su' ? fireInstructions : instructions)[positionId]
+        );
+      }
+      if (pathname.endsWith('/equipment')) {
+        return Response.json({ items: [], needsProtectiveEquipment: null });
+      }
+      if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
+    },
+    { me: userOnlyMe }
   );
+}
 
 const mount = (path = '/instructiuni') => mountApp(authFixture(makeSession()).client, path);
 
@@ -352,19 +323,13 @@ const fireTabLink = () =>
     }
   );
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the instruction library', () => {
   it('opens on the occupational safety tab and lists its modules with their category, version and where active clients use them', async () => {
-    mockApi({ modules: [offices, ladders, { ...welding, positionCount: 41, clientCount: 23 }] });
+    mockInstructionsApi({
+      modules: [offices, ladders, { ...welding, positionCount: 41, clientCount: 23 }],
+    });
     const runtime = mount();
     await screen.findByTestId('instruction-library');
     expect(await screen.findByTestId('instruction-library-ssm')).toBeTruthy();
@@ -395,7 +360,7 @@ describe('the instruction library', () => {
   });
 
   it('shows the archived ones on their own tab, kept in the address', async () => {
-    mockApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
+    mockInstructionsApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
     const runtime = mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -420,7 +385,7 @@ describe('the instruction library', () => {
   });
 
   it('says when there is nothing archived', async () => {
-    mockApi();
+    mockInstructionsApi();
     mountApp(authFixture(makeSession()).client, '/instructiuni/ssm?status=archived');
     expect((await screen.findByTestId('instruction-empty')).textContent).toContain(
       'Nicio instrucțiune proprie SSM arhivată'
@@ -428,7 +393,7 @@ describe('the instruction library', () => {
   });
 
   it('reads status=active in the address as the active tab', async () => {
-    mockApi();
+    mockInstructionsApi();
     mountApp(authFixture(makeSession()).client, '/instructiuni/ssm?status=active');
     await screen.findAllByTestId('instruction-row');
     expect(screen.getByTestId('instruction-filter-active').getAttribute('aria-current')).toBe(
@@ -437,7 +402,7 @@ describe('the instruction library', () => {
   });
 
   it('asks the library for a page and a sort, and keeps them in the address', async () => {
-    mockApi();
+    mockInstructionsApi();
     const runtime = mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -463,7 +428,7 @@ describe('the instruction library', () => {
   });
 
   it('lists the fire-safety modules on their own tab', async () => {
-    mockApi();
+    mockInstructionsApi();
     const runtime = mount();
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -485,7 +450,7 @@ describe('the instruction library', () => {
   });
 
   it('opens Instrucțiuni in the navigation on its tabs, the current one marked', async () => {
-    mockApi();
+    mockInstructionsApi();
     const runtime = mount();
     const user = userEvent.setup();
 
@@ -510,7 +475,7 @@ describe('the instruction library', () => {
   });
 
   it('moves a module no position applies to the other domain, and shows the domain of an applied one only to read', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount();
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instruction-row');
@@ -519,7 +484,7 @@ describe('the instruction library', () => {
     await user.selectOptions(screen.getByTestId('instruction-module-domain'), 'su');
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
-      expect(bodies(`/instruction-modules/${offices.id}`, 'PATCH')).toEqual([
+      expect(bodiesOf(`/instruction-modules/${offices.id}`, 'PATCH')).toEqual([
         { title: 'Activități de birou', group: 'premises_activity', domain: 'su' },
       ])
     );
@@ -538,14 +503,14 @@ describe('the instruction library', () => {
     );
     await user.click(screen.getByTestId('instruction-module-submit'));
     await waitFor(() =>
-      expect(bodies(`/instruction-modules/${hotWork.id}`, 'PATCH')).toEqual([
+      expect(bodiesOf(`/instruction-modules/${hotWork.id}`, 'PATCH')).toEqual([
         { title: 'Lucrul cu foc deschis', group: 'hazardous_work' },
       ])
     );
   });
 
   it('says why a module a position has just applied keeps its domain', async () => {
-    mockApi({
+    mockInstructionsApi({
       update: () =>
         Response.json(
           { error: 'conflict', message: 'applied', reason: 'instruction_module_domain_applied' },
@@ -565,7 +530,7 @@ describe('the instruction library', () => {
   });
 
   it('archives a module after asking, and restores it the same way', async () => {
-    mockApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
+    mockInstructionsApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
     mount();
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instruction-row');
@@ -573,10 +538,10 @@ describe('the instruction library', () => {
     await user.click(await screen.findByTestId('instruction-archive'));
     const dialog = await screen.findByTestId('instruction-archive-dialog');
     expect(dialog.textContent).toContain('Arhivezi instrucțiunea?');
-    expect(requests(`/instruction-modules/${offices.id}`, 'PATCH')).toHaveLength(0);
+    expect(requestsTo(`/instruction-modules/${offices.id}`, 'PATCH')).toHaveLength(0);
     await user.click(within(dialog).getByTestId('instruction-archive-confirm'));
     await waitFor(() =>
-      expect(bodies(`/instruction-modules/${offices.id}`, 'PATCH')).toEqual([{ archived: true }])
+      expect(bodiesOf(`/instruction-modules/${offices.id}`, 'PATCH')).toEqual([{ archived: true }])
     );
     await waitFor(() => expect(screen.queryByTestId('instruction-archive-dialog')).toBeNull());
 
@@ -589,12 +554,12 @@ describe('the instruction library', () => {
     );
     await user.click(screen.getByTestId('instruction-archive-confirm'));
     await waitFor(() =>
-      expect(bodies(`/instruction-modules/${welding.id}`, 'PATCH')).toEqual([{ archived: false }])
+      expect(bodiesOf(`/instruction-modules/${welding.id}`, 'PATCH')).toEqual([{ archived: false }])
     );
   });
 
   it('says up front that a module a position applies cannot be archived, and offers no archiving', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount();
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instruction-row');
@@ -605,7 +570,7 @@ describe('the instruction library', () => {
     expect(within(dialog).queryByTestId('instruction-archive-confirm')).toBeNull();
     await user.click(within(dialog).getByTestId('instruction-archive-close'));
     await waitFor(() => expect(screen.queryByTestId('instruction-archive-dialog')).toBeNull());
-    expect(requests(`/instruction-modules/${ladders.id}`, 'PATCH')).toHaveLength(0);
+    expect(requestsTo(`/instruction-modules/${ladders.id}`, 'PATCH')).toHaveLength(0);
   });
 
   it.each([
@@ -624,7 +589,7 @@ describe('the instruction library', () => {
   ])(
     'says that archiving waits for the posts of archived clients too, which change once the client is reactivated (%o)',
     async (counts, text) => {
-      mockApi({ modules: [{ ...ladders, ...counts }] });
+      mockInstructionsApi({ modules: [{ ...ladders, ...counts }] });
       mount();
       const user = userEvent.setup();
       const [row] = await screen.findAllByTestId('instruction-row');
@@ -637,7 +602,7 @@ describe('the instruction library', () => {
   );
 
   it('says so when a position applied the module in the meantime', async () => {
-    mockApi({
+    mockInstructionsApi({
       update: () =>
         Response.json(
           { error: 'conflict', message: 'applied', reason: 'instruction_module_applied' },
@@ -687,7 +652,7 @@ async function choose(user: ReturnType<typeof userEvent.setup>, menu: HTMLElemen
 
 describe('the module form', () => {
   it('opens the current version as headings and articles numbered by place, and saves the next version', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -739,7 +704,7 @@ describe('the module form', () => {
 
     await user.click(screen.getByTestId('editor-save'));
     await waitFor(() =>
-      expect(bodies(`/instruction-modules/${ladders.id}/body`, 'PUT')).toEqual([
+      expect(bodiesOf(`/instruction-modules/${ladders.id}/body`, 'PUT')).toEqual([
         {
           blocks: [
             { kind: 'heading', text: 'Verificări înainte de pornire' },
@@ -760,7 +725,7 @@ describe('the module form', () => {
   });
 
   it('says so when the saved text differs from the current version only in spaces', async () => {
-    mockApi({
+    mockInstructionsApi({
       moduleBody: ladderBody,
       saveBody: (init) =>
         Response.json({ module: ladders, body: JSON.parse(String(init?.body)), changed: false }),
@@ -779,7 +744,7 @@ describe('the module form', () => {
   });
 
   it('keeps the text unsaved when the library answers with another text than the one sent', async () => {
-    mockApi({
+    mockInstructionsApi({
       moduleBody: ladderBody,
       saveBody: () => Response.json({ module: ladders, body: ladderBody, changed: false }),
     });
@@ -789,14 +754,14 @@ describe('the module form', () => {
     await user.type(articleBoxes()[1]!, ' Nici cu unelte.');
     await user.click(screen.getByTestId('editor-save'));
     await waitFor(() =>
-      expect(requests(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(1)
+      expect(requestsTo(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(1)
     );
     await waitFor(() => expect(screen.getByTestId('editor-save').textContent).toBe('Salvează'));
     expect(screen.getByTestId('instruction-save-state').textContent).toBe('Modificări nesalvate.');
   });
 
   it('says that another window saved the text meanwhile', async () => {
-    mockApi({
+    mockInstructionsApi({
       saveBody: () =>
         Response.json(
           { error: 'conflict', message: 'The module was saved in the meantime; save it again.' },
@@ -814,14 +779,14 @@ describe('the module form', () => {
   });
 
   it('keeps the form and its unsaved text when a later read fails or finds the module archived', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     const runtime = mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[1]!, ' Nici cu unelte.');
     const refetch = () => refetchModule(runtime.queryClient, ladders.id);
 
-    mockApi({
+    mockInstructionsApi({
       modules: [{ ...ladders, archivedAt: '2026-09-26T11:00:00.000Z' }],
       moduleBody: ladderBody,
     });
@@ -843,7 +808,7 @@ describe('the module form', () => {
   });
 
   it('puts a deleted article back on undo and keeps what was written since', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -868,7 +833,7 @@ describe('the module form', () => {
   });
 
   it('moves a section with its articles', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -890,7 +855,7 @@ describe('the module form', () => {
   });
 
   it('deletes a section with its articles and puts it back on undo', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -913,7 +878,7 @@ describe('the module form', () => {
   });
 
   it('starts a new section after an article, taking the articles below it', async () => {
-    mockApi({
+    mockInstructionsApi({
       moduleBody: {
         blocks: [
           { kind: 'heading', text: 'Folosirea scării' },
@@ -947,7 +912,7 @@ describe('the module form', () => {
   });
 
   it('adds a section at the end, empty and not printed until it has an article', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -974,7 +939,7 @@ describe('the module form', () => {
   });
 
   it('offers the sections of the guide an instruction lacks, and puts one where the guide does', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -1001,7 +966,7 @@ describe('the module form', () => {
   });
 
   it('refuses to save a text without an article, in words', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -1010,11 +975,11 @@ describe('the module form', () => {
     expect(screen.getByTestId('instruction-form-error').textContent).toBe(
       'Scrie cel puțin un articol înainte să salvezi.'
     );
-    expect(requests(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(0);
+    expect(requestsTo(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(0);
   });
 
   it("marks an article that names one of the organization's clients, and still saves", async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -1027,12 +992,12 @@ describe('the module form', () => {
     );
     await user.click(screen.getByTestId('editor-save'));
     await waitFor(() =>
-      expect(requests(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(1)
+      expect(requestsTo(`/instruction-modules/${ladders.id}/body`, 'PUT')).toHaveLength(1)
     );
   });
 
   it('pastes a whole instruction, shows its articles and flags, and replaces the text', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -1065,7 +1030,7 @@ describe('the module form', () => {
   });
 
   it('offers to split several paragraphs pasted into one article', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
@@ -1084,14 +1049,14 @@ describe('the module form', () => {
   });
 
   it('previews the annex with the text on screen, saved or not', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`/instructiuni/${ladders.id}`);
     const user = userEvent.setup();
     await screen.findByTestId('instruction-form');
     await user.type(articleBoxes()[0]!, ' Nesalvat.');
     await user.click(screen.getByTestId('instruction-preview'));
     expect(await screen.findByTestId('fake-annex-view')).toBeTruthy();
-    expect(bodies('/instruction-modules/preview', 'POST')).toEqual([
+    expect(bodiesOf('/instruction-modules/preview', 'POST')).toEqual([
       {
         title: 'Scări metalice',
         domain: 'ssm',
@@ -1110,7 +1075,7 @@ describe('the module form', () => {
 
 describe('writing a new module', () => {
   it('asks for the title, domain and category, then opens the guided template; nothing is stored before the first save', async () => {
-    mockApi();
+    mockInstructionsApi();
     const runtime = mount('/instructiuni/su');
     const user = userEvent.setup();
     await screen.findByTestId('instruction-library-su');
@@ -1159,7 +1124,7 @@ describe('writing a new module', () => {
     expect(screen.getByTestId('instruction-save-state').textContent).toBe(
       'Scrie cel puțin un articol ca să o poți salva.'
     );
-    expect(requests('/instruction-modules', 'POST')).toHaveLength(0);
+    expect(requestsTo('/instruction-modules', 'POST')).toHaveLength(0);
 
     await user.click(
       within(sectionCard('Domeniul de aplicare')).getByTestId('instruction-show-example')
@@ -1178,7 +1143,7 @@ describe('writing a new module', () => {
 
     await user.click(screen.getByTestId('editor-save'));
     await waitFor(() =>
-      expect(bodies('/instruction-modules', 'POST')).toEqual([
+      expect(bodiesOf('/instruction-modules', 'POST')).toEqual([
         {
           title: 'Sudura în atelier',
           group: 'hazardous_work',
@@ -1200,7 +1165,7 @@ describe('writing a new module', () => {
   });
 
   it('shows an empty section with its hint, and the paste panel only while there is no article', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount('/instructiuni/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -1244,7 +1209,7 @@ describe('writing a new module', () => {
   });
 
   it('starts from a library module of the same domain as a copy of its text, kept when a later read fails', async () => {
-    mockApi({ moduleBody: ladderBody });
+    mockInstructionsApi({ moduleBody: ladderBody });
     const runtime = mount('/instructiuni/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -1288,7 +1253,7 @@ describe('writing a new module', () => {
   });
 
   it('refuses a title the library already has before opening the form', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount('/instructiuni/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -1304,7 +1269,7 @@ describe('writing a new module', () => {
 
 describe('the module page', () => {
   it('shows the version a document annexed and leads to the current one', async () => {
-    mockApi();
+    mockInstructionsApi();
     const annexed = '4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a';
     const runtime = mount(`/instructiuni/${ladders.id}?version=${annexed}`);
     const user = userEvent.setup();
@@ -1329,7 +1294,7 @@ describe('the module page', () => {
   });
 
   it('marks an archived module', async () => {
-    mockApi({ modules: [{ ...ladders, archivedAt: '2026-09-26T11:00:00.000Z' }] });
+    mockInstructionsApi({ modules: [{ ...ladders, archivedAt: '2026-09-26T11:00:00.000Z' }] });
     mount(`/instructiuni/${ladders.id}`);
     await screen.findByTestId('fake-editor');
     expect(screen.getByTestId('editor-state').textContent).toBe('Arhivată');
@@ -1342,7 +1307,7 @@ describe("a job position's instructions", () => {
   const positionsPage = `/clienti/${clientId}/posturi`;
 
   it('lists the applied modules and the state in the positions table', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(positionsPage);
     const rows = await screen.findAllByTestId('job-position-row');
     expect(
@@ -1357,7 +1322,7 @@ describe("a job position's instructions", () => {
   });
 
   it('decides the fire-safety modules on a card of its own, beside the occupational safety one', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`${positionsPage}/${fitter.id}`);
     const user = userEvent.setup();
     const ssm = await screen.findByTestId('instructions-card');
@@ -1387,7 +1352,7 @@ describe("a job position's instructions", () => {
     await user.click(options[0]!);
     await user.click(screen.getByTestId('fire-instructions-pick-save'));
     await waitFor(() =>
-      expect(bodies(`${positionsPath}/${fitter.id}/instructions`, 'PUT')).toEqual([
+      expect(bodiesOf(`${positionsPath}/${fitter.id}/instructions`, 'PUT')).toEqual([
         { domain: 'su', moduleIds: [hotWork.id] },
       ])
     );
@@ -1395,7 +1360,7 @@ describe("a job position's instructions", () => {
   });
 
   it('offers no way out of choosing: every post applies at least one instruction of each domain', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`${positionsPage}/${fitter.id}`);
     for (const prefix of ['instructions', 'fire-instructions']) {
       const empty = await screen.findByTestId(`${prefix}-empty`);
@@ -1410,7 +1375,7 @@ describe("a job position's instructions", () => {
   });
 
   it('picks modules from the library and replaces the set', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`${positionsPage}/${welder.id}`);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('instructions-row');
@@ -1423,20 +1388,20 @@ describe("a job position's instructions", () => {
     await user.click(options[0]!);
     await user.click(screen.getByTestId('instructions-pick-save'));
     await waitFor(() =>
-      expect(bodies(`${positionsPath}/${welder.id}/instructions`, 'PUT')).toEqual([
+      expect(bodiesOf(`${positionsPath}/${welder.id}/instructions`, 'PUT')).toEqual([
         { domain: 'ssm', moduleIds: [ladders.id, offices.id] },
       ])
     );
   });
 
   it('removes a module from the row', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount(`${positionsPage}/${welder.id}`);
     const user = userEvent.setup();
     await screen.findAllByTestId('instructions-row');
     await user.click(screen.getByTestId('instructions-remove'));
     await waitFor(() =>
-      expect(bodies(`${positionsPath}/${welder.id}/instructions`, 'PUT')).toEqual([
+      expect(bodiesOf(`${positionsPath}/${welder.id}/instructions`, 'PUT')).toEqual([
         { domain: 'ssm', moduleIds: [] },
       ])
     );
@@ -1459,7 +1424,7 @@ describe('the module form across a reload', () => {
   afterEach(() => act(() => resetReloadDialog()));
 
   it('keeps the typed articles when a save is refused for an outdated build, but not an added one', async () => {
-    mockApi({
+    mockInstructionsApi({
       moduleBody: ladderBody,
       saveBody: () =>
         Response.json({ error: 'client_outdated', message: 'Reload.' }, { status: 426 }),
@@ -1496,7 +1461,7 @@ describe('the module form across a reload', () => {
   });
 
   it('opens the empty section of a new instruction again to put its kept text back', async () => {
-    mockApi({
+    mockInstructionsApi({
       create: () =>
         Response.json({ error: 'client_outdated', message: 'Reload.' }, { status: 426 }),
     });
@@ -1547,7 +1512,7 @@ describe('searching and filtering the instruction library', () => {
     ).searchParams;
 
   it('searches by title within the open tab, keeping the words in the address', async () => {
-    mockApi();
+    mockInstructionsApi();
     const runtime = mount('/instructiuni/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -1563,7 +1528,7 @@ describe('searching and filtering the instruction library', () => {
   });
 
   it('filters by the tab’s categories and by Nefolosită, names them in the strip and removes them there', async () => {
-    mockApi({ modules: [offices, ladders, welding, hotWork] });
+    mockInstructionsApi({ modules: [offices, ladders, welding, hotWork] });
     const runtime = mount('/instructiuni/ssm');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -1604,7 +1569,7 @@ describe('searching and filtering the instruction library', () => {
   });
 
   it('offers the fire-safety categories on IPSU', async () => {
-    mockApi();
+    mockInstructionsApi();
     mount('/instructiuni/su');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -1623,7 +1588,7 @@ describe('searching and filtering the instruction library', () => {
   });
 
   it('leaves Folosire out on Arhivate, where nothing applies a module', async () => {
-    mockApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
+    mockInstructionsApi({ archived: [{ ...welding, archivedAt: '2026-09-26T11:00:00.000Z' }] });
     mount('/instructiuni/ssm?status=archived&usage=unused');
     const user = userEvent.setup();
     await screen.findAllByTestId('instruction-row');
@@ -1634,7 +1599,7 @@ describe('searching and filtering the instruction library', () => {
   });
 
   it('says when no instruction matches, and clears the filters only, keeping the search', async () => {
-    mockApi();
+    mockInstructionsApi();
     const runtime = mount('/instructiuni/ssm?category=protective_equipment&q=sc');
     const empty = await screen.findByTestId('instruction-empty-filtered');
     expect(empty.textContent).toContain('Nicio instrucțiune nu se potrivește');
@@ -1652,7 +1617,7 @@ describe('searching and filtering the instruction library', () => {
   });
 
   it('clears a search that finds nothing from the empty state', async () => {
-    mockApi();
+    mockInstructionsApi();
     const runtime = mount('/instructiuni/ssm?q=stivuitor');
     const empty = await screen.findByTestId('instruction-empty-filtered');
     expect(empty.textContent).toContain(
@@ -1665,7 +1630,7 @@ describe('searching and filtering the instruction library', () => {
   });
 
   it('moves Scrie o instrucțiune into the message while the tab has none, with no search, filters or count', async () => {
-    mockApi({ modules: [hotWork] });
+    mockInstructionsApi({ modules: [hotWork] });
     mount('/instructiuni/ssm');
     const empty = await screen.findByTestId('instruction-empty');
     expect(empty.textContent).toContain('Nicio instrucțiune proprie SSM încă');

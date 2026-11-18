@@ -1,27 +1,32 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { bodiesOf, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { meRecord } from '@/test/records';
 
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' };
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({ fullName = 'Ana Popescu' as string | null, failSave = false } = {}) {
+function mockProfileApi({ fullName = 'Ana Popescu' as string | null, failSave = false } = {}) {
   let saved = fullName;
   let title: string | null = null;
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockApi((init, { pathname }) => {
     if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: saved
-          ? { fullName: saved, professionalTitle: title, termsVersion: null, termsAcceptedAt: null }
-          : null,
-        membership: { organization, role: 'specialist' },
-      });
+      return Response.json(
+        meRecord({
+          profile: saved
+            ? {
+                fullName: saved,
+                professionalTitle: title,
+                termsVersion: null,
+                termsAcceptedAt: null,
+              }
+            : null,
+          membership: { organization, role: 'specialist' },
+        })
+      );
     }
     if (pathname === '/me/profile' && init?.method === 'PATCH') {
       if (failSave)
@@ -39,28 +44,16 @@ function mockApi({ fullName = 'Ana Popescu' as string | null, failSave = false }
         termsAcceptedAt: null,
       });
     }
-    throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${pathname}`);
   });
 }
 
-const saves = () =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => String(input).endsWith('/me/profile') && init?.method === 'PATCH')
-    .map(([, init]) => JSON.parse(init?.body as string));
+const saves = () => bodiesOf('/me/profile', 'PATCH');
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('profile page', () => {
   it('shows the name, the read-only email, and the organization with the role', async () => {
-    mockApi();
+    mockProfileApi();
     mountApp(authFixture(makeSession()).client, '/profil');
 
     const name = (await screen.findByTestId('profile-full-name')) as HTMLInputElement;
@@ -73,7 +66,7 @@ describe('profile page', () => {
   });
 
   it('saves a new name, confirms with a toast, and updates the account menu', async () => {
-    mockApi();
+    mockProfileApi();
     mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
@@ -90,7 +83,7 @@ describe('profile page', () => {
   });
 
   it('saves the professional title, and clears it when emptied', async () => {
-    mockApi();
+    mockProfileApi();
     mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
@@ -118,7 +111,7 @@ describe('profile page', () => {
   });
 
   it('lets an account without a profile name itself', async () => {
-    mockApi({ fullName: null });
+    mockProfileApi({ fullName: null });
     mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
@@ -132,7 +125,7 @@ describe('profile page', () => {
   });
 
   it('rejects a name that is too short without calling the API', async () => {
-    mockApi();
+    mockProfileApi();
     mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
@@ -148,7 +141,7 @@ describe('profile page', () => {
   });
 
   it('reports a failed save inline and keeps what was typed', async () => {
-    mockApi({ failSave: true });
+    mockProfileApi({ failSave: true });
     mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
@@ -166,7 +159,7 @@ describe('profile page', () => {
 
 describe('account menu', () => {
   it('shows the name and the organization, and links to the profile and the organization', async () => {
-    mockApi();
+    mockProfileApi();
     mountApp(authFixture(makeSession()).client, '/profil');
     const user = userEvent.setup();
 
@@ -186,7 +179,7 @@ describe('account menu', () => {
   });
 
   it('puts the cursor in the field a row asks for, and offers the way back', async () => {
-    mockApi();
+    mockProfileApi();
     sessionStorage.setItem(
       'ssm-usor:way-back',
       JSON.stringify({

@@ -1,10 +1,12 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { LatestLegalCheckRunResponseRun } from '@/api/generated/api';
+import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { meRecord, meResponse } from '@/test/records';
 
 import { pollIntervalMs } from './regeneration-job';
 
@@ -356,9 +358,7 @@ const alfaReadiness = {
   incompleteRiskEvaluations: [],
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockLegislationApi({
   run = succeeded as LatestLegalCheckRunResponseRun,
   behind = [] as unknown[],
   afterJob = [] as unknown[],
@@ -370,58 +370,43 @@ function mockApi({
 } = {}) {
   let jobDone = false;
   let pollCount = 0;
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: { fullName: 'Ana Ionescu', professionalTitle: null },
-        membership: {
-          organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
-          role: 'specialist',
-        },
-      });
-    }
-    if (pathname === '/legislation/acts') return Response.json({ items: watchedActs });
-    if (pathname === '/legislation/changes') return Response.json({ items: legalChanges });
-    if (pathname === '/legislation/runs/latest') return Response.json({ run });
-    if (pathname === '/documents/behind') {
-      return Response.json({ items: jobDone ? afterJob : behind });
-    }
-    if (pathname === '/documents/behind/regenerate' && method === 'POST') return start();
-    if (pathname === `/clients/${firstAidBehind.clients[0]!.clientId}/documents/readiness`) {
-      return Response.json(readiness);
-    }
-    if (pathname === `/documents/regeneration-jobs/${jobId}`) {
-      const answer = polls[Math.min(pollCount, polls.length - 1)] as ReturnType<typeof job>;
-      pollCount += 1;
-      if (answer.job.finishedAt) jobDone = true;
-      return Response.json(answer);
-    }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
+  mockApi(
+    (init, { pathname }) => {
+      const method = init?.method ?? 'GET';
+      if (pathname === '/legislation/acts') return Response.json({ items: watchedActs });
+      if (pathname === '/legislation/changes') return Response.json({ items: legalChanges });
+      if (pathname === '/legislation/runs/latest') return Response.json({ run });
+      if (pathname === '/documents/behind') {
+        return Response.json({ items: jobDone ? afterJob : behind });
+      }
+      if (pathname === '/documents/behind/regenerate' && method === 'POST') return start();
+      if (pathname === `/clients/${firstAidBehind.clients[0]!.clientId}/documents/readiness`) {
+        return Response.json(readiness);
+      }
+      if (pathname === `/documents/regeneration-jobs/${jobId}`) {
+        const answer = polls[Math.min(pollCount, polls.length - 1)] as ReturnType<typeof job>;
+        pollCount += 1;
+        if (answer.job.finishedAt) jobDone = true;
+        return Response.json(answer);
+      }
+    },
+    { me: specialist }
+  );
 }
 
-const requests = (path: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === path && (init?.method ?? 'GET') === method
-  );
+const specialist = meRecord({
+  profile: { ...meResponse.profile, fullName: 'Ana Ionescu' },
+  membership: { ...meResponse.membership, role: 'specialist' },
+});
 
 const mount = (path = '/legislatie') => mountApp(authFixture(makeSession()).client, path);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
 afterEach(() => {
-  disposeRuntimes();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+
+installFetchMock();
 
 const failedRun: NonNullable<LatestLegalCheckRunResponseRun> = {
   ...succeeded,
@@ -456,7 +441,7 @@ const failedRun: NonNullable<LatestLegalCheckRunResponseRun> = {
 
 describe('the Legislație page', () => {
   it('opens on the documents to update, with the other tabs beside it', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount();
 
     expect(await screen.findByTestId('legislation-page')).toBeTruthy();
@@ -476,7 +461,7 @@ describe('the Legislație page', () => {
   });
 
   it('opens Legislație in the navigation on its tabs, the current one marked', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount();
     const user = userEvent.setup();
 
@@ -502,7 +487,7 @@ describe('the Legislație page', () => {
   });
 
   it('keeps the title and the last check above every tab', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount();
     const user = userEvent.setup();
 
@@ -521,7 +506,7 @@ describe('the Legislație page', () => {
   });
 
   it('says quietly when the acts were read within two days', async () => {
-    mockApi();
+    mockLegislationApi();
     mount();
 
     const line = await screen.findByTestId('last-check-ok');
@@ -532,7 +517,7 @@ describe('the Legislație page', () => {
   });
 
   it('counts the new changes the last check found', async () => {
-    mockApi({ run: { ...succeeded, actsChecked: 50, changesFound: 2 } });
+    mockLegislationApi({ run: { ...succeeded, actsChecked: 50, changesFound: 2 } });
     mount();
 
     expect((await screen.findByTestId('last-check-ok')).textContent).toMatch(
@@ -541,7 +526,7 @@ describe('the Legislație page', () => {
   });
 
   it('warns when the check never ran', async () => {
-    mockApi({ run: null });
+    mockLegislationApi({ run: null });
     mount();
 
     const notice = await screen.findByTestId('last-check-never');
@@ -549,7 +534,7 @@ describe('the Legislație page', () => {
   });
 
   it('says when a check is running', async () => {
-    mockApi({ run: { ...succeeded, status: 'running', finishedAt: null } });
+    mockLegislationApi({ run: { ...succeeded, status: 'running', finishedAt: null } });
     mount();
 
     expect((await screen.findByTestId('last-check-running')).textContent).toMatch(
@@ -558,7 +543,7 @@ describe('the Legislație page', () => {
   });
 
   it('says in one line that the last check failed, with the causes behind "Detalii"', async () => {
-    mockApi({ run: failedRun });
+    mockLegislationApi({ run: failedRun });
     mount();
     const user = userEvent.setup();
 
@@ -593,7 +578,7 @@ describe('the Legislație page', () => {
   });
 
   it('says that a check stopped as a whole, without acts', async () => {
-    mockApi({
+    mockLegislationApi({
       run: {
         ...succeeded,
         status: 'failed',
@@ -612,7 +597,9 @@ describe('the Legislație page', () => {
   });
 
   it('warns when the acts were last read more than two days ago', async () => {
-    mockApi({ run: { ...succeeded, startedAt: hoursAgo(60), finishedAt: hoursAgo(60) } });
+    mockLegislationApi({
+      run: { ...succeeded, startedAt: hoursAgo(60), finishedAt: hoursAgo(60) },
+    });
     mount();
 
     const notice = await screen.findByTestId('last-check-stale');
@@ -620,7 +607,7 @@ describe('the Legislație page', () => {
   });
 
   it('says so when no document is behind its template', async () => {
-    mockApi();
+    mockLegislationApi();
     mount();
 
     expect(await screen.findByTestId('documents-behind-empty')).toBeTruthy();
@@ -629,7 +616,7 @@ describe('the Legislație page', () => {
   });
 
   it('groups the documents to update under SSM and SU', async () => {
-    mockApi({ behind: [extinguisherBehind, firstAidBehind] });
+    mockLegislationApi({ behind: [extinguisherBehind, firstAidBehind] });
     mount();
 
     await waitFor(() => expect(screen.getAllByTestId('behind-set')).toHaveLength(2));
@@ -654,7 +641,7 @@ describe('the Legislație page', () => {
   });
 
   it('lists the clients behind a template, with the hand-edited drafts that will be skipped', async () => {
-    mockApi({ behind: [firstAidBehind] });
+    mockLegislationApi({ behind: [firstAidBehind] });
     mount();
 
     const type = await screen.findByTestId('behind-type');
@@ -700,7 +687,7 @@ describe('the Legislație page', () => {
         },
       ],
     };
-    mockApi({ behind: [themesBehind] });
+    mockLegislationApi({ behind: [themesBehind] });
     mount();
     const user = userEvent.setup();
 
@@ -728,7 +715,7 @@ describe('the Legislație page', () => {
       done: 1,
       items: [{ ...job().job.items[0], status: 'done' }, job().job.items[1]],
     });
-    mockApi({ behind: [firstAidBehind], polls: [running, finishedJob] });
+    mockLegislationApi({ behind: [firstAidBehind], polls: [running, finishedJob] });
     mount();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
@@ -739,9 +726,9 @@ describe('the Legislație page', () => {
     await user.click(within(dialog).getByTestId('behind-confirm'));
 
     expect(await screen.findByTestId('regeneration-progress')).toBeTruthy();
-    expect(requests('/documents/behind/regenerate', 'POST')).toHaveLength(1);
+    expect(requestsTo('/documents/behind/regenerate', 'POST')).toHaveLength(1);
     expect(
-      JSON.parse(String(requests('/documents/behind/regenerate', 'POST')[0]![1]!.body))
+      JSON.parse(String(requestsTo('/documents/behind/regenerate', 'POST')[0]![1]!.body))
     ).toEqual({ typeKey: 'decision_first_aid' });
     expect(screen.queryByTestId('behind-regenerate')).toBeNull();
     await waitFor(() =>
@@ -765,7 +752,10 @@ describe('the Legislație page', () => {
   });
 
   it('lists what a client failed for as the rows of the generation form, each starting the way back to its document', async () => {
-    mockApi({ behind: [{ ...firstAidBehind, runningJobId: jobId }], polls: [lackingJob] });
+    mockLegislationApi({
+      behind: [{ ...firstAidBehind, runningJobId: jobId }],
+      polls: [lackingJob],
+    });
     const runtime = mount();
     const user = userEvent.setup();
 
@@ -808,7 +798,7 @@ describe('the Legislație page', () => {
   });
 
   it('picks up a regeneration already running when the page opens', async () => {
-    mockApi({
+    mockLegislationApi({
       behind: [{ ...firstAidBehind, runningJobId: jobId }],
       polls: [job({ done: 1 })],
     });
@@ -818,11 +808,11 @@ describe('the Legislație page', () => {
       'Se regenerează: 1 din 2 clienți'
     );
     expect(screen.queryByTestId('behind-regenerate')).toBeNull();
-    expect(requests('/documents/behind/regenerate', 'POST')).toHaveLength(0);
+    expect(requestsTo('/documents/behind/regenerate', 'POST')).toHaveLength(0);
   });
 
   it('shows the reason the API gives when a regeneration cannot start', async () => {
-    mockApi({
+    mockLegislationApi({
       behind: [firstAidBehind],
       start: () =>
         Response.json(
@@ -847,7 +837,7 @@ describe('the Legislație page', () => {
   });
 
   it('lists the legal changes by how they were resolved', async () => {
-    mockApi();
+    mockLegislationApi();
     mount('/legislatie/modificari');
 
     await waitFor(() => expect(screen.getAllByTestId('legal-change')).toHaveLength(3));
@@ -866,7 +856,7 @@ describe('the Legislație page', () => {
   });
 
   it('says a change not yet compared with the verified form has not been analysed yet', async () => {
-    mockApi();
+    mockLegislationApi();
     mount('/legislatie/modificari');
 
     await waitFor(() => expect(screen.getAllByTestId('legal-change')).toHaveLength(3));
@@ -881,7 +871,7 @@ describe('the Legislație page', () => {
   });
 
   it("shows what a change amended and the law's old and new text of the passage it touched", async () => {
-    mockApi({ legalChanges: [roadChange] });
+    mockLegislationApi({ legalChanges: [roadChange] });
     mount('/legislatie/modificari');
 
     const change = await screen.findByTestId('legal-change');
@@ -910,7 +900,7 @@ describe('the Legislație page', () => {
   });
 
   it("writes a superscript label in the law's text as the law prints it", async () => {
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -939,7 +929,7 @@ describe('the Legislație page', () => {
   });
 
   it('names a place a passage is cited once, however often the document cites it there', async () => {
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -957,7 +947,7 @@ describe('the Legislație page', () => {
   });
 
   it("leaves out the legend when no passage has the law's text", async () => {
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -977,7 +967,7 @@ describe('the Legislație page', () => {
 
   it('shows a text in full while neither its old nor its new form is long', async () => {
     const sentence = 'Conducătorii de vehicule respectă regulile de circulație. '.repeat(8);
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -995,7 +985,7 @@ describe('the Legislație page', () => {
   it('keeps a long text behind "Ce s-a schimbat"', async () => {
     const longer = (text: string) =>
       `${text}\n(3) ${'Conducătorii de vehicule respectă regulile. '.repeat(12)}`;
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -1020,7 +1010,7 @@ describe('the Legislație page', () => {
   });
 
   it('shows a unit quoted in two documents once, naming both', async () => {
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -1053,7 +1043,7 @@ describe('the Legislație page', () => {
   });
 
   it('says a change being checked amended an article the documents refer to', async () => {
-    mockApi({ legalChanges: [{ ...roadChange, outcome: 'needs_review' }] });
+    mockLegislationApi({ legalChanges: [{ ...roadChange, outcome: 'needs_review' }] });
     mount('/legislatie/modificari');
 
     const change = await screen.findByTestId('legal-change');
@@ -1064,7 +1054,7 @@ describe('the Legislație page', () => {
   });
 
   it('names the documents a template version updated, beside its note', async () => {
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -1108,7 +1098,7 @@ describe('the Legislație page', () => {
   });
 
   it('names no updated document when no template version is linked to the change', async () => {
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -1126,7 +1116,7 @@ describe('the Legislație page', () => {
   });
 
   it('shows the note of a change with no impact, with the articles it amended', async () => {
-    mockApi({
+    mockLegislationApi({
       legalChanges: [
         {
           ...roadChange,
@@ -1169,7 +1159,7 @@ describe('the Legislație page', () => {
   });
 
   it('lists the acts with a change under review first, then by name', async () => {
-    mockApi();
+    mockLegislationApi();
     mount('/legislatie/acte');
 
     await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
@@ -1192,7 +1182,7 @@ describe('the Legislație page', () => {
   });
 
   it('shows each act with its subject, domain, state, consolidated form and citations', async () => {
-    mockApi();
+    mockLegislationApi();
     mount('/legislatie/acte');
     await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
     const row = (name: string) =>
@@ -1241,7 +1231,7 @@ describe('the Legislație page', () => {
   });
 
   it("links a change's outcome to the change on Modificări", async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount('/legislatie/acte');
     const user = userEvent.setup();
     const links = await screen.findAllByTestId('watched-act-change');
@@ -1266,7 +1256,7 @@ describe('the Legislație page', () => {
   });
 
   it('sorts by name, consolidated form and citations, keeping the sort in the address', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount('/legislatie/acte');
     const user = userEvent.setup();
     await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
@@ -1324,7 +1314,7 @@ describe('the Legislație page', () => {
   });
 
   it('opens sorted as the address says, and in the default order for a sort it no longer has', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount('/legislatie/acte?sort=cited');
     await waitFor(() => expect(actNamesInTable()[0]).toBe('Legea 126/1995'));
 
@@ -1335,7 +1325,7 @@ describe('the Legislație page', () => {
   });
 
   it('filters by domain and state from the Filtre panel, counting what is left', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount('/legislatie/acte');
     const user = userEvent.setup();
     await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
@@ -1358,7 +1348,7 @@ describe('the Legislație page', () => {
   });
 
   it('offers only the states some act is in, and keeps one the address chose', async () => {
-    mockApi({ watchedActs: acts.filter((each) => each.portalStatus !== 'repealed') });
+    mockLegislationApi({ watchedActs: acts.filter((each) => each.portalStatus !== 'repealed') });
     const user = userEvent.setup();
     mount('/legislatie/acte?status=unchecked');
     await waitFor(() => expect(actNamesInTable()).toEqual(['OMAI 163/2007']));
@@ -1370,14 +1360,14 @@ describe('the Legislație page', () => {
   });
 
   it('keeps a state the address chose though no act is in it, and says nothing matches', async () => {
-    mockApi({ watchedActs: acts.filter((each) => each.portalStatus !== 'repealed') });
+    mockLegislationApi({ watchedActs: acts.filter((each) => each.portalStatus !== 'repealed') });
     mount('/legislatie/acte?status=repealed');
     expect(await screen.findByTestId('watched-acts-empty-filtered')).toBeTruthy();
     expect(screen.getByTestId('watched-acts-applied-filters').textContent).toContain('Abrogat');
   });
 
   it('searches by number, name or subject, ignoring dots, spaces and diacritics', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount('/legislatie/acte');
     const user = userEvent.setup();
     await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(7));
@@ -1404,13 +1394,13 @@ describe('the Legislație page', () => {
     ['ordin 106/2007', ['OMAI 106/2007']],
     ['ordinul', ['OMAI 106/2007', 'OMAI 163/2007']],
   ])('finds the act cited in full as „%s”', async (q, names) => {
-    mockApi();
+    mockLegislationApi();
     mount(`/legislatie/acte?q=${encodeURIComponent(JSON.stringify(q))}`);
     await waitFor(() => expect(actNamesInTable()).toEqual(names));
   });
 
   it('says when nothing matches, and clears only the filters', async () => {
-    mockApi();
+    mockLegislationApi();
     const runtime = mount('/legislatie/acte?domain=su&q=1425');
     const user = userEvent.setup();
     const empty = await screen.findByTestId('watched-acts-empty-filtered');
@@ -1423,7 +1413,7 @@ describe('the Legislație page', () => {
   });
 
   it('says that no act is watched yet before the first check', async () => {
-    mockApi({ watchedActs: [] });
+    mockLegislationApi({ watchedActs: [] });
     mount('/legislatie/acte');
     const empty = await screen.findByTestId('watched-acts-empty');
     expect(empty.textContent).toContain('Niciun act urmărit încă');
@@ -1437,7 +1427,7 @@ describe('the Legislație page', () => {
       id: `hg-${index + 1}-2006`,
       name: `H.G. ${index + 1}/2006`,
     }));
-    mockApi({ watchedActs: many });
+    mockLegislationApi({ watchedActs: many });
     const runtime = mount('/legislatie/acte');
     const user = userEvent.setup();
     await waitFor(() => expect(screen.getAllByTestId('watched-act')).toHaveLength(25));

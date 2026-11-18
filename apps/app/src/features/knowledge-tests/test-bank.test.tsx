@@ -1,9 +1,11 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { userOnlyMe } from '@/test/records';
 
 import { bankTestFacts } from './test-format';
 
@@ -112,37 +114,27 @@ const bank = (ssm: Question[]) => ({
 
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi(routes: Partial<Record<string, Handler>> = {}, questions = ssmQuestions()) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    const key = `${method} ${url.pathname}`;
-    const route = routes[key];
-    if (route) return route(url, init);
-    if (key === 'GET /me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
-    if (key === 'GET /organization/tests/questions') {
-      const domain = url.searchParams.get('domain');
-      const all = bank(questions);
-      return Response.json({ ...all, tests: all.tests.filter((test) => test.domain === domain) });
-    }
-    throw new Error(`Unexpected request: ${key}${url.search}`);
-  });
+function mockBankApi(routes: Partial<Record<string, Handler>> = {}, questions = ssmQuestions()) {
+  mockApi(
+    (init, url) => {
+      const key = `${init?.method ?? 'GET'} ${url.pathname}`;
+      const route = routes[key];
+      if (route) return route(url, init);
+      if (key === 'GET /organization/tests/questions') {
+        const domain = url.searchParams.get('domain');
+        const all = bank(questions);
+        return Response.json({ ...all, tests: all.tests.filter((test) => test.domain === domain) });
+      }
+    },
+    { me: userOnlyMe }
+  );
 }
 
 const requests = (method: string, pathname: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        (init?.method ?? 'GET') === method && new URL(String(input)).pathname === pathname
-    )
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      body: init?.body ? JSON.parse(String(init.body)) : undefined,
-    }));
+  requestsTo(pathname, method).map(([input, init]) => ({
+    url: new URL(String(input)),
+    body: init?.body ? JSON.parse(String(init.body)) : undefined,
+  }));
 
 const refused = () =>
   Response.json(
@@ -156,15 +148,7 @@ const refused = () =>
 
 const mount = (path = '/teste') => mountApp(authFixture(makeSession()).client, path);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the question bank', () => {
   it('words the active count, the sitting size and the pass mark', () => {
@@ -181,7 +165,7 @@ describe('the question bank', () => {
   });
 
   it('opens on the occupational safety tests from the sidebar and lists the questions in order', async () => {
-    mockApi({}, ssmQuestions([builtIn(11, { hidden: true, text: 'O întrebare ascunsă' })]));
+    mockBankApi({}, ssmQuestions([builtIn(11, { hidden: true, text: 'O întrebare ascunsă' })]));
     const runtime = mount('/dashboard');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('nav-tests'));
@@ -229,7 +213,7 @@ describe('the question bank', () => {
   });
 
   it('shows the fire-safety hiring and annual tests on their own tab', async () => {
-    mockApi();
+    mockBankApi();
     mount('/teste/su');
     await screen.findByTestId('test-bank-su');
     const cards = screen.getAllByTestId('test-bank-test');
@@ -238,7 +222,7 @@ describe('the question bank', () => {
   });
 
   it('says beside the question why a built-in cannot be hidden at ten active questions', async () => {
-    mockApi({ [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: refused });
+    mockBankApi({ [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: refused });
     mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');
@@ -252,7 +236,7 @@ describe('the question bank', () => {
 
   it('hides a built-in and restores a hidden one without asking first', async () => {
     const hiddenOne = builtIn(11, { hidden: true });
-    mockApi(
+    mockBankApi(
       {
         [`PUT /organization/tests/questions/${uuid(2)}/hidden`]: () =>
           Response.json({ question: { ...builtIn(2), hidden: true } }),
@@ -277,7 +261,7 @@ describe('the question bank', () => {
   });
 
   it('adds an own question to the test of its card, with two options of which one is correct', async () => {
-    mockApi({
+    mockBankApi({
       'POST /organization/tests/questions': () =>
         Response.json({ question: ownQuestion }, { status: 201 }),
     });
@@ -321,7 +305,7 @@ describe('the question bank', () => {
   });
 
   it('chooses between the two fire-safety tests when adding from the annual one', async () => {
-    mockApi({
+    mockBankApi({
       'POST /organization/tests/questions': () =>
         Response.json({ question: ownQuestion }, { status: 201 }),
     });
@@ -335,7 +319,7 @@ describe('the question bank', () => {
 
   it('edits an own question and keeps the built-in it departs from', async () => {
     const replacing = { ...ownQuestion, replacesQuestionId: uuid(3) };
-    mockApi(
+    mockBankApi(
       {
         [`PATCH /organization/tests/questions/${ownQuestion.id}`]: (_url, init) =>
           Response.json({ question: { ...replacing, ...JSON.parse(String(init?.body)) } }),
@@ -369,7 +353,7 @@ describe('the question bank', () => {
   });
 
   it('says when the question being edited was deleted meanwhile', async () => {
-    mockApi(
+    mockBankApi(
       {
         [`PATCH /organization/tests/questions/${ownQuestion.id}`]: () =>
           Response.json({ error: 'not_found', message: 'x' }, { status: 404 }),
@@ -389,7 +373,7 @@ describe('the question bank', () => {
 
   it('deletes an own question after a confirmation, and words a refusal below ten', async () => {
     let refuse = true;
-    mockApi(
+    mockBankApi(
       {
         [`DELETE /organization/tests/questions/${ownQuestion.id}`]: () =>
           refuse ? refused() : new Response(null, { status: 204 }),
@@ -420,7 +404,7 @@ describe('the question bank', () => {
     let deleted = false;
     let held = 0;
     const questions = ssmQuestions([ownQuestion]);
-    mockApi(
+    mockBankApi(
       {
         [`DELETE /organization/tests/questions/${ownQuestion.id}`]: () => {
           deleted = true;
@@ -456,7 +440,7 @@ describe('the question bank', () => {
   });
 
   it('previews a question as the employee sees it, the correct options unmarked and the explanation after a wrong answer', async () => {
-    mockApi();
+    mockBankApi();
     mount('/teste/ssm');
     const user = userEvent.setup();
     const questions = await screen.findAllByTestId('test-question');

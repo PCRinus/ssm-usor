@@ -1,57 +1,29 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { MeResponse } from '@/api/generated/api';
+import { bodiesOf, fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { meWithCredits } from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, userOnlyMe, workplaceListItem } from '@/test/records';
 
 import { extinguisherHint } from './fire-means-schema';
 import { droppedSentence, filledSentence, offeredSentence } from './substances-schema';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  currentEmployeeCount: 12,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord({ currentEmployeeCount: 12 });
 
 const stamp = { createdAt: '2026-10-10T10:00:00.000Z', updatedAt: '2026-10-10T10:00:00.000Z' };
 
-const office = {
+const office = workplaceListItem({
   ...stamp,
-  id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
-  name: 'Sediu social',
-  isRegisteredOffice: true,
-  officeHasActivity: true,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: 'Calea Victoriei 122A',
   activity: 'Birouri',
-  kind: 'fixed_space',
-  floorAreaM2: 450 as number | null,
-  extinguisherNorm: 'administrative_300' as string | null,
-  assemblyPoint: null,
-  combustibleMaterials: null,
-  ignitionSources: null,
-  fireRiskEquipment: null,
-  specificMeasures: null,
-};
+  floorAreaM2: 450,
+  extinguisherNorm: 'administrative_300',
+});
 
-const shop = {
+const shop = workplaceListItem({
   ...office,
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Gelaterie Timișoara',
@@ -64,7 +36,7 @@ const shop = {
   kind: 'fixed_space',
   floorAreaM2: null,
   extinguisherNorm: null,
-};
+});
 
 const unit = {
   ...stamp,
@@ -173,9 +145,7 @@ const propane = {
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockFireMeansApi({
   client = sampleClient,
   workplaces = [office, shop] as unknown[],
   equipment = [officeP6, officeG3, shopSand] as unknown[],
@@ -192,7 +162,7 @@ function mockApi({
   updateEquipment = ((init) =>
     Response.json({ equipment: { ...officeP6, ...JSON.parse(String(init?.body)) } })) as Route,
   deleteEquipment = (() => new Response(null, { status: 204 })) as Route,
-  me = { user: { id: 'user-one', email: 'review@example.test' } } as unknown,
+  me = userOnlyMe as MeResponse | typeof userOnlyMe,
   substancesState = 'none',
   substances = [] as unknown[],
   saveState = ((init) => Response.json(JSON.parse(String(init?.body)))) as Route,
@@ -202,70 +172,63 @@ function mockApi({
       { status: 201 }
     )) as Route,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') return Response.json(me);
-    if (pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: workplaces });
-    if (pathname === equipmentPath) {
-      return method === 'POST' ? createEquipment(init) : Response.json({ items: equipment });
-    }
-    if (pathname.startsWith(`${equipmentPath}/`)) {
-      return method === 'DELETE' ? deleteEquipment(init) : updateEquipment(init);
-    }
-    if (pathname === installationsPath) {
-      return method === 'POST'
-        ? Response.json(
-            { installation: { ...alarm, id: 'new', ...JSON.parse(String(init?.body)) } },
-            { status: 201 }
-          )
-        : Response.json({ items: installations });
-    }
-    if (pathname.startsWith(`${installationsPath}/`)) {
-      return method === 'DELETE'
-        ? new Response(null, { status: 204 })
-        : Response.json({ installation: { ...alarm, ...JSON.parse(String(init?.body)) } });
-    }
-    if (pathname === maintenancePath) {
-      return method === 'POST'
-        ? Response.json(
-            { item: { ...chimney, id: 'new', ...JSON.parse(String(init?.body)) } },
-            { status: 201 }
-          )
-        : Response.json({ items: maintenanceItems });
-    }
-    if (pathname.startsWith(`${maintenancePath}/`)) {
-      return method === 'DELETE'
-        ? new Response(null, { status: 204 })
-        : Response.json({ item: { ...chimney, ...JSON.parse(String(init?.body)) } });
-    }
-    if (pathname === buildingsPath) return Response.json({ items: buildings });
-    if (pathname.startsWith(`${buildingsPath}/`)) {
-      return method === 'DELETE' ? new Response(null, { status: 204 }) : saveBuilding(init);
-    }
-    if (pathname === substancesPath) {
-      return method === 'POST'
-        ? createSubstance(init)
-        : Response.json({ state: substancesState, items: substances });
-    }
-    if (pathname === `${substancesPath}/state`) return saveState(init);
-    if (pathname.startsWith(`${substancesPath}/`)) {
-      return method === 'DELETE'
-        ? new Response(null, { status: 204 })
-        : Response.json({ substance: { ...propane, ...JSON.parse(String(init?.body)) } });
-    }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
+  mockApi(
+    (init, { pathname }) => {
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === `/clients/${clientId}/workplaces`)
+        return Response.json({ items: workplaces, unassignedEmployeeCount: 0 });
+      if (pathname === equipmentPath) {
+        return method === 'POST' ? createEquipment(init) : Response.json({ items: equipment });
+      }
+      if (pathname.startsWith(`${equipmentPath}/`)) {
+        return method === 'DELETE' ? deleteEquipment(init) : updateEquipment(init);
+      }
+      if (pathname === installationsPath) {
+        return method === 'POST'
+          ? Response.json(
+              { installation: { ...alarm, id: 'new', ...JSON.parse(String(init?.body)) } },
+              { status: 201 }
+            )
+          : Response.json({ items: installations });
+      }
+      if (pathname.startsWith(`${installationsPath}/`)) {
+        return method === 'DELETE'
+          ? new Response(null, { status: 204 })
+          : Response.json({ installation: { ...alarm, ...JSON.parse(String(init?.body)) } });
+      }
+      if (pathname === maintenancePath) {
+        return method === 'POST'
+          ? Response.json(
+              { item: { ...chimney, id: 'new', ...JSON.parse(String(init?.body)) } },
+              { status: 201 }
+            )
+          : Response.json({ items: maintenanceItems });
+      }
+      if (pathname.startsWith(`${maintenancePath}/`)) {
+        return method === 'DELETE'
+          ? new Response(null, { status: 204 })
+          : Response.json({ item: { ...chimney, ...JSON.parse(String(init?.body)) } });
+      }
+      if (pathname === buildingsPath) return Response.json({ items: buildings });
+      if (pathname.startsWith(`${buildingsPath}/`)) {
+        return method === 'DELETE' ? new Response(null, { status: 204 }) : saveBuilding(init);
+      }
+      if (pathname === substancesPath) {
+        return method === 'POST'
+          ? createSubstance(init)
+          : Response.json({ state: substancesState, items: substances });
+      }
+      if (pathname === `${substancesPath}/state`) return saveState(init);
+      if (pathname.startsWith(`${substancesPath}/`)) {
+        return method === 'DELETE'
+          ? new Response(null, { status: 204 })
+          : Response.json({ substance: { ...propane, ...JSON.parse(String(init?.body)) } });
+      }
+    },
+    { me }
+  );
 }
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = (search = '') =>
   mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/mijloace-de-aparare${search}`);
@@ -275,15 +238,7 @@ async function cardOf(name: string) {
   return cards.find((card) => card.querySelector('h2')?.textContent?.includes(name))!;
 }
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the minimum-extinguisher hint', () => {
   const fixed = 'fixed_space' as const;
@@ -335,7 +290,7 @@ describe('the minimum-extinguisher hint', () => {
 
 describe('client fire-safety means', () => {
   it('is a section of the client between the job positions and the training', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
 
     await screen.findByTestId('fire-means-page');
@@ -348,7 +303,7 @@ describe('client fire-safety means', () => {
   });
 
   it('groups the equipment and installations by workplace, with the annex 6 hint', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
 
     const officeCard = await cardOf('Sediu social');
@@ -379,7 +334,7 @@ describe('client fire-safety means', () => {
   });
 
   it('adds an extinguisher to the workplace whose card asked, showing its code as it is typed', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -399,7 +354,7 @@ describe('client fire-safety means', () => {
     await user.click(within(dialog).getByTestId('fire-equipment-save'));
 
     await waitFor(() =>
-      expect(requests(equipmentPath, 'POST')).toEqual([
+      expect(bodiesOf(equipmentPath, 'POST')).toEqual([
         {
           workplaceId: shop.id,
           kind: 'extinguisher',
@@ -416,11 +371,11 @@ describe('client fire-safety means', () => {
       ])
     );
     expect(await screen.findByText('Echipamentul a fost adăugat.')).toBeTruthy();
-    expect(requests(equipmentPath, 'GET').length).toBeGreaterThan(1);
+    expect(bodiesOf(equipmentPath, 'GET').length).toBeGreaterThan(1);
   });
 
   it('asks an extinguisher for its agent and capacity, and nothing else for other kinds', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -437,7 +392,7 @@ describe('client fire-safety means', () => {
     expect(screen.queryByTestId('fire-equipment-extinguisher')).toBeNull();
     await user.click(screen.getByTestId('fire-equipment-save'));
     await waitFor(() =>
-      expect(requests(equipmentPath, 'POST')).toEqual([
+      expect(bodiesOf(equipmentPath, 'POST')).toEqual([
         expect.objectContaining({
           workplaceId: office.id,
           kind: 'fire_blanket',
@@ -450,7 +405,7 @@ describe('client fire-safety means', () => {
   });
 
   it('edits a unit from its row', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -463,7 +418,7 @@ describe('client fire-safety means', () => {
     await user.click(within(dialog).getByTestId('fire-equipment-save'));
 
     await waitFor(() =>
-      expect(requests(`${equipmentPath}/${officeP6.id}`, 'PUT')).toEqual([
+      expect(bodiesOf(`${equipmentPath}/${officeP6.id}`, 'PUT')).toEqual([
         {
           workplaceId: office.id,
           kind: 'extinguisher',
@@ -482,7 +437,7 @@ describe('client fire-safety means', () => {
   });
 
   it('deletes only after a confirmation that names the last extinguisher', async () => {
-    mockApi({ equipment: [officeP6] });
+    mockFireMeansApi({ equipment: [officeP6] });
     mount();
     const user = userEvent.setup();
 
@@ -492,17 +447,17 @@ describe('client fire-safety means', () => {
     const dialog = await screen.findByTestId('fire-means-delete-dialog');
     expect(dialog.textContent).toContain('Stingător P6 de la Sediu social');
     expect(dialog.textContent).toContain('singurul stingător');
-    expect(requests(`${equipmentPath}/${officeP6.id}`, 'DELETE')).toEqual([]);
+    expect(bodiesOf(`${equipmentPath}/${officeP6.id}`, 'DELETE')).toEqual([]);
 
     await user.click(within(dialog).getByTestId('fire-means-delete-confirm'));
     await waitFor(() =>
-      expect(requests(`${equipmentPath}/${officeP6.id}`, 'DELETE')).toHaveLength(1)
+      expect(bodiesOf(`${equipmentPath}/${officeP6.id}`, 'DELETE')).toHaveLength(1)
     );
     expect(await screen.findByText('Echipamentul a fost șters.')).toBeTruthy();
   });
 
   it('adds an installation, asking a description only of another kind', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -522,7 +477,7 @@ describe('client fire-safety means', () => {
     await user.type(within(dialog).getByTestId('fire-installation-maintainer'), 'Hidro SRL');
     await user.click(within(dialog).getByTestId('fire-installation-save'));
     await waitFor(() =>
-      expect(requests(installationsPath, 'POST')).toEqual([
+      expect(bodiesOf(installationsPath, 'POST')).toEqual([
         {
           workplaceId: shop.id,
           kind: 'interior_hydrants',
@@ -536,7 +491,7 @@ describe('client fire-safety means', () => {
   });
 
   it('lists the other periodic checks of each workplace, optional and empty by default', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
 
     const officeCard = await cardOf('Sediu social');
@@ -551,7 +506,7 @@ describe('client fire-safety means', () => {
   });
 
   it('leaves out the other periodic checks and the building under a client of fewer than ten employees, except where they already hold data', async () => {
-    mockApi({
+    mockFireMeansApi({
       client: { ...sampleClient, currentEmployeeCount: 1 },
       workplaces: [office, shop, { ...shop, id: 'site', name: 'Șantier', kind: 'mobile_site' }],
     });
@@ -574,7 +529,7 @@ describe('client fire-safety means', () => {
   });
 
   it('shows the other periodic checks and the building from ten employees, filled or not', async () => {
-    mockApi({ client: { ...sampleClient, currentEmployeeCount: 10 } });
+    mockFireMeansApi({ client: { ...sampleClient, currentEmployeeCount: 10 } });
     mount();
 
     const officeCard = await cardOf('Sediu social');
@@ -587,7 +542,7 @@ describe('client fire-safety means', () => {
   });
 
   it('adds a periodic check to the workplace whose card asked, asking all three texts', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -602,7 +557,7 @@ describe('client fire-safety means', () => {
     expect((await within(dialog).findByTestId('fire-maintenance-interval-error')).textContent).toBe(
       'Scrie cât de des se verifică.'
     );
-    expect(requests(maintenancePath, 'POST')).toEqual([]);
+    expect(bodiesOf(maintenancePath, 'POST')).toEqual([]);
 
     await user.type(
       within(dialog).getByTestId('fire-maintenance-subject'),
@@ -615,7 +570,7 @@ describe('client fire-safety means', () => {
     );
     await user.click(within(dialog).getByTestId('fire-maintenance-save'));
     await waitFor(() =>
-      expect(requests(maintenancePath, 'POST')).toEqual([
+      expect(bodiesOf(maintenancePath, 'POST')).toEqual([
         {
           workplaceId: shop.id,
           subject: 'Instalația de gaze naturale',
@@ -628,7 +583,7 @@ describe('client fire-safety means', () => {
   });
 
   it('edits a periodic check from its row and deletes one after a confirmation', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -640,7 +595,7 @@ describe('client fire-safety means', () => {
     await user.type(interval, 'de două ori pe an');
     await user.click(within(dialog).getByTestId('fire-maintenance-save'));
     await waitFor(() =>
-      expect(requests(`${maintenancePath}/${chimney.id}`, 'PUT')).toEqual([
+      expect(bodiesOf(`${maintenancePath}/${chimney.id}`, 'PUT')).toEqual([
         {
           workplaceId: office.id,
           subject: 'Coșul de fum al centralei termice',
@@ -658,13 +613,13 @@ describe('client fire-safety means', () => {
     expect(confirm.textContent).toContain('Coșul de fum al centralei termice de la Sediu social');
     await user.click(within(confirm).getByTestId('fire-means-delete-confirm'));
     await waitFor(() =>
-      expect(requests(`${maintenancePath}/${chimney.id}`, 'DELETE')).toHaveLength(1)
+      expect(bodiesOf(`${maintenancePath}/${chimney.id}`, 'DELETE')).toHaveLength(1)
     );
     expect(await screen.findByText('Verificarea a fost ștearsă.')).toBeTruthy();
   });
 
   it("shows the facts of a fixed space's building, and invites to fill them in where there are none", async () => {
-    mockApi({
+    mockFireMeansApi({
       workplaces: [office, shop, { ...shop, id: 'site', name: 'Șantier', kind: 'mobile_site' }],
     });
     mount();
@@ -694,7 +649,7 @@ describe('client fire-safety means', () => {
   });
 
   it("saves a building's facts, every one optional, with the decimal comma", async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -716,7 +671,7 @@ describe('client fire-safety means', () => {
     await user.type(within(dialog).getByTestId('fire-building-water-reserve'), '0');
     await user.click(within(dialog).getByTestId('fire-building-save'));
     await waitFor(() =>
-      expect(requests(`${buildingsPath}/${shop.id}`, 'PUT')).toEqual([
+      expect(bodiesOf(`${buildingsPath}/${shop.id}`, 'PUT')).toEqual([
         {
           yearBuilt: 1998,
           builtAreaM2: 85.5,
@@ -736,7 +691,7 @@ describe('client fire-safety means', () => {
   });
 
   it('clears a building when every field is emptied, and saves nothing for a building never filled in', async () => {
-    mockApi();
+    mockFireMeansApi();
     mount();
     const user = userEvent.setup();
 
@@ -757,20 +712,20 @@ describe('client fire-safety means', () => {
     await user.selectOptions(within(dialog).getByTestId('fire-building-classification'), '');
     await user.click(within(dialog).getByTestId('fire-building-save'));
     await waitFor(() =>
-      expect(requests(`${buildingsPath}/${office.id}`, 'DELETE')).toHaveLength(1)
+      expect(bodiesOf(`${buildingsPath}/${office.id}`, 'DELETE')).toHaveLength(1)
     );
-    expect(requests(`${buildingsPath}/${office.id}`, 'PUT')).toEqual([]);
+    expect(bodiesOf(`${buildingsPath}/${office.id}`, 'PUT')).toEqual([]);
 
     await user.click(within(await cardOf('Gelaterie Timișoara')).getByTestId('fire-building-edit'));
     dialog = await screen.findByTestId('fire-building-dialog');
     await user.click(within(dialog).getByTestId('fire-building-save'));
     await waitFor(() => expect(screen.queryByTestId('fire-building-dialog')).toBeNull());
-    expect(requests(`${buildingsPath}/${shop.id}`, 'PUT')).toEqual([]);
-    expect(requests(`${buildingsPath}/${shop.id}`, 'DELETE')).toEqual([]);
+    expect(bodiesOf(`${buildingsPath}/${shop.id}`, 'PUT')).toEqual([]);
+    expect(bodiesOf(`${buildingsPath}/${shop.id}`, 'DELETE')).toEqual([]);
   });
 
   it('says so when the workplace became a mobile site meanwhile', async () => {
-    mockApi({
+    mockFireMeansApi({
       saveBuilding: () => Response.json({ error: 'conflict', message: 'x' }, { status: 409 }),
     });
     mount();
@@ -785,7 +740,7 @@ describe('client fire-safety means', () => {
   });
 
   it('reports a workplace archived meanwhile on the workplace field', async () => {
-    mockApi({
+    mockFireMeansApi({
       createEquipment: () =>
         Response.json(
           {
@@ -810,7 +765,7 @@ describe('client fire-safety means', () => {
   });
 
   it('lands on the first workplace without an extinguisher for ?focus=fire-equipment', async () => {
-    mockApi();
+    mockFireMeansApi();
     const runtime = mount('?focus=fire-equipment');
 
     const dialog = await screen.findByTestId('fire-equipment-dialog');
@@ -822,7 +777,7 @@ describe('client fire-safety means', () => {
   });
 
   it('gives a registered office where no activity takes place no card, and says why', async () => {
-    mockApi({
+    mockFireMeansApi({
       workplaces: [{ ...office, officeHasActivity: false }, shop],
       equipment: [shopSand],
       installations: [],
@@ -847,7 +802,7 @@ describe('client fire-safety means', () => {
   });
 
   it('points to the details when the client has no workplace', async () => {
-    mockApi({
+    mockFireMeansApi({
       workplaces: [],
       equipment: [],
       installations: [],
@@ -863,7 +818,7 @@ describe('client fire-safety means', () => {
   });
 
   it('shows an archived client the means without add or row actions', async () => {
-    mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
+    mockFireMeansApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     mount();
 
     expect(await screen.findAllByTestId('fire-equipment-row')).toHaveLength(3);
@@ -882,7 +837,7 @@ describe('client dangerous substances', () => {
   };
 
   it('asks whether the client uses dangerous substances until a member says so', async () => {
-    mockApi({ substancesState: 'undecided' });
+    mockFireMeansApi({ substancesState: 'undecided' });
     mount();
     const user = userEvent.setup();
 
@@ -893,7 +848,7 @@ describe('client dangerous substances', () => {
 
     await user.click(within(substances).getByText('Nu se utilizează substanțe periculoase'));
     await waitFor(() =>
-      expect(requests(`${substancesPath}/state`, 'PUT')).toEqual([{ state: 'none' }])
+      expect(bodiesOf(`${substancesPath}/state`, 'PUT')).toEqual([{ state: 'none' }])
     );
     expect(
       await screen.findByText('Am notat că clientul nu utilizează substanțe periculoase.')
@@ -901,7 +856,7 @@ describe('client dangerous substances', () => {
   });
 
   it('cites the articles that ask for the list and opens the order on the Portal Legislativ', async () => {
-    mockApi({ substancesState: 'undecided' });
+    mockFireMeansApi({ substancesState: 'undecided' });
     mount();
 
     const substances = await card();
@@ -917,7 +872,7 @@ describe('client dangerous substances', () => {
   });
 
   it('declares none without a list', async () => {
-    mockApi({ substancesState: 'none' });
+    mockFireMeansApi({ substancesState: 'none' });
     mount();
 
     const substances = await card();
@@ -931,7 +886,7 @@ describe('client dangerous substances', () => {
   });
 
   it('lists the substances with the texts of their data sheet still to fill in', async () => {
-    mockApi({ substancesState: 'listed', substances: [propane] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [propane] });
     mount();
 
     const substances = await card();
@@ -951,7 +906,7 @@ describe('client dangerous substances', () => {
   });
 
   it('adds a substance with its fields and the data sheet texts typed', async () => {
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -978,7 +933,7 @@ describe('client dangerous substances', () => {
     await user.click(within(dialog).getByTestId('fire-substance-save'));
 
     await waitFor(() =>
-      expect(requests(substancesPath, 'POST')).toEqual([
+      expect(bodiesOf(substancesPath, 'POST')).toEqual([
         {
           name: 'Diluant',
           classification: 'Flam. Liq. 2, H225',
@@ -998,7 +953,7 @@ describe('client dangerous substances', () => {
   });
 
   it('saves a substance by its name alone, its classification and quantity marked as what the documents need', async () => {
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -1017,14 +972,14 @@ describe('client dangerous substances', () => {
     await user.type(within(dialog).getByTestId('fire-substance-name'), 'Diluant');
     await user.click(within(dialog).getByTestId('fire-substance-save'));
     await waitFor(() =>
-      expect(requests(substancesPath, 'POST')).toEqual([
+      expect(bodiesOf(substancesPath, 'POST')).toEqual([
         expect.objectContaining({ name: 'Diluant', classification: null, quantity: null }),
       ])
     );
   });
 
   it('marks an entry incomplete while its classification or quantity is missing', async () => {
-    mockApi({
+    mockFireMeansApi({
       substancesState: 'listed',
       substances: [
         propane,
@@ -1062,7 +1017,7 @@ describe('client dangerous substances', () => {
   });
 
   it('opens the first incomplete entry at its first missing field for ?focus=fire-substances', async () => {
-    mockApi({
+    mockFireMeansApi({
       substancesState: 'listed',
       substances: [propane, { ...propane, name: 'Diluant', quantity: null }],
     });
@@ -1077,7 +1032,7 @@ describe('client dangerous substances', () => {
   });
 
   it('edits a substance from its row, clearing a text', async () => {
-    mockApi({ substancesState: 'listed', substances: [propane] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [propane] });
     mount();
     const user = userEvent.setup();
 
@@ -1086,7 +1041,7 @@ describe('client dangerous substances', () => {
     await user.clear(within(dialog).getByTestId('fire-substance-storage'));
     await user.click(within(dialog).getByTestId('fire-substance-save'));
     await waitFor(() =>
-      expect(requests(`${substancesPath}/${propane.id}`, 'PUT')).toEqual([
+      expect(bodiesOf(`${substancesPath}/${propane.id}`, 'PUT')).toEqual([
         expect.objectContaining({
           name: 'Propan',
           identificationCodes: 'CAS 74-98-6',
@@ -1097,7 +1052,7 @@ describe('client dangerous substances', () => {
   });
 
   it('deletes after a confirmation that says the list then blocks the documents', async () => {
-    mockApi({ substancesState: 'listed', substances: [propane] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [propane] });
     mount();
     const user = userEvent.setup();
 
@@ -1107,13 +1062,13 @@ describe('client dangerous substances', () => {
     expect(dialog.textContent).toContain('Este singura din listă');
     await user.click(within(dialog).getByTestId('fire-substance-delete-confirm'));
     await waitFor(() =>
-      expect(requests(`${substancesPath}/${propane.id}`, 'DELETE')).toHaveLength(1)
+      expect(bodiesOf(`${substancesPath}/${propane.id}`, 'DELETE')).toHaveLength(1)
     );
     expect(await screen.findByText('Substanța „Propan” a fost ștearsă.')).toBeTruthy();
   });
 
   it('says why none is refused while substances are listed', async () => {
-    mockApi({
+    mockFireMeansApi({
       substancesState: 'undecided',
       saveState: () =>
         Response.json(
@@ -1129,7 +1084,7 @@ describe('client dangerous substances', () => {
   });
 
   it('opens the dialog for ?focus=fire-substances when the list is chosen but empty', async () => {
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     const runtime = mount('?focus=fire-substances');
 
     await screen.findByTestId('fire-substance-dialog');
@@ -1138,7 +1093,7 @@ describe('client dangerous substances', () => {
   });
 
   it('points at the choice for ?focus=fire-substances while undecided', async () => {
-    mockApi({ substancesState: 'undecided' });
+    mockFireMeansApi({ substancesState: 'undecided' });
     mount('?focus=fire-substances');
 
     await waitFor(() => expect(document.activeElement?.id).toBe('fire-substances-choice-none'));
@@ -1146,7 +1101,7 @@ describe('client dangerous substances', () => {
   });
 
   it('is asked also of a client without workplaces', async () => {
-    mockApi({
+    mockFireMeansApi({
       workplaces: [],
       equipment: [],
       installations: [],
@@ -1160,7 +1115,7 @@ describe('client dangerous substances', () => {
   });
 
   it('shows an archived client its substances without the choice or the actions', async () => {
-    mockApi({
+    mockFireMeansApi({
       client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' },
       substancesState: 'listed',
       substances: [propane],
@@ -1242,7 +1197,7 @@ describe('a substance filled in from its safety data sheet', () => {
     within(dialog).getByTestId<HTMLInputElement | HTMLTextAreaElement>(id).value;
 
   it('fills the empty fields of a new substance from the sheet and marks them until edited', async () => {
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -1273,7 +1228,7 @@ describe('a substance filled in from its safety data sheet', () => {
 
     await user.click(within(dialog).getByTestId('fire-substance-save'));
     await waitFor(() =>
-      expect(requests(substancesPath, 'POST')).toEqual([
+      expect(bodiesOf(substancesPath, 'POST')).toEqual([
         expect.objectContaining({
           name: 'Degresant Rapid DX-40',
           classification: draft.classification,
@@ -1296,7 +1251,7 @@ describe('a substance filled in from its safety data sheet', () => {
       storagePlace: null,
       protectionMeans: 'Ochelari de protecție; mănuși din cauciuc nitrilic.',
     };
-    mockApi({ substancesState: 'listed', substances: [imported] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [imported] });
     mount();
     const user = userEvent.setup();
 
@@ -1322,7 +1277,7 @@ describe('a substance filled in from its safety data sheet', () => {
 
   it('tells the member to check the codes the reading left out', async () => {
     answerUpload = read({ droppedCodes: 2 });
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -1344,7 +1299,7 @@ describe('a substance filled in from its safety data sheet', () => {
         creditsRefunded: true,
       },
     });
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -1359,7 +1314,7 @@ describe('a substance filled in from its safety data sheet', () => {
   });
 
   it('refuses a file that is not a PDF without sending it', async () => {
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup({ applyAccept: false });
 
@@ -1380,7 +1335,7 @@ describe('a substance filled in from its safety data sheet', () => {
       status: 503,
       body: { error: 'service_unavailable', message: 'x', reason: 'safety_sheet_unavailable' },
     });
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -1394,7 +1349,7 @@ describe('a substance filled in from its safety data sheet', () => {
   });
 
   it('asks for the balance again after a reading', async () => {
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
     const meRequests = () =>
@@ -1410,7 +1365,7 @@ describe('a substance filled in from its safety data sheet', () => {
   });
 
   it('says the reading needs more credits than are left and keeps the button off', async () => {
-    mockApi({
+    mockFireMeansApi({
       substancesState: 'listed',
       substances: [],
       me: meWithCredits({ left: 2, giftLeft: 0, used: 1498, state: 'near' }),
@@ -1445,7 +1400,7 @@ describe('a substance filled in from its safety data sheet', () => {
         }
       }
     );
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -1466,7 +1421,7 @@ describe('a substance filled in from its safety data sheet', () => {
   });
 
   it('reads a second sheet over the first, keeping the marks of what only the first filled and leaving what the member wrote', async () => {
-    mockApi({ substancesState: 'listed', substances: [] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [] });
     mount();
     const user = userEvent.setup();
 
@@ -1509,7 +1464,7 @@ describe('a substance filled in from its safety data sheet', () => {
 
   it('ties the mark and the offer to their field, and drops the offer once the field is edited', async () => {
     const imported = { ...propane, name: 'Detergenți', classification: null, quantity: null };
-    mockApi({ substancesState: 'listed', substances: [imported] });
+    mockFireMeansApi({ substancesState: 'listed', substances: [imported] });
     mount();
     const user = userEvent.setup();
 

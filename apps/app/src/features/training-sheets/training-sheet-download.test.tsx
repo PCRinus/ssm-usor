@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getGetTrainingSheetsQueryKey } from '@/api/generated/api';
 import { createQueryClient } from '@/lib/query-client';
 import type { RouterContext } from '@/routes/__root';
+import { fetchMock, installFetchMock, mockApi } from '@/test/api';
 
 import { TrainingSheetDownload } from './training-sheet-download';
 
@@ -40,10 +41,9 @@ const sheetStatus = (readiness: Readiness) => ({
   ...readiness,
 });
 
-const fetchMock = vi.fn<typeof fetch>();
 const saved: { name: string; href: string }[] = [];
 
-function mockApi({
+function mockSheetsApi({
   ssm = ready,
   su = ready,
   sheet = () =>
@@ -55,21 +55,22 @@ function mockApi({
       },
     }),
 }: { ssm?: Readiness; su?: Readiness; sheet?: () => Response | Promise<Response> } = {}) {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(String(input));
-    if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
-    if (url.pathname === `${employeePath}/training-sheet`) return sheet();
-    if (url.pathname === `${employeePath}/training-sheet/link`) {
-      const sequence = url.searchParams.get('sequence');
-      return Response.json({
-        url: `https://files.example.test/signed/${url.searchParams.get('domain')}-${sequence}`,
-        fileName: `Fisa-SSM-Popescu-Ion${sequence === '1' ? '' : `-${sequence}`}.pdf`,
-        expiresInSeconds: 600,
-      });
-    }
-    throw new Error(`Unexpected request: ${url}`);
-  });
+  mockApi(
+    (_init, url) => {
+      if (url.pathname === `${employeePath}/training-sheets`)
+        return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
+      if (url.pathname === `${employeePath}/training-sheet`) return sheet();
+      if (url.pathname === `${employeePath}/training-sheet/link`) {
+        const sequence = url.searchParams.get('sequence');
+        return Response.json({
+          url: `https://files.example.test/signed/${url.searchParams.get('domain')}-${sequence}`,
+          fileName: `Fisa-SSM-Popescu-Ion${sequence === '1' ? '' : `-${sequence}`}.pdf`,
+          expiresInSeconds: 600,
+        });
+      }
+    },
+    { me: null }
+  );
 }
 
 function mount(...domains: TrainingDomain[]) {
@@ -108,8 +109,6 @@ function mount(...domains: TrainingDomain[]) {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   saved.length = 0;
   vi.stubGlobal(
     'URL',
@@ -123,13 +122,14 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
+installFetchMock();
+
 describe('TrainingSheetDownload', () => {
   it('downloads the PDF of a sheet that can be drawn up, under the name the API gives it', async () => {
-    mockApi();
+    mockSheetsApi();
     mount('ssm');
     const button = await screen.findByRole('button', { name: 'Descarcă fișa SSM' });
     await waitFor(() => expect(button).toHaveProperty('disabled', false));
@@ -145,7 +145,9 @@ describe('TrainingSheetDownload', () => {
   });
 
   it('calls a merged sheet a reading copy and offers each original as a real link, by its sequence', async () => {
-    mockApi({ ssm: { ready: true, missing: [], stored: true, sequences: [1, 2], versions: {} } });
+    mockSheetsApi({
+      ssm: { ready: true, missing: [], stored: true, sequences: [1, 2], versions: {} },
+    });
     mount('ssm');
     await screen.findByRole('button', { name: 'Descarcă fișa SSM (copie de citire)' });
     const originals = screen.getByTestId('training-sheet-ssm-originals');
@@ -162,7 +164,9 @@ describe('TrainingSheetDownload', () => {
   });
 
   it('is a pair of real links for a single stored sheet: a download and a preview in a tab', async () => {
-    mockApi({ ssm: { ready: true, missing: [], stored: true, sequences: [1], versions: {} } });
+    mockSheetsApi({
+      ssm: { ready: true, missing: [], stored: true, sequences: [1], versions: {} },
+    });
     mount('ssm');
     await waitFor(() =>
       expect(screen.getByTestId('training-sheet-ssm').getAttribute('href')).toContain(
@@ -186,7 +190,7 @@ describe('TrainingSheetDownload', () => {
   });
 
   it('is disabled while data is missing', async () => {
-    mockApi({ su: { ready: false, missing: ['employee.workplace'] } });
+    mockSheetsApi({ su: { ready: false, missing: ['employee.workplace'] } });
     mount('ssm', 'su');
     const ready = await screen.findByRole('button', { name: 'Descarcă fișa SSM' });
     await waitFor(() => expect(ready).toHaveProperty('disabled', false));
@@ -202,7 +206,7 @@ describe('TrainingSheetDownload', () => {
 
   it('renews a fresh cached link when refreshed readiness names a remotely signed version', async () => {
     const ssm = { ...ready, stored: true, sequences: [1], versions: { 1: 'sheet:1' } };
-    mockApi({ ssm });
+    mockSheetsApi({ ssm });
     const serve = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (...args) => {
       if (String(args[0]).includes('/training-sheet/link')) {
@@ -233,7 +237,7 @@ describe('TrainingSheetDownload', () => {
   });
 
   it('says so in a toast when no converter is available', async () => {
-    mockApi({
+    mockSheetsApi({
       sheet: () =>
         Response.json(
           { error: 'service_unavailable', message: 'x', reason: 'pdf_unavailable' },
@@ -272,7 +276,7 @@ describe('TrainingSheetDownload preview', () => {
 
   it('opens a tab before the PDF arrives, then points it at the PDF without saving it', async () => {
     let answer!: (response: Response) => void;
-    mockApi({
+    mockSheetsApi({
       sheet: () =>
         new Promise<Response>((resolve) => {
           answer = resolve;
@@ -300,7 +304,7 @@ describe('TrainingSheetDownload preview', () => {
   });
 
   it('keeps the download saving the file beside the preview', async () => {
-    mockApi();
+    mockSheetsApi();
     const open = vi.spyOn(window, 'open');
     mount('ssm');
     await readyPreviewButton();
@@ -311,7 +315,7 @@ describe('TrainingSheetDownload preview', () => {
   });
 
   it('asks for new windows to be allowed when the browser blocks the tab', async () => {
-    mockApi();
+    mockSheetsApi();
     vi.spyOn(window, 'open').mockReturnValue(null);
     mount('ssm');
     const button = await readyPreviewButton();
@@ -329,7 +333,7 @@ describe('TrainingSheetDownload preview', () => {
   });
 
   it('closes the tab and says why when the PDF cannot be made', async () => {
-    mockApi({
+    mockSheetsApi({
       sheet: () =>
         Response.json(
           { error: 'service_unavailable', message: 'x', reason: 'pdf_unavailable' },
@@ -351,7 +355,7 @@ describe('TrainingSheetDownload preview', () => {
   });
 
   it('reloads the readiness when the sheet turns out not to be ready', async () => {
-    mockApi({
+    mockSheetsApi({
       sheet: () =>
         Response.json(
           { error: 'conflict', message: 'x', reason: 'missing_sheet_data' },

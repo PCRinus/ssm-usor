@@ -1,46 +1,29 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { bodiesOf, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, jobPositionRecord, userOnlyMe } from '@/test/records';
 
 import { entryCountLabel, equipmentStateLabel, quantityLabel } from './equipment-schema';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord();
 
-const welder = {
+const welder = jobPositionRecord({
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   name: 'Sudor',
-  staffCategory: 'execution',
   workZone: 'Atelier',
   activities: 'Sudură electrică și autogenă.',
-  trainingIntervalMonths: 2 as number | null,
+  trainingIntervalMonths: 2,
   employeeCount: 3,
-  needsProtectiveEquipment: true as boolean | null,
+  needsProtectiveEquipment: true,
   equipmentCount: 2,
-  instructionCount: 0,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
-};
-const fitter = {
+});
+const fitter = jobPositionRecord({
   ...welder,
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Lăcătuș mecanic',
@@ -49,8 +32,7 @@ const fitter = {
   employeeCount: 0,
   needsProtectiveEquipment: null,
   equipmentCount: 0,
-  instructionCount: 0,
-};
+});
 
 const mask = {
   id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
@@ -82,9 +64,7 @@ const fitterPage = `${positionsPage}/${fitter.id}`;
 
 type Route = (init: RequestInit | undefined, url: URL) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockEquipmentApi({
   client = sampleClient,
   positions = [welder, fitter] as unknown[],
   equipment = {
@@ -109,56 +89,38 @@ function mockApi({
   copy = (() => Response.json({ items: [mask, gloves], needsProtectiveEquipment: true })) as Route,
   suggestions = (() => Response.json({ items: ['Mască de sudură', 'Mănuși de sudor'] })) as Route,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const { pathname } = url;
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (pathname === positionsPath) return Response.json({ items: positions });
-    if (pathname === '/equipment-suggestions') return suggestions(init, url);
-    const equipmentMatch = pathname.match(/\/job-positions\/([^/]+)\/equipment(?:\/([^/]+))?$/);
-    if (equipmentMatch) {
-      const [, positionId, entryId] = equipmentMatch;
-      if (entryId === 'copy') return copy(init, url);
-      if (entryId) return method === 'DELETE' ? remove(init, url) : update(init, url);
-      if (method === 'POST') return create(init, url);
-      return Response.json(equipment[positionId!]);
-    }
-    if (pathname.endsWith('/protective-equipment')) return decide(init, url);
-    if (pathname.endsWith('/instructions')) {
-      return Response.json({ items: [] });
-    }
-    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
+  mockApi(
+    (init, url) => {
+      const { pathname } = url;
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === positionsPath) return Response.json({ items: positions });
+      if (pathname === '/equipment-suggestions') return suggestions(init, url);
+      const equipmentMatch = pathname.match(/\/job-positions\/([^/]+)\/equipment(?:\/([^/]+))?$/);
+      if (equipmentMatch) {
+        const [, positionId, entryId] = equipmentMatch;
+        if (entryId === 'copy') return copy(init, url);
+        if (entryId) return method === 'DELETE' ? remove(init, url) : update(init, url);
+        if (method === 'POST') return create(init, url);
+        return Response.json(equipment[positionId!]);
+      }
+      if (pathname.endsWith('/protective-equipment')) return decide(init, url);
+      if (pathname.endsWith('/instructions')) {
+        return Response.json({ items: [] });
+      }
+      if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
+    },
+    { me: userOnlyMe }
+  );
 }
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = (path = welderPage) => mountApp(authFixture(makeSession()).client, path);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe("a job position's page", () => {
   it('shows the post, its people and its equipment entries', async () => {
-    mockApi();
+    mockEquipmentApi();
     mount();
     await screen.findByTestId('job-position-page');
     expect(screen.getByRole('heading', { level: 1, name: 'Sudor' })).toBeTruthy();
@@ -181,7 +143,7 @@ describe("a job position's page", () => {
   });
 
   it('is a page of its own, naming its client, with the way back to the positions', async () => {
-    mockApi();
+    mockEquipmentApi();
     mount();
     await screen.findByTestId('job-position-page');
     expect(screen.queryByTestId('client-page')).toBeNull();
@@ -221,7 +183,7 @@ describe("a job position's page", () => {
   });
 
   it('scrolls to the section in the address once the sections above it have loaded', async () => {
-    mockApi();
+    mockEquipmentApi();
     const equipmentRowsWhenScrolled: number[] = [];
     vi.mocked(Element.prototype.scrollIntoView).mockImplementation(function (this: Element) {
       if (this.id === 'instructions') {
@@ -236,13 +198,13 @@ describe("a job position's page", () => {
   });
 
   it('is not found for a position the client does not have', async () => {
-    mockApi({ positions: [fitter] });
+    mockEquipmentApi({ positions: [fitter] });
     mount();
     expect(await screen.findByTestId('job-position-not-found')).toBeTruthy();
   });
 
   it('edits the post from its page', async () => {
-    mockApi();
+    mockEquipmentApi();
     mount();
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('job-position-edit'));
@@ -252,7 +214,7 @@ describe("a job position's page", () => {
 
 describe("a job position's equipment", () => {
   it('asks for a decision on an undecided post, and records that it needs none', async () => {
-    mockApi();
+    mockEquipmentApi();
     mount(fitterPage);
     const user = userEvent.setup();
     const empty = await screen.findByTestId('equipment-empty');
@@ -265,14 +227,14 @@ describe("a job position's equipment", () => {
     ).toEqual(['equipment-add', 'equipment-decide-none', 'equipment-copy']);
     expect(screen.getAllByTestId('equipment-add')).toHaveLength(1);
 
-    mockApi({
+    mockEquipmentApi({
       equipment: {
         [fitter.id]: { items: [], needsProtectiveEquipment: false },
       },
     });
     await user.click(screen.getByTestId('equipment-decide-none'));
     await waitFor(() =>
-      expect(requests(`${fitterPath}/protective-equipment`, 'PATCH')).toEqual([
+      expect(bodiesOf(`${fitterPath}/protective-equipment`, 'PATCH')).toEqual([
         { needsProtectiveEquipment: false },
       ])
     );
@@ -281,10 +243,10 @@ describe("a job position's equipment", () => {
     );
     expect(screen.queryByTestId('equipment-add')).toBeNull();
 
-    mockApi();
+    mockEquipmentApi();
     await user.click(screen.getByTestId('equipment-undecide'));
     await waitFor(() =>
-      expect(requests(`${fitterPath}/protective-equipment`, 'PATCH')).toEqual([
+      expect(bodiesOf(`${fitterPath}/protective-equipment`, 'PATCH')).toEqual([
         { needsProtectiveEquipment: false },
         { needsProtectiveEquipment: null },
       ])
@@ -293,7 +255,7 @@ describe("a job position's equipment", () => {
   });
 
   it('adds an entry, with no duration for a consumable, and offers what was typed before', async () => {
-    mockApi();
+    mockEquipmentApi();
     mount(fitterPage);
     const user = userEvent.setup();
 
@@ -305,7 +267,7 @@ describe("a job position's equipment", () => {
     await user.type(screen.getByTestId('equipment-risk'), 'Agenți biologici (mâini)');
     await user.type(screen.getByTestId('equipment-item'), 'Mănuși de unică folosință');
     await waitFor(() =>
-      expect(requests('/equipment-suggestions', 'GET').length).toBeGreaterThan(0)
+      expect(bodiesOf('/equipment-suggestions', 'GET').length).toBeGreaterThan(0)
     );
     expect(
       [...document.querySelectorAll('#equipment-item-suggestions option')].map((option) =>
@@ -320,8 +282,8 @@ describe("a job position's equipment", () => {
     await user.type(quantity, '100');
     await user.click(screen.getByTestId('equipment-save'));
 
-    await waitFor(() => expect(requests(`${fitterPath}/equipment`, 'POST')).toHaveLength(1));
-    expect(requests(`${fitterPath}/equipment`, 'POST')[0]).toEqual({
+    await waitFor(() => expect(bodiesOf(`${fitterPath}/equipment`, 'POST')).toHaveLength(1));
+    expect(bodiesOf(`${fitterPath}/equipment`, 'POST')[0]).toEqual({
       risk: 'Agenți biologici (mâini)',
       item: 'Mănuși de unică folosință',
       quantity: 100,
@@ -333,7 +295,7 @@ describe("a job position's equipment", () => {
   });
 
   it('edits an entry from its row and removes another', async () => {
-    mockApi();
+    mockEquipmentApi();
     mount();
     const user = userEvent.setup();
 
@@ -347,9 +309,9 @@ describe("a job position's equipment", () => {
     await user.type(duration, '6');
     await user.click(screen.getByTestId('equipment-save'));
     await waitFor(() =>
-      expect(requests(`${welderPath}/equipment/${gloves.id}`, 'PUT')).toHaveLength(1)
+      expect(bodiesOf(`${welderPath}/equipment/${gloves.id}`, 'PUT')).toHaveLength(1)
     );
-    expect(requests(`${welderPath}/equipment/${gloves.id}`, 'PUT')[0]).toMatchObject({
+    expect(bodiesOf(`${welderPath}/equipment/${gloves.id}`, 'PUT')[0]).toMatchObject({
       durationMonths: 6,
       allocation: 'personal_inventory',
     });
@@ -362,13 +324,13 @@ describe("a job position's equipment", () => {
     );
     await user.click(screen.getByTestId('equipment-remove-confirm'));
     await waitFor(() =>
-      expect(requests(`${welderPath}/equipment/${mask.id}`, 'DELETE')).toHaveLength(1)
+      expect(bodiesOf(`${welderPath}/equipment/${mask.id}`, 'DELETE')).toHaveLength(1)
     );
     expect(await screen.findByText(/a fost șters\./)).toBeTruthy();
   });
 
   it('copies the entries of another post of the client', async () => {
-    mockApi();
+    mockEquipmentApi();
     mount(fitterPage);
     const user = userEvent.setup();
 
@@ -382,7 +344,7 @@ describe("a job position's equipment", () => {
     await user.selectOptions(source, welder.id);
     await user.click(screen.getByTestId('equipment-copy-confirm'));
     await waitFor(() =>
-      expect(requests(`${fitterPath}/equipment/copy`, 'POST')).toEqual([
+      expect(bodiesOf(`${fitterPath}/equipment/copy`, 'POST')).toEqual([
         { fromJobPositionId: welder.id },
       ])
     );
@@ -390,7 +352,7 @@ describe("a job position's equipment", () => {
   });
 
   it('says why "needs none" was refused', async () => {
-    mockApi({
+    mockEquipmentApi({
       decide: () =>
         Response.json(
           { error: 'conflict', message: 'Entries.', reason: 'equipment_entries_exist' },
@@ -407,7 +369,7 @@ describe("a job position's equipment", () => {
   });
 
   it('is read-only for an archived client', async () => {
-    mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
+    mockEquipmentApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     mount();
     expect(await screen.findAllByTestId('equipment-row')).toHaveLength(2);
     expect(screen.queryByTestId('equipment-add')).toBeNull();

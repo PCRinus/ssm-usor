@@ -1,10 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Release } from '@/api/generated/api';
+import { bodiesOf, fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { meRecord, meResponse } from '@/test/records';
 
 import { readDismissedTag, saveDismissedTag } from './dismissal';
 import {
@@ -73,23 +75,16 @@ const first: Release = {
   unread: false,
 };
 
-const fetchMock = vi.fn<typeof fetch>();
+const specialist = meRecord({
+  profile: { ...meResponse.profile, fullName: 'Ana Ionescu' },
+  membership: { ...meResponse.membership, role: 'specialist' },
+});
 
-function mockApi(initial: Release[]) {
+function mockReleasesApi(initial: Release[]) {
   let releases = initial;
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockApi((init, { pathname }) => {
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: { fullName: 'Ana Ionescu', professionalTitle: null },
-        membership: {
-          organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
-          role: 'specialist',
-        },
-      });
-    }
+    if (pathname === '/me') return Response.json(specialist);
     if (pathname === '/releases' && method === 'GET') return Response.json({ items: releases });
     if (pathname === '/releases/acknowledge' && method === 'POST') {
       const { tag } = JSON.parse(String(init?.body)) as { tag: string };
@@ -100,26 +95,15 @@ function mockApi(initial: Release[]) {
   });
 }
 
-const acknowledgements = () =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === '/releases/acknowledge' && init?.method === 'POST'
-    )
-    .map(([, init]) => JSON.parse(String(init?.body)) as { tag: string });
+const acknowledgements = () => bodiesOf('/releases/acknowledge', 'POST') as { tag: string }[];
 
 const mount = (path = '/dashboard') => mountApp(authFixture(makeSession()).client, path);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
 afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
+
+installFetchMock();
 
 describe('formatting', () => {
   it('reads the calendar from the tag and names the day in Bucharest', () => {
@@ -186,7 +170,7 @@ describe('formatting', () => {
 
 describe('the update dialog', () => {
   it('opens on the newest unread release with its highlights and the count of the rest', async () => {
-    mockApi([newest, reminders, fixesOnly, first]);
+    mockReleasesApi([newest, reminders, fixesOnly, first]);
     mount();
     const dialog = await screen.findByRole('dialog', { name: newest.headline });
     expect(within(dialog).getByText(newest.lead!)).toBeTruthy();
@@ -207,7 +191,7 @@ describe('the update dialog', () => {
   });
 
   it('says "1 îmbunătățire" for one more line', async () => {
-    mockApi([{ ...newest, improvements: ['Una.', 'Două.'], fixes: [] }]);
+    mockReleasesApi([{ ...newest, improvements: ['Una.', 'Două.'], fixes: [] }]);
     mount();
     const dialog = await screen.findByRole('dialog', { name: newest.headline });
     expect(within(dialog).getByTestId('update-dialog-more').textContent).toBe(
@@ -217,7 +201,7 @@ describe('the update dialog', () => {
 
   it('shows the only feature by its text when its title is the headline', async () => {
     const help = feature('Ajutor pentru fiecare câmp', 'life-buoy');
-    mockApi([{ ...reminders, headline: help.title, lead: null, features: [help] }]);
+    mockReleasesApi([{ ...reminders, headline: help.title, lead: null, features: [help] }]);
     mount();
     const dialog = await screen.findByRole('dialog', { name: help.title });
     const rows = within(within(dialog).getByTestId('update-dialog-highlights')).getAllByRole(
@@ -227,7 +211,7 @@ describe('the update dialog', () => {
   });
 
   it('shows the marks of an item instead of its asterisks', async () => {
-    mockApi([
+    mockReleasesApi([
       {
         ...newest,
         features: [],
@@ -249,7 +233,7 @@ describe('the update dialog', () => {
   });
 
   it('on a desktop, scrolls only the highlights, keeping the headline and the buttons in view', async () => {
-    mockApi([newest]);
+    mockReleasesApi([newest]);
     mount();
     const dialog = await screen.findByRole('dialog', { name: newest.headline });
     const scroll = within(dialog).getByTestId('update-dialog-scroll');
@@ -274,7 +258,7 @@ describe('the update dialog', () => {
         removeEventListener: vi.fn(),
       }))
     );
-    mockApi([newest]);
+    mockReleasesApi([newest]);
     mount();
     const drawer = await screen.findByTestId('update-dialog');
     const scroll = within(drawer).getByTestId('update-dialog-scroll');
@@ -290,7 +274,7 @@ describe('the update dialog', () => {
   });
 
   it('leaves the count out when the highlights are everything', async () => {
-    mockApi([{ ...newest, improvements: [], fixes: [] }]);
+    mockReleasesApi([{ ...newest, improvements: [], fixes: [] }]);
     mount();
     const again = await screen.findByRole('dialog', { name: newest.headline });
     expect(within(again).queryByTestId('update-dialog-more')).toBeNull();
@@ -298,14 +282,14 @@ describe('the update dialog', () => {
 
   it('stays shut for a release dismissed this session, while the badge stays', async () => {
     saveDismissedTag(newest.tag);
-    mockApi([newest, reminders]);
+    mockReleasesApi([newest, reminders]);
     mount();
     expect((await screen.findByTestId('nav-actualizari-badge')).textContent).toBe('2 noi');
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('acknowledges the newest release on "Am înțeles" and closes', async () => {
-    mockApi([newest, reminders, first]);
+    mockReleasesApi([newest, reminders, first]);
     mount();
     const user = userEvent.setup();
     const dialog = await screen.findByRole('dialog', { name: newest.headline });
@@ -316,7 +300,7 @@ describe('the update dialog', () => {
   });
 
   it('dismisses for the session with the cross and acknowledges nothing', async () => {
-    mockApi([newest, reminders]);
+    mockReleasesApi([newest, reminders]);
     mount();
     const user = userEvent.setup();
     const dialog = await screen.findByRole('dialog', { name: newest.headline });
@@ -328,7 +312,7 @@ describe('the update dialog', () => {
   });
 
   it('does not open, and shows no badge, when nothing is unread', async () => {
-    mockApi([{ ...reminders, unread: false }, first]);
+    mockReleasesApi([{ ...reminders, unread: false }, first]);
     mount();
     await screen.findByTestId('dashboard-page');
     await waitFor(() =>
@@ -353,21 +337,21 @@ describe('the update dialog and the running build', () => {
 
   it('opens when the running build is the newest unread release', async () => {
     vi.stubEnv('VITE_RELEASE_TAG', newest.tag);
-    mockApi([newest, reminders]);
+    mockReleasesApi([newest, reminders]);
     mount();
     expect(await screen.findByRole('dialog', { name: newest.headline })).toBeTruthy();
   });
 
   it('opens when the running build is newer than the newest unread release', async () => {
     vi.stubEnv('VITE_RELEASE_TAG', '2026.11.06.2');
-    mockApi([newest, reminders]);
+    mockReleasesApi([newest, reminders]);
     mount();
     expect(await screen.findByRole('dialog', { name: newest.headline })).toBeTruthy();
   });
 
   it('stays shut in a tab on an older build, while the badge counts the release', async () => {
     vi.stubEnv('VITE_RELEASE_TAG', reminders.tag);
-    mockApi([newest, reminders]);
+    mockReleasesApi([newest, reminders]);
     mount();
     expect((await screen.findByTestId('nav-actualizari-badge')).textContent).toBe('2 noi');
     await expect(screen.findByRole('dialog')).rejects.toThrow();
@@ -375,7 +359,7 @@ describe('the update dialog and the running build', () => {
 
   it('opens as before on a build without a release tag', async () => {
     vi.stubEnv('VITE_RELEASE_TAG', '');
-    mockApi([newest, reminders]);
+    mockReleasesApi([newest, reminders]);
     mount();
     expect(await screen.findByRole('dialog', { name: newest.headline })).toBeTruthy();
   });
@@ -383,7 +367,7 @@ describe('the update dialog and the running build', () => {
 
 describe('the Actualizări list', () => {
   it('groups the releases by month with their counts and marks the unread ones', async () => {
-    mockApi([newest, { ...reminders, unread: false }, fixesOnly, first]);
+    mockReleasesApi([newest, { ...reminders, unread: false }, fixesOnly, first]);
     mount('/actualizari');
     await screen.findByTestId('updates-page');
     const months = screen.getAllByTestId('release-month');
@@ -413,7 +397,7 @@ describe('the Actualizări list', () => {
   });
 
   it('marks everything as read through the newest release', async () => {
-    mockApi([newest, reminders, first]);
+    mockReleasesApi([newest, reminders, first]);
     mount('/actualizari');
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Marchează toate ca citite' }));
@@ -423,7 +407,7 @@ describe('the Actualizări list', () => {
   });
 
   it('says so when there is no release yet', async () => {
-    mockApi([]);
+    mockReleasesApi([]);
     mount('/actualizari');
     expect((await screen.findByTestId('updates-empty')).textContent).toBe(
       'Nicio actualizare încă.'
@@ -433,7 +417,7 @@ describe('the Actualizări list', () => {
 
 describe('the release page', () => {
   it('leaves out empty sections and acknowledges nothing for a read release', async () => {
-    mockApi([newest, reminders, fixesOnly, first]);
+    mockReleasesApi([newest, reminders, fixesOnly, first]);
     mount('/actualizari/2026.10.28');
     await screen.findByTestId('release-page');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(fixesOnly.headline);
@@ -453,7 +437,7 @@ describe('the release page', () => {
   });
 
   it('shows the features with where to find them and acknowledges through the newest when unread', async () => {
-    mockApi([newest, reminders, fixesOnly, first]);
+    mockReleasesApi([newest, reminders, fixesOnly, first]);
     mount('/actualizari/2026.10.30');
     await screen.findByTestId('release-page');
     const features = screen.getByTestId('release-features');
@@ -481,7 +465,7 @@ describe('the release page', () => {
       improvements: ['Meniul are **Modifică detaliile…** și **Arhivează…**.'],
       fixes: ['Mesajul roșu dispare imediat ce se salvează.'],
     };
-    mockApi([marked, first]);
+    mockReleasesApi([marked, first]);
     mount('/actualizari/2026.11.06');
     await screen.findByTestId('release-page');
     const page = screen.getByTestId('release-page');
@@ -503,7 +487,7 @@ describe('the release page', () => {
   });
 
   it('has no previous release for the oldest', async () => {
-    mockApi([{ ...newest, unread: false }, first]);
+    mockReleasesApi([{ ...newest, unread: false }, first]);
     mount('/actualizari/2026.10.23');
     await screen.findByTestId('release-page');
     expect(screen.queryByTestId('release-previous')).toBeNull();
@@ -511,7 +495,7 @@ describe('the release page', () => {
   });
 
   it('calls the newest release the newest', async () => {
-    mockApi([{ ...newest, unread: false }, first]);
+    mockReleasesApi([{ ...newest, unread: false }, first]);
     mount('/actualizari/2026.11.06');
     expect((await screen.findByTestId('release-all')).textContent).toBe(
       'Toate actualizărileAceasta e cea mai nouă versiune.'
@@ -519,7 +503,7 @@ describe('the release page', () => {
   });
 
   it('answers an unknown tag with the not-found state', async () => {
-    mockApi([newest]);
+    mockReleasesApi([newest]);
     mount('/actualizari/2020.01.01');
     expect(await screen.findByTestId('release-not-found')).toBeTruthy();
   });
@@ -528,7 +512,7 @@ describe('the release page', () => {
 describe('the version in the footer', () => {
   it('links to the release page of the running release', async () => {
     vi.stubEnv('VITE_RELEASE_TAG', first.tag);
-    mockApi([{ ...newest, unread: false }, first]);
+    mockReleasesApi([{ ...newest, unread: false }, first]);
     mount();
     await waitFor(() =>
       expect(screen.getByTestId('commit-version').getAttribute('href')).toBe(
@@ -540,7 +524,7 @@ describe('the version in the footer', () => {
 
   it('stays text for a release with no update', async () => {
     vi.stubEnv('VITE_RELEASE_TAG', '2026.10.24');
-    mockApi([{ ...newest, unread: false }, first]);
+    mockReleasesApi([{ ...newest, unread: false }, first]);
     mount();
     await screen.findByTestId('dashboard-page');
     await waitFor(() =>

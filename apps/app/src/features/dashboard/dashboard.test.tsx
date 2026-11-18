@@ -3,34 +3,34 @@ import { cleanup, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { busySummary, quietSummary } from '@/test/dashboard-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { meRecord, meResponse } from '@/test/records';
 
 import { greetingAt, waitingSince } from './dashboard-format';
 
-const fetchMock = vi.fn<typeof fetch>();
+const me = (role: 'owner' | 'specialist', fullName: string | null = 'Mircea Casapu') =>
+  meRecord({
+    profile: fullName ? { ...meResponse.profile, fullName } : null,
+    membership: { ...meResponse.membership, role },
+  });
 
-const me = (role: 'owner' | 'specialist', fullName: string | null = 'Mircea Casapu') => ({
-  user: { id: 'user-one', email: 'review@example.test' },
-  profile: fullName ? { fullName, professionalTitle: null } : null,
-  membership: { organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'S' }, role },
-});
-
-function mockApi(
+function mockDashboardApi(
   summary: DashboardSummary | (() => Response),
   role: 'owner' | 'specialist' = 'owner',
   fullName?: string | null
 ) {
-  fetchMock.mockImplementation(async (input) => {
-    const { pathname } = new URL(String(input));
-    if (pathname === '/me') return Response.json(me(role, fullName));
-    if (pathname === '/dashboard/summary') {
-      return typeof summary === 'function' ? summary() : Response.json(summary);
-    }
-    if (pathname === '/releases') return Response.json({ items: [] });
-    throw new Error(`Unexpected request: ${pathname}`);
-  });
+  mockApi(
+    (_init, { pathname }) => {
+      if (pathname === '/dashboard/summary') {
+        return typeof summary === 'function' ? summary() : Response.json(summary);
+      }
+      if (pathname === '/releases') return Response.json({ items: [] });
+    },
+    { me: me(role, fullName) }
+  );
 }
 
 const mount = () => mountApp(authFixture(makeSession()).client, '/dashboard');
@@ -40,22 +40,20 @@ const hrefOf = (testId: string) => screen.getByTestId(testId).getAttribute('href
 const memberSummary: DashboardSummary = { ...busySummary, contracts: null };
 
 beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
   vi.useFakeTimers({ toFake: ['Date'] });
   // 14:00 in Bucharest.
   vi.setSystemTime(new Date('2026-10-24T11:00:00.000Z'));
 });
 
 afterEach(() => {
-  disposeRuntimes();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
+
+installFetchMock();
 
 describe('the dashboard', () => {
   it("shows an owner everything to do, the clients' trainings, the portfolio and the contracts", async () => {
-    mockApi(busySummary);
+    mockDashboardApi(busySummary);
     mount();
     expect(await screen.findByTestId('dashboard-todo')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeTruthy();
@@ -137,7 +135,7 @@ describe('the dashboard', () => {
   });
 
   it('shows a member the same page without the contracts card', async () => {
-    mockApi(memberSummary, 'specialist');
+    mockDashboardApi(memberSummary, 'specialist');
     mount();
     await screen.findByTestId('dashboard-todo');
     expect(screen.queryByTestId('dashboard-contracts')).toBeNull();
@@ -146,7 +144,7 @@ describe('the dashboard', () => {
   });
 
   it('drops a tile, a row or a card at zero and keeps what remains together', async () => {
-    mockApi({
+    mockDashboardApi({
       ...busySummary,
       todo: {
         ...busySummary.todo,
@@ -179,7 +177,7 @@ describe('the dashboard', () => {
     const months = busySummary.portfolio.employeesAtMonthEnds.map((month, index) =>
       index === 11 ? { ...month, employees: 368 } : month
     );
-    mockApi(
+    mockDashboardApi(
       {
         ...memberSummary,
         todo: {
@@ -202,7 +200,7 @@ describe('the dashboard', () => {
   });
 
   it('says everything is up to date when there is nothing to do', async () => {
-    mockApi(quietSummary);
+    mockDashboardApi(quietSummary);
     mount();
     expect((await screen.findByTestId('dashboard-todo-done')).textContent).toBe(
       'Totul e la zi Următoarea instruire scadentă: luni, 2 noiembrie, pentru 4 lucrători'
@@ -222,7 +220,7 @@ describe('the dashboard', () => {
   });
 
   it('leaves out the next due training when none is due', async () => {
-    mockApi({ ...quietSummary, nextDue: null }, 'owner', null);
+    mockDashboardApi({ ...quietSummary, nextDue: null }, 'owner', null);
     mount();
     expect((await screen.findByTestId('dashboard-todo-done')).textContent).toBe('Totul e la zi');
     expect(screen.getByTestId('dashboard-greeting').textContent).toMatch(/^Bună ziua\. Nu ai/);
@@ -230,7 +228,7 @@ describe('the dashboard', () => {
 
   it('greets by the hour in Bucharest', async () => {
     vi.setSystemTime(new Date('2026-10-24T05:30:00.000Z'));
-    mockApi(busySummary);
+    mockDashboardApi(busySummary);
     mount();
     expect((await screen.findByTestId('dashboard-greeting')).textContent).toMatch(
       /^Bună dimineața, Mircea\./
@@ -266,7 +264,7 @@ describe('the dashboard', () => {
 
   it('shows a skeleton while loading and offers a retry when the numbers fail', async () => {
     let fail = true;
-    mockApi(() =>
+    mockDashboardApi(() =>
       fail
         ? Response.json({ error: 'internal', message: 'Boom' }, { status: 500 })
         : Response.json(busySummary)

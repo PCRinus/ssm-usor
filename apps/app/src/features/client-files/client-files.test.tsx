@@ -2,33 +2,13 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, employeeRecord, meRecord, meResponse } from '@/test/records';
 import { fullText } from '@/test/text';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const client = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  currentEmployeeCount: 6,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: '2026-09-20T10:00:00+00:00' as string | null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const client = clientRecord({ promotedAt: '2026-09-20T10:00:00+00:00' });
 
 const certificate = {
   id: '0b8f6a52-4f0e-4d3a-9c1b-7e2d5a6f8c01',
@@ -70,30 +50,16 @@ const offer = {
   },
 };
 
-const employee = {
+const employee = employeeRecord({
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   lastName: 'Popescu',
   firstName: 'Ion',
   employeeNumber: 'A-17',
-  email: null,
-  phone: null,
   jobTitle: 'Sudor',
   jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
   hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  cnp: null,
-  birthDate: null,
-  birthPlace: null,
-  homeAddress: null,
-  bloodGroup: null,
-  rhFactor: null,
-  notes: null,
-  archivedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-};
+  workplace: null,
+});
 
 const trainingSheet = {
   ...certificate,
@@ -113,9 +79,7 @@ const employeePage = `/clienti/${clientId}/angajati/${employee.id}/documente`;
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockFilesApi({
   role = 'specialist' as 'owner' | 'specialist',
   company = client as typeof client,
   items = [certificate, offer] as unknown[],
@@ -125,45 +89,27 @@ function mockApi({
     Response.json({ file: { ...certificate, ...JSON.parse(String(init?.body)) } })) as Handler,
   remove = (() => new Response(null, { status: 204 })) as Handler,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const { pathname } = url;
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: { fullName: 'Radu Pop', professionalTitle: null },
-        membership: {
-          organization: { id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10', name: 'Safety' },
-          role,
-        },
-      });
-    }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client: company });
-    if (pathname === employeePath) return Response.json({ employee });
-    if (pathname === filesPath) return Response.json({ items });
-    if (pathname.endsWith('/owners-only')) return ownersOnly(init, url);
-    if (pathname.startsWith(`${filesPath}/`)) {
-      return method === 'DELETE' ? remove(init, url) : update(init, url);
-    }
-    if (pathname === `/clients/${clientId}/service-contract`) {
-      return Response.json({}, { status: 500 });
-    }
-    if (pathname === `/clients/${clientId}/owner-notes`) {
-      return Response.json({ notes: { body: '', updatedAt: null } });
-    }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
-}
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
+  mockApi(
+    (init, url) => {
+      const { pathname } = url;
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${clientId}`) return Response.json({ client: company });
+      if (pathname === employeePath) return Response.json({ employee });
+      if (pathname === filesPath) return Response.json({ items });
+      if (pathname.endsWith('/owners-only')) return ownersOnly(init, url);
+      if (pathname.startsWith(`${filesPath}/`)) {
+        return method === 'DELETE' ? remove(init, url) : update(init, url);
+      }
+      if (pathname === `/clients/${clientId}/service-contract`) {
+        return Response.json({}, { status: 500 });
+      }
+      if (pathname === `/clients/${clientId}/owner-notes`) {
+        return Response.json({ notes: { body: '', updatedAt: null } });
+      }
+    },
+    { me: meRecord({ membership: { ...meResponse.membership, role } }) }
   );
-
-const bodyOf = (pathname: string, method: string) =>
-  JSON.parse(String(requests(pathname, method)[0]?.[1]?.body)) as unknown;
+}
 
 type Sent = { url: URL; headers: Record<string, string>; body: Blob };
 
@@ -227,23 +173,21 @@ const mount = (path = `/clienti/${clientId}/alte-documente`) =>
   mountApp(authFixture(makeSession()).client, path);
 
 beforeEach(() => {
-  fetchMock.mockReset();
   uploads.length = 0;
   answerUpload = stored;
   holdUploads = Promise.resolve();
-  vi.stubGlobal('fetch', fetchMock);
   vi.stubGlobal('XMLHttpRequest', FakeXhr);
 });
 
 afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
+installFetchMock();
+
 describe('the other documents of a client', () => {
   it('is the tab before Portal, and lists each file with its size, date and uploader', async () => {
-    mockApi();
+    mockFilesApi();
     mount();
 
     const rows = await screen.findAllByTestId('client-file-row');
@@ -267,7 +211,7 @@ describe('the other documents of a client', () => {
   });
 
   it('lets a specialist upload and change their own files, but not choose who sees them', async () => {
-    mockApi();
+    mockFilesApi();
     mount();
 
     const user = userEvent.setup();
@@ -289,7 +233,7 @@ describe('the other documents of a client', () => {
   });
 
   it('marks the files for owners only, and lets an owner switch a file between the two', async () => {
-    mockApi({ role: 'owner', items: [certificate, { ...offer, canChange: true }] });
+    mockFilesApi({ role: 'owner', items: [certificate, { ...offer, canChange: true }] });
     mount();
     const user = userEvent.setup();
 
@@ -311,7 +255,7 @@ describe('the other documents of a client', () => {
   });
 
   it('says so when the switch fails', async () => {
-    mockApi({
+    mockFilesApi({
       role: 'owner',
       ownersOnly: () => Response.json({ error: 'server_error' }, { status: 500 }),
     });
@@ -330,7 +274,10 @@ describe('the other documents of a client', () => {
   });
 
   it('offers only the list and the downloads under an archived client', async () => {
-    mockApi({ role: 'owner', company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' } });
+    mockFilesApi({
+      role: 'owner',
+      company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' },
+    });
     mount();
 
     const [first] = await screen.findAllByTestId('client-file-row');
@@ -346,7 +293,7 @@ describe('the other documents of a client', () => {
   });
 
   it('invites the first upload when there are no files', async () => {
-    mockApi({ items: [] });
+    mockFilesApi({ items: [] });
     mount();
 
     const empty = await screen.findByTestId('client-files-empty');
@@ -371,7 +318,7 @@ const chosenRows = (dialog: HTMLElement) => within(dialog).queryAllByTestId('cli
 
 describe('uploading client files', () => {
   it('lists the chosen files in a dialog and refuses some before sending them', async () => {
-    mockApi({ items: [] });
+    mockFilesApi({ items: [] });
     mount();
     const user = userEvent.setup({ applyAccept: false });
     const large = pdf('scan.pdf');
@@ -420,7 +367,7 @@ describe('uploading client files', () => {
   });
 
   it("keeps the dialog open after a failure, with the API's refusal under the file", async () => {
-    mockApi({ items: [] });
+    mockFilesApi({ items: [] });
     answerUpload = (sent) =>
       sent.url.searchParams.get('fileName') === 'a.pdf'
         ? {
@@ -460,7 +407,7 @@ describe('uploading client files', () => {
   });
 
   it('sends each file on its own, for owners only when asked, and reports the batch once', async () => {
-    mockApi({ role: 'owner', items: [] });
+    mockFilesApi({ role: 'owner', items: [] });
     mount();
     const user = userEvent.setup();
 
@@ -487,11 +434,11 @@ describe('uploading client files', () => {
       'Content-Type': 'application/octet-stream',
     });
     await waitFor(() => expect(screen.queryByTestId('client-files-upload-dialog')).toBeNull());
-    expect(requests(filesPath, 'GET').length).toBeGreaterThan(1);
+    expect(requestsTo(filesPath, 'GET').length).toBeGreaterThan(1);
   });
 
   it('cannot be cancelled while the files are being sent', async () => {
-    mockApi({ items: [] });
+    mockFilesApi({ items: [] });
     let release = () => {};
     holdUploads = new Promise((resolve) => (release = resolve));
     mount();
@@ -518,7 +465,7 @@ describe('uploading client files', () => {
   });
 
   it('opens the dialog with the files dropped on the card, and keeps a drop beside it from leaving the app', async () => {
-    mockApi({ items: [] });
+    mockFilesApi({ items: [] });
     mount();
     const user = userEvent.setup();
 
@@ -554,7 +501,7 @@ describe('uploading client files', () => {
 
 describe('changing a client file', () => {
   it('renames a file and changes its note', async () => {
-    mockApi();
+    mockFilesApi();
     mount();
     const user = userEvent.setup();
 
@@ -583,7 +530,7 @@ describe('changing a client file', () => {
   });
 
   it('deletes a file only after a confirmation that names it', async () => {
-    mockApi();
+    mockFilesApi();
     mount();
     const user = userEvent.setup();
 
@@ -592,12 +539,12 @@ describe('changing a client file', () => {
     await user.click(await screen.findByTestId('client-file-delete'));
     const dialog = await screen.findByTestId('client-file-delete-dialog');
     expect(dialog.textContent).toContain('Certificat de înregistrare se șterge definitiv');
-    expect(requests(`${filesPath}/${certificate.id}`, 'DELETE')).toHaveLength(0);
+    expect(requestsTo(`${filesPath}/${certificate.id}`, 'DELETE')).toHaveLength(0);
 
     await user.click(within(dialog).getByTestId('client-file-delete-confirm'));
 
     await waitFor(() =>
-      expect(requests(`${filesPath}/${certificate.id}`, 'DELETE')).toHaveLength(1)
+      expect(requestsTo(`${filesPath}/${certificate.id}`, 'DELETE')).toHaveLength(1)
     );
     expect(
       await screen.findByText(fullText('„Certificat de înregistrare” a fost șters.'))
@@ -605,7 +552,7 @@ describe('changing a client file', () => {
   });
 
   it('is a real link for every file: a PDF shown in a tab of its own, a spreadsheet downloaded', async () => {
-    mockApi();
+    mockFilesApi();
     mount();
 
     const [first, second] = await screen.findAllByTestId('client-file-row');
@@ -627,11 +574,11 @@ describe('changing a client file', () => {
     expect(downloadedAddress.searchParams.get('disposition')).toBe('attachment');
     expect(downloadedAddress.searchParams.get('name')).toBe('oferta.xlsx');
     expect(downloaded.getAttribute('target')).toBeNull();
-    expect(requests(filesPath, 'GET')).toHaveLength(1);
+    expect(requestsTo(filesPath, 'GET')).toHaveLength(1);
   });
 
   it('keeps the page and reports an error when refreshing an expired file link fails', async () => {
-    mockApi();
+    mockFilesApi();
     const runtime = mount();
     const [row] = await screen.findAllByTestId('client-file-row');
     const open = vi.spyOn(window, 'open').mockReturnValue(window);
@@ -661,19 +608,19 @@ describe('changing a client file', () => {
 
 describe('the files of an employee', () => {
   it("leaves them out of the client tab, which asks for the client's own files", async () => {
-    mockApi({ items: [certificate] });
+    mockFilesApi({ items: [certificate] });
     mount();
 
     await screen.findAllByTestId('client-file-row');
     expect(
-      requests(filesPath, 'GET').map(([input]) =>
+      requestsTo(filesPath, 'GET').map(([input]) =>
         new URL(String(input)).searchParams.has('employeeId')
       )
     ).toEqual([false]);
   });
 
   it("lists only their files on the employee's Documente tab", async () => {
-    mockApi({ items: [trainingSheet] });
+    mockFilesApi({ items: [trainingSheet] });
     mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
@@ -690,14 +637,14 @@ describe('the files of an employee', () => {
     expect(name.closest('[data-replay-mask]')).not.toBeNull();
     expect(within(row!).getByTestId('client-file-actions')).toBeTruthy();
     expect(
-      requests(filesPath, 'GET').map(([input]) =>
+      requestsTo(filesPath, 'GET').map(([input]) =>
         new URL(String(input)).searchParams.get('employeeId')
       )
     ).toEqual([employee.id]);
   });
 
   it("uploads from the employee's Documente tab for that employee, whom the dialog names", async () => {
-    mockApi({ items: [] });
+    mockFilesApi({ items: [] });
     mount(employeePage);
     const user = userEvent.setup();
 
@@ -716,7 +663,7 @@ describe('the files of an employee', () => {
     ]);
     await waitFor(() =>
       expect(
-        requests(filesPath, 'GET').filter(
+        requestsTo(filesPath, 'GET').filter(
           ([input]) => new URL(String(input)).searchParams.get('employeeId') === employee.id
         ).length
       ).toBeGreaterThan(1)
@@ -724,7 +671,7 @@ describe('the files of an employee', () => {
   });
 
   it('says so when the employee is not the client’s', async () => {
-    mockApi({ items: [] });
+    mockFilesApi({ items: [] });
     answerUpload = () => ({
       status: 400,
       body: {
@@ -748,7 +695,7 @@ describe('the files of an employee', () => {
   });
 
   it('offers only the list and the downloads under an archived client', async () => {
-    mockApi({
+    mockFilesApi({
       role: 'owner',
       company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' },
       items: [trainingSheet],
@@ -765,8 +712,8 @@ describe('the files of an employee', () => {
 
 describe('the files of a lead', () => {
   it('are all for owners only, which the card says once instead of on every file', async () => {
-    const lead = { ...client, stage: 'lead', promotedAt: null };
-    mockApi({ role: 'owner', company: lead, items: [{ ...offer, canChange: true }] });
+    const lead = clientRecord({ stage: 'lead' });
+    mockFilesApi({ role: 'owner', company: lead, items: [{ ...offer, canChange: true }] });
     const runtime = mount(`/clienti/${clientId}`);
 
     const card = await screen.findByTestId('client-files-card');
@@ -812,7 +759,7 @@ describe('the import folder', () => {
   });
 
   it('groups the files of an import under one collapsed row, with their folders and what was not read', async () => {
-    mockApi({
+    mockFilesApi({
       items: [
         certificate,
         imported('11111111-1111-4111-8111-111111111111', 'Decizie 1.docx', 'dosar.zip/SSM'),
@@ -878,7 +825,7 @@ describe('the import folder', () => {
   });
 
   it("shows the scanned sheets of an employee import among the client's files as a folder of their own", async () => {
-    mockApi({
+    mockFilesApi({
       items: [
         {
           ...imported('66666666-6666-4666-8666-666666666666', 'Fise scanate.pdf', null),
@@ -909,7 +856,7 @@ describe('the import folder', () => {
       mimeType: 'image/jpeg',
       sizeBytes: 500_000,
     });
-    mockApi({
+    mockFilesApi({
       items: [
         trainingSheet,
         photo('44444444-4444-4444-8444-444444444444', 'IMG_3110.jpg'),
@@ -949,7 +896,7 @@ describe('the import folder', () => {
       sizeBytes: 300_000,
     });
     const pages = [5, 3, 10, 4, 1, 7, 2, 6].map(page);
-    mockApi({ items: pages });
+    mockFilesApi({ items: pages });
     mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
@@ -1008,7 +955,7 @@ describe('finding a file', () => {
       );
 
   it('lists the newest first, an import folder by its date among the files, and sorts by name', async () => {
-    mockApi({ role: 'owner', items });
+    mockFilesApi({ role: 'owner', items });
     const runtime = mount();
     const user = userEvent.setup();
 
@@ -1038,7 +985,7 @@ describe('finding a file', () => {
   });
 
   it('searches names and notes without diacritics, through the folders, with the folder under the name', async () => {
-    mockApi({ role: 'owner', items });
+    mockFilesApi({ role: 'owner', items });
     const runtime = mount();
     const user = userEvent.setup();
 
@@ -1055,7 +1002,7 @@ describe('finding a file', () => {
   });
 
   it('filters by type and by the way a file came in, read from and written to the address', async () => {
-    mockApi({ role: 'owner', items });
+    mockFilesApi({ role: 'owner', items });
     const runtime = mount(`/clienti/${clientId}/alte-documente?added=imported`);
     const user = userEvent.setup();
 
@@ -1081,7 +1028,7 @@ describe('finding a file', () => {
   });
 
   it('says when nothing matches, and clears the filters while keeping the search', async () => {
-    mockApi({ role: 'owner', items });
+    mockFilesApi({ role: 'owner', items });
     const runtime = mount(`/clienti/${clientId}/alte-documente?q=hidrant&type=excel`);
     const user = userEvent.setup();
 
@@ -1095,7 +1042,7 @@ describe('finding a file', () => {
   });
 
   it('offers to clear a search that alone finds nothing', async () => {
-    mockApi({ role: 'owner', items });
+    mockFilesApi({ role: 'owner', items });
     const runtime = mount(`/clienti/${clientId}/alte-documente?q=autorizatie`);
     const user = userEvent.setup();
 
@@ -1108,7 +1055,7 @@ describe('finding a file', () => {
 
   it('opens a long note in place instead of opening the file', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(window);
-    mockApi({ items: [certificate] });
+    mockFilesApi({ items: [certificate] });
     mount();
     const user = userEvent.setup();
 
@@ -1122,14 +1069,14 @@ describe('finding a file', () => {
   });
 
   it('keeps an opened note open when the list fetches itself again', async () => {
-    mockApi({ items: [certificate] });
+    mockFilesApi({ items: [certificate] });
     const runtime = mount();
     const user = userEvent.setup();
 
     await user.click(await screen.findByTestId('client-file-facts-toggle'));
-    const before = requests(filesPath, 'GET').length;
+    const before = requestsTo(filesPath, 'GET').length;
     await act(() => runtime.queryClient.refetchQueries({ queryKey: [filesPath], exact: false }));
-    await waitFor(() => expect(requests(filesPath, 'GET').length).toBeGreaterThan(before));
+    await waitFor(() => expect(requestsTo(filesPath, 'GET').length).toBeGreaterThan(before));
 
     expect(screen.getByTestId('client-file-facts-toggle').getAttribute('aria-expanded')).toBe(
       'true'
@@ -1137,7 +1084,7 @@ describe('finding a file', () => {
   });
 
   it('keeps a download button on every file and folder', async () => {
-    mockApi({ items });
+    mockFilesApi({ items });
     mount();
 
     await screen.findAllByTestId('client-file-row');
@@ -1165,7 +1112,7 @@ describe('finding a file of an employee', () => {
   });
 
   it('searches and filters their files, masked, with the address on their own tab', async () => {
-    mockApi({
+    mockFilesApi({
       items: [
         trainingSheet,
         photo(
@@ -1221,7 +1168,7 @@ describe('finding a file of an employee', () => {
   });
 
   it("says when the worker has no files, with the help on the worker's documents", async () => {
-    mockApi({ items: [], company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' } });
+    mockFilesApi({ items: [], company: { ...client, archivedAt: '2026-09-29T10:00:00+00:00' } });
     mount(employeePage);
 
     const card = await screen.findByTestId('employee-files-card');
