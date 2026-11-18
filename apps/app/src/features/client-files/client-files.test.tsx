@@ -508,7 +508,7 @@ describe('uploading client files', () => {
       'disabled',
       true
     );
-    expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Închide' })).toBeNull();
     await user.keyboard('{Escape}');
     expect(screen.getByTestId('client-files-upload-dialog')).toBeTruthy();
 

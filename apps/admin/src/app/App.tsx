@@ -1,4 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { CloseLabelContext } from '@ssm-usor/ui/components/close-label';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { useSyncExternalStore } from 'react';
@@ -42,10 +43,12 @@ export default function App({ runtime }: { runtime: AdminRuntime }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={auth}>
-        <RouterProvider router={router} />
-      </AuthContext.Provider>
-    </QueryClientProvider>
+    <CloseLabelContext value="Close">
+      <QueryClientProvider client={queryClient}>
+        <AuthContext.Provider value={auth}>
+          <RouterProvider router={router} />
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    </CloseLabelContext>
   );
 }

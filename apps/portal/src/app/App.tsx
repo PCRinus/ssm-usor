@@ -1,6 +1,7 @@
 import { I18nProvider } from '@lingui/react';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Button } from '@ssm-usor/ui/components/button';
+import { CloseLabelContext } from '@ssm-usor/ui/components/close-label';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { useSyncExternalStore } from 'react';
@@ -56,10 +57,12 @@ function Portal({ runtime }: { runtime: PortalRuntime }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={auth}>
-        <RouterProvider router={router} />
-      </AuthContext.Provider>
-    </QueryClientProvider>
+    <CloseLabelContext value={t`Închide`}>
+      <QueryClientProvider client={queryClient}>
+        <AuthContext.Provider value={auth}>
+          <RouterProvider router={router} />
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    </CloseLabelContext>
   );
 }

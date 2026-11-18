@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@ssm-usor/ui/components/button';
+import { useCloseLabel } from '@ssm-usor/ui/components/close-label';
 import { cn } from 'cn';
 import { XIcon } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
@@ -42,12 +43,15 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeLabel,
   overlayClassName,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  closeLabel?: string;
   overlayClassName?: string;
 }) {
+  const close = useCloseLabel(closeLabel);
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay className={overlayClassName} />
@@ -71,7 +75,7 @@ function DialogContent({
             className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-muted data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{close}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
@@ -102,11 +106,14 @@ function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
 function DialogFooter({
   className,
   showCloseButton = false,
+  closeLabel,
   children,
   ...props
 }: React.ComponentProps<'div'> & {
   showCloseButton?: boolean;
+  closeLabel?: string;
 }) {
+  const close = useCloseLabel(closeLabel);
   return (
     <div
       data-slot="dialog-footer"
@@ -116,7 +123,7 @@ function DialogFooter({
       {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
-          <Button variant="outline">Close</Button>
+          <Button variant="outline">{close}</Button>
         </DialogPrimitive.Close>
       )}
     </div>
