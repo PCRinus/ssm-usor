@@ -143,6 +143,7 @@ describe('the app catalogue', () => {
       const terms = billingPlans[id];
       expect(plan.steps).toEqual(terms.steps.map((step) => step.employees));
       expect(plan.users).toBe(terms.members);
+      expect(plan.lines.map(({ text }) => text)).toContain(`${terms.members} utilizatori`);
       for (const step of terms.steps) {
         const monthly = monthlyAt(plan, step.employees);
         expect(monthly * 100).toBe(step.prices.month.unitAmount);
