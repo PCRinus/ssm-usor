@@ -12,6 +12,7 @@ import {
   fireInstallationKindLabels,
   type FireSmokingPolicy,
   fireSmokingPolicyLabels,
+  foldText,
   formatCui,
   maxEquipmentDurationMonths,
   registeredNameAsWritten,
@@ -420,14 +421,6 @@ export function formatFieldValue(
       return text;
   }
 }
-
-export const foldText = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
 
 const words = (text: string) =>
   text

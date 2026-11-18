@@ -2,6 +2,7 @@ import {
   bloodGroups,
   decodeCnp,
   foldName,
+  foldText,
   isValidCnp,
   parseCommuteMeansKey,
   rhFactors,
@@ -20,8 +21,6 @@ import type {
 } from '@/api/generated/api';
 import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
-
-import { foldText } from '../review-model';
 
 export type Review = NonNullable<EmployeeImportReview>;
 export type Proposal = Review['proposal'];
