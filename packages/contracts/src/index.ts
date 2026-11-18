@@ -38,6 +38,7 @@ export * from './fire-safety';
 export * from './fold-text';
 export * from './home-address';
 export * from './iban';
+export * from './import-change-paths';
 export * from './imports';
 export * from './instruction-body';
 export * from './instruction-modules';

@@ -1,4 +1,4 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import { importErrorReasons, substancesStatePath } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { createContext, use, useSyncExternalStore } from 'react';
@@ -31,7 +31,6 @@ import {
   type ExistingWorkplace,
   type FieldChange,
   type ItemChange,
-  substancesStatePath,
 } from './review-model';
 
 function withoutEmpty(changes: Changes): Changes {

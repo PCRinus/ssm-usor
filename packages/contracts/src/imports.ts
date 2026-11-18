@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { importChangePathPattern } from './import-change-paths';
 import { instructionBodySchema, instructionCategorySchema } from './instruction-body';
 import { type InstructionDomain, instructionDomainSchema } from './instruction-modules';
 import { preventionMeasureRequestSchema, workSystemComponentSchema } from './risk-evaluations';
@@ -428,11 +429,7 @@ export const importChangesSchema = z.object({
   // suggestion and option 1 saying activity takes place there.
   fields: z
     .record(
-      z
-        .string()
-        .regex(
-          /^((client|trainingSchedule|fireSafety)\.[A-Za-z]+|(fireEquipmentCounts|assemblyPoints|suggestedValues|officeActivity)\.[a-z0-9-]+)$/
-        ),
+      z.string().regex(importChangePathPattern),
       z
         .object({
           // The option chosen among those the documents gave.

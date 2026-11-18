@@ -204,22 +204,6 @@ export const workplaceFireFieldNames = [
 
 export type WorkplaceFireFieldName = (typeof workplaceFireFieldNames)[number];
 
-// What the reading may draft from the client's activity where no document states it (ADR 041),
-// and nothing else: never an area, a count, a date, a name, an address or a place.
-export const suggestedWorkplaceFieldNames = [
-  'combustibleMaterials',
-  'ignitionSources',
-  'fireRiskEquipment',
-  'specificMeasures',
-  'extinguisherNorm',
-] as const;
-
-export type SuggestedWorkplaceFieldName = (typeof suggestedWorkplaceFieldNames)[number];
-
-export const suggestedValuesPath = (workplaceId: string) => `suggestedValues.${workplaceId}`;
-
-export const officeActivityPath = (workplaceId: string) => `officeActivity.${workplaceId}`;
-
 // Defaulted for a proposal stored before they were read.
 const laterValue = <T extends z.ZodType>(value: T) => value.nullable().default(null);
 
@@ -338,8 +322,6 @@ export const proposedFireEquipmentCountSchema = z.object({
 });
 
 export type ProposedFireEquipmentCount = z.infer<typeof proposedFireEquipmentCountSchema>;
-
-export const fireEquipmentCountPath = (id: string) => `fireEquipmentCounts.${id}`;
 
 export const proposedFireInstallationSchema = z.object({
   ...item,

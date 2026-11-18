@@ -7,6 +7,8 @@ import {
   responsiblePersonRoles,
   romanianCounties,
   staffCategories,
+  type SuggestedWorkplaceFieldName,
+  suggestedWorkplaceFieldNames,
   workplaceKinds,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
@@ -40,8 +42,6 @@ import {
   type ProposedJobPosition,
   type ProposedResponsiblePerson,
   type Source,
-  type SuggestedWorkplaceFieldName,
-  suggestedWorkplaceFieldNames,
   trainingScheduleFieldNames,
   trainingScheduleYesNoFieldNames,
   type WorkplaceFireFieldName,
