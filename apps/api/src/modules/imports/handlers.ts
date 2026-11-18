@@ -7,7 +7,6 @@ import {
   type FoundSheet,
   type ImportChanges,
   importChangesSchema,
-  importCredits,
   type ImportDetail,
   importErrorReasons,
   importFileExtensions,
@@ -18,6 +17,7 @@ import {
   importLimits,
   type ImportSourceResponse,
   importSourceResponseSchema,
+  importStartCredits,
   type ImportSummary,
   type ImportUsage,
   isSystemPath,
@@ -80,7 +80,7 @@ import {
   pageLocationsPathOf,
   type PreparedPages,
   sendAll,
-  startCreditsOf,
+  startReadOf,
   textPathOf,
   tooMuchText,
 } from './pipeline';
@@ -893,10 +893,7 @@ async function beginReading(
     );
   }
   const charges = importCharges(creditsStore(admin, blocksReporterOf(c)));
-  const needed = arrived.reduce(
-    (total, file) => total + startCreditsOf(file, kind),
-    kind === 'client' ? importCredits.clientReading : 0
-  );
+  const needed = importStartCredits(kind, startReadOf(arrived));
   const charge = await charges.start(organizationId, importId, needed);
   if (!charge.started) throw creditsShort(charge.short);
   const marked = await admin

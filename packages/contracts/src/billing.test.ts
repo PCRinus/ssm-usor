@@ -9,6 +9,7 @@ import {
   cataloguePrices,
   catalogueProducts,
   changeSubscriptionRequestSchema,
+  importStartCredits,
   type PaidPlan,
   planStep,
   priceVersion,
@@ -147,5 +148,17 @@ describe('VAT on a subtotal', () => {
       totalCents: 10102,
     });
     expect(amountsWithVat(0)).toEqual({ subtotalCents: 0, vatCents: 0, totalCents: 0 });
+  });
+});
+
+describe('what starting an import charges', () => {
+  it("takes a client's reading and its photographs, never its PDF pages", () => {
+    expect(importStartCredits('client', { photos: 0, pdfPages: 0 })).toBe(25);
+    expect(importStartCredits('client', { photos: 3, pdfPages: 40 })).toBe(28);
+  });
+
+  it('takes every photograph and PDF page of an employee import', () => {
+    expect(importStartCredits('employees', { photos: 4, pdfPages: 10 })).toBe(14);
+    expect(importStartCredits('employees', { photos: 0, pdfPages: 0 })).toBe(0);
   });
 });

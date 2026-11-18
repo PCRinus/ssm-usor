@@ -1,4 +1,4 @@
-import { formatCui, importLimits } from '@ssm-usor/contracts';
+import { formatCui, importLimits, importStartCredits } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -41,7 +41,7 @@ import {
   NoCreditsFooter,
   NoCreditsNotices,
 } from './credits-notices';
-import { creditsRefusal, refusalFromApi, startCreditsOf, usesSentence } from './import-credits';
+import { creditsRefusal, refusalFromApi, usesSentence } from './import-credits';
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
 import { pickedFromInput } from './picked-files';
 import {
@@ -123,7 +123,7 @@ function UploadForm({
     phase.step === 'short'
       ? refusalFromApi(phase.credits)
       : choosing
-        ? creditsRefusal(balance, startCreditsOf('client', { photos, pages: 0 }))
+        ? creditsRefusal(balance, importStartCredits('client', { photos, pdfPages: 0 }))
         : null;
   useRefuseStrayDrops();
 
@@ -394,7 +394,7 @@ function UploadForm({
               <DialogFooter className="mt-6 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <CreditsLine
                   className="sm:flex-1"
-                  uses={usesSentence('client', { photos, pages: 0, pdfs: 0 })}
+                  uses={usesSentence('client', { photos, pdfPages: 0, pdfs: 0 })}
                   balance={balance}
                   short={refusal !== null}
                 />

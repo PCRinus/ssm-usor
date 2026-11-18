@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { billingExtrasSchema } from './extras';
+import type { ImportKind } from './imports';
 import {
   accessLevelSchema,
   subscriptionPlanSchema,
@@ -411,6 +412,16 @@ export const importCredits = {
   // Reading one product's safety data sheet in the substance dialog, outside any import (ADR 030).
   safetySheet: 3,
 } as const;
+
+/**
+ * What starting an import charges (ADR 030): every photograph, and every page of an employee
+ * import's PDFs. A client's PDFs are covered by its reading until their scanned pages are found.
+ */
+export function importStartCredits(kind: ImportKind, read: { photos: number; pdfPages: number }) {
+  return kind === 'client'
+    ? importCredits.clientReading + read.photos * importCredits.perPage
+    : (read.photos + read.pdfPages) * importCredits.perPage;
+}
 
 /**
  * `unlimited`: nothing limits the credits; `near`: what is left, the gift included, is under a

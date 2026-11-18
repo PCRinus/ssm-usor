@@ -22,6 +22,7 @@ import {
   maxReadingCharacters,
   maxReadWaits,
   type PipelineDeps,
+  startReadOf,
   tooMuchText,
 } from './pipeline';
 import {
@@ -2982,5 +2983,21 @@ describe('what a reading leaves (ADR 037)', () => {
       'Stuck',
       'Abandoned after a reading',
     ]);
+  });
+});
+
+describe('what starting an import charges for', () => {
+  it('counts a photograph once and a PDF by its declared pages, one when undeclared', () => {
+    expect(
+      startReadOf([
+        { mime_type: 'image/jpeg', declared_pages: null },
+        { mime_type: 'application/pdf', declared_pages: 6 },
+        { mime_type: 'application/pdf', declared_pages: null },
+        {
+          mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          declared_pages: null,
+        },
+      ])
+    ).toEqual({ photos: 1, pdfPages: 7 });
   });
 });

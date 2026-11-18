@@ -1,4 +1,4 @@
-import { importLimits } from '@ssm-usor/contracts';
+import { importLimits, importStartCredits } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -52,6 +52,7 @@ import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-
 import { pickedFromInput } from '../picked-files';
 import {
   emptySelection,
+  isPhoto,
   mergeSelection,
   openPicked,
   type PickedFile,
@@ -160,6 +161,12 @@ function UploadForm({
   );
   const busy = busySteps.has(phase.step);
   const choosing = choosingSteps.has(phase.step);
+  const pdfFiles = selection.files.filter((file) => file.mimeType === 'application/pdf');
+  const pdfs = pdfFiles.length;
+  const read = {
+    photos: selection.files.filter(isPhoto).length + addedSheets.length,
+    pdfPages: pdfFiles.reduce((total, file) => total + file.pages, 0),
+  };
   const totals = selectionTotals(selection, 'employees', {
     count: addedSheets.length,
     pages: addedSheets.length,
@@ -173,9 +180,8 @@ function UploadForm({
     phase.step === 'short'
       ? refusalFromApi(phase.credits)
       : choosing
-        ? creditsRefusal(balance, totals.pages)
+        ? creditsRefusal(balance, importStartCredits('employees', read))
         : null;
-  const pdfs = selection.files.filter((file) => file.mimeType === 'application/pdf').length;
   const nearLimits =
     totals.pages >= metersFrom * limits.scannedPages ||
     totals.bytes >= metersFrom * limits.totalBytes;
@@ -481,7 +487,7 @@ function UploadForm({
               >
                 <CreditsLine
                   className={nearLimits ? 'sm:basis-full' : 'sm:flex-1'}
-                  uses={usesSentence('employees', { photos: 0, pages: totals.pages, pdfs })}
+                  uses={usesSentence('employees', { ...read, pdfs })}
                   balance={balance}
                   short={refusal !== null}
                 />
