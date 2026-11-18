@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 
 import {
   type ApiErrorResponse,
+  getGetClientQueryKey,
   getGetEmployeeQueryKey,
   getGetTrainingSheetsQueryKey,
   getListEmployeesQueryKey,
@@ -132,8 +133,13 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
       // Every filtered variant of this client's list starts with the same key prefix.
       await queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) });
       await refreshEmployeesOverStep(queryClient);
-      // The position just gained a person, whether it was new or not.
-      await queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) });
+      // The position just gained a person, whether it was new or not, and so did a workplace
+      // and the client's count of current workers.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
+        queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) }),
+        queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
+      ]);
       if (employee) {
         savedToast('Datele lucrătorului au fost salvate.', { returning: true });
         if (returnToRecord()) return;
