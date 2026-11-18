@@ -1,21 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AccessLevel, OrganizationRole } from '@ssm-usor/contracts';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser as user,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'https://app.ssmusor.ro',
-};
+});
 
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
-const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const memberId = '1e8b36cc-d87a-4318-9af2-acb1f6156112';
 const strangerId = '5b0d1f2e-3c4a-4b6d-8e9f-0a1b2c3d4e5f';
-
-const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream({
   role = 'owner',
@@ -31,85 +36,59 @@ function mockUpstream({
   memberCount = 2,
   invitationCount = 1,
   access = 'full',
+}: {
+  role?: OrganizationRole;
+  change?: () => Response;
+  remove?: () => Response;
+  create?: () => Response;
+  activity?: () => Response;
+  subscription?: () => Response;
+  memberCount?: number;
+  invitationCount?: number;
+  access?: AccessLevel;
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json({ ...user, is_anonymous: false });
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([{ user_id: user.id, organization_id: organizationId, role, access }]);
-      case '/rest/v1/rpc/organization_member_list':
-        return Response.json([
-          {
-            user_id: user.id,
-            email: user.email,
-            full_name: 'Ana Popescu',
-            role: 'owner',
-            joined_at: '2026-09-01T10:00:00+00:00',
-          },
-          {
-            user_id: memberId,
-            email: 'ion@example.ro',
-            full_name: 'Ion Ionescu',
-            role: 'specialist',
-            joined_at: '2026-10-01T10:00:00+00:00',
-          },
-        ]);
-      case '/rest/v1/rpc/organization_member_activity':
-        return activity();
-      case '/rest/v1/rpc/change_organization_member_role':
-        return change();
-      case '/rest/v1/rpc/remove_organization_member':
-        return remove();
-      case '/rest/v1/rpc/create_organization':
-        return create();
-      case '/rest/v1/subscriptions':
-        return subscription();
-      case '/rest/v1/organization_members':
-        return counted(memberCount);
-      case '/rest/v1/organization_invitations':
-        return counted(invitationCount);
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method} ${url}`);
+  mockSignedInUpstream({
+    '/rest/v1/rpc/current_membership': () => [membershipRow({ role, access })],
+    '/rest/v1/rpc/organization_member_list': () => [
+      {
+        user_id: user.id,
+        email: user.email,
+        full_name: 'Ana Popescu',
+        role: 'owner',
+        joined_at: '2026-09-01T10:00:00+00:00',
+      },
+      {
+        user_id: memberId,
+        email: 'ion@example.ro',
+        full_name: 'Ion Ionescu',
+        role: 'specialist',
+        joined_at: '2026-10-01T10:00:00+00:00',
+      },
+    ],
+    '/rest/v1/rpc/organization_member_activity': activity,
+    '/rest/v1/rpc/change_organization_member_role': change,
+    '/rest/v1/rpc/remove_organization_member': remove,
+    '/rest/v1/rpc/create_organization': create,
+    '/rest/v1/subscriptions': subscription,
+    '/rest/v1/organization_members': () => counted(memberCount),
+    '/rest/v1/organization_invitations': () => counted(invitationCount),
   });
 }
 
 const counted = (count: number) =>
   new Response(null, { status: 200, headers: { 'Content-Range': `*/${count}` } });
 
-const upstreamCalls = (pathname: string) =>
-  fetchMock.mock.calls
-    .map(([input]) => new URL(input instanceof Request ? input.url : String(input)))
-    .filter((url) => url.pathname === pathname);
+const upstreamCalls = (pathname: string) => callsTo(pathname).map(({ url }) => url);
 
-const rpcBodies = (name: string) =>
-  fetchMock.mock.calls
-    .filter(([input]) => String(input).endsWith(`/rest/v1/rpc/${name}`))
-    .map(([, init]) => JSON.parse(init?.body as string));
+const rpcBodies = (name: string) => callsTo(`/rest/v1/rpc/${name}`).map(({ body }) => body);
 
 const request = (method: string, path: string, body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const ownMembership = () =>
   Response.json({ code: 'MEM01', message: 'own_membership' }, { status: 400 });
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('GET /organization/members', () => {
   const ana = {
@@ -337,10 +316,12 @@ describe('DELETE /organization/members/{userId}', () => {
   });
 
   it('is allowed by CORS from the SPA', async () => {
-    const response = await createApp().request(
+    const response = await apiRequest(
       `/organization/members/${memberId}`,
       {
         method: 'OPTIONS',
+        token: null,
+        client: null,
         headers: {
           Origin: 'https://app.ssmusor.ro',
           'Access-Control-Request-Method': 'DELETE',
