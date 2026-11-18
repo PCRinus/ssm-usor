@@ -5,6 +5,7 @@ import type { ApiErrorResponse } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -19,7 +20,6 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError, isClientOutdatedError } from '@/api/http';
 import { CodeInput } from '@/components/code-input';
-import { Notice } from '@/components/notice';
 import { cardClass, Page, PageFailed, PageHeader, PageLoading } from '@/components/page';
 import {
   type Participation,

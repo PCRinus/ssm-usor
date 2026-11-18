@@ -1,10 +1,10 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
 import { isRefusedByApi } from '@/api/http';
-import { ErrorNotice } from '@/components/error-notice';
 import { SignOutButton } from '@/features/auth/sign-out-button';
 import { ImpersonationStrip } from '@/features/impersonation/impersonation-strip';
 
@@ -81,16 +81,16 @@ export function AdminShell({
 export function LoadFailure({ error, onRetry }: { error: Error; onRetry: () => void }) {
   if (isRefusedByApi(error)) {
     return (
-      <ErrorNotice testId="no-admin-access">
+      <Notice variant="destructive" data-testid="no-admin-access">
         This account has no admin access. Sign out and sign in with an admin account.
-      </ErrorNotice>
+      </Notice>
     );
   }
   return (
     <div className="space-y-3">
-      <ErrorNotice testId="load-error">
+      <Notice variant="destructive" data-testid="load-error">
         The admin API did not answer. Check the connection and try again.
-      </ErrorNotice>
+      </Notice>
       <Button variant="outline" onClick={onRetry}>
         Try again
       </Button>

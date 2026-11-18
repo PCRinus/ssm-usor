@@ -7,6 +7,7 @@ import type {
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -23,7 +24,6 @@ import type { ReactNode } from 'react';
 
 import { ApiHttpError } from '@/api/http';
 import { AdminShell, LoadFailure } from '@/components/admin-shell';
-import { ErrorNotice } from '@/components/error-notice';
 
 import { fetchFileLink, fetchImport } from './api';
 import {
@@ -189,9 +189,9 @@ function CopyFiles({ importId, files }: { importId: string; files: AdminImportCo
     <>
       {opening.isError && (
         <div className="mb-3">
-          <ErrorNotice testId="file-link-error">
+          <Notice variant="destructive" data-testid="file-link-error">
             The file could not be opened. Try again.
-          </ErrorNotice>
+          </Notice>
         </div>
       )}
       <Table data-testid="copy-files" aria-label="Files of the copy">
@@ -331,9 +331,9 @@ function DetailBody({ detail }: { detail: AdminImportDetail }) {
       </div>
 
       {!row && (
-        <ErrorNotice testId="row-deleted">
+        <Notice variant="destructive" data-testid="row-deleted">
           The clean-up deleted this import’s row. What follows is what its copy holds.
-        </ErrorNotice>
+        </Notice>
       )}
 
       <Section title="Overview" testId="import-overview">

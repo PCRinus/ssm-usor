@@ -1,5 +1,5 @@
-// The object URL is revoked a minute later, as FileSaver.js does, not right after the click: a
-// browser may start reading it only after `click()` returns.
+// For a file the page holds itself. The object URL is revoked a minute later, as FileSaver.js
+// does, not right after the click: a browser may start reading it only after `click()` returns.
 export function saveFile(file: Blob, fileName: string) {
   const objectUrl = URL.createObjectURL(file);
   const anchor = document.createElement('a');
@@ -19,9 +19,9 @@ export class PreviewBlockedError extends Error {
   }
 }
 
-// Call it straight from a tap: the tab must open before the first await, or pop-up blockers
-// refuse it. A blob URL made here is same-origin for the tab, so the browser's own viewer shows
-// the PDF inline, iOS Safari included.
+// Call it straight from a click handler: the tab must open before the first await, or pop-up
+// blockers refuse it. A blob URL made here is same-origin for the tab, so the browser's own
+// viewer shows the PDF inline, iOS Safari included.
 export async function openPreview(
   load: () => Promise<Blob>,
   text: { title: string; pending: string }

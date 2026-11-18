@@ -5,12 +5,12 @@ import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useNavigate } from '@tanstack/react-router';
 import { type FormEvent, type Ref, useEffect, useRef, useState } from 'react';
 
 import { PublicFrame } from '@/app/public-frame';
 import { CodeInput } from '@/components/code-input';
-import { Notice } from '@/components/notice';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
 
 import { useAuth } from './auth-context';

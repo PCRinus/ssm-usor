@@ -7,12 +7,12 @@ import {
   type TrainingDomain,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileText, LoaderCircle } from 'lucide-react';
 
 import { getPortalMaterialLink, type TestStudyCard } from '@/api/generated/api';
 import { FileLinkButton } from '@/components/file-link-button';
-import { Notice } from '@/components/notice';
 import { cardClass, SectionLabel } from '@/components/page';
 import { romanianDayOf, useFormatDate } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';

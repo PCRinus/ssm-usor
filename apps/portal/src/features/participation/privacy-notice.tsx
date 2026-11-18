@@ -1,6 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { currentPrivacyNoticeVersion } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -9,7 +10,6 @@ import {
   useRecordPortalNotice,
 } from '@/api/generated/api';
 import { PublicFrame } from '@/app/public-frame';
-import { Notice } from '@/components/notice';
 import { ParticipantLanguageSwitch } from '@/features/language/language-switch';
 import { useApiRequest } from '@/lib/request';
 

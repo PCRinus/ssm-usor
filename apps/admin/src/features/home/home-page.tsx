@@ -1,12 +1,12 @@
 import type { CurrentUser } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { ChevronRight, FileStack, type LucideIcon, Scale, UsersRound } from 'lucide-react';
 
 import { apiFetch, isRefusedByApi } from '@/api/http';
 import { AdminShell } from '@/components/admin-shell';
-import { ErrorNotice } from '@/components/error-notice';
 import { Frame } from '@/components/frame';
 import { SignOutButton } from '@/features/auth/sign-out-button';
 
@@ -41,7 +41,7 @@ export function HomePage() {
     }
     return (
       <Frame testId="home-error" title="The admin API did not answer">
-        <ErrorNotice>Check the connection and try again.</ErrorNotice>
+        <Notice variant="destructive">Check the connection and try again.</Notice>
         <Button onClick={() => void me.refetch()}>Try again</Button>
         <SignOutButton />
       </Frame>

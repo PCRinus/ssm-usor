@@ -17,13 +17,13 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
 import { ApiHttpError, isRefusedByApi } from '@/api/http';
-import { ErrorNotice } from '@/components/error-notice';
 import { formatDateTime } from '@/lib/format';
 
 import { legislationKey, linkTemplateVersion, refreshLegislation, resolveNoImpact } from './api';
@@ -150,7 +150,9 @@ function NoImpactForm({
           </p>
         )}
         {saving.error && (
-          <ErrorNotice testId="no-impact-error">{refusalOf(saving.error)}</ErrorNotice>
+          <Notice variant="destructive" data-testid="no-impact-error">
+            {refusalOf(saving.error)}
+          </Notice>
         )}
       </DialogBody>
       <DialogFooter className="mt-4">
@@ -228,7 +230,9 @@ function LinkForm({
           <dd className="break-words">{version.note ?? '—'}</dd>
         </dl>
         {linking.error && (
-          <ErrorNotice testId="link-version-error">{refusalOf(linking.error)}</ErrorNotice>
+          <Notice variant="destructive" data-testid="link-version-error">
+            {refusalOf(linking.error)}
+          </Notice>
         )}
       </DialogBody>
       <DialogFooter className="mt-4">

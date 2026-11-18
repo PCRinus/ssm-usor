@@ -1,9 +1,8 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { type FormEvent, useState } from 'react';
-
-import { ErrorNotice } from '@/components/error-notice';
 
 import type { VerifyResult } from './auth-store';
 
@@ -57,7 +56,11 @@ export function CodeForm({
           required
         />
       </div>
-      {failure && <ErrorNotice testId="code-error">{failure}</ErrorNotice>}
+      {failure && (
+        <Notice variant="destructive" data-testid="code-error">
+          {failure}
+        </Notice>
+      )}
       <Button type="submit" className="h-11" disabled={busy || code.length !== codeLength}>
         {submitLabel}
       </Button>

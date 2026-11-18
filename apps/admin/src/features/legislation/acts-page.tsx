@@ -16,6 +16,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
   Table,
@@ -32,7 +33,6 @@ import { type FormEvent, useState } from 'react';
 
 import { ApiHttpError, isRefusedByApi } from '@/api/http';
 import { AdminShell, LoadFailure } from '@/components/admin-shell';
-import { ErrorNotice } from '@/components/error-notice';
 import { formatDateTime } from '@/lib/format';
 
 import { sortActs } from './act-sort';
@@ -185,9 +185,9 @@ function VerifiedForm({ act, onClose }: { act: AdminLegalAct; onClose: () => voi
             )}
           </div>
         ) : (
-          <ErrorNotice testId="verified-form-unseen">
+          <Notice variant="destructive" data-testid="verified-form-unseen">
             The check has not read a consolidated form of this act yet, so there is none to record.
-          </ErrorNotice>
+          </Notice>
         )}
         {blocking.length > 0 && (
           <div data-testid="verified-form-open-changes" className="space-y-1 text-sm">
@@ -211,12 +211,14 @@ function VerifiedForm({ act, onClose }: { act: AdminLegalAct; onClose: () => voi
           </div>
         )}
         {openChanges.isError && (
-          <ErrorNotice testId="verified-form-changes-error">
+          <Notice variant="destructive" data-testid="verified-form-changes-error">
             The act’s open changes could not be read. Close this and try again.
-          </ErrorNotice>
+          </Notice>
         )}
         {saving.error && (
-          <ErrorNotice testId="verified-form-error">{refusalOf(saving.error)}</ErrorNotice>
+          <Notice variant="destructive" data-testid="verified-form-error">
+            {refusalOf(saving.error)}
+          </Notice>
         )}
       </DialogBody>
       <DialogFooter className="mt-4">

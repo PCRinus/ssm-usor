@@ -4,6 +4,8 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { type SignatureSlotState, testErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
+import { openPreview, PreviewBlockedError } from '@ssm-usor/ui/lib/save-file';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { LoaderCircle, PenLine } from 'lucide-react';
@@ -15,11 +17,9 @@ import {
   type PortalTestsResponse,
 } from '@/api/generated/api';
 import { FileLinkButton } from '@/components/file-link-button';
-import { Notice } from '@/components/notice';
 import { invalidateSigningQueries } from '@/features/signing/signing-items';
 import { testSheetTitleMessage } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
-import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 
 import { reasonOf } from './test-errors';
 

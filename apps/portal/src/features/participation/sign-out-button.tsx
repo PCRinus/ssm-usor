@@ -1,9 +1,9 @@
 import { Trans } from '@lingui/react/macro';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { LogOut } from 'lucide-react';
 
-import { Notice } from '@/components/notice';
 import { useSignOut } from '@/features/auth/use-sign-out';
 
 export function SignOutFailed() {

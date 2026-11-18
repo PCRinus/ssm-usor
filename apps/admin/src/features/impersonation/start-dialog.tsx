@@ -16,13 +16,13 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Label } from '@ssm-usor/ui/components/label';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, type RefObject, useState } from 'react';
 
 import { ApiHttpError, isRefusedByApi } from '@/api/http';
-import { ErrorNotice } from '@/components/error-notice';
 import { roleLabels } from '@/features/members/api';
 
 import {
@@ -215,7 +215,9 @@ function StartForm({ member, onClose }: { member: AdminMemberListItem; onClose: 
           )}
         </p>
         {refusal.general && (
-          <ErrorNotice testId="start-impersonation-error">{refusal.general}</ErrorNotice>
+          <Notice variant="destructive" data-testid="start-impersonation-error">
+            {refusal.general}
+          </Notice>
         )}
       </DialogBody>
       <DialogFooter className="mt-4">

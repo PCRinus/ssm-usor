@@ -1,12 +1,12 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { LoaderCircle } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
 import type { TestAttemptOutcome } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
 import { cardClass, PageHeader, SectionLabel } from '@/components/page';
 
 export function TestResult({

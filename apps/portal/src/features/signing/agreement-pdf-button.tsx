@@ -3,6 +3,8 @@ import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useFileLink } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Notice } from '@ssm-usor/ui/components/notice';
+import { openPreview, PreviewBlockedError } from '@ssm-usor/ui/lib/save-file';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileText, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
@@ -14,13 +16,11 @@ import {
   getPortalSigningAgreementLink,
 } from '@/api/generated/api';
 import { FileLinkButton } from '@/components/file-link-button';
-import { Notice } from '@/components/notice';
 import {
   isAdministrator,
   type Participation,
 } from '@/features/participation/participation-context';
 import { useApiRequest } from '@/lib/request';
-import { openPreview, PreviewBlockedError } from '@/lib/save-file';
 
 // Unsigned agreements are drawn up on demand, so only signed agreements have a stored link.
 export function AgreementPdfButton({
