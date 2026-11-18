@@ -75,24 +75,6 @@ export function smsUsageStore(db: AdminClient) {
       if (error) throw fromDatabaseError(error, 'sms ceiling');
       return data?.ceiling_cents ?? null;
     },
-    /** False when the notice was already recorded for that month. */
-    async recordNotice(organizationId: string, periodStart: string, kind: string) {
-      const { error } = await db
-        .from('usage_notices')
-        .insert({ organization_id: organizationId, period_start: periodStart, kind });
-      if (error?.code === '23505') return false;
-      if (error) throw fromDatabaseError(error, 'usage notice');
-      return true;
-    },
-    async forgetNotice(organizationId: string, periodStart: string, kind: string) {
-      const { error } = await db
-        .from('usage_notices')
-        .delete()
-        .eq('organization_id', organizationId)
-        .eq('period_start', periodStart)
-        .eq('kind', kind);
-      if (error) throw fromDatabaseError(error, 'forget usage notice');
-    },
   };
 }
 

@@ -1,19 +1,21 @@
-import type { EmployeesOverStepNoticeKind, MailService } from '@ssm-usor/contracts';
+import type { EmployeesOverStepNoticeKind } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { type ApiEnv, appOrigin } from '../../lib/env';
-import { type NoticeRecipient, noticeRecipient } from '../sms-usage/notices';
-import { smsUsageStore } from '../sms-usage/store';
+import type { ApiEnv } from '../../lib/env';
+import {
+  type NoticeDeps,
+  noticeRecipient,
+  sendNoticeOnce,
+  subscriptionUrl,
+  usageNoticeStore,
+} from './usage-notices';
 
 const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-export type EmployeesOverStepNoticeDeps = {
+export type EmployeesOverStepNoticeDeps = NoticeDeps & {
   db: AdminClient;
-  store: Pick<ReturnType<typeof smsUsageStore>, 'recordNotice' | 'forgetNotice'>;
-  recipient: (organizationId: string) => Promise<NoticeRecipient | null>;
-  mail: MailService | undefined;
   subscriptionUrl: string;
 };
 
@@ -27,29 +29,29 @@ export async function sendEmployeesOverStepNotices(
   for (const due of data) {
     if (organizationId && due.organization_id !== organizationId) continue;
     const kind = due.kind as EmployeesOverStepNoticeKind;
-    // Recorded before it is sent, so two requests at once, or a retry, send it once.
-    if (!(await deps.store.recordNotice(due.organization_id, due.over_since, kind))) continue;
-    try {
-      if (!deps.mail) throw new Error('No MAIL binding');
-      const recipient = await deps.recipient(due.organization_id);
-      if (!recipient) throw new Error('no owner to tell');
-      await deps.mail.sendEmployeesOverStepNotice({
-        to: recipient.to,
+    const outcome = await sendNoticeOnce(
+      deps,
+      {
+        organizationId: due.organization_id,
+        periodStart: due.over_since,
         kind,
-        organizationName: recipient.organizationName,
-        employees: due.employees,
-        limit: due.employee_limit,
-        lastDay: due.last_day,
-        subscriptionUrl: deps.subscriptionUrl,
-      });
-      sent.push(kind);
-    } catch (failure) {
-      // Taken back so that the next request or the daily run tries again.
-      await deps.store.forgetNotice(due.organization_id, due.over_since, kind).catch(() => {
-        console.error(`Notice ${kind} for ${due.organization_id} stays recorded, unsent.`);
-      });
-      console.error(`Notice ${kind} for ${due.organization_id} not sent: ${describe(failure)}`);
-    }
+        whenNoRecipient: 'forget',
+        onFailure: (failure) => {
+          console.error(`Notice ${kind} for ${due.organization_id} not sent: ${describe(failure)}`);
+        },
+      },
+      (mail, recipient) =>
+        mail.sendEmployeesOverStepNotice({
+          to: recipient.to,
+          kind,
+          organizationName: recipient.organizationName,
+          employees: due.employees,
+          limit: due.employee_limit,
+          lastDay: due.last_day,
+          subscriptionUrl: deps.subscriptionUrl,
+        })
+    );
+    if (outcome === 'sent') sent.push(kind);
   }
   return sent;
 }
@@ -58,10 +60,10 @@ function depsOf(env: ApiEnv['Bindings']): EmployeesOverStepNoticeDeps {
   const db = adminClient(env);
   return {
     db,
-    store: smsUsageStore(db),
+    store: usageNoticeStore(db),
     recipient: (organizationId) => noticeRecipient(db, organizationId),
     mail: env.MAIL,
-    subscriptionUrl: new URL('/organizatie/abonament', appOrigin(env)).href,
+    subscriptionUrl: subscriptionUrl(env),
   };
 }
 

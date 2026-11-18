@@ -34,8 +34,6 @@ function setUp(
     release: vi.fn(async () => undefined),
     periodUsage: vi.fn(),
     smsCeiling: vi.fn(),
-    recordNotice: vi.fn(),
-    forgetNotice: vi.fn(),
   } satisfies SmsUsageStore;
   const sendSigningCode = vi.fn(async () => ({ id: 'SM1' }));
   const onOverage = vi.fn();

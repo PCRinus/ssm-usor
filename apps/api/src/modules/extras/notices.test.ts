@@ -33,12 +33,14 @@ function setUp(options: { row?: EntitlementRow; ceiling?: number | null } = {}) 
     subscription: async () => options.row ?? paid,
     ceiling: async () => (options.ceiling === undefined ? 1000 : options.ceiling),
     month: async () => ({ ...month }),
-    recordNotice: async (_, start, kind) => {
-      if (recorded.has(start + kind)) return false;
-      recorded.add(start + kind);
-      return true;
+    store: {
+      recordNotice: async (_, start, kind) => {
+        if (recorded.has(start + kind)) return false;
+        recorded.add(start + kind);
+        return true;
+      },
+      forgetNotice: async (_, start, kind) => void recorded.delete(start + kind),
     },
-    forgetNotice: async (_, start, kind) => void recorded.delete(start + kind),
     recipient: async () => ({ to: 'ana@example.ro', organizationName: 'Prevenire Plus SRL' }),
     mail: { sendExtrasNotice } as unknown as MailService,
     subscriptionUrl: () => 'https://app.example.ro/organizatie/abonament',

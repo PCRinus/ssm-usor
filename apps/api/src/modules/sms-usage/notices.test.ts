@@ -2,7 +2,7 @@ import type { MailService } from '@ssm-usor/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EntitlementRow } from '../billing/entitlements';
-import { createUsageNotices, type UsageNoticeStore } from './notices';
+import { createUsageNotices, type SmsNoticeStore } from './notices';
 
 const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const now = new Date('2026-12-01T10:00:00.000Z');
@@ -55,7 +55,7 @@ function setUp(options: { granted?: number; owner?: boolean; ceilingCents?: numb
     forgetNotice: vi.fn(async (organization: string, periodStart: string, kind: string) => {
       recorded.delete(key(organization, periodStart, kind));
     }),
-  } satisfies UsageNoticeStore;
+  } satisfies SmsNoticeStore;
   const sendSmsUsageNotice = vi.fn<MailService['sendSmsUsageNotice']>(async () => ({
     id: 'msg_1',
   }));

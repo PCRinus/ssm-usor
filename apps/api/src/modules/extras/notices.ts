@@ -1,10 +1,10 @@
-import type { ExtraKind, MailService } from '@ssm-usor/contracts';
+import type { ExtraKind } from '@ssm-usor/contracts';
 
 import type { AdminClient } from '../../lib/admin-db';
-import type { EntitlementRow } from '../billing/entitlements';
+import { type EntitlementRow, loadEntitlementRow } from '../billing/entitlements';
+import { type NoticeDeps, sendNoticeOnce, usageNoticeStore } from '../billing/usage-notices';
 import { creditPolicy } from '../credits/policy';
 import { creditsStore } from '../credits/store';
-import type { NoticeRecipient } from '../sms-usage/notices';
 import { smsPolicy } from '../sms-usage/policy';
 import { smsUsageStore } from '../sms-usage/store';
 import { extraLevel, extraSpend, extrasUnavailable } from './policy';
@@ -16,7 +16,7 @@ export type ExtrasMonth = {
   used: number;
 };
 
-export type ExtrasNoticeDeps = {
+export type ExtrasNoticeDeps = NoticeDeps & {
   subscription: (organizationId: string) => Promise<EntitlementRow | null>;
   ceiling: (organizationId: string, kind: ExtraKind) => Promise<number | null>;
   month: (
@@ -25,10 +25,6 @@ export type ExtrasNoticeDeps = {
     row: EntitlementRow,
     now: Date
   ) => Promise<ExtrasMonth | null>;
-  recordNotice: (organizationId: string, periodStart: string, kind: string) => Promise<boolean>;
-  forgetNotice: (organizationId: string, periodStart: string, kind: string) => Promise<void>;
-  recipient: (organizationId: string) => Promise<NoticeRecipient | null>;
-  mail: MailService | undefined;
   subscriptionUrl: () => string;
 };
 
@@ -49,34 +45,24 @@ export function createExtrasNotices(deps: ExtrasNoticeDeps) {
     if (level === 'ok') return null;
 
     const notice = `${kind}_extra${level === 'near' ? '80' : '100'}`;
-    // Recorded before it is sent, so two charges at once, or a retry, send it once.
-    if (!(await deps.recordNotice(organizationId, month.periodStart, notice))) return null;
-    try {
-      if (!deps.mail) throw new Error('No MAIL binding');
-      const recipient = await deps.recipient(organizationId);
-      if (!recipient) {
-        console.error(`Organization ${organizationId} has no owner to tell of ${notice}.`);
-        return notice;
-      }
-      await deps.mail.sendExtrasNotice({
-        to: recipient.to,
-        kind,
-        level,
-        organizationName: recipient.organizationName,
-        ceilingCents,
-        spentCents: spend.spentCents,
-        used: spend.used,
-        limit: spend.limit,
-        periodEnd: month.periodEnd,
-        subscriptionUrl: deps.subscriptionUrl(),
-      });
-      return notice;
-    } catch (error) {
-      await deps.forgetNotice(organizationId, month.periodStart, notice).catch(() => {
-        console.error(`Extras notice ${notice} for ${organizationId} stays recorded, unsent.`);
-      });
-      throw error;
-    }
+    const outcome = await sendNoticeOnce(
+      deps,
+      { organizationId, periodStart: month.periodStart, kind: notice, whenNoRecipient: 'keep' },
+      (mail, recipient) =>
+        mail.sendExtrasNotice({
+          to: recipient.to,
+          kind,
+          level,
+          organizationName: recipient.organizationName,
+          ceilingCents,
+          spentCents: spend.spentCents,
+          used: spend.used,
+          limit: spend.limit,
+          periodEnd: month.periodEnd,
+          subscriptionUrl: deps.subscriptionUrl(),
+        })
+    );
+    return outcome === 'duplicate' ? null : notice;
   };
 }
 
@@ -90,7 +76,7 @@ export function extrasNoticeDeps(
   const credits = creditsStore(db);
   const extras = extrasStore(db);
   return {
-    subscription: (organizationId) => sms.subscription(organizationId),
+    subscription: (organizationId) => loadEntitlementRow(db, organizationId),
     ceiling: async (organizationId, kind) => (await extras.ceilings(organizationId))[kind],
     async month(organizationId, kind, row, now) {
       if (kind === 'sms') {
@@ -111,10 +97,7 @@ export function extrasNoticeDeps(
         used: balance.extra,
       };
     },
-    recordNotice: (organizationId, periodStart, kind) =>
-      sms.recordNotice(organizationId, periodStart, kind),
-    forgetNotice: (organizationId, periodStart, kind) =>
-      sms.forgetNotice(organizationId, periodStart, kind),
+    store: usageNoticeStore(db),
     ...rest,
   };
 }
