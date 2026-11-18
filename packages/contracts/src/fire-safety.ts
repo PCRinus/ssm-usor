@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { sentTogether, somethingSent } from './partial-update';
 import { startingTrainingIntervals } from './training-categories';
 
 export const fireSmokingPolicies = ['forbidden_everywhere', 'designated_places'] as const;
@@ -264,7 +265,7 @@ export const clientFireSafetyResponseSchema = z.object({
 
 export type ClientFireSafetyResponse = z.infer<typeof clientFireSafetyResponseSchema>;
 
-// Replaces all of them: a field left out or null is cleared.
+// A field left out stays as saved, and null clears it (ADR 044).
 export const updateClientFireSafetyRequestSchema = z
   .object({
     periodicTrainingHours: fireTrainingFields.periodicTrainingHours.nullish(),
@@ -284,10 +285,19 @@ export const updateClientFireSafetyRequestSchema = z
         (kinds) => new Set(kinds.map((kind) => kind.toLocaleLowerCase('ro'))).size === kinds.length,
         { message: 'A kind of waste appears twice.' }
       )
-      .default([]),
+      .optional(),
     wasteContractor: optionalText(2, 160),
     wasteCollectors: optionalText(2, 160),
-    hasThirdParties: z.boolean().default(false),
+    hasThirdParties: z.boolean().optional(),
+  })
+  .refine(somethingSent, { message: 'Send at least one field.' })
+  .refine(sentTogether('trainingDayFrom', 'trainingDayTo'), {
+    path: ['trainingDayTo'],
+    message: 'The first and the last day are sent together.',
+  })
+  .refine((value) => value.smokingPlace === undefined || value.smokingPolicy !== undefined, {
+    path: ['smokingPlace'],
+    message: 'The smoking place is sent with the smoking policy.',
   })
   .refine(
     (value) =>

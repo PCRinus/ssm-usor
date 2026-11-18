@@ -110,12 +110,12 @@ export const getClientFireSafetyRoute = createRoute({
 });
 
 export const updateClientFireSafetyRoute = createRoute({
-  method: 'put',
+  method: 'patch',
   path: '/clients/{clientId}/fire-safety',
   operationId: 'updateClientFireSafety',
-  summary: "Replace a client's fire-safety training schedule, smoking policy and waste",
+  summary: "Change a client's fire-safety training schedule, smoking policy and waste",
   description:
-    'Created on the first save. A field left out or null is cleared, and `wasteKinds` left out is empty.',
+    'Created on the first save, with what is not sent empty. Changes only the fields sent: a field left out stays as saved, and null clears it. At least one field is sent. The two days are sent together, and the smoking place only with the smoking policy; a policy other than designated places clears the place.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

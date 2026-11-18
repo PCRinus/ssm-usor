@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getGetClientFireSafetyQueryKey } from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -67,6 +68,26 @@ const savedFireSafety = {
   hasThirdParties: false,
 };
 
+type FireSafety = typeof emptyFireSafety;
+
+const scheduleOf = (fireSafety: FireSafety) => ({
+  periodicTrainingHours: fireSafety.periodicTrainingHours,
+  administrativeTrainingIntervalMonths: fireSafety.administrativeTrainingIntervalMonths,
+  workerTrainingIntervalMonths: fireSafety.workerTrainingIntervalMonths,
+  trainingFirstMonth: fireSafety.trainingFirstMonth,
+  trainingDayFrom: fireSafety.trainingDayFrom,
+  trainingDayTo: fireSafety.trainingDayTo,
+});
+
+const rulesOf = (fireSafety: FireSafety) => ({
+  smokingPolicy: fireSafety.smokingPolicy,
+  smokingPlace: fireSafety.smokingPlace,
+  wasteKinds: fireSafety.wasteKinds,
+  wasteContractor: fireSafety.wasteContractor,
+  wasteCollectors: fireSafety.wasteCollectors,
+  hasThirdParties: fireSafety.hasThirdParties,
+});
+
 const firePath = `/clients/${clientId}/fire-safety`;
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -111,8 +132,9 @@ function mockApi({
       return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
     if (pathname === firePath) {
-      if (method === 'PUT') {
-        current = { fireSafety: JSON.parse(String(init?.body)) as typeof fireSafety, exists: true };
+      if (method === 'PATCH') {
+        const sent = JSON.parse(String(init?.body)) as Partial<typeof fireSafety>;
+        current = { fireSafety: { ...current.fireSafety, ...sent }, exists: true };
       }
       return Response.json(current);
     }
@@ -185,9 +207,8 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-safety-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
+      expect(requests(firePath, 'PATCH')).toEqual([
         {
-          ...emptyFireSafety,
           periodicTrainingHours: 2,
           administrativeTrainingIntervalMonths: 6,
           workerTrainingIntervalMonths: 3,
@@ -274,14 +295,50 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-safety-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
+      expect(requests(firePath, 'PATCH')).toEqual([
         {
-          ...savedFireSafety,
-          administrativeTrainingIntervalMonths: null,
+          periodicTrainingHours: 2,
           workerTrainingIntervalMonths: 1,
+          trainingFirstMonth: 1,
+          trainingDayFrom: 10,
+          trainingDayTo: 15,
         },
       ])
     );
+  });
+
+  it('keeps the row the save answered with before the page reads it again', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });
+    const answer = fetchMock.getMockImplementation()!;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (input, init) => {
+      const read =
+        new URL(String(input)).pathname === firePath && (init?.method ?? 'GET') === 'GET';
+      if (read && requests(firePath, 'PATCH').length > 0) await held;
+      return answer(input, init);
+    });
+    const { queryClient } = mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('fire-safety-edit'));
+    await user.click(screen.getByTestId('fire-worker-interval-1'));
+    await user.click(screen.getByTestId('fire-safety-save'));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueriesData({ queryKey: getGetClientFireSafetyQueryKey(clientId) })
+      ).toEqual([
+        [
+          expect.anything(),
+          { fireSafety: { ...savedFireSafety, workerTrainingIntervalMonths: 1 }, exists: true },
+        ],
+      ])
+    );
+    release();
+    expect(await screen.findByText('Instruirea SU a fost salvată.')).toBeTruthy();
   });
 
   it('picks the longest interval for a category that has posts and no interval yet', async () => {
@@ -299,8 +356,8 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-safety-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
-        { ...savedFireSafety, administrativeTrainingIntervalMonths: 6 },
+      expect(requests(firePath, 'PATCH')).toEqual([
+        scheduleOf({ ...savedFireSafety, administrativeTrainingIntervalMonths: 6 }),
       ])
     );
   });
@@ -318,7 +375,7 @@ describe('the fire-safety training card', () => {
     expect((await screen.findByTestId('fire-day-to-error')).textContent).toBe(
       'Ultima zi vine după prima. Scrie o zi între 10 și 31.'
     );
-    expect(requests(firePath, 'PUT')).toEqual([]);
+    expect(requests(firePath, 'PATCH')).toEqual([]);
   });
 
   it('offers to load again instead of a calendar when the occupational schedule fails to load', async () => {
@@ -336,7 +393,7 @@ describe('the fire-safety training card', () => {
     expect(screen.queryByTestId('fire-safety-card')).toBeNull();
   });
 
-  it('saves one card over what the other just saved, before the page reads the row again', async () => {
+  it('saves the two cards back to back, each sending only its own fields, and keeps both', async () => {
     mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });
     const answer = fetchMock.getMockImplementation()!;
     let release = () => {};
@@ -344,9 +401,8 @@ describe('the fire-safety training card', () => {
       release = resolve;
     });
     fetchMock.mockImplementation(async (input, init) => {
-      const read =
-        new URL(String(input)).pathname === firePath && (init?.method ?? 'GET') === 'GET';
-      if (read && requests(firePath, 'PUT').length > 0) await held;
+      const write = new URL(String(input)).pathname === firePath && init?.method === 'PATCH';
+      if (write && requests(firePath, 'PATCH').length === 1) await held;
       return answer(input, init);
     });
     mount();
@@ -356,50 +412,25 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-edit'));
     await user.click(screen.getByTestId('fire-worker-interval-1'));
     await user.click(screen.getByTestId('fire-safety-save'));
-    await waitFor(() => expect(requests(firePath, 'PUT')).toHaveLength(1));
+    await waitFor(() => expect(requests(firePath, 'PATCH')).toHaveLength(1));
     await user.type(screen.getByTestId('fire-waste-input'), 'deșeuri menajere{Enter}');
     await user.click(screen.getByTestId('fire-rules-save'));
 
-    await waitFor(() => expect(requests(firePath, 'PUT')).toHaveLength(2));
-    expect(requests(firePath, 'PUT')[1]).toEqual({
-      ...savedFireSafety,
-      workerTrainingIntervalMonths: 1,
-      wasteKinds: [...savedFireSafety.wasteKinds, 'deșeuri menajere'],
-    });
+    await waitFor(() => expect(requests(firePath, 'PATCH')).toHaveLength(2));
+    expect(requests(firePath, 'PATCH')).toEqual([
+      scheduleOf({ ...savedFireSafety, workerTrainingIntervalMonths: 1 }),
+      rulesOf({
+        ...savedFireSafety,
+        wasteKinds: [...savedFireSafety.wasteKinds, 'deșeuri menajere'],
+      }),
+    ]);
     release();
-  });
 
-  it('waits for a save of the other card still on its way before saving over it', async () => {
-    mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });
-    const answer = fetchMock.getMockImplementation()!;
-    let release = () => {};
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    fetchMock.mockImplementation(async (input, init) => {
-      const write = new URL(String(input)).pathname === firePath && init?.method === 'PUT';
-      if (write && requests(firePath, 'PUT').length === 1) await held;
-      return answer(input, init);
-    });
-    mount();
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByTestId('fire-safety-edit'));
-    await user.click(screen.getByTestId('fire-rules-edit'));
-    await user.click(screen.getByTestId('fire-worker-interval-1'));
-    await user.click(screen.getByTestId('fire-safety-save'));
-    await waitFor(() => expect(requests(firePath, 'PUT')).toHaveLength(1));
-    await user.type(screen.getByTestId('fire-waste-input'), 'deșeuri menajere{Enter}');
-    await user.click(screen.getByTestId('fire-rules-save'));
-    expect(requests(firePath, 'PUT')).toHaveLength(1);
-
-    release();
-    await waitFor(() => expect(requests(firePath, 'PUT')).toHaveLength(2));
-    expect(requests(firePath, 'PUT')[1]).toEqual({
-      ...savedFireSafety,
-      workerTrainingIntervalMonths: 1,
-      wasteKinds: [...savedFireSafety.wasteKinds, 'deșeuri menajere'],
-    });
+    expect(await screen.findByText('Instruirea SU a fost salvată.')).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByTestId('fire-rules-card').textContent).toContain('deșeuri menajere')
+    );
+    expect(screen.getByTestId('fire-schedule-execution').textContent).toContain('Lunar');
   });
 
   it('saves the smoking and waste of a client without a row, leaving the schedule empty', async () => {
@@ -416,8 +447,8 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
-        { ...emptyFireSafety, wasteKinds: ['deșeuri de carton', 'uleiuri uzate'] },
+      expect(requests(firePath, 'PATCH')).toEqual([
+        rulesOf({ ...emptyFireSafety, wasteKinds: ['deșeuri de carton', 'uleiuri uzate'] }),
       ])
     );
     expect(await screen.findByText('Fumatul și deșeurile au fost salvate.')).toBeTruthy();
@@ -464,8 +495,11 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
-        { ...savedFireSafety, wasteCollectors: 'muncitorii necalificați și șeful de șantier' },
+      expect(requests(firePath, 'PATCH')).toEqual([
+        rulesOf({
+          ...savedFireSafety,
+          wasteCollectors: 'muncitorii necalificați și șeful de șantier',
+        }),
       ])
     );
     expect((await screen.findByTestId('fire-waste-collectors')).textContent).toBe(
@@ -490,7 +524,9 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([{ ...savedFireSafety, hasThirdParties: true }])
+      expect(requests(firePath, 'PATCH')).toEqual([
+        rulesOf({ ...savedFireSafety, hasThirdParties: true }),
+      ])
     );
     expect((await screen.findByTestId('fire-third-parties')).textContent).toBe('Da');
   });
@@ -528,14 +564,14 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
-        {
+      expect(requests(firePath, 'PATCH')).toEqual([
+        rulesOf({
           ...savedFireSafety,
           smokingPolicy: null,
           smokingPlace: null,
           wasteKinds: ['uleiuri uzate'],
           wasteContractor: null,
-        },
+        }),
       ])
     );
   });
@@ -557,8 +593,8 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
-        { ...savedFireSafety, smokingPolicy: 'forbidden_everywhere', smokingPlace: null },
+      expect(requests(firePath, 'PATCH')).toEqual([
+        rulesOf({ ...savedFireSafety, smokingPolicy: 'forbidden_everywhere', smokingPlace: null }),
       ])
     );
     expect((await screen.findByTestId('fire-smoking')).textContent).toBe(
@@ -583,17 +619,17 @@ describe('the fire-safety training card', () => {
     expect((await screen.findByTestId('fire-smoking-place-input-error')).textContent).toBe(
       'Locul are cel puțin 2 caractere.'
     );
-    expect(requests(firePath, 'PUT')).toEqual([]);
+    expect(requests(firePath, 'PATCH')).toEqual([]);
 
     await user.type(screen.getByTestId('fire-smoking-place-input'), ' lângă rampa de descărcare ');
     await user.click(screen.getByTestId('fire-rules-save'));
     await waitFor(() =>
-      expect(requests(firePath, 'PUT')).toEqual([
-        {
+      expect(requests(firePath, 'PATCH')).toEqual([
+        rulesOf({
           ...savedFireSafety,
           smokingPolicy: 'designated_places',
           smokingPlace: 'x lângă rampa de descărcare',
-        },
+        }),
       ])
     );
   });

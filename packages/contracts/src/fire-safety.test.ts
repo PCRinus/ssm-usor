@@ -109,12 +109,18 @@ describe('fireInstallationRequestSchema', () => {
 });
 
 describe('updateClientFireSafetyRequestSchema', () => {
-  it('saves a card filled in halfway', () => {
+  it('takes a single field, adding none, and refuses a body with none', () => {
     expect(updateClientFireSafetyRequestSchema.parse({ periodicTrainingHours: 2 })).toEqual({
       periodicTrainingHours: 2,
-      wasteKinds: [],
-      hasThirdParties: false,
     });
+    expect(updateClientFireSafetyRequestSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('takes the two days together, and the smoking place only with the policy', () => {
+    const parse = (body: object) => updateClientFireSafetyRequestSchema.safeParse(body);
+    expect(parse({ trainingDayFrom: 3 }).error?.issues[0]?.path).toEqual(['trainingDayTo']);
+    expect(parse({ smokingPolicy: 'forbidden_everywhere' }).success).toBe(true);
+    expect(parse({ smokingPlace: 'în curte' }).error?.issues[0]?.path).toEqual(['smokingPlace']);
   });
 
   it('keeps the bounds of OMAI 712/2005', () => {
