@@ -135,6 +135,9 @@ export function fireSetSample(people: ReturnType<typeof person>[], long: boolean
     meansByPlace: [],
     hasPlaces: false,
     installations: [],
+    alarmInstallations: [],
+    extinguishingInstallations: [],
+    hasEmergencyLighting: false,
     hasInstallations: false,
     hasExteriorHydrants: false,
     hasInteriorHydrants: false,
@@ -202,6 +205,17 @@ export function fireSetSample(people: ReturnType<typeof person>[], long: boolean
               description: '',
             },
           ],
+          alarmInstallations: [
+            {
+              kindLabel: 'Instalație de detectare, semnalizare și avertizare la incendiu',
+              description: '',
+            },
+          ],
+          extinguishingInstallations: [
+            { kindLabel: 'Hidranți interiori', description: 'Câte doi pe fiecare nivel' },
+            { kindLabel: 'Hidranți exteriori', description: '' },
+          ],
+          hasEmergencyLighting: true,
           hasInstallations: true,
           hasExteriorHydrants: true,
           hasInteriorHydrants: true,
@@ -317,6 +331,7 @@ export function fireSetSample(people: ReturnType<typeof person>[], long: boolean
       {
         name: workplaces[0]!.name,
         activity: workplaces[0]!.activity,
+        activityRunOn: workplaces[0]!.activityRunOn,
         hasRows: true,
         empty: false,
         rows: [
@@ -374,6 +389,7 @@ export function fireSetSample(people: ReturnType<typeof person>[], long: boolean
             {
               name: workplaces[1]!.name,
               activity: workplaces[1]!.activity,
+              activityRunOn: workplaces[1]!.activityRunOn,
               hasRows: true,
               empty: false,
               rows: [
@@ -394,6 +410,7 @@ export function fireSetSample(people: ReturnType<typeof person>[], long: boolean
             {
               name: workplaces[2]!.name,
               activity: workplaces[2]!.activity,
+              activityRunOn: workplaces[2]!.activityRunOn,
               hasRows: false,
               empty: true,
               rows: [],
