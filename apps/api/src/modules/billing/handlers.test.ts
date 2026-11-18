@@ -221,7 +221,9 @@ describe('GET /billing', () => {
   it('shows the owner of a paid plan the card, the next payment and a change set for the renewal', async () => {
     const fake = createFake();
     const renewal = now() + 10 * day;
-    fake.tables.subscriptions!.push(paidRow(pro));
+    fake.tables.subscriptions!.push(
+      paidRow(pro, { billing_anchor_at: '2026-01-31T09:00:00+00:00' })
+    );
     fake.tables.billing_invoices!.push({
       stripe_invoice_id: 'in_1Paid',
       organization_id: organizationId,
@@ -282,6 +284,7 @@ describe('GET /billing', () => {
       planChosen: true,
       status: 'active',
       step: 1500,
+      billingAnchorAt: '2026-01-31T09:00:00.000Z',
       cancelsAt: null,
     });
     expect(body.usage.members.limit).toBe(10);
