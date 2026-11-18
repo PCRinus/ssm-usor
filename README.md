@@ -45,6 +45,7 @@ The pnpm/Turborepo workspace contains:
 - `apps/pdf` — the internal Worker that turns a Word file into a PDF, with its container ([guide](docs/pdf.md));
 - `packages/contracts` — runtime schemas and shared transport types.
 - `packages/api-http` — the fetch adapter both SPAs' generated API clients call;
+- `packages/spa-runtime` — the session store, auth context, captcha hook, query defaults and route-guard refresh the app, portal and admin SPAs share;
 - `packages/design-tokens` — shared brand colors, typography, radii, and Tailwind theme;
 - `packages/help-topics` — the help topics the app links to, generated from the articles (`pnpm generate:help-topics`);
 - `packages/ui` — shared shadcn React primitives and the Tailwind CSS entry point.

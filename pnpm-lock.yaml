@@ -104,6 +104,9 @@ importers:
       '@ssm-usor/document-engine':
         specifier: workspace:*
         version: link:../../packages/document-engine
+      '@ssm-usor/spa-runtime':
+        specifier: workspace:*
+        version: link:../../packages/spa-runtime
       '@ssm-usor/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -277,6 +280,9 @@ importers:
       '@ssm-usor/help-topics':
         specifier: workspace:*
         version: link:../../packages/help-topics
+      '@ssm-usor/spa-runtime':
+        specifier: workspace:*
+        version: link:../../packages/spa-runtime
       '@ssm-usor/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -580,6 +586,9 @@ importers:
       '@ssm-usor/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@ssm-usor/spa-runtime':
+        specifier: workspace:*
+        version: link:../../packages/spa-runtime
       '@ssm-usor/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -842,6 +851,34 @@ importers:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(jsdom@30.1.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/spa-runtime:
+    dependencies:
+      '@ssm-usor/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.118.0
+        version: 2.118.0(@opentelemetry/api@1.10.0)
+      '@tanstack/react-query':
+        specifier: ^5.104.5
+        version: 5.104.5(@types/react@19.3.0)(react@19.3.1)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(jsdom@30.1.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))

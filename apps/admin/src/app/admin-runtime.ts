@@ -1,3 +1,4 @@
+import { invalidateOnSessionChange } from '@ssm-usor/spa-runtime/session';
 import type { QueryClient } from '@tanstack/react-query';
 import type { RouterHistory } from '@tanstack/react-router';
 
@@ -20,20 +21,12 @@ export function createAdminRuntime(
     getAccessToken: () => auth.getAccessToken(),
   };
   const router = createAdminRouter({ auth, queryClient, apiRequest }, history);
-  // Route guards read the session at navigation time only. When the user or the step changes
-  // (a code verified, a sign-out, another tab) run them again.
-  const position = () => `${auth.getSnapshot().session?.user.id}:${auth.step()}`;
-  let current = position();
-  let disposed = false;
-  const unsubscribe = auth.subscribe(() => {
-    const next = position();
-    if (next === current) return;
-    current = next;
-    // Leave the Supabase event callback before re-running route guards.
-    queueMicrotask(() => {
-      if (!disposed) void router.invalidate();
-    });
-  });
+  // A verified code moves the same user to the next step, so the guards follow the step too.
+  const stopInvalidating = invalidateOnSessionChange(
+    auth,
+    router,
+    () => `${auth.getSnapshot().session?.user.id}:${auth.step()}`
+  );
 
   return {
     auth,
@@ -41,8 +34,7 @@ export function createAdminRuntime(
     queryClient,
     apiRequest,
     dispose() {
-      disposed = true;
-      unsubscribe();
+      stopInvalidating();
       auth.dispose();
       queryClient.clear();
     },

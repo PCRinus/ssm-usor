@@ -9,6 +9,7 @@
 - Amended 2026-11-11: during an impersonation the API refuses the admin signing and every email or SMS to another person (`impersonation_refused`), checked by the routes and again at the mail and SMS bindings; he keeps reading, editing, generating, importing and archiving, and the documents he generates print the member, not him.
 - Amended 2026-11-12: the member app's page and the API agree on whom the admin acts as, or the API refuses the request before it reads or writes (`409 identity_changed`), since an impersonation applies to all of the admin's sessions at once; and an expired impersonation is closed at its expiry, without an event.
 - Amended 2026-11-12: an employee import an admin starts while impersonating no longer proposes the member as the trainer of the rows its sheets leave without one; no import proposes any trainer, since it fills nothing the paper sheet does not write ([ADR 042](adr-042-paper-history-as-written.md)). The documents he generates still print the member.
+- Amended 2026-11-19: the admin app also shares `packages/spa-runtime` with the member app and the portal: the session store, auth context, captcha hook, query defaults and route-guard refresh each of them used to copy.
 
 ## Context
 
@@ -25,7 +26,7 @@ On 2026-10-26, #611 decided on a lazy-loaded section of the existing app at `/ad
 
 ### An app of its own
 
-`apps/admin` is a single-page app built like the portal: React, Vite, TanStack Router with file routes, TanStack Query, and the shared `packages/ui`, `packages/contracts` and `packages/api-http`. It leaves out what the member apps carry for members:
+`apps/admin` is a single-page app built like the portal: React, Vite, TanStack Router with file routes, TanStack Query, and the shared `packages/ui`, `packages/contracts`, `packages/api-http` and `packages/spa-runtime`. It leaves out what the member apps carry for members:
 
 - **No PostHog.** Its pages show personal data from every organization, and nothing there should be recorded or replayed.
 - **No Lingui and no help links.** It is in English and has one user.
