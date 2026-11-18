@@ -83,7 +83,8 @@ const annexHead = new RegExp(
 
 type Token =
   | { kind: 'act'; start: number; end: number; id: string }
-  | { kind: 'article' | 'annex'; start: number; end: number; label: string };
+  // `head` for one that opens with "art." or "anexa", not a number continuing a list.
+  | { kind: 'article' | 'annex'; start: number; end: number; label: string; head: boolean };
 
 function kindOf(spelling: string): ActKind {
   for (const [kind, pattern] of actSpellings) {
@@ -128,6 +129,7 @@ function tokensOf(text: string, isWatched: (id: string) => boolean): Token[] {
       start: match.index,
       end,
       label: articleLabel(match.groups!.article!),
+      head: true,
     });
     for (
       let more = articleMore.exec(text.slice(end));
@@ -136,7 +138,13 @@ function tokensOf(text: string, isWatched: (id: string) => boolean): Token[] {
     ) {
       const start = end + more.groups!.gap!.length;
       end += more[0].length;
-      tokens.push({ kind: 'article', start, end, label: articleLabel(more.groups!.article!) });
+      tokens.push({
+        kind: 'article',
+        start,
+        end,
+        label: articleLabel(more.groups!.article!),
+        head: false,
+      });
     }
   }
   for (const match of text.matchAll(annexHead)) {
@@ -146,6 +154,7 @@ function tokensOf(text: string, isWatched: (id: string) => boolean): Token[] {
       start: match.index,
       end: match.index + match[0].length,
       label: match.groups!.annex!,
+      head: true,
     });
   }
   return tokens
@@ -154,14 +163,17 @@ function tokensOf(text: string, isWatched: (id: string) => boolean): Token[] {
 }
 
 const separatorsOnly = /^(?:[\s,;:–-]|și)*$/u;
-// "art. 20 din Legea 319/2006", "anexa 2 la H.G. 1425/2006".
+// "art. 20 din Legea 319/2006", "anexa 2 la H.G. 1425/2006", "art. 242 din Codul muncii".
+const linker = /^\s*,?\s*(?:din|al|a|ale|la)\s/u;
 const actFollows = /^\s*,?\s*(?:din|al|a|ale|la)\s+$/u;
 
 /**
  * Splits a citation into the acts, articles and annexes it names. An article or annex belongs to
  * the act that follows it with "din" or "la", otherwise to the act it follows with nothing but
  * separators between; one that belongs to no watched act, like the provider's own instructions'
- * "IPSU, art. 151", stays plain text.
+ * "IPSU, art. 151", stays plain text. A wrong link is worse than none: in "Legea 319/2006, art. 5
+ * și art. 7 din H.G. 1425/2006" only art. 7 is the decision's, and art. 242 of "art. 12 și
+ * art. 242 din Codul muncii" is never given to the act before it.
  */
 export function parseCitation(
   text: string,
@@ -174,15 +186,21 @@ export function parseCitation(
     if (chain.length === 0) return;
     const first = chain[0]!;
     const last = chain.at(-1)!;
+    const before =
+      previous?.kind === 'act' && separatorsOnly.test(text.slice(previous.end, first.start))
+        ? previous.id
+        : null;
+    const after = text.slice(last.end, next?.start ?? text.length);
+    let split = chain.length;
     let act: string | null = null;
-    if (next?.kind === 'act' && actFollows.test(text.slice(last.end, next.start))) act = next.id;
-    else if (
-      previous?.kind === 'act' &&
-      separatorsOnly.test(text.slice(previous.end, first.start))
-    ) {
-      act = previous.id;
+    if (linker.test(after)) {
+      split = 0;
+      chain.forEach((token, index) => {
+        if (token.kind !== 'act' && token.head) split = index;
+      });
+      act = next?.kind === 'act' && actFollows.test(after) ? next.id : null;
     }
-    for (const token of chain) actOf.set(token, act);
+    chain.forEach((token, index) => actOf.set(token, index < split ? before : act));
     chain = [];
   };
   let beforeChain: Token | undefined;

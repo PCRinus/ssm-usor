@@ -151,6 +151,32 @@ describe('a citation split into its parts', () => {
     ]);
   });
 
+  it('gives the act that follows with „din” only the articles from its own „art.” on', () => {
+    expect(linked('Legea 319/2006, art. 5 și art. 7 din H.G. 1425/2006')).toEqual([
+      'Legea 319/2006 | lege-319-2006 | ',
+      'art. 5 | lege-319-2006 | 5',
+      'art. 7 | hg-1425-2006 | 7',
+      'H.G. 1425/2006 | hg-1425-2006 | ',
+    ]);
+    expect(linked('art. 5 și art. 7 din Legea 319/2006')).toEqual([
+      'art. 7 | lege-319-2006 | 7',
+      'Legea 319/2006 | lege-319-2006 | ',
+    ]);
+  });
+
+  it('never gives an article named „din” another act to the act before it', () => {
+    expect(linked('Legea 319/2006, art. 12 și art. 242 din Codul muncii')).toEqual([
+      'Legea 319/2006 | lege-319-2006 | ',
+      'art. 12 | lege-319-2006 | 12',
+    ]);
+    expect(linked('Legea 319/2006, art. 12 din Legea 1/2020')).toEqual([
+      'Legea 319/2006 | lege-319-2006 | ',
+    ]);
+    expect(linked('Legea 319/2006, art. 5 și 7 din regulamentul intern')).toEqual([
+      'Legea 319/2006 | lege-319-2006 | ',
+    ]);
+  });
+
   it('reads several acts in one citation, each with its articles', () => {
     expect(
       linked('Legea 319/2006, art. 5 și H.G. 1425/2006, art. 89; Legea 53/2003, art. 39')
