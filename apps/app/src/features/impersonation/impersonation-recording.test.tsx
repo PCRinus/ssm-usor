@@ -34,6 +34,10 @@ function fakePostHog() {
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect Consult' };
 let impersonating: boolean;
 
+afterEach(() => {
+  posthog.client = null;
+});
+
 installFetchMock();
 
 beforeEach(() => {
@@ -57,10 +61,6 @@ beforeEach(() => {
       })
     );
   });
-});
-
-afterEach(() => {
-  posthog.client = null;
 });
 
 function admin() {

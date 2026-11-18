@@ -76,6 +76,12 @@ let meAnswer: (() => Response) | null;
 let otherAnswer: ((pathname: string, init?: RequestInit) => Response | undefined) | null;
 let openHome: ReturnType<typeof vi.spyOn>;
 
+afterEach(() => {
+  sessionStorage.clear();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
+
 installFetchMock();
 
 beforeEach(() => {
@@ -93,12 +99,6 @@ beforeEach(() => {
     return Response.json({ error: 'not_found', message: 'Not found.' }, { status: 404 });
   });
   openHome = vi.spyOn(identityPage, 'openHome').mockImplementation(() => {});
-});
-
-afterEach(() => {
-  sessionStorage.clear();
-  vi.useRealTimers();
-  vi.restoreAllMocks();
 });
 
 const actingAsSent = (call: Parameters<typeof fetch>) =>
