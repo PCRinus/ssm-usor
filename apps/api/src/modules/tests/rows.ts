@@ -4,13 +4,16 @@ import type {
   TestAttemptSummary,
   TestQuestion,
   TestResult,
+  TrainingDomain,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import type { Database, Json } from '../../database.types';
+import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { signedSheetContext, syncResultRows } from '../signed-sheets/signed-sheets';
+import { summaryOf, testSheetSummaries } from '../test-sheets/test-sheets';
 
 type Tables = Database['public']['Tables'];
 
@@ -115,6 +118,43 @@ export function toAttemptSummary(
     total: row.total,
     passed: row.passed,
   };
+}
+
+// The portal shows the open attempt apart, so it lists only finished ones. Both caps are far
+// above what one employee takes.
+export async function employeeTestsOf(
+  db: DataClient,
+  { clientId, employeeId }: { clientId: string; employeeId: string },
+  attempts: { finishedOnly: boolean; limit: number }
+) {
+  let attemptQuery = db
+    .from('test_attempts')
+    .select(attemptSummaryColumns)
+    .eq('employee_id', employeeId)
+    .eq('client_id', clientId);
+  if (attempts.finishedOnly) attemptQuery = attemptQuery.not('finished_at', 'is', null);
+  const [results, attemptRows] = await Promise.all([
+    db
+      .from('test_results')
+      .select(resultColumns)
+      .eq('employee_id', employeeId)
+      .eq('client_id', clientId)
+      .order('taken_on', { ascending: false })
+      .order('created_at', { ascending: false }),
+    attemptQuery.order('started_at', { ascending: false }).limit(attempts.limit),
+  ]);
+  if (results.error) throw fromDatabaseError(results.error, 'employee test results');
+  if (attemptRows.error) throw fromDatabaseError(attemptRows.error, 'employee test attempts');
+  const sheets = await testSheetSummaries(
+    db,
+    results.data.map((row) => row.id)
+  );
+  return (domain: TrainingDomain) => ({
+    results: results.data
+      .filter((row) => row.domain === domain)
+      .map((row) => ({ ...toTestResult(row), sheet: summaryOf(sheets, row.id) })),
+    attempts: attemptRows.data.filter((row) => row.domain === domain).map(toAttemptSummary),
+  });
 }
 
 type ShownQuestion = {
