@@ -103,11 +103,7 @@ function appWithUnguardedSenders() {
 }
 
 const post = (path: string, token = accessTokenAt('aal2', admin.id)) =>
-  appWithUnguardedSenders().request(
-    path,
-    { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
-    env
-  );
+  apiRequest(path, { method: 'POST', token, app: appWithUnguardedSenders() }, env);
 
 describe('messages sent during an impersonation', () => {
   it('sends from a route without a membership, which acts as the signed-in admin himself', async () => {
@@ -277,14 +273,13 @@ describe('a page built for someone other than whom the request acts as', () => {
       c.body(null, 204)
     );
 
-    const response = await app.request(
+    const response = await apiRequest(
       '/unguarded/guarded',
       {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessTokenAt('aal2', admin.id)}`,
-          'X-Acting-As': memberId,
-        },
+        app,
+        token: accessTokenAt('aal2', admin.id),
+        headers: { 'X-Acting-As': memberId },
       },
       env
     );

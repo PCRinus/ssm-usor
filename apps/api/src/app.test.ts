@@ -55,7 +55,7 @@ describe('API routes', () => {
   });
 
   it('returns a JSON 404', async () => {
-    const response = await createApp().request('/missing', {}, {});
+    const response = await apiRequest('/missing', { token: null }, {});
     expect(response.status).toBe(404);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('not_found');
   });
@@ -114,8 +114,8 @@ describe('API routes', () => {
     };
     mockAccount((token) => (token === 'Bearer first' ? user : secondUser));
     const app = createApp();
-    const first = await app.request('/me', { headers: { Authorization: 'Bearer first' } }, env);
-    const second = await app.request('/me', { headers: { Authorization: 'Bearer second' } }, env);
+    const first = await apiRequest('/me', { app, token: 'first' }, env);
+    const second = await apiRequest('/me', { app, token: 'second' }, env);
     expect(meResponseSchema.parse(await first.json()).user.id).toBe(user.id);
     expect(meResponseSchema.parse(await second.json()).user.id).toBe(secondUser.id);
     const tokens = fetchMock.mock.calls.map(([, init]) =>
@@ -178,9 +178,9 @@ describe('API routes', () => {
   it('logs every 5xx with its route, status, time and ray id', async () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     fetchMock.mockResolvedValue(Response.json({}, { status: 503 }));
-    const response = await createApp().request(
+    const response = await apiRequest(
       '/me',
-      { headers: { Authorization: 'Bearer token', 'cf-ray': '8c1f2a3b4c5d6e7f-OTP' } },
+      { token: 'token', headers: { 'cf-ray': '8c1f2a3b4c5d6e7f-OTP' } },
       env
     );
     expect(response.status).toBe(503);
@@ -207,7 +207,7 @@ describe('API routes', () => {
     app.get('/test-error', () => {
       throw new Error('Sensitive internal details');
     });
-    const response = await app.request('/test-error', {}, {});
+    const response = await apiRequest('/test-error', { app, token: null }, {});
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({
       error: 'internal_error',
@@ -295,9 +295,9 @@ describe('CORS', () => {
   );
 
   it('makes auth errors readable to the allowed app origin', async () => {
-    const response = await createApp().request(
+    const response = await apiRequest(
       '/me',
-      { headers: { Origin: 'https://app.ssmusor.ro' } },
+      { token: null, headers: { Origin: 'https://app.ssmusor.ro' } },
       env
     );
     expect(response.status).toBe(401);
