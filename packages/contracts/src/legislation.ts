@@ -148,10 +148,6 @@ export const legalChangeSchema = z.object({
 
 export type LegalChange = z.infer<typeof legalChangeSchema>;
 
-export const legalChangeListResponseSchema = z.object({ items: z.array(legalChangeSchema) });
-
-export type LegalChangeListResponse = z.infer<typeof legalChangeListResponseSchema>;
-
 export const legalChangeActSchema = legalActSchema
   .pick({ id: true, name: true, portalId: true })
   .extend({ subject: watchedLegalActSchema.shape.subject });

@@ -2,7 +2,6 @@ import {
   apiErrorResponseSchema,
   latestLegalCheckRunResponseSchema,
   legalActListResponseSchema,
-  legalChangeListResponseSchema,
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -57,81 +56,8 @@ const order = {
 };
 const norms = { ...law, id: 'hg-1425-2006', name: 'H.G. 1425/2006', portal_id: 76337 };
 
-const change = {
-  id: 'd1d1d1d1-0000-4000-8000-000000000001',
-  seen_at: '2026-10-07T04:00:05+00:00',
-  consolidated_on: '2021-07-25',
-  amending_act: 'LEGE 208 21/07/2021',
-  resolution: 'open',
-  resolved_at: null,
-  resolved_by_note: null,
-  outcome: null,
-  compared_with: null,
-  assessed_at: null,
-  amending_acts: null,
-  amended_units: null,
-  act: { id: 'lege-319-2006', name: 'Legea 319/2006', portal_id: 73772 },
-  passages: [],
-  versions: [],
-};
-
-const quoted = {
-  id: 'f2f2f2f2-0000-4000-8000-000000000002',
-  template_file: '2.2_general_training_material.docx',
-  type_key: 'general_training_material',
-  paragraph: 2048,
-  citation_form: 'quote',
-  locator: 'Art. 36 alin. (1) – (3)',
-  unit_label: 'Art. 36 alin. (2)',
-  status: 'changed',
-  old_text: '(2) … să poarte casca de protecție omologată.',
-  new_text: '(2) … să poarte pe cap cască de protecție omologată.',
-  hunks: [
-    { old: 'casca', new: 'pe cap cască', before: 'să poarte', after: 'de protecție omologată.' },
-  ],
-};
-const referred = {
-  ...quoted,
-  id: 'f2f2f2f2-0000-4000-8000-000000000001',
-  paragraph: 22,
-  citation_form: 'reference',
-  locator: null,
-  unit_label: 'Art. 6',
-  old_text: 'Art. 6 …',
-  new_text: 'Art. 6 … 47^1. …',
-  hunks: [],
-};
-
-const assessed = {
-  ...change,
-  id: 'd1d1d1d1-0000-4000-8000-000000000002',
-  consolidated_on: '2026-11-06',
-  amending_act: null,
-  outcome: 'quote_differs',
-  compared_with: '2026-08-25',
-  assessed_at: '2026-11-13T03:18:00+00:00',
-  amending_acts: [
-    {
-      kind: 'LEGEA',
-      number: '207',
-      date: '2026-11-03',
-      name: 'Legea 207/2026',
-      portalId: null,
-      gazette: { number: '905', date: '2026-11-04' },
-    },
-  ],
-  amended_units: [
-    {
-      unit: 'Art. 36 alin. (2)',
-      subject: 'Alineatul (2), Articolul 36',
-      operation: 'modified',
-      date: '2026-11-06',
-      amendingAct: 'Legea 207/2026',
-    },
-  ],
-  act: { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portal_id: 41006 },
-  passages: [quoted, referred],
-};
+const newerChangeId = 'd1d1d1d1-0000-4000-8000-000000000002';
+const olderChangeId = 'd1d1d1d1-0000-4000-8000-000000000001';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -230,8 +156,8 @@ describe('GET /legislation/acts', () => {
       legal_acts: () => Response.json([order, law, norms]),
       legal_changes: () =>
         Response.json([
-          { id: assessed.id, act_id: 'lege-319-2006', outcome: 'quote_differs' },
-          { id: change.id, act_id: 'lege-319-2006', outcome: null },
+          { id: newerChangeId, act_id: 'lege-319-2006', outcome: 'quote_differs' },
+          { id: olderChangeId, act_id: 'lege-319-2006', outcome: null },
           { id: 'd1d1d1d1-0000-4000-8000-000000000003', act_id: 'hg-1425-2006', outcome: null },
         ]),
     });
@@ -240,7 +166,7 @@ describe('GET /legislation/acts', () => {
     );
     expect(body.items.map((act) => act.openChange)).toEqual([
       { id: 'd1d1d1d1-0000-4000-8000-000000000003', outcome: null },
-      { id: assessed.id, outcome: 'quote_differs' },
+      { id: newerChangeId, outcome: 'quote_differs' },
       null,
     ]);
     const [query] = searchParams('legal_changes');
@@ -259,229 +185,6 @@ describe('GET /legislation/acts', () => {
     expect(response.status).toBe(403);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
     expect(searchParams('legal_acts')).toHaveLength(0);
-  });
-});
-
-describe('GET /legislation/changes', () => {
-  it('lists the changes newest first, each with its act', async () => {
-    mockUpstream({ legal_changes: () => Response.json([assessed, change]) });
-    const response = await request('/legislation/changes');
-    expect(response.status).toBe(200);
-    expect(legalChangeListResponseSchema.parse(await response.json())).toEqual({
-      items: [
-        {
-          id: 'd1d1d1d1-0000-4000-8000-000000000002',
-          act: { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portalId: 41006 },
-          seenAt: '2026-10-07T04:00:05+00:00',
-          consolidatedOn: '2026-11-06',
-          amendingAct: null,
-          resolution: 'open',
-          resolvedAt: null,
-          resolvedByNote: null,
-          outcome: 'quote_differs',
-          comparedWith: '2026-08-25',
-          assessedAt: '2026-11-13T03:18:00+00:00',
-          amendingActs: [{ name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: null }],
-          amendedUnits: [
-            {
-              unit: 'Art. 36 alin. (2)',
-              operation: 'modified',
-              date: '2026-11-06',
-              amendingAct: 'Legea 207/2026',
-            },
-          ],
-          passages: [
-            {
-              id: referred.id,
-              templateFile: '2.2_general_training_material.docx',
-              document: {
-                typeKey: 'general_training_material',
-                title: 'Material de instruire introductiv-generală',
-              },
-              citationForm: 'reference',
-              locator: null,
-              unit: 'Art. 6',
-              status: 'changed',
-              oldText: 'Art. 6 …',
-              newText: 'Art. 6 … 47^1. …',
-              hunks: [],
-            },
-            {
-              id: quoted.id,
-              templateFile: '2.2_general_training_material.docx',
-              document: {
-                typeKey: 'general_training_material',
-                title: 'Material de instruire introductiv-generală',
-              },
-              citationForm: 'quote',
-              locator: 'Art. 36 alin. (1) – (3)',
-              unit: 'Art. 36 alin. (2)',
-              status: 'changed',
-              oldText: '(2) … să poarte casca de protecție omologată.',
-              newText: '(2) … să poarte pe cap cască de protecție omologată.',
-              hunks: quoted.hunks,
-            },
-          ],
-          updatedDocuments: [],
-        },
-        {
-          id: 'd1d1d1d1-0000-4000-8000-000000000001',
-          act: { id: 'lege-319-2006', name: 'Legea 319/2006', portalId: 73772 },
-          seenAt: '2026-10-07T04:00:05+00:00',
-          consolidatedOn: '2021-07-25',
-          amendingAct: 'LEGE 208 21/07/2021',
-          resolution: 'open',
-          resolvedAt: null,
-          resolvedByNote: null,
-          outcome: null,
-          comparedWith: null,
-          assessedAt: null,
-          amendingActs: [],
-          amendedUnits: [],
-          passages: [],
-          updatedDocuments: [],
-        },
-      ],
-    });
-    const [list] = searchParams('legal_changes');
-    expect(list!.get('order')).toBe('seen_at.desc,consolidated_on.desc,id.asc');
-    expect(list!.get('select')).toContain('act:legal_acts(id,name,portal_id)');
-    expect(list!.get('select')).toContain('passages:legal_change_passages(');
-    expect(list!.get('select')).toContain(
-      'versions:document_template_versions!template_version_legal_changes(template:document_templates(type_key,title))'
-    );
-  });
-
-  it('names the documents whose new template versions answer the change, once each', async () => {
-    mockUpstream({
-      legal_changes: () =>
-        Response.json([
-          {
-            ...assessed,
-            resolution: 'template_version',
-            versions: [
-              { template: { type_key: 'protective_equipment_list', title: 'Lista EIP' } },
-              {
-                template: {
-                  type_key: 'general_training_material',
-                  title: 'Material de instruire introductiv-generală',
-                },
-              },
-              { template: { type_key: 'protective_equipment_list', title: 'Lista EIP' } },
-            ],
-          },
-        ]),
-    });
-    const response = await request('/legislation/changes');
-    const { items } = legalChangeListResponseSchema.parse(await response.json());
-    expect(items[0]!.updatedDocuments).toEqual([
-      { typeKey: 'protective_equipment_list', title: 'Lista EIP' },
-      {
-        typeKey: 'general_training_material',
-        title: 'Material de instruire introductiv-generală',
-      },
-    ]);
-  });
-
-  it('names the document a passage sits in by its type, else by its file, and none when neither is known', async () => {
-    const firePassage = {
-      ...quoted,
-      id: 'f2f2f2f2-0000-4000-8000-000000000003',
-      template_file: 'fire/2.1_fire_own_instructions.docx',
-    };
-    const unknown = {
-      ...quoted,
-      id: 'f2f2f2f2-0000-4000-8000-000000000004',
-      template_file: 'retired.docx',
-      type_key: null,
-    };
-    const renamed = {
-      ...quoted,
-      id: 'f2f2f2f2-0000-4000-8000-000000000005',
-      template_file: 'renamed.docx',
-      type_key: 'fire_own_instructions',
-    };
-    mockUpstream({
-      legal_changes: () =>
-        Response.json([
-          { ...assessed, passages: [{ ...firePassage, type_key: null }, unknown, renamed] },
-        ]),
-    });
-    const response = await request('/legislation/changes');
-    const { items } = legalChangeListResponseSchema.parse(await response.json());
-    const fireInstructions = {
-      typeKey: 'fire_own_instructions',
-      title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
-    };
-    expect(items[0]!.passages.map((passage) => passage.document)).toEqual([
-      fireInstructions,
-      fireInstructions,
-      null,
-    ]);
-  });
-
-  it('drops only the stored amending acts, amended units and hunks it cannot read', async () => {
-    mockUpstream({
-      legal_changes: () =>
-        Response.json([
-          {
-            ...assessed,
-            amending_acts: [{ kind: 'LEGEA' }, ...assessed.amending_acts],
-            amended_units: [
-              ...assessed.amended_units,
-              { ...assessed.amended_units[0], operation: 'renumbered' },
-            ],
-            passages: [{ ...quoted, hunks: [{ old: 'casca' }, ...quoted.hunks] }],
-          },
-        ]),
-    });
-    const response = await request('/legislation/changes');
-    const [item] = legalChangeListResponseSchema.parse(await response.json()).items;
-    expect(item!.amendingActs).toEqual([
-      { name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: null },
-    ]);
-    expect(item!.amendedUnits.map((unit) => unit.unit)).toEqual(['Art. 36 alin. (2)']);
-    expect(item!.passages[0]!.hunks).toEqual(quoted.hunks);
-  });
-
-  it('answers only the fields members see of a stored amending act and amended unit', async () => {
-    mockUpstream({
-      legal_changes: () =>
-        Response.json([
-          {
-            ...assessed,
-            amending_acts: [{ ...assessed.amending_acts[0], portalId: 301234 }],
-          },
-        ]),
-    });
-    const response = await request('/legislation/changes');
-    const {
-      items: [item],
-    } = (await response.json()) as { items: Record<string, unknown>[] };
-    expect(item!.amendingActs).toEqual([
-      { name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: 301234 },
-    ]);
-    expect(item!.amendedUnits).toEqual([
-      {
-        unit: 'Art. 36 alin. (2)',
-        operation: 'modified',
-        date: '2026-11-06',
-        amendingAct: 'Legea 207/2026',
-      },
-    ]);
-  });
-
-  it('never asks for the reasons to review, which members cannot read', async () => {
-    mockUpstream({ legal_changes: () => Response.json([change]) });
-    await request('/legislation/changes');
-    const [list] = searchParams('legal_changes');
-    expect(list!.get('select')).not.toMatch(/(^|,)review(,|$)/);
-  });
-
-  it('answers 401 without a token', async () => {
-    const response = await createApp().request('/legislation/changes', {}, env);
-    expect(response.status).toBe(401);
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

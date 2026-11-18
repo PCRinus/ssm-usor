@@ -404,6 +404,87 @@ describe('GET /legislation/changes/{changeId}', () => {
     expect(searchParams('documents_behind')).toEqual([]);
   });
 
+  it('names the document a passage sits in by its type, else by its file, and none when neither is known', async () => {
+    const byFile = {
+      ...helmet,
+      id: 'f2f2f2f2-0000-4000-8000-000000000003',
+      template_file: 'fire/2.1_fire_own_instructions.docx',
+      type_key: null,
+    };
+    const unknown = {
+      ...helmet,
+      id: 'f2f2f2f2-0000-4000-8000-000000000004',
+      template_file: 'retired.docx',
+      type_key: null,
+    };
+    const renamed = {
+      ...helmet,
+      id: 'f2f2f2f2-0000-4000-8000-000000000005',
+      template_file: 'renamed.docx',
+      type_key: 'fire_own_instructions',
+    };
+    mockUpstream({
+      legal_changes: () =>
+        Response.json({ ...applied, passages: [byFile, unknown, renamed], versions: [] }),
+    });
+    const response = await request(`/legislation/changes/${applied.id}`);
+    const { change } = legalChangeDetailResponseSchema.parse(await response.json());
+    const fireInstructions = {
+      typeKey: 'fire_own_instructions',
+      title: 'Instrucțiuni proprii în domeniul situațiilor de urgență',
+    };
+    expect(change.passages.map((passage) => passage.document)).toEqual([
+      fireInstructions,
+      fireInstructions,
+      null,
+    ]);
+  });
+
+  it('drops only the stored amending acts and amended units it cannot read', async () => {
+    mockUpstream({
+      legal_changes: () =>
+        Response.json({
+          ...applied,
+          versions: [],
+          amending_acts: [{ kind: 'LEGEA' }, ...applied.amending_acts],
+          amended_units: [
+            ...applied.amended_units,
+            { ...applied.amended_units[0], operation: 'renumbered' },
+          ],
+        }),
+    });
+    const response = await request(`/legislation/changes/${applied.id}`);
+    const { change } = legalChangeDetailResponseSchema.parse(await response.json());
+    expect(change.amendingActs).toEqual([
+      { name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: 301234 },
+    ]);
+    expect(change.amendedUnits.map((unit) => unit.unit)).toEqual(['Art. 36 alin. (2)', 'Art. 6']);
+  });
+
+  it('answers only the fields members see of a stored amending act and amended unit', async () => {
+    mockUpstream({
+      legal_changes: () =>
+        Response.json({
+          ...applied,
+          versions: [],
+          amended_units: [{ ...applied.amended_units[0], subject: 'Alineatul (2), Articolul 36' }],
+        }),
+    });
+    const response = await request(`/legislation/changes/${applied.id}`);
+    const { change } = (await response.json()) as { change: Record<string, unknown> };
+    expect(change.amendingActs).toEqual([
+      { name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: 301234 },
+    ]);
+    expect(change.amendedUnits).toEqual([
+      {
+        unit: 'Art. 36 alin. (2)',
+        operation: 'modified',
+        date: '2026-11-06',
+        amendingAct: 'Legea 207/2026',
+      },
+    ]);
+  });
+
   it('answers 404 for a change that does not exist', async () => {
     mockUpstream({ legal_changes: () => Response.json([]) });
     const response = await request(`/legislation/changes/${applied.id}`);

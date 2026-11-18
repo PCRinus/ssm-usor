@@ -5,7 +5,6 @@ import {
   latestLegalCheckRunResponseSchema,
   legalActListResponseSchema,
   legalChangeDetailResponseSchema,
-  legalChangeListResponseSchema,
   openLegalChangeListResponseSchema,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
@@ -29,28 +28,6 @@ export const listLegalActsRoute = createRoute({
       content: {
         'application/json': {
           schema: legalActListResponseSchema.meta({ id: 'LegalActListResponse' }),
-        },
-      },
-    },
-    ...membershipErrors,
-  },
-});
-
-export const listLegalChangesRoute = createRoute({
-  method: 'get',
-  path: '/legislation/changes',
-  operationId: 'listLegalChanges',
-  summary: 'List the legal changes',
-  description:
-    "Newer consolidated forms of the watched acts, newest first, each with its act, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended and the cited passages it touched, with the law's text before and after. The same for every organization; not paginated.",
-  security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
-  responses: {
-    200: {
-      description: 'The legal changes',
-      content: {
-        'application/json': {
-          schema: legalChangeListResponseSchema.meta({ id: 'LegalChangeListResponse' }),
         },
       },
     },
@@ -113,7 +90,7 @@ export const getLegalChangeRoute = createRoute({
   path: '/legislation/changes/{changeId}',
   operationId: 'getLegalChange',
   summary: 'Get a legal change',
-  description: `What \`GET /legislation/changes\` gives for one change, with the act's subject, each amending act's portal page, every document type citing the act, and the template versions that answer it with their notes. ${behindDescription}`,
+  description: `One legal change: its act and subject, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended with each amending act's portal page, the cited passages it touched with the law's text before and after, every document type citing the act, and the template versions that answer it with their notes. ${behindDescription}`,
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: z.object({ changeId: z.uuid() }) },
