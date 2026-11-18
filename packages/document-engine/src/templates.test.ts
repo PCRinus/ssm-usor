@@ -1555,7 +1555,8 @@ describe('fire-safety set', () => {
   it('lists the two tests on their cover', () => {
     const text = documentText(read('fire/4.0_fire_cover_tests.docx'));
     expect(text).toMatch(/^1\. Test de verificare a cunoștințelor la angajare/m);
-    expect(text).toMatch(/^2\. Test de verificare periodică \(anual\)\.$/m);
+    expect(text).toMatch(/^2\. Test anual de verificare a cunoștințelor\.$/m);
+    expect(text).not.toMatch(/periodic/i);
   });
 
   it('prints the checks of OMAI 135/2023 annex 2, each answered yes or no', () => {
@@ -2424,7 +2425,7 @@ describe('knowledge tests', () => {
       expect(text.match(/^\d+\. /gm)).toHaveLength(count * 2);
       expect(
         text.match(
-          /^TEST(ARE)? DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
+          /^TEST(ARE| ANUAL)? DE VERIFICARE .*\nLa fiecare întrebare pot fi corecte unul sau mai multe răspunsuri\.$/gm
         )
       ).toHaveLength(2);
       expect(text).toContain(
@@ -2455,11 +2456,32 @@ describe('knowledge tests', () => {
 
   it.each(knowledgeTests)('%s opens the specimen on a page of its own', (_code, name) => {
     const titles = (bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []).filter((paragraph) =>
-      /^TEST(ARE)? DE VERIFICARE /.test(documentTextOf(paragraph))
+      /^TEST(ARE| ANUAL)? DE VERIFICARE /.test(documentTextOf(paragraph))
     );
     expect(titles).toHaveLength(2);
     expect(titles[0]).toContain('<w:pageBreakBefore w:val="false"/>');
     expect(titles[1]).toContain('<w:pageBreakBefore w:val="true"/>');
+  });
+
+  it('names the SU annual test annual, never periodic, in its titles and its header', () => {
+    const zip = new PizZip(read('fire/4.2_fire_test_annual.docx'));
+    const titles = (
+      bodyOf('fire/4.2_fire_test_annual.docx').match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []
+    )
+      .map(documentTextOf)
+      .filter((paragraph) => paragraph.startsWith('TEST '));
+    expect(titles).toEqual(
+      Array(2).fill(
+        'TEST ANUAL DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SITUAȚIILE\u00a0DE\u00a0URGENȚĂ'
+      )
+    );
+    for (const part of ['word/header1.xml', 'word/header2.xml', 'word/header3.xml']) {
+      const header = documentTextOf(zip.file(part)!.asText());
+      expect(header).toContain(
+        'Test anual de verificare a cunoștințelor în domeniul situațiilor de urgență'
+      );
+      expect(header).not.toMatch(/periodic/i);
+    }
   });
 
   it.each(knowledgeTests)('%s holds no picture', (_code, name) => {
