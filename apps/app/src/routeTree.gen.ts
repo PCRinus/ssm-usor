@@ -84,7 +84,8 @@ import { Route as AuthenticatedOferteLeadIdEditareRouteImport } from './routes/_
 import { Route as AuthenticatedOrganizatieAbonamentIndexRouteImport } from './routes/_authenticated/organizatie/abonament/index';
 import { Route as AuthenticatedOrganizatieAbonamentAlegeRouteImport } from './routes/_authenticated/organizatie/abonament/alege';
 import { Route as AuthenticatedTesteBankSsmRouteImport } from './routes/_authenticated/teste/_bank/ssm';
-import { Route as AuthenticatedTesteBankSuRouteImport } from './routes/_authenticated/teste/_bank/su';
+import { Route as AuthenticatedTesteBankSuAnualRouteImport } from './routes/_authenticated/teste/_bank/su-anual';
+import { Route as AuthenticatedTesteBankSuLaAngajareRouteImport } from './routes/_authenticated/teste/_bank/su-la-angajare';
 import { Route as AuthenticatedClientiClientIdAlteDocumenteIndexRouteImport } from './routes/_authenticated/clienti/$clientId/alte-documente/index';
 import { Route as AuthenticatedClientiClientIdAngajatiIndexRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/index';
 import { Route as AuthenticatedClientiClientIdAngajatiEmployeeIdRouteImport } from './routes/_authenticated/clienti/$clientId/angajati/$employeeId';
@@ -534,10 +535,16 @@ const AuthenticatedTesteBankSsmRoute =
     path: '/ssm',
     getParentRoute: () => AuthenticatedTesteBankRoute,
   } as any);
-const AuthenticatedTesteBankSuRoute =
-  AuthenticatedTesteBankSuRouteImport.update({
-    id: '/su',
-    path: '/su',
+const AuthenticatedTesteBankSuAnualRoute =
+  AuthenticatedTesteBankSuAnualRouteImport.update({
+    id: '/su-anual',
+    path: '/su-anual',
+    getParentRoute: () => AuthenticatedTesteBankRoute,
+  } as any);
+const AuthenticatedTesteBankSuLaAngajareRoute =
+  AuthenticatedTesteBankSuLaAngajareRouteImport.update({
+    id: '/su-la-angajare',
+    path: '/su-la-angajare',
     getParentRoute: () => AuthenticatedTesteBankRoute,
   } as any);
 const AuthenticatedClientiClientIdAlteDocumenteIndexRoute =
@@ -794,7 +801,8 @@ export interface FileRoutesByFullPath {
   '/oferte/$leadId/editare': typeof AuthenticatedOferteLeadIdEditareRoute;
   '/organizatie/abonament/alege': typeof AuthenticatedOrganizatieAbonamentAlegeRoute;
   '/teste/ssm': typeof AuthenticatedTesteBankSsmRoute;
-  '/teste/su': typeof AuthenticatedTesteBankSuRoute;
+  '/teste/su-anual': typeof AuthenticatedTesteBankSuAnualRoute;
+  '/teste/su-la-angajare': typeof AuthenticatedTesteBankSuLaAngajareRoute;
   '/clienti/$clientId/': typeof AuthenticatedClientiClientIdIndexRoute;
   '/oferte/$leadId/': typeof AuthenticatedOferteLeadIdIndexRoute;
   '/organizatie/abonament/': typeof AuthenticatedOrganizatieAbonamentIndexRoute;
@@ -879,7 +887,8 @@ export interface FileRoutesByTo {
   '/oferte/$leadId/editare': typeof AuthenticatedOferteLeadIdEditareRoute;
   '/organizatie/abonament/alege': typeof AuthenticatedOrganizatieAbonamentAlegeRoute;
   '/teste/ssm': typeof AuthenticatedTesteBankSsmRoute;
-  '/teste/su': typeof AuthenticatedTesteBankSuRoute;
+  '/teste/su-anual': typeof AuthenticatedTesteBankSuAnualRoute;
+  '/teste/su-la-angajare': typeof AuthenticatedTesteBankSuLaAngajareRoute;
   '/clienti/$clientId': typeof AuthenticatedClientiClientIdIndexRoute;
   '/oferte/$leadId': typeof AuthenticatedOferteLeadIdIndexRoute;
   '/organizatie/abonament': typeof AuthenticatedOrganizatieAbonamentIndexRoute;
@@ -984,7 +993,8 @@ export interface FileRoutesById {
   '/_authenticated/oferte/$leadId/editare': typeof AuthenticatedOferteLeadIdEditareRoute;
   '/_authenticated/organizatie/abonament/alege': typeof AuthenticatedOrganizatieAbonamentAlegeRoute;
   '/_authenticated/teste/_bank/ssm': typeof AuthenticatedTesteBankSsmRoute;
-  '/_authenticated/teste/_bank/su': typeof AuthenticatedTesteBankSuRoute;
+  '/_authenticated/teste/_bank/su-anual': typeof AuthenticatedTesteBankSuAnualRoute;
+  '/_authenticated/teste/_bank/su-la-angajare': typeof AuthenticatedTesteBankSuLaAngajareRoute;
   '/_authenticated/clienti/$clientId/': typeof AuthenticatedClientiClientIdIndexRoute;
   '/_authenticated/oferte/$leadId/': typeof AuthenticatedOferteLeadIdIndexRoute;
   '/_authenticated/organizatie/abonament/': typeof AuthenticatedOrganizatieAbonamentIndexRoute;
@@ -1090,7 +1100,8 @@ export interface FileRouteTypes {
     | '/oferte/$leadId/editare'
     | '/organizatie/abonament/alege'
     | '/teste/ssm'
-    | '/teste/su'
+    | '/teste/su-anual'
+    | '/teste/su-la-angajare'
     | '/clienti/$clientId/'
     | '/oferte/$leadId/'
     | '/organizatie/abonament/'
@@ -1175,7 +1186,8 @@ export interface FileRouteTypes {
     | '/oferte/$leadId/editare'
     | '/organizatie/abonament/alege'
     | '/teste/ssm'
-    | '/teste/su'
+    | '/teste/su-anual'
+    | '/teste/su-la-angajare'
     | '/clienti/$clientId'
     | '/oferte/$leadId'
     | '/organizatie/abonament'
@@ -1279,7 +1291,8 @@ export interface FileRouteTypes {
     | '/_authenticated/oferte/$leadId/editare'
     | '/_authenticated/organizatie/abonament/alege'
     | '/_authenticated/teste/_bank/ssm'
-    | '/_authenticated/teste/_bank/su'
+    | '/_authenticated/teste/_bank/su-anual'
+    | '/_authenticated/teste/_bank/su-la-angajare'
     | '/_authenticated/clienti/$clientId/'
     | '/_authenticated/oferte/$leadId/'
     | '/_authenticated/organizatie/abonament/'
@@ -1856,11 +1869,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTesteBankSsmRouteImport;
       parentRoute: typeof AuthenticatedTesteBankRoute;
     };
-    '/_authenticated/teste/_bank/su': {
-      id: '/_authenticated/teste/_bank/su';
-      path: '/su';
-      fullPath: '/teste/su';
-      preLoaderRoute: typeof AuthenticatedTesteBankSuRouteImport;
+    '/_authenticated/teste/_bank/su-anual': {
+      id: '/_authenticated/teste/_bank/su-anual';
+      path: '/su-anual';
+      fullPath: '/teste/su-anual';
+      preLoaderRoute: typeof AuthenticatedTesteBankSuAnualRouteImport;
+      parentRoute: typeof AuthenticatedTesteBankRoute;
+    };
+    '/_authenticated/teste/_bank/su-la-angajare': {
+      id: '/_authenticated/teste/_bank/su-la-angajare';
+      path: '/su-la-angajare';
+      fullPath: '/teste/su-la-angajare';
+      preLoaderRoute: typeof AuthenticatedTesteBankSuLaAngajareRouteImport;
       parentRoute: typeof AuthenticatedTesteBankRoute;
     };
     '/_authenticated/clienti/$clientId/alte-documente/': {
@@ -2519,13 +2539,16 @@ const AuthenticatedOrganizatieRouteWithChildren =
 
 interface AuthenticatedTesteBankRouteChildren {
   AuthenticatedTesteBankSsmRoute: typeof AuthenticatedTesteBankSsmRoute;
-  AuthenticatedTesteBankSuRoute: typeof AuthenticatedTesteBankSuRoute;
+  AuthenticatedTesteBankSuAnualRoute: typeof AuthenticatedTesteBankSuAnualRoute;
+  AuthenticatedTesteBankSuLaAngajareRoute: typeof AuthenticatedTesteBankSuLaAngajareRoute;
 }
 
 const AuthenticatedTesteBankRouteChildren: AuthenticatedTesteBankRouteChildren =
   {
     AuthenticatedTesteBankSsmRoute: AuthenticatedTesteBankSsmRoute,
-    AuthenticatedTesteBankSuRoute: AuthenticatedTesteBankSuRoute,
+    AuthenticatedTesteBankSuAnualRoute: AuthenticatedTesteBankSuAnualRoute,
+    AuthenticatedTesteBankSuLaAngajareRoute:
+      AuthenticatedTesteBankSuLaAngajareRoute,
   };
 
 const AuthenticatedTesteBankRouteWithChildren =
