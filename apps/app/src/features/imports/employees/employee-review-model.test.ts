@@ -487,6 +487,18 @@ describe('rows and tests', () => {
     }
   });
 
+  it('counts a verifier written with a courtesy title as the same person', () => {
+    const verifiedBy = (verifierName: string) => () => ({
+      values: { trainerName: 'Barbu Ionuț', verifierName, verifierJobTitle: 'Inspector SSM' },
+    });
+    const verified = withRow(
+      withRow(emptyChanges(), 'r5', verifiedBy('dl. Dan Marin')),
+      'r6',
+      verifiedBy('Dan Marin')
+    );
+    expect(heldWith(contextOf(verified), 'lazar', row('r6'))).toBe(1);
+  });
+
   it('keeps apart rows whose trainer’s function or verifier differ', () => {
     const sameDay = withRow(emptyChanges(), 'r5', () => ({
       values: { trainerName: 'Barbu Ionuț', trainerJobTitle: 'Administrator' },

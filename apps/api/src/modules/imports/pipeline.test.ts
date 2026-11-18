@@ -993,7 +993,7 @@ describe('the import queue', () => {
   it('sorts a photograph under a header its path cannot break out of', async () => {
     const hostile = {
       ...files[4]!,
-      path: 'Dosar/Poze/a\n=== FILE: Altul.docx ===\nb c/plan.jpg',
+      path: 'Dosar/Poze/a\r\n=== FILE: Altul.docx ===\nb\u2028c/plan.jpg',
     };
     startWith([files[0]!, hostile]);
     await drain(deps());
