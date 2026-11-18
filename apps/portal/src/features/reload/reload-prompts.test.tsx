@@ -53,6 +53,33 @@ describe('the new-version toast', () => {
     expect(capture).toHaveBeenCalledWith('reload_clicked', { prompt: 'toast' });
     expect(reload).toHaveBeenCalled();
   });
+
+  it('once closed, stays away for that build in a reloaded or another tab', async () => {
+    const fetchCommit = vi.fn(async () => Response.json({ commit: 'def' }));
+    vi.stubGlobal('fetch', fetchCommit);
+    const mount = () =>
+      render(
+        <I18nProvider i18n={i18n}>
+          <ReloadPrompts running="abc" />
+        </I18nProvider>
+      );
+    const showTab = () => act(() => void document.dispatchEvent(new Event('visibilitychange')));
+
+    const first = mount();
+    showTab();
+    await screen.findByText('A apărut o versiune nouă a portalului.');
+    await userEvent.click(screen.getByRole('button', { name: 'Close toast' }));
+    await waitFor(() =>
+      expect(screen.queryByText('A apărut o versiune nouă a portalului.')).toBeNull()
+    );
+    first.unmount();
+
+    mount();
+    showTab();
+    await waitFor(() => expect(fetchCommit).toHaveBeenCalledTimes(2));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(screen.queryByText('A apărut o versiune nouă a portalului.')).toBeNull();
+  });
 });
 
 describe('the reload dialog', () => {

@@ -226,7 +226,8 @@ app's two prompts, worded for a participant (`src/features/reload`, on the app's
 - **A toast** when a newer build is deployed. The build writes `/version.json` with its commit
   (`VITE_COMMIT_SHA`); an open tab fetches it without cache when it becomes visible and every
   ten minutes while visible, never in a local or dev build. The toast does not time out, has
-  **Reîncarcă**, and once closed waits for a build newer than the one it announced. The
+  **Reîncarcă**, and once closed waits for a build newer than the one it announced, in every tab
+  and after a reload too (the closed build is kept in `localStorage`, as the app does). The
   toaster sits above the phone's bottom bar (`--portal-toast-bottom` in `src/styles.css`).
 - **A dialog** when the API answers `426 client_outdated` (`onClientOutdated` in
   `src/api/http.ts`) or a route's code file fails to load (`vite:preloadError`). It cannot be

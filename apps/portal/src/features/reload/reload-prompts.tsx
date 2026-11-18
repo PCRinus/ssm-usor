@@ -10,7 +10,15 @@ import { openOutdatedDialog } from './reload-store';
 const runningCommit = import.meta.env.DEV ? 'local' : (import.meta.env.VITE_COMMIT_SHA ?? 'local');
 
 export function ReloadPrompts({ running = runningCommit }: { running?: string }) {
-  useEffect(() => watchDeployedVersion({ running, onNewer: showNewVersionToast }), [running]);
+  useEffect(
+    () =>
+      watchDeployedVersion({
+        running,
+        postponedKey: 'ssm-usor:portal-new-version-postponed',
+        onNewer: (_commit, postpone) => showNewVersionToast(postpone),
+      }),
+    [running]
+  );
 
   useEffect(() => {
     const onPreloadError = (event: Event) => {
