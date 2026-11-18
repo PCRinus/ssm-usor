@@ -1,11 +1,13 @@
 import { evaluationGlobalRiskLevel, riskLevel } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ApiHttpError } from '@/api/http';
+import { bodiesOf, fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, jobPositionRecord, userOnlyMe } from '@/test/records';
 
 import { evaluationFailure } from './evaluation-failure';
 import {
@@ -17,39 +19,20 @@ import {
   sectionsOf,
 } from './risk-evaluation-schema';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord();
 
-const welder = {
+const welder = jobPositionRecord({
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   name: 'Sudor',
-  staffCategory: 'execution',
   workZone: 'Atelier',
   activities: 'Sudură electrică și autogenă.',
-  trainingIntervalMonths: null as number | null,
   employeeCount: 3,
-  needsProtectiveEquipment: true as boolean | null,
+  needsProtectiveEquipment: true,
   equipmentCount: 2,
   instructionCount: 1,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
-};
+});
 const fitter = { ...welder, id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d', name: 'Lăcătuș mecanic' };
 const cashier = { ...welder, id: '3f1d2c4b-5a6e-4f7a-8b9c-0d1e2f3a4b5c', name: 'Casier' };
 
@@ -171,9 +154,7 @@ const welderEvaluationPage = `${welderPage}/fisa-de-evaluare`;
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockEvaluationsApi({
   client = sampleClient,
   evaluations = [welderEvaluation, cashierEvaluation, visitors],
   sensitiveGroupsState = 'undecided',
@@ -215,109 +196,109 @@ function mockApi({
       })),
     });
 
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const { pathname } = url;
-    const method = init?.method ?? 'GET';
-    const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (pathname === positionsPath) {
-      return Response.json({ items: [welder, fitter, cashier] });
-    }
-    if (pathname.endsWith('/equipment')) {
-      return Response.json({ items: [], needsProtectiveEquipment: true });
-    }
-    if (pathname.endsWith('/instructions')) {
-      return Response.json({ items: [] });
-    }
-    if (pathname === '/risk-factor-suggestions') return suggestions(init, url);
-    if (pathname === `/clients/${clientId}/document-details`) {
-      return Response.json({
-        documentDetails: {
-          legalRepresentativeName: 'Maria Popescu',
-          legalRepresentativeRole: 'Administrator',
-          periodicTrainingMinutes: null,
-          administrativeTrainingIntervalMonths: null,
-          administrativeTrainingNotApplicable: false,
-          workerTrainingIntervalMonths: null,
-          workerTrainingNotApplicable: false,
-          trainingFirstMonth: null,
-          trainingDayFrom: null,
-          trainingDayTo: null,
-        },
-      });
-    }
-    if (pathname === `/clients/${clientId}/responsible-persons`) {
-      return Response.json({ items: [workshopLead, firstAider] });
-    }
-    const byPosition = pathname.match(/\/job-positions\/([^/]+)\/risk-evaluation$/);
-    if (byPosition) {
-      const evaluation = [...store.values()].find(
-        (candidate) => candidate.jobPosition?.id === byPosition[1]
-      );
-      return Response.json({ evaluation: evaluation ?? null });
-    }
-    if (pathname === `/clients/${clientId}/sensitive-groups-state`) {
-      groupsState = body.state as typeof groupsState;
-      return Response.json({ state: groupsState });
-    }
-    if (pathname === evaluationsPath) {
-      if (method === 'POST') {
-        const response = (create ?? created)(init, url);
-        if (response.status === 201 && body.kind === 'sensitive_groups') groupsState = 'evaluated';
-        return response;
+  mockApi(
+    (init, url) => {
+      const { pathname } = url;
+      const method = init?.method ?? 'GET';
+      const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
+      if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === positionsPath) {
+        return Response.json({ items: [welder, fitter, cashier] });
       }
-      return Response.json({
-        items: [...store.values()].map(summaryOf),
-        sensitiveGroupsState: groupsState,
-      });
-    }
-    const match = pathname.match(
-      /\/risk-evaluations\/([^/]+)(?:\/(factors|factor-order)(?:\/([^/]+))?)?$/
-    );
-    if (match) {
-      const [, evaluationId, part, factorId] = match;
-      const evaluation = store.get(evaluationId!);
-      if (!evaluation) return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
-      if (!part) {
-        if (method === 'DELETE') {
-          store.delete(evaluation.id);
-          return new Response(null, { status: 204 });
+      if (pathname.endsWith('/equipment')) {
+        return Response.json({ items: [], needsProtectiveEquipment: true });
+      }
+      if (pathname.endsWith('/instructions')) {
+        return Response.json({ items: [] });
+      }
+      if (pathname === '/risk-factor-suggestions') return suggestions(init, url);
+      if (pathname === `/clients/${clientId}/document-details`) {
+        return Response.json({
+          documentDetails: {
+            legalRepresentativeName: 'Maria Popescu',
+            legalRepresentativeRole: 'Administrator',
+            periodicTrainingMinutes: null,
+            administrativeTrainingIntervalMonths: null,
+            administrativeTrainingNotApplicable: false,
+            workerTrainingIntervalMonths: null,
+            workerTrainingNotApplicable: false,
+            trainingFirstMonth: null,
+            trainingDayFrom: null,
+            trainingDayTo: null,
+          },
+        });
+      }
+      if (pathname === `/clients/${clientId}/responsible-persons`) {
+        return Response.json({ items: [workshopLead, firstAider] });
+      }
+      const byPosition = pathname.match(/\/job-positions\/([^/]+)\/risk-evaluation$/);
+      if (byPosition) {
+        const evaluation = [...store.values()].find(
+          (candidate) => candidate.jobPosition?.id === byPosition[1]
+        );
+        return Response.json({ evaluation: evaluation ?? null });
+      }
+      if (pathname === `/clients/${clientId}/sensitive-groups-state`) {
+        groupsState = body.state as typeof groupsState;
+        return Response.json({ state: groupsState });
+      }
+      if (pathname === evaluationsPath) {
+        if (method === 'POST') {
+          const response = (create ?? created)(init, url);
+          if (response.status === 201 && body.kind === 'sensitive_groups')
+            groupsState = 'evaluated';
+          return response;
         }
-        if (method === 'PATCH') return answer({ ...evaluation, ...body });
-        return Response.json({ evaluation });
-      }
-      if (factorId === 'copy') {
-        const source = store.get(String(body.fromEvaluationId))!;
-        return answer({
-          ...evaluation,
-          factors: [
-            ...evaluation.factors,
-            ...source.factors.map((factor) => ({ ...factor, id: uuid() })),
-          ],
+        return Response.json({
+          items: [...store.values()].map(summaryOf),
+          sensitiveGroupsState: groupsState,
         });
       }
-      if (factorId && method === 'DELETE') {
-        return answer({
-          ...evaluation,
-          factors: evaluation.factors.filter((factor) => factor.id !== factorId),
-        });
+      const match = pathname.match(
+        /\/risk-evaluations\/([^/]+)(?:\/(factors|factor-order)(?:\/([^/]+))?)?$/
+      );
+      if (match) {
+        const [, evaluationId, part, factorId] = match;
+        const evaluation = store.get(evaluationId!);
+        if (!evaluation)
+          return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
+        if (!part) {
+          if (method === 'DELETE') {
+            store.delete(evaluation.id);
+            return new Response(null, { status: 204 });
+          }
+          if (method === 'PATCH') return answer({ ...evaluation, ...body });
+          return Response.json({ evaluation });
+        }
+        if (factorId === 'copy') {
+          const source = store.get(String(body.fromEvaluationId))!;
+          return answer({
+            ...evaluation,
+            factors: [
+              ...evaluation.factors,
+              ...source.factors.map((factor) => ({ ...factor, id: uuid() })),
+            ],
+          });
+        }
+        if (factorId && method === 'DELETE') {
+          return answer({
+            ...evaluation,
+            factors: evaluation.factors.filter((factor) => factor.id !== factorId),
+          });
+        }
+        if (factorId) {
+          return answer({
+            ...evaluation,
+            factors: evaluation.factors.map((factor) =>
+              factor.id === factorId ? toFactor(body, factorId) : factor
+            ),
+          });
+        }
+        return answer({ ...evaluation, factors: [...evaluation.factors, toFactor(body)] }, 201);
       }
-      if (factorId) {
-        return answer({
-          ...evaluation,
-          factors: evaluation.factors.map((factor) =>
-            factor.id === factorId ? toFactor(body, factorId) : factor
-          ),
-        });
-      }
-      return answer({ ...evaluation, factors: [...evaluation.factors, toFactor(body)] }, 201);
-    }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
+    },
+    { me: userOnlyMe }
+  );
 }
 
 async function typeResponsible(user: ReturnType<typeof userEvent.setup>, name: string) {
@@ -326,29 +307,13 @@ async function typeResponsible(user: ReturnType<typeof userEvent.setup>, name: s
   await user.click(await screen.findByRole('option', { name: `Folosește „${name}”` }));
 }
 
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
-
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the positions table', () => {
   it("says where each position's risk evaluation stands, linking to it", async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(positionsPage);
     const rows = await screen.findAllByTestId('job-position-row');
     await waitFor(() => expect(within(rows[0]!).getByTestId('job-position-risk')).toBeTruthy());
@@ -366,7 +331,7 @@ describe('the positions table', () => {
 
 describe("a position's risk evaluation card", () => {
   it('sums up the evaluation and opens it', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(welderPage);
     const card = await screen.findByTestId('position-risk-card');
     await waitFor(() => expect(within(card).getByTestId('position-risk-state')).toBeTruthy());
@@ -383,7 +348,7 @@ describe("a position's risk evaluation card", () => {
   });
 
   it('starts the evaluation of a position that has none, and opens it', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(`${positionsPage}/${fitter.id}`);
     const user = userEvent.setup();
     const card = await screen.findByTestId('position-risk-card');
@@ -393,7 +358,7 @@ describe("a position's risk evaluation card", () => {
       within(within(card).getByTestId('position-risk-empty')).getByTestId('position-risk-start')
     );
     await waitFor(() =>
-      expect(requests(evaluationsPath, 'POST')).toEqual([
+      expect(bodiesOf(evaluationsPath, 'POST')).toEqual([
         { kind: 'job_position', jobPositionId: fitter.id },
       ])
     );
@@ -406,7 +371,7 @@ describe("a position's risk evaluation card", () => {
 
 describe('the way back from an evaluation', () => {
   it('unwinds the list, the position and its sheet one page at a time', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(positionsPage);
     const user = userEvent.setup();
     const listIndex = runtime.router.history.location.state.__TSR_index;
@@ -432,7 +397,7 @@ describe('the way back from an evaluation', () => {
   });
 
   it('goes back to the positions from a sheet started on its own page', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(positionsPage);
     const user = userEvent.setup();
     const listIndex = runtime.router.history.location.state.__TSR_index;
@@ -455,7 +420,7 @@ describe('the way back from an evaluation', () => {
   });
 
   it('goes back to the position a deleted sheet was opened from', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(welderPage);
     const user = userEvent.setup();
     const positionIndex = runtime.router.history.location.state.__TSR_index;
@@ -470,7 +435,7 @@ describe('the way back from an evaluation', () => {
   });
 
   it("returns from a client's sheet to the positions it was opened from", async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(positionsPage);
     const user = userEvent.setup();
     const listIndex = runtime.router.history.location.state.__TSR_index;
@@ -490,7 +455,7 @@ describe('the way back from an evaluation', () => {
 
 describe("a position's risk evaluation page", () => {
   it('lists the factors in the order of the sheet, each with its component and group', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     await screen.findByTestId('risk-evaluation-page');
     expect(screen.queryByTestId('client-page')).toBeNull();
@@ -546,7 +511,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('switches the component tabs with the arrow keys', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const tablist = await screen.findByRole('tablist', { name: 'Componente' });
     const [all, equipment, worker] = within(tablist).getAllByRole('tab');
@@ -567,7 +532,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('shows the classes with their meaning, the level with the unacceptable ones marked, and the measures', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const rows = await screen.findAllByTestId('risk-factor-row');
     const [moving, cutsRow, electricRow, carelessRow] = rows;
@@ -593,7 +558,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('sorts by a column: ascending, descending, then back to the order of the sheet', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(welderEvaluationPage);
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-factor-row');
@@ -646,7 +611,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('opens with the tab, the sort and the cell of its address', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(
       `${welderEvaluationPage}?tab=means_of_production&sort=gravity&order=desc&gravity=4&probability=5`
     );
@@ -671,7 +636,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('ignores an address that names a sort or a cell it does not know', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(
       `${welderEvaluationPage}?tab=work_task&sort=description&order=asc&gravity=1&probability=1`
     );
@@ -681,7 +646,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it("shows one component's factors on its tab, with the group alone under each", async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(welderEvaluationPage);
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-factor-row');
@@ -701,7 +666,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it("filters the factors by a cell of the result's grid until the cell is clicked again", async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-factor-row');
@@ -737,7 +702,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('gives the global level, whether it is over the limit, and the shares per component', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     await screen.findByTestId('risk-result-card');
     expect(screen.getByTestId('risk-global-level').textContent).toBe('3,86');
@@ -754,7 +719,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('shows the shape of the result without figures until the first factor', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(`${positionsPage}/${cashier.id}/fisa-de-evaluare`);
     expect((await screen.findByTestId('risk-result-empty')).textContent).toContain(
       'apar după primul factor de risc'
@@ -769,7 +734,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('shows the work system, taking the task and the people from the position', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const card = await screen.findByTestId('work-system-card');
     expect(card.textContent).toContain('Sudură electrică și autogenă.');
@@ -785,7 +750,7 @@ describe("a position's risk evaluation page", () => {
     await user.clear(environment);
     await user.click(screen.getByTestId('work-system-save'));
     await waitFor(() =>
-      expect(requests(`${evaluationsPath}/${welderEvaluation.id}`, 'PATCH')).toEqual([
+      expect(bodiesOf(`${evaluationsPath}/${welderEvaluation.id}`, 'PATCH')).toEqual([
         {
           meansOfProduction: 'Aparat de sudură, polizor unghiular.',
           workEnvironment: null,
@@ -797,7 +762,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('adds a factor with its measures, showing what the classes mean and the level they give', async () => {
-    mockApi({
+    mockEvaluationsApi({
       suggestions: (_init, url) =>
         Response.json({
           items:
@@ -866,12 +831,12 @@ describe("a position's risk evaluation page", () => {
     await user.type(screen.getByTestId('risk-factor-deadline'), 'Permanent');
     await typeResponsible(user, 'Șef atelier');
     await waitFor(() =>
-      expect(requests('/risk-factor-suggestions', 'GET').length).toBeGreaterThan(0)
+      expect(bodiesOf('/risk-factor-suggestions', 'GET').length).toBeGreaterThan(0)
     );
     await user.click(screen.getByTestId('risk-factor-save'));
 
     await waitFor(() =>
-      expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toEqual([
+      expect(bodiesOf(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toEqual([
         {
           component: 'work_environment',
           group: 'Factori de risc fizic',
@@ -896,7 +861,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('edits a factor from its row and deletes another after asking', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('risk-factor-row');
@@ -911,7 +876,7 @@ describe("a position's risk evaluation page", () => {
     await user.click(screen.getByTestId('risk-factor-save'));
     await waitFor(() =>
       expect(
-        requests(`${evaluationsPath}/${welderEvaluation.id}/factors/${movingParts.id}`, 'PUT')
+        bodiesOf(`${evaluationsPath}/${welderEvaluation.id}/factors/${movingParts.id}`, 'PUT')
       ).toHaveLength(1)
     );
     await waitFor(() =>
@@ -930,12 +895,12 @@ describe("a position's risk evaluation page", () => {
     await user.click(screen.getByTestId('risk-factor-remove-confirm'));
     await waitFor(() => expect(screen.getAllByTestId('risk-factor-row')).toHaveLength(3));
     expect(
-      requests(`${evaluationsPath}/${welderEvaluation.id}/factors/${cuts.id}`, 'DELETE')
+      bodiesOf(`${evaluationsPath}/${welderEvaluation.id}/factors/${cuts.id}`, 'DELETE')
     ).toHaveLength(1);
   });
 
   it("copies the factors of another of the client's evaluations", async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(`${positionsPage}/${cashier.id}/fisa-de-evaluare`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factors-copy'));
@@ -949,7 +914,7 @@ describe("a position's risk evaluation page", () => {
     await user.selectOptions(source, welderEvaluation.id);
     await user.click(screen.getByTestId('risk-factors-copy-confirm'));
     await waitFor(() =>
-      expect(requests(`${evaluationsPath}/${cashierEvaluation.id}/factors/copy`, 'POST')).toEqual([
+      expect(bodiesOf(`${evaluationsPath}/${cashierEvaluation.id}/factors/copy`, 'POST')).toEqual([
         { fromEvaluationId: welderEvaluation.id },
       ])
     );
@@ -958,7 +923,7 @@ describe("a position's risk evaluation page", () => {
   });
 
   it('deletes the evaluation after asking, and goes back to the position', async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(welderEvaluationPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-evaluation-remove'));
@@ -967,13 +932,13 @@ describe("a position's risk evaluation page", () => {
     );
     await user.click(screen.getByTestId('risk-evaluation-remove-confirm'));
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe(welderPage));
-    expect(requests(`${evaluationsPath}/${welderEvaluation.id}`, 'DELETE')).toHaveLength(1);
+    expect(bodiesOf(`${evaluationsPath}/${welderEvaluation.id}`, 'DELETE')).toHaveLength(1);
     expect(runtime.router.state.location.hash).toBe('risk-evaluation');
     expect((await screen.findByTestId('position-risk-state')).textContent).toBe('Neevaluat');
   });
 
   it('is read-only for an archived client', async () => {
-    mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
+    mockEvaluationsApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     mount(welderEvaluationPage);
     expect(await screen.findAllByTestId('risk-factor-row')).toHaveLength(4);
     expect(screen.queryByTestId('risk-factor-add')).toBeNull();
@@ -1001,7 +966,7 @@ describe('the factor editor', () => {
   }
 
   it('opens beside the list on a wide screen, with the box to add another unticked', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
@@ -1016,7 +981,7 @@ describe('the factor editor', () => {
   });
 
   it("suggests the client's administrator first for the person responsible, and saves the name", async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
@@ -1041,7 +1006,7 @@ describe('the factor editor', () => {
     await fillFactor(user, 'Zgomot peste limită');
     await user.click(screen.getByTestId('risk-factor-save'));
     await waitFor(() =>
-      expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toEqual([
+      expect(bodiesOf(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toEqual([
         expect.objectContaining({ responsiblePerson: 'Maria Popescu' }),
       ])
     );
@@ -1049,7 +1014,7 @@ describe('the factor editor', () => {
 
   it('opens as a drawer from the bottom on a phone, closed from its header', async () => {
     phoneScreen();
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
@@ -1062,7 +1027,7 @@ describe('the factor editor', () => {
     await fillFactor(user, 'Zgomot peste limită');
     await user.click(within(editor).getByTestId('risk-factor-save'));
     await waitFor(() =>
-      expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toHaveLength(1)
+      expect(bodiesOf(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toHaveLength(1)
     );
     await waitFor(() => expect(screen.queryByTestId('risk-factor-dialog')).toBeNull());
 
@@ -1076,7 +1041,7 @@ describe('the factor editor', () => {
   });
 
   it('with the box ticked, stays open for the next factor, keeping the component and the group', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
@@ -1115,9 +1080,9 @@ describe('the factor editor', () => {
     await fillFactor(user, 'Lumină');
     await user.click(screen.getByTestId('risk-factor-save'));
     await waitFor(() =>
-      expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toHaveLength(2)
+      expect(bodiesOf(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')).toHaveLength(2)
     );
-    expect(requests(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')[1]).toMatchObject({
+    expect(bodiesOf(`${evaluationsPath}/${welderEvaluation.id}/factors`, 'POST')[1]).toMatchObject({
       component: 'work_environment',
       group: 'Fizici',
       description: 'Lumină',
@@ -1141,7 +1106,7 @@ describe('the factor editor', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
@@ -1153,7 +1118,7 @@ describe('the factor editor', () => {
   });
 
   it('edits a factor without the box to add another', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(welderEvaluationPage);
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('risk-factor-row');
@@ -1170,7 +1135,7 @@ describe("a client's evaluations outside its positions", () => {
   const sensitiveGroupsPath = `/clients/${clientId}/sensitive-groups-state`;
 
   it('asks about the sensitive groups until they are evaluated or declared absent, and takes the declaration back', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(positionsPage);
     const user = userEvent.setup();
     const card = await screen.findByTestId('client-risk-evaluations-card');
@@ -1192,7 +1157,7 @@ describe("a client's evaluations outside its positions", () => {
     );
 
     await user.click(within(groups).getByTestId('sensitive-groups-none'));
-    await waitFor(() => expect(requests(sensitiveGroupsPath, 'PUT')).toEqual([{ state: 'none' }]));
+    await waitFor(() => expect(bodiesOf(sensitiveGroupsPath, 'PUT')).toEqual([{ state: 'none' }]));
     expect(
       await screen.findByText('Am notat că clientul nu are lucrători din grupurile sensibile.')
     ).toBeTruthy();
@@ -1209,7 +1174,7 @@ describe("a client's evaluations outside its positions", () => {
 
     await user.click(within(card).getByTestId('sensitive-groups-undo'));
     await waitFor(() =>
-      expect(requests(sensitiveGroupsPath, 'PUT')).toEqual([
+      expect(bodiesOf(sensitiveGroupsPath, 'PUT')).toEqual([
         { state: 'none' },
         { state: 'undecided' },
       ])
@@ -1221,7 +1186,7 @@ describe("a client's evaluations outside its positions", () => {
   });
 
   it('shows what the server refused, in its words', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(positionsPage);
     const card = await screen.findByTestId('client-risk-evaluations-card');
     fetchMock.mockImplementationOnce(async () =>
@@ -1237,7 +1202,7 @@ describe("a client's evaluations outside its positions", () => {
   });
 
   it('starts the sensitive groups evaluation and opens it, also over a declaration', async () => {
-    mockApi({ sensitiveGroupsState: 'none' });
+    mockEvaluationsApi({ sensitiveGroupsState: 'none' });
     const runtime = mount(positionsPage);
     const card = await screen.findByTestId('client-risk-evaluations-card');
     const start = await within(card).findByTestId('sensitive-groups-start');
@@ -1245,7 +1210,7 @@ describe("a client's evaluations outside its positions", () => {
 
     await userEvent.setup().click(start);
     await waitFor(() =>
-      expect(requests(evaluationsPath, 'POST')).toEqual([{ kind: 'sensitive_groups' }])
+      expect(bodiesOf(evaluationsPath, 'POST')).toEqual([{ kind: 'sensitive_groups' }])
     );
     await screen.findByTestId('risk-evaluation-page');
     expect(runtime.router.state.location.pathname).toMatch(
@@ -1261,7 +1226,7 @@ describe("a client's evaluations outside its positions", () => {
   });
 
   it('adds one by name, and puts a name the client already uses on the field', async () => {
-    mockApi({
+    mockEvaluationsApi({
       create: () =>
         Response.json(
           { error: 'conflict', message: 'taken', reason: 'risk_evaluation_name_taken' },
@@ -1274,7 +1239,7 @@ describe("a client's evaluations outside its positions", () => {
     await user.type(await screen.findByTestId('client-risk-evaluation-name'), 'Vizitatori');
     await user.click(screen.getByTestId('client-risk-evaluation-save'));
     await waitFor(() =>
-      expect(requests(evaluationsPath, 'POST')).toEqual([{ kind: 'other', name: 'Vizitatori' }])
+      expect(bodiesOf(evaluationsPath, 'POST')).toEqual([{ kind: 'other', name: 'Vizitatori' }])
     );
     expect((await screen.findByTestId('client-risk-evaluation-name-error')).textContent).toBe(
       'Clientul are deja o fișă de evaluare a riscurilor cu această denumire.'
@@ -1283,7 +1248,7 @@ describe("a client's evaluations outside its positions", () => {
   });
 
   it('records the work task, the people exposed and the name of its own', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(`${positionsPage}/fise-de-evaluare/${visitors.id}`);
     const card = await screen.findByTestId('work-system-card');
     expect(
@@ -1305,7 +1270,7 @@ describe("a client's evaluations outside its positions", () => {
     await user.type(name, 'Vizitatori și curieri');
     await user.click(screen.getByTestId('work-system-save'));
     await waitFor(() =>
-      expect(requests(`${evaluationsPath}/${visitors.id}`, 'PATCH')).toEqual([
+      expect(bodiesOf(`${evaluationsPath}/${visitors.id}`, 'PATCH')).toEqual([
         {
           meansOfProduction: 'Aparat de sudură, polizor unghiular.',
           workEnvironment: 'Atelier ventilat natural.',
@@ -1325,14 +1290,14 @@ describe("a client's evaluations outside its positions", () => {
   });
 
   it("sends a position's evaluation to its address under the position", async () => {
-    mockApi();
+    mockEvaluationsApi();
     const runtime = mount(`${positionsPage}/fise-de-evaluare/${welderEvaluation.id}`);
     await screen.findByTestId('risk-evaluation-page');
     expect(runtime.router.state.location.pathname).toBe(welderEvaluationPage);
   });
 
   it('is not found for an evaluation the client does not have', async () => {
-    mockApi();
+    mockEvaluationsApi();
     mount(`${positionsPage}/fise-de-evaluare/${uuid()}`);
     expect(await screen.findByTestId('risk-evaluation-not-found')).toBeTruthy();
   });
@@ -1355,7 +1320,7 @@ describe('a page still loading or failing to load', () => {
     ],
     ["a position's sheet, before its position", positionsPath, welderEvaluationPage, welderPage],
   ])('shows the way back while %s loads', async (_, slowPath, path, parent) => {
-    mockApi();
+    mockEvaluationsApi();
     const answer = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation((input, init) =>
       new URL(String(input)).pathname === slowPath
@@ -1369,7 +1334,7 @@ describe('a page still loading or failing to load', () => {
   });
 
   function failing(path: string) {
-    mockApi();
+    mockEvaluationsApi();
     const answer = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (input, init) =>
       new URL(String(input)).pathname === path
