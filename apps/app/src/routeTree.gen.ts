@@ -52,6 +52,8 @@ import { Route as AuthenticatedInstructiuniNouRouteImport } from './routes/_auth
 import { Route as AuthenticatedLegislatieIndexRouteImport } from './routes/_authenticated/legislatie/index';
 import { Route as AuthenticatedLegislatieActeRouteImport } from './routes/_authenticated/legislatie/acte';
 import { Route as AuthenticatedLegislatieDocumenteRouteImport } from './routes/_authenticated/legislatie/documente';
+import { Route as AuthenticatedLegislatieDocumenteSsmRouteImport } from './routes/_authenticated/legislatie/documente-ssm';
+import { Route as AuthenticatedLegislatieDocumenteSuRouteImport } from './routes/_authenticated/legislatie/documente-su';
 import { Route as AuthenticatedLegislatieModificariRouteImport } from './routes/_authenticated/legislatie/modificari';
 import { Route as AuthenticatedOferteIndexRouteImport } from './routes/_authenticated/oferte/index';
 import { Route as AuthenticatedOferteLeadIdRouteImport } from './routes/_authenticated/oferte/$leadId';
@@ -345,6 +347,18 @@ const AuthenticatedLegislatieDocumenteRoute =
   AuthenticatedLegislatieDocumenteRouteImport.update({
     id: '/documente',
     path: '/documente',
+    getParentRoute: () => AuthenticatedLegislatieRoute,
+  } as any);
+const AuthenticatedLegislatieDocumenteSsmRoute =
+  AuthenticatedLegislatieDocumenteSsmRouteImport.update({
+    id: '/documente-ssm',
+    path: '/documente-ssm',
+    getParentRoute: () => AuthenticatedLegislatieRoute,
+  } as any);
+const AuthenticatedLegislatieDocumenteSuRoute =
+  AuthenticatedLegislatieDocumenteSuRouteImport.update({
+    id: '/documente-su',
+    path: '/documente-su',
     getParentRoute: () => AuthenticatedLegislatieRoute,
   } as any);
 const AuthenticatedLegislatieModificariRoute =
@@ -767,6 +781,8 @@ export interface FileRoutesByFullPath {
   '/instructiuni/nou': typeof AuthenticatedInstructiuniNouRoute;
   '/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
   '/legislatie/documente': typeof AuthenticatedLegislatieDocumenteRoute;
+  '/legislatie/documente-ssm': typeof AuthenticatedLegislatieDocumenteSsmRoute;
+  '/legislatie/documente-su': typeof AuthenticatedLegislatieDocumenteSuRoute;
   '/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/oferte/$leadId': typeof AuthenticatedOferteLeadIdRouteWithChildren;
   '/oferte/nou': typeof AuthenticatedOferteNouRoute;
@@ -863,6 +879,8 @@ export interface FileRoutesByTo {
   '/instructiuni/nou': typeof AuthenticatedInstructiuniNouRoute;
   '/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
   '/legislatie/documente': typeof AuthenticatedLegislatieDocumenteRoute;
+  '/legislatie/documente-ssm': typeof AuthenticatedLegislatieDocumenteSsmRoute;
+  '/legislatie/documente-su': typeof AuthenticatedLegislatieDocumenteSuRoute;
   '/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/oferte/nou': typeof AuthenticatedOferteNouRoute;
   '/organizatie/abilitari': typeof AuthenticatedOrganizatieAbilitariRoute;
@@ -958,6 +976,8 @@ export interface FileRoutesById {
   '/_authenticated/instructiuni/nou': typeof AuthenticatedInstructiuniNouRoute;
   '/_authenticated/legislatie/acte': typeof AuthenticatedLegislatieActeRoute;
   '/_authenticated/legislatie/documente': typeof AuthenticatedLegislatieDocumenteRoute;
+  '/_authenticated/legislatie/documente-ssm': typeof AuthenticatedLegislatieDocumenteSsmRoute;
+  '/_authenticated/legislatie/documente-su': typeof AuthenticatedLegislatieDocumenteSuRoute;
   '/_authenticated/legislatie/modificari': typeof AuthenticatedLegislatieModificariRoute;
   '/_authenticated/oferte/$leadId': typeof AuthenticatedOferteLeadIdRouteWithChildren;
   '/_authenticated/oferte/nou': typeof AuthenticatedOferteNouRoute;
@@ -1066,6 +1086,8 @@ export interface FileRouteTypes {
     | '/instructiuni/nou'
     | '/legislatie/acte'
     | '/legislatie/documente'
+    | '/legislatie/documente-ssm'
+    | '/legislatie/documente-su'
     | '/legislatie/modificari'
     | '/oferte/$leadId'
     | '/oferte/nou'
@@ -1162,6 +1184,8 @@ export interface FileRouteTypes {
     | '/instructiuni/nou'
     | '/legislatie/acte'
     | '/legislatie/documente'
+    | '/legislatie/documente-ssm'
+    | '/legislatie/documente-su'
     | '/legislatie/modificari'
     | '/oferte/nou'
     | '/organizatie/abilitari'
@@ -1256,6 +1280,8 @@ export interface FileRouteTypes {
     | '/_authenticated/instructiuni/nou'
     | '/_authenticated/legislatie/acte'
     | '/_authenticated/legislatie/documente'
+    | '/_authenticated/legislatie/documente-ssm'
+    | '/_authenticated/legislatie/documente-su'
     | '/_authenticated/legislatie/modificari'
     | '/_authenticated/oferte/$leadId'
     | '/_authenticated/oferte/nou'
@@ -1643,6 +1669,20 @@ declare module '@tanstack/react-router' {
       path: '/documente';
       fullPath: '/legislatie/documente';
       preLoaderRoute: typeof AuthenticatedLegislatieDocumenteRouteImport;
+      parentRoute: typeof AuthenticatedLegislatieRoute;
+    };
+    '/_authenticated/legislatie/documente-ssm': {
+      id: '/_authenticated/legislatie/documente-ssm';
+      path: '/documente-ssm';
+      fullPath: '/legislatie/documente-ssm';
+      preLoaderRoute: typeof AuthenticatedLegislatieDocumenteSsmRouteImport;
+      parentRoute: typeof AuthenticatedLegislatieRoute;
+    };
+    '/_authenticated/legislatie/documente-su': {
+      id: '/_authenticated/legislatie/documente-su';
+      path: '/documente-su';
+      fullPath: '/legislatie/documente-su';
+      preLoaderRoute: typeof AuthenticatedLegislatieDocumenteSuRouteImport;
       parentRoute: typeof AuthenticatedLegislatieRoute;
     };
     '/_authenticated/legislatie/modificari': {
@@ -2440,6 +2480,8 @@ const AuthenticatedInstructiuniRouteWithChildren =
 interface AuthenticatedLegislatieRouteChildren {
   AuthenticatedLegislatieActeRoute: typeof AuthenticatedLegislatieActeRoute;
   AuthenticatedLegislatieDocumenteRoute: typeof AuthenticatedLegislatieDocumenteRoute;
+  AuthenticatedLegislatieDocumenteSsmRoute: typeof AuthenticatedLegislatieDocumenteSsmRoute;
+  AuthenticatedLegislatieDocumenteSuRoute: typeof AuthenticatedLegislatieDocumenteSuRoute;
   AuthenticatedLegislatieModificariRoute: typeof AuthenticatedLegislatieModificariRoute;
   AuthenticatedLegislatieIndexRoute: typeof AuthenticatedLegislatieIndexRoute;
 }
@@ -2449,6 +2491,10 @@ const AuthenticatedLegislatieRouteChildren: AuthenticatedLegislatieRouteChildren
     AuthenticatedLegislatieActeRoute: AuthenticatedLegislatieActeRoute,
     AuthenticatedLegislatieDocumenteRoute:
       AuthenticatedLegislatieDocumenteRoute,
+    AuthenticatedLegislatieDocumenteSsmRoute:
+      AuthenticatedLegislatieDocumenteSsmRoute,
+    AuthenticatedLegislatieDocumenteSuRoute:
+      AuthenticatedLegislatieDocumenteSuRoute,
     AuthenticatedLegislatieModificariRoute:
       AuthenticatedLegislatieModificariRoute,
     AuthenticatedLegislatieIndexRoute: AuthenticatedLegislatieIndexRoute,

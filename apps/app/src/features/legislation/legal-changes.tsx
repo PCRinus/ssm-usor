@@ -35,7 +35,7 @@ export function LegalChanges({ userId }: { userId: string }) {
   useScrollToHash(changes.isSuccess);
   return (
     <section aria-label="Modificări legislative" className="grid gap-4">
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div>
         {changes.isPending ? (
           <div className="p-5">
             <Skeleton className="h-16 w-full" />

@@ -16,7 +16,7 @@ export const kindLabels: Record<DocumentsBehindResponseItemsItemNewestVersionKin
 };
 
 export const resolutionLabels: Record<LegalChangeListResponseItemsItemResolution, string> = {
-  open: 'În verificare',
+  open: 'În analiză',
   no_impact: 'Fără impact asupra documentelor',
   template_version: 'Șablon actualizat',
 };
@@ -33,8 +33,6 @@ const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '
 
 export const formatDayOf = (isoTimestamp: string) => dayFormat.format(new Date(isoTimestamp));
 export const formatTimeOf = (isoTimestamp: string) => timeFormat.format(new Date(isoTimestamp));
-export const momentOf = (isoTimestamp: string) =>
-  `${formatDayOf(isoTimestamp)} la ${formatTimeOf(isoTimestamp)}`;
 
 export function formatDayThisYear(isoTimestamp: string, now: number) {
   const date = new Date(isoTimestamp);

@@ -4,7 +4,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { LegalChanges } from '@/features/legislation/legal-changes';
 
 export const Route = createFileRoute('/_authenticated/legislatie/modificari')({
-  staticData: { title: 'Modificări' },
+  staticData: { title: 'Modificări', flushSheet: true },
   component: LegalChangesRoute,
 });
 

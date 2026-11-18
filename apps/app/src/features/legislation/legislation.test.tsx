@@ -2,13 +2,13 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { LatestLegalCheckRunResponseRun } from '@/api/generated/api';
-import { installFetchMock, mockApi, requestsTo } from '@/test/api';
+import type { LatestLegalCheckRunResponseRun, MeResponse } from '@/api/generated/api';
+import { bodyOf, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { meRecord, meResponse } from '@/test/records';
+import { meRecord, meResponse, organizationId } from '@/test/records';
 
-import { pollIntervalMs } from './regeneration-job';
+import { summaryPollMs } from './regenerations-context';
 
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 
@@ -230,7 +230,9 @@ const jobId = '8d4b3e5c-0f6a-4a51-9c73-6e5f4a3b2c1d';
 const firstAidBehind = {
   typeKey: 'decision_first_aid',
   title: 'Decizia privind responsabilii cu primul ajutor',
+  set: 'occupational_safety',
   newestVersion: { version: 4, kind: 'correction', note: 'Diacriticele din antet sunt corectate.' },
+  legalChanges: [] as { id: string; actName: string }[],
   runningJobId: null as string | null,
   clients: [
     {
@@ -241,6 +243,8 @@ const firstAidBehind = {
       editedDraft: false,
       behindTemplate: true,
       instructionChanges: [],
+      status: 'issued',
+      issueDate: '2026-10-14',
     },
     {
       documentId: '3c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f',
@@ -250,6 +254,8 @@ const firstAidBehind = {
       editedDraft: true,
       behindTemplate: true,
       instructionChanges: [],
+      status: 'draft',
+      issueDate: '2026-09-02',
     },
   ],
 };
@@ -257,7 +263,9 @@ const firstAidBehind = {
 const extinguisherBehind = {
   typeKey: 'fire_extinguisher_register',
   title: 'Registru de evidență a controlului stingătoarelor de incendiu',
+  set: 'fire_safety',
   newestVersion: { version: 2, kind: 'legal', note: 'Rubricile urmează OMAI 163/2007.' },
+  legalChanges: [{ id: lawChangeId, actName: 'OMAI 163/2007' }],
   runningJobId: null as string | null,
   clients: [
     {
@@ -268,6 +276,8 @@ const extinguisherBehind = {
       editedDraft: false,
       behindTemplate: true,
       instructionChanges: [],
+      status: 'draft',
+      issueDate: '2026-10-14',
     },
   ],
 };
@@ -358,18 +368,42 @@ const alfaReadiness = {
   incompleteRiskEvaluations: [],
 };
 
+const runningEntry = (overrides: Record<string, unknown> = {}) => ({
+  id: jobId,
+  typeKey: 'decision_first_aid',
+  set: 'occupational_safety',
+  requestedBy: 'user-one',
+  total: 1,
+  done: 0,
+  skipped: 0,
+  failed: 0,
+  ...overrides,
+});
+
+// `before` answers the summary's running jobs in turn until a regeneration is asked for, `after`
+// from then on; the documents list turns to `afterJob` once the jobs are no longer running.
 function mockLegislationApi({
   run = succeeded as LatestLegalCheckRunResponseRun,
   behind = [] as unknown[],
   afterJob = [] as unknown[],
   start = (() => Response.json(job(), { status: 201 })) as () => Response,
-  polls = [finishedJob] as unknown[],
+  startAll = (() =>
+    Response.json({ jobs: [runningEntry()], notStarted: [] }, { status: 201 })) as () => Response,
+  before = [[]] as unknown[][],
+  after = [[]] as unknown[][],
+  read = (() => Response.json(finishedJob)) as () => Response,
   readiness = alfaReadiness as unknown,
   legalChanges = changes as unknown[],
   watchedActs = acts as unknown[],
+  me = specialist as MeResponse,
 } = {}) {
+  let started = false;
+  let sawRunning = false;
   let jobDone = false;
-  let pollCount = 0;
+  let beforeCount = 0;
+  let afterCount = 0;
+  const pick = (answers: unknown[][], index: number) =>
+    answers[Math.min(index, answers.length - 1)] ?? [];
   mockApi(
     (init, { pathname }) => {
       const method = init?.method ?? 'GET';
@@ -379,18 +413,40 @@ function mockLegislationApi({
       if (pathname === '/documents/behind') {
         return Response.json({ items: jobDone ? afterJob : behind });
       }
-      if (pathname === '/documents/behind/regenerate' && method === 'POST') return start();
+      if (pathname === '/documents/behind/summary') {
+        const running = started ? pick(after, afterCount++) : pick(before, beforeCount++);
+        if (running.length > 0) sawRunning = true;
+        else if (sawRunning) jobDone = true;
+        const items = (jobDone ? afterJob : behind) as (typeof firstAidBehind)[];
+        const count = (set: string) =>
+          items
+            .filter((type) => type.set === set)
+            .reduce((total, type) => total + type.clients.length, 0);
+        return Response.json({
+          counts: {
+            occupational_safety: count('occupational_safety'),
+            fire_safety: count('fire_safety'),
+          },
+          running,
+        });
+      }
+      if (pathname === '/documents/behind/regenerate' && method === 'POST') {
+        started = true;
+        return start();
+      }
+      if (pathname === '/documents/behind/regenerate-all' && method === 'POST') {
+        started = true;
+        return startAll();
+      }
       if (pathname === `/clients/${firstAidBehind.clients[0]!.clientId}/documents/readiness`) {
         return Response.json(readiness);
       }
       if (pathname === `/documents/regeneration-jobs/${jobId}`) {
-        const answer = polls[Math.min(pollCount, polls.length - 1)] as ReturnType<typeof job>;
-        pollCount += 1;
-        if (answer.job.finishedAt) jobDone = true;
-        return Response.json(answer);
+        jobDone = true;
+        return read();
       }
     },
-    { me: specialist }
+    { me }
   );
 }
 
@@ -440,50 +496,67 @@ const failedRun: NonNullable<LatestLegalCheckRunResponseRun> = {
 };
 
 describe('the Legislație page', () => {
-  it('opens on the documents to update, with the other tabs beside it', async () => {
-    mockLegislationApi();
+  it('opens on the SSM documents to update, with the SU ones, the changes and the acts beside it', async () => {
+    mockLegislationApi({ behind: [firstAidBehind] });
     const runtime = mount();
 
     expect(await screen.findByTestId('legislation-page')).toBeTruthy();
     await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe('/legislatie/documente')
+      expect(runtime.router.state.location.pathname).toBe('/legislatie/documente-ssm')
     );
     expect(screen.getByTestId('nav-legislatie').getAttribute('aria-current')).not.toBeNull();
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Legislație');
     const tabs = screen.getAllByTestId('legislation-section');
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
-      'Documente de actualizat',
-      'Modificări',
-      'Acte urmărite',
-    ]);
+    await waitFor(() =>
+      expect(tabs.map((tab) => tab.textContent)).toEqual([
+        'Documente SSM de actualizat2 documente de actualizat',
+        'Documente SU de actualizat',
+        'Modificări',
+        'Acte urmărite',
+      ])
+    );
     expect(tabs[0]!.getAttribute('aria-current')).toBe('page');
-    expect(await screen.findByTestId('documents-behind-empty')).toBeTruthy();
+    expect(await screen.findByTestId('behind-table')).toBeTruthy();
   });
 
-  it('opens Legislație in the navigation on its tabs, the current one marked', async () => {
+  it('sends the address of the tab before the split to the SSM documents', async () => {
     mockLegislationApi();
+    const runtime = mount('/legislatie/documente');
+
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/legislatie/documente-ssm')
+    );
+  });
+
+  it('opens Legislație in the navigation on its tabs, with the count on the tab that has one', async () => {
+    mockLegislationApi({ behind: [firstAidBehind] });
     const runtime = mount();
     const user = userEvent.setup();
 
     const group = await screen.findByTestId('nav-legislatie-group');
     const entries = within(group).getAllByTestId('nav-sub-entry');
-    expect(entries.map((entry) => [entry.textContent, entry.getAttribute('href')])).toEqual([
-      ['Documente de actualizat', '/legislatie/documente'],
-      ['Modificări', '/legislatie/modificari'],
-      ['Acte urmărite', '/legislatie/acte'],
-    ]);
-    await waitFor(() => expect(entries[0]!.getAttribute('aria-current')).toBe('page'));
+    await waitFor(() =>
+      expect(entries.map((entry) => [entry.textContent, entry.getAttribute('href')])).toEqual([
+        ['SSM de actualizat2 documente de actualizat', '/legislatie/documente-ssm'],
+        ['SU de actualizat', '/legislatie/documente-su'],
+        ['Modificări', '/legislatie/modificari'],
+        ['Acte urmărite', '/legislatie/acte'],
+      ])
+    );
+    expect(entries[0]!.getAttribute('aria-current')).toBe('page');
+    expect(screen.queryByTestId('nav-legislatie-count')).toBeNull();
 
-    await user.click(entries[2]!);
+    await user.click(entries[3]!);
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/legislatie/acte'));
-    expect(entries[2]!.getAttribute('aria-current')).toBe('page');
+    expect(entries[3]!.getAttribute('aria-current')).toBe('page');
     expect(entries[0]!.getAttribute('aria-current')).toBeNull();
-    expect(entries[2]!.getAttribute('data-active')).toBe('true');
 
     await user.click(screen.getByTestId('nav-dashboard'));
     await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/dashboard'));
-    expect(group.closest('[data-open]')?.getAttribute('data-open')).toBe('false');
     await waitFor(() => expect(screen.queryByTestId('nav-legislatie-group')).toBeNull());
+    expect(screen.getByTestId('nav-legislatie-count').textContent).toBe(
+      '2 documente de actualizat'
+    );
   });
 
   it('keeps the title and the last check above every tab', async () => {
@@ -491,7 +564,7 @@ describe('the Legislație page', () => {
     const runtime = mount();
     const user = userEvent.setup();
 
-    await user.click((await screen.findAllByTestId('legislation-section'))[1]!);
+    await user.click((await screen.findAllByTestId('legislation-section'))[2]!);
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/legislatie/modificari')
     );
@@ -499,59 +572,68 @@ describe('the Legislație page', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Legislație');
     expect(screen.getByTestId('last-check-ok')).toBeTruthy();
 
-    await user.click(screen.getAllByTestId('legislation-section')[2]!);
+    await user.click(screen.getAllByTestId('legislation-section')[3]!);
     expect(await screen.findAllByTestId('watched-act')).toHaveLength(7);
     expect(screen.getByTestId('last-check-ok')).toBeTruthy();
     expect(screen.queryByTestId('legal-change')).toBeNull();
   });
 
-  it('says quietly when the acts were read within two days', async () => {
+  it('says in one line when the acts were read, how many, the new changes and those in analysis', async () => {
     mockLegislationApi();
     mount();
 
-    const line = await screen.findByTestId('last-check-ok');
-    expect(line.textContent).toMatch(
-      /^Verificat pe \d{1,2} \S+ \d{4} la \d{2}:\d{2} · 14 acte citite$/
+    expect((await screen.findByTestId('last-check-ok')).textContent).toMatch(
+      /^Verificat (azi|ieri) la \d{2}:\d{2}$/
     );
+    expect(screen.getByTestId('last-check-acts').textContent).toBe('14');
+    expect(screen.getByTestId('last-check-new-changes').textContent).toBe('niciuna');
+    const analysis = await screen.findByTestId('last-check-in-analysis');
+    expect(analysis.textContent).toBe('2 modificări');
+    expect(analysis.getAttribute('href')).toBe('/legislatie/modificari');
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('counts the new changes the last check found', async () => {
+  it('links the new changes the last check found', async () => {
     mockLegislationApi({ run: { ...succeeded, actsChecked: 50, changesFound: 2 } });
     mount();
 
-    expect((await screen.findByTestId('last-check-ok')).textContent).toMatch(
-      / · 50 de acte citite · 2 modificări noi$/
-    );
+    const found = await screen.findByTestId('last-check-new-changes');
+    expect(found.textContent).toBe('2');
+    expect(found.getAttribute('href')).toBe('/legislatie/modificari');
   });
 
   it('warns when the check never ran', async () => {
     mockLegislationApi({ run: null });
     mount();
 
-    const notice = await screen.findByTestId('last-check-never');
-    expect(notice.textContent).toContain('Verificarea nu a rulat încă');
+    expect((await screen.findByTestId('last-check-never')).textContent).toBe(
+      'Verificarea nu a rulat încă'
+    );
+    expect(screen.getByTestId('last-check').textContent).toContain('Acte cititeniciunul');
   });
 
-  it('says when a check is running', async () => {
-    mockLegislationApi({ run: { ...succeeded, status: 'running', finishedAt: null } });
+  it('says when a check is running and how many acts it has read', async () => {
+    mockLegislationApi({
+      run: { ...succeeded, status: 'running', finishedAt: null, actsChecked: 5 },
+    });
     mount();
 
     expect((await screen.findByTestId('last-check-running')).textContent).toMatch(
-      /^Verificarea rulează din \d{1,2} \S+ \d{4} la \d{2}:\d{2}\.$/
+      /^Verificarea rulează din \d{2}:\d{2}$/
     );
+    await waitFor(() => expect(screen.getByTestId('last-check-acts').textContent).toBe('5 din 7'));
   });
 
   it('says in one line that the last check failed, with the causes behind "Detalii"', async () => {
-    mockLegislationApi({ run: failedRun });
+    mockLegislationApi({ run: { ...failedRun, startedAt: hoursAgo(0), actsChecked: 2 } });
     mount();
     const user = userEvent.setup();
 
-    const notice = await screen.findByTestId('last-check-failed');
-    expect(notice.textContent).toMatch(
-      /^Ultima verificare nu a reușit \(\d{1,2} \S+, \d{2}:\d{2}\): 5 acte nu au putut fi citite\./
+    expect((await screen.findByTestId('last-check-failed')).textContent).toBe(
+      'Verificarea de azi nu a reușit'
     );
-    const details = within(notice).getByTestId('last-check-details');
+    await waitFor(() => expect(screen.getByTestId('last-check-acts').textContent).toBe('2 din 7'));
+    const details = screen.getByTestId('last-check-details');
     const panel = document.getElementById(details.getAttribute('aria-controls')!)!;
     expect(details.getAttribute('aria-expanded')).toBe('false');
     expect(panel.hidden).toBe(true);
@@ -561,7 +643,7 @@ describe('the Legislație page', () => {
     expect(panel.hidden).toBe(false);
     await waitFor(() =>
       expect(
-        within(notice)
+        within(panel)
           .getAllByTestId('last-check-failure-group')
           .map((group) => [
             group.querySelector('p')!.textContent,
@@ -574,7 +656,7 @@ describe('the Legislație page', () => {
         ['Altă eroare (1 act)', 'lege-unknown-2001'],
       ])
     );
-    expect(notice.textContent).not.toMatch(/https?:|answered|fetched/);
+    expect(panel.textContent).not.toMatch(/https?:|answered|fetched/);
   });
 
   it('says that a check stopped as a whole, without acts', async () => {
@@ -588,94 +670,91 @@ describe('the Legislație page', () => {
     mount();
     const user = userEvent.setup();
 
-    const notice = await screen.findByTestId('last-check-failed');
-    expect(notice.textContent).toContain(': verificarea s-a oprit înainte de final.');
-    await user.click(within(notice).getByTestId('last-check-details'));
-    expect(within(notice).getByTestId('last-check-failure-group').textContent).toBe(
+    await screen.findByTestId('last-check-failed');
+    await user.click(screen.getByTestId('last-check-details'));
+    expect(screen.getByTestId('last-check-failure-group').textContent).toBe(
       'Verificarea s-a oprit înainte de final'
     );
   });
 
   it('warns when the acts were last read more than two days ago', async () => {
     mockLegislationApi({
-      run: { ...succeeded, startedAt: hoursAgo(60), finishedAt: hoursAgo(60) },
+      run: { ...succeeded, startedAt: hoursAgo(80), finishedAt: hoursAgo(80) },
     });
     mount();
 
-    const notice = await screen.findByTestId('last-check-stale');
-    expect(notice.textContent).toContain('Verificarea nu a mai rulat de peste două zile');
-  });
-
-  it('says so when no document is behind its template', async () => {
-    mockLegislationApi();
-    mount();
-
-    expect(await screen.findByTestId('documents-behind-empty')).toBeTruthy();
-    expect(screen.queryByTestId('behind-set')).toBeNull();
-    expect(screen.queryByTestId('behind-regenerate')).toBeNull();
-  });
-
-  it('groups the documents to update under SSM and SU', async () => {
-    mockLegislationApi({ behind: [extinguisherBehind, firstAidBehind] });
-    mount();
-
-    await waitFor(() => expect(screen.getAllByTestId('behind-set')).toHaveLength(2));
-    const [ssm, su] = screen.getAllByTestId('behind-set');
-    expect(within(ssm!).getByRole('heading', { level: 2 }).textContent).toBe('Documente SSM');
-    expect(
-      within(ssm!)
-        .getAllByRole('heading', { level: 3 })
-        .map((heading) => heading.textContent)
-    ).toEqual(['SSMDecizia privind responsabilii cu primul ajutor']);
-    expect(within(su!).getByRole('heading', { level: 2 }).textContent).toBe('Documente SU');
-    expect(
-      within(su!)
-        .getAllByRole('heading', { level: 3 })
-        .map((heading) => heading.textContent)
-    ).toEqual(['SURegistru de evidență a controlului stingătoarelor de incendiu']);
-    expect(within(ssm!).getByTestId('behind-type-set').textContent).toBe('SSM');
-    expect(within(su!).getByTestId('behind-type-set').textContent).toBe('SU');
-    expect(within(su!).getByRole('link').getAttribute('href')).toBe(
-      `/clienti/${extinguisherBehind.clients[0]!.clientId}/documente-su?section=registers&focus=fire_extinguisher_register`
+    expect((await screen.findByTestId('last-check-stale')).textContent).toMatch(
+      /^Ultima verificare: \d{1,2} \S+( \d{4})?, acum \d zile$/
     );
   });
 
-  it('lists the clients behind a template, with the hand-edited drafts that will be skipped', async () => {
+  it('says the documents of a set are up to date, keeping both tabs', async () => {
+    mockLegislationApi({ behind: [extinguisherBehind] });
+    mount();
+
+    expect((await screen.findByTestId('documents-behind-empty')).textContent).toContain(
+      'Documentele SSM sunt la zi'
+    );
+    expect(screen.queryByTestId('behind-regenerate-all')).toBeNull();
+    expect(screen.getAllByTestId('legislation-section')).toHaveLength(4);
+  });
+
+  it('lists the documents of a set, each with its version, what changed and its clients', async () => {
+    mockLegislationApi({ behind: [extinguisherBehind, firstAidBehind] });
+    mount('/legislatie/documente-su');
+
+    const [type] = await screen.findAllByTestId('behind-type');
+    expect(screen.getAllByTestId('behind-type')).toHaveLength(1);
+    expect(screen.getByTestId('behind-summary').textContent).toBe('1 document la 1 client');
+    expect(within(type!).getByTestId('behind-title').textContent).toBe(
+      'Registru de evidență a controlului stingătoarelor de incendiu'
+    );
+    expect(within(type!).getByTestId('behind-version').textContent).toBe(
+      'Versiunea 2 · Modificare legislativă'
+    );
+    expect(within(type!).getByTestId('behind-note').textContent).toBe(
+      'Rubricile urmează OMAI 163/2007.'
+    );
+    const change = within(type!).getByTestId('behind-legal-change');
+    expect(change.textContent).toBe('Vezi modificarea OMAI 163/2007');
+    expect(change.getAttribute('href')).toBe(`/legislatie/modificari#modificare-${lawChangeId}`);
+    expect(within(type!).getByTestId('behind-clients-toggle').textContent).toBe('1 client');
+  });
+
+  it('opens the clients of a document, saying what regenerating does to each', async () => {
     mockLegislationApi({ behind: [firstAidBehind] });
     mount();
+    const user = userEvent.setup();
 
-    const type = await screen.findByTestId('behind-type');
-    expect(within(type).getByRole('heading', { level: 3 }).textContent).toBe(
-      'SSMDecizia privind responsabilii cu primul ajutor'
-    );
-    expect(type.textContent).toContain('Corectură');
-    expect(type.textContent).toContain('Versiunea 4 a șablonului');
-    expect(within(type).getByTestId('behind-note').textContent).toBe(
-      'Diacriticele din antet sunt corectate.'
-    );
-    const clients = within(type).getAllByTestId('behind-client');
+    const toggle = await screen.findByTestId('behind-clients-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('behind-client')).toBeNull();
+    await user.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(document.getElementById(toggle.getAttribute('aria-controls')!)).not.toBeNull();
+    const clients = screen.getAllByTestId('behind-client');
     expect(clients.map((client) => client.textContent)).toEqual([
-      'ALFA CONSTRUCT SRLpe versiunea 3',
-      'BETA CAFE SRLpe versiunea 2ciornă editată manual – va fi sărită',
+      'ALFA CONSTRUCT SRLVersiunea 3Emis pe 14.10.2026primește o ciornă nouă, de emis',
+      'BETA CAFE SRLVersiunea 2Ciornă editată de mânărămâne neatinsă; o regenerezi de pe pagina clientului',
     ]);
     expect(within(clients[0]!).getByRole('link').getAttribute('href')).toBe(
       `/clienti/${firstAidBehind.clients[0]!.clientId}/documente-ssm?section=decisions&focus=decision_first_aid`
     );
-    expect(within(type).getByTestId('behind-regenerate').textContent).toBe(
-      'Regenerează pentru toți clienții (2)'
-    );
   });
 
-  it('lists the clients behind their instructions, naming the module that moved instead of a template version', async () => {
+  it('says what moved in the instructions of a document behind them alone', async () => {
     const themesBehind = {
       typeKey: 'training_themes',
       title: 'Tematica și programul de instruire',
+      set: 'occupational_safety',
       newestVersion: { version: 2, kind: 'layout', note: null },
+      legalChanges: [],
       runningJobId: null,
       clients: [
         {
           ...firstAidBehind.clients[0]!,
           documentId: '6f7a8b9c-0d1e-4f2a-8b3c-4d5e6f7a8b9c',
+          status: 'draft',
           behindTemplate: false,
           instructionChanges: [
             {
@@ -692,85 +771,347 @@ describe('the Legislație page', () => {
     const user = userEvent.setup();
 
     const type = await screen.findByTestId('behind-type');
-    expect(within(type).queryByTestId('behind-note')).toBeNull();
-    expect(within(type).getByTestId('behind-instructions-note').textContent).toBe(
-      'Instrucțiuni actualizateInstrucțiunile citate s-au schimbat de când a fost generat documentul.'
+    expect(within(type).getByTestId('behind-version').textContent).toBe('Instrucțiuni schimbate');
+    expect(within(type).getByTestId('behind-note').textContent).toBe(
+      'Instrucțiunea „Lucrul la înălțime” are o versiune nouă din 12.10.2026.'
     );
-    const [client] = within(type).getAllByTestId('behind-client');
-    expect(client!.textContent).not.toContain('pe versiunea');
-    expect(within(client!).getByTestId('behind-client-instructions').textContent).toBe(
-      'Instrucțiunea „Lucrul la înălțime” are o versiune nouă din 12.10.2026. Generează documentul din nou.'
-    );
+    expect(within(type).queryByTestId('behind-legal-change')).toBeNull();
 
     await user.click(within(type).getByTestId('behind-regenerate'));
     const dialog = await screen.findByTestId('behind-confirm-dialog');
     expect(dialog.textContent).toContain(
-      '„Tematica și programul de instruire” se generează din nou din instrucțiunile de acum pentru 1 client'
+      'Îl refacem cu instrucțiunile de acum, cu datele de azi ale clientului.'
     );
   });
 
-  it('regenerates a type for every client and follows the job to its end', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const running = job({
-      done: 1,
-      items: [{ ...job().job.items[0], status: 'done' }, job().job.items[1]],
+  it('takes a run still running after two days for a stale check', async () => {
+    mockLegislationApi({
+      run: { ...succeeded, status: 'running', startedAt: hoursAgo(80), finishedAt: null },
     });
-    mockLegislationApi({ behind: [firstAidBehind], polls: [running, finishedJob] });
+    mount();
+
+    expect(await screen.findByTestId('last-check-stale')).toBeTruthy();
+    expect(screen.queryByTestId('last-check-running')).toBeNull();
+  });
+
+  it('regenerates one document for its clients and follows the job to its end', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      after: [[runningEntry({ total: 2, done: 1 })], []],
+    });
     mount();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    await user.click(await screen.findByTestId('behind-regenerate'));
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Regenerează Decizia privind responsabilii cu primul ajutor',
+      })
+    );
     const dialog = await screen.findByTestId('behind-confirm-dialog');
-    expect(dialog.textContent).toContain('pentru 1 client');
-    expect(dialog.textContent).toContain('1 ciornă editată manual este sărită');
+    expect(within(dialog).getByRole('heading').textContent).toBe(
+      'Regenerezi Decizia privind responsabilii cu primul ajutor la 1 client?'
+    );
+    expect(
+      within(dialog)
+        .getAllByTestId('behind-confirm-line')
+        .map((line) => line.textContent)
+    ).toEqual([
+      '1 document emis, la ALFA CONSTRUCT SRL, rămâne în vigoare. Primește o ciornă nouă, pe care o emiți de pe pagina clientului.',
+      'Ciorna editată de mână de la BETA CAFE SRL rămâne neatinsă, ca să nu pierzi ce ai scris în ea.',
+    ]);
+    expect(within(dialog).getByTestId('behind-confirm').textContent).toBe(
+      'Regenerează la 1 client'
+    );
     await user.click(within(dialog).getByTestId('behind-confirm'));
 
-    expect(await screen.findByTestId('regeneration-progress')).toBeTruthy();
-    expect(requestsTo('/documents/behind/regenerate', 'POST')).toHaveLength(1);
-    expect(
-      JSON.parse(String(requestsTo('/documents/behind/regenerate', 'POST')[0]![1]!.body))
-    ).toEqual({ typeKey: 'decision_first_aid' });
-    expect(screen.queryByTestId('behind-regenerate')).toBeNull();
+    const progress = await screen.findByTestId('regeneration-progress');
+    expect(bodyOf('/documents/behind/regenerate', 'POST')).toEqual({
+      typeKey: 'decision_first_aid',
+    });
+    expect(screen.queryByTestId('behind-regenerate-all')).toBeNull();
     await waitFor(() =>
-      expect(screen.getByTestId('regeneration-progress').textContent).toContain(
-        'Se regenerează: 1 din 2 clienți'
-      )
+      expect(progress.textContent).toContain('Se regenerează: 1 din 2 documente')
+    );
+    expect(screen.getByTestId('regeneration-progress-counts').textContent).toBe(
+      '1 regenerat, 0 sărite, 0 eșuate.'
+    );
+    expect(screen.getByTestId('behind-state').textContent).toBe('Se regenerează');
+    expect(requestsTo(`/documents/regeneration-jobs/${jobId}`)).toHaveLength(0);
+
+    await act(() => vi.advanceTimersByTimeAsync(summaryPollMs));
+    const result = await screen.findByTestId('regeneration-result');
+    expect(requestsTo(`/documents/regeneration-jobs/${jobId}`)).toHaveLength(1);
+    expect(screen.getByTestId('regeneration-result-counts').textContent).toBe(
+      'Regenerarea s-a încheiat: 1 din 2 documente'
+    );
+    const [drafts] = within(result).getAllByTestId('regeneration-drafts');
+    expect(drafts!.textContent).toContain('ALFA CONSTRUCT SRL');
+    expect(drafts!.textContent).toContain('Decizia privind responsabilii cu primul ajutor');
+    expect(within(drafts!).getAllByRole('link')[0]!.getAttribute('href')).toBe(
+      `/clienti/${firstAidBehind.clients[0]!.clientId}/documente-ssm`
+    );
+    expect(within(result).getByTestId('regeneration-left-out').textContent).toContain(
+      'Ciorna are modificări făcute de mână'
+    );
+    await waitFor(() => expect(screen.getByTestId('documents-behind-empty')).toBeTruthy());
+    expect(screen.queryByTestId('regeneration-toast')).toBeNull();
+
+    await user.click(screen.getByTestId('regeneration-result-close'));
+    expect(screen.queryByTestId('regeneration-result')).toBeNull();
+  });
+
+  it('regenerates every document of the set at once, after saying what happens to each', async () => {
+    mockLegislationApi({ behind: [firstAidBehind, extinguisherBehind] });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    const dialog = await screen.findByTestId('behind-confirm-dialog');
+    expect(within(dialog).getByRole('heading').textContent).toBe(
+      'Regenerezi 1 document SSM la 1 client?'
+    );
+    expect(dialog.textContent).toContain(
+      'Le refacem pe versiunea nouă a șabloanelor și a instrucțiunilor, cu datele de azi ale clienților.'
+    );
+    expect(
+      within(dialog)
+        .getAllByTestId('behind-confirm-line')
+        .map((line) => line.textContent)
+    ).toEqual([
+      '1 document emis, „Decizia privind responsabilii cu primul ajutor” la ALFA CONSTRUCT SRL, rămâne în vigoare. Primește o ciornă nouă, pe care o emiți de pe pagina clientului.',
+      'Ciorna editată de mână a documentului „Decizia privind responsabilii cu primul ajutor”, la BETA CAFE SRL, rămâne neatinsă, ca să nu pierzi ce ai scris în ea.',
+    ]);
+    await user.click(within(dialog).getByTestId('behind-confirm'));
+
+    expect(bodyOf('/documents/behind/regenerate-all', 'POST')).toEqual({
+      set: 'occupational_safety',
+    });
+    expect(await screen.findByTestId('regeneration-result')).toBeTruthy();
+  });
+
+  it('names the documents that did not start when the queue failed part way', async () => {
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      startAll: () =>
+        Response.json({ jobs: [runningEntry()], notStarted: ['event_registers'] }, { status: 201 }),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+
+    expect((await screen.findByTestId('behind-not-started')).textContent).toBe(
+      'Nu au pornit: Registrele de evidență a evenimentelor. Regenerează-le din nou.'
+    );
+  });
+
+  it('follows the regeneration already under way when the API says it is running', async () => {
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      startAll: () =>
+        Response.json(
+          {
+            error: 'conflict',
+            message: 'Documentele se regenerează deja. Așteaptă să se termine.',
+            reason: 'regeneration_running',
+          },
+          { status: 409 }
+        ),
+      after: [[runningEntry({ requestedBy: 'colleague' })]],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+
+    expect(await screen.findByTestId('regeneration-progress')).toBeTruthy();
+    expect(screen.queryByTestId('behind-regenerate-error')).toBeNull();
+  });
+
+  it('follows the jobs that started when the request itself failed', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      startAll: () => Response.json({ error: 'internal' }, { status: 500 }),
+      after: [[runningEntry()]],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+
+    expect(await screen.findByTestId('regeneration-progress')).toBeTruthy();
+    expect(screen.queryByTestId('behind-regenerate-error')).toBeNull();
+  });
+
+  it('follows the jobs an admin started as the member when the request itself failed', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      me: {
+        ...specialist,
+        impersonation: {
+          targetMemberId: 'member-two',
+          targetOrganizationId: organizationId,
+          expiresAt: '2099-01-01T00:00:00Z',
+          targetName: 'Ana Ionescu',
+        },
+      },
+      startAll: () => Response.json({ error: 'internal' }, { status: 500 }),
+      after: [[runningEntry({ requestedBy: 'member-two' })]],
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+
+    expect(await screen.findByTestId('regeneration-progress')).toBeTruthy();
+    expect(screen.queryByTestId('behind-regenerate-error')).toBeNull();
+  });
+
+  it('tells on another page that the regeneration ended, leading back to its result', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockLegislationApi({ behind: [firstAidBehind], after: [[runningEntry()], []] });
+    const runtime = mount();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+    expect(await screen.findByTestId('regeneration-progress')).toBeTruthy();
+    await user.click(screen.getAllByTestId('legislation-section')[3]!);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/legislatie/acte'));
+
+    await act(() => vi.advanceTimersByTimeAsync(summaryPollMs));
+    expect((await screen.findByTestId('regeneration-toast-title')).textContent).toBe(
+      '1 document SSM regenerat'
+    );
+    expect(screen.getByTestId('regeneration-toast-description').textContent).toBe(
+      '1 ciornă nouă de emis, la 1 client.'
+    );
+    expect(screen.getByTestId('regeneration-toast-shortfall').textContent).toBe(
+      '1 nu s-a putut regenera.'
     );
 
-    await vi.advanceTimersByTimeAsync(pollIntervalMs);
-    const result = await screen.findByTestId('regeneration-result');
-    expect(screen.getByTestId('regeneration-result-counts').textContent).toContain(
-      'Din 2 clienți: 1 regenerat, 1 sărit, 0 eșuate.'
+    await user.click(screen.getByRole('button', { name: 'Vezi rezultatul' }));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe('/legislatie/documente-ssm')
     );
-    expect(within(result).getAllByTestId('regeneration-left-out')[0]!.textContent).toBe(
-      'BETA CAFE SRL (sărit): Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde.'
+    expect(await screen.findByTestId('regeneration-result')).toBeTruthy();
+    await waitFor(() => expect(screen.queryByTestId('regeneration-toast')).toBeNull());
+  });
+
+  it('picks up after a reload the regeneration this tab started', async () => {
+    sessionStorage.setItem(
+      `ssm-usor:regenerations:user-one:${organizationId}`,
+      JSON.stringify([
+        {
+          id: 'regeneration-before-reload',
+          set: 'occupational_safety',
+          scope: 'all',
+          jobIds: [jobId],
+          titles: { decision_first_aid: firstAidBehind.title },
+          edited: 1,
+          notStarted: [],
+          startedAt: 0,
+        },
+      ])
     );
-    await waitFor(() => expect(screen.queryAllByTestId('behind-client')).toHaveLength(0));
-    expect(screen.getByTestId('behind-type').textContent).toContain(
-      'Niciun client nu mai are acest document în urmă.'
+    mockLegislationApi({ behind: [firstAidBehind] });
+    mount('/legislatie/acte');
+
+    expect((await screen.findByTestId('regeneration-toast-title')).textContent).toBe(
+      '1 document SSM regenerat'
     );
+    await waitFor(() =>
+      expect(sessionStorage.getItem(`ssm-usor:regenerations:user-one:${organizationId}`)).toBeNull()
+    );
+  });
+
+  it('lets go of a job it can no longer read instead of following it for ever', async () => {
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      read: () =>
+        Response.json(
+          { error: 'not_found', message: 'Această regenerare nu există.' },
+          { status: 404 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+
+    await waitFor(() =>
+      expect(requestsTo(`/documents/regeneration-jobs/${jobId}`)).toHaveLength(1)
+    );
+    await waitFor(() => expect(screen.queryByTestId('regeneration-progress')).toBeNull());
+    expect(screen.queryByTestId('regeneration-result')).toBeNull();
+    expect(screen.getByTestId('behind-regenerate-all')).toBeTruthy();
+  });
+
+  it('says so when the result of a job cannot be read', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      read: () => Response.json({ error: 'internal' }, { status: 500 }),
+    });
+    mount();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+    await act(() => vi.advanceTimersByTimeAsync(10_000));
+
+    expect((await screen.findByTestId('regeneration-result-unread')).textContent).toBe(
+      'Nu am putut afla rezultatul unui document; dacă e încă în urmă, apare în listă.'
+    );
+  });
+
+  it("refreshes the list when another member's regeneration ends while the tab is open", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockLegislationApi({
+      behind: [firstAidBehind],
+      before: [[runningEntry({ requestedBy: 'colleague', total: 2, done: 1 })], []],
+    });
+    mount();
+
+    expect((await screen.findByTestId('regeneration-progress')).textContent).toContain(
+      'Se regenerează: 1 din 2 documente'
+    );
+    expect(screen.queryByTestId('behind-regenerate-all')).toBeNull();
+
+    await act(() => vi.advanceTimersByTimeAsync(summaryPollMs));
+    expect(await screen.findByTestId('documents-behind-empty')).toBeTruthy();
+    expect(screen.queryByTestId('regeneration-progress')).toBeNull();
+    expect(screen.queryByTestId('regeneration-toast')).toBeNull();
   });
 
   it('lists what a client failed for as the rows of the generation form, each starting the way back to its document', async () => {
     mockLegislationApi({
-      behind: [{ ...firstAidBehind, runningJobId: jobId }],
-      polls: [lackingJob],
+      behind: [firstAidBehind],
+      read: () => Response.json(lackingJob),
     });
     const runtime = mount();
     const user = userEvent.setup();
 
-    expect((await screen.findByTestId('regeneration-result-counts')).textContent).toContain(
-      'Din 2 clienți: 0 regenerate, 1 sărit, 1 eșuat.'
+    await user.click(await screen.findByTestId('behind-regenerate-all'));
+    await user.click(await screen.findByTestId('behind-confirm'));
+    expect((await screen.findByTestId('regeneration-result-counts')).textContent).toBe(
+      'Regenerarea s-a încheiat: 0 din 2 documente'
     );
-    expect(screen.getAllByTestId('regeneration-left-out').map((item) => item.textContent)).toEqual([
-      'BETA CAFE SRL (sărit): Ciorna are modificări făcute de mână, pe care regenerarea le-ar pierde.',
-    ]);
+    expect(screen.getByTestId('regeneration-left-out').textContent).toContain('BETA CAFE SRL');
     const lacking = screen.getByTestId('regeneration-lacking');
     expect(within(lacking).getByTestId('regeneration-lacking-client').textContent).toBe(
       'ALFA CONSTRUCT SRL'
     );
     expect(lacking.textContent).toContain(
-      'Nu am putut regenera documentul. Completează mai întâi:'
+      'Decizia privind responsabilii cu primul ajutor nu s-a regenerat'
     );
     const rows = await within(lacking).findAllByTestId('regeneration-missing-row');
     const alfaId = firstAidBehind.clients[0]!.clientId;
@@ -797,20 +1138,6 @@ describe('the Legislație page', () => {
     });
   });
 
-  it('picks up a regeneration already running when the page opens', async () => {
-    mockLegislationApi({
-      behind: [{ ...firstAidBehind, runningJobId: jobId }],
-      polls: [job({ done: 1 })],
-    });
-    mount();
-
-    expect((await screen.findByTestId('regeneration-progress')).textContent).toContain(
-      'Se regenerează: 1 din 2 clienți'
-    );
-    expect(screen.queryByTestId('behind-regenerate')).toBeNull();
-    expect(requestsTo('/documents/behind/regenerate', 'POST')).toHaveLength(0);
-  });
-
   it('shows the reason the API gives when a regeneration cannot start', async () => {
     mockLegislationApi({
       behind: [firstAidBehind],
@@ -818,8 +1145,9 @@ describe('the Legislație page', () => {
         Response.json(
           {
             error: 'conflict',
-            message: 'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.',
-            reason: 'regeneration_running',
+            message:
+              'Fiecare ciornă a acestui document e editată de mână. Regenerează-le de pe pagina fiecărui client.',
+            reason: 'nothing_behind',
           },
           { status: 409 }
         ),
@@ -831,7 +1159,7 @@ describe('the Legislație page', () => {
     await user.click(await screen.findByTestId('behind-confirm'));
 
     expect((await screen.findByTestId('behind-regenerate-error')).textContent).toBe(
-      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.'
+      'Fiecare ciornă a acestui document e editată de mână. Regenerează-le de pe pagina fiecărui client.'
     );
     expect(screen.queryByTestId('behind-confirm-dialog')).toBeNull();
   });
@@ -842,7 +1170,7 @@ describe('the Legislație page', () => {
 
     await waitFor(() => expect(screen.getAllByTestId('legal-change')).toHaveLength(3));
     const [open, noImpact, answered] = screen.getAllByTestId('legal-change');
-    expect(within(open!).getByTestId('legal-change-resolution').textContent).toBe('În verificare');
+    expect(within(open!).getByTestId('legal-change-resolution').textContent).toBe('În analiză');
     expect(open!.textContent).toContain('Forma consolidată din 12.09.2026, după Legea 145/2026.');
     expect(within(noImpact!).getByTestId('legal-change-resolution').textContent).toBe(
       'Fără impact asupra documentelor'
@@ -876,7 +1204,7 @@ describe('the Legislație page', () => {
 
     const change = await screen.findByTestId('legal-change');
     expect(change.textContent).toContain('Forma consolidată din 06.11.2026, după Legea 207/2026.');
-    expect(within(change).getByTestId('legal-change-resolution').textContent).toBe('În verificare');
+    expect(within(change).getByTestId('legal-change-resolution').textContent).toBe('În analiză');
     expect(within(change).getByTestId('legal-change-units').textContent).toBe(
       'Modificări:art. 36 alin. (2)'
     );
@@ -1047,7 +1375,7 @@ describe('the Legislație page', () => {
     mount('/legislatie/modificari');
 
     const change = await screen.findByTestId('legal-change');
-    expect(within(change).getByTestId('legal-change-resolution').textContent).toBe('În verificare');
+    expect(within(change).getByTestId('legal-change-resolution').textContent).toBe('În analiză');
     expect(within(change).getByTestId('legal-change-status').textContent).toBe(
       'Modifică un articol la care trimit documentele.'
     );
@@ -1200,14 +1528,14 @@ describe('the Legislație page', () => {
     expect(cells('Legea 319/2006')).toEqual([
       'Legea 319/2006a securității și sănătății în muncă',
       'SSM',
-      'În verificareModifică un text citat în documente.',
+      'În analizăModifică un text citat în documente.',
       '12.09.2026documentele: 03.11.2025',
       '12 documente66 de preluări',
     ]);
     expect(cells('Legea 307/2006')).toEqual([
       'Legea 307/2006privind apărarea împotriva incendiilor',
       'SSM, SU',
-      'În verificareModificarea nu a fost încă analizată.',
+      'În analizăModificarea nu a fost încă analizată.',
       '08.05.2026documentele: forma de bază',
       '16 documente20 de preluări',
     ]);
@@ -1332,7 +1660,7 @@ describe('the Legislație page', () => {
 
     await user.click(screen.getByTestId('watched-acts-filters'));
     const panel = await screen.findByTestId('watched-acts-filters-panel');
-    for (const name of ['SSM', 'SU', 'În verificare', 'În vigoare', 'Abrogat', 'Neverificat']) {
+    for (const name of ['SSM', 'SU', 'În analiză', 'În vigoare', 'Abrogat', 'Neverificat']) {
       expect(within(panel).getByRole('checkbox', { name })).toBeTruthy();
     }
     await user.click(within(panel).getByRole('checkbox', { name: 'SU' }));
@@ -1340,7 +1668,7 @@ describe('the Legislație page', () => {
     expect(actNamesInTable()).toEqual(['Legea 307/2006', 'OMAI 106/2007', 'OMAI 163/2007']);
     expect(screen.getByTestId('watched-acts-count').textContent).toBe('3 din 7 acte');
 
-    await user.click(within(panel).getByRole('checkbox', { name: 'În verificare' }));
+    await user.click(within(panel).getByRole('checkbox', { name: 'În analiză' }));
     await waitFor(() =>
       expect(runtime.router.state.location.search).toEqual({ domain: 'su', status: 'open' })
     );
