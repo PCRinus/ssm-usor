@@ -36,7 +36,7 @@ Sub titlu scrie cum se alcătuiește un test: câte întrebări primește lucră
 
 Fiecare test are tabul lui: **SSM la angajare**, **SU la angajare** și **SU anual**. Sus, pe tab, vezi câte întrebări active are testul și câte ai ascuns, iar cu **Adaugă o întrebare** scrii una proprie pentru acel test.
 
-Fiecare întrebare e o fișă: textul ei, dedesubt **Predefinită** sau **Proprie**, apoi toate variantele de răspuns, una sub alta. Răspunsul corect are pătratul bifat, rândul colorat și **Corect** la capăt, ca în portal. O întrebare poate avea mai multe răspunsuri corecte: lucrătorul trebuie să le bifeze pe toate ca să i se numere întrebarea. Sub variante sunt **Explicația** și **Temeiul**, când întrebarea le are.
+Fiecare întrebare e o fișă: textul ei, dedesubt **Predefinită** sau **Proprie**, apoi toate variantele de răspuns, una sub alta. Răspunsul corect are pătratul bifat și rândul colorat, iar pe un ecran lat scrie și **Corect** la capăt. E același pătrat în care lucrătorul își bifează răspunsul în portal, unde însă răspunsul corect nu e marcat. O întrebare poate avea mai multe răspunsuri corecte: lucrătorul trebuie să le bifeze pe toate ca să i se numere întrebarea. Sub variante sunt **Explicația** și **Temeiul**, când întrebarea le are.
 
 Butoanele din colțul fișei:
 
@@ -56,7 +56,7 @@ Un test nu se trimite: îl așteaptă pe lucrător de la sine, în portal, când
 
 Testul SU se numește **anual**, nu periodic, pentru că așa îl numește legea. Periodic este instructajul, pe care testul îl verifică o dată pe an.
 
-În SSM nu există test periodic sau anual. Instruirea periodică SSM se verifică de șeful ierarhic al celui care a ținut-o și, prin sondaj, de angajator sau de serviciul de prevenire și protecție, care semnează fișa de instruire a lucrătorului (HG 1425/2006, normele metodologice, art. 96 alin. (4)). Pe fișă, asta e semnătura din rubrica **Verificator**.
+Legea nu cere un test la instruirea periodică SSM: cât de des se verifică instruirea stabilește angajatorul, prin programul de instruire-testare (HG 1425/2006, normele metodologice, art. 96 alin. (2)). Instruirea periodică se verifică de șeful ierarhic al celui care a ținut-o și, prin sondaj, de angajator, de lucrătorul desemnat sau de serviciul intern ori extern de prevenire și protecție, care semnează fișa de instruire a lucrătorului (art. 96 alin. (4)). Pe fișă, asta e semnătura din rubrica **Verificator**.
 
 Când îl așteaptă un test pe un lucrător anume, ce vezi pe pagina lui și cum înregistrezi un test dat pe hârtie afli în [Testarea](/clienti/angajati/instruire-si-teste/#testarea).
 
