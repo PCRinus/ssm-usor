@@ -1,6 +1,6 @@
 import type { BillingCreditsUsage } from '@ssm-usor/contracts';
 
-import { roNoun } from '@/features/employees/employee-format';
+import { roCount } from '@/features/employees/employee-format';
 
 import { formatCount } from './billing-format';
 import type { MeterTone } from './sms-copy';
@@ -19,11 +19,6 @@ export function creditsCount(count: number) {
     ? `${formatCount(count)} de credite AI`
     : `${formatCount(count)} credite AI`;
 }
-
-const clientsFor = (credits: number) => {
-  const clients = Math.floor(credits / 25);
-  return `${formatCount(clients)} ${roNoun(clients, 'client', 'clienți')}`;
-};
 
 /**
  * Whose credits these are: a trial's last the whole trial; a tester's renew each month with a hard
@@ -111,7 +106,7 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
       const near =
         credits.state === 'near'
           ? reader.kind === 'paid'
-            ? `Mai ai ${formatCount(available)}, cât pentru vreo ${clientsFor(available)}. `
+            ? `Mai ai ${formatCount(available)}, cât pentru vreo ${roCount(Math.floor(available / 25), 'client', 'clienți')}. `
             : `Mai ai ${formatCount(available)}. `
           : '';
       if (reader.kind === 'trial') {

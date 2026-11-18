@@ -251,7 +251,7 @@ export function sectionDescription(
           : answer === 'none'
             ? ', fără substanțe periculoase'
             : '';
-      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : roCount(equipment, 'mijloc de stingere', 'mijloace de stingere')}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'Un alt mijloc', 'mijloace')}`;
+      return `${smoking ? `${smoking}, ` : ''}${equipment === 1 ? 'un mijloc de stingere' : roCount(equipment, 'mijloc de stingere', 'mijloace de stingere')}${substances}.${choiceText}${countsText}${others(['fireEquipment', 'fireInstallations', 'substances'], 'Un alt element', 'elemente')}`;
     }
     case 'equipment': {
       const items = included(proposal, changes, 'protectiveEquipment');

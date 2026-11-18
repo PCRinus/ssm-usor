@@ -1,5 +1,7 @@
 import type { EmployeeStatus } from '@ssm-usor/contracts';
 
+import { formatCount } from '@/features/subscription/billing-format';
+
 export const employeeStatusLabels: Record<EmployeeStatus, string> = {
   active: 'Actuali',
   terminated: 'Foști',
@@ -25,7 +27,7 @@ export function formatDate(isoDate: string) {
 // Romanian counted nouns: "0 ani", "1 an", "2 ani", "20 de ani" (from 20 up, except 101–119
 // style endings, the noun takes "de").
 export function roCount(value: number, one: string, many: string) {
-  return `${value} ${roNoun(value, one, many)}`;
+  return `${formatCount(value)} ${roNoun(value, one, many)}`;
 }
 
 export function roNoun(value: number, one: string, many: string) {

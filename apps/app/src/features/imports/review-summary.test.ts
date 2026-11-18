@@ -40,6 +40,26 @@ describe("the posts another company's passages bring", () => {
     );
   });
 
+  it('names a fire-safety one, of whatever kind, as an element', () => {
+    const proposal = proposalFixture();
+    proposal.fireEquipment.push({
+      ...proposal.fireEquipment[0]!,
+      id: 'extinguisher-other',
+      otherCompanyName: 'Lactate Câmpia SRL',
+    });
+    expect(
+      sectionDescription(
+        'fire-safety',
+        importDetail() as unknown as ImportDetail,
+        proposal,
+        noChanges,
+        {}
+      )
+    ).toContain(
+      ' Un alt element apare doar în pasaje copiate de la altă firmă și rămâne deoparte.'
+    );
+  });
+
   it('counts several with the "de" Romanian takes from 20 up', () => {
     const proposal = proposalFixture();
     const other = proposal.jobPositions.find((position) => position.otherCompanyName !== null)!;
