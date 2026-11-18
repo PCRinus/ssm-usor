@@ -32,12 +32,19 @@ const to = {
   profile: (focus: ProfileFocus) => linkOptions({ to: '/profil', search: { focus } }),
   newClient: () => linkOptions({ to: '/clienti/nou' }),
   clients: () => linkOptions({ to: '/clienti' }),
+  clientImport: () => linkOptions({ to: '/clienti', search: { import: true } }),
   details: (clientId: string) =>
     linkOptions({ to: '/clienti/$clientId/detalii', params: { clientId } }),
   positions: (clientId: string) =>
     linkOptions({ to: '/clienti/$clientId/posturi', params: { clientId } }),
   newEmployee: (clientId: string) =>
     linkOptions({ to: '/clienti/$clientId/angajati/nou', params: { clientId } }),
+  employeeImport: (clientId: string) =>
+    linkOptions({
+      to: '/clienti/$clientId/angajati',
+      params: { clientId },
+      search: { import: true },
+    }),
   training: (clientId: string) =>
     linkOptions({ to: '/clienti/$clientId/instruire', params: { clientId } }),
   trainings: (clientId: string) =>
@@ -138,8 +145,12 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
   client: {
     label: 'Adaugă primul client',
     neutralLabel: 'Adaugă un client',
-    sentence: 'Completezi datele firmei pornind de la CUI.',
-    actions: () => [{ label: 'Adaugă client', kind: 'form', target: to.newClient() }],
+    sentence:
+      'Încarci dosarul SSM și SU pe care îl ai, iar AI-ul îți propune datele, sau le completezi tu pornind de la CUI.',
+    actions: () => [
+      { label: 'Adaugă cu AI', kind: 'form', target: to.clientImport() },
+      { label: 'Adaugă manual', kind: 'form', target: to.newClient() },
+    ],
   },
   'workplaces-positions': {
     label: 'Adaugă punctele de lucru și posturile',
@@ -153,9 +164,11 @@ export const stepCopy: Record<SetupStepId, StepCopy> = {
   employees: {
     label: 'Adaugă lucrătorii',
     neutralLabel: 'Adaugă lucrători',
-    sentence: 'Îi adaugi pe rând, fiecare cu postul și punctul lui de lucru.',
+    sentence:
+      'Fotografiezi fișele de instruire, iar AI-ul îți propune lucrătorii, sau îi adaugi tu pe rând, fiecare cu postul și punctul lui de lucru.',
     actions: ({ clientId }) => [
-      { label: 'Adaugă lucrător', kind: 'form', target: onClient(clientId, to.newEmployee) },
+      { label: 'Adaugă cu AI', kind: 'form', target: onClient(clientId, to.employeeImport) },
+      { label: 'Adaugă manual', kind: 'form', target: onClient(clientId, to.newEmployee) },
     ],
   },
   'responsible-persons': {

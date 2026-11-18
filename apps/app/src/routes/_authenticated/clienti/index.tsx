@@ -22,9 +22,9 @@ import {
   Flame,
   GraduationCap,
   MapPin,
-  Plus,
-  ScanText,
+  PenLine,
   SearchX,
+  Sparkles,
   TriangleAlert,
   Users,
 } from 'lucide-react';
@@ -75,6 +75,7 @@ const searchSchema = z.object({
   attention: filterSearchSchema(clientAttentionFilters),
   county: filterSearchSchema(countyCodes),
   contract: filterSearchSchema(clientContractFilters),
+  import: z.literal(true).optional().catch(undefined),
 });
 
 const filterKeys = [
@@ -249,6 +250,15 @@ function ClientsPage() {
     [isOwner]
   );
   const [importing, setImporting] = useState(false);
+  const closeImport = () => {
+    setImporting(false);
+    if (search.import)
+      void navigate({
+        replace: true,
+        resetScroll: false,
+        search: (prev) => ({ ...prev, import: undefined }),
+      });
+  };
   const changeFilters = (values: ListFilterValues<FilterKey>) =>
     void navigate({
       replace: true,
@@ -272,19 +282,15 @@ function ClientsPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Clienți</h1>
         {(archived || !isEmptyOrLoading(listStatus, unfilteredTotal)) && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              data-testid="clients-import"
-              onClick={() => setImporting(true)}
-            >
-              <ScanText aria-hidden="true" />
-              Importă din documente
-            </Button>
-            <Button asChild>
+            <Button variant="outline" asChild>
               <Link to="/clienti/nou" state={openedHere} data-testid="clients-add">
-                <Plus aria-hidden="true" />
-                Adaugă client
+                <PenLine aria-hidden="true" />
+                Adaugă manual
               </Link>
+            </Button>
+            <Button data-testid="clients-import" onClick={() => setImporting(true)}>
+              <Sparkles aria-hidden="true" />
+              Adaugă cu AI
             </Button>
           </div>
         )}
@@ -458,8 +464,8 @@ function ClientsPage() {
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <ClientDeleteDialog client={deleting} onClose={() => setDeleting(null)} />
       <ImportUploadDialog
-        open={importing}
-        onClose={() => setImporting(false)}
+        open={importing || search.import === true}
+        onClose={closeImport}
         onStarted={(importId) =>
           void navigate({
             to: '/clienti/import/$importId',

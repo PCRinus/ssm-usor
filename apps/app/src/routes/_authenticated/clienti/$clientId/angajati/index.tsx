@@ -18,6 +18,7 @@ const searchSchema = z
     sort: z.enum(employeeSortKeys).optional().catch(undefined),
     order: sortOrderSchema.optional().catch(undefined),
     q: z.string().max(100).optional().catch(undefined),
+    import: z.literal(true).optional().catch(undefined),
     ...clientWorkerFilterSearch,
     ...legacyWorkerFilterSearch,
   })

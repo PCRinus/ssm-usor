@@ -181,6 +181,20 @@ export function EmployeesPage() {
       resetScroll: false,
       search: (prev) => ({ ...prev, ...next, page: undefined }),
     });
+  const dropImportParam = () => {
+    if (search.import)
+      void navigate({
+        state: keepOpener,
+        replace: true,
+        resetScroll: false,
+        search: (prev) => ({ ...prev, import: undefined }),
+      });
+  };
+  const closeImport = () => {
+    setImporting(null);
+    dropImportParam();
+  };
+  const fromGuide = search.import === true && !readOnly && importing === null;
   const changeFilters = (values: ListFilterValues<FilterKey>) =>
     changeSearch(listFilters.searchOf(values) as Filters);
 
@@ -343,10 +357,10 @@ export function EmployeesPage() {
       </div>
       <EmployeeStatusDialog clientId={clientId} change={change} onClose={() => setChange(null)} />
       <EmployeeUploadDialog
-        open={importing === 'found' || importing === 'new'}
+        open={importing === 'found' || importing === 'new' || fromGuide}
         withFound={importing === 'found'}
         client={client}
-        onClose={() => setImporting(null)}
+        onClose={closeImport}
         onStarted={(importId) =>
           void navigate({
             to: '/clienti/$clientId/angajati/import/$importId',
@@ -354,12 +368,15 @@ export function EmployeesPage() {
             params: { clientId, importId },
           })
         }
-        onImportDocumentation={() => setImporting('documentation')}
+        onImportDocumentation={() => {
+          setImporting('documentation');
+          dropImportParam();
+        }}
       />
       <ImportUploadDialog
         open={importing === 'documentation'}
         client={client}
-        onClose={() => setImporting(null)}
+        onClose={closeImport}
         onStarted={(importId) =>
           void navigate({
             to: '/clienti/import/$importId',

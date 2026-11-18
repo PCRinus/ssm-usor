@@ -177,7 +177,7 @@ Dacă un import se oprește înainte să fie gata de verificat, primești înapo
 
 ## Importul unui client din documente
 
-Pornești din **Clienți**, cu **Importă din documente**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră. Un fișier ales de două ori, chiar sub alt nume sau din alt folder, se încarcă, se citește și se socotește o singură dată: copia apare la „Puse deoparte, nu se încarcă”, cu fișierul pe care îl repetă. Când scoți un fișier, îi scoți și copiile.
+Pornești din **Clienți**, cu **Adaugă cu AI**, pentru un client nou, sau de pe pagina unui client existent, cu **Completează din documentație**. Încarci documentația unei singure firme: fișiere, un folder sau o arhivă ZIP, în PDF, DOC, DOCX, JPG, PNG sau HEIC, cel mult 150 de fișiere și 100 MB în total. Arhiva o deschide aplicația înainte de încărcare, așa că vezi ce intră. Un fișier ales de două ori, chiar sub alt nume sau din alt folder, se încarcă, se citește și se socotește o singură dată: copia apare la „Puse deoparte, nu se încarcă”, cu fișierul pe care îl repetă. Când scoți un fișier, îi scoți și copiile.
 
 Firma o recunoaștem după CUI și după denumire. Nu contează cum e scrisă forma juridică de la începutul sau de la sfârșitul denumirii, prescurtată sau în întregime: „S.P.N. Popescu”, „SPN Popescu” și „Societatea Profesională Notarială Popescu” sunt aceeași firmă, la fel „Popescu Ion PFA” și „Popescu Ion Persoană Fizică Autorizată” sau „Popescu Ion II” și „Popescu Ion Întreprindere Individuală”. La un cabinet medical nu contează nici „Dr.” din fața numelui. Ținem seama de formele societăților, ale cooperativelor și societăților agricole, ale persoanelor fizice autorizate, ale întreprinderilor individuale și familiale și ale vechilor asociații familiale, de birourile și societățile notariale, de cabinetele și societățile de avocați, medicale, de executori judecătorești și de insolvență. Două denumiri cu forme juridice diferite rămân două firme, de exemplu „Cabinet de avocat Ionescu” și „Cabinet Medical Individual Ionescu”, sau „Alfa SA” și „Alfa SRL”, afară de cazul în care le leagă același CUI. Dacă printre documente apare totuși altă firmă, îți spunem, iar documentele ei le încarci separat.
 
@@ -287,9 +287,9 @@ Documentația nu are lista lucrătorilor. Oamenii, cu CNP-ul, data angajării ș
 
 Importul lucrătorilor pornește doar din tabul **Lucrători** al unui client. Ai trei căi:
 
-- **Adaugă lucrător**: completezi tu datele unei persoane, fără import;
-- **Importă din fișele găsite în documentație**, cu numărul de fotografii: deschide încărcarea cu fotografiile de fișe găsite la importul documentației deja adăugate;
-- **Importă din fotografii noi**: încarci tu fotografiile. Când nu există fișe găsite în documentație, butonul se numește **Importă din fișele de instruire**.
+- **Adaugă manual**: completezi tu datele unei persoane, fără AI;
+- **Adaugă cu AI din fișele găsite**, cu numărul de fotografii: deschide încărcarea cu fotografiile de fișe găsite la importul documentației deja adăugate;
+- **Adaugă cu AI din fotografii noi**: încarci tu fotografiile. Când nu există fișe găsite în documentație, butonul se numește **Adaugă cu AI din fișe**.
 
 La un client fără lucrători, cele trei căi apar ca trei carduri în locul listei. La un client cu lucrători, sunt butoane deasupra listei.
 

@@ -139,15 +139,23 @@ describe('starting an import from the client list', () => {
     mountApp(authFixture(makeSession()).client, '/clienti');
 
     const ways = await screen.findByTestId('clients-start-ways');
-    expect(within(ways).getByTestId('clients-start-form').textContent).toContain(
-      'Adaugă primul client'
-    );
+    expect(within(ways).getByTestId('clients-start-form').textContent).toContain('Adaugă manual');
     await userEvent.click(within(ways).getByTestId('clients-start-import'));
     const dialog = await screen.findByTestId('import-upload-dialog');
     expect(within(dialog).getByRole('heading', { name: 'Client nou din documente' })).toBeTruthy();
     expect(within(dialog).getByTestId('import-upload-one-client').textContent).toContain(
       'Un import creează un singur client.'
     );
+  });
+
+  it('opens on a link from the setup guide and leaves the address when closed', async () => {
+    mockImportApi();
+    const runtime = mountApp(authFixture(makeSession()).client, '/clienti?import=true');
+
+    await screen.findByTestId('import-upload-dialog');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('import-upload-dialog')).toBeNull());
+    expect(runtime.router.state.location.search).toEqual({});
   });
 
   it('shows what a zip holds and what is set aside, then hashes, registers, uploads and starts', async () => {
