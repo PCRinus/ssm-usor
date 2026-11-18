@@ -7,9 +7,12 @@ export function filterSearchSchema<const Value extends string>(values: readonly 
   return searchListSchema((value): value is Value => (values as readonly string[]).includes(value));
 }
 
-// For options the list loads, such as a client's job positions: any id, checked by the API.
-export function idFilterSearchSchema() {
-  return searchListSchema((value): value is string => z.uuid().safeParse(value).success);
+// For options the list loads, such as a client's job positions: any id, checked by the API, and
+// the fixed values `also` names beside them.
+export function idFilterSearchSchema(also: readonly string[] = []) {
+  return searchListSchema(
+    (value): value is string => also.includes(value) || z.uuid().safeParse(value).success
+  );
 }
 
 function searchListSchema<Value extends string>(known: (value: string) => value is Value) {

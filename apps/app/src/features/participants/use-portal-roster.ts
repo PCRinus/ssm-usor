@@ -24,7 +24,7 @@ import {
 import { keepOpener } from '@/app/opener';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
-import { clientPlaceFacets } from '@/features/employees/worker-filters';
+import { clientPlaceFacets, workplacePlaces } from '@/features/employees/worker-filters';
 
 import { portalAccessLabels } from './portal-access-format';
 import type { RosterRow } from './portal-roster-columns';
@@ -82,20 +82,20 @@ export function usePortalRoster(clientId: string, userId: string) {
     request: apiRequest,
     query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId], enabled },
   });
-  const workplaceCount = workplaces.data?.items.length ?? 0;
   const facets = useMemo(
     () =>
       rosterFacets({
         positions: positions.isError ? [] : positions.data?.items,
-        workplaces: workplaces.isError ? [] : workplaces.data?.items,
-        withWorkplaces: workplaceCount > 1 || (workplaces.isPending && Boolean(search.workplace)),
+        ...workplacePlaces(
+          { isPending: workplaces.isPending, isError: workplaces.isError, data: workplaces.data },
+          Boolean(search.workplace)
+        ),
       }),
     [
       positions.data,
       positions.isError,
       workplaces.data,
       workplaces.isError,
-      workplaceCount,
       workplaces.isPending,
       search.workplace,
     ]

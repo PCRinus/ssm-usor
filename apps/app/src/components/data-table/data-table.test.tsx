@@ -117,6 +117,26 @@ describe('DataTable', () => {
       screen.getAllByTestId('row').map((row) => (row as HTMLTableRowElement).cells.length)
     ).toEqual([2, 2]);
   });
+
+  it('keeps a list without a sort in its own order, without sort buttons, rows found by id', () => {
+    render(
+      <DataTable
+        columns={helper.columns([
+          helper.display({ id: 'name', header: 'Nume', cell: ({ row }) => row.original.name }),
+        ])}
+        data={[rows[1]!, rows[0]!]}
+        rowKey={(row) => row.id}
+        rowElementId={(row) => `row-${row.id}`}
+        status="success"
+        label="Rânduri"
+        empty={null}
+        rowTestId="row"
+      />
+    );
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByRole('columnheader').hasAttribute('aria-sort')).toBe(false);
+    expect(screen.getAllByTestId('row').map((row) => row.id)).toEqual(['row-b', 'row-a']);
+  });
 });
 
 describe('DataTable row selection', () => {

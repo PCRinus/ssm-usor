@@ -5,7 +5,7 @@
 
 ## Context
 
-Every document ADR 005 generates belongs in every client's documentation set. Decision 1.5, which names the workers' representatives (_reprezentanții lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă_), does not. H.G. 1425/2006 art. 53(1) sets a minimum of one representative from 10 to 49 workers and two from 50 to 100; above 100, the committee rules of art. 60(3) apply. Representatives are chosen by and from among the workers, so the employer who signs the decision cannot be one of them.
+Every document ADR 005 generates belongs in every client's documentation set. Decision 1.5, which names the workers' representatives (_reprezentanții lucrătorilor cu răspunderi specifice în domeniul securității și sănătății în muncă_), does not. H.G. 1425/2006 art. 53(2) sets a minimum of one representative from 10 to 49 workers and two from 50 to 100; above 100, the committee rules of art. 60(3) apply. Representatives are chosen by and from among the workers, so the employer who signs the decision cannot be one of them.
 
 The provider's template (`1.5._Decizie_privind_reprezentantul _lucratorilor.doc`) names the representatives with their contract titles and lists them in the acknowledgement table, like the other decisions.
 
@@ -23,7 +23,7 @@ A missing or invalid representative blocks the whole generation, as any other mi
 
 Decision 1.5 is numbered last among the decisions, so 1.1 to 1.4 keep their numbers. Cover 1.0 lists it only when it is part of the set.
 
-The template is imported like the others, with the usual fixes: diacritics, no honorifics, singular or plural by the number of representatives. One fix touches a legal sentence: the template's "sub 50 si 100" becomes "între 50 și 100", as art. 53(1) reads.
+The template is imported like the others, with the usual fixes: diacritics, no honorifics, singular or plural by the number of representatives. One fix touches a legal sentence: the template's "sub 50 si 100" becomes "între 50 și 100", as art. 53(2) reads.
 
 ## Consequences
 

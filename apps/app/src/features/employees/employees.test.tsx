@@ -538,6 +538,42 @@ describe('client employees list', () => {
     expect(within(panel).queryByRole('heading', { name: 'Punct de lucru' })).toBeNull();
   });
 
+  it('filters to the workers without a workplace from a link, even at a client with one workplace', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      workplaces: () => Response.json({ items: [registeredOffice], unassignedEmployeeCount: 2 }),
+    });
+    mountApp(authFixture(makeSession()).client, `${employeesPage}?workplace=none`);
+    await screen.findByTestId('employees-row');
+    await waitFor(() => {
+      const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+      expect(sent.getAll('workplace')).toEqual(['none']);
+    });
+    expect(screen.getByTestId('employees-applied-filters-workplace').textContent).toContain(
+      'Fără punct de lucru'
+    );
+    await userEvent.setup().click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    expect(
+      within(panel).getByTestId(`employees-filters-workplace-${registeredOffice.id}`)
+    ).toBeTruthy();
+    expect(within(panel).getByTestId('employees-filters-workplace-none')).toBeTruthy();
+  });
+
+  it('offers no filter for workers without a workplace while every one has a workplace', async () => {
+    mockApi({
+      list: () => Response.json(page([sampleEmployee])),
+      workplaces: () =>
+        Response.json({ items: [registeredOffice, workshop], unassignedEmployeeCount: 0 }),
+    });
+    mountApp(authFixture(makeSession()).client, employeesPage);
+    await screen.findByTestId('employees-row');
+    await userEvent.setup().click(screen.getByTestId('employees-filters'));
+    const panel = await screen.findByTestId('employees-filters-panel');
+    await within(panel).findByTestId(`employees-filters-workplace-${workshop.id}`);
+    expect(within(panel).queryByTestId('employees-filters-workplace-none')).toBeNull();
+  });
+
   it('sorts by one column at a time through the URL', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}?page=2`);

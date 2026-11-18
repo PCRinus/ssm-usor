@@ -150,9 +150,12 @@ export const portalAccessStates = ['active', 'invited', 'expired', 'none', 'revo
 export const portalAccessStateSchema = z.enum(portalAccessStates);
 export type PortalAccessState = z.infer<typeof portalAccessStateSchema>;
 
+// Stands for the employees with no workplace, beside workplace ids in the same filter.
+export const noWorkplace = 'none';
+
 export const clientEmployeeListFiltersSchema = employeeListFiltersSchema.extend({
   jobPosition: repeatedQueryValue(z.uuid()).optional(),
-  workplace: repeatedQueryValue(z.uuid()).optional(),
+  workplace: repeatedQueryValue(z.union([z.uuid(), z.literal(noWorkplace)])).optional(),
   portal: repeatedQueryValue(portalAccessStateSchema).optional(),
 });
 

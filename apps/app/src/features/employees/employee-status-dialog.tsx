@@ -15,9 +15,11 @@ import { type FormEvent, useState } from 'react';
 import {
   type ApiErrorResponse,
   type EmployeeListResponse,
+  getGetClientQueryKey,
   getGetEmployeeQueryKey,
   getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
+  getListWorkplacesQueryKey,
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
@@ -135,8 +137,11 @@ function StatusForm({
         queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
         refreshEmployeesOverStep(queryClient),
         queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
-        // A leaver no longer counts in their job position; someone reactivated does again.
+        // A leaver no longer counts in their job position or workplace, nor among the client's
+        // current workers; someone reactivated does again.
         queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
+        queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) }),
+        queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
       ]);
       toast.success(
         action === 'terminate'

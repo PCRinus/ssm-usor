@@ -7,6 +7,7 @@ import {
   offeredTrainingInterval,
   type OrganizationAuthorizations,
   type OrganizationCompanyDetails,
+  type PortalAccessState,
   type ResponsiblePerson,
   responsiblePersonConflictReasons,
   type ResponsiblePersonRequest,
@@ -495,20 +496,47 @@ async function refuseOfficeWithoutActivity(
   }
 }
 
+// Views type every column as nullable; these come from not-null columns of the table.
+type WorkplaceListRow = {
+  [Column in keyof WorkplaceRow | 'current_employee_count']: Column extends keyof WorkplaceRow
+    ? WorkplaceRow[Column]
+    : number;
+};
+
 export const listWorkplaces: RouteHandler<typeof listWorkplacesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  const { data, error } = await db
-    .from('client_workplaces')
-    .select(workplaceColumns)
-    .eq('client_id', clientId)
-    .is('archived_at', null)
-    .order('is_registered_office', { ascending: false })
-    .order('name')
-    .order('id');
-  if (error) throw fromDatabaseError(error, 'list workplaces');
-  return c.json({ items: data.map(toWorkplace) }, 200);
+  const [workplaces, unassigned] = await Promise.all([
+    db
+      .from('client_workplace_list')
+      .select(`${workplaceColumns}, current_employee_count`)
+      .eq('client_id', clientId)
+      .is('archived_at', null)
+      .order('is_registered_office', { ascending: false })
+      .order('name')
+      .order('id')
+      .returns<WorkplaceListRow[]>(),
+    db
+      .from('employees')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .is('workplace_id', null)
+      .eq('status', 'active')
+      .is('archived_at', null),
+  ]);
+  if (workplaces.error) throw fromDatabaseError(workplaces.error, 'list workplaces');
+  if (unassigned.error) throw fromDatabaseError(unassigned.error, 'count unassigned employees');
+  return c.json(
+    {
+      items: workplaces.data.map((row) => ({
+        ...toWorkplace(row),
+        currentEmployeeCount: row.current_employee_count,
+      })),
+      unassignedEmployeeCount: unassigned.count ?? 0,
+    },
+    200
+  );
 };
 
 export const createWorkplace: RouteHandler<typeof createWorkplaceRoute, ApiEnv> = async (c) => {
@@ -585,7 +613,7 @@ export const archiveWorkplace: RouteHandler<typeof archiveWorkplaceRoute, ApiEnv
 };
 
 const responsiblePersonColumns =
-  'id, client_id, employee_id, workplace_id, full_name, job_title, roles, created_at, updated_at, employees(job_title)';
+  'id, client_id, employee_id, workplace_id, full_name, job_title, roles, created_at, updated_at, employees(job_title, status, archived_at)';
 
 type ResponsiblePersonRow = Pick<
   Tables['client_responsible_persons']['Row'],
@@ -598,7 +626,9 @@ type ResponsiblePersonRow = Pick<
   | 'roles'
   | 'created_at'
   | 'updated_at'
-> & { employees: { job_title: string } | null };
+> & {
+  employees: Pick<Tables['employees']['Row'], 'job_title' | 'status' | 'archived_at'> | null;
+};
 
 function toResponsiblePerson(row: ResponsiblePersonRow): ResponsiblePerson {
   return {
@@ -608,6 +638,7 @@ function toResponsiblePerson(row: ResponsiblePersonRow): ResponsiblePerson {
     fullName: row.full_name,
     jobTitle: row.job_title,
     employeeJobTitle: row.employees?.job_title ?? null,
+    currentEmployee: row.employees?.status === 'active' && row.employees.archived_at === null,
     roles: row.roles,
     workplaceId: row.workplace_id,
     createdAt: new Date(row.created_at).toISOString(),
@@ -715,7 +746,30 @@ export const listResponsiblePersons: RouteHandler<
     .order('full_name')
     .order('id');
   if (error) throw fromDatabaseError(error, 'list responsible persons');
-  return c.json({ items: data.map(toResponsiblePerson) }, 200);
+  const employeeIds = [
+    ...new Set(data.flatMap((row) => (row.employee_id ? [row.employee_id] : []))),
+  ];
+  const standings = new Map<string, PortalAccessState>();
+  if (employeeIds.length > 0) {
+    const portal = await db
+      .from('employee_list')
+      .select('id, portal_state')
+      .eq('client_id', clientId)
+      .in('id', employeeIds);
+    if (portal.error) throw fromDatabaseError(portal.error, 'read portal standings');
+    for (const row of portal.data) {
+      if (row.id) standings.set(row.id, (row.portal_state ?? 'none') as PortalAccessState);
+    }
+  }
+  return c.json(
+    {
+      items: data.map((row) => ({
+        ...toResponsiblePerson(row),
+        portal: row.employee_id ? (standings.get(row.employee_id) ?? 'none') : null,
+      })),
+    },
+    200
+  );
 };
 
 export const createResponsiblePerson: RouteHandler<

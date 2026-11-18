@@ -58,6 +58,7 @@ const office = {
   addressLine: 'Calea Victoriei 122A',
   createdAt: '2026-09-18T10:00:00.000Z',
   updatedAt: '2026-09-18T10:00:00.000Z',
+  currentEmployeeCount: 3,
 };
 
 const shop = {
@@ -69,6 +70,7 @@ const shop = {
   countyCode: 'TM',
   locality: 'Timișoara',
   addressLine: 'Str. Goethe 2',
+  currentEmployeeCount: 0,
 };
 
 const fireData = {
@@ -92,6 +94,9 @@ const fetchMock = vi.fn<typeof fetch>();
 function mockApi({
   client = sampleClient,
   items = [office, shop] as unknown[],
+  unassigned = 0,
+  equipment = [] as unknown[],
+  installations = [] as unknown[],
   create = ((init) =>
     Response.json(
       { workplace: { ...shop, ...JSON.parse(String(init?.body)) } },
@@ -113,7 +118,17 @@ function mockApi({
     if (pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails: emptyDetails });
     }
-    if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
+    if (pathname === listPath) {
+      return method === 'POST'
+        ? create(init)
+        : Response.json({ items, unassignedEmployeeCount: unassigned });
+    }
+    if (pathname === `/clients/${clientId}/fire-equipment`) {
+      return Response.json({ items: equipment });
+    }
+    if (pathname === `/clients/${clientId}/fire-installations`) {
+      return Response.json({ items: installations });
+    }
     if (pathname === `${listPath}/${shop.id}` || pathname === `${listPath}/${office.id}`) {
       return method === 'DELETE' ? archive(init) : update(init);
     }
@@ -156,7 +171,7 @@ describe('client workplaces', () => {
     const user = userEvent.setup();
     const rows = await screen.findAllByTestId('workplace-row');
     expect(within(rows[0]!).getByTestId('workplace-address-drift').textContent).toContain(
-      '„Calea Victoriei 122A, Cluj-Napoca, Cluj”'
+      'În datele firmei: Calea Victoriei 122A, Cluj-Napoca, Cluj.'
     );
     expect(within(rows[1]!).queryByTestId('workplace-address-drift')).toBeNull();
     await user.click(within(rows[0]!).getByTestId('workplace-address-adopt'));
@@ -186,6 +201,77 @@ describe('client workplaces', () => {
     expect(rows[0]!.textContent).toContain('Calea Victoriei 122A, București, București');
     expect(rows[1]!.textContent).toContain('Str. Goethe 2, Timișoara, Timiș');
     expect(within(rows[1]!).queryByText('Sediu social')).toBeNull();
+  });
+
+  it('counts the current workers of each workplace and of none, each linked to the filtered list', async () => {
+    mockApi({ unassigned: 2 });
+    mount();
+
+    const rows = await screen.findAllByTestId('workplace-row');
+    const office = within(rows[0]!).getByTestId('workplace-employees');
+    expect(office.textContent).toBe('3');
+    expect(office.getAttribute('aria-label')).toBe('3 lucrători la Sediu social');
+    expect(office.getAttribute('href')).toBe(
+      `/clienti/${clientId}/angajati?workplace=7c9e6679-7425-40de-944b-e07fc1f90ae7`
+    );
+    expect(within(rows[1]!).getByTestId('workplace-employees').tagName).toBe('SPAN');
+    const unassigned = screen.getByTestId('workplace-unassigned-row');
+    expect(unassigned.textContent).toContain('Fără punct de lucru');
+    expect(within(unassigned).queryByTestId('workplace-actions')).toBeNull();
+    const link = within(unassigned).getByTestId('workplace-unassigned-link');
+    expect(link.textContent).toBe('2');
+    expect(link.getAttribute('aria-label')).toBe('2 lucrători fără punct de lucru');
+    expect(link.getAttribute('href')).toBe(`/clienti/${clientId}/angajati?workplace=none`);
+  });
+
+  it('leaves out the row of workers without a workplace while there are none', async () => {
+    mockApi();
+    mount();
+
+    await screen.findAllByTestId('workplace-row');
+    expect(screen.queryByTestId('workplace-unassigned-row')).toBeNull();
+  });
+
+  it("sums up each workplace's fire-fighting means and their checks", async () => {
+    const day = (offset: number) => {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+    const unit = (workplaceId: string, nextServiceOn: string | null, kind = 'extinguisher') => ({
+      workplaceId,
+      kind,
+      nextServiceOn,
+    });
+    const depot = { ...shop, id: '9f6d1c2b-3a4e-4f5a-8b6c-7d8e9f0a1b2c', name: 'Depozit' };
+    const yard = { ...shop, id: '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', name: 'Curte' };
+    mockApi({
+      items: [office, shop, depot, yard],
+      equipment: [
+        unit(office.id, day(40)),
+        unit(office.id, day(10)),
+        unit(shop.id, day(-3)),
+        unit(shop.id, day(30)),
+        unit(depot.id, null, 'sand_box'),
+      ],
+      installations: [{ workplaceId: office.id, nextCheckOn: day(20) }],
+    });
+    mount();
+
+    const rows = await screen.findAllByTestId('workplace-row');
+    const [first, second, third, fourth] = rows.map((row) => within(row));
+    expect(first!.getByTestId('workplace-means').textContent).toBe('3 mijloace');
+    expect(first!.getByTestId('workplace-means-next').textContent).toBe(
+      `verificare până la ${day(10).split('-').reverse().join('.')}`
+    );
+    expect(second!.getByTestId('workplace-means').textContent).toBe('2 mijloace');
+    expect(second!.getByTestId('workplace-means-overdue').textContent).toBe(
+      '1 cu verificarea depășită'
+    );
+    expect(third!.getByTestId('workplace-means').textContent).toBe('1 mijloc');
+    expect(third!.getByTestId('workplace-no-extinguisher').textContent).toBe('Niciun stingător');
+    expect(fourth!.queryByTestId('workplace-means')).toBeNull();
+    expect(fourth!.getByTestId('workplace-no-extinguisher').textContent).toBe('Niciun stingător');
   });
 
   it('says when there are none', async () => {
@@ -400,12 +486,14 @@ describe('client workplaces', () => {
       'Denumire',
       'Adresă',
       'Activitate',
+      'Lucrători',
+      'Mijloace de apărare',
       'Acțiuni',
     ]);
     expect(
       rows.map((row) => within(row).getByTestId('workplace-activity-cell').textContent)
     ).toEqual(['Gelaterie', 'Construcții', '—']);
-    expect(within(rows[0]!).queryByTestId('workplace-kind')).toBeNull();
+    expect(within(rows[0]!).getByTestId('workplace-kind').textContent).toBe('Sediu social');
     expect(within(rows[1]!).getByTestId('workplace-kind').textContent).toBe(
       'Șantier temporar sau mobil'
     );
@@ -658,11 +746,11 @@ describe('client workplaces', () => {
       mount();
 
       const rows = await screen.findAllByTestId('workplace-row');
-      expect(within(rows[0]!).getByTestId('workplace-no-activity').textContent).toBe(
-        'Fără activitate la sediu'
+      expect(within(rows[0]!).getByTestId('workplace-kind').textContent).toBe(
+        'Sediu social, fără activitate'
       );
       expect(within(rows[0]!).queryByTestId('workplace-fire-incomplete')).toBeNull();
-      expect(within(rows[1]!).queryByTestId('workplace-no-activity')).toBeNull();
+      expect(within(rows[1]!).queryByTestId('workplace-kind')).toBeNull();
     });
 
     it('says why "no" is refused while the office is the only workplace', async () => {

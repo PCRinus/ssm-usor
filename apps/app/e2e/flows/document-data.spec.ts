@@ -6,6 +6,7 @@ import {
   createClientCompany,
   createEmployee,
   createOrganization,
+  createWorkplace,
   signIn,
 } from './support';
 
@@ -205,6 +206,41 @@ test('a client gets a registered office and a point of work, one of which is the
   await expect(page.getByTestId('workplace-row')).toHaveCount(1);
 });
 
+test('each workplace counts its current workers, and those without one open their own list', async ({
+  page,
+}) => {
+  const owner = await createAccount('workplace-counts-owner', 'Petra Punct');
+  const organizationId = await createOrganization('Lucrători pe puncte E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'CLIENT NUMĂRĂTOARE E2E SRL');
+  const shop = await createWorkplace(organizationId, clientId, { name: 'Magazin Timișoara' });
+  await createWorkplace(organizationId, clientId, { name: 'Depozit Arad' });
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Ana',
+    lastName: 'Pop',
+    jobTitle: 'Vânzătoare',
+    workplaceId: shop,
+  });
+  await createEmployee(organizationId, clientId, {
+    firstName: 'Ion',
+    lastName: 'Marin',
+    jobTitle: 'Vânzător',
+  });
+  await signIn(page, owner.email, `/clienti/${clientId}/detalii`);
+
+  const row = (name: string) => page.getByTestId('workplace-row').filter({ hasText: name });
+  await expect(row('Magazin Timișoara').getByTestId('workplace-employees')).toHaveText('1');
+  await expect(row('Depozit Arad').getByTestId('workplace-employees')).toHaveText('0');
+  await expect(page.getByTestId('workplace-unassigned-row')).toContainText('Fără punct de lucru');
+
+  await page.getByTestId('workplace-unassigned-link').click();
+  await expect(page).toHaveURL(/\/angajati\?workplace=none$/);
+  await expect(page.getByTestId('employees-row')).toHaveCount(1);
+  await expect(page.getByTestId('employees-row')).toContainText('Marin');
+  await expect(page.getByTestId('employees-applied-filters-workplace')).toContainText(
+    'Fără punct de lucru'
+  );
+});
+
 test('an employee is designated once, and the administrator is added by hand', async ({ page }) => {
   const owner = await createAccount('responsible-owner', 'Radu Responsabil');
   const organizationId = await createOrganization('Persoane responsabile E2E', owner.id);
@@ -252,7 +288,13 @@ test('an employee is designated once, and the administrator is added by hand', a
   await page.getByTestId('responsible-role-imminent_danger').click();
   await page.getByTestId('responsible-save').click();
   await expect(page.getByTestId('responsible-row')).toHaveCount(2);
-  await expect(page.getByTestId('responsible-missing')).toHaveCount(0);
+  // The fire-safety set's two roles are still nobody's.
+  await expect(page.getByTestId('responsible-missing')).toHaveText(
+    'Fără persoană numită: Coordonator privind apărarea împotriva incendiilor, Șef echipă de primă intervenție'
+  );
+  await expect(
+    page.getByTestId('responsible-row').filter({ hasText: 'Maria Popescu' })
+  ).toContainText('Nu e în lista lucrătorilor');
 
   await page.reload();
   await expect(page.getByTestId('responsible-row')).toHaveCount(2);

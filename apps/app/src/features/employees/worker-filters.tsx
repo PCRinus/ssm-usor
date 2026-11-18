@@ -4,6 +4,7 @@ import {
   type EmployeeTrainingStateFilter,
   employeeTrainingStateFilters,
   maxPageSize,
+  noWorkplace,
   type TestStateFilter,
   testStateFilters,
   testStateLabels,
@@ -65,10 +66,12 @@ export const workerFilterSearch = {
   attention: filterSearchSchema(employeeAttentionFilters),
 };
 
+export const workplaceFilterSearch = idFilterSearchSchema([noWorkplace]);
+
 export const clientWorkerFilterSearch = {
   ...workerFilterSearch,
   jobPosition: idFilterSearchSchema(),
-  workplace: idFilterSearchSchema(),
+  workplace: workplaceFilterSearch,
 };
 
 export const organizationWorkerFilterSearch = {
@@ -199,14 +202,37 @@ type Named = { id: string; name: string };
 const namedOptions = (items: readonly Named[]) =>
   items.map((item) => ({ value: item.id, label: item.name }));
 
+type WorkplaceList = { items: readonly Named[]; unassignedEmployeeCount: number };
+
+type WorkplacePlaces = {
+  workplaces: readonly Named[] | undefined;
+  unassigned: number;
+  withWorkplaces: boolean;
+};
+
+// One workplace filters nothing unless some workers have none; while the list loads, a chosen
+// one is still read.
+export function workplacePlaces(
+  query: { isPending: boolean; isError: boolean; data?: WorkplaceList },
+  chosen: boolean
+): WorkplacePlaces {
+  const list = query.isError ? undefined : query.data;
+  return {
+    workplaces: query.isError ? [] : list?.items,
+    unassigned: list?.unassignedEmployeeCount ?? 0,
+    withWorkplaces:
+      (list !== undefined && (list.items.length > 1 || list.unassignedEmployeeCount > 0)) ||
+      (query.isPending && chosen),
+  };
+}
+
 export function clientPlaceFacets({
   positions,
   workplaces,
+  unassigned,
   withWorkplaces,
-}: {
+}: WorkplacePlaces & {
   positions: readonly Named[] | undefined;
-  workplaces: readonly Named[] | undefined;
-  withWorkplaces: boolean;
 }): ListFilterFacet<'jobPosition' | 'workplace'>[] {
   return [
     {
@@ -225,7 +251,14 @@ export function clientPlaceFacets({
             label: 'Punct de lucru',
             icon: MapPin,
             column: 'right',
-            options: namedOptions(workplaces ?? []),
+            options: [
+              ...namedOptions(workplaces ?? []),
+              {
+                value: noWorkplace,
+                label: 'Fără punct de lucru',
+                onlyWhenChosen: unassigned === 0,
+              },
+            ],
             loading: workplaces === undefined,
           } as const,
         ]
@@ -238,11 +271,9 @@ export function clientPlaceFacets({
 export function clientWorkerFacets({
   withStates,
   ...places
-}: {
+}: WorkplacePlaces & {
   withStates: boolean;
   positions: readonly Named[] | undefined;
-  workplaces: readonly Named[] | undefined;
-  withWorkplaces: boolean;
 }): ListFilterFacet<WorkerFilterKey>[] {
   return [
     ...(withStates ? trainingFacets : []),

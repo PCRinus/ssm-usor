@@ -267,7 +267,8 @@ describe('GET /clients/{clientId}/employees', () => {
       method: init?.method ?? 'GET',
       headers: new Headers(init?.headers),
     }));
-  const listQuery = () => listCalls().find((call) => call.method === 'GET')!.query;
+  const listQuery = (index = 0) =>
+    listCalls().filter((call) => call.method === 'GET')[index]!.query;
   const countQueries = () =>
     listCalls()
       .filter((call) => call.method === 'HEAD')
@@ -458,7 +459,17 @@ describe('GET /clients/{clientId}/employees', () => {
     );
     const query = listQuery();
     expect(query.get('job_position_id')).toBe(`in.(${positionId},${otherPosition})`);
-    expect(query.get('workplace_id')).toBe(`in.(${workplaceId})`);
+    expect(query.getAll('or')).toEqual([`(workplace_id.in.(${workplaceId}))`]);
+  });
+
+  it('filters the employees without a workplace, alone or beside workplaces', async () => {
+    mockUpstream({});
+    await request(`${employeesPath}?workplace=none`);
+    expect(listQuery().getAll('or')).toEqual(['(workplace_id.is.null)']);
+    await request(`${employeesPath}?workplace=none&workplace=${workplaceId}`);
+    expect(listQuery(1).getAll('or')).toEqual([
+      `(workplace_id.is.null,workplace_id.in.(${workplaceId}))`,
+    ]);
   });
 
   it('counts the tab without the search and the filters once either narrows the list', async () => {
@@ -776,8 +787,10 @@ describe('GET /clients/{clientId}/employee-invitees', () => {
     expect(query.get('status')).toBe('eq.active');
     expect(query.get('portal_state')).toBe('in.(none,revoked)');
     expect(query.get('job_position_id')).toBe(`in.(${positionId})`);
-    expect(query.get('workplace_id')).toBe(`in.(${workplaceId})`);
-    expect(query.getAll('or')).toEqual(['(search_name.ilike.*pop*,employee_number.ilike.*pop*)']);
+    expect(query.getAll('or')).toEqual([
+      `(workplace_id.in.(${workplaceId}))`,
+      '(search_name.ilike.*pop*,employee_number.ilike.*pop*)',
+    ]);
     expect(query.get('order')).toBe('last_name.asc,first_name.asc,id.asc');
     expect(query.get('limit')).toBe('1000');
     expect(query.has('offset')).toBe(false);
@@ -792,7 +805,7 @@ describe('GET /clients/{clientId}/employee-invitees', () => {
     expect(calls('/rest/v1/employee_list')).toHaveLength(0);
   });
 
-  it.each(['portal=pending', 'jobPosition=not-a-uuid', 'workplace=1'])(
+  it.each(['portal=pending', 'jobPosition=not-a-uuid', 'workplace=1', 'workplace=nowhere'])(
     'rejects an invalid filter: %s',
     async (search) => {
       mockUpstream({});

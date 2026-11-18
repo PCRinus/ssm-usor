@@ -30,8 +30,9 @@ export interface DataTableProps<TData extends RowData> {
   rowKey: (row: TData) => string;
   // Left out for a list read whole, which has no pages and no pager.
   meta?: PageMeta;
-  sort: DataTableSort;
-  onSortChange: (sort: DataTableSort) => void;
+  // Left out for a list kept in the API's order, whose columns are display columns.
+  sort?: DataTableSort;
+  onSortChange?: (sort: DataTableSort) => void;
   onPageChange?: (page: number) => void;
   status: 'pending' | 'error' | 'success';
   isFetching?: boolean;
@@ -46,7 +47,10 @@ export interface DataTableProps<TData extends RowData> {
   empty: ReactNode;
   testId?: string;
   rowTestId?: string | ((row: TData) => string);
+  rowElementId?: (row: TData) => string | undefined;
   onRowClick?: (row: TData) => void;
+  // Left out when every row opens.
+  canClickRow?: (row: TData) => boolean;
   expansion?: DataTableExpansion<TData>;
   selection?: DataTableSelection<TData>;
 }
@@ -96,12 +100,14 @@ export function DataTable<TData extends RowData>({
   empty,
   testId,
   rowTestId,
+  rowElementId,
   onRowClick,
+  canClickRow,
   expansion,
   selection,
 }: DataTableProps<TData>) {
   const detailsId = useId();
-  const sorting: SortingState = [{ id: sort.sort, desc: sort.order === 'desc' }];
+  const sorting: SortingState = sort ? [{ id: sort.sort, desc: sort.order === 'desc' }] : [];
   const table = useTable({
     features: dataTableFeatures,
     columns,
@@ -111,7 +117,7 @@ export function DataTable<TData extends RowData>({
     onSortingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(sorting) : updater;
       const first = next[0];
-      if (first) onSortChange({ sort: first.id, order: first.desc ? 'desc' : 'asc' });
+      if (first) onSortChange?.({ sort: first.id, order: first.desc ? 'desc' : 'asc' });
     },
     // Accessor columns are sortable unless they opt out; display columns never are.
     // Every column starts ascending, numbers included, so the cycle is the same everywhere.
@@ -265,10 +271,15 @@ export function DataTable<TData extends RowData>({
               const open = (expandable && expansion?.isOpen(row.original)) ?? false;
               const selected = selection?.state(row.original) ?? false;
               const details = `${detailsId}-${row.id}`;
-              const click = rowClickProps(onRowClick && (() => onRowClick(row.original)));
+              const click = rowClickProps(
+                onRowClick && (canClickRow?.(row.original) ?? true)
+                  ? () => onRowClick(row.original)
+                  : undefined
+              );
               return (
                 <Fragment key={row.id}>
                   <TableRow
+                    id={rowElementId?.(row.original)}
                     data-testid={
                       typeof rowTestId === 'function' ? rowTestId(row.original) : rowTestId
                     }

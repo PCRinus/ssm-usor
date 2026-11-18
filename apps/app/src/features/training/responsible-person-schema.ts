@@ -1,4 +1,5 @@
 import {
+  requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
   responsiblePersonRoles,
@@ -47,16 +48,41 @@ export const responsibleRoleLabels: Record<
 
 export const responsibleRoleOrder = responsiblePersonRoles;
 
+export interface MissingRole {
+  role: ResponsiblePersonRole;
+  label: string;
+}
+
 /**
- * The roles the occupational safety set always needs; a workers' representative depends on
- * headcount, and the two fire-safety roles are the fire-safety set's.
+ * The roles generating the two sets asks a name for: every one but the workers' representative,
+ * who depends on the client's current workers (ADR 010).
  */
-export const alwaysRequiredRoles = responsiblePersonRoles.filter(
-  (role) =>
-    role !== 'workers_representative' &&
-    role !== 'fire_safety_coordinator' &&
-    role !== 'fire_intervention_leader'
-);
+export function missingRoles(
+  persons: readonly ResponsiblePerson[],
+  currentEmployeeCount: number
+): MissingRole[] {
+  const held = new Set(persons.flatMap((person) => person.roles));
+  // Generating counts only a representative who still works for the client.
+  const representatives = persons.filter(
+    (person) => person.roles.includes('workers_representative') && person.currentEmployee
+  ).length;
+  const needed = requiredWorkersRepresentatives(currentEmployeeCount);
+  return responsibleRoleOrder.flatMap((role): MissingRole[] => {
+    const label = responsibleRoleLabels[role].label;
+    if (role !== 'workers_representative') return held.has(role) ? [] : [{ role, label }];
+    if (representatives >= needed) return [];
+    return [{ role, label: representatives === 0 ? label : `${label} (al doilea)` }];
+  });
+}
+
+export function personStanding(person: ResponsiblePerson) {
+  if (!person.employeeId) return 'Nu e în lista lucrătorilor';
+  if (!person.currentEmployee) return 'Nu mai e lucrător';
+  if (person.portal === 'active') return 'Lucrător · acces la portal';
+  return person.portal === 'invited'
+    ? 'Lucrător · invitație în portal trimisă'
+    : 'Lucrător · fără acces la portal';
+}
 
 export const responsiblePersonFormSchema = z
   .object({

@@ -59,6 +59,8 @@ const manager = {
   fullName: 'Paolo-Antonio Luca',
   jobTitle: 'Manager magazin',
   employeeJobTitle: 'Manager magazin',
+  currentEmployee: true,
+  portal: 'active' as string | null,
   roles: ['workplace_manager', 'first_aid'],
   workplaceId: null as string | null,
   createdAt: '2026-09-18T10:00:00.000Z',
@@ -167,16 +169,127 @@ describe('client responsible persons', () => {
     expect(row!.textContent).toContain('Conducător al locului de muncă');
     expect(row!.textContent).toContain('Prim ajutor');
     expect(screen.getByTestId('responsible-missing').textContent).toBe(
-      'Fără persoană numită: Echipa de evaluare a riscurilor, Pericol grav și iminent.'
+      'Fără persoană numită: Echipa de evaluare a riscurilor, Pericol grav și iminent, Reprezentantul lucrătorilor, Coordonator privind apărarea împotriva incendiilor, Șef echipă de primă intervenție'
     );
   });
 
-  it('says where to start when there are none', async () => {
+  it('asks for no workers representative below 10 current workers', async () => {
+    mockApi({ client: { ...sampleClient, currentEmployeeCount: 9 } });
+    mount();
+    await screen.findAllByTestId('responsible-row');
+    expect(screen.getByTestId('responsible-missing').textContent).not.toContain(
+      'Reprezentantul lucrătorilor'
+    );
+  });
+
+  it('asks for a second workers representative from 50 current workers', async () => {
+    const representative = {
+      ...manager,
+      id: '0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+      fullName: 'Ion Ionescu',
+      roles: ['workers_representative'],
+    };
+    mockApi({
+      client: { ...sampleClient, currentEmployeeCount: 50 },
+      items: [manager, representative],
+    });
+    mount();
+    await screen.findAllByTestId('responsible-row');
+    expect(screen.getByTestId('responsible-missing').textContent).toContain(
+      'Reprezentantul lucrătorilor (al doilea)'
+    );
+  });
+
+  it('opens a new person with the missing role ticked from the line beside the title', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-missing-imminent_danger'));
+    const role = await screen.findByTestId('responsible-role-imminent_danger');
+    expect(role.getAttribute('aria-checked') ?? String((role as HTMLInputElement).checked)).toBe(
+      'true'
+    );
+    expect(screen.getByTestId<HTMLInputElement>('responsible-name').value).toBe('');
+  });
+
+  it("says under each name whether they are the client's worker, and on the portal", async () => {
+    const person = (index: number, fullName: string, extra: Record<string, unknown>) => ({
+      ...manager,
+      id: `${index}c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f`,
+      employeeId: `${index}d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f`,
+      fullName,
+      ...extra,
+    });
+    mockApi({
+      items: [
+        manager,
+        person(1, 'Cristina Stan', { portal: 'invited' }),
+        person(2, 'Maria Popescu', { employeeId: null, currentEmployee: false, portal: null }),
+        person(3, 'Vasile Matei', { portal: 'expired' }),
+        person(4, 'Ion Plecat', { currentEmployee: false, portal: 'none' }),
+      ],
+    });
+    mount();
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId('responsible-standing').map((line) => line.textContent)).toEqual(
+        [
+          'Lucrător · acces la portal',
+          'Lucrător · invitație în portal trimisă',
+          'Nu e în lista lucrătorilor',
+          'Lucrător · fără acces la portal',
+          'Nu mai e lucrător',
+        ]
+      )
+    );
+  });
+
+  it('counts only a workers representative who still works for the client', async () => {
+    mockApi({
+      items: [
+        manager,
+        {
+          ...manager,
+          id: '5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+          employeeId: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+          fullName: 'Ion Plecat',
+          currentEmployee: false,
+          roles: ['workers_representative'],
+        },
+      ],
+    });
+    mount();
+
+    await screen.findAllByTestId('responsible-row');
+    expect(screen.getByTestId('responsible-missing').textContent).toContain(
+      'Reprezentantul lucrătorilor'
+    );
+    expect(screen.getByTestId('responsible-missing').textContent).not.toContain('(al doilea)');
+  });
+
+  it('marks the workers representative who is also the legal representative', async () => {
+    mockApi({
+      items: [{ ...manager, roles: ['workers_representative'] }],
+      details: {
+        ...emptyDetails,
+        legalRepresentativeName: 'Paolo-Antonio Luca',
+        legalRepresentativeEmployeeId: employee.id,
+      },
+    });
+    mount();
+
+    expect((await screen.findByTestId('responsible-representative-clash')).textContent).toBe(
+      'Reprezentantul legal nu poate fi și reprezentantul lucrătorilor.'
+    );
+  });
+
+  it('says there are none yet, the advice being in the help', async () => {
     mockApi({ items: [] });
     mount();
 
-    expect((await screen.findByTestId('responsible-persons-empty')).textContent).toContain(
-      'conducătorul locului de muncă'
+    expect((await screen.findByTestId('responsible-persons-empty')).textContent).toBe(
+      'Nicio persoană responsabilă încă.'
     );
     expect(screen.queryByTestId('responsible-missing')).toBeNull();
   });
@@ -475,7 +588,7 @@ describe('client responsible persons', () => {
 
     const row = await screen.findByTestId('responsible-row');
     expect((await within(row).findByTestId('responsible-workplace-name')).textContent).toBe(
-      'Numai la Gelaterie Timișoara'
+      'numai la Gelaterie Timișoara'
     );
     await user.click(within(row).getByTestId('responsible-actions'));
     await user.click(await screen.findByTestId('responsible-edit'));

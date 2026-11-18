@@ -896,6 +896,13 @@ export type Database = {
             foreignKeyName: 'client_responsible_persons_workplace_of_client';
             columns: ['workplace_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'client_responsible_persons_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'client_workplaces';
             referencedColumns: ['id', 'client_id'];
           },
@@ -2076,6 +2083,13 @@ export type Database = {
             foreignKeyName: 'employees_workplace_in_client';
             columns: ['workplace_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'employees_workplace_in_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'client_workplaces';
             referencedColumns: ['id', 'client_id'];
           },
@@ -2404,6 +2418,13 @@ export type Database = {
             foreignKeyName: 'fire_buildings_workplace_of_client';
             columns: ['workplace_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'fire_buildings_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'client_workplaces';
             referencedColumns: ['id', 'client_id'];
           },
@@ -2528,6 +2549,13 @@ export type Database = {
             foreignKeyName: 'fire_equipment_workplace_of_client';
             columns: ['workplace_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'fire_equipment_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'client_workplaces';
             referencedColumns: ['id', 'client_id'];
           },
@@ -2637,6 +2665,13 @@ export type Database = {
             foreignKeyName: 'fire_installations_workplace_of_client';
             columns: ['workplace_id', 'client_id'];
             isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
+          },
+          {
+            foreignKeyName: 'fire_installations_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
             referencedRelation: 'client_workplaces';
             referencedColumns: ['id', 'client_id'];
           },
@@ -2738,6 +2773,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fire_maintenance_items_workplace_of_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
           },
           {
             foreignKeyName: 'fire_maintenance_items_workplace_of_client';
@@ -7216,6 +7258,90 @@ export type Database = {
         };
         Relationships: [];
       };
+      client_workplace_list: {
+        Row: {
+          activity: string | null;
+          address_line: string | null;
+          archived_at: string | null;
+          assembly_point: string | null;
+          client_id: string | null;
+          combustible_materials: string | null;
+          county_code: string | null;
+          created_at: string | null;
+          current_employee_count: number | null;
+          extinguisher_norm: Database['public']['Enums']['fire_extinguisher_norm'] | null;
+          fire_risk_equipment: string | null;
+          floor_area_m2: number | null;
+          id: string | null;
+          ignition_sources: string | null;
+          is_registered_office: boolean | null;
+          kind: Database['public']['Enums']['workplace_kind'] | null;
+          locality: string | null;
+          name: string | null;
+          office_has_activity: boolean | null;
+          organization_id: string | null;
+          specific_measures: string | null;
+          updated_at: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'lead_list';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_client_in_organization';
+            columns: ['client_id', 'organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients_missing_basic_data';
+            referencedColumns: ['client_id', 'organization_id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'dashboard_summary';
+            referencedColumns: ['organization_id'];
+          },
+          {
+            foreignKeyName: 'client_workplaces_organization_id_fkey';
+            columns: ['organization_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       clients_missing_basic_data: {
         Row: {
           client_id: string | null;
@@ -7450,6 +7576,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'organizations';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'employees_workplace_in_client';
+            columns: ['workplace_id', 'client_id'];
+            isOneToOne: false;
+            referencedRelation: 'client_workplace_list';
+            referencedColumns: ['id', 'client_id'];
           },
           {
             foreignKeyName: 'employees_workplace_in_client';

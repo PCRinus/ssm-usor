@@ -205,7 +205,8 @@ export const listWorkplacesRoute = createRoute({
   path: '/clients/{clientId}/workplaces',
   operationId: 'listWorkplaces',
   summary: "List a client's workplaces",
-  description: 'The registered office first, then by name. Archived workplaces are not listed.',
+  description:
+    'The registered office first, then by name. Archived workplaces are not listed. Each carries how many current employees work there, and the list how many current employees have no workplace.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: { params: clientParams },

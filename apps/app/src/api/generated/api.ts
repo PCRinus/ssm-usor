@@ -6071,10 +6071,14 @@ export type WorkplaceListResponseItemsItem = {
   specificMeasures: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @minimum 0 */
+  currentEmployeeCount: number;
 };
 
 export interface WorkplaceListResponse {
   items: WorkplaceListResponseItemsItem[];
+  /** @minimum 0 */
+  unassignedEmployeeCount: number;
 }
 
 /**
@@ -6345,6 +6349,21 @@ export const ResponsiblePersonListResponseItemsItemRolesItem = {
   fire_intervention_leader: 'fire_intervention_leader',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ResponsiblePersonListResponseItemsItemPortal =
+  | (typeof ResponsiblePersonListResponseItemsItemPortal)[keyof typeof ResponsiblePersonListResponseItemsItemPortal]
+  | null;
+
+export const ResponsiblePersonListResponseItemsItemPortal = {
+  active: 'active',
+  invited: 'invited',
+  expired: 'expired',
+  none: 'none',
+  revoked: 'revoked',
+} as const;
+
 export type ResponsiblePersonListResponseItemsItem = {
   id: string;
   clientId: string;
@@ -6354,12 +6373,15 @@ export type ResponsiblePersonListResponseItemsItem = {
   jobTitle: string;
   /** @nullable */
   employeeJobTitle: string | null;
+  currentEmployee: boolean;
   /** @minItems 1 */
   roles: ResponsiblePersonListResponseItemsItemRolesItem[];
   /** @nullable */
   workplaceId: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @nullable */
+  portal: ResponsiblePersonListResponseItemsItemPortal;
 };
 
 export interface ResponsiblePersonListResponse {
@@ -6388,6 +6410,7 @@ export type ResponsiblePersonResponseResponsiblePerson = {
   jobTitle: string;
   /** @nullable */
   employeeJobTitle: string | null;
+  currentEmployee: boolean;
   /** @minItems 1 */
   roles: ResponsiblePersonResponseResponsiblePersonRolesItem[];
   /** @nullable */
@@ -16327,7 +16350,7 @@ export type ListEmployeesParams = {
    * @minItems 1
    * @maxItems 50
    */
-  workplace?: string[];
+  workplace?: (string | 'none')[];
   /**
    * @minItems 1
    * @maxItems 50
@@ -16432,7 +16455,7 @@ export type ListEmployeeInviteesParams = {
    * @minItems 1
    * @maxItems 50
    */
-  workplace?: string[];
+  workplace?: (string | 'none')[];
   /**
    * @maxLength 100
    */
@@ -30518,7 +30541,7 @@ export const getListWorkplacesUrl = (clientId: string) => {
 };
 
 /**
- * The registered office first, then by name. Archived workplaces are not listed.
+ * The registered office first, then by name. Archived workplaces are not listed. Each carries how many current employees work there, and the list how many current employees have no workplace.
  * @summary List a client's workplaces
  */
 export const listWorkplaces = async (
