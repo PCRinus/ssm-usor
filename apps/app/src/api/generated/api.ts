@@ -7346,6 +7346,14 @@ export interface ReadSafetySheetResponse {
   credits: number;
 }
 
+export type DocumentsBehindResponseItemsItemSet =
+  (typeof DocumentsBehindResponseItemsItemSet)[keyof typeof DocumentsBehindResponseItemsItemSet];
+
+export const DocumentsBehindResponseItemsItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
 export type DocumentsBehindResponseItemsItemNewestVersionKind =
   (typeof DocumentsBehindResponseItemsItemNewestVersionKind)[keyof typeof DocumentsBehindResponseItemsItemNewestVersionKind];
 
@@ -7361,6 +7369,11 @@ export type DocumentsBehindResponseItemsItemNewestVersion = {
   kind: DocumentsBehindResponseItemsItemNewestVersionKind;
   /** @nullable */
   note: string | null;
+};
+
+export type DocumentsBehindResponseItemsItemLegalChangesItem = {
+  id: string;
+  actName: string;
 };
 
 export type DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode =
@@ -7379,6 +7392,14 @@ export type DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem = 
   newestVersionAt: string | null;
 };
 
+export type DocumentsBehindResponseItemsItemClientsItemStatus =
+  (typeof DocumentsBehindResponseItemsItemClientsItemStatus)[keyof typeof DocumentsBehindResponseItemsItemClientsItemStatus];
+
+export const DocumentsBehindResponseItemsItemClientsItemStatus = {
+  draft: 'draft',
+  issued: 'issued',
+} as const;
+
 export type DocumentsBehindResponseItemsItemClientsItem = {
   documentId: string;
   clientId: string;
@@ -7388,12 +7409,17 @@ export type DocumentsBehindResponseItemsItemClientsItem = {
   editedDraft: boolean;
   behindTemplate: boolean;
   instructionChanges: DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem[];
+  status: DocumentsBehindResponseItemsItemClientsItemStatus;
+  /** @nullable */
+  issueDate: string | null;
 };
 
 export type DocumentsBehindResponseItemsItem = {
   typeKey: string;
   title: string;
+  set: DocumentsBehindResponseItemsItemSet;
   newestVersion: DocumentsBehindResponseItemsItemNewestVersion;
+  legalChanges: DocumentsBehindResponseItemsItemLegalChangesItem[];
   /** @nullable */
   runningJobId: string | null;
   clients: DocumentsBehindResponseItemsItemClientsItem[];
@@ -7401,6 +7427,42 @@ export type DocumentsBehindResponseItemsItem = {
 
 export interface DocumentsBehindResponse {
   items: DocumentsBehindResponseItemsItem[];
+}
+
+export type DocumentsBehindSummaryCounts = {
+  /** @minimum 0 */
+  occupational_safety: number;
+  /** @minimum 0 */
+  fire_safety: number;
+};
+
+export type DocumentsBehindSummaryRunningItemSet =
+  (typeof DocumentsBehindSummaryRunningItemSet)[keyof typeof DocumentsBehindSummaryRunningItemSet];
+
+export const DocumentsBehindSummaryRunningItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type DocumentsBehindSummaryRunningItem = {
+  id: string;
+  typeKey: string;
+  set: DocumentsBehindSummaryRunningItemSet;
+  /** @nullable */
+  requestedBy: string | null;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  done: number;
+  /** @minimum 0 */
+  skipped: number;
+  /** @minimum 0 */
+  failed: number;
+};
+
+export interface DocumentsBehindSummary {
+  counts: DocumentsBehindSummaryCounts;
+  running: DocumentsBehindSummaryRunningItem[];
 }
 
 export type RegenerationJobResponseJobItemsItemStatus =
@@ -7545,6 +7607,47 @@ export const StartRegenerationRequestTypeKey = {
 
 export interface StartRegenerationRequest {
   typeKey: StartRegenerationRequestTypeKey;
+}
+
+export type SetRegenerationResponseJobsItemSet =
+  (typeof SetRegenerationResponseJobsItemSet)[keyof typeof SetRegenerationResponseJobsItemSet];
+
+export const SetRegenerationResponseJobsItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type SetRegenerationResponseJobsItem = {
+  id: string;
+  typeKey: string;
+  set: SetRegenerationResponseJobsItemSet;
+  /** @nullable */
+  requestedBy: string | null;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  done: number;
+  /** @minimum 0 */
+  skipped: number;
+  /** @minimum 0 */
+  failed: number;
+};
+
+export interface SetRegenerationResponse {
+  jobs: SetRegenerationResponseJobsItem[];
+  notStarted: string[];
+}
+
+export type StartSetRegenerationRequestSet =
+  (typeof StartSetRegenerationRequestSet)[keyof typeof StartSetRegenerationRequestSet];
+
+export const StartSetRegenerationRequestSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export interface StartSetRegenerationRequest {
+  set: StartSetRegenerationRequestSet;
 }
 
 export type DocumentReadinessResponseMissingItem =
@@ -34040,7 +34143,7 @@ export const getListDocumentsBehindUrl = () => {
 };
 
 /**
- * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.
+ * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: its set, the template's newest version and the legal changes that version answers (with the act's name), the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether that revision is a `draft` or `issued` and the date it carries, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.
  * @summary List the organization's documents behind their template or their instructions, by document type
  */
 export const listDocumentsBehind = async (
@@ -34159,12 +34262,139 @@ export function useListDocumentsBehind<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export const getGetDocumentsBehindSummaryUrl = () => {
+  return `/documents/behind/summary`;
+};
+
+/**
+ * What the navigation and the dashboard show on every page, without the list: the count per set of the rows `GET /documents/behind` lists (one per client and document type, drafts edited by hand included), and the organization's unfinished regeneration jobs of the last hour, each with its type, its set, the member who started it and its counts, so a page can follow every job with this one request.
+ * @summary Count the documents behind per set, and list the regenerations under way
+ */
+export const getDocumentsBehindSummary = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DocumentsBehindSummary> => {
+  return apiFetch<DocumentsBehindSummary>(getGetDocumentsBehindSummaryUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentsBehindSummaryQueryKey = () => {
+  return [`/documents/behind/summary`] as const;
+};
+
+export const getGetDocumentsBehindSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentsBehindSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentsBehindSummary>>> = ({
+    signal,
+  }) => getDocumentsBehindSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDocumentsBehindSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentsBehindSummary>>
+>;
+export type GetDocumentsBehindSummaryQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the documents behind per set, and list the regenerations under way
+ */
+
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDocumentsBehindSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getStartDocumentRegenerationUrl = () => {
   return `/documents/behind/regenerate`;
 };
 
 /**
- * Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.
+ * Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is left out, since regenerating would discard the edits, and skipped should it be edited before its turn; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind or every one behind is a draft edited by hand, and `regeneration_running` while a job of the same type is under way.
  * @summary Regenerate one document type for every client behind it
  */
 export const startDocumentRegeneration = async (
@@ -34267,6 +34497,113 @@ export const useStartDocumentRegeneration = <
   TContext
 > => {
   return useMutation(getStartDocumentRegenerationMutationOptions(options), queryClient);
+};
+
+export const getStartSetRegenerationUrl = () => {
+  return `/documents/behind/regenerate-all`;
+};
+
+/**
+ * Starts one job per document type of the set with a client to regenerate, as `POST /documents/behind/regenerate` does for one type; a type already regenerating keeps its job. Answers every job of the set under way afterwards, with its counts, and in `notStarted` the types that did not start because the queue failed after some jobs had; those stay behind. A job unfinished after an hour no longer counts as under way: starting closes it, as `start_regeneration_job` does. `409` with the reason `nothing_behind` when nothing in the set can be regenerated, only drafts edited by hand, and `regeneration_running` when every type that could be is already regenerating; `503` when no job could be queued.
+ * @summary Regenerate every document type of a set for every client behind it
+ */
+export const startSetRegeneration = async (
+  startSetRegenerationRequest: StartSetRegenerationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SetRegenerationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SetRegenerationResponse>(getStartSetRegenerationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startSetRegenerationRequest),
+  });
+};
+
+export const getStartSetRegenerationMutationKey = () => ['startSetRegeneration'] as const;
+
+export const getStartSetRegenerationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startSetRegeneration>>,
+    TError,
+    StartSetRegenerationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startSetRegeneration>>,
+  TError,
+  StartSetRegenerationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getStartSetRegenerationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startSetRegeneration>>,
+    StartSetRegenerationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return startSetRegeneration(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartSetRegenerationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startSetRegeneration>>
+>;
+export type StartSetRegenerationMutationBody = StartSetRegenerationRequest;
+export type StartSetRegenerationMutationError = ErrorType<ApiErrorResponse>;
+export type StartSetRegenerationMutationVariables = { data: StartSetRegenerationRequest };
+
+/**
+ * @summary Regenerate every document type of a set for every client behind it
+ */
+export const useStartSetRegeneration = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof startSetRegeneration>>,
+      TError,
+      StartSetRegenerationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof startSetRegeneration>>,
+  TError,
+  StartSetRegenerationMutationVariables,
+  TContext
+> => {
+  return useMutation(getStartSetRegenerationMutationOptions(options), queryClient);
 };
 
 export const getGetRegenerationJobUrl = (jobId: string) => {
