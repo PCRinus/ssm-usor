@@ -68,6 +68,9 @@ const dialogRoleOrder: readonly ResponsiblePersonRole[] = [
 // `null` is closed, 'new' adds a person, and a person edits them.
 export type ResponsiblePersonEditing = ResponsiblePerson | 'new' | null;
 
+export const responsiblePersonsOfArchivedClientMessage =
+  'Clientul este arhivat; persoanele lui responsabile nu se mai schimbă.';
+
 // `pointedRole` comes with a row of missing data: ticked for a new person, and for someone who
 // holds it, the checkbox to untick.
 export function ResponsiblePersonDialog({
@@ -207,9 +210,7 @@ function ResponsiblePersonForm({
         return;
       }
       if (body?.reason === clientConflictReasons.clientArchived) {
-        form.setError('root.server', {
-          message: 'Clientul este arhivat; persoanele lui responsabile nu se mai schimbă.',
-        });
+        form.setError('root.server', { message: responsiblePersonsOfArchivedClientMessage });
         return;
       }
       if (status === 409) {

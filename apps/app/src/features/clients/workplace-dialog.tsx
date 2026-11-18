@@ -93,6 +93,9 @@ const sheetTexts = [
 // `null` is closed, 'new' adds a workplace, and a workplace edits it.
 export type WorkplaceEditing = Workplace | 'new' | null;
 
+export const workplacesOfArchivedClientMessage =
+  'Clientul este arhivat; punctele lui de lucru nu se mai schimbă.';
+
 const officeNeedsWorkplaceMessage =
   'Clientul nu are alt punct de lucru activ. Adaugă întâi punctul de lucru în care se desfășoară activitatea.';
 
@@ -226,9 +229,7 @@ function WorkplaceForm({
         return;
       }
       if (body?.reason === clientConflictReasons.clientArchived) {
-        form.setError('root.server', {
-          message: 'Clientul este arhivat; punctele lui de lucru nu se mai schimbă.',
-        });
+        form.setError('root.server', { message: workplacesOfArchivedClientMessage });
         return;
       }
       if (cause instanceof ApiHttpError && cause.status === 409) {

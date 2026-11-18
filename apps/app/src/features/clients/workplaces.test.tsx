@@ -191,6 +191,31 @@ describe('client workplaces', () => {
     expect(screen.queryByTestId('workplace-dialog')).toBeNull();
   });
 
+  it('says the client is archived when a stale page adopts the address or archives a row', async () => {
+    const archived = () =>
+      Response.json(
+        { error: 'conflict', message: 'Archived', reason: 'client_archived' },
+        { status: 409 }
+      );
+    mockApi({
+      client: { ...sampleClient, countyCode: 'CJ', locality: 'Cluj-Napoca', addressLine: null },
+      update: archived,
+      archive: archived,
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const rows = await screen.findAllByTestId('workplace-row');
+    await user.click(within(rows[0]!).getByTestId('workplace-address-adopt'));
+    expect((await screen.findByTestId('workplaces-error')).textContent).toContain('arhivat');
+
+    await openRowMenu(user, 'Magazin Timișoara');
+    await user.click(await screen.findByTestId('workplace-archive'));
+    await user.click(await screen.findByTestId('workplace-archive-confirm'));
+    await waitFor(() => expect(requests(`${listPath}/${shop.id}`, 'DELETE')).toHaveLength(1));
+    expect((await screen.findByTestId('workplaces-error')).textContent).toContain('arhivat');
+  });
+
   it('lists the workplaces with their address and marks the registered office', async () => {
     mockApi();
     mount();

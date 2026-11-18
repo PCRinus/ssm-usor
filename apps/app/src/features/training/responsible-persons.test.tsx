@@ -842,6 +842,35 @@ describe('client responsible persons', () => {
     expect(screen.queryByTestId('responsible-dialog')).toBeNull();
   });
 
+  it('says the client is archived when a stale page adopts the title or removes a person', async () => {
+    const archived = () =>
+      Response.json(
+        { error: 'conflict', message: 'Archived', reason: 'client_archived' },
+        { status: 409 }
+      );
+    mockApi({
+      items: [{ ...manager, employeeJobTitle: 'Director magazin' }],
+      update: archived,
+      archive: archived,
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const drift = await screen.findByTestId('responsible-title-drift');
+    await user.click(within(drift).getByTestId('responsible-title-adopt'));
+    expect((await screen.findByTestId('responsible-persons-error')).textContent).toContain(
+      'arhivat'
+    );
+
+    await user.click(await screen.findByTestId('responsible-actions'));
+    await user.click(await screen.findByTestId('responsible-archive'));
+    await user.click(await screen.findByTestId('responsible-archive-confirm'));
+    await waitFor(() => expect(requests(itemPath, 'DELETE')).toHaveLength(1));
+    expect((await screen.findByTestId('responsible-persons-error')).textContent).toContain(
+      'arhivat'
+    );
+  });
+
   it('says nothing while the two titles agree', async () => {
     mockApi();
     mount();
