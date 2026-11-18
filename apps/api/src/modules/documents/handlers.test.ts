@@ -1637,6 +1637,15 @@ describe('POST /documents/{documentId}/regenerate', () => {
     expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
   });
 
+  it('takes the new revision back when its file cannot be stored', async () => {
+    mockUpstream({
+      documents: oneDocument([issuedRevision]),
+      upload: () => Response.json({ message: 'down' }, { status: 500 }),
+    });
+    expect((await regenerate()).status).toBeGreaterThanOrEqual(500);
+    expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
+  });
+
   it('asks for a date when the document was never generated', async () => {
     mockUpstream({
       documents: oneDocument([{ ...revisionRow, document_generations: null, data_snapshot: null }]),

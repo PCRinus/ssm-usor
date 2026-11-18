@@ -376,7 +376,7 @@ export async function readServiceContractDocument(db: DataClient, clientId: stri
   // Deleting its only draft leaves the row, for the next generation to write under. Without a
   // revision there is nothing to open, download or issue: the document is not generated.
   if (!row || row.document_revisions.length === 0) return { document: null, draftSnapshot: null };
-  const draft = row.document_revisions.find((revision) => revision.status === 'draft');
+  const draft = draftOf(row);
   return {
     document: await presentDocument(db, row, null),
     draftSnapshot: draft?.data_snapshot ?? null,
@@ -631,31 +631,19 @@ async function createDocument(
     documentId = document.data.id;
   }
 
-  // The row before the file: the storage policies only accept the file of a draft revision.
-  const path = `${actor.organizationId}/${clientId}/${documentId}/1.docx`;
-  const revision = await db
-    .from('document_revisions')
-    .insert({
-      organization_id: actor.organizationId,
-      document_id: documentId,
-      revision: 1,
+  // Generation only fills a document that has no revision yet.
+  await addRevision(
+    db,
+    files,
+    actor,
+    { documentId, clientId, revision: 1 },
+    {
       template_version_id: template.versionId,
       generation_id: generationId,
-      docx_path: path,
       data_snapshot: snapshot as Json,
-      created_by: actor.createdBy,
-    })
-    .select('id')
-    .single();
-  if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
-  try {
-    // Replacing covers a file left behind by a revision that was deleted without it.
-    await files.writeDocument(path, bytes, { replace: true });
-  } catch (error) {
-    // A revision without a file is worse than no revision: the next generation makes it again.
-    await db.from('document_revisions').delete().eq('id', revision.data.id);
-    throw error;
-  }
+    },
+    bytes
+  );
   return documentId;
 }
 
@@ -690,6 +678,55 @@ const newest = (document: DocumentRow) =>
     null
   );
 
+const nextRevision = (document: DocumentRow) => (newest(document)?.revision ?? 0) + 1;
+
+const draftOf = (document: DocumentRow) =>
+  document.document_revisions.find((revision) => revision.status === 'draft');
+
+const issuedOf = (document: DocumentRow) =>
+  document.document_revisions.find((revision) => revision.status === 'issued');
+
+type RevisionFields = Omit<
+  Tables['document_revisions']['Insert'],
+  'organization_id' | 'document_id' | 'revision' | 'docx_path' | 'created_by'
+>;
+
+/**
+ * The row before the file: the storage policies only accept the file of a draft revision. A
+ * revision without a file is worse than no revision, so the row goes when the file cannot be
+ * written.
+ */
+async function addRevision(
+  db: DataClient,
+  files: FileStore,
+  actor: Actor,
+  target: { documentId: string; clientId: string; revision: number },
+  fields: RevisionFields,
+  bytes: Uint8Array
+) {
+  const path = `${actor.organizationId}/${target.clientId}/${target.documentId}/${target.revision}.docx`;
+  const revision = await db
+    .from('document_revisions')
+    .insert({
+      organization_id: actor.organizationId,
+      document_id: target.documentId,
+      revision: target.revision,
+      ...fields,
+      docx_path: path,
+      created_by: actor.createdBy,
+    })
+    .select('id')
+    .single();
+  if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
+  try {
+    // Replacing covers a file left behind by a revision that was deleted without it.
+    await files.writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    await db.from('document_revisions').delete().eq('id', revision.data.id);
+    throw error;
+  }
+}
+
 /**
  * What generating again does to a document: a draft is overwritten in place, hand edits
  * included; beside an issued revision the next one starts as a draft.
@@ -707,7 +744,7 @@ async function writeGeneratedDraft(
   }
 ) {
   const { bytes, snapshot, templateVersionId, generationId } = generated;
-  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  const draft = draftOf(document);
   if (draft) {
     await files.writeDocument(draft.docx_path, bytes, { replace: true });
     const updated = await db
@@ -723,29 +760,18 @@ async function writeGeneratedDraft(
       .eq('id', draft.id);
     if (updated.error) throw fromDatabaseError(updated.error, 'update document revision');
   } else {
-    const revisionNumber = (newest(document)?.revision ?? 0) + 1;
-    const path = `${actor.organizationId}/${document.client_id}/${document.id}/${revisionNumber}.docx`;
-    const revision = await db
-      .from('document_revisions')
-      .insert({
-        organization_id: actor.organizationId,
-        document_id: document.id,
-        revision: revisionNumber,
+    await addRevision(
+      db,
+      files,
+      actor,
+      { documentId: document.id, clientId: document.client_id, revision: nextRevision(document) },
+      {
         template_version_id: templateVersionId,
         generation_id: generationId,
-        docx_path: path,
         data_snapshot: snapshot as Json,
-        created_by: actor.createdBy,
-      })
-      .select('id')
-      .single();
-    if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
-    try {
-      await files.writeDocument(path, bytes, { replace: true });
-    } catch (error) {
-      await db.from('document_revisions').delete().eq('id', revision.data.id);
-      throw error;
-    }
+      },
+      bytes
+    );
   }
 }
 
@@ -935,7 +961,7 @@ export async function issueDocument(
   pdf: PdfConverter | null = null
 ) {
   const document = await readDocument(db, documentId);
-  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  const draft = draftOf(document);
   if (!draft) throw new ApiError('conflict', 'This document has no draft to issue.');
   await requireActiveClient(db, document.client_id);
   const bytes = await files.readDocument(draft.docx_path);
@@ -1008,7 +1034,7 @@ export async function saveDraftFile(
 ) {
   requireDocx(bytes);
   const document = await readDocument(db, documentId);
-  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  const draft = draftOf(document);
   if (!draft) throw new ApiError('conflict', 'This document has no draft to save to.');
   await requireActiveClient(db, document.client_id);
   await files.writeDocument(draft.docx_path, bytes, { replace: true });
@@ -1053,7 +1079,7 @@ export async function uploadDocumentFile(
         document.type_key === typeKey && (period === undefined || document.period === period)
     )
     .sort((a, b) => (b.period ?? 0) - (a.period ?? 0))[0];
-  if (existing?.document_revisions.some((revision) => revision.status === 'draft')) {
+  if (existing && draftOf(existing)) {
     return saveDraftFile(db, files, actor, existing.id, bytes);
   }
 
@@ -1067,36 +1093,22 @@ export async function uploadDocumentFile(
     );
   }
 
-  const documentId = existing.id;
-  const last = newest(existing);
-  const number = (last?.revision ?? 0) + 1;
-  // The row before the file: the storage policies only accept the file of a draft revision.
-  const path = `${actor.organizationId}/${clientId}/${documentId}/${number}.docx`;
   const now = new Date().toISOString();
-  const revision = await db
-    .from('document_revisions')
-    .insert({
-      organization_id: actor.organizationId,
-      document_id: documentId,
-      revision: number,
+  await addRevision(
+    db,
+    files,
+    actor,
+    { documentId: existing.id, clientId, revision: nextRevision(existing) },
+    {
       // No template and no snapshot: nothing was merged. The generation stays, for a document
       // that had one, because it holds the date the document carries.
-      generation_id: last?.generation_id ?? null,
-      docx_path: path,
+      generation_id: newest(existing)?.generation_id ?? null,
       edited_at: now,
       edited_by: actor.createdBy,
-      created_by: actor.createdBy,
-    })
-    .select('id')
-    .single();
-  if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
-  try {
-    await files.writeDocument(path, bytes, { replace: true });
-  } catch (error) {
-    await db.from('document_revisions').delete().eq('id', revision.data.id);
-    throw error;
-  }
-  return presentChanged(db, actor, documentId);
+    },
+    bytes
+  );
+  return presentChanged(db, actor, existing.id);
 }
 
 /**
@@ -1110,10 +1122,10 @@ export async function startDraftFromIssued(
   documentId: string
 ) {
   const document = await readDocument(db, documentId);
-  if (document.document_revisions.some((revision) => revision.status === 'draft')) {
+  if (draftOf(document)) {
     throw new ApiError('conflict', 'This document already has a draft.', undefined, 'draft_exists');
   }
-  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  const issued = issuedOf(document);
   if (!issued)
     throw new ApiError('conflict', 'This document has no issued revision to start from.');
   await requireActiveClient(db, document.client_id);
@@ -1126,14 +1138,12 @@ export async function startDraftFromIssued(
   if (source.error) throw fromDatabaseError(source.error, 'read issued document revision');
   const bytes = await files.readDocument(issued.docx_path);
 
-  const number = (newest(document)?.revision ?? 0) + 1;
-  const path = `${actor.organizationId}/${document.client_id}/${document.id}/${number}.docx`;
-  const revision = await db
-    .from('document_revisions')
-    .insert({
-      organization_id: actor.organizationId,
-      document_id: document.id,
-      revision: number,
+  await addRevision(
+    db,
+    files,
+    actor,
+    { documentId: document.id, clientId: document.client_id, revision: nextRevision(document) },
+    {
       // The same file, so the same origin: the snapshot keeps saying what the file prints,
       // and data changed since then shows on the draft as it would have on the issued one.
       template_version_id: source.data.template_version_id,
@@ -1141,25 +1151,16 @@ export async function startDraftFromIssued(
       data_snapshot: issued.data_snapshot,
       edited_at: source.data.edited_at,
       edited_by: source.data.edited_by,
-      docx_path: path,
-      created_by: actor.createdBy,
-    })
-    .select('id')
-    .single();
-  if (revision.error) throw fromDatabaseError(revision.error, 'create document revision');
-  try {
-    await files.writeDocument(path, bytes, { replace: true });
-  } catch (error) {
-    await db.from('document_revisions').delete().eq('id', revision.data.id);
-    throw error;
-  }
+    },
+    bytes
+  );
   return presentChanged(db, actor, documentId);
 }
 
 /** What was issued before stays as it is. */
 export async function deleteDraft(db: DataClient, files: FileStore, documentId: string) {
   const document = await readDocument(db, documentId);
-  const draft = document.document_revisions.find((revision) => revision.status === 'draft');
+  const draft = draftOf(document);
   if (!draft) throw new ApiError('conflict', 'This document has no draft to delete.');
   await requireActiveClient(db, document.client_id);
   // The file while the policies still allow it: they follow the draft row.
@@ -1192,7 +1193,7 @@ export async function attachSignedCopy(
     throw new ApiError('validation_error', 'The signed copy is a PDF.');
   }
   const document = await readDocument(db, documentId);
-  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  const issued = issuedOf(document);
   if (!issued) {
     throw new ApiError(
       'conflict',
@@ -1236,7 +1237,7 @@ export async function attachSignedCopy(
 /** The owner accepts what came through the return link as the signed copy. */
 export async function confirmSignedCopy(db: DataClient, actor: Actor, documentId: string) {
   const document = await readDocument(db, documentId);
-  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  const issued = issuedOf(document);
   if (!issued?.document_signed_copies || issued.document_signed_copies.confirmed_at) {
     throw new ApiError(
       'conflict',
@@ -1256,7 +1257,7 @@ export async function confirmSignedCopy(db: DataClient, actor: Actor, documentId
 
 export async function removeSignedCopy(db: DataClient, files: FileStore, documentId: string) {
   const document = await readDocument(db, documentId);
-  const issued = document.document_revisions.find((revision) => revision.status === 'issued');
+  const issued = issuedOf(document);
   if (!issued?.document_signed_copies) {
     throw new ApiError('conflict', 'This document has no signed copy to remove.');
   }
