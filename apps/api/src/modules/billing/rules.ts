@@ -1,4 +1,5 @@
 import {
+  type AccessLevel,
   type BillingAmounts,
   type BillingChoice,
   type BillingChoiceProblem,
@@ -8,6 +9,7 @@ import {
   lastStep,
   type PaidPlan,
   planStep,
+  readOnlyDays,
   selfServeLimits,
   stepFor,
   vatPercent,
@@ -91,6 +93,11 @@ export function splitChange(current: BillingChoice, target: BillingChoice): Chan
 
 export const addInterval = (date: Date, interval: BillingInterval) =>
   addMonths(date, interval === 'year' ? 12 : 1);
+
+export function deletesAtOf(accessUntil: string | null, access: AccessLevel) {
+  if (access !== 'read_only' || !accessUntil) return null;
+  return new Date(new Date(accessUntil).getTime() + readOnlyDays * 86_400_000).toISOString();
+}
 
 // v1 had one price per plan, with packs of employees and extra members as quantities beside it;
 // a subscription on it still renews until the owner changes it (ADR 029, amendment of 2026-11-14).

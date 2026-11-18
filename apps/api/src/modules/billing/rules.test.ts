@@ -1,9 +1,10 @@
-import { cataloguePrices, meteredProducts } from '@ssm-usor/contracts';
+import { cataloguePrices, meteredProducts, readOnlyDays } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
   addInterval,
   choiceFromItems,
+  deletesAtOf,
   itemGroupOf,
   minimumStepFor,
   parseLookupKey,
@@ -274,5 +275,15 @@ describe('the next renewal', () => {
   it('falls a year on, on 28 February for a plan bought on 29 February', () => {
     expect(next('2027-06-10T09:00:00.000Z', 'year')).toBe('2028-06-10T09:00:00.000Z');
     expect(next('2028-02-29T09:00:00.000Z', 'year')).toBe('2029-02-28T09:00:00.000Z');
+  });
+});
+
+describe('when a read-only organization is deleted', () => {
+  it('is the read-only days after access ends, and only while read-only', () => {
+    expect(deletesAtOf('2026-11-01T10:00:00.000Z', 'read_only')).toBe(
+      new Date(Date.parse('2026-11-01T10:00:00.000Z') + readOnlyDays * 86_400_000).toISOString()
+    );
+    expect(deletesAtOf('2026-11-01T10:00:00.000Z', 'full')).toBeNull();
+    expect(deletesAtOf(null, 'read_only')).toBeNull();
   });
 });

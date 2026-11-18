@@ -13,7 +13,6 @@ import {
   type InvoiceEmail,
   meteredProducts,
   type PaidPlan,
-  readOnlyDays,
   smsOverage,
   vatPercent,
 } from '@ssm-usor/contracts';
@@ -44,7 +43,7 @@ import type {
   resumeSubscriptionRoute,
   updateInvoiceEmailRoute,
 } from './routes';
-import { minimumStepFor, problemsWith, productOf, usageLimits } from './rules';
+import { deletesAtOf, minimumStepFor, problemsWith, productOf, usageLimits } from './rules';
 import {
   type Billing,
   cancelSubscription,
@@ -121,10 +120,6 @@ function subscriptionView(
   access: AccessLevel,
   stripeCancelAt: string | null
 ): NonNullable<BillingOverview['subscription']> {
-  const deletesAt =
-    access === 'read_only' && row.access_until
-      ? new Date(new Date(row.access_until).getTime() + readOnlyDays * 86_400_000).toISOString()
-      : null;
   return {
     plan: row.plan,
     planChosen: row.stripe_subscription_id !== null,
@@ -136,7 +131,7 @@ function subscriptionView(
     billingAnchorAt: iso(row.billing_anchor_at),
     accessUntil: iso(row.access_until),
     access,
-    deletesAt,
+    deletesAt: deletesAtOf(row.access_until, access),
     cancelsAt: cancelsAtOf(row, stripeCancelAt),
   };
 }
