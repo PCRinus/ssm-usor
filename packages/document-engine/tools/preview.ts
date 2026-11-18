@@ -1,9 +1,10 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { renderDocument, TemplateError } from '../src/render';
 import { signingTypeKeys } from '../src/signing';
+import { manifestEntries, templateSets } from '../src/template-store';
 import { testSheetTypeKey } from '../src/test-sheet';
 import {
   type KnowledgeTestCode,
@@ -1589,24 +1590,21 @@ const files = [templates, `${templates}fire/`]
   );
 // The per-employee templates are merged with an employee's data, not a client's.
 const employeeSamples = new Map<string, { label: string; data: Record<string, unknown> }[]>(
-  [templates, `${templates}fire/`]
-    .filter((folder) => existsSync(`${folder}manifest.json`))
-    .flatMap((folder) =>
-      (
-        JSON.parse(readFileSync(`${folder}manifest.json`, 'utf8')) as {
-          templates: { perEmployee?: true; typeKey: string; file: string }[];
-        }
-      ).templates
-        .filter((entry) => entry.perEmployee)
-        .map((entry) => [
-          `${folder}${entry.file}`,
-          entry.typeKey === signingTypeKeys.agreement
-            ? signingAgreementSamples()
-            : entry.typeKey === testSheetTypeKey
-              ? testSheetSamples()
-              : trainingSheetSamples(entry.typeKey.endsWith('_su') ? 'su' : 'ssm'),
-        ])
+  manifestEntries(
+    pathToFileURL(templates),
+    templateSets.filter(
+      ({ set, folder }) => set !== 'other' && existsSync(`${templates}${folder}manifest.json`)
     )
+  )
+    .filter((entry) => entry.perEmployee)
+    .map((entry) => [
+      `${templates}${entry.path}`,
+      entry.typeKey === signingTypeKeys.agreement
+        ? signingAgreementSamples()
+        : entry.typeKey === testSheetTypeKey
+          ? testSheetSamples()
+          : trainingSheetSamples(entry.typeKey.endsWith('_su') ? 'su' : 'ssm'),
+    ])
 );
 const knowledgeTestCodes = new Map(
   (Object.entries(knowledgeTestTemplates) as [KnowledgeTestCode, string][]).map(([code, file]) => [

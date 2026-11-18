@@ -10,14 +10,7 @@ import {
   releasedManifestAt,
   replaceLegalQuote,
 } from '@ssm-usor/document-engine/legal-quote';
-
-interface ManifestEntry {
-  file: string;
-  title: string;
-  change: {
-    resolves?: { act: string; consolidatedOn: string } | { act: string; consolidatedOn: string }[];
-  };
-}
+import { manifestEntries } from '@ssm-usor/document-engine/template-store';
 
 export interface Templates {
   citations(): Citation[];
@@ -27,17 +20,8 @@ export interface Templates {
   resolves(act: string, consolidatedOn: string): boolean;
 }
 
-const manifestFolders = ['', 'fire/', 'other/'];
-
 export function templatesAt(folder: URL): Templates {
-  const entries = () =>
-    manifestFolders.flatMap((prefix) =>
-      (
-        JSON.parse(readFileSync(new URL(`${prefix}manifest.json`, folder), 'utf8')) as {
-          templates: ManifestEntry[];
-        }
-      ).templates.map((entry) => ({ ...entry, file: `${prefix}${entry.file}` }))
-    );
+  const entries = () => manifestEntries(folder);
   return {
     citations: () =>
       (
@@ -46,13 +30,13 @@ export function templatesAt(folder: URL): Templates {
         }
       ).citations,
     read: (file) => new Uint8Array(readFileSync(new URL(file, folder))),
-    titleOf: (file) => entries().find((entry) => entry.file === file)?.title ?? file,
+    titleOf: (file) => entries().find((entry) => entry.path === file)?.title ?? file,
     resolves: (act, consolidatedOn) =>
-      entries().some((entry) => {
-        const resolves = entry.change.resolves;
-        const list = resolves === undefined ? [] : Array.isArray(resolves) ? resolves : [resolves];
-        return list.some((each) => each.act === act && each.consolidatedOn === consolidatedOn);
-      }),
+      entries().some((entry) =>
+        (entry.change.resolves ?? []).some(
+          (each) => each.act === act && each.consolidatedOn === consolidatedOn
+        )
+      ),
   };
 }
 

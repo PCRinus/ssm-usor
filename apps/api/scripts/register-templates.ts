@@ -2,18 +2,17 @@ import console from 'node:console';
 import { readFileSync } from 'node:fs';
 import process from 'node:process';
 
+import { manifestEntries, templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import type { Database } from '../src/database.types';
-import { manifestSchema, registerTemplates } from './lib/register-templates';
+import { manifestEntrySchema, registerTemplates } from './lib/register-templates';
 import { localSupabase, secretFromCli } from './lib/supabase-cli';
 
 // Run after the migrations, on any environment:
 //   pnpm templates:register          hosted project from SUPABASE_URL (apps/api/.env.seed)
 //   pnpm templates:register:local    local Docker stack
-
-const templatesUrl = new URL('../../../packages/document-engine/templates/', import.meta.url);
 
 try {
   const local = process.argv.slice(2).includes('--local');
@@ -32,24 +31,17 @@ try {
     },
   });
 
-  // The provider's occupational safety pack, the templates that are not part of it (ADR 007),
-  // and the fire-safety set (ADR 016).
-  const folders = [templatesUrl, new URL('other/', templatesUrl), new URL('fire/', templatesUrl)];
-  const manifest = {
-    templates: folders.flatMap((folder) =>
-      manifestSchema
-        .parse(JSON.parse(readFileSync(new URL('manifest.json', folder), 'utf8')))
-        .templates.map((entry) => ({ ...entry, folder }))
-    ),
-  };
-  const templates = manifest.templates.map((entry) => ({
-    typeKey: entry.typeKey,
-    title: entry.title,
-    bytes: readFileSync(new URL(entry.file, entry.folder)),
-    kind: entry.change.kind,
-    note: entry.change.note,
-    resolves: entry.change.resolves,
-  }));
+  const templates = manifestEntries().map((stored) => {
+    const entry = manifestEntrySchema.parse(stored);
+    return {
+      typeKey: entry.typeKey,
+      title: entry.title,
+      bytes: readFileSync(new URL(stored.path, templatesUrl)),
+      kind: entry.change.kind,
+      note: entry.change.note,
+      resolves: entry.change.resolves,
+    };
+  });
   const byType = new Map(templates.map((template) => [template.typeKey, template]));
   const results = await registerTemplates(client, templates);
   for (const result of results) {

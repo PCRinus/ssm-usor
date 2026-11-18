@@ -17,9 +17,10 @@ import {
   transcriptionLine,
 } from '../tools/training-sheet-samples';
 import { annexTemplate } from './annex-template';
+import type { TemplateSet } from './citations';
 import { renderDocument, templatePlaceholders } from './render';
 import { templateChangeProblems } from './template-change';
-import { templatesUrl } from './template-store';
+import { manifestEntries, templateSets, templatesUrl } from './template-store';
 import { documentText } from './text';
 
 const read = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
@@ -38,22 +39,12 @@ const fireFiles = readdirSync(fileURLToPath(new URL('fire/', templatesUrl)))
 const originals =
   /VELOCITA|PIPETECH|PROFLEX|SAFETY CORE|POPA|LUCA|CASAPU|TALO[SȘ]|GIURGEA|D-na|D-l |\b\d{2}\.\d{2}\.202\d\b/;
 
-// What only the decisions have: a signature block, an acknowledgement table, its wording.
-type ManifestEntry = { perEmployee?: true; typeKey: string; title: string; file: string };
-const manifestOf = (folder: string) =>
-  JSON.parse(readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')) as {
-    templates: ManifestEntry[];
-  };
+const entries = manifestEntries();
 // The individual training sheets (ADR 021), the signing agreement (ADR 023) and the test sheet
 // (ADR 024) sit beside a set's templates and belong to no set.
-const setManifest = <Entry>(folder: string) => ({
-  templates: manifestOf(folder).templates.filter((entry) => !entry.perEmployee) as Entry[],
-});
-const perEmployeeEntries = ['', 'fire/'].flatMap((folder) =>
-  manifestOf(folder)
-    .templates.filter((entry) => entry.perEmployee)
-    .map((entry) => ({ ...entry, path: `${folder}${entry.file}` }))
-);
+const setEntries = (set: TemplateSet) =>
+  entries.filter((entry) => entry.set === set && !entry.perEmployee);
+const perEmployeeEntries = entries.filter((entry) => entry.perEmployee);
 const perEmployeeFiles = perEmployeeEntries.map((entry) => entry.path);
 const sheetEntries = perEmployeeEntries.filter((entry) =>
   entry.typeKey.startsWith('training_sheet_')
@@ -82,9 +73,7 @@ describe('built-in templates', () => {
 // Written by us and not imported (ADR 007), so they are kept apart from the provider's pack.
 describe('templates outside the pack', () => {
   const otherUrl = new URL('other/', templatesUrl);
-  const manifest = JSON.parse(readFileSync(new URL('manifest.json', otherUrl), 'utf8')) as {
-    templates: { typeKey: string; title: string; file: string }[];
-  };
+  const manifest = { templates: entries.filter((entry) => entry.set === 'other') };
   const files = readdirSync(fileURLToPath(otherUrl)).filter((name) => name.endsWith('.docx'));
 
   it('are the files of their manifest, named after their types', () => {
@@ -121,20 +110,14 @@ describe('templates outside the pack', () => {
 // and, from stage 2 (ADR 018), the `fire` object only. A name of the occupational safety set
 // would mark these drafts as changed when it does.
 describe('fire-safety set', () => {
-  const manifest = setManifest<{
-    number: string;
-    typeKey: string;
-    title: string;
-    file: string;
-    stage: number;
-  }>('fire/');
+  const manifest = { templates: setEntries('fire') };
   const stageOne = manifest.templates
     .filter((entry) => entry.stage === 1)
-    .map((entry) => `fire/${entry.file}`);
+    .map((entry) => entry.path);
   // Stage 3 (ADR 019) merges the same names, the technician's certificate and authorization too.
   const stageTwo = manifest.templates
-    .filter((entry) => entry.stage >= 2)
-    .map((entry) => `fire/${entry.file}`);
+    .filter((entry) => entry.stage! >= 2)
+    .map((entry) => entry.path);
   const allowed = [
     'branding',
     'client.legalName',
@@ -669,7 +652,7 @@ describe('fire-safety set', () => {
   };
 
   it('are the files of their manifest, named after their numbers and their types', () => {
-    expect(manifest.templates.map((entry) => `fire/${entry.file}`).sort()).toEqual(
+    expect(manifest.templates.map((entry) => entry.path).sort()).toEqual(
       fireFiles.filter((name) => !perEmployeeFiles.includes(name)).sort()
     );
     for (const entry of manifest.templates) {
@@ -1584,14 +1567,7 @@ describe('fire-safety set', () => {
 // the folder shows at a glance what is still to do. Decision 1.5 came later, from a third pack.
 // The annex on the electronic signature (13, ADR 023) has no original: its wording is ours.
 describe('manifest', () => {
-  const manifest = setManifest<{
-    number: string;
-    original?: string;
-    stage: number;
-    typeKey: string | null;
-    title: string | null;
-    file: string | null;
-  }>('');
+  const manifest = { templates: setEntries('ssm') };
   const ported = manifest.templates.filter((entry) => entry.file);
 
   it('lists all 23 originals once, and the documents written without one', () => {
@@ -1618,12 +1594,10 @@ describe('manifest', () => {
   });
 });
 
-describe.each(['', 'other/', 'fire/'])(
+describe.each(templateSets.map(({ folder, set }) => [folder, set] as const))(
   'the change of each template in %smanifest.json',
-  (folder) => {
-    const manifest = JSON.parse(
-      readFileSync(new URL(`${folder}manifest.json`, templatesUrl), 'utf8')
-    ) as { templates: { typeKey: string; change?: unknown }[] };
+  (_folder, set) => {
+    const manifest = { templates: entries.filter((entry) => entry.set === set) };
     const acts = JSON.parse(readFileSync(new URL('legal-acts.json', templatesUrl), 'utf8')) as {
       acts: { id: string }[];
     };

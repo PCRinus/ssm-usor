@@ -8,6 +8,7 @@ import {
   type TemplateSet,
   type TemplateSource,
 } from './citations';
+import type { ResolvedLegalChange, TemplateChange } from './template-change';
 
 // The tests check an edited copy of the folder when DOCUMENT_TEMPLATES_DIR names one, as the
 // replacement of a quote does before its pull request is opened (ADR 017).
@@ -16,24 +17,63 @@ export const templatesUrl = override
   ? pathToFileURL(`${resolve(override)}/`)
   : new URL('../templates/', import.meta.url);
 
-const sets: { manifest: TemplateSet; folder: string }[] = [
-  { manifest: 'ssm', folder: '' },
-  { manifest: 'fire', folder: 'fire/' },
-  { manifest: 'other', folder: 'other/' },
-];
+export const templateSets = [
+  { set: 'ssm', folder: '' },
+  { set: 'fire', folder: 'fire/' },
+  { set: 'other', folder: 'other/' },
+] as const satisfies readonly { set: TemplateSet; folder: string }[];
 
-export function templateSources(base = templatesUrl): TemplateSource[] {
-  return sets.flatMap(({ manifest, folder }) => {
+export type TemplateSetFolder = (typeof templateSets)[number];
+
+/** An entry of a set's `manifest.json`, `change.resolves` always a list. */
+export interface ManifestEntry {
+  /** Absent on a template that belongs to no set: a per-employee sheet (ADR 021). */
+  number?: string;
+  stage?: number;
+  perEmployee?: true;
+  /** The provider's document the template was imported from. */
+  original?: string;
+  originals?: string[];
+  typeKey: string;
+  title: string;
+  /** The file's name in its set's folder. */
+  file: string;
+  change: Omit<TemplateChange, 'resolves'> & { resolves?: ResolvedLegalChange[] };
+}
+
+export interface TemplateEntry extends ManifestEntry {
+  set: TemplateSet;
+  /** The file's path in the templates folder: "fire/1.1_fire_decision_organization.docx". */
+  path: string;
+}
+
+export function manifestEntries(
+  base: URL = templatesUrl,
+  sets: readonly TemplateSetFolder[] = templateSets
+): TemplateEntry[] {
+  return sets.flatMap(({ set, folder }) => {
     const { templates } = JSON.parse(
       readFileSync(new URL(`${folder}manifest.json`, base), 'utf8')
-    ) as { templates: { typeKey: string; file: string }[] };
-    return templates.map(({ typeKey, file }) => ({
-      manifest,
-      file: `${folder}${file}`,
-      typeKey,
-      source: new Uint8Array(readFileSync(new URL(`${folder}${file}`, base))),
+    ) as { templates: (Omit<ManifestEntry, 'change'> & { change: TemplateChange })[] };
+    return templates.map(({ change: { resolves, ...change }, ...entry }) => ({
+      ...entry,
+      set,
+      path: `${folder}${entry.file}`,
+      change:
+        resolves === undefined
+          ? change
+          : { ...change, resolves: Array.isArray(resolves) ? resolves : [resolves] },
     }));
   });
+}
+
+export function templateSources(base = templatesUrl): TemplateSource[] {
+  return manifestEntries(base).map(({ set, path, typeKey }) => ({
+    manifest: set,
+    file: path,
+    typeKey,
+    source: new Uint8Array(readFileSync(new URL(path, base))),
+  }));
 }
 
 export interface CitationIndex {

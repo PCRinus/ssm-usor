@@ -24,6 +24,10 @@
       "types": "./dist/template-files.d.ts",
       "import": "./dist/template-files.js"
     },
+    "./template-store": {
+      "types": "./dist/template-store.d.ts",
+      "import": "./dist/template-store.js"
+    },
     "./token-diff": {
       "types": "./dist/token-diff.d.ts",
       "import": "./dist/token-diff.js"

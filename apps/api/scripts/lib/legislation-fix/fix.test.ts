@@ -1,4 +1,5 @@
 import { type LegalQuoteResult, PendingChangeError } from '@ssm-usor/document-engine/legal-quote';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import type { ModelClient } from '@ssm-usor/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -87,9 +88,7 @@ function setup({
   resolves?: boolean;
   model?: ModelClient | null;
 } = {}) {
-  const real = templatesAt(
-    new URL('../../../../../packages/document-engine/templates/', import.meta.url)
-  );
+  const real = templatesAt(templatesUrl);
   const gh: GitHub = {
     pullForBranch: vi.fn().mockResolvedValue(null),
     answersByMarker: vi.fn().mockResolvedValue([]),

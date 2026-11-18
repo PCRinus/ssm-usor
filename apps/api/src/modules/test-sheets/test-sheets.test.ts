@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { documentText } from '@ssm-usor/document-engine';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminClient } from '../../lib/admin-db';
@@ -31,11 +32,7 @@ const sheetId = '75757575-0000-4000-8000-000000000001';
 const traineeAccount = 'dddddddd-0000-4000-8000-000000000001';
 const memberAccount = 'aaaaaaaa-0000-4000-8000-000000000001';
 
-const template = new Uint8Array(
-  readFileSync(
-    new URL('../../../../../packages/document-engine/templates/fisa_test.docx', import.meta.url)
-  )
-);
+const template = new Uint8Array(readFileSync(new URL('fisa_test.docx', templatesUrl)));
 
 const resultRow = (overrides: Record<string, unknown> = {}) => ({
   id: resultId,
