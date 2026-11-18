@@ -382,6 +382,27 @@ describe('client workplaces', () => {
     expect(screen.getByTestId('workplace-dialog')).toBeTruthy();
   });
 
+  it('says the client is archived, not that the office is taken, when a stale page adds to it', async () => {
+    mockApi({
+      create: () =>
+        Response.json(
+          { error: 'conflict', message: 'Archived', reason: 'client_archived' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('workplace-add'));
+    await user.type(await screen.findByTestId('workplace-name'), 'Alt sediu');
+    await user.click(screen.getByTestId('workplace-registered-office'));
+    await user.click(screen.getByTestId('workplace-save'));
+
+    expect((await screen.findByTestId('workplace-error')).textContent).toContain('arhivat');
+    expect(screen.queryByTestId('workplace-registered-office-error')).toBeNull();
+    expect(screen.getByTestId('workplace-dialog')).toBeTruthy();
+  });
+
   it('edits a workplace starting from what is saved', async () => {
     mockApi();
     mount();

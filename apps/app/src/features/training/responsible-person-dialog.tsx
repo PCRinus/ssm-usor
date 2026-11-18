@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  clientConflictReasons,
   requiredWorkersRepresentatives,
   responsiblePersonConflictReasons,
   type ResponsiblePersonRole,
@@ -202,6 +203,12 @@ function ResponsiblePersonForm({
           message: legalRepresentative
             ? `„${values.fullName.trim()}” are același nume ca reprezentantul legal al clientului, „${legalRepresentative}”, și nu poate fi și reprezentantul lucrătorilor.`
             : `${values.fullName.trim()} este reprezentantul legal al clientului și nu poate fi și reprezentantul lucrătorilor.`,
+        });
+        return;
+      }
+      if (body?.reason === clientConflictReasons.clientArchived) {
+        form.setError('root.server', {
+          message: 'Clientul este arhivat; persoanele lui responsabile nu se mai schimbă.',
         });
         return;
       }

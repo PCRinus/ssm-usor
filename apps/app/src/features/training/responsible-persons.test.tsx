@@ -728,6 +728,29 @@ describe('client responsible persons', () => {
     expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
   });
 
+  it('says the client is archived, not that the employee is listed, when a stale page adds to it', async () => {
+    mockApi({
+      items: [],
+      create: () =>
+        Response.json(
+          { error: 'conflict', message: 'Archived', reason: 'client_archived' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-add'));
+    await user.type(await screen.findByTestId('responsible-name'), 'Paolo-Antonio Luca');
+    await user.type(screen.getByTestId('responsible-job-title'), 'Manager magazin');
+    await user.click(screen.getByTestId('responsible-role-first_aid'));
+    await user.click(screen.getByTestId('responsible-save'));
+
+    expect((await screen.findByTestId('responsible-error')).textContent).toContain('arhivat');
+    expect(screen.queryByTestId('responsible-employee-error')).toBeNull();
+    expect(screen.getByTestId('responsible-dialog')).toBeTruthy();
+  });
+
   it("takes a workers' representative only from the employees", async () => {
     mockApi({ items: [] });
     mount();

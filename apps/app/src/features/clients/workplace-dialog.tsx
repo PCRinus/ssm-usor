@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  clientConflictReasons,
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   fireExtinguisherNorms,
@@ -224,8 +225,13 @@ function WorkplaceForm({
         });
         return;
       }
+      if (body?.reason === clientConflictReasons.clientArchived) {
+        form.setError('root.server', {
+          message: 'Clientul este arhivat; punctele lui de lucru nu se mai schimbă.',
+        });
+        return;
+      }
       if (cause instanceof ApiHttpError && cause.status === 409) {
-        // The API answers 409 for an archived client too, which this page shows read-only.
         form.setError('isRegisteredOffice', {
           message: 'Clientul are deja un sediu social. Modifică-l pe acela sau debifează opțiunea.',
         });
