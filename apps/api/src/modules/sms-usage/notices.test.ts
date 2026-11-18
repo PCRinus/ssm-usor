@@ -1,13 +1,13 @@
 import type { MailService } from '@ssm-usor/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { EntitlementRow } from '../billing/entitlements';
 import { createUsageNotices, type UsageNoticeStore } from './notices';
-import type { SmsSubscription } from './policy';
 
 const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const now = new Date('2026-12-01T10:00:00.000Z');
 
-const paid: SmsSubscription = {
+const paid: EntitlementRow = {
   plan: 'start',
   status: 'active',
   created_at: '2026-10-14T08:00:00.000Z',
@@ -21,7 +21,7 @@ const paid: SmsSubscription = {
   employee_step: 250,
 };
 
-const chosenInTrial: SmsSubscription = {
+const chosenInTrial: EntitlementRow = {
   ...paid,
   status: 'trialing',
   created_at: '2026-11-20T08:00:00.000Z',
@@ -30,7 +30,7 @@ const chosenInTrial: SmsSubscription = {
   billing_anchor_at: null,
 };
 
-const tester: SmsSubscription = {
+const tester: EntitlementRow = {
   ...chosenInTrial,
   plan: 'profesional',
   stripe_subscription_id: null,
@@ -68,7 +68,7 @@ function setUp(options: { granted?: number; owner?: boolean; ceilingCents?: numb
     mail: { sendSmsUsageNotice } as unknown as MailService,
     subscriptionUrl: () => 'https://app.example.ro/organizatie/abonament',
   });
-  const at = (used: number, row: SmsSubscription | null = paid) => {
+  const at = (used: number, row: EntitlementRow | null = paid) => {
     usage.used = used;
     usage.overage = Math.max(0, used - 50 - usage.granted);
     return notices(organizationId, row, now);

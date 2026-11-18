@@ -9,11 +9,12 @@ import type { Context } from 'hono';
 import { adminClient } from '../../lib/admin-db';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import type { EntitlementRow } from '../billing/entitlements';
 import { createExtrasNotices, extrasNoticeDeps } from '../extras/notices';
 import { extrasUnavailable } from '../extras/policy';
 import { createUsageNotices, noticeRecipient } from './notices';
 import { type OverageSend, reportOverageLater } from './overage';
-import { type SmsPolicy, smsPolicy, type SmsSubscription } from './policy';
+import { type SmsPolicy, smsPolicy } from './policy';
 import { type SmsKind, type SmsUsageStore, smsUsageStore } from './store';
 
 export type SmsOutcome =
@@ -56,7 +57,7 @@ export function createSmsSender(deps: {
   sms: SmsService | undefined;
   store: SmsUsageStore;
   onOverage: (send: OverageSend) => void;
-  onCounted?: (organizationId: string, subscription: SmsSubscription | null) => void;
+  onCounted?: (organizationId: string, subscription: EntitlementRow | null) => void;
   now?: () => Date;
 }) {
   const now = () => deps.now?.() ?? new Date();
@@ -65,13 +66,13 @@ export function createSmsSender(deps: {
     subscription: (organizationId: string) => deps.store.subscription(organizationId),
 
     /** What a send would answer before anything is counted, for a caller that saves first. */
-    async gate(organizationId: string, to: string, subscription?: SmsSubscription | null) {
+    async gate(organizationId: string, to: string, subscription?: EntitlementRow | null) {
       const row =
         subscription === undefined ? await deps.store.subscription(organizationId) : subscription;
       return refusalOf(smsPolicy(row, now()), to);
     },
 
-    async send(input: SmsSendInput, subscription?: SmsSubscription | null): Promise<SmsOutcome> {
+    async send(input: SmsSendInput, subscription?: EntitlementRow | null): Promise<SmsOutcome> {
       if (!deps.sms) throw new Error('No SMS binding');
       const row =
         subscription === undefined

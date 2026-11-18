@@ -9,8 +9,9 @@ import {
 
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
+import type { EntitlementRow } from '../billing/entitlements';
 import { ownerEmail } from '../billing/store';
-import { smsPolicy, type SmsSubscription } from './policy';
+import { smsPolicy } from './policy';
 import type { SmsUsageStore } from './store';
 import { smsUsageOf } from './usage';
 
@@ -39,7 +40,7 @@ export function createUsageNotices(deps: {
 }) {
   return async function noticeAfterCount(
     organizationId: string,
-    row: SmsSubscription | null,
+    row: EntitlementRow | null,
     now: Date
   ): Promise<SmsUsageNoticeKind | null> {
     const policy = smsPolicy(row, now);

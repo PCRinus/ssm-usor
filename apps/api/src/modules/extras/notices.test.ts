@@ -1,13 +1,13 @@
 import type { MailService } from '@ssm-usor/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SmsSubscription } from '../sms-usage/policy';
+import type { EntitlementRow } from '../billing/entitlements';
 import { createExtrasNotices } from './notices';
 
 const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const now = new Date('2026-12-01T10:00:00.000Z');
 
-const paid: SmsSubscription = {
+const paid: EntitlementRow = {
   plan: 'start',
   status: 'active',
   created_at: '2026-10-14T08:00:00.000Z',
@@ -21,7 +21,7 @@ const paid: SmsSubscription = {
   employee_step: 250,
 };
 
-function setUp(options: { row?: SmsSubscription; ceiling?: number | null } = {}) {
+function setUp(options: { row?: EntitlementRow; ceiling?: number | null } = {}) {
   const month = {
     periodStart: '2026-11-13T08:00:00.000Z',
     periodEnd: '2026-12-13T08:00:00.000Z',

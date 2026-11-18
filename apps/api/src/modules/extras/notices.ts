@@ -1,10 +1,11 @@
 import type { ExtraKind, MailService } from '@ssm-usor/contracts';
 
 import type { AdminClient } from '../../lib/admin-db';
+import type { EntitlementRow } from '../billing/entitlements';
 import { creditPolicy } from '../credits/policy';
 import { creditsStore } from '../credits/store';
 import type { NoticeRecipient } from '../sms-usage/notices';
-import { smsPolicy, type SmsSubscription } from '../sms-usage/policy';
+import { smsPolicy } from '../sms-usage/policy';
 import { smsUsageStore } from '../sms-usage/store';
 import { extraLevel, extraSpend, extrasUnavailable } from './policy';
 import { extrasStore } from './store';
@@ -16,12 +17,12 @@ export type ExtrasMonth = {
 };
 
 export type ExtrasNoticeDeps = {
-  subscription: (organizationId: string) => Promise<SmsSubscription | null>;
+  subscription: (organizationId: string) => Promise<EntitlementRow | null>;
   ceiling: (organizationId: string, kind: ExtraKind) => Promise<number | null>;
   month: (
     organizationId: string,
     kind: ExtraKind,
-    row: SmsSubscription,
+    row: EntitlementRow,
     now: Date
   ) => Promise<ExtrasMonth | null>;
   recordNotice: (organizationId: string, periodStart: string, kind: string) => Promise<boolean>;

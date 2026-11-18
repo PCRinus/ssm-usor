@@ -3,7 +3,7 @@ import type { SmsRefusalReason } from '@ssm-usor/contracts';
 import type { Database } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { type Period, type SmsSubscription, smsSubscriptionColumns } from './policy';
+import { loadEntitlementRow, loadEntitlementRows, type Period } from '../billing/entitlements';
 
 export type SmsKind = Database['public']['Enums']['sms_kind'];
 
@@ -19,26 +19,8 @@ const none = null as unknown as number;
 
 export function smsUsageStore(db: AdminClient) {
   return {
-    async subscriptions(organizationIds: string[]) {
-      const found = new Map<string, SmsSubscription>();
-      if (organizationIds.length === 0) return found;
-      const { data, error } = await db
-        .from('subscriptions')
-        .select(smsSubscriptionColumns)
-        .in('organization_id', organizationIds);
-      if (error) throw fromDatabaseError(error, 'sms subscriptions');
-      for (const row of data) found.set(row.organization_id, row);
-      return found;
-    },
-    async subscription(organizationId: string): Promise<SmsSubscription | null> {
-      const { data, error } = await db
-        .from('subscriptions')
-        .select(smsSubscriptionColumns)
-        .eq('organization_id', organizationId)
-        .maybeSingle();
-      if (error) throw fromDatabaseError(error, 'sms subscription');
-      return data;
-    },
+    subscriptions: (organizationIds: string[]) => loadEntitlementRows(db, organizationIds),
+    subscription: (organizationId: string) => loadEntitlementRow(db, organizationId),
     async claim(input: {
       organizationId: string;
       kind: SmsKind;
