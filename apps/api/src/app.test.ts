@@ -1,15 +1,12 @@
 import { apiErrorResponseSchema, apiHealthSchema, meResponseSchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from './app';
-import type { ApiEnv } from './lib/env';
 import { openApiConfig } from './lib/openapi';
+import { apiRequest } from './test/request';
+import { fetchMock, stubFetch, testEnv } from './test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const user = {
   id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
@@ -21,8 +18,6 @@ const user = {
   app_metadata: { provider: 'email' },
   user_metadata: { role: 'admin', private_note: 'Never return this' },
 };
-
-const fetchMock = vi.fn<typeof fetch>();
 
 // Supabase Auth answers with the token's user; the account has no profile or membership.
 function mockAccount(accountFor: (token: string | null) => unknown) {
@@ -39,15 +34,11 @@ function mockAccount(accountFor: (token: string | null) => unknown) {
 }
 
 const requestMe = (authorization = 'Bearer test-access-token', bindings = env) =>
-  createApp().request('/me', { headers: { Authorization: authorization } }, bindings);
+  apiRequest('/me', { token: null, headers: { Authorization: authorization } }, bindings);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -64,7 +55,7 @@ describe('API routes', () => {
   });
 
   it('returns a JSON 404', async () => {
-    const response = await createApp().request('/missing', {}, {});
+    const response = await apiRequest('/missing', { token: null }, {});
     expect(response.status).toBe(404);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('not_found');
   });
@@ -123,8 +114,8 @@ describe('API routes', () => {
     };
     mockAccount((token) => (token === 'Bearer first' ? user : secondUser));
     const app = createApp();
-    const first = await app.request('/me', { headers: { Authorization: 'Bearer first' } }, env);
-    const second = await app.request('/me', { headers: { Authorization: 'Bearer second' } }, env);
+    const first = await apiRequest('/me', { app, token: 'first' }, env);
+    const second = await apiRequest('/me', { app, token: 'second' }, env);
     expect(meResponseSchema.parse(await first.json()).user.id).toBe(user.id);
     expect(meResponseSchema.parse(await second.json()).user.id).toBe(secondUser.id);
     const tokens = fetchMock.mock.calls.map(([, init]) =>
@@ -187,9 +178,9 @@ describe('API routes', () => {
   it('logs every 5xx with its route, status, time and ray id', async () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     fetchMock.mockResolvedValue(Response.json({}, { status: 503 }));
-    const response = await createApp().request(
+    const response = await apiRequest(
       '/me',
-      { headers: { Authorization: 'Bearer token', 'cf-ray': '8c1f2a3b4c5d6e7f-OTP' } },
+      { token: 'token', headers: { 'cf-ray': '8c1f2a3b4c5d6e7f-OTP' } },
       env
     );
     expect(response.status).toBe(503);
@@ -216,7 +207,7 @@ describe('API routes', () => {
     app.get('/test-error', () => {
       throw new Error('Sensitive internal details');
     });
-    const response = await app.request('/test-error', {}, {});
+    const response = await apiRequest('/test-error', { app, token: null }, {});
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({
       error: 'internal_error',
@@ -304,9 +295,9 @@ describe('CORS', () => {
   );
 
   it('makes auth errors readable to the allowed app origin', async () => {
-    const response = await createApp().request(
+    const response = await apiRequest(
       '/me',
-      { headers: { Origin: 'https://app.ssmusor.ro' } },
+      { token: null, headers: { Origin: 'https://app.ssmusor.ro' } },
       env
     );
     expect(response.status).toBe(401);

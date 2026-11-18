@@ -51,11 +51,14 @@ available as a required PR check, including on documentation-only changes.
 | `apps/portal/**`                                                                                                                          | Portal                                                |
 | `apps/admin/**`                                                                                                                           | Admin app ([guide](admin.md))                         |
 | `packages/api-http/**`                                                                                                                    | SPA, portal and admin app                             |
+| `packages/spa-runtime/**`                                                                                                                 | SPA, portal and admin app                             |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                   |
 | `apps/mail/**`                                                                                                                            | Mail Worker                                           |
 | `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                          |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`, `signer*.ts` and `extractor*.ts` in the same folder                                       | PDF Worker and its container images ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                    |
+| `packages/document-engine/package.json`, `tsconfig*.json` and `src/token-diff.ts` in the same folder                                      | SPA and admin app                                     |
+| `packages/document-engine/src/signing.ts`, `packages/document-engine/tools/import/signing.ro.json`                                        | SPA                                                   |
 | `packages/ui/**`                                                                                                                          | SPA, portal, admin app and marketing                  |
 | `packages/design-tokens/**`                                                                                                               | SPA, portal, admin app, marketing and help site       |
 | `packages/contracts/**`                                                                                                                   | API, SPA, portal, admin app, mail and SMS Workers     |

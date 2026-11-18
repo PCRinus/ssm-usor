@@ -5,33 +5,20 @@ import {
   equipmentSuggestionsResponseSchema,
   jobPositionResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'specialist',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const welderId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
@@ -76,17 +63,14 @@ type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined
 
 const isGet = (init: RequestInit | undefined) => (init?.method ?? 'GET') === 'GET';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(handlers: { positions?: Handler; equipment?: Handler } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname === '/rest/v1/job_positions') {
-      const custom = handlers.positions?.(init, url);
-      if (custom) return custom;
-      const select = url.searchParams.get('select') ?? '';
+  const custom = (handler: Handler | undefined, { method, url }: UpstreamCall) =>
+    handler?.({ method }, url);
+  mockSignedInUpstream({
+    '/rest/v1/job_positions': (call) => {
+      const answer = custom(handlers.positions, call);
+      if (answer) return answer;
+      const select = call.url.searchParams.get('select') ?? '';
       if (select.includes('employees(count)')) {
         return Response.json([
           {
@@ -99,22 +83,21 @@ function mockUpstream(handlers: { positions?: Handler; equipment?: Handler } = {
           },
         ]);
       }
-      if (init?.method === 'PATCH') return Response.json(welder);
+      if (call.method === 'PATCH') return Response.json(welder);
       // `.single()` reads an object; `.maybeSingle()` on a GET reads the array's first row.
       if (select === 'needs_protective_equipment') {
         return Response.json({ needs_protective_equipment: true });
       }
       return Response.json([{ id: welderId, needs_protective_equipment: true }]);
-    }
-    if (url.pathname === '/rest/v1/job_position_equipment') {
-      const custom = handlers.equipment?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'POST') return Response.json(mask, { status: 201 });
-      if (init?.method === 'PATCH') return Response.json(mask);
-      if (init?.method === 'DELETE') return Response.json([{ id: maskId }]);
+    },
+    '/rest/v1/job_position_equipment': (call) => {
+      const answer = custom(handlers.equipment, call);
+      if (answer) return answer;
+      if (call.method === 'POST') return Response.json(mask, { status: 201 });
+      if (call.method === 'PATCH') return Response.json(mask);
+      if (call.method === 'DELETE') return Response.json([{ id: maskId }]);
       return Response.json([mask, gloves]);
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
+    },
   });
 }
 
@@ -128,27 +111,11 @@ const sent = (table: string, method: string, index = 0) =>
   JSON.parse(String(calls(table, method)[index]![1]?.body)) as unknown;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const path = `/clients/${clientId}/job-positions/${welderId}/equipment`;
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 describe('GET …/equipment', () => {
   it('lists the entries in the order they were added, with the decision', async () => {
@@ -199,7 +166,7 @@ describe('POST …/equipment', () => {
       quantity: 1,
       duration_months: 24,
       allocation: 'section_inventory',
-      organization_id: membership.organization_id,
+      organization_id: testOrganizationId,
       client_id: clientId,
       job_position_id: welderId,
       created_by: user.id,
@@ -310,7 +277,7 @@ describe('POST …/equipment/copy', () => {
         quantity: 2,
         duration_months: 3,
         allocation: 'personal_inventory',
-        organization_id: membership.organization_id,
+        organization_id: testOrganizationId,
         client_id: clientId,
         job_position_id: welderId,
         created_by: user.id,

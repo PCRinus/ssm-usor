@@ -1,16 +1,25 @@
-import { meResponseSchema, profileSchema, supportIdentitySchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  type AccessLevel,
+  meResponseSchema,
+  profileSchema,
+  supportIdentitySchema,
+} from '@ssm-usor/contracts';
+import { describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest, testAccessToken } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+  testUser,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_123456',
-};
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
+const user = { id: testUser.id, email: testUser.email };
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' };
 const profileRow = {
   full_name: 'Ana Popescu',
@@ -29,8 +38,6 @@ const trialRow = {
   created_at: '2026-10-26T10:00:00+00:00',
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 const targetMemberId = '9ae7d65f-fac5-4b57-9d9b-3e502febfd31';
 const activeImpersonation = {
   id: 'b1b1b1b1-0000-4000-8000-000000000001',
@@ -46,7 +53,7 @@ function mockUpstream({
   member = true,
   memberUserId = user.id,
   subscription = null as typeof trialRow | null,
-  access = 'full',
+  access = 'full' as AccessLevel,
   offers = true as boolean | 'error',
   overStep = null as Record<string, unknown> | null,
   role = 'owner' as 'owner' | 'specialist',
@@ -58,97 +65,70 @@ function mockUpstream({
     email: string;
   } | null,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') {
-      return Response.json({ ...user, is_anonymous: false, app_metadata: appMetadata });
-    }
-    if (url.pathname === '/rest/v1/impersonations' && init?.method === 'PATCH') {
-      return new Response(null, { status: 204 });
-    }
-    if (url.pathname === '/rest/v1/rpc/current_impersonation') {
-      return Response.json(impersonation);
-    }
-    if (url.pathname === '/rest/v1/rpc/organization_member_list') {
-      return impersonated
+  mockSignedInUpstream({
+    '/auth/v1/user': () => ({ ...testUser, app_metadata: appMetadata }),
+    'PATCH /rest/v1/impersonations': () => new Response(null, { status: 204 }),
+    '/rest/v1/rpc/current_impersonation': () => Response.json(impersonation),
+    '/rest/v1/rpc/organization_member_list': () =>
+      impersonated
         ? Response.json({ user_id: targetMemberId, ...impersonated })
-        : Response.json({ code: '42501', message: 'permission denied' }, { status: 403 });
-    }
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json(
-        member ? [{ user_id: memberUserId, organization_id: organization.id, role, access }] : []
-      );
-    }
-    if (url.pathname === '/rest/v1/rpc/current_organization_has_offers') {
-      return offers === 'error'
+        : Response.json({ code: '42501', message: 'permission denied' }, { status: 403 }),
+    '/rest/v1/rpc/current_membership': () =>
+      member
+        ? [
+            membershipRow({
+              user_id: memberUserId,
+              organization_id: organization.id,
+              role,
+              access,
+            }),
+          ]
+        : [],
+    '/rest/v1/rpc/current_organization_has_offers': () =>
+      offers === 'error'
         ? Response.json({ code: '42883', message: 'missing' }, { status: 404 })
-        : Response.json(offers);
-    }
-    if (url.pathname === '/rest/v1/subscriptions') {
-      return Response.json(
+        : Response.json(offers),
+    '/rest/v1/subscriptions': ({ url }) =>
+      Response.json(
         url.searchParams.get('organization_id') === `eq.${organization.id}` ? subscription : null
-      );
-    }
-    if (url.pathname === '/rest/v1/rpc/credit_balance') {
-      return Response.json({
-        granted: 0,
-        used: 640,
-        shortfall: 0,
-        balance: 860,
-        gift_left: 8640,
-        extra: extras ? 200 : 0,
-        extra_left: extras ? 50 : 0,
-      });
-    }
-    if (url.pathname === '/rest/v1/rpc/employees_over_step') {
-      return Response.json(overStep);
-    }
-    if (url.pathname === '/rest/v1/usage_extras') {
-      return Response.json(extras ? { ceiling_cents: 1000 } : null);
-    }
-    if (url.pathname === '/rest/v1/rpc/sms_period_usage') {
-      return Response.json(
-        extras ? { used: 340, overage: 40, granted: 0 } : { used: 252, overage: 0, granted: 0 }
-      );
-    }
-    if (url.pathname === '/rest/v1/rpc/my_open_invitations') {
-      return Response.json([
-        {
-          organization_name: 'Alt SSM SRL',
-          inviter_name: null,
-          role: 'specialist',
-          expires_at: '2026-09-25T10:00:00+00:00',
-        },
-      ]);
-    }
-    if (url.pathname === '/rest/v1/organizations') {
-      // The policies show a participant other organizations too; only the membership's answers.
-      return Response.json(
-        url.searchParams.get('id') === `eq.${organization.id}` ? organization : null
-      );
-    }
-    if (url.pathname === '/rest/v1/profiles') {
-      if (init?.method === 'GET') return Response.json(profile);
-      if (init?.method === 'PATCH')
-        return Response.json(profile && { ...profile, full_name: 'Ana P.' });
-      if (init?.method === 'POST')
-        return Response.json({
-          ...profileRow,
-          full_name: 'Ana P.',
-          terms_version: null,
-          terms_accepted_at: null,
-        });
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method} ${url}`);
+      ),
+    '/rest/v1/rpc/credit_balance': () => ({
+      granted: 0,
+      used: 640,
+      shortfall: 0,
+      balance: 860,
+      gift_left: 8640,
+      extra: extras ? 200 : 0,
+      extra_left: extras ? 50 : 0,
+    }),
+    '/rest/v1/rpc/employees_over_step': () => Response.json(overStep),
+    '/rest/v1/usage_extras': () => Response.json(extras ? { ceiling_cents: 1000 } : null),
+    '/rest/v1/rpc/sms_period_usage': () =>
+      extras ? { used: 340, overage: 40, granted: 0 } : { used: 252, overage: 0, granted: 0 },
+    '/rest/v1/rpc/my_open_invitations': () => [
+      {
+        organization_name: 'Alt SSM SRL',
+        inviter_name: null,
+        role: 'specialist',
+        expires_at: '2026-09-25T10:00:00+00:00',
+      },
+    ],
+    // The policies show a participant other organizations too; only the membership's answers.
+    '/rest/v1/organizations': ({ url }) =>
+      Response.json(url.searchParams.get('id') === `eq.${organization.id}` ? organization : null),
+    'GET /rest/v1/profiles': () => Response.json(profile),
+    'PATCH /rest/v1/profiles': () => Response.json(profile && { ...profile, full_name: 'Ana P.' }),
+    'POST /rest/v1/profiles': () => ({
+      ...profileRow,
+      full_name: 'Ana P.',
+      terms_version: null,
+      terms_accepted_at: null,
+    }),
   });
 }
 
-const request = (path: string, init: RequestInit = {}, bindings = env, token = 'token') =>
-  createApp().request(
-    path,
-    { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
-    bindings
-  );
+const request = (path: string, init: RequestInit = {}, bindings = env, token = testAccessToken) =>
+  apiRequest(path, { ...init, token, headers: { 'Content-Type': 'application/json' } }, bindings);
 
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const adminToken = (aal: string) =>
@@ -168,14 +148,7 @@ const profileWrites = () =>
       body: JSON.parse(init?.body as string),
     }));
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('GET /me', () => {
   it('returns the profile and the organization with the role', async () => {
@@ -474,12 +447,7 @@ describe('GET /me', () => {
 });
 
 describe('DELETE /me/impersonation', () => {
-  const end = (token: string) =>
-    createApp().request(
-      '/me/impersonation',
-      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
-      env
-    );
+  const end = (token: string) => apiRequest('/me/impersonation', { method: 'DELETE', token }, env);
   const writes = () =>
     fetchMock.mock.calls.filter(([input]) => String(input).includes('/rest/v1/'));
 

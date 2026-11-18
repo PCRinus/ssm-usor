@@ -26,6 +26,7 @@ import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { setParams } from '@/features/documents/document-sets';
+import { roCount } from '@/features/employees/employee-format';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import {
   isEmployeesOverStepError,
@@ -63,7 +64,7 @@ function serverMessage(cause: unknown, action: ClientArchiveChange['action'], le
 const draftsNotice = (count: number) =>
   count === 1
     ? 'Un document este încă ciornă și nu va mai putea fi emis cât timp clientul este arhivat.'
-    : `${count} documente sunt încă ciorne și nu vor mai putea fi emise cât timp clientul este arhivat.`;
+    : `${roCount(count, 'document', 'documente')} sunt încă ciorne și nu vor mai putea fi emise cât timp clientul este arhivat.`;
 
 export function ClientArchiveDialog({
   change,

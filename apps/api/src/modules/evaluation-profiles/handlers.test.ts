@@ -6,33 +6,20 @@ import {
   evaluationProfileResponseSchema,
   evaluationProfileUsageResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest, testAccessToken } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'specialist',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const profileId = '6b8d5568-6314-4fcd-833a-d96eb0e80ad6';
 const otherProfileId = '5a7c4457-5203-4ebc-922f-c85da0d79bc5';
@@ -137,8 +124,6 @@ type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined
 
 const isGet = (init: RequestInit | undefined) => (init?.method ?? 'GET') === 'GET';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(
   handlers: {
     list?: Handler;
@@ -149,60 +134,54 @@ function mockUpstream(
     rpc?: Handler;
   } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname.startsWith('/rest/v1/rpc/')) {
-      const custom = handlers.rpc?.(init, url);
+  const unexpected = ({ method, url }: UpstreamCall) => {
+    throw new Error(`Unexpected upstream request: ${method} ${url}`);
+  };
+  const rpc =
+    (fallback: unknown) =>
+    ({ method, url }: UpstreamCall) =>
+      handlers.rpc?.({ method }, url) ?? Response.json(fallback);
+  mockSignedInUpstream({
+    '/rest/v1/rpc/save_evaluation_profile_factor': rpc(factorId),
+    '/rest/v1/rpc/save_risk_evaluation_as_profile': rpc(profileId),
+    '/rest/v1/rpc/apply_evaluation_profile': rpc(2),
+    'HEAD /rest/v1/evaluation_profile_list': ({ method, url }) =>
+      handlers.list?.({ method }, url) ??
+      new Response(null, { headers: { 'Content-Range': '*/86' } }),
+    'GET /rest/v1/evaluation_profile_list': ({ method, url }) =>
+      handlers.list?.({ method }, url) ?? Response.json([officeProfile]),
+    '/rest/v1/evaluation_profiles': (call) => {
+      const { method, url } = call;
+      const custom = handlers.profiles?.({ method }, url);
       if (custom) return custom;
-      if (url.pathname.endsWith('/save_evaluation_profile_factor')) return Response.json(factorId);
-      if (url.pathname.endsWith('/save_risk_evaluation_as_profile')) {
-        return Response.json(profileId);
-      }
-      if (url.pathname.endsWith('/apply_evaluation_profile')) return Response.json(2);
-    }
-    if (url.pathname === '/rest/v1/evaluation_profile_list' && init?.method === 'HEAD') {
-      return (
-        handlers.list?.(init, url) ?? new Response(null, { headers: { 'Content-Range': '*/86' } })
-      );
-    }
-    if (url.pathname === '/rest/v1/evaluation_profile_list' && isGet(init)) {
-      return handlers.list?.(init, url) ?? Response.json([officeProfile]);
-    }
-    if (url.pathname === '/rest/v1/evaluation_profiles') {
-      const custom = handlers.profiles?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'POST') return Response.json({ id: profileId }, { status: 201 });
-      if (init?.method === 'PATCH' || init?.method === 'DELETE') {
-        return Response.json([{ id: profileId }]);
-      }
-      if (url.searchParams.get('select') === 'id') return Response.json([{ id: profileId }]);
-      if (url.searchParams.get('select') === storedLevelsColumns) {
+      if (method === 'POST') return Response.json({ id: profileId }, { status: 201 });
+      if (method === 'PATCH' || method === 'DELETE') return Response.json([{ id: profileId }]);
+      const select = url.searchParams.get('select');
+      if (select === 'id') return Response.json([{ id: profileId }]);
+      if (select === storedLevelsColumns) {
         return Response.json([
           { id: profileId, evaluation_profile_factors: officeProfile.evaluation_profile_factors },
         ]);
       }
-      if (url.searchParams.get('select') === missingLevelsColumns) return Response.json([]);
-    }
-    if (url.pathname === '/rest/v1/evaluation_profile_factors') {
-      const custom = handlers.factors?.(init, url);
+      if (select === missingLevelsColumns) return Response.json([]);
+      return unexpected(call);
+    },
+    '/rest/v1/evaluation_profile_factors': (call) => {
+      const custom = handlers.factors?.({ method: call.method }, call.url);
       if (custom) return custom;
-      if (init?.method === 'DELETE') return Response.json([{ id: factorId }]);
-    }
-    if (url.pathname === '/rest/v1/risk_evaluations') {
-      const custom = handlers.evaluations?.(init, url);
+      if (call.method === 'DELETE') return Response.json([{ id: factorId }]);
+      return unexpected(call);
+    },
+    '/rest/v1/risk_evaluations': ({ method, url }) => {
+      const custom = handlers.evaluations?.({ method }, url);
       if (custom) return custom;
       if (url.searchParams.get('select') === 'id,kind') {
         return Response.json([{ id: evaluationId, kind: 'other' }]);
       }
       return Response.json([evaluation]);
-    }
-    if (url.pathname === '/rest/v1/risk_factors') {
-      const custom = handlers.riskFactors?.(init, url);
-      if (custom) return custom;
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
+    },
+    '/rest/v1/risk_factors': (call) =>
+      handlers.riskFactors?.({ method: call.method }, call.url) ?? unexpected(call),
   });
 }
 
@@ -216,18 +195,7 @@ const sent = (path: string, method: string, index = 0) =>
   JSON.parse(String(calls(path, method)[index]![1]?.body)) as unknown;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const profilePath = `/evaluation-profiles/${profileId}`;
 const evaluationPath = `/clients/${clientId}/risk-evaluations/${evaluationId}`;
@@ -248,12 +216,7 @@ const nameConflict = () =>
     { status: 409 }
   );
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 const listQuery = (index = 0) =>
   new URL(String(calls('evaluation_profile_list', 'GET')[index]![0])).searchParams;
@@ -506,7 +469,7 @@ describe('GET /evaluation-profiles', () => {
     ];
     expect(sent).toHaveLength(2);
     for (const [, init] of sent) {
-      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
+      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     }
   });
 
@@ -562,7 +525,7 @@ describe('POST /evaluation-profiles', () => {
     expect(response.status).toBe(201);
     expect(evaluationProfileResponseSchema.parse(await response.json()).profile.id).toBe(profileId);
     expect(sent('evaluation_profiles', 'POST')).toEqual({
-      organization_id: membership.organization_id,
+      organization_id: testOrganizationId,
       name: 'Lucrător de birou',
       created_by: user.id,
     });

@@ -10,8 +10,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { disposeAdmins, mountAdmin } from '@/test/admin-app';
 
-import { wordDiff } from './word-diff';
-
 const changeId = 'd1d1d1d1-0000-4000-8000-000000000001';
 const versionId = 'a1a1a1a1-0000-4000-8000-000000000001';
 
@@ -230,23 +228,6 @@ beforeEach(() => {
 afterEach(() => {
   disposeAdmins();
   vi.unstubAllGlobals();
-});
-
-describe('the word diff', () => {
-  it('strikes the law’s old words and marks the new ones, as one replacement', () => {
-    expect(
-      wordDiff(
-        'să poarte casca de protecție omologată.',
-        'să poarte pe cap cască de protecție omologată pentru motocicliști.'
-      )
-    ).toEqual([
-      { kind: 'same', text: 'să poarte ' },
-      { kind: 'changed', deleted: 'casca', inserted: 'pe cap cască' },
-      { kind: 'same', text: ' de protecție omologată ' },
-      { kind: 'changed', deleted: '', inserted: 'pentru motocicliști' },
-      { kind: 'same', text: '.' },
-    ]);
-  });
 });
 
 describe('the legal changes', () => {

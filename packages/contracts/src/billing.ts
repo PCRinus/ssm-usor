@@ -404,12 +404,6 @@ export const importCredits = {
 } as const;
 
 /**
- * How far below zero a balance may go: the scanned pages one client import reads at most. The
- * database applies it too.
- */
-export const maxCreditShortfall = 150;
-
-/**
  * `unlimited`: nothing limits the credits; `near`: what is left, the gift included, is under a
  * fifth of the month's; `out`: nothing is left; `negative`: the balance is below zero, and the
  * shortfall comes off the next month.
@@ -504,6 +498,9 @@ export const billingOverviewSchema = z.object({
       step: z.int().nullable(),
       trialEndsAt: timestamp.nullable(),
       currentPeriodEnd: timestamp.nullable(),
+      // Stripe's billing cycle anchor: its day of the month is the renewal day, which a shorter
+      // month moves to its last day.
+      billingAnchorAt: timestamp.nullable(),
       accessUntil: timestamp.nullable(),
       access: accessLevelSchema,
       deletesAt: timestamp.nullable(),
@@ -554,18 +551,3 @@ export const billingOverviewSchema = z.object({
     .nullable(),
 });
 export type BillingOverview = z.infer<typeof billingOverviewSchema>;
-
-/** `reason` values on billing errors, so the SPA can word them itself. */
-export const billingErrorReasons = [
-  ...billingChoiceProblemReasonSchema.options,
-  'subscription_exists',
-  'already_subscribed',
-  'checkout_in_progress',
-  'no_subscription',
-  'enterprise_plan',
-  'company_details_missing',
-  'not_canceling',
-  'unchanged',
-  'pdf_pending',
-] as const;
-export type BillingErrorReason = (typeof billingErrorReasons)[number];

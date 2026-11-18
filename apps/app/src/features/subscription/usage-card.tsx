@@ -10,6 +10,7 @@ import { Link } from '@tanstack/react-router';
 import { Gift } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { roCount } from '@/features/employees/employee-format';
 
 import { employeesLabel, formatCount, shortPlanNames, stepLabel } from './billing-format';
 import { BillingCard, UsageBar } from './billing-ui';
@@ -117,7 +118,7 @@ export function UsageCard({
       ? ''
       : invitations === 1
         ? 'O invitație în așteptare ține un loc. '
-        : `${invitations} invitații în așteptare țin câte un loc. `;
+        : `${roCount(invitations, 'invitație', 'invitații')} în așteptare țin câte un loc. `;
   let memberHint: string;
   if (view === 'readOnly') {
     memberHint = 'Colegii văd tot, dar nu pot schimba nimic.';

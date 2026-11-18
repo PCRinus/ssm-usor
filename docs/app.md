@@ -281,8 +281,9 @@ from the router context. See the [API client guide](api-client.md) for generatio
 
 - The browser Supabase SDK signs in, persists the session, and refreshes tokens. URL token
   detection is disabled because this pass supports email/password only.
-- `src/features/auth/auth-store.ts` subscribes to SDK auth events, including changes from other tabs.
-  It avoids overwriting a newer event with an older initialization result.
+- `src/features/auth/auth-store.ts` builds on the session core in `@ssm-usor/spa-runtime/session`,
+  shared with the portal and the admin app. The core subscribes to SDK auth events, including
+  changes from other tabs, and avoids overwriting a newer event with an older initialization result.
 - Account changes and sign-out clear query and mutation caches. Clearing queries cancels
   in-flight requests when the eventual HTTP adapter consumes their abort signals.
 - Token refresh for the same account retains cached query data.

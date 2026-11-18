@@ -7,14 +7,14 @@ import {
   smsOverage,
 } from '@ssm-usor/contracts';
 
-import { isPaid, type SmsSubscription } from '../sms-usage/policy';
+import { type EntitlementRow, isPaid } from '../billing/entitlements';
 
 /**
  * Extras apply only on a subscription that has paid and is in good standing (ADR 029): a trial
  * has nothing to bill them to, and one past due or ended stops them until it pays again. Settings
  * the owner made stay while past due and come back with the payment.
  */
-export function extrasUnavailable(row: SmsSubscription | null): ExtrasUnavailable | null {
+export function extrasUnavailable(row: EntitlementRow | null): ExtrasUnavailable | null {
   if (!row) return 'no_subscription';
   if (row.plan === 'enterprise') return 'enterprise';
   if (row.status === 'canceled') return 'canceled';
@@ -23,10 +23,10 @@ export function extrasUnavailable(row: SmsSubscription | null): ExtrasUnavailabl
   return null;
 }
 
-export const smsExtraCents = (row: SmsSubscription | null) =>
+export const smsExtraCents = (row: EntitlementRow | null) =>
   extrasUnavailable(row) === null ? smsOverage.price.unitAmount : null;
 
-export const creditBlockCents = (row: SmsSubscription | null) =>
+export const creditBlockCents = (row: EntitlementRow | null) =>
   extrasUnavailable(row) === null ? creditsExtra.price.unitAmount : null;
 
 export type ExtraSpend = { limit: number; used: number; spentCents: number };

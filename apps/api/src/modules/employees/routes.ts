@@ -100,7 +100,7 @@ export const createEmployeeRoute = createRoute({
     404: { description: 'The client does not exist in the organization', content: errorContent },
     409: {
       description:
-        'The client is archived, or a current employee of the client has the CNP or number',
+        'The client is archived (reason `client_archived`), or a current employee of the client has the CNP or number',
       content: errorContent,
     },
     ...membershipErrors,
@@ -243,7 +243,8 @@ export const updateEmployeeRoute = createRoute({
     400: { description: 'Invalid path or request body', content: errorContent },
     404: { description: 'The employee does not exist under this client', content: errorContent },
     409: {
-      description: 'Another current employee of the client has this CNP or number',
+      description:
+        'The client is archived (reason `client_archived`), or another current employee of the client has this CNP or number',
       content: errorContent,
     },
     ...membershipErrors,

@@ -791,11 +791,10 @@ still theirs to decide is [below](#what-the-ssm-contact-must-decide).
 
 The annex asks only for names the set's context already has, `issueDate`, `branding`,
 `client.legalName`, `client.representativeName`, `client.representativeRole`,
-`provider.legalName` and `specialist`; `signingRegulationAnnexData(context)` in `src/signing.ts`
-picks them. It is the last of `documentTypeKeys` and applies only to a client with participants,
-someone not revoked or an invitation still open, as ADR 010's conditional documents do
-(`documentApplies` in the API): a client without the portal sees no new document, not even an
-empty section 13.
+`provider.legalName` and `specialist`, so it merges with that context as it is. It is the last
+of `documentTypeKeys` and applies only to a client with participants, someone not revoked or an
+invitation still open, as ADR 010's conditional documents do (`documentApplies` in the API): a
+client without the portal sees no new document, not even an empty section 13.
 
 The agreement's data is built by `buildSigningAgreementData(facts)` from the client's legal
 name, CUI, registered office and representative, the provider's name, the employee's name, job

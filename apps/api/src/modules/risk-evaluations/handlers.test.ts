@@ -6,33 +6,20 @@ import {
   riskFactorSuggestionsResponseSchema,
   sensitiveGroupsStateResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'specialist',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const managerId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
@@ -112,8 +99,6 @@ type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined
 
 const isGet = (init: RequestInit | undefined) => (init?.method ?? 'GET') === 'GET';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(
   handlers: {
     clients?: Handler;
@@ -124,50 +109,39 @@ function mockUpstream(
     rpc?: Handler;
   } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([membership]);
-    if (url.pathname.startsWith('/rest/v1/rpc/')) {
-      const custom = handlers.rpc?.(init, url);
-      if (custom) return custom;
-      if (url.pathname.endsWith('/save_risk_factor')) return Response.json(electrocutionId);
-      if (url.pathname.endsWith('/reorder_risk_factors')) return Response.json(true);
-      if (url.pathname.endsWith('/copy_risk_factors')) return Response.json(2);
-    }
-    if (url.pathname === '/rest/v1/clients') {
-      return (
-        handlers.clients?.(init, url) ??
-        Response.json([{ id: clientId, sensitive_groups_state: 'undecided' }])
-      );
-    }
-    if (url.pathname === '/rest/v1/job_positions') {
-      return (
-        handlers.positions?.(init, url) ??
-        Response.json([{ id: managerId, needs_protective_equipment: null }])
-      );
-    }
-    if (url.pathname === '/rest/v1/risk_evaluations') {
-      const custom = handlers.evaluations?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'POST') return Response.json({ id: evaluationId }, { status: 201 });
-      if (init?.method === 'PATCH') return Response.json([]);
-      if (init?.method === 'DELETE') return Response.json([{ id: evaluationId }]);
-      if (url.searchParams.get('select') === 'id,kind') {
+  const custom = (handler: Handler | undefined, { method, url }: UpstreamCall) =>
+    handler?.({ method }, url);
+  const rpc = (fallback: unknown) => (call: UpstreamCall) =>
+    custom(handlers.rpc, call) ?? Response.json(fallback);
+  mockSignedInUpstream({
+    '/rest/v1/rpc/save_risk_factor': rpc(electrocutionId),
+    '/rest/v1/rpc/reorder_risk_factors': rpc(true),
+    '/rest/v1/rpc/copy_risk_factors': rpc(2),
+    '/rest/v1/clients': (call) =>
+      custom(handlers.clients, call) ??
+      Response.json([{ id: clientId, sensitive_groups_state: 'undecided' }]),
+    '/rest/v1/job_positions': (call) =>
+      custom(handlers.positions, call) ??
+      Response.json([{ id: managerId, needs_protective_equipment: null }]),
+    '/rest/v1/risk_evaluations': (call) => {
+      const answer = custom(handlers.evaluations, call);
+      if (answer) return answer;
+      if (call.method === 'POST') return Response.json({ id: evaluationId }, { status: 201 });
+      if (call.method === 'PATCH') return Response.json([]);
+      if (call.method === 'DELETE') return Response.json([{ id: evaluationId }]);
+      if (call.url.searchParams.get('select') === 'id,kind') {
         return Response.json([{ id: evaluationId, kind: 'job_position' }]);
       }
       return Response.json([managerEvaluation]);
-    }
-    if (url.pathname === '/rest/v1/risk_factors') {
-      const custom = handlers.factors?.(init, url);
-      if (custom) return custom;
-      if (init?.method === 'DELETE') return Response.json([{ id: electrocutionId }]);
+    },
+    '/rest/v1/risk_factors': (call) => {
+      const answer = custom(handlers.factors, call);
+      if (answer) return answer;
+      if (call.method === 'DELETE') return Response.json([{ id: electrocutionId }]);
       return Response.json([]);
-    }
-    if (url.pathname === '/rest/v1/evaluation_profile_factors') {
-      return handlers.profileFactors?.(init, url) ?? Response.json([]);
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
+    },
+    '/rest/v1/evaluation_profile_factors': (call) =>
+      custom(handlers.profileFactors, call) ?? Response.json([]),
   });
 }
 
@@ -181,18 +155,7 @@ const sent = (path: string, method: string, index = 0) =>
   JSON.parse(String(calls(path, method)[index]![1]?.body)) as unknown;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const base = `/clients/${clientId}/risk-evaluations`;
 const evaluationPath = `${base}/${evaluationId}`;
@@ -207,12 +170,7 @@ const factorBody = {
   deadline: 'Anual',
 };
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 describe('GET /clients/{clientId}/risk-evaluations', () => {
   it('lists positions by name, then the sensitive groups, then the others, without archived positions', async () => {
@@ -373,7 +331,7 @@ describe('POST /clients/{clientId}/risk-evaluations', () => {
       evaluationId
     );
     expect(sent('risk_evaluations', 'POST')).toEqual({
-      organization_id: membership.organization_id,
+      organization_id: testOrganizationId,
       client_id: clientId,
       kind: 'job_position',
       job_position_id: managerId,

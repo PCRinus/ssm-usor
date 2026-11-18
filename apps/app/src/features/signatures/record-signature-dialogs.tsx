@@ -44,14 +44,17 @@ export function PaperSignatureDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const mark = useMarkPaperSignature({ request: apiRequest });
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog open={open} onOpenChange={(next) => !next && !mark.isPending && onClose()}>
       {open && slots.length > 0 && (
         <PaperSignatureForm
           clientId={clientId}
           recordId={recordId}
           slots={slots}
           people={people}
+          mark={mark}
           onClose={onClose}
         />
       )}
@@ -64,16 +67,17 @@ function PaperSignatureForm({
   recordId,
   slots,
   people,
+  mark,
   onClose,
 }: {
   clientId: string;
   recordId: string;
   slots: SignerSlot[];
   people: SlotPeople;
+  mark: ReturnType<typeof useMarkPaperSignature>;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const mark = useMarkPaperSignature({ request: apiRequest });
+  const { queryClient } = useRouteContext({ from: '__root__' });
   const first = slots[0]!;
   const [slot, setSlot] = useState<SignerSlot>(first);
   const [name, setName] = useState(people[first]?.name ?? '');
@@ -204,9 +208,18 @@ export function VoidSignaturesDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const voiding = useVoidRecordSignatures({ request: apiRequest });
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      {open && <VoidSignaturesForm clientId={clientId} recordId={recordId} onClose={onClose} />}
+    <Dialog open={open} onOpenChange={(next) => !next && !voiding.isPending && onClose()}>
+      {open && (
+        <VoidSignaturesForm
+          clientId={clientId}
+          recordId={recordId}
+          voiding={voiding}
+          onClose={onClose}
+        />
+      )}
     </Dialog>
   );
 }
@@ -214,14 +227,15 @@ export function VoidSignaturesDialog({
 function VoidSignaturesForm({
   clientId,
   recordId,
+  voiding,
   onClose,
 }: {
   clientId: string;
   recordId: string;
+  voiding: ReturnType<typeof useVoidRecordSignatures>;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const voiding = useVoidRecordSignatures({ request: apiRequest });
+  const { queryClient } = useRouteContext({ from: '__root__' });
   const [reason, setReason] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addInterval,
   choiceFromItems,
   minimumStepFor,
   parseLookupKey,
@@ -213,5 +214,23 @@ describe('usage limits', () => {
 
   it('sets no limit without a subscription', () => {
     expect(usageLimits(null, now)).toEqual({ employees: null, members: null });
+  });
+});
+
+describe('the next renewal', () => {
+  const next = (date: string, interval: 'month' | 'year') =>
+    addInterval(new Date(date), interval).toISOString();
+
+  it("falls on the purchase day, or the month's last day where it is shorter, as Stripe bills", () => {
+    expect(next('2027-01-15T09:00:00.000Z', 'month')).toBe('2027-02-15T09:00:00.000Z');
+    expect(next('2027-01-31T09:00:00.000Z', 'month')).toBe('2027-02-28T09:00:00.000Z');
+    expect(next('2027-01-30T09:00:00.000Z', 'month')).toBe('2027-02-28T09:00:00.000Z');
+    expect(next('2027-03-31T09:00:00.000Z', 'month')).toBe('2027-04-30T09:00:00.000Z');
+    expect(next('2027-12-31T09:00:00.000Z', 'month')).toBe('2028-01-31T09:00:00.000Z');
+  });
+
+  it('falls a year on, on 28 February for a plan bought on 29 February', () => {
+    expect(next('2027-06-10T09:00:00.000Z', 'year')).toBe('2028-06-10T09:00:00.000Z');
+    expect(next('2028-02-29T09:00:00.000Z', 'year')).toBe('2029-02-28T09:00:00.000Z');
   });
 });

@@ -238,7 +238,8 @@ export const createWorkplaceRoute = createRoute({
     400: { description: 'Invalid path or request body', content: errorContent },
     404: noSuchClient,
     409: {
-      description: 'The client is archived, or it already has a registered office',
+      description:
+        'The client is archived (reason `client_archived`), or it already has a registered office',
       content: errorContent,
     },
     ...membershipErrors,
@@ -257,7 +258,11 @@ export const updateWorkplaceRoute = createRoute({
     200: { description: 'The workplace after the change', content: workplaceContent },
     400: { description: 'Invalid path or request body', content: errorContent },
     404: { description: 'The workplace does not exist under this client', content: errorContent },
-    409: { description: 'The client already has a registered office', content: errorContent },
+    409: {
+      description:
+        'The client is archived (reason `client_archived`), or it already has a registered office',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -324,7 +329,7 @@ export const createResponsiblePersonRoute = createRoute({
     404: noSuchClient,
     409: {
       description:
-        "The client is archived, the employee is already a responsible person, or a workers' representative is the client's legal representative",
+        "The client is archived (reason `client_archived`), the employee is already a responsible person, or a workers' representative is the client's legal representative",
       content: errorContent,
     },
     ...membershipErrors,
@@ -354,7 +359,7 @@ export const updateResponsiblePersonRoute = createRoute({
     },
     409: {
       description:
-        "The employee is already a responsible person, or a workers' representative is the client's legal representative",
+        "The client is archived (reason `client_archived`), the employee is already a responsible person, or a workers' representative is the client's legal representative",
       content: errorContent,
     },
     ...membershipErrors,

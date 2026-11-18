@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-08-31
+- Amended 2026-11-19: the SPAs also share `packages/spa-runtime`, the session store, auth context, captcha hook, query defaults and route-guard refresh each of them used to copy.
 
 ## Context
 
@@ -53,4 +54,4 @@ Use pnpm workspaces with Turborepo. Applications are independently deployable an
 
 ## Note, 2026-10-17: a third web application
 
-[ADR 022](adr-022-participants-and-the-portal.md) adds `apps/portal`, the participants' portal at `portal.ssmusor.ro`: a second single-page application built and served exactly as the dashboard is decided above (React, Vite, static assets with SPA fallback on a Worker of its own, everything authoritative in the API). It is a separate application rather than routes inside `apps/app`, so that it shares none of the dashboard's shell and keeps its own origin and session. The two SPAs share packages only: `packages/ui`, `packages/design-tokens`, and `packages/api-http`, the fetch adapter their generated API clients call.
+[ADR 022](adr-022-participants-and-the-portal.md) adds `apps/portal`, the participants' portal at `portal.ssmusor.ro`: a second single-page application built and served exactly as the dashboard is decided above (React, Vite, static assets with SPA fallback on a Worker of its own, everything authoritative in the API). It is a separate application rather than routes inside `apps/app`, so that it shares none of the dashboard's shell and keeps its own origin and session. The two SPAs share packages only: `packages/ui`, `packages/design-tokens`, `packages/api-http`, the fetch adapter their generated API clients call, and `packages/spa-runtime`, their session store and auth plumbing.

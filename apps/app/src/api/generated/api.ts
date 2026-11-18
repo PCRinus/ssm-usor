@@ -13769,6 +13769,8 @@ export type BillingOverviewSubscription = {
   /** @nullable */
   currentPeriodEnd: string | null;
   /** @nullable */
+  billingAnchorAt: string | null;
+  /** @nullable */
   accessUntil: string | null;
   access: BillingOverviewSubscriptionAccess;
   /** @nullable */

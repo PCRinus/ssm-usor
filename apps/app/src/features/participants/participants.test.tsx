@@ -414,7 +414,7 @@ describe("the employee's portal access", () => {
     mountEmployee();
     const card = await portalCard();
     await user.click(await within(card).findByTestId('participant-invitation-revoke'));
-    await user.click(await screen.findByTestId('participant-invitation-revoke-dialog-confirm'));
+    await user.click(await screen.findByTestId('participant-invitation-revoke-confirm'));
     expect(await within(card).findByTestId('participant-none')).toBeTruthy();
     expect(requests(`/participant-invitations/${invitationId}/revoke`, 'POST')).toHaveLength(1);
   });
@@ -437,7 +437,7 @@ describe("the employee's portal access", () => {
     await user.click(within(card).getByTestId('participant-revoke'));
     const dialog = await screen.findByTestId('participant-revoke-dialog');
     expect(dialog.textContent).toContain('Instruirile, fișele și celelalte date rămân');
-    await user.click(within(dialog).getByTestId('participant-revoke-dialog-confirm'));
+    await user.click(within(dialog).getByTestId('participant-revoke-confirm'));
     expect(await within(card).findByTestId('participant-none')).toBeTruthy();
     expect(within(card).getByTestId('participant-invite')).toBeTruthy();
   });

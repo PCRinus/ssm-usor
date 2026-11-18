@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Input } from '@ssm-usor/ui/components/input';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -10,7 +11,6 @@ import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { forgotPasswordErrorMessage } from '@/features/auth/auth-errors';
-import { useCaptcha } from '@/features/auth/captcha';
 import { forgotPasswordSchema, type ForgotPasswordValues } from '@/features/auth/password-schema';
 
 export const Route = createFileRoute('/parola-uitata')({

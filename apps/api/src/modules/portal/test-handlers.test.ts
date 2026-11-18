@@ -7,16 +7,21 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  databaseError,
+  routeUpstream,
+  signedInUserRoutes,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+  type UpstreamCall,
+  type UpstreamRoutes,
+} from '../../test/upstream';
 
-const env = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
-} as ApiEnv['Bindings'];
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ion@example.ro' };
 const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const clientId = 'c1c1c1c1-0000-4000-8000-000000000001';
 const employeeId = 'e1e1e1e1-0000-4000-8000-000000000001';
@@ -89,7 +94,7 @@ const material = {
   issued_at: '2026-01-19T10:00:00+00:00',
 };
 
-type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
+type Handler = (call: UpstreamCall) => Response | undefined;
 type Upstream =
   | 'employees'
   | 'results'
@@ -104,9 +109,17 @@ type Upstream =
   | 'requests'
   | 'testSheetSignatures';
 
-const fetchMock = vi.fn<typeof fetch>();
+const signedStorage = (path: string): UpstreamRoutes => ({
+  [`/storage/v1/object/sign/documents/${path}`]: ({ method, url }) =>
+    method === 'POST'
+      ? Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` })
+      : new Response(new TextEncoder().encode('%PDF-1.7 material')),
+});
 
-function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
+function mockUpstream(
+  handlers: Partial<Record<Upstream, Handler>> = {},
+  routes: UpstreamRoutes = {}
+) {
   const defaults: Record<Upstream, Handler> = {
     employees: () =>
       Response.json({
@@ -121,11 +134,11 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
           su_due_on: null,
         },
       }),
-    results: (_, url) =>
+    results: ({ url }) =>
       url.searchParams.has('attempt_id')
         ? Response.json({ id: '7e7e7e7e-0000-4000-8000-000000000001' })
         : Response.json([]),
-    attempts: (_, url) =>
+    attempts: ({ url }) =>
       url.searchParams.has('id')
         ? Response.json([{ id: attemptId }])
         : url.searchParams.get('finished_at') === 'is.null'
@@ -159,7 +172,6 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   };
   const paths: Record<string, Upstream> = {
     '/rest/v1/employees': 'employees',
-    '/rest/v1/test_results': 'results',
     '/rest/v1/test_attempts': 'attempts',
     '/rest/v1/rpc/test_study_card': 'studyCard',
     '/rest/v1/rpc/portal_material': 'material',
@@ -171,83 +183,57 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/signature_requests': 'requests',
     '/rest/v1/test_sheet_signatures': 'testSheetSignatures',
   };
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/auth/v1/user') return Response.json({ ...user, is_anonymous: false });
-    if (url.pathname === '/rest/v1/rpc/accept_participant_invitations') return Response.json(0);
-    if (url.pathname === '/rest/v1/rpc/current_participations') {
-      return Response.json([
+  const answer = (upstream: Upstream) => (call: UpstreamCall) =>
+    handlers[upstream]?.(call) ?? defaults[upstream](call)!;
+  routeUpstream(
+    routes,
+    signedStorage(material.pdf_path),
+    {
+      '/rest/v1/rpc/accept_participant_invitations': () => 0,
+      '/rest/v1/rpc/current_participations': () => [
         participation('employee', participantId, employeeId),
         participation('client_administrator', administratorId, null),
-      ]);
-    }
-    if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
-      if (method === 'POST') {
-        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
-      }
-      return new Response(new TextEncoder().encode('%PDF-1.7 material'));
-    }
-    if (url.pathname === '/rest/v1/test_results' && url.searchParams.get('id')) {
-      return Response.json({
-        id: '7e7e7e7e-0000-4000-8000-000000000001',
-        employee_id: employeeId,
-        client_id: clientId,
-        organization_id: organizationId,
-        domain: 'ssm',
-        test: 'hiring',
-        taken_on: '2026-10-20',
-        material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
-        examiner_name: null,
-        examiner_job_title: null,
-        created_at: '2026-10-20T09:12:00+00:00',
-      });
-    }
-    const upstream = paths[url.pathname];
-    if (!upstream) throw new Error(`Unexpected upstream request: ${method} ${url}`);
-    return handlers[upstream]?.(init, url) ?? defaults[upstream](init, url)!;
-  });
+      ],
+      '/rest/v1/test_results': (call) =>
+        call.url.searchParams.get('id')
+          ? Response.json({
+              id: '7e7e7e7e-0000-4000-8000-000000000001',
+              employee_id: employeeId,
+              client_id: clientId,
+              organization_id: organizationId,
+              domain: 'ssm',
+              test: 'hiring',
+              taken_on: '2026-10-20',
+              material: 'Test de verificare a cunoștințelor la angajare (TASSM)',
+              examiner_name: null,
+              examiner_job_title: null,
+              created_at: '2026-10-20T09:12:00+00:00',
+            })
+          : answer('results')(call),
+    },
+    Object.fromEntries(Object.entries(paths).map(([path, upstream]) => [path, answer(upstream)])),
+    signedInUserRoutes
+  );
 }
 
-const calls = (pathname: string) =>
-  fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
-
-const sent = (pathname: string) =>
-  JSON.parse(String(calls(pathname)[0]![1]?.body)) as Record<string, unknown>;
+const sent = (pathname: string) => callsTo(pathname)[0]!.body as Record<string, unknown>;
 
 const request = (
   path: string,
   method = 'GET',
   body?: unknown,
   headers: Record<string, string> = {}
-) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer user-token',
-        ...headers,
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    env
-  );
+) => apiRequest(path, { method, body, headers, client: 'portal' }, env);
 
 const own = (path: string) => `/portal/participants/${participantId}${path}`;
 
-const raised = (code: string, message: string) =>
-  Response.json({ code, message, details: null, hint: null }, { status: 400 });
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -267,8 +253,8 @@ describe('GET /portal/participants/{participantId}/tests', () => {
       chosen: [0],
     });
     expect(body.su.inProgress).toBeNull();
-    const [finishedQuery, openQuery] = calls('/rest/v1/test_attempts').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [finishedQuery, openQuery] = callsTo('/rest/v1/test_attempts').map(
+      ({ url }) => url.searchParams
     );
     expect(finishedQuery!.get('select')).not.toContain('questions');
     expect(finishedQuery!.get('employee_id')).toBe(`eq.${employeeId}`);
@@ -300,7 +286,7 @@ describe('GET /portal/participants/{participantId}/tests', () => {
     mockUpstream();
     const response = await request(`/portal/participants/${administratorId}/tests`);
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/test_attempts')).toEqual([]);
+    expect(callsTo('/rest/v1/test_attempts')).toEqual([]);
   });
 });
 
@@ -359,14 +345,14 @@ describe('POST /portal/participants/{participantId}/tests/{domain}/{test}/attemp
   });
 
   it('answers 409 when the test does not await the employee', async () => {
-    mockUpstream({ start: () => raised('TST05', 'test_not_awaiting') });
+    mockUpstream({ start: () => databaseError('TST05', 'test_not_awaiting') });
     const response = await request(own('/tests/su/annual/attempts'), 'POST');
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('test_not_awaiting');
   });
 
   it("answers 404 for a participation the function does not find the caller's", async () => {
-    mockUpstream({ start: () => raised('P0002', 'participant_not_found') });
+    mockUpstream({ start: () => databaseError('P0002', 'participant_not_found') });
     const response = await request(own('/tests/ssm/hiring/attempts'), 'POST');
     expect(response.status).toBe(404);
   });
@@ -387,14 +373,14 @@ describe('PUT /portal/participants/{participantId}/test-attempts/{attemptId}/ans
   });
 
   it('answers 400 for an option the question does not have', async () => {
-    mockUpstream({ answer: () => raised('TST04', 'option_out_of_range') });
+    mockUpstream({ answer: () => databaseError('TST04', 'option_out_of_range') });
     const response = await request(path, 'PUT', { chosen: [3] });
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('option_out_of_range');
   });
 
   it('answers 409 once the attempt is finished', async () => {
-    mockUpstream({ answer: () => raised('TST03', 'attempt_finished') });
+    mockUpstream({ answer: () => databaseError('TST03', 'attempt_finished') });
     expect((await request(path, 'PUT', { chosen: [] })).status).toBe(409);
   });
 
@@ -404,7 +390,7 @@ describe('PUT /portal/participants/{participantId}/test-attempts/{attemptId}/ans
       (await request(own(`/test-attempts/${attemptId}/answers/10`), 'PUT', { chosen: [] })).status
     ).toBe(400);
     expect((await request(path, 'PUT', { chosen: [1, 1] })).status).toBe(400);
-    expect(calls('/rest/v1/rpc/answer_test_attempt')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/answer_test_attempt')).toEqual([]);
   });
 
   it("answers 404 for an attempt of the account's other participation", async () => {
@@ -446,7 +432,7 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
       p_attempt_id: attemptId,
       p_client_address: '203.0.113.7',
     });
-    expect(calls('/rest/v1/signed_sheets')).toEqual([]);
+    expect(callsTo('/rest/v1/signed_sheets')).toEqual([]);
   });
 
   it("puts a pass's result on the employee's stored sheet", async () => {
@@ -454,9 +440,9 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
     const response = await request(path, 'POST');
     const outcome = testAttemptOutcomeSchema.parse(await response.json());
     expect(outcome).toMatchObject({ score: 9, passed: true, mistakes: [] });
-    const result = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    const result = callsTo('/rest/v1/test_results')[0]!.url.searchParams;
     expect(result.get('attempt_id')).toBe(`eq.${attemptId}`);
-    const sheets = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
+    const sheets = callsTo('/rest/v1/signed_sheets')[0]!.url.searchParams;
     expect(sheets.get('employee_id')).toBe(`eq.${employeeId}`);
   });
 
@@ -468,21 +454,21 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
     const response = await request(path, 'POST');
     expect(response.status).toBe(200);
     expect(testAttemptOutcomeSchema.parse(await response.json())).toMatchObject({ passed: true });
-    expect(calls('/rest/v1/signed_sheets')).toEqual([]);
+    expect(callsTo('/rest/v1/signed_sheets')).toEqual([]);
   });
 
   it("finishes nothing for an attempt of the account's other participation", async () => {
     mockUpstream({ attempts: () => Response.json([]) });
     const response = await request(path, 'POST');
     expect(response.status).toBe(404);
-    const drawn = new URL(String(calls('/rest/v1/test_attempts')[0]![0])).searchParams;
+    const drawn = callsTo('/rest/v1/test_attempts')[0]!.url.searchParams;
     expect(drawn.get('id')).toBe(`eq.${attemptId}`);
     expect(drawn.get('participant_id')).toBe(`eq.${participantId}`);
-    expect(calls('/rest/v1/rpc/finish_test_attempt')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/finish_test_attempt')).toEqual([]);
   });
 
   it('answers 409 to an attempt finished already', async () => {
-    mockUpstream({ finish: () => raised('TST03', 'attempt_finished') });
+    mockUpstream({ finish: () => databaseError('TST03', 'attempt_finished') });
     const response = await request(path, 'POST');
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('attempt_finished');
@@ -495,26 +481,24 @@ describe('POST /portal/participants/{participantId}/test-attempts/{attemptId}/fi
       'POST'
     );
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/test_attempts')).toEqual([]);
-    expect(calls('/rest/v1/rpc/finish_test_attempt')).toEqual([]);
+    expect(callsTo('/rest/v1/test_attempts')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/finish_test_attempt')).toEqual([]);
   });
 
   it("looks for the pass's test sheet with the secret key, a participant writing none", async () => {
     mockUpstream({ finish: () => Response.json(finished([2])) });
     await request(path, 'POST');
-    const [sheet] = calls('/rest/v1/test_sheets');
-    expect(new URL(String(sheet![0])).searchParams.get('test_result_id')).toBe(
+    const [sheet] = callsTo('/rest/v1/test_sheets');
+    expect(sheet!.url.searchParams.get('test_result_id')).toBe(
       'eq.7e7e7e7e-0000-4000-8000-000000000001'
     );
-    expect(new Headers(sheet![1]?.headers).get('Authorization')).toBe(
-      'Bearer sb_secret_test_key_value'
-    );
+    expect(sheet!.headers.get('Authorization')).toBe('Bearer sb_secret_test_key_value');
   });
 
   it('draws no test sheet for a failed attempt', async () => {
     mockUpstream();
     await request(path, 'POST');
-    expect(calls('/rest/v1/test_sheets')).toEqual([]);
+    expect(callsTo('/rest/v1/test_sheets')).toEqual([]);
   });
 });
 
@@ -525,19 +509,17 @@ describe('GET /portal/participants/{participantId}/tests/results/{resultId}/shee
     mockUpstream();
     const response = await request(own(`/tests/results/${resultId}/sheet`));
     expect(response.status).toBe(404);
-    const [read] = calls('/rest/v1/test_results');
-    const query = new URL(String(read![0])).searchParams;
+    const [read] = callsTo('/rest/v1/test_results');
+    const query = read!.url.searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
-    expect(new Headers(read![1]?.headers).get('Authorization')).toBe(
-      `Bearer ${env.SUPABASE_SECRET_KEY}`
-    );
+    expect(read!.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
   });
 
   it("reads any employee's result of the client for the client administrator", async () => {
     mockUpstream();
     await request(`/portal/participants/${administratorId}/tests/results/${resultId}/sheet`);
-    const query = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/test_results')[0]!.url.searchParams;
     expect(query.has('employee_id')).toBe(false);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
   });
@@ -548,23 +530,22 @@ describe('GET /portal/participants/{participantId}/tests/results/{resultId}/shee
   const storagePath = `test-sheets/${clientId}/${employeeId}/${resultId}/v2-1a2b3c4d.pdf`;
 
   function withPortalResult(testSheets: Handler) {
-    mockUpstream({ testSheets });
-    const upstream = fetchMock.getMockImplementation()!;
-    fetchMock.mockImplementation(async (input, init) => {
-      const url = new URL(input instanceof Request ? input.url : String(input));
-      if (url.pathname === '/rest/v1/test_results') {
-        return Response.json({
-          id: resultId,
-          domain: 'ssm',
-          test: 'hiring',
-          taken_on: '2026-10-20',
-          source: 'portal',
-          employee_id: employeeId,
-          employees: { last_name: 'Popescu', first_name: 'Ion' },
-        });
+    mockUpstream(
+      { testSheets },
+      {
+        ...signedStorage(storagePath),
+        '/rest/v1/test_results': () =>
+          Response.json({
+            id: resultId,
+            domain: 'ssm',
+            test: 'hiring',
+            taken_on: '2026-10-20',
+            source: 'portal',
+            employee_id: employeeId,
+            employees: { last_name: 'Popescu', first_name: 'Ion' },
+          }),
       }
-      return upstream(input, init);
-    });
+    );
   }
 
   it('signs a ten-minute link to the stored sheet with the secret key', async () => {
@@ -578,12 +559,10 @@ describe('GET /portal/participants/{participantId}/tests/results/{resultId}/shee
       fileName: 'Fisa-de-test-TASSM-Popescu-Ion-2026-10-20.pdf',
       expiresInSeconds: 600,
     });
-    const [signing] = calls(`/storage/v1/object/sign/documents/${storagePath}`);
-    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
-      'Bearer sb_secret_test_key_value'
-    );
-    expect(JSON.parse(String(signing![1]?.body))).toEqual({ expiresIn: 600 });
-    const query = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    const [signing] = callsTo(`/storage/v1/object/sign/documents/${storagePath}`);
+    expect(signing!.headers.get('Authorization')).toBe('Bearer sb_secret_test_key_value');
+    expect(signing!.body).toEqual({ expiresIn: 600 });
+    const query = callsTo('/rest/v1/test_results')[0]!.url.searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
   });
 
@@ -596,7 +575,7 @@ describe('GET /portal/participants/{participantId}/tests/results/{resultId}/shee
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'test_sheet_not_available'
     );
-    expect(calls('/rest/v1/test_sheets').filter(([, init]) => init?.method === 'POST')).toEqual([]);
+    expect(callsTo('/rest/v1/test_sheets', 'POST')).toEqual([]);
   });
 });
 
@@ -611,10 +590,8 @@ describe('GET /portal/participants/{participantId}/materials/{domain}', () => {
       "UTF-8''Material%20de%20instruire%20introductiv-general%C4%83.pdf"
     );
     expect(await response.text()).toBe('%PDF-1.7 material');
-    const [signing] = calls(`/storage/v1/object/sign/documents/${material.pdf_path}`);
-    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
-      'Bearer sb_secret_test_key_value'
-    );
+    const [signing] = callsTo(`/storage/v1/object/sign/documents/${material.pdf_path}`);
+    expect(signing!.headers.get('Authorization')).toBe('Bearer sb_secret_test_key_value');
   });
 
   it('answers 404 with a reason while none is issued', async () => {
@@ -639,10 +616,8 @@ describe('GET /portal/participants/{participantId}/materials/{domain}/link', () 
       fileName: 'Material de instruire introductiv-generală.pdf',
       expiresInSeconds: 600,
     });
-    const [signing] = calls(`/storage/v1/object/sign/documents/${material.pdf_path}`);
-    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
-      'Bearer sb_secret_test_key_value'
-    );
+    const [signing] = callsTo(`/storage/v1/object/sign/documents/${material.pdf_path}`);
+    expect(signing!.headers.get('Authorization')).toBe('Bearer sb_secret_test_key_value');
   });
 
   it('answers 404 with a reason while none is issued', async () => {

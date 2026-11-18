@@ -1958,17 +1958,24 @@ describe('client archiving', () => {
     });
 
     it('keeps the dialog open with the reason when the API refuses', async () => {
+      let refuse: (response: Response) => void = () => undefined;
       mockApi({
         me: meAs('owner'),
         get: archivedResponse(true),
         delete: () =>
-          Response.json({ error: 'forbidden', message: 'Only an admin' }, { status: 403 }),
+          new Promise<Response>((resolve) => {
+            refuse = resolve;
+          }),
       });
       mountApp(authFixture(makeSession()).client, `/clienti/${sampleClient.id}/angajati`);
       const user = userEvent.setup();
       await user.click(await screen.findByTestId('client-delete'));
       await user.type(await screen.findByTestId('client-delete-name'), 'OMV PETROM SA');
       await user.click(screen.getByTestId('client-delete-confirm'));
+      await waitFor(() => expect(requests(clientPath, 'DELETE')).toHaveLength(1));
+      await user.keyboard('{Escape}');
+      expect(screen.getByTestId('client-delete-dialog')).toBeTruthy();
+      refuse(Response.json({ error: 'forbidden', message: 'Only an admin' }, { status: 403 }));
       expect((await screen.findByTestId('client-delete-error')).textContent).toContain(
         'administrator al platformei'
       );

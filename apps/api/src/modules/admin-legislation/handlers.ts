@@ -1,7 +1,6 @@
 import {
   type AdminLegalAct,
   type AdminLegalActList,
-  adminLegalAmendedUnitSchema,
   adminLegalChangeDetailSchema,
   adminLegalChangeLinkRequestSchema,
   type AdminLegalChangeList,
@@ -17,11 +16,17 @@ import {
   type LegalActStatus,
   type LegalChangeOutcome,
   type LegalChangeResolution,
-  legalCheckRunErrorSchema,
   type LegalCheckRunStatus,
   pageRange,
   type TemplateVersionKind,
 } from '@ssm-usor/contracts';
+import {
+  storedAmendedUnitsSchema,
+  storedAmendingActsSchema,
+  storedHunksSchema,
+  storedReviewSchema,
+  storedRunErrorsSchema,
+} from '@ssm-usor/legislation-check/stored';
 import type { Context } from 'hono';
 import { z } from 'zod';
 
@@ -44,27 +49,6 @@ const versionColumns =
   'id, version, kind, note, created_at, template:document_templates!inner(type_key, title)';
 
 const collator = new Intl.Collator('ro', { numeric: true });
-
-// The legislation Worker writes these columns; a field it did not write reads as absent.
-const storedAmendingActsSchema = z
-  .array(
-    z
-      .object({
-        name: z.string(),
-        date: z.iso.date().nullable().catch(null),
-        portalId: z.int().positive().nullable().catch(null),
-      })
-      .transform((act) => ({ name: act.name, adoptedOn: act.date, portalId: act.portalId }))
-  )
-  .catch([]);
-const storedAmendedUnitsSchema = z
-  .array(adminLegalAmendedUnitSchema.extend({ subject: z.string().nullable().catch(null) }))
-  .catch([]);
-const storedReviewSchema = z.array(z.string()).catch([]);
-const storedHunksSchema = adminLegalChangePassageSchema.shape.hunks.catch([]);
-const storedRunErrorsSchema = z.array(
-  legalCheckRunErrorSchema.extend({ kind: legalCheckRunErrorSchema.shape.kind.catch('other') })
-);
 
 type ChangeSummaryRow = Pick<
   ChangeRow,
@@ -92,7 +76,9 @@ const summaryOf = (row: ChangeSummaryRow) => ({
   outcome: row.outcome as LegalChangeOutcome | null,
   assessedAt: row.assessed_at,
   amendingAct: row.amending_act,
-  amendingActs: storedAmendingActsSchema.parse(row.amending_acts ?? []),
+  amendingActs: storedAmendingActsSchema
+    .parse(row.amending_acts)
+    .map((act) => ({ name: act.name, adoptedOn: act.date, portalId: act.portalId })),
   resolution: row.resolution as LegalChangeResolution,
   resolvedAt: row.resolved_at,
   resolvedByNote: row.resolved_by_note,
@@ -251,8 +237,8 @@ async function detailOf(db: AdminClient, id: string) {
   ]);
   return adminLegalChangeDetailSchema.parse({
     ...summaryOf(change.data),
-    amendedUnits: storedAmendedUnitsSchema.parse(change.data.amended_units ?? []),
-    review: storedReviewSchema.parse(change.data.review ?? []),
+    amendedUnits: storedAmendedUnitsSchema.parse(change.data.amended_units),
+    review: storedReviewSchema.parse(change.data.review),
     passages: [...passages.data].sort(passageOrder).map(toPassage),
     resolvingVersions: resolving.data.map(toVersion),
     candidateVersions,

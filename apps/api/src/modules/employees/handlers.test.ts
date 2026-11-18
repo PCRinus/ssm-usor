@@ -956,7 +956,7 @@ describe('POST /clients/{clientId}/employees', () => {
     });
     const response = await postEmployee(validBody);
     expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json()).message).toContain('archived');
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
     expect(calls('/rest/v1/employees')).toHaveLength(0);
   });
 
@@ -1182,6 +1182,21 @@ describe('PUT /clients/{clientId}/employees/{employeeId}', () => {
     JSON.parse(
       String(calls('/rest/v1/employees').find(([, init]) => init?.method === 'PATCH')![1]?.body)
     ) as Record<string, unknown>;
+
+  it('passes on the refusal of the database for an archived client', async () => {
+    mockUpstream({
+      employees: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: 'CLA01', message: 'An archived client is not changed.' },
+              { status: 400 }
+            )
+          : Response.json(employeeRow),
+    });
+    const response = await put(body);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+  });
 
   it('replaces the fields with the same rules as adding, and leaves the position alone', async () => {
     mockUpstream({ employees: () => Response.json(employeeRow) });

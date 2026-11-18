@@ -179,7 +179,7 @@
       "file": "4.0_fire_cover_tests.docx",
       "change": {
         "kind": "correction",
-        "note": "Testul la angajare urmează „instructajul introductiv general și instructajul specific locului de muncă”."
+        "note": "Al doilea test se numește „Test anual de verificare a cunoștințelor”: OMAI 712/2005 art. 30 cere o verificare anuală pe bază de test, iar „periodic” numește doar instructajul periodic."
       }
     },
     {
@@ -202,8 +202,8 @@
       "title": "Test anual",
       "file": "4.2_fire_test_annual.docx",
       "change": {
-        "kind": "layout",
-        "note": "Întrebările vin din banca de întrebări a organizației: testul le tipărește pe toate cele active, foaia de răspunsuri are un rând pentru fiecare, iar răspunsurile corecte se tipăresc din aceleași date. Rezultatul arată pragul de 70% de răspunsuri corecte."
+        "kind": "correction",
+        "note": "Titlul și antetul numesc testul „Test anual de verificare a cunoștințelor”, nu „periodic”: OMAI 712/2005 art. 30 cere ca „anual” să se facă o verificare de fond pe bază de teste tip chestionar, iar „periodic” numește doar instructajul periodic."
       }
     },
     {

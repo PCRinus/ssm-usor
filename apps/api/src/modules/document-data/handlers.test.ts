@@ -690,7 +690,9 @@ describe('/clients/{clientId}/workplaces', () => {
 
   it('refuses an archived client and a second registered office with 409', async () => {
     mockUpstream({ clients: () => Response.json({ id: clientId, archived_at: '2026-09-01' }) });
-    expect((await request(path, 'POST', { name: 'Punct de lucru' })).status).toBe(409);
+    const archived = await request(path, 'POST', { name: 'Punct de lucru' });
+    expect(archived.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
     expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
 
     mockUpstream({ workplaces: () => databaseError('23505', 409) });
@@ -699,6 +701,16 @@ describe('/clients/{clientId}/workplaces', () => {
     expect(apiErrorResponseSchema.parse(await second.json()).message).toContain(
       'registered office'
     );
+  });
+
+  it('passes on the refusal of the database for an archived client on a change', async () => {
+    mockUpstream({
+      workplaces: (init) =>
+        init?.method === 'PATCH' ? databaseError('CLA01', 400) : Response.json([workplaceRow]),
+    });
+    const response = await request(`${path}/${workplaceRow.id}`, 'PUT', { name: 'Sediu' });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 
   it('replaces and archives a workplace, scoped to the client', async () => {
@@ -1007,6 +1019,26 @@ describe('/clients/{clientId}/responsible-persons', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
       'employeeId'
     );
+  });
+
+  it('refuses an archived client with its reason', async () => {
+    mockUpstream({ clients: () => Response.json({ ...activeClient, archived_at: '2026-09-01' }) });
+    const response = await request(path, 'POST', body);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+    expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
+  });
+
+  it('passes on the refusal of the database for an archived client on a change', async () => {
+    mockUpstream({
+      responsiblePersons: (init) =>
+        init?.method === 'PATCH'
+          ? databaseError('CLA01', 400)
+          : Response.json([responsiblePersonRow]),
+    });
+    const response = await request(`${path}/${responsiblePersonRow.id}`, 'PUT', body);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 
   it('answers 409 when the employee already is a responsible person', async () => {

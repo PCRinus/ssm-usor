@@ -407,7 +407,7 @@ export function RiskSheetCard({
               {noneIncluded
                 ? state.factors.length === 1
                   ? 'Singurul factor nu e inclus.'
-                  : `Niciunul dintre cei ${state.factors.length} factori nu e inclus.`
+                  : `Niciunul dintre cei ${roCount(state.factors.length, 'factor', 'factori')} nu e inclus.`
                 : factorsLine(state, removed.length)}
             </span>
             {!readOnly && (

@@ -13,6 +13,7 @@ const reactFiles = [
   'apps/portal/**/*.{js,jsx,ts,tsx}',
   'apps/admin/src/**/*.{js,jsx,ts,tsx}',
   'packages/ui/**/*.{js,jsx,ts,tsx}',
+  'packages/spa-runtime/**/*.{js,jsx,ts,tsx}',
 ];
 
 const orderedImports = {

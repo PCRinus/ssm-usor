@@ -845,23 +845,26 @@ describe('employee creation', () => {
     );
   });
 
-  it('maps a duplicate CNP to the field and an archived client to the form', async () => {
+  it('maps a duplicate CNP to the field, an archived client to the form and another clash to neither', async () => {
     let attempts = 0;
     mockApi({
       create: () => {
         attempts += 1;
-        return attempts === 1
+        if (attempts === 1) {
+          return Response.json(
+            {
+              error: 'conflict',
+              message: 'A current employee of this client already has this CNP.',
+            },
+            { status: 409 }
+          );
+        }
+        return attempts === 2
           ? Response.json(
-              {
-                error: 'conflict',
-                message: 'A current employee of this client already has this CNP.',
-              },
+              { error: 'conflict', message: 'Archived.', reason: 'client_archived' },
               { status: 409 }
             )
-          : Response.json(
-              { error: 'conflict', message: 'This client is archived; employees cannot be added.' },
-              { status: 409 }
-            );
+          : Response.json({ error: 'conflict', message: 'Conflict.' }, { status: 409 });
       },
     });
     mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
@@ -876,7 +879,13 @@ describe('employee creation', () => {
     expect((await screen.findByTestId('cnp-error')).textContent).toContain('acest CNP');
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('employee-form-error')).textContent).toContain('arhivat');
-    expect(requests(employeesPath, 'POST')).toHaveLength(2);
+    await user.click(screen.getByTestId('employee-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('employee-form-error').textContent).toContain(
+        'conflict cu alt lucrător'
+      )
+    );
+    expect(requests(employeesPath, 'POST')).toHaveLength(3);
   });
 });
 
@@ -2036,6 +2045,24 @@ describe('employee editing', () => {
       within(taken).getByRole('link', { name: 'De ce?' }).getAttribute('data-help-topic')
     ).toBe('angajati.duplicat');
     expect(screen.getByTestId('edit-employee-page')).toBeTruthy();
+  });
+
+  it('says the client is archived when a stale page saves a worker of it', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: stored }),
+      update: () =>
+        Response.json(
+          { error: 'conflict', message: 'Archived.', reason: 'client_archived' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, editPage);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('employee-form-error')).textContent).toContain(
+      'lucrătorii lui nu se mai schimbă'
+    );
   });
 
   it('shows the hire date the API refuses in Romanian, on its field', async () => {

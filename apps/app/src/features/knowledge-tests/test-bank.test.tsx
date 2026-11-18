@@ -412,6 +412,49 @@ describe('the question bank', () => {
     expect(requests('DELETE', `/organization/tests/questions/${ownQuestion.id}`)).toHaveLength(2);
   });
 
+  it('keeps deleting a question until the bank is read again', async () => {
+    let release: () => void = () => undefined;
+    const reread = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let deleted = false;
+    let held = 0;
+    const questions = ssmQuestions([ownQuestion]);
+    mockApi(
+      {
+        [`DELETE /organization/tests/questions/${ownQuestion.id}`]: () => {
+          deleted = true;
+          return new Response(null, { status: 204 });
+        },
+        'GET /organization/tests/questions': async (url) => {
+          if (deleted) {
+            held += 1;
+            await reread;
+          }
+          const all = bank(questions);
+          const domain = url.searchParams.get('domain');
+          return Response.json({
+            ...all,
+            tests: all.tests.filter((test) => test.domain === domain),
+          });
+        },
+      },
+      questions
+    );
+    mount('/teste/ssm');
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('test-question');
+    await user.click(within(rows[10]!).getByTestId('test-question-delete'));
+    const dialog = within(await screen.findByTestId('test-question-delete-dialog'));
+    await user.click(dialog.getByTestId('test-question-delete-confirm'));
+    await waitFor(() => expect(held).toBeGreaterThan(0));
+    const confirm = dialog.getByTestId<HTMLButtonElement>('test-question-delete-confirm');
+    expect(confirm.textContent).toBe('Se șterge…');
+    expect(confirm.disabled).toBe(true);
+    release();
+    await waitFor(() => expect(screen.queryByTestId('test-question-delete-dialog')).toBeNull());
+  });
+
   it('previews a question as the employee sees it, the correct options unmarked and the explanation after a wrong answer', async () => {
     mockApi();
     mount('/teste/ssm');
@@ -431,7 +474,7 @@ describe('the question bank', () => {
     expect(dialog.getByTestId('test-question-preview-explanation').textContent).toContain(
       firstAid.explanation!
     );
-    await user.click(dialog.getByRole('button', { name: 'Închide' }));
+    await user.click(dialog.getByTestId('test-question-preview-close'));
     await user.click(within(questions[1]!).getByTestId('test-question-preview'));
     expect(await screen.findByTestId('test-question-preview-no-explanation')).toBeTruthy();
   });

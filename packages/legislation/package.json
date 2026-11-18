@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./stored": {
+      "types": "./dist/stored.d.ts",
+      "import": "./dist/stored.js"
     }
   },
   "scripts": {

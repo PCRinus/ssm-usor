@@ -1,36 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
 import { contentDisposition } from '../../lib/content-disposition';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import { fetchMock, stubFetch, testEnv } from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'https://app.ssmusor.ro',
-};
+const env = testEnv({ CORS_ORIGINS: 'https://app.ssmusor.ro' });
 
 const signed =
   'https://example.supabase.co/storage/v1/object/sign/documents/org/client/doc.pdf?token=t&download=x';
-const fetchMock = vi.fn<typeof fetch>();
 
 const download = (
   source: string,
   name = 'Contract de prestări servicii - rev. 1.pdf',
   extra: Record<string, string> = {}
 ) =>
-  createApp().request(
+  apiRequest(
     `/files/download?${new URLSearchParams({ source, name, ...extra }).toString()}`,
-    {},
+    { token: null, client: null },
     env
   );
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 describe('saving a file from a signed Storage link', () => {
   it('passes the bytes through as an attachment under their real name', async () => {

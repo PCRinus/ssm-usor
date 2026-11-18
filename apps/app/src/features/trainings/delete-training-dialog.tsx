@@ -18,6 +18,7 @@ import { Notice } from '@/components/notice';
 import { formatDate } from '@/features/employees/employee-format';
 import { signingMessage } from '@/features/signatures/signature-format';
 
+import { attendeeCountLabel } from './training-format';
 import { invalidateTrainings } from './training-queries';
 
 export interface TrainingToDelete {
@@ -39,14 +40,20 @@ export function DeleteTrainingDialog({
   training: TrainingToDelete | null;
   onClose: () => void;
 }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const remove = useDeleteTraining({ request: apiRequest });
   return (
-    <Dialog open={training !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={training !== null}
+      onOpenChange={(open) => !open && !remove.isPending && onClose()}
+    >
       {training && (
         <DeleteTrainingContent
           key={training.id}
           clientId={clientId}
           userId={userId}
           training={training}
+          remove={remove}
           onClose={onClose}
         />
       )}
@@ -58,15 +65,16 @@ function DeleteTrainingContent({
   clientId,
   userId,
   training,
+  remove,
   onClose,
 }: {
   clientId: string;
   userId: string;
   training: TrainingToDelete;
+  remove: ReturnType<typeof useDeleteTraining>;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteTraining({ request: apiRequest });
   const [error, setError] = useState<string | null>(null);
   const detail = useGetTraining(clientId, training.id, {
     request: apiRequest,
@@ -110,7 +118,7 @@ function DeleteTrainingContent({
             <>
               {' '}
               <span className="font-medium text-foreground" data-testid="training-delete-count">
-                Are {attendeeCount} participanți; ștergerea îi privește pe toți.
+                Are {attendeeCountLabel(attendeeCount)}; ștergerea îi privește pe toți.
               </span>
             </>
           )}

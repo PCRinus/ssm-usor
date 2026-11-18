@@ -147,6 +147,7 @@ let runs: unknown[] = [];
 let listed: unknown[] = [];
 let older: unknown[] = [];
 let answering: unknown[] = [];
+let passages: unknown[] = [];
 
 function mockUpstream() {
   fetchMock.mockImplementation(async (input, init) => {
@@ -187,19 +188,7 @@ function mockUpstream() {
     if (path === '/rest/v1/legal_changes' && method === 'HEAD') {
       return new Response(null, { status: 200, headers: { 'Content-Range': '*/0' } });
     }
-    if (path === '/rest/v1/legal_change_passages') {
-      return Response.json([
-        passageRow({
-          id: 'f1f1f1f1-0000-4000-8000-000000000002',
-          paragraph: 1970,
-          citation_form: 'reference',
-          locator: null,
-          unit_label: 'Art. 36',
-          hunks: 'not a list',
-        }),
-        passageRow({}),
-      ]);
-    }
+    if (path === '/rest/v1/legal_change_passages') return Response.json(passages);
     if (path === '/rest/v1/document_template_versions') {
       if (params.get('answers.legal_change_id')?.startsWith('eq.')) return Response.json(answering);
       return Response.json([versionRow]);
@@ -258,6 +247,17 @@ beforeEach(() => {
   listed = [{ ...changeRow, passages: [{ count: 2 }] }];
   older = [];
   answering = [];
+  passages = [
+    passageRow({
+      id: 'f1f1f1f1-0000-4000-8000-000000000002',
+      paragraph: 1970,
+      citation_form: 'reference',
+      locator: null,
+      unit_label: 'Art. 36',
+      hunks: 'not a list',
+    }),
+    passageRow({}),
+  ];
   mockUpstream();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -338,6 +338,25 @@ describe('GET /admin/legislation/changes', () => {
     expect(read!.url.searchParams.get('outcome')).toBe('is.null');
   });
 
+  it('drops only the stored amending acts it cannot read', async () => {
+    listed = [
+      {
+        ...changeRow,
+        amending_acts: [{ kind: 'LEGEA' }, ...changeRow.amending_acts],
+        passages: [{ count: 2 }],
+      },
+    ];
+
+    const list = adminLegalChangeListSchema.parse(
+      await (await request('/admin/legislation/changes')).json()
+    );
+
+    expect(list.items[0]!.amendingActs).toEqual([
+      { name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: 301234 },
+      { name: 'O.U.G. 9/2026', adoptedOn: null, portalId: null },
+    ]);
+  });
+
   it('refuses an unknown filter', async () => {
     const response = await request('/admin/legislation/changes?status=closed');
 
@@ -390,6 +409,36 @@ describe('GET /admin/legislation/changes/:id', () => {
     });
     expect(detail.awaitingAssessment).toBe(false);
     expect(detail.olderOpenChanges).toEqual([]);
+  });
+
+  it('drops only the stored amended units, reasons and hunks it cannot read', async () => {
+    change = {
+      ...changeRow,
+      amended_units: [
+        { unit: 'Art. 6', operation: 'renumbered', date: '2026-11-06', amendingAct: null },
+        ...changeRow.amended_units,
+        { unit: 'Art. 7', operation: 'modified', date: '2026-11-06', amendingAct: null },
+      ],
+      review: [42, ...changeRow.review],
+    };
+    passages = [passageRow({ hunks: [{ old: 'casca' }, ...passageRow({}).hunks] })];
+
+    const detail = adminLegalChangeDetailSchema.parse(
+      await (await request(`/admin/legislation/changes/${changeId}`)).json()
+    );
+
+    expect(detail.amendedUnits).toEqual([
+      changeRow.amended_units[0],
+      {
+        unit: 'Art. 7',
+        subject: null,
+        operation: 'modified',
+        date: '2026-11-06',
+        amendingAct: null,
+      },
+    ]);
+    expect(detail.review).toEqual(changeRow.review);
+    expect(detail.passages[0]!.hunks).toEqual(passageRow({}).hunks);
   });
 
   it('names the act’s older open changes, oldest first, which are resolved before it', async () => {
@@ -655,6 +704,18 @@ describe('GET /admin/legislation/runs', () => {
       errors: [{ act: 'hg-1425-2006', kind: 'other' }],
     });
     expect(restCalls()[0]!.url.searchParams.get('order')).toBe('started_at.desc,id.asc');
+  });
+
+  it('drops only a stored error it cannot read', async () => {
+    runs = [{ ...runRow(1), errors: [{ act: 'hg-1425-2006' }, ...runRow(1).errors] }];
+
+    const page = adminLegalCheckRunListSchema.parse(
+      await (await request('/admin/legislation/runs')).json()
+    );
+
+    expect(page.items[0]!.errors).toEqual([
+      { act: 'hg-1425-2006', kind: 'other', message: 'Page 76337 has no "Forme act" section.' },
+    ]);
   });
 
   it('answers a page past the end with no runs and the total', async () => {

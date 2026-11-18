@@ -1,18 +1,9 @@
-import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useUpdateEvaluationProfile } from '@/api/generated/api';
-import { Notice } from '@/components/notice';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 import { profileFailure } from './profile-schema';
 import { useProfileCache } from './use-profile-cache';
@@ -68,45 +59,24 @@ export function ProfileArchiveDialog({
   }
 
   return (
-    <Dialog open={change !== null} onOpenChange={(open) => !open && !busy && close()}>
-      {change && (
-        <DialogContent data-testid="risk-profile-archive-dialog" className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {change.action === 'archive' ? 'Arhivezi evaluarea?' : 'Reactivezi evaluarea?'}
-            </DialogTitle>
-            <DialogDescription>
-              <span className="font-medium text-foreground">„{change.profile.name}”</span>
-              {change.action === 'archive'
-                ? ` iese din lista evaluărilor active: nu mai apare în „Aplică din bibliotecă”, iar la importul unei documentații nu mai e propusă ca evaluare asemănătoare. Pagina și factorii ei rămân${change.profile.inUse ? ', iar fișele clienților care o folosesc nu se schimbă' : ''}. O poți reactiva oricând din lista „Arhivate”.`
-                : ' revine în lista evaluărilor active și o poți aplica din nou la fișele clienților.'}
-            </DialogDescription>
-          </DialogHeader>
-          {error && (
-            <Notice variant="destructive" data-testid="risk-profile-archive-error">
-              {error}
-            </Notice>
-          )}
-          <DialogFooter className="mt-2">
-            <Button variant="ghost" disabled={busy} onClick={close}>
-              Renunță
-            </Button>
-            <Button
-              data-testid="risk-profile-archive-confirm"
-              disabled={busy}
-              onClick={() => void confirm(change)}
-            >
-              {change.action === 'archive'
-                ? busy
-                  ? 'Se arhivează…'
-                  : 'Arhivează'
-                : busy
-                  ? 'Se reactivează…'
-                  : 'Reactivează'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
+    change && (
+      <ConfirmDialog
+        open
+        busy={busy}
+        error={error}
+        destructive={false}
+        testId="risk-profile-archive"
+        title={change.action === 'archive' ? 'Arhivezi evaluarea?' : 'Reactivezi evaluarea?'}
+        confirmLabel={change.action === 'archive' ? 'Arhivează' : 'Reactivează'}
+        pendingLabel={change.action === 'archive' ? 'Se arhivează…' : 'Se reactivează…'}
+        onConfirm={() => confirm(change)}
+        onClose={close}
+      >
+        <span className="font-medium text-foreground">„{change.profile.name}”</span>
+        {change.action === 'archive'
+          ? ` iese din lista evaluărilor active: nu mai apare în „Aplică din bibliotecă”, iar la importul unei documentații nu mai e propusă ca evaluare asemănătoare. Pagina și factorii ei rămân${change.profile.inUse ? ', iar fișele clienților care o folosesc nu se schimbă' : ''}. O poți reactiva oricând din lista „Arhivate”.`
+          : ' revine în lista evaluărilor active și o poți aplica din nou la fișele clienților.'}
+      </ConfirmDialog>
+    )
   );
 }

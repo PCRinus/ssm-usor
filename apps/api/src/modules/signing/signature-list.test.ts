@@ -1,18 +1,17 @@
 import { signatureListResponseSchema } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
+import { apiRequest } from '../../test/request';
 import {
   callsTo,
-  clientId,
   databaseError,
-  env,
   fetchMock,
-  mockUpstream,
-  organizationId,
+  stubFetch,
+  testOrganizationId as organizationId,
+  testUser as user,
   type UpstreamCall,
-  user,
-} from './upstream.fixture';
+} from '../../test/upstream';
+import { clientId, env, mockUpstream } from './upstream.fixture';
 
 const trainingId = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
 const sheetId = '6b5a4c3d-2e1f-4a0b-9c8d-7e6f5a4b3c2d';
@@ -20,12 +19,7 @@ const popescuId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const taranuId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const otherClientId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 
-const request = (path: string) =>
-  createApp().request(
-    path,
-    { method: 'GET', headers: { Authorization: 'Bearer user-token' } },
-    env
-  );
+const request = (path: string) => apiRequest(path, {}, env);
 
 const trainingRow = {
   id: trainingId,
@@ -119,14 +113,13 @@ function listUpstream(
 const pageCall = () => callsTo('/rest/v1/signature_list').find((call) => !isCount(call))!;
 const countCalls = () => callsTo('/rest/v1/signature_list').filter(isCount);
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 

@@ -9,7 +9,6 @@ import {
   buildSigningAgreementData,
   SigningAgreementDataError,
   signingContractClauseText,
-  signingRegulationAnnexData,
 } from './signing';
 import { documentText } from './text';
 
@@ -47,20 +46,22 @@ const packContext = {
 };
 
 describe('the annex on the electronic signature', () => {
-  const data = signingRegulationAnnexData(packContext);
-
-  it('takes only its names from the context of the set', () => {
-    expect(data).not.toHaveProperty('decisionNumber');
-    expect(data.provider).toEqual({ legalName: 'S.C. SERVICIU EXTERN DEMO S.R.L.' });
-  });
-
-  it('asks only for what its data has', () => {
-    const known = new Set(dotted(data));
+  it('asks only for the names it takes from the context of the set', () => {
+    const known = new Set([
+      'branding',
+      'issueDate',
+      'client.legalName',
+      'client.representativeName',
+      'client.representativeRole',
+      'provider.legalName',
+      'specialist.name',
+      'specialist.professionalTitle',
+    ]);
     expect(templatePlaceholders(annexTemplate).filter((name) => !known.has(name))).toEqual([]);
   });
 
   it('merges with nothing left over and says what is signed, how and by whom', () => {
-    const text = documentText(renderDocument(annexTemplate, data));
+    const text = documentText(renderDocument(annexTemplate, packContext));
     expect(text).not.toContain('{{');
     for (const sentence of [
       'ANEXĂ LA REGULAMENTUL INTERN',
@@ -102,7 +103,7 @@ describe('the annex on the electronic signature', () => {
   });
 
   it('refuses to render without the specialist who drew it up', () => {
-    const withoutSpecialist: Record<string, unknown> = { ...data };
+    const withoutSpecialist: Record<string, unknown> = { ...packContext };
     delete withoutSpecialist.specialist;
     expect(() => renderDocument(annexTemplate, withoutSpecialist)).toThrow(TemplateError);
   });

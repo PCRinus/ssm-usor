@@ -15,6 +15,7 @@ import {
 } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { useAuth } from '@/features/auth/auth-context';
+import { roCount } from '@/features/employees/employee-format';
 
 import { filesLabel, isRunning, isUploadUnderway, uploadName } from './import-format';
 import { useImport } from './use-import';
@@ -60,8 +61,12 @@ function blockersText(detail: ImportDetail) {
   const choices = detail.blockers.filter((blocker) => blocker.code === 'choice').length;
   const rest = detail.blockers.length - choices;
   const parts = [
-    choices === 1 ? 'o alegere' : choices > 1 ? `${choices} alegeri` : null,
-    rest === 1 ? 'o dată obligatorie' : rest > 1 ? `${rest} date obligatorii` : null,
+    choices === 1 ? 'o alegere' : choices > 1 ? roCount(choices, 'alegere', 'alegeri') : null,
+    rest === 1
+      ? 'o dată obligatorie'
+      : rest > 1
+        ? roCount(rest, 'dată obligatorie', 'date obligatorii')
+        : null,
   ].filter(Boolean);
   if (parts.length === 0) return 'Totul e pregătit pentru creare.';
   return `${parts.join(' și ')} te așteaptă.`;

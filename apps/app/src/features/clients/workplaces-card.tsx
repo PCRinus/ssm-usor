@@ -1,13 +1,5 @@
-import { noWorkplace, workplaceConflictReasons } from '@ssm-usor/contracts';
+import { clientConflictReasons, noWorkplace, workplaceConflictReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -27,6 +19,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -35,7 +28,11 @@ import { dateToIso } from '@/lib/dates';
 
 import { SheetAction } from './details/sheet-action';
 import { workplaceColumns } from './workplace-columns';
-import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
+import {
+  WorkplaceDialog,
+  type WorkplaceEditing,
+  workplacesOfArchivedClientMessage,
+} from './workplace-dialog';
 import { type WorkplaceRow, workplaceRows } from './workplace-list';
 import {
   type differingClientAddress,
@@ -43,6 +40,12 @@ import {
   type Workplace,
   workplaceRequestOf,
 } from './workplace-schema';
+
+function reasonOf(cause: unknown) {
+  return cause instanceof ApiHttpError
+    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
+    : undefined;
+}
 
 const workplaceRowId = (id: string) => `workplace-${id}`;
 
@@ -135,8 +138,12 @@ export function WorkplacesCard({
           data: { ...workplaceRequestOf(workplace), isRegisteredOffice: true, ...address },
         });
         toast.success(`Adresa pentru ${workplace.name} a fost actualizată.`);
-      } catch {
-        setError('Nu am putut actualiza adresa. Verifică conexiunea și încearcă din nou.');
+      } catch (cause) {
+        setError(
+          reasonOf(cause) === clientConflictReasons.clientArchived
+            ? workplacesOfArchivedClientMessage
+            : 'Nu am putut actualiza adresa. Verifică conexiunea și încearcă din nou.'
+        );
       }
       await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
     },
@@ -149,16 +156,15 @@ export function WorkplacesCard({
       await archive.mutateAsync({ clientId, workplaceId: workplace.id });
       toast.success(`${workplace.name} a fost arhivat.`);
     } catch (cause) {
-      const reason =
-        cause instanceof ApiHttpError
-          ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
-          : undefined;
+      const reason = reasonOf(cause);
       setError(
         reason === workplaceConflictReasons.officeNeedsWorkplace
           ? `${workplace.name} este singurul punct de lucru activ, iar la sediul social nu se desfășoară activitate. Bifează activitatea la sediu sau adaugă punctul de lucru care îi ia locul, apoi arhivează-l.`
-          : cause instanceof ApiHttpError && cause.status === 404
-            ? `${workplace.name} nu mai există la acest client.`
-            : 'Nu am putut arhiva punctul de lucru. Verifică conexiunea și încearcă din nou.'
+          : reason === clientConflictReasons.clientArchived
+            ? workplacesOfArchivedClientMessage
+            : cause instanceof ApiHttpError && cause.status === 404
+              ? `${workplace.name} nu mai există la acest client.`
+              : 'Nu am putut arhiva punctul de lucru. Verifică conexiunea și încearcă din nou.'
       );
     }
     setArchiving(null);
@@ -253,39 +259,23 @@ export function WorkplacesCard({
         />
       )}
       <WorkplaceDialog clientId={clientId} editing={editing} onClose={() => setEditing(null)} />
-      <Dialog
-        open={archiving !== null}
-        onOpenChange={(open) => !open && !archive.isPending && setArchiving(null)}
-      >
-        {archiving && (
-          <DialogContent data-testid="workplace-archive-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Arhivezi punctul de lucru?</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{archiving.name}</span> nu va mai
-                apărea în listă și în documentele generate de acum înainte. Documentele deja emise
-                rămân neschimbate.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button
-                variant="ghost"
-                disabled={archive.isPending}
-                onClick={() => setArchiving(null)}
-              >
-                Renunță
-              </Button>
-              <Button
-                data-testid="workplace-archive-confirm"
-                disabled={archive.isPending}
-                onClick={() => void archiveWorkplace(archiving)}
-              >
-                {archive.isPending ? 'Se arhivează…' : 'Arhivează'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {archiving && (
+        <ConfirmDialog
+          open
+          busy={archive.isPending}
+          destructive={false}
+          testId="workplace-archive"
+          title="Arhivezi punctul de lucru?"
+          confirmLabel="Arhivează"
+          pendingLabel="Se arhivează…"
+          onConfirm={() => void archiveWorkplace(archiving)}
+          onClose={() => setArchiving(null)}
+        >
+          <span className="font-medium text-foreground">{archiving.name}</span> nu va mai apărea în
+          listă și în documentele generate de acum înainte. Documentele deja emise rămân
+          neschimbate.
+        </ConfirmDialog>
+      )}
     </SectionCard>
   );
 }

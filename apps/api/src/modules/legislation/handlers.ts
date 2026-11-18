@@ -2,18 +2,21 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type LegalAct,
   type LegalActStatus,
-  legalAmendedUnitSchema,
   type LegalChange,
   type LegalChangeOutcome,
   legalChangePassageSchema,
   type LegalChangeResolution,
   type LegalCheckRun,
-  legalCheckRunErrorSchema,
   type LegalCheckRunStatus,
   type WatchedLegalAct,
 } from '@ssm-usor/contracts';
 import { templateOfFile, templateOfType } from '@ssm-usor/document-engine/template-files';
-import { z } from 'zod';
+import {
+  storedAmendedUnitsSchema,
+  storedAmendingActsSchema,
+  storedHunksSchema,
+  storedRunErrorsSchema,
+} from '@ssm-usor/legislation-check/stored';
 
 import type { Database } from '../../database.types';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
@@ -53,26 +56,6 @@ const toAct = (row: Omit<ActRow, 'created_at' | 'updated_at'>): LegalAct => ({
   lastCheckedAt: row.last_checked_at,
   checkedByHandOn: row.checked_by_hand_on,
 });
-
-// The legislation Worker writes these columns; the API reads the fields it shows and drops the
-// rest, and an element it cannot read, not the whole list.
-const storedList = <T extends z.ZodType>(item: T) =>
-  z
-    .array(z.unknown())
-    .catch([])
-    .transform((items) =>
-      items.flatMap((each) => {
-        const parsed = item.safeParse(each);
-        return parsed.success ? [parsed.data as z.output<T>] : [];
-      })
-    );
-const storedAmendingActsSchema = storedList(
-  z
-    .object({ name: z.string(), date: z.iso.date().nullable().catch(null) })
-    .transform((act) => ({ name: act.name, adoptedOn: act.date }))
-);
-const storedAmendedUnitsSchema = storedList(legalAmendedUnitSchema);
-const storedHunksSchema = legalChangePassageSchema.shape.hunks.catch([]);
 
 type StoredPassage = Omit<PassageRow, 'change_id' | 'manifest' | 'article'>;
 
@@ -117,8 +100,12 @@ const toChange = (
   outcome: row.outcome as LegalChangeOutcome | null,
   comparedWith: row.compared_with,
   assessedAt: row.assessed_at,
-  amendingActs: storedAmendingActsSchema.parse(row.amending_acts ?? []),
-  amendedUnits: storedAmendedUnitsSchema.parse(row.amended_units ?? []),
+  amendingActs: storedAmendingActsSchema
+    .parse(row.amending_acts)
+    .map((act) => ({ name: act.name, adoptedOn: act.date })),
+  amendedUnits: storedAmendedUnitsSchema
+    .parse(row.amended_units)
+    .map(({ unit, operation, date, amendingAct }) => ({ unit, operation, date, amendingAct })),
   passages: [...row.passages].sort(passageOrder).map(toPassage),
   updatedDocuments: [
     ...new Map(
@@ -174,13 +161,6 @@ export const listLegalChanges: RouteHandler<typeof listLegalChangesRoute, ApiEnv
   if (error) throw fromDatabaseError(error, 'list legal changes');
   return c.json({ items: data.map(toChange) }, 200);
 };
-
-// Runs recorded before the errors had a kind carry only the act and the message.
-const storedRunErrorsSchema = z.array(
-  legalCheckRunErrorSchema.extend({
-    kind: legalCheckRunErrorSchema.shape.kind.catch('other'),
-  })
-);
 
 const toRun = (row: RunRow): LegalCheckRun => ({
   id: row.id,

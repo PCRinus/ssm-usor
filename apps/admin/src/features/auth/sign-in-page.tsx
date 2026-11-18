@@ -1,3 +1,4 @@
+import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
@@ -8,7 +9,6 @@ import { Frame } from '@/components/frame';
 
 import { useAuth } from './auth-context';
 import type { SignInResult } from './auth-store';
-import { useCaptcha } from './captcha';
 
 const failures: Record<Exclude<SignInResult, 'signed-in'>, string> = {
   invalid: 'The email or the password is not right.',

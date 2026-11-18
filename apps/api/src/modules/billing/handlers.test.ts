@@ -221,7 +221,9 @@ describe('GET /billing', () => {
   it('shows the owner of a paid plan the card, the next payment and a change set for the renewal', async () => {
     const fake = createFake();
     const renewal = now() + 10 * day;
-    fake.tables.subscriptions!.push(paidRow(pro));
+    fake.tables.subscriptions!.push(
+      paidRow(pro, { billing_anchor_at: '2026-01-31T09:00:00+00:00' })
+    );
     fake.tables.billing_invoices!.push({
       stripe_invoice_id: 'in_1Paid',
       organization_id: organizationId,
@@ -282,6 +284,7 @@ describe('GET /billing', () => {
       planChosen: true,
       status: 'active',
       step: 1500,
+      billingAnchorAt: '2026-01-31T09:00:00.000Z',
       cancelsAt: null,
     });
     expect(body.usage.members.limit).toBe(10);
@@ -464,6 +467,65 @@ describe('POST /billing/preview', () => {
       'subscription_details[proration_behavior]': 'always_invoice',
     });
     expect(body.dueToday).toEqual({ subtotalCents: 38250, vatCents: 8033, totalCents: 46283 });
+  });
+
+  it("renews a switch to annual on the end Stripe's invoice gives the new year", async () => {
+    const fake = createFake();
+    const annualEnd = Date.UTC(2029, 1, 28, 9) / 1000;
+    fake.tables.subscriptions!.push(paidRow(start));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ choice: start, periodEnd: now() + 15 * day });
+    fake.stripe['POST /v1/invoices/create_preview'] = () => ({
+      object: 'invoice',
+      subtotal: 36900,
+      total: 44649,
+      lines: stripeList([
+        {
+          amount: -1950,
+          parent: { subscription_item_details: { proration: true } },
+          period: { start: now(), end: now() + 15 * day },
+        },
+        {
+          amount: 1500,
+          pricing: { price_details: { price: priceIdOf('sms_overage_monthly_v2') } },
+          parent: { subscription_item_details: { proration: false } },
+          period: { start: now(), end: now() + 30 * day },
+        },
+        {
+          amount: 38850,
+          pricing: { price_details: { price: priceIdOf('start_250_annual_v2') } },
+          parent: { subscription_item_details: { proration: false } },
+          period: { start: now(), end: annualEnd },
+        },
+      ]),
+    });
+
+    const body = await previewOf(
+      await request('POST', '/billing/preview', { ...start, interval: 'year' })
+    );
+
+    expect(body.nextRenewal.at).toBe(new Date(annualEnd * 1000).toISOString());
+  });
+
+  it('counts a year from today for a switch to annual when the invoice has no plan line', async () => {
+    const fake = createFake();
+    fake.tables.subscriptions!.push(paidRow(start));
+    fake.stripe['GET /v1/subscriptions/sub_1Test'] = () =>
+      stripeSubscription({ choice: start, periodEnd: now() + 15 * day });
+    fake.stripe['POST /v1/invoices/create_preview'] = () => ({
+      object: 'invoice',
+      subtotal: 36900,
+      total: 44649,
+      lines: stripeList([]),
+    });
+
+    const body = await previewOf(
+      await request('POST', '/billing/preview', { ...start, interval: 'year' })
+    );
+
+    const days = (Date.parse(body.nextRenewal.at) - Date.now()) / (day * 1000);
+    expect(days).toBeGreaterThan(364);
+    expect(days).toBeLessThanOrEqual(366);
   });
 
   it('prices a change of a plan chosen in the trial before 2026-11-14 for the trial’s end', async () => {

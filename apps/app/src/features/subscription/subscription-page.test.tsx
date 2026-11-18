@@ -24,7 +24,7 @@ import { roDate } from './subscription-copy';
 
 vi.mock('./leave', () => ({ leaveFor: vi.fn() }));
 
-type Route = (init: RequestInit | undefined) => Response;
+type Route = (init: RequestInit | undefined) => Response | Promise<Response>;
 type Owner = NonNullable<BillingOverview['owner']>;
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -201,6 +201,32 @@ describe('the Abonament tab', () => {
     ).toBeTruthy();
   });
 
+  it('keeps the cancel dialog open while the cancellation runs, and shows its refusal', async () => {
+    let refuse: (response: Response) => void = () => undefined;
+    mockApi({
+      overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
+      routes: {
+        'POST /billing/subscription/cancel': () =>
+          new Promise<Response>((resolve) => {
+            refuse = resolve;
+          }),
+      },
+    });
+    mount();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('subscription-cancel'));
+    const dialog = await screen.findByTestId('cancel-dialog');
+    await user.click(within(dialog).getByTestId('cancel-confirm'));
+    await waitFor(() => expect(requests('/billing/subscription/cancel', 'POST')).toHaveLength(1));
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('cancel-dialog')).toBe(dialog);
+    refuse(Response.json({ error: 'forbidden', message: 'Owner only' }, { status: 403 }));
+    expect(
+      await within(dialog).findByText('Doar adminul organizației schimbă abonamentul.')
+    ).toBeTruthy();
+  });
+
   it('says when a plan chosen in the trial before 2026-11-14 has no confirmed card, and leads to the card form', async () => {
     mockApi({
       overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
@@ -286,6 +312,26 @@ describe('the Abonament tab', () => {
     const download = within(issued!).getByTestId('invoice-download') as HTMLButtonElement;
     expect(download.disabled).toBe(false);
     expect(download.getAttribute('aria-label')).toBe('Descarcă PDF-ul facturii SSMUSOR-0011');
+  });
+
+  it('names the anchor day of a monthly plan, not the period end a short month moved', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: activeSubscription({
+          interval: 'month',
+          step: 500,
+          billingAnchorAt: new Date(2027, 0, 31, 12).toISOString(),
+          currentPeriodEnd: new Date(2027, 1, 28, 12).toISOString(),
+        }),
+        owner: ownerPart(),
+      }),
+    });
+    mount();
+
+    const card = await screen.findByTestId('plan-card');
+    expect(card.textContent).toContain(
+      'Activ. Se reînnoiește în fiecare lună, pe 31, iar în lunile fără această zi, în ultima zi a lunii.'
+    );
   });
 
   it("offers the plan's own next step when over the step, with its price plus VAT", async () => {

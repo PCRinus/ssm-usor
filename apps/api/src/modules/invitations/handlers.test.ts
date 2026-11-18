@@ -1,16 +1,25 @@
-import type { MailService } from '@ssm-usor/contracts';
+import type { MailService, OrganizationRole } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
 import { hashToken } from '../../lib/tokens';
+import { apiRequest, testAccessToken } from '../../test/request';
+import {
+  callsTo as calls,
+  databaseError,
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser as user,
+} from '../../test/upstream';
 
 const sendOrganizationInvitation = vi.fn<MailService['sendOrganizationInvitation']>();
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   APP_ORIGIN: 'https://app.example.ro',
   MAIL: {
     sendWaitlistConfirmation: vi.fn(),
@@ -28,10 +37,8 @@ const env: ApiEnv['Bindings'] = {
     sendEmployeesOverStepNotice: vi.fn(),
     sendExtrasNotice: vi.fn(),
   },
-};
+});
 
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
-const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const invitationId = '7a0e4c7e-4a59-4f8e-8d1e-3f1f6f0b9a11';
 const newUserId = '1e8b36cc-d87a-4318-9af2-acb1f6156112';
 
@@ -54,11 +61,8 @@ const lookupRow = {
   expires_at: '2099-01-08T10:00:00+00:00',
 };
 
-const databaseError = (code: string, message: string) =>
-  Response.json({ code, message, details: null, hint: null }, { status: 400 });
-
 const upstreamDefaults = {
-  role: 'owner',
+  role: 'owner' as OrganizationRole,
   create: () => Response.json([invitationRow]),
   invitations: () => Response.json([invitationRow]),
   invitation: () =>
@@ -82,79 +86,41 @@ const upstreamDefaults = {
 const counted = (count: number) =>
   new Response(null, { status: 200, headers: { 'Content-Range': `*/${count}` } });
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
   const upstream = { ...upstreamDefaults, ...overrides };
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json({ ...user, is_anonymous: false });
-      case '/auth/v1/admin/users':
-        return upstream.createUser();
-      case `/auth/v1/admin/users/${newUserId}`:
-        return Response.json({});
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([
-          { user_id: user.id, organization_id: organizationId, role: upstream.role },
-        ]);
-      case '/rest/v1/rpc/organization_member_list':
-        return upstream.members();
-      case '/rest/v1/rpc/create_organization_invitation':
-        return upstream.create();
-      case '/rest/v1/rpc/revoke_organization_invitation':
-        return upstream.revoke();
-      case '/rest/v1/rpc/organization_invitation_by_token':
-        return upstream.lookup();
-      case '/rest/v1/rpc/accept_invitation_as':
-        return upstream.acceptAs();
-      case '/rest/v1/rpc/accept_organization_invitation':
-        return upstream.join();
-      case '/rest/v1/organizations':
-        return Response.json({ name: 'Protect SSM' });
-      case '/rest/v1/profiles':
-        return upstream.profile();
-      case '/rest/v1/subscriptions':
-        return upstream.subscription();
-      case '/rest/v1/organization_members':
-        return counted(upstream.memberCount);
-      case '/rest/v1/organization_invitations':
-        if (method === 'PATCH') return new Response(null, { status: 204 });
-        if (method === 'HEAD') return counted(upstream.pendingCount);
-        return url.searchParams.has('id') ? upstream.invitation() : upstream.invitations();
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
+  mockSignedInUpstream({
+    '/auth/v1/admin/users': upstream.createUser,
+    [`/auth/v1/admin/users/${newUserId}`]: () => ({}),
+    '/rest/v1/rpc/current_membership': () => [membershipRow({ role: upstream.role })],
+    '/rest/v1/rpc/organization_member_list': upstream.members,
+    '/rest/v1/rpc/create_organization_invitation': upstream.create,
+    '/rest/v1/rpc/revoke_organization_invitation': upstream.revoke,
+    '/rest/v1/rpc/organization_invitation_by_token': upstream.lookup,
+    '/rest/v1/rpc/accept_invitation_as': upstream.acceptAs,
+    '/rest/v1/rpc/accept_organization_invitation': upstream.join,
+    '/rest/v1/organizations': () => Response.json({ name: 'Protect SSM' }),
+    '/rest/v1/profiles': upstream.profile,
+    '/rest/v1/subscriptions': upstream.subscription,
+    '/rest/v1/organization_members': () => counted(upstream.memberCount),
+    'PATCH /rest/v1/organization_invitations': () => new Response(null, { status: 204 }),
+    'HEAD /rest/v1/organization_invitations': () => counted(upstream.pendingCount),
+    '/rest/v1/organization_invitations': ({ url }) =>
+      url.searchParams.has('id') ? upstream.invitation() : upstream.invitations(),
   });
 }
-
-const calls = (pathname: string, method?: string) =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => {
-      const url = new URL(String(input));
-      return url.pathname === pathname && (!method || (init?.method ?? 'GET') === method);
-    })
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      headers: new Headers(init?.headers),
-      body: init?.body ? JSON.parse(init.body as string) : undefined,
-    }));
 
 const request = (
   path: string,
   body?: unknown,
   { signedIn = true, targetEnv = env, method = body === undefined ? 'GET' : 'POST' } = {}
 ) =>
-  createApp().request(
+  apiRequest(
     path,
     {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(signedIn ? { Authorization: 'Bearer user-token' } : {}),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      body,
+      token: signedIn ? undefined : null,
+      headers: { 'Content-Type': 'application/json' },
     },
     targetEnv
   );
@@ -162,15 +128,14 @@ const request = (
 const reasonOf = async (response: Response) =>
   ((await response.json()) as { reason?: string }).reason;
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   sendOrganizationInvitation.mockReset().mockResolvedValue({ id: 'msg_1' });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -188,7 +153,7 @@ describe('POST /organization/invitations', () => {
 
     const [create] = calls('/rest/v1/rpc/create_organization_invitation');
     expect(create?.body).toEqual({ invitee_email: 'ion@example.ro', invitee_role: 'specialist' });
-    expect(create?.headers.get('Authorization')).toBe('Bearer user-token');
+    expect(create?.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
 
     const [email] = sendOrganizationInvitation.mock.calls[0]!;
     expect(email).toMatchObject({
@@ -342,7 +307,7 @@ describe('POST /organization/invitations', () => {
 
     expect(response.status).toBe(503);
     const patches = calls('/rest/v1/organization_invitations', 'PATCH');
-    expect(patches.map((patch) => Object.keys(patch.body))).toEqual([['token_hash']]);
+    expect(patches.map((patch) => Object.keys(patch.body as object))).toEqual([['token_hash']]);
   });
 
   it.each(['MAIL', 'SUPABASE_SECRET_KEY'] as const)(
@@ -557,7 +522,7 @@ describe('POST /invitations/join', () => {
       invitation_token_hash: await hashToken('tok'),
       accepted_terms_version: '2026-11-14',
     });
-    expect(join?.headers.get('Authorization')).toBe('Bearer user-token');
+    expect(join?.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
   });
 
   it('asks for a name when the account has no profile', async () => {

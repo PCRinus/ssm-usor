@@ -24,6 +24,7 @@
     "@ssm-usor/contracts": "workspace:*",
     "@ssm-usor/document-engine": "workspace:*",
     "@ssm-usor/help-topics": "workspace:*",
+    "@ssm-usor/spa-runtime": "workspace:*",
     "@ssm-usor/ui": "workspace:*",
     "@stripe/react-stripe-js": "7.0.0",
     "@stripe/stripe-js": "10.2.0",

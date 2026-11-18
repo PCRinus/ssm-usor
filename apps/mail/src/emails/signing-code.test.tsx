@@ -1,33 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail } from '../testing';
 import SigningCode, { subject } from './signing-code';
 
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
-
 async function sendCode() {
-  const sent: OutgoingEmail[] = [];
-  await sendEmail(
-    env,
-    {
-      to: 'ion@example.ro',
-      subject: subject('123456'),
-      body: <SigningCode code="123456" expiresInMinutes={10} />,
-    },
-    {
-      send: async (email) => {
-        sent.push(email);
-        return { id: 'msg_1' };
-      },
-    }
-  );
-
-  return sent[0]!;
+  return sentEmail({
+    to: 'ion@example.ro',
+    subject: subject('123456'),
+    body: <SigningCode code="123456" expiresInMinutes={10} />,
+  });
 }
 
 describe('signing code', () => {

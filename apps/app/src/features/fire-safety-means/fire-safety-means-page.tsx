@@ -1,14 +1,6 @@
 import { fireInstallationKindLabels } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
@@ -32,6 +24,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { keepOpener } from '@/app/opener';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
@@ -390,38 +383,24 @@ export function FireSafetyMeansPage({
         editing={buildingEditing}
         onClose={() => setBuildingEditing(null)}
       />
-      <Dialog
-        open={deleting !== null}
-        onOpenChange={(open) => !open && !busyDeleting && setDeleting(null)}
-      >
-        {deleting && (
-          <DialogContent data-testid="fire-means-delete-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{deletingTitles[deleting.what]}</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{deletingName}</span>
-                {deletingWorkplace && ` de la ${deletingWorkplace.name}`} nu va mai apărea în
-                documentele SU generate de acum înainte.
-                {lastExtinguisher &&
-                  ' Este singurul stingător al locului de muncă: fără el, documentele SU nu se pot genera.'}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={busyDeleting} onClick={() => setDeleting(null)}>
-                Renunță
-              </Button>
-              <Button
-                variant="destructive"
-                data-testid="fire-means-delete-confirm"
-                disabled={busyDeleting}
-                onClick={() => void confirmDelete(deleting)}
-              >
-                {busyDeleting ? 'Se șterge…' : 'Șterge'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {deleting && (
+        <ConfirmDialog
+          open
+          busy={busyDeleting}
+          testId="fire-means-delete"
+          title={deletingTitles[deleting.what]}
+          confirmLabel="Șterge"
+          pendingLabel="Se șterge…"
+          onConfirm={() => void confirmDelete(deleting)}
+          onClose={() => setDeleting(null)}
+        >
+          <span className="font-medium text-foreground">{deletingName}</span>
+          {deletingWorkplace && ` de la ${deletingWorkplace.name}`} nu va mai apărea în documentele
+          SU generate de acum înainte.
+          {lastExtinguisher &&
+            ' Este singurul stingător al locului de muncă: fără el, documentele SU nu se pot genera.'}
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

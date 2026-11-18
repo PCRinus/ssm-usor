@@ -10,8 +10,8 @@ needs a genuinely interactive island.
 
 - `packages/design-tokens/src/tokens.css` owns framework-neutral CSS variables for brand colors,
   semantic colors, typography, and radii. Both apps import it: the dashboard through the UI
-  package, the marketing site directly in `apps/marketing/src/styles/global.css`, where
-  `src/styles/flux.css` derives its page roles (`--ink`, `--lime`, `--line`, and so on) from the
+  package, the marketing site directly in `apps/marketing/src/styles/flux.css`, which
+  derives its page roles (`--ink`, `--lime`, `--line`, and so on) from the
   brand variables. Inter is the token font with system fallbacks; this package does not download
   a font. The marketing site loads Inter and Inter Tight (headings) from Google Fonts on top.
 - `packages/design-tokens/src/theme.css` maps those variables to Tailwind utilities such as
@@ -43,7 +43,7 @@ utility classes from unrelated apps. Use complete class names in source; Tailwin
 discover interpolated class fragments. App-wide resets belong in `@layer base` so component
 utilities can override them.
 
-The marketing site's `global.css` imports the tokens and a small base reset of its own; every
+The marketing site's `flux.css` imports the tokens and a small base reset of its own; every
 section is styled in the `<style>` block of its Astro component.
 
 ## React usage

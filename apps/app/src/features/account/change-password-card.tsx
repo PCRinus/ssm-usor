@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -14,7 +15,6 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { newPasswordErrorMessage } from '@/features/auth/auth-errors';
 import { hasSecondFactor, SecondFactorError } from '@/features/auth/auth-store';
-import { useCaptcha } from '@/features/auth/captcha';
 import {
   changePasswordSchema,
   type ChangePasswordValues,

@@ -1,13 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -21,6 +13,7 @@ import { type ReactNode, useState } from 'react';
 
 import { useChangeMemberRole, useRemoveMember } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
 
@@ -114,31 +107,20 @@ export function MemberActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog open={confirming} onOpenChange={(open) => !busy && setConfirming(open)}>
-        <DialogContent data-testid="member-remove-dialog" className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Elimini membrul din organizație?</DialogTitle>
-            <DialogDescription>
-              <Masked className="font-medium text-foreground">{name}</Masked> nu va mai avea acces
-              la clienții și lucrătorii organizației. Contul și datele introduse până acum rămân,
-              iar dacă te răzgândești poți trimite o nouă invitație.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-2">
-            <Button variant="ghost" disabled={busy} onClick={() => setConfirming(false)}>
-              Renunță
-            </Button>
-            <Button
-              variant="destructive"
-              data-testid="member-remove-confirm"
-              disabled={busy}
-              onClick={() => void removeMember()}
-            >
-              {remove.isPending ? 'Se elimină…' : 'Elimină'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirming}
+        busy={busy}
+        testId="member-remove"
+        title="Elimini membrul din organizație?"
+        confirmLabel="Elimină"
+        pendingLabel="Se elimină…"
+        onConfirm={() => void removeMember()}
+        onClose={() => setConfirming(false)}
+      >
+        <Masked className="font-medium text-foreground">{name}</Masked> nu va mai avea acces la
+        clienții și lucrătorii organizației. Contul și datele introduse până acum rămân, iar dacă te
+        răzgândești poți trimite o nouă invitație.
+      </ConfirmDialog>
     </>
   );
 }

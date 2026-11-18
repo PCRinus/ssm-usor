@@ -1,16 +1,14 @@
+import {
+  storedAmendedUnitsSchema,
+  storedAmendingActsSchema,
+  storedReviewSchema,
+} from '@ssm-usor/legislation-check/stored';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import type { Database } from '../../../src/database.types';
 
 export type FixDatabase = SupabaseClient<Database>;
-
-const amendingActSchema = z.object({
-  name: z.string(),
-  portalId: z.number().nullable().catch(null),
-});
-
-const amendedUnitSchema = z.object({ unit: z.string() });
 
 export const passageSchema = z.object({
   manifest: z.string(),
@@ -33,9 +31,9 @@ const changeRowSchema = z.object({
   compared_with: z.iso.date().nullable(),
   amending_act: z.string().nullable(),
   outcome: z.enum(['quote_differs', 'needs_review']),
-  amending_acts: z.array(amendingActSchema).nullable().catch(null),
-  amended_units: z.array(amendedUnitSchema).nullable().catch(null),
-  review: z.array(z.string()).nullable().catch(null),
+  amending_acts: storedAmendingActsSchema.nullable(),
+  amended_units: storedAmendedUnitsSchema,
+  review: storedReviewSchema,
   act: z.object({ id: z.string(), name: z.string(), portal_id: z.number().nullable() }),
   passages: z.array(passageSchema),
 });
@@ -60,11 +58,13 @@ export function toOpenChange(row: unknown): OpenChange {
     consolidatedOn: parsed.consolidated_on,
     comparedWith: parsed.compared_with,
     outcome: parsed.outcome,
-    amendingActs:
-      parsed.amending_acts ??
-      (parsed.amending_act ? [{ name: parsed.amending_act, portalId: null }] : []),
-    amendedUnits: [...new Set((parsed.amended_units ?? []).map((unit) => unit.unit))],
-    review: parsed.review ?? [],
+    amendingActs: parsed.amending_acts
+      ? parsed.amending_acts.map(({ name, portalId }) => ({ name, portalId }))
+      : parsed.amending_act
+        ? [{ name: parsed.amending_act, portalId: null }]
+        : [],
+    amendedUnits: [...new Set(parsed.amended_units.map((unit) => unit.unit))],
+    review: parsed.review,
     passages: [...parsed.passages].sort(
       (a, b) => a.template_file.localeCompare(b.template_file) || a.paragraph - b.paragraph
     ),
