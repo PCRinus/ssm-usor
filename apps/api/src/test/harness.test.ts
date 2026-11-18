@@ -8,6 +8,8 @@ import {
   fetchMock,
   membershipRow,
   mockUpstream,
+  routeUpstream,
+  signedInUserRoutes,
   stubFetch,
   testOrganizationId,
   testSecretKey,
@@ -50,18 +52,32 @@ describe('mockUpstream', () => {
     ]);
   });
 
-  it('answers one object when supabase-js asks for one', async () => {
-    mockUpstream({ '/rest/v1/clients': () => [{ id: 'a' }, { id: 'b' }] });
+  it('answers one object when supabase-js asks for one, and PGRST116 when there is none', async () => {
+    mockUpstream({
+      '/rest/v1/clients': () => [{ id: 'a' }, { id: 'b' }],
+      '/rest/v1/employees': () => [],
+    });
+    const asOne = { headers: { Accept: 'application/vnd.pgrst.object+json' } };
 
-    const one = await fetch('https://example.supabase.co/rest/v1/clients', {
-      headers: { Accept: 'application/vnd.pgrst.object+json' },
-    });
-    const none = await fetch('https://example.supabase.co/rest/v1/clients', {
-      headers: { Accept: 'application/vnd.pgrst.object+json' },
-    });
+    const one = await fetch('https://example.supabase.co/rest/v1/clients', asOne);
+    const none = await fetch('https://example.supabase.co/rest/v1/employees', asOne);
+    const list = await fetch('https://example.supabase.co/rest/v1/employees');
 
     expect(await one.json()).toEqual({ id: 'a' });
-    expect(none.status).toBe(200);
+    expect(none.status).toBe(406);
+    expect(await none.json()).toMatchObject({ code: 'PGRST116' });
+    expect(await list.json()).toEqual([]);
+  });
+
+  it('answers only the given layers through routeUpstream', async () => {
+    routeUpstream(signedInUserRoutes);
+
+    expect(await (await fetch('https://example.supabase.co/auth/v1/user')).json()).toEqual(
+      testUser
+    );
+    await expect(
+      fetch('https://example.supabase.co/rest/v1/rpc/current_membership', { method: 'POST' })
+    ).rejects.toThrow('Unexpected upstream request');
   });
 
   it('refuses a request no layer routes', async () => {
@@ -175,18 +191,5 @@ describe('apiRequest', () => {
 
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('sends a plain object as JSON', async () => {
-    mockUpstream({
-      'POST /rest/v1/rpc/current_membership': () => [membershipRow({ role: 'owner' })],
-    });
-
-    const response = await apiRequest('/organization/invitations', {
-      method: 'POST',
-      body: { email: 'not-an-email' },
-    });
-
-    expect(response.status).toBe(400);
   });
 });

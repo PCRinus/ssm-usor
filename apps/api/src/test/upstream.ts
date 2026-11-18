@@ -87,27 +87,40 @@ function toCall(input: Parameters<typeof fetch>[0], init?: RequestInit): Upstrea
   };
 }
 
-const signedInRoutes: UpstreamRoutes = {
+export const signedInUserRoutes: UpstreamRoutes = {
   '/auth/v1/user': () => ({ ...testUser }),
+};
+
+export const membershipRoutes: UpstreamRoutes = {
   '/rest/v1/rpc/current_membership': () => [membershipRow()],
 };
 
 // An earlier layer wins, even its bare `/path` over a later layer's `METHOD /path`, so a test can
-// replace a module's defaults. Rows go back as one object when supabase-js asked for one.
-export function mockUpstream(...layers: UpstreamRoutes[]) {
+// replace a module's defaults. When supabase-js asks for one object, rows go back as PostgREST
+// answers them: the first row, or 406 PGRST116 for none.
+export function routeUpstream(...layers: UpstreamRoutes[]) {
   fetchMock.mockImplementation(async (input, init) => {
     const call = toCall(input, init);
     const keys = [`${call.method} ${call.url.pathname}`, call.url.pathname];
-    const route = [...layers, signedInRoutes]
-      .flatMap((layer) => keys.map((key) => layer[key]))
-      .find(Boolean);
+    const route = layers.flatMap((layer) => keys.map((key) => layer[key])).find(Boolean);
     if (!route) throw new Error(`Unexpected upstream request: ${call.method} ${call.url}`);
     const result = await route(call);
     if (result instanceof Response) return result;
     const one = call.headers.get('Accept')?.includes('vnd.pgrst.object');
-    return Response.json(one && Array.isArray(result) ? (result[0] ?? null) : result);
+    if (!one || !Array.isArray(result)) return Response.json(result);
+    if (!result.length) {
+      return databaseError(
+        'PGRST116',
+        'JSON object requested, multiple (or no) rows returned',
+        406
+      );
+    }
+    return Response.json(result[0]);
   });
 }
+
+export const mockUpstream = (...layers: UpstreamRoutes[]) =>
+  routeUpstream(...layers, signedInUserRoutes, membershipRoutes);
 
 export const callsTo = (pathname: string, method?: string) =>
   fetchMock.mock.calls
