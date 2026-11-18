@@ -1,17 +1,24 @@
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
+import { Popover, PopoverAnchor, PopoverContent } from '@ssm-usor/ui/components/popover';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Check, Eye, EyeOff, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { Check, Eye, EyeOff, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { useRef } from 'react';
 
 import { Notice } from '@/components/notice';
 
-import { type BankQuestion, optionLetter } from './test-format';
+import { QuestionCitation } from './question-citation';
+import { type BankQuestion, minimumMessage } from './test-format';
+
+const panel = 'rounded-xl bg-card shadow-(--panel-shadow) outline outline-transparent';
 
 export function QuestionItem({
   question,
   number,
   busy,
   error,
+  minimum,
+  onMinimumClose,
+  onAdd,
   onPreview,
   onHide,
   onRestore,
@@ -23,6 +30,10 @@ export function QuestionItem({
   number: number | null;
   busy: boolean;
   error: string | null;
+  // The test's floor while the message about it is open on this question; null otherwise.
+  minimum: number | null;
+  onMinimumClose: () => void;
+  onAdd: () => void;
   onPreview: () => void;
   onHide: () => void;
   onRestore: () => void;
@@ -30,137 +41,214 @@ export function QuestionItem({
   onDelete: () => void;
 }) {
   const { hidden, builtIn } = question;
+  const hideRef = useRef<HTMLButtonElement>(null);
+  const correct = question.options.filter((option) => option.correct).length;
+
+  const actions = hidden ? (
+    <Button
+      variant="secondary"
+      size="sm"
+      data-testid="test-question-restore"
+      disabled={busy}
+      onClick={onRestore}
+    >
+      <RotateCcw aria-hidden="true" />
+      Repune în test
+    </Button>
+  ) : (
+    <>
+      <Button variant="secondary" size="sm" data-testid="test-question-preview" onClick={onPreview}>
+        <Eye aria-hidden="true" />
+        Previzualizează
+      </Button>
+      {builtIn ? (
+        <Popover open={minimum !== null} onOpenChange={(open) => !open && onMinimumClose()}>
+          <PopoverAnchor asChild>
+            <Button
+              ref={hideRef}
+              variant="secondary"
+              size="sm"
+              data-testid="test-question-hide"
+              aria-expanded={minimum !== null}
+              className="aria-expanded:bg-section-tab-hover aria-expanded:shadow-[inset_0_0_0_1px_var(--color-input)]"
+              disabled={busy}
+              onClick={onHide}
+            >
+              <EyeOff aria-hidden="true" />
+              Ascunde din test
+            </Button>
+          </PopoverAnchor>
+          <PopoverContent
+            align="end"
+            collisionPadding={12}
+            data-testid="test-minimum"
+            aria-label="Minimul de întrebări active"
+            className="w-95 rounded-xl p-4 shadow-lg max-sm:w-[calc(100vw-1.5rem)]"
+            onInteractOutside={(event) => {
+              if (hideRef.current?.contains(event.target as Node)) event.preventDefault();
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              hideRef.current?.focus();
+            }}
+          >
+            <p className="text-sm leading-[22px]">{minimumMessage(minimum ?? 0)}</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              data-testid="test-minimum-add"
+              onClick={onAdd}
+            >
+              <Plus aria-hidden="true" />
+              Adaugă o întrebare
+            </Button>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <>
+          <Button
+            variant="secondary"
+            size="sm"
+            data-testid="test-question-edit"
+            disabled={busy}
+            onClick={onEdit}
+          >
+            <Pencil aria-hidden="true" />
+            Modifică
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            data-testid="test-question-delete"
+            disabled={busy}
+            onClick={onDelete}
+          >
+            <Trash2 aria-hidden="true" />
+            Șterge
+          </Button>
+        </>
+      )}
+    </>
+  );
+
   return (
     <li
       data-testid="test-question"
       data-question-id={question.id}
       data-built-in={builtIn}
       data-hidden={hidden}
-      className={cn('grid gap-3 px-5 py-5', hidden && 'bg-muted/40')}
+      className={cn(
+        hidden
+          ? 'rounded-xl bg-muted/50 px-4 py-3.5 shadow-(--panel-ring) outline outline-transparent sm:px-7 sm:py-[18px]'
+          : cn(panel, 'px-4 py-[18px] sm:px-7 sm:py-6')
+      )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-        <div className={cn('flex min-w-0 flex-1 gap-3', hidden && 'text-muted-foreground')}>
-          <span
-            aria-hidden={number === null}
-            className="w-6 shrink-0 pt-px text-right text-sm font-medium text-muted-foreground tabular-nums"
-          >
-            {number === null ? '–' : `${number}.`}
-          </span>
+      <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-2 sm:grid-cols-[1.875rem_minmax(0,1fr)_auto] sm:gap-x-3">
+        <span
+          aria-hidden={number === null}
+          className={cn(
+            'text-right text-[17px] leading-[26px] font-semibold tabular-nums',
+            number === null ? 'text-muted-foreground' : 'text-section-tab-foreground'
+          )}
+        >
+          {number === null ? '–' : `${number}.`}
+        </span>
+        <div className="min-w-0">
           <p
             data-testid="test-question-text"
-            className="max-w-prose min-w-0 text-[0.9375rem] leading-relaxed font-medium text-pretty"
+            className={cn(
+              'text-[17px] leading-[26px] text-pretty',
+              hidden ? 'font-medium text-section-tab-foreground' : 'font-semibold'
+            )}
           >
             {question.text}
           </p>
+          <p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">
+            {hidden && (
+              <span data-testid="test-question-hidden">
+                <b className="font-semibold">Ascunsă</b>, nu intră în test ·{' '}
+              </span>
+            )}
+            <span data-testid="test-question-kind">{builtIn ? 'Predefinită' : 'Proprie'}</span>
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="outline" data-testid="test-question-kind">
-            {builtIn ? 'Predefinită' : 'Proprie'}
-          </Badge>
-          {hidden && (
-            <Badge variant="secondary" data-testid="test-question-hidden">
-              Ascunsă
-            </Badge>
-          )}
+        <div className="col-span-full mt-3 flex flex-wrap gap-2 sm:col-span-1 sm:mt-0 sm:justify-end">
+          {actions}
         </div>
       </div>
 
-      <ul
-        aria-label="Variantele de răspuns"
-        className={cn('grid max-w-prose gap-1 pl-9', hidden && 'text-muted-foreground')}
-      >
-        {question.options.map((option, index) => (
-          <li
-            key={index}
-            data-testid="test-question-option"
-            data-correct={option.correct}
-            className="flex gap-2 text-sm leading-relaxed"
-          >
-            <span className="w-4 shrink-0 text-muted-foreground">{optionLetter(index)}.</span>
-            <span className={cn('min-w-0', option.correct && !hidden && 'font-medium')}>
-              {option.text}
-            </span>
-            {option.correct && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 pt-0.5 text-xs font-medium text-success-foreground">
-                <Check className="size-3.5" aria-hidden="true" />
-                corect
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      {(question.explanation || question.citation) && (
-        <div className="grid max-w-prose gap-1 pl-9 text-sm leading-relaxed text-muted-foreground">
-          {question.explanation && (
-            <p data-testid="test-question-explanation" className="border-l-2 pl-3">
-              {question.explanation}
+      {!hidden && (
+        <div className="mt-3.5 sm:mt-[18px] sm:ml-[42px]">
+          <ul aria-label="Variantele de răspuns" className="grid gap-0.5">
+            {question.options.map((option, index) => (
+              <li
+                key={index}
+                data-testid="test-question-option"
+                data-correct={option.correct}
+                className={cn(
+                  'flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-[15px] leading-[23px] sm:gap-3 sm:px-3',
+                  option.correct
+                    ? 'bg-success font-semibold text-success-foreground'
+                    : 'text-section-tab-foreground'
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-[1.5px] grid size-5 shrink-0 place-items-center rounded-[5px] border',
+                    option.correct
+                      ? 'border-success-foreground bg-success-foreground text-success'
+                      : 'border-border bg-card'
+                  )}
+                >
+                  {option.correct && <Check className="size-3.5" strokeWidth={3} />}
+                </span>
+                <span className="max-w-[75ch] min-w-0">{option.text}</span>
+                {option.correct && (
+                  <span className="ml-auto shrink-0 pl-3 text-[13px] leading-[23px] font-semibold sm:pl-4">
+                    Corect
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {correct > 1 && (
+            <p
+              data-testid="test-question-many"
+              className="mt-2.5 text-[13px] leading-5 font-medium text-success-foreground"
+            >
+              {correct} răspunsuri corecte: lucrătorul le bifează pe toate.
             </p>
           )}
-          {question.citation && (
-            <p data-testid="test-question-citation" className="pl-3.5 text-xs">
-              Temei: {question.citation}
-            </p>
+          {(question.explanation || question.citation) && (
+            <div className="mt-4 flex flex-col rounded-[10px] bg-background p-3.5 sm:px-5 sm:pt-4 sm:pb-[18px]">
+              <div className="contents sm:flex sm:flex-wrap sm:items-baseline sm:justify-between sm:gap-x-6 sm:gap-y-1">
+                {question.explanation && (
+                  <p className="text-[13px] leading-5 font-semibold">Explicație</p>
+                )}
+                {question.citation && (
+                  <QuestionCitation
+                    citation={question.citation}
+                    parts={question.citationParts}
+                    className={cn(question.explanation && 'order-3 mt-2.5 sm:order-none sm:mt-0')}
+                  />
+                )}
+              </div>
+              {question.explanation && (
+                <p
+                  data-testid="test-question-explanation"
+                  className="mt-1.5 max-w-[78ch] text-sm leading-[22px] text-pretty"
+                >
+                  {question.explanation}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
-
-      <div className="flex flex-wrap gap-1 pl-7">
-        <Button variant="ghost" size="sm" data-testid="test-question-preview" onClick={onPreview}>
-          <Eye aria-hidden="true" />
-          Previzualizează
-        </Button>
-        {builtIn ? (
-          hidden ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              data-testid="test-question-restore"
-              disabled={busy}
-              onClick={onRestore}
-            >
-              <RotateCcw aria-hidden="true" />
-              Restaurează
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              data-testid="test-question-hide"
-              disabled={busy}
-              onClick={onHide}
-            >
-              <EyeOff aria-hidden="true" />
-              Ascunde
-            </Button>
-          )
-        ) : (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              data-testid="test-question-edit"
-              disabled={busy}
-              onClick={onEdit}
-            >
-              <Pencil aria-hidden="true" />
-              Modifică
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              data-testid="test-question-delete"
-              disabled={busy}
-              onClick={onDelete}
-            >
-              <Trash2 aria-hidden="true" />
-              Șterge
-            </Button>
-          </>
-        )}
-      </div>
       {error && (
-        <Notice variant="destructive" data-testid="test-bank-error" className="ml-9 max-w-prose">
+        <Notice variant="destructive" data-testid="test-bank-error" className="mt-3 sm:ml-[42px]">
           {error}
         </Notice>
       )}

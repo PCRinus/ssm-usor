@@ -14,7 +14,8 @@ test.afterAll(cleanUp);
 
 const ownText = 'Unde se află trusa de prim ajutor din atelierul de sudură?';
 
-// ADR 024: the seeded TASSM holds ten built-ins, the floor, so a hide waits for an own question.
+// ADR 024: the seeded SSM hiring test holds ten built-ins, the floor, so a hide waits for an own
+// question.
 test('a specialist keeps ten questions in the bank and records a paper pass', async ({ page }) => {
   const owner = await createAccount('knowledge-tests', 'Dan MARIN');
   const organizationId = await createOrganization('Teste E2E', owner.id);
@@ -59,22 +60,30 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByTestId('nav-tests').click();
   await expect(page).toHaveURL(/\/teste\/ssm$/);
-  const card = page.getByTestId('test-bank-test').filter({ hasText: 'TASSM' });
-  const facts = card.getByTestId('test-bank-facts');
-  await expect(facts).toHaveText('10 întrebări active · se extrag 10 · prag 70 %');
+  const card = page.getByTestId('test-bank-test');
+  await expect(page.getByTestId('test-bank-rules')).toHaveText(
+    '10 întrebări pe test, extrase la întâmplare · prag de promovare 70 %'
+  );
+  const counts = card.getByTestId('test-bank-counts');
+  await expect(counts).toHaveText('10 întrebări active · minimum 10');
   const builtIns = card.locator('[data-testid="test-question"][data-built-in="true"]');
   await expect(builtIns).toHaveCount(10);
   const first = builtIns.first();
+  const firstLinks = first.getByTestId('test-question-citation-link');
+  await expect(firstLinks.first()).toHaveAttribute('href', /^https:\/\/legislatie\.just\.ro\//);
+  await expect(firstLinks.first()).toHaveAttribute('target', '_blank');
 
   await first.getByTestId('test-question-hide').click();
-  await expect(card.getByTestId('test-bank-error')).toHaveText(
-    'Un test trebuie să păstreze cel puțin zece întrebări active.'
+  const minimum = page.getByTestId('test-minimum');
+  await expect(minimum).toContainText(
+    'Testul are minimum 10 întrebări active. Adaugă întâi una proprie, apoi o poți ascunde pe aceasta.'
   );
   await expect(first).toHaveAttribute('data-hidden', 'false');
 
-  await card.getByTestId('test-question-add').click();
+  await minimum.getByTestId('test-minimum-add').click();
+  await expect(minimum).toBeHidden();
   const dialog = page.getByTestId('test-question-dialog');
-  await expect(dialog.getByTestId('test-question-test')).toHaveValue('Testul la angajare (TASSM)');
+  await expect(dialog.getByTestId('test-question-test')).toHaveValue('SSM la angajare');
   await dialog.getByTestId('test-question-text').fill(ownText);
   const options = dialog.getByTestId('test-question-option-text');
   await options.nth(0).fill('Lângă ușa de evacuare a atelierului');
@@ -86,7 +95,7 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
     .fill('Trusa stă lângă ieșire, ca oricine să o ia fără să treacă prin atelier.');
   await dialog.getByTestId('test-question-submit').click();
   await expect(dialog).toBeHidden();
-  await expect(facts).toHaveText('11 întrebări active · se extrag 10 · prag 70 %');
+  await expect(counts).toHaveText('11 întrebări active');
   const own = card.getByTestId('test-question').filter({ hasText: ownText });
   await expect(own.getByTestId('test-question-kind')).toHaveText('Proprie');
 
@@ -102,9 +111,14 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
 
   await first.getByTestId('test-question-hide').click();
   await expect(first).toHaveAttribute('data-hidden', 'true');
-  await expect(first.getByTestId('test-question-hidden')).toHaveText('Ascunsă');
-  await expect(facts).toHaveText('10 întrebări active · se extrag 10 · prag 70 %');
+  await expect(first.getByTestId('test-question-hidden')).toContainText('Ascunsă');
+  await expect(counts).toHaveText('10 întrebări active · minimum 10 · 1 ascunsă');
   await expect(card.getByTestId('test-bank-error')).toBeHidden();
+
+  await page.getByTestId('test-bank-section').filter({ hasText: 'SU anual' }).click();
+  await expect(page).toHaveURL(/\/teste\/su-anual$/);
+  await expect(page.getByTestId('test-bank-test')).toHaveAttribute('data-test', 'annual');
+  await expect(page.getByTestId('test-bank-counts')).toHaveText('10 întrebări active · minimum 10');
 
   await page.goto(`/clienti/${clientId}/angajati/${employee.id}/instruire/ssm`);
   const tests = page.getByTestId('employee-tests');

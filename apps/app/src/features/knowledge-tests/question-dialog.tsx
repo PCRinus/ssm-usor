@@ -1,11 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  type KnowledgeTest,
-  knowledgeTestCodeOf,
-  knowledgeTestLabels,
-  knowledgeTestsByDomain,
-  type TrainingDomain,
-} from '@ssm-usor/contracts';
+import type { KnowledgeTest, TrainingDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
@@ -19,7 +13,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
-import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
@@ -41,6 +34,7 @@ import {
   toNewQuestionRequest,
   toQuestionRequest,
 } from './question-schema';
+import { bankTestLabel } from './test-bank-sections';
 import { type BankQuestion, invalidateTestBank, optionLetter, testFailure } from './test-format';
 
 export type QuestionEditing =
@@ -91,7 +85,6 @@ function QuestionForm({
   const { errors } = form.formState;
   const options = useFieldArray({ control: form.control, name: 'options' });
   const busy = create.isPending || update.isPending;
-  const tests = knowledgeTestsByDomain[domain];
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -129,27 +122,12 @@ function QuestionForm({
         </DialogHeader>
         <DialogBody className="mt-5 grid gap-5">
           <Field id="test-question-test" label="Testul" mark="required">
-            {question || tests.length === 1 ? (
-              <Input
-                id="test-question-test"
-                data-testid="test-question-test"
-                readOnly
-                value={`${knowledgeTestLabels[form.getValues('test')]} (${knowledgeTestCodeOf(domain, form.getValues('test'))})`}
-              />
-            ) : (
-              <NativeSelect
-                id="test-question-test"
-                data-testid="test-question-test"
-                disabled={busy}
-                {...form.register('test')}
-              >
-                {tests.map((test) => (
-                  <NativeSelectOption key={test} value={test}>
-                    {knowledgeTestLabels[test]} ({knowledgeTestCodeOf(domain, test)})
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            )}
+            <Input
+              id="test-question-test"
+              data-testid="test-question-test"
+              readOnly
+              value={bankTestLabel(domain, form.getValues('test'))}
+            />
           </Field>
           <Field id="test-question-text" label="Întrebarea" mark="required" error={errors.text}>
             <Textarea
@@ -276,6 +254,7 @@ function QuestionForm({
             id="test-question-citation"
             label="Temeiul"
             mark="optional"
+            help="teste.temei"
             error={errors.citation}
             hint="Articolul pe care se sprijină întrebarea, de exemplu „HG 1425/2006, art. 89”."
           >

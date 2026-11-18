@@ -221,9 +221,10 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/evaluari-de-risc/$profileId.tsx`                               | `/evaluari-de-risc/:profileId`                         | One profile: its result, work system and factors, with the evaluation page's cards. Names the browser tab after the profile.                                                                               |
 | `routes/_authenticated/teste.tsx`                                                     | `/teste`                                               | Layout of the question bank (ADR 024), the sidebar entry "Teste" after "Evaluări de risc".                                                                                                                 |
 | `routes/_authenticated/teste/index.tsx`                                               | `/teste`                                               | Opens the SSM tab, `/teste/ssm`.                                                                                                                                                                           |
-| `routes/_authenticated/teste/_bank.tsx`                                               | `/teste/*`                                             | Pathless layout of the bank: the title and one tab per domain.                                                                                                                                             |
-| `routes/_authenticated/teste/_bank/ssm.tsx`                                           | `/teste/ssm`                                           | "Teste SSM": the hiring test (TASSM) and its questions.                                                                                                                                                    |
-| `routes/_authenticated/teste/_bank/su.tsx`                                            | `/teste/su`                                            | "Teste PSI": the hiring test (TASU) and the annual test (TPSU).                                                                                                                                            |
+| `routes/_authenticated/teste/_bank.tsx`                                               | `/teste/*`                                             | Pathless layout of the bank: the title "Teste", the sitting rules and one folder tab per test onto one sheet.                                                                                              |
+| `routes/_authenticated/teste/_bank/ssm.tsx`                                           | `/teste/ssm`                                           | "SSM la angajare": the occupational safety hiring test.                                                                                                                                                    |
+| `routes/_authenticated/teste/_bank/su-la-angajare.tsx`                                | `/teste/su-la-angajare`                                | "SU la angajare": the fire-safety hiring test.                                                                                                                                                             |
+| `routes/_authenticated/teste/_bank/su-anual.tsx`                                      | `/teste/su-anual`                                      | "SU anual": the fire-safety annual test.                                                                                                                                                                   |
 | `routes/_authenticated/legislatie.tsx`                                                | `/legislatie`                                          | Layout of "Legislație" (ADR 017): the title, the last check and the three tabs.                                                                                                                            |
 | `routes/_authenticated/legislatie/index.tsx`                                          | `/legislatie`                                          | Redirects to "Documente de actualizat".                                                                                                                                                                    |
 | `routes/_authenticated/legislatie/documente.tsx`                                      | `/legislatie/documente`                                | "Documente de actualizat": the documents behind, under SSM and PSI, with bulk regeneration.                                                                                                                |
@@ -1676,22 +1677,32 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   marked. Renaming or deleting the profile, or deleting one of its factors, refreshes every
   evaluation read, since their links and names change.
 - `/teste`: the question bank ([ADR 024](architecture/adr-024-knowledge-tests.md)), in
-  `src/features/knowledge-tests/`, "Teste" in the sidebar for owners and specialists alike, with
-  "Teste SSM" at `/teste/ssm` and "Teste PSI" at `/teste/su` in the section navigation;
-  `/teste` opens the SSM tab. A tab reads `GET /organization/tests/questions?domain=` and gives
-  each test a card: its name and code, "12 întrebări active · se extrag 10 · prag 70 %" (the
-  sitting size and the pass mark are shown, never set), and its questions in the printed order,
-  the active ones numbered. A question shows its text, its options with the correct ones marked
-  "corect", the explanation and "Temei: …" when present, and a "Predefinită" or "Proprie" badge;
-  a hidden built-in stays in place, muted, with "Ascunsă". A built-in is hidden and restored
-  without a confirmation; the API's `409 test_below_minimum` shows under the question as "Un test
-  trebuie să păstreze cel puțin zece întrebări active." "Adaugă o întrebare" opens the dialog on
-  the card's test (the fire-safety tab offers both tests): the text, two to four options each with
-  a "corect" box, at least one ticked, an optional explanation and an optional citation. An own
-  question is edited in the same dialog, which sends its `replacesQuestionId` back unchanged
-  since the API clears it when left out, and deleted after a confirmation. "Previzualizează"
-  shows the question as the portal will: "1 din 10", the options as rows that toggle, no answer
-  marked, and under it the explanation as it follows a wrong answer, or that there is none.
+  `src/features/knowledge-tests/`, "Teste" in the sidebar for owners and specialists alike. The
+  page is titled "Teste" with the help on the page, and under it the sitting rules from the
+  bank's answer, "10 întrebări pe test, extrase la întâmplare · prag de promovare 70 %" (shown,
+  never set). Below, one folder tab per test onto one white sheet, as Organizație has them:
+  "SSM la angajare" at `/teste/ssm`, "SU la angajare" at `/teste/su-la-angajare` and "SU anual"
+  at `/teste/su-anual`, the sidebar's children in the same order; `/teste` opens the first. The
+  layout and the tabs share one read of `GET /organization/tests/questions`, without a domain.
+  The test codes (TASSM, TASU, TPSU) appear nowhere on the page. A tab's toolbar counts the
+  test's questions, "12 întrebări active · 2 ascunse", with "minimum 10" while ten or fewer are
+  active, and holds "Adaugă o întrebare", which opens the dialog on that test. The questions
+  follow in the printed order, the active ones numbered, each a raised card: the text, under it
+  "Predefinită" or "Proprie", the actions at the top right ("Previzualizează", then "Ascunde din
+  test" for a built-in or "Modifică" and "Șterge" for an own question; under the text on a
+  phone), every option on its own row with the portal's square marker, the correct ones filled,
+  tinted and ending in "Corect", "N răspunsuri corecte: lucrătorul le bifează pe toate." when
+  several are, and one block with the "Explicație" and the "Temei", whose `citationParts` with a
+  `url` are links opening the article on legislatie.just.ro in a new tab and the rest text. A
+  hidden built-in folds to one grey line, "Ascunsă, nu intră în test · Predefinită", with
+  "Repune în test". At the floor, "Ascunde din test" calls nothing and opens a message under the
+  button, "Testul are minimum 10 întrebări active. Adaugă întâi una proprie, apoi o poți ascunde
+  pe aceasta.", with "Adaugă o întrebare"; the API's `409 test_below_minimum` opens the same
+  message, and any other failure shows under the question. An own question is edited in the
+  same dialog, which sends its `replacesQuestionId` back unchanged since the API clears it when
+  left out, and deleted after a confirmation. "Previzualizează" shows the question as the portal
+  will: "1 din 10", the options as rows that toggle, no answer marked, and under it the
+  explanation as it follows a wrong answer, or that there is none.
 - The employee's "Instruire SSM" and "Instruire PSI" tabs carry a "Testare" card under the
   training state, from `GET …/employees/{employeeId}/tests`: the domain's test state as a badge
   ("Fără test", "De susținut", "Neverificat pe fișă" in grey, "Promovat", "Anual scadent"; a dash
