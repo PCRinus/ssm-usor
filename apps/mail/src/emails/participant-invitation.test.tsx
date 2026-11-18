@@ -1,41 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail } from '../testing';
 import ParticipantInvitation, { subject } from './participant-invitation';
-
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
 
 const portalUrl = 'https://portal.ssmusor.ro';
 
 async function sendInvitation() {
-  const sent: OutgoingEmail[] = [];
-  await sendEmail(
-    env,
-    {
-      to: 'ion@example.ro',
-      subject: subject('Fabrica Sigma SRL'),
-      body: (
-        <ParticipantInvitation
-          clientName="Fabrica Sigma SRL"
-          organizationName="Protect SSM"
-          portalUrl={portalUrl}
-        />
-      ),
-    },
-    {
-      send: async (email) => {
-        sent.push(email);
-        return { id: 'msg_1' };
-      },
-    }
-  );
-
-  return sent[0]!;
+  return sentEmail({
+    to: 'ion@example.ro',
+    subject: subject('Fabrica Sigma SRL'),
+    body: (
+      <ParticipantInvitation
+        clientName="Fabrica Sigma SRL"
+        organizationName="Protect SSM"
+        portalUrl={portalUrl}
+      />
+    ),
+  });
 }
 
 describe('participant invitation', () => {

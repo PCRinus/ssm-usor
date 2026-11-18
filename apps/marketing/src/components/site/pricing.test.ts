@@ -1,4 +1,11 @@
-import { smsOverage, trialDays as appTrialDays } from '@ssm-usor/contracts';
+import {
+  billingPlans,
+  creditsExtra,
+  paidPlans,
+  selfServeLimits,
+  smsOverage,
+  trialDays as appTrialDays,
+} from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { faq } from './copy';
@@ -10,6 +17,8 @@ import {
   type CompareRow,
   eur,
   extras,
+  maxUsers,
+  maxWorkers,
   monthlyAt,
   narrowStopLabels,
   paidYearly,
@@ -20,6 +29,7 @@ import {
   quote,
   smsCodes,
   start,
+  steppedPlans,
   trialDays,
   welcomeCredits,
   workerStops,
@@ -117,6 +127,42 @@ describe('the steps', () => {
 
   it('the SMS extra matches the rate Stripe charges', () => {
     expect(extras.sms * 100).toBe(smsOverage.price.unitAmount);
+  });
+});
+
+// ADR 029 keeps two copies: the page computes its prices from a formula, the app lists each
+// step for Stripe. A change to one alone would promise one price and charge another.
+describe('the app catalogue', () => {
+  it('has the same plans', () => {
+    expect(steppedPlans.map((plan) => plan.id)).toEqual(paidPlans);
+  });
+
+  it.each(steppedPlans.map((plan) => [plan.id, plan] as const))(
+    '%s has the steps, users and allowances the app sells',
+    (id, plan) => {
+      const terms = billingPlans[id];
+      expect(plan.steps).toEqual(terms.steps.map((step) => step.employees));
+      expect(plan.users).toBe(terms.members);
+      expect(plan.lines.map(({ text }) => text)).toContain(`${terms.members} utilizatori`);
+      for (const step of terms.steps) {
+        const monthly = monthlyAt(plan, step.employees);
+        expect(monthly * 100).toBe(step.prices.month.unitAmount);
+        expect(paidYearly(monthly) * 100).toBe(step.prices.year.unitAmount);
+        expect(smsCodes(step.employees)).toBe(step.monthlySms);
+        expect(aiCredits(step.employees)).toBe(step.monthlyCredits);
+        expect(welcomeCredits(step.employees)).toBe(step.welcomeCredits);
+      }
+    }
+  );
+
+  it('sells AI credits in the blocks and at the rate the app charges', () => {
+    expect(extras.creditsPer).toBe(creditsExtra.blockCredits);
+    expect(extras.credits * 100).toBe(creditsExtra.price.unitAmount);
+  });
+
+  it('asks for an offer where self-serve ends in the app', () => {
+    expect(maxWorkers).toBe(selfServeLimits.employees);
+    expect(maxUsers).toBe(selfServeLimits.members);
   });
 });
 

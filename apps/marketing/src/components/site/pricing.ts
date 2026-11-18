@@ -55,36 +55,40 @@ export const billing = {
 
 export const defaultPeriod: BillingPeriod = 'annual';
 
+const startUsers = 3;
+
 export const start: SteppedPlan = {
   id: 'start',
   name: 'Start',
   who: 'Tot ce îți trebuie ca să ții la zi SSM și SU pentru toți clienții tăi.',
-  users: 3,
+  users: startUsers,
   steps: [250, 500, 750],
   firstPrice: 39,
   unitPrice: 20,
   priceUnit: 250,
   lines: [
     { text: 'Oricâți clienți' },
-    { text: '3 utilizatori' },
+    { text: `${startUsers} utilizatori` },
     { text: 'Documente SSM și SU din datele clientului' },
     { text: 'Fișe de instruire semnate pe telefon' },
     { text: 'Clientul vede instruirile fără să te sune' },
   ],
 };
 
+const profesionalUsers = 10;
+
 export const profesional: SteppedPlan = {
   id: 'profesional',
   name: 'Profesional',
   who: 'Pentru firma care crește: clienți noi, munca împărțită, ajutor mai repede.',
-  users: 10,
+  users: profesionalUsers,
   steps: [500, 1000, 1500, 2000, 3000, 4000, 5000],
   firstPrice: 89,
   unitPrice: 30,
   priceUnit: 500,
   lines: [
     { text: 'Tot ce include Start' },
-    { text: '10 utilizatori' },
+    { text: `${profesionalUsers} utilizatori` },
     { text: 'Fiecare coleg își vede clienții lui' },
     { text: 'Oferte și contracte pentru clienți noi' },
     { text: 'Suport în aceeași zi lucrătoare' },

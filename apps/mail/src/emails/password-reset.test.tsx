@@ -1,35 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail } from '../testing';
 import PasswordReset, { subject } from './password-reset';
-
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
 
 const resetUrl = 'https://app.ssmusor.ro/resetare-parola?token_hash=abc123';
 
 async function sendReset(expiresInMinutes = 60) {
-  const sent: OutgoingEmail[] = [];
-  await sendEmail(
-    env,
-    {
-      to: 'ion@example.ro',
-      subject,
-      body: <PasswordReset resetUrl={resetUrl} expiresInMinutes={expiresInMinutes} />,
-    },
-    {
-      send: async (email) => {
-        sent.push(email);
-        return { id: 'msg_1' };
-      },
-    }
-  );
-
-  return sent[0]!;
+  return sentEmail({
+    to: 'ion@example.ro',
+    subject,
+    body: <PasswordReset resetUrl={resetUrl} expiresInMinutes={expiresInMinutes} />,
+  });
 }
 
 describe('password reset', () => {
