@@ -1,3 +1,4 @@
+import { Badge } from '@ssm-usor/ui/components/badge';
 import type { ReactNode } from 'react';
 
 import { CellNote } from '@/components/data-table/cell-note';
@@ -40,10 +41,14 @@ export function StateCell({ row }: { row: TeamRow }) {
     value = 'Membru';
     note = `din ${formatRoDateOf(row.member.joinedAt)}`;
   } else if (row.invitation.status === 'open') {
-    value = 'Invitație în așteptare';
+    value = <Badge variant="outline">Invitat</Badge>;
     note = `expiră pe ${formatRoDateOf(row.invitation.expiresAt)}`;
   } else {
-    value = <span className="font-medium text-warning-foreground">Invitație expirată</span>;
+    value = (
+      <Badge variant="outline" className="border-warning-border bg-warning text-warning-foreground">
+        Invitație expirată
+      </Badge>
+    );
     note = `pe ${formatRoDateOf(row.invitation.expiresAt)}`;
   }
   return (

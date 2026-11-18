@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { ClientSheet } from './client-sheet';
+import { TabSheet } from './tab-sheet';
 
-describe('ClientSheet', () => {
+describe('TabSheet', () => {
   it('pads its content, and a flush sheet leaves the edges to it', () => {
     render(
       <>
-        <ClientSheet data-testid="padded" />
-        <ClientSheet data-testid="flush" flush />
+        <TabSheet data-testid="padded" />
+        <TabSheet data-testid="flush" flush />
       </>
     );
     const padded = screen.getByTestId('padded');

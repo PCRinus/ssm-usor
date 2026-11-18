@@ -235,7 +235,7 @@ describe('team table', () => {
     expect(within(nameless!).getByText('Specialist')).toBeTruthy();
 
     const [open, expired] = screen.getAllByTestId('invitation-row');
-    expect(open!.textContent).toContain('Invitație în așteptareexpiră pe 25.09.2026');
+    expect(open!.textContent).toContain('Invitatexpiră pe 25.09.2026');
     expect(within(expired!).getByText('Invitație expirată').className).toContain(
       'text-warning-foreground'
     );
@@ -509,21 +509,31 @@ describe('inviting a member', () => {
 });
 
 describe('pending invitation actions', () => {
-  async function openInvitationMenu(email = 'maria@example.test') {
-    const user = userEvent.setup();
-    const row = (await screen.findAllByTestId('invitation-row')).find((each) =>
+  async function invitationRow(email = 'maria@example.test') {
+    return (await screen.findAllByTestId('invitation-row')).find((each) =>
       each.textContent?.includes(email)
     )!;
-    await user.click(within(row).getByTestId('invitation-actions'));
+  }
+
+  async function openInvitationMenu(email = 'maria@example.test') {
+    const user = userEvent.setup();
+    await user.click(within(await invitationRow(email)).getByTestId('invitation-actions'));
     return user;
   }
 
-  it('resends from the row menu and confirms with a toast', async () => {
+  async function resend(email = 'maria@example.test') {
+    const user = userEvent.setup();
+    const button = within(await invitationRow(email)).getByTestId('invitation-resend');
+    expect(button.dataset.variant).toBe('secondary');
+    expect(button.getAttribute('aria-label')).toBe(`Retrimite invitația la ${email}`);
+    await user.click(button);
+  }
+
+  it('resends from the button on the row and confirms with a toast', async () => {
     mockApi();
     mount();
-    const user = await openInvitationMenu();
 
-    await user.click(await screen.findByTestId('invitation-resend'));
+    await resend();
 
     expect(await screen.findByText('Am retrimis invitația la maria@example.test.')).toBeTruthy();
     expect(requests(`/organization/invitations/${invitation.id}/resend`, 'POST')).toHaveLength(1);
@@ -532,9 +542,8 @@ describe('pending invitation actions', () => {
   it('reports a resend made too soon inline', async () => {
     mockApi({ resend: () => conflict('sent_recently') });
     mount();
-    const user = await openInvitationMenu();
 
-    await user.click(await screen.findByTestId('invitation-resend'));
+    await resend();
 
     expect((await screen.findByTestId('team-error')).textContent).toMatch(
       /maria@example\.test în ultimele 10 minute/
@@ -547,9 +556,8 @@ describe('pending invitation actions', () => {
       resend: () => conflict('member_limit_reached'),
     });
     mount();
-    const user = await openInvitationMenu('sorina@example.test');
 
-    await user.click(await screen.findByTestId('invitation-resend'));
+    await resend('sorina@example.test');
 
     expect((await screen.findByTestId('team-error')).textContent).toMatch(
       /sorina@example\.test a expirat și nu mai ține un loc/
@@ -562,7 +570,10 @@ describe('pending invitation actions', () => {
     await waitFor(() => expect(requests('/organization/seats')).toHaveLength(1));
     const user = await openInvitationMenu();
 
-    await user.click(await screen.findByTestId('invitation-revoke'));
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
+      'Revocă invitația',
+    ]);
+    await user.click(screen.getByTestId('invitation-revoke'));
 
     expect(
       await screen.findByText('Invitația pentru maria@example.test a fost revocată.')
@@ -682,6 +693,68 @@ describe('organization sections', () => {
     await screen.findByTestId('authorizations-form');
     expect(runtime.router.state.location.pathname).toBe('/organizatie/abilitari');
     expect(screen.queryByTestId('member-row')).toBeNull();
+  });
+});
+
+describe('organization page', () => {
+  it('names the organization and the caller’s role, with the help on the roles beside it', async () => {
+    mockApi();
+    mount();
+
+    const page = await screen.findByTestId('organization-page');
+    const title = within(page).getByRole('heading', { level: 1 });
+    expect(title.textContent).toBe('Protect SSM');
+    expect(title.className).toContain('text-3xl');
+    const role = within(page).getByTestId('organization-role');
+    expect(role.textContent).toBe('Rolul tău: Admin');
+    expect(role.dataset.variant).toBe('secondary');
+    const help = within(page).getByRole('link', { name: 'Ajutor: Rolurile' });
+    expect(help.dataset.helpTopic).toBe('organizatie.roluri');
+  });
+
+  it('reads Specialist for a specialist', async () => {
+    mockApi({ role: 'specialist' });
+    mount();
+
+    expect((await screen.findByTestId('organization-role')).textContent).toBe(
+      'Rolul tău: Specialist'
+    );
+  });
+
+  it('opens each section as a folder tab onto one sheet, the forms and the team edge to edge', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await screen.findAllByTestId('member-row');
+    const nav = screen.getByRole('navigation', { name: 'Secțiunile organizației' });
+    const open = within(nav).getByRole('link', { name: 'Echipă' });
+    expect(open.getAttribute('aria-current')).toBe('page');
+    expect(open.querySelector('[data-label="Echipă"]')).not.toBeNull();
+    const sheet = () =>
+      screen.getByTestId('organization-page').querySelector('[data-slot="tab-sheet"]');
+    expect(sheet()?.contains(screen.getByTestId('team-card'))).toBe(true);
+    expect(sheet()?.hasAttribute('data-flush')).toBe(true);
+    expect(
+      within(screen.getByTestId('team-card')).getByRole('heading', { level: 2 }).className
+    ).toContain('sr-only');
+
+    await user.click(within(nav).getByRole('link', { name: 'Date firmă' }));
+    await screen.findByTestId('company-details-form');
+    expect(sheet()?.hasAttribute('data-flush')).toBe(true);
+    expect(
+      screen.getByTestId('company-details-form').querySelector('[data-slot="card"]')
+    ).toBeNull();
+
+    await user.click(within(nav).getByRole('link', { name: 'Abilitări' }));
+    await screen.findByTestId('authorizations-form');
+    expect(sheet()?.hasAttribute('data-flush')).toBe(true);
+    expect(
+      screen.getByTestId('authorizations-form').querySelector('[data-slot="card"]')
+    ).toBeNull();
+
+    await user.click(within(nav).getByRole('link', { name: 'Abonament' }));
+    await waitFor(() => expect(sheet()?.hasAttribute('data-flush')).toBe(false));
   });
 });
 

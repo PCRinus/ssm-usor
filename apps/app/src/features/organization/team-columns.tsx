@@ -72,14 +72,16 @@ export function teamColumns({
     helper.display({
       id: 'actions',
       header: () => <span className="sr-only">Acțiuni</span>,
-      meta: { headerClassName: 'w-12', cellClassName: 'py-1 text-right' },
+      meta: { headerClassName: 'w-12', cellClassName: 'py-1' },
       cell: ({ row }) => {
         const team = row.original;
         if (team.kind === 'invitation') {
           return <InvitationActions invitation={team.invitation} onError={onError} />;
         }
         return team.member.userId === userId ? null : (
-          <MemberActions member={team.member} onError={onError} />
+          <div className="flex justify-end">
+            <MemberActions member={team.member} onError={onError} />
+          </div>
         );
       },
     }),

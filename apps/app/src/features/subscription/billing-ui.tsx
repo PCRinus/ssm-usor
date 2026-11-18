@@ -23,6 +23,7 @@ export function BillingCard({
 }) {
   return (
     <section
+      data-sheet-panel
       className={cn(
         'flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm sm:p-6',
         className
@@ -33,7 +34,9 @@ export function BillingCard({
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           {title && (
             <div className="flex items-center gap-1">
-              <h2 className="text-base font-semibold">{title}</h2>
+              <h2 data-slot="section-card-title" className="text-base font-semibold">
+                {title}
+              </h2>
               {help && <HelpLink topic={help} label={`Ajutor: ${title}`} />}
             </div>
           )}

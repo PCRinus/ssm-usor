@@ -33,13 +33,13 @@ import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
+import { TabSheet } from '@/components/tab-sheet';
 import { useMe } from '@/features/account/use-me';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { useEndWayBackOutside } from '@/features/missing-data/way-back';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
 import { ClientDeleteDialog, type ClientToDelete } from './client-delete-dialog';
-import { ClientSheet } from './client-sheet';
 import { HeaderFact, RecordHeader } from './record-header';
 
 const clientRoute = getRouteApi('/_authenticated/clienti/$clientId');
@@ -219,9 +219,9 @@ export function ClientLayout() {
             </SectionNavLink>
           ))}
       </SectionNav>
-      <ClientSheet flush={flushSheet}>
+      <TabSheet flush={flushSheet}>
         <Outlet />
-      </ClientSheet>
+      </TabSheet>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <ClientDeleteDialog
         client={deleting}

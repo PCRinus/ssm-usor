@@ -3,7 +3,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { toast } from '@ssm-usor/ui/lib/toast';
@@ -73,31 +72,39 @@ export function InvitationActions({
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          data-testid="invitation-actions"
-          aria-label={`Acțiuni pentru invitația trimisă la ${email}`}
-          disabled={busy}
-        >
-          <MoreHorizontal aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem data-testid="invitation-resend" onSelect={() => void run('resend')}>
-          Retrimite invitația
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          data-testid="invitation-revoke"
-          variant="destructive"
-          onSelect={() => void run('revoke')}
-        >
-          Revocă invitația
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center justify-end gap-2">
+      <Button
+        variant="secondary"
+        size="sm"
+        data-testid="invitation-resend"
+        aria-label={`Retrimite invitația la ${email}`}
+        disabled={busy}
+        onClick={() => void run('resend')}
+      >
+        Retrimite
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            data-testid="invitation-actions"
+            aria-label={`Acțiuni pentru invitația trimisă la ${email}`}
+            disabled={busy}
+          >
+            <MoreHorizontal aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            data-testid="invitation-revoke"
+            variant="destructive"
+            onSelect={() => void run('revoke')}
+          >
+            Revocă invitația
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

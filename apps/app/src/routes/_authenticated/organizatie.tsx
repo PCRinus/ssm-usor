@@ -1,9 +1,13 @@
+import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, Outlet, useMatches } from '@tanstack/react-router';
 import { Award, Building2, CreditCard, UsersRound } from 'lucide-react';
 
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
+import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
+import { TabSheet } from '@/components/tab-sheet';
 import { useMe } from '@/features/account/use-me';
 import { roleLabels } from '@/features/organization/labels';
 
@@ -23,6 +27,9 @@ function OrganizationLayout() {
   const me = useMe();
   const fullPage = useMatches({
     select: (matches) => matches.some((match) => match.staticData.fullPage),
+  });
+  const flushSheet = useMatches({
+    select: (matches) => matches.some((match) => match.staticData.flushSheet),
   });
 
   if (me.isPending) {
@@ -53,19 +60,30 @@ function OrganizationLayout() {
   if (fullPage) return <Outlet />;
 
   return (
-    <div data-testid="organization-page" className="grid gap-4">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">{membership.organization.name}</h1>
-        <span className="text-sm text-muted-foreground">{roleLabels[membership.role]}</span>
+    <div data-testid="organization-page">
+      <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight">{membership.organization.name}</h1>
+        <div className="flex items-center gap-1.5">
+          <Badge
+            variant="secondary"
+            data-testid="organization-role"
+            className="px-2.5 py-1 text-[13px]"
+          >
+            Rolul tău: {roleLabels[membership.role]}
+          </Badge>
+          <HelpLink topic="organizatie.roluri" label="Ajutor: Rolurile" />
+        </div>
       </div>
-      <SectionNav label="Secțiunile organizației">
+      <SectionNav label="Secțiunile organizației" variant="folder" className={phoneBleed}>
         {sections.map(({ to, label, icon }) => (
           <SectionNavLink key={to} to={to} data-testid="organization-section" icon={icon}>
             {label}
           </SectionNavLink>
         ))}
       </SectionNav>
-      <Outlet />
+      <TabSheet flush={flushSheet}>
+        <Outlet />
+      </TabSheet>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
-import { Card } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
@@ -18,6 +17,7 @@ import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
+import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { todayIso } from '@/features/employees/employee-format';
 import { type AuthorizationsFocus, useFocusRequest } from '@/features/missing-data/focus';
@@ -69,7 +69,10 @@ export function AuthorizationsCard({
   });
 
   return (
-    <div data-testid="authorizations-card" className="grid gap-5">
+    <div
+      data-testid="authorizations-card"
+      className={saved.isPending || saved.isError ? sheetPadding : undefined}
+    >
       {saved.isPending ? (
         <Skeleton className="h-72 w-full" />
       ) : saved.isError ? (
@@ -184,9 +187,8 @@ function AuthorizationsForm({
       onSubmit={(event) => void onSubmit(event)}
       aria-busy={busy}
       noValidate
-      className="grid gap-6"
     >
-      <Card className="gap-0 divide-y py-0">
+      <div className="divide-y">
         <FormSection
           title="Certificat de abilitare SSM"
           description="Numărul și emitentul care vor apărea în contract."
@@ -259,20 +261,23 @@ function AuthorizationsForm({
             className: 'sm:col-span-2',
           })}
         </FormSection>
-      </Card>
-
-      {errors.root?.server && (
-        <Notice variant="destructive" data-testid="authorizations-error">
-          {errors.root.server.message}
-        </Notice>
-      )}
-      {canEdit && (
-        <div>
-          <Button type="submit" data-testid="authorizations-save" disabled={busy || !isDirty}>
-            {update.isPending ? 'Se salvează…' : 'Salvează'}
-          </Button>
-        </div>
-      )}
+        {(errors.root?.server || canEdit) && (
+          <div className="grid gap-6 p-6">
+            {errors.root?.server && (
+              <Notice variant="destructive" data-testid="authorizations-error">
+                {errors.root.server.message}
+              </Notice>
+            )}
+            {canEdit && (
+              <div>
+                <Button type="submit" data-testid="authorizations-save" disabled={busy || !isDirty}>
+                  {update.isPending ? 'Se salvează…' : 'Salvează'}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </form>
   );
 }
