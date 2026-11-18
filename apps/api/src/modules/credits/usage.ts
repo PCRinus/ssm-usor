@@ -9,7 +9,7 @@ import {
   isInstructionsPart,
 } from '@ssm-usor/contracts';
 
-import type { SmsSubscription } from '../sms-usage/policy';
+import type { EntitlementRow } from '../billing/entitlements';
 import { type CreditPolicy, creditPolicy, welcomeCreditsOf } from './policy';
 import type { Balance, CreditsStore, ImportCreditEntry } from './store';
 
@@ -64,7 +64,7 @@ export function usageView(policy: CreditPolicy, balance: Balance): BillingCredit
 export async function creditsUsageOf(
   store: Pick<CreditsStore, 'balance'>,
   organizationId: string,
-  row: SmsSubscription | null,
+  row: EntitlementRow | null,
   now: Date
 ): Promise<BillingCreditsUsage> {
   const policy = creditPolicy(row, now);

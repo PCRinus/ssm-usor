@@ -14,6 +14,7 @@ import {
 import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
+import { roCount } from '@/features/employees/employee-format';
 
 import { filesLabel } from './import-format';
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
@@ -65,13 +66,15 @@ export function StatusTag({ status }: { status: SectionStatus }) {
     case 'missing':
       return (
         <Tag tone="destructive" testId="section-status">
-          {status.count === 1 ? 'O dată lipsă' : `${status.count} date lipsă`}
+          {status.count === 1 ? 'O dată lipsă' : roCount(status.count, 'dată lipsă', 'date lipsă')}
         </Tag>
       );
     case 'invalid':
       return (
         <Tag tone="destructive" testId="section-status">
-          {status.count === 1 ? 'O valoare de corectat' : `${status.count} valori de corectat`}
+          {status.count === 1
+            ? 'O valoare de corectat'
+            : roCount(status.count, 'valoare de corectat', 'valori de corectat')}
         </Tag>
       );
     case 'check':

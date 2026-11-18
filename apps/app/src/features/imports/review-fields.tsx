@@ -38,6 +38,7 @@ import {
   emptyClientForm,
 } from '@/features/clients/client-form-schema';
 import { CountyCombobox } from '@/features/clients/county-combobox';
+import { roCount } from '@/features/employees/employee-format';
 
 import { endSentence } from './import-format';
 import { Includable } from './include-switch';
@@ -227,7 +228,7 @@ function pendingLine(states: FieldState[], context: FieldContext) {
   if (pending.length === 0) return null;
   return pending.length === 1
     ? `Mai ai ${pending[0]}`
-    : `Mai ai ${pending.length} lucruri de făcut`;
+    : `Mai ai ${roCount(pending.length, 'lucru', 'lucruri')} de făcut`;
 }
 
 export function FieldCard({
@@ -498,7 +499,7 @@ function ChoiceRow({ state, context }: { state: FieldState; context: FieldContex
       label={<span id={`${name}-label`}>{state.label}</span>}
     >
       <KindLine icon={<Split aria-hidden="true" />} tone={decided ? undefined : 'warning'}>
-        Documentele dau {state.own.length} variante. Alege-o pe cea de acum.
+        Documentele dau {roCount(state.own.length, 'variantă', 'variante')}. Alege-o pe cea de acum.
       </KindLine>
       {phones?.some((runs) => runs.some((run) => run.changed)) && (
         <RowNote testId="review-phone-differs">Numerele diferă prin cifrele marcate.</RowNote>

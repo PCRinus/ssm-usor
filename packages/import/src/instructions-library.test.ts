@@ -204,6 +204,19 @@ describe('compareWithLibrary', () => {
     expect(result!.title).toBe('Utilizarea scărilor metalice (Brutăria Fictivă)');
   });
 
+  it('keeps a title with the client’s name after it within the database’s 200 characters', async () => {
+    const long = 'Utilizarea scărilor metalice la lucrul în depozitul de materii prime '.repeat(3);
+    const [result] = await compareWithLibrary({
+      domain: 'ssm',
+      instructions: [packed('ssm-1', long.slice(0, 190).trim(), ['Alt text, cu totul diferit.'])],
+      library: [module('m-long', long.slice(0, 190).trim(), ladderArticles)],
+      clientName: 'Brutăria din curte și patiseria de lângă gară a familiei Popescu',
+    });
+
+    expect(result!.title).toMatch(/ \(Brutăria din curte .*\)$/);
+    expect(result!.title.length).toBeLessThanOrEqual(200);
+  });
+
   it('takes a title as used by a module of the other domain and by the pack itself', async () => {
     const suStore = module('m-su', 'Depozit', ['Stingătorul stă lângă ușă.'], 'su');
 

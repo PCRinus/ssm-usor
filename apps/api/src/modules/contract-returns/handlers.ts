@@ -12,6 +12,7 @@ import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { hashToken } from '../../lib/tokens';
+import { contractFileName } from '../service-contracts/context';
 import type {
   downloadContractReturnRoute,
   lookupContractReturnRoute,
@@ -130,8 +131,6 @@ const closed = () =>
     contractReturnConflictReasons.closed
   );
 
-const printedDate = (isoDate: string) => isoDate.split('-').reverse().join('.');
-
 export const lookupContractReturn: RouteHandler<typeof lookupContractReturnRoute, ApiEnv> = async (
   c
 ) => {
@@ -150,7 +149,7 @@ export const downloadContractReturn: RouteHandler<
   // The page keeps a link ready on a real button and renews it; a phone may leave it asleep
   // for a while.
   const expiresInSeconds = 600;
-  const fileName = `Contract nr. ${found.contract.contract_number} din ${printedDate(found.contract.contract_date)}.pdf`;
+  const fileName = contractFileName(found.contract.contract_number, found.contract.contract_date);
   const url = await createAdminFileStore(c).documentLink(found.revision.pdf_path, expiresInSeconds);
   return c.json({ url, fileName, expiresInSeconds }, 200);
 };
@@ -206,7 +205,21 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
     { onConflict: 'revision_id' }
   );
   if (recorded.error) throw fromDatabaseError(recorded.error, 'record received copy');
-  await createAdminFileStore(c).writeDocument(path, bytes, { replace: true });
+  try {
+    await createAdminFileStore(c).writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    // Only a first copy: after a failed replacement the row still describes the earlier
+    // file, under a hash the client's next try corrects. Only this try's row: a second
+    // upload may have replaced it and stored its file meanwhile.
+    if (!revision.document_signed_copies) {
+      await admin
+        .from('document_signed_copies')
+        .delete()
+        .eq('revision_id', revision.id)
+        .eq('uploaded_at', uploadedAt);
+    }
+    throw error;
+  }
 
   // The owner hears of it; a copy that arrived is not lost when the email is.
   const to = await senderEmail(admin, send.sent_by);

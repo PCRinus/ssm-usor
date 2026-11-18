@@ -3,9 +3,9 @@ import '../styles/flux.css';
 
 import { Font } from 'astro:assets';
 
+import { page } from '../components/site/copy';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHeader from '../components/site/SiteHeader.astro';
-import BaseLayout from './BaseLayout.astro';
 
 interface Props {
   title: string;
@@ -16,23 +16,57 @@ interface Props {
 }
 
 const { title, description, home, current, noindex = false } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const image = new URL('/brand/og.png', Astro.site);
 ---
 
-<BaseLayout title={title} description={description} themeColor="#ffffff" noindex={noindex}>
-  <Fragment slot="head">
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/png" href="/brand/favicon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ro_RO" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={page.siteName} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={page.imageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+    <meta name="twitter:image:alt" content={page.imageAlt} />
+    <title>{title}</title>
     <Font cssVariable="--font-inter" preload />
     <Font cssVariable="--font-inter-tight" />
     <Font cssVariable="--font-bad-script" />
     <slot name="head" />
-  </Fragment>
-  <div class="flux">
-    <SiteHeader home={home} current={current} />
-    <main>
-      <slot />
-    </main>
-    <SiteFooter />
-  </div>
-</BaseLayout>
+  </head>
+  <body>
+    <div class="flux">
+      <SiteHeader home={home} current={current} />
+      <main>
+        <slot />
+      </main>
+      <SiteFooter />
+    </div>
+    <script>
+      import { startAnalytics } from '../lib/analytics';
+
+      startAnalytics();
+    </script>
+  </body>
+</html>
 
 <style>
   :global(body) {

@@ -284,14 +284,6 @@ export type InstructionsPart = (typeof instructionsParts)[number];
 export const isInstructionsPart = (part: ImportLibraryPart): part is InstructionsPart =>
   (instructionsParts as readonly string[]).includes(part);
 
-// The risk evaluations have none: the documents they are read from are SSM only, and fire risk
-// lives in the SU data (ADR 036).
-export const libraryPartDomains: Record<ImportLibraryPart, InstructionDomain | null> = {
-  instructions_ssm: 'ssm',
-  instructions_su: 'su',
-  risk_evaluations: null,
-};
-
 export const instructionsPartDomains: Record<InstructionsPart, InstructionDomain> = {
   instructions_ssm: 'ssm',
   instructions_su: 'su',

@@ -1,5 +1,6 @@
 'use client';
 
+import { useCloseLabel } from '@ssm-usor/ui/components/close-label';
 import { cn } from 'cn';
 import { XIcon } from 'lucide-react';
 import { Dialog as SheetPrimitive } from 'radix-ui';
@@ -42,13 +43,16 @@ function SheetContent({
   children,
   side = 'right',
   showCloseButton = true,
+  closeLabel,
   overlayClassName,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: 'top' | 'right' | 'bottom' | 'left';
   showCloseButton?: boolean;
+  closeLabel?: string;
   overlayClassName?: string;
 }) {
+  const close = useCloseLabel(closeLabel);
   return (
     <SheetPortal>
       <SheetOverlay className={overlayClassName} />
@@ -72,7 +76,7 @@ function SheetContent({
         {showCloseButton && (
           <SheetPrimitive.Close className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary">
             <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{close}</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>

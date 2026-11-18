@@ -569,7 +569,8 @@ export const existingChoiceLabels: Record<ExistingChoice, string> = {
 
 function clientTarget(state: SheetState) {
   const writing = state.targets.filter((target) => target.choice !== 'keep').length;
-  if (writing > 1) return { sheet: `fișele celor ${writing} posturi`, plural: true };
+  if (writing > 1)
+    return { sheet: `fișele celor ${roCount(writing, 'post', 'posturi')}`, plural: true };
   return writing === 1 ? { sheet: 'fișa postului', plural: false } : null;
 }
 
@@ -690,7 +691,7 @@ export function existingOutcome(choice: ExistingChoice, factors: number) {
     case 'replace':
       return factors === 1
         ? 'Factorul existent se șterge, iar locul lui îl iau cei din pachet.'
-        : `Cei ${factors} factori existenți se șterg, iar locul lor îl iau cei din pachet.`;
+        : `Cei ${roCount(factors, 'factor existent', 'factori existenți')} se șterg, iar locul lor îl iau cei din pachet.`;
     case 'keep':
       return 'Fișa rămâne cum e: factorii din pachet nu ajung pe ea.';
   }

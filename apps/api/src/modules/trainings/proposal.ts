@@ -39,12 +39,24 @@ const supplementaryMinutes = 60;
 
 export const fireSafetyTechnicianJobTitle = 'Cadru tehnic PSI';
 
+export const themesTypeKeys: Record<TrainingDomain, string> = {
+  ssm: 'training_themes',
+  su: 'fire_training_themes',
+};
+
 type Session = { month: string; content: string; duration: string };
 
 export type ThemesRevision = { id: string; snapshot: unknown };
 
 /** With the employee behind the person where the data knows one, which the answer leaves out. */
 export type ProposalPerson = ProposedTrainingPerson & { employeeId?: string | null };
+
+export const proposalPerson = (
+  name: string | null | undefined,
+  jobTitle: string | null | undefined,
+  employeeId: string | null = null
+): ProposalPerson | null =>
+  name?.trim() ? { name: name.trim(), jobTitle: jobTitle?.trim() || null, employeeId } : null;
 
 export type ProposalPeople = {
   specialist: ProposalPerson | null;

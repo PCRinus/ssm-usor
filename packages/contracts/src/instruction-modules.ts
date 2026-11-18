@@ -227,15 +227,3 @@ export const copyInstructionsRequestSchema = z.object({
 });
 
 export type CopyInstructionsRequest = z.infer<typeof copyInstructionsRequestSchema>;
-
-/** `reason` values on instruction module errors, so the SPA can word them itself. */
-export const instructionModuleErrorReasons = [
-  'instruction_module_title_taken',
-  'instruction_module_category_domain',
-  'instruction_module_applied',
-  'instruction_module_archived',
-  'instruction_module_domain_applied',
-  'instruction_module_other_domain',
-] as const;
-
-export type InstructionModuleErrorReason = (typeof instructionModuleErrorReasons)[number];

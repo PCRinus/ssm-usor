@@ -41,6 +41,14 @@ describe('the credits meter', () => {
     );
   });
 
+  it('counts the clients the credits still cover with "de" from 20 up', () => {
+    const meter = creditsMeterFor(
+      creditsUsage({ used: 900, left: 600, giftLeft: 0, state: 'near' }),
+      paid
+    );
+    expect(meter.hint).toMatch(/^Mai ai 600, cât pentru vreo 24 de clienți\. /);
+  });
+
   it('turns red when used up, with the renewal and no offer to add credits', () => {
     const meter = creditsMeterFor(
       creditsUsage({ used: 1500, left: 0, giftLeft: 0, state: 'out' }),

@@ -1,15 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail, testEnv } from '../testing';
 import ServiceContract, { type ServiceContractProps, subject } from './service-contract';
 
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_FROM_CONTRACTS: 'SSM Ușor <contracte@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
 const contract: ServiceContractProps = {
   senderName: 'Olga Popescu',
   senderEmail: 'olga@exemplu.example',
@@ -23,25 +16,14 @@ const contract: ServiceContractProps = {
 const attachment = { fileName: 'Contract nr. 52.pdf', contentBase64: 'JVBERi0=' };
 
 async function send(props: ServiceContractProps = contract) {
-  const sent: OutgoingEmail[] = [];
-  await sendEmail(
-    env,
-    {
-      to: 'andrei@gelateria.example',
-      subject: subject(props.organizationName),
-      body: <ServiceContract {...props} />,
-      sender: { name: props.senderName, email: props.senderEmail },
-      from: env.MAIL_FROM_CONTRACTS,
-      attachments: [attachment],
-    },
-    {
-      send: async (email) => {
-        sent.push(email);
-        return { id: 'msg_1' };
-      },
-    }
-  );
-  return sent[0]!;
+  return sentEmail({
+    to: 'andrei@gelateria.example',
+    subject: subject(props.organizationName),
+    body: <ServiceContract {...props} />,
+    sender: { name: props.senderName, email: props.senderEmail },
+    from: testEnv.MAIL_FROM_CONTRACTS,
+    attachments: [attachment],
+  });
 }
 
 describe('service contract', () => {
@@ -71,7 +53,7 @@ describe('service contract', () => {
 
   it('signs as the organization when the owner has no name, and keeps our own sender', async () => {
     const email = await send({ ...contract, senderName: null, note: null });
-    expect(email.from).toBe(env.MAIL_FROM_CONTRACTS);
+    expect(email.from).toBe(testEnv.MAIL_FROM_CONTRACTS);
     expect(email.text).toContain('S.C. Exemplu SSM S.R.L., olga@exemplu.example');
     expect(email.text).toContain('Cu stimă');
     expect(email.text).not.toContain('Am trecut');

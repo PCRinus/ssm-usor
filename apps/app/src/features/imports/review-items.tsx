@@ -246,7 +246,8 @@ function NameChoice({ state, context }: { state: ItemState; context: ItemsContex
   return (
     <div className="mt-1 grid gap-1.5" data-testid="review-name-spellings">
       <KindLine icon={<Split aria-hidden="true" />}>
-        Documentele scriu numele în {spellings.length} feluri. Păstrează-l pe cel corect.
+        Documentele scriu numele în {roCount(spellings.length, 'fel', 'feluri')}. Păstrează-l pe cel
+        corect.
       </KindLine>
       <PickList label="Numele">
         {spellings.map((spelling, index) => (
@@ -646,7 +647,7 @@ const quoteAside = (sources: Source[], openSource: () => void) => {
 };
 
 const plural = (count: number, one: string, many: string) =>
-  count === 1 ? `Un ${one}` : `${count} ${many}`;
+  count === 1 ? `Un ${one}` : roCount(count, one, many);
 
 const fireTexts = [
   ['assemblyPoint', 'Punctul de adunare'],
@@ -774,7 +775,7 @@ function AssemblyPoints({ context }: { context: ItemsContext }) {
           ? null
           : open === 1
             ? 'Mai ai de confirmat punctul de adunare'
-            : `Mai ai ${open} lucruri de făcut`
+            : `Mai ai ${roCount(open, 'lucru', 'lucruri')} de făcut`
       }
       testId="review-assembly-points"
     >
@@ -1009,7 +1010,7 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
                   <ReviewDatum icon={Clock} label="Interval de instruire">
                     {state.values.trainingIntervalMonths === 1
                       ? 'Lunar'
-                      : `La ${String(state.values.trainingIntervalMonths)} luni`}
+                      : `La ${roCount(Number(state.values.trainingIntervalMonths), 'lună', 'luni')}`}
                   </ReviewDatum>
                 )}
                 {text(state.values.activities) && (
@@ -1173,7 +1174,7 @@ export function ResponsibleSection({ context }: { context: ItemsContext }) {
   return (
     <>
       <ListCard
-        title={(count) => (count === 1 ? 'O persoană' : `${count} persoane`)}
+        title={(count) => (count === 1 ? 'O persoană' : roCount(count, 'persoană', 'persoane'))}
         list="responsiblePersons"
         context={context}
         agreement="feminine"
@@ -1295,8 +1296,8 @@ function FireEquipmentCountRow({
               count.workplace.name
                 ? `Documentele pun aceste mijloace la „${count.workplace.name}”, care nu e printre locurile de muncă citite, și`
                 : 'Documentele nu spun la ce loc de muncă sunt aceste mijloace și'
-            } dau ${count.options.length} numere diferite. Alege-l pe cel de acum, apoi, mai jos, locul de muncă al fiecărui mijloc.`
-          : `${where ? `La ${where}, documentele` : 'Documentele'} dau ${count.options.length} numere diferite. Alege-l pe cel de acum.`}
+            } dau ${roCount(count.options.length, 'număr diferit', 'numere diferite')}. Alege-l pe cel de acum, apoi, mai jos, locul de muncă al fiecărui mijloc.`
+          : `${where ? `La ${where}, documentele` : 'Documentele'} dau ${roCount(count.options.length, 'număr diferit', 'numere diferite')}. Alege-l pe cel de acum.`}
       </KindLine>
       <PickList labelledBy={`${name}-label`}>
         {count.options.map((option, index) => {
@@ -1348,7 +1349,7 @@ function FireEquipmentCounts({
           ? null
           : open.length === 1
             ? 'Mai ai de ales numărul de bucăți'
-            : `Mai ai ${open.length} lucruri de făcut`
+            : `Mai ai ${roCount(open.length, 'lucru', 'lucruri')} de făcut`
       }
       testId="review-counts"
     >
@@ -1422,7 +1423,11 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
     <>
       <FireEquipmentCounts context={context} inactive={inactive} />
       <ListCard
-        title={(count) => (count === 1 ? 'Un mijloc de stingere' : `${count} mijloace de stingere`)}
+        title={(count) =>
+          count === 1
+            ? 'Un mijloc de stingere'
+            : roCount(count, 'mijloc de stingere', 'mijloace de stingere')
+        }
         list="fireEquipment"
         states={meansTaken(context.proposal, context.changes, 'fireEquipment', inactive)}
         context={context}
@@ -1433,7 +1438,7 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
             key={state.item.id}
             state={state}
             context={context}
-            title={`${itemName('fireEquipment', state.values)}${state.values.count && Number(state.values.count) > 1 ? ` · ${state.values.count} bucăți` : ''}`}
+            title={`${itemName('fireEquipment', state.values)}${state.values.count && Number(state.values.count) > 1 ? ` · ${roCount(Number(state.values.count), 'bucată', 'bucăți')}` : ''}`}
             details={[
               [
                 referenceName(context, 'workplaces', state.values.workplace),
@@ -1453,7 +1458,9 @@ export function FireMeansSection({ context }: { context: ItemsContext }) {
         )}
       />
       <ListCard
-        title={(count) => (count === 1 ? 'O instalație' : `${count} instalații`)}
+        title={(count) =>
+          count === 1 ? 'O instalație' : roCount(count, 'instalație', 'instalații')
+        }
         list="fireInstallations"
         states={meansTaken(context.proposal, context.changes, 'fireInstallations', inactive)}
         context={context}
@@ -1711,7 +1718,7 @@ function SubstancesGroup({ context }: { context: ItemsContext }) {
           >
             {states.length === 1
               ? 'Documentele numesc o substanță. Se preia doar dacă alegi că se utilizează.'
-              : `Documentele numesc ${states.length} substanțe. Se preiau doar dacă alegi că se utilizează.`}
+              : `Documentele numesc ${roCount(states.length, 'substanță', 'substanțe')}. Se preiau doar dacă alegi că se utilizează.`}
           </p>
         ))}
       {dialog}
@@ -1741,7 +1748,7 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
   return (
     <>
       <ListCard
-        title={(count) => (count === 1 ? 'Un articol' : `${count} articole`)}
+        title={(count) => (count === 1 ? 'Un articol' : roCount(count, 'articol', 'articole'))}
         list="protectiveEquipment"
         numbered
         context={context}
@@ -1793,7 +1800,7 @@ export function EquipmentSection({ context }: { context: ItemsContext }) {
                 )}
                 {state.values.durationMonths != null && (
                   <ReviewDatum icon={Clock} label="Durată">
-                    {String(state.values.durationMonths)} luni
+                    {roCount(Number(state.values.durationMonths), 'lună', 'luni')}
                   </ReviewDatum>
                 )}
               </dl>,

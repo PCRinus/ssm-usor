@@ -17,7 +17,7 @@ import {
   generateServiceContractDocument,
   readServiceContractDocument,
 } from '../documents/documents';
-import { buildServiceContractContext } from './context';
+import { buildServiceContractContext, contractFileName } from './context';
 import { loadServiceContractFacts, missingServiceContractData } from './facts';
 import type {
   generateServiceContractRoute,
@@ -276,7 +276,7 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
       note: note ?? null,
       returnUrl: returnUrl.href,
       attachment: {
-        fileName: `Contract nr. ${contractNumber} din ${contractDate.split('-').reverse().join('.')}.pdf`,
+        fileName: contractFileName(contractNumber, contractDate),
         contentBase64: toBase64(pdf),
       },
     });

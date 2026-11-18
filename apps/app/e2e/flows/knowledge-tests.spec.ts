@@ -97,7 +97,7 @@ test('a specialist keeps ten questions in the bank and records a paper pass', as
   await expect(preview.getByTestId('test-question-preview-explanation')).toContainText(
     'Trusa stă lângă ieșire'
   );
-  await preview.getByRole('button', { name: 'Închide' }).click();
+  await preview.getByTestId('test-question-preview-close').click();
   await expect(preview).toBeHidden();
 
   await first.getByTestId('test-question-hide').click();

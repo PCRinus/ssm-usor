@@ -420,7 +420,7 @@ describe('GET /legislation/changes', () => {
     ]);
   });
 
-  it('drops only the stored amending acts and amended units it cannot read', async () => {
+  it('drops only the stored amending acts, amended units and hunks it cannot read', async () => {
     mockUpstream({
       legal_changes: () =>
         Response.json([
@@ -431,6 +431,7 @@ describe('GET /legislation/changes', () => {
               ...assessed.amended_units,
               { ...assessed.amended_units[0], operation: 'renumbered' },
             ],
+            passages: [{ ...quoted, hunks: [{ old: 'casca' }, ...quoted.hunks] }],
           },
         ]),
     });
@@ -438,6 +439,32 @@ describe('GET /legislation/changes', () => {
     const [item] = legalChangeListResponseSchema.parse(await response.json()).items;
     expect(item!.amendingActs).toEqual([{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }]);
     expect(item!.amendedUnits.map((unit) => unit.unit)).toEqual(['Art. 36 alin. (2)']);
+    expect(item!.passages[0]!.hunks).toEqual(quoted.hunks);
+  });
+
+  it('answers only the fields members see of a stored amending act and amended unit', async () => {
+    mockUpstream({
+      legal_changes: () =>
+        Response.json([
+          {
+            ...assessed,
+            amending_acts: [{ ...assessed.amending_acts[0], portalId: 301234 }],
+          },
+        ]),
+    });
+    const response = await request('/legislation/changes');
+    const {
+      items: [item],
+    } = (await response.json()) as { items: Record<string, unknown>[] };
+    expect(item!.amendingActs).toEqual([{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }]);
+    expect(item!.amendedUnits).toEqual([
+      {
+        unit: 'Art. 36 alin. (2)',
+        operation: 'modified',
+        date: '2026-11-06',
+        amendingAct: 'Legea 207/2026',
+      },
+    ]);
   });
 
   it('never asks for the reasons to review, which members cannot read', async () => {
@@ -507,6 +534,18 @@ describe('GET /legislation/runs/latest', () => {
     expect(latestLegalCheckRunResponseSchema.parse(await response.json()).run!.errors).toEqual([
       { act: 'hg-1425-2006', kind: 'other', message: 'Page 76337 answered 503.' },
     ]);
+  });
+
+  it('drops only a stored error it cannot read', async () => {
+    mockUpstream({
+      legal_check_runs: () =>
+        Response.json([{ ...failedRun, errors: [{ act: 'hg-1425-2006' }, ...failedRun.errors] }]),
+    });
+    const response = await request('/legislation/runs/latest');
+    expect(response.status).toBe(200);
+    expect(latestLegalCheckRunResponseSchema.parse(await response.json()).run!.errors).toEqual(
+      failedRun.errors
+    );
   });
 
   it('returns null before the first run', async () => {

@@ -126,7 +126,7 @@ export function NoCreditsFooter({ isOwner, onClose }: { isOwner: boolean; onClos
       {isOwner && (
         <span className="sm:mr-auto [&>*]:w-full sm:[&>*]:w-auto">{subscriptionLink}</span>
       )}
-      <Button type="button" onClick={onClose}>
+      <Button type="button" data-testid="import-credits-close" onClick={onClose}>
         Închide
       </Button>
     </>

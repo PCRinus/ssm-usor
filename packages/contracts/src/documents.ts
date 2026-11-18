@@ -599,19 +599,6 @@ export type RegenerateDocumentRequest = z.infer<typeof regenerateDocumentRequest
  */
 export const unfilledMark = 'DE COMPLETAT';
 
-/** `reason` values on document errors, so the SPA can word them itself. */
-export const documentErrorReasons = [
-  'missing_document_data',
-  'unfilled_text',
-  'not_generated_yet',
-  'pdf_unavailable',
-  'not_issued',
-  'nothing_behind',
-  'regeneration_running',
-  'nothing_to_archive',
-  'annex_not_in_library',
-] as const;
-
 export const issueDocumentRequestSchema = z.object({
   // Issue the draft although its file still reads `unfilledMark` somewhere.
   acceptUnfilled: z.boolean().optional(),

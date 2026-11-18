@@ -720,7 +720,7 @@ describe("the client's Portal tab", () => {
     await rows();
     await user.click(screen.getByTestId('portal-invite-uninvited'));
     expect((await screen.findByTestId('portal-selection-capped')).textContent).toContain(
-      'Se aleg odată cel mult 1000 de lucrători'
+      'Se aleg odată cel mult 1.000 de lucrători'
     );
   });
 

@@ -18,6 +18,7 @@ import { Notice } from '@/components/notice';
 import { formatDate } from '@/features/employees/employee-format';
 import { signingMessage } from '@/features/signatures/signature-format';
 
+import { attendeeCountLabel } from './training-format';
 import { invalidateTrainings } from './training-queries';
 
 export interface TrainingToDelete {
@@ -117,7 +118,7 @@ function DeleteTrainingContent({
             <>
               {' '}
               <span className="font-medium text-foreground" data-testid="training-delete-count">
-                Are {attendeeCount} participanți; ștergerea îi privește pe toți.
+                Are {attendeeCountLabel(attendeeCount)}; ștergerea îi privește pe toți.
               </span>
             </>
           )}

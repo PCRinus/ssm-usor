@@ -1,5 +1,7 @@
 import type { BillingCreditsUsage } from '@ssm-usor/contracts';
 
+import { roCount } from '@/features/employees/employee-format';
+
 import { formatCount } from './billing-format';
 import type { MeterTone } from './sms-copy';
 import { contactEmail, roDate } from './subscription-copy';
@@ -104,7 +106,7 @@ export function creditsMeterFor(credits: BillingCreditsUsage, reader: CreditsRea
       const near =
         credits.state === 'near'
           ? reader.kind === 'paid'
-            ? `Mai ai ${formatCount(available)}, cât pentru vreo ${formatCount(Math.floor(available / 25))} clienți. `
+            ? `Mai ai ${formatCount(available)}, cât pentru vreo ${roCount(Math.floor(available / 25), 'client', 'clienți')}. `
             : `Mai ai ${formatCount(available)}. `
           : '';
       if (reader.kind === 'trial') {

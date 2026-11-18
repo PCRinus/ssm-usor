@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { roCount } from '@/features/employees/employee-format';
+
 import type { BlockerLink } from './review-model';
 import { Tag } from './review-parts';
 
@@ -7,18 +9,17 @@ const kinds = [
   {
     codes: ['missing', 'unknown_reference'],
     tone: 'destructive' as const,
-    label: (count: number) => (count === 1 ? '1 dată lipsă' : `${count} date lipsă`),
+    label: (count: number) => roCount(count, 'dată lipsă', 'date lipsă'),
   },
   {
     codes: ['choice'],
     tone: 'warning' as const,
-    label: (count: number) => (count === 1 ? '1 alegere' : `${count} alegeri`),
+    label: (count: number) => roCount(count, 'alegere', 'alegeri'),
   },
   {
     codes: ['invalid'],
     tone: 'destructive' as const,
-    label: (count: number) =>
-      count === 1 ? '1 valoare de corectat' : `${count} valori de corectat`,
+    label: (count: number) => roCount(count, 'valoare de corectat', 'valori de corectat'),
   },
 ];
 

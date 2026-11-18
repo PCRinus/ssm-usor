@@ -59,17 +59,6 @@ export const equipmentListResponseSchema = z.object({
 
 export type EquipmentListResponse = z.infer<typeof equipmentListResponseSchema>;
 
-export const protectiveEquipmentStates = ['undecided', 'none', 'equipped'] as const;
-
-export type ProtectiveEquipmentState = (typeof protectiveEquipmentStates)[number];
-
-export function protectiveEquipmentState(
-  needsProtectiveEquipment: boolean | null
-): ProtectiveEquipmentState {
-  if (needsProtectiveEquipment === null) return 'undecided';
-  return needsProtectiveEquipment ? 'equipped' : 'none';
-}
-
 // Entries decide "needs equipment" by themselves, so only "needs none" and taking that back
 // are said in words.
 export const protectiveEquipmentDecisionSchema = z.object({
@@ -94,11 +83,3 @@ export type EquipmentSuggestionsQuery = z.infer<typeof equipmentSuggestionsQuery
 export const equipmentSuggestionsResponseSchema = z.object({ items: z.array(z.string()) });
 
 export type EquipmentSuggestionsResponse = z.infer<typeof equipmentSuggestionsResponseSchema>;
-
-/** `reason` values on protective equipment errors, so the SPA can word them itself. */
-export const protectiveEquipmentErrorReasons = [
-  'equipment_entries_exist',
-  'equipment_decided_by_entries',
-] as const;
-
-export type ProtectiveEquipmentErrorReason = (typeof protectiveEquipmentErrorReasons)[number];
