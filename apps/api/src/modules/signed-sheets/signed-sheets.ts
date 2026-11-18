@@ -6,7 +6,6 @@ import {
   type SheetRowKey,
   type SheetSignerSlot,
   signatureFieldOf,
-  type SignerService,
   tableCapacity,
   tableRowKey,
   tableRowOf,
@@ -17,11 +16,10 @@ import {
 import type { Context } from 'hono';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
+import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { adminFileStore } from '../../lib/files';
-import { createPdfConverter, type PdfConverter } from '../../lib/pdf';
-import { createSigner } from '../../lib/signer';
+import { type PdfSigningServices, pdfSigningServices, signField } from '../../lib/pdf-signing';
 import { mergeBuiltIn } from '../../lib/templates';
 import {
   chronological,
@@ -46,7 +44,6 @@ import {
   type SheetTrainingRecord,
   signatureFieldsOf,
   signatureReason,
-  signedOn,
   signedSheetData,
   voidedNote,
 } from './form';
@@ -68,42 +65,25 @@ export { currentSheetPdf, sheetCopyText } from './stored';
 // Postgres advisory lock: a write spans calls to the signer, and PostgREST holds no transaction
 // across requests.
 
-export type SignedSheetFiles = {
-  readTemplate(path: string): Promise<Uint8Array>;
-  readDocument(path: string): Promise<Uint8Array>;
-  writeDocument(path: string, bytes: Uint8Array, options: { replace: boolean }): Promise<void>;
-  removeDocument(path: string): Promise<void>;
-};
-
-export type SignedSheetContext = {
+export type SignedSheetContext = PdfSigningServices & {
   store: SignedSheetStore;
-  files: SignedSheetFiles;
-  pdf: PdfConverter | null;
-  signer: SignerService | null;
   sheetFacts(clientId: string, employeeId: string): Promise<SheetIdentity>;
   drawForm(domain: TrainingDomain, data: TrainingSheetData): Promise<Uint8Array>;
-  now(): Date;
 };
 
-/**
- * Everything with the secret key: the signing flow has checked who may act before calling. No
- * request signal: a signature the signer has put on a sheet must reach its evidence even when the
- * caller has gone.
- */
+/** With the secret key and no request signal, as `pdfSigningServices`. */
 export function signedSheetContext(c: Context<ApiEnv>): SignedSheetContext {
   const db = createLastingAdminClient(c);
-  const files = adminFileStore(c.env);
+  const services = pdfSigningServices(c);
+  const { files } = services;
   return {
+    ...services,
     store: supabaseSheetStore(db),
-    files,
-    pdf: createPdfConverter(c),
-    signer: createSigner(c),
     sheetFacts: (clientId, employeeId) => loadSheetFacts(db, clientId, employeeId),
     async drawForm(domain, data) {
       const typeKey = trainingSheetTypeKeys[domain];
       return (await mergeBuiltIn(db, files.readTemplate, typeKey, data, 'training sheet')).bytes;
     },
-    now: () => new Date(),
   };
 }
 
@@ -129,11 +109,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
 }
 
 const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
-
-async function sha256(bytes: Uint8Array) {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer(bytes)));
-  return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 
 /** SHA-256 of a row's values, the same whatever order they were built in. */
 export function rowDigest(values: Record<string, string>) {
@@ -749,22 +724,23 @@ export async function applySignature(
   let signedAt = ctx.now();
   const { before, after } = await rewriteSheet(ctx, live.signedSheetId, async (sheet, bytes) => {
     signedAt = ctx.now();
-    const begun = await service.beginSignature(buffer(bytes), {
-      field,
-      certificatePem: signer.certificatePem,
-      chainPem: signer.chainPem,
-      reason: signatureReason(record, slot),
-      signedAt: signedAt.toISOString(),
-      certify: sheet.certifiedAt === null,
-      lockFields: lockFieldsOf(record.domain, live.rowKey),
-      // No job title: the row or the block prints it, and a periodic row's box is too narrow for
-      // a long line, which would shrink the whole appearance.
-      appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
-    });
-    const signature = await sign(begun.toSign, begun.prepared);
-    const signed = await service.finishSignature(begun.prepared, begun.sessionToken, signature);
+    const signed = await signField(
+      service,
+      bytes,
+      {
+        field,
+        certificatePem: signer.certificatePem,
+        chainPem: signer.chainPem,
+        reason: signatureReason(record, slot),
+        signedAt,
+        certify: sheet.certifiedAt === null,
+        lockFields: lockFieldsOf(record.domain, live.rowKey),
+        name: signer.name,
+      },
+      sign
+    );
     return {
-      bytes: new Uint8Array(signed),
+      bytes: signed,
       changes: { certifiedAt: sheet.certifiedAt ?? signedAt.toISOString() },
     };
   });

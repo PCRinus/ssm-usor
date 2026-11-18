@@ -15,12 +15,12 @@ import type { Context } from 'hono';
 
 import { type AdminClient, createAdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
+import { type PdfSigningServices, pdfSigningServices, signField } from '../../lib/pdf-signing';
 import { mergeBuiltIn } from '../../lib/templates';
-import { signedOn } from '../signed-sheets/form';
-import { type SignedSheetContext, signedSheetContext } from '../signed-sheets/signed-sheets';
 import type { MarkedQuestion } from '../tests/rows';
 
 export const testSheetColumns =
@@ -60,12 +60,12 @@ const resultColumns =
 /** Everything with the secret key: the callers have read the result as the person they serve. */
 export type TestSheetDeps = {
   admin: AdminClient;
-  sheets: Pick<SignedSheetContext, 'files' | 'pdf' | 'signer' | 'now'>;
+  sheets: PdfSigningServices;
 };
 
 export const testSheetDeps = (c: Context<ApiEnv>): TestSheetDeps => ({
   admin: createLastingAdminClient(c),
-  sheets: signedSheetContext(c),
+  sheets: pdfSigningServices(c),
 });
 
 const signerUnavailable = () =>
@@ -106,11 +106,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
 }
 
 const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
-
-async function sha256(bytes: Uint8Array) {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer(bytes)));
-  return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 
 // Every version is a file of its own, as a signed sheet's: the evidence's digest before a
 // signature names a file that still exists.
@@ -347,23 +342,24 @@ export async function applyTestSheetSignature(
       bytes = new Uint8Array(await service.fillFields(buffer(bytes), examinerValues(result)));
     }
     signedAt = deps.sheets.now();
-    const begun = await service.beginSignature(buffer(bytes), {
-      field: testSheetFieldNames.signatures[slot],
-      certificatePem: signer.certificatePem,
-      chainPem: signer.chainPem,
-      reason: `Fișa de test: ${slotReason[slot]}`,
-      signedAt: signedAt.toISOString(),
-      certify: sheet.certified_at === null,
-      lockFields:
-        slot === 'examiner'
-          ? [testSheetFieldNames.examinerName, testSheetFieldNames.examinerJobTitle]
-          : [],
-      appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
-    });
-    const signature = await sign(begun.toSign, begun.prepared);
     return {
-      bytes: new Uint8Array(
-        await service.finishSignature(begun.prepared, begun.sessionToken, signature)
+      bytes: await signField(
+        service,
+        bytes,
+        {
+          field: testSheetFieldNames.signatures[slot],
+          certificatePem: signer.certificatePem,
+          chainPem: signer.chainPem,
+          reason: `Fișa de test: ${slotReason[slot]}`,
+          signedAt,
+          certify: sheet.certified_at === null,
+          lockFields:
+            slot === 'examiner'
+              ? [testSheetFieldNames.examinerName, testSheetFieldNames.examinerJobTitle]
+              : [],
+          name: signer.name,
+        },
+        sign
       ),
       certify: signedAt.toISOString(),
     };
