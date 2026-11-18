@@ -2,9 +2,10 @@ import type { MailService, SmsService } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../app';
+import { apiRequest } from '../test/request';
+import { fetchMock, stubFetch, testEnv, testSecretKey } from '../test/upstream';
 import { accessTokenAt } from './access-token.fixture';
 import { requireAuth } from './auth';
-import type { ApiEnv } from './env';
 import { refuseDuringImpersonation } from './impersonation';
 import { requireMembership } from './membership';
 
@@ -34,26 +35,23 @@ const activeImpersonation = {
 const sendSignatureRequest = vi.fn<MailService['sendSignatureRequest']>();
 const sendSigningCode = vi.fn<SmsService['sendSigningCode']>();
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   APP_ORIGIN: 'https://app.example.ro',
   PORTAL_ORIGIN: 'https://portal.example.ro',
   MAIL: { sendSignatureRequest } as unknown as MailService,
   SMS: { sendSigningCode } as unknown as SmsService,
-};
+});
 
-const fetchMock = vi.fn<typeof fetch>();
 let appMetadata: Record<string, string>;
 let effectiveUserId: string;
 let impersonation: typeof activeImpersonation | null;
 
 const upstreamPaths = () => fetchMock.mock.calls.map(([input]) => new URL(String(input)).pathname);
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   sendSignatureRequest.mockReset().mockResolvedValue({ id: 'm1' });
   sendSigningCode.mockReset().mockResolvedValue({ id: 's1' });
   appMetadata = admin.app_metadata;
@@ -81,7 +79,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -106,11 +103,7 @@ function appWithUnguardedSenders() {
 }
 
 const post = (path: string, token = accessTokenAt('aal2', admin.id)) =>
-  appWithUnguardedSenders().request(
-    path,
-    { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
-    env
-  );
+  apiRequest(path, { method: 'POST', token, app: appWithUnguardedSenders() }, env);
 
 describe('messages sent during an impersonation', () => {
   it('sends from a route without a membership, which acts as the signed-in admin himself', async () => {
@@ -167,16 +160,9 @@ describe('routes that sign or send in the member’s name', () => {
   ];
 
   it.each(routes)('refuse POST %s during an impersonation, before anything else', async (path) => {
-    const response = await createApp().request(
+    const response = await apiRequest(
       path,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessTokenAt('aal2', admin.id)}`,
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
-      },
+      { method: 'POST', body: {}, token: accessTokenAt('aal2', admin.id) },
       env
     );
 
@@ -191,16 +177,9 @@ describe('routes that sign or send in the member’s name', () => {
   it('refuse an admin whose role was removed after his token was issued, whom the database still lets act as the member', async () => {
     appMetadata = { provider: 'email' };
 
-    const guarded = await createApp().request(
+    const guarded = await apiRequest(
       '/organization/invitations',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessTokenAt('aal2', admin.id)}`,
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
-      },
+      { method: 'POST', body: {}, token: accessTokenAt('aal2', admin.id) },
       env
     );
     const unguarded = await post('/unguarded/sms');
@@ -213,16 +192,9 @@ describe('routes that sign or send in the member’s name', () => {
   it.each(routes)('let POST %s through for the admin as himself', async (path) => {
     effectiveUserId = admin.id;
 
-    const response = await createApp().request(
+    const response = await apiRequest(
       path,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessTokenAt('aal2', admin.id)}`,
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
-      },
+      { method: 'POST', body: {}, token: accessTokenAt('aal2', admin.id) },
       env
     );
 
@@ -235,14 +207,9 @@ describe('a page built for someone other than whom the request acts as', () => {
   const otherMemberId = '4f0c1e2d-3b4a-4c5d-8e6f-7a8b9c0d1e2f';
 
   const list = (actingAs?: string, token = accessTokenAt('aal2', admin.id)) =>
-    createApp().request(
+    apiRequest(
       '/clients',
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...(actingAs === undefined ? {} : { 'X-Acting-As': actingAs }),
-        },
-      },
+      { token, headers: actingAs === undefined ? {} : { 'X-Acting-As': actingAs } },
       env
     );
 
@@ -306,14 +273,13 @@ describe('a page built for someone other than whom the request acts as', () => {
       c.body(null, 204)
     );
 
-    const response = await app.request(
+    const response = await apiRequest(
       '/unguarded/guarded',
       {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessTokenAt('aal2', admin.id)}`,
-          'X-Acting-As': memberId,
-        },
+        app,
+        token: accessTokenAt('aal2', admin.id),
+        headers: { 'X-Acting-As': memberId },
       },
       env
     );

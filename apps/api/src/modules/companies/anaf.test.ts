@@ -1,25 +1,15 @@
 import { apiErrorResponseSchema, companyLookupResponseSchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testUser as user,
+} from '../../test/upstream';
 import { anafIban, anafLookupUrl, anafPhone, normalizeDiacritics } from './anaf';
-
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
 
 // Trimmed from a real ANAF v9 response.
 const anafFound = {
@@ -46,41 +36,27 @@ const anafFound = {
   },
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream(
-  anaf: (init?: RequestInit) => Response | Promise<Response>,
+  anaf: () => Response | Promise<Response>,
   { account = user as Record<string, unknown>, member = true } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json(account);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json(
-        member ? [{ user_id: user.id, organization_id: 'org', role: 'owner' }] : []
-      );
-    }
-    if (String(input) === anafLookupUrl) return anaf(init);
-    throw new Error(`Unexpected upstream request: ${url}`);
+  mockSignedInUpstream({
+    '/auth/v1/user': () => account,
+    '/rest/v1/rpc/current_membership': () => (member ? [membershipRow({ role: 'owner' })] : []),
+    [new URL(anafLookupUrl).pathname]: ({ url }) => {
+      if (String(url) !== anafLookupUrl) throw new Error(`Unexpected upstream request: ${url}`);
+      return anaf();
+    },
   });
 }
 
-const lookup = (cui: string) =>
-  createApp().request(
-    `/companies/lookup?cui=${encodeURIComponent(cui)}`,
-    { headers: { Authorization: 'Bearer test-access-token' } },
-    env
-  );
+const lookup = (cui: string) => apiRequest(`/companies/lookup?cui=${encodeURIComponent(cui)}`);
 
 const anafCalls = () => fetchMock.mock.calls.filter(([input]) => String(input) === anafLookupUrl);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -220,7 +196,7 @@ describe('GET /companies/lookup', () => {
 
   it('requires authentication', async () => {
     mockUpstream(() => Response.json({ found: [anafFound], notFound: [] }));
-    const response = await createApp().request('/companies/lookup?cui=1590082', {}, env);
+    const response = await apiRequest('/companies/lookup?cui=1590082', { token: null });
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });

@@ -1,6 +1,7 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
@@ -14,7 +15,6 @@ import { deviceLocale, useActiveLocale } from '@/features/language/locale';
 
 import { useAuth } from './auth-context';
 import type { CodeRequestResult, CodeVerificationResult, SignInAddress } from './auth-store';
-import { useCaptcha } from './captcha';
 import { parseSignInAddress } from './sign-in-address';
 
 // Supabase sends one code per address per minute and refuses a second request before.

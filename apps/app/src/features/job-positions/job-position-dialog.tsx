@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { StaffCategory } from '@ssm-usor/contracts';
+import { clientConflictReasons, type StaffCategory } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -159,6 +159,12 @@ function JobPositionForm({
         form.setError('name', {
           message:
             'Clientul are deja un post cu această denumire. Dacă munca diferă, deosebește-le prin nume: „Manager magazin – birou”.',
+        });
+        return;
+      }
+      if (body?.reason === clientConflictReasons.clientArchived) {
+        form.setError('root.server', {
+          message: 'Clientul este arhivat; posturile lui de lucru nu se mai schimbă.',
         });
         return;
       }

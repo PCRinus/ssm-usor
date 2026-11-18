@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { clientConflictReasons } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
@@ -164,15 +165,19 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         const body = cause.body as Partial<ApiErrorResponse> | undefined;
         if (cause.status === 409) {
           const message = body?.message ?? '';
-          if (message.includes('CNP')) {
+          if (body?.reason === clientConflictReasons.clientArchived) {
+            form.setError('root.server', {
+              message: employee
+                ? 'Clientul este arhivat; lucrătorii lui nu se mai schimbă.'
+                : 'Clientul este arhivat; nu mai pot fi adăugați lucrători.',
+            });
+          } else if (message.includes('CNP')) {
             form.setError('cnp', { message: employeeMessages.cnpTaken });
           } else if (message.includes('number')) {
             form.setError('employeeNumber', { message: employeeMessages.numberTaken });
           } else {
             form.setError('root.server', {
-              message: employee
-                ? 'Datele intră în conflict cu alt lucrător al clientului.'
-                : 'Clientul este arhivat; nu mai pot fi adăugați lucrători.',
+              message: 'Datele intră în conflict cu alt lucrător al clientului.',
             });
           }
           return;

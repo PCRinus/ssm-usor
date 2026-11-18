@@ -3,17 +3,15 @@ import {
   releaseListResponseSchema,
   releaseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
-
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-};
-
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  databaseError,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+} from '../../test/upstream';
 
 const newest = {
   tag: '2026.10.24.2',
@@ -43,59 +41,33 @@ const first = {
   unread: false,
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream({
   rows = [newest, first],
   acknowledge = (): Response => Response.json('2026.10.24.2'),
 } = {}) {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return Response.json({ ...user, is_anonymous: false });
-    if (url.pathname === '/rest/v1/release_list') {
+  mockSignedInUpstream({
+    '/rest/v1/release_list': ({ url }) => {
       const tag = url.searchParams.get('tag');
-      if (!tag) return Response.json(rows);
+      if (!tag) return rows;
       return Response.json(rows.find((row) => `eq.${row.tag}` === tag) ?? null);
-    }
-    if (url.pathname === '/rest/v1/rpc/acknowledge_releases') return acknowledge();
-    throw new Error(`Unexpected upstream request: ${url}`);
+    },
+    '/rest/v1/rpc/acknowledge_releases': acknowledge,
   });
 }
 
-const request = (path: string, init: RequestInit = {}) =>
-  createApp().request(
-    path,
-    { ...init, headers: { Authorization: 'Bearer token', 'Content-Type': 'application/json' } },
-    env
-  );
+const upstreamUrls = (pathname: string) => callsTo(pathname).map(({ url }) => url);
 
-const upstreamUrls = (pathname: string) =>
-  fetchMock.mock.calls
-    .map(([input]) => new URL(input instanceof Request ? input.url : String(input)))
-    .filter((url) => url.pathname === pathname);
+const rpcBodies = () => callsTo('/rest/v1/rpc/acknowledge_releases').map(({ body }) => body);
 
-const rpcBodies = () =>
-  fetchMock.mock.calls
-    .filter(([input]) => String(input).includes('/rest/v1/rpc/acknowledge_releases'))
-    .map(([, init]) => JSON.parse(init?.body as string));
+const postgrestError = (code: string, status: number) => databaseError(code, code, status);
 
-const postgrestError = (code: string, status: number) =>
-  Response.json({ code, message: code, details: null, hint: null }, { status });
-
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('GET /releases', () => {
   it('lists every release in full, newest first, with whether the caller has read it', async () => {
     mockUpstream();
 
-    const response = await request('/releases');
+    const response = await apiRequest('/releases');
 
     expect(response.status).toBe(200);
     const body = releaseListResponseSchema.parse(await response.json());
@@ -121,7 +93,7 @@ describe('GET /releases', () => {
   it('answers an empty list before the first update', async () => {
     mockUpstream({ rows: [] });
 
-    const response = await request('/releases');
+    const response = await apiRequest('/releases');
 
     expect(await response.json()).toEqual({ items: [] });
   });
@@ -131,7 +103,7 @@ describe('GET /releases/{tag}', () => {
   it('returns the release with that tag', async () => {
     mockUpstream();
 
-    const response = await request('/releases/2026.10.10');
+    const response = await apiRequest('/releases/2026.10.10');
 
     expect(response.status).toBe(200);
     expect(releaseSchema.parse(await response.json())).toMatchObject({
@@ -144,7 +116,7 @@ describe('GET /releases/{tag}', () => {
   it('is 404 for a tag no release has', async () => {
     mockUpstream();
 
-    const response = await request('/releases/2026.01.01');
+    const response = await apiRequest('/releases/2026.01.01');
 
     expect(response.status).toBe(404);
     expect(await response.json()).toMatchObject({ error: 'not_found' });
@@ -153,7 +125,7 @@ describe('GET /releases/{tag}', () => {
   it('refuses what is not a release tag without asking the database', async () => {
     mockUpstream();
 
-    const response = await request('/releases/latest');
+    const response = await apiRequest('/releases/latest');
 
     expect(response.status).toBe(400);
     expect(upstreamUrls('/rest/v1/release_list')).toEqual([]);
@@ -164,9 +136,9 @@ describe('POST /releases/acknowledge', () => {
   it('acknowledges through the given release and returns what the profile keeps', async () => {
     mockUpstream({ acknowledge: () => Response.json('2026.10.24.2') });
 
-    const response = await request('/releases/acknowledge', {
+    const response = await apiRequest('/releases/acknowledge', {
       method: 'POST',
-      body: JSON.stringify({ tag: '2026.10.10' }),
+      body: { tag: '2026.10.10' },
     });
 
     expect(response.status).toBe(200);
@@ -179,9 +151,9 @@ describe('POST /releases/acknowledge', () => {
   it('is 404 for a tag no release has', async () => {
     mockUpstream({ acknowledge: () => postgrestError('REL01', 400) });
 
-    const response = await request('/releases/acknowledge', {
+    const response = await apiRequest('/releases/acknowledge', {
       method: 'POST',
-      body: JSON.stringify({ tag: '2026.01.01' }),
+      body: { tag: '2026.01.01' },
     });
 
     expect(response.status).toBe(404);
@@ -190,9 +162,9 @@ describe('POST /releases/acknowledge', () => {
   it('is 409 for an account without a profile', async () => {
     mockUpstream({ acknowledge: () => postgrestError('REL02', 400) });
 
-    const response = await request('/releases/acknowledge', {
+    const response = await apiRequest('/releases/acknowledge', {
       method: 'POST',
-      body: JSON.stringify({ tag: '2026.10.24.2' }),
+      body: { tag: '2026.10.24.2' },
     });
 
     expect(response.status).toBe(409);
@@ -202,9 +174,9 @@ describe('POST /releases/acknowledge', () => {
   it('refuses a body without a release tag', async () => {
     mockUpstream();
 
-    const response = await request('/releases/acknowledge', {
+    const response = await apiRequest('/releases/acknowledge', {
       method: 'POST',
-      body: JSON.stringify({ tag: 'v1' }),
+      body: { tag: 'v1' },
     });
 
     expect(response.status).toBe(400);

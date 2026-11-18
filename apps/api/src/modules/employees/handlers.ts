@@ -28,7 +28,12 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import {
+  archivedClientError,
+  createDataClient,
+  type DataClient,
+  fromDatabaseError,
+} from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
@@ -602,9 +607,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
   const membership = c.get('membership');
   const db = createDataClient(c);
   const client = await findClient(db, clientId);
-  if (client.archived_at) {
-    throw new ApiError('conflict', 'This client is archived; employees cannot be added.');
-  }
+  if (client.archived_at) throw archivedClientError();
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const workplaceId =

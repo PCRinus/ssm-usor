@@ -218,7 +218,9 @@ describe('POST /clients/{clientId}/job-positions', () => {
 
   it('refuses an archived client and an invalid body', async () => {
     mockUpstream({ clients: () => Response.json([{ id: clientId, archived_at: '2026-09-01' }]) });
-    expect((await request(path, 'POST', { name: 'Sudor' })).status).toBe(409);
+    const archived = await request(path, 'POST', { name: 'Sudor' });
+    expect(archived.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
     expect((await request(path, 'POST', { name: 'S' })).status).toBe(400);
     expect((await request(path, 'POST', { name: 'Sudor', staffCategory: 'office' })).status).toBe(
       400
@@ -271,6 +273,21 @@ describe('PUT /clients/{clientId}/job-positions/{jobPositionId}', () => {
     expect((await update({ name: 'Sudor' })).status).toBe(404);
     mockUpstream({ positions: (init) => (init?.method === 'PATCH' ? duplicate() : undefined!) });
     expect((await update({ name: 'Contabil' })).status).toBe(409);
+  });
+
+  it('passes on the refusal of the database for an archived client', async () => {
+    mockUpstream({
+      positions: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: 'CLA01', message: 'An archived client is not changed.', details: null },
+              { status: 400 }
+            )
+          : undefined!,
+    });
+    const response = await update({ name: 'Sudor' });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 });
 

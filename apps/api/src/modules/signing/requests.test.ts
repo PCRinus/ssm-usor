@@ -1,19 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import { accessTokenAt } from '../../lib/access-token.fixture';
+import { apiRequest, testAccessToken } from '../../test/request';
 import {
   callsTo,
-  clientId,
   databaseError,
-  env,
   fetchMock,
+  stubFetch,
+  testOrganizationId as organizationId,
+  testUser as user,
+  type UpstreamRoute,
+} from '../../test/upstream';
+import {
+  clientId,
+  env,
   mockUpstream,
-  organizationId,
   sendSignatureRequestEmail,
   sendSignatureRequestSms,
-  type UpstreamRoute,
-  user,
 } from './upstream.fixture';
 
 const trainingId = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
@@ -179,21 +182,12 @@ const save = (
   payload: unknown = body,
   path = `/clients/${clientId}/trainings`,
   method = 'POST',
-  token = 'user-token'
-) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(payload),
-    },
-    env
-  );
+  token = testAccessToken
+) => apiRequest(path, { method, body: payload, token }, env);
+
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   nextRequestId = 0;
   sendSignatureRequestEmail.mockReset().mockResolvedValue({ id: 'm1' });
   sendSignatureRequestSms.mockReset().mockResolvedValue({ id: 's1' });
@@ -201,7 +195,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -214,7 +207,7 @@ describe('requests issued when a training is saved', () => {
     expect(response.status).toBe(201);
     const [insert] = callsTo('/rest/v1/rpc/issue_signature_requests', 'POST');
     expect(insert!.secret).toBe(false);
-    expect(insert!.headers.get('Authorization')).toBe('Bearer user-token');
+    expect(insert!.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(issued()).toEqual(
       [
         [ionRecord, 'trainee', ionAccount],

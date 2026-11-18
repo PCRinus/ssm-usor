@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
-import { createSmsUpstream, plainTrial, type SmsUpstream } from '../sms-usage/upstream.fixture';
+import { createSmsUpstream, plainTrial, type SmsUpstream } from '../../test/sms';
 
 const sendPasswordReset = vi.fn<MailService['sendPasswordReset']>();
 const sendSignupConfirmation = vi.fn<MailService['sendSignupConfirmation']>();

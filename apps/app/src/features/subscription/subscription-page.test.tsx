@@ -288,6 +288,26 @@ describe('the Abonament tab', () => {
     expect(download.getAttribute('aria-label')).toBe('Descarcă PDF-ul facturii SSMUSOR-0011');
   });
 
+  it('names the anchor day of a monthly plan, not the period end a short month moved', async () => {
+    mockApi({
+      overview: overviewWith({
+        subscription: activeSubscription({
+          interval: 'month',
+          step: 500,
+          billingAnchorAt: new Date(2027, 0, 31, 12).toISOString(),
+          currentPeriodEnd: new Date(2027, 1, 28, 12).toISOString(),
+        }),
+        owner: ownerPart(),
+      }),
+    });
+    mount();
+
+    const card = await screen.findByTestId('plan-card');
+    expect(card.textContent).toContain(
+      'Activ. Se reînnoiește în fiecare lună, pe 31, iar în lunile fără această zi, în ultima zi a lunii.'
+    );
+  });
+
   it("offers the plan's own next step when over the step, with its price plus VAT", async () => {
     mockApi({
       overview: overviewWith({

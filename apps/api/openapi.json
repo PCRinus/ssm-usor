@@ -21635,6 +21635,11 @@
                 "nullable": true,
                 "format": "date-time"
               },
+              "billingAnchorAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
               "accessUntil": {
                 "type": "string",
                 "nullable": true,
@@ -21663,6 +21668,7 @@
               "step",
               "trialEndsAt",
               "currentPeriodEnd",
+              "billingAnchorAt",
               "accessUntil",
               "access",
               "deletesAt",
@@ -29314,7 +29320,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or a current employee of the client has the CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or a current employee of the client has the CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -29713,7 +29719,7 @@
             }
           },
           "409": {
-            "description": "Another current employee of the client has this CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or another current employee of the client has this CNP or number; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33130,7 +33136,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or already has a position of this name (reason `job_position_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or already has a position of this name (reason `job_position_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -33254,7 +33260,7 @@
             }
           },
           "409": {
-            "description": "The client already has a position of this name (reason `job_position_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or already has a position of this name (reason `job_position_name_taken`); or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39239,7 +39245,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, or it already has a registered office; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or it already has a registered office; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39362,7 +39368,7 @@
             }
           },
           "409": {
-            "description": "The client already has a registered office; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), or it already has a registered office; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39685,7 +39691,7 @@
             }
           },
           "409": {
-            "description": "The client is archived, the employee is already a responsible person, or a workers' representative is the client's legal representative; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), the employee is already a responsible person, or a workers' representative is the client's legal representative; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -39808,7 +39814,7 @@
             }
           },
           "409": {
-            "description": "The employee is already a responsible person, or a workers' representative is the client's legal representative; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
+            "description": "The client is archived (reason `client_archived`), the employee is already a responsible person, or a workers' representative is the client's legal representative; or the `X-Acting-As` header names someone other than whom the request acts as now (reason `identity_changed`)",
             "content": {
               "application/json": {
                 "schema": {

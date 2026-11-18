@@ -27,6 +27,7 @@ app:
     - 'packages/ui/**'
     - 'packages/design-tokens/**'
   - 'packages/api-http/**'
+  - 'packages/spa-runtime/**'
   # The generated client is not a workspace dependency on contracts.
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
@@ -42,6 +43,7 @@ portal:
   - *ui
   - 'apps/portal/**'
   - 'packages/api-http/**'
+  - 'packages/spa-runtime/**'
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
   - 'orval.config.ts'
@@ -50,6 +52,7 @@ admin:
   - *ui
   - 'apps/admin/**'
   - 'packages/api-http/**'
+  - 'packages/spa-runtime/**'
   - 'packages/contracts/**'
   # The admin app imports only the engine's token diff; it adds any other engine file it imports.
   - 'packages/document-engine/package.json'

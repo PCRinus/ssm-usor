@@ -1,19 +1,16 @@
 import { apiErrorResponseSchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../app';
-import type { ApiEnv } from './env';
+import { apiRequest } from '../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  stubFetch,
+  testOrganizationId as organizationId,
+  testUser as user,
+} from '../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-};
-
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
-const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const participantId = '5c2a1b3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
-
-const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(access: 'full' | 'read_only') {
   fetchMock.mockImplementation(async (input) => {
@@ -22,9 +19,7 @@ function mockUpstream(access: 'full' | 'read_only') {
       case '/auth/v1/user':
         return Response.json({ ...user, is_anonymous: false, email_confirmed_at: '2026-09-01' });
       case '/rest/v1/rpc/current_membership':
-        return Response.json([
-          { user_id: user.id, organization_id: organizationId, role: 'owner', access },
-        ]);
+        return Response.json([membershipRow({ role: 'owner', access })]);
       case '/rest/v1/rpc/accept_participant_invitations':
         return Response.json(0);
       case '/rest/v1/rpc/current_participations':
@@ -50,26 +45,11 @@ function mockUpstream(access: 'full' | 'read_only') {
 }
 
 const request = (path: string, method: string, body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { Authorization: 'Bearer token', 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body, headers: { 'Content-Type': 'application/json' } });
 
 const upstreamPaths = () => fetchMock.mock.calls.map(([input]) => new URL(String(input)).pathname);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('read-only access', () => {
   it("refuses a member's change before anything is written", async () => {

@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { choiceAmounts, formatEuro, perInterval } from '../billing-format';
 import { creditsCount } from '../credits-copy';
-import { roDate } from '../subscription-copy';
+import { monthlyRenewalDay, roDate } from '../subscription-copy';
 import type { CheckoutMode } from './checkout-choice';
 
 interface When {
@@ -24,7 +24,7 @@ function whenFor(
   const next = preview.nextRenewal;
   const renews =
     preview.choice.interval === 'month'
-      ? `Abonamentul se reînnoiește în fiecare lună, pe ${new Date(next.at).getDate()}.`
+      ? `Abonamentul se reînnoiește ${monthlyRenewalDay(preview.appliesAt)}.`
       : `Abonamentul se reînnoiește pe ${roDate(next.at)}.`;
 
   if (mode === 'new') {

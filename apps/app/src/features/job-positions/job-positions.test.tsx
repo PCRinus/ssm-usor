@@ -374,6 +374,25 @@ describe("a client's job positions", () => {
     expect(screen.getByTestId('job-position-dialog')).toBeTruthy();
   });
 
+  it('says the client is archived when a stale page adds a position to it', async () => {
+    mockApi({
+      create: () =>
+        Response.json(
+          { code: 'conflict', message: 'Archived.', reason: 'client_archived' },
+          { status: 409 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('job-position-add'));
+    await user.type(screen.getByTestId('job-position-name'), 'Barman preparator');
+    await user.click(screen.getByTestId('job-position-save'));
+
+    expect((await screen.findByTestId('job-position-error')).textContent).toContain('arhivat');
+    expect(screen.getByTestId('job-position-dialog')).toBeTruthy();
+  });
+
   it('edits a position and says that contract titles stay as they are', async () => {
     mockPositionsApi();
     mount();

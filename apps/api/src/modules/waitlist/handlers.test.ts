@@ -1,16 +1,21 @@
 import type { MailService } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
 import { hashToken } from '../../lib/tokens';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+} from '../../test/upstream';
 
 const sendWaitlistConfirmation = vi.fn<MailService['sendWaitlistConfirmation']>();
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   TURNSTILE_SECRET_KEY: 'turnstile-secret',
   CORS_ORIGINS: 'https://app.ssmusor.ro',
   API_ORIGIN: 'https://api.ssmusor.ro',
@@ -31,7 +36,7 @@ const env: ApiEnv['Bindings'] = {
     sendEmployeesOverStepNotice: vi.fn(),
     sendExtrasNotice: vi.fn(),
   },
-};
+});
 
 type Row = {
   id: string;
@@ -39,47 +44,39 @@ type Row = {
   confirmation_sent_at?: string | null;
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockUpstream({ turnstile = true, row = null }: { turnstile?: boolean; row?: Row | null }) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.hostname === 'challenges.cloudflare.com') return Response.json({ success: turnstile });
-    if (url.pathname === '/rest/v1/waitlist_subscribers') {
-      if (init?.method === 'GET') return Response.json(row);
-      if (init?.method === 'POST') return Response.json({ id: row?.id ?? 'new-id' });
-      if (init?.method === 'PATCH') return new Response(null, { status: 204 });
-    }
-    throw new Error(`Unexpected upstream request: ${init?.method} ${url}`);
+  mockSignedInUpstream({
+    'POST /turnstile/v0/siteverify': ({ url }) => {
+      if (url.hostname !== 'challenges.cloudflare.com') throw new Error(`Unexpected ${url}`);
+      return { success: turnstile };
+    },
+    'GET /rest/v1/waitlist_subscribers': () => Response.json(row),
+    'POST /rest/v1/waitlist_subscribers': () => ({ id: row?.id ?? 'new-id' }),
+    'PATCH /rest/v1/waitlist_subscribers': () => new Response(null, { status: 204 }),
   });
 }
 
 const writes = (method: 'POST' | 'PATCH') =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => String(input).includes('/rest/v1/') && init?.method === method)
-    .map(([, init]) => JSON.parse(init?.body as string));
+  callsTo('/rest/v1/waitlist_subscribers', method).map(
+    ({ body }) => body as Record<string, unknown>
+  );
 
 const subscribe = (body: unknown, targetEnv = env) =>
-  createApp().request(
+  apiRequest(
     '/waitlist',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Origin: 'https://ssmusor.ro' },
-      body: JSON.stringify(body),
-    },
+    { method: 'POST', body, token: null, client: null, headers: { Origin: 'https://ssmusor.ro' } },
     targetEnv
   );
 
 const validBody = { email: ' Ana@Example.ro ', consentVersion: '2026-09', turnstileToken: 'tt' };
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   sendWaitlistConfirmation.mockReset().mockResolvedValue({ id: 'msg_1' });
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -101,7 +98,7 @@ describe('POST /waitlist', () => {
     const link = new URL(confirmUrl);
     expect(link.origin).toBe('https://api.ssmusor.ro');
     expect(link.pathname).toBe('/waitlist/confirm');
-    expect(await hashToken(link.searchParams.get('token')!)).toBe(saved.confirmation_token_hash);
+    expect(await hashToken(link.searchParams.get('token')!)).toBe(saved!.confirmation_token_hash);
 
     expect(writes('PATCH')[0]).toHaveProperty('confirmation_sent_at');
   });
@@ -173,9 +170,9 @@ describe('POST /waitlist', () => {
   });
 
   it('does not grant the dashboard origin access to other routes from the marketing site', async () => {
-    const response = await createApp().request(
+    const response = await apiRequest(
       '/health',
-      { headers: { Origin: 'https://ssmusor.ro' } },
+      { token: null, client: null, headers: { Origin: 'https://ssmusor.ro' } },
       env
     );
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
@@ -183,7 +180,8 @@ describe('POST /waitlist', () => {
 });
 
 describe('GET /waitlist/confirm', () => {
-  const confirm = (query: string) => createApp().request(`/waitlist/confirm${query}`, {}, env);
+  const confirm = (query: string) =>
+    apiRequest(`/waitlist/confirm${query}`, { token: null, client: null }, env);
 
   it('confirms a pending subscription and redirects to the confirmed page', async () => {
     mockUpstream({ row: { id: 'row-1', confirmed_at: null } });
@@ -194,8 +192,8 @@ describe('GET /waitlist/confirm', () => {
     expect(response.headers.get('Location')).toBe('https://ssmusor.ro/abonare/confirmata/');
     expect(writes('PATCH')[0]).toHaveProperty('confirmed_at');
 
-    const lookup = fetchMock.mock.calls.find(([, init]) => init?.method === 'GET')!;
-    expect(String(lookup[0])).toContain(
+    const [lookup] = callsTo('/rest/v1/waitlist_subscribers', 'GET');
+    expect(String(lookup!.url)).toContain(
       `confirmation_token_hash=eq.${await hashToken('some-token')}`
     );
   });
@@ -223,9 +221,9 @@ describe('GET /waitlist/confirm', () => {
     mockUpstream({ row: { id: 'row-1', confirmed_at: null } });
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const response = await createApp().request(
+    const response = await apiRequest(
       '/waitlist/confirm?token=some-token',
-      {},
+      { token: null, client: null },
       { ...env, MARKETING_ORIGIN: undefined }
     );
 

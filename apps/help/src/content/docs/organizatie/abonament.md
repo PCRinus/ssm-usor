@@ -91,7 +91,7 @@ Apasă **Alege un plan**. Pe pagina care se deschide:
 3. Alegi planul: **Start** sau **Profesional**. Fiecare card arată prețul la treapta aleasă și ce include.
 4. Completezi cardul. Poți plăti și cu Apple Pay sau Google Pay, dacă telefonul sau browserul tău le are.
 
-În dreapta, **Rezumat** arată prețul pe lună sau pe an, TVA-ul și totalul, iar dedesubt suma pe care o plătești azi și când se reînnoiește abonamentul. În perioada de probă, tot acolo scrie că plata încheie perioada de probă și că zilele rămase din ea nu se păstrează.
+În dreapta, **Rezumat** arată prețul pe lună sau pe an, TVA-ul și totalul, iar dedesubt suma pe care o plătești azi și când se reînnoiește abonamentul. Un plan lunar se reînnoiește în fiecare lună în ziua în care l-ai plătit; în lunile care nu au acea zi, de exemplu în februarie pentru un plan plătit pe 31 ianuarie, se reînnoiește în ultima zi a lunii. În perioada de probă, tot acolo scrie că plata încheie perioada de probă și că zilele rămase din ea nu se păstrează.
 
 Banca îți poate cere să confirmi plata în aplicația ei sau printr-un cod. Fereastra băncii apare peste pagină; după confirmare, te întorci la pagina **Abonament**. Dacă banca refuză cardul, mesajul apare deasupra butonului și poți încerca alt card.
 
