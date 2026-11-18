@@ -22,6 +22,10 @@ TanStack Router and Table ship skills inside their packages, matching the instal
 
 @AGENTS.md
 
+## Building with several agents
+
+Before handing a feature of more than one pull request to builder agents, write down which parts depend on which, and start every part whose inputs exist at once, each agent in its own git worktree. Server and screens that meet at an API contract are not a reason to wait: write the contract (`packages/contracts` and the generated client) first, then build both sides side by side against it. Parts stay in sequence only where one truly needs the other's code. The parallel parts share one local Supabase: one agent at a time writes and applies migrations, and only after the busy sessions on this repository agree; nobody resets it. Generated files (`apps/api/src/database.types.ts`, the generated API client, help topics) are regenerated on each branch when the stack is put together, not merged by hand.
+
 ## Pull requests
 
 A pull request that changes what people see carries screenshots of the changed elements in its description, under Evidence: before and after where there is a before, at phone width and at desktop width when the change reaches both. Take them on the branch's own code, with real-looking data. Host them on the orphan branch `pr-screenshots`, in a folder named after the feature branch (`git worktree add /tmp/pr-screenshots pr-screenshots`, copy the PNGs into `<branch-name>/`, commit, push), and link them with `https://raw.githubusercontent.com/PCRinus/ssm-usor/pr-screenshots/<branch-name>/<file>.png`. Never commit screenshots to a feature branch or to `main`.
