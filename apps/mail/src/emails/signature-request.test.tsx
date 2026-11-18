@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MailEnv } from '../env';
-import type { OutgoingEmail } from '../provider';
-import { sendEmail } from '../send';
+import { sentEmail } from '../testing';
 import SignatureRequest, { type SignatureRequestProps, subject } from './signature-request';
-
-const env: MailEnv = {
-  MAIL_FROM: 'SSM Ușor <noreply@mail.ssmusor.ro>',
-  MAIL_REPLY_TO: 'contact@ssmusor.ro',
-};
 
 async function sendRequest(props: Partial<SignatureRequestProps> = {}) {
   const request: SignatureRequestProps = {
@@ -18,23 +11,11 @@ async function sendRequest(props: Partial<SignatureRequestProps> = {}) {
     place: 'portal',
     ...props,
   };
-  const sent: OutgoingEmail[] = [];
-  await sendEmail(
-    env,
-    {
-      to: 'ion@example.ro',
-      subject: subject(request.count),
-      body: <SignatureRequest {...request} />,
-    },
-    {
-      send: async (email) => {
-        sent.push(email);
-        return { id: 'msg_1' };
-      },
-    }
-  );
-
-  return sent[0]!;
+  return sentEmail({
+    to: 'ion@example.ro',
+    subject: subject(request.count),
+    body: <SignatureRequest {...request} />,
+  });
 }
 
 describe('signature request', () => {
