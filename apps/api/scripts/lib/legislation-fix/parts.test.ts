@@ -47,6 +47,13 @@ describe('the paragraphs sent to the model', () => {
 });
 
 describe('a stored change', () => {
+  const unit = {
+    unit: 'Art. 36 alin. (2)',
+    operation: 'modified',
+    date: '2026-11-06',
+    amendingAct: 'Legea 207/2026',
+  };
+
   it('names the amending act the portal listed when the notes named none', () => {
     const change = toOpenChange({
       id: '0fd0fd0f-0000-4000-8000-000000000195',
@@ -56,7 +63,7 @@ describe('a stored change', () => {
       amending_act: 'LEGE 207 03/11/2026',
       outcome: 'quote_differs',
       amending_acts: null,
-      amended_units: [{ unit: 'Art. 36 alin. (2)' }, { unit: 'Art. 36 alin. (2)' }],
+      amended_units: [unit, { ...unit, subject: 'Alineatul (2), Articolul 36' }],
       review: null,
       act: { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portal_id: 41006 },
       passages: [],
@@ -64,6 +71,25 @@ describe('a stored change', () => {
     expect(change.amendingActs).toEqual([{ name: 'LEGE 207 03/11/2026', portalId: null }]);
     expect(change.amendedUnits).toEqual(['Art. 36 alin. (2)']);
     expect(branchOf(change)).toBe('legislation/oug-195-2002-2026-11-06');
+  });
+
+  it('drops only the stored amending acts, amended units and reasons it cannot read', () => {
+    const change = toOpenChange({
+      id: '0fd0fd0f-0000-4000-8000-000000000195',
+      act_id: 'oug-195-2002',
+      consolidated_on: '2026-11-06',
+      compared_with: '2026-08-25',
+      amending_act: 'LEGE 207 03/11/2026',
+      outcome: 'needs_review',
+      amending_acts: [{ kind: 'LEGEA' }, { name: 'Legea 207/2026', portalId: 301234 }],
+      amended_units: [{ unit: 'Art. 6' }, unit],
+      review: [42, 'Art. 36 is referred to and was changed.'],
+      act: { id: 'oug-195-2002', name: 'O.U.G. 195/2002', portal_id: 41006 },
+      passages: [],
+    });
+    expect(change.amendingActs).toEqual([{ name: 'Legea 207/2026', portalId: 301234 }]);
+    expect(change.amendedUnits).toEqual(['Art. 36 alin. (2)']);
+    expect(change.review).toEqual(['Art. 36 is referred to and was changed.']);
   });
 
   it('is chosen by its act, or by its act and form', () => {

@@ -8,6 +8,10 @@ import type { ServiceContractFacts } from './facts';
 // What the starter template of the service contract is merged with. The readiness check
 // guarantees the values; a name left without one makes the engine refuse, never print a gap.
 
+export function contractFileName(contractNumber: number, contractDate: string) {
+  return `Contract nr. ${contractNumber} din ${printedDate(contractDate)}.pdf`;
+}
+
 export function monthsText(months: number) {
   return months === 1 ? 'o lună' : countOf(months, 'lună', 'luni');
 }

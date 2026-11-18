@@ -1940,7 +1940,7 @@ describe('signing from the Semnături place', () => {
     });
     await user.click(within(dialog).getByTestId('signing-send'));
     await within(dialog).findByTestId('signing-send-error');
-    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Închide' }));
     await waitFor(() => expect(screen.queryByTestId('signing-dialog')).toBeNull());
     expect(screen.getByTestId('signatures-sign').textContent).toBe('Semnează (1)');
   });

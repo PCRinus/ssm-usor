@@ -15,6 +15,7 @@ import {
   type ReadSheet,
   type UnmatchedPlanRow,
 } from './risks-read';
+import { lowerCaseKeepingCapitals } from './spelling';
 
 export type RiskLibraryChoice = 'add' | 'use_existing' | 'add_new' | 'skip';
 export type ExistingFactorsChoice = 'append' | 'replace' | 'keep';
@@ -106,7 +107,7 @@ export function entryName(written: string) {
     .replace(/^[\s(]+|[\s).:;,]+$/gu, '')
     .replace(/\s+/gu, ' ');
   if (!upperCase(tidy)) return tidy;
-  const lower = tidy.toLowerCase();
+  const lower = lowerCaseKeepingCapitals(tidy);
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 

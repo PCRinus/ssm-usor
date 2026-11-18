@@ -591,6 +591,7 @@ function ServiceContractBody({
             onBlur={field.onBlur}
             disabled={locked}
             invalid={Boolean(errors[name])}
+            describedBy={errors[name] ? `contract-${name}-error` : undefined}
             required
           />
         )}

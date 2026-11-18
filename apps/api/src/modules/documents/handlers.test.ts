@@ -3024,10 +3024,20 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
 
   it('refuses an archived client', async () => {
     mockUpstream({
-      documents: documents([]),
+      documents: documents([documentRow]),
       clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
     });
-    expect((await upload('prevention_plan')).status).toBe(409);
+    const response = await upload('decision_first_aid');
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
+      message: 'Documents are only uploaded for an active client.',
+    });
+    expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
+  });
+
+  it('answers 404 for a client of another organization', async () => {
+    mockUpstream({ documents: documents([]), clients: () => Response.json(null) });
+    expect((await upload('prevention_plan')).status).toBe(404);
   });
 });
 
@@ -4370,5 +4380,196 @@ describe('the fire-safety set', () => {
       expect(await uploaded('?period=2025')).toBe(2025);
       expect(await uploaded('')).toBe(2026);
     });
+  });
+});
+
+describe('the document a change answers with', () => {
+  const docx = new Uint8Array([
+    0x50,
+    0x4b,
+    0x03,
+    0x04,
+    ...new TextEncoder().encode('…word/document.xml…'),
+  ]);
+  const pdf = new Uint8Array([...new TextEncoder().encode('%PDF-1.7 signed'), 1, 2, 3]);
+  const send = (path: string, method: string, body: Uint8Array, contentType: string) =>
+    createApp().request(
+      path,
+      {
+        method,
+        headers: { Authorization: 'Bearer test-access-token', 'Content-Type': contentType },
+        body: new Uint8Array(body),
+      },
+      env
+    );
+  const wordType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const issued = { ...issuedRevision, generation_id: generationId };
+  const nextDraft = { ...revisionRow, id: 'f0e1d2c3-b4a5-4697-8879-6a5b4c3d2e1f', revision: 2 };
+  const serviceContract = {
+    ...documentRow,
+    type_key: 'service_contract',
+    document_group: 'other',
+    decision_number: null,
+  };
+  const changing =
+    (before: object, after: () => object | null): Handler =>
+    (init, url) => {
+      if (init?.method === 'POST') return Response.json({ id: documentId });
+      const document = after() ?? before;
+      return Response.json(url?.searchParams.has('id') ? document : [document]);
+    };
+  // Only the facts read this table.
+  const factLoads = () => calls('/rest/v1/client_fire_safety').length;
+  const subrequests = () => fetchMock.mock.calls.length;
+  const issueChanging = (before: typeof documentRow | typeof serviceContract) => {
+    let done = false;
+    mockUpstream({
+      documents: changing({ ...before, document_revisions: [revisionRow] }, () =>
+        done ? { ...before, document_revisions: [issuedRevision] } : null
+      ),
+      issue: () => {
+        done = true;
+        return new Response(null, { status: 204 });
+      },
+    });
+  };
+
+  it('compares nothing with the facts once the draft is issued', async () => {
+    issueChanging(documentRow);
+    const response = await request(`/documents/${documentId}/issue`, 'POST');
+    expect(response.status).toBe(200);
+    expect(clientDocumentResponseSchema.parse(await response.json()).document.draft).toBeNull();
+    expect(factLoads()).toBe(0);
+    expect(subrequests()).toBe(8);
+  });
+
+  it('loads no facts for the service contract, which is not merged from them', async () => {
+    issueChanging(serviceContract);
+    expect((await request(`/documents/${documentId}/issue`, 'POST')).status).toBe(200);
+    expect(factLoads()).toBe(0);
+    expect(subrequests()).toBe(8);
+  });
+
+  it('loads no facts for a file uploaded beside the issued revision, which has no snapshot', async () => {
+    let written = false;
+    mockUpstream({
+      documents: changing({ ...documentRow, document_revisions: [issued] }, () =>
+        written
+          ? {
+              ...documentRow,
+              document_revisions: [
+                issued,
+                { ...nextDraft, data_snapshot: null, edited_at: '2026-09-20T10:00:00+00:00' },
+              ],
+            }
+          : null
+      ),
+      upload: () => {
+        written = true;
+        return Response.json({ Key: 'documents/x' });
+      },
+    });
+    const response = await send(
+      `/clients/${clientId}/documents/decision_first_aid/upload`,
+      'POST',
+      docx,
+      wordType
+    );
+    expect(response.status).toBe(200);
+    expect(factLoads()).toBe(0);
+    expect(subrequests()).toBe(7);
+  });
+
+  it('loads the facts once for a file uploaded over a generated draft, to compare it', async () => {
+    mockUpstream({
+      documents: changing({ ...documentRow, document_revisions: [revisionRow] }, () => null),
+    });
+    const response = await send(
+      `/clients/${clientId}/documents/decision_first_aid/upload`,
+      'POST',
+      docx,
+      wordType
+    );
+    expect(response.status).toBe(200);
+    expect(factLoads()).toBe(1);
+  });
+
+  it('loads the facts for a saved draft, which is compared with them', async () => {
+    mockUpstream({
+      documents: changing({ ...documentRow, document_revisions: [revisionRow] }, () => null),
+      clients: () => Response.json({ ...clientRow, legal_representative_name: 'Alt NUME' }),
+    });
+    const response = await send(`/documents/${documentId}/draft/file`, 'PUT', docx, wordType);
+    expect(response.status).toBe(200);
+    const { document } = clientDocumentResponseSchema.parse(await response.json());
+    expect(document.draft!.dataChanged).toBe(true);
+    expect(factLoads()).toBe(1);
+  });
+
+  it('loads the facts for a draft started from the issued file, which keeps its snapshot', async () => {
+    let written = false;
+    mockUpstream({
+      documents: changing({ ...documentRow, document_revisions: [issued] }, () =>
+        written ? { ...documentRow, document_revisions: [issued, nextDraft] } : null
+      ),
+      revisions: (init) =>
+        init?.method === 'POST'
+          ? Response.json({ id: revisionId })
+          : Response.json({ template_version_id: 'v2', edited_at: null, edited_by: null }),
+      upload: () => {
+        written = true;
+        return Response.json({ Key: 'documents/x' });
+      },
+    });
+    expect((await request(`/documents/${documentId}/draft`, 'POST')).status).toBe(200);
+    expect(factLoads()).toBe(1);
+  });
+
+  it('loads no facts for a signed copy attached or confirmed with no draft beside it', async () => {
+    mockUpstream({
+      documents: changing({ ...documentRow, document_revisions: [issued] }, () => null),
+    });
+    const attached = await send(
+      `/documents/${documentId}/signed-copy`,
+      'PUT',
+      pdf,
+      'application/pdf'
+    );
+    expect(attached.status).toBe(200);
+    expect(factLoads()).toBe(0);
+    expect(subrequests()).toBe(7);
+
+    fetchMock.mockClear();
+    const received = {
+      revision_id: revisionId,
+      source: 'client',
+      confirmed_at: null,
+      uploaded_at: '2026-09-22T09:00:00+00:00',
+    };
+    mockUpstream({
+      documents: changing(
+        { ...documentRow, document_revisions: [{ ...issued, document_signed_copies: received }] },
+        () => null
+      ),
+      signedCopies: () => new Response(null, { status: 204 }),
+    });
+    const confirmed = await request(`/documents/${documentId}/signed-copy/confirm`, 'POST');
+    expect(confirmed.status).toBe(200);
+    expect(factLoads()).toBe(0);
+    expect(subrequests()).toBe(6);
+  });
+
+  it('still compares the draft beside the issued revision a signed copy is attached to', async () => {
+    mockUpstream({
+      documents: changing({ ...documentRow, document_revisions: [issued, nextDraft] }, () => null),
+    });
+    const attached = await send(
+      `/documents/${documentId}/signed-copy`,
+      'PUT',
+      pdf,
+      'application/pdf'
+    );
+    expect(attached.status).toBe(200);
+    expect(factLoads()).toBe(1);
   });
 });

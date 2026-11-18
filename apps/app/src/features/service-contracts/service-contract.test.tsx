@@ -470,6 +470,28 @@ describe('the service contract of a lead', () => {
     );
   });
 
+  it('describes an emptied date by its message', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('contract-details-edit'));
+    await user.clear(screen.getByTestId('contract-contractDate'));
+    await user.clear(screen.getByTestId('contract-startDate'));
+    await user.click(screen.getByTestId('contract-save'));
+
+    for (const [name, message] of [
+      ['contractDate', 'Alege data contractului.'],
+      ['startDate', 'Alege data de la care începe contractul.'],
+    ]) {
+      const error = await screen.findByTestId(`contract-${name}-error`);
+      expect(error.textContent).toBe(message);
+      expect(screen.getByTestId(`contract-${name}`).getAttribute('aria-describedby')).toBe(
+        error.id
+      );
+    }
+    expect(requests(`/clients/${leadId}/service-contract`, 'PUT')).toHaveLength(0);
+  });
+
   it('shows saved details as a summary, and the form again on "Modifică"', async () => {
     mockApi();
     mount();

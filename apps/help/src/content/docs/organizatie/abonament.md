@@ -34,7 +34,9 @@ sources:
   - packages/contracts/src/subscriptions.ts
   - apps/api/src/modules/billing/service.ts
   - apps/api/src/modules/billing/rules.ts
+  - apps/api/src/modules/billing/entitlements.ts
   - apps/api/src/modules/sms-usage/notices.ts
+  - apps/api/src/modules/billing/usage-notices.ts
   - apps/api/src/modules/billing/employees-over-step-notices.ts
   - apps/mail/src/emails/employees-over-step-notice.tsx
   - supabase/migrations/20261117120000_employees_over_step.sql

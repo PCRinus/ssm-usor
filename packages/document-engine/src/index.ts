@@ -27,8 +27,6 @@ export {
   type SigningAgreementFacts,
   type SigningCodeChannel,
   signingContractClauseText,
-  type SigningRegulationAnnexData,
-  signingRegulationAnnexData,
   signingTypeKeys,
 } from './signing';
 export {

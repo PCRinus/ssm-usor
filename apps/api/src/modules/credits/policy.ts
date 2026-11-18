@@ -1,17 +1,17 @@
 import { testerMonthlyCredits, trialCredits } from '@ssm-usor/contracts';
 
-import { creditBlockCents } from '../extras/policy';
 import {
   billingAnchor,
   calendarMonth,
   dateOf,
+  type EntitlementRow,
   isPaid,
   monthAround,
   type Period,
-  type SmsSubscription,
   stepOf,
   trialMonth,
-} from '../sms-usage/policy';
+} from '../billing/entitlements';
+import { creditBlockCents } from '../extras/policy';
 
 export type CreditMonth = { period: Period; allowance: number };
 
@@ -30,12 +30,12 @@ export type CreditPolicy =
 
 const day = 86_400_000;
 
-export const welcomeCreditsOf = (row: Pick<SmsSubscription, 'plan' | 'employee_step'>) =>
+export const welcomeCreditsOf = (row: Pick<EntitlementRow, 'plan' | 'employee_step'>) =>
   row.plan === 'start' || row.plan === 'profesional' ? stepOf(row).welcomeCredits : 0;
 
 const before = (period: Period) => new Date(period.start.getTime() - 1);
 
-function testerMonths(row: SmsSubscription, now: Date) {
+function testerMonths(row: EntitlementRow, now: Date) {
   const period = trialMonth(row, now);
   const start = new Date(row.created_at);
   const previous =
@@ -50,7 +50,7 @@ function testerMonths(row: SmsSubscription, now: Date) {
  * allowance for its whole length, and a tester's trial monthly credits; the step's credits and the
  * gift come with the first payment.
  */
-export function creditPolicy(row: SmsSubscription | null, now: Date): CreditPolicy {
+export function creditPolicy(row: EntitlementRow | null, now: Date): CreditPolicy {
   if (!row || row.plan === 'enterprise') return { limited: false, period: calendarMonth(now) };
   const tester = row.tester_allowances;
   if (!isPaid(row)) {

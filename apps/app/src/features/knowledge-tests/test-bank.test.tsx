@@ -431,7 +431,7 @@ describe('the question bank', () => {
     expect(dialog.getByTestId('test-question-preview-explanation').textContent).toContain(
       firstAid.explanation!
     );
-    await user.click(dialog.getByRole('button', { name: 'Închide' }));
+    await user.click(dialog.getByTestId('test-question-preview-close'));
     await user.click(within(questions[1]!).getByTestId('test-question-preview'));
     expect(await screen.findByTestId('test-question-preview-no-explanation')).toBeTruthy();
   });

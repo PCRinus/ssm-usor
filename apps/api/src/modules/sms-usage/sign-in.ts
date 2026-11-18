@@ -2,11 +2,12 @@ import { isRomanianNumber, type SmsRefusalReason } from '@ssm-usor/contracts';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { smsPolicy, type SmsSubscription } from './policy';
+import type { EntitlementRow } from '../billing/entitlements';
+import { smsPolicy } from './policy';
 import type { SmsUsageStore } from './store';
 
 export type SignInOrganization =
-  | { organizationId: string; subscription: SmsSubscription | null }
+  | { organizationId: string; subscription: EntitlementRow | null }
   | { refusal: SmsRefusalReason }
   | { refusal: 'no_organization' };
 

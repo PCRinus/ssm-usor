@@ -14,6 +14,12 @@ import { checkLegislation, describeOutcome, type LegalAct, summarize } from './c
 import type { LegislationDatabase } from './database';
 import { type PortalAct, PortalError } from './portal';
 import { describeRun, runLegislationCheck } from './run';
+import {
+  storedAmendedUnitsSchema,
+  storedAmendingActsSchema,
+  storedHunksSchema,
+  storedReviewSchema,
+} from './stored';
 
 const fixture = (name: string) =>
   readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8');
@@ -227,6 +233,15 @@ describe('assessing a new form', () => {
       ]),
     });
     expect(stored!.body).not.toHaveProperty('resolution');
+    const amendingActs = stored!.body.amending_acts as Record<string, unknown>[];
+    expect(storedAmendingActsSchema.parse(amendingActs)).toEqual(
+      amendingActs.map(({ name, date, portalId }) => ({ name, date, portalId }))
+    );
+    expect(storedAmendedUnitsSchema.parse(stored!.body.amended_units)).toEqual(
+      stored!.body.amended_units
+    );
+    expect(storedReviewSchema.parse(stored!.body.review)).toEqual(stored!.body.review);
+    expect(storedHunksSchema.parse(passages[0]!.hunks)).toEqual(passages[0]!.hunks);
     expect(
       sent('legal_acts', 'PATCH').filter((update) => 'verified_consolidated_on' in update.body)
     ).toHaveLength(0);

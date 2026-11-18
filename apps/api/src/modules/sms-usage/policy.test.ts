@@ -1,7 +1,8 @@
 import { isRomanianNumber } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { addMonths, monthAround, smsPolicy, smsState, type SmsSubscription } from './policy';
+import type { EntitlementRow } from '../billing/entitlements';
+import { smsPolicy, smsState } from './policy';
 
 const at = (iso: string) => new Date(iso);
 const iso = (period: { start: Date; end: Date }) => [
@@ -9,7 +10,7 @@ const iso = (period: { start: Date; end: Date }) => [
   period.end.toISOString(),
 ];
 
-const trial: SmsSubscription = {
+const trial: EntitlementRow = {
   plan: 'profesional',
   status: 'trialing',
   created_at: '2026-10-14T08:00:00.000Z',
@@ -23,7 +24,7 @@ const trial: SmsSubscription = {
   employee_step: null,
 };
 
-const chosen: SmsSubscription = {
+const chosen: EntitlementRow = {
   ...trial,
   plan: 'start',
   stripe_subscription_id: 'sub_1',
@@ -31,7 +32,7 @@ const chosen: SmsSubscription = {
   employee_step: 250,
 };
 
-const paid: SmsSubscription = {
+const paid: EntitlementRow = {
   ...chosen,
   status: 'active',
   first_paid_at: '2026-11-13T08:00:00.000Z',
@@ -39,27 +40,6 @@ const paid: SmsSubscription = {
 };
 
 describe("the subscription's month", () => {
-  it("adds months on the anchor's day, or the month's last day where it is shorter, as Stripe does", () => {
-    const anchor = at('2026-01-31T10:00:00.000Z');
-    expect(addMonths(anchor, 1).toISOString()).toBe('2026-02-28T10:00:00.000Z');
-    expect(addMonths(anchor, 2).toISOString()).toBe('2026-03-31T10:00:00.000Z');
-    expect(addMonths(anchor, -2).toISOString()).toBe('2025-11-30T10:00:00.000Z');
-  });
-
-  it('finds the month a moment falls in, from 14.10 to 13.11', () => {
-    const anchor = at('2026-06-14T09:30:00.000Z');
-    expect(iso(monthAround(anchor, at('2026-10-20T12:00:00.000Z')))).toEqual([
-      '2026-10-14T09:30:00.000Z',
-      '2026-11-14T09:30:00.000Z',
-    ]);
-    expect(iso(monthAround(anchor, at('2026-10-14T09:30:00.000Z')))[0]).toBe(
-      '2026-10-14T09:30:00.000Z'
-    );
-    expect(iso(monthAround(anchor, at('2026-10-14T09:29:59.000Z')))[0]).toBe(
-      '2026-09-14T09:30:00.000Z'
-    );
-  });
-
   it('runs an annual plan on monthly months from its anchor', () => {
     const policy = smsPolicy(
       { ...paid, current_period_end: '2027-11-13T08:00:00.000Z' },

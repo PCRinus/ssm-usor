@@ -351,7 +351,7 @@ function SourceContent({
           <Download aria-hidden="true" />
           Descarcă originalul
         </Button>
-        <Button size="sm" onClick={onClose}>
+        <Button size="sm" data-testid="source-close" onClick={onClose}>
           Închide
         </Button>
       </div>

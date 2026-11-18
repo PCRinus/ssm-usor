@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SmsSubscription } from '../sms-usage/policy';
+import type { EntitlementRow } from '../billing/entitlements';
 import { creditPolicy } from './policy';
 import { creditsState, importCreditsOf, renewsAt, usageView } from './usage';
 
 const now = new Date('2026-10-20T12:00:00.000Z');
 
-const trial: SmsSubscription = {
+const trial: EntitlementRow = {
   plan: 'profesional',
   status: 'trialing',
   created_at: '2026-10-14T08:00:00.000Z',
@@ -20,7 +20,7 @@ const trial: SmsSubscription = {
   employee_step: null,
 };
 
-const paid = (overrides: Partial<SmsSubscription> = {}): SmsSubscription => ({
+const paid = (overrides: Partial<EntitlementRow> = {}): EntitlementRow => ({
   ...trial,
   plan: 'start',
   status: 'active',
