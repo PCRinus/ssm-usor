@@ -10,6 +10,7 @@ import {
   proposalSchema,
   risksProposalSchema,
 } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { strFromU8, strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -442,22 +443,6 @@ const extractor = {
 
 const quoted = (file: string, quote: string) => ({ file, quote, otherCompany: '' });
 
-const emptyReading = {
-  facts: [],
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositionFacts: [],
-  jobPositions: [],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-};
-
 const answers = {
   sorting: {
     files: [
@@ -499,7 +484,7 @@ const answers = {
     ],
   },
   documents: {
-    ...emptyReading,
+    ...emptyReading(),
     facts: [
       {
         field: 'client.legalName',
@@ -552,7 +537,7 @@ const answers = {
     ],
   },
   scannedPage: {
-    ...emptyReading,
+    ...emptyReading(),
     facts: [
       {
         field: 'client.legalRepresentativeRole',
@@ -562,7 +547,7 @@ const answers = {
     ],
   },
   photo: {
-    ...emptyReading,
+    ...emptyReading(),
     fireInstallations: [
       {
         workplace: 'Sediu',

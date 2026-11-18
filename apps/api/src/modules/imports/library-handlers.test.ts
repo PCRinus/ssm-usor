@@ -1,5 +1,6 @@
 import { textHash } from '@ssm-usor/contracts';
 import { type InstructionsProposal, type RisksProposal, toProposal } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -57,7 +58,7 @@ const position = (name: string) => ({
   otherCompany: null,
 });
 
-const reading = {
+const reading = emptyReading({
   facts: [
     {
       field: 'client.legalName',
@@ -67,19 +68,8 @@ const reading = {
       otherCompany: null,
     },
   ],
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositionFacts: [],
   jobPositions: [position('Brutar'), position('Șofer')],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-};
+});
 
 const clientProposal = toProposal(reading);
 const [baker, driver] = clientProposal.jobPositions;

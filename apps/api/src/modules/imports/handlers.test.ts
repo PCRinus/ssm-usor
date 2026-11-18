@@ -1,5 +1,6 @@
 import type { RegisterImportFilesResponse } from '@ssm-usor/contracts';
 import { toProposal } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -71,7 +72,7 @@ function fileRow(n: number, overrides: Record<string, unknown> = {}) {
   };
 }
 
-const reading = {
+const reading = emptyReading({
   facts: [
     {
       field: 'client.legalName',
@@ -88,19 +89,7 @@ const reading = {
       otherCompany: null,
     },
   ],
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositionFacts: [],
-  jobPositions: [],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-};
+});
 
 function importRow(overrides: Record<string, unknown> = {}) {
   return {
