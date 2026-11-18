@@ -21,9 +21,3 @@
     min-height: 100svh;
   }
 }
-
-/* The shared dialog draws its scrim inside DialogContent with no way to restyle it, and the
-   reload dialog takes the lighter forest one. Unlayered, so it wins over that utility. */
-[data-slot='dialog-overlay']:has(+ [data-reload-dialog]) {
-  background-color: rgb(15 36 31 / 0.34);
-}
