@@ -2047,6 +2047,24 @@ describe('employee editing', () => {
     expect(screen.getByTestId('edit-employee-page')).toBeTruthy();
   });
 
+  it('says the client is archived when a stale page saves a worker of it', async () => {
+    mockApi({
+      detail: () => Response.json({ employee: stored }),
+      update: () =>
+        Response.json(
+          { code: 'conflict', message: 'Archived.', reason: 'client_archived' },
+          { status: 409 }
+        ),
+    });
+    mountApp(authFixture(makeSession()).client, editPage);
+    const user = userEvent.setup();
+    await screen.findByTestId('edit-employee-page');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('employee-form-error')).textContent).toContain(
+      'lucrătorii lui nu se mai schimbă'
+    );
+  });
+
   it('shows the hire date the API refuses in Romanian, on its field', async () => {
     mockApi({
       detail: () => Response.json({ employee: stored }),
