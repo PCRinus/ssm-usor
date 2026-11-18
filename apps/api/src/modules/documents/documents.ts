@@ -24,7 +24,7 @@ import {
 import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
 
 import type { Database, Json } from '../../database.types';
-import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
 import { maxDocxBytes, requireDocx, sha256 } from '../../lib/docx';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
@@ -520,9 +520,7 @@ export async function generateClientDocuments(
     ]);
   }
   const facts = await loadDocumentFacts(db, clientId, actor);
-  if (facts.clientArchived) {
-    throw new ApiError('conflict', 'Documents are only generated for an active client.');
-  }
+  if (facts.clientArchived) throw archivedClientError();
   const asked = {
     issueDate: request.issueDate,
     firstDecisionNumber: request.firstDecisionNumber ?? 1,
@@ -902,9 +900,7 @@ export async function regenerateDraft(
     actor,
     document.period === null ? [] : [document.period]
   );
-  if (facts.clientArchived) {
-    throw new ApiError('conflict', 'Documents are only generated for an active client.');
-  }
+  if (facts.clientArchived) throw archivedClientError();
   const latest = newest(document);
   const issueDate = request.issueDate ?? latest?.document_generations?.issue_date;
   if (!issueDate) {
@@ -1104,9 +1100,7 @@ export async function uploadDocumentFile(
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'find client of upload');
   if (!client.data) throw clientNotFound();
-  if (client.data.archived_at) {
-    throw new ApiError('conflict', 'Documents are only uploaded for an active client.');
-  }
+  if (client.data.archived_at) throw archivedClientError();
   // Without a period, a dated type's newest one.
   const existing = documents
     .filter(
