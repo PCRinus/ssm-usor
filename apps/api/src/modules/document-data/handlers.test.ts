@@ -671,7 +671,9 @@ describe('/clients/{clientId}/workplaces', () => {
 
   it('refuses an archived client and a second registered office with 409', async () => {
     mockUpstream({ clients: () => Response.json({ id: clientId, archived_at: '2026-09-01' }) });
-    expect((await request(path, 'POST', { name: 'Punct de lucru' })).status).toBe(409);
+    const archived = await request(path, 'POST', { name: 'Punct de lucru' });
+    expect(archived.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
     expect(calls('/rest/v1/client_workplaces')).toHaveLength(0);
 
     mockUpstream({ workplaces: () => databaseError('23505', 409) });
@@ -988,6 +990,14 @@ describe('/clients/{clientId}/responsible-persons', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
       'employeeId'
     );
+  });
+
+  it('refuses an archived client with its reason', async () => {
+    mockUpstream({ clients: () => Response.json({ ...activeClient, archived_at: '2026-09-01' }) });
+    const response = await request(path, 'POST', body);
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+    expect(calls('/rest/v1/client_responsible_persons')).toHaveLength(0);
   });
 
   it('answers 409 when the employee already is a responsible person', async () => {

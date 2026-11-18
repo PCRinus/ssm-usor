@@ -218,7 +218,9 @@ describe('POST /clients/{clientId}/job-positions', () => {
 
   it('refuses an archived client and an invalid body', async () => {
     mockUpstream({ clients: () => Response.json([{ id: clientId, archived_at: '2026-09-01' }]) });
-    expect((await request(path, 'POST', { name: 'Sudor' })).status).toBe(409);
+    const archived = await request(path, 'POST', { name: 'Sudor' });
+    expect(archived.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await archived.json()).reason).toBe('client_archived');
     expect((await request(path, 'POST', { name: 'S' })).status).toBe(400);
     expect((await request(path, 'POST', { name: 'Sudor', staffCategory: 'office' })).status).toBe(
       400

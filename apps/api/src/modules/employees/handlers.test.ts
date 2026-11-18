@@ -956,7 +956,7 @@ describe('POST /clients/{clientId}/employees', () => {
     });
     const response = await postEmployee(validBody);
     expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json()).message).toContain('archived');
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
     expect(calls('/rest/v1/employees')).toHaveLength(0);
   });
 
