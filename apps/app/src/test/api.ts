@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 
+import type { MeResponse } from '@/api/generated/api';
+
 import { meRecord } from './records';
 import { disposeRuntimes } from './runtimes';
 
@@ -10,18 +12,23 @@ export type Route = (
 
 export const fetchMock = vi.fn<typeof fetch>();
 
-export function mockApi(route: Route, { me = meRecord() }: { me?: unknown } = {}) {
+export function mockApi(
+  route: Route,
+  { me = meRecord() }: { me?: MeResponse | Pick<MeResponse, 'user'> | null } = {}
+) {
   fetchMock.mockImplementation(async (input, init) => {
     const url = new URL(String(input));
     const answer = route(init, url);
     if (answer) return answer;
-    if (url.pathname === '/me') return Response.json(me);
+    if (url.pathname === '/me' && me) return Response.json(me);
     throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url.pathname}`);
   });
 }
 
 // Vitest runs these files without isolation, so the mock and the runtimes a test leaves behind
-// would otherwise answer and refetch in the next file.
+// would otherwise answer and refetch in the next file. Teardown hooks run in reverse: call this
+// after a file's own afterEach so runtimes are disposed first, and before a beforeEach that sets
+// the mock's answers, which the reset here would otherwise wipe.
 export function installFetchMock() {
   beforeEach(() => {
     fetchMock.mockReset();

@@ -20,7 +20,7 @@ describe('the shared API mock', () => {
     );
   });
 
-  it('lets a route answer /me, or a test hand in its own /me', async () => {
+  it('lets a route answer /me, a test hand in its own /me, or refuse /me', async () => {
     const specialist = meRecord({
       membership: { organization: { id: 'org', name: 'Org' }, role: 'specialist' },
     });
@@ -29,6 +29,9 @@ describe('the shared API mock', () => {
 
     mockApi((_init, url) => (url.pathname === '/me' ? Response.json({ user: null }) : undefined));
     expect(await (await fetch(`${api}/me`)).json()).toEqual({ user: null });
+
+    mockApi(() => undefined, { me: null });
+    await expect(fetch(`${api}/me`)).rejects.toThrow('Unexpected request: GET /me');
   });
 
   it('finds the requests to a path by method and reads their bodies', async () => {

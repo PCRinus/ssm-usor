@@ -3,6 +3,7 @@ import type {
   EmployeeResponseEmployee,
   JobPositionResponseJobPosition,
   MeResponse,
+  WorkplaceListResponseItemsItem,
   WorkplaceResponseWorkplace,
 } from '@/api/generated/api';
 
@@ -90,6 +91,12 @@ export function workplaceRecord(
     updatedAt: stamp,
     ...overrides,
   };
+}
+
+export function workplaceListItem(
+  overrides: Partial<WorkplaceListResponseItemsItem> = {}
+): WorkplaceListResponseItemsItem {
+  return { ...workplaceRecord(), currentEmployeeCount: 0, ...overrides };
 }
 
 export function jobPositionRecord(

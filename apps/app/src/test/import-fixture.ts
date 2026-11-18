@@ -1,5 +1,6 @@
 import type { BillingCreditsUsage } from '@ssm-usor/contracts';
 
+import type { MeResponse } from '@/api/generated/api';
 import type { Proposal } from '@/features/imports/review-model';
 
 import { activeSubscription, summaryOf as subscriptionSummaryOf } from './billing-fixture';
@@ -91,7 +92,7 @@ export const summaryOf = (detail: ReturnType<typeof importDetail>) => {
 export function meWithCredits(
   credits: Partial<BillingCreditsUsage> = {},
   subscription = subscriptionSummaryOf(activeSubscription({ interval: 'month' }))
-) {
+): MeResponse {
   const creditsThisMonth: BillingCreditsUsage = {
     used: 230,
     included: 1500,
