@@ -4,36 +4,30 @@ import {
   clientOwnerNotesResponseSchema,
   clientResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import { accessTokenAt } from '../../lib/access-token.fixture';
 import type { ApiEnv } from '../../lib/env';
 import { openApiConfig } from '../../lib/openapi';
+import { apiRequest, testAccessToken } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
+});
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const membership = {
-  user_id: user.id,
-  organization_id: '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10',
-  role: 'owner',
-};
+const membership = membershipRow({ role: 'owner' });
 
 const clientRow = {
   id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
@@ -85,9 +79,7 @@ const workRow = {
   next_training_due_on: '2026-11-20',
 };
 
-type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
-
-const fetchMock = vi.fn<typeof fetch>();
+type Handler = (call: UpstreamCall) => Response | Promise<Response>;
 
 function mockUpstream(
   handlers: Partial<
@@ -104,38 +96,22 @@ function mockUpstream(
     >
   >
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return handlers.auth?.(init) ?? Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return handlers.membership?.(init) ?? Response.json([membership]);
-    }
-    if (
-      url.pathname === '/rest/v1/clients' ||
-      url.pathname === '/rest/v1/client_list' ||
-      url.pathname === '/rest/v1/lead_list'
-    ) {
-      return (
-        handlers.clients?.(init, url) ??
-        Response.json([clientRow], { headers: { 'Content-Range': '0-0/1' } })
-      );
-    }
-    if (url.pathname === '/rest/v1/client_owner_notes') {
-      return handlers.notes?.(init) ?? Response.json([]);
-    }
-    if (url.pathname === '/rest/v1/client_participants') {
-      return handlers.participants?.(init) ?? Response.json([]);
-    }
-    if (url.pathname === '/rest/v1/participant_invitations') {
-      return handlers.invitations?.(init) ?? Response.json([]);
-    }
-    if (url.pathname === '/rest/v1/rpc/delete_archived_client') {
-      return handlers.deleteClient?.(init) ?? Response.json([]);
-    }
-    if (url.pathname.startsWith('/storage/v1/object/')) {
-      return handlers.storage?.(init) ?? Response.json([]);
-    }
-    throw new Error(`Unexpected upstream request: ${url}`);
+  const clients = (call: UpstreamCall) =>
+    handlers.clients?.(call) ??
+    Response.json([clientRow], { headers: { 'Content-Range': '0-0/1' } });
+  const storage = (call: UpstreamCall) => handlers.storage?.(call) ?? [];
+  mockSignedInUpstream({
+    '/auth/v1/user': (call) => handlers.auth?.(call) ?? user,
+    '/rest/v1/rpc/current_membership': (call) => handlers.membership?.(call) ?? [membership],
+    '/rest/v1/clients': clients,
+    '/rest/v1/client_list': clients,
+    '/rest/v1/lead_list': clients,
+    '/rest/v1/client_owner_notes': (call) => handlers.notes?.(call) ?? [],
+    '/rest/v1/client_participants': (call) => handlers.participants?.(call) ?? [],
+    '/rest/v1/participant_invitations': (call) => handlers.invitations?.(call) ?? [],
+    '/rest/v1/rpc/delete_archived_client': (call) => handlers.deleteClient?.(call) ?? [],
+    '/storage/v1/object/documents': storage,
+    '/storage/v1/object/client-files': storage,
   });
 }
 
@@ -145,16 +121,11 @@ const calls = (pathname: string) =>
 const request = (
   path: string,
   init: RequestInit = {},
-  token = 'Bearer test-access-token',
+  token: string | null = testAccessToken,
   bindings: ApiEnv['Bindings'] = env
-) =>
-  createApp().request(
-    path,
-    { ...init, headers: { Authorization: token, ...(init.headers ?? {}) } },
-    bindings
-  );
+) => apiRequest(path, { ...init, token }, bindings);
 
-const postClient = (body: unknown, token?: string) =>
+const postClient = (body: unknown, token?: string | null) =>
   request(
     '/clients',
     {
@@ -165,13 +136,9 @@ const postClient = (body: unknown, token?: string) =>
     token
   );
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -240,7 +207,7 @@ describe('GET /clients', () => {
     });
     const [rpcUrl, rpcInit] = calls('/rest/v1/rpc/current_membership')[0]!;
     expect(new URL(String(rpcUrl)).origin).toBe('https://example.supabase.co');
-    expect(new Headers(rpcInit?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(new Headers(rpcInit?.headers).get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(new Headers(rpcInit?.headers).get('apikey')).toBe(env.SUPABASE_PUBLISHABLE_KEY);
     const [listUrl, listInit] = calls('/rest/v1/client_list')[0]!;
     const query = new URL(String(listUrl)).searchParams;
@@ -250,7 +217,7 @@ describe('GET /clients', () => {
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
     const headers = new Headers(listInit?.headers);
-    expect(headers.get('Authorization')).toBe('Bearer test-access-token');
+    expect(headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(headers.get('Prefer')).toContain('count=exact');
     expect(listInit?.signal).toBeInstanceOf(AbortSignal);
     expect(calls('/rest/v1/clients')).toHaveLength(0);
@@ -367,8 +334,8 @@ describe('GET /clients', () => {
 
   it('counts the whole list beside the filtered one', async () => {
     mockUpstream({
-      clients: (init) =>
-        init?.method === 'HEAD'
+      clients: ({ method }) =>
+        method === 'HEAD'
           ? new Response(null, { headers: { 'Content-Range': '*/80' } })
           : Response.json([{ ...clientRow, ...workRow }], {
               headers: { 'Content-Range': '0-0/1' },
@@ -485,8 +452,8 @@ describe('GET /clients', () => {
 
   it('filters the leads by any of the contract states chosen, and only the leads', async () => {
     mockUpstream({
-      clients: (init) =>
-        init?.method === 'HEAD'
+      clients: ({ method }) =>
+        method === 'HEAD'
           ? new Response(null, { headers: { 'Content-Range': '*/18' } })
           : Response.json([{ ...leadRow, service_contract_state: 'sent' }], {
               headers: { 'Content-Range': '0-0/1' },
@@ -516,14 +483,14 @@ describe('GET /clients', () => {
 
   it('counts the filtered leads again for a page past the end', async () => {
     mockUpstream({
-      clients: (init, url) =>
-        init?.method !== 'HEAD'
+      clients: ({ method, url }) =>
+        method !== 'HEAD'
           ? Response.json(
               { code: 'PGRST103', message: 'Requested range not satisfiable' },
               { status: 416 }
             )
           : new Response(null, {
-              headers: { 'Content-Range': url?.pathname === '/rest/v1/clients' ? '*/18' : '*/4' },
+              headers: { 'Content-Range': url.pathname === '/rest/v1/clients' ? '*/18' : '*/4' },
             }),
     });
     const response = await request('/clients?stage=lead&page=3&contractState=signed');
@@ -653,7 +620,7 @@ describe('GET /clients', () => {
 
   it('requires a bearer token', async () => {
     mockUpstream({});
-    const response = await request('/clients', {}, '');
+    const response = await request('/clients', {}, null);
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -846,8 +813,8 @@ describe('POST /clients', () => {
     [[], 'cui_taken_by_lead'],
   ])('says who holds the CUI: %j', async (holder, reason) => {
     mockUpstream({
-      clients: (init) =>
-        init?.method === 'POST'
+      clients: ({ method }) =>
+        method === 'POST'
           ? Response.json({ code: '23505', message: 'duplicate key' }, { status: 409 })
           : Response.json(holder),
     });
@@ -874,7 +841,7 @@ describe('POST /clients', () => {
 
   it('requires authentication before validation', async () => {
     mockUpstream({});
-    const response = await postClient({ legalName: 'A' }, '');
+    const response = await postClient({ legalName: 'A' }, null);
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -959,7 +926,7 @@ describe('PUT /clients/{clientId}', () => {
 
   it('refuses an archived client', async () => {
     mockUpstream({
-      clients: (init) => Response.json(init?.method === 'PATCH' ? [] : [{ id: clientRow.id }]),
+      clients: ({ method }) => Response.json(method === 'PATCH' ? [] : [{ id: clientRow.id }]),
     });
     const response = await putClient(validBody);
     expect(response.status).toBe(409);
@@ -990,7 +957,7 @@ describe('archiving a client', () => {
 
   it('keeps the first date when the client is archived already', async () => {
     mockUpstream({
-      clients: (init) => Response.json(init?.method === 'PATCH' ? [] : [archivedRow]),
+      clients: ({ method }) => Response.json(method === 'PATCH' ? [] : [archivedRow]),
     });
     const response = await post('archive');
     expect(response.status).toBe(200);
@@ -1085,9 +1052,9 @@ describe('DELETE /clients/{clientId}', () => {
       auth: () => Response.json({ ...user, app_metadata: { provider: 'email', role: 'admin' } }),
       clients: () => Response.json([archived]),
     });
-    expect((await remove(production, `Bearer ${accessTokenAt('aal1')}`)).status).toBe(403);
+    expect((await remove(production, accessTokenAt('aal1'))).status).toBe(403);
     expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
-    expect((await remove(production, `Bearer ${accessTokenAt('aal2')}`)).status).toBe(204);
+    expect((await remove(production, accessTokenAt('aal2'))).status).toBe(204);
     expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(1);
   });
 
@@ -1161,7 +1128,7 @@ describe('POST /clients/{clientId}/promote', () => {
     [[], 404],
   ])('changes nothing for a client, an archived lead, or no one: %#', async (current, status) => {
     mockUpstream({
-      clients: (init) => (init?.method === 'PATCH' ? Response.json([]) : Response.json(current)),
+      clients: ({ method }) => (method === 'PATCH' ? Response.json([]) : Response.json(current)),
     });
     expect((await promote()).status).toBe(status);
   });
@@ -1303,8 +1270,7 @@ describe('a lead on a plan without offers', () => {
     ],
   ])('passes on the refusal of %s', async (_name, send) => {
     mockUpstream({
-      clients: (init) =>
-        init?.method === 'GET' || !init?.method ? Response.json([leadRow]) : refusal(),
+      clients: ({ method }) => (method === 'GET' ? Response.json([leadRow]) : refusal()),
       notes: refusal,
     });
     const response = await send();
