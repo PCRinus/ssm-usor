@@ -1,10 +1,9 @@
 import { creditsExtra } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
-import type Stripe from 'stripe';
 
-import { type AdminClient, adminClient } from '../../lib/admin-db';
-import { fromDatabaseError } from '../../lib/db';
+import { adminClient } from '../../lib/admin-db';
 import { type ApiEnv, subscriptionUrl } from '../../lib/env';
+import { type MeterDeps, meterReporter } from '../billing/meter-reports';
 import { stripeFor } from '../billing/stripe';
 import { noticeRecipient } from '../billing/usage-notices';
 import type { CreditsHooks } from '../credits/store';
@@ -12,93 +11,27 @@ import { createExtrasNotices, extrasNoticeDeps } from './notices';
 
 const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-// Stripe takes a meter event at most 35 days old; one that reaches it after the month's invoice
-// is final is accepted and never billed, so a block is reported as soon as it is bought.
-const meterWindowMs = 35 * 86_400_000;
-
-type Deps = { db: AdminClient; stripe: Stripe };
 type Block = { id: string; boughtAt: Date; customerId: string };
 
-/**
- * Reports one block. Marked before Stripe is called and unmarked if the call fails, so a crash in
- * between bills a block too few rather than twice; the block's id as the event's identifier makes
- * a repeat within Stripe's 24 hours count once anyway.
- */
-export async function reportBlock(deps: Deps, block: Block): Promise<boolean> {
-  const marked = await deps.db
-    .from('credit_extra_blocks')
-    .update({ reported_at: new Date().toISOString() })
-    .eq('id', block.id)
-    .is('reported_at', null)
-    .select('id');
-  if (marked.error) throw fromDatabaseError(marked.error, 'credit block mark');
-  if (marked.data.length === 0) return false;
-  try {
-    await deps.stripe.billing.meterEvents.create({
-      event_name: creditsExtra.meterEventName,
-      identifier: block.id,
-      timestamp: Math.floor(block.boughtAt.getTime() / 1000),
-      payload: { stripe_customer_id: block.customerId, value: '1' },
-    });
-  } catch (error) {
-    const unmarked = await deps.db
-      .from('credit_extra_blocks')
-      .update({ reported_at: null })
-      .eq('id', block.id);
-    if (unmarked.error)
-      console.error(`Block ${block.id} stays marked as reported, though it failed.`);
-    throw error;
-  }
-  return true;
-}
+const blockMeter = meterReporter({
+  table: 'credit_extra_blocks',
+  at: 'created_at',
+  eventName: creditsExtra.meterEventName,
+  context: 'credit block',
+  labels: {
+    row: 'Block',
+    item: 'Credit block',
+    retried: 'Credit blocks retried',
+    retryFailed: 'Credit block retry failed',
+  },
+});
 
-async function customersOf(db: AdminClient, organizationIds: string[]) {
-  const { data, error } = await db
-    .from('subscriptions')
-    .select('organization_id, stripe_customer_id')
-    .in('organization_id', organizationIds);
-  if (error) throw fromDatabaseError(error, 'credit block customers');
-  return new Map(data.map((row) => [row.organization_id, row.stripe_customer_id]));
-}
+export const reportBlock = (deps: MeterDeps, block: Block) =>
+  blockMeter.report(deps, { id: block.id, at: block.boughtAt, customerId: block.customerId });
 
-export async function reportBlocks(
-  deps: Deps,
-  options: { organizationId?: string; olderThan?: Date; now?: Date } = {}
-) {
-  const now = options.now ?? new Date();
-  let query = deps.db
-    .from('credit_extra_blocks')
-    .select('id, organization_id, created_at')
-    .is('reported_at', null)
-    .gt('created_at', new Date(now.getTime() - meterWindowMs).toISOString());
-  if (options.organizationId) query = query.eq('organization_id', options.organizationId);
-  if (options.olderThan) query = query.lt('created_at', options.olderThan.toISOString());
-  const { data, error } = await query.order('created_at').limit(1000);
-  if (error) throw fromDatabaseError(error, 'credit blocks unreported');
-  if (data.length === 0) return { reported: 0, failed: 0 };
+export const reportBlocks = blockMeter.sweep;
 
-  const customerOf = await customersOf(deps.db, [
-    ...new Set(data.map((row) => row.organization_id)),
-  ]);
-  let reported = 0;
-  let failed = 0;
-  for (const row of data) {
-    const customerId = customerOf.get(row.organization_id);
-    if (!customerId) {
-      failed += 1;
-      continue;
-    }
-    try {
-      if (await reportBlock(deps, { id: row.id, boughtAt: new Date(row.created_at), customerId })) {
-        reported += 1;
-      }
-    } catch (error) {
-      failed += 1;
-      console.error(`Credit block ${row.id} not reported: ${describe(error)}`);
-    }
-  }
-  return { reported, failed };
-}
+export const scheduledBlockReports = blockMeter.scheduled;
 
 export function blocksReporter(env: ApiEnv['Bindings']) {
   return async (organizationId: string) => {
@@ -115,26 +48,6 @@ export function blocksReporter(env: ApiEnv['Bindings']) {
     );
     await notices(organizationId, 'credits', new Date());
   };
-}
-
-// A block's own report runs right after the charge that bought it; the daily retry leaves it that
-// long first.
-const retryAfterMs = 10 * 60_000;
-
-export async function scheduledBlockReports(env: ApiEnv['Bindings']) {
-  if (!env.STRIPE_SECRET_KEY?.trim()) return;
-  try {
-    const now = new Date();
-    const result = await reportBlocks(
-      { db: adminClient(env), stripe: stripeFor(env).stripe },
-      { olderThan: new Date(now.getTime() - retryAfterMs), now }
-    );
-    if (result.reported || result.failed) {
-      console.log(`Credit blocks retried: ${result.reported} reported, ${result.failed} failed.`);
-    }
-  } catch (error) {
-    console.error(`Credit block retry failed: ${describe(error)}`);
-  }
 }
 
 /** For a request: the report runs after the response, so a slow Stripe never holds the import. */

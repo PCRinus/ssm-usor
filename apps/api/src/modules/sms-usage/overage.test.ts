@@ -108,7 +108,6 @@ describe('the daily retry', () => {
     expect(query.url.searchParams.get('overage')).toBe('eq.true');
     expect(query.url.searchParams.get('reported_at')).toBe('is.null');
     expect(query.url.searchParams.getAll('sent_at')).toEqual([
-      'not.is.null',
       expect.stringMatching(/^gt\./),
       expect.stringMatching(/^lt\./),
     ]);
