@@ -66,11 +66,13 @@ mail:
   - 'apps/mail/**'
   - 'packages/contracts/package.json'
   - 'packages/contracts/src/mail.ts'
+  - 'packages/contracts/src/romanian.ts'
 sms:
   - *shared
   - 'apps/sms/**'
   - 'packages/contracts/package.json'
   - 'packages/contracts/src/sms.ts'
+  - 'packages/contracts/src/romanian.ts'
 pdf:
   - *shared
   - 'apps/pdf/**'
