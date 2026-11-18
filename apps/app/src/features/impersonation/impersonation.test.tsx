@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MeResponse } from '@/api/generated/api';
 import { apiFetch, apiUpload } from '@/api/http';
+import { fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession, withFactor } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
@@ -70,18 +71,17 @@ const identityChanged = () =>
     { status: 409 }
   );
 
-const fetchMock = vi.fn<typeof fetch>();
 let me: MeResponse;
 let meAnswer: (() => Response) | null;
 let otherAnswer: ((pathname: string, init?: RequestInit) => Response | undefined) | null;
 let openHome: ReturnType<typeof vi.spyOn>;
 
+installFetchMock();
+
 beforeEach(() => {
   meAnswer = null;
   otherAnswer = null;
-  fetchMock.mockReset();
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockApi((init, { pathname }) => {
     if (pathname === '/me') return meAnswer?.() ?? Response.json(me);
     const other = otherAnswer?.(pathname, init);
     if (other) return other;
@@ -92,23 +92,14 @@ beforeEach(() => {
     if (pathname === '/releases') return Response.json({ items: [] });
     return Response.json({ error: 'not_found', message: 'Not found.' }, { status: 404 });
   });
-  vi.stubGlobal('fetch', fetchMock);
   openHome = vi.spyOn(identityPage, 'openHome').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  disposeRuntimes();
   sessionStorage.clear();
   vi.useRealTimers();
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
-
-const requestsTo = (path: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === path && (init?.method ?? 'GET') === method
-  );
 
 const actingAsSent = (call: Parameters<typeof fetch>) =>
   new Headers(call[1]?.headers).get(actingAsHeader);
