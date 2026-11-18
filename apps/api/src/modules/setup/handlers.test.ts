@@ -1,17 +1,17 @@
 import { type SetupGuide, setupGuideSchema, setupStepIds } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  membershipRow,
+  mockUpstream,
+  stubFetch,
+  testOrganizationId as organizationId,
+  testUser as user,
+  type UpstreamRoute,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-};
-
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
 const admin = { id: '9a1c2b3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d', email: 'admin@ssmusor.ro' };
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const clientId = '7d2e4f60-8a1b-4c3d-9e5f-1a2b3c4d5e6f';
 
 type ProgressRow = Record<string, unknown>;
@@ -77,7 +77,6 @@ const everythingUnlocked: ProgressRow = {
 
 interface Fake {
   caller: { id: string; email: string };
-  membership: { user_id: string; role: 'owner' | 'specialist'; access: 'full' | 'read_only' };
   progress: ProgressRow | null;
   profile: { setup_guide_closed_at: string | null; setup_guide_finished_at: string | null } | null;
   skips: Set<string>;
@@ -88,8 +87,6 @@ const colleagueProfile = {
   setup_guide_closed_at: '2026-10-27T09:00:00+00:00',
   setup_guide_finished_at: '2026-10-27T09:05:00+00:00',
 };
-
-const fetchMock = vi.fn<typeof fetch>();
 
 function createFake({
   progress = {},
@@ -108,74 +105,66 @@ function createFake({
 } = {}): Fake {
   const fake: Fake = {
     caller: impersonating ? admin : user,
-    membership: { user_id: user.id, role, access },
     progress: progress === null ? null : { ...emptyProgress, ...progress },
     profile,
     skips: new Set(skips),
     writes: [],
   };
 
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const body = init?.body ? JSON.parse(init.body as string) : undefined;
-    if (method !== 'GET' && !url.pathname.startsWith('/rest/v1/rpc/')) {
-      fake.writes.push({ method, path: url.pathname, search: url.search, body });
-    }
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json({ ...fake.caller, is_anonymous: false });
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([{ ...fake.membership, organization_id: organizationId }]);
-      case '/rest/v1/rpc/setup_progress':
-        return Response.json(fake.progress ? [fake.progress] : []);
-      case '/rest/v1/profiles':
-        if (method === 'PATCH') {
-          if (!fake.profile) return Response.json([]);
-          fake.profile = { ...fake.profile, ...body };
-          return Response.json([{ user_id: fake.caller.id }]);
-        }
-        if (url.searchParams.get('user_id') !== `eq.${fake.caller.id}`) {
+  const recorded =
+    (route: UpstreamRoute): UpstreamRoute =>
+    (call) => {
+      if (call.method !== 'GET') {
+        fake.writes.push({
+          method: call.method,
+          path: call.url.pathname,
+          search: call.url.search,
+          body: call.body,
+        });
+      }
+      return route(call);
+    };
+
+  mockUpstream({
+    '/auth/v1/user': () => ({ ...fake.caller, is_anonymous: false }),
+    '/rest/v1/rpc/current_membership': () => [membershipRow({ role, access })],
+    '/rest/v1/rpc/setup_progress': () => Response.json(fake.progress ? [fake.progress] : []),
+    '/rest/v1/profiles': recorded(({ method, url, body }) => {
+      if (method === 'PATCH') {
+        if (!fake.profile) return Response.json([]);
+        fake.profile = { ...fake.profile, ...(body as Partial<NonNullable<Fake['profile']>>) };
+        return Response.json([{ user_id: fake.caller.id }]);
+      }
+      if (url.searchParams.get('user_id') !== `eq.${fake.caller.id}`) {
+        return Response.json(fake.profile ? [colleagueProfile, fake.profile] : [colleagueProfile]);
+      }
+      return Response.json(fake.profile ? [fake.profile] : []);
+    }),
+    '/rest/v1/setup_step_skips': recorded(({ method, url, body }) => {
+      if (method === 'POST') {
+        const { step } = body as { step: string };
+        if (fake.skips.has(step)) {
           return Response.json(
-            fake.profile ? [colleagueProfile, fake.profile] : [colleagueProfile]
+            { code: '23505', message: 'duplicate key value violates unique constraint' },
+            { status: 409 }
           );
         }
-        return Response.json(fake.profile ? [fake.profile] : []);
-      case '/rest/v1/setup_step_skips': {
-        if (method === 'POST') {
-          if (fake.skips.has(body.step)) {
-            return Response.json(
-              { code: '23505', message: 'duplicate key value violates unique constraint' },
-              { status: 409 }
-            );
-          }
-          fake.skips.add(body.step);
-          return new Response(null, { status: 201 });
-        }
-        if (method === 'DELETE') {
-          fake.skips.delete(url.searchParams.get('step')!.replace(/^eq\./, ''));
-          return new Response(null, { status: 204 });
-        }
-        return Response.json([...fake.skips].map((step) => ({ step })));
+        fake.skips.add(step);
+        return new Response(null, { status: 201 });
       }
-      default:
-        throw new Error(`Unexpected upstream request: ${method} ${url}`);
-    }
+      if (method === 'DELETE') {
+        fake.skips.delete(url.searchParams.get('step')!.replace(/^eq\./, ''));
+        return new Response(null, { status: 204 });
+      }
+      return Response.json([...fake.skips].map((step) => ({ step })));
+    }),
   });
 
   return fake;
 }
 
 const request = (method: string, path: string, body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { Authorization: 'Bearer token', 'Content-Type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    env
-  );
+  apiRequest(path, { method, body, headers: { 'Content-Type': 'application/json' } });
 
 async function guideOf(response: Response): Promise<SetupGuide> {
   expect(response.status).toBe(200);
@@ -189,14 +178,7 @@ const stepOf = (guide: SetupGuide, id: string) => guide.steps.find((step) => ste
 const statesOf = (guide: SetupGuide) =>
   Object.fromEntries(guide.steps.map((step) => [step.id, step.state]));
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('GET /me/setup', () => {
   it('answers a new organization with every step in order, only the account done', async () => {
@@ -506,12 +488,7 @@ describe('GET /me/setup', () => {
   });
 
   it('refuses an account that is not a member of an organization', async () => {
-    fetchMock.mockImplementation(async (input) => {
-      const url = new URL(input instanceof Request ? input.url : String(input));
-      if (url.pathname === '/auth/v1/user') return Response.json({ ...user, is_anonymous: false });
-      if (url.pathname === '/rest/v1/rpc/current_membership') return Response.json([]);
-      throw new Error(`Unexpected upstream request: ${url}`);
-    });
+    mockUpstream({ '/rest/v1/rpc/current_membership': () => [] });
 
     const response = await request('GET', '/me/setup');
 
