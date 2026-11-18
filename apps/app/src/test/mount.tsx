@@ -2,11 +2,13 @@ import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 
 import App from '@/app/App';
-import { type AppRuntime, createAppRuntime } from '@/app/app-runtime';
+import { createAppRuntime } from '@/app/app-runtime';
 import type { AuthClient } from '@/features/auth/auth-store';
 import { createQueryClient } from '@/lib/query-client';
 
-const runtimes: AppRuntime[] = [];
+import { runtimes } from './runtimes';
+
+export { disposeRuntimes } from './runtimes';
 
 export function mountApp(client: AuthClient | null, path = '/dashboard') {
   const runtime = createAppRuntime(
@@ -18,8 +20,4 @@ export function mountApp(client: AuthClient | null, path = '/dashboard') {
   runtimes.push(runtime);
   render(<App runtime={runtime} />);
   return runtime;
-}
-
-export function disposeRuntimes() {
-  runtimes.splice(0).forEach((runtime) => runtime.dispose());
 }
