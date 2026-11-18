@@ -4,10 +4,10 @@ import type Stripe from 'stripe';
 
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { type ApiEnv, appOrigin } from '../../lib/env';
+import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { stripeFor } from '../billing/stripe';
+import { noticeRecipient } from '../billing/usage-notices';
 import type { CreditsHooks } from '../credits/store';
-import { noticeRecipient } from '../sms-usage/notices';
 import { createExtrasNotices, extrasNoticeDeps } from './notices';
 
 const describe = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -110,7 +110,7 @@ export function blocksReporter(env: ApiEnv['Bindings']) {
       extrasNoticeDeps(db, {
         recipient: (id) => noticeRecipient(db, id),
         mail: env.MAIL,
-        subscriptionUrl: () => new URL('/organizatie/abonament', appOrigin(env)).href,
+        subscriptionUrl: () => subscriptionUrl(env),
       })
     );
     await notices(organizationId, 'credits', new Date());

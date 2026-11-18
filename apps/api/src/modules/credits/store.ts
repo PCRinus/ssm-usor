@@ -3,8 +3,7 @@ import { creditsExtra } from '@ssm-usor/contracts';
 import type { Database } from '../../database.types';
 import type { AdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import type { SmsSubscription } from '../sms-usage/policy';
-import { smsSubscriptionColumns } from '../sms-usage/policy';
+import { loadEntitlementRow } from '../billing/entitlements';
 import type { CreditPolicy } from './policy';
 
 export type CreditEntryKind = Database['public']['Enums']['credit_entry_kind'];
@@ -81,15 +80,7 @@ export function creditsStore(db: AdminClient, hooks: CreditsHooks = {}) {
   }
 
   return {
-    async subscription(organizationId: string): Promise<SmsSubscription | null> {
-      const { data, error } = await db
-        .from('subscriptions')
-        .select(smsSubscriptionColumns)
-        .eq('organization_id', organizationId)
-        .maybeSingle();
-      if (error) throw fromDatabaseError(error, 'credits subscription');
-      return data;
-    },
+    subscription: (organizationId: string) => loadEntitlementRow(db, organizationId),
     async balance(organizationId: string, policy: CreditPolicy): Promise<Balance> {
       const { data, error } = await db
         .rpc('credit_balance', { p_organization_id: organizationId, ...periodArgs(policy) })
