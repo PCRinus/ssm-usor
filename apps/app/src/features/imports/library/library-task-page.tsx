@@ -1,21 +1,9 @@
 import { importCredits, importErrorReasons, type InstructionDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { toast } from '@ssm-usor/ui/lib/toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, LoaderCircle, LockKeyhole, RotateCcw } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Link } from '@tanstack/react-router';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import {
-  type ApiErrorResponse,
-  confirmImportLibraryPart,
-  getListImportLibraryPartsQueryKey,
-  getListImportsQueryKey,
-  type ImportDetail,
-  retryImportLibraryPart,
-} from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-import { useReturnToOpener } from '@/app/use-return-to-opener';
+import type { ImportDetail } from '@/api/generated/api';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -25,8 +13,6 @@ import { scrollAndFocus } from '@/features/missing-data/focus';
 
 import { ImportActionBar } from '../import-action-bar';
 import { ImportOverviewBack } from '../import-back';
-import { creditsLabel } from '../import-credits';
-import { importErrorMessage } from '../import-format';
 import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
@@ -43,7 +29,6 @@ import {
   isInstructionsLibraryPart,
   isReviewable,
   joinNames,
-  libraryDay,
   type LibraryPart,
   type LibraryPost,
   partLabels,
@@ -58,8 +43,10 @@ import {
   unreadReason,
   withChange,
 } from './library-model';
+import { PartStateNotices, PartTaskLoader, ReviewNotices } from './part-task';
 import { PostsPickerDialog, type PostsRequest, type UndecidedNote } from './posts-picker-dialog';
-import { type LibraryReview, useLibraryParts, useLibraryReview } from './use-library-parts';
+import { useLibraryReview } from './use-library-parts';
+import { partConfirmNote, partConfirmReasons, usePartConfirm } from './use-part-confirm';
 
 export function LibraryTaskPage({
   detail,
@@ -68,68 +55,31 @@ export function LibraryTaskPage({
   detail: ImportDetail;
   domain: InstructionDomain;
 }) {
-  const query = useLibraryParts(detail.id);
   const label = partLabels[partOfDomain[domain]];
-  if (query.isPending) {
-    return (
-      <div className="grid gap-4" aria-busy="true" data-testid="library-task-loading">
-        <div className="h-9 w-48 animate-pulse rounded-md bg-muted" />
-        <div className="h-40 animate-pulse rounded-xl bg-muted" />
-      </div>
-    );
-  }
-  const part = query.data?.parts
-    .filter(isInstructionsLibraryPart)
-    .find((each) => each.part === partOfDomain[domain]);
   return (
-    <div className="grid gap-6">
-      {query.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="library-task-error"
-          action={
-            <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
-              Încearcă din nou
-            </Button>
-          }
-        >
-          Nu am putut încărca instrucțiunile proprii. Încearcă din nou.
-        </Notice>
-      ) : !part ? (
-        <Notice variant="info" data-testid="library-task-missing">
-          În documentația importată nu am găsit {label}.
-        </Notice>
-      ) : (
+    <PartTaskLoader
+      detail={detail}
+      pick={(parts) =>
+        parts.filter(isInstructionsLibraryPart).find((each) => each.part === partOfDomain[domain])
+      }
+      loadFailed="Nu am putut încărca instrucțiunile proprii. Încearcă din nou."
+      missing={`În documentația importată nu am găsit ${label}.`}
+    >
+      {(part, posts, back) => (
         <TaskContent
           key={`${part.part}-${part.attempt}`}
           detail={detail}
           part={part}
-          posts={query.data?.posts ?? []}
+          posts={posts}
+          back={back}
         />
       )}
-      {(query.isError || !part) && (
-        <Button asChild variant="outline" className="w-fit">
-          <Link to="/clienti/import/$importId" params={{ importId: detail.id }}>
-            <ArrowLeft aria-hidden="true" />
-            Înapoi la propunere
-          </Link>
-        </Button>
-      )}
-    </div>
+    </PartTaskLoader>
   );
 }
 
 const confirmReasons: Record<string, string> = {
-  [importErrorReasons.clientUnconfirmed]:
-    'Confirmă întâi clientul: instrucțiunile se aplică la posturile lui.',
-  [importErrorReasons.partExpired]:
-    'Propunerea a expirat la 14 zile după crearea clientului, așa că nu mai poate fi confirmată.',
-  [importErrorReasons.partNotReady]:
-    'Instrucțiunile au fost confirmate sau citite din nou între timp. Reîncarcă pagina.',
-  [importErrorReasons.changed]:
-    'Altcineva a modificat instrucțiunile între timp. Reîncarcă pagina ca să vezi ce s-a schimbat.',
-  [importErrorReasons.outdated]:
-    'Clientul sau biblioteca s-au schimbat între timp: un post sau o instrucțiune nu mai există. Reîncarcă pagina și alege din nou.',
+  ...partConfirmReasons({ these: 'instrucțiunile', one: 'o instrucțiune' }),
   [importErrorReasons.incomplete]:
     'O categorie aleasă nu ține de acest domeniu. Alege din nou categoria instrucțiunii.',
   [importErrorReasons.titleTaken]:
@@ -140,15 +90,13 @@ function TaskContent({
   detail,
   part,
   posts,
+  back,
 }: {
   detail: ImportDetail;
   part: LibraryPart;
   posts: LibraryPost[];
+  back: ReactNode;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const returnToImport = useReturnToOpener(`/clienti/import/${detail.id}`);
   const review = useLibraryReview(detail.id, part);
   const prefetchSource = useSourcePrefetch(detail.id);
   const root = useRef<HTMLDivElement>(null);
@@ -157,10 +105,7 @@ function TaskContent({
   const [source, setSource] = useState<SourceRequest | null>(null);
   const [postsRequest, setPostsRequest] = useState<PostsRequest | null>(null);
   const [bodyRequest, setBodyRequest] = useState<BodyRequest | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [takenTitles, setTakenTitles] = useState<Set<string>>(new Set());
-  const [retrying, setRetrying] = useState(false);
 
   const domain = part.domain;
   const label = partLabels[part.part];
@@ -211,83 +156,30 @@ function TaskContent({
     stopAttention.current = scrollAndFocus(element);
   }
 
-  async function refresh() {
-    await queryClient.invalidateQueries({
-      queryKey: getListImportLibraryPartsQueryKey(detail.id),
-    });
-  }
-
-  async function confirm() {
-    setConfirming(true);
-    setConfirmError(null);
-    try {
-      const saved = await review.flush();
-      if ('error' in saved) {
-        setConfirmError(saved.error);
-        return;
-      }
-      const result = await confirmImportLibraryPart(
-        detail.id,
-        part.part,
-        { version: saved.version },
-        apiRequest
+  const { confirming, confirmError, confirm, retrying, retry } = usePartConfirm({
+    detail,
+    part,
+    review,
+    invalidate: invalidateLibrary,
+    doneText: (result) =>
+      'createdModuleIds' in result && result.createdModuleIds.length > 0
+        ? `Am adăugat ${instructionsLabel(result.createdModuleIds.length)} în bibliotecă.`
+        : `Ai confirmat ${label}.`,
+    reasons: confirmReasons,
+    failed: 'Nu am putut confirma instrucțiunile. Încearcă din nou.',
+    onRefused: (reason, body) => {
+      if (reason !== importErrorReasons.titleTaken) return undefined;
+      setTakenTitles(
+        new Set(
+          (body?.issues ?? []).flatMap((issue) => {
+            const key = /^instructions\.(.+)\.title$/u.exec(issue.path)?.[1];
+            return key ? [key] : [];
+          })
+        )
       );
-      await Promise.all([
-        refresh(),
-        invalidateLibrary(queryClient),
-        queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
-        detail.client &&
-          queryClient.invalidateQueries({
-            predicate: ({ queryKey }) =>
-              String(queryKey[0]).startsWith(`/clients/${detail.client!.id}`),
-          }),
-      ]);
-      toast.success(
-        'createdModuleIds' in result && result.createdModuleIds.length > 0
-          ? `Am adăugat ${instructionsLabel(result.createdModuleIds.length)} în bibliotecă.`
-          : `Ai confirmat ${label}.`
-      );
-      if (!returnToImport()) {
-        await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
-      }
-    } catch (cause) {
-      const body =
-        cause instanceof ApiHttpError
-          ? (cause.body as Partial<ApiErrorResponse> | undefined)
-          : undefined;
-      const reason = body?.reason;
-      if (reason === importErrorReasons.titleTaken) {
-        setTakenTitles(
-          new Set(
-            (body?.issues ?? []).flatMap((issue) => {
-              const key = /^instructions\.(.+)\.title$/u.exec(issue.path)?.[1];
-              return key ? [key] : [];
-            })
-          )
-        );
-      }
-      setConfirmError(
-        reason && Object.hasOwn(confirmReasons, reason)
-          ? confirmReasons[reason]!
-          : importErrorMessage(cause, 'Nu am putut confirma instrucțiunile. Încearcă din nou.')
-      );
-    } finally {
-      setConfirming(false);
-    }
-  }
-
-  async function retry() {
-    setRetrying(true);
-    try {
-      await retryImportLibraryPart(detail.id, part.part, apiRequest);
-      review.forget();
-      await refresh();
-    } catch (cause) {
-      toast.error(importErrorMessage(cause, 'Nu am putut porni citirea. Încearcă din nou.'));
-    } finally {
-      setRetrying(false);
-    }
-  }
+      return undefined;
+    },
+  });
 
   return (
     <SourcePrefetchContext value={prefetchSource}>
@@ -311,12 +203,27 @@ function TaskContent({
           </div>
         </div>
 
-        <StateNotices
+        <PartStateNotices
           part={part}
-          label={label}
           expired={expired}
           retrying={retrying}
           onRetry={() => void retry()}
+          texts={{
+            afterExpiry:
+              'Instrucțiunile le poți adăuga în Instrucțiuni proprii, cu „Scrie o instrucțiune” și „Lipește text”.',
+            reading: 'Citim instrucțiunile proprii din pachet.',
+            failedTitle: `Nu am putut citi ${label}`,
+            failedFallback: 'Citirea instrucțiunilor proprii s-a oprit.',
+            credits: importCredits.ownInstructions[part.domain],
+            untouched: 'Clientul și celelalte instrucțiuni rămân cum sunt.',
+            confirmed: `Ai confirmat ${label}`,
+            confirmedWhere: 'Instrucțiunile sunt în biblioteca ta și la posturile clientului.',
+            open: (
+              <Link to={part.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}>
+                Deschide {label}
+              </Link>
+            ),
+          }}
         />
         {reviewable && <ReviewNotices review={review} />}
 
@@ -528,27 +435,16 @@ function TaskContent({
               )}
             </div>
           }
-          note={
-            review.closed ? (
-              'Reîncarcă pagina pentru starea actuală.'
-            ) : !reviewable ? undefined : !clientConfirmed ? (
-              <ClientPrerequisiteNote intoExistingClient={detail.intoExistingClient} />
-            ) : part.expiresAt ? (
-              `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
-            ) : undefined
-          }
+          note={partConfirmNote({
+            closed: review.closed,
+            reviewable,
+            clientConfirmed,
+            intoExistingClient: detail.intoExistingClient,
+            expiresAt: part.expiresAt,
+          })}
           error={confirmError}
         >
-          <Button asChild variant="outline">
-            <Link
-              to="/clienti/import/$importId"
-              params={{ importId: detail.id }}
-              data-testid="library-back-to-import"
-            >
-              <ArrowLeft aria-hidden="true" />
-              Înapoi la propunere
-            </Link>
-          </Button>
+          {back}
           {reviewable && clientConfirmed && (
             <Button
               data-testid="library-confirm"
@@ -581,119 +477,5 @@ function TaskContent({
         />
       </div>
     </SourcePrefetchContext>
-  );
-}
-
-export function ClientPrerequisiteNote({ intoExistingClient }: { intoExistingClient: boolean }) {
-  return (
-    <strong className="inline-flex items-start gap-1.5 font-medium text-foreground">
-      <LockKeyhole aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-      {intoExistingClient ? 'Confirmă întâi completarea clientului.' : 'Creează întâi clientul.'}
-    </strong>
-  );
-}
-
-function StateNotices({
-  part,
-  label,
-  expired,
-  retrying,
-  onRetry,
-}: {
-  part: LibraryPart;
-  label: string;
-  expired: boolean;
-  retrying: boolean;
-  onRetry: () => void;
-}) {
-  if (expired) {
-    return (
-      <Notice variant="warning" data-testid="library-expired">
-        Propunerea a expirat pe {libraryDay(part.expiresAt!)}, la 14 zile după crearea clientului,
-        așa că nu mai poate fi confirmată. Instrucțiunile le poți adăuga în Instrucțiuni proprii, cu
-        „Scrie o instrucțiune” și „Lipește text”.
-      </Notice>
-    );
-  }
-  switch (part.status) {
-    case 'reading':
-      return (
-        <Notice
-          variant="info"
-          icon={
-            <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-          }
-          data-testid="library-reading"
-        >
-          Citim instrucțiunile proprii din pachet. Pagina se actualizează singură când sunt gata;
-          între timp poți verifica și crea clientul.
-        </Notice>
-      );
-    case 'failed': {
-      const credits = importCredits.ownInstructions[part.domain];
-      return (
-        <Notice
-          variant="destructive"
-          title={`Nu am putut citi ${label}`}
-          data-testid="library-failed"
-          action={
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-card"
-              data-testid="library-retry"
-              disabled={retrying}
-              onClick={onRetry}
-            >
-              <RotateCcw aria-hidden="true" />
-              {retrying ? 'Se pornește…' : 'Citește din nou'}
-            </Button>
-          }
-        >
-          <p>{part.failureReason ?? 'Citirea instrucțiunilor proprii s-a oprit.'}</p>
-          <p className="mt-1">
-            Citirea din nou folosește {creditsLabel(credits)}; dacă nu reușește, ți le returnăm.
-            Clientul și celelalte instrucțiuni rămân cum sunt.
-          </p>
-        </Notice>
-      );
-    }
-    case 'confirmed':
-      return (
-        <Notice
-          variant="success"
-          data-testid="library-confirmed"
-          action={
-            <Button asChild variant="outline" size="sm" className="bg-card">
-              <Link to={part.domain === 'su' ? '/instructiuni/su' : '/instructiuni/ssm'}>
-                Deschide {label}
-              </Link>
-            </Button>
-          }
-        >
-          Ai confirmat {label}
-          {part.confirmedAt ? ` pe ${libraryDay(part.confirmedAt)}` : ''}. Instrucțiunile sunt în
-          biblioteca ta și la posturile clientului.
-        </Notice>
-      );
-    default:
-      return null;
-  }
-}
-
-export function ReviewNotices({ review }: { review: Pick<LibraryReview, 'closed'> }) {
-  if (!review.closed) return null;
-  return (
-    <Notice
-      variant="destructive"
-      data-testid="library-review-closed"
-      action={
-        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-          Reîncarcă pagina
-        </Button>
-      }
-    >
-      {review.closed}
-    </Notice>
   );
 }
