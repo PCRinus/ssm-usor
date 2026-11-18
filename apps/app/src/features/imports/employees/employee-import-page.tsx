@@ -7,19 +7,19 @@ import type { ImportDetail } from '@/api/generated/api';
 import { BackLink } from '@/components/back-link';
 
 import { ImportLoader } from '../import-processing-page';
+import { ChangesStores, ChangesStoresContext } from '../versioned-changes-store';
 import { EmployeeHub } from './employee-hub';
 import { EmployeeProcessing } from './employee-processing';
 import { EmployeePersonPage } from './person-page';
-import { EmployeeReviewStores, EmployeeReviewStoresContext } from './use-employee-review';
 
 export function EmployeeImportScope() {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
-  const [stores] = useState(() => new EmployeeReviewStores(apiRequest, queryClient));
+  const [stores] = useState(() => new ChangesStores(apiRequest, queryClient));
   return (
-    <EmployeeReviewStoresContext value={stores}>
+    <ChangesStoresContext value={stores}>
       <Outlet />
-    </EmployeeReviewStoresContext>
+    </ChangesStoresContext>
   );
 }
 
