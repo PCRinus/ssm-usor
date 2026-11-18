@@ -29,11 +29,11 @@ select
   coalesce(e.current_employee_count, 0) as current_employee_count
 from public.client_workplaces w
 left join (
-  select workplace_id, count(*)::integer as current_employee_count
+  select workplace_id, client_id, count(*)::integer as current_employee_count
   from public.employees
   where workplace_id is not null and status = 'active' and archived_at is null
-  group by workplace_id
-) e on e.workplace_id = w.id;
+  group by workplace_id, client_id
+) e on e.workplace_id = w.id and e.client_id = w.client_id;
 
 comment on view public.client_workplace_list is
   'Each workplace with the number of current employees who work there.';
