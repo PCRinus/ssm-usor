@@ -265,6 +265,31 @@ describe('the return link', () => {
     );
   });
 
+  it('takes a first copy back when its file cannot be stored, and keeps an earlier one', async () => {
+    mockUpstream({ upload: () => Response.json({ message: 'down' }, { status: 500 }) });
+    expect((await upload()).status).toBeGreaterThanOrEqual(500);
+    const [removed] = calls('/rest/v1/document_signed_copies', 'DELETE');
+    expect(new URL(String(removed![0])).searchParams.get('revision_id')).toBe(`eq.${revisionId}`);
+    expect(calls('/rest/v1/service_contract_sends', 'PATCH')).toHaveLength(1);
+    expect(sendSignedCopyReceived).not.toHaveBeenCalled();
+
+    fetchMock.mockClear();
+    mockUpstream({
+      revision: () =>
+        Response.json({
+          ...revisionRow,
+          document_signed_copies: {
+            source: 'client',
+            confirmed_at: null,
+            uploaded_at: '2026-09-22T09:00:00+00:00',
+          },
+        }),
+      upload: () => Response.json({ message: 'down' }, { status: 500 }),
+    });
+    expect((await upload()).status).toBeGreaterThanOrEqual(500);
+    expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(0);
+  });
+
   it('takes only a PDF, and only so many times', async () => {
     mockUpstream();
     const notPdf = await upload(new TextEncoder().encode('hello'));

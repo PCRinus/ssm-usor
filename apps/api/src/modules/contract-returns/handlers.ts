@@ -205,7 +205,16 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
     { onConflict: 'revision_id' }
   );
   if (recorded.error) throw fromDatabaseError(recorded.error, 'record received copy');
-  await createAdminFileStore(c).writeDocument(path, bytes, { replace: true });
+  try {
+    await createAdminFileStore(c).writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    // Only a first copy: after a failed replacement the row still describes the earlier
+    // file, under a hash the client's next try corrects.
+    if (!revision.document_signed_copies) {
+      await admin.from('document_signed_copies').delete().eq('revision_id', revision.id);
+    }
+    throw error;
+  }
 
   // The owner hears of it; a copy that arrived is not lost when the email is.
   const to = await senderEmail(admin, send.sent_by);
