@@ -21,6 +21,7 @@ import {
   type PortalOptions,
   portalPauseMs,
 } from './portal';
+import type { failureKinds } from './stored';
 
 export const legalActsSchema = z.object({
   acts: z.array(
@@ -44,7 +45,7 @@ type ActRow = Pick<
   'id' | 'last_consolidated_on' | 'verified_consolidated_on' | 'last_checked_at'
 >;
 
-export type FailureKind = 'http_status' | 'fetch' | 'parse' | 'other';
+export type FailureKind = (typeof failureKinds)[number];
 
 // `message` is the technical text for the logs; the app words the failure from the other fields.
 export type Failure = { kind: FailureKind; status?: number; message: string };

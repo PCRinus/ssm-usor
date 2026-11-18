@@ -1,3 +1,5 @@
+import type { amendmentOperations } from './stored';
+
 export type UnitPath = {
   annex: string | null;
   article: string | null;
@@ -6,7 +8,7 @@ export type UnitPath = {
   point: string | null;
 };
 
-export type AmendmentOperation = 'modified' | 'supplemented' | 'inserted' | 'repealed' | 'other';
+export type AmendmentOperation = (typeof amendmentOperations)[number];
 
 export type AmendingAct = {
   // As the note writes it: "LEGEA", "ORDONANȚA DE URGENȚĂ", "HOTĂRÂREA".
