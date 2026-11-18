@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getGetClientFireSafetyQueryKey } from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -304,6 +305,40 @@ describe('the fire-safety training card', () => {
         },
       ])
     );
+  });
+
+  it('keeps the row the save answered with before the page reads it again', async () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });
+    const answer = fetchMock.getMockImplementation()!;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (input, init) => {
+      const read =
+        new URL(String(input)).pathname === firePath && (init?.method ?? 'GET') === 'GET';
+      if (read && requests(firePath, 'PATCH').length > 0) await held;
+      return answer(input, init);
+    });
+    const { queryClient } = mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('fire-safety-edit'));
+    await user.click(screen.getByTestId('fire-worker-interval-1'));
+    await user.click(screen.getByTestId('fire-safety-save'));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueriesData({ queryKey: getGetClientFireSafetyQueryKey(clientId) })
+      ).toEqual([
+        [
+          expect.anything(),
+          { fireSafety: { ...savedFireSafety, workerTrainingIntervalMonths: 1 }, exists: true },
+        ],
+      ])
+    );
+    release();
+    expect(await screen.findByText('Instruirea SU a fost salvată.')).toBeTruthy();
   });
 
   it('picks the longest interval for a category that has posts and no interval yet', async () => {

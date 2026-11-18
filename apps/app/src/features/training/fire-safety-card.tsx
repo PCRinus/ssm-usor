@@ -167,7 +167,11 @@ function useFireSafetySave<Values extends FieldValues>({
   const queryKey = [...getGetClientFireSafetyQueryKey(clientId), userId];
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await update.mutateAsync({ clientId, data: change(values) });
+      // A refetch that fails keeps the cache it had, so the saved row goes in first.
+      queryClient.setQueryData(
+        queryKey,
+        await update.mutateAsync({ clientId, data: change(values) })
+      );
       await queryClient.invalidateQueries({ queryKey });
       savedToast(successMessage);
       onDone();

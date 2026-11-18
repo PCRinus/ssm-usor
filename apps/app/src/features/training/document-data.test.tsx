@@ -2,7 +2,10 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ClientDocumentDetailsResponse } from '@/api/generated/api';
+import {
+  type ClientDocumentDetailsResponse,
+  getGetClientDocumentDetailsQueryKey,
+} from '@/api/generated/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -367,6 +370,46 @@ describe('client document data', () => {
     );
     expect(await screen.findByTestId('training-program-session')).toBeTruthy();
     expect(screen.getByTestId('training-no-positions')).toBeTruthy();
+  });
+
+  it('keeps the row the save answered with before the page reads it again', async () => {
+    mockApi({ details: savedDetails, positions: [welder, director] });
+    const answer = fetchMock.getMockImplementation()!;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (input, init) => {
+      const read =
+        new URL(String(input)).pathname === detailsPath && (init?.method ?? 'GET') === 'GET';
+      if (read && saves().length > 0) await held;
+      return answer(input, init);
+    });
+    const { queryClient } = mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('training-program-edit'));
+    await user.selectOptions(screen.getByTestId('details-first-month'), '3');
+    await user.click(screen.getByTestId('training-program-save'));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueriesData({ queryKey: getGetClientDocumentDetailsQueryKey(clientId) })
+      ).toEqual([
+        [
+          expect.anything(),
+          {
+            documentDetails: {
+              legalRepresentativeEmployee: null,
+              ...savedDetails,
+              trainingFirstMonth: 3,
+            },
+          },
+        ],
+      ])
+    );
+    release();
+    expect(await screen.findByText('Programul de instruire a fost salvat.')).toBeTruthy();
   });
 
   it('edits a saved program from the blocks, and clears a field that is emptied', async () => {

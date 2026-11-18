@@ -80,10 +80,12 @@ export function useDocumentDetailsForm({
       return;
     }
     try {
-      await update.mutateAsync({
+      const response = await update.mutateAsync({
         clientId: client.id,
         data: toDocumentDetailsRequest(values, fields),
       });
+      // A refetch that fails keeps the cache it had, so the saved row goes in first.
+      queryClient.setQueryData(queryKey, response);
       // The client itself carries the representative's name too.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey }),
