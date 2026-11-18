@@ -7,14 +7,13 @@ import { ArrowLeft, ListX, LoaderCircle, RotateCcw } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   confirmImportLibraryPart,
   getListImportLibraryPartsQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
   retryImportLibraryPart,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody } from '@/api/http';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
@@ -331,10 +330,7 @@ function TaskContent({
         await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
       }
     } catch (cause) {
-      const body =
-        cause instanceof ApiHttpError
-          ? (cause.body as Partial<ApiErrorResponse> | undefined)
-          : undefined;
+      const body = apiErrorBody(cause);
       const reason = body?.reason;
       const named = (keys: Iterable<string>) =>
         [...keys].map((key) => sheetByKey.get(key)?.name ?? key);

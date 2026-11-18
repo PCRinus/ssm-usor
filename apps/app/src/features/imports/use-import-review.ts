@@ -4,7 +4,6 @@ import { useRouteContext } from '@tanstack/react-router';
 import { createContext, use, useSyncExternalStore } from 'react';
 
 import {
-  type ApiErrorResponse,
   getGetClientDocumentDetailsQueryKey,
   getGetClientFireSafetyQueryKey,
   getGetClientQueryKey,
@@ -22,7 +21,7 @@ import {
   useListJobPositions,
   useListWorkplaces,
 } from '@/api/generated/api';
-import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
+import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
 
 import { importErrorMessage } from './import-format';
 import {
@@ -50,9 +49,7 @@ function withoutEmpty(changes: Changes): Changes {
   return { fields, items };
 }
 
-const isConflict = (cause: unknown) =>
-  cause instanceof ApiHttpError &&
-  (cause.body as Partial<ApiErrorResponse> | undefined)?.reason === importErrorReasons.changed;
+const isConflict = (cause: unknown) => apiErrorReason(cause) === importErrorReasons.changed;
 
 const saveFailed = 'Nu am putut salva ultima schimbare. Salvează din nou ca să nu se piardă.';
 const savedByOthers =

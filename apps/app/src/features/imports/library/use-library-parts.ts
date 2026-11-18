@@ -4,14 +4,13 @@ import { useRouteContext } from '@tanstack/react-router';
 import { createContext, use, useSyncExternalStore } from 'react';
 
 import {
-  type ApiErrorResponse,
   getListImportLibraryPartsQueryKey,
   type ImportLibraryPartsResponse,
   saveImportLibraryPartChanges,
   type SaveImportLibraryPartChangesRequest,
   useListImportLibraryParts,
 } from '@/api/generated/api';
-import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
+import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { importErrorMessage } from '../import-format';
@@ -45,11 +44,6 @@ export function useLibraryParts(importId: string, enabled = true) {
     },
   });
 }
-
-const reasonOf = (cause: unknown) =>
-  cause instanceof ApiHttpError
-    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
-    : undefined;
 
 const saveFailed = 'Nu am putut salva ultima schimbare. Salvează din nou ca să nu se piardă.';
 
@@ -168,7 +162,7 @@ export class PartReviewStore<C> {
               : old
         );
       } catch (cause) {
-        const reason = reasonOf(cause);
+        const reason = apiErrorReason(cause);
         if (reason === importErrorReasons.changed) this.set({ conflict: true });
         else if (reason === importErrorReasons.partNotReady) {
           this.set({ closed: this.texts.notReady });

@@ -3,14 +3,13 @@ import type { QueryClient } from '@tanstack/react-query';
 import { createContext, use, useSyncExternalStore } from 'react';
 
 import {
-  type ApiErrorResponse,
   getGetImportQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
   type ImportDetailResponse,
   saveEmployeeImportChanges,
 } from '@/api/generated/api';
-import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
+import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
 
 import { importErrorMessage } from '../import-format';
 import { type Changes, changesOf, type Proposal, statesOf } from './employee-review-model';
@@ -21,9 +20,7 @@ const saveFailed = 'Nu am putut salva ultima schimbare. Salvează din nou ca să
 const savedByOthers =
   'Altcineva a modificat importul între timp, așa că schimbarea ta nu a fost salvată. Reîncarcă pagina și fă-o din nou.';
 
-const isConflict = (cause: unknown) =>
-  cause instanceof ApiHttpError &&
-  (cause.body as Partial<ApiErrorResponse> | undefined)?.reason === importErrorReasons.changed;
+const isConflict = (cause: unknown) => apiErrorReason(cause) === importErrorReasons.changed;
 
 // Saves go one after the other, each on the version the previous one answered; a change made
 // while one is on its way is sent once it returns, the latest only.
