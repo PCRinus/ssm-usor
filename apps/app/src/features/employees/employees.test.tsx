@@ -2052,7 +2052,7 @@ describe('employee editing', () => {
       detail: () => Response.json({ employee: stored }),
       update: () =>
         Response.json(
-          { code: 'conflict', message: 'Archived.', reason: 'client_archived' },
+          { error: 'conflict', message: 'Archived.', reason: 'client_archived' },
           { status: 409 }
         ),
     });
