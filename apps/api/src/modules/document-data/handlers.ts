@@ -495,20 +495,47 @@ async function refuseOfficeWithoutActivity(
   }
 }
 
+// Views type every column as nullable; these come from not-null columns of the table.
+type WorkplaceListRow = {
+  [Column in keyof WorkplaceRow | 'current_employee_count']: Column extends keyof WorkplaceRow
+    ? WorkplaceRow[Column]
+    : number;
+};
+
 export const listWorkplaces: RouteHandler<typeof listWorkplacesRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
   await findClient(db, clientId);
-  const { data, error } = await db
-    .from('client_workplaces')
-    .select(workplaceColumns)
-    .eq('client_id', clientId)
-    .is('archived_at', null)
-    .order('is_registered_office', { ascending: false })
-    .order('name')
-    .order('id');
-  if (error) throw fromDatabaseError(error, 'list workplaces');
-  return c.json({ items: data.map(toWorkplace) }, 200);
+  const [workplaces, unassigned] = await Promise.all([
+    db
+      .from('client_workplace_list')
+      .select(`${workplaceColumns}, current_employee_count`)
+      .eq('client_id', clientId)
+      .is('archived_at', null)
+      .order('is_registered_office', { ascending: false })
+      .order('name')
+      .order('id')
+      .returns<WorkplaceListRow[]>(),
+    db
+      .from('employees')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .is('workplace_id', null)
+      .eq('status', 'active')
+      .is('archived_at', null),
+  ]);
+  if (workplaces.error) throw fromDatabaseError(workplaces.error, 'list workplaces');
+  if (unassigned.error) throw fromDatabaseError(unassigned.error, 'count unassigned employees');
+  return c.json(
+    {
+      items: workplaces.data.map((row) => ({
+        ...toWorkplace(row),
+        currentEmployeeCount: row.current_employee_count,
+      })),
+      unassignedEmployeeCount: unassigned.count ?? 0,
+    },
+    200
+  );
 };
 
 export const createWorkplace: RouteHandler<typeof createWorkplaceRoute, ApiEnv> = async (c) => {

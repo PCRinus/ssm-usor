@@ -12,6 +12,7 @@ import {
   type EmployeeStatus,
   type EmployeeTrainingStateFilter,
   normalizeCnp,
+  noWorkplace,
   orderedCommuteMeans,
   type OrganizationEmployeeSortKey,
   pageRange,
@@ -397,6 +398,15 @@ const trainingStates = (filters: readonly EmployeeTrainingStateFilter[]) => [
   ),
 ];
 
+// The ids are checked as uuids, which keeps PostgREST's filter syntax out of them.
+function workplaceMatch(chosen: readonly string[]) {
+  const ids = chosen.filter((value) => value !== noWorkplace);
+  return [
+    ...(chosen.includes(noWorkplace) ? ['workplace_id.is.null'] : []),
+    ...(ids.length > 0 ? [`workplace_id.in.(${ids.join(',')})`] : []),
+  ].join(',');
+}
+
 type FilterableQuery<Query> = {
   in(column: string, values: readonly string[]): Query;
   or(filters: string): Query;
@@ -414,7 +424,7 @@ function matchingFilters<Query extends FilterableQuery<Query>>(query: Query, fil
     filtered = filtered.or(filters.attention.map((need) => attentionMatches[need]).join(','));
   }
   if (filters.jobPosition) filtered = filtered.in('job_position_id', filters.jobPosition);
-  if (filters.workplace) filtered = filtered.in('workplace_id', filters.workplace);
+  if (filters.workplace) filtered = filtered.or(workplaceMatch(filters.workplace));
   if (filters.client) filtered = filtered.in('client_id', filters.client);
   if (filters.portal) filtered = filtered.in('portal_state', filters.portal);
   return filtered;

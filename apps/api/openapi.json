@@ -8306,6 +8306,10 @@
                 "updatedAt": {
                   "type": "string",
                   "format": "date-time"
+                },
+                "currentEmployeeCount": {
+                  "type": "integer",
+                  "minimum": 0
                 }
               },
               "required": [
@@ -8327,12 +8331,17 @@
                 "fireRiskEquipment",
                 "specificMeasures",
                 "createdAt",
-                "updatedAt"
+                "updatedAt",
+                "currentEmployeeCount"
               ]
             }
+          },
+          "unassignedEmployeeCount": {
+            "type": "integer",
+            "minimum": 0
           }
         },
-        "required": ["items"]
+        "required": ["items", "unassignedEmployeeCount"]
       },
       "WorkplaceResponse": {
         "type": "object",
@@ -29094,8 +29103,16 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string",
-                "format": "uuid"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["none"]
+                  }
+                ]
               },
               "minItems": 1,
               "maxItems": 50
@@ -29367,8 +29384,16 @@
             "schema": {
               "type": "array",
               "items": {
-                "type": "string",
-                "format": "uuid"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["none"]
+                  }
+                ]
               },
               "minItems": 1,
               "maxItems": 50
@@ -39019,7 +39044,7 @@
       "get": {
         "operationId": "listWorkplaces",
         "summary": "List a client's workplaces",
-        "description": "The registered office first, then by name. Archived workplaces are not listed.",
+        "description": "The registered office first, then by name. Archived workplaces are not listed. Each carries how many current employees work there, and the list how many current employees have no workplace.",
         "security": [
           {
             "bearerAuth": []

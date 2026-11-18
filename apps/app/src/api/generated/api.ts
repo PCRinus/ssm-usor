@@ -6071,10 +6071,14 @@ export type WorkplaceListResponseItemsItem = {
   specificMeasures: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @minimum 0 */
+  currentEmployeeCount: number;
 };
 
 export interface WorkplaceListResponse {
   items: WorkplaceListResponseItemsItem[];
+  /** @minimum 0 */
+  unassignedEmployeeCount: number;
 }
 
 /**
@@ -16327,7 +16331,7 @@ export type ListEmployeesParams = {
    * @minItems 1
    * @maxItems 50
    */
-  workplace?: string[];
+  workplace?: (string | 'none')[];
   /**
    * @minItems 1
    * @maxItems 50
@@ -16432,7 +16436,7 @@ export type ListEmployeeInviteesParams = {
    * @minItems 1
    * @maxItems 50
    */
-  workplace?: string[];
+  workplace?: (string | 'none')[];
   /**
    * @maxLength 100
    */
@@ -30518,7 +30522,7 @@ export const getListWorkplacesUrl = (clientId: string) => {
 };
 
 /**
- * The registered office first, then by name. Archived workplaces are not listed.
+ * The registered office first, then by name. Archived workplaces are not listed. Each carries how many current employees work there, and the list how many current employees have no workplace.
  * @summary List a client's workplaces
  */
 export const listWorkplaces = async (

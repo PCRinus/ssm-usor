@@ -104,7 +104,13 @@ const responsiblePersonRow = {
 
 type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
 type Upstream =
-  'membership' | 'organizations' | 'clients' | 'employees' | 'workplaces' | 'responsiblePersons';
+  | 'membership'
+  | 'organizations'
+  | 'clients'
+  | 'employees'
+  | 'workplaces'
+  | 'workplaceList'
+  | 'responsiblePersons';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -124,6 +130,11 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
         return handlers.employees?.(init, url) ?? Response.json({ id: employeeId });
       case '/rest/v1/client_workplaces':
         return handlers.workplaces?.(init, url) ?? Response.json([workplaceRow]);
+      case '/rest/v1/client_workplace_list':
+        return (
+          handlers.workplaceList?.(init, url) ??
+          Response.json([{ ...workplaceRow, current_employee_count: 16 }])
+        );
       case '/rest/v1/client_responsible_persons':
         return handlers.responsiblePersons?.(init, url) ?? Response.json([responsiblePersonRow]);
       default:
@@ -521,11 +532,16 @@ describe('/clients/{clientId}/document-details', () => {
 describe('/clients/{clientId}/workplaces', () => {
   const path = `/clients/${clientId}/workplaces`;
 
-  it('lists active workplaces, the registered office first', async () => {
-    mockUpstream({});
+  it('lists active workplaces, the registered office first, with their current employees', async () => {
+    mockUpstream({
+      employees: () => new Response(null, { status: 200, headers: { 'Content-Range': '*/2' } }),
+    });
     const response = await request(path);
     expect(response.status).toBe(200);
-    const { items } = workplaceListResponseSchema.parse(await response.json());
+    const { items, unassignedEmployeeCount } = workplaceListResponseSchema.parse(
+      await response.json()
+    );
+    expect(unassignedEmployeeCount).toBe(2);
     expect(items).toEqual([
       {
         id: workplaceRow.id,
@@ -547,13 +563,22 @@ describe('/clients/{clientId}/workplaces', () => {
         specificMeasures: null,
         createdAt: '2026-09-18T10:00:00.000Z',
         updatedAt: '2026-09-18T10:00:00.000Z',
+        currentEmployeeCount: 16,
       },
     ]);
-    const [url] = calls('/rest/v1/client_workplaces')[0]!;
+    const [url] = calls('/rest/v1/client_workplace_list')[0]!;
     const query = new URL(String(url)).searchParams;
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('order')).toBe('is_registered_office.desc,name.asc,id.asc');
+    // Counted as the workers list filtered by `none` counts its current employees.
+    const [countUrl, countInit] = calls('/rest/v1/employees')[0]!;
+    expect(countInit?.method).toBe('HEAD');
+    const counted = new URL(String(countUrl)).searchParams;
+    expect(counted.get('client_id')).toBe(`eq.${clientId}`);
+    expect(counted.get('workplace_id')).toBe('is.null');
+    expect(counted.get('status')).toBe('eq.active');
+    expect(counted.get('archived_at')).toBe('is.null');
   });
 
   it('creates a workplace in the caller`s organization', async () => {

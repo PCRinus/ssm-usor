@@ -259,8 +259,19 @@ export const workplaceResponseSchema = z.object({ workplace: workplaceSchema });
 
 export type WorkplaceResponse = z.infer<typeof workplaceResponseSchema>;
 
+// Each count is the total of the client's workers list filtered by that workplace, or by
+// `noWorkplace` for the unassigned one.
+export const workplaceListItemSchema = workplaceSchema.extend({
+  currentEmployeeCount: z.int().min(0),
+});
+
+export type WorkplaceListItem = z.infer<typeof workplaceListItemSchema>;
+
 // A client has a handful of workplaces, so the list is not paginated.
-export const workplaceListResponseSchema = z.object({ items: z.array(workplaceSchema) });
+export const workplaceListResponseSchema = z.object({
+  items: z.array(workplaceListItemSchema),
+  unassignedEmployeeCount: z.int().min(0),
+});
 
 export type WorkplaceListResponse = z.infer<typeof workplaceListResponseSchema>;
 
