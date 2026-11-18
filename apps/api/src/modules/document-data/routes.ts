@@ -176,7 +176,7 @@ export const updateClientDocumentDetailsRoute = createRoute({
   operationId: 'updateClientDocumentDetails',
   summary: 'Change the representative and the training schedule of a client',
   description:
-    "Changes only the fields sent: a field left out stays as saved, and null clears it. At least one field is sent. The two days are sent together, and so are a category's interval and its not-applicable choice. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. An interval outside the list the app offers for its category is refused unless it is the one already saved. The first month and the days say when in the year trainings fall.",
+    "Changes only the fields sent: a field left out stays as saved, and null clears it. At least one field is sent. The two days are sent together, and so are a category's interval and its not-applicable choice. Each staff category has a training interval, an explicit not-applicable choice, or an undecided blank. An interval outside the list the app offers for its category is refused, even the one already saved. The first month and the days say when in the year trainings fall.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {

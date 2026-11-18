@@ -3,7 +3,7 @@
 - Status: accepted
 - Date: 2026-11-08
 - Supersedes [ADR 008](adr-008-applicable-training-categories.md). Amends the fire-safety starting state of [ADR 018](adr-018-fire-safety-means.md).
-- Amended 2026-11-19 by [ADR 044](adr-044-partial-saves-of-client-details.md): the cards of a client's details no longer send the schedule again, since each sends only its own fields; the API still takes an interval from outside the list when it is the one already saved.
+- Amended 2026-11-19 by [ADR 044](adr-044-partial-saves-of-client-details.md): the cards of a client's details no longer send the schedule again, since each sends only its own fields, so the API refuses an interval from outside the list even when it is the one already saved; such a value still loads and stays until the schedule's card saves one from the list.
 
 ## Context
 

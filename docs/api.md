@@ -2008,7 +2008,8 @@ worker interval stops at six months, as the database checks too. Each interval i
 app's list for its category (`trainingIntervalChoices`, ADR 039): every month from one to six
 for execution staff, and 1, 2, 3, 4, 6 or 12 for technical-administrative staff, whose column
 takes any month up to twelve. A value outside the list is `400` with the issue on the field,
-unless it is the one already saved.
+even the one already saved: a value saved before the list narrowed stays until the schedule's
+card sends another.
 
 Workplaces and responsible persons are created with `POST`, replaced with `PUT`, and archived
 with `DELETE`; archived rows leave the lists. An archived client takes no new ones (`409`). A

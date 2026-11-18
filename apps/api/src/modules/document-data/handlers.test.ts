@@ -511,35 +511,21 @@ describe('/clients/{clientId}/document-details', () => {
     expect(sentBody('/rest/v1/clients')).toMatchObject({ worker_training_interval_months: 5 });
   });
 
-  it('refuses a technical-administrative interval outside the list unless it is the saved one', async () => {
-    mockUpstream({ clients: () => Response.json(documentDetailsRow) });
-    const changed = await request(path, 'PATCH', {
-      administrativeTrainingIntervalMonths: 9,
-      administrativeTrainingNotApplicable: false,
-    });
-    expect(changed.status).toBe(400);
-    expect(apiErrorResponseSchema.parse(await changed.json()).issues?.[0]?.path).toBe(
-      'administrativeTrainingIntervalMonths'
-    );
-    expect(calls('/rest/v1/clients').filter(([, init]) => init?.method === 'PATCH')).toHaveLength(
-      0
-    );
-
-    fetchMock.mockReset();
+  it('refuses a technical-administrative interval outside the list, even the saved one', async () => {
     mockUpstream({
       clients: () =>
         Response.json({ ...documentDetailsRow, administrative_training_interval_months: 9 }),
     });
-    const kept = await request(path, 'PATCH', {
+    const response = await request(path, 'PATCH', {
       administrativeTrainingIntervalMonths: 9,
       administrativeTrainingNotApplicable: false,
       legalRepresentativeRole: 'Director',
     });
-    expect(kept.status).toBe(200);
-    expect(sentBody('/rest/v1/clients', 1)).toMatchObject({
-      administrative_training_interval_months: 9,
-      legal_representative_role: 'Director',
-    });
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
+      'administrativeTrainingIntervalMonths'
+    );
+    expect(calls('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('saves an explicit category exclusion without inventing an interval', async () => {
