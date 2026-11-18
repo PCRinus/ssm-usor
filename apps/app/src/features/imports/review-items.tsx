@@ -647,7 +647,7 @@ const quoteAside = (sources: Source[], openSource: () => void) => {
 };
 
 const plural = (count: number, one: string, many: string) =>
-  count === 1 ? `Un ${one}` : `${count} ${many}`;
+  count === 1 ? `Un ${one}` : roCount(count, one, many);
 
 const fireTexts = [
   ['assemblyPoint', 'Punctul de adunare'],
@@ -1010,7 +1010,7 @@ export function JobPositionsSection({ context }: { context: ItemsContext }) {
                   <ReviewDatum icon={Clock} label="Interval de instruire">
                     {state.values.trainingIntervalMonths === 1
                       ? 'Lunar'
-                      : `La ${String(state.values.trainingIntervalMonths)} luni`}
+                      : `La ${roCount(Number(state.values.trainingIntervalMonths), 'lună', 'luni')}`}
                   </ReviewDatum>
                 )}
                 {text(state.values.activities) && (

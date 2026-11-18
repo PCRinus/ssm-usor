@@ -140,7 +140,7 @@ const positionDetail = (position: Position) =>
     roCount(position.employeeCount, 'lucrător', 'lucrători'),
     staffCategoryLabels[position.staffCategory],
     position.trainingIntervalMonths
-      ? `instruire periodică la ${position.trainingIntervalMonths} luni`
+      ? `instruire periodică la ${roCount(position.trainingIntervalMonths, 'lună', 'luni')}`
       : null,
   ]
     .filter(Boolean)

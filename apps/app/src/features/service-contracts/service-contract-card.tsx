@@ -66,7 +66,7 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
 import { isOffersNotInPlanError, offersNotInPlanMessage } from '@/features/clients/offers-plan';
 import { pdfOfRevision, usePrint } from '@/features/documents/print';
-import { todayIso } from '@/features/employees/employee-format';
+import { roCount, todayIso } from '@/features/employees/employee-format';
 import { type ContractFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
 import {
@@ -644,8 +644,7 @@ function ServiceContractBody({
             <Fact label="Perioada" testId="contract-end">
               {formatRoDate(saved.contract.startDate)} – {formatRoDate(saved.contract.endDate)}
               <span className="block font-normal text-muted-foreground">
-                {saved.contract.durationMonths}{' '}
-                {saved.contract.durationMonths === 1 ? 'lună' : 'luni'},{' '}
+                {roCount(saved.contract.durationMonths, 'lună', 'luni')},{' '}
                 {saved.contract.renewsAutomatically
                   ? 'se prelungește automat'
                   : 'fără prelungire automată'}
