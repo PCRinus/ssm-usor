@@ -3,7 +3,6 @@ import {
   type FileLinkResponse,
   type MissingSheetData,
   type MissingSheetDataResponse,
-  orderedCommuteMeans,
   type TrainingDomain,
   trainingDomains,
   type TrainingSheetsResponse,
@@ -19,6 +18,7 @@ import { adminFileStore, createFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { createSigner } from '../../lib/signer';
 import { builtInTemplates, merge } from '../documents/documents';
+import { particularsColumns, toParticulars } from '../employees/particulars';
 import { supabaseSheetStore } from '../signed-sheets/store';
 import { currentSheetPdf } from '../signed-sheets/stored';
 import {
@@ -48,7 +48,7 @@ export async function loadSheetFacts(
     db
       .from('employees')
       .select(
-        'last_name, first_name, employee_number, job_title, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, job_positions(name, work_zone), client_workplaces!employees_workplace_in_client(id, name)'
+        `last_name, first_name, employee_number, job_title, ${particularsColumns}, job_positions(name, work_zone), client_workplaces!employees_workplace_in_client(id, name)`
       )
       .eq('id', employeeId)
       .eq('client_id', clientId)
@@ -78,18 +78,7 @@ export async function loadSheetFacts(
       firstName: row.first_name,
       employeeNumber: row.employee_number,
       contractTitle: row.job_title,
-      homeAddress: row.home_address,
-      birthDate: row.birth_date,
-      birthPlace: row.birth_place,
-      bloodGroup: row.blood_group,
-      rhFactor: row.rh_factor,
-      qualification: row.qualification,
-      education: row.education,
-      authorizations: row.authorizations,
-      commuteRoute: row.commute_route,
-      commuteMeans: orderedCommuteMeans(row.commute_means),
-      commuteMeansOther: row.commute_means_other,
-      commuteMinutes: row.commute_minutes,
+      ...toParticulars(row),
       workplace: row.client_workplaces,
       position: { name: row.job_positions.name, workZone: row.job_positions.work_zone },
     },

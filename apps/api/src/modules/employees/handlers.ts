@@ -50,6 +50,7 @@ import {
   trainingStatusFields,
   type TrainingStatusRow,
 } from '../trainings/status';
+import { particularsColumns, toParticulars } from './particulars';
 import type {
   createEmployeeRoute,
   getEmployeeRoute,
@@ -72,7 +73,7 @@ export const employeeListColumns =
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns =
-  `${employeeListColumns}, cnp, birth_date, birth_place, home_address, residence_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, contract_number` as const;
+  `${employeeListColumns}, cnp, residence_address, notes, archived_at, contract_number, ${particularsColumns}` as const;
 
 type EmployeeListRow = Pick<
   EmployeeRow,
@@ -135,23 +136,11 @@ export function toEmployee(
   return {
     ...toEmployeeListItem(row),
     cnp: row.cnp,
-    birthDate: row.birth_date,
-    birthPlace: row.birth_place,
-    homeAddress: row.home_address,
     residenceAddress: row.residence_address,
-    // The database constrains both to the shared lists.
-    bloodGroup: row.blood_group as Employee['bloodGroup'],
-    rhFactor: row.rh_factor as Employee['rhFactor'],
     notes: row.notes,
     archivedAt: row.archived_at,
-    qualification: row.qualification,
-    education: row.education,
-    authorizations: row.authorizations,
-    commuteRoute: row.commute_route,
-    commuteMeans: orderedCommuteMeans(row.commute_means),
-    commuteMeansOther: row.commute_means_other,
-    commuteMinutes: row.commute_minutes,
     contractNumber: row.contract_number,
+    ...toParticulars(row),
   };
 }
 
