@@ -347,16 +347,16 @@ describe('/clients/{clientId}/fire-safety', () => {
   it('answers 404 for a client of another organization', async () => {
     mockUpstream({ clients: noClient });
     expect((await request(path)).status).toBe(404);
-    expect((await request(path, 'PUT', body)).status).toBe(404);
+    expect((await request(path, 'PATCH', body)).status).toBe(404);
     expect(calls('client_fire_safety', 'GET')).toHaveLength(0);
     expect(calls('client_fire_safety', 'PATCH')).toHaveLength(0);
   });
 
-  it('replaces the saved row, clearing what is left out', async () => {
+  it('changes only the fields sent, leaving the others as saved', async () => {
     mockUpstream({
       fireSafety: (init) => (init?.method === 'PATCH' ? Response.json(fireSafetyRow) : undefined),
     });
-    const response = await request(path, 'PUT', body);
+    const response = await request(path, 'PATCH', body);
     expect(response.status).toBe(200);
     expect(clientFireSafetyResponseSchema.parse(await response.json()).exists).toBe(true);
     expect(sent('client_fire_safety', 'PATCH')).toEqual({
@@ -366,18 +366,33 @@ describe('/clients/{clientId}/fire-safety', () => {
       training_first_month: 2,
       training_day_from: 2,
       training_day_to: 7,
-      smoking_policy: null,
-      smoking_place: null,
       waste_kinds: ['deșeuri de carton, hârtie, plastic'],
       waste_contractor: 'Salubris S.A.',
-      waste_collectors: null,
-      has_third_parties: false,
     });
     const [update] = calls('client_fire_safety', 'PATCH').map(
       ([input]) => new URL(String(input)).searchParams
     );
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
     expect(calls('client_fire_safety', 'POST')).toHaveLength(0);
+  });
+
+  it('clears a field sent as null, and the smoking place with the policy', async () => {
+    mockUpstream({
+      fireSafety: (init) => (init?.method === 'PATCH' ? Response.json(fireSafetyRow) : undefined),
+    });
+    const response = await request(path, 'PATCH', { wasteContractor: null, smokingPolicy: null });
+    expect(response.status).toBe(200);
+    expect(sent('client_fire_safety', 'PATCH')).toEqual({
+      waste_contractor: null,
+      smoking_policy: null,
+      smoking_place: null,
+    });
+  });
+
+  it('refuses a body with nothing to change', async () => {
+    mockUpstream();
+    expect((await request(path, 'PATCH', {})).status).toBe(400);
+    expect(calls('client_fire_safety', 'PATCH')).toHaveLength(0);
   });
 
   it('saves who collects the waste, trimmed, and reads it back', async () => {
@@ -388,7 +403,7 @@ describe('/clients/{clientId}/fire-safety', () => {
           ? Response.json({ ...fireSafetyRow, waste_collectors: collectors })
           : undefined,
     });
-    const response = await request(path, 'PUT', { ...body, wasteCollectors: ` ${collectors} ` });
+    const response = await request(path, 'PATCH', { ...body, wasteCollectors: ` ${collectors} ` });
     expect(clientFireSafetyResponseSchema.parse(await response.json()).fireSafety).toMatchObject({
       wasteCollectors: collectors,
     });
@@ -402,7 +417,7 @@ describe('/clients/{clientId}/fire-safety', () => {
           ? Response.json({ ...fireSafetyRow, has_third_parties: true })
           : undefined,
     });
-    const response = await request(path, 'PUT', { ...body, hasThirdParties: true });
+    const response = await request(path, 'PATCH', { ...body, hasThirdParties: true });
     expect(clientFireSafetyResponseSchema.parse(await response.json()).fireSafety).toMatchObject({
       hasThirdParties: true,
     });
@@ -421,7 +436,7 @@ describe('/clients/{clientId}/fire-safety', () => {
             })
           : undefined,
     });
-    const response = await request(path, 'PUT', {
+    const response = await request(path, 'PATCH', {
       ...body,
       smokingPolicy: 'designated_places',
       smokingPlace: ` ${place} `,
@@ -435,7 +450,7 @@ describe('/clients/{clientId}/fire-safety', () => {
       smoking_place: place,
     });
 
-    await request(path, 'PUT', {
+    await request(path, 'PATCH', {
       ...body,
       smokingPolicy: 'forbidden_everywhere',
       smokingPlace: place,
@@ -445,14 +460,18 @@ describe('/clients/{clientId}/fire-safety', () => {
       smoking_place: null,
     });
 
-    await request(path, 'PUT', { ...body, smokingPlace: place });
-    expect(sent('client_fire_safety', 'PATCH', 2)).toMatchObject({
-      smoking_policy: null,
-      smoking_place: null,
+    await request(path, 'PATCH', { smokingPolicy: 'designated_places' });
+    expect(sent('client_fire_safety', 'PATCH', 2)).toEqual({
+      smoking_policy: 'designated_places',
     });
+
+    const alone = await request(path, 'PATCH', { smokingPlace: place });
+    expect(alone.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await alone.json()).issues?.[0]?.path).toBe('smokingPlace');
+    expect(calls('client_fire_safety', 'PATCH')).toHaveLength(3);
   });
 
-  it('creates the row on the first save', async () => {
+  it('creates the row on the first save, with only what was sent', async () => {
     mockUpstream({
       fireSafety: (init) => {
         if (init?.method === 'PATCH') return Response.json(null);
@@ -460,15 +479,13 @@ describe('/clients/{clientId}/fire-safety', () => {
         return undefined;
       },
     });
-    const response = await request(path, 'PUT', { periodicTrainingHours: 2 });
+    const response = await request(path, 'PATCH', { periodicTrainingHours: 2 });
     expect(response.status).toBe(200);
-    expect(sent('client_fire_safety', 'POST')).toMatchObject({
+    expect(sent('client_fire_safety', 'POST')).toEqual({
       client_id: clientId,
       organization_id: organizationId,
       created_by: user.id,
       periodic_training_hours: 2,
-      worker_training_interval_months: null,
-      waste_kinds: [],
     });
   });
 
@@ -484,7 +501,7 @@ describe('/clients/{clientId}/fire-safety', () => {
         return undefined;
       },
     });
-    expect((await request(path, 'PUT', body)).status).toBe(200);
+    expect((await request(path, 'PATCH', body)).status).toBe(200);
     expect(updates).toBe(2);
   });
 
@@ -496,7 +513,7 @@ describe('/clients/{clientId}/fire-safety', () => {
       { trainingDayFrom: 8, trainingDayTo: 7 },
       { wasteKinds: Array.from({ length: 13 }, (_, index) => `deșeu ${index}`) },
     ]) {
-      expect((await request(path, 'PUT', { ...body, ...fields })).status).toBe(400);
+      expect((await request(path, 'PATCH', { ...body, ...fields })).status).toBe(400);
     }
     expect(calls('client_fire_safety', 'PATCH')).toHaveLength(0);
   });
@@ -513,7 +530,7 @@ describe('/clients/{clientId}/fire-safety', () => {
           return undefined;
         },
       });
-      const response = await request(path, 'PUT', body);
+      const response = await request(path, 'PATCH', body);
       expect(response.status).toBe(409);
       expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(reason);
     }

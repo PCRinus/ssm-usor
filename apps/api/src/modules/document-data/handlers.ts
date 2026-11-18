@@ -22,6 +22,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { sentColumns } from '../../lib/partial-update';
 import type {
   archiveResponsiblePersonRoute,
   archiveWorkplaceRoute,
@@ -279,19 +280,21 @@ export const updateClientDocumentDetails: RouteHandler<
   await refuseIntervalOutsideList(db, clientId, body);
   const { data, error } = await db
     .from('clients')
-    .update({
-      legal_representative_name: body.legalRepresentativeName ?? null,
-      legal_representative_role: body.legalRepresentativeRole ?? null,
-      legal_representative_employee_id: body.legalRepresentativeEmployeeId ?? null,
-      periodic_training_minutes: body.periodicTrainingMinutes ?? null,
-      administrative_training_interval_months: body.administrativeTrainingIntervalMonths ?? null,
-      administrative_training_not_applicable: body.administrativeTrainingNotApplicable ?? false,
-      worker_training_interval_months: body.workerTrainingIntervalMonths ?? null,
-      worker_training_not_applicable: body.workerTrainingNotApplicable ?? false,
-      training_first_month: body.trainingFirstMonth ?? null,
-      training_day_from: body.trainingDayFrom ?? null,
-      training_day_to: body.trainingDayTo ?? null,
-    })
+    .update(
+      sentColumns({
+        legal_representative_name: body.legalRepresentativeName,
+        legal_representative_role: body.legalRepresentativeRole,
+        legal_representative_employee_id: body.legalRepresentativeEmployeeId,
+        periodic_training_minutes: body.periodicTrainingMinutes,
+        administrative_training_interval_months: body.administrativeTrainingIntervalMonths,
+        administrative_training_not_applicable: body.administrativeTrainingNotApplicable,
+        worker_training_interval_months: body.workerTrainingIntervalMonths,
+        worker_training_not_applicable: body.workerTrainingNotApplicable,
+        training_first_month: body.trainingFirstMonth,
+        training_day_from: body.trainingDayFrom,
+        training_day_to: body.trainingDayTo,
+      })
+    )
     .eq('id', clientId)
     .select(documentDetailsColumns)
     .maybeSingle();
@@ -309,9 +312,8 @@ const intervalFields = {
   ],
 } as const satisfies Record<StaffCategory, readonly [string, string]>;
 
-// The database takes any month up to a category's longest, and every card of the client's details
-// sends the schedule back, so an interval saved outside the list goes through as long as it is
-// unchanged.
+// The database takes any month up to a category's longest, so an interval saved before the list
+// narrowed may be sent back unchanged.
 async function refuseIntervalOutsideList(
   db: DataClient,
   clientId: string,
