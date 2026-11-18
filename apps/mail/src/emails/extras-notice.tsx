@@ -1,4 +1,5 @@
 import type { ExtrasNoticeEmail } from '@ssm-usor/contracts/mail';
+import { countOf } from '@ssm-usor/contracts/romanian';
 
 import { Layout } from './_components/layout';
 import { Action, FallbackLink, Paragraph, Title } from './_components/text';
@@ -13,12 +14,8 @@ const fullDate = new Intl.DateTimeFormat('ro-RO', {
   timeZone: 'Europe/Bucharest',
 });
 
-export function credits(count: number) {
-  if (count === 1) return 'un credit AI';
-  const tail = count % 100;
-  const grouped = String(count).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return tail === 0 || tail >= 20 ? `${grouped} de credite AI` : `${grouped} credite AI`;
-}
+export const credits = (count: number) =>
+  count === 1 ? 'un credit AI' : countOf(count, 'credit AI', 'credite AI');
 
 const what = { sms: 'codurile SMS extra', credits: 'creditele AI extra' } as const;
 

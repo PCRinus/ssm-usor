@@ -116,6 +116,7 @@ describe('SMS usage notice', () => {
     [50, '50 de coduri'],
     [101, '101 coduri'],
     [300, '300 de coduri'],
+    [1200, '1.200 de coduri'],
   ])('agrees the words with %i', (count, words) => {
     expect(codes(count)).toBe(words);
   });

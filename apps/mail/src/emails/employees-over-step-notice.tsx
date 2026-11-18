@@ -1,4 +1,5 @@
 import type { EmployeesOverStepNoticeEmail } from '@ssm-usor/contracts/mail';
+import { countOf } from '@ssm-usor/contracts/romanian';
 
 import { Layout } from './_components/layout';
 import { Action, FallbackLink, Paragraph, Title } from './_components/text';
@@ -7,12 +8,8 @@ export type EmployeesOverStepNoticeProps = Omit<EmployeesOverStepNoticeEmail, 't
 
 const printed = (isoDate: string) => isoDate.split('-').reverse().join('.');
 
-export function workers(count: number) {
-  if (count === 1) return 'un lucrător';
-  const tail = count % 100;
-  const number = new Intl.NumberFormat('ro-RO').format(count);
-  return tail === 0 || tail >= 20 ? `${number} de lucrători` : `${number} lucrători`;
-}
+export const workers = (count: number) =>
+  count === 1 ? 'un lucrător' : countOf(count, 'lucrător', 'lucrători');
 
 export function subject({ kind, lastDay }: EmployeesOverStepNoticeProps) {
   return kind === 'employees_soon'
