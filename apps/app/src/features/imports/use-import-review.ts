@@ -21,6 +21,7 @@ import {
 } from '@/api/generated/api';
 
 import {
+  type Blocker,
   type Changes,
   changesOf,
   type ExistingWorkplace,
@@ -28,6 +29,8 @@ import {
   type ItemChange,
   substancesStatePath,
 } from './review-model';
+import { blockerLinks, fieldStates, reviewName, sectionStatuses } from './review-summary';
+import { keptPosts, withoutAbsentCategories } from './training-category';
 import {
   type ChangesStores,
   refetchImport,
@@ -129,6 +132,35 @@ export function useImportReview(detail: ImportDetail) {
 }
 
 export type ImportReview = ReturnType<typeof useImportReview>;
+
+export function useClientReview(detail: ImportDetail) {
+  const proposal = detail.proposal!;
+  const review = useImportReview(detail);
+  const existing = useExistingValues(detail);
+  const blockers = detail.blockers as Blocker[];
+  const registered = detail.registeredCompany;
+  const states = fieldStates(
+    proposal,
+    review.changes,
+    existing.valueAt,
+    detail.intoExistingClient ? null : registered
+  );
+  const applying = withoutAbsentCategories(
+    states,
+    keptPosts(proposal, review.changes, existing.positions)
+  );
+  return {
+    proposal,
+    review,
+    existing,
+    blockers,
+    states,
+    applying,
+    statuses: sectionStatuses(proposal, review.changes, blockers, applying, registered),
+    links: blockerLinks(proposal, review.changes, blockers),
+    name: reviewName(detail, proposal, review.changes),
+  };
+}
 
 export function useExistingValues(detail: ImportDetail) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
