@@ -1,5 +1,4 @@
 import { isLegalRepresentative, type ResponsiblePersonRole } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -9,55 +8,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, Plus } from 'lucide-react';
-import { type ReactNode, useRef, useState } from 'react';
+import { Fragment, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
 import {
+  getListClientParticipantsQueryKey,
   getListResponsiblePersonsQueryKey,
   getListWorkplacesQueryKey,
   useArchiveResponsiblePerson,
+  useListClientParticipants,
   useListResponsiblePersons,
   useListWorkplaces,
   useUpdateResponsiblePerson,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
-import { rowClickProps } from '@/components/data-table/row-click';
+import { DataTable } from '@/components/data-table/data-table';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
-import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
+import { SheetAction } from '@/features/clients/details/sheet-action';
 import { type ResponsiblePersonFocus, useFocusRequest } from '@/features/missing-data/focus';
 
+import { responsiblePersonColumns } from './responsible-person-columns';
 import {
   ResponsiblePersonDialog,
   type ResponsiblePersonEditing,
 } from './responsible-person-dialog';
-import {
-  alwaysRequiredRoles,
-  type ResponsiblePerson,
-  responsibleRoleLabels,
-  responsibleRoleOrder,
-} from './responsible-person-schema';
+import { missingRoles, type ResponsiblePerson } from './responsible-person-schema';
 import { useDocumentDetails } from './use-document-details-form';
 
 const focusRoles: Record<ResponsiblePersonFocus, ResponsiblePersonRole> = {
@@ -73,16 +53,20 @@ const focusRoles: Record<ResponsiblePersonFocus, ResponsiblePersonRole> = {
 
 const personRowId = (id: string) => `responsible-person-${id}`;
 
+const rowKey = (person: ResponsiblePerson) => person.id;
+
 // `readOnly` is an archived client.
 export function ResponsiblePersonsCard({
   clientId,
   userId,
   readOnly,
+  currentEmployeeCount,
   focus,
 }: {
   clientId: string;
   userId: string;
   readOnly: boolean;
+  currentEmployeeCount: number;
   focus?: ResponsiblePersonFocus;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -94,8 +78,15 @@ export function ResponsiblePersonsCard({
     request: apiRequest,
     query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
   });
-  const workplaceNames = new Map(
-    workplaces.data?.items.map((workplace) => [workplace.id, workplace.name])
+  const portal = useListClientParticipants(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListClientParticipantsQueryKey(clientId), userId] },
+  });
+  const workplaceItems = workplaces.data?.items;
+  const workplaceNames = useMemo(
+    () =>
+      workplaceItems && new Map(workplaceItems.map((workplace) => [workplace.id, workplace.name])),
+    [workplaceItems]
   );
   const archive = useArchiveResponsiblePerson({ request: apiRequest });
   const update = useUpdateResponsiblePerson({ request: apiRequest });
@@ -105,9 +96,7 @@ export function ResponsiblePersonsCard({
   const [archiving, setArchiving] = useState<ResponsiblePerson | null>(null);
   const [error, setError] = useState<ReactNode>(null);
 
-  // Each decision names someone, so a role nobody holds is what generating will ask for.
-  const held = new Set(persons.data?.items.flatMap((person) => person.roles));
-  const missing = alwaysRequiredRoles.filter((role) => !held.has(role));
+  const missing = persons.data ? missingRoles(persons.data.items, currentEmployeeCount) : [];
 
   const addRef = useRef<HTMLButtonElement>(null);
 
@@ -144,25 +133,51 @@ export function ResponsiblePersonsCard({
           },
   });
 
-  async function adoptContractTitle(person: ResponsiblePerson, jobTitle: string) {
-    setError(null);
-    try {
-      await update.mutateAsync({
-        clientId,
-        responsiblePersonId: person.id,
-        data: {
-          employeeId: person.employeeId,
-          workplaceId: person.workplaceId,
-          fullName: person.fullName,
-          jobTitle,
-          roles: person.roles,
-        },
+  const updatePerson = update.mutateAsync;
+  const adoptContractTitle = useCallback(
+    async (person: ResponsiblePerson, jobTitle: string) => {
+      setError(null);
+      try {
+        await updatePerson({
+          clientId,
+          responsiblePersonId: person.id,
+          data: {
+            employeeId: person.employeeId,
+            workplaceId: person.workplaceId,
+            fullName: person.fullName,
+            jobTitle,
+            roles: person.roles,
+          },
+        });
+        toast.success(maskPeople`Funcția lui ${person.fullName} a fost actualizată.`);
+      } catch {
+        setError('Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.');
+      }
+      await queryClient.invalidateQueries({
+        queryKey: getListResponsiblePersonsQueryKey(clientId),
       });
-      toast.success(maskPeople`Funcția lui ${person.fullName} a fost actualizată.`);
-    } catch {
-      setError('Nu am putut actualiza funcția. Verifică conexiunea și încearcă din nou.');
-    }
-    await queryClient.invalidateQueries({ queryKey: getListResponsiblePersonsQueryKey(clientId) });
+    },
+    [clientId, queryClient, updatePerson]
+  );
+
+  const columns = useMemo(
+    () =>
+      responsiblePersonColumns({
+        clientId,
+        readOnly,
+        portal: portal.data,
+        workplaceNames,
+        adopting: update.isPending,
+        onAdoptTitle: (person, jobTitle) => void adoptContractTitle(person, jobTitle),
+        onEdit: setEditing,
+        onArchive: setArchiving,
+      }),
+    [clientId, readOnly, portal.data, workplaceNames, update.isPending, adoptContractTitle]
+  );
+
+  function addFor(role: ResponsiblePersonRole) {
+    setPointedRole(role);
+    setEditing('new');
   }
 
   async function archivePerson(person: ResponsiblePerson) {
@@ -182,23 +197,54 @@ export function ResponsiblePersonsCard({
     await queryClient.invalidateQueries({ queryKey: getListResponsiblePersonsQueryKey(clientId) });
   }
 
+  const empty = persons.isSuccess && persons.data.items.length === 0;
+  const listed = persons.isSuccess && !empty;
+
   return (
     <SectionCard
       data-testid="responsible-persons-card"
+      className={cn('gap-4', !empty && !persons.isError && 'overflow-hidden pb-0')}
       title="Persoane responsabile"
+      help="instruire.persoane-responsabile"
       action={
-        !readOnly && (
-          <Button
-            ref={addRef}
-            variant="tonal"
-            size="sm"
-            data-testid="responsible-add"
-            onClick={() => setEditing('new')}
-          >
-            <Plus aria-hidden="true" />
-            Adaugă
-          </Button>
-        )
+        (listed && missing.length > 0) || !readOnly ? (
+          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+            {listed && missing.length > 0 && (
+              <p
+                data-testid="responsible-missing"
+                className="text-sm font-medium text-warning-foreground"
+              >
+                Fără persoană numită:{' '}
+                {missing.map(({ role, label }, index) => (
+                  <Fragment key={role}>
+                    {index > 0 && ', '}
+                    {readOnly ? (
+                      label
+                    ) : (
+                      <button
+                        type="button"
+                        data-testid={`responsible-missing-${role}`}
+                        className="underline underline-offset-2 hover:no-underline"
+                        onClick={() => addFor(role)}
+                      >
+                        {label}
+                      </button>
+                    )}
+                  </Fragment>
+                ))}
+              </p>
+            )}
+            {!readOnly && (
+              <SheetAction
+                ref={addRef}
+                adding
+                subject="o persoană responsabilă"
+                data-testid="responsible-add"
+                onClick={() => setEditing('new')}
+              />
+            )}
+          </div>
+        ) : undefined
       }
     >
       {error && (
@@ -206,8 +252,12 @@ export function ResponsiblePersonsCard({
           {error}
         </Notice>
       )}
-      {persons.isPending ? (
-        <Skeleton className="h-24 w-full" />
+      {empty ? (
+        <p data-testid="responsible-persons-empty" className="text-sm text-muted-foreground">
+          {readOnly
+            ? 'Nu au fost desemnate persoane responsabile pentru acest client.'
+            : 'Nicio persoană responsabilă încă.'}
+        </p>
       ) : persons.isError ? (
         <Notice
           variant="destructive"
@@ -224,128 +274,18 @@ export function ResponsiblePersonsCard({
           Nu am putut încărca persoanele responsabile.
         </Notice>
       ) : (
-        <>
-          {persons.data.items.length === 0 ? (
-            <p data-testid="responsible-persons-empty" className="text-sm text-muted-foreground">
-              {readOnly
-                ? 'Nu au fost desemnate persoane responsabile pentru acest client.'
-                : 'Nicio persoană responsabilă încă. Începe cu conducătorul locului de muncă. Poți atribui mai multe responsabilități aceleiași persoane.'}
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nume și prenume</TableHead>
-                  <TableHead>Funcția</TableHead>
-                  <TableHead>Responsabilități</TableHead>
-                  {!readOnly && (
-                    <TableHead className="w-12">
-                      <span className="sr-only">Acțiuni</span>
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {persons.data.items.map((person) => (
-                  <TableRow
-                    key={person.id}
-                    id={personRowId(person.id)}
-                    data-testid="responsible-row"
-                    {...rowClickProps(readOnly ? undefined : () => setEditing(person))}
-                    className={cn(!readOnly && 'cursor-pointer')}
-                  >
-                    <TableCell className="font-medium">
-                      <Masked>{person.fullName}</Masked>
-                      {person.workplaceId && workplaces.data && (
-                        <span
-                          data-testid="responsible-workplace-name"
-                          className="mt-0.5 block text-xs font-normal whitespace-normal text-muted-foreground"
-                        >
-                          Numai la{' '}
-                          {workplaceNames.get(person.workplaceId) ?? 'un loc de muncă arhivat'}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {person.jobTitle}
-                      {person.employeeJobTitle && person.employeeJobTitle !== person.jobTitle && (
-                        <span
-                          data-testid="responsible-title-drift"
-                          className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
-                        >
-                          În contractul lucrătorului: „{person.employeeJobTitle}”.
-                          {!readOnly && (
-                            <Button
-                              variant="link"
-                              size="sm"
-                              data-testid="responsible-title-adopt"
-                              className="h-auto p-0 text-xs"
-                              disabled={update.isPending}
-                              onClick={() =>
-                                void adoptContractTitle(person, person.employeeJobTitle!)
-                              }
-                            >
-                              Folosește această funcție
-                            </Button>
-                          )}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex flex-wrap gap-1.5">
-                        {responsibleRoleOrder
-                          .filter((role) => person.roles.includes(role))
-                          .map((role) => (
-                            <Badge key={role} variant="secondary">
-                              {responsibleRoleLabels[role].label}
-                            </Badge>
-                          ))}
-                      </span>
-                    </TableCell>
-                    {!readOnly && (
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              data-testid="responsible-actions"
-                              aria-label={`Acțiuni pentru ${person.fullName}`}
-                            >
-                              <MoreHorizontal aria-hidden="true" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              data-testid="responsible-edit"
-                              onSelect={() => setEditing(person)}
-                            >
-                              Modifică
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              data-testid="responsible-archive"
-                              variant="destructive"
-                              onSelect={() => setArchiving(person)}
-                            >
-                              Scoate din listă
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-          {missing.length > 0 && persons.data.items.length > 0 && (
-            <p data-testid="responsible-missing" className="text-sm text-muted-foreground">
-              Fără persoană numită:{' '}
-              {missing.map((role) => responsibleRoleLabels[role].label).join(', ')}.
-            </p>
-          )}
-        </>
+        <DataTable
+          testId="responsible-persons-table"
+          rowTestId="responsible-row"
+          rowElementId={(person) => personRowId(person.id)}
+          label="Persoanele responsabile ale clientului"
+          columns={columns}
+          data={persons.data?.items}
+          rowKey={rowKey}
+          status={persons.isSuccess ? 'success' : 'pending'}
+          onRowClick={readOnly ? undefined : setEditing}
+          empty={null}
+        />
       )}
       <ResponsiblePersonDialog
         clientId={clientId}

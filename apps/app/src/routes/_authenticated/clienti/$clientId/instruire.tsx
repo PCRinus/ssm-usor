@@ -45,6 +45,7 @@ function TrainingPage() {
         clientId={client.id}
         userId={session.user.id}
         readOnly={client.archivedAt !== null}
+        currentEmployeeCount={client.currentEmployeeCount}
         focus={focusAmong(focus, responsiblePersonFocus)}
       />
     </div>

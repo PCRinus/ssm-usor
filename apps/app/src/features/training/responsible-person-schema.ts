@@ -1,11 +1,16 @@
 import {
+  requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
   responsiblePersonRoles,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { ResponsiblePersonListResponse, ResponsiblePersonRequest } from '@/api/generated/api';
+import type {
+  ClientParticipantsResponse,
+  ResponsiblePersonListResponse,
+  ResponsiblePersonRequest,
+} from '@/api/generated/api';
 
 export type ResponsiblePerson = ResponsiblePersonListResponse['items'][number];
 
@@ -47,16 +52,49 @@ export const responsibleRoleLabels: Record<
 
 export const responsibleRoleOrder = responsiblePersonRoles;
 
+export interface MissingRole {
+  role: ResponsiblePersonRole;
+  label: string;
+}
+
 /**
- * The roles the occupational safety set always needs; a workers' representative depends on
- * headcount, and the two fire-safety roles are the fire-safety set's.
+ * The roles generating the two sets asks a name for: every one but the workers' representative,
+ * who depends on the client's current workers (ADR 010).
  */
-export const alwaysRequiredRoles = responsiblePersonRoles.filter(
-  (role) =>
-    role !== 'workers_representative' &&
-    role !== 'fire_safety_coordinator' &&
-    role !== 'fire_intervention_leader'
-);
+export function missingRoles(
+  persons: readonly ResponsiblePerson[],
+  currentEmployeeCount: number
+): MissingRole[] {
+  const held = new Set(persons.flatMap((person) => person.roles));
+  const representatives = persons.filter((person) =>
+    person.roles.includes('workers_representative')
+  ).length;
+  const needed = requiredWorkersRepresentatives(currentEmployeeCount);
+  return responsibleRoleOrder.flatMap((role): MissingRole[] => {
+    const label = responsibleRoleLabels[role].label;
+    if (role !== 'workers_representative') return held.has(role) ? [] : [{ role, label }];
+    if (representatives >= needed) return [];
+    return [{ role, label: representatives === 0 ? label : `${label} (al doilea)` }];
+  });
+}
+
+/** Under a person's name: whether they are one of the client's workers, and on the portal. */
+export function personStanding(
+  person: ResponsiblePerson,
+  portal: ClientParticipantsResponse | undefined
+) {
+  if (!person.employeeId) return 'Nu e în lista lucrătorilor';
+  if (!portal) return 'Lucrător';
+  const { employeeId } = person;
+  if (portal.participants.some((participant) => participant.employeeId === employeeId)) {
+    return 'Lucrător · acces la portal';
+  }
+  return portal.invitations.some(
+    (invitation) => invitation.employeeId === employeeId && invitation.status === 'open'
+  )
+    ? 'Lucrător · invitație în portal trimisă'
+    : 'Lucrător · fără acces la portal';
+}
 
 export const responsiblePersonFormSchema = z
   .object({

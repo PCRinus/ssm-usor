@@ -107,6 +107,7 @@ function mockApi({
   archive = (() => new Response(null, { status: 204 })) as Route,
   details = emptyDetails as Record<string, unknown>,
   workplaces = [] as unknown[],
+  portal = { participants: [], invitations: [] } as Record<string, unknown[]>,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -119,6 +120,7 @@ function mockApi({
       return Response.json({ documentDetails: details });
     }
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: workplaces });
+    if (pathname === `/clients/${clientId}/participants`) return Response.json(portal);
     if (pathname === `/clients/${clientId}/fire-safety`) {
       return Response.json({ fireSafety: emptyFireSafety, exists: false });
     }
@@ -167,16 +169,100 @@ describe('client responsible persons', () => {
     expect(row!.textContent).toContain('Conducător al locului de muncă');
     expect(row!.textContent).toContain('Prim ajutor');
     expect(screen.getByTestId('responsible-missing').textContent).toBe(
-      'Fără persoană numită: Echipa de evaluare a riscurilor, Pericol grav și iminent.'
+      'Fără persoană numită: Echipa de evaluare a riscurilor, Pericol grav și iminent, Reprezentantul lucrătorilor, Coordonator privind apărarea împotriva incendiilor, Șef echipă de primă intervenție'
     );
   });
 
-  it('says where to start when there are none', async () => {
+  it('asks for no workers representative below 10 current workers', async () => {
+    mockApi({ client: { ...sampleClient, currentEmployeeCount: 9 } });
+    mount();
+    await screen.findAllByTestId('responsible-row');
+    expect(screen.getByTestId('responsible-missing').textContent).not.toContain(
+      'Reprezentantul lucrătorilor'
+    );
+  });
+
+  it('asks for a second workers representative from 50 current workers', async () => {
+    const representative = {
+      ...manager,
+      id: '0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+      fullName: 'Ion Ionescu',
+      roles: ['workers_representative'],
+    };
+    mockApi({
+      client: { ...sampleClient, currentEmployeeCount: 50 },
+      items: [manager, representative],
+    });
+    mount();
+    await screen.findAllByTestId('responsible-row');
+    expect(screen.getByTestId('responsible-missing').textContent).toContain(
+      'Reprezentantul lucrătorilor (al doilea)'
+    );
+  });
+
+  it('opens a new person with the missing role ticked from the line beside the title', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('responsible-missing-imminent_danger'));
+    const role = await screen.findByTestId('responsible-role-imminent_danger');
+    expect(role.getAttribute('aria-checked') ?? String((role as HTMLInputElement).checked)).toBe(
+      'true'
+    );
+    expect(screen.getByTestId<HTMLInputElement>('responsible-name').value).toBe('');
+  });
+
+  it("says under each name whether they are the client's worker, and on the portal", async () => {
+    const invited = {
+      ...manager,
+      id: '1c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+      employeeId: '2d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+      fullName: 'Cristina Stan',
+    };
+    const outsider = {
+      ...manager,
+      id: '2c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+      employeeId: null,
+      employeeJobTitle: null,
+      fullName: 'Maria Popescu',
+    };
+    const other = {
+      ...manager,
+      id: '3c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+      employeeId: '3d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+      fullName: 'Vasile Matei',
+    };
+    mockApi({
+      items: [manager, invited, outsider, other],
+      portal: {
+        participants: [{ employeeId: employee.id }],
+        invitations: [
+          { employeeId: invited.employeeId, status: 'open' },
+          { employeeId: other.employeeId, status: 'expired' },
+        ],
+      },
+    });
+    mount();
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId('responsible-standing').map((line) => line.textContent)).toEqual(
+        [
+          'Lucrător · acces la portal',
+          'Lucrător · invitație în portal trimisă',
+          'Nu e în lista lucrătorilor',
+          'Lucrător · fără acces la portal',
+        ]
+      )
+    );
+  });
+
+  it('says there are none yet, the advice being in the help', async () => {
     mockApi({ items: [] });
     mount();
 
-    expect((await screen.findByTestId('responsible-persons-empty')).textContent).toContain(
-      'conducătorul locului de muncă'
+    expect((await screen.findByTestId('responsible-persons-empty')).textContent).toBe(
+      'Nicio persoană responsabilă încă.'
     );
     expect(screen.queryByTestId('responsible-missing')).toBeNull();
   });
@@ -475,7 +561,7 @@ describe('client responsible persons', () => {
 
     const row = await screen.findByTestId('responsible-row');
     expect((await within(row).findByTestId('responsible-workplace-name')).textContent).toBe(
-      'Numai la Gelaterie Timișoara'
+      'numai la Gelaterie Timișoara'
     );
     await user.click(within(row).getByTestId('responsible-actions'));
     await user.click(await screen.findByTestId('responsible-edit'));
