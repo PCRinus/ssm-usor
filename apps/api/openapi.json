@@ -35741,7 +35741,7 @@
             }
           },
           "404": {
-            "description": "The client does not exist in this organization",
+            "description": "The client does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {
@@ -35854,7 +35854,7 @@
             }
           },
           "404": {
-            "description": "The client does not exist in this organization",
+            "description": "The client does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {
@@ -37154,7 +37154,7 @@
             }
           },
           "404": {
-            "description": "The client does not exist in this organization",
+            "description": "The client does not exist in the organization",
             "content": {
               "application/json": {
                 "schema": {

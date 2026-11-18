@@ -1,4 +1,4 @@
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import {
   clientListResponseSchema,
   clientOwnerNotesResponseSchema,
@@ -14,6 +14,8 @@ import { requireMembership, requireOwner } from '../../lib/membership';
 import {
   authErrors,
   bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
   errorContent,
   membershipErrors,
   ownerErrors,
@@ -51,7 +53,7 @@ export const getClientRoute = createRoute({
   description: 'A lead does not exist for a member who is not an owner.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: z.object({ clientId: z.uuid() }) },
+  request: { params: clientParams },
   responses: {
     200: {
       description: 'The client',
@@ -60,7 +62,7 @@ export const getClientRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -111,7 +113,7 @@ export const updateClientRoute = createRoute({
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
   request: {
-    params: z.object({ clientId: z.uuid() }),
+    params: clientParams,
     body: {
       required: true,
       content: {
@@ -129,7 +131,7 @@ export const updateClientRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     409: {
       description: 'Another client has this CUI, or the client is archived',
       content: errorContent,
@@ -146,7 +148,7 @@ const archivingResponses = {
     },
   },
   400: { description: 'Invalid path', content: errorContent },
-  404: { description: 'The client does not exist in the organization', content: errorContent },
+  404: clientNotFoundResponse,
   ...ownerErrors,
 };
 
@@ -159,7 +161,7 @@ export const archiveClientRoute = createRoute({
     'Owners only. The client leaves the list of active clients; its employees, job positions and documents stay as they are and stay readable. Archiving an archived client changes nothing.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership, requireOwner] as const,
-  request: { params: z.object({ clientId: z.uuid() }) },
+  request: { params: clientParams },
   responses: archivingResponses,
 });
 
@@ -171,7 +173,7 @@ export const restoreClientRoute = createRoute({
   description: 'Owners only. Restoring an active client changes nothing.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership, requireOwner] as const,
-  request: { params: z.object({ clientId: z.uuid() }) },
+  request: { params: clientParams },
   responses: archivingResponses,
 });
 
@@ -184,11 +186,11 @@ export const deleteClientRoute = createRoute({
     "For testing with real documents, where an archived client's CUI keeps the same company from being added or imported again. Outside production any member may; in production a platform admin only (`403` otherwise), as `canDelete` on the client says. Only an archived client (`409` with the reason `client_not_archived` otherwise). Its employees, positions, workplaces, trainings and their signatures, tests, sheets, documents, files, risk evaluations, fire-safety data, participants and imports are deleted with it, and then its stored files, as far as the storage answers. Nothing is kept to restore it.",
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership] as const,
-  request: { params: z.object({ clientId: z.uuid() }) },
+  request: { params: clientParams },
   responses: {
     204: { description: 'The client is deleted' },
     400: { description: 'Invalid path', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     409: { description: 'The client is not archived', content: errorContent },
     ...authErrors,
     403: {
@@ -208,7 +210,7 @@ export const promoteLeadRoute = createRoute({
     'Owners only, and one way: the whole team sees the company from then on, and its safety records can start. The database records who and when. Promoting a client changes nothing. An archived lead is restored first.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership, requireOwner] as const,
-  request: { params: z.object({ clientId: z.uuid() }) },
+  request: { params: clientParams },
   responses: {
     ...archivingResponses,
     409: { description: 'The lead is archived', content: errorContent },
@@ -224,7 +226,7 @@ const ownerNotesResponses = {
       },
     },
   },
-  404: { description: 'The client does not exist in the organization', content: errorContent },
+  404: clientNotFoundResponse,
   ...ownerErrors,
 };
 
@@ -237,7 +239,7 @@ export const getClientOwnerNotesRoute = createRoute({
     'Owners only, before and after promotion: the notes may hold prices and a negotiation.',
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership, requireOwner] as const,
-  request: { params: z.object({ clientId: z.uuid() }) },
+  request: { params: clientParams },
   responses: {
     ...ownerNotesResponses,
     400: { description: 'Invalid path', content: errorContent },
@@ -254,7 +256,7 @@ export const saveClientOwnerNotesRoute = createRoute({
   security: bearerSecurity,
   middleware: [requireAuth, requireMembership, requireOwner] as const,
   request: {
-    params: z.object({ clientId: z.uuid() }),
+    params: clientParams,
     body: {
       required: true,
       content: {
