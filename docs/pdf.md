@@ -421,10 +421,6 @@ pdfPageImage(pdf: ArrayBuffer, page: number): Promise<ArrayBuffer>;
 imageToJpeg(image: ArrayBuffer): Promise<ArrayBuffer>;
 ```
 
-The entrypoint also answers to `heicToJpeg`, `imageToJpeg`'s earlier name, because the API
-deploys after this Worker and the API before it still calls that name. It goes once that API is
-gone from both environments.
-
 A method rejects with `extraction_failed:<reason>` when the file is refused, and with
 `extraction_failed` alone for anything else: an unreachable container, a 5xx, a timeout, or an
 answer that is not what the route makes. `extractionRefusalOf` in the contracts reads the reason
