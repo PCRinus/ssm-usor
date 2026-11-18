@@ -827,7 +827,13 @@ export async function createJobPosition(
 export async function createEmployee(
   organizationId: string,
   clientId: string,
-  name: { firstName: string; lastName: string; jobTitle: string; employeeNumber?: string }
+  name: {
+    firstName: string;
+    lastName: string;
+    jobTitle: string;
+    employeeNumber?: string;
+    workplaceId?: string;
+  }
 ) {
   const employee = await admin.from('employees').insert({
     organization_id: organizationId,
@@ -836,6 +842,7 @@ export async function createEmployee(
     last_name: name.lastName,
     job_title: name.jobTitle,
     employee_number: name.employeeNumber ?? null,
+    workplace_id: name.workplaceId ?? null,
     hired_at: '2024-02-15',
   });
   if (employee.error) throw employee.error;
