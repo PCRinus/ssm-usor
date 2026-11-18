@@ -10,6 +10,7 @@ import {
   describeRun,
   legalActsSchema,
   type LegislationTables,
+  portalAnchorReader,
   portalOptionsFromEnv,
   runLegislationCheck,
 } from '@ssm-usor/legislation-check';
@@ -50,7 +51,11 @@ try {
       : { acts: legalActs() }
   );
   const portal = portalOptionsFromEnv(process.env);
-  const run = await runLegislationCheck(client, acts, { portal, citations: citationIndex() });
+  const run = await runLegislationCheck(client, acts, {
+    portal,
+    citations: citationIndex(),
+    readAnchors: portalAnchorReader(portal),
+  });
   console.log(describeRun(run));
   console.log(
     `Checked against ${new URL(config.url).hostname}${portal.origin ? `, through ${new URL(portal.origin).hostname}` : ''}.`

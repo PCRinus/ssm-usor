@@ -55,13 +55,23 @@ export const storedRunErrorSchema = z.object({
   message: z.string(),
 });
 
+// `article` as `plainLabel` writes it, "80^1"; `path` is a portal page without the origin.
+export const storedArticleAnchorSchema = z.object({
+  annex: z.string().nullable(),
+  article: z.string().nullable(),
+  path: z.string().startsWith('/'),
+  anchor: z.string().min(1),
+});
+
 export const storedAmendingActsSchema = storedList(storedAmendingActSchema);
 export const storedAmendedUnitsSchema = storedList(storedAmendedUnitSchema);
 export const storedHunksSchema = storedList(storedHunkSchema);
 export const storedReviewSchema = storedList(storedReviewReasonSchema);
 export const storedRunErrorsSchema = storedList(storedRunErrorSchema);
+export const storedArticleAnchorsSchema = storedList(storedArticleAnchorSchema);
 
 export type StoredAmendingAct = z.input<typeof storedAmendingActSchema>;
 export type StoredAmendedUnit = z.input<typeof storedAmendedUnitSchema>;
 export type StoredHunk = z.input<typeof storedHunkSchema>;
 export type StoredRunError = z.input<typeof storedRunErrorSchema>;
+export type StoredArticleAnchor = z.input<typeof storedArticleAnchorSchema>;

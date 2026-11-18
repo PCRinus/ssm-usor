@@ -43,13 +43,14 @@ afterEach(() => {
 });
 
 describe('the daily cron', () => {
-  it('checks every act the templates cite, and assesses changes against their citations', async () => {
+  it('checks every act the templates cite, assesses changes against their citations and reads the articles’ anchors', async () => {
     vi.mocked(runLegislationCheck).mockResolvedValue(run('succeeded'));
     await scheduled(env);
     const [, acts, options] = vi.mocked(runLegislationCheck).mock.calls[0]!;
     expect(acts.map((act) => act.id)).toEqual(legalActs().map((act) => act.id));
     expect(acts.length).toBeGreaterThan(0);
     expect(options?.citations).toEqual(citationIndex());
+    expect(options?.readAnchors).toEqual(expect.any(Function));
   });
 
   it('fails the invocation when the run failed', async () => {

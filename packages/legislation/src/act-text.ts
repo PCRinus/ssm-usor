@@ -22,6 +22,10 @@ export type UnitKind =
   | 'point'
   | 'annex';
 
+// `path` is the portal page that holds the unit, without the origin (a relay's, when read through
+// one); `id` is its element there, which a new consolidated form may renumber.
+export type UnitAnchor = { path: string; id: string };
+
 export type ActUnit = {
   kind: UnitKind;
   // "36", "109^2", "1^1", "a", "5": the number as the portal writes it, without its dressing.
@@ -29,6 +33,7 @@ export type ActUnit = {
   heading: string | null;
   content: (string | ActUnit)[];
   notes: AmendmentNote[];
+  anchor: UnitAnchor | null;
 };
 
 export type ActText = {
@@ -81,6 +86,7 @@ const rule = /^(?=[^\p{L}\p{N}]*$)[^\p{L}\p{N}]*(?:[\u2500-\u257f]|-{3})/u;
 
 type Element = {
   className: string | null;
+  id: string | null;
   hidden: boolean;
   children: (Element | string)[];
   links: number[];
@@ -90,7 +96,7 @@ const lineBreakTags = new Set(['br', 'p', 'div', 'li', 'tr', 'table', 'ul', 'ol'
 
 // Only spans nest reliably on the portal's pages; every other tag is read as a break or dropped.
 function spanTree(html: string): Element {
-  const root: Element = { className: null, hidden: false, children: [], links: [] };
+  const root: Element = { className: null, id: null, hidden: false, children: [], links: [] };
   const stack = [root];
   const tokens = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>|([^<]+)|</g;
   const markup = html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
@@ -111,6 +117,7 @@ function spanTree(html: string): Element {
       }
       const element: Element = {
         className: /\bclass=["']?([\w-]+)/.exec(attributes)?.[1] ?? null,
+        id: /(?:^|\s)id=["']?([\w-]+)/.exec(attributes)?.[1] ?? null,
         hidden: /display:\s*none/.test(attributes),
         children: [],
         links: [],
@@ -182,7 +189,10 @@ class Reader {
   readonly references: ActText['references'] = [];
   private readonly stack: ActUnit[] = [];
 
-  constructor(private readonly untitled: Untitled) {}
+  constructor(
+    private readonly untitled: Untitled,
+    private readonly document: string
+  ) {}
 
   path(): UnitPath {
     const path: UnitPath = { annex: null, article: null, alineat: null, letter: null, point: null };
@@ -198,7 +208,14 @@ class Reader {
 
   unit(kind: UnitKind, element: Element): ActUnit {
     const prefix = element.className!;
-    const unit: ActUnit = { kind, label: '', heading: null, content: [], notes: [] };
+    const unit: ActUnit = {
+      kind,
+      label: '',
+      heading: null,
+      content: [],
+      notes: [],
+      anchor: element.id ? { path: this.document, id: element.id } : null,
+    };
     this.stack.push(unit);
     for (const child of element.children) {
       if (typeof child === 'string' || child.hidden) continue;
@@ -314,7 +331,12 @@ function textEnd(html: string, from: number) {
   return Math.max(from, html.lastIndexOf('<', end));
 }
 
-function readActText(html: string, portalId: number, untitled: Untitled): ActText {
+function readActText(
+  html: string,
+  portalId: number,
+  untitled: Untitled,
+  document = `/Public/DetaliiDocument/${portalId}`
+): ActText {
   const start = html.indexOf('<span class="S_DEN"');
   if (start < 0) throw new PortalError(`Page ${portalId} has no act heading (S_DEN).`);
   // The act's heading, its issuer and its gazette come before the hidden "fișă act" lists, the
@@ -323,7 +345,7 @@ function readActText(html: string, portalId: number, untitled: Untitled): ActTex
   const split = lists < 0 ? start : html.lastIndexOf('<span', lists);
   const title = tidy(headingText(spanTree(html.slice(start, split))));
   const root = spanTree(html.slice(split, textEnd(html, split)));
-  const reader = new Reader(untitled);
+  const reader = new Reader(untitled, document);
   const content: (string | ActUnit)[] = [];
   reader.body(root, content);
   return {
@@ -413,7 +435,13 @@ async function readAnnexes(
     await pause(options.pauseMs ?? portalPauseMs);
     const url = new URL(`/Public/DetaliiDocumentAfis/${reference.portalId}`, origin).href;
     const page = await (await request(url, {}, options)).text();
-    const annex = readActText(page, reference.portalId, untitled);
+    // Read through its text view, linked to as its own page: the two carry the same element ids.
+    const annex = readActText(
+      page,
+      reference.portalId,
+      untitled,
+      `/Public/DetaliiDocument/${reference.portalId}`
+    );
     holder.heading ??= annexHeading(annex.title);
     holder.content.push(...annex.content);
     for (const note of annex.notes) {
@@ -429,7 +457,8 @@ async function readText(page: string, pageUrl: string, pageId: number, options: 
   const origin = options.origin ?? portalOrigin;
   const untitled: Untitled = { count: 0 };
   if (hasActText(page)) {
-    const text = readActText(page, pageId, untitled);
+    const read = new URL(pageUrl);
+    const text = readActText(page, pageId, untitled, `${read.pathname}${read.search}`);
     const annexUrls = await readAnnexes(text, untitled, origin, options);
     return { source: 'page' as const, url: pageUrl, annexUrls, text };
   }
@@ -443,7 +472,7 @@ async function readText(page: string, pageUrl: string, pageId: number, options: 
   if (!hasActText(afis)) {
     throw new PortalError(`The text ${afisId} of page ${pageId} holds no articles.`);
   }
-  const text = readActText(afis, afisId, untitled);
+  const text = readActText(afis, afisId, untitled, `/Public/DetaliiDocumentAfis/${afisId}`);
   const annexUrls = await readAnnexes(text, untitled, origin, options);
   return { source: 'afis' as const, url: afisUrl, annexUrls, text };
 }

@@ -32,6 +32,7 @@ import {
   testSheetPdf,
   testSheetSummaries,
 } from '../test-sheets/test-sheets';
+import { citationLinker } from './citations';
 import type {
   createTestQuestionRoute,
   deleteTestQuestionRoute,
@@ -85,7 +86,16 @@ async function readQuestion(db: DataClient, organizationId: string, questionId: 
   ]);
   if (question.error) throw fromDatabaseError(question.error, 'find test question');
   if (!question.data) throw noSuchQuestion();
-  return toTestQuestion(question.data, hidden.has(question.data.id));
+  return withCitation(db, question.data, hidden.has(question.data.id));
+}
+
+async function withCitation(
+  db: DataClient,
+  row: Parameters<typeof toTestQuestion>[0],
+  hidden: boolean
+) {
+  const link = await citationLinker(db, [row.citation]);
+  return toTestQuestion(row, hidden, link(row.citation));
 }
 
 export const getTestBank: RouteHandler<typeof getTestBankRoute, ApiEnv> = async (c) => {
@@ -104,7 +114,13 @@ export const getTestBank: RouteHandler<typeof getTestBankRoute, ApiEnv> = async 
     hiddenIds(db, c.get('membership').organizationId),
   ]);
   if (questions.error) throw fromDatabaseError(questions.error, 'list test questions');
-  const all = questions.data.map((row) => toTestQuestion(row, hidden.has(row.id)));
+  const link = await citationLinker(
+    db,
+    questions.data.map((row) => row.citation)
+  );
+  const all = questions.data.map((row) =>
+    toTestQuestion(row, hidden.has(row.id), link(row.citation))
+  );
   const tests = trainingDomains.flatMap((each) =>
     knowledgeTestsByDomain[each]
       .filter(() => !domain || each === domain)
@@ -168,7 +184,7 @@ export const createTestQuestion: RouteHandler<typeof createTestQuestionRoute, Ap
     .select(questionColumns)
     .single();
   if (error) throw fromDatabaseError(error, 'create test question');
-  return c.json({ question: toTestQuestion(data, false) }, 201);
+  return c.json({ question: await withCitation(db, data, false) }, 201);
 };
 
 async function ownQuestion(db: DataClient, organizationId: string, questionId: string) {
@@ -199,7 +215,7 @@ export const updateTestQuestion: RouteHandler<typeof updateTestQuestionRoute, Ap
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'update test question');
   if (!data) throw noSuchQuestion();
-  return c.json({ question: toTestQuestion(data, false) }, 200);
+  return c.json({ question: await withCitation(db, data, false) }, 200);
 };
 
 export const deleteTestQuestion: RouteHandler<typeof deleteTestQuestionRoute, ApiEnv> = async (

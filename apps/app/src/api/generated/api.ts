@@ -3221,6 +3221,32 @@ export type TestBankResponseTestsItemQuestionsItemOptionsItem = {
   correct: boolean;
 };
 
+/**
+ * @nullable
+ */
+export type CitationPartTarget =
+  (typeof CitationPartTarget)[keyof typeof CitationPartTarget] | null;
+
+export const CitationPartTarget = {
+  article: 'article',
+  annex: 'annex',
+  act: 'act',
+} as const;
+
+export interface CitationPart {
+  text: string;
+  /** @nullable */
+  act: string | null;
+  /** @nullable */
+  article: string | null;
+  /** @nullable */
+  annex: string | null;
+  /** @nullable */
+  url: string | null;
+  /** @nullable */
+  target: CitationPartTarget;
+}
+
 export type TestBankResponseTestsItemQuestionsItem = {
   id: string;
   domain: TestBankResponseTestsItemQuestionsItemDomain;
@@ -3233,6 +3259,7 @@ export type TestBankResponseTestsItemQuestionsItem = {
   explanation: string | null;
   /** @nullable */
   citation: string | null;
+  citationParts: CitationPart[];
   builtIn: boolean;
   hidden: boolean;
   /** @nullable */
@@ -3295,6 +3322,7 @@ export type TestQuestionResponseQuestion = {
   explanation: string | null;
   /** @nullable */
   citation: string | null;
+  citationParts: CitationPart[];
   builtIn: boolean;
   hidden: boolean;
   /** @nullable */

@@ -27,6 +27,8 @@ type Row = {
   last_consolidated_on: string | null;
   verified_consolidated_on: string | null;
   last_checked_at: string | null;
+  anchors_read_at?: string | null;
+  anchors_consolidated_on?: string | null;
 };
 
 function database(rows: Row[], options: { changeExists?: boolean } = {}) {
@@ -37,6 +39,7 @@ function database(rows: Row[], options: { changeExists?: boolean } = {}) {
     if (url.pathname === '/rest/v1/legal_acts' && method === 'PATCH') {
       return new Response(null, { status: 204 });
     }
+    if (url.pathname === '/rest/v1/legal_changes' && method === 'GET') return Response.json([]);
     if (url.pathname === '/rest/v1/legal_changes' && method === 'POST') {
       return Response.json(options.changeExists ? [] : [{ id: 'c1' }], { status: 201 });
     }
@@ -263,5 +266,118 @@ describe('checking the watched acts', () => {
       /Could not save the acts: permission denied/
     );
     expect(readAct).not.toHaveBeenCalled();
+  });
+});
+
+describe('reading the anchors of the acts’ articles', () => {
+  const anchors = [
+    { annex: null, article: '23', path: '/Public/DetaliiDocument/73772', anchor: 'id_artA294' },
+  ];
+  const readAct = async (portalId: number) => portalAct(portalId, '2021-07-25');
+
+  it('reads them for an act never read and stores them with the form they came from', async () => {
+    const { db, sent } = database([row(law.id, '2021-07-25')]);
+    const readAnchors = vi.fn(async () => ({ consolidatedOn: '2021-07-25', anchors }));
+    const outcomes = await checkLegislation(db, [law], { readAct, readAnchors, pauseMs: 0 });
+    expect(readAnchors).toHaveBeenCalledWith(73772);
+    const stored = sent('legal_acts', 'PATCH').at(-1)!;
+    expect(stored.url.searchParams.get('id')).toBe('eq.lege-319-2006');
+    expect(stored.body).toMatchObject({
+      article_anchors: anchors,
+      anchors_consolidated_on: '2021-07-25',
+      anchors_read_at: expect.any(String),
+    });
+    expect(outcomes[0]).toMatchObject({ result: 'checked' });
+  });
+
+  it('reads them in the daily run too, which assesses changes against the citations', async () => {
+    const { db, sent } = database([row(law.id, '2021-07-25')]);
+    const readAnchors = vi.fn(async () => ({ consolidatedOn: '2021-07-25', anchors }));
+    const outcomes = await checkLegislation(db, [law], {
+      readAct,
+      readAnchors,
+      citations: [],
+      pauseMs: 0,
+    });
+    expect(readAnchors).toHaveBeenCalledWith(73772);
+    expect(sent('legal_acts', 'PATCH').at(-1)!.body).toMatchObject({ article_anchors: anchors });
+    expect(outcomes[0]).toMatchObject({ result: 'checked', assessments: [] });
+  });
+
+  it('reads them only once every act is checked, and names a failed read on its act', async () => {
+    const { db } = database([row(law.id, '2021-07-25'), row(norms.id, '2022-03-07')]);
+    const order: string[] = [];
+    const outcomes = await checkLegislation(db, [law, norms], {
+      readAct: async (portalId) => {
+        order.push(`act ${portalId}`);
+        return portalAct(portalId, portalId === 73772 ? '2021-07-25' : '2022-03-07');
+      },
+      readAnchors: async (portalId) => {
+        order.push(`anchors ${portalId}`);
+        if (portalId === 76337) throw new Error('the norms could not be read');
+        return { consolidatedOn: '2021-07-25', anchors };
+      },
+      citations: [],
+      pauseMs: 0,
+    });
+    expect(order).toEqual(['act 73772', 'act 76337', 'anchors 73772', 'anchors 76337']);
+    expect(outcomes[0]).not.toHaveProperty('warnings');
+    expect(outcomes[1]).toMatchObject({
+      act: { id: 'hg-1425-2006' },
+      warnings: [expect.stringMatching(/the norms could not be read$/)],
+    });
+    expect(summarize(outcomes)).toContain(
+      "warning: Could not read its articles' anchors: the norms could not be read"
+    );
+  });
+
+  it('reads them again only when the portal shows a newer form', async () => {
+    const readAnchors = vi.fn(async () => ({ consolidatedOn: '2021-07-25', anchors }));
+    const current = {
+      ...row(law.id, '2021-07-25'),
+      anchors_read_at: '2026-11-18T03:00:00Z',
+      anchors_consolidated_on: '2021-07-25',
+    };
+    await checkLegislation(database([current]).db, [law], { readAct, readAnchors, pauseMs: 0 });
+    expect(readAnchors).not.toHaveBeenCalled();
+
+    const older = { ...current, anchors_consolidated_on: '2021-05-06' };
+    await checkLegislation(database([older]).db, [law], { readAct, readAnchors, pauseMs: 0 });
+    expect(readAnchors).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the anchors it has and only warns when the text cannot be read', async () => {
+    const { db, sent } = database([row(law.id, '2021-07-25')]);
+    const outcomes = await checkLegislation(db, [law], {
+      readAct,
+      readAnchors: async () => {
+        throw new PortalError(
+          'https://legislatie.just.ro/Public/DetaliiDocument/73772 answered 502.',
+          {
+            kind: 'http_status',
+            status: 502,
+          }
+        );
+      },
+      pauseMs: 0,
+    });
+    expect(outcomes[0]).toMatchObject({
+      result: 'checked',
+      warnings: [expect.stringMatching(/^Could not read its articles' anchors: .*answered 502/)],
+    });
+    expect(sent('legal_acts', 'PATCH').some((update) => 'article_anchors' in update.body)).toBe(
+      false
+    );
+  });
+
+  it('leaves them for the next run once the run is out of time', async () => {
+    const readAnchors = vi.fn(async () => ({ consolidatedOn: '2021-07-25', anchors }));
+    await checkLegislation(database([row(law.id, '2021-07-25')]).db, [law], {
+      readAct,
+      readAnchors,
+      pauseMs: 0,
+      assessForMs: 0,
+    });
+    expect(readAnchors).not.toHaveBeenCalled();
   });
 });

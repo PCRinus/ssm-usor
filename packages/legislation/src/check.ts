@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { AnchorReader } from './anchors';
 import {
   assessChange,
   assessmentRetryMs,
@@ -42,7 +43,12 @@ export type LegalAct = z.infer<typeof legalActsSchema>['acts'][number];
 
 type ActRow = Pick<
   LegislationTables['legal_acts']['Row'],
-  'id' | 'last_consolidated_on' | 'verified_consolidated_on' | 'last_checked_at'
+  | 'id'
+  | 'last_consolidated_on'
+  | 'verified_consolidated_on'
+  | 'last_checked_at'
+  | 'anchors_read_at'
+  | 'anchors_consolidated_on'
 >;
 
 export type FailureKind = (typeof failureKinds)[number];
@@ -82,7 +88,10 @@ export type ActOutcome =
 // the act was read before as never consolidated: its first consolidation is then a change. A
 // verified form newer than the last one seen, a republication the check once did not read, is
 // not a change.
-export function isNewer(newest: string | null, row: ActRow) {
+export function isNewer(
+  newest: string | null,
+  row: Pick<ActRow, 'last_consolidated_on' | 'verified_consolidated_on' | 'last_checked_at'>
+) {
   if (newest === null) return false;
   const { last_consolidated_on: last, verified_consolidated_on: verified } = row;
   const known = [last, verified]
@@ -105,7 +114,10 @@ export type CheckOptions = {
   pauseMs?: number;
   portal?: PortalOptions;
   onOutcome?: (outcome: ActOutcome) => void;
-  // From the start of the check; the changes not assessed by then wait for the next run.
+  // Without it the articles' anchors are left as they are.
+  readAnchors?: AnchorReader;
+  // From the start of the check; the changes not assessed, and the anchors not read, by then wait
+  // for the next run.
   assessForMs?: number;
   now?: () => number;
 };
@@ -124,7 +136,9 @@ export async function checkLegislation(
   const upserted = await db
     .from('legal_acts')
     .upsert(acts.map((act) => ({ id: act.id, name: act.name, portal_id: act.portalId })))
-    .select('id, last_consolidated_on, verified_consolidated_on, last_checked_at');
+    .select(
+      'id, last_consolidated_on, verified_consolidated_on, last_checked_at, anchors_read_at, anchors_consolidated_on'
+    );
   if (upserted.error) throw new Error(`Could not save the acts: ${upserted.error.message}`);
   const rows = new Map(upserted.data.map((row) => [row.id, row]));
   const pending = options.citations ? await pendingChanges(db) : new Map<string, PendingChange[]>();
@@ -137,6 +151,8 @@ export async function checkLegislation(
     outcomes.push(outcome);
     options.onOutcome?.(outcome);
   };
+  // Read after every act is checked and assessed, so links never hold up an assessment.
+  const anchorsDueFor: { act: LegalAct; outcome: CheckedOutcome }[] = [];
   let first = true;
   for (const act of acts) {
     const row = rows.get(act.id);
@@ -163,8 +179,12 @@ export async function checkLegislation(
         );
       }
       const checked = await checkAct(db, act, row, portal);
+      const recordChecked = (outcome: CheckedOutcome) => {
+        record(outcome);
+        if (options.readAnchors && anchorsDue(row, portal)) anchorsDueFor.push({ act, outcome });
+      };
       if (!options.citations) {
-        record(checked);
+        recordChecked(checked);
         continue;
       }
       const { due, passed } = dueChanges(pending.get(act.id) ?? [], checked.change, row, now());
@@ -204,7 +224,7 @@ export async function checkLegislation(
           assessmentError = failureOf(error);
         }
       }
-      record({
+      recordChecked({
         ...checked,
         assessments,
         ...(assessmentError && {
@@ -220,6 +240,12 @@ export async function checkLegislation(
     } catch (error) {
       record({ act, result: 'failed', error: failureOf(error) });
     }
+  }
+  for (const { act, outcome } of anchorsDueFor) {
+    if (now() >= assessUntil) break;
+    await pause(options.pauseMs ?? portalPauseMs);
+    const warning = await storeAnchors(db, act, options.readAnchors!);
+    if (warning) outcome.warnings = [...(outcome.warnings ?? []), warning];
   }
   return outcomes;
 }
@@ -246,6 +272,32 @@ function dueChanges(pending: PendingChange[], seen: ChangeSeen | null, row: ActR
       .map((change) => change.consolidatedOn)
       .sort(),
   };
+}
+
+type CheckedOutcome = Extract<ActOutcome, { result: 'checked' }>;
+
+// The act's page shows its newest form, whose element ids a new form renumbers; a form's ids stay.
+const anchorsDue = (row: ActRow, portal: PortalAct) =>
+  !row.anchors_read_at || (row.anchors_consolidated_on ?? null) !== portal.newestConsolidation;
+
+// The anchors only make links; an act whose text could not be read keeps the ones it has and is
+// read again by the next run.
+async function storeAnchors(db: LegislationClient, act: LegalAct, readAnchors: AnchorReader) {
+  try {
+    const read = await readAnchors(act.portalId!);
+    const updated = await db
+      .from('legal_acts')
+      .update({
+        article_anchors: read.anchors,
+        anchors_consolidated_on: read.consolidatedOn,
+        anchors_read_at: new Date().toISOString(),
+      })
+      .eq('id', act.id);
+    if (updated.error) throw new Error(updated.error.message);
+    return null;
+  } catch (error) {
+    return `Could not read its articles' anchors: ${failureOf(error).message}`;
+  }
 }
 
 async function checkAct(

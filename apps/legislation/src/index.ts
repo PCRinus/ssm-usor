@@ -6,6 +6,7 @@ import {
   describeRun,
   legalActsSchema,
   type LegislationClient,
+  portalAnchorReader,
   type PortalEnv,
   portalOptionsFromEnv,
   runInProgress,
@@ -34,10 +35,12 @@ function connect(env: LegislationEnv) {
 
 async function check(db: LegislationClient, env: LegislationEnv, options: RunOptions = {}) {
   const { acts } = legalActsSchema.parse({ acts: legalActs() });
+  const portal = portalOptionsFromEnv(env);
   return runLegislationCheck(db, acts, {
     ...options,
     citations: citationIndex(),
-    portal: portalOptionsFromEnv(env),
+    portal,
+    readAnchors: portalAnchorReader(portal),
   });
 }
 

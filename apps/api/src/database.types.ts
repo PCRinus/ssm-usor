@@ -3838,6 +3838,9 @@ export type Database = {
       };
       legal_acts: {
         Row: {
+          anchors_consolidated_on: string | null;
+          anchors_read_at: string | null;
+          article_anchors: Json | null;
           checked_by_hand_on: string | null;
           created_at: string;
           id: string;
@@ -3851,6 +3854,9 @@ export type Database = {
           verified_consolidated_on: string | null;
         };
         Insert: {
+          anchors_consolidated_on?: string | null;
+          anchors_read_at?: string | null;
+          article_anchors?: Json | null;
           checked_by_hand_on?: string | null;
           created_at?: string;
           id: string;
@@ -3864,6 +3870,9 @@ export type Database = {
           verified_consolidated_on?: string | null;
         };
         Update: {
+          anchors_consolidated_on?: string | null;
+          anchors_read_at?: string | null;
+          article_anchors?: Json | null;
           checked_by_hand_on?: string | null;
           created_at?: string;
           id?: string;
@@ -8128,6 +8137,9 @@ export type Database = {
       admin_record_verified_form: {
         Args: { p_act_id: string; p_consolidated_on: string };
         Returns: {
+          anchors_consolidated_on: string | null;
+          anchors_read_at: string | null;
+          article_anchors: Json | null;
           checked_by_hand_on: string | null;
           created_at: string;
           id: string;
