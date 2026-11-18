@@ -1,4 +1,8 @@
-import { isLegalRepresentative, type ResponsiblePersonRole } from '@ssm-usor/contracts';
+import {
+  isLegalRepresentative,
+  requiredWorkersRepresentatives,
+  type ResponsiblePersonRole,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -14,11 +18,9 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Fragment, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
 import {
-  getListClientParticipantsQueryKey,
   getListResponsiblePersonsQueryKey,
   getListWorkplacesQueryKey,
   useArchiveResponsiblePerson,
-  useListClientParticipants,
   useListResponsiblePersons,
   useListWorkplaces,
   useUpdateResponsiblePerson,
@@ -78,10 +80,6 @@ export function ResponsiblePersonsCard({
     request: apiRequest,
     query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
   });
-  const portal = useListClientParticipants(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListClientParticipantsQueryKey(clientId), userId] },
-  });
   const workplaceItems = workplaces.data?.items;
   const workplaceNames = useMemo(
     () =>
@@ -100,23 +98,23 @@ export function ResponsiblePersonsCard({
 
   const addRef = useRef<HTMLButtonElement>(null);
 
+  const saved = details.data?.documentDetails;
+  const clashing =
+    saved?.legalRepresentativeName && requiredWorkersRepresentatives(currentEmployeeCount) > 0
+      ? persons.data?.items.find(
+          (person) =>
+            person.roles.includes('workers_representative') &&
+            person.currentEmployee &&
+            isLegalRepresentative(person, {
+              employeeId: saved.legalRepresentativeEmployeeId ?? null,
+              fullName: saved.legalRepresentativeName,
+            })
+        )
+      : undefined;
+
   // Opening the representative who clashes lets the role be taken off them; adding someone
   // else would leave the clash in place.
-  function clashingPerson() {
-    const saved = details.data?.documentDetails;
-    if (focus !== 'workers-representative-clash' || !saved?.legalRepresentativeName) {
-      return undefined;
-    }
-    const legalRepresentative = {
-      employeeId: saved.legalRepresentativeEmployeeId ?? null,
-      fullName: saved.legalRepresentativeName,
-    };
-    return persons.data?.items.find(
-      (person) =>
-        person.roles.includes('workers_representative') &&
-        isLegalRepresentative(person, legalRepresentative)
-    );
-  }
+  const clashingPerson = () => (focus === 'workers-representative-clash' ? clashing : undefined);
 
   useFocusRequest(focus !== undefined, {
     ready: !persons.isPending && !details.isPending,
@@ -165,14 +163,14 @@ export function ResponsiblePersonsCard({
       responsiblePersonColumns({
         clientId,
         readOnly,
-        portal: portal.data,
+        clashId: clashing?.id,
         workplaceNames,
         adopting: update.isPending,
         onAdoptTitle: (person, jobTitle) => void adoptContractTitle(person, jobTitle),
         onEdit: setEditing,
         onArchive: setArchiving,
       }),
-    [clientId, readOnly, portal.data, workplaceNames, update.isPending, adoptContractTitle]
+    [clientId, readOnly, clashing?.id, workplaceNames, update.isPending, adoptContractTitle]
   );
 
   function addFor(role: ResponsiblePersonRole) {

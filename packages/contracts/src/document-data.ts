@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { countyCodeSchema } from './counties';
 import { isValidCuiInput } from './cui';
+import { portalAccessStateSchema } from './employees';
 import { fireExtinguisherNormSchema, workplaceKindSchema } from './fire-safety';
 import { isValidIban } from './iban';
 
@@ -338,6 +339,8 @@ export const responsiblePersonSchema = z.object({
   // The employee's contract title today, which the copy above may no longer match. Null for
   // someone who is not an employee.
   employeeJobTitle: z.string().nullable(),
+  // The linked employee is active and not archived; false for someone who is not an employee.
+  currentEmployee: z.boolean(),
   roles: z.array(responsiblePersonRoleSchema).min(1),
   // Null: every workplace of the client.
   workplaceId: z.uuid().nullable(),
@@ -353,8 +356,13 @@ export const responsiblePersonResponseSchema = z.object({
 
 export type ResponsiblePersonResponse = z.infer<typeof responsiblePersonResponseSchema>;
 
+export const responsiblePersonListItemSchema = responsiblePersonSchema.extend({
+  // The linked employee's standing on the portal; null for someone who is not an employee.
+  portal: portalAccessStateSchema.nullable(),
+});
+
 export const responsiblePersonListResponseSchema = z.object({
-  items: z.array(responsiblePersonSchema),
+  items: z.array(responsiblePersonListItemSchema),
 });
 
 export type ResponsiblePersonListResponse = z.infer<typeof responsiblePersonListResponseSchema>;

@@ -458,6 +458,7 @@ describe('the training tab', () => {
     await screen.findByTestId('training-page');
     await screen.findByTestId('responsible-persons-card');
     expect(screen.queryByTestId('client-administrator-panel')).toBeNull();
+    expect(requests(listPath)).toHaveLength(0);
   });
 });
 

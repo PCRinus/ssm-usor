@@ -6349,6 +6349,21 @@ export const ResponsiblePersonListResponseItemsItemRolesItem = {
   fire_intervention_leader: 'fire_intervention_leader',
 } as const;
 
+/**
+ * @nullable
+ */
+export type ResponsiblePersonListResponseItemsItemPortal =
+  | (typeof ResponsiblePersonListResponseItemsItemPortal)[keyof typeof ResponsiblePersonListResponseItemsItemPortal]
+  | null;
+
+export const ResponsiblePersonListResponseItemsItemPortal = {
+  active: 'active',
+  invited: 'invited',
+  expired: 'expired',
+  none: 'none',
+  revoked: 'revoked',
+} as const;
+
 export type ResponsiblePersonListResponseItemsItem = {
   id: string;
   clientId: string;
@@ -6358,12 +6373,15 @@ export type ResponsiblePersonListResponseItemsItem = {
   jobTitle: string;
   /** @nullable */
   employeeJobTitle: string | null;
+  currentEmployee: boolean;
   /** @minItems 1 */
   roles: ResponsiblePersonListResponseItemsItemRolesItem[];
   /** @nullable */
   workplaceId: string | null;
   createdAt: string;
   updatedAt: string;
+  /** @nullable */
+  portal: ResponsiblePersonListResponseItemsItemPortal;
 };
 
 export interface ResponsiblePersonListResponse {
@@ -6392,6 +6410,7 @@ export type ResponsiblePersonResponseResponsiblePerson = {
   jobTitle: string;
   /** @nullable */
   employeeJobTitle: string | null;
+  currentEmployee: boolean;
   /** @minItems 1 */
   roles: ResponsiblePersonResponseResponsiblePersonRolesItem[];
   /** @nullable */

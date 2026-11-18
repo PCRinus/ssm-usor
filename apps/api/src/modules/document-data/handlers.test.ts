@@ -99,7 +99,7 @@ const responsiblePersonRow = {
   workplace_id: null,
   created_at: '2026-09-18T10:00:00+00:00',
   updated_at: '2026-09-18T10:00:00+00:00',
-  employees: { job_title: 'Director magazin' },
+  employees: { job_title: 'Director magazin', status: 'active', archived_at: null },
 };
 
 type Handler = (init?: RequestInit, url?: URL) => Response | Promise<Response>;
@@ -110,6 +110,7 @@ type Upstream =
   | 'employees'
   | 'workplaces'
   | 'workplaceList'
+  | 'employeeList'
   | 'responsiblePersons';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -134,6 +135,11 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>>) {
         return (
           handlers.workplaceList?.(init, url) ??
           Response.json([{ ...workplaceRow, current_employee_count: 16 }])
+        );
+      case '/rest/v1/employee_list':
+        return (
+          handlers.employeeList?.(init, url) ??
+          Response.json([{ id: employeeId, portal_state: 'invited' }])
         );
       case '/rest/v1/client_responsible_persons':
         return handlers.responsiblePersons?.(init, url) ?? Response.json([responsiblePersonRow]);
@@ -833,11 +839,38 @@ describe('/clients/{clientId}/responsible-persons', () => {
       roles: body.roles,
       jobTitle: 'Manager magazin',
       employeeJobTitle: 'Director magazin',
+      currentEmployee: true,
+      portal: 'invited',
       workplaceId: null,
     });
+    const portal = new URL(String(calls('/rest/v1/employee_list')[0]![0])).searchParams;
+    expect(portal.get('id')).toBe(`in.(${employeeId})`);
+    expect(portal.get('client_id')).toBe(`eq.${clientId}`);
     const [url] = calls('/rest/v1/client_responsible_persons')[0]!;
-    expect(new URL(String(url)).searchParams.get('select')).toContain('employees(job_title)');
+    expect(new URL(String(url)).searchParams.get('select')).toContain(
+      'employees(job_title,status,archived_at)'
+    );
     expect(new URL(String(url)).searchParams.get('order')).toBe('full_name.asc,id.asc');
+  });
+
+  it('says whether the linked employee still works for the client', async () => {
+    const departed = {
+      ...responsiblePersonRow,
+      employees: { job_title: 'Director magazin', status: 'terminated', archived_at: null },
+    };
+    const archived = {
+      ...responsiblePersonRow,
+      employees: {
+        job_title: 'Director magazin',
+        status: 'active',
+        archived_at: '2026-10-01T10:00:00+00:00',
+      },
+    };
+    const outsider = { ...responsiblePersonRow, employee_id: null, employees: null };
+    mockUpstream({ responsiblePersons: () => Response.json([departed, archived, outsider]) });
+    const { items } = responsiblePersonListResponseSchema.parse(await (await request(path)).json());
+    expect(items.map((item) => item.currentEmployee)).toEqual([false, false, false]);
+    expect(items.map((item) => item.portal)).toEqual(['invited', 'invited', null]);
   });
 
   it('creates one, with or without an employee', async () => {

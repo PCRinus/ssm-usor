@@ -1,4 +1,3 @@
-import type { ClientParticipantsResponse } from '@/api/generated/api';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
@@ -15,7 +14,7 @@ const helper = createDataTableColumns<ResponsiblePerson>();
 export function responsiblePersonColumns({
   clientId,
   readOnly,
-  portal,
+  clashId,
   workplaceNames,
   adopting,
   onAdoptTitle,
@@ -24,7 +23,8 @@ export function responsiblePersonColumns({
 }: {
   clientId: string;
   readOnly: boolean;
-  portal: ClientParticipantsResponse | undefined;
+  // The representative generation refuses because they are also the legal representative.
+  clashId: string | undefined;
   // Undefined while the workplaces load.
   workplaceNames: ReadonlyMap<string, string> | undefined;
   adopting: boolean;
@@ -37,7 +37,7 @@ export function responsiblePersonColumns({
       id: 'name',
       header: 'Nume și prenume',
       meta: {
-        headerClassName: 'w-62 min-w-50',
+        headerClassName: 'w-62 min-w-60',
         cellClassName: 'whitespace-normal',
         skeletonClassName: 'w-40',
         personal: true,
@@ -45,9 +45,7 @@ export function responsiblePersonColumns({
       cell: ({ row }) => (
         <>
           <span className="font-medium [overflow-wrap:anywhere]">{row.original.fullName}</span>
-          <CellNote data-testid="responsible-standing">
-            {personStanding(row.original, portal)}
-          </CellNote>
+          <CellNote data-testid="responsible-standing">{personStanding(row.original)}</CellNote>
         </>
       ),
     }),
@@ -106,6 +104,14 @@ export function responsiblePersonColumns({
                 .map((role) => responsibleRoleLabels[role].label)
                 .join(', ')}
             </span>
+            {person.id === clashId && (
+              <CellNote
+                data-testid="responsible-representative-clash"
+                className="font-medium text-warning-foreground"
+              >
+                Reprezentantul legal nu poate fi și reprezentantul lucrătorilor.
+              </CellNote>
+            )}
             {person.workplaceId && workplaceNames && (
               <CellNote data-testid="responsible-workplace-name">
                 numai la {workplaceNames.get(person.workplaceId) ?? 'un loc de muncă arhivat'}

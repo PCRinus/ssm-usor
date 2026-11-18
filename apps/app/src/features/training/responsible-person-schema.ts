@@ -6,11 +6,7 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type {
-  ClientParticipantsResponse,
-  ResponsiblePersonListResponse,
-  ResponsiblePersonRequest,
-} from '@/api/generated/api';
+import type { ResponsiblePersonListResponse, ResponsiblePersonRequest } from '@/api/generated/api';
 
 export type ResponsiblePerson = ResponsiblePersonListResponse['items'][number];
 
@@ -66,8 +62,9 @@ export function missingRoles(
   currentEmployeeCount: number
 ): MissingRole[] {
   const held = new Set(persons.flatMap((person) => person.roles));
-  const representatives = persons.filter((person) =>
-    person.roles.includes('workers_representative')
+  // Generating counts only a representative who still works for the client.
+  const representatives = persons.filter(
+    (person) => person.roles.includes('workers_representative') && person.currentEmployee
   ).length;
   const needed = requiredWorkersRepresentatives(currentEmployeeCount);
   return responsibleRoleOrder.flatMap((role): MissingRole[] => {
@@ -78,19 +75,11 @@ export function missingRoles(
   });
 }
 
-export function personStanding(
-  person: ResponsiblePerson,
-  portal: ClientParticipantsResponse | undefined
-) {
+export function personStanding(person: ResponsiblePerson) {
   if (!person.employeeId) return 'Nu e în lista lucrătorilor';
-  if (!portal) return 'Lucrător';
-  const { employeeId } = person;
-  if (portal.participants.some((participant) => participant.employeeId === employeeId)) {
-    return 'Lucrător · acces la portal';
-  }
-  return portal.invitations.some(
-    (invitation) => invitation.employeeId === employeeId && invitation.status === 'open'
-  )
+  if (!person.currentEmployee) return 'Nu mai e lucrător';
+  if (person.portal === 'active') return 'Lucrător · acces la portal';
+  return person.portal === 'invited'
     ? 'Lucrător · invitație în portal trimisă'
     : 'Lucrător · fără acces la portal';
 }

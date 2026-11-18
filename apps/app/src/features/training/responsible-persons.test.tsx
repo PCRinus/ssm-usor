@@ -59,6 +59,8 @@ const manager = {
   fullName: 'Paolo-Antonio Luca',
   jobTitle: 'Manager magazin',
   employeeJobTitle: 'Manager magazin',
+  currentEmployee: true,
+  portal: 'active' as string | null,
   roles: ['workplace_manager', 'first_aid'],
   workplaceId: null as string | null,
   createdAt: '2026-09-18T10:00:00.000Z',
@@ -107,7 +109,6 @@ function mockApi({
   archive = (() => new Response(null, { status: 204 })) as Route,
   details = emptyDetails as Record<string, unknown>,
   workplaces = [] as unknown[],
-  portal = { participants: [], invitations: [] } as Record<string, unknown[]>,
 } = {}) {
   fetchMock.mockImplementation(async (input, init) => {
     const { pathname } = new URL(String(input));
@@ -120,7 +121,6 @@ function mockApi({
       return Response.json({ documentDetails: details });
     }
     if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: workplaces });
-    if (pathname === `/clients/${clientId}/participants`) return Response.json(portal);
     if (pathname === `/clients/${clientId}/fire-safety`) {
       return Response.json({ fireSafety: emptyFireSafety, exists: false });
     }
@@ -214,34 +214,21 @@ describe('client responsible persons', () => {
   });
 
   it("says under each name whether they are the client's worker, and on the portal", async () => {
-    const invited = {
+    const person = (index: number, fullName: string, extra: Record<string, unknown>) => ({
       ...manager,
-      id: '1c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
-      employeeId: '2d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
-      fullName: 'Cristina Stan',
-    };
-    const outsider = {
-      ...manager,
-      id: '2c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
-      employeeId: null,
-      employeeJobTitle: null,
-      fullName: 'Maria Popescu',
-    };
-    const other = {
-      ...manager,
-      id: '3c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
-      employeeId: '3d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
-      fullName: 'Vasile Matei',
-    };
+      id: `${index}c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f`,
+      employeeId: `${index}d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f`,
+      fullName,
+      ...extra,
+    });
     mockApi({
-      items: [manager, invited, outsider, other],
-      portal: {
-        participants: [{ employeeId: employee.id }],
-        invitations: [
-          { employeeId: invited.employeeId, status: 'open' },
-          { employeeId: other.employeeId, status: 'expired' },
-        ],
-      },
+      items: [
+        manager,
+        person(1, 'Cristina Stan', { portal: 'invited' }),
+        person(2, 'Maria Popescu', { employeeId: null, currentEmployee: false, portal: null }),
+        person(3, 'Vasile Matei', { portal: 'expired' }),
+        person(4, 'Ion Plecat', { currentEmployee: false, portal: 'none' }),
+      ],
     });
     mount();
 
@@ -252,8 +239,48 @@ describe('client responsible persons', () => {
           'Lucrător · invitație în portal trimisă',
           'Nu e în lista lucrătorilor',
           'Lucrător · fără acces la portal',
+          'Nu mai e lucrător',
         ]
       )
+    );
+  });
+
+  it('counts only a workers representative who still works for the client', async () => {
+    mockApi({
+      items: [
+        manager,
+        {
+          ...manager,
+          id: '5c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f',
+          employeeId: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
+          fullName: 'Ion Plecat',
+          currentEmployee: false,
+          roles: ['workers_representative'],
+        },
+      ],
+    });
+    mount();
+
+    await screen.findAllByTestId('responsible-row');
+    expect(screen.getByTestId('responsible-missing').textContent).toContain(
+      'Reprezentantul lucrătorilor'
+    );
+    expect(screen.getByTestId('responsible-missing').textContent).not.toContain('(al doilea)');
+  });
+
+  it('marks the workers representative who is also the legal representative', async () => {
+    mockApi({
+      items: [{ ...manager, roles: ['workers_representative'] }],
+      details: {
+        ...emptyDetails,
+        legalRepresentativeName: 'Paolo-Antonio Luca',
+        legalRepresentativeEmployeeId: employee.id,
+      },
+    });
+    mount();
+
+    expect((await screen.findByTestId('responsible-representative-clash')).textContent).toBe(
+      'Reprezentantul legal nu poate fi și reprezentantul lucrătorilor.'
     );
   });
 

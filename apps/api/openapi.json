@@ -8673,6 +8673,9 @@
                   "type": "string",
                   "nullable": true
                 },
+                "currentEmployee": {
+                  "type": "boolean"
+                },
                 "roles": {
                   "type": "array",
                   "items": {
@@ -8701,6 +8704,11 @@
                 "updatedAt": {
                   "type": "string",
                   "format": "date-time"
+                },
+                "portal": {
+                  "type": "string",
+                  "nullable": true,
+                  "enum": ["active", "invited", "expired", "none", "revoked", null]
                 }
               },
               "required": [
@@ -8710,10 +8718,12 @@
                 "fullName",
                 "jobTitle",
                 "employeeJobTitle",
+                "currentEmployee",
                 "roles",
                 "workplaceId",
                 "createdAt",
-                "updatedAt"
+                "updatedAt",
+                "portal"
               ]
             }
           }
@@ -8748,6 +8758,9 @@
               "employeeJobTitle": {
                 "type": "string",
                 "nullable": true
+              },
+              "currentEmployee": {
+                "type": "boolean"
               },
               "roles": {
                 "type": "array",
@@ -8786,6 +8799,7 @@
               "fullName",
               "jobTitle",
               "employeeJobTitle",
+              "currentEmployee",
               "roles",
               "workplaceId",
               "createdAt",
