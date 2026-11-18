@@ -304,7 +304,7 @@ describe('the Abonament tab', () => {
 
     const card = await screen.findByTestId('plan-card');
     expect(card.textContent).toContain(
-      'Activ. Se reînnoiește în fiecare lună, pe 31, iar în lunile mai scurte, în ultima zi a lunii.'
+      'Activ. Se reînnoiește în fiecare lună, pe 31, iar în lunile fără această zi, în ultima zi a lunii.'
     );
   });
 

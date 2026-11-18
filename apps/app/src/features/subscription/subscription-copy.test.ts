@@ -152,7 +152,7 @@ describe('the monthly renewal day', () => {
   it('names the last day of shorter months from the 29th on', () => {
     for (const day of [29, 30, 31]) {
       expect(monthlyRenewalDay(new Date(2027, 0, day, 12).toISOString())).toBe(
-        `în fiecare lună, pe ${day}, iar în lunile mai scurte, în ultima zi a lunii`
+        `în fiecare lună, pe ${day}, iar în lunile fără această zi, în ultima zi a lunii`
       );
     }
   });

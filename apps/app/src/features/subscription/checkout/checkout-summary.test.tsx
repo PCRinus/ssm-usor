@@ -40,7 +40,7 @@ describe('the monthly renewal day before a purchase', () => {
 
   it('stays the 31st when the first renewal falls on 28 February, with the last day of shorter months', () => {
     expect(renderPurchase(new Date(2027, 0, 31, 12), new Date(2027, 1, 28, 12))).toContain(
-      'Abonamentul se reînnoiește în fiecare lună, pe 31, iar în lunile mai scurte, în ultima zi a lunii.'
+      'Abonamentul se reînnoiește în fiecare lună, pe 31, iar în lunile fără această zi, în ultima zi a lunii.'
     );
   });
 });

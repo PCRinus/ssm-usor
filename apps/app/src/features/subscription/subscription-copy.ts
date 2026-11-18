@@ -26,7 +26,7 @@ export function roDate(timestamp: string) {
 // renewal to its last day, so the next renewal's date is not the day to name.
 export function monthlyRenewalDay(anchor: string) {
   const day = new Date(anchor).getDate();
-  const shorter = day > 28 ? ', iar în lunile mai scurte, în ultima zi a lunii' : '';
+  const shorter = day > 28 ? ', iar în lunile fără această zi, în ultima zi a lunii' : '';
   return `în fiecare lună, pe ${day}${shorter}`;
 }
 
