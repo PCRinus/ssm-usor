@@ -2,11 +2,12 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { MeResponse } from '@/api/generated/api';
 import { bodiesOf, fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { meWithCredits } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
-import { clientId, clientRecord, userOnlyMe, workplaceRecord } from '@/test/records';
+import { clientId, clientRecord, userOnlyMe, workplaceListItem } from '@/test/records';
 
 import { extinguisherHint } from './fire-means-schema';
 import { droppedSentence, filledSentence, offeredSentence } from './substances-schema';
@@ -15,14 +16,14 @@ const sampleClient = clientRecord({ currentEmployeeCount: 12 });
 
 const stamp = { createdAt: '2026-10-10T10:00:00.000Z', updatedAt: '2026-10-10T10:00:00.000Z' };
 
-const office = workplaceRecord({
+const office = workplaceListItem({
   ...stamp,
   activity: 'Birouri',
   floorAreaM2: 450,
   extinguisherNorm: 'administrative_300',
 });
 
-const shop = workplaceRecord({
+const shop = workplaceListItem({
   ...office,
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
   name: 'Gelaterie Timișoara',
@@ -161,7 +162,7 @@ function mockFireMeansApi({
   updateEquipment = ((init) =>
     Response.json({ equipment: { ...officeP6, ...JSON.parse(String(init?.body)) } })) as Route,
   deleteEquipment = (() => new Response(null, { status: 204 })) as Route,
-  me = userOnlyMe as unknown,
+  me = userOnlyMe as MeResponse | typeof userOnlyMe,
   substancesState = 'none',
   substances = [] as unknown[],
   saveState = ((init) => Response.json(JSON.parse(String(init?.body)))) as Route,
@@ -176,7 +177,7 @@ function mockFireMeansApi({
       const method = init?.method ?? 'GET';
       if (pathname === `/clients/${clientId}`) return Response.json({ client });
       if (pathname === `/clients/${clientId}/workplaces`)
-        return Response.json({ items: workplaces });
+        return Response.json({ items: workplaces, unassignedEmployeeCount: 0 });
       if (pathname === equipmentPath) {
         return method === 'POST' ? createEquipment(init) : Response.json({ items: equipment });
       }
