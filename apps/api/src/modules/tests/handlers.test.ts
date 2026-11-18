@@ -147,6 +147,8 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
       Response.json([
         {
           id: 'lege-319-2006',
+          anchors_consolidated_on: '2021-07-25',
+          last_consolidated_on: '2021-07-25',
           article_anchors: [
             {
               annex: null,
@@ -279,10 +281,26 @@ describe('GET /organization/tests/questions', () => {
     expect(new URL(String(acts[0]![0])).searchParams.get('id')).toBe('in.(lege-319-2006)');
   });
 
-  it('links to the act until the daily check has read its anchors', async () => {
+  it.each([
+    ['until the daily check has read its anchors', null, null, null],
+    [
+      'while its anchors are of an older form than the portal shows',
+      [{ annex: null, article: '1', path: '/Public/DetaliiDocument/73772', anchor: 'id_artA17' }],
+      '2021-05-06',
+      '2021-07-25',
+    ],
+  ])('links to the act %s', async (_, anchors, readFrom, newest) => {
     mockUpstream({
       questions: () => Response.json([question(1)]),
-      legalActs: () => Response.json([{ id: 'lege-319-2006', article_anchors: null }]),
+      legalActs: () =>
+        Response.json([
+          {
+            id: 'lege-319-2006',
+            article_anchors: anchors,
+            anchors_consolidated_on: readFrom,
+            last_consolidated_on: newest,
+          },
+        ]),
     });
     const response = await request('/organization/tests/questions?domain=ssm');
     const [hiring] = testBankResponseSchema.parse(await response.json()).tests;

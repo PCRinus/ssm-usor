@@ -1,13 +1,14 @@
 import {
   anchorOf,
-  type ArticleAnchor,
-  articleAnchorSchema,
   type CitationPart,
   type CitationReference,
   parseCitation,
 } from '@ssm-usor/contracts';
 import { legalActs } from '@ssm-usor/document-engine/citations';
-import { z } from 'zod';
+import {
+  type StoredArticleAnchor,
+  storedArticleAnchorsSchema,
+} from '@ssm-usor/legislation-check/stored';
 
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 
@@ -23,26 +24,28 @@ const portalIds = () =>
 export const citationReferences = (citation: string | null): CitationReference[] =>
   citation === null ? [] : parseCitation(citation, (act) => portalIds().has(act));
 
-const storedAnchors = z.array(articleAnchorSchema);
-
 async function anchorsOf(db: DataClient, actIds: string[]) {
-  if (actIds.length === 0) return new Map<string, ArticleAnchor[]>();
+  if (actIds.length === 0) return new Map<string, StoredArticleAnchor[]>();
   const { data, error } = await db
     .from('legal_acts')
-    .select('id, article_anchors')
+    .select('id, article_anchors, anchors_consolidated_on, last_consolidated_on')
     .in('id', actIds);
   if (error) throw fromDatabaseError(error, 'legal act anchors');
   return new Map(
-    data.map((row) => {
-      const anchors = storedAnchors.safeParse(row.article_anchors ?? []);
-      return [row.id, anchors.success ? anchors.data : []];
-    })
+    // Anchors of an older form than the portal shows point at renumbered articles until the
+    // check reads them again; the act's page is the safer link meanwhile.
+    data.map((row) => [
+      row.id,
+      row.anchors_consolidated_on === row.last_consolidated_on
+        ? storedArticleAnchorsSchema.parse(row.article_anchors)
+        : [],
+    ])
   );
 }
 
 export function linkCitation(
   references: CitationReference[],
-  anchors: ReadonlyMap<string, readonly ArticleAnchor[]>
+  anchors: ReadonlyMap<string, readonly StoredArticleAnchor[]>
 ): CitationPart[] {
   return references.map((reference) => {
     const portalId = reference.act === null ? undefined : portalIds().get(reference.act);

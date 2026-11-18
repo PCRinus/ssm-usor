@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  anchorOf,
-  type ArticleAnchor,
-  articleLabel,
-  type CitationReference,
-  parseCitation,
-} from './legal-citations';
+import { anchorOf, articleLabel, type CitationReference, parseCitation } from './legal-citations';
 
 const watched = new Set([
   'lege-319-2006',
@@ -123,6 +117,14 @@ describe('a citation split into its parts', () => {
     ]);
   });
 
+  it('reads the Roman numerals of an amending act’s articles', () => {
+    expect(linked('Legea 319/2006, art. I și II')).toEqual([
+      'Legea 319/2006 | lege-319-2006 | ',
+      'art. I | lege-319-2006 | I',
+      'II | lege-319-2006 | II',
+    ]);
+  });
+
   it('writes an article with a superscript as the check stores it', () => {
     expect(linked('H.G. 1425/2006, art. 80¹')).toContain('art. 80¹ | hg-1425-2006 | 80^1');
     expect(linked('H.G. 1425/2006, art. 80^1 alin. (2)')).toContain(
@@ -166,6 +168,18 @@ describe('a citation split into its parts', () => {
     expect(parse('IPSU, art. 151')).toEqual([plain('IPSU, art. 151')]);
     expect(parse('I.P.S.S.M., art. 78')).toEqual([plain('I.P.S.S.M., art. 78')]);
     expect(linked('Legea 319/2006, art. 5; I.P.S.S.M., art. 78')).toEqual([
+      'Legea 319/2006 | lege-319-2006 | ',
+      'art. 5 | lege-319-2006 | 5',
+    ]);
+    expect(linked('Legea 319/2006, art. 5, I.P.S.S.M., art. 78')).toEqual([
+      'Legea 319/2006 | lege-319-2006 | ',
+      'art. 5 | lege-319-2006 | 5',
+    ]);
+    expect(linked('Legea 307/2006, art. 6, IPSU art. 151')).toEqual([
+      'Legea 307/2006 | lege-307-2006 | ',
+      'art. 6 | lege-307-2006 | 6',
+    ]);
+    expect(linked('Legea 319/2006, art. 5 și Codul muncii, art. 39')).toEqual([
       'Legea 319/2006 | lege-319-2006 | ',
       'art. 5 | lege-319-2006 | 5',
     ]);
@@ -326,7 +340,7 @@ describe('the built-in questions’ citations', () => {
 });
 
 describe('the place of a cited article', () => {
-  const at = (annex: string | null, article: string | null, anchor: string): ArticleAnchor => ({
+  const at = (annex: string | null, article: string | null, anchor: string) => ({
     annex,
     article,
     path: '/Public/DetaliiDocument/1',

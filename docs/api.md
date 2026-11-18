@@ -1608,8 +1608,7 @@ citation back, each part a `CitationPart`
 `{ text, act, article, annex, url, target }`. A part that names an act of
 `legal-acts.json` with a portal page carries the act's id and, for an article or annex, its label
 (`"23"`, `"80^1"`, `"2"`); its `url` is the article or annex on `legislatie.just.ro`
-(`target` `article` or `annex`) when the act's `article_anchors` place it exactly once, and the
-act's page (`target` `act`) otherwise: before the daily check has read the act, for an article
+(`target` `article` or `annex`) when the act's `article_anchors`, read from the newest form the check has seen, place it exactly once, and the act's page (`target` `act`) otherwise: before the daily check has read the act or after it has seen a newer form whose anchors it has not read yet, for an article
 the current form does not have, or for a number both the act and the norms it approves use
 (O.M.A.I. 712/2005 art. 1–4). Text that names no watched act, the provider's own instructions
 (`IPSU, art. 151`) included, is one plain part with `act`, `url` and `target` null; a question

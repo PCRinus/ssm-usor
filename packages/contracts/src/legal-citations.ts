@@ -53,7 +53,9 @@ const actSpellings: [ActKind, string][] = [
 
 const superscript = '[⁰¹²³⁴⁵⁶⁷⁸⁹]';
 const number = String.raw`\d+(?:\^\d+|${superscript}+)?`;
-const articleNumber = String.raw`(?:${number}|[IVXLC]+)(?![\d/])`;
+// A Roman numeral only where nothing but a separator follows: "I.P.S.S.M." and "Codul" open with
+// one.
+const articleNumber = String.raw`(?:${number}(?![\d/])|[IVXLC]+(?![\p{L}\p{N}./]))`;
 const alineat = String.raw`\(\s*${number}\s*\)`;
 const letter = String.raw`[a-z]${superscript}*\)`;
 const qualifiers =
@@ -227,24 +229,14 @@ export function parseCitation(
   return parts;
 }
 
-/** As the legislation check stores them per watched act (`legal_acts.article_anchors`). */
-export const articleAnchorSchema = z.object({
-  annex: z.string().nullable(),
-  article: z.string().nullable(),
-  path: z.string().startsWith('/'),
-  anchor: z.string().min(1),
-});
-
-export type ArticleAnchor = z.infer<typeof articleAnchorSchema>;
-
 /**
  * The one place the act's current form gives the article or annex; null when it gives none, or
  * more than one: an order's own art. 1 beside art. 1 of the norms it approves is not guessed at.
  */
-export function anchorOf(
-  anchors: readonly ArticleAnchor[],
+export function anchorOf<Anchor extends Pick<CitationReference, 'article' | 'annex'>>(
+  anchors: readonly Anchor[],
   reference: Pick<CitationReference, 'article' | 'annex'>
-): ArticleAnchor | null {
+): Anchor | null {
   const found =
     reference.article !== null
       ? anchors.filter((anchor) => anchor.article === reference.article)
