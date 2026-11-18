@@ -1,5 +1,6 @@
+import { countOf } from '@ssm-usor/contracts';
+
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
-import { roCount } from '@/features/employees/employee-format';
 
 import { isRunning } from './import-format';
 import { type ImportLink, linkOf } from './import-ready-notices';
@@ -37,7 +38,7 @@ function runningStep(item: ImportItem): { step: string; progress: number | null 
   if (item.status === 'preparing') {
     if (!progress || progress.files === 0) return { step: 'pregătim fișierele', progress: null };
     return {
-      step: `${progress.prepared} din ${roCount(progress.files, 'fișier', 'fișiere')} pregătite`,
+      step: `${progress.prepared} din ${countOf(progress.files, 'fișier', 'fișiere')} pregătite`,
       progress: (progress.prepared / progress.files) * 100,
     };
   }
@@ -47,8 +48,8 @@ function runningStep(item: ImportItem): { step: string; progress: number | null 
   if (item.status === 'sorting' && !photos) return { step: 'le sortăm', progress: null };
   if (progress && progress.scans > 0) {
     const total = photos
-      ? roCount(progress.scans, 'fotografie', 'fotografii')
-      : roCount(progress.scans, 'scanare', 'scanări');
+      ? countOf(progress.scans, 'fotografie', 'fotografii')
+      : countOf(progress.scans, 'scanare', 'scanări');
     return {
       step: `${progress.scansRead} din ${total} citite`,
       progress: (progress.scansRead / progress.scans) * 100,
@@ -71,7 +72,7 @@ export function openImportsOf(items: ImportItem[], userId: string): OpenImports 
           item.kind === 'employees'
             ? toCheck === undefined
               ? 'Persoanele te așteaptă la verificare'
-              : `${roCount(toCheck, 'persoană', 'persoane')} de verificat`
+              : `${countOf(toCheck, 'persoană', 'persoane')} de verificat`
             : 'Propunerea e gata de verificat',
         progress: null,
         action: item.kind === 'employees' ? 'Verifică persoanele' : 'Verifică propunerea',

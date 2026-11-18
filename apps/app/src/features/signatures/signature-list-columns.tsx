@@ -1,4 +1,5 @@
 import {
+  countOf,
   formatEmployeeName,
   type KnowledgeTest,
   type SignatureListSlot,
@@ -10,7 +11,7 @@ import { Link } from '@tanstack/react-router';
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
-import { formatDate, roCount, todayIso } from '@/features/employees/employee-format';
+import { formatDate, todayIso } from '@/features/employees/employee-format';
 import { dateToIso } from '@/lib/dates';
 
 import { agreementAwaitsEmployer, agreementSigned } from './signature-format';
@@ -49,8 +50,8 @@ export function signAsPhrase(slots: readonly SignatureListSlot[]) {
   ]);
 }
 
-export const signatureNoun = (count: number) => roCount(count, 'semnătură', 'semnături');
-export const workerNoun = (count: number) => roCount(count, 'lucrător', 'lucrători');
+export const signatureNoun = (count: number) => countOf(count, 'semnătură', 'semnături');
+export const workerNoun = (count: number) => countOf(count, 'lucrător', 'lucrători');
 
 export function rowName(row: SignatureRow) {
   const what = row.phase
@@ -68,7 +69,7 @@ export function waitingDays(issuedAt: string, today = todayIso()) {
 }
 
 const waitingLabel = (days: number) =>
-  days === 0 ? 'de azi' : days === 1 ? 'o zi' : roCount(days, 'zi', 'zile');
+  days === 0 ? 'de azi' : days === 1 ? 'o zi' : countOf(days, 'zi', 'zile');
 
 export function workerTab(row: SignatureRow, worker: SignatureWorker) {
   return {

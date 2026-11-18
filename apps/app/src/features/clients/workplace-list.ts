@@ -1,7 +1,6 @@
-import { workplaceKindLabels } from '@ssm-usor/contracts';
+import { countOf, workplaceKindLabels } from '@ssm-usor/contracts';
 
 import type { WorkplaceListResponse } from '@/api/generated/api';
-import { roCount } from '@/features/employees/employee-format';
 import type {
   FireEquipment,
   FireInstallation,
@@ -57,7 +56,7 @@ function workplaceMeans(
   };
 }
 
-export const meansLabel = (count: number) => roCount(count, 'mijloc', 'mijloace');
+export const meansLabel = (count: number) => countOf(count, 'mijloc', 'mijloace');
 
 export const overdueLabel = (count: number) => `${count} cu verificarea depășită`;
 

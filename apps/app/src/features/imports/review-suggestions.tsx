@@ -1,4 +1,5 @@
 import {
+  countOf,
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   fireExtinguisherNorms,
@@ -8,8 +9,6 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { Sparkles } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
-
-import { roCount } from '@/features/employees/employee-format';
 
 import { DecisionRow } from './library/decision-row';
 import { FieldCard, type FieldContext } from './review-fields';
@@ -422,7 +421,7 @@ export function Suggestions({ context }: { context: ItemsContext }) {
           ? null
           : open === 1
             ? 'Mai ai de confirmat o sugestie'
-            : `Mai ai ${roCount(open, 'lucru', 'lucruri')} de făcut`
+            : `Mai ai ${countOf(open, 'lucru', 'lucruri')} de făcut`
       }
       testId="review-suggestions-card"
     >

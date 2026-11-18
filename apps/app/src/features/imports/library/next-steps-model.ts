@@ -1,6 +1,4 @@
-import type { ImportLibraryPart } from '@ssm-usor/contracts';
-
-import { roCount } from '@/features/employees/employee-format';
+import { countOf, type ImportLibraryPart } from '@ssm-usor/contracts';
 
 import { isExpired, isOpenPart, joinNames, libraryDay, type PartStatus } from './library-model';
 
@@ -20,7 +18,7 @@ export function daysLeft(expiresAt: string, now = Date.now()) {
 export function deadlineLine(expiresAt: string, now = Date.now()) {
   const left = daysLeft(expiresAt, now);
   const rest =
-    left <= 0 ? 'expiră azi' : left === 1 ? 'mai ai o zi' : `mai ai ${roCount(left, 'zi', 'zile')}`;
+    left <= 0 ? 'expiră azi' : left === 1 ? 'mai ai o zi' : `mai ai ${countOf(left, 'zi', 'zile')}`;
   return `Până pe ${libraryDay(expiresAt)} · ${rest}`;
 }
 

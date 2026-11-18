@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -14,7 +15,6 @@ import {
 import { type ComponentProps, type ReactNode, use, useEffect, useId, useRef } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
-import { roCount } from '@/features/employees/employee-format';
 
 import { filesLabel } from './import-format';
 import { type LabelledSource, type SectionStatus, spellingCorrection } from './review-model';
@@ -66,7 +66,7 @@ export function StatusTag({ status }: { status: SectionStatus }) {
     case 'missing':
       return (
         <Tag tone="destructive" testId="section-status">
-          {status.count === 1 ? 'O dată lipsă' : roCount(status.count, 'dată lipsă', 'date lipsă')}
+          {status.count === 1 ? 'O dată lipsă' : countOf(status.count, 'dată lipsă', 'date lipsă')}
         </Tag>
       );
     case 'invalid':
@@ -74,7 +74,7 @@ export function StatusTag({ status }: { status: SectionStatus }) {
         <Tag tone="destructive" testId="section-status">
           {status.count === 1
             ? 'O valoare de corectat'
-            : roCount(status.count, 'valoare de corectat', 'valori de corectat')}
+            : countOf(status.count, 'valoare de corectat', 'valori de corectat')}
         </Tag>
       );
     case 'check':

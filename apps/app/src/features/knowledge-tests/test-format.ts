@@ -1,4 +1,4 @@
-import { clientConflictReasons, testErrorReasons } from '@ssm-usor/contracts';
+import { clientConflictReasons, countOf, testErrorReasons } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 
 import {
@@ -11,7 +11,6 @@ import {
   type TestBankResponse,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { roCount } from '@/features/employees/employee-format';
 
 export type BankTest = TestBankResponse['tests'][number];
 export type BankQuestion = BankTest['questions'][number];
@@ -25,7 +24,7 @@ export function bankTestFacts(
   const active =
     test.activeCount === 0
       ? 'Nicio întrebare activă'
-      : roCount(test.activeCount, 'întrebare activă', 'întrebări active');
+      : countOf(test.activeCount, 'întrebare activă', 'întrebări active');
   return `${active} · se extrag ${bank.sittingSize} · prag ${bank.passMarkPercent} %`;
 }
 

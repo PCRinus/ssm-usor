@@ -1,5 +1,6 @@
 import {
   bloodGroups,
+  countOf,
   decodeCnp,
   foldName,
   isValidCnp,
@@ -18,7 +19,6 @@ import type {
   EmployeeImportReviewChangesPeople,
   EmployeeImportReviewChangesPeopleFields,
 } from '@/api/generated/api';
-import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
 
 import { foldText } from '../review-model';
@@ -636,12 +636,12 @@ function invalidField(
   const length = value.trim().length;
   if (length < limits[0]) {
     return decision(
-      `Corectează ${lower}: are cel puțin ${roCount(limits[0], 'caracter', 'caractere')}`
+      `Corectează ${lower}: are cel puțin ${countOf(limits[0], 'caracter', 'caractere')}`
     );
   }
   if (length > limits[1]) {
     return decision(
-      `Corectează ${lower}: are cel mult ${roCount(limits[1], 'caracter', 'caractere')}`
+      `Corectează ${lower}: are cel mult ${countOf(limits[1], 'caracter', 'caractere')}`
     );
   }
   return null;
@@ -799,7 +799,7 @@ export function decisionsOf(context: ReviewContext, person: Person): Decision[] 
         anchor: 'post',
         label:
           group.personIds.length > 1
-            ? `Alege postul, pentru toate cele ${roCount(group.personIds.length, 'persoană', 'persoane')}`
+            ? `Alege postul, pentru toate cele ${countOf(group.personIds.length, 'persoană', 'persoane')}`
             : 'Alege postul',
         tag: 'Post de hotărât',
         tone: 'destructive',

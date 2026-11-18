@@ -1,11 +1,11 @@
-import { billingPlans, type PaidPlan, stepFor } from '@ssm-usor/contracts';
+import { billingPlans, formatCount, type PaidPlan, stepFor } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Minus, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { HelpLink } from '@/components/help-link';
 
-import { employeesLabel, formatCount, formatEuro, shortPlanNames } from '../billing-format';
+import { employeesLabel, formatEuro, shortPlanNames } from '../billing-format';
 import { BillingCard } from '../billing-ui';
 import { creditsCount } from '../credits-copy';
 import { codesLabel } from '../sms-copy';

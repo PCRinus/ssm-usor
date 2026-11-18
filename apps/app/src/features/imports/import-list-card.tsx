@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
@@ -15,7 +16,6 @@ import {
 } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { useAuth } from '@/features/auth/auth-context';
-import { roCount } from '@/features/employees/employee-format';
 
 import { filesLabel, isRunning, isUploadUnderway, uploadName } from './import-format';
 import { useImport } from './use-import';
@@ -61,11 +61,11 @@ function blockersText(detail: ImportDetail) {
   const choices = detail.blockers.filter((blocker) => blocker.code === 'choice').length;
   const rest = detail.blockers.length - choices;
   const parts = [
-    choices === 1 ? 'o alegere' : choices > 1 ? roCount(choices, 'alegere', 'alegeri') : null,
+    choices === 1 ? 'o alegere' : choices > 1 ? countOf(choices, 'alegere', 'alegeri') : null,
     rest === 1
       ? 'o dată obligatorie'
       : rest > 1
-        ? roCount(rest, 'dată obligatorie', 'date obligatorii')
+        ? countOf(rest, 'dată obligatorie', 'date obligatorii')
         : null,
   ].filter(Boolean);
   if (parts.length === 0) return 'Totul e pregătit pentru creare.';

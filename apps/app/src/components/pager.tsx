@@ -1,12 +1,6 @@
-import { pageBounds, pageCount, type PageMeta } from '@ssm-usor/contracts';
+import { countNoun, pageBounds, pageCount, type PageMeta } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-
-// Romanian puts "de" between a number and its noun from twenty on, except 101 to 119 and so on.
-function takesDe(count: number) {
-  const tens = count % 100;
-  return count >= 20 && (tens === 0 || tens >= 20);
-}
 
 // The page itself lives in the route's search params; the parent turns the callback into
 // navigation.
@@ -29,7 +23,7 @@ export function Pager({
       ? `0 ${noun[1]}`
       : meta.total === 1
         ? `1 ${noun[0]}`
-        : `${first}–${last} din ${meta.total} ${takesDe(meta.total) ? 'de ' : ''}${noun[1]}`;
+        : `${first}–${last} din ${meta.total} ${countNoun(meta.total, noun[0], noun[1])}`;
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3">
       <p data-testid="pager-summary" className="text-sm text-muted-foreground tabular-nums">

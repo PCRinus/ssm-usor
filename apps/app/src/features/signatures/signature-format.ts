@@ -1,6 +1,7 @@
 import {
   type ApiErrorResponse,
   clientConflictReasons,
+  countOf,
   signatureErrorReasons,
   type SignatureRequestKind,
   type SignatureRequestSlot,
@@ -18,7 +19,7 @@ import {
 
 import type { SignSessionResponseFailedItemReason } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { formatDate, roCount } from '@/features/employees/employee-format';
+import { formatDate } from '@/features/employees/employee-format';
 import { impersonationRefusal } from '@/features/impersonation/refusal';
 
 export const slotStateLabels: Record<SignatureSlotState, string> = {
@@ -192,7 +193,7 @@ export function signingSessionFailure(cause: unknown) {
   if (body?.reason === signatureErrorReasons.codeRateLimited) {
     const wait = body.retryAfterSeconds;
     return wait
-      ? `Ți-am trimis un cod acum mai puțin de un minut. Poți cere altul peste ${roCount(wait, 'secundă', 'secunde')}.`
+      ? `Ți-am trimis un cod acum mai puțin de un minut. Poți cere altul peste ${countOf(wait, 'secundă', 'secunde')}.`
       : 'Ți-am trimis un cod acum mai puțin de un minut. Așteaptă puțin, apoi cere altul.';
   }
   if (cause instanceof ApiHttpError && cause.status === 400) {
@@ -258,4 +259,4 @@ export const signingItemFailures: Record<SignSessionResponseFailedItemReason, st
 // The API's limit on one signing session.
 export const signingBatchLimit = 30;
 
-export const trainingCount = (count: number) => roCount(count, 'instruire', 'instruiri');
+export const trainingCount = (count: number) => countOf(count, 'instruire', 'instruiri');

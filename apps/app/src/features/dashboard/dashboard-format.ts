@@ -1,3 +1,5 @@
+import { countOf } from '@ssm-usor/contracts';
+
 const timeZone = 'Europe/Bucharest';
 
 const hourFormat = new Intl.DateTimeFormat('ro-RO', {
@@ -42,16 +44,6 @@ const monthNames = [
 ];
 
 const capitalised = (text: string) => text.charAt(0).toLocaleUpperCase('ro-RO') + text.slice(1);
-
-// Romanian puts "de" between a number and its noun from twenty on, except 101 to 119 and so on.
-export function nounFor(count: number, one: string, many: string) {
-  if (count === 1) return one;
-  const tens = count % 100;
-  return count >= 20 && (tens === 0 || tens >= 20) ? `de ${many}` : many;
-}
-
-export const countOf = (count: number, one: string, many: string) =>
-  `${count} ${nounFor(count, one, many)}`;
 
 export function greetingAt(now: Date) {
   const hour = Number(hourFormat.format(now));

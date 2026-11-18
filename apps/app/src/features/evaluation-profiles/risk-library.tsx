@@ -1,4 +1,5 @@
 import {
+  countOf,
   defaultPageSize,
   type EvaluationProfileListFilters,
   type EvaluationProfileSortKey,
@@ -28,7 +29,6 @@ import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
-import { roCount } from '@/features/employees/employee-format';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ProfileArchiveChange, ProfileArchiveDialog } from './profile-archive-dialog';
@@ -80,7 +80,7 @@ const facets: ListFilterFacet<FilterKey>[] = [
 ];
 
 const profileNoun = ['evaluare', 'evaluări'] as const;
-const profileCount = (count: number) => roCount(count, ...profileNoun);
+const profileCount = (count: number) => countOf(count, ...profileNoun);
 
 const rowKey = (row: EvaluationProfileSummary) => row.id;
 

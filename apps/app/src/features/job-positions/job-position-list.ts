@@ -1,11 +1,10 @@
-import { sortOrderSchema, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
+import { countOf, sortOrderSchema, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
 import { Users } from 'lucide-react';
 import { z } from 'zod';
 
 import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterFacet } from '@/components/list-filters/types';
 import { filterSearchSchema } from '@/components/list-filters/url';
-import { roCount } from '@/features/employees/employee-format';
 import type { RiskEvaluationSummary } from '@/features/risk-evaluations/risk-evaluation-schema';
 
 import {
@@ -55,7 +54,7 @@ export const jobPositionFacets: ListFilterFacet<JobPositionFilterKey>[] = [
   },
 ];
 
-export const positionNoun = (count: number) => roCount(count, 'post', 'posturi');
+export const positionNoun = (count: number) => countOf(count, 'post', 'posturi');
 
 export type PositionEvaluation = Pick<RiskEvaluationSummary, 'factorCount' | 'globalRiskLevel'>;
 

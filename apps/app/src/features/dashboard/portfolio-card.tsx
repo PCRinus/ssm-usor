@@ -1,9 +1,9 @@
-import type { DashboardSummary } from '@ssm-usor/contracts';
+import { countNoun, countOf, type DashboardSummary } from '@ssm-usor/contracts';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@ssm-usor/ui/components/tooltip';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 
-import { countOf, monthOf, nounFor } from './dashboard-format';
+import { monthOf } from './dashboard-format';
 import { focusRing, numberClass } from './dashboard-item';
 import { dashboardLinks } from './dashboard-links';
 import { cardClass, headingClass } from './dashboard-section';
@@ -17,7 +17,7 @@ function employeesLine(
   employees: number,
   months: DashboardSummary['portfolio']['employeesAtMonthEnds']
 ) {
-  const noun = nounFor(employees, 'lucrător', 'lucrători');
+  const noun = countNoun(employees, 'lucrător', 'lucrători');
   const last = months.at(-1);
   const previous = months.at(-2);
   if (!last || !previous) return noun;
@@ -59,7 +59,7 @@ export function PortfolioCard({
           <span className={cn(numberClass, 'text-[22px] text-foreground sm:text-2xl')}>
             {portfolio.activeClients}
           </span>{' '}
-          {nounFor(portfolio.activeClients, 'client activ', 'clienți activi')}
+          {countNoun(portfolio.activeClients, 'client activ', 'clienți activi')}
         </Link>
         <Link
           {...dashboardLinks.employees()}

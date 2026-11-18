@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -21,7 +22,6 @@ import { BackLink, TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { CurrentClientFact } from '@/features/clients/client-fact';
-import { roCount } from '@/features/employees/employee-format';
 
 import { ImportActionBar } from '../import-action-bar';
 import { ImportIssueBadge } from '../import-review-issues';
@@ -537,7 +537,7 @@ export function EmployeePersonPage({
                 status={
                   rowDecisions.length > 0 ? (
                     <Tag tone="destructive" testId="person-decisions-count">
-                      {roCount(rowDecisions.length, 'alegere', 'alegeri')}
+                      {countOf(rowDecisions.length, 'alegere', 'alegeri')}
                     </Tag>
                   ) : (
                     <StatusTag status={{ kind: 'done' }} />

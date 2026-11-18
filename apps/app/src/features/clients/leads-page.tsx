@@ -1,4 +1,5 @@
 import {
+  countOf,
   defaultPageSize,
   type LeadListFilters,
   type LeadSortKey,
@@ -28,7 +29,6 @@ import type { ListFilterFacet, ListFilterValues } from '@/components/list-filter
 import { listFilterSearch } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
-import { roCount } from '@/features/employees/employee-format';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -61,7 +61,7 @@ const facets: ListFilterFacet<FilterKey>[] = [
 ];
 
 const leadNoun = ['ofertă', 'oferte'] as const;
-const leadCount = (count: number) => roCount(count, ...leadNoun);
+const leadCount = (count: number) => countOf(count, ...leadNoun);
 
 const tabs = [
   { status: undefined, label: 'Active', testId: 'leads-filter-active' },

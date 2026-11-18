@@ -1,6 +1,6 @@
-import type { LatestLegalCheckRunResponseRunErrorsItem } from '@/api/generated/api';
+import { countOf } from '@ssm-usor/contracts';
 
-import { countOf } from './legislation-labels';
+import type { LatestLegalCheckRunResponseRunErrorsItem } from '@/api/generated/api';
 
 const unexplained = new Set(['other', 'run']);
 

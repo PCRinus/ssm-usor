@@ -3,6 +3,7 @@ import {
   type BillingInterval,
   billingPlans,
   type BillingPreview,
+  formatCount,
   lastStep,
   type PaidPlan,
   paidPlans,
@@ -10,13 +11,7 @@ import {
   stepFor,
 } from '@ssm-usor/contracts';
 
-import {
-  employeesLabel,
-  formatCount,
-  formatEuro,
-  perInterval,
-  shortPlanNames,
-} from '../billing-format';
+import { employeesLabel, formatEuro, perInterval, shortPlanNames } from '../billing-format';
 import type { BillingOwner } from '../use-billing';
 
 /** The picker's stops, the pricing page's: every step of either plan. */

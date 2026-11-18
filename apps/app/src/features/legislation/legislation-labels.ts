@@ -43,13 +43,6 @@ export function formatDayThisYear(isoTimestamp: string, now: number) {
     : dayFormat.format(date);
 }
 
-// Romanian puts "de" between a number and its noun from twenty on, except 101 to 119 and so on.
-export function countOf(count: number, one: string, many: string) {
-  if (count === 1) return `1 ${one}`;
-  const tens = count % 100;
-  return count >= 20 && (tens === 0 || tens >= 20) ? `${count} de ${many}` : `${count} ${many}`;
-}
-
 const superscriptDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
 
 // The portal writes "Art. 109^2" for art. 109², in a unit's name and in the law's text alike.

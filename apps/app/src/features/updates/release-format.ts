@@ -1,5 +1,6 @@
+import { countOf } from '@ssm-usor/contracts';
+
 import type { Release } from '@/api/generated/api';
-import { countOf } from '@/features/legislation/legislation-labels';
 
 const timeZone = 'Europe/Bucharest';
 

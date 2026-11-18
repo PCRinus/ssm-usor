@@ -1,18 +1,17 @@
 import {
   bulkInvitationFailureReasons,
   bulkInvitationSkipReasons,
+  countOf,
   type ImportInvitee,
   participantErrorReasons,
 } from '@ssm-usor/contracts';
-
-import { roCount } from '@/features/employees/employee-format';
 
 import { participantReasonMessage } from './participant-errors';
 import type { SmsBlock } from './sms-rules';
 
 /** "0 invitații", "o invitație", "3 invitații", "20 de invitații". */
 export function invitationCount(count: number) {
-  return count === 1 ? 'o invitație' : roCount(count, 'invitație', 'invitații');
+  return count === 1 ? 'o invitație' : countOf(count, 'invitație', 'invitații');
 }
 
 export function sendLabel(count: number) {
@@ -35,7 +34,7 @@ export function sentSummary(invited: number, notInvited: number) {
   if (notInvited === 0) return sent;
   return notInvited === 1
     ? `${sent} Pentru un lucrător nu a mers: vezi rândul lui.`
-    : `${sent} Pentru ${roCount(notInvited, 'lucrător', 'lucrători')} nu a mers: vezi rândurile lor.`;
+    : `${sent} Pentru ${countOf(notInvited, 'lucrător', 'lucrători')} nu a mers: vezi rândurile lor.`;
 }
 
 /** "1 rămâne neinvitat", "35 rămân neinvitați". */
@@ -53,7 +52,7 @@ export function formerEmployeesSentence(formers: ImportInvitee[]) {
     const names = formers.map(nameOf);
     return `${names.slice(0, -1).join(', ')} și ${names.at(-1)} nu apar: sunt foști lucrători.`;
   }
-  return `${roCount(formers.length, 'fost lucrător', 'foști lucrători')} nu apar.`;
+  return `${countOf(formers.length, 'fost lucrător', 'foști lucrători')} nu apar.`;
 }
 
 export const bulkSmsBlockMessages: Record<SmsBlock, string> = {

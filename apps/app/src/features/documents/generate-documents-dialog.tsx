@@ -1,5 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type DocumentSet, documentSetTypeKeys, isDatedDocumentType } from '@ssm-usor/contracts';
+import {
+  countOf,
+  type DocumentSet,
+  documentSetTypeKeys,
+  isDatedDocumentType,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -52,11 +57,6 @@ import {
   type GenerateDocumentsFormValues,
   toGenerateDocumentsRequest,
 } from './generate-documents-schema';
-
-function documentCount(count: number) {
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de documente` : `${count} documente`;
-}
 
 export function GenerateDocumentsDialog({
   set,
@@ -166,7 +166,7 @@ function GenerateDocumentsForm({
       toast.success(
         result.created.length === 1
           ? 'A fost generat un document.'
-          : `Au fost generate ${documentCount(result.created.length)}.`
+          : `Au fost generate ${countOf(result.created.length, 'document', 'documente')}.`
       );
       onClose();
     } catch (cause) {

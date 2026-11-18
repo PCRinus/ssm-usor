@@ -1,5 +1,6 @@
 import {
   categoryFitsDomain,
+  countOf,
   defaultPageSize,
   type InstructionDomain,
   instructionModuleGroups,
@@ -28,7 +29,6 @@ import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
-import { roCount } from '@/features/employees/employee-format';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import {
@@ -91,7 +91,7 @@ function facetsOf(domain: InstructionDomain, archived: boolean): ListFilterFacet
 }
 
 const moduleNoun = ['instrucțiune', 'instrucțiuni'] as const;
-const moduleCount = (count: number) => roCount(count, ...moduleNoun);
+const moduleCount = (count: number) => countOf(count, ...moduleNoun);
 
 const rowKey = (row: InstructionModule) => row.id;
 

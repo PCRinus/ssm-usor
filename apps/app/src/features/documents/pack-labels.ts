@@ -1,4 +1,4 @@
-import type { DocumentSet } from '@ssm-usor/contracts';
+import { countNoun, countOf, type DocumentSet } from '@ssm-usor/contracts';
 
 import { keepOpener } from '@/app/opener';
 
@@ -12,18 +12,9 @@ export const contentsLabel = 'Cuprinsul documentației';
 
 export const archivedHint = 'Clientul este arhivat, așa că nu i se mai generează documente.';
 
-// Romanian puts "de" between a number and its noun when the number's last two digits are 00 or
-// 20 and above: "12 secțiuni", "20 de secțiuni", "101 secțiuni", "120 de secțiuni".
-const takesDe = (count: number) => count >= 20 && (count % 100 === 0 || count % 100 >= 20);
+export const documentCountLabel = (count: number) => countOf(count, 'document', 'documente');
 
-const noun = (count: number, one: string, many: string) =>
-  count === 1 ? one : takesDe(count) ? `de ${many}` : many;
-
-const counted = (count: number, one: string, many: string) => `${count} ${noun(count, one, many)}`;
-
-export const documentCountLabel = (count: number) => counted(count, 'document', 'documente');
-
-export const sectionCountLabel = (count: number) => counted(count, 'secțiune', 'secțiuni');
+export const sectionCountLabel = (count: number) => countOf(count, 'secțiune', 'secțiuni');
 
 const statusNouns: Record<DocumentStatus, [string, string]> = {
   issued: ['emis', 'emise'],
@@ -34,7 +25,7 @@ const statusNouns: Record<DocumentStatus, [string, string]> = {
 
 export function statusNoun(status: DocumentStatus, count: number) {
   const [one, many] = statusNouns[status];
-  return status === 'update' ? one : noun(count, one, many);
+  return status === 'update' ? one : countNoun(count, one, many);
 }
 
 export const statusCountLabel = (status: DocumentStatus, count: number) =>

@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  choiceAmounts,
-  choiceSummary,
-  employeesLabel,
-  formatCount,
-  formatEuro,
-} from './billing-format';
+import { choiceAmounts, choiceSummary, employeesLabel, formatEuro } from './billing-format';
 
 describe('billing format', () => {
   it.each([
@@ -18,12 +12,6 @@ describe('billing format', () => {
     [-8349, '-83,49 €'],
   ])('writes %i cents as %s', (cents, text) => {
     expect(formatEuro(cents)).toBe(text);
-  });
-
-  it('groups thousands from four digits', () => {
-    expect(formatCount(312)).toBe('312');
-    expect(formatCount(1740)).toBe('1.740');
-    expect(formatCount(12500)).toBe('12.500');
   });
 
   it.each([

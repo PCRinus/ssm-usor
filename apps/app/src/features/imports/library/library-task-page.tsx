@@ -1,4 +1,9 @@
-import { importCredits, importErrorReasons, type InstructionDomain } from '@ssm-usor/contracts';
+import {
+  countOf,
+  importCredits,
+  importErrorReasons,
+  type InstructionDomain,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,7 +24,6 @@ import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
-import { roCount } from '@/features/employees/employee-format';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import { scrollAndFocus } from '@/features/missing-data/focus';
 
@@ -511,7 +515,7 @@ function TaskContent({
                     >
                       {titles.length === 1
                         ? 'Un titlu de schimbat'
-                        : `${roCount(titles.length, 'titlu', 'titluri')} de schimbat`}
+                        : `${countOf(titles.length, 'titlu', 'titluri')} de schimbat`}
                     </ImportIssueBadge>
                   )}
                   {choicesCount > 0 && (
@@ -521,7 +525,7 @@ function TaskContent({
                     >
                       {choicesCount === 1
                         ? 'O alegere de verificat'
-                        : `${roCount(choicesCount, 'alegere', 'alegeri')} de verificat`}
+                        : `${countOf(choicesCount, 'alegere', 'alegeri')} de verificat`}
                     </ImportIssueBadge>
                   )}
                 </>

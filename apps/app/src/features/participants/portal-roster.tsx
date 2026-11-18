@@ -1,4 +1,9 @@
-import { defaultPageSize, employeeInviteesLimit, formatEmployeeName } from '@ssm-usor/contracts';
+import {
+  countOf,
+  defaultPageSize,
+  employeeInviteesLimit,
+  formatEmployeeName,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -16,7 +21,7 @@ import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import { Notice } from '@/components/notice';
 import { SearchInput } from '@/components/search-input';
-import { pendingWorkersLabel, roCount, workerNoun } from '@/features/employees/employee-format';
+import { pendingWorkersLabel, workerNoun } from '@/features/employees/employee-format';
 import { WorkersCount, WorkersListError, WorkersNoMatch } from '@/features/employees/workers-list';
 
 import type { ParticipantMessage } from './participant-actions';
@@ -94,7 +99,7 @@ export function PortalRoster({
             >
               <p aria-live="polite" className="text-sm">
                 <b className="text-[15px] font-semibold tabular-nums">
-                  {roCount(chosen.size, 'lucrător ales', 'lucrători aleși')}
+                  {countOf(chosen.size, 'lucrător ales', 'lucrători aleși')}
                 </b>
               </p>
               <Button

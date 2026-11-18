@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFileLink } from '@ssm-usor/api-http/file-link';
-import { unfilledMark } from '@ssm-usor/contracts';
+import { countOf, unfilledMark } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
@@ -66,7 +66,7 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
 import { isOffersNotInPlanError, offersNotInPlanMessage } from '@/features/clients/offers-plan';
 import { pdfOfRevision, usePrint } from '@/features/documents/print';
-import { roCount, todayIso } from '@/features/employees/employee-format';
+import { todayIso } from '@/features/employees/employee-format';
 import { type ContractFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
 import {
@@ -645,7 +645,7 @@ function ServiceContractBody({
             <Fact label="Perioada" testId="contract-end">
               {formatRoDate(saved.contract.startDate)} – {formatRoDate(saved.contract.endDate)}
               <span className="block font-normal text-muted-foreground">
-                {roCount(saved.contract.durationMonths, 'lună', 'luni')},{' '}
+                {countOf(saved.contract.durationMonths, 'lună', 'luni')},{' '}
                 {saved.contract.renewsAutomatically
                   ? 'se prelungește automat'
                   : 'fără prelungire automată'}

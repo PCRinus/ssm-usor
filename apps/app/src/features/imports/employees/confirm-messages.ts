@@ -1,4 +1,4 @@
-import { roCount } from '@/features/employees/employee-format';
+import { countOf } from '@ssm-usor/contracts';
 
 import {
   fieldLabels,
@@ -74,7 +74,7 @@ export function createLabel(created: number, left: number) {
       ? null
       : created === 1
         ? 'un lucrător'
-        : roCount(created, 'lucrător', 'lucrători');
+        : countOf(created, 'lucrător', 'lucrători');
   if (!people) return left === 0 ? 'Completează lucrătorii' : 'Completează lucrătorii verificați';
   if (left === 0) return `Creează ${people}`;
   return `Creează ${people}, fără ${left === 1 ? 'cel neverificat' : `cei ${left}`}`;

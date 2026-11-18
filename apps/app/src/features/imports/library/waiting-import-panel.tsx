@@ -1,4 +1,4 @@
-import type { ImportLibraryPart } from '@ssm-usor/contracts';
+import { countOf, type ImportLibraryPart } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link } from '@tanstack/react-router';
 import { TriangleAlert } from 'lucide-react';
@@ -7,7 +7,6 @@ import { useId } from 'react';
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
-import { roCount } from '@/features/employees/employee-format';
 
 import { filesLabel } from '../import-format';
 import { isReviewable, libraryDay, partLabels, partOrder, statusLabels } from './library-model';
@@ -41,7 +40,7 @@ export function WaitingImportPanel({
   // Parts still being read, or whose reading stopped, are not ready to check yet.
   const title =
     reviewable.length > 0
-      ? `${roCount(reviewable.length, 'parte', 'părți')} de verificat${deadline}`
+      ? `${countOf(reviewable.length, 'parte', 'părți')} de verificat${deadline}`
       : `Ce mai ai de făcut${deadline}`;
   const who = item.createdBy?.fullName ?? null;
   const files = item.fileCount === 1 ? '1 fișier' : filesLabel(item.fileCount);

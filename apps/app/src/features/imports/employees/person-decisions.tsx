@@ -1,4 +1,4 @@
-import { isValidCnp } from '@ssm-usor/contracts';
+import { countOf, isValidCnp } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -14,7 +14,6 @@ import {
 
 import { openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
-import { roCount } from '@/features/employees/employee-format';
 import { JobPositionDialog } from '@/features/job-positions/job-position-dialog';
 import { staffCategoryLabels } from '@/features/job-positions/job-position-schema';
 import { formatRoDate } from '@/lib/dates';
@@ -137,10 +136,10 @@ function Option({
 
 const positionDetail = (position: Position) =>
   [
-    roCount(position.employeeCount, 'lucrător', 'lucrători'),
+    countOf(position.employeeCount, 'lucrător', 'lucrători'),
     staffCategoryLabels[position.staffCategory],
     position.trainingIntervalMonths
-      ? `instruire periodică la ${roCount(position.trainingIntervalMonths, 'lună', 'luni')}`
+      ? `instruire periodică la ${countOf(position.trainingIntervalMonths, 'lună', 'luni')}`
       : null,
   ]
     .filter(Boolean)
@@ -187,7 +186,7 @@ export function PostDecision({
   const shared =
     count > 1 ? (
       <p className="text-[13px] text-muted-foreground">
-        Se aplică tuturor celor {roCount(count, 'persoană', 'persoane')} cu funcția{' '}
+        Se aplică tuturor celor {countOf(count, 'persoană', 'persoane')} cu funcția{' '}
         <span className="font-semibold text-foreground">{title}</span>:{' '}
         <Masked>{names.join(', ')}</Masked>. Funcția de pe fișă se păstrează oricum la fiecare.
       </p>
@@ -467,7 +466,7 @@ export function FieldChoice({
     <DecideRow
       id={id}
       title={fieldLabels[name]}
-      subtitle={`Fișele scriu ${roCount(count, 'variantă', 'variante')}`}
+      subtitle={`Fișele scriu ${countOf(count, 'variantă', 'variante')}`}
     >
       <ChoiceCards
         context={context}

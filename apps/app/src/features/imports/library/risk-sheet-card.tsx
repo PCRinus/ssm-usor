@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -17,7 +18,6 @@ import { type ReactNode, useId, useState } from 'react';
 
 import { openedHere } from '@/app/opener';
 import { Segmented } from '@/components/segmented';
-import { roCount } from '@/features/employees/employee-format';
 
 import type { LabelledSource } from '../review-model';
 import { SourceButton, Tag } from '../review-parts';
@@ -407,7 +407,7 @@ export function RiskSheetCard({
               {noneIncluded
                 ? state.factors.length === 1
                   ? 'Singurul factor nu e inclus.'
-                  : `Niciunul dintre cei ${roCount(state.factors.length, 'factor', 'factori')} nu e inclus.`
+                  : `Niciunul dintre cei ${countOf(state.factors.length, 'factor', 'factori')} nu e inclus.`
                 : factorsLine(state, removed.length)}
             </span>
             {!readOnly && (
@@ -458,9 +458,9 @@ export function RiskSheetCard({
 
 function factorsLine(state: SheetState, removed: number) {
   const taken = state.factors.filter((factor) => factor.included && factor.complete).length;
-  const parts = [roCount(taken, 'preluat', 'preluați')];
+  const parts = [countOf(taken, 'preluat', 'preluați')];
   if (state.toCheck > 0) parts.push(`${state.toCheck} de verificat`);
-  if (state.incomplete > 0) parts.push(roCount(state.incomplete, 'incomplet', 'incompleți'));
+  if (state.incomplete > 0) parts.push(countOf(state.incomplete, 'incomplet', 'incompleți'));
   if (removed > 0) parts.push(removed === 1 ? 'unul nu e inclus' : `${removed} nu sunt incluși`);
   return parts.join(', ');
 }

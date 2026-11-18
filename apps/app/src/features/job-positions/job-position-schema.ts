@@ -1,4 +1,9 @@
-import { staffCategories, type StaffCategory, trainingIntervalChoices } from '@ssm-usor/contracts';
+import {
+  countOf,
+  staffCategories,
+  type StaffCategory,
+  trainingIntervalChoices,
+} from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { JobPositionListResponse, JobPositionRequest } from '@/api/generated/api';
@@ -93,6 +98,5 @@ export function toJobPositionRequest(values: JobPositionFormValues): JobPosition
 export function employeeCountLabel(count: number) {
   if (count === 0) return 'Niciun lucrător';
   if (count === 1) return 'Un lucrător';
-  const tens = count % 100;
-  return tens === 0 || tens >= 20 ? `${count} de lucrători` : `${count} lucrători`;
+  return countOf(count, 'lucrător', 'lucrători');
 }

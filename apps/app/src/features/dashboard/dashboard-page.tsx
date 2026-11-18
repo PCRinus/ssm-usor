@@ -1,4 +1,4 @@
-import type { DashboardSummary } from '@ssm-usor/contracts';
+import { countNoun, countOf, type DashboardSummary } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -23,12 +23,10 @@ import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 
 import {
-  countOf,
   firstNameOf,
   formatDueDay,
   formatToday,
   greetingAt,
-  nounFor,
   summaryLine,
   waitingSince,
 } from './dashboard-format';
@@ -123,7 +121,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
     {
       icon: PenLine,
       count: todo.mySignatures,
-      label: nounFor(todo.mySignatures, 'semnătură de dat', 'semnături de dat'),
+      label: countNoun(todo.mySignatures, 'semnătură de dat', 'semnături de dat'),
       detail: 'Ca instructor sau verificator, cu un singur cod',
       target: dashboardLinks.signatures(),
       testId: 'dashboard-todo-signatures',
@@ -131,7 +129,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
     {
       icon: FileCheck,
       count: todo.draftsToIssue,
-      label: nounFor(todo.draftsToIssue, 'document de emis', 'documente de emis'),
+      label: countNoun(todo.draftsToIssue, 'document de emis', 'documente de emis'),
       detail: 'Ciorne complete, neemise',
       target: dashboardLinks.draftsToIssue(),
       testId: 'dashboard-todo-drafts',
@@ -139,7 +137,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
     {
       icon: FileExclamationPoint,
       count: todo.clientsMissingData,
-      label: nounFor(todo.clientsMissingData, 'client cu date lipsă', 'clienți cu date lipsă'),
+      label: countNoun(todo.clientsMissingData, 'client cu date lipsă', 'clienți cu date lipsă'),
       detail: 'Fără date de bază, documentele nu se pot genera',
       alert: true,
       target: dashboardLinks.clients(),
@@ -150,7 +148,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
     {
       icon: Clock,
       count: todo.employeeSignatures.pending,
-      label: nounFor(todo.employeeSignatures.pending, 'semnătură', 'semnături'),
+      label: countNoun(todo.employeeSignatures.pending, 'semnătură', 'semnături'),
       detail: todo.employeeSignatures.oldestIssuedAt
         ? waitingSince(todo.employeeSignatures.oldestIssuedAt, now)
         : undefined,
@@ -160,7 +158,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
     {
       icon: ClipboardCheck,
       count: todo.testsPending,
-      label: nounFor(todo.testsPending, 'test de susținut', 'teste de susținut'),
+      label: countNoun(todo.testsPending, 'test de susținut', 'teste de susținut'),
       detail: 'După instruirea la angajare',
       target: dashboardLinks.testsPending(),
       testId: 'dashboard-waiting-tests',
@@ -170,7 +168,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
     {
       icon: FileCheck,
       count: contracts?.receivedToConfirm ?? 0,
-      label: nounFor(
+      label: countNoun(
         contracts?.receivedToConfirm ?? 0,
         'exemplar semnat de confirmat',
         'exemplare semnate de confirmat'
@@ -182,7 +180,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
     {
       icon: Calendar,
       count: contracts?.endingWithin60Days ?? 0,
-      label: nounFor(contracts?.endingWithin60Days ?? 0, 'contract expiră', 'contracte expiră'),
+      label: countNoun(contracts?.endingWithin60Days ?? 0, 'contract expiră', 'contracte expiră'),
       detail: 'În următoarele 60 de zile',
       target: dashboardLinks.clients(),
       testId: 'dashboard-contracts-ending',
@@ -254,7 +252,7 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
                 tone="ink"
                 surface="row"
                 count={todo.documentsBehind}
-                label={nounFor(
+                label={countNoun(
                   todo.documentsBehind,
                   'document de actualizat',
                   'documente de actualizat'

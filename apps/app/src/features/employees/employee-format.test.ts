@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate, formatTenure, roCount, roNoun } from './employee-format';
+import { formatDate, formatTenure } from './employee-format';
 
 describe('employee formatting', () => {
   it('formats ISO dates in Romanian', () => {
@@ -17,30 +17,5 @@ describe('employee formatting', () => {
     ['2003-08-18', '2026-09-18', '23 de ani și 1 lună'],
   ])('computes tenure from %s to %s', (from, to, expected) => {
     expect(formatTenure(from, to)).toBe(expected);
-  });
-
-  it.each([
-    [0, '0 invitații'],
-    [1, '1 invitație'],
-    [19, '19 invitații'],
-    [20, '20 de invitații'],
-    [101, '101 invitații'],
-    [100, '100 de invitații'],
-    [1000, '1.000 de invitații'],
-    [1200, '1.200 de invitații'],
-  ])('counts %i with the noun Romanian takes', (value, expected) => {
-    expect(roCount(value, 'invitație', 'invitații')).toBe(expected);
-  });
-
-  it.each([
-    [1, 'participant'],
-    [2, 'participanți'],
-    [19, 'participanți'],
-    [20, 'de participanți'],
-    [25, 'de participanți'],
-    [101, 'participanți'],
-    [120, 'de participanți'],
-  ])('gives the noun alone for %i, with the "de" Romanian takes', (value, expected) => {
-    expect(roNoun(value, 'participant', 'participanți')).toBe(expected);
   });
 });

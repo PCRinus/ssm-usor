@@ -1,4 +1,5 @@
 import {
+  countOf,
   formatTrainingDuration,
   legalMaxTrainingInterval,
   type StaffCategory,
@@ -7,8 +8,6 @@ import {
   trainingIntervalChoices,
   trainingMonths,
 } from '@ssm-usor/contracts';
-
-import { countOf } from '@/features/legislation/legislation-labels';
 
 import { monthNames } from './document-details-schema';
 

@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
@@ -11,7 +12,7 @@ import {
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 
-import { countOf, formatDayThisYear, formatTimeOf, momentOf } from './legislation-labels';
+import { formatDayThisYear, formatTimeOf, momentOf } from './legislation-labels';
 import { groupFailures, groupHeading } from './run-failures';
 import { useLegalActs } from './use-legal-acts';
 

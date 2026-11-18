@@ -1,5 +1,6 @@
 import {
   type BuiltInDocumentTypeKey,
+  countOf,
   type DocumentSet,
   documentSetOf,
   documentSets,
@@ -37,7 +38,7 @@ import { SectionCard } from '@/components/section-card';
 import { behindInstructions, instructionChangesHint } from '@/features/documents/behind-labels';
 import { documentRowLink, documentSetCopy } from '@/features/documents/document-sets';
 
-import { countOf, kindLabels } from './legislation-labels';
+import { kindLabels } from './legislation-labels';
 import { RegenerationJob } from './regeneration-job';
 
 type BehindType = DocumentsBehindResponseItemsItem;

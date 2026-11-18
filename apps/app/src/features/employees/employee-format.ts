@@ -1,6 +1,4 @@
-import type { EmployeeStatus } from '@ssm-usor/contracts';
-
-import { formatCount } from '@/features/subscription/billing-format';
+import { countOf, type EmployeeStatus } from '@ssm-usor/contracts';
 
 export const employeeStatusLabels: Record<EmployeeStatus, string> = {
   active: 'Actuali',
@@ -24,19 +22,7 @@ export function formatDate(isoDate: string) {
   return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));
 }
 
-// Romanian counted nouns: "0 ani", "1 an", "2 ani", "20 de ani" (from 20 up, except 101–119
-// style endings, the noun takes "de").
-export function roCount(value: number, one: string, many: string) {
-  return `${formatCount(value)} ${roNoun(value, one, many)}`;
-}
-
-export function roNoun(value: number, one: string, many: string) {
-  if (value === 1) return one;
-  const tail = value % 100;
-  return value !== 0 && (tail === 0 || tail >= 20) ? `de ${many}` : many;
-}
-
-export const workerNoun = (count: number) => roCount(count, 'lucrător', 'lucrători');
+export const workerNoun = (count: number) => countOf(count, 'lucrător', 'lucrători');
 
 export const pendingWorkersLabel = (total: number | undefined) =>
   total === undefined ? 'Arată rezultatele' : `Arată ${workerNoun(total)}`;
@@ -49,8 +35,8 @@ export function formatTenure(fromIso: string, toIso: string) {
   const years = Math.floor(months / 12);
   months %= 12;
   const parts = [
-    ...(years ? [roCount(years, 'an', 'ani')] : []),
-    ...(months ? [roCount(months, 'lună', 'luni')] : []),
+    ...(years ? [countOf(years, 'an', 'ani')] : []),
+    ...(months ? [countOf(months, 'lună', 'luni')] : []),
   ];
   return parts.join(' și ');
 }

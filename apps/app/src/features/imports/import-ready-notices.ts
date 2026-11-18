@@ -1,5 +1,6 @@
+import { countOf } from '@ssm-usor/contracts';
+
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
-import { roCount } from '@/features/employees/employee-format';
 
 import { isRunning } from './import-format';
 
@@ -56,7 +57,7 @@ function noticeOf(item: ImportItem): ImportReadyNotice | null {
       description:
         toCheck === undefined
           ? null
-          : `${roCount(toCheck, 'persoană', 'persoane')} te așteaptă la verificare.`,
+          : `${countOf(toCheck, 'persoană', 'persoane')} te așteaptă la verificare.`,
       action: 'Verifică persoanele',
     };
   }

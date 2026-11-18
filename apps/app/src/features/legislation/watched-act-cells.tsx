@@ -1,9 +1,9 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Link } from '@tanstack/react-router';
 import { ExternalLink } from 'lucide-react';
 
 import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
-import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
 
 import { legalChangeAnchor, openChangeSentence, portalPage } from './legislation-labels';
@@ -106,9 +106,9 @@ export function CitedIn({ act }: { act: WatchedAct }) {
   if (documents === 0) return <CellEmpty />;
   return (
     <>
-      <span className="tabular-nums">{roCount(documents, 'document', 'documente')}</span>
+      <span className="tabular-nums">{countOf(documents, 'document', 'documente')}</span>
       <CellNote className="tabular-nums">
-        {quotes > 0 ? roCount(quotes, 'preluare', 'preluări') : 'doar trimiteri'}
+        {quotes > 0 ? countOf(quotes, 'preluare', 'preluări') : 'doar trimiteri'}
       </CellNote>
     </>
   );

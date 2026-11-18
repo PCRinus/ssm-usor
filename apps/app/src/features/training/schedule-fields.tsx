@@ -1,5 +1,4 @@
-import type { StaffCategory } from '@ssm-usor/contracts';
-import { staffCategories } from '@ssm-usor/contracts';
+import { countOf, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -10,7 +9,6 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { FieldMessage } from '@/components/form-field';
 import { Segmented, type SegmentOption } from '@/components/segmented';
 import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
-import { countOf } from '@/features/legislation/legislation-labels';
 
 import { monthNames } from './document-details-schema';
 import {

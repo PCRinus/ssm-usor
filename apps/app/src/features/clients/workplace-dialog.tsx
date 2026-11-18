@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   clientConflictReasons,
+  countOf,
   type FireExtinguisherNorm,
   fireExtinguisherNormLabels,
   fireExtinguisherNorms,
@@ -40,7 +41,6 @@ import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { countOf } from '@/features/legislation/legislation-labels';
 import { LocalityCombobox } from '@/lib/localities/locality-combobox';
 
 import { CountyCombobox } from './county-combobox';

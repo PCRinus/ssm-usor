@@ -1,6 +1,10 @@
-import type { BillingSmsUsage, SubscriptionSummary } from '@ssm-usor/contracts';
+import {
+  type BillingSmsUsage,
+  countOf,
+  formatCount,
+  type SubscriptionSummary,
+} from '@ssm-usor/contracts';
 
-import { formatCount } from './billing-format';
 import { contactEmail, roDate } from './subscription-copy';
 
 export type MeterTone = 'normal' | 'warning' | 'over' | 'danger';
@@ -29,13 +33,7 @@ export const trialSmsNote =
   'În perioada de probă nu trimitem SMS: invitațiile, codurile de conectare și cele de semnare pleacă pe email. SMS-urile pornesc când alegi un plan.';
 
 /** "1 cod", "12 coduri", "300 de coduri", "1.200 de coduri". */
-export function codesLabel(count: number) {
-  if (count === 1) return '1 cod';
-  const tail = count % 100;
-  return count !== 0 && (tail === 0 || tail >= 20)
-    ? `${formatCount(count)} de coduri`
-    : `${formatCount(count)} coduri`;
-}
+export const codesLabel = (count: number) => countOf(count, 'cod', 'coduri');
 
 export function stopOf(
   subscription: Pick<SubscriptionSummary, 'planChosen'> | null

@@ -1,4 +1,4 @@
-import type { BuiltInDocumentTypeKey } from '@ssm-usor/contracts';
+import { type BuiltInDocumentTypeKey, countOf } from '@ssm-usor/contracts';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRouteContext } from '@tanstack/react-router';
@@ -11,8 +11,6 @@ import {
 } from '@/api/generated/api';
 import { Notice } from '@/components/notice';
 import { DocumentMissingRows } from '@/features/documents/document-missing-rows';
-
-import { countOf } from './legislation-labels';
 
 export const pollIntervalMs = 2000;
 

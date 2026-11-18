@@ -1,11 +1,10 @@
-import type { ClientTraining } from '@ssm-usor/contracts';
+import { type ClientTraining, countOf } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Check, CircleAlert, Clock } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
 import { CellEmpty } from '@/components/data-table/cell-note';
-import { roCount } from '@/features/employees/employee-format';
 
 import type { ClientRow } from './client-columns';
 
@@ -41,7 +40,7 @@ export function TrainingCell({ client }: { client: ClientRow }) {
       : training.dueCount > 0
         ? [
             Clock,
-            roCount(training.dueCount, 'scadentă', 'scadente'),
+            countOf(training.dueCount, 'scadentă', 'scadente'),
             'font-medium text-warning-foreground',
             'text-chart-3',
           ]

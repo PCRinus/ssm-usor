@@ -1,3 +1,4 @@
+import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -13,7 +14,6 @@ import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
 import { UsageCell } from '@/components/data-table/usage-cell';
-import { roCount } from '@/features/employees/employee-format';
 import { formatRoDateOf } from '@/lib/dates';
 
 import type { InstructionArchiveChange } from './instruction-archive-dialog';
@@ -88,7 +88,7 @@ export function instructionColumns({
             <span data-testid="instruction-version">
               {`v${version.number}, din ${formatRoDateOf(version.createdAt)}`}
             </span>
-            <CellNote>{roCount(version.articleCount, 'articol', 'articole')}</CellNote>
+            <CellNote>{countOf(version.articleCount, 'articol', 'articole')}</CellNote>
           </span>
         );
       },
