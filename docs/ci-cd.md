@@ -56,7 +56,8 @@ available as a required PR check, including on documentation-only changes.
 | `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                          |
 | `apps/pdf/**`, `packages/contracts/src/pdf.ts`, `signer*.ts` and `extractor*.ts` in the same folder                                       | PDF Worker and its container images ([guide](pdf.md)) |
 | `apps/legislation/**`, `packages/legislation/**`, `packages/document-engine/**`                                                           | Legislation Worker                                    |
-| `packages/document-engine/package.json`, `packages/document-engine/src/token-diff.ts`                                                     | Admin app                                             |
+| `packages/document-engine/package.json`, `packages/document-engine/src/token-diff.ts`                                                     | SPA and admin app                                     |
+| `packages/document-engine/src/signing.ts`, `packages/document-engine/tools/import/signing.ro.json`                                        | SPA                                                   |
 | `packages/ui/**`                                                                                                                          | SPA, portal, admin app and marketing                  |
 | `packages/design-tokens/**`                                                                                                               | SPA, portal, admin app, marketing and help site       |
 | `packages/contracts/**`                                                                                                                   | API, SPA, portal, admin app, mail and SMS Workers     |
