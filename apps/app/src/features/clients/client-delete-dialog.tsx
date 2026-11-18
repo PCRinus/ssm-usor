@@ -16,6 +16,7 @@ import { getGetClientQueryKey, getListClientsQueryKey, useDeleteClient } from '@
 import { ApiHttpError } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
+import { commonFailure } from '@/lib/api-errors';
 
 export interface ClientToDelete {
   id: string;
@@ -23,13 +24,12 @@ export interface ClientToDelete {
 }
 
 function serverMessage(cause: unknown) {
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
     if (cause.status === 403) return 'Doar un administrator al platformei poate șterge un client.';
     if (cause.status === 409) {
       return 'Clientul nu mai este arhivat. Reîncarcă pagina și arhivează-l înainte să îl ștergi.';
-    }
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
   }
   return 'Nu am putut șterge clientul. Verifică conexiunea și încearcă din nou.';

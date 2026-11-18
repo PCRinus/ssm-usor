@@ -1,9 +1,8 @@
 import { clientConflictReasons } from '@ssm-usor/contracts';
 import type { UseFormReturn } from 'react-hook-form';
 
-import type { ApiErrorResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-import { isReadOnlyError, readOnlyMessage, setApiIssues } from '@/lib/api-errors';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { commonFailure, setApiIssues } from '@/lib/api-errors';
 
 import {
   type ClientFormValues,
@@ -44,7 +43,7 @@ export function reportClientSaveError(
   const isShown = (path: string): path is keyof ClientFormValues =>
     shown.has(path as keyof ClientFormValues);
   if (cause instanceof ApiHttpError) {
-    const body = cause.body as Partial<ApiErrorResponse> | undefined;
+    const body = apiErrorBody(cause);
     if (cause.status === 409) {
       if (body?.reason === clientConflictReasons.clientArchived) {
         form.setError('root.server', { message: words.archived });
@@ -71,14 +70,9 @@ export function reportClientSaveError(
     ) {
       return;
     }
-    if (cause.status === 401) {
-      form.setError('root.server', {
-        message: 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.',
-      });
-      return;
-    }
-    if (isReadOnlyError(cause)) {
-      form.setError('root.server', { message: readOnlyMessage });
+    const common = commonFailure(cause);
+    if (common) {
+      form.setError('root.server', { message: common });
       return;
     }
     if (isOffersNotInPlanError(cause)) {

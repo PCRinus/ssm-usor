@@ -1,7 +1,9 @@
+import { readOnlyReason } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { readOnlyMessage } from '@/lib/api-errors';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
@@ -426,6 +428,24 @@ describe('client workplaces', () => {
     expect((await screen.findByTestId('workplace-error')).textContent).toContain('arhivat');
     expect(screen.queryByTestId('workplace-registered-office-error')).toBeNull();
     expect(screen.getByTestId('workplace-dialog')).toBeTruthy();
+  });
+
+  it('says the account is read-only, not that the connection failed, when the save is refused for it', async () => {
+    mockApi({
+      create: () =>
+        Response.json(
+          { error: 'forbidden', message: 'Read-only', reason: readOnlyReason },
+          { status: 403 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('workplace-add'));
+    await user.type(await screen.findByTestId('workplace-name'), 'Depozit');
+    await user.click(screen.getByTestId('workplace-save'));
+
+    expect((await screen.findByTestId('workplace-error')).textContent).toBe(readOnlyMessage);
   });
 
   it('edits a workplace starting from what is saved', async () => {

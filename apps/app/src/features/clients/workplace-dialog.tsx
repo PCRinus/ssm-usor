@@ -29,18 +29,18 @@ import type { ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getListWorkplacesQueryKey,
   useCreateWorkplace,
   useUpdateWorkplace,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { countOf } from '@/features/legislation/legislation-labels';
+import { commonFailure } from '@/lib/api-errors';
 import { LocalityCombobox } from '@/lib/localities/locality-combobox';
 
 import { CountyCombobox } from './county-combobox';
@@ -214,10 +214,7 @@ function WorkplaceForm({
       onSaved?.(saved.workplace);
       onClose();
     } catch (cause) {
-      const body =
-        cause instanceof ApiHttpError
-          ? (cause.body as Partial<ApiErrorResponse> | undefined)
-          : undefined;
+      const body = apiErrorBody(cause);
       if (body?.reason === workplaceConflictReasons.officeNeedsWorkplace) {
         form.setError('officeHasActivity', { message: officeNeedsWorkplaceMessage });
         return;
@@ -240,11 +237,10 @@ function WorkplaceForm({
       }
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 404
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 404
             ? 'Punctul de lucru nu mai există la acest client.'
-            : cause instanceof ApiHttpError && cause.status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut salva punctul de lucru. Verifică conexiunea și încearcă din nou.',
+            : 'Nu am putut salva punctul de lucru. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });
