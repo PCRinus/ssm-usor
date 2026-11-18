@@ -1,5 +1,4 @@
-import { workplaceConflictReasons, workplaceKindLabels } from '@ssm-usor/contracts';
-import { Badge } from '@ssm-usor/ui/components/badge';
+import { noWorkplace, workplaceConflictReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -9,53 +8,48 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
-import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
-import { MoreHorizontal, TriangleAlert } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
   type ClientResponse,
+  getListFireEquipmentQueryKey,
+  getListFireInstallationsQueryKey,
   getListWorkplacesQueryKey,
   useArchiveWorkplace,
+  useListFireEquipment,
+  useListFireInstallations,
   useListWorkplaces,
   useUpdateWorkplace,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { rowClickProps } from '@/components/data-table/row-click';
+import { openedHere } from '@/app/opener';
+import { DataTable } from '@/components/data-table/data-table';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useFocusRequest, type WorkplacesFocus } from '@/features/missing-data/focus';
+import { dateToIso } from '@/lib/dates';
 
 import { SheetAction } from './details/sheet-action';
+import { workplaceColumns } from './workplace-columns';
 import { WorkplaceDialog, type WorkplaceEditing } from './workplace-dialog';
+import { type WorkplaceRow, workplaceRows } from './workplace-list';
 import {
-  differingClientAddress,
+  type differingClientAddress,
   firstMissingFireField,
   type Workplace,
-  workplaceAddress,
   workplaceRequestOf,
 } from './workplace-schema';
 
 const workplaceRowId = (id: string) => `workplace-${id}`;
+
+const rowKey = (row: WorkplaceRow) => (row.kind === 'workplace' ? row.workplace.id : 'unassigned');
+
+const rowTestId = (row: WorkplaceRow) =>
+  row.kind === 'workplace' ? 'workplace-row' : 'workplace-unassigned-row';
 
 // `readOnly` is an archived client.
 export function WorkplacesCard({
@@ -71,9 +65,19 @@ export function WorkplacesCard({
 }) {
   const clientId = client.id;
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const navigate = useNavigate();
+  // The counts move with every change to the client's workers, made on other tabs.
   const workplaces = useListWorkplaces(clientId, {
     request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
+    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId], staleTime: 0 },
+  });
+  const equipment = useListFireEquipment(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListFireEquipmentQueryKey(clientId), userId] },
+  });
+  const installations = useListFireInstallations(clientId, {
+    request: apiRequest,
+    query: { queryKey: [...getListFireInstallationsQueryKey(clientId), userId] },
   });
   const archive = useArchiveWorkplace({ request: apiRequest });
   const update = useUpdateWorkplace({ request: apiRequest });
@@ -102,23 +106,27 @@ export function WorkplacesCard({
         : 'workplace-name',
   });
 
-  async function adoptClientAddress(
-    workplace: Workplace,
-    address: NonNullable<ReturnType<typeof differingClientAddress>>
-  ) {
-    setError(null);
-    try {
-      await update.mutateAsync({
-        clientId,
-        workplaceId: workplace.id,
-        data: { ...workplaceRequestOf(workplace), isRegisteredOffice: true, ...address },
-      });
-      toast.success(`Adresa pentru ${workplace.name} a fost actualizată.`);
-    } catch {
-      setError('Nu am putut actualiza adresa. Verifică conexiunea și încearcă din nou.');
-    }
-    await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
-  }
+  const updateWorkplace = update.mutateAsync;
+  const adoptClientAddress = useCallback(
+    async (
+      workplace: Workplace,
+      address: NonNullable<ReturnType<typeof differingClientAddress>>
+    ) => {
+      setError(null);
+      try {
+        await updateWorkplace({
+          clientId,
+          workplaceId: workplace.id,
+          data: { ...workplaceRequestOf(workplace), isRegisteredOffice: true, ...address },
+        });
+        toast.success(`Adresa pentru ${workplace.name} a fost actualizată.`);
+      } catch {
+        setError('Nu am putut actualiza adresa. Verifică conexiunea și încearcă din nou.');
+      }
+      await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
+    },
+    [clientId, queryClient, updateWorkplace]
+  );
 
   async function archiveWorkplace(workplace: Workplace) {
     setError(null);
@@ -143,12 +151,40 @@ export function WorkplacesCard({
     await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
   }
 
-  const listed = workplaces.isSuccess && workplaces.data.items.length > 0;
+  const fireSettled = !equipment.isPending && !installations.isPending;
+  const rows = useMemo(
+    () =>
+      workplaces.data && fireSettled
+        ? workplaceRows(
+            workplaces.data,
+            equipment.data && installations.data
+              ? { equipment: equipment.data.items, installations: installations.data.items }
+              : null,
+            dateToIso(new Date())
+          )
+        : undefined,
+    [workplaces.data, fireSettled, equipment.data, installations.data]
+  );
+  const columns = useMemo(
+    () =>
+      workplaceColumns({
+        clientId,
+        clientAddress: client,
+        readOnly,
+        adopting: update.isPending,
+        onAdoptAddress: (workplace, address) => void adoptClientAddress(workplace, address),
+        onEdit: setEditing,
+        onArchive: setArchiving,
+      }),
+    [clientId, client, readOnly, update.isPending, adoptClientAddress]
+  );
+
+  const empty = workplaces.isSuccess && workplaces.data.items.length === 0;
 
   return (
     <SectionCard
       data-testid="workplaces-card"
-      className={cn('gap-4', listed && 'overflow-hidden pb-0')}
+      className={cn('gap-4', !empty && !workplaces.isError && 'overflow-hidden pb-0')}
       title="Sediu și puncte de lucru"
       help="detalii.puncte-de-lucru"
       action={
@@ -168,8 +204,12 @@ export function WorkplacesCard({
           {error}
         </Notice>
       )}
-      {workplaces.isPending ? (
-        <Skeleton className="h-24 w-full" />
+      {empty ? (
+        <p data-testid="workplaces-empty" className="text-sm text-muted-foreground">
+          {readOnly
+            ? 'Nu sunt puncte de lucru înregistrate pentru acest client.'
+            : 'Niciun punct de lucru încă.'}
+        </p>
       ) : workplaces.isError ? (
         <Notice
           variant="destructive"
@@ -185,136 +225,31 @@ export function WorkplacesCard({
         >
           Nu am putut încărca punctele de lucru.
         </Notice>
-      ) : workplaces.data.items.length === 0 ? (
-        <p data-testid="workplaces-empty" className="text-sm text-muted-foreground">
-          {readOnly
-            ? 'Nu sunt puncte de lucru înregistrate pentru acest client.'
-            : 'Niciun punct de lucru încă.'}
-        </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Denumire</TableHead>
-              <TableHead>Adresă</TableHead>
-              <TableHead>Activitate</TableHead>
-              {!readOnly && (
-                <TableHead className="w-12">
-                  <span className="sr-only">Acțiuni</span>
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {workplaces.data.items.map((workplace) => {
-              const clientAddress = differingClientAddress(workplace, client);
-              return (
-                <TableRow
-                  key={workplace.id}
-                  id={workplaceRowId(workplace.id)}
-                  data-testid="workplace-row"
-                  {...rowClickProps(readOnly ? undefined : () => setEditing(workplace))}
-                  className={cn(!readOnly && 'cursor-pointer')}
-                >
-                  <TableCell className="font-medium">
-                    <span className="flex flex-wrap items-center gap-2">
-                      {workplace.name}
-                      {workplace.isRegisteredOffice && (
-                        <Badge variant="secondary">Sediu social</Badge>
-                      )}
-                    </span>
-                    {workplace.kind === 'mobile_site' && (
-                      <span
-                        data-testid="workplace-kind"
-                        className="mt-0.5 block text-[0.8125rem] font-normal text-muted-foreground"
-                      >
-                        {workplaceKindLabels[workplace.kind]}
-                      </span>
-                    )}
-                    {!workplace.officeHasActivity && (
-                      <span
-                        data-testid="workplace-no-activity"
-                        className="mt-0.5 block text-[0.8125rem] font-normal text-muted-foreground"
-                      >
-                        Fără activitate la sediu
-                      </span>
-                    )}
-                    {firstMissingFireField(workplace) !== null && (
-                      <span
-                        data-testid="workplace-fire-incomplete"
-                        className="mt-0.5 flex items-center gap-1 text-[0.8125rem] font-normal text-warning-foreground"
-                      >
-                        <TriangleAlert aria-hidden="true" className="size-3.5 shrink-0" />
-                        Date SU incomplete
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {workplaceAddress(workplace) || '—'}
-                    {clientAddress && (
-                      <span
-                        data-testid="workplace-address-drift"
-                        className="mt-1 flex flex-wrap items-center gap-x-2 text-xs whitespace-normal"
-                      >
-                        În datele clientului, sediul este: „{workplaceAddress(clientAddress)}”.
-                        {!readOnly && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            data-testid="workplace-address-adopt"
-                            className="h-auto p-0 text-xs"
-                            disabled={update.isPending}
-                            onClick={() => void adoptClientAddress(workplace, clientAddress)}
-                          >
-                            Folosește această adresă
-                          </Button>
-                        )}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell
-                    data-testid="workplace-activity-cell"
-                    className="min-w-40 whitespace-normal"
-                  >
-                    {workplace.activity || <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                  {!readOnly && (
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid="workplace-actions"
-                            aria-label={`Acțiuni pentru ${workplace.name}`}
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            data-testid="workplace-edit"
-                            onSelect={() => setEditing(workplace)}
-                          >
-                            Modifică
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            data-testid="workplace-archive"
-                            variant="destructive"
-                            onSelect={() => setArchiving(workplace)}
-                          >
-                            Arhivează
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <DataTable
+          testId="workplaces-table"
+          rowTestId={rowTestId}
+          rowElementId={(row) =>
+            row.kind === 'workplace' ? workplaceRowId(row.workplace.id) : undefined
+          }
+          label="Sediul și punctele de lucru"
+          columns={columns}
+          data={rows}
+          rowKey={rowKey}
+          status={rows ? 'success' : 'pending'}
+          canClickRow={(row) => row.kind === 'unassigned' || !readOnly}
+          onRowClick={(row) =>
+            row.kind === 'workplace'
+              ? setEditing(row.workplace)
+              : void navigate({
+                  to: '/clienti/$clientId/angajati',
+                  params: { clientId },
+                  search: { workplace: [noWorkplace] },
+                  state: openedHere,
+                })
+          }
+          empty={null}
+        />
       )}
       <WorkplaceDialog clientId={clientId} editing={editing} onClose={() => setEditing(null)} />
       <Dialog

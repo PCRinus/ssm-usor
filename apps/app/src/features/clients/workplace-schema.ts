@@ -9,9 +9,15 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type { WorkplaceListResponse, WorkplaceRequest } from '@/api/generated/api';
+import type {
+  WorkplaceListResponse,
+  WorkplaceRequest,
+  WorkplaceResponse,
+} from '@/api/generated/api';
 
-export type Workplace = WorkplaceListResponse['items'][number];
+export type Workplace = WorkplaceResponse['workplace'];
+
+export type ListedWorkplace = WorkplaceListResponse['items'][number];
 
 const optionalText = (max: number, what: string) =>
   z

@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { filterSearchSchema, idFilterSearchSchema } from '@/components/list-filters/url';
 import { useAuth } from '@/features/auth/auth-context';
+import { workplaceFilterSearch } from '@/features/employees/worker-filters';
 import { ClientPortalPage } from '@/features/participants/client-portal-page';
 
 const searchSchema = z.object({
@@ -13,7 +14,7 @@ const searchSchema = z.object({
   q: z.string().max(100).optional().catch(undefined),
   portal: filterSearchSchema(portalAccessStates),
   jobPosition: idFilterSearchSchema(),
-  workplace: idFilterSearchSchema(),
+  workplace: workplaceFilterSearch,
 });
 
 // Who of the client signs in to the portal and what waits for them there (ADR 022, ADR 023).

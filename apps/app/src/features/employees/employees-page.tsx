@@ -47,7 +47,12 @@ import { isEmptyOrLoading } from '@/lib/list-state';
 import { employeeColumns, type EmployeeRow } from './employee-columns';
 import { employeeStatusLabels, pendingWorkersLabel, workerNoun } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
-import { clientWorkerFacets, clientWorkerFilterKeys, trainingSortKeys } from './worker-filters';
+import {
+  clientWorkerFacets,
+  clientWorkerFilterKeys,
+  trainingSortKeys,
+  workplacePlaces,
+} from './worker-filters';
 import { WorkersCount, WorkersListError, WorkersNoMatch } from './workers-list';
 
 const employeesRoute = getRouteApi('/_authenticated/clienti/$clientId/angajati/');
@@ -123,15 +128,15 @@ export function EmployeesPage() {
       enabled: Boolean(userId && apiRequest.baseUrl),
     },
   });
-  const workplaceCount = workplaces.data?.items.length ?? 0;
   const facets = useMemo(
     () =>
       clientWorkerFacets({
         withStates,
         positions: positions.isError ? [] : positions.data?.items,
-        workplaces: workplaces.isError ? [] : workplaces.data?.items,
-        // One workplace filters nothing; while they load, a chosen one is still read.
-        withWorkplaces: workplaceCount > 1 || (workplaces.isPending && Boolean(search.workplace)),
+        ...workplacePlaces(
+          { isPending: workplaces.isPending, isError: workplaces.isError, data: workplaces.data },
+          Boolean(search.workplace)
+        ),
       }),
     [
       withStates,
@@ -139,7 +144,6 @@ export function EmployeesPage() {
       positions.isError,
       workplaces.data,
       workplaces.isError,
-      workplaceCount,
       workplaces.isPending,
       search.workplace,
     ]
