@@ -51,6 +51,7 @@ available as a required PR check, including on documentation-only changes.
 | `apps/portal/**`                                                                                                                          | Portal                                                |
 | `apps/admin/**`                                                                                                                           | Admin app ([guide](admin.md))                         |
 | `packages/api-http/**`                                                                                                                    | SPA, portal and admin app                             |
+| `packages/spa-runtime/**`                                                                                                                 | SPA, portal and admin app                             |
 | `apps/api/**` (except the shared contract below)                                                                                          | API                                                   |
 | `apps/mail/**`                                                                                                                            | Mail Worker                                           |
 | `apps/sms/**`                                                                                                                             | SMS Worker ([guide](sms.md))                          |

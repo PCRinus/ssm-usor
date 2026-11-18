@@ -27,6 +27,7 @@ app:
     - 'packages/ui/**'
     - 'packages/design-tokens/**'
   - 'packages/api-http/**'
+  - 'packages/spa-runtime/**'
   # The generated client is not a workspace dependency on contracts.
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
@@ -36,6 +37,7 @@ portal:
   - *ui
   - 'apps/portal/**'
   - 'packages/api-http/**'
+  - 'packages/spa-runtime/**'
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
   - 'orval.config.ts'
@@ -44,6 +46,7 @@ admin:
   - *ui
   - 'apps/admin/**'
   - 'packages/api-http/**'
+  - 'packages/spa-runtime/**'
   - 'packages/contracts/**'
 # Mail and SMS import their contract by its own subpath, never the package entry, which would
 # bundle every contract. One that starts importing another contract adds its file here, or a
