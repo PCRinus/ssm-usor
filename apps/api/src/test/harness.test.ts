@@ -1,7 +1,8 @@
-import { clientContractHeader } from '@ssm-usor/contracts';
+import { clientContract, clientContractHeader } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { apiRequest, testAccessToken } from './request';
+import { createApp } from '../app';
+import { apiRequest, type ApiRequestInit, testAccessToken } from './request';
 import {
   callsTo,
   fetchMock,
@@ -108,7 +109,46 @@ describe('membershipRow', () => {
 });
 
 describe('apiRequest', () => {
-  it('sends the access token and the current app contract', async () => {
+  const echoed = async (init: ApiRequestInit = {}) => {
+    const app = createApp();
+    app.post('/echo', async (c) =>
+      c.json({
+        authorization: c.req.header('Authorization') ?? null,
+        contract: c.req.header(clientContractHeader) ?? null,
+        contentType: c.req.header('Content-Type') ?? null,
+        body: await c.req.text(),
+      })
+    );
+    return (await apiRequest('/echo', { method: 'POST', app, ...init })).json();
+  };
+
+  it('sends the token, the app contract and a plain object as JSON', async () => {
+    expect(await echoed({ body: { name: 'Ana' } })).toEqual({
+      authorization: `Bearer ${testAccessToken}`,
+      contract: clientContract('app'),
+      contentType: 'application/json',
+      body: '{"name":"Ana"}',
+    });
+  });
+
+  it('sends the portal contract for the portal, and leaves out what a test turns off', async () => {
+    expect(await echoed({ client: 'portal' })).toMatchObject({
+      contract: clientContract('portal'),
+    });
+    expect(await echoed({ client: null, token: null })).toMatchObject({
+      authorization: null,
+      contract: null,
+    });
+  });
+
+  it('sends a string body as it is, with the content type the test gives', async () => {
+    expect(await echoed({ body: 'a=b', headers: { 'Content-Type': 'text/plain' } })).toMatchObject({
+      contentType: 'text/plain',
+      body: 'a=b',
+    });
+  });
+
+  it('reaches a handler, which forwards the access token upstream', async () => {
     mockUpstream({
       '/rest/v1/dashboard_summary': () => [],
       '/rest/v1/rpc/dashboard_employees_at_month_ends': () => [],
