@@ -230,7 +230,8 @@ API client). `src/app/router.ts` builds the router from that tree with the injec
 | `routes/_authenticated/legislatie/documente.tsx`                                      | `/legislatie/documente`                                | Redirects to "Documente SSM de actualizat", the tab before the split by set.                                                                                                                               |
 | `routes/_authenticated/legislatie/documente-ssm.tsx`                                  | `/legislatie/documente-ssm`                            | "Documente SSM de actualizat": the SSM documents behind, one table row per type, with regeneration.                                                                                                        |
 | `routes/_authenticated/legislatie/documente-su.tsx`                                   | `/legislatie/documente-su`                             | "Documente SU de actualizat": the same for the SU set.                                                                                                                                                     |
-| `routes/_authenticated/legislatie/modificari.tsx`                                     | `/legislatie/modificari`                               | "Modificări": the legal changes, newest first.                                                                                                                                                             |
+| `routes/_authenticated/legislatie/modificari.tsx`                                     | `/legislatie/modificari`                               | "Modificări": the changes under review, then those applied in documents, 20 a page (`?page=`); an old `#modificare-<id>` link redirects to the change.                                                     |
+| `routes/_authenticated/legislatie_.modificari.$changeId.tsx`                          | `/legislatie/modificari/:changeId`                     | One legal change on its own page, outside the Legislație tabs, with the back arrow.                                                                                                                        |
 | `routes/_authenticated/legislatie/acte.tsx`                                           | `/legislatie/acte`                                     | "Acte urmărite": the watched acts, searched, filtered, sorted and paged in the browser, all in the search params.                                                                                          |
 | `routes/_authenticated/clienti/$clientId/angajati/$employeeId_.editare.tsx`           | `/clienti/:id/angajati/:employeeId/editare`            | Corrects an employee in the form that adds one (`employee-form.tsx`). Full page; returns to the employee page. `?focus=commute-route` or `workplace` points at that field.                                 |
 | `routes/_authenticated/clienti/$clientId/mijloace-de-aparare.tsx`                     | `/clienti/:id/mijloace-de-aparare`                     | "Mijloace PSI" (ADR 018): the fire-fighting equipment and installations of each active workplace, their other periodic checks, the building of each fixed space, and the dangerous substances.             |
@@ -1753,7 +1754,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   `variant="folder"` and `TabSheet`, as on Organizație): `/legislatie/documente-ssm`
   ("Documente SSM de actualizat", where `/legislatie` and the old `/legislatie/documente`
   lead), `/legislatie/documente-su`, `/legislatie/modificari` ("Modificări") and
-  `/legislatie/acte` ("Acte urmărite"); every tab runs edge to edge in the sheet. The last
+  `/legislatie/acte` ("Acte urmărite"); the document and acts tabs run edge to edge in the sheet. The last
   check (`last-check.tsx`, `GET /legislation/runs/latest` and `GET /legislation/acts`) is one
   line of facts. First the state: "Verificat azi la 06:17" (ieri, or a date) with a muted green
   check while the last run succeeded within two days, "Verificarea rulează din 06:17" with a
@@ -1772,7 +1773,7 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   mark and the dark "Regenerează toate", then the shared data table, one row per type:
   "Document" (title, and under it the newest version with its kind, or "Instrucțiuni
   schimbate"), "Ce s-a schimbat" (the version's note, or what moved in the instructions,
-  and "Vezi modificarea <act>" to `/legislatie/modificari#modificare-<id>` for each legal
+  and "Vezi modificarea <act>" to `/legislatie/modificari/<id>` for each legal
   change the version answers), "Clienți" (the count, which opens the row on a table of the
   clients: each linked to that document's row on its client's documents tab, the version it
   came from and what regenerating does: "Emis pe …, primește o ciornă nouă, de emis",
@@ -1802,12 +1803,40 @@ employees`, adds the chosen found sheets (`POST …/found-sheets`), uploads the 
   documentele", and each document that failed, in amber, with the same missing-data rows as on
   the documents tab and
   the same way back to its document. An empty tab says "Documentele SSM sunt la zi".
-  "Modificări" lists `GET /legislation/changes` newest first, each "În analiză", "Fără impact
-  asupra documentelor" or "Șablon actualizat" with the version's note. "Acte urmărite" is
+  "Modificări" (`legal-changes.tsx`, not in the edge-to-edge sheet) holds up to two panels of
+  timeline rows (`legal-change-row.tsx`): the form's date in a gutter, the act with its
+  subject, a sentence and a small grey line, each row one link to the change's page. "În
+  analiză", only while `GET /legislation/changes/open` lists one, has the only amber accent
+  (its icon tile) and words each change by its outcome with the units touched ("Nu a fost încă
+  analizată." until compared), then "Atinge: …" (the documents its passages touched) or
+  "Poate atinge: …" (the documents citing the act; past three titles, counts per set).
+  "Aplicate în documente" reads `GET /legislation/changes/applied` 20 a page (`?page=`, the
+  shared pager only past one page): the version's note, "A actualizat: …" and, while some of
+  the organization's documents are still behind the change, an amber "N documente de
+  actualizat" to the SSM documents tab (or SU when only SU ones are). Neither panel has
+  changes without impact. With nothing in either, an empty state. A change's page
+  (`/legislatie/modificari/<id>`, `legal-change-page.tsx`, `GET /legislation/changes/{id}`)
+  has the back arrow, the act's name and subject, "Stare" ("Aplicată în documente pe …",
+  "În analiză" in amber or "Fără impact asupra documentelor") and "Forma"; a summary panel
+  with the sentence, "A actualizat: <document>, versiunea N a șablonului" (the document linked
+  to its tab while behind) or what an open change touches, and, while documents are behind,
+  the amber count with clients and the dark "Regenerează documentele": it reads
+  `GET /documents/behind` for the change's types, confirms with the tab's dialog
+  (`regenerate-confirm-dialog.tsx`) and starts one job per type through `startTypes` on the
+  provider, one batch per set. A type answered `409 regeneration_running` or `nothing_behind`
+  is passed over; one that fails otherwise is named in amber under "Nu au pornit" while the
+  others go on. The button is left out when every document behind is a draft edited by
+  hand. Below, "Ce s-a schimbat în lege" (amended units by operation), "În documente" (each
+  passage's unit and places, then the law "Înainte" and "Acum" side by side, stacked on a
+  phone, deletions struck on the left and insertions marked on the right; long texts behind
+  "Ce s-a schimbat") and, small and grey, "Despre forma consolidată" (the form's date, the
+  amending acts linked to the portal when their page is known, the day the check found it, the
+  day the template was updated and the act's portal page). The provider refreshes every
+  `/legislation/changes` query when a batch ends. "Acte urmărite" is
   `GET /legislation/acts` in the shared data table: the act linked to its page on the Portal
   Legislativ with its subject under it, "Domeniu" (SSM, SU or both, from the documents that
   cite it), "Stare" ("În analiză" in amber with the open change's outcome, as Modificări words
-  it, linking to `/legislatie/modificari#modificare-<id>`; "Abrogat" in red; "Neverificat" or
+  it, linking to the change's page; "Abrogat" in red; "Neverificat" or
   "În vigoare" as plain text), the newest consolidated form ("Forma de bază" for an act read
   with none, with the form the documents follow under it while a change is open) and "Citat
   în" (documents, with the quotes or "doar trimiteri" under it). The page searches (`q`, by
