@@ -449,6 +449,7 @@ export const helpTopics = {
     anchor: 'lista-persoanelor-responsabile',
   },
   'legislatie.acte': { path: '/legislatie/', anchor: 'actele-urmărite' },
+  'legislatie.aplicate': { path: '/legislatie/', anchor: 'modificările-aplicate-în-documente' },
   'legislatie.cautare': { path: '/legislatie/', anchor: 'căutarea-filtrele-și-ordinea' },
   'legislatie.ce-nu-faci': { path: '/legislatie/', anchor: 'ce-nu-ai-de-făcut' },
   'legislatie.citat-in': { path: '/legislatie/', anchor: 'preluări-și-trimiteri' },

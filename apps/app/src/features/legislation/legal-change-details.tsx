@@ -1,31 +1,29 @@
 import { legalAmendmentOperations } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { cn } from '@ssm-usor/ui/lib/utils';
 import { ChevronDown } from 'lucide-react';
 import { Fragment, useId, useMemo, useState } from 'react';
 
 import type {
-  LegalChangeListResponseItemsItem,
-  LegalChangeListResponseItemsItemPassagesItem,
+  LegalChangeDetailResponseChangeAmendedUnitsItem as AmendedUnit,
+  LegalChangeDetailResponseChangePassagesItem as Passage,
 } from '@/api/generated/api';
 
 import { type DiffSegment, wordDiff } from './law-diff';
 import { listOf, operationLabels, unitLabel, withSuperscripts } from './legislation-labels';
 
-type Change = LegalChangeListResponseItemsItem;
-type Passage = LegalChangeListResponseItemsItemPassagesItem;
-
 const unitsShown = 8;
 const longTextLength = 600;
 
-export function AmendedUnits({ change }: { change: Change }) {
+export function AmendedUnits({ units }: { units: AmendedUnit[] }) {
   const groups = legalAmendmentOperations.flatMap((operation) => {
-    const units = change.amendedUnits.filter((unit) => unit.operation === operation);
-    return units.length > 0 ? [{ operation, units: [...new Set(units.map((u) => u.unit))] }] : [];
+    const ofOperation = units.filter((unit) => unit.operation === operation);
+    return ofOperation.length > 0
+      ? [{ operation, units: [...new Set(ofOperation.map((u) => u.unit))] }]
+      : [];
   });
   if (groups.length === 0) return null;
   return (
-    <dl data-testid="legal-change-units" className="grid gap-0.5 text-sm">
+    <dl data-testid="legal-change-units" className="grid gap-1 text-sm leading-relaxed">
       {groups.map(({ operation, units }) => {
         const shown = units.slice(0, unitsShown).map(unitLabel);
         const more = units.length - shown.length;
@@ -57,10 +55,12 @@ function groupPassages(passages: Passage[]): PassageGroup[] {
 function placeOf(passage: Passage) {
   const document = passage.document?.title;
   if (passage.citationForm === 'reference') {
-    return document ? `Trimitere în ${document}` : 'Trimitere într-un document';
+    return document ? `trimitere în ${document}` : 'trimitere într-un document';
   }
-  const where = document ? `Citat în ${document}` : 'Citat într-un document';
-  return passage.locator ? `${where}, ${unitLabel(passage.locator)}` : where;
+  const where = document ? `citat în ${document}` : 'citat într-un document';
+  return passage.locator && passage.locator !== passage.unit
+    ? `${where}, ${unitLabel(passage.locator)}`
+    : where;
 }
 
 const statusNotes: Partial<Record<Passage['status'], string>> = {
@@ -72,21 +72,12 @@ const statusNotes: Partial<Record<Passage['status'], string>> = {
 const hasText = (passage: Passage) => passage.oldText !== null || passage.newText !== null;
 
 export function ChangedPassages({ passages }: { passages: Passage[] }) {
-  if (passages.length === 0) return null;
   return (
-    <div data-testid="legal-change-passages" className="grid gap-3 pt-1">
-      {passages.some(hasText) && (
-        <p data-testid="law-diff-legend" className="text-xs text-muted-foreground">
-          În textul legii, cuvintele tăiate au fost eliminate, iar cele evidențiate au fost
-          adăugate.
-        </p>
-      )}
-      <ul className="grid gap-3">
-        {groupPassages(passages).map((group) => (
-          <PassageView key={group.key} group={group} />
-        ))}
-      </ul>
-    </div>
+    <ul data-testid="legal-change-passages" className="grid gap-6">
+      {groupPassages(passages).map((group) => (
+        <PassageView key={group.key} group={group} />
+      ))}
+    </ul>
   );
 }
 
@@ -97,9 +88,14 @@ function PassageView({ group }: { group: PassageGroup }) {
   const textId = useId();
 
   return (
-    <li data-testid="legal-change-passage" className="grid gap-1.5 rounded-md border p-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <p className="text-sm font-medium">{withSuperscripts(first.unit)}</p>
+    <li data-testid="legal-change-passage" className="grid gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+        <p className="text-sm leading-relaxed">
+          <b data-testid="legal-change-passage-unit" className="font-semibold">
+            {unitLabel(first.unit)}
+          </b>
+          <span data-testid="legal-change-passage-places">, {group.places.join('; ')}</span>
+        </p>
         {hasText(first) && long && (
           <Button
             variant="ghost"
@@ -118,13 +114,6 @@ function PassageView({ group }: { group: PassageGroup }) {
           </Button>
         )}
       </div>
-      <ul className="grid gap-0.5 text-sm text-muted-foreground">
-        {group.places.map((place) => (
-          <li key={place} data-testid="legal-change-passage-place">
-            {place}
-          </li>
-        ))}
-      </ul>
       {statusNotes[first.status] && <p className="text-sm">{statusNotes[first.status]}</p>}
       {hasText(first) && (
         <div id={textId} hidden={!open}>
@@ -137,49 +126,28 @@ function PassageView({ group }: { group: PassageGroup }) {
 
 const edges = /^(\s*)([\s\S]*?)(\s*)$/;
 
-// A margin, not a space, keeps a replaced word off its replacement: the law's text gains no
-// character, and a change inside one word or number, "(2)" to "(3)", stays tight.
-function standsApart(segments: DiffSegment[], index: number) {
-  const deleted = segments[index - 1];
-  const inserted = segments[index]!;
-  if (deleted?.kind !== 'deleted' || /\s$/.test(deleted.text) || /^\s/.test(inserted.text)) {
-    return false;
+function LawText({ segments, side }: { segments: DiffSegment[]; side: 'before' | 'after' }) {
+  const shown = side === 'before' ? 'deleted' : 'inserted';
+  if (!segments.some((segment) => segment.kind === 'same' || segment.kind === shown)) {
+    return <p className="text-sm text-muted-foreground">—</p>;
   }
-  const before = segments[index - 2]?.text;
-  const after = segments[index + 1]?.text;
   return (
-    (before === undefined || /\s$/.test(before) || /^\s/.test(deleted.text)) &&
-    (after === undefined || /^[\s.,;:!?]/.test(after))
-  );
-}
-
-export function LawDiff({ before, after }: { before: string; after: string }) {
-  const segments = useMemo(
-    () => wordDiff(withSuperscripts(before), withSuperscripts(after)),
-    [before, after]
-  );
-  return (
-    <p data-testid="law-diff" className="max-w-prose text-sm leading-relaxed whitespace-pre-line">
+    <p className="text-sm leading-relaxed whitespace-pre-line">
       {segments.map((segment, index) => {
         if (segment.kind === 'same') return <span key={index}>{segment.text}</span>;
+        if (segment.kind !== shown) return null;
         const [, opening, words, closing] = edges.exec(segment.text)!;
-        if (!words)
-          return segment.kind === 'inserted' ? <span key={index}>{segment.text}</span> : null;
+        if (!words) return <span key={index}>{segment.text}</span>;
         return (
           <Fragment key={index}>
             {opening}
-            {segment.kind === 'deleted' ? (
+            {side === 'before' ? (
               <del className="rounded-xs bg-destructive-border px-0.5 text-inherit line-through">
                 <span className="sr-only">eliminat: </span>
                 {words}
               </del>
             ) : (
-              <ins
-                className={cn(
-                  'rounded-xs bg-success-border px-0.5 font-semibold text-inherit no-underline',
-                  standsApart(segments, index) && 'ml-1'
-                )}
-              >
+              <ins className="rounded-xs bg-success-border px-0.5 font-semibold text-inherit no-underline">
                 <span className="sr-only">adăugat: </span>
                 {words}
               </ins>
@@ -189,5 +157,27 @@ export function LawDiff({ before, after }: { before: string; after: string }) {
         );
       })}
     </p>
+  );
+}
+
+export function LawDiff({ before, after }: { before: string; after: string }) {
+  const segments = useMemo(
+    () => wordDiff(withSuperscripts(before), withSuperscripts(after)),
+    [before, after]
+  );
+  return (
+    <div data-testid="law-diff" className="grid overflow-hidden rounded-xl border sm:grid-cols-2">
+      <div
+        data-testid="law-diff-before"
+        className="grid content-start gap-2 p-4 max-sm:border-b sm:border-r sm:p-5"
+      >
+        <h3 className="text-[13px] font-medium text-muted-foreground">Înainte</h3>
+        <LawText segments={segments} side="before" />
+      </div>
+      <div data-testid="law-diff-after" className="grid content-start gap-2 p-4 sm:p-5">
+        <h3 className="text-[13px] font-medium text-muted-foreground">Acum</h3>
+        <LawText segments={segments} side="after" />
+      </div>
+    </div>
   );
 }

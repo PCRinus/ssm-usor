@@ -46,6 +46,8 @@ export interface Regenerations {
   startOne: (type: BehindType) => Promise<void>;
   startAll: (set: DocumentSet, types: readonly BehindType[]) => Promise<void>;
   followRunning: (set: DocumentSet, types: readonly BehindType[]) => Promise<boolean>;
+  // Resolves to the type keys that did not start.
+  startTypes: (types: readonly BehindType[]) => Promise<string[]>;
   dismiss: (set: DocumentSet) => void;
 }
 

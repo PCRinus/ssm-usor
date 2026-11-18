@@ -1,13 +1,5 @@
 import type { BuiltInDocumentTypeKey, DocumentSet } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useQueryClient } from '@tanstack/react-query';
@@ -35,6 +27,7 @@ import { BehindClients } from './behind-clients';
 import { behindColumns } from './behind-columns';
 import { BehindTableContext, detailsIdOf, rowStateOf } from './behind-table-context';
 import { countOf } from './legislation-labels';
+import { RegenerateConfirmDialog } from './regenerate-confirm-dialog';
 import {
   type BehindType,
   confirmAllCopy,
@@ -44,6 +37,7 @@ import {
   jobCounts,
   progressLine,
   regenerable,
+  regenerationFailure,
   setName,
   titleOf,
 } from './regeneration-copy';
@@ -57,14 +51,6 @@ import { behindSummaryQueryKey } from './use-behind-summary';
 const rowKey = (type: BehindType) => type.typeKey;
 
 type Confirming = { scope: 'all' } | { scope: 'one'; type: BehindType };
-
-function failureMessage(cause: unknown) {
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  const answered = cause instanceof ApiHttpError && (cause.status === 409 || cause.status === 503);
-  return answered && body?.message
-    ? body.message
-    : 'Regenerarea nu a putut porni. Verifică conexiunea și încearcă din nou.';
-}
 
 export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -122,7 +108,7 @@ export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: str
       const alreadyRunning =
         cause instanceof ApiHttpError &&
         (cause.body as Partial<ApiErrorResponse> | null)?.reason === 'regeneration_running';
-      if (!following && !alreadyRunning) setFailure(failureMessage(cause));
+      if (!following && !alreadyRunning) setFailure(regenerationFailure(cause));
     } finally {
       setConfirming(null);
       setStarting(false);
@@ -252,40 +238,12 @@ export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: str
           />
         </BehindTableContext>
       )}
-      <Dialog
-        open={confirming !== null}
-        onOpenChange={(next) => !next && !starting && setConfirming(null)}
-      >
-        {confirming && copy && (
-          <DialogContent data-testid="behind-confirm-dialog" className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="text-lg leading-snug">{copy.title}</DialogTitle>
-              <DialogDescription>{copy.lead}</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-2 text-sm leading-relaxed">
-              {copy.lines.map((line) => (
-                <p key={line.lead} data-testid="behind-confirm-line">
-                  <b className="font-semibold">{line.lead}</b>
-                  {line.rest}
-                </p>
-              ))}
-            </div>
-            <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={starting} onClick={() => setConfirming(null)}>
-                Renunță
-              </Button>
-              <Button
-                data-testid="behind-confirm"
-                disabled={starting}
-                onClick={() => void regenerate(confirming)}
-              >
-                <RefreshCw aria-hidden="true" />
-                {starting ? 'Se pornește…' : copy.confirm}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      <RegenerateConfirmDialog
+        copy={copy}
+        starting={starting}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => confirming && void regenerate(confirming)}
+      />
     </section>
   );
 }

@@ -5,10 +5,12 @@ import {
 } from '@ssm-usor/contracts';
 
 import type {
+  ApiErrorResponse,
   DocumentsBehindResponseItemsItem,
   DocumentsBehindResponseItemsItemClientsItem,
   RegenerationJobResponseJob,
 } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
 import { instructionChangeText } from '@/features/documents/behind-labels';
 
 import { countOf } from './legislation-labels';
@@ -134,11 +136,12 @@ function linesOf(types: readonly BehindType[], one: boolean) {
   };
 }
 
-export function confirmAllCopy(set: DocumentSet, types: readonly BehindType[]): ConfirmCopy {
+// No set name when the documents come from both sets, as those of one legal change can.
+export function confirmAllCopy(set: DocumentSet | null, types: readonly BehindType[]): ConfirmCopy {
   const { kept, lines } = linesOf(types, false);
   const documents = countOf(kept.length, 'document', 'documente');
   return {
-    title: `Regenerezi ${documents} ${setName[set]} la ${countOf(distinctClients(kept.map(({ client }) => client)), 'client', 'clienți')}?`,
+    title: `Regenerezi ${documents}${set ? ` ${setName[set]}` : ''} la ${countOf(distinctClients(kept.map(({ client }) => client)), 'client', 'clienți')}?`,
     lead: 'Le refacem pe versiunea nouă a șabloanelor și a instrucțiunilor, cu datele de azi ale clienților.',
     lines,
     confirm: `Regenerează ${documents}`,
@@ -156,6 +159,20 @@ export function confirmOneCopy(type: BehindType): ConfirmCopy {
     confirm: `Regenerează la ${clients}`,
     regenerated: kept.length,
   };
+}
+
+export function confirmTypesCopy(types: readonly BehindType[]): ConfirmCopy {
+  if (types.length === 1) return confirmOneCopy(types[0]!);
+  const sets = new Set(types.map((type) => type.set));
+  return confirmAllCopy(sets.size === 1 ? types[0]!.set : null, types);
+}
+
+export function regenerationFailure(cause: unknown) {
+  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+  const answered = cause instanceof ApiHttpError && (cause.status === 409 || cause.status === 503);
+  return answered && body?.message
+    ? body.message
+    : 'Regenerarea nu a putut porni. Verifică conexiunea și încearcă din nou.';
 }
 
 type Counted = Pick<RegenerationJob, 'total' | 'done' | 'skipped' | 'failed'>;

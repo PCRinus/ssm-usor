@@ -3,10 +3,11 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Check, ChevronDown, LoaderCircle, RefreshCw } from 'lucide-react';
 
+import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 
 import { detailsIdOf, useBehindTable } from './behind-table-context';
-import { countOf, kindLabels, legalChangeAnchor } from './legislation-labels';
+import { countOf, kindLabels } from './legislation-labels';
 import {
   behindInstructions,
   behindTemplate,
@@ -51,8 +52,9 @@ export function ChangedCell({ type }: { type: BehindType }) {
         type.legalChanges.map((change) => (
           <Link
             key={change.id}
-            to="/legislatie/modificari"
-            hash={legalChangeAnchor(change.id)}
+            to="/legislatie/modificari/$changeId"
+            params={{ changeId: change.id }}
+            state={openedHere}
             data-testid="behind-legal-change"
             className={textLink}
           >

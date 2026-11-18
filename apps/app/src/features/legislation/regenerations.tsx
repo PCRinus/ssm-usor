@@ -1,6 +1,6 @@
 import type { BuiltInDocumentTypeKey, DocumentSet } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useQueries } from '@tanstack/react-query';
+import { type Query, useQueries } from '@tanstack/react-query';
 import { useLocation, useNavigate, useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
@@ -58,6 +58,19 @@ function saveBatches(scope: string, batches: RegenerationBatch[]) {
 // A job the caller can no longer read, deleted or of another organization, will not come back.
 const unreadable = (error: unknown) =>
   error instanceof ApiHttpError && error.status >= 400 && error.status < 500;
+
+// The applied list and each change's page count the documents still behind it.
+const isLegalChangeQuery = (query: Query) =>
+  typeof query.queryKey[0] === 'string' && query.queryKey[0].startsWith('/legislation/changes');
+
+// Already under way, or nothing left to regenerate: neither is a type that failed to start.
+function startNeedless(cause: unknown) {
+  const reason =
+    cause instanceof ApiHttpError && cause.status === 409
+      ? (cause.body as { reason?: string } | null)?.reason
+      : undefined;
+  return reason === 'regeneration_running' || reason === 'nothing_behind';
+}
 
 const batchId = () =>
   `regeneration-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -170,6 +183,7 @@ export function RegenerationsProvider({ children }: { children: ReactNode }) {
     void queryClient.invalidateQueries({ queryKey: getListDocumentsBehindQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+    void queryClient.invalidateQueries({ predicate: isLegalChangeQuery });
   }, [runningKey, queryClient]);
 
   useEffect(() => {
@@ -180,6 +194,7 @@ export function RegenerationsProvider({ children }: { children: ReactNode }) {
     void queryClient.invalidateQueries({ queryKey: behindSummaryQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+    void queryClient.invalidateQueries({ predicate: isLegalChangeQuery });
     for (const client of new Set(
       fresh.flatMap((batch) => batch.jobs.flatMap((job) => job.items.map((item) => item.clientId)))
     )) {
@@ -279,6 +294,36 @@ export function RegenerationsProvider({ children }: { children: ReactNode }) {
         edited: edited(types),
         notStarted: answer.notStarted,
       });
+    },
+    startTypes: async (types) => {
+      const notStarted: string[] = [];
+      for (const set of new Set(types.map((type) => type.set))) {
+        const ofSet = types.filter((type) => type.set === set);
+        const jobIds: string[] = [];
+        const refused: string[] = [];
+        for (const type of ofSet) {
+          try {
+            const { job } = await startType.mutateAsync({
+              data: { typeKey: type.typeKey as BuiltInDocumentTypeKey },
+            });
+            jobIds.push(job.id);
+          } catch (cause) {
+            if (!startNeedless(cause)) refused.push(type.typeKey);
+          }
+        }
+        notStarted.push(...refused);
+        if (jobIds.length > 0) {
+          begin({
+            set,
+            scope: jobIds.length > 1 ? 'all' : 'one',
+            jobIds,
+            titles: titles(ofSet),
+            edited: edited(ofSet),
+            notStarted: refused,
+          });
+        }
+      }
+      return notStarted;
     },
     followRunning: async (set, types) => {
       const known = new Set(batches.flatMap((batch) => batch.jobIds));

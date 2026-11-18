@@ -80,6 +80,7 @@ import { Route as AuthenticatedClientiClientIdPosturiRouteImport } from './route
 import { Route as AuthenticatedClientiImportImportIdRouteImport } from './routes/_authenticated/clienti/import/$importId';
 import { Route as AuthenticatedInstructiuniLibrarySsmRouteImport } from './routes/_authenticated/instructiuni/_library/ssm';
 import { Route as AuthenticatedInstructiuniLibrarySuRouteImport } from './routes/_authenticated/instructiuni/_library/su';
+import { Route as AuthenticatedLegislatieModificariChangeIdRouteImport } from './routes/_authenticated/legislatie_.modificari.$changeId';
 import { Route as AuthenticatedOferteLeadIdIndexRouteImport } from './routes/_authenticated/oferte/$leadId/index';
 import { Route as AuthenticatedOferteLeadIdContractRouteImport } from './routes/_authenticated/oferte/$leadId/contract';
 import { Route as AuthenticatedOferteLeadIdEditareRouteImport } from './routes/_authenticated/oferte/$leadId/editare';
@@ -513,6 +514,12 @@ const AuthenticatedInstructiuniLibrarySuRoute =
     path: '/su',
     getParentRoute: () => AuthenticatedInstructiuniLibraryRoute,
   } as any);
+const AuthenticatedLegislatieModificariChangeIdRoute =
+  AuthenticatedLegislatieModificariChangeIdRouteImport.update({
+    id: '/legislatie_/modificari/$changeId',
+    path: '/legislatie/modificari/$changeId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any);
 const AuthenticatedOferteLeadIdIndexRoute =
   AuthenticatedOferteLeadIdIndexRouteImport.update({
     id: '/',
@@ -813,6 +820,7 @@ export interface FileRoutesByFullPath {
   '/clienti/import/$importId': typeof AuthenticatedClientiImportImportIdRouteWithChildren;
   '/instructiuni/ssm': typeof AuthenticatedInstructiuniLibrarySsmRoute;
   '/instructiuni/su': typeof AuthenticatedInstructiuniLibrarySuRoute;
+  '/legislatie/modificari/$changeId': typeof AuthenticatedLegislatieModificariChangeIdRoute;
   '/oferte/$leadId/contract': typeof AuthenticatedOferteLeadIdContractRoute;
   '/oferte/$leadId/editare': typeof AuthenticatedOferteLeadIdEditareRoute;
   '/organizatie/abonament/alege': typeof AuthenticatedOrganizatieAbonamentAlegeRoute;
@@ -901,6 +909,7 @@ export interface FileRoutesByTo {
   '/clienti/$clientId/portal': typeof AuthenticatedClientiClientIdPortalRoute;
   '/instructiuni/ssm': typeof AuthenticatedInstructiuniLibrarySsmRoute;
   '/instructiuni/su': typeof AuthenticatedInstructiuniLibrarySuRoute;
+  '/legislatie/modificari/$changeId': typeof AuthenticatedLegislatieModificariChangeIdRoute;
   '/oferte/$leadId/contract': typeof AuthenticatedOferteLeadIdContractRoute;
   '/oferte/$leadId/editare': typeof AuthenticatedOferteLeadIdEditareRoute;
   '/organizatie/abonament/alege': typeof AuthenticatedOrganizatieAbonamentAlegeRoute;
@@ -1009,6 +1018,7 @@ export interface FileRoutesById {
   '/_authenticated/clienti/import/$importId': typeof AuthenticatedClientiImportImportIdRouteWithChildren;
   '/_authenticated/instructiuni/_library/ssm': typeof AuthenticatedInstructiuniLibrarySsmRoute;
   '/_authenticated/instructiuni/_library/su': typeof AuthenticatedInstructiuniLibrarySuRoute;
+  '/_authenticated/legislatie_/modificari/$changeId': typeof AuthenticatedLegislatieModificariChangeIdRoute;
   '/_authenticated/oferte/$leadId/contract': typeof AuthenticatedOferteLeadIdContractRoute;
   '/_authenticated/oferte/$leadId/editare': typeof AuthenticatedOferteLeadIdEditareRoute;
   '/_authenticated/organizatie/abonament/alege': typeof AuthenticatedOrganizatieAbonamentAlegeRoute;
@@ -1118,6 +1128,7 @@ export interface FileRouteTypes {
     | '/clienti/import/$importId'
     | '/instructiuni/ssm'
     | '/instructiuni/su'
+    | '/legislatie/modificari/$changeId'
     | '/oferte/$leadId/contract'
     | '/oferte/$leadId/editare'
     | '/organizatie/abonament/alege'
@@ -1206,6 +1217,7 @@ export interface FileRouteTypes {
     | '/clienti/$clientId/portal'
     | '/instructiuni/ssm'
     | '/instructiuni/su'
+    | '/legislatie/modificari/$changeId'
     | '/oferte/$leadId/contract'
     | '/oferte/$leadId/editare'
     | '/organizatie/abonament/alege'
@@ -1313,6 +1325,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clienti/import/$importId'
     | '/_authenticated/instructiuni/_library/ssm'
     | '/_authenticated/instructiuni/_library/su'
+    | '/_authenticated/legislatie_/modificari/$changeId'
     | '/_authenticated/oferte/$leadId/contract'
     | '/_authenticated/oferte/$leadId/editare'
     | '/_authenticated/organizatie/abonament/alege'
@@ -1866,6 +1879,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/instructiuni/su';
       preLoaderRoute: typeof AuthenticatedInstructiuniLibrarySuRouteImport;
       parentRoute: typeof AuthenticatedInstructiuniLibraryRoute;
+    };
+    '/_authenticated/legislatie_/modificari/$changeId': {
+      id: '/_authenticated/legislatie_/modificari/$changeId';
+      path: '/legislatie/modificari/$changeId';
+      fullPath: '/legislatie/modificari/$changeId';
+      preLoaderRoute: typeof AuthenticatedLegislatieModificariChangeIdRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
     };
     '/_authenticated/oferte/$leadId/': {
       id: '/_authenticated/oferte/$leadId/';
@@ -2630,6 +2650,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSetariRoute: typeof AuthenticatedSetariRoute;
   AuthenticatedTesteRoute: typeof AuthenticatedTesteRouteWithChildren;
   AuthenticatedAngajatiIndexRoute: typeof AuthenticatedAngajatiIndexRoute;
+  AuthenticatedLegislatieModificariChangeIdRoute: typeof AuthenticatedLegislatieModificariChangeIdRoute;
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -2648,6 +2669,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSetariRoute: AuthenticatedSetariRoute,
   AuthenticatedTesteRoute: AuthenticatedTesteRouteWithChildren,
   AuthenticatedAngajatiIndexRoute: AuthenticatedAngajatiIndexRoute,
+  AuthenticatedLegislatieModificariChangeIdRoute:
+    AuthenticatedLegislatieModificariChangeIdRoute,
 };
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
