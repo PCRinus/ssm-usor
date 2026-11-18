@@ -1,17 +1,12 @@
 import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 
 import {
-  getGetPortalTrainingSheetsQueryKey,
-  getPortalTrainingSheet,
-  getPortalTrainingSheetLink,
   type PortalClientEmployeesResponse,
   type PortalEmployeeDataResponse,
   useGetPortalEmployeeData,
-  useGetPortalTrainingSheets,
   useListPortalClientEmployees,
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
@@ -26,6 +21,7 @@ import {
 import { ResponsiblePersonsSection } from '@/features/responsible-persons/responsible-persons-section';
 import { SignaturesPanel } from '@/features/signing/signatures-panel';
 import { AwaitingTestsPanel } from '@/features/tests/awaiting-tests-panel';
+import { useOwnSheetAccess } from '@/features/training/sheet-access';
 import { TrainingSummary } from '@/features/training/training-summary';
 import { useFormatDate } from '@/lib/format';
 import { participationKindMessages } from '@/lib/labels';
@@ -127,38 +123,11 @@ function AdministratorOwnData({ participantId }: { participantId: string }) {
 
 function OwnTraining({ participantId }: { participantId: string }) {
   const apiRequest = useApiRequest();
-  const queryClient = useQueryClient();
   const records = useListPortalTrainingRecords(participantId, { request: apiRequest });
-  const sheets = useGetPortalTrainingSheets(participantId, { request: apiRequest });
+  const { access: sheetAccess } = useOwnSheetAccess(participantId);
   if (records.isPending) return <PageLoading />;
   if (records.isError) return <PageFailed onRetry={() => void records.refetch()} />;
-  return (
-    <TrainingSummary
-      records={records.data}
-      sheetAccess={{
-        sheets: sheets.data,
-        loadSheet: (domain, sequence) =>
-          getPortalTrainingSheet(
-            participantId,
-            domain,
-            sequence ? { sequence } : undefined,
-            apiRequest
-          ),
-        loadLink: (domain, sequence, signal) =>
-          getPortalTrainingSheetLink(
-            participantId,
-            domain,
-            { sequence },
-            { ...apiRequest, signal }
-          ),
-        linkScope: [participantId],
-        onStale: () =>
-          void queryClient.invalidateQueries({
-            queryKey: getGetPortalTrainingSheetsQueryKey(participantId),
-          }),
-      }}
-    />
-  );
+  return <TrainingSummary records={records.data} sheetAccess={sheetAccess} />;
 }
 
 function MyDataSummary({ data }: { data: PortalEmployeeDataResponse }) {

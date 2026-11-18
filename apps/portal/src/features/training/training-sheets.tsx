@@ -20,6 +20,7 @@ import { useMissingSheetDataSentence } from './missing-sheet-data';
 import { signedSheet } from './signed-sheet';
 import {
   type LoadSheet,
+  type SheetAccess,
   type SheetLinks,
   storedSequenceOf,
   useSheetActions,
@@ -31,27 +32,15 @@ type Sheet = PortalTrainingSheetsResponse[TrainingDomain];
 
 type TrainingSheetsProps = {
   title: ReactNode;
-  sheets: PortalTrainingSheetsResponse | undefined;
+  access: SheetAccess;
   // Undefined while the records load, so a sheet is not called empty before they arrive; null
   // when they failed, and the sheets then go by their readiness alone.
   records: TrainingRecord[] | null | undefined;
   failed: boolean;
-  loadSheet: LoadSheet;
-  links: SheetLinks;
-  onStale: () => void;
   className?: string;
 };
 
-export function TrainingSheets({
-  title,
-  sheets,
-  records,
-  failed,
-  loadSheet,
-  links,
-  onStale,
-  className,
-}: TrainingSheetsProps) {
+export function TrainingSheets({ title, access, records, failed, className }: TrainingSheetsProps) {
   return (
     <section
       aria-labelledby="training-sheets-title"
@@ -68,11 +57,11 @@ export function TrainingSheets({
           <TrainingSheetCard
             key={domain}
             domain={domain}
-            sheet={sheets?.[domain]}
+            sheet={access.sheets?.[domain]}
             records={records && records.filter((record) => record.domain === domain)}
-            loadSheet={loadSheet}
-            links={links}
-            onStale={onStale}
+            loadSheet={access.loadSheet}
+            links={access}
+            onStale={access.onStale}
           />
         ))
       )}
