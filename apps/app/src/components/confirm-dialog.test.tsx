@@ -56,7 +56,7 @@ describe('ConfirmDialog', () => {
     expect(screen.getByTestId('thing-delete-confirm').textContent).toBe('Se șterge…');
 
     await user.keyboard('{Escape}');
-    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await user.click(screen.getByRole('button', { name: 'Închide' }));
     const overlay = document.querySelector('[data-slot=dialog-overlay]');
     expect(overlay).not.toBeNull();
     await user.click(overlay as Element);
