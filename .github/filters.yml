@@ -31,8 +31,9 @@ app:
   - 'packages/contracts/**'
   - 'apps/api/openapi.json'
   - 'orval.config.ts'
-  # The SPA imports only these engine files; it adds any other engine file it imports.
+  # The SPA imports only the engine's token diff and signing clause; it adds any other engine file it imports.
   - 'packages/document-engine/package.json'
+  - 'packages/document-engine/tsconfig*.json'
   - 'packages/document-engine/src/token-diff.ts'
   - 'packages/document-engine/src/signing.ts'
   - 'packages/document-engine/tools/import/signing.ro.json'
@@ -52,6 +53,7 @@ admin:
   - 'packages/contracts/**'
   # The admin app imports only the engine's token diff; it adds any other engine file it imports.
   - 'packages/document-engine/package.json'
+  - 'packages/document-engine/tsconfig*.json'
   - 'packages/document-engine/src/token-diff.ts'
 # Mail and SMS import their contract by its own subpath, never the package entry, which would
 # bundle every contract. One that starts importing another contract adds its file here, or a
