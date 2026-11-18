@@ -17,7 +17,7 @@ import { filesLabel, uploadSummary, usageLine } from './import-format';
 import { ImportReviewIssues } from './import-review-issues';
 import { LibraryGroup, RisksGroup } from './library/library-group';
 import { ReportImportButton } from './report-import-button';
-import { anchorOf, type Blocker, sectionIds, sectionLabels, sectionOf } from './review-model';
+import { anchorOf, sectionIds, sectionLabels, sectionOf } from './review-model';
 import { SectionHeader, StatusTag } from './review-parts';
 import {
   blockerHeading,
@@ -41,7 +41,7 @@ export function ReviewHub({ detail }: { detail: ImportDetail }) {
   const navigate = useNavigate();
   const [abandoning, setAbandoning] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const blockers = detail.blockers as Blocker[];
+  const blockers = detail.blockers;
   const states = fieldStates(
     proposal,
     review.changes,

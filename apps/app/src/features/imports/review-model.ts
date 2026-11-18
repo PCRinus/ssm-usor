@@ -14,6 +14,8 @@ import {
   fireSmokingPolicyLabels,
   foldText,
   formatCui,
+  type ImportBlocker,
+  type ImportChanges,
   maxEquipmentDurationMonths,
   registeredNameAsWritten,
   registeredNameOffered,
@@ -44,20 +46,9 @@ export type Option = {
 };
 export type ProposedField = { options: Option[] };
 
-type ChangedValue = string | number | boolean | null | string[];
-export type FieldChange = {
-  option?: number;
-  value?: string | number | null;
-  included?: boolean;
-  replace?: boolean;
-};
-export type ItemChange = {
-  included?: boolean;
-  values?: Record<string, ChangedValue>;
-  existingId?: string | null;
-  replace?: string[];
-};
-export type Changes = { fields: Record<string, FieldChange>; items: Record<string, ItemChange> };
+export type Changes = ImportChanges;
+export type FieldChange = Changes['fields'][string];
+export type ItemChange = Changes['items'][string];
 
 export const noChanges: Changes = { fields: {}, items: {} };
 
@@ -1172,10 +1163,7 @@ const spellingLabels: Record<string, string> = {
 
 export const itemSpellingLabel = (field: string) => spellingLabels[field] ?? itemFieldLabel(field);
 
-export type Blocker = {
-  path: string;
-  code: 'choice' | 'missing' | 'unknown_reference' | 'invalid';
-};
+export type Blocker = ImportBlocker;
 
 export type BlockerLink = {
   text: string;
@@ -1655,8 +1643,8 @@ export function substancesAdded(
 }
 
 export const changesOf = (changes: ImportDetail['changes']): Changes => ({
-  fields: (changes?.fields ?? {}) as Changes['fields'],
-  items: (changes?.items ?? {}) as Changes['items'],
+  fields: changes?.fields ?? {},
+  items: changes?.items ?? {},
 });
 
 export const personalPaths = new Set([

@@ -22,7 +22,6 @@ import {
   WorkplacesSection,
 } from './review-items';
 import {
-  type Blocker,
   type SectionId,
   sectionIds,
   sectionLabels,
@@ -77,16 +76,16 @@ export function ReviewSectionPage({
     importId: detail.id,
     openSource: (title, sources, otherCompanyName) =>
       setSource({ title, sources, otherCompanyName }),
-    blockers: detail.blockers as Blocker[],
+    blockers: detail.blockers,
   };
   const statuses = sectionStatuses(
     proposal,
     review.changes,
-    detail.blockers as Blocker[],
+    detail.blockers,
     withoutAbsentCategories(states, keptPosts(proposal, review.changes, existing.positions)),
     registered
   );
-  const links = blockerLinks(proposal, review.changes, detail.blockers as Blocker[]).filter(
+  const links = blockerLinks(proposal, review.changes, detail.blockers).filter(
     (link) => link.section === section
   );
   const hints =
