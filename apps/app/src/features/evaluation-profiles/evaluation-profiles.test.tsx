@@ -1,50 +1,31 @@
 import { evaluationGlobalRiskLevel, riskLevel } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type {
   RiskEvaluation,
   RiskFactor,
 } from '@/features/risk-evaluations/risk-evaluation-schema';
+import { bodiesOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientId, clientRecord, jobPositionRecord, pageOf, userOnlyMe } from '@/test/records';
 
 import { type EvaluationProfile, profileCountLabel, profileTotalsLabel } from './profile-schema';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord();
 
-const accountant = {
+const accountant = jobPositionRecord({
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   name: 'Contabil',
-  staffCategory: 'execution',
   workZone: 'Birou',
   activities: 'Evidența contabilă.',
-  trainingIntervalMonths: null as number | null,
   employeeCount: 2,
-  needsProtectiveEquipment: false as boolean | null,
-  equipmentCount: 0,
-  instructionCount: 0,
+  needsProtectiveEquipment: false,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
-};
+});
 
 const stamp = '2026-10-02T10:00:00.000Z';
 let nextId = 0;
@@ -163,9 +144,7 @@ const evaluationsPath = `/clients/${clientId}/risk-evaluations`;
 
 type Handler = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockApi({
+function mockProfilesApi({
   profiles = [office, driver],
   evaluation = accountantEvaluation,
   client = sampleClient,
@@ -195,165 +174,131 @@ function mockApi({
       })),
     });
 
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const { pathname } = url;
-    const method = init?.method ?? 'GET';
-    const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (pathname === positionsPath) return Response.json({ items: [accountant] });
-    if (pathname === '/risk-factor-suggestions') return Response.json({ items: [] });
-    if (pathname === `${positionsPath}/${accountant.id}/risk-evaluation`) {
-      return Response.json({ evaluation: current });
-    }
-    if (pathname === evaluationsPath) {
-      return Response.json({ items: [summaryOf(current)] });
-    }
-    if (pathname === `${evaluationsPath}/${current.id}/save-as-profile`) {
-      const saved = makeProfile({
-        name: String(body.name),
-        factors: current.factors.map((f) => ({ ...f, sourceProfile: null })),
-      });
-      const link = { id: saved.id, name: saved.name };
-      current = makeEvaluation({
-        ...current,
-        factors: current.factors.map((f) => ({ ...f, sourceProfile: f.sourceProfile ?? link })),
-      });
-      return answer(saved, 201);
-    }
-    if (pathname === `${evaluationsPath}/${current.id}/factors/apply-profile`) {
-      const profile = library.get(String(body.profileId))!;
-      if (profile.archivedAt) return conflict('evaluation_profile_archived');
-      current = makeEvaluation({
-        ...current,
-        factors: [
-          ...current.factors,
-          ...profile.factors.map((f) => ({
-            ...f,
-            id: uuid(),
-            sourceProfile: { id: profile.id, name: profile.name },
-          })),
-        ],
-      });
-      return Response.json({ evaluation: current, addedFactorCount: profile.factors.length });
-    }
-    if (pathname === '/evaluation-profiles') {
-      if (method === 'POST') {
-        return (createProfile ?? (() => answer(makeProfile({ name: String(body.name) }), 201)))(
-          init
+  mockApi(
+    (init, url) => {
+      const { pathname } = url;
+      const method = init?.method ?? 'GET';
+      const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
+      if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === positionsPath) return Response.json({ items: [accountant] });
+      if (pathname === '/risk-factor-suggestions') return Response.json({ items: [] });
+      if (pathname === `${positionsPath}/${accountant.id}/risk-evaluation`) {
+        return Response.json({ evaluation: current });
+      }
+      if (pathname === evaluationsPath) {
+        return Response.json({ items: [summaryOf(current)] });
+      }
+      if (pathname === `${evaluationsPath}/${current.id}/save-as-profile`) {
+        const saved = makeProfile({
+          name: String(body.name),
+          factors: current.factors.map((f) => ({ ...f, sourceProfile: null })),
+        });
+        const link = { id: saved.id, name: saved.name };
+        current = makeEvaluation({
+          ...current,
+          factors: current.factors.map((f) => ({ ...f, sourceProfile: f.sourceProfile ?? link })),
+        });
+        return answer(saved, 201);
+      }
+      if (pathname === `${evaluationsPath}/${current.id}/factors/apply-profile`) {
+        const profile = library.get(String(body.profileId))!;
+        if (profile.archivedAt) return conflict('evaluation_profile_archived');
+        current = makeEvaluation({
+          ...current,
+          factors: [
+            ...current.factors,
+            ...profile.factors.map((f) => ({
+              ...f,
+              id: uuid(),
+              sourceProfile: { id: profile.id, name: profile.name },
+            })),
+          ],
+        });
+        return Response.json({ evaluation: current, addedFactorCount: profile.factors.length });
+      }
+      if (pathname === '/evaluation-profiles') {
+        if (method === 'POST') {
+          return (createProfile ?? (() => answer(makeProfile({ name: String(body.name) }), 201)))(
+            init
+          );
+        }
+        const archived = url.searchParams.get('status') === 'archived';
+        const tab = [...library.values()].filter(
+          (profile) => (profile.archivedAt !== null) === archived
         );
-      }
-      const archived = url.searchParams.get('status') === 'archived';
-      const tab = [...library.values()].filter(
-        (profile) => (profile.archivedAt !== null) === archived
-      );
-      const q = url.searchParams.get('q')?.toLowerCase();
-      const levels = url.searchParams.getAll('level');
-      const unused = url.searchParams.getAll('usage').includes('unused');
-      const levelOf = ({ globalRiskLevel: level, factors }: EvaluationProfile) =>
-        factors.length === 0 ? 'none' : level !== null && level > 3.5 ? 'over' : 'within';
-      const items = tab
-        .filter(
-          (profile) =>
-            (!q || profile.name.toLowerCase().includes(q)) &&
-            (levels.length === 0 || levels.includes(levelOf(profile))) &&
-            (!unused || !usages.has(profile.id))
-        )
-        .sort(byName)
-        .map(profileSummaryOf);
-      if (url.searchParams.get('order') === 'desc') items.reverse();
-      return Response.json({
-        items,
-        page: 1,
-        pageSize: 25,
-        total: items.length,
-        unfilteredTotal: tab.length,
-      });
-    }
-    if (pathname === '/evaluation-profiles/choices') {
-      return Response.json({
-        items: [...library.values()]
-          .filter((profile) => profile.archivedAt === null && profile.factors.length > 0)
+        const q = url.searchParams.get('q')?.toLowerCase();
+        const levels = url.searchParams.getAll('level');
+        const unused = url.searchParams.getAll('usage').includes('unused');
+        const levelOf = ({ globalRiskLevel: level, factors }: EvaluationProfile) =>
+          factors.length === 0 ? 'none' : level !== null && level > 3.5 ? 'over' : 'within';
+        const items = tab
+          .filter(
+            (profile) =>
+              (!q || profile.name.toLowerCase().includes(q)) &&
+              (levels.length === 0 || levels.includes(levelOf(profile))) &&
+              (!unused || !usages.has(profile.id))
+          )
           .sort(byName)
-          .map(profileSummaryOf),
-      });
-    }
-    const usageMatch = pathname.match(/^\/evaluation-profiles\/([^/]+)\/usage$/);
-    if (usageMatch) return usage(usageMatch[1]!);
-    const match = pathname.match(/^\/evaluation-profiles\/([^/]+)(?:\/factors(?:\/([^/]+))?)?$/);
-    if (match) {
-      const [, profileId, factorId] = match;
-      const profile = library.get(profileId!);
-      if (!profile) return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
-      const factorsPath = pathname.endsWith('/factors') || factorId;
-      if (!factorsPath) {
-        if (method === 'DELETE') {
-          if (profile.inUse) return conflict('evaluation_profile_in_use');
-          library.delete(profile.id);
-          return new Response(null, { status: 204 });
-        }
-        if (method === 'PATCH') {
-          return answer({
-            ...profile,
-            ...(body.name === undefined ? {} : { name: String(body.name) }),
-            ...(body.archived === undefined ? {} : { archivedAt: body.archived ? stamp : null }),
-            ...Object.fromEntries(
-              (['meansOfProduction', 'workEnvironment', 'exposure'] as const)
-                .filter((field) => body[field] !== undefined)
-                .map((field) => [field, body[field] as string | null])
-            ),
-          });
-        }
-        return Response.json({ profile });
+          .map(profileSummaryOf);
+        if (url.searchParams.get('order') === 'desc') items.reverse();
+        return Response.json({ ...pageOf(items), unfilteredTotal: tab.length });
       }
-      if (factorId && method === 'DELETE') {
-        return answer({ ...profile, factors: profile.factors.filter((f) => f.id !== factorId) });
+      if (pathname === '/evaluation-profiles/choices') {
+        return Response.json({
+          items: [...library.values()]
+            .filter((profile) => profile.archivedAt === null && profile.factors.length > 0)
+            .sort(byName)
+            .map(profileSummaryOf),
+        });
       }
-      return answer({ ...profile, factors: [...profile.factors, toFactor(body)] }, 201);
-    }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
+      const usageMatch = pathname.match(/^\/evaluation-profiles\/([^/]+)\/usage$/);
+      if (usageMatch) return usage(usageMatch[1]!);
+      const match = pathname.match(/^\/evaluation-profiles\/([^/]+)(?:\/factors(?:\/([^/]+))?)?$/);
+      if (match) {
+        const [, profileId, factorId] = match;
+        const profile = library.get(profileId!);
+        if (!profile) return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
+        const factorsPath = pathname.endsWith('/factors') || factorId;
+        if (!factorsPath) {
+          if (method === 'DELETE') {
+            if (profile.inUse) return conflict('evaluation_profile_in_use');
+            library.delete(profile.id);
+            return new Response(null, { status: 204 });
+          }
+          if (method === 'PATCH') {
+            return answer({
+              ...profile,
+              ...(body.name === undefined ? {} : { name: String(body.name) }),
+              ...(body.archived === undefined ? {} : { archivedAt: body.archived ? stamp : null }),
+              ...Object.fromEntries(
+                (['meansOfProduction', 'workEnvironment', 'exposure'] as const)
+                  .filter((field) => body[field] !== undefined)
+                  .map((field) => [field, body[field] as string | null])
+              ),
+            });
+          }
+          return Response.json({ profile });
+        }
+        if (factorId && method === 'DELETE') {
+          return answer({ ...profile, factors: profile.factors.filter((f) => f.id !== factorId) });
+        }
+        return answer({ ...profile, factors: [...profile.factors, toFactor(body)] }, 201);
+      }
+    },
+    { me: userOnlyMe }
+  );
 }
 
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
-
 const listQuery = (index = 0) =>
-  new URL(
-    String(
-      fetchMock.mock.calls
-        .filter(
-          ([input, init]) =>
-            new URL(String(input)).pathname === '/evaluation-profiles' &&
-            (init?.method ?? 'GET') === 'GET'
-        )
-        .at(index)![0]
-    )
-  ).searchParams;
+  new URL(String(requestsTo('/evaluation-profiles').at(index)![0])).searchParams;
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the risk library', () => {
   it('is a sidebar entry beside the instructions', async () => {
-    mockApi();
+    mockProfilesApi();
     mount('/evaluari-de-risc');
     await screen.findByTestId('risk-library');
     const entries = [...document.querySelectorAll('[data-testid^="nav-"]')].map((link) =>
@@ -368,7 +313,7 @@ describe('the risk library', () => {
   });
 
   it('explains how profiles come to exist while it is empty', async () => {
-    mockApi({ profiles: [] });
+    mockProfilesApi({ profiles: [] });
     mount('/evaluari-de-risc');
     const empty = await screen.findByTestId('risk-library-empty');
     expect(empty.textContent).toContain('Salvează în bibliotecă');
@@ -376,7 +321,7 @@ describe('the risk library', () => {
   });
 
   it('reads status=active in the address as the active tab', async () => {
-    mockApi();
+    mockProfilesApi();
     mount('/evaluari-de-risc?status=active');
     await screen.findAllByTestId('risk-profile-row');
     expect(screen.getByTestId('risk-library-filter-active').getAttribute('aria-current')).toBe(
@@ -393,7 +338,7 @@ describe('the risk library', () => {
         makeFactor({ description: 'Zgomot', gravityClass: 2, probabilityClass: 4 }),
       ],
     });
-    mockApi({ profiles: [office, driver, crane] });
+    mockProfilesApi({ profiles: [office, driver, crane] });
     mount('/evaluari-de-risc');
     const rows = await screen.findAllByTestId('risk-profile-row');
     expect(rows.map((row) => within(row).getByTestId('risk-profile-open').textContent)).toEqual([
@@ -440,7 +385,7 @@ describe('the risk library', () => {
         makeFactor({ description: 'Zgomot', gravityClass: 2, probabilityClass: 4 }),
       ],
     });
-    mockApi({ profiles: [{ ...unstored, globalRiskLevel: null }] });
+    mockProfilesApi({ profiles: [{ ...unstored, globalRiskLevel: null }] });
     mount('/evaluari-de-risc');
     const [row] = await screen.findAllByTestId('risk-profile-row');
     expect(within(row!).getByTestId('risk-profile-level').textContent).toBe(
@@ -449,7 +394,7 @@ describe('the risk library', () => {
   });
 
   it('sorts by the columns the library can sort, in the URL and from the first page', async () => {
-    mockApi();
+    mockProfilesApi();
     const runtime = mount('/evaluari-de-risc?page=2');
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-profile-row');
@@ -474,7 +419,7 @@ describe('the risk library', () => {
   });
 
   it('offers deleting only a profile no client uses, and archiving in any case', async () => {
-    mockApi();
+    mockProfilesApi();
     mount('/evaluari-de-risc');
     const user = userEvent.setup();
     const [used, unused] = await screen.findAllByTestId('risk-profile-row');
@@ -494,7 +439,7 @@ describe('the risk library', () => {
   });
 
   it('archives a profile in use after asking, shows it under Arhivate and reactivates it', async () => {
-    mockApi();
+    mockProfilesApi();
     const runtime = mount('/evaluari-de-risc');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('risk-profile-row');
@@ -504,10 +449,10 @@ describe('the risk library', () => {
     expect(within(dialog).getByRole('heading').textContent).toBe('Arhivezi evaluarea?');
     expect(dialog.textContent).toContain('nu mai apare în „Aplică din bibliotecă”');
     expect(dialog.textContent).toContain('fișele clienților care o folosesc nu se schimbă');
-    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([]);
+    expect(bodiesOf(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([]);
     await user.click(within(dialog).getByTestId('risk-profile-archive-confirm'));
     expect(await screen.findByText('„Lucrător de birou” a fost arhivată.')).toBeTruthy();
-    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([{ archived: true }]);
+    expect(bodiesOf(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([{ archived: true }]);
     await waitFor(() =>
       expect(screen.getAllByTestId('risk-profile-open').map((link) => link.textContent)).toEqual([
         'Șofer',
@@ -532,7 +477,7 @@ describe('the risk library', () => {
     expect(within(restore).getByRole('heading').textContent).toBe('Reactivezi evaluarea?');
     await user.click(within(restore).getByTestId('risk-profile-archive-confirm'));
     expect(await screen.findByText('„Lucrător de birou” a fost reactivată.')).toBeTruthy();
-    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
+    expect(bodiesOf(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
       { archived: true },
       { archived: false },
     ]);
@@ -542,7 +487,7 @@ describe('the risk library', () => {
   });
 
   it('says nothing of clients when archiving a profile none uses, and offers deleting it once archived', async () => {
-    mockApi({ profiles: [office, makeProfile({ name: 'Casier' })] });
+    mockProfilesApi({ profiles: [office, makeProfile({ name: 'Casier' })] });
     mount('/evaluari-de-risc');
     const user = userEvent.setup();
     const [unused] = await screen.findAllByTestId('risk-profile-row');
@@ -577,21 +522,21 @@ describe('the risk library', () => {
   });
 
   it('starts a profile by name and opens it', async () => {
-    mockApi();
+    mockProfilesApi();
     const runtime = mount('/evaluari-de-risc');
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-profile-new'));
     await user.type(await screen.findByTestId('profile-name'), 'Casier');
     await user.click(screen.getByTestId('profile-name-submit'));
     await screen.findByTestId('risk-profile-page');
-    expect(requests('/evaluation-profiles', 'POST')).toEqual([{ name: 'Casier' }]);
+    expect(bodiesOf('/evaluation-profiles', 'POST')).toEqual([{ name: 'Casier' }]);
     expect(runtime.router.state.location.pathname).toMatch(/^\/evaluari-de-risc\/[0-9a-f-]+$/);
     expect(screen.getByRole('heading', { level: 1, name: 'Casier' })).toBeTruthy();
     expect(screen.getByTestId('risk-factors-empty')).toBeTruthy();
   });
 
   it('puts a name the library already holds on the field', async () => {
-    mockApi({
+    mockProfilesApi({
       createProfile: () =>
         Response.json(
           {
@@ -613,7 +558,7 @@ describe('the risk library', () => {
   });
 
   it('renames a profile from its row', async () => {
-    mockApi();
+    mockProfilesApi();
     mount('/evaluari-de-risc');
     const user = userEvent.setup();
     const [row] = await screen.findAllByTestId('risk-profile-row');
@@ -624,14 +569,14 @@ describe('the risk library', () => {
     await user.type(name, 'Birou');
     await user.click(screen.getByTestId('profile-name-submit'));
     await waitFor(() =>
-      expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([{ name: 'Birou' }])
+      expect(bodiesOf(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([{ name: 'Birou' }])
     );
   });
 });
 
 describe('a profile page', () => {
   it('shows the way back to the library while it loads', async () => {
-    mockApi();
+    mockProfilesApi();
     const ownLibrary = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation((input, init) =>
       new URL(String(input)).pathname === `/evaluation-profiles/${office.id}`
@@ -646,7 +591,7 @@ describe('a profile page', () => {
   });
 
   it('shows the result and the factors with the evaluation page’s own card', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(`/evaluari-de-risc/${office.id}`);
     await screen.findByTestId('risk-profile-page');
     expect(screen.getByTestId('risk-global-level').textContent).toBe('3,33');
@@ -664,7 +609,7 @@ describe('a profile page', () => {
   });
 
   it('says above the factors that their plan fields are defaults', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(`/evaluari-de-risc/${office.id}`);
     const card = await screen.findByTestId('risk-factors-card');
     expect(
@@ -680,7 +625,7 @@ describe('a profile page', () => {
       meansOfProduction: 'Strung, polizor',
       exposure: '6 h / zi',
     });
-    mockApi({ profiles: [workshop] });
+    mockProfilesApi({ profiles: [workshop] });
     mount(`/evaluari-de-risc/${workshop.id}`);
     const card = await screen.findByTestId('work-system-card');
     expect(
@@ -700,7 +645,7 @@ describe('a profile page', () => {
     await user.clear(screen.getByTestId('work-system-exposure-input'));
     await user.click(screen.getByTestId('work-system-save'));
     await waitFor(() =>
-      expect(requests(`/evaluation-profiles/${workshop.id}`, 'PATCH')).toEqual([
+      expect(bodiesOf(`/evaluation-profiles/${workshop.id}`, 'PATCH')).toEqual([
         { meansOfProduction: 'Strung, polizor', workEnvironment: 'Hală ventilată', exposure: null },
       ])
     );
@@ -710,7 +655,7 @@ describe('a profile page', () => {
   });
 
   it('adds a factor with the evaluation page’s dialog', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(`/evaluari-de-risc/${driver.id}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factor-add'));
@@ -723,7 +668,7 @@ describe('a profile page', () => {
     await user.selectOptions(screen.getByTestId('risk-factor-probability'), '5');
     await user.click(screen.getByTestId('risk-factor-save'));
     await waitFor(() =>
-      expect(requests(`/evaluation-profiles/${driver.id}/factors`, 'POST')).toEqual([
+      expect(bodiesOf(`/evaluation-profiles/${driver.id}/factors`, 'POST')).toEqual([
         {
           component: 'work_environment',
           group: 'Factori de risc fizic',
@@ -744,7 +689,7 @@ describe('a profile page', () => {
 
   it('deletes a profile no client uses after asking, and goes back to the library', async () => {
     const unused = makeProfile({ name: 'Casier', factors: [electrocution, screenWork] });
-    mockApi({ profiles: [office, unused] });
+    mockProfilesApi({ profiles: [office, unused] });
     const runtime = mount(`/evaluari-de-risc/${unused.id}`);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-profile-remove'));
@@ -753,7 +698,7 @@ describe('a profile page', () => {
     expect(dialog.textContent).toContain('Nu o folosește niciun client.');
     await user.click(within(dialog).getByTestId('risk-profile-remove-confirm'));
     await screen.findByTestId('risk-library');
-    expect(requests(`/evaluation-profiles/${unused.id}`, 'DELETE')).toHaveLength(1);
+    expect(bodiesOf(`/evaluation-profiles/${unused.id}`, 'DELETE')).toHaveLength(1);
     expect(runtime.router.state.location.pathname).toBe('/evaluari-de-risc');
     expect(
       (await screen.findAllByTestId('risk-profile-open')).map((link) => link.textContent)
@@ -761,7 +706,7 @@ describe('a profile page', () => {
   });
 
   it('says why a profile a client started using meanwhile is not deleted', async () => {
-    mockApi();
+    mockProfilesApi();
     const ownLibrary = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation(async (input, init) =>
       new URL(String(input)).pathname === `/evaluation-profiles/${driver.id}` &&
@@ -780,7 +725,7 @@ describe('a profile page', () => {
   });
 
   it('offers archiving in place of deleting while clients use the profile', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(`/evaluari-de-risc/${office.id}`);
     const user = userEvent.setup();
     expect(screen.queryByTestId('risk-profile-remove')).toBeNull();
@@ -798,7 +743,7 @@ describe('a profile page', () => {
       )
     );
     await waitFor(() => expect(screen.queryByTestId('risk-profile-archived')).toBeNull());
-    expect(requests(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
+    expect(bodiesOf(`/evaluation-profiles/${office.id}`, 'PATCH')).toEqual([
       { archived: true },
       { archived: false },
     ]);
@@ -822,7 +767,7 @@ describe('a profile page', () => {
       linkedFactorCount: 2,
     });
     const visitorsUse = profileUse({ kind: 'other', name: 'Vizitatori' });
-    mockApi({
+    mockProfilesApi({
       usage: () =>
         Response.json({
           items: [
@@ -865,7 +810,7 @@ describe('a profile page', () => {
   });
 
   it('says how a profile comes to be used while no evaluation uses it', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(`/evaluari-de-risc/${driver.id}`);
     const empty = await screen.findByTestId('risk-profile-usage-empty');
     expect(empty.textContent).toContain('nu este folosită încă la niciun client');
@@ -873,7 +818,7 @@ describe('a profile page', () => {
   });
 
   it('says why a profile used only by archived posts cannot be deleted', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(`/evaluari-de-risc/${office.id}`);
     const archivedOnly = await screen.findByTestId('risk-profile-usage-archived-only');
     expect(archivedOnly.textContent).toContain('posturi arhivate');
@@ -884,7 +829,7 @@ describe('a profile page', () => {
 
   it('offers to retry when the evaluations using the profile do not load', async () => {
     let failing = true;
-    mockApi({
+    mockProfilesApi({
       usage: () =>
         failing
           ? Response.json({ error: 'forbidden', message: 'no' }, { status: 403 })
@@ -899,7 +844,7 @@ describe('a profile page', () => {
   });
 
   it('is not found for a profile the library does not hold', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(`/evaluari-de-risc/${uuid()}`);
     expect(await screen.findByTestId('risk-profile-not-found')).toBeTruthy();
   });
@@ -907,7 +852,7 @@ describe('a profile page', () => {
 
 describe('an evaluation and the library', () => {
   it('invites saving a hand-typed evaluation into the library, under the position’s name', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(accountantEvaluationPath);
     const user = userEvent.setup();
     const nudge = await screen.findByTestId('risk-library-nudge');
@@ -925,7 +870,7 @@ describe('an evaluation and the library', () => {
     await user.click(within(dialog).getByTestId('profile-name-submit'));
     await waitFor(() =>
       expect(
-        requests(`${evaluationsPath}/${accountantEvaluation.id}/save-as-profile`, 'POST')
+        bodiesOf(`${evaluationsPath}/${accountantEvaluation.id}/save-as-profile`, 'POST')
       ).toEqual([{ name: 'Contabil' }])
     );
     expect(await screen.findByText(/Evaluarea „Contabil” a fost salvată/)).toBeTruthy();
@@ -939,7 +884,7 @@ describe('an evaluation and the library', () => {
   });
 
   it('keeps the invitation away from an evaluation once dismissed', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(accountantEvaluationPath);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-library-nudge-dismiss'));
@@ -952,7 +897,7 @@ describe('an evaluation and the library', () => {
   });
 
   it('does not invite saving once any factor is in the library', async () => {
-    mockApi({
+    mockProfilesApi({
       evaluation: makeEvaluation({
         factors: [
           makeFactor({ description: 'Lovire de mobilier', gravityClass: 1, probabilityClass: 1 }),
@@ -974,7 +919,7 @@ describe('an evaluation and the library', () => {
   });
 
   it('does not invite saving under an archived client, which can still save from the header', async () => {
-    mockApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
+    mockProfilesApi({ client: { ...sampleClient, archivedAt: '2026-09-18T10:00:00+00:00' } });
     mount(accountantEvaluationPath);
     await screen.findByTestId('risk-evaluation-save-as-profile');
     expect(screen.queryByTestId('risk-library-nudge')).toBeNull();
@@ -983,7 +928,7 @@ describe('an evaluation and the library', () => {
 
   it('names the one profile all the factors are in once, above the rows', async () => {
     const link = { id: office.id, name: office.name };
-    mockApi({
+    mockProfilesApi({
       evaluation: makeEvaluation({
         factors: [
           makeFactor({
@@ -1019,7 +964,7 @@ describe('an evaluation and the library', () => {
       probabilityClass: 2,
       sourceProfile: { id: office.id, name: office.name },
     });
-    mockApi({
+    mockProfilesApi({
       evaluation: makeEvaluation({
         factors: [
           linked,
@@ -1045,7 +990,7 @@ describe('an evaluation and the library', () => {
   });
 
   it('offers no saving for an evaluation without factors', async () => {
-    mockApi({ evaluation: makeEvaluation({ factors: [] }) });
+    mockProfilesApi({ evaluation: makeEvaluation({ factors: [] }) });
     mount(accountantEvaluationPath);
     await screen.findByTestId('risk-factors-empty');
     expect(screen.queryByTestId('risk-evaluation-save-as-profile')).toBeNull();
@@ -1055,7 +1000,7 @@ describe('an evaluation and the library', () => {
   });
 
   it('applies a profile with factors, adds its factors after the others and says how many', async () => {
-    mockApi();
+    mockProfilesApi();
     mount(accountantEvaluationPath);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factors-apply-profile'));
@@ -1071,7 +1016,7 @@ describe('an evaluation and the library', () => {
     await user.click(within(dialog).getByTestId('apply-profile-confirm'));
     await waitFor(() =>
       expect(
-        requests(`${evaluationsPath}/${accountantEvaluation.id}/factors/apply-profile`, 'POST')
+        bodiesOf(`${evaluationsPath}/${accountantEvaluation.id}/factors/apply-profile`, 'POST')
       ).toEqual([{ profileId: office.id }])
     );
     expect(
@@ -1084,7 +1029,7 @@ describe('an evaluation and the library', () => {
   });
 
   it('chooses from every profile it can apply, read apart from the library’s pages', async () => {
-    mockApi({
+    mockProfilesApi({
       profiles: [
         office,
         makeProfile({ name: 'Arhivat', factors: [electrocution], archivedAt: stamp }),
@@ -1098,12 +1043,12 @@ describe('an evaluation and the library', () => {
     expect(
       options.map((option) => within(option).getByRole('radio').getAttribute('value'))
     ).toEqual([office.id]);
-    expect(requests('/evaluation-profiles/choices', 'GET')).toHaveLength(1);
-    expect(requests('/evaluation-profiles', 'GET')).toHaveLength(0);
+    expect(bodiesOf('/evaluation-profiles/choices', 'GET')).toHaveLength(1);
+    expect(bodiesOf('/evaluation-profiles', 'GET')).toHaveLength(0);
   });
 
   it('says how a profile comes to exist when the library has none with factors', async () => {
-    mockApi({ profiles: [driver] });
+    mockProfilesApi({ profiles: [driver] });
     mount(accountantEvaluationPath);
     const user = userEvent.setup();
     await user.click(await screen.findByTestId('risk-factors-apply-profile'));
@@ -1125,7 +1070,7 @@ describe('searching and filtering the risk library', () => {
   });
 
   it('searches by post within the open tab, keeping the words in the address', async () => {
-    mockApi({ profiles: [office, driver, crane] });
+    mockProfilesApi({ profiles: [office, driver, crane] });
     const runtime = mount('/evaluari-de-risc');
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-profile-row');
@@ -1141,7 +1086,7 @@ describe('searching and filtering the risk library', () => {
   });
 
   it('filters by the global level and by Nefolosită, without counts beside the options', async () => {
-    mockApi({ profiles: [office, driver, crane] });
+    mockProfilesApi({ profiles: [office, driver, crane] });
     const runtime = mount('/evaluari-de-risc');
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-profile-row');
@@ -1177,7 +1122,7 @@ describe('searching and filtering the risk library', () => {
   });
 
   it('sorts by the global level, the highest first on the first click', async () => {
-    mockApi({ profiles: [office, driver, crane] });
+    mockProfilesApi({ profiles: [office, driver, crane] });
     const runtime = mount('/evaluari-de-risc');
     const user = userEvent.setup();
     await screen.findAllByTestId('risk-profile-row');
@@ -1197,7 +1142,7 @@ describe('searching and filtering the risk library', () => {
   });
 
   it('says when no entry matches, and clears the filters only, keeping the search', async () => {
-    mockApi({ profiles: [office, driver] });
+    mockProfilesApi({ profiles: [office, driver] });
     const runtime = mount('/evaluari-de-risc?level=over&q=birou');
     const empty = await screen.findByTestId('risk-library-empty-filtered');
     expect(empty.textContent).toContain('Nicio evaluare nu se potrivește');
@@ -1214,7 +1159,7 @@ describe('searching and filtering the risk library', () => {
   });
 
   it('clears a search that finds nothing from the empty state', async () => {
-    mockApi();
+    mockProfilesApi();
     const runtime = mount('/evaluari-de-risc?q=stivuitorist');
     const empty = await screen.findByTestId('risk-library-empty-filtered');
     expect(empty.textContent).toContain(
@@ -1227,7 +1172,7 @@ describe('searching and filtering the risk library', () => {
   });
 
   it('puts Evaluare nouă in the message of an empty library, with no search, filters or count', async () => {
-    mockApi({ profiles: [] });
+    mockProfilesApi({ profiles: [] });
     mount('/evaluari-de-risc');
     const empty = await screen.findByTestId('risk-library-empty');
     expect(empty.textContent).toContain('Nicio evaluare încă');
