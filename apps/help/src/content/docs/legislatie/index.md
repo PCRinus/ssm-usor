@@ -16,6 +16,8 @@ topics:
     heading: O modificare în analiză
   - id: legislatie.incheiere
     heading: Cum se încheie o modificare
+  - id: legislatie.aplicate
+    heading: Modificările aplicate în documente
   - id: legislatie.documente
     heading: Documentele de actualizat
   - id: legislatie.ce-nu-faci
@@ -32,6 +34,9 @@ sources:
   - apps/app/src/features/legislation/watched-act-cells.tsx
   - apps/app/src/features/legislation/watched-act-list.ts
   - apps/app/src/features/legislation/legal-changes.tsx
+  - apps/app/src/features/legislation/legal-change-copy.ts
+  - apps/app/src/features/legislation/legal-change-page.tsx
+  - apps/app/src/features/legislation/legal-change-details.tsx
   - apps/app/src/features/legislation/documents-behind.tsx
   - apps/app/src/features/legislation/behind-cells.tsx
   - apps/app/src/features/legislation/regeneration-copy.ts
@@ -46,7 +51,7 @@ Documentele pe care le generează aplicația citează legislația: unele paragra
 Pagina are patru secțiuni, fiecare într-un tab:
 
 - **Documente SSM de actualizat** și **Documente SU de actualizat**: documentele clienților tăi generate dintr-o versiune mai veche a șablonului, de dinaintea unei modificări legislative sau a unei corecturi, și instrucțiunile proprii și tematicile generate din instrucțiuni schimbate între timp în bibliotecă sau la posturile de lucru. Numărul de pe tab spune câte documente ai de actualizat; un tab fără număr e la zi;
-- **Modificări**: formele consolidate noi ale actelor urmărite, cele mai recente primele, fiecare cu ce a schimbat și cum s-a încheiat;
+- **Modificări**: formele consolidate noi ale actelor urmărite. Sus, cât timp există, cele **În analiză**; dedesubt, cele **aplicate în documente**, cele mai recente primele. Fiecare rând deschide pagina modificării;
 - **Acte urmărite**: actele normative pe care le citează documentele aplicației.
 
 Pagina se deschide mereu pe **Documente SSM de actualizat**. Același număr de documente apare în meniu, lângă **Legislație** (și lângă secțiunile ei, când meniul le arată), și pe Dashboard, în **Ce ai de făcut**, cu drum direct spre tabul care are documente.
@@ -97,17 +102,48 @@ Lista pune întâi actele cu o modificare în analiză, apoi pe celelalte după 
 
 O modificare rămâne **În analiză** până se încheie. Verificarea compară textul articolelor citate în forma pe care o urmează documentele cu textul lor în forma nouă și spune ce a găsit:
 
-- **Modifică un text citat în documente**: textul unui articol pe care un document îl preia s-a schimbat. Pe secțiunea **Modificări** vezi textul vechi și cel nou al articolului și documentele care îl preiau;
+- **Modifică un text citat în documente**: textul unui articol pe care un document îl preia s-a schimbat. Pe pagina modificării vezi textul vechi și cel nou al articolului și documentele care îl preiau;
 - **Modifică un articol la care trimit documentele**: s-a schimbat un articol la care documentele doar trimit, sau modificarea trebuie citită de un om, de exemplu când un articol citat a fost abrogat ori actul a fost republicat și articolele lui pot avea alte numere.
 
-Până la prima comparație, sub eticheta „În analiză” scrie „Modificarea nu a fost încă analizată”. Rândul de sub etichetă te duce la modificare, pe secțiunea **Modificări**.
+Până la prima comparație, sub eticheta „În analiză” scrie „Modificarea nu a fost încă analizată”. Rândul de sub etichetă deschide pagina modificării.
+
+Pe **Modificări**, panoul **În analiză** apare doar cât timp există o modificare deschisă. Fiecare rând are data formei consolidate, actul cu titlul lui, ce a găsit comparația („Nu a fost încă analizată.” până la prima comparație), cu articolele atinse, și, dedesubt:
+
+- **Atinge**: documentele care preiau sau numesc articolele schimbate;
+- **Poate atinge**: cât timp modificarea nu a fost comparată, documentele care citează actul. Când sunt mai mult de trei, rândul spune câte sunt, pe seturi.
 
 ## Cum se încheie o modificare
 
 O modificare se încheie în unul din două feluri:
 
 - **Fără impact asupra documentelor**: articolele citate au rămas la fel. Când comparația arată asta, verificarea zilnică închide singură modificarea, cu o notă despre articolele schimbate. Pe celelalte le citește echipa SSM Ușor și le închide așa dacă nu ating documentele;
-- **Șablon actualizat**: textul documentelor trebuia schimbat. Echipa SSM Ușor actualizează șabloanele documentelor atinse, iar modificarea se închide odată cu versiunea nouă, care ajunge în aplicație cu o actualizare. Pe **Modificări** vezi nota versiunii și documentele pe care le-a schimbat.
+- **Șablon actualizat**: textul documentelor trebuia schimbat. Echipa SSM Ușor actualizează șabloanele documentelor atinse, iar modificarea se închide odată cu versiunea nouă, care ajunge în aplicație cu o actualizare. Modificarea trece atunci la **Aplicate în documente**.
+
+Modificările fără impact nu apar pe **Modificări**, pentru că nu ai nimic de făcut pentru ele. Ultima formă consolidată a fiecărui act rămâne în lista **Acte urmărite**.
+
+## Modificările aplicate în documente
+
+Sub **În analiză**, lista **Aplicate în documente** arată modificările pe care un șablon nou le-a preluat, după data formei consolidate, cele mai noi primele, câte 20 pe pagină. Fiecare rând are:
+
+- actul și titlul lui;
+- ce s-a schimbat, în cuvinte, din nota versiunii noi a șablonului;
+- **A actualizat**: documentele al căror șablon s-a schimbat;
+- în chihlimbar, **… documente de actualizat**, când documente ale clienților tăi sunt încă generate dintr-o versiune de dinaintea modificării. Linkul duce la tabul cu documentele de actualizat (la cel SSM, când sunt în ambele seturi). Un rând fără acest link nu mai cere nimic de la tine.
+
+## Pagina unei modificări
+
+Un clic pe rând deschide pagina modificării. Săgeata de lângă titlu te întoarce de unde ai venit. Sub numele actului, **Stare** spune dacă modificarea e **În analiză** sau **Aplicată în documente**, și de când, iar **Forma**, data formei consolidate.
+
+Primul panou spune pe scurt ce s-a schimbat:
+
+- pentru o modificare aplicată, ce a schimbat versiunea nouă a șablonului și, la **A actualizat**, documentele și versiunea șablonului care o preia. În chihlimbar vezi câte documente ale clienților tăi sunt încă în urmă și la câți clienți, iar **Regenerează documentele** le reface pe toate pe versiunea nouă. Înainte să pornească, aceeași fereastră de confirmare ca pe tabul documentelor spune câte se refac și ce se întâmplă cu fiecare; numărul ei poate fi diferit de cel în chihlimbar: mai mare, pentru că regenerarea aduce documentul la cea mai nouă versiune a șablonului, nu doar la cea care preia modificarea, sau mai mic, pentru că ciornele editate de mână, numărate în chihlimbar, nu se refac. Ciornele editate de mână rămân neatinse; când doar ele sunt în urmă, butonul lipsește;
+- pentru o modificare în analiză, ce a găsit comparația și ce documente atinge sau poate atinge. Nu ai nimic de pornit.
+
+Dedesubt:
+
+- **Ce s-a schimbat în lege**: articolele pe care forma nouă le-a modificat, completat, introdus sau abrogat, așa cum le arată portalul;
+- **În documente**: pentru fiecare articol preluat sau numit în documente, unde apare și, alăturat, textul legii **Înainte** și **Acum**. În **Înainte** cuvintele eliminate sunt tăiate, în **Acum** cele adăugate sunt evidențiate. Pe telefon, cele două texte stau unul sub altul. Un text lung se deschide din **Ce s-a schimbat**;
+- **Despre forma consolidată**: data formei, actul care a modificat legea, cu pagina lui pe portal, ziua în care a găsit-o verificarea zilnică, ziua în care șablonul a fost actualizat și legătura spre act pe Portalul Legislativ.
 
 ## Documentele de actualizat
 
@@ -116,7 +152,7 @@ După ce un șablon se schimbă, documentele generate din versiunea veche apar p
 Sus scrie câte documente sunt în urmă și la câți clienți. Tabelul are un rând pe document:
 
 - **Document**: numele documentului și, dedesubt, versiunea nouă a șablonului și felul ei: **Modificare legislativă**, când o lege s-a schimbat, sau **Corectură**, când textul șablonului a fost îmbunătățit fără ca legea să se schimbe. **Instrucțiuni schimbate** înseamnă că documentul citează instrucțiuni care s-au schimbat între timp în bibliotecă sau la posturile de lucru;
-- **Ce s-a schimbat**: în cuvinte, ce aduce versiunea nouă. Când ea răspunde unei modificări a legii, **Vezi modificarea …** te duce la acea modificare, pe **Modificări**;
+- **Ce s-a schimbat**: în cuvinte, ce aduce versiunea nouă. Când ea răspunde unei modificări a legii, **Vezi modificarea …** deschide pagina acelei modificări;
 - **Clienți**: câți clienți au documentul în urmă. Apasă pe număr ca să vezi clienții: fiecare duce la documentul lui, cu versiunea din care a fost generat și ce se întâmplă cu el la regenerare.
 
 La regenerare:
