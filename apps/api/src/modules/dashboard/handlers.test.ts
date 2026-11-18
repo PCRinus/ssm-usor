@@ -1,25 +1,15 @@
-import { dashboardSummarySchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { dashboardSummarySchema, type OrganizationRole } from '@ssm-usor/contracts';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
-
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testOrganizationId as organizationId,
+  testUser as user,
+} from '../../test/upstream';
 
 const summaryRow = {
   ssm_overdue: 3,
@@ -59,53 +49,25 @@ const monthEnds = [
   '2026-10-01',
 ].map((month, index) => ({ month, employees: 28 + index }));
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function mockUpstream({ role = 'owner', rows = [summaryRow] as unknown[], mySignatures = 3 } = {}) {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json(user);
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([{ user_id: user.id, organization_id: organizationId, role }]);
-      case '/rest/v1/dashboard_summary':
-        return Response.json(rows);
-      case '/rest/v1/rpc/dashboard_employees_at_month_ends':
-        return Response.json(monthEnds);
-      case '/rest/v1/signature_requests':
-        return new Response(null, {
-          headers: { 'content-range': mySignatures ? `0-0/${mySignatures}` : '*/0' },
-        });
-      default:
-        throw new Error(`Unexpected upstream request: ${url}`);
-    }
+function mockUpstream({
+  role = 'owner',
+  rows = [summaryRow],
+  mySignatures = 3,
+}: { role?: OrganizationRole; rows?: unknown[]; mySignatures?: number } = {}) {
+  mockSignedInUpstream({
+    '/rest/v1/rpc/current_membership': () => [membershipRow({ role })],
+    '/rest/v1/dashboard_summary': () => rows,
+    '/rest/v1/rpc/dashboard_employees_at_month_ends': () => monthEnds,
+    '/rest/v1/signature_requests': () =>
+      new Response(null, {
+        headers: { 'content-range': mySignatures ? `0-0/${mySignatures}` : '*/0' },
+      }),
   });
 }
 
-const request = () =>
-  createApp().request(
-    '/dashboard/summary',
-    { headers: { Authorization: 'Bearer test-access-token' } },
-    env
-  );
+const request = () => apiRequest('/dashboard/summary');
 
-const upstream = (pathname: string) =>
-  fetchMock.mock.calls
-    .map(([input, init]) => ({
-      url: new URL(input instanceof Request ? input.url : String(input)),
-      init,
-    }))
-    .filter(({ url }) => url.pathname === pathname);
-
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('GET /dashboard/summary', () => {
   it("answers an owner with every count of the organization's row, contracts included", async () => {
@@ -136,14 +98,12 @@ describe('GET /dashboard/summary', () => {
       },
       contracts: { receivedToConfirm: 2, endingWithin60Days: 1 },
     });
-    expect(upstream('/rest/v1/dashboard_summary')[0]!.url.searchParams.get('organization_id')).toBe(
+    expect(callsTo('/rest/v1/dashboard_summary')[0]!.url.searchParams.get('organization_id')).toBe(
       `eq.${organizationId}`
     );
-    expect(
-      JSON.parse(
-        upstream('/rest/v1/rpc/dashboard_employees_at_month_ends')[0]!.init!.body as string
-      )
-    ).toEqual({ p_organization_id: organizationId });
+    expect(callsTo('/rest/v1/rpc/dashboard_employees_at_month_ends')[0]!.body).toEqual({
+      p_organization_id: organizationId,
+    });
   });
 
   it("gives a specialist no contracts and counts only the caller's own pending slots", async () => {
@@ -155,8 +115,8 @@ describe('GET /dashboard/summary', () => {
     const body = dashboardSummarySchema.parse(await response.json());
     expect(body.contracts).toBeNull();
     expect(body.todo.mySignatures).toBe(5);
-    const { url, init } = upstream('/rest/v1/signature_requests')[0]!;
-    expect(init?.method).toBe('HEAD');
+    const { url, method } = callsTo('/rest/v1/signature_requests')[0]!;
+    expect(method).toBe('HEAD');
     expect(Object.fromEntries(url.searchParams)).toMatchObject({
       signer_account_id: `eq.${user.id}`,
       organization_id: `eq.${organizationId}`,

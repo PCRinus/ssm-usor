@@ -2,9 +2,9 @@ import { apiErrorResponseSchema, currentUserSchema } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from './admin-app';
-import { createApp } from './app';
 import { accessTokenAt } from './lib/access-token.fixture';
 import type { ApiEnv } from './lib/env';
+import { apiRequest } from './test/request';
 
 const env: ApiEnv['Bindings'] = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -110,10 +110,6 @@ describe('the admin API guard', () => {
 
 it('keeps admin routes off the public API', async () => {
   mockAuth(() => Response.json(user));
-  const response = await createApp().request(
-    '/admin/me',
-    { headers: { Authorization: `Bearer ${token('aal2')}` } },
-    env
-  );
+  const response = await apiRequest('/admin/me', { token: token('aal2') }, env);
   expect(response.status).toBe(404);
 });

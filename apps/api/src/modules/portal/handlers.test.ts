@@ -8,8 +8,19 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
+import { apiRequest, testAccessToken } from '../../test/request';
+import {
+  callsTo,
+  fetchMock,
+  routeUpstream,
+  signedInUserRoutes,
+  stubFetch,
+  testEnv,
+  testSecretKey,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
 const pdfBytes = new TextEncoder().encode('%PDF-1.7 sheet');
 const convertDocx = vi.fn<(docx: ArrayBuffer) => Promise<ArrayBuffer>>(
@@ -19,10 +30,8 @@ const mergePdfs = vi.fn<(files: ArrayBuffer[]) => Promise<ArrayBuffer>>(
   async () => new TextEncoder().encode('%PDF-1.7 merged').buffer as ArrayBuffer
 );
 
-const env = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   PDF_CONVERSION: 'service',
   PDF: {
     convertDocx,
@@ -30,9 +39,8 @@ const env = {
     convertForm: convertDocx,
     mergePdfs,
   },
-} as ApiEnv['Bindings'];
+} as Partial<ApiEnv['Bindings']>);
 
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ion@example.ro' };
 const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const clientId = 'c1c1c1c1-0000-4000-8000-000000000001';
 const otherClientId = 'c1c1c1c1-0000-4000-8000-000000000002';
@@ -271,54 +279,34 @@ const unsigned = (slot: string) => ({
   signerJobTitle: null,
 });
 
-const fetchMock = vi.fn<typeof fetch>();
+const signedUrl = ({ method, url }: UpstreamCall, file: () => BodyInit) =>
+  method === 'POST'
+    ? Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` })
+    : new Response(file());
 
 function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
   const upstream = { ...upstreamDefaults, ...overrides };
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    if (url.pathname.startsWith('/storage/v1/object/sign/documents/')) {
-      if (method === 'POST') {
-        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
-      }
-      return new Response(storedSheetBytes);
-    }
-    if (url.pathname.startsWith('/storage/v1/object/sign/document-templates/')) {
-      if (method === 'POST') {
-        return Response.json({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=t` });
-      }
-      return new Response(readFileSync(new URL('fisa_instruire_ssm.docx', templatesUrl)));
-    }
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json({ ...user, is_anonymous: false });
-      case '/rest/v1/rpc/accept_participant_invitations':
-        return Response.json(0);
-      case '/rest/v1/rpc/current_participations':
-        return upstream.participations();
-      case '/rest/v1/rpc/record_participant_notice':
-        return upstream.notice();
-      case '/rest/v1/rpc/set_participant_language':
-        return upstream.language();
-      case '/rest/v1/employees':
-        return upstream.employees();
-      case '/rest/v1/training_records':
-        return upstream.records();
-      case '/rest/v1/test_results':
-        return upstream.testResults(url);
-      case '/rest/v1/client_responsible_persons':
-        return upstream.responsiblePersons();
-      case '/rest/v1/signed_sheets':
-        return upstream.signedSheets(url);
-      case '/rest/v1/organizations':
-        return Response.json({ name: 'Protect SSM', phone: '+40256000000' });
-      case '/rest/v1/clients':
-        return Response.json([{ legal_name: 'S.C. CLIENT DEMO S.R.L.' }]);
-      case '/rest/v1/client_workplaces':
-        return Response.json([{ id: 'b1b1b1b1-0000-4000-8000-000000000001', name: 'Atelier' }]);
-      case '/rest/v1/document_templates':
-        return Response.json([
+  routeUpstream(
+    {
+      [`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`]: (call) =>
+        signedUrl(call, () => storedSheetBytes),
+      '/storage/v1/object/sign/document-templates/built-in/training_sheet_ssm/new.docx': (call) =>
+        signedUrl(call, () => readFileSync(new URL('fisa_instruire_ssm.docx', templatesUrl))),
+      '/rest/v1/rpc/accept_participant_invitations': () => 0,
+      '/rest/v1/rpc/current_participations': () => upstream.participations(),
+      '/rest/v1/rpc/record_participant_notice': () => upstream.notice(),
+      '/rest/v1/rpc/set_participant_language': () => upstream.language(),
+      '/rest/v1/employees': () => upstream.employees(),
+      '/rest/v1/training_records': () => upstream.records(),
+      '/rest/v1/test_results': ({ url }) => upstream.testResults(url),
+      '/rest/v1/client_responsible_persons': () => upstream.responsiblePersons(),
+      '/rest/v1/signed_sheets': ({ url }) => upstream.signedSheets(url),
+      '/rest/v1/organizations': () => ({ name: 'Protect SSM', phone: '+40256000000' }),
+      '/rest/v1/clients': () => Response.json([{ legal_name: 'S.C. CLIENT DEMO S.R.L.' }]),
+      '/rest/v1/client_workplaces': () =>
+        Response.json([{ id: 'b1b1b1b1-0000-4000-8000-000000000001', name: 'Atelier' }]),
+      '/rest/v1/document_templates': () =>
+        Response.json([
           {
             type_key: 'training_sheet_ssm',
             title: 'Fișa',
@@ -326,44 +314,26 @@ function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
               { id: 'v1', version: 1, storage_path: 'built-in/training_sheet_ssm/new.docx' },
             ],
           },
-        ]);
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
-  });
+        ]),
+    },
+    signedInUserRoutes
+  );
 }
 
-const calls = (pathname: string) =>
-  fetchMock.mock.calls
-    .filter(([input]) => new URL(String(input)).pathname === pathname)
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      headers: new Headers(init?.headers),
-      body: init?.body ? JSON.parse(init.body as string) : undefined,
-    }));
-
 const request = (path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST') =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer user-token' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    env
-  );
+  apiRequest(path, { method, body, client: 'portal' }, env);
 
 const own = (path: string) => `/portal/participants/${employeeParticipantId}${path}`;
 const administered = (path: string) => `/portal/participants/${administratorParticipantId}${path}`;
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   convertDocx.mockClear();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -380,8 +350,8 @@ describe('requireParticipant', () => {
       '/rest/v1/rpc/accept_participant_invitations',
       '/rest/v1/rpc/current_participations',
     ]);
-    expect(calls('/rest/v1/rpc/current_participations')[0]?.headers.get('Authorization')).toBe(
-      'Bearer user-token'
+    expect(callsTo('/rest/v1/rpc/current_participations')[0]?.headers.get('Authorization')).toBe(
+      `Bearer ${testAccessToken}`
     );
   });
 
@@ -401,7 +371,7 @@ describe('requireParticipant', () => {
     );
 
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/training_records')).toEqual([]);
+    expect(callsTo('/rest/v1/training_records')).toEqual([]);
   });
 });
 
@@ -448,7 +418,7 @@ describe('POST /portal/participants/{participantId}/notice', () => {
     const response = await request(own('/notice'), { version: '2026-10-17' });
 
     expect(response.status).toBe(204);
-    expect(calls('/rest/v1/rpc/record_participant_notice')[0]?.body).toEqual({
+    expect(callsTo('/rest/v1/rpc/record_participant_notice')[0]?.body).toEqual({
       p_participant_id: employeeParticipantId,
       p_version: '2026-10-17',
     });
@@ -462,7 +432,7 @@ describe('POST /portal/participants/{participantId}/notice', () => {
     });
 
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/rpc/record_participant_notice')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/record_participant_notice')).toEqual([]);
   });
 });
 
@@ -473,7 +443,7 @@ describe('PUT /portal/participants/{participantId}/language', () => {
     const response = await request(own('/language'), { language: 'en' }, 'PUT');
 
     expect(response.status).toBe(204);
-    expect(calls('/rest/v1/rpc/set_participant_language')[0]?.body).toEqual({
+    expect(callsTo('/rest/v1/rpc/set_participant_language')[0]?.body).toEqual({
       p_participant_id: employeeParticipantId,
       p_language: 'en',
     });
@@ -485,7 +455,7 @@ describe('PUT /portal/participants/{participantId}/language', () => {
     const response = await request(own('/language'), { language: 'fr' }, 'PUT');
 
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/rpc/set_participant_language')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/set_participant_language')).toEqual([]);
   });
 
   it("does not save on a participation that is not the account's", async () => {
@@ -498,7 +468,7 @@ describe('PUT /portal/participants/{participantId}/language', () => {
     );
 
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/rpc/set_participant_language')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/set_participant_language')).toEqual([]);
   });
 
   it('answers 404 when the database no longer finds the participation active', async () => {
@@ -538,7 +508,7 @@ describe('GET /portal/participants/{participantId}/training-records', () => {
     expect(body.training.ssm).toMatchObject({ state: 'current', dueOn: '2027-01-06' });
     expect(body.training.su.state).toBe('untrained');
 
-    const query = calls('/rest/v1/training_records')[0]!.url.searchParams;
+    const query = callsTo('/rest/v1/training_records')[0]!.url.searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
     expect(query.get('select')).not.toContain('notes');
@@ -583,7 +553,7 @@ describe('GET /portal/participants/{participantId}/training-records', () => {
     expect(text).not.toContain('Greșeală la data admiterii');
     expect(text).not.toMatch(/notifiedAt|issuedAt|voidReason|requestId/);
 
-    const [records] = calls('/rest/v1/training_records');
+    const [records] = callsTo('/rest/v1/training_records');
     expect(records!.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
     const query = records!.url.searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
@@ -604,7 +574,7 @@ describe('GET /portal/participants/{participantId}/training-records', () => {
     const response = await request(administered('/training-records'));
 
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/training_records')).toEqual([]);
+    expect(callsTo('/rest/v1/training_records')).toEqual([]);
   });
 });
 
@@ -649,9 +619,9 @@ describe('GET /portal/participants/{participantId}/data', () => {
       provider: { name: 'Protect SSM', phone: '+40256000000' },
     });
 
-    const employeeSelect = calls('/rest/v1/employees')[0]!.url.searchParams.get('select')!;
+    const employeeSelect = callsTo('/rest/v1/employees')[0]!.url.searchParams.get('select')!;
     expect(employeeSelect).not.toMatch(/\bcnp\b|\bnotes\b|\*/);
-    const organizationSelect = calls('/rest/v1/organizations')[0]!.url.searchParams.get('select');
+    const organizationSelect = callsTo('/rest/v1/organizations')[0]!.url.searchParams.get('select');
     expect(organizationSelect).toBe('name,phone');
   });
 });
@@ -690,9 +660,9 @@ describe('the sheets', () => {
     const response = await request(own('/sheets/ssm'));
     expect(response.status).toBe(200);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(storedSheetBytes);
-    const [signed] = calls(`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`);
+    const [signed] = callsTo(`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`);
     expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
-    const [sheets] = calls('/rest/v1/signed_sheets');
+    const [sheets] = callsTo('/rest/v1/signed_sheets');
     expect(sheets?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
     expect(sheets?.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
     expect(convertDocx).not.toHaveBeenCalled();
@@ -714,10 +684,10 @@ describe('the sheets', () => {
       fileName: 'Fisa-SSM-Popescu-Ion.pdf',
       expiresInSeconds: 600,
     });
-    const [signed] = calls(`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`);
+    const [signed] = callsTo(`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`);
     expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
     expect(signed?.body).toEqual({ expiresIn: 600 });
-    expect(calls('/rest/v1/signed_sheets')[0]?.headers.get('Authorization')).toBe(
+    expect(callsTo('/rest/v1/signed_sheets')[0]?.headers.get('Authorization')).toBe(
       `Bearer ${env.SUPABASE_SECRET_KEY}`
     );
     expect(convertDocx).not.toHaveBeenCalled();
@@ -740,11 +710,11 @@ describe('the sheets', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('application/pdf');
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(pdfBytes);
-    const [signed] = calls(
+    const [signed] = callsTo(
       '/storage/v1/object/sign/document-templates/built-in/training_sheet_ssm/new.docx'
     );
     expect(signed?.headers.get('Authorization')).toBe(`Bearer ${env.SUPABASE_SECRET_KEY}`);
-    expect(calls('/rest/v1/document_templates')[0]?.headers.get('Authorization')).toBe(
+    expect(callsTo('/rest/v1/document_templates')[0]?.headers.get('Authorization')).toBe(
       `Bearer ${env.SUPABASE_SECRET_KEY}`
     );
   });
@@ -788,10 +758,10 @@ describe("the client administrator's places", () => {
         },
       ],
     });
-    expect(calls('/rest/v1/employees')[0]!.url.searchParams.get('select')).toContain(
+    expect(callsTo('/rest/v1/employees')[0]!.url.searchParams.get('select')).toContain(
       'test_status('
     );
-    const query = calls('/rest/v1/employees')[0]!.url.searchParams;
+    const query = callsTo('/rest/v1/employees')[0]!.url.searchParams;
     expect(query.get('client_id')).toBe(`eq.${otherClientId}`);
     expect(query.get('status')).toBe('neq.terminated');
     expect(query.get('archived_at')).toBe('is.null');
@@ -804,7 +774,7 @@ describe("the client administrator's places", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ expiresInSeconds: 600 });
-    const sheets = calls('/rest/v1/signed_sheets')[0]!.url.searchParams;
+    const sheets = callsTo('/rest/v1/signed_sheets')[0]!.url.searchParams;
     expect(sheets.get('employee_id')).toBe(`eq.${colleagueId}`);
     expect(sheets.get('client_id')).toBe(`eq.${otherClientId}`);
   });
@@ -821,7 +791,7 @@ describe("the client administrator's places", () => {
     const response = await request(own(path));
 
     expect(response.status).toBe(403);
-    expect(calls('/rest/v1/employees')).toEqual([]);
+    expect(callsTo('/rest/v1/employees')).toEqual([]);
   });
 
   it("reads an employee's records only under the administered client", async () => {
@@ -830,10 +800,10 @@ describe("the client administrator's places", () => {
     const response = await request(administered(`/employees/${colleagueId}/training-records`));
 
     expect(response.status).toBe(200);
-    const employee = calls('/rest/v1/employees')[0]!.url.searchParams;
+    const employee = callsTo('/rest/v1/employees')[0]!.url.searchParams;
     expect(employee.get('id')).toBe(`eq.${colleagueId}`);
     expect(employee.get('client_id')).toBe(`eq.${otherClientId}`);
-    const records = calls('/rest/v1/training_records')[0]!.url.searchParams;
+    const records = callsTo('/rest/v1/training_records')[0]!.url.searchParams;
     expect(records.get('client_id')).toBe(`eq.${otherClientId}`);
   });
 
@@ -863,7 +833,7 @@ describe("the client administrator's places", () => {
         },
       ],
     });
-    const query = calls('/rest/v1/client_responsible_persons')[0]!.url.searchParams;
+    const query = callsTo('/rest/v1/client_responsible_persons')[0]!.url.searchParams;
     expect(query.get('client_id')).toBe(`eq.${otherClientId}`);
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('select')).not.toMatch(/\*|organization_id|created_by/);
@@ -888,7 +858,7 @@ describe("the client administrator's places", () => {
     const response = await request(own('/responsible-persons'));
 
     expect(response.status).toBe(403);
-    expect(calls('/rest/v1/client_responsible_persons')).toEqual([]);
+    expect(callsTo('/rest/v1/client_responsible_persons')).toEqual([]);
   });
 });
 

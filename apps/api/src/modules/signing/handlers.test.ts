@@ -10,19 +10,17 @@ import {
 import { documentText } from '@ssm-usor/document-engine';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
+import { apiRequest, testAccessToken } from '../../test/request';
 import {
   callsTo,
-  clientId,
   databaseError,
-  env,
-  fetchMock,
-  mockUpstream,
-  organizationId,
+  stubFetch,
+  testOrganizationId as organizationId,
+  testUser as user,
   type UpstreamRoute,
-  user,
-} from './upstream.fixture';
+} from '../../test/upstream';
+import { clientId, env, mockUpstream } from './upstream.fixture';
 
 const recordId = 'e0000000-0000-4000-8000-000000000001';
 const trainingId = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
@@ -66,24 +64,15 @@ const ionParticipant = {
 };
 
 const request = (path: string, init: { method?: string; body?: unknown } = {}, bindings = env) =>
-  createApp().request(
-    path,
-    {
-      method: init.method ?? 'GET',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer user-token' },
-      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
-    },
-    bindings
-  );
+  apiRequest(path, init, bindings);
+
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -285,7 +274,7 @@ describe('POST …/signatures/paper and …/signatures/void', () => {
     expect(response.status).toBe(200);
     expect(recordSignaturesResponseSchema.parse(await response.json()).recordId).toBe(recordId);
     const [call] = callsTo('/rest/v1/rpc/mark_paper_signature');
-    expect(call!.headers.get('Authorization')).toBe('Bearer user-token');
+    expect(call!.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(call!.body).toEqual({
       p_record_id: recordId,
       p_slot: 'admitter',

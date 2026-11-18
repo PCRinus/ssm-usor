@@ -1,17 +1,24 @@
 import type { MailService, SmsService } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
-import { createSmsUpstream, plainTrial, type SmsUpstream } from '../sms-usage/upstream.fixture';
+import { apiRequest, testAccessToken } from '../../test/request';
+import { createSmsUpstream, plainTrial, type SmsUpstream } from '../../test/sms';
+import {
+  callsTo,
+  databaseError,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  type UpstreamCall,
+} from '../../test/upstream';
 
 const sendInvitationEmail = vi.fn<MailService['sendParticipantInvitation']>();
 const sendInvitationSms = vi.fn<SmsService['sendParticipantInvitation']>();
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   PORTAL_ORIGIN: 'https://portal.example.ro',
   MAIL: {
     sendWaitlistConfirmation: vi.fn(),
@@ -35,10 +42,8 @@ const env: ApiEnv['Bindings'] = {
     sendSigningCode: vi.fn(),
     sendSignatureRequest: vi.fn(),
   },
-};
+});
 
-const user = { id: '0f7c8d96-479c-47b3-b49e-01f4555a0221', email: 'ana@example.ro' };
-const organizationId = '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d';
 const clientId = 'c1c1c1c1-0000-4000-8000-000000000001';
 const employeeId = 'e1e1e1e1-0000-4000-8000-000000000001';
 const invitationId = '99999999-0000-4000-8000-000000000001';
@@ -82,9 +87,6 @@ const participantRow = {
   ],
 };
 
-const databaseError = (code: string, message: string) =>
-  Response.json({ code, message, details: null, hint: null }, { status: 400 });
-
 const authUser = (appMetadata: Record<string, unknown>) =>
   Response.json({
     id: accountId,
@@ -116,104 +118,62 @@ const upstreamDefaults = {
   updateUser: () => authUser({ participant: true }),
 };
 
-const fetchMock = vi.fn<typeof fetch>();
 let sms: SmsUpstream;
+
+const viaSms = ({ method, url, headers, body }: UpstreamCall) =>
+  sms.handle(url, { method, headers, body: JSON.stringify(body ?? {}) });
 
 function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
   const upstream = { ...upstreamDefaults, ...overrides };
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const smsAnswer = sms.handle(url, init);
-    if (smsAnswer) return smsAnswer;
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json({ ...user, is_anonymous: false });
-      case '/auth/v1/admin/users':
-        return upstream.createUser();
-      case `/auth/v1/admin/users/${accountId}`:
-        return method === 'PUT' ? upstream.updateUser() : upstream.getUser();
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([
-          { user_id: user.id, organization_id: organizationId, role: 'specialist' },
-        ]);
-      case '/rest/v1/rpc/create_participant_invitation':
-        return upstream.create();
-      case '/rest/v1/rpc/create_employee_invitation_at_address':
-        return upstream.createAtAddress();
-      case '/rest/v1/rpc/resend_participant_invitation':
-        return upstream.resend();
-      case '/rest/v1/rpc/revoke_participant_invitation':
-        return upstream.revokeInvitation();
-      case '/rest/v1/rpc/revoke_client_participant':
-        return upstream.revokeParticipant();
-      case '/rest/v1/rpc/auth_user_id_by_address':
-        return upstream.lookup();
-      case '/rest/v1/participant_invitations':
-        return url.searchParams.get('select') === 'employee_id'
-          ? upstream.openInvitations()
-          : upstream.invitations();
-      case '/rest/v1/client_participants':
-        return url.searchParams.get('select') === 'employee_id'
-          ? upstream.activeParticipants()
-          : upstream.participants();
-      case '/rest/v1/employees':
-        return upstream.employees();
-      case '/rest/v1/imports':
-        return upstream.imports();
-      case '/rest/v1/clients':
-        if (url.searchParams.get('select') === 'legal_name') {
-          return Response.json({ legal_name: 'S.C. CLIENT DEMO S.R.L.' });
-        }
-        return url.searchParams.get('select')?.includes('stage')
-          ? upstream.client()
-          : upstream.clients();
-      case '/rest/v1/organizations':
-        return Response.json({ name: 'Protect SSM' });
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
+  const selects = (url: URL) => url.searchParams.get('select');
+  mockSignedInUpstream({
+    'GET /rest/v1/subscriptions': viaSms,
+    '/rest/v1/rpc/claim_sms_send': viaSms,
+    'PATCH /rest/v1/sms_sends': viaSms,
+    'DELETE /rest/v1/sms_sends': viaSms,
+    '/auth/v1/admin/users': () => upstream.createUser(),
+    [`/auth/v1/admin/users/${accountId}`]: ({ method }) =>
+      method === 'PUT' ? upstream.updateUser() : upstream.getUser(),
+    '/rest/v1/rpc/create_participant_invitation': () => upstream.create(),
+    '/rest/v1/rpc/create_employee_invitation_at_address': () => upstream.createAtAddress(),
+    '/rest/v1/rpc/resend_participant_invitation': () => upstream.resend(),
+    '/rest/v1/rpc/revoke_participant_invitation': () => upstream.revokeInvitation(),
+    '/rest/v1/rpc/revoke_client_participant': () => upstream.revokeParticipant(),
+    '/rest/v1/rpc/auth_user_id_by_address': () => upstream.lookup(),
+    '/rest/v1/participant_invitations': ({ url }) =>
+      selects(url) === 'employee_id' ? upstream.openInvitations() : upstream.invitations(),
+    '/rest/v1/client_participants': ({ url }) =>
+      selects(url) === 'employee_id' ? upstream.activeParticipants() : upstream.participants(),
+    '/rest/v1/employees': () => upstream.employees(),
+    '/rest/v1/imports': () => upstream.imports(),
+    '/rest/v1/clients': ({ url }) => {
+      if (selects(url) === 'legal_name') {
+        return Response.json({ legal_name: 'S.C. CLIENT DEMO S.R.L.' });
+      }
+      return selects(url)?.includes('stage') ? upstream.client() : upstream.clients();
+    },
+    '/rest/v1/organizations': () => Response.json({ name: 'Protect SSM' }),
   });
 }
 
-const calls = (pathname: string, method?: string) =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => {
-      const url = new URL(String(input));
-      return url.pathname === pathname && (!method || (init?.method ?? 'GET') === method);
-    })
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      headers: new Headers(init?.headers),
-      body: init?.body ? JSON.parse(init.body as string) : undefined,
-    }));
-
 const request = (path: string, body?: unknown, targetEnv = env) =>
-  createApp().request(
-    path,
-    {
-      method: body === undefined ? 'GET' : 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer user-token' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    targetEnv
-  );
+  apiRequest(path, { method: body === undefined ? 'GET' : 'POST', body }, targetEnv);
 
 const reasonOf = async (response: Response) =>
   ((await response.json()) as { reason?: string }).reason;
 
 const employeeInvitations = `/clients/${clientId}/employees/${employeeId}/participant-invitations`;
 
+stubFetch();
+
 beforeEach(() => {
   sms = createSmsUpstream();
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   sendInvitationEmail.mockReset().mockResolvedValue({ id: 'msg_1' });
   sendInvitationSms.mockReset().mockResolvedValue({ id: 'sms_1' });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -242,8 +202,8 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
       createdAt: '2099-01-01T10:00:00.000Z',
     });
 
-    const [create] = calls('/rest/v1/rpc/create_participant_invitation');
-    expect(create?.headers.get('Authorization')).toBe('Bearer user-token');
+    const [create] = callsTo('/rest/v1/rpc/create_participant_invitation');
+    expect(create?.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(create?.body).toEqual({
       p_client_id: clientId,
       p_kind: 'employee',
@@ -253,10 +213,10 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
       p_address: 'ion@example.ro',
     });
 
-    const [lookup] = calls('/rest/v1/rpc/auth_user_id_by_address');
+    const [lookup] = callsTo('/rest/v1/rpc/auth_user_id_by_address');
     expect(lookup?.headers.get('apikey')).toBe(env.SUPABASE_SECRET_KEY);
     expect(lookup?.body).toEqual({ p_channel: 'email', p_address: 'ion@example.ro' });
-    const [created] = calls('/auth/v1/admin/users', 'POST');
+    const [created] = callsTo('/auth/v1/admin/users', 'POST');
     expect(created?.headers.get('apikey')).toBe(env.SUPABASE_SECRET_KEY);
     expect(created?.body).toMatchObject({
       email: 'ion@example.ro',
@@ -286,11 +246,11 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
     });
 
     expect(response.status).toBe(201);
-    expect(calls('/rest/v1/rpc/create_participant_invitation')[0]?.body).toMatchObject({
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')[0]?.body).toMatchObject({
       p_channel: 'sms',
       p_address: '+40721000002',
     });
-    expect(calls('/auth/v1/admin/users', 'POST')[0]?.body).toMatchObject({
+    expect(callsTo('/auth/v1/admin/users', 'POST')[0]?.body).toMatchObject({
       phone: '+40721000002',
       phone_confirm: false,
       app_metadata: { participant: true },
@@ -335,7 +295,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
 
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('sms_trial');
-    expect(calls('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
     expect(sendInvitationSms).not.toHaveBeenCalled();
   });
 
@@ -362,7 +322,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
 
     expect(response.status).toBe(422);
     expect(await reasonOf(response)).toBe('sms_foreign_number');
-    expect(calls('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
   });
 
   it("reuses the address's account and adds the flag beside what its metadata holds", async () => {
@@ -377,8 +337,8 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
     });
 
     expect(response.status).toBe(201);
-    expect(calls('/auth/v1/admin/users', 'POST')).toEqual([]);
-    const [updated] = calls(`/auth/v1/admin/users/${accountId}`, 'PUT');
+    expect(callsTo('/auth/v1/admin/users', 'POST')).toEqual([]);
+    const [updated] = callsTo(`/auth/v1/admin/users/${accountId}`, 'PUT');
     expect(updated?.body).toEqual({
       app_metadata: {
         provider: 'email',
@@ -399,7 +359,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
     expect(
       (await request(employeeInvitations, { channel: 'email', address: 'ion@example.ro' })).status
     ).toBe(201);
-    expect(calls(`/auth/v1/admin/users/${accountId}`, 'PUT')).toEqual([]);
+    expect(callsTo(`/auth/v1/admin/users/${accountId}`, 'PUT')).toEqual([]);
   });
 
   it('flags the account that appeared between the lookup and the creation', async () => {
@@ -423,7 +383,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
     });
 
     expect(response.status).toBe(201);
-    expect(calls(`/auth/v1/admin/users/${accountId}`, 'PUT')[0]?.body).toEqual({
+    expect(callsTo(`/auth/v1/admin/users/${accountId}`, 'PUT')[0]?.body).toEqual({
       app_metadata: { provider: 'email', providers: ['email'], participant: true },
     });
   });
@@ -454,7 +414,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
 
     expect(response.status).toBe(503);
     expect(await reasonOf(response)).toBe('participant_message_not_sent');
-    expect(calls('/rest/v1/rpc/create_participant_invitation')).toHaveLength(1);
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')).toHaveLength(1);
   });
 
   it.each([
@@ -476,8 +436,8 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
 
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe(reason);
-    expect(calls('/rest/v1/rpc/auth_user_id_by_address')).toEqual([]);
-    expect(calls('/auth/v1/admin/users', 'POST')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/auth_user_id_by_address')).toEqual([]);
+    expect(callsTo('/auth/v1/admin/users', 'POST')).toEqual([]);
     expect(sendInvitationEmail).not.toHaveBeenCalled();
   });
 
@@ -501,7 +461,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
     });
 
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
   });
 
   it('answers 503 before saving anything when the channel has no sender', async () => {
@@ -514,7 +474,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/participant-invitation
     );
 
     expect(response.status).toBe(503);
-    expect(calls('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')).toEqual([]);
   });
 });
 
@@ -545,7 +505,7 @@ describe('POST /clients/{clientId}/participant-invitations', () => {
       employeeId: null,
       fullName: 'Maria Pop',
     });
-    expect(calls('/rest/v1/rpc/create_participant_invitation')[0]?.body).toEqual({
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')[0]?.body).toEqual({
       p_client_id: clientId,
       p_kind: 'client_administrator',
       p_employee_id: null,
@@ -565,7 +525,7 @@ describe('POST /clients/{clientId}/participant-invitations', () => {
       fullName: 'Ignored',
     });
 
-    expect(calls('/rest/v1/rpc/create_participant_invitation')[0]?.body).toMatchObject({
+    expect(callsTo('/rest/v1/rpc/create_participant_invitation')[0]?.body).toMatchObject({
       p_employee_id: employeeId,
       p_full_name: null,
     });
@@ -593,7 +553,7 @@ describe('POST /participant-invitations/{invitationId}/resend', () => {
     const response = await request(`/participant-invitations/${invitationId}/resend`, {});
 
     expect(response.status).toBe(200);
-    expect(calls('/rest/v1/rpc/resend_participant_invitation')[0]?.body).toEqual({
+    expect(callsTo('/rest/v1/rpc/resend_participant_invitation')[0]?.body).toEqual({
       p_invitation_id: invitationId,
     });
     expect(sendInvitationEmail).toHaveBeenCalledOnce();
@@ -608,7 +568,7 @@ describe('POST /participant-invitations/{invitationId}/resend', () => {
 
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('sms_trial');
-    expect(calls('/rest/v1/rpc/resend_participant_invitation')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/resend_participant_invitation')).toEqual([]);
     expect(sendInvitationSms).not.toHaveBeenCalled();
   });
 
@@ -618,7 +578,7 @@ describe('POST /participant-invitations/{invitationId}/resend', () => {
     const response = await request(`/participant-invitations/${invitationId}/resend`, {});
 
     expect(response.status).toBe(404);
-    expect(calls('/rest/v1/rpc/resend_participant_invitation')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/resend_participant_invitation')).toEqual([]);
   });
 
   it.each([
@@ -641,7 +601,7 @@ describe('revoking', () => {
     mockUpstream();
     const response = await request(`/participant-invitations/${invitationId}/revoke`, {});
     expect(response.status).toBe(204);
-    expect(calls('/rest/v1/rpc/revoke_participant_invitation')[0]?.body).toEqual({
+    expect(callsTo('/rest/v1/rpc/revoke_participant_invitation')[0]?.body).toEqual({
       p_invitation_id: invitationId,
     });
   });
@@ -656,7 +616,7 @@ describe('revoking', () => {
     mockUpstream();
     const response = await request(`/client-participants/${participantId}/revoke`, {});
     expect(response.status).toBe(204);
-    expect(calls('/rest/v1/rpc/revoke_client_participant')[0]?.body).toEqual({
+    expect(callsTo('/rest/v1/rpc/revoke_client_participant')[0]?.body).toEqual({
       p_participant_id: participantId,
     });
   });
@@ -702,7 +662,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/participant', () => {
 
     expect(body.participant).toBeNull();
     expect(body.invitation).toMatchObject({ id: invitationId, status: 'open' });
-    const query = calls('/rest/v1/participant_invitations')[0]!.url.searchParams;
+    const query = callsTo('/rest/v1/participant_invitations')[0]!.url.searchParams;
     expect(query.get('accepted_at')).toBe('is.null');
     expect(query.get('revoked_at')).toBe('is.null');
   });
@@ -734,7 +694,7 @@ describe('GET /clients/{clientId}/participants', () => {
     };
     expect(body.participants.map((participant) => participant.id)).toEqual([participantId]);
     expect(body.invitations.map((invitation) => invitation.status)).toEqual(['open', 'expired']);
-    expect(calls('/rest/v1/client_participants')[0]!.url.searchParams.get('revoked_at')).toBe(
+    expect(callsTo('/rest/v1/client_participants')[0]!.url.searchParams.get('revoked_at')).toBe(
       'is.null'
     );
   });
@@ -790,8 +750,8 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
       [employeeId, 'invited', 'email'],
       [newcomerId, 'invited', 'sms'],
     ]);
-    expect(calls('/rest/v1/employees', 'PATCH')).toEqual([]);
-    const invited = calls('/rest/v1/rpc/create_employee_invitation_at_address');
+    expect(callsTo('/rest/v1/employees', 'PATCH')).toEqual([]);
+    const invited = callsTo('/rest/v1/rpc/create_employee_invitation_at_address');
     expect(invited.map((call) => call.body)).toEqual([
       {
         p_client_id: clientId,
@@ -806,7 +766,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
         p_address: '+40742115980',
       },
     ]);
-    expect(invited[0]?.headers.get('Authorization')).toBe('Bearer user-token');
+    expect(invited[0]?.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(sendInvitationEmail).toHaveBeenCalledOnce();
     expect(sendInvitationSms).toHaveBeenCalledWith(
       expect.objectContaining({ to: '+40742115980', clientName: 'S.C. CLIENT DEMO S.R.L.' })
@@ -835,7 +795,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
       [employeeId, 'invited', null],
       [newcomerId, 'failed', 'sms_trial'],
     ]);
-    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toHaveLength(1);
+    expect(callsTo('/rest/v1/rpc/create_employee_invitation_at_address')).toHaveLength(1);
     expect(sendInvitationSms).not.toHaveBeenCalled();
   });
 
@@ -848,7 +808,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
 
     const { results } = (await response.json()) as { results: { reason: string | null }[] };
     expect(results[0]?.reason).toBe('sms_foreign_number');
-    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
   });
 
   it('skips a former employee, a participant and one invited, and names an address that is neither', async () => {
@@ -884,7 +844,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
       ['failed', 'invalid_address'],
       ['failed', 'employee_not_found'],
     ]);
-    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
     expect(sendInvitationEmail).not.toHaveBeenCalled();
   });
 
@@ -1021,7 +981,7 @@ describe('POST /clients/{clientId}/employee-participant-invitations', () => {
 
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('client_archived');
-    expect(calls('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
+    expect(callsTo('/rest/v1/rpc/create_employee_invitation_at_address')).toEqual([]);
   });
 
   it('answers 503 when a channel asked for cannot send', async () => {
@@ -1076,9 +1036,9 @@ describe('GET /clients/{clientId}/imports/{importId}/portal-invitees', () => {
       ['Neagu', true, null],
     ]);
     expect(items[0]?.position).toBe('Brutar');
-    const [query] = calls('/rest/v1/employees');
+    const [query] = callsTo('/rest/v1/employees');
     expect(query?.url.searchParams.get('client_files.import_id')).toBe(`eq.${importId}`);
-    const [found] = calls('/rest/v1/imports');
+    const [found] = callsTo('/rest/v1/imports');
     expect(found?.url.searchParams.get('kind')).toBe('eq.employees');
     expect(found?.url.searchParams.get('status')).toBe('eq.confirmed');
   });

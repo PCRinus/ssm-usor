@@ -4,30 +4,24 @@ import {
   clientFileResponseSchema,
 } from '@ssm-usor/contracts';
 import PizZip from 'pizzip';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest, testAccessToken } from '../../test/request';
+import {
+  fetchMock,
+  membershipRow,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
 const colleagueId = '6f1e2d3c-4b5a-4968-8776-655443322110';
 
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const ownFileId = '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f';
 const colleagueFileId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -68,46 +62,37 @@ const colleagueFile = {
 
 const clientRow = { id: clientId, stage: 'client', archived_at: null as string | null };
 
-type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
+type Handler = (call: UpstreamCall) => Response | undefined;
 
-const fetchMock = vi.fn<typeof fetch>();
 let role: 'owner' | 'specialist' = 'specialist';
 let offers = true;
 
 function mockUpstream(
   handlers: { clients?: Handler; employees?: Handler; files?: Handler; storage?: Handler } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/auth/v1/user') return Response.json(user);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json([{ user_id: user.id, organization_id: organizationId, role }]);
-    }
-    if (url.pathname === '/rest/v1/clients') {
-      return handlers.clients?.(init, url) ?? Response.json([clientRow]);
-    }
-    if (url.pathname === '/rest/v1/rpc/current_organization_has_offers') {
-      return Response.json(offers);
-    }
-    if (url.pathname === '/rest/v1/employees') {
-      return handlers.employees?.(init, url) ?? Response.json([{ id: employeeId }]);
-    }
-    if (url.pathname === '/rest/v1/profiles') {
-      return Response.json([
-        { user_id: user.id, full_name: 'Ana Popescu' },
-        { user_id: colleagueId, full_name: 'Ion Ionescu' },
-      ]);
-    }
-    if (url.pathname === '/rest/v1/client_files') {
-      const custom = handlers.files?.(init, url);
+  const storage = (call: UpstreamCall) =>
+    handlers.storage?.(call) ??
+    (call.method === 'DELETE'
+      ? Response.json([])
+      : Response.json({ Key: call.url.pathname.slice('/storage/v1/object/'.length) }));
+  mockSignedInUpstream({
+    '/rest/v1/rpc/current_membership': () => [membershipRow({ role })],
+    '/rest/v1/clients': (call) => handlers.clients?.(call) ?? [clientRow],
+    '/rest/v1/rpc/current_organization_has_offers': () => offers,
+    '/rest/v1/employees': (call) => handlers.employees?.(call) ?? [{ id: employeeId }],
+    '/rest/v1/profiles': () => [
+      { user_id: user.id, full_name: 'Ana Popescu' },
+      { user_id: colleagueId, full_name: 'Ion Ionescu' },
+    ],
+    '/rest/v1/client_files': (call) => {
+      const custom = handlers.files?.(call);
       if (custom) return custom;
-      if (method === 'POST') {
-        const row = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      const sentRow = call.body as Record<string, unknown>;
+      if (call.method === 'POST') {
         return Response.json(
           {
             ...ownFile,
-            ...row,
+            ...sentRow,
             storage_path: pathOf(ownFileId, 'pdf'),
             created_at: ownFile.created_at,
             updated_at: ownFile.updated_at,
@@ -115,32 +100,21 @@ function mockUpstream(
           { status: 201 }
         );
       }
-      if (method === 'PATCH') {
-        return Response.json([{ ...ownFile, ...(JSON.parse(String(init?.body)) as object) }]);
-      }
-      if (method === 'DELETE') return new Response(null, { status: 204 });
-      const id = url.searchParams.get('id');
+      if (call.method === 'PATCH') return Response.json([{ ...ownFile, ...sentRow }]);
+      if (call.method === 'DELETE') return new Response(null, { status: 204 });
+      const id = call.url.searchParams.get('id');
       if (id === `eq.${ownFileId}`) return Response.json([ownFile]);
       if (id === `eq.${colleagueFileId}`) return Response.json([colleagueFile]);
       return Response.json([ownFile, colleagueFile]);
-    }
-    if (url.pathname === '/storage/v1/object/sign/client-files') {
-      const { paths } = JSON.parse(String(init?.body)) as { paths: string[] };
-      return Response.json(
-        paths.map((path) => ({
-          error: null,
-          path,
-          signedURL: `/object/sign/client-files/${path}?token=t`,
-        }))
-      );
-    }
-    if (url.pathname.startsWith('/storage/v1/object/client-files')) {
-      const custom = handlers.storage?.(init, url);
-      if (custom) return custom;
-      if (method === 'DELETE') return Response.json([]);
-      return Response.json({ Key: url.pathname.slice('/storage/v1/object/'.length) });
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
+    },
+    '/storage/v1/object/sign/client-files': ({ body }) =>
+      (body as { paths: string[] }).paths.map((path) => ({
+        error: null,
+        path,
+        signedURL: `/object/sign/client-files/${path}?token=t`,
+      })),
+    '/storage/v1/object/client-files': storage,
+    [`/storage/v1/object/client-files/${pathOf(ownFileId, 'pdf')}`]: storage,
   });
 }
 
@@ -154,28 +128,14 @@ const sent = (pathname: string, method: string) =>
   JSON.parse(String(calls(pathname, method)[0]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const upload = (query: Record<string, string>, bytes: Uint8Array) =>
-  createApp().request(
+  apiRequest(
     `/clients/${clientId}/files?${new URLSearchParams(query).toString()}`,
     {
       method: 'POST',
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        'Content-Type': 'application/octet-stream',
-      },
+      headers: { 'Content-Type': 'application/octet-stream' },
       body: new Blob([bytes as BlobPart]),
     },
     env
@@ -194,14 +154,10 @@ function zipWith(part: string) {
   return zip.generate({ type: 'uint8array' });
 }
 
+stubFetch();
+
 beforeEach(() => {
   role = 'specialist';
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  fetchMock.mockReset();
 });
 
 describe('GET /clients/{clientId}/files', () => {
@@ -241,7 +197,9 @@ describe('GET /clients/{clientId}/files', () => {
     ]);
     const [signing] = calls('/storage/v1/object/sign/client-files', 'POST');
     expect(signing).toBeDefined();
-    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe('Bearer test-access-token');
+    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(
+      `Bearer ${testAccessToken}`
+    );
     expect(JSON.parse(String(signing![1]?.body))).toEqual({
       expiresIn: 600,
       paths: [pathOf(ownFileId, 'pdf'), pathOf(colleagueFileId, 'xlsx')],
@@ -250,8 +208,8 @@ describe('GET /clients/{clientId}/files', () => {
 
   it('shortens a long name to what the download route takes, keeping the extension', async () => {
     mockUpstream({
-      files: (init) =>
-        (init?.method ?? 'GET') === 'GET'
+      files: ({ method }) =>
+        method === 'GET'
           ? Response.json([{ ...ownFile, original_file_name: `${'a'.repeat(250)}.pdf` }])
           : undefined,
     });
@@ -500,8 +458,8 @@ describe('POST /clients/{clientId}/files', () => {
 
   it('removes the row again when the file cannot be stored', async () => {
     mockUpstream({
-      storage: (init) =>
-        init?.method === 'POST' ? Response.json({ message: 'down' }, { status: 500 }) : undefined,
+      storage: ({ method }) =>
+        method === 'POST' ? Response.json({ message: 'down' }, { status: 500 }) : undefined,
     });
     expect((await upload({ fileName: 'oferta.pdf' }, pdf)).status).toBe(503);
     const [removed] = calls('/rest/v1/client_files', 'DELETE');
@@ -531,8 +489,8 @@ describe('PATCH /clients/{clientId}/files/{fileId}', () => {
 
   it('answers the archived client', async () => {
     mockUpstream({
-      files: (init) =>
-        init?.method === 'PATCH'
+      files: ({ method }) =>
+        method === 'PATCH'
           ? Response.json({ code: 'CLA01', message: 'archived' }, { status: 400 })
           : undefined,
     });
@@ -545,7 +503,7 @@ describe('PATCH /clients/{clientId}/files/{fileId}', () => {
 
   it('answers 404 for a file the caller cannot see', async () => {
     mockUpstream({
-      files: (init) => ((init?.method ?? 'GET') === 'GET' ? Response.json([]) : undefined),
+      files: ({ method }) => (method === 'GET' ? Response.json([]) : undefined),
     });
     expect(
       (await request(`/clients/${clientId}/files/${ownFileId}`, 'PATCH', { name: 'X' })).status
@@ -573,8 +531,8 @@ describe('PUT /clients/{clientId}/files/{fileId}/owners-only', () => {
   it("keeps a lead's file for owners only", async () => {
     role = 'owner';
     mockUpstream({
-      files: (init) =>
-        init?.method === 'PATCH'
+      files: ({ method }) =>
+        method === 'PATCH'
           ? Response.json({ code: 'CFL01', message: 'lead' }, { status: 400 })
           : undefined,
     });

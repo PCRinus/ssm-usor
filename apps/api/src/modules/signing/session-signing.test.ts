@@ -9,24 +9,22 @@ import {
 import type { Context } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  stubFetch,
+  testOrganizationId as organizationId,
+  testUser as user,
+  type UpstreamCall,
+  type UpstreamRoute,
+} from '../../test/upstream';
 import { applySignature, placeRecord } from '../signed-sheets/signed-sheets';
 import { applyTestSheetSignature } from '../test-sheets/test-sheets';
 import { agreementDigest } from './agreement-signing';
 import { addressHint, clientIpOf } from './session-signing';
-import {
-  callsTo,
-  clientId,
-  env,
-  fetchMock,
-  mockUpstream,
-  organizationId,
-  type UpstreamCall,
-  type UpstreamRoute,
-  user,
-} from './upstream.fixture';
+import { clientId, env, mockUpstream } from './upstream.fixture';
 
 const sheetFiles = {
   readTemplate: vi.fn<(path: string) => Promise<Uint8Array>>(),
@@ -94,17 +92,12 @@ const signingEnv = {
 } as ApiEnv['Bindings'];
 
 const send = (path: string, body: unknown, bindings: ApiEnv['Bindings'] = signingEnv) =>
-  createApp().request(
+  apiRequest(
     path,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer user-token',
-        'User-Agent': 'Firefox',
-        'CF-Connecting-IP': '203.0.113.7',
-      },
-      body: JSON.stringify(body),
+      body,
+      headers: { 'User-Agent': 'Firefox', 'CF-Connecting-IP': '203.0.113.7' },
     },
     bindings
   );
@@ -183,9 +176,9 @@ const createSessionRpc =
 
 const memberAccount = () => ({ ...user, email: 'Ana@Example.ro' });
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
   sendSigningCodeEmail.mockReset().mockResolvedValue({ id: 'm1' });
   sendSigningCodeSms.mockReset().mockResolvedValue({ id: 's1' });
@@ -221,7 +214,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
