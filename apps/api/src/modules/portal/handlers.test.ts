@@ -13,7 +13,8 @@ import { apiRequest, testAccessToken } from '../../test/request';
 import {
   callsTo,
   fetchMock,
-  mockUpstream as mockSignedInUpstream,
+  routeUpstream,
+  signedInUserRoutes,
   stubFetch,
   testEnv,
   testSecretKey,
@@ -285,35 +286,38 @@ const signedUrl = ({ method, url }: UpstreamCall, file: () => BodyInit) =>
 
 function mockUpstream(overrides: Partial<typeof upstreamDefaults> = {}) {
   const upstream = { ...upstreamDefaults, ...overrides };
-  mockSignedInUpstream({
-    [`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`]: (call) =>
-      signedUrl(call, () => storedSheetBytes),
-    '/storage/v1/object/sign/document-templates/built-in/training_sheet_ssm/new.docx': (call) =>
-      signedUrl(call, () => readFileSync(new URL('fisa_instruire_ssm.docx', templatesUrl))),
-    '/rest/v1/rpc/accept_participant_invitations': () => 0,
-    '/rest/v1/rpc/current_participations': () => upstream.participations(),
-    '/rest/v1/rpc/record_participant_notice': () => upstream.notice(),
-    '/rest/v1/rpc/set_participant_language': () => upstream.language(),
-    '/rest/v1/employees': () => upstream.employees(),
-    '/rest/v1/training_records': () => upstream.records(),
-    '/rest/v1/test_results': ({ url }) => upstream.testResults(url),
-    '/rest/v1/client_responsible_persons': () => upstream.responsiblePersons(),
-    '/rest/v1/signed_sheets': ({ url }) => upstream.signedSheets(url),
-    '/rest/v1/organizations': () => ({ name: 'Protect SSM', phone: '+40256000000' }),
-    '/rest/v1/clients': () => Response.json([{ legal_name: 'S.C. CLIENT DEMO S.R.L.' }]),
-    '/rest/v1/client_workplaces': () =>
-      Response.json([{ id: 'b1b1b1b1-0000-4000-8000-000000000001', name: 'Atelier' }]),
-    '/rest/v1/document_templates': () =>
-      Response.json([
-        {
-          type_key: 'training_sheet_ssm',
-          title: 'Fișa',
-          document_template_versions: [
-            { id: 'v1', version: 1, storage_path: 'built-in/training_sheet_ssm/new.docx' },
-          ],
-        },
-      ]),
-  });
+  routeUpstream(
+    {
+      [`/storage/v1/object/sign/documents/${storedSheetRow.storage_path}`]: (call) =>
+        signedUrl(call, () => storedSheetBytes),
+      '/storage/v1/object/sign/document-templates/built-in/training_sheet_ssm/new.docx': (call) =>
+        signedUrl(call, () => readFileSync(new URL('fisa_instruire_ssm.docx', templatesUrl))),
+      '/rest/v1/rpc/accept_participant_invitations': () => 0,
+      '/rest/v1/rpc/current_participations': () => upstream.participations(),
+      '/rest/v1/rpc/record_participant_notice': () => upstream.notice(),
+      '/rest/v1/rpc/set_participant_language': () => upstream.language(),
+      '/rest/v1/employees': () => upstream.employees(),
+      '/rest/v1/training_records': () => upstream.records(),
+      '/rest/v1/test_results': ({ url }) => upstream.testResults(url),
+      '/rest/v1/client_responsible_persons': () => upstream.responsiblePersons(),
+      '/rest/v1/signed_sheets': ({ url }) => upstream.signedSheets(url),
+      '/rest/v1/organizations': () => ({ name: 'Protect SSM', phone: '+40256000000' }),
+      '/rest/v1/clients': () => Response.json([{ legal_name: 'S.C. CLIENT DEMO S.R.L.' }]),
+      '/rest/v1/client_workplaces': () =>
+        Response.json([{ id: 'b1b1b1b1-0000-4000-8000-000000000001', name: 'Atelier' }]),
+      '/rest/v1/document_templates': () =>
+        Response.json([
+          {
+            type_key: 'training_sheet_ssm',
+            title: 'Fișa',
+            document_template_versions: [
+              { id: 'v1', version: 1, storage_path: 'built-in/training_sheet_ssm/new.docx' },
+            ],
+          },
+        ]),
+    },
+    signedInUserRoutes
+  );
 }
 
 const request = (path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST') =>

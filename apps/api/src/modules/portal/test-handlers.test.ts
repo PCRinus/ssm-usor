@@ -11,7 +11,8 @@ import { apiRequest } from '../../test/request';
 import {
   callsTo,
   databaseError,
-  mockUpstream as mockSignedInUpstream,
+  routeUpstream,
+  signedInUserRoutes,
   stubFetch,
   testEnv,
   testSecretKey,
@@ -184,7 +185,7 @@ function mockUpstream(
   };
   const answer = (upstream: Upstream) => (call: UpstreamCall) =>
     handlers[upstream]?.(call) ?? defaults[upstream](call)!;
-  mockSignedInUpstream(
+  routeUpstream(
     routes,
     signedStorage(material.pdf_path),
     {
@@ -210,7 +211,8 @@ function mockUpstream(
             })
           : answer('results')(call),
     },
-    Object.fromEntries(Object.entries(paths).map(([path, upstream]) => [path, answer(upstream)]))
+    Object.fromEntries(Object.entries(paths).map(([path, upstream]) => [path, answer(upstream)])),
+    signedInUserRoutes
   );
 }
 
