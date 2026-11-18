@@ -72,6 +72,7 @@ import { usePostHogSession } from '@/app/observability/use-posthog-session';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { roCount } from '@/features/employees/employee-format';
 import { endImpersonationBeforeSignOut } from '@/features/impersonation/end-before-sign-out';
 import {
   ImpersonationBanner,
@@ -401,7 +402,7 @@ function AppNavigation({
               {unreadCount > 0 && (
                 <span
                   className="ml-auto rounded-full bg-primary px-1.5 text-xs text-primary-foreground"
-                  aria-label={`${unreadCount} răspunsuri necitite`}
+                  aria-label={roCount(unreadCount, 'răspuns necitit', 'răspunsuri necitite')}
                 >
                   {unreadCount}
                 </span>

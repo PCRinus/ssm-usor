@@ -39,6 +39,7 @@ import {
 import { ApiHttpError } from '@/api/http';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
+import { roCount, roNoun } from '@/features/employees/employee-format';
 import {
   clientImportOverStepMessage,
   refreshEmployeesOverStep,
@@ -95,7 +96,9 @@ function Line({
       <span className="grid gap-0.5">
         <span className="text-sm">
           {count !== undefined && <span className="mr-1 font-semibold tabular-nums">{count}</span>}
-          <span className="font-medium">{label}</span>
+          <span className="font-medium">
+            {count === undefined ? label : roNoun(count, label, label)}
+          </span>
         </span>
         <span className="text-[13px] text-muted-foreground">{detail}</span>
       </span>
@@ -162,7 +165,9 @@ export function ConfirmImportDialog({
         files: result.fileCount,
         added: [
           ...addedFields.map((state) => state.label.toLowerCase()),
-          ...lines.map((line) => `${line.count ?? ''} ${line.label}`.trim()),
+          ...lines.map((line) =>
+            line.count === undefined ? line.label : roCount(line.count, line.label, line.label)
+          ),
         ],
         changed: replaced.map(
           (state) =>
@@ -299,7 +304,9 @@ export function ConfirmImportDialog({
             )}
             {left > 0 && (
               <p className="text-muted-foreground">
-                Nu preluăm {left === 1 ? 'un element' : `cele ${left} elemente`} de la alt client.
+                Nu preluăm{' '}
+                {left === 1 ? 'un element' : `cele ${roCount(left, 'element', 'elemente')}`} de la
+                alt client.
               </p>
             )}
             <CreditsUsedLine detail={detail} kind="client" />

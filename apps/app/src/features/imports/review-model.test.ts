@@ -8,6 +8,7 @@ import {
   type Changes,
   type ExistingWorkplace,
   fieldState,
+  formatFieldValue,
   inactiveOffices,
   itemStates,
   noChanges,
@@ -244,5 +245,17 @@ describe('the company ANAF registers under the CUI', () => {
     const wrote = (value: string) => ({ fields: { 'client.legalName': { value } }, items: {} });
     expect(anafMismatch(named('SPN STANCIUC'), wrote('SPN Stanciuc'), anaf)).toBeNull();
     expect(anafMismatch(named('SPN STANCIUC'), wrote('Alfa SRL'), anaf)).toBe(anaf);
+  });
+});
+
+describe('a training interval read from the documents', () => {
+  it.each([
+    [1, 'lunar'],
+    [6, 'la 6 luni'],
+    [24, 'la 24 de luni'],
+  ])('reads %i months as Romanian counts them', (months, expected) => {
+    expect(formatFieldValue('trainingSchedule.workerTrainingIntervalMonths', months)).toBe(
+      expected
+    );
   });
 });
