@@ -861,6 +861,32 @@ describe("a client's trainings held", () => {
     expect(await screen.findByTestId('trainings-empty')).toBeTruthy();
   });
 
+  it('stays open while a deletion runs, so its failure is shown', async () => {
+    let fail: (response: Response) => void = () => undefined;
+    mockApi({
+      [`GET ${trainingsPath}`]: () => Response.json(page([heldWith(popescu, taranu)])),
+      [`DELETE ${trainingsPath}/${trainingId}`]: () =>
+        new Promise<Response>((resolve) => {
+          fail = resolve;
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-row-menu'));
+    await user.click(await screen.findByTestId('trainings-delete'));
+    const dialog = await screen.findByTestId('training-delete-dialog');
+    await user.click(within(dialog).getByTestId('training-delete-confirm'));
+    await waitFor(() =>
+      expect(requests('DELETE', `${trainingsPath}/${trainingId}`)).toHaveLength(1)
+    );
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('training-delete-dialog')).toBeTruthy();
+    fail(Response.json({ error: 'Internal Server Error' }, { status: 500 }));
+    expect((await screen.findByTestId('training-delete-error')).textContent).toBe(
+      'Nu am putut șterge instruirea. Verifică conexiunea și încearcă din nou.'
+    );
+  });
+
   it.each([
     [
       { signed: true, hasSignatures: true },
