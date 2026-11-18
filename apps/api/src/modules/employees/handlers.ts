@@ -15,7 +15,6 @@ import {
   noWorkplace,
   orderedCommuteMeans,
   type OrganizationEmployeeSortKey,
-  pageRange,
   type ParticipantChannel,
   type PortalAccessState,
   type PortalLanguage,
@@ -31,6 +30,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage, orderedBy } from '../../lib/list-page';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { requireClient, requireWritableClient } from '../clients/lookup';
 import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
@@ -457,40 +457,22 @@ async function listFromView(
       matchingFilters(current(db.from('employee_list').select(columns, options)), filters),
       q
     );
-  let listQuery = filtered(withPortal ? `${listViewColumns}, ${portalColumns}` : listViewColumns, {
-    count: 'exact',
-  });
-  for (const { column, nullsLast } of sortColumns[sort]) {
-    listQuery = listQuery.order(column, {
-      ascending: order === 'asc',
-      ...(nullsLast ? { nullsFirst: false } : {}),
-    });
-  }
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    listQuery.order('id').range(from, to).returns<ListViewRow[]>(),
-    narrowed
-      ? current(db.from('employee_list').select('id', { count: 'exact', head: true }))
-      : null,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count employees');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end (rows left since the caller last looked): empty, real total.
-    const recount = await filtered('id', { count: 'exact', head: true });
-    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
-    const total = recount.count ?? 0;
-    return { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) };
-  }
-  if (error) throw fromDatabaseError(error, 'list employees');
-  const total = count ?? 0;
-  return {
-    items: await listedEmployees(db, data),
+  const columns = withPortal ? `${listViewColumns}, ${portalColumns}` : listViewColumns;
+  const { rows, total, unfilteredTotal } = await listPage({
     page,
     pageSize,
-    total,
-    unfilteredTotal: unfilteredTotal(total),
-  };
+    rows: (from, to) =>
+      orderedBy(filtered(columns, { count: 'exact' }), sortColumns[sort], order)
+        .order('id')
+        .range(from, to)
+        .returns<ListViewRow[]>(),
+    recount: () => filtered('id', { count: 'exact', head: true }),
+    unfiltered: narrowed
+      ? () => current(db.from('employee_list').select('id', { count: 'exact', head: true }))
+      : undefined,
+    what: 'employees',
+  });
+  return { items: await listedEmployees(db, rows), page, pageSize, total, unfilteredTotal };
 }
 
 type ScopableQuery<Query> = {

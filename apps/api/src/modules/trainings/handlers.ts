@@ -12,13 +12,14 @@ import type {
   TrainingSortKey,
   TrainingSource,
 } from '@ssm-usor/contracts';
-import { pageRange, proposalEmployeeIds, searchTerms } from '@ssm-usor/contracts';
+import { proposalEmployeeIds, searchTerms } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import type { Database, Json } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage, orderedBy } from '../../lib/list-page';
 import { collator } from '../../lib/romanian';
 import { clientNotFound } from '../clients/lookup';
 import { romanianDay } from '../documents/context';
@@ -364,15 +365,7 @@ function ordered<Query extends OrderableQuery<Query>>(
   sort: TrainingSortKey,
   order: SortOrder
 ) {
-  const sorted = sortColumns[sort].reduce(
-    (each, { column, nullsLast }) =>
-      each.order(column, {
-        ascending: order === 'asc',
-        ...(nullsLast ? { nullsFirst: false } : {}),
-      }),
-    query
-  );
-  return sorted.order('id', { ascending: true });
+  return orderedBy(query, sortColumns[sort], order).order('id', { ascending: true });
 }
 
 function toListItem(row: ListViewRow): TrainingListItem {
@@ -417,36 +410,26 @@ export const listTrainings: RouteHandler<typeof listTrainingsRoute, ApiEnv> = as
     }
   }
 
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    ordered(filtered(listViewColumns, { count: 'exact' }), sort, order)
-      .range(from, to)
-      .returns<ListViewRow[]>(),
-    narrowed
-      ? inScope(db.from('training_list').select('id', { count: 'exact', head: true }))
-      : null,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count trainings');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end (trainings went since the caller last looked): empty, real total.
-    const recount = await filtered('id', { count: 'exact', head: true });
-    if (recount.error) throw fromDatabaseError(recount.error, 'count trainings');
-    const total = recount.count ?? 0;
-    return c.json(
-      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
-      200
-    );
-  }
-  if (error) throw fromDatabaseError(error, 'list trainings');
-  const total = count ?? 0;
+  const { rows, total, unfilteredTotal } = await listPage({
+    page,
+    pageSize,
+    rows: (from, to) =>
+      ordered(filtered(listViewColumns, { count: 'exact' }), sort, order)
+        .range(from, to)
+        .returns<ListViewRow[]>(),
+    recount: () => filtered('id', { count: 'exact', head: true }),
+    unfiltered: narrowed
+      ? () => inScope(db.from('training_list').select('id', { count: 'exact', head: true }))
+      : undefined,
+    what: 'trainings',
+  });
   return c.json(
     {
-      items: data.map(toListItem),
+      items: rows.map(toListItem),
       page,
       pageSize,
       total,
-      unfilteredTotal: unfilteredTotal(total),
+      unfilteredTotal,
     },
     200
   );

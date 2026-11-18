@@ -14,7 +14,6 @@ import {
   type LeadListFilters,
   leadSortKeys,
   normalizeCui,
-  pageRange,
   type ServiceContractState,
 } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
@@ -31,6 +30,7 @@ import {
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { clientObjectBuckets, createAdminFileStore } from '../../lib/files';
+import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../lib/list-page';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { clientNotFound, requireClient } from './lookup';
 import type {
@@ -117,13 +117,6 @@ function requireOwnerForLeads(role: string) {
     throw new ApiError('forbidden', 'Only an owner of the organization works with leads.');
   }
 }
-
-type SortColumn = {
-  column: string;
-  reversed?: boolean;
-  alwaysAscending?: boolean;
-  nullsLast?: boolean;
-};
 
 // The id keeps every order stable across pages.
 const sortColumns: Record<ClientListSortKey, SortColumn[]> = {
@@ -289,19 +282,6 @@ type FilterableQuery<Query> = {
   eq(column: string, value: boolean): Query;
 };
 
-// The terms come lowercase and without diacritics, as the search column holds the text, and
-// hold only letters and digits, which keeps PostgREST's filter syntax out of them.
-function matchingEveryTerm<Query extends { ilike(column: string, pattern: string): Query }>(
-  query: Query,
-  column: string,
-  q: string | undefined
-) {
-  return clientSearchTerms(q).reduce(
-    (matching, term) => matching.ilike(column, `*${term}*`),
-    query
-  );
-}
-
 function matchingFilters<Query extends FilterableQuery<Query>>(
   query: Query,
   filters: ClientListFilters
@@ -354,6 +334,7 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
   }
   const db = createDataClient(c);
   const archived = status === 'archived' ? 'not.is' : 'is';
+  const terms = clientSearchTerms(q);
   // Owners only, as leads are; the contract state is what says where a lead stands.
   const leads = (columns: string, head: boolean) => {
     const listed = matchingEveryTerm(
@@ -362,7 +343,7 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
         .select(columns, { count: 'exact', head })
         .filter('archived_at', archived, null),
       'search_text',
-      q
+      terms
     );
     return leadFilters.contractState
       ? listed.in('service_contract_state', leadFilters.contractState)
@@ -377,7 +358,7 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
           .eq('stage', stage)
           .filter('archived_at', archived, null),
         'search_text',
-        q
+        terms
       ),
       filters
     );
@@ -387,46 +368,29 @@ export const listClients: RouteHandler<typeof listClientsRoute, ApiEnv> = async 
       : clients(`${clientColumns}, ${workColumns}`, false).returns<ListedRow[]>();
   // Counts only, so the page past the end does not compute every row's work again.
   const counted = () => (stage === 'lead' ? leads('id', true) : clients('id', true));
-  const narrowed = clientFiltered || leadFiltered || clientSearchTerms(q).length > 0;
+  const narrowed = clientFiltered || leadFiltered || terms.length > 0;
   const everyClient = narrowed
-    ? db
-        .from('clients')
-        .select('id', { count: 'exact', head: true })
-        .eq('stage', stage)
-        .filter('archived_at', archived, null)
-    : null;
-  let listQuery = listed();
-  for (const { column, reversed, alwaysAscending, nullsLast } of sortColumns[sort]) {
-    listQuery = listQuery.order(column, {
-      ascending: alwaysAscending || (reversed ? order === 'desc' : order === 'asc'),
-      ...(nullsLast ? { nullsFirst: false } : {}),
-    });
-  }
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    listQuery.order('id').range(from, to),
-    everyClient,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count clients');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end: empty, with the real total.
-    const recount = await counted();
-    if (recount.error) throw fromDatabaseError(recount.error, 'count clients');
-    const total = recount.count ?? 0;
-    return c.json(
-      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
-      200
-    );
-  }
-  if (error) throw fromDatabaseError(error, 'list clients');
+    ? () =>
+        db
+          .from('clients')
+          .select('id', { count: 'exact', head: true })
+          .eq('stage', stage)
+          .filter('archived_at', archived, null)
+    : undefined;
+  const { rows, total, unfilteredTotal } = await listPage({
+    page,
+    pageSize,
+    rows: (from, to) => orderedBy(listed(), sortColumns[sort], order).order('id').range(from, to),
+    recount: counted,
+    unfiltered: everyClient,
+    what: 'clients',
+  });
   const adminTools = adminToolsAllowed(c);
-  const total = count ?? 0;
   const items =
     stage === 'lead'
-      ? (data as LeadRow[]).map((row) => toLeadListItem(row, adminTools))
-      : (data as ListedRow[]).map((row) => toClientListItem(row, adminTools));
-  return c.json({ items, page, pageSize, total, unfilteredTotal: unfilteredTotal(total) }, 200);
+      ? (rows as LeadRow[]).map((row) => toLeadListItem(row, adminTools))
+      : (rows as ListedRow[]).map((row) => toClientListItem(row, adminTools));
+  return c.json({ items, page, pageSize, total, unfilteredTotal }, 200);
 };
 
 // Row-level security hides other organizations' clients, so a missing row is a 404
