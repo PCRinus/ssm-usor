@@ -316,6 +316,11 @@ describe('entryName', () => {
     );
     expect(entryName('Receptioner de hotel')).toBe('Receptioner de hotel');
   });
+
+  it('keeps the trade’s acronyms in capitals', () => {
+    expect(entryName('EVALUARE SSM')).toBe('Evaluare SSM');
+    expect(entryName('MANIPULANT GPL , LUCRU CU EIP')).toBe('Manipulant GPL, lucru cu EIP');
+  });
 });
 
 describe('riskImportPayload', () => {

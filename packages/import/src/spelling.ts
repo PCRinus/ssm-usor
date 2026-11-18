@@ -33,24 +33,26 @@ function keptCapitals(word: string) {
   return initials.test(bare) || capitalWords.has(bare.replace(/\.$/, ''));
 }
 
-export function sentenceCase(value: string) {
-  return value
+export const lowerCaseKeepingCapitals = (value: string) =>
+  value
     .split(/(\s+)/)
     .map((part) => (keptCapitals(part) ? part : part.toLowerCase()))
-    .join('')
-    .replace(
-      /(^|[.:]\s+|\n)([\s"„'«(•*–-]*)(\p{Ll})/gu,
-      (match, before: string, marks: string, first: string, offset: number, whole: string) =>
-        before.startsWith('.') &&
-        initials.test(
-          whole
-            .slice(0, offset + 1)
-            .split(/\s/)
-            .at(-1)!
-        )
-          ? match
-          : before + marks + first.toUpperCase()
-    );
+    .join('');
+
+export function sentenceCase(value: string) {
+  return lowerCaseKeepingCapitals(value).replace(
+    /(^|[.:]\s+|\n)([\s"„'«(•*–-]*)(\p{Ll})/gu,
+    (match, before: string, marks: string, first: string, offset: number, whole: string) =>
+      before.startsWith('.') &&
+      initials.test(
+        whole
+          .slice(0, offset + 1)
+          .split(/\s/)
+          .at(-1)!
+      )
+        ? match
+        : before + marks + first.toUpperCase()
+  );
 }
 
 const words = (value: string) =>
