@@ -7,6 +7,7 @@ import {
   daysUntil,
   endedSentence,
   inDaysLabel,
+  monthlyRenewalDay,
   ownerActionFor,
   sealFor,
 } from './subscription-copy';
@@ -135,5 +136,24 @@ describe("the owner's next step", () => {
       'Reactivează abonamentul'
     );
     expect(ownerActionFor(paid)).toEqual({ label: 'Gestionează abonamentul', urgent: false });
+  });
+});
+
+describe('the monthly renewal day', () => {
+  it("is the anchor's day", () => {
+    expect(monthlyRenewalDay(new Date(2027, 0, 15, 12).toISOString())).toBe(
+      'în fiecare lună, pe 15'
+    );
+    expect(monthlyRenewalDay(new Date(2027, 0, 28, 12).toISOString())).toBe(
+      'în fiecare lună, pe 28'
+    );
+  });
+
+  it('names the last day of shorter months from the 29th on', () => {
+    for (const day of [29, 30, 31]) {
+      expect(monthlyRenewalDay(new Date(2027, 0, day, 12).toISOString())).toBe(
+        `în fiecare lună, pe ${day}, iar în lunile fără această zi, în ultima zi a lunii`
+      );
+    }
   });
 });

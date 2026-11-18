@@ -498,6 +498,9 @@ export const billingOverviewSchema = z.object({
       step: z.int().nullable(),
       trialEndsAt: timestamp.nullable(),
       currentPeriodEnd: timestamp.nullable(),
+      // Stripe's billing cycle anchor: its day of the month is the renewal day, which a shorter
+      // month moves to its last day.
+      billingAnchorAt: timestamp.nullable(),
       accessUntil: timestamp.nullable(),
       access: accessLevelSchema,
       deletesAt: timestamp.nullable(),

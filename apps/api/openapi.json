@@ -21635,6 +21635,11 @@
                 "nullable": true,
                 "format": "date-time"
               },
+              "billingAnchorAt": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
               "accessUntil": {
                 "type": "string",
                 "nullable": true,
@@ -21663,6 +21668,7 @@
               "step",
               "trialEndsAt",
               "currentPeriodEnd",
+              "billingAnchorAt",
               "accessUntil",
               "access",
               "deletesAt",

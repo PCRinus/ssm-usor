@@ -22,6 +22,14 @@ export function roDate(timestamp: string) {
   return formatRoDate(dateToIso(new Date(timestamp)));
 }
 
+// Stripe renews a monthly plan on its anchor's day, and only a month without that day moves the
+// renewal to its last day, so the next renewal's date is not the day to name.
+export function monthlyRenewalDay(anchor: string) {
+  const day = new Date(anchor).getDate();
+  const shorter = day > 28 ? ', iar în lunile fără această zi, în ultima zi a lunii' : '';
+  return `în fiecare lună, pe ${day}${shorter}`;
+}
+
 // Calendar days in the reader's zone: a trial that ends tonight ends "azi", whatever the hour.
 export function daysUntil(timestamp: string, now = new Date()) {
   const day = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());

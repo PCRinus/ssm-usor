@@ -133,6 +133,7 @@ function subscriptionView(
     step: row.employee_step,
     trialEndsAt: iso(row.trial_ends_at),
     currentPeriodEnd: iso(row.current_period_end),
+    billingAnchorAt: iso(row.billing_anchor_at),
     accessUntil: iso(row.access_until),
     access,
     deletesAt,

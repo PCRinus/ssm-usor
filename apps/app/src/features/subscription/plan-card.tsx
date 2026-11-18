@@ -20,6 +20,7 @@ import {
   daysLeftLabel,
   daysUntil,
   endedSentence,
+  monthlyRenewalDay,
   planNames,
   pricingUrl,
   roDate,
@@ -188,9 +189,10 @@ export function PlanCard({
     }
     case 'active': {
       const renews = subscription!.currentPeriodEnd;
+      const anchor = subscription!.billingAnchorAt ?? renews;
       status =
-        choice?.interval === 'month' && renews
-          ? `Activ. Se reînnoiește în fiecare lună, pe ${new Date(renews).getDate()}.`
+        choice?.interval === 'month' && anchor
+          ? `Activ. Se reînnoiește ${monthlyRenewalDay(anchor)}.`
           : renews
             ? `Activ. Se reînnoiește pe ${roDate(renews)}.`
             : 'Activ.';

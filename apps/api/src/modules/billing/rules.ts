@@ -13,6 +13,8 @@ import {
   vatPercent,
 } from '@ssm-usor/contracts';
 
+import { addMonths } from '../sms-usage/policy';
+
 export type Usage = { employees: number; members: number };
 
 export function minimumStepFor(plan: PaidPlan, employees: number) {
@@ -87,12 +89,8 @@ export function splitChange(current: BillingChoice, target: BillingChoice): Chan
   return { now: target, atRenewal: null, chargeNow: target.interval === 'year' };
 }
 
-export function addInterval(date: Date, interval: BillingInterval) {
-  const next = new Date(date);
-  if (interval === 'year') next.setUTCFullYear(next.getUTCFullYear() + 1);
-  else next.setUTCMonth(next.getUTCMonth() + 1);
-  return next;
-}
+export const addInterval = (date: Date, interval: BillingInterval) =>
+  addMonths(date, interval === 'year' ? 12 : 1);
 
 // v1 had one price per plan, with packs of employees and extra members as quantities beside it;
 // a subscription on it still renews until the owner changes it (ADR 029, amendment of 2026-11-14).

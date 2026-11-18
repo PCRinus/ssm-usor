@@ -15,7 +15,9 @@ import {
   type ChangeSplit,
   choiceFromItems,
   choiceLines,
+  isPlanProduct,
   minimumStepFor,
+  parseLookupKey,
   problemsWith,
   recurringPrice,
   sameChoice,
@@ -146,6 +148,15 @@ function phaseItems(choice: BillingChoice, catalogue: StripeCatalogue) {
 const isProration = (line: Stripe.InvoiceLineItem) =>
   Boolean(line.parent?.subscription_item_details?.proration);
 
+function planPeriodEnd(invoice: Stripe.Invoice, catalogue: StripeCatalogue) {
+  const line = invoice.lines.data.find((line) => {
+    const price = idOf(line.pricing?.price_details?.price);
+    const key = parseLookupKey(catalogue.lookupKeys.get(price ?? ''));
+    return !isProration(line) && isPlanProduct(key?.product);
+  });
+  return line ? fromSeconds(line.period.end) : null;
+}
+
 function invoiceAmounts(invoice: Stripe.Invoice) {
   return {
     subtotalCents: invoice.subtotal,
@@ -231,6 +242,7 @@ export async function preview(
 
   let dueToday = none;
   let proration: BillingPreview['proration'] = null;
+  let chargedPlanEnd: Date | null = null;
   const prorationDate = seconds(now);
   if (split.now) {
     const upcoming = await stripeBilling.access.stripe.invoices.createPreview({
@@ -245,6 +257,9 @@ export async function preview(
     if (split.chargeNow) {
       dueToday = invoiceAmounts(upcoming);
       proration = { subtotalCents: upcoming.subtotal, chargedNow: true };
+      // Only an invoice charged now opens the new period; the renewal invoice a proration waits
+      // for bills the period after the next renewal.
+      chargedPlanEnd = planPeriodEnd(upcoming, stripeBilling.catalogue);
     } else {
       const prorated = upcoming.lines.data
         .filter(isProration)
@@ -254,7 +269,7 @@ export async function preview(
   }
 
   const intervalNow = split.now && split.now.interval !== current.interval;
-  const nextRenewalAt = intervalNow ? addInterval(now, 'year') : renewalAt;
+  const nextRenewalAt = intervalNow ? (chargedPlanEnd ?? addInterval(now, 'year')) : renewalAt;
   const nextSubtotal =
     recurring.subtotalCents + (proration && !proration.chargedNow ? proration.subtotalCents : 0);
   return {
