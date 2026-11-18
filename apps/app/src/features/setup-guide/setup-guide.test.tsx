@@ -7,13 +7,15 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Release, SetupGuide, SetupStep } from '@/api/generated/api';
 import type { AppRuntime } from '@/app/app-runtime';
+import { bodiesOf, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { meRecord, meResponse } from '@/test/records';
 
 import { lockReason } from './steps';
 
@@ -93,8 +95,6 @@ const unreadRelease: Release = {
   unread: true,
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 interface ApiState {
   guide: SetupGuide;
   role?: 'owner' | 'specialist';
@@ -104,7 +104,7 @@ interface ApiState {
   releases?: Release[];
 }
 
-function mockApi(state: ApiState) {
+function mockGuideApi(state: ApiState) {
   let guide = state.guide;
   let releases = state.releases ?? [];
   let held: ((answer: SetupGuide) => void) | null = null;
@@ -131,26 +131,27 @@ function mockApi(state: ApiState) {
       next: steps.find((step) => step.state === 'open' && step.canDo)?.id ?? null,
     };
   };
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  const me = meRecord({
+    user: { id: 'user-one', email: 'ioana@expertssm.test' },
+    profile: {
+      ...meResponse.profile,
+      fullName: 'Ioana Popescu',
+      professionalTitle: 'Inspector SSM',
+    },
+    membership: state.membership === false ? null : { organization, role: state.role ?? 'owner' },
+    impersonation: state.impersonating
+      ? {
+          targetMemberId: '0e0c1d36-5a4e-4b19-9d4b-8a1f1b6f9f10',
+          targetOrganizationId: organization.id,
+          expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+          targetName: 'Ana Popescu',
+        }
+      : null,
+    subscription: state.subscription ?? null,
+  });
+  mockApi((init, { pathname }) => {
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'ioana@expertssm.test' },
-        profile: { fullName: 'Ioana Popescu', professionalTitle: 'Inspector SSM' },
-        membership:
-          state.membership === false ? null : { organization, role: state.role ?? 'owner' },
-        impersonation: state.impersonating
-          ? {
-              targetMemberId: '0e0c1d36-5a4e-4b19-9d4b-8a1f1b6f9f10',
-              targetOrganizationId: organization.id,
-              expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
-              targetName: 'Ana Popescu',
-            }
-          : null,
-        subscription: state.subscription ?? null,
-      });
-    }
+    if (pathname === '/me') return Response.json(me);
     if (pathname === '/dashboard/summary') return Response.json(quietSummary);
     if (pathname === '/releases') return Response.json({ items: releases });
     if (pathname === '/releases/acknowledge' && method === 'POST') {
@@ -178,15 +179,6 @@ function mockApi(state: ApiState) {
   });
   return api;
 }
-
-const calls = (path: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === path && (init?.method ?? 'GET') === method
-  );
-
-const bodiesOf = (path: string, method: string) =>
-  calls(path, method).map(([, init]) => JSON.parse(String(init?.body)) as unknown);
 
 const mount = (path = '/dashboard') => mountApp(authFixture(makeSession()).client, path);
 
@@ -230,7 +222,7 @@ const panel = () => screen.findByTestId('setup-guide');
 const step = (id: SetupStepId) => screen.getByTestId(`setup-step-${id}`);
 
 async function expectNoGuide() {
-  await waitFor(() => expect(calls('/me').length).toBeGreaterThan(0));
+  await waitFor(() => expect(requestsTo('/me').length).toBeGreaterThan(0));
   await new Promise((resolve) => setTimeout(resolve, 100));
   expect(screen.queryByTestId('setup-guide')).toBeNull();
   expect(screen.queryByTestId('setup-guide-pill')).toBeNull();
@@ -238,18 +230,13 @@ async function expectNoGuide() {
 
 beforeEach(() => {
   captureEvent.mockReset();
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
 });
 
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the setup guide on a first load', () => {
   it('opens expanded, with the group of the next step open and the step as a card', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
 
     const guide = await panel();
@@ -275,7 +262,7 @@ describe('the setup guide on a first load', () => {
 
   it('opens collapsed on a later load, with the next step as a link', async () => {
     localStorage.setItem(openedKey, '2026-10-27T10:00:00.000Z');
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
 
     const guide = await panel();
@@ -286,7 +273,7 @@ describe('the setup guide on a first load', () => {
   });
 
   it('remembers that it opened, so the next load is collapsed', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
 
     expect((await panel()).dataset.view).toBe('expanded');
@@ -294,7 +281,7 @@ describe('the setup guide on a first load', () => {
   });
 
   it('keeps the size chosen in this session', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await userEvent.setup().click(await screen.findByTestId('setup-guide-collapse'));
     await waitFor(() => expect(screen.getByTestId('setup-guide').dataset.view).toBe('collapsed'));
@@ -311,7 +298,7 @@ describe('the setup guide on a first load', () => {
 
   it('opens collapsed on a phone, as a docked bar', async () => {
     onPhone();
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
 
     const guide = await panel();
@@ -320,7 +307,7 @@ describe('the setup guide on a first load', () => {
   });
 
   it('collapses on Escape', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
 
@@ -331,7 +318,7 @@ describe('the setup guide on a first load', () => {
 
 describe('the steps', () => {
   it('words the member steps without «primul» once the organization has a client', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith(
         Object.fromEntries(
           Object.keys(locks).map((id) => [id, { state: 'open' as const, lock: undefined }])
@@ -353,7 +340,7 @@ describe('the steps', () => {
   });
 
   it('uses «primul» while the organization has no client', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
 
     await panel();
@@ -362,7 +349,7 @@ describe('the steps', () => {
   });
 
   it('shows a lock reason on focus', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
 
@@ -373,7 +360,7 @@ describe('the steps', () => {
   });
 
   it('closes a lock reason on Escape and stays expanded', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
 
@@ -410,7 +397,7 @@ describe('the steps', () => {
   it('shows the lock reasons in the sheet on a phone', async () => {
     onPhone();
     sessionStorage.setItem('ssm-usor:setup-guide-view:user-one', 'collapsed');
-    mockApi({
+    mockGuideApi({
       guide: guideWith(
         { 'generate-sets': { lock: 'needs-organization-data' } },
         { ownerName: 'Ioana Popescu' }
@@ -434,7 +421,7 @@ describe('the steps', () => {
   });
 
   it('shows a specialist the organization steps they cannot do, with no links', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith({
         company: { state: 'open', canDo: false, missing: ['cui'] },
         authorizations: { state: 'done', canDo: false },
@@ -460,7 +447,7 @@ describe('the steps', () => {
   });
 
   it('names no one among several owners', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith(
         {
           company: { state: 'open', canDo: false },
@@ -485,7 +472,7 @@ describe('the steps', () => {
   });
 
   it('lists the missing company fields CUI first and opens the CUI', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith({
         company: {
           state: 'open',
@@ -506,7 +493,7 @@ describe('the steps', () => {
   });
 
   it('links each missing company field with its focus, and opens the first', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith({ company: { state: 'open', missing: ['cui', 'address'] } }),
     });
     mount();
@@ -530,7 +517,7 @@ describe('the steps', () => {
   });
 
   it('points the authorizations and the professional title at their fields', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith({
         authorizations: { state: 'open', missing: ['fire-safety-technician'] },
         'professional-title': { state: 'open' },
@@ -552,7 +539,7 @@ describe('the steps', () => {
   });
 
   it('opens a workflow step on the furthest client with no highlight', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith(
         {
           client: { state: 'done' },
@@ -585,7 +572,7 @@ describe('the steps', () => {
   });
 
   it('opens both documents tabs to generate the sets and to issue a document', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith(
         {
           ...doneUpTo('fire-safety-data'),
@@ -607,7 +594,7 @@ describe('the steps', () => {
   });
 
   it('skips a member step with Știu deja and undoes it', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
     const user = userEvent.setup();
@@ -615,80 +602,82 @@ describe('the steps', () => {
     await user.click(within(step('client')).getByTestId('setup-step-skip'));
     await waitFor(() => expect(step('client').dataset.state).toBe('skipped'));
     expect(step('client').textContent).toContain('Știi deja');
-    expect(calls('/me/setup/skips/client', 'PUT')).toHaveLength(1);
+    expect(requestsTo('/me/setup/skips/client', 'PUT')).toHaveLength(1);
     expect(captureEvent).toHaveBeenCalledWith('setup_step_skipped', { step: 'client' });
 
     await user.click(within(step('client')).getByTestId('setup-step-unskip'));
     await waitFor(() => expect(step('client').dataset.state).toBe('next'));
-    expect(calls('/me/setup/skips/client', 'DELETE')).toHaveLength(1);
+    expect(requestsTo('/me/setup/skips/client', 'DELETE')).toHaveLength(1);
     expect(captureEvent).toHaveBeenCalledWith('setup_step_unskipped', { step: 'client' });
   });
 });
 
 describe('when the guide shows', () => {
   it('hides on the document editor pages', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount(`/clienti/${clientId}/documente-ssm/${documentId}`);
-    await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/me/setup')).toHaveLength(1));
     expect(await screen.findByTestId('app-logo')).toBeTruthy();
     await expectNoGuide();
   });
 
   it('hides while the organization is read-only, and does not ask for it', async () => {
-    mockApi({ guide: founder, subscription: readOnly });
+    mockGuideApi({ guide: founder, subscription: readOnly });
     mount();
     await screen.findByTestId('subscription-badge');
     await expectNoGuide();
-    expect(calls('/me/setup')).toHaveLength(0);
+    expect(requestsTo('/me/setup')).toHaveLength(0);
   });
 
   it('hides while the platform admin acts as an owner, and does not ask for it', async () => {
-    mockApi({ guide: founder, impersonating: true });
+    mockGuideApi({ guide: founder, impersonating: true });
     mount();
     await expectNoGuide();
-    expect(calls('/me/setup')).toHaveLength(0);
+    expect(requestsTo('/me/setup')).toHaveLength(0);
   });
 
   it('hides an answer that lacks a step, and keeps the shell', async () => {
-    mockApi({ guide: { ...founder, steps: founder.steps.filter((one) => one.id !== 'training') } });
+    mockGuideApi({
+      guide: { ...founder, steps: founder.steps.filter((one) => one.id !== 'training') },
+    });
     mount();
-    await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/me/setup')).toHaveLength(1));
     await expectNoGuide();
     expect(screen.getByTestId('app-logo')).toBeTruthy();
   });
 
   it('hides an answer with a step twice', async () => {
-    mockApi({
+    mockGuideApi({
       guide: {
         ...founder,
         steps: founder.steps.map((one) => (one.id === 'training' ? founder.steps[4]! : one)),
       },
     });
     mount();
-    await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/me/setup')).toHaveLength(1));
     await expectNoGuide();
   });
 
   it('hides for an account without a membership', async () => {
-    mockApi({ guide: founder, membership: false });
+    mockGuideApi({ guide: founder, membership: false });
     mount();
     await expectNoGuide();
-    expect(calls('/me/setup')).toHaveLength(0);
+    expect(requestsTo('/me/setup')).toHaveLength(0);
   });
 
   it('hides once finished', async () => {
-    mockApi({ guide: { ...everythingDone, finished: true } });
+    mockGuideApi({ guide: { ...everythingDone, finished: true } });
     mount();
-    await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/me/setup')).toHaveLength(1));
     await expectNoGuide();
   });
 
   it('waits for the update dialog to close', async () => {
-    mockApi({ guide: founder, releases: [unreadRelease] });
+    mockGuideApi({ guide: founder, releases: [unreadRelease] });
     mount();
 
     const dialog = await screen.findByTestId('update-dialog');
-    await waitFor(() => expect(calls('/me/setup')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/me/setup')).toHaveLength(1));
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(screen.queryByTestId('setup-guide')).toBeNull();
     await userEvent.setup().click(within(dialog).getByTestId('update-dialog-acknowledge'));
@@ -699,7 +688,7 @@ describe('when the guide shows', () => {
 
 describe('closing and reopening', () => {
   it('leaves a pill in the header that brings the guide back collapsed', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
     const user = userEvent.setup();
@@ -722,7 +711,7 @@ describe('closing and reopening', () => {
   });
 
   it('stays closed across loads, as the account says', async () => {
-    mockApi({ guide: { ...founder, closed: true } });
+    mockGuideApi({ guide: { ...founder, closed: true } });
     mount();
 
     expect(await screen.findByTestId('setup-guide-pill')).toBeTruthy();
@@ -731,7 +720,7 @@ describe('closing and reopening', () => {
 
   it('shows a ring after the subscription badge on a phone, which brings it back collapsed', async () => {
     onPhone();
-    mockApi({ guide: { ...founder, closed: true } });
+    mockGuideApi({ guide: { ...founder, closed: true } });
     mount();
 
     const ring = await screen.findByRole('button', {
@@ -746,7 +735,7 @@ describe('closing and reopening', () => {
   });
 
   it('shows Gata once everything is done, and leaves when collapsed', async () => {
-    mockApi({ guide: everythingDone });
+    mockGuideApi({ guide: everythingDone });
     localStorage.setItem(openedKey, '2026-10-27T10:00:00.000Z');
     mount();
 
@@ -766,7 +755,7 @@ describe('closing and reopening', () => {
   });
 
   it('finishes when closed on Gata', async () => {
-    mockApi({ guide: everythingDone });
+    mockGuideApi({ guide: everythingDone });
     mount();
     await panel();
 
@@ -776,7 +765,7 @@ describe('closing and reopening', () => {
   });
 
   it('opens once to say Gata when the member finishes while it is closed', async () => {
-    const api = mockApi({ guide: { ...founder, closed: true } });
+    const api = mockGuideApi({ guide: { ...founder, closed: true } });
     const runtime = mount();
     await screen.findByTestId('setup-guide-pill');
 
@@ -799,7 +788,7 @@ describe('closing and reopening', () => {
 
   it('says Gata on a load after finishing while it was closed', async () => {
     sessionStorage.setItem('ssm-usor:setup-guide-view:user-one', 'collapsed');
-    mockApi({ guide: { ...everythingDone, closed: true } });
+    mockGuideApi({ guide: { ...everythingDone, closed: true } });
     mount();
 
     expect((await panel()).dataset.view).toBe('expanded');
@@ -812,7 +801,7 @@ describe('closing and reopening', () => {
 
 describe('Setări', () => {
   it('lists the guide with its progress and shows it again collapsed', async () => {
-    mockApi({ guide: { ...everythingDone, finished: true } });
+    mockGuideApi({ guide: { ...everythingDone, finished: true } });
     mount('/setari');
     const user = userEvent.setup();
 
@@ -829,7 +818,7 @@ describe('Setări', () => {
   });
 
   it('cannot show it while the organization is read-only, and says why', async () => {
-    mockApi({ guide: founder, subscription: readOnly });
+    mockGuideApi({ guide: founder, subscription: readOnly });
     mount('/setari');
 
     const show = await screen.findByTestId('settings-setup-guide-show');
@@ -844,7 +833,7 @@ describe('Setări', () => {
   });
 
   it('cannot show it while the platform admin acts as an owner', async () => {
-    mockApi({ guide: founder, impersonating: true });
+    mockGuideApi({ guide: founder, impersonating: true });
     mount('/setari');
 
     const show = await screen.findByTestId('settings-setup-guide-show');
@@ -855,7 +844,7 @@ describe('Setări', () => {
   });
 
   it('shows a closed guide collapsed', async () => {
-    mockApi({ guide: { ...founder, closed: true } });
+    mockGuideApi({ guide: { ...founder, closed: true } });
     mount('/setari');
 
     await userEvent.setup().click(await screen.findByTestId('settings-setup-guide-show'));
@@ -866,10 +855,10 @@ describe('Setări', () => {
 
 describe('refetching', () => {
   it('ticks a step after another change, and tells PostHog', async () => {
-    const api = mockApi({ guide: founder });
+    const api = mockGuideApi({ guide: founder });
     const runtime = mount();
     await panel();
-    expect(calls('/me/setup')).toHaveLength(1);
+    expect(requestsTo('/me/setup')).toHaveLength(1);
 
     api.guide = guideWith(
       { client: { state: 'done' }, 'workplaces-positions': { state: 'open', lock: undefined } },
@@ -884,7 +873,7 @@ describe('refetching', () => {
   });
 
   it('asks once for a burst of changes', async () => {
-    const api = mockApi({ guide: founder });
+    const api = mockGuideApi({ guide: founder });
     const runtime = mount();
     await panel();
 
@@ -895,27 +884,27 @@ describe('refetching', () => {
     }
 
     await waitFor(() => expect(step('client').dataset.state).toBe('done'));
-    expect(calls('/me/setup')).toHaveLength(2);
+    expect(requestsTo('/me/setup')).toHaveLength(2);
   });
 
   it('stops asking once the guide is finished', async () => {
-    mockApi({ guide: { ...everythingDone, finished: true } });
+    mockGuideApi({ guide: { ...everythingDone, finished: true } });
     const runtime = mount('/setari');
     await screen.findByTestId('settings-setup-guide');
 
     await anotherChange(runtime);
     await new Promise((resolve) => setTimeout(resolve, 400));
-    expect(calls('/me/setup')).toHaveLength(1);
+    expect(requestsTo('/me/setup')).toHaveLength(1);
   });
 
   it('keeps a close that a refetch in flight would undo', async () => {
-    const api = mockApi({ guide: founder });
+    const api = mockGuideApi({ guide: founder });
     const runtime = mount();
     await panel();
 
     api.holdNextGet();
     await anotherChange(runtime);
-    await waitFor(() => expect(calls('/me/setup')).toHaveLength(2));
+    await waitFor(() => expect(requestsTo('/me/setup')).toHaveLength(2));
     await userEvent.setup().click(screen.getByTestId('setup-guide-close'));
     await screen.findByTestId('setup-guide-pill');
 
@@ -926,13 +915,13 @@ describe('refetching', () => {
   });
 
   it('keeps a skip that a refetch in flight would undo', async () => {
-    const api = mockApi({ guide: founder });
+    const api = mockGuideApi({ guide: founder });
     const runtime = mount();
     await panel();
 
     api.holdNextGet();
     await anotherChange(runtime);
-    await waitFor(() => expect(calls('/me/setup')).toHaveLength(2));
+    await waitFor(() => expect(requestsTo('/me/setup')).toHaveLength(2));
     await userEvent.setup().click(within(step('client')).getByTestId('setup-step-skip'));
     await waitFor(() => expect(step('client').dataset.state).toBe('skipped'));
 
@@ -942,13 +931,13 @@ describe('refetching', () => {
   });
 
   it('does not refetch after its own changes', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
 
     await userEvent.setup().click(within(step('client')).getByTestId('setup-step-skip'));
     await waitFor(() => expect(step('client').dataset.state).toBe('skipped'));
-    expect(calls('/me/setup')).toHaveLength(1);
+    expect(requestsTo('/me/setup')).toHaveLength(1);
   });
 });
 
@@ -968,7 +957,7 @@ describe('a specialist’s end', () => {
 
   it('reads Așteaptă adminul while only an owner can unlock the rest', async () => {
     localStorage.setItem(openedKey, '2026-10-27T10:00:00.000Z');
-    mockApi({ guide: waitingForTheOwner, role: 'specialist' });
+    mockGuideApi({ guide: waitingForTheOwner, role: 'specialist' });
     mount();
 
     const guide = await panel();
@@ -980,7 +969,7 @@ describe('a specialist’s end', () => {
 
   it('finishes once every step they can do is done, though an owner’s step waits', async () => {
     localStorage.setItem(openedKey, '2026-10-27T10:00:00.000Z');
-    mockApi({
+    mockGuideApi({
       guide: guideWith(
         {
           ...doneUpTo('signature'),
@@ -1005,7 +994,7 @@ describe('a specialist’s end', () => {
 
 describe('focus', () => {
   it('moves to the header pill after closing, and back to the guide after reopening', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
     const user = userEvent.setup();
@@ -1023,7 +1012,7 @@ describe('focus', () => {
 
   it('moves to the ring after closing on a phone', async () => {
     onPhone();
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
 
@@ -1033,7 +1022,7 @@ describe('focus', () => {
   });
 
   it('moves to the other chevron on expanding and collapsing', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
     const user = userEvent.setup();
@@ -1050,7 +1039,7 @@ describe('focus', () => {
 
   it('moves between the sheet and the docked bar on a phone', async () => {
     onPhone();
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
     const user = userEvent.setup();
@@ -1068,7 +1057,7 @@ describe('focus', () => {
   });
 
   it('moves to the new next step after Știu deja', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith({
         'workplaces-positions': { state: 'open', lock: undefined },
       }),
@@ -1083,7 +1072,7 @@ describe('focus', () => {
   });
 
   it('moves to the heading when Știu deja leaves no next step', async () => {
-    mockApi({
+    mockGuideApi({
       guide: guideWith(
         { ...doneUpTo('training'), signature: { state: 'open', lock: undefined } },
         { clientId }
@@ -1105,7 +1094,7 @@ describe('the toasts', () => {
   const toaster = () => document.querySelector<HTMLElement>('[data-sonner-toaster]');
 
   it('stand to the left of the guide on a desktop, and in the corner once it is closed', async () => {
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
 
@@ -1124,7 +1113,7 @@ describe('the toasts', () => {
 
   it('stand above the docked bar on a phone', async () => {
     onPhone();
-    mockApi({ guide: founder });
+    mockGuideApi({ guide: founder });
     mount();
     await panel();
 
