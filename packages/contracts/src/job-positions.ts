@@ -74,8 +74,3 @@ export type JobPositionListResponse = z.infer<typeof jobPositionListResponseSche
 export const jobPositionResponseSchema = z.object({ jobPosition: jobPositionSchema });
 
 export type JobPositionResponse = z.infer<typeof jobPositionResponseSchema>;
-
-/** `reason` values on job position errors, so the SPA can word them itself. */
-export const jobPositionErrorReasons = ['job_position_name_taken', 'job_position_held'] as const;
-
-export type JobPositionErrorReason = (typeof jobPositionErrorReasons)[number];

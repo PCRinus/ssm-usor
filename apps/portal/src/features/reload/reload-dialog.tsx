@@ -57,8 +57,8 @@ function OutdatedDialog({ outdated }: { outdated: OutdatedState }) {
       <DialogContent
         data-testid="reload-dialog"
         data-locked={locked}
-        data-reload-dialog=""
         showCloseButton={false}
+        overlayClassName="bg-[rgb(15_36_31/0.34)]"
         // The only button would otherwise take focus and show its ring before anyone pressed a key.
         onOpenAutoFocus={(event) => {
           event.preventDefault();
