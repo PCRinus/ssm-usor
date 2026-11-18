@@ -486,7 +486,7 @@ function RiskFactorForm({
         <legend className="float-left text-sm font-semibold">Măsuri de prevenire</legend>
         <Button
           type="button"
-          variant="tonal"
+          variant="secondary"
           size="sm"
           data-testid="risk-factor-measure-add"
           disabled={busy || measures.fields.length >= 30}

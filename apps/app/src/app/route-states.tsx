@@ -125,7 +125,7 @@ export function RouteError({
           </Button>
           <Button
             size="lg"
-            variant="outline"
+            variant="secondary"
             data-testid="route-error-report"
             onClick={() => void (shellReport ? shellReport(note) : setReportingByEmail(note))}
           >

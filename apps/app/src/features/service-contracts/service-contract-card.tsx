@@ -1003,7 +1003,7 @@ function ServiceContractBody({
             {document.issued.hasSignedCopy || document.issued.receivedCopy ? (
               <>
                 <FileLinkButton
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   data-testid="contract-signed-open"
                   link={signedCopy}
@@ -1056,7 +1056,7 @@ function ServiceContractBody({
             ) : (
               !readOnly && (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   data-testid="contract-signed-attach"
                   disabled={busy}

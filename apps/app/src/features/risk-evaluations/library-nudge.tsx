@@ -29,7 +29,12 @@ export function LibraryNudge({ onSave, onDismiss }: { onSave: () => void; onDism
         </div>
       </div>
       <div className="flex flex-wrap gap-2 pl-7 sm:pl-0">
-        <Button variant="tonal" size="sm" data-testid="risk-library-nudge-save" onClick={onSave}>
+        <Button
+          variant="secondary"
+          size="sm"
+          data-testid="risk-library-nudge-save"
+          onClick={onSave}
+        >
           Salvează în bibliotecă…
         </Button>
         <Button

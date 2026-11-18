@@ -57,7 +57,7 @@ export function EmployeePortalCard({
         uninvited &&
         !readOnly && (
           <Button
-            variant="tonal"
+            variant="secondary"
             size="sm"
             data-testid="participant-invite"
             onClick={() => setInviting(true)}

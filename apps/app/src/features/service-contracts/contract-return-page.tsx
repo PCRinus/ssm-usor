@@ -250,7 +250,7 @@ function ReturnForm({
           </p>
           <div>
             {link.data ? (
-              <Button asChild variant="outline">
+              <Button asChild variant="secondary">
                 <a
                   data-testid="return-download"
                   href={fileAddress(apiRequest.baseUrl, link.data, 'inline')}
@@ -261,14 +261,14 @@ function ReturnForm({
               </Button>
             ) : link.isError && !closed ? (
               <Button
-                variant="outline"
+                variant="secondary"
                 data-testid="return-download-retry"
                 onClick={() => void link.refetch()}
               >
                 Nu am putut pregăti PDF-ul. Încercați din nou
               </Button>
             ) : (
-              <Button variant="outline" disabled data-testid="return-download-pending">
+              <Button variant="secondary" disabled data-testid="return-download-pending">
                 Se pregătește PDF-ul…
               </Button>
             )}

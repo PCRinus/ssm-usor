@@ -290,7 +290,7 @@ export function SubstancesCard({
                 {!readOnly && (
                   <Button
                     id={substanceAddId}
-                    variant="tonal"
+                    variant="secondary"
                     size="sm"
                     data-testid="fire-substance-add"
                     onClick={() => setEditing('new')}

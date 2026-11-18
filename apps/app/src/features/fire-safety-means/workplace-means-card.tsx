@@ -111,7 +111,7 @@ export function WorkplaceMeansCard({
             !readOnly && (
               <Button
                 id={equipmentAddId(workplace.id)}
-                variant="tonal"
+                variant="secondary"
                 size="sm"
                 data-testid="fire-equipment-add"
                 onClick={onAddEquipment}
@@ -203,7 +203,7 @@ export function WorkplaceMeansCard({
           action={
             !readOnly && (
               <Button
-                variant="tonal"
+                variant="secondary"
                 size="sm"
                 data-testid="fire-installation-add"
                 onClick={onAddInstallation}
@@ -289,7 +289,7 @@ export function WorkplaceMeansCard({
             action={
               !readOnly && (
                 <Button
-                  variant="tonal"
+                  variant="secondary"
                   size="sm"
                   data-testid="fire-maintenance-add"
                   onClick={onAddMaintenanceItem}
@@ -360,7 +360,7 @@ export function WorkplaceMeansCard({
             action={
               !readOnly && (
                 <Button
-                  variant="tonal"
+                  variant="secondary"
                   size="sm"
                   data-testid="fire-building-edit"
                   onClick={onEditBuilding}

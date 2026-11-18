@@ -147,7 +147,7 @@ export function EquipmentCard({
     !readOnly &&
     decision !== false && (
       <Button
-        variant="tonal"
+        variant="secondary"
         size="sm"
         data-testid="equipment-add"
         onClick={() => setEditing('new')}
@@ -159,7 +159,7 @@ export function EquipmentCard({
 
   const copyAction = !readOnly && (
     <Button
-      variant="outline"
+      variant="secondary"
       size="sm"
       data-testid="equipment-copy"
       onClick={() => setCopying(true)}
@@ -217,7 +217,7 @@ export function EquipmentCard({
           action={
             !readOnly && (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="equipment-undecide"
                 disabled={decide.isPending}
@@ -240,7 +240,7 @@ export function EquipmentCard({
               <>
                 {addAction('Adaugă un articol')}
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   data-testid="equipment-decide-none"
                   disabled={decide.isPending}

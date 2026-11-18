@@ -88,7 +88,7 @@ function LeadPage() {
           !archived && (
             <>
               {offers && (
-                <Button asChild variant="outline" size="sm" data-testid="lead-edit">
+                <Button asChild variant="secondary" size="sm" data-testid="lead-edit">
                   <Link
                     to="/oferte/$leadId/editare"
                     params={{ leadId: lead.id }}
@@ -100,7 +100,7 @@ function LeadPage() {
                 </Button>
               )}
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="lead-archive"
                 onClick={() => setArchiveChange({ client: lead, action: 'archive' })}
@@ -154,7 +154,7 @@ function LeadPage() {
           readOnly={readOnly}
           focus={focusAmong(focus, contractFocus)}
           editor={(children, testId) => (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="secondary" size="sm">
               <Link
                 to="/oferte/$leadId/contract"
                 params={{ leadId: lead.id }}

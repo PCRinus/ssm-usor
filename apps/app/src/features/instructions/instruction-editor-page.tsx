@@ -190,7 +190,7 @@ export function InstructionEditorPage({
         </Button>
       )}
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         data-testid="editor-download"
         className={cn(!pinned && 'max-sm:ml-auto')}
@@ -216,7 +216,7 @@ export function InstructionEditorPage({
           <p className="text-sm leading-relaxed text-muted-foreground">
             Instrucțiunea nu a putut fi afișată. O poți descărca și citi în Word.
           </p>
-          <Button className="w-fit" variant="outline" onClick={download}>
+          <Button className="w-fit" onClick={download}>
             <Download aria-hidden="true" />
             Descarcă fișierul
           </Button>

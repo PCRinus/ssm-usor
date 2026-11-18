@@ -136,7 +136,7 @@ export function RiskFactorsCard({
           <>
             {tools}
             <Button
-              variant="tonal"
+              variant="secondary"
               size="sm"
               data-testid="risk-factor-add"
               onClick={() => setEditing('new')}

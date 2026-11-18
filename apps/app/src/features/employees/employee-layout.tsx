@@ -69,7 +69,7 @@ export function EmployeeLayout() {
         actions={
           !readOnly && (
             <>
-              <Button asChild variant="outline" size="sm" data-testid="employee-edit">
+              <Button asChild variant="secondary" size="sm" data-testid="employee-edit">
                 <Link
                   to="/clienti/$clientId/angajati/$employeeId/editare"
                   params={{ clientId, employeeId }}
@@ -80,7 +80,7 @@ export function EmployeeLayout() {
                 </Link>
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="employee-status-action"
                 onClick={() => setChange({ employee, action: former ? 'reactivate' : 'terminate' })}

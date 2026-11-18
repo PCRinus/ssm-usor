@@ -753,7 +753,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       {items.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" data-testid="documents-archive" disabled={archiving}>
+            <Button variant="secondary" data-testid="documents-archive" disabled={archiving}>
               <Download aria-hidden="true" />
               {archiving ? 'Se pregătește arhiva…' : 'Descarcă documentația'}
               <ChevronDown aria-hidden="true" />

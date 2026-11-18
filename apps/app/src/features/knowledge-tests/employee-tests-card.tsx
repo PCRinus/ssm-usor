@@ -105,7 +105,7 @@ export function EmployeeTestsCard({
         !readOnly &&
         recordable.length > 0 && (
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             data-testid="tests-record-paper"
             onClick={() => setTarget({ kind: 'paper', tests: recordable })}

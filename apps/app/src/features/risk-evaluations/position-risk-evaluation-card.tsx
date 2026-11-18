@@ -57,7 +57,7 @@ export function PositionRiskEvaluationCard({
   };
 
   const openLink = evaluation && (
-    <Button asChild variant="outline" size="sm" data-testid="position-risk-open">
+    <Button asChild variant="secondary" size="sm" data-testid="position-risk-open">
       <Link
         to="/clienti/$clientId/posturi/$jobPositionId/fisa-de-evaluare"
         state={openedHere}
@@ -120,7 +120,7 @@ export function PositionRiskEvaluationCard({
           actions={
             !readOnly && (
               <Button
-                variant="tonal"
+                variant="secondary"
                 size="sm"
                 data-testid="position-risk-start"
                 disabled={pending}

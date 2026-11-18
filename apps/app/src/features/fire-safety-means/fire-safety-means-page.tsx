@@ -259,7 +259,7 @@ export function FireSafetyMeansPage({
               icon={MapPin}
               actions={
                 !readOnly && (
-                  <Button asChild variant="tonal">
+                  <Button asChild>
                     <Link
                       to="/clienti/$clientId/detalii"
                       params={{ clientId }}

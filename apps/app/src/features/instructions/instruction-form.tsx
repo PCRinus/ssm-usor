@@ -301,7 +301,7 @@ export function InstructionForm({
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             data-testid="instruction-details"
             onClick={onEditDetails}
@@ -310,7 +310,7 @@ export function InstructionForm({
             Titlu, categorie și domeniu
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             data-testid="instruction-paste"
             onClick={() => setPasting(true)}
@@ -319,7 +319,7 @@ export function InstructionForm({
             Lipește text
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             data-testid="instruction-preview"
             onClick={openPreview}
@@ -329,7 +329,7 @@ export function InstructionForm({
           </Button>
           {module && (
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               data-testid="editor-download"
               disabled={downloading}
