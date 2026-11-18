@@ -1,7 +1,12 @@
-import { caenClassName, formatCui, formatIban, type ServiceContract } from '@ssm-usor/contracts';
+import {
+  caenClassName,
+  countOf,
+  formatCui,
+  formatIban,
+  type ServiceContract,
+} from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { countOf } from '../../lib/romanian';
 import { printedDate } from '../documents/context';
 import type { ServiceContractFacts } from './facts';
 

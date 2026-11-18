@@ -1,4 +1,5 @@
 import {
+  countOf,
   fireBuildingClassificationLabels,
   type FireDecision,
   fireDecisionTypeKeys,
@@ -8,12 +9,13 @@ import {
   type FireSafetyDocumentTypeKey,
   type FireSafetyTypeKeyFromTenEmployees,
   fireSafetyTypeKeysFromTenEmployees,
+  formatCount,
   samePersonName,
   unfilledMark,
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { countOf, listed, runOn } from '../../lib/romanian';
+import { listed, runOn } from '../../lib/romanian';
 import { printedDate } from './context';
 import { extinguisherGroups, firmsOf } from './equipment';
 import type { FireNamedPeople, FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
@@ -289,7 +291,7 @@ export function buildSiteSheet({
       ? fixedSpaces
           .map(
             (workplace, index) =>
-              `Clădirea ${index + 1} (${workplace.name.trim()}) – ${headcounts[index]}`
+              `Clădirea ${index + 1} (${workplace.name.trim()}) – ${formatCount(headcounts[index] ?? 0)}`
           )
           .join('; ')
       : null;

@@ -1,4 +1,5 @@
 import {
+  countOf,
   type FireDecision,
   fireDecisionTypeKeys,
   fireExtinguishingAgentLabels,
@@ -17,7 +18,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
+import { definiteRole, listed, runOn } from '../../lib/romanian';
 import { documentApplies, printedDate } from './context';
 import { extinguisherGroups, otherEquipmentGroups } from './equipment';
 import type {

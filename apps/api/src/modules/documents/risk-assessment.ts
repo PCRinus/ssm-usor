@@ -1,6 +1,7 @@
 import {
   caenClassName,
   componentShares,
+  countOf,
   evaluationGlobalRiskLevel,
   globalRiskLevel,
   gravityConsequence,
@@ -18,7 +19,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { countOf, listed } from '../../lib/romanian';
+import { listed } from '../../lib/romanian';
 
 export type RiskFactorFacts = {
   component: WorkSystemComponent;
