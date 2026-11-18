@@ -1601,6 +1601,21 @@ reason `test_below_minimum` and the message "Un test trebuie să păstreze cel p
 întrebări active." There is no preview route: the app draws the question as the employee will
 see it from the bank's own row.
 
+**Citations as links.** Every question the bank routes answer carries `citationParts` beside
+its `citation`: the citation split by `parseCitation` (`packages/contracts/src/legal-citations.ts`)
+into the acts, articles and annexes it names, in order, so that the parts' `text` joined gives the
+citation back, each part a `CitationPart`
+`{ text, act, article, annex, url, target }`. A part that names an act of
+`legal-acts.json` with a portal page carries the act's id and, for an article or annex, its label
+(`"23"`, `"80^1"`, `"2"`); its `url` is the article or annex on `legislatie.just.ro`
+(`target` `article` or `annex`) when the act's `article_anchors` place it exactly once, and the
+act's page (`target` `act`) otherwise: before the daily check has read the act, for an article
+the current form does not have, or for a number both the act and the norms it approves use
+(O.M.A.I. 712/2005 art. 1–4). Text that names no watched act, the provider's own instructions
+(`IPSU, art. 151`) included, is one plain part with `act`, `url` and `target` null; a question
+without a citation has none. The anchors are read with the member's token, once per response for
+every act its questions name.
+
 **Errors.** `fromDatabaseError` (`src/lib/db.ts`) translates the schema's codes, the raised text
 being the `reason` (the contracts' `testErrorReasons`) and the message Romanian: `TST01`, `TST02`,
 `TST03` (`attempt_finished`), `TST05` (`test_not_awaiting`) and `TST06` (`result_from_attempt`)

@@ -969,15 +969,15 @@ portal, and a pass is a **test result**, from an attempt or from the printed tes
 written by none, so that a later migration corrects one in place. An **own question** belongs
 to its organization, written, edited and deleted by any member.
 
-| Column                 | Notes                                                                                                                                                    |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `domain`, `test`       | `training_domain` and `knowledge_test`; never updated, so a question never moves to another test.                                                        |
-| `position`             | The order the printed test lists the questions in, from 1; an own question with a built-in's position comes after it. Built-ins are unique per position. |
-| `text`                 | Trimmed, 5 to 1000 characters.                                                                                                                           |
-| `options`              | Two to four `{ "text", "correct" }`, the text trimmed, 1 to 500 characters, at least one correct (`test_options_are_valid`, a check).                    |
-| `explanation`          | Optional, up to 1000 characters: what the study card shows, and a failed attempt after a wrong answer.                                                   |
-| `citation`             | Optional, up to 300 characters: the act and article the question rests on.                                                                               |
-| `replaces_question_id` | On an own question only: the built-in of the same test it departs from, provenance only (`TST02` otherwise); set null if that built-in goes.             |
+| Column                 | Notes                                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`, `test`       | `training_domain` and `knowledge_test`; never updated, so a question never moves to another test.                                                                       |
+| `position`             | The order the printed test lists the questions in, from 1; an own question with a built-in's position comes after it. Built-ins are unique per position.                |
+| `text`                 | Trimmed, 5 to 1000 characters.                                                                                                                                          |
+| `options`              | Two to four `{ "text", "correct" }`, the text trimmed, 1 to 500 characters, at least one correct (`test_options_are_valid`, a check).                                   |
+| `explanation`          | Optional, up to 1000 characters: what the study card shows, and a failed attempt after a wrong answer.                                                                  |
+| `citation`             | Optional, up to 300 characters: the act and article the question rests on. Free text, linked to the portal when it names a watched act ([API](api.md#knowledge-tests)). |
+| `replaces_question_id` | On an own question only: the built-in of the same test it departs from, provenance only (`TST02` otherwise); set null if that built-in goes.                            |
 
 `test_question_hides` holds `(organization_id, question_id)` for each built-in an organization
 hides; deleting the row restores it. Members read, insert and delete their organization's; an
@@ -2486,15 +2486,18 @@ writes with the secret key, run by the cron of the legislation Worker
 keyed by its id there (`lege-319-2006`). `pnpm legislation:check` writes `name` and
 `portal_id` from the file, then what it read on the portal:
 
-| Column                     | Notes                                                                                                                        |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                                        |
-| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                                               |
-| `verified_consolidated_on` | The consolidated form the templates were verified against. Recorded by migration; the job and the platform admin advance it. |
-| `last_consolidated_on`     | The newest consolidated form seen.                                                                                           |
-| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`).                      |
-| `last_checked_at`          | The last time the page was read.                                                                                             |
-| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                                             |
+| Column                     | Notes                                                                                                                                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `portal_id`                | The act's page, `legislatie.just.ro/Public/DetaliiDocument/<id>`. Null skips the act.                                                                                                           |
+| `portal_status`            | `in_force` or `repealed`, from the portal's list of actions the act underwent.                                                                                                                  |
+| `verified_consolidated_on` | The consolidated form the templates were verified against. Recorded by migration; the job and the platform admin advance it.                                                                    |
+| `last_consolidated_on`     | The newest consolidated form seen.                                                                                                                                                              |
+| `last_amending_act`        | The acts adopted between the last two consolidations, as the portal names them (`LEGE 208 21/07/2021`).                                                                                         |
+| `last_checked_at`          | The last time the page was read.                                                                                                                                                                |
+| `checked_by_hand_on`       | Set by hand when someone read the act because the job could not.                                                                                                                                |
+| `article_anchors`          | Where each article and annex stands on the portal, for the citations' links ([ADR 024](architecture/adr-024-knowledge-tests.md)): `[{ annex, article, path, anchor }]`, below. Null until read. |
+| `anchors_consolidated_on`  | The form `article_anchors` were read from; null for an act never consolidated.                                                                                                                  |
+| `anchors_read_at`          | When they were read; set exactly when `article_anchors` is.                                                                                                                                     |
 
 `verified_consolidated_on` starts as each act's newest form on the portal on 2026-11-13, a
 republication included, written by the migration `legal_change_outcomes` so that a new or wiped
@@ -2503,6 +2506,18 @@ that its change of 2026-11-06 stays open. An act never consolidated has none. Th
 of the act list writes only `name` and `portal_id`, so it never clears the date; the job moves
 it forward when it resolves a change as no impact, and registration moves it to the form a
 new template version quotes.
+
+`article_anchors` lists one entry per article and per annex of the act's current form:
+`article` as the check labels it (`"23"`, `"80^1"`, null for an annex), `annex` the annex that
+holds it (`"2"`, or `"Anexa"` for an untitled one, null in the act's own text), `path` the
+portal page that holds it (`/Public/DetaliiDocument/73772`; for norms the act approves, the
+norms' own document, `/Public/DetaliiDocument/252029`; for an act too large for its page, the
+text view `/Public/DetaliiDocumentAfis/<id>`) and `anchor` the element's id there
+(`id_artA294`). The portal renumbers those ids from one consolidated form to the next, so the
+daily check reads them again whenever the newest form differs from `anchors_consolidated_on`,
+and for an act never read; it reads them only while the run has time left, and a text it cannot
+read keeps the anchors it has, as a warning. A new or wiped environment fills them on its first
+runs, or by hand with `pnpm legislation:check:local`.
 
 `legal_changes` holds a **legal change**: a consolidated form newer than both the last one
 seen and `verified_consolidated_on`, which is how the first run reports drift instead of
