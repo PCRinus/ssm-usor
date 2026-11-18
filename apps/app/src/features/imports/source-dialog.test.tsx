@@ -331,7 +331,7 @@ describe('the source dialog', () => {
     ]);
     const dialog = await openPhoneSource();
     await within(dialog).findByTestId('word-view');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Închide' }));
+    await userEvent.click(within(dialog).getByTestId('source-close'));
     await waitFor(() => expect(screen.queryByTestId('import-source-dialog')).toBeNull());
     wordLinks.length = 0;
     const kept = mounted.queryClient

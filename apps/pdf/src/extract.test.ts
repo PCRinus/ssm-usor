@@ -6,7 +6,7 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { Fetcher } from './convert';
+import type { Fetcher } from './container-call';
 import { postToExtractor } from './extract';
 
 const bytes = (...values: number[]) => new Uint8Array(values).buffer as ArrayBuffer;

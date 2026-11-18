@@ -1455,7 +1455,7 @@ describe('a substance filled in from its safety data sheet', () => {
     const reading = await within(dialog).findByTestId('fire-substance-sheet-reading');
     expect(reading.textContent).toContain('Fereastra rămâne deschisă până se termină citirea');
     expect(within(dialog).getByTestId('fire-substance-cancel')).toHaveProperty('disabled', true);
-    expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Închide' })).toBeNull();
 
     await user.keyboard('{Escape}');
     expect(screen.getByTestId('fire-substance-dialog')).toBeTruthy();

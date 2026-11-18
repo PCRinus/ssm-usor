@@ -6,6 +6,7 @@ import { legalActsSchema } from './check';
 import { createLegislationClient } from './database';
 import { type PortalAct, PortalError } from './portal';
 import { describeRun, runInProgress, runLegislationCheck } from './run';
+import { storedRunErrorsSchema } from './stored';
 
 const { acts } = legalActsSchema.parse(
   JSON.parse(readFileSync(new URL('../fixtures/legal-acts.json', import.meta.url), 'utf8'))
@@ -147,6 +148,7 @@ describe('a run of the check', () => {
         },
       ],
     });
+    expect(storedRunErrorsSchema.parse(runEnd()!.body.errors)).toEqual(runEnd()!.body.errors);
     expect(describeRun(run)).toContain('Failed acts by cause: 1 answered 520.');
   });
 

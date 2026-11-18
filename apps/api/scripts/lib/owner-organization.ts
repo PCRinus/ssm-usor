@@ -1,12 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type { Database } from '../../src/database.types';
-import { type SmsSubscription, smsSubscriptionColumns } from '../../src/modules/sms-usage/policy';
+import { entitlementColumns, type EntitlementRow } from '../../src/modules/billing/entitlements';
 
 export type OwnerOrganization = {
   organizationId: string;
   organizationName: string;
-  subscription: SmsSubscription | null;
+  subscription: EntitlementRow | null;
 };
 
 export async function ownerOrganization(
@@ -34,7 +34,7 @@ export async function ownerOrganization(
 
   const subscription = await client
     .from('subscriptions')
-    .select(smsSubscriptionColumns)
+    .select(entitlementColumns)
     .eq('organization_id', organizationId)
     .maybeSingle();
   if (subscription.error) {

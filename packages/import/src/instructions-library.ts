@@ -11,6 +11,7 @@ import type { CompletionRequest } from './gateway';
 import { foldName, namesCompany } from './match';
 import { similarityModel } from './models';
 import { dataNotInstructions } from './prompts';
+import { freeName } from './risks-library';
 import { type AnswerFormat, answerFormat } from './wire';
 
 type Body = { blocks: readonly InstructionBlock[] };
@@ -297,13 +298,8 @@ export async function similarityPairs(
   return pairs;
 }
 
-function freeTitle(title: string, clientName: string, taken: ReadonlySet<string>) {
-  if (!taken.has(foldText(title))) return title;
-  const named = `${title} (${clientName})`;
-  let candidate = named;
-  for (let number = 2; taken.has(foldText(candidate)); number++) candidate = `${named} ${number}`;
-  return candidate;
-}
+// The database's limit on a module's title.
+export const titleMax = 200;
 
 export async function compareWithLibrary(input: CompareInput): Promise<ComparedInstruction[]> {
   const library = input.library.filter((module) => module.domain === input.domain);
@@ -312,7 +308,7 @@ export async function compareWithLibrary(input: CompareInput): Promise<ComparedI
   const compared: ComparedInstruction[] = [];
   for (const item of await prepare(input.instructions)) {
     const identical = await identicalOf(item, library);
-    const title = freeTitle(item.instruction.title, input.clientName, taken);
+    const title = freeName(item.instruction.title, input.clientName, taken, titleMax);
     if (!identical) taken.add(foldText(title));
     const base = { key: item.instruction.key, title, sameAs: item.sameAs };
     if (identical) {

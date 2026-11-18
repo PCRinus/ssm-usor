@@ -212,6 +212,11 @@ function AuthorizationsForm({
                   max={todayIso()}
                   disabled={locked}
                   invalid={Boolean(errors.authorizationCertificateDate)}
+                  describedBy={
+                    errors.authorizationCertificateDate
+                      ? 'authorizations-authorizationCertificateDate-error'
+                      : undefined
+                  }
                 />
               )}
             />

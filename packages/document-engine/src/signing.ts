@@ -5,32 +5,6 @@ export const signingTypeKeys = {
   agreement: 'signing_agreement',
 } as const;
 
-/** The names the occupational safety set's context already has; the annex asks for no other. */
-export type SigningRegulationAnnexData = {
-  branding: boolean;
-  issueDate: string;
-  client: { legalName: string; representativeName: string; representativeRole: string };
-  provider: { legalName: string };
-  specialist: { name: string; professionalTitle: string };
-};
-
-export function signingRegulationAnnexData(
-  context: SigningRegulationAnnexData
-): SigningRegulationAnnexData {
-  const { branding, issueDate, client, provider, specialist } = context;
-  return {
-    branding,
-    issueDate,
-    client: {
-      legalName: client.legalName,
-      representativeName: client.representativeName,
-      representativeRole: client.representativeRole,
-    },
-    provider: { legalName: provider.legalName },
-    specialist: { name: specialist.name, professionalTitle: specialist.professionalTitle },
-  };
-}
-
 export type SigningCodeChannel = 'email' | 'sms';
 
 export type SigningAgreementFacts = {

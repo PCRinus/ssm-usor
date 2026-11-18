@@ -27,8 +27,12 @@ import {
   planSignatureRequests,
   type SignaturePlan,
 } from '../signing/requests';
-import { proposalPerson, themesTypeKeys } from './client-facts';
-import { fireSafetyTechnicianJobTitle, trainingProposal } from './proposal';
+import {
+  fireSafetyTechnicianJobTitle,
+  proposalPerson,
+  themesTypeKeys,
+  trainingProposal,
+} from './proposal';
 import type {
   createTrainingRoute,
   deleteTrainingRoute,
