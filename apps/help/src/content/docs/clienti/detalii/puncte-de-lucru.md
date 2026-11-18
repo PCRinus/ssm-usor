@@ -47,6 +47,9 @@ sources:
   - apps/api/src/modules/documents/fire-safety.ts
   - apps/api/src/modules/documents/site-sheet.ts
   - apps/app/src/features/clients/workplaces-card.tsx
+  - apps/app/src/features/clients/workplace-columns.tsx
+  - apps/app/src/features/clients/workplace-cells.tsx
+  - apps/app/src/features/clients/workplace-list.ts
   - apps/app/src/features/clients/workplace-dialog.tsx
   - apps/app/src/features/clients/workplace-schema.ts
   - apps/app/src/features/fire-safety-means/fire-means-schema.ts
@@ -60,9 +63,17 @@ Un punct de lucru e un loc în care lucrează lucrătorii clientului: sediul, un
 
 ## Lista punctelor de lucru
 
-Punctele de lucru sunt pe tabul **Detalii**, în tabelul **Sediu și puncte de lucru**. Fiecare rând arată denumirea, adresa și activitatea (vezi [Activitatea](#activitatea)). Sediul social are eticheta **Sediu social**, iar sub un șantier vezi **Șantier temporar sau mobil** (vezi [Felul locului de muncă](#felul-locului-de-muncă)). Un punct de lucru căruia îi lipsesc date cerute de documentele SU are dedesubt, cu un semn de avertizare, **Date SU incomplete**. Sub sediul social la care nu se desfășoară activitate vezi **Fără activitate la sediu**.
+Punctele de lucru sunt pe tabul **Detalii**, în tabelul **Sediu și puncte de lucru**, cu sediul social primul și celelalte după denumire. Fiecare rând arată:
 
-Pe telefon tabelul se derulează spre dreapta, ca să vezi adresa și activitatea.
+- **Denumire**, iar dedesubt felul locului: **Sediu social**, **Sediu social, fără activitate** (vezi [La sediul social se desfășoară activitate](#la-sediul-social-se-desfășoară-activitate)) sau **Șantier temporar sau mobil** (vezi [Felul locului de muncă](#felul-locului-de-muncă)). Unui punct de lucru căruia îi lipsesc date cerute de documentele SU îi vezi în locul lor, cu portocaliu, **Date SU incomplete** (vezi [Date SU incomplete](#date-su-incomplete));
+- **Adresă**, iar la sediul social, cu portocaliu, adresa din datele firmei când diferă (vezi [Când adresa sediului diferă](#când-adresa-sediului-diferă));
+- **Activitate** (vezi [Activitatea](#activitatea));
+- **Lucrători**: câți lucrători actuali au acest punct de lucru. Numărul duce la lista **Lucrători** a clientului, filtrată pe punctul de lucru, unde îi vezi pe aceiași lucrători;
+- **Mijloace de apărare**: câte stingătoare, alte echipamente și instalații are punctul de lucru pe tabul **Mijloace de apărare**, cu un link spre el, iar dedesubt cea mai apropiată verificare. Dacă a trecut termenul unei verificări, vezi cu roșu câte au verificarea depășită. Un punct de lucru la care se desfășoară activitate și nu are niciun stingător arată cu portocaliu **Niciun stingător**, pentru că documentele SU cer cel puțin unul.
+
+Când unii lucrători actuali nu au punct de lucru, tabelul se încheie cu rândul **Fără punct de lucru** și numărul lor. Numărul, ca și rândul, duce la lista **Lucrători** filtrată pe **Fără punct de lucru**, unde le poți alege punctul de lucru din fișa fiecăruia. Tot aici apar, deocamdată, și lucrătorii care lucrează la distanță. Lucrătorii care au un punct de lucru arhivat nu se numără nici la un rând.
+
+Pe telefon tabelul se derulează spre dreapta, ca să vezi celelalte coloane.
 
 Un clic pe rând deschide punctul de lucru ca să-l modifici. Din meniul de la capătul rândului ajungi la **Modifică** și **Arhivează**.
 
@@ -117,7 +128,7 @@ Alege **Județ**, apoi **Localitate** din localitățile acelui județ, și scri
 
 ### Când adresa sediului diferă
 
-La sediul social, aplicația compară adresa punctului de lucru cu adresa sediului din datele firmei. Dacă diferă, sub adresă vezi „În datele clientului, sediul este: …” și **Folosește această adresă**, care copiază adresa din datele firmei la punctul de lucru.
+La sediul social, aplicația compară adresa punctului de lucru cu adresa sediului din datele firmei. Dacă diferă, sub adresă vezi „În datele firmei: …” și **Folosește această adresă**, care copiază adresa din datele firmei la punctul de lucru.
 
 Contează doar ce e completat în datele firmei: un câmp gol acolo nu e o diferență și nu golește adresa punctului de lucru. Dacă adresa bună e cea a punctului de lucru, corecteaz-o în datele firmei (vezi [Sediul social](/clienti/adaugare-si-modificare/#sediul-social)).
 
@@ -191,7 +202,7 @@ Măsurile generale, aceleași la orice punct de lucru, sunt deja în document. P
 
 ### Date SU incomplete
 
-Eticheta din listă arată că punctului de lucru îi lipsește cel puțin unul dintre câmpurile cerute de documentele SU. Deschide-l și completează câmpurile fără „(opțional)” din secțiunea **Apărare împotriva incendiilor**.
+Rândul din listă arată că punctului de lucru îi lipsește cel puțin unul dintre câmpurile cerute de documentele SU. Deschide-l și completează câmpurile fără „(opțional)” din secțiunea **Apărare împotriva incendiilor**.
 
 ## Substanțele periculoase
 

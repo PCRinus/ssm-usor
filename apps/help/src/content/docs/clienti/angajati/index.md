@@ -110,7 +110,7 @@ Butonul **Filtre** deschide filtrele listei. Le poți combina; un lucrător apar
 - **Testare**: **De susținut**, **Anual scadent**, **Neverificat pe fișă** și **Fără test** îi arată pe cei care sunt în acea stare în cel puțin un domeniu; **La zi** îi arată pe cei care au promovat în ambele domenii;
 - **Necesită atenție**: **Semnături în așteptare**, lucrătorii care au de semnat electronic o instruire sau un test; **Fără telefon** și **Fără email**, lucrătorii cărora le lipsește un mijloc de contact, de care au nevoie pentru portal și semnătură;
 - **Post de lucru**: posturile clientului; poți alege mai multe, căutându-le după nume;
-- **Punct de lucru**: punctele de lucru ale clientului, când are mai multe.
+- **Punct de lucru**: punctele de lucru ale clientului, când are mai multe, și **Fără punct de lucru**, când unii lucrători nu au unul; la acesta ajungi și din numărul de pe rândul **Fără punct de lucru** de la tabul **Detalii**.
 
 Filtrele alese apar sub câmpul de căutare; scoți unul cu semnul x de lângă el, sau pe toate cu **Șterge filtrele**, care lasă căutarea neatinsă. Pe telefon, filtrele se deschid într-un panou de jos: un filtru se desface la apăsare, iar posturile și clienții au lista lor, cu căutare; le aplici cu butonul care arată câți lucrători se potrivesc. Căutarea și filtrele rămân în adresa paginii, așa că le regăsești când revii sau dai înapoi.
 

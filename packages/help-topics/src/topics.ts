@@ -444,6 +444,10 @@ export const helpTopics = {
     path: '/instructiuni/',
     anchor: 'versiunile-și-documentele-rămase-în-urmă',
   },
+  'instruire.persoane-responsabile': {
+    path: '/clienti/instruire/persoane-responsabile/',
+    anchor: 'lista-persoanelor-responsabile',
+  },
   'legislatie.acte': { path: '/legislatie/', anchor: 'actele-urmărite' },
   'legislatie.cautare': { path: '/legislatie/', anchor: 'căutarea-filtrele-și-ordinea' },
   'legislatie.ce-nu-faci': { path: '/legislatie/', anchor: 'ce-nu-ai-de-făcut' },
