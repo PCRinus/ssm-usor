@@ -10,7 +10,7 @@ import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv, RegenerationMessage } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore, type FileStore } from '../../lib/files';
-import { type Actor, regenerateDocument } from './documents';
+import { type Actor, regenerateDraft } from './documents';
 
 // The consumer's `max_retries` in wrangler.jsonc plus one: the delivery the queue gives up after.
 export const lastDelivery = 4;
@@ -112,7 +112,7 @@ export async function regenerateQueuedClient(
     createdBy: job.requested_by,
   };
   try {
-    await regenerateDocument(admin, files, actor, behind.data.document_id!, {});
+    await regenerateDraft(admin, files, actor, behind.data.document_id!, {});
   } catch (error) {
     if (transient(error) && !lastAttempt) throw error;
     return record('failed', failureDetail(error), missingOf(error));

@@ -5,12 +5,12 @@ import { ApiError } from '../../lib/errors';
 
 // The regeneration itself is the single-document path, tested with the routes; here it only
 // says whether it succeeded.
-vi.mock('./documents', () => ({ regenerateDocument: vi.fn() }));
+vi.mock('./documents', () => ({ regenerateDraft: vi.fn() }));
 
-import { regenerateDocument } from './documents';
+import { regenerateDraft } from './documents';
 import { consumeRegenerationBatch, lastDelivery, type QueueMessage } from './regeneration-queue';
 
-const regenerate = vi.mocked(regenerateDocument);
+const regenerate = vi.mocked(regenerateDraft);
 
 const secretKey = 'sb_secret_test_key_regeneration';
 const env: ApiEnv['Bindings'] = {
@@ -71,7 +71,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   fetchMock.mockReset();
   regenerate.mockReset();
-  regenerate.mockResolvedValue({} as Awaited<ReturnType<typeof regenerateDocument>>);
+  regenerate.mockResolvedValue({} as Awaited<ReturnType<typeof regenerateDraft>>);
 });
 
 afterEach(() => {
