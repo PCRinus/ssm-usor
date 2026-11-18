@@ -113,7 +113,7 @@ export function libraryTitle(written: string) {
   const title = shortTitle(written);
   if (title.length <= titleMax) return title;
   const space = title.lastIndexOf(' ', titleMax);
-  return title.slice(0, space > 0 ? space : titleMax).trim();
+  return title.slice(0, space >= 160 ? space : titleMax).trim();
 }
 
 function shortTitle(written: string) {

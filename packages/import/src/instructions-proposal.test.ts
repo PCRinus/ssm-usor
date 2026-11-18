@@ -67,10 +67,12 @@ describe('libraryTitle', () => {
     expect(long.charAt(title.length)).toBe(' ');
   });
 
-  it('cuts a title with no space before 200 characters at 200', () => {
+  it('cuts a title at 200 when a word boundary would leave much less', () => {
     const unbroken = `Feliator${'x'.repeat(250)}`;
+    const oneLongWord = `Utilizarea ${'x'.repeat(250)}`;
 
     expect(libraryTitle(unbroken)).toBe(unbroken.slice(0, 200));
+    expect(libraryTitle(oneLongWord)).toBe(oneLongWord.slice(0, 200));
   });
 });
 
