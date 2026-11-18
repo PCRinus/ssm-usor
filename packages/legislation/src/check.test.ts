@@ -304,6 +304,33 @@ describe('reading the anchors of the acts’ articles', () => {
     expect(outcomes[0]).toMatchObject({ result: 'checked', assessments: [] });
   });
 
+  it('reads them only once every act is checked, and names a failed read on its act', async () => {
+    const { db } = database([row(law.id, '2021-07-25'), row(norms.id, '2022-03-07')]);
+    const order: string[] = [];
+    const outcomes = await checkLegislation(db, [law, norms], {
+      readAct: async (portalId) => {
+        order.push(`act ${portalId}`);
+        return portalAct(portalId, portalId === 73772 ? '2021-07-25' : '2022-03-07');
+      },
+      readAnchors: async (portalId) => {
+        order.push(`anchors ${portalId}`);
+        if (portalId === 76337) throw new Error('the norms could not be read');
+        return { consolidatedOn: '2021-07-25', anchors };
+      },
+      citations: [],
+      pauseMs: 0,
+    });
+    expect(order).toEqual(['act 73772', 'act 76337', 'anchors 73772', 'anchors 76337']);
+    expect(outcomes[0]).not.toHaveProperty('warnings');
+    expect(outcomes[1]).toMatchObject({
+      act: { id: 'hg-1425-2006' },
+      warnings: [expect.stringMatching(/the norms could not be read$/)],
+    });
+    expect(summarize(outcomes)).toContain(
+      "warning: Could not read its articles' anchors: the norms could not be read"
+    );
+  });
+
   it('reads them again only when the portal shows a newer form', async () => {
     const readAnchors = vi.fn(async () => ({ consolidatedOn: '2021-07-25', anchors }));
     const current = {

@@ -151,6 +151,8 @@ export async function checkLegislation(
     outcomes.push(outcome);
     options.onOutcome?.(outcome);
   };
+  // Read after every act is checked and assessed, so links never hold up an assessment.
+  const anchorsDueFor: { act: LegalAct; outcome: CheckedOutcome }[] = [];
   let first = true;
   for (const act of acts) {
     const row = rows.get(act.id);
@@ -177,15 +179,12 @@ export async function checkLegislation(
         );
       }
       const checked = await checkAct(db, act, row, portal);
-      const refreshAnchors = async () => {
-        if (!options.readAnchors || !anchorsDue(row, portal) || now() >= assessUntil) return [];
-        await pause(options.pauseMs ?? portalPauseMs);
-        const warning = await storeAnchors(db, act, options.readAnchors);
-        return warning ? [warning] : [];
+      const recordChecked = (outcome: CheckedOutcome) => {
+        record(outcome);
+        if (options.readAnchors && anchorsDue(row, portal)) anchorsDueFor.push({ act, outcome });
       };
       if (!options.citations) {
-        const warnings = await refreshAnchors();
-        record({ ...checked, ...(warnings.length > 0 && { warnings }) });
+        recordChecked(checked);
         continue;
       }
       const { due, passed } = dueChanges(pending.get(act.id) ?? [], checked.change, row, now());
@@ -225,8 +224,7 @@ export async function checkLegislation(
           assessmentError = failureOf(error);
         }
       }
-      warnings.push(...(await refreshAnchors()));
-      record({
+      recordChecked({
         ...checked,
         assessments,
         ...(assessmentError && {
@@ -242,6 +240,12 @@ export async function checkLegislation(
     } catch (error) {
       record({ act, result: 'failed', error: failureOf(error) });
     }
+  }
+  for (const { act, outcome } of anchorsDueFor) {
+    if (now() >= assessUntil) break;
+    await pause(options.pauseMs ?? portalPauseMs);
+    const warning = await storeAnchors(db, act, options.readAnchors!);
+    if (warning) outcome.warnings = [...(outcome.warnings ?? []), warning];
   }
   return outcomes;
 }
@@ -269,6 +273,8 @@ function dueChanges(pending: PendingChange[], seen: ChangeSeen | null, row: ActR
       .sort(),
   };
 }
+
+type CheckedOutcome = Extract<ActOutcome, { result: 'checked' }>;
 
 // The act's page shows its newest form, whose element ids a new form renumbers; a form's ids stay.
 const anchorsDue = (row: ActRow, portal: PortalAct) =>

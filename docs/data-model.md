@@ -2515,7 +2515,7 @@ norms' own document, `/Public/DetaliiDocument/252029`; for an act too large for 
 text view `/Public/DetaliiDocumentAfis/<id>`) and `anchor` the element's id there
 (`id_artA294`). The portal renumbers those ids from one consolidated form to the next, so the
 daily check reads them again whenever the newest form differs from `anchors_consolidated_on`,
-and for an act never read; it reads them only while the run has time left, and a text it cannot
+and for an act never read; it reads them after every act is checked and assessed, while the run has time left, and a text it cannot
 read keeps the anchors it has, as a warning. A new or wiped environment fills them on its first
 runs, or by hand with `pnpm legislation:check:local`.
 
