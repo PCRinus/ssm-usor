@@ -1,9 +1,5 @@
 import { useFileLink } from '@ssm-usor/api-http/file-link';
-import {
-  type ApiErrorResponse,
-  type TrainingDomain,
-  trainingDomainLabels,
-} from '@ssm-usor/contracts';
+import { type TrainingDomain, trainingDomainLabels } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DropdownMenu,
@@ -21,7 +17,7 @@ import {
   getTrainingSheet,
   getTrainingSheetLink,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
 import { openPreview, PreviewBlockedError, saveFile } from '@/lib/save-file';
@@ -38,11 +34,11 @@ const failureOf = (cause: unknown) => {
   if (cause instanceof PreviewBlockedError) {
     return 'Browserul a blocat fereastra nouă. Permite ferestrele noi pentru această pagină.';
   }
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  if (body?.reason === 'pdf_unavailable') {
+  const reason = apiErrorReason(cause);
+  if (reason === 'pdf_unavailable') {
     return 'Convertorul PDF nu este disponibil. Încearcă din nou peste câteva minute.';
   }
-  if (body?.reason === 'missing_sheet_data') {
+  if (reason === 'missing_sheet_data') {
     return 'Fișa nu se poate întocmi încă: lipsesc date ale lucrătorului.';
   }
   return 'Nu am putut descărca fișa. Verifică conexiunea și încearcă din nou.';

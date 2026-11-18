@@ -23,7 +23,7 @@ import {
   useDeleteFireBuilding,
   useUpdateFireBuilding,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -116,8 +116,7 @@ function BuildingForm({
       onClose();
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
-      const body = cause instanceof ApiHttpError ? (cause.body as { reason?: string }) : null;
-      if (status === 404 || (status === 409 && !body?.reason)) {
+      if (status === 404 || (status === 409 && !apiErrorReason(cause))) {
         await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
         form.setError('root.server', {
           message:

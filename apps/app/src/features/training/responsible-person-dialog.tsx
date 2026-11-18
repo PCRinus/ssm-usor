@@ -23,7 +23,6 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getGetClientDocumentDetailsQueryKey,
   getGetClientQueryKey,
   getListResponsiblePersonsQueryKey,
@@ -35,13 +34,14 @@ import {
   useUpdateResponsiblePerson,
   type WorkplaceListResponse,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field, FieldMessage, personalError } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import { type Administrator, administratorValue, EmployeeCombobox } from './employee-combobox';
 import {
@@ -195,7 +195,7 @@ function ResponsiblePersonForm({
       onClose();
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (
         status === 409 &&
         body?.reason === responsiblePersonConflictReasons.workersRepresentativeIsLegalRepresentative
@@ -238,11 +238,10 @@ function ResponsiblePersonForm({
       }
       form.setError('root.server', {
         message:
-          status === 404
+          commonFailure(cause) ??
+          (status === 404
             ? 'Persoana nu mai există la acest client.'
-            : status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut salva persoana. Verifică conexiunea și încearcă din nou.',
+            : 'Nu am putut salva persoana. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

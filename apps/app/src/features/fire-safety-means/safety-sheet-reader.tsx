@@ -9,17 +9,14 @@ import { useRouteContext } from '@tanstack/react-router';
 import { FileText, LoaderCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import {
-  type ApiErrorResponse,
-  getGetMeQueryKey,
-  getReadSafetySheetUrl,
-} from '@/api/generated/api';
-import { ApiHttpError, apiUpload } from '@/api/http';
+import { getGetMeQueryKey, getReadSafetySheetUrl } from '@/api/generated/api';
+import { apiErrorBody, ApiHttpError, apiUpload } from '@/api/http';
 import { Notice } from '@/components/notice';
 import { CreditsLine } from '@/features/imports/credits-notices';
 import { creditsDay, creditsLabel, creditsRefusal } from '@/features/imports/import-credits';
 import { useCreditsBalance } from '@/features/imports/use-credits-balance';
 import { contactEmail } from '@/features/subscription/subscription-copy';
+import { commonFailure } from '@/lib/api-errors';
 
 import { droppedSentence, filledSentence, offeredSentence } from './substances-schema';
 
@@ -40,7 +37,9 @@ function failureMessage(cause: unknown) {
   if (!(cause instanceof ApiHttpError)) {
     return 'Fișa nu a putut fi trimisă. Verifică conexiunea și încearcă din nou.';
   }
-  const body = cause.body as Partial<ApiErrorResponse> | undefined;
+  const common = commonFailure(cause);
+  if (common) return common;
+  const body = apiErrorBody(cause);
   const reason = body?.reason;
   const credits =
     body?.creditsRefunded === true
