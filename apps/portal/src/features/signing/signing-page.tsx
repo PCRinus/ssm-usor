@@ -1,7 +1,6 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg, plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
-import type { ApiErrorResponse } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Label } from '@ssm-usor/ui/components/label';
@@ -17,7 +16,7 @@ import {
   signPortalSigningSession,
   type SignSessionResponse,
 } from '@/api/generated/api';
-import { ApiHttpError, isClientOutdatedError } from '@/api/http';
+import { apiErrorBody, apiErrorReason, ApiHttpError, isClientOutdatedError } from '@/api/http';
 import { CodeInput } from '@/components/code-input';
 import { Notice } from '@/components/notice';
 import { cardClass, Page, PageFailed, PageHeader, PageLoading } from '@/components/page';
@@ -67,11 +66,6 @@ type Step =
     }
   | { kind: 'result'; items: SigningItem[]; result: SignSessionResponse };
 
-const errorBody = (cause: unknown) =>
-  cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null) : null;
-
-const reasonOf = (cause: unknown) => errorBody(cause)?.reason ?? null;
-
 type SessionFailure = {
   message: MessageDescriptor;
   retryAfterSeconds: number;
@@ -79,7 +73,7 @@ type SessionFailure = {
 };
 
 function sessionFailureOf(cause: unknown): SessionFailure {
-  const body = errorBody(cause);
+  const body = apiErrorBody(cause);
   const reason = body?.reason ?? null;
   const sms = smsRefusalOf(body);
   if (sms)
@@ -329,7 +323,7 @@ function ChooseStep({
       const next = sessionFailureOf(cause);
       setFailure(next);
       if (next.retryAfterSeconds > 0) restart(next.retryAfterSeconds);
-      if (reasonOf(cause) === 'signing_item_not_found') {
+      if (apiErrorReason(cause) === 'signing_item_not_found') {
         setChoice(new Set(chosen));
         void invalidateSigningQueries(queryClient);
       }
@@ -476,7 +470,7 @@ type CodeError =
   | { kind: 'other'; message: MessageDescriptor };
 
 function codeErrorOf(cause: unknown): CodeError {
-  const body = errorBody(cause);
+  const body = apiErrorBody(cause);
   const reason = body?.reason ?? null;
   if (reason === 'code_invalid') {
     const attemptsLeft = body?.attemptsLeft ?? null;
