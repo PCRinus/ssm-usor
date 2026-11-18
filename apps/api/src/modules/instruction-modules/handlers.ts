@@ -22,9 +22,9 @@ import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { printedDate, romanianDay } from '../../lib/romanian';
+import { fileNameOf } from '../../lib/text';
 import { renderInstructionAnnex } from '../documents/annexes';
-import { printedDate, romanianDay } from '../documents/context';
-import { fileNameOf } from '../documents/documents';
 import { findJobPosition } from '../job-positions/handlers';
 import type {
   applyPositionInstructionsRoute,

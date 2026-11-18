@@ -32,7 +32,7 @@ import { createAdminFileStore, createFileStore } from '../../lib/files';
 import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
-import { builtInTemplates, merge } from '../documents/documents';
+import { mergeBuiltIn } from '../../lib/templates';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
 import { awaitedParty, awaits } from './agreement-state';
 import {
@@ -771,17 +771,6 @@ export async function signingAgreementDocx(
       signatureErrorReasons.employeeHasNoAddress
     );
   }
-  const typeKey = signingTypeKeys.agreement;
-  const [template] = await builtInTemplates(db, [typeKey]);
-  if (!template) {
-    console.error(`The template ${typeKey} is not registered: run pnpm templates:register.`);
-    throw new ApiError(
-      'service_unavailable',
-      'The signing agreement template is not available yet.',
-      undefined,
-      'template_missing'
-    );
-  }
   const row = employee.data;
   const data = buildSigningAgreementData({
     // Every plan carries the line for now (docs/document-branding.md).
@@ -813,11 +802,17 @@ export async function signingAgreementDocx(
     },
     channel: contact.channel,
   });
-  const { bytes } = merge(await readTemplate(template.storagePath), data, typeKey);
+  const { bytes, storagePath } = await mergeBuiltIn(
+    db,
+    readTemplate,
+    signingTypeKeys.agreement,
+    data,
+    'signing agreement'
+  );
   return {
     docx: bytes,
     data,
-    templatePath: template.storagePath,
+    templatePath: storagePath,
     fileName: agreementFileName({ lastName: row.last_name, firstName: row.first_name }),
   };
 }

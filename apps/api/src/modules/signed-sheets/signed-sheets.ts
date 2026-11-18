@@ -22,7 +22,7 @@ import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { createPdfConverter, type PdfConverter } from '../../lib/pdf';
 import { createSigner } from '../../lib/signer';
-import { builtInTemplates, merge } from '../documents/documents';
+import { mergeBuiltIn } from '../../lib/templates';
 import {
   chronological,
   chronologicalResults,
@@ -101,17 +101,7 @@ export function signedSheetContext(c: Context<ApiEnv>): SignedSheetContext {
     sheetFacts: (clientId, employeeId) => loadSheetFacts(db, clientId, employeeId),
     async drawForm(domain, data) {
       const typeKey = trainingSheetTypeKeys[domain];
-      const [template] = await builtInTemplates(db, [typeKey]);
-      if (!template) {
-        console.error(`The template ${typeKey} is not registered: run pnpm templates:register.`);
-        throw new ApiError(
-          'service_unavailable',
-          'The training sheet template is not available yet.',
-          undefined,
-          'template_missing'
-        );
-      }
-      return merge(await files.readTemplate(template.storagePath), data, typeKey).bytes;
+      return (await mergeBuiltIn(db, files.readTemplate, typeKey, data, 'training sheet')).bytes;
     },
     now: () => new Date(),
   };

@@ -2,7 +2,7 @@ import { caenClassName, formatCui, formatIban, type ServiceContract } from '@ssm
 
 import { printedAddress } from '../../lib/address';
 import { countOf } from '../../lib/romanian';
-import { printedDate } from '../documents/context';
+import { printedDate } from '../../lib/romanian';
 import type { ServiceContractFacts } from './facts';
 
 // What the starter template of the service contract is merged with. The readiness check

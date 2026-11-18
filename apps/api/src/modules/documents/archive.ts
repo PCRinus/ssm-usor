@@ -4,14 +4,9 @@ import { type Zippable, zipSync } from 'fflate';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { fileNameOf } from '../../lib/text';
 import { withAnnexes } from './annexes';
-import {
-  documentFileName,
-  type DocumentRow,
-  fileNameOf,
-  inSetOrder,
-  readDocuments,
-} from './documents';
+import { documentFileName, type DocumentRow, inSetOrder, readDocuments } from './documents';
 
 const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'SU' };
 

@@ -15,7 +15,7 @@ import {
 } from '@ssm-usor/contracts';
 import { unzipSync } from 'fflate';
 
-import { printedDate } from '../documents/context';
+import { printedDate } from '../../lib/romanian';
 import {
   buildTrainingSheetData,
   chronological,

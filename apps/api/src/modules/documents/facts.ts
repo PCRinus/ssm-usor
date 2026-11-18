@@ -7,7 +7,8 @@ import {
 
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
-import { type DocumentFacts, romanianDay } from './context';
+import { romanianDay } from '../../lib/romanian';
+import type { DocumentFacts } from './context';
 import type { FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
 import type { RiskEvaluationFacts } from './risk-assessment';

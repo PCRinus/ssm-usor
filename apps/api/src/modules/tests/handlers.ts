@@ -18,7 +18,7 @@ import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { romanianDay } from '../documents/context';
+import { romanianDay } from '../../lib/romanian';
 import {
   issueTestSheetRequests,
   refillExaminer,

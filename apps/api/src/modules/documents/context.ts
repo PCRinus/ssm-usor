@@ -19,7 +19,7 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
-import { collator, countOf, listed } from '../../lib/romanian';
+import { collator, countOf, listed, printedDate, romanianDay } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
@@ -593,26 +593,6 @@ function imminentDangerWordingOf(facts: Pick<DocumentFacts, 'client' | 'responsi
   return { wording, designatedManagers, others };
 }
 
-export function printedDate(isoDate: string) {
-  const [year, month, day] = isoDate.split('-');
-  return `${day}.${month}.${year}`;
-}
-
-const romanianDayFormat = new Intl.DateTimeFormat('en', {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  timeZone: 'Europe/Bucharest',
-});
-
-/** The ISO date a timestamp falls on in Romania, which the documents are dated by. */
-export function romanianDay(timestamp: string) {
-  const parts = Object.fromEntries(
-    romanianDayFormat.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value])
-  );
-  return `${parts.year}-${parts.month}-${parts.day}`;
-}
-
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
 function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
@@ -932,16 +912,4 @@ export function decisionNumberOf(
   return typeKey in context.decisionNumbers
     ? context.decisionNumbers[typeKey as keyof DocumentContext['decisionNumbers']]
     : null;
-}
-
-/** JSON with sorted keys: the database stores a snapshot as jsonb, which reorders them. */
-export function stableJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, item]) => item !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : 1));
-    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
 }

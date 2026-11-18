@@ -1,5 +1,6 @@
 import { type CountyCode, countyNames } from '@ssm-usor/contracts';
 
+import { romanianDay } from '../../lib/romanian';
 import type {
   OblioClientDetails,
   OblioDocument,
@@ -71,13 +72,6 @@ const romanianDate = new Intl.DateTimeFormat('ro-RO', {
   year: 'numeric',
 });
 
-const bucharestDay = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Bucharest',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
-
 const utcDate = new Intl.DateTimeFormat('ro-RO', {
   timeZone: 'UTC',
   day: '2-digit',
@@ -89,9 +83,9 @@ const utcDate = new Intl.DateTimeFormat('ro-RO', {
 // day before it in Romania; taking 24 hours off would land on the wrong day across a change of
 // summer time.
 export function periodText(start: Date, end: Date) {
-  const [year, month, day] = bucharestDay.format(end).split('-').map(Number);
+  const [year, month, day] = romanianDay(end.toISOString()).split('-').map(Number);
   const dayBefore = new Date(Date.UTC(year!, month! - 1, day! - 1));
-  const startDay = bucharestDay.format(start);
+  const startDay = romanianDay(start.toISOString());
   const last =
     dayBefore.toISOString().slice(0, 10) < startDay
       ? romanianDate.format(start)

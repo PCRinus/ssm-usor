@@ -18,7 +18,7 @@ import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { builtInTemplates, merge } from '../documents/documents';
+import { mergeBuiltIn } from '../../lib/templates';
 import { signedOn } from '../signed-sheets/form';
 import { type SignedSheetContext, signedSheetContext } from '../signed-sheets/signed-sheets';
 import type { MarkedQuestion } from '../tests/rows';
@@ -195,20 +195,9 @@ async function drawTestSheet(deps: TestSheetDeps, result: ResultRow) {
         ? { name: result.examiner_name, jobTitle: result.examiner_job_title }
         : null,
   });
-  const [template] = await builtInTemplates(admin, [testSheetTypeKey]);
-  if (!template) {
-    console.error(
-      `The template ${testSheetTypeKey} is not registered: run pnpm templates:register.`
-    );
-    throw new ApiError(
-      'service_unavailable',
-      'The test sheet template is not available yet.',
-      undefined,
-      'template_missing'
-    );
-  }
-  return merge(await deps.sheets.files.readTemplate(template.storagePath), data, testSheetTypeKey)
-    .bytes;
+  return (
+    await mergeBuiltIn(admin, deps.sheets.files.readTemplate, testSheetTypeKey, data, 'test sheet')
+  ).bytes;
 }
 
 /** Null for a paper result: its test is signed on the printed test, and has no test sheet. */

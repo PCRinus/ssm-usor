@@ -10,9 +10,9 @@ import {
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { stableJson } from '../../lib/json';
 import { requireOffersFor } from '../../lib/offers';
 import { createToken, hashToken } from '../../lib/tokens';
-import { stableJson } from '../documents/context';
 import {
   generateServiceContractDocument,
   readServiceContractDocument,

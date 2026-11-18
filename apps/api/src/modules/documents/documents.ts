@@ -14,30 +14,31 @@ import {
   isDatedDocumentType,
   type IssueDocumentRequest,
   maxFirstFireDecisionNumber,
-  type MissingDocumentData,
   type RegenerateDocumentRequest,
   serviceContractTitle,
   serviceContractTypeKey,
   type TemplateVersionKind,
   unfilledMark,
 } from '@ssm-usor/contracts';
-import { documentText, renderTemplate, TemplateError } from '@ssm-usor/document-engine';
+import { documentText } from '@ssm-usor/document-engine';
 
 import type { Database, Json } from '../../database.types';
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
 import { maxDocxBytes, requireDocx, sha256 } from '../../lib/docx';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { stableJson } from '../../lib/json';
 import { requireOffersFor } from '../../lib/offers';
 import type { PdfConverter } from '../../lib/pdf';
-import { renderSnapshotAnnexes, withAnnexes } from './annexes';
 import {
-  buildDocumentContext,
-  decisionNumberOf,
-  documentApplies,
-  documentData,
-  stableJson,
-} from './context';
+  builtInTemplates,
+  merge,
+  missingDocumentDataError,
+  type Template,
+} from '../../lib/templates';
+import { fileNameOf } from '../../lib/text';
+import { renderSnapshotAnnexes, withAnnexes } from './annexes';
+import { buildDocumentContext, decisionNumberOf, documentApplies, documentData } from './context';
 import {
   loadDocumentFacts,
   loadFireYearRecords,
@@ -421,76 +422,6 @@ export async function listClientDocuments(
         }
       : null,
   };
-}
-
-type Template = { typeKey: string; title: string; versionId: string; storagePath: string };
-
-export async function builtInTemplates(
-  db: DataClient,
-  typeKeys: readonly string[]
-): Promise<Template[]> {
-  const { data, error } = await db
-    .from('document_templates')
-    .select('type_key, title, document_template_versions(id, version, storage_path)')
-    .is('organization_id', null)
-    .in('type_key', [...typeKeys]);
-  if (error) throw fromDatabaseError(error, 'built-in templates');
-  return data.flatMap((template) => {
-    const newest = template.document_template_versions.reduce<
-      (typeof template.document_template_versions)[number] | null
-    >((best, version) => (!best || version.version > best.version ? version : best), null);
-    return newest
-      ? [
-          {
-            typeKey: template.type_key,
-            title: template.title,
-            versionId: newest.id,
-            storagePath: newest.storage_path,
-          },
-        ]
-      : [];
-  });
-}
-
-/**
- * The merged file, and the part of the data it printed. That part is the revision's snapshot:
- * a new first-aider then marks the first aid decision as out of date, not the whole set.
- * `printedGaps` names the gaps behind the top-level names the template found no value for;
- * when there are any, the document is refused for them rather than left with a gap.
- */
-export function merge(
-  template: Uint8Array,
-  data: Record<string, unknown>,
-  typeKey: string,
-  printedGaps: (absentNames: string[]) => MissingDocumentData[] = () => []
-) {
-  try {
-    const { document, usedNames } = renderTemplate(template, data);
-    return {
-      bytes: document,
-      snapshot: Object.fromEntries(usedNames.map((name) => [name, data[name]])),
-    };
-  } catch (error) {
-    if (error instanceof TemplateError) {
-      const gaps = printedGaps([...new Set(error.missing.map((path) => path.split('.')[0]!))]);
-      if (gaps.length > 0) throw missingDocumentDataError(gaps);
-      // The readiness check should make this unreachable: a template asks for a name the
-      // context does not have.
-      console.error(`Template ${typeKey} could not be merged: ${error.message}`);
-      throw new ApiError('internal_error', 'A document template could not be filled in.');
-    }
-    throw error;
-  }
-}
-
-function missingDocumentDataError(missing: MissingDocumentData[]) {
-  return new ApiError(
-    'conflict',
-    `Data the documents print is missing: ${missing.join(', ')}.`,
-    undefined,
-    'missing_document_data',
-    missing
-  );
 }
 
 /**
@@ -1437,11 +1368,3 @@ const annexCodes = { ssm: 'I.P.S.S.M.', su: 'I.P.S.U.' } as const;
 // A dated document's year tells its files apart from the other years'.
 export const documentFileName = (document: { title: string; period: number | null }) =>
   fileNameOf([document.title, document.period].filter(Boolean).join(' '));
-
-// What a file system accepts; the dash of a cover's title becomes a plain hyphen.
-export const fileNameOf = (title: string) =>
-  title
-    .replace(/[–—]/g, '-')
-    .replace(/[\\/:*?"<>|]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();

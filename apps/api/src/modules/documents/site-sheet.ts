@@ -14,7 +14,7 @@ import {
 
 import { printedAddress } from '../../lib/address';
 import { countOf, listed, runOn } from '../../lib/romanian';
-import { printedDate } from './context';
+import { printedDate } from '../../lib/romanian';
 import { extinguisherGroups, firmsOf } from './equipment';
 import type { FireNamedPeople, FireSafetyClientFacts, FireSafetySetFacts } from './fire-safety';
 

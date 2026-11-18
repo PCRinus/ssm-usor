@@ -18,7 +18,8 @@ import {
 
 import { printedAddress } from '../../lib/address';
 import { countOf, definiteRole, listed, runOn } from '../../lib/romanian';
-import { documentApplies, printedDate } from './context';
+import { printedDate } from '../../lib/romanian';
+import { documentApplies } from './context';
 import { extinguisherGroups, otherEquipmentGroups } from './equipment';
 import type {
   FireNamedPeople,

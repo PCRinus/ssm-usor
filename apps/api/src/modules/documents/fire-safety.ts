@@ -27,7 +27,14 @@ import {
 } from '@ssm-usor/contracts';
 
 import { printedAddress } from '../../lib/address';
-import { collator, countOf, listed, runOn, withoutFinalStop } from '../../lib/romanian';
+import {
+  collator,
+  countOf,
+  listed,
+  printedDate,
+  runOn,
+  withoutFinalStop,
+} from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import { type AnnualReportContext, buildAnnualReport } from './annual-report';
 import {
@@ -37,7 +44,6 @@ import {
   documentApplies,
   type DocumentFacts,
   months,
-  printedDate,
 } from './context';
 import {
   extinguisherGroups,
