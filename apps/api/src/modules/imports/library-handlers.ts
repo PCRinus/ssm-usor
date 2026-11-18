@@ -54,7 +54,7 @@ import type {
   retryImportLibraryPartRoute,
   saveImportLibraryPartChangesRoute,
 } from './routes';
-import { missingImportSettings } from './settings';
+import { requireImportService } from './settings';
 import { importStore } from './store';
 
 type PartRow = Pick<
@@ -824,16 +824,7 @@ export const retryImportLibraryPart: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { importId, part } = c.req.valid('param');
-  const missing = missingImportSettings(c.env);
-  if (missing.length > 0) {
-    console.error(`Imports are not configured: missing ${missing.join(', ')}.`);
-    throw new ApiError(
-      'service_unavailable',
-      'Importul din documente nu este disponibil acum.',
-      undefined,
-      importErrorReasons.unavailable
-    );
-  }
+  const queue = requireImportService(c);
   const db = createDataClient(c);
   const { data: attempt, error } = await db.rpc('retry_import_library_part', {
     p_import_id: importId,
@@ -841,7 +832,7 @@ export const retryImportLibraryPart: RouteHandler<
   });
   if (error) throw partError(error, 'retry library part');
   try {
-    await c.env.IMPORT_QUEUE!.send(
+    await queue.send(
       isInstructionsPart(part)
         ? { type: 'read-instructions', importId, part, attempt }
         : { type: 'read-risks', importId, attempt }

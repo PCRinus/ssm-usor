@@ -101,7 +101,7 @@ import type {
   splitImportRoute,
   startImportRoute,
 } from './routes';
-import { missingImportSettings } from './settings';
+import { importUnavailable, requireImportService } from './settings';
 import { importFileColumns, type ImportFileRow } from './store';
 
 // Members read imports through their own policies; every write is the secret key's, after the
@@ -156,23 +156,6 @@ const openStatuses = [
   'ready',
   'failed',
 ] as const;
-
-const unavailable = () =>
-  new ApiError(
-    'service_unavailable',
-    'Importul din documente nu este disponibil acum.',
-    undefined,
-    importErrorReasons.unavailable
-  );
-
-function requireImportService(c: Context<ApiEnv>): ImportQueue {
-  const missing = missingImportSettings(c.env);
-  if (missing.length > 0) {
-    console.error(`Imports are not configured: missing ${missing.join(', ')}.`);
-    throw unavailable();
-  }
-  return c.env.IMPORT_QUEUE!;
-}
 
 const conflict = (message: string, reason: string) =>
   new ApiError('conflict', message, undefined, reason);
@@ -932,7 +915,7 @@ async function beginReading(
       .catch((release: unknown) =>
         console.error(`The start of import ${importId} stays charged: ${describe(release)}`)
       );
-    throw unavailable();
+    throw importUnavailable();
   }
   later(
     c,
@@ -1510,7 +1493,7 @@ export const readImportFile: RouteHandler<typeof readImportFileRoute, ApiEnv> = 
       })
       .eq('id', importId)
       .eq('status', 'reading');
-    throw unavailable();
+    throw importUnavailable();
   }
   return c.json({ import: await summaryOf(db, importId) }, 200);
 };
@@ -1658,7 +1641,7 @@ async function copyFoundSheets(
   } catch (failure) {
     console.error(`Found sheets of import ${importId} were not copied: ${describe(failure)}`);
     await takeBack();
-    throw unavailable();
+    throw importUnavailable();
   }
   const marked = await admin.rpc('mark_found_sheets_uploaded', {
     p_import_id: importId,

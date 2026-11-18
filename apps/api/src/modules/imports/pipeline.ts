@@ -335,30 +335,43 @@ function requireQueue(deps: PipelineDeps) {
   return deps.queue;
 }
 
-async function ask<T>(
+export interface ModelUsage {
+  input: number;
+  cachedInput: number;
+  output: number;
+}
+
+export interface Meter {
+  // Named in the log when the usage is not recorded: "import …".
+  subject: string;
+  record(usage: ModelUsage, cost: number): Promise<void>;
+  part?: ImportLibraryPart;
+}
+
+export async function meteredCompletion<T>(
   deps: PipelineDeps,
   row: ImportRow,
-  fileId: string | null,
-  step: ImportStep,
+  meter: Meter,
   request: Omit<CompletionRequest<T>, 'metadata'>
 ): Promise<T> {
   if (!deps.model) throw new ImportFailure(importReasons.notConfigured);
-  const record = async (
-    usage: { input: number; cachedInput: number; output: number },
-    cost: number
-  ) => {
+  const record = async (usage: ModelUsage, cost: number) => {
     if (usage.input + usage.cachedInput + usage.output === 0) return;
     // Paying for a request twice is worse than a missing count, so a failure here is not retried.
-    await deps.store
-      .recordUsage(row.id, fileId, step, usage, cost)
+    await meter
+      .record(usage, cost)
       .catch((error: unknown) =>
-        console.error(`Usage of import ${row.id} was not recorded: ${describe(error)}`)
+        console.error(`Usage of ${meter.subject} was not recorded: ${describe(error)}`)
       );
   };
   try {
     const completion = await deps.model.complete({
       ...request,
-      metadata: { organizationId: row.organization_id, importId: row.id },
+      metadata: {
+        organizationId: row.organization_id,
+        importId: row.id,
+        ...(meter.part ? { part: meter.part } : {}),
+      },
     });
     await record(completion.usage, completion.cost);
     return completion.value;
@@ -369,6 +382,23 @@ async function ask<T>(
     throw error;
   }
 }
+
+const ask = <T>(
+  deps: PipelineDeps,
+  row: ImportRow,
+  fileId: string | null,
+  step: ImportStep,
+  request: Omit<CompletionRequest<T>, 'metadata'>
+) =>
+  meteredCompletion(
+    deps,
+    row,
+    {
+      subject: `import ${row.id}`,
+      record: (usage, cost) => deps.store.recordUsage(row.id, fileId, step, usage, cost),
+    },
+    request
+  );
 
 async function identityOf(deps: PipelineDeps, row: ImportRow) {
   const provider: ProviderIdentity = await deps.store.provider(row.organization_id);
@@ -1302,16 +1332,30 @@ export function fileFailureReason(error: unknown): string {
   return fileReasons.unavailable;
 }
 
+export interface FailureReasons {
+  modelRefused: string;
+  modelFailed: string;
+  failed: string;
+}
+
+export const failureReasonOf =
+  (reasons: FailureReasons) =>
+  (error: unknown): string => {
+    if (error instanceof ImportFailure) return error.reason;
+    if (error instanceof ModelAnswerError) {
+      return error.reason === 'refused' ? reasons.modelRefused : reasons.modelFailed;
+    }
+    if (error instanceof GatewayError) return importReasons.unavailable;
+    return reasons.failed;
+  };
+
+const readingFailureReason = failureReasonOf(importReasons);
+
 export function importFailureReason(error: unknown): string {
-  if (error instanceof ImportFailure) return error.reason;
-  if (error instanceof ModelAnswerError) {
-    return error.reason === 'refused' ? importReasons.modelRefused : importReasons.modelFailed;
-  }
-  if (error instanceof GatewayError) return importReasons.unavailable;
   if (error instanceof ApiError && error.code === 'service_unavailable') {
     return importReasons.unavailable;
   }
-  return importReasons.failed;
+  return readingFailureReason(error);
 }
 
 export function describe(error: unknown) {

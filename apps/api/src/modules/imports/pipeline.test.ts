@@ -3,8 +3,10 @@ import {
   createModelClient,
   type EmployeeImportClient,
   employeeImportProposalSchema,
+  GatewayError,
   instructionsProposalSchema,
   type LibraryModule,
+  ModelAnswerError,
   proposalSchema,
   risksProposalSchema,
 } from '@ssm-usor/import';
@@ -14,10 +16,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AlertMessage } from '../../lib/alerts';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
+import { ApiError } from '../../lib/errors';
 import { cleanUpImports, cleanUpLine } from './cleanup';
-import { libraryReasons, riskReasons } from './library';
+import { libraryFailureReason, libraryReasons, riskFailureReason, riskReasons } from './library';
 import {
   fileReasons,
+  ImportFailure,
+  importFailureReason,
   importReasons,
   maxReadingCharacters,
   maxReadWaits,
@@ -2982,5 +2987,33 @@ describe('what a reading leaves (ADR 037)', () => {
       'Stuck',
       'Abandoned after a reading',
     ]);
+  });
+});
+
+describe('failure reasons', () => {
+  const none = { input: 0, cachedInput: 0, output: 0 };
+  const answered = (reason: 'refused' | 'incomplete') =>
+    new ModelAnswerError('no answer', reason, none, 0);
+
+  it('names each reading’s own refusal, failed answer and error, and the gateway as unavailable', () => {
+    for (const [reasonOf, reasons] of [
+      [importFailureReason, importReasons],
+      [libraryFailureReason, libraryReasons],
+      [riskFailureReason, riskReasons],
+    ] as const) {
+      expect(reasonOf(new ImportFailure('Motivul'))).toBe('Motivul');
+      expect(reasonOf(answered('refused'))).toBe(reasons.modelRefused);
+      expect(reasonOf(answered('incomplete'))).toBe(reasons.modelFailed);
+      expect(reasonOf(new GatewayError('down', 503, none, 0))).toBe(importReasons.unavailable);
+      expect(reasonOf(new Error('boom'))).toBe(reasons.failed);
+    }
+  });
+
+  it('takes an unavailable database as the service not answering for the import, not for its library parts', () => {
+    const down = new ApiError('service_unavailable');
+
+    expect(importFailureReason(down)).toBe(importReasons.unavailable);
+    expect(libraryFailureReason(down)).toBe(libraryReasons.failed);
+    expect(riskFailureReason(down)).toBe(riskReasons.failed);
   });
 });
