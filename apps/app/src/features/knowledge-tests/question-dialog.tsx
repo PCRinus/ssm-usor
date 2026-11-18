@@ -45,9 +45,11 @@ export type QuestionEditing =
 export function QuestionDialog({
   editing,
   onClose,
+  onCloseAutoFocus,
 }: {
   editing: QuestionEditing;
   onClose: () => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
     <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
@@ -56,6 +58,7 @@ export function QuestionDialog({
           key={editing.kind === 'edit' ? editing.question.id : `new-${editing.test}`}
           editing={editing}
           onClose={onClose}
+          onCloseAutoFocus={onCloseAutoFocus}
         />
       )}
     </Dialog>
@@ -65,9 +68,11 @@ export function QuestionDialog({
 function QuestionForm({
   editing,
   onClose,
+  onCloseAutoFocus,
 }: {
   editing: NonNullable<QuestionEditing>;
   onClose: () => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const create = useCreateTestQuestion({ request: apiRequest });
@@ -110,7 +115,11 @@ function QuestionForm({
   });
 
   return (
-    <DialogContent data-testid="test-question-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="test-question-dialog"
+      className="sm:max-w-2xl"
+      onCloseAutoFocus={onCloseAutoFocus}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>{question ? 'Modifică întrebarea' : 'Adaugă o întrebare'}</DialogTitle>

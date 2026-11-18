@@ -144,7 +144,8 @@ function mockBankApi(routes: Partial<Record<string, Handler>> = {}, questions = 
       const key = `${init?.method ?? 'GET'} ${url.pathname}`;
       const route = routes[key];
       if (route) return route(url, init);
-      if (key === 'GET /organization/tests/questions') return Response.json(bankFor(url, questions));
+      if (key === 'GET /organization/tests/questions')
+        return Response.json(bankFor(url, questions));
     },
     { me: userOnlyMe }
   );
@@ -252,7 +253,7 @@ describe('the question bank', () => {
     mount('/teste/ssm');
     const [first] = await screen.findAllByTestId('test-question');
     const citation = within(first!).getByTestId('test-question-citation');
-    expect(citation.textContent).toBe('TemeiHG 1425/2006, anexa 11');
+    expect(citation.textContent).toBe('Temei: HG 1425/2006, anexa 11');
     const links = within(citation).getAllByTestId('test-question-citation-link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       'https://legislatie.just.ro/Public/DetaliiDocument/252029',
@@ -276,7 +277,7 @@ describe('the question bank', () => {
     const annual = screen.getByTestId('test-bank-test');
     expect(within(annual).getByTestId('test-question-text').textContent).toBe(fireAnnual.text);
     const citation = within(annual).getByTestId('test-question-citation');
-    expect(citation.textContent).toBe('TemeiIPSU, art. 151');
+    expect(citation.textContent).toBe('Temei: IPSU, art. 151');
     expect(within(citation).queryByRole('link')).toBeNull();
     expect(within(annual).getByTestId('test-bank-counts').textContent).toBe(
       '1 întrebare activă · minimum 10'
@@ -291,7 +292,8 @@ describe('the question bank', () => {
     const hide = within(questions[1]!).getByTestId('test-question-hide');
     await user.click(hide);
     const message = await screen.findByTestId('test-minimum');
-    expect(message.textContent).toContain(
+    const description = document.getElementById(message.getAttribute('aria-describedby')!);
+    expect(description?.textContent).toBe(
       'Testul are minimum 10 întrebări active. Adaugă întâi una proprie, apoi o poți ascunde pe aceasta.'
     );
     expect(hide.getAttribute('aria-expanded')).toBe('true');
@@ -299,6 +301,13 @@ describe('the question bank', () => {
 
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByTestId('test-minimum')).toBeNull());
+    expect(document.activeElement).toBe(hide);
+
+    await user.click(hide);
+    await screen.findByTestId('test-minimum');
+    await user.click(screen.getByTestId('test-bank-counts'));
+    await waitFor(() => expect(screen.queryByTestId('test-minimum')).toBeNull());
+    expect(document.activeElement).not.toBe(hide);
 
     await user.click(hide);
     await user.click(await screen.findByTestId('test-minimum-add'));
@@ -307,6 +316,9 @@ describe('the question bank', () => {
       'SSM la angajare'
     );
     expect(screen.queryByTestId('test-minimum')).toBeNull();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('test-question-dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(hide));
   });
 
   it('says the same when the API refuses a hide the counts allowed', async () => {
@@ -438,6 +450,9 @@ describe('the question bank', () => {
       domain: 'su',
       test: 'annual',
     });
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('test-question-add'))
+    );
   });
 
   it('edits an own question and keeps the built-in it departs from', async () => {

@@ -1,8 +1,13 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import { Popover, PopoverAnchor, PopoverContent } from '@ssm-usor/ui/components/popover';
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverArrow,
+  PopoverContent,
+} from '@ssm-usor/ui/components/popover';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Eye, EyeOff, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 
 import { Notice } from '@/components/notice';
 
@@ -10,12 +15,14 @@ import { QuestionCitation } from './question-citation';
 import { type BankQuestion, minimumMessage } from './test-format';
 
 const panel = 'rounded-xl bg-card shadow-(--panel-shadow) outline outline-transparent';
+const actionButton = 'max-sm:w-full max-sm:px-2';
 
 export function QuestionItem({
   question,
   number,
   busy,
   error,
+  minimumOpen,
   minimum,
   onMinimumClose,
   onAdd,
@@ -30,10 +37,11 @@ export function QuestionItem({
   number: number | null;
   busy: boolean;
   error: string | null;
-  // The test's floor while the message about it is open on this question; null otherwise.
-  minimum: number | null;
+  minimumOpen: boolean;
+  minimum: number;
   onMinimumClose: () => void;
-  onAdd: () => void;
+  // Takes where focus returns once the question dialog it opens closes.
+  onAdd: (returnFocus: HTMLElement | null) => void;
   onPreview: () => void;
   onHide: () => void;
   onRestore: () => void;
@@ -42,6 +50,8 @@ export function QuestionItem({
 }) {
   const { hidden, builtIn } = question;
   const hideRef = useRef<HTMLButtonElement>(null);
+  const leftOutside = useRef(false);
+  const messageId = useId();
   const correct = question.options.filter((option) => option.correct).length;
 
   const actions = hidden ? (
@@ -57,20 +67,29 @@ export function QuestionItem({
     </Button>
   ) : (
     <>
-      <Button variant="secondary" size="sm" data-testid="test-question-preview" onClick={onPreview}>
+      <Button
+        variant="secondary"
+        size="sm"
+        data-testid="test-question-preview"
+        className={cn(actionButton, !builtIn && 'max-sm:col-span-2')}
+        onClick={onPreview}
+      >
         <Eye aria-hidden="true" />
         Previzualizează
       </Button>
       {builtIn ? (
-        <Popover open={minimum !== null} onOpenChange={(open) => !open && onMinimumClose()}>
+        <Popover open={minimumOpen} onOpenChange={(open) => !open && onMinimumClose()}>
           <PopoverAnchor asChild>
             <Button
               ref={hideRef}
               variant="secondary"
               size="sm"
               data-testid="test-question-hide"
-              aria-expanded={minimum !== null}
-              className="aria-expanded:bg-section-tab-hover aria-expanded:shadow-[inset_0_0_0_1px_var(--color-input)]"
+              aria-expanded={minimumOpen}
+              className={cn(
+                actionButton,
+                'aria-expanded:bg-section-tab-hover aria-expanded:shadow-[inset_0_0_0_1px_var(--color-input)]'
+              )}
               disabled={busy}
               onClick={onHide}
             >
@@ -83,22 +102,35 @@ export function QuestionItem({
             collisionPadding={12}
             data-testid="test-minimum"
             aria-label="Minimul de întrebări active"
+            aria-describedby={messageId}
             className="w-95 rounded-xl p-4 shadow-lg max-sm:w-[calc(100vw-1.5rem)]"
+            onOpenAutoFocus={() => {
+              leftOutside.current = false;
+            }}
             onInteractOutside={(event) => {
               if (hideRef.current?.contains(event.target as Node)) event.preventDefault();
+              else leftOutside.current = true;
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              hideRef.current?.focus();
+              // After a click elsewhere, focus stays where the member went.
+              if (!leftOutside.current) hideRef.current?.focus({ preventScroll: true });
             }}
           >
-            <p className="text-sm leading-[22px]">{minimumMessage(minimum ?? 0)}</p>
+            <PopoverArrow asChild width={14} height={7}>
+              <svg viewBox="0 0 14 7" aria-hidden="true" className="-translate-y-px">
+                <path d="M0 0 L7 7 L14 0" className="fill-popover stroke-border" />
+              </svg>
+            </PopoverArrow>
+            <p id={messageId} className="text-sm leading-[22px]">
+              {minimumMessage(minimum)}
+            </p>
             <Button
               variant="secondary"
               size="sm"
               className="mt-3"
               data-testid="test-minimum-add"
-              onClick={onAdd}
+              onClick={() => onAdd(hideRef.current)}
             >
               <Plus aria-hidden="true" />
               Adaugă o întrebare
@@ -111,6 +143,7 @@ export function QuestionItem({
             variant="secondary"
             size="sm"
             data-testid="test-question-edit"
+            className={actionButton}
             disabled={busy}
             onClick={onEdit}
           >
@@ -121,6 +154,7 @@ export function QuestionItem({
             variant="secondary"
             size="sm"
             data-testid="test-question-delete"
+            className={actionButton}
             disabled={busy}
             onClick={onDelete}
           >
@@ -173,7 +207,12 @@ export function QuestionItem({
             <span data-testid="test-question-kind">{builtIn ? 'Predefinită' : 'Proprie'}</span>
           </p>
         </div>
-        <div className="col-span-full mt-3 flex flex-wrap gap-2 sm:col-span-1 sm:mt-0 sm:justify-end">
+        <div
+          className={cn(
+            'col-span-full mt-3 flex flex-wrap gap-2 sm:col-span-1 sm:-mt-[3px] sm:justify-end',
+            !hidden && 'max-sm:grid max-sm:grid-cols-2'
+          )}
+        >
           {actions}
         </div>
       </div>
@@ -206,7 +245,7 @@ export function QuestionItem({
                 </span>
                 <span className="max-w-[75ch] min-w-0">{option.text}</span>
                 {option.correct && (
-                  <span className="ml-auto shrink-0 pl-3 text-[13px] leading-[23px] font-semibold sm:pl-4">
+                  <span className="ml-auto shrink-0 pl-4 text-[13px] leading-[23px] font-semibold max-sm:sr-only">
                     Corect
                   </span>
                 )}

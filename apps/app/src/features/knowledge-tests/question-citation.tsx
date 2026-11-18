@@ -18,7 +18,9 @@ export function QuestionCitation({
   const shown = parts.length > 0 ? parts : [{ text: citation, url: null }];
   return (
     <p data-testid="test-question-citation" className={cn('text-sm leading-[22px]', className)}>
-      <span className="mr-2.5 text-[13px] font-semibold">Temei</span>
+      <span className="mr-1.5 text-[13px] font-semibold">
+        Temei<span className="sr-only">:</span>
+      </span>{' '}
       {shown.map((part, index) =>
         part.url ? (
           <a
@@ -27,7 +29,7 @@ export function QuestionCitation({
             target="_blank"
             rel="noopener noreferrer"
             data-testid="test-question-citation-link"
-            className="font-medium underline decoration-ring underline-offset-[3px] outline-none hover:decoration-foreground focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="inline-block max-w-full font-medium whitespace-nowrap underline decoration-ring underline-offset-[3px] outline-none hover:decoration-foreground focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {part.text}
             <ExternalLink

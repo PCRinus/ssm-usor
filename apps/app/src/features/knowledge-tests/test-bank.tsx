@@ -4,7 +4,7 @@ import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   type ApiErrorResponse,
@@ -43,6 +43,8 @@ export function TestBank({ domain, test }: { domain: TrainingDomain; test: Knowl
   const [deleting, setDeleting] = useState<BankQuestion | null>(null);
   const [failure, setFailure] = useState<{ questionId: string; message: string } | null>(null);
   const [minimumFor, setMinimumFor] = useState<string | null>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
   const label = bankTestLabel(domain, test);
 
   if (bank.isError) {
@@ -77,7 +79,8 @@ export function TestBank({ domain, test }: { domain: TrainingDomain; test: Knowl
   }
   const { minimumActiveQuestions: minimum, sittingSize } = bank.data;
   const busy = hide.isPending || restore.isPending;
-  const add = () => {
+  const add = (from: HTMLElement | null = addRef.current) => {
+    returnFocus.current = from;
     setMinimumFor(null);
     setEditing({ kind: 'new', domain, test });
   };
@@ -122,7 +125,12 @@ export function TestBank({ domain, test }: { domain: TrainingDomain; test: Knowl
           {bankTestCounts(bankTest, minimum)}
           <HelpLink topic="teste.extragere" label="Ajutor: Cum se alcătuiește un test" />
         </p>
-        <Button data-testid="test-question-add" className="max-sm:w-full" onClick={add}>
+        <Button
+          ref={addRef}
+          data-testid="test-question-add"
+          className="max-sm:w-full"
+          onClick={() => add()}
+        >
           <Plus aria-hidden="true" />
           Adaugă o întrebare
         </Button>
@@ -135,7 +143,8 @@ export function TestBank({ domain, test }: { domain: TrainingDomain; test: Knowl
             number={number}
             busy={busy}
             error={failure?.questionId === question.id ? failure.message : null}
-            minimum={minimumFor === question.id ? minimum : null}
+            minimumOpen={minimumFor === question.id}
+            minimum={minimum}
             onMinimumClose={() => setMinimumFor(null)}
             onAdd={add}
             onPreview={() => setPreviewing(question)}
@@ -146,7 +155,17 @@ export function TestBank({ domain, test }: { domain: TrainingDomain; test: Knowl
           />
         ))}
       </ol>
-      <QuestionDialog editing={editing} onClose={() => setEditing(null)} />
+      <QuestionDialog
+        editing={editing}
+        onClose={() => setEditing(null)}
+        onCloseAutoFocus={(event) => {
+          const target = returnFocus.current;
+          returnFocus.current = null;
+          if (!target?.isConnected) return;
+          event.preventDefault();
+          target.focus({ preventScroll: true });
+        }}
+      />
       <QuestionPreviewDialog
         question={previewing}
         sittingSize={sittingSize}
