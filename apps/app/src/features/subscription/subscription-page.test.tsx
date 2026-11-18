@@ -201,6 +201,32 @@ describe('the Abonament tab', () => {
     ).toBeTruthy();
   });
 
+  it('keeps the cancel dialog open while the cancellation runs, and shows its refusal', async () => {
+    let refuse: (response: Response) => void = () => undefined;
+    mockApi({
+      overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
+      routes: {
+        'POST /billing/subscription/cancel': () =>
+          new Promise<Response>((resolve) => {
+            refuse = resolve;
+          }),
+      },
+    });
+    mount();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('subscription-cancel'));
+    const dialog = await screen.findByTestId('cancel-dialog');
+    await user.click(within(dialog).getByTestId('cancel-confirm'));
+    await waitFor(() => expect(requests('/billing/subscription/cancel', 'POST')).toHaveLength(1));
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('cancel-dialog')).toBe(dialog);
+    refuse(Response.json({ error: 'forbidden', message: 'Owner only' }, { status: 403 }));
+    expect(
+      await within(dialog).findByText('Doar adminul organizației schimbă abonamentul.')
+    ).toBeTruthy();
+  });
+
   it('says when a plan chosen in the trial before 2026-11-14 has no confirmed card, and leads to the card form', async () => {
     mockApi({
       overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
