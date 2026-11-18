@@ -1354,24 +1354,20 @@ export interface FailureReasons {
   failed: string;
 }
 
-export const failureReasonOf =
-  (reasons: FailureReasons) =>
-  (error: unknown): string => {
-    if (error instanceof ImportFailure) return error.reason;
-    if (error instanceof ModelAnswerError) {
-      return error.reason === 'refused' ? reasons.modelRefused : reasons.modelFailed;
-    }
-    if (error instanceof GatewayError) return importReasons.unavailable;
-    return reasons.failed;
-  };
-
-const readingFailureReason = failureReasonOf(importReasons);
+export function failureReasonOf(reasons: FailureReasons, error: unknown): string {
+  if (error instanceof ImportFailure) return error.reason;
+  if (error instanceof ModelAnswerError) {
+    return error.reason === 'refused' ? reasons.modelRefused : reasons.modelFailed;
+  }
+  if (error instanceof GatewayError) return importReasons.unavailable;
+  return reasons.failed;
+}
 
 export function importFailureReason(error: unknown): string {
   if (error instanceof ApiError && error.code === 'service_unavailable') {
     return importReasons.unavailable;
   }
-  return readingFailureReason(error);
+  return failureReasonOf(importReasons, error);
 }
 
 export function describe(error: unknown) {

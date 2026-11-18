@@ -304,7 +304,11 @@ export async function readInstructions(
   if (done) await alertImport(deps, importId, part, ['read']);
 }
 
-export const libraryFailureReason = failureReasonOf(libraryReasons);
+// A function, not a value made at load: pipeline.ts reaches this module through import-alerts.ts
+// before its own exports are set.
+export function libraryFailureReason(error: unknown) {
+  return failureReasonOf(libraryReasons, error);
+}
 
 const risksPart = 'risk_evaluations' satisfies ImportLibraryPart;
 
@@ -404,7 +408,9 @@ export async function readRiskEvaluations(
   if (done) await alertImport(deps, importId, risksPart, ['read']);
 }
 
-export const riskFailureReason = failureReasonOf(riskReasons);
+export function riskFailureReason(error: unknown) {
+  return failureReasonOf(riskReasons, error);
+}
 
 export async function failLibraryPart(
   deps: PipelineDeps,
