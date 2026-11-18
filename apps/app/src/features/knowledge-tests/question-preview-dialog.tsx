@@ -128,7 +128,7 @@ function QuestionPreview({
         </section>
       </DialogBody>
       <DialogFooter className="mt-4">
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" data-testid="test-question-preview-close" onClick={onClose}>
           Închide
         </Button>
       </DialogFooter>

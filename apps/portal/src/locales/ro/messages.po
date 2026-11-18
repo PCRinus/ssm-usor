@@ -829,6 +829,10 @@ msgstr "Încearcă din nou"
 msgid "Începe testul"
 msgstr "Începe testul"
 
+#: src/app/App.tsx
+msgid "Închide"
+msgstr "Închide"
+
 #: src/features/tests/study-card.tsx
 msgid "Instrucțiunile proprii SU nu sunt emise încă; le găsești aici după ce le emite specialistul."
 msgstr "Instrucțiunile proprii SU nu sunt emise încă; le găsești aici după ce le emite specialistul."
