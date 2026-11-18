@@ -44,7 +44,12 @@ import {
   type TestStatusRow,
   toEmployeeTests,
 } from '../tests/status';
-import { toEmployeeTraining, type TrainingStatusRow } from '../trainings/status';
+import {
+  toEmployeeTraining,
+  trainingStatusColumns,
+  trainingStatusFields,
+  type TrainingStatusRow,
+} from '../trainings/status';
 import type {
   createEmployeeRoute,
   getEmployeeRoute,
@@ -58,15 +63,12 @@ import type {
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
-const trainingStatusFields =
-  'ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, su_state, su_due_on, su_last_periodic_on, su_interval_months, su_interval_source';
-
 // The job position rides along by its foreign key: every employee has exactly one.
 const employeeColumnsWithoutStatus =
   'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name)';
 
 export const employeeListColumns =
-  `${employeeColumnsWithoutStatus}, training_status(${trainingStatusFields}), ${testStatusColumns}` as const;
+  `${employeeColumnsWithoutStatus}, ${trainingStatusColumns}, ${testStatusColumns}` as const;
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns =

@@ -14,7 +14,11 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { createPortalReadClient, participationOf } from '../../lib/participant';
+import {
+  createPortalReadClient,
+  participantEmployee,
+  participationOf,
+} from '../../lib/participant';
 import { fileNameOf } from '../documents/documents';
 import { clientIpOf } from '../signing/session-signing';
 import {
@@ -51,14 +55,9 @@ import type {
 
 type AttemptRow = Database['public']['Tables']['test_attempts']['Row'];
 
-// The participant's own employee: a client administrator who is not one takes no test.
-function testedEmployee(c: Context<ApiEnv>, participantId: string) {
-  const participation = participationOf(c, participantId);
-  if (!participation.employeeId) {
-    throw new ApiError('not_found', 'This participant is not an employee of the client.');
-  }
-  return { ...participation, employeeId: participation.employeeId };
-}
+// A client administrator who is not one of the client's employees takes no test.
+const testedEmployee = (c: Context<ApiEnv>, participantId: string) =>
+  participantEmployee(participationOf(c, participantId));
 
 function ofItsDomain(domain: TrainingDomain, test: KnowledgeTest) {
   if (!isKnowledgeTestOf(domain, test)) {
