@@ -274,6 +274,21 @@ describe('PUT /clients/{clientId}/job-positions/{jobPositionId}', () => {
     mockUpstream({ positions: (init) => (init?.method === 'PATCH' ? duplicate() : undefined!) });
     expect((await update({ name: 'Contabil' })).status).toBe(409);
   });
+
+  it('passes on the refusal of the database for an archived client', async () => {
+    mockUpstream({
+      positions: (init) =>
+        init?.method === 'PATCH'
+          ? Response.json(
+              { code: 'CLA01', message: 'An archived client is not changed.', details: null },
+              { status: 400 }
+            )
+          : undefined!,
+    });
+    const response = await update({ name: 'Sudor' });
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
+  });
 });
 
 describe('DELETE /clients/{clientId}/job-positions/{jobPositionId}', () => {
