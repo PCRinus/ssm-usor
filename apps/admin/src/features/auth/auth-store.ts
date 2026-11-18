@@ -1,21 +1,21 @@
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import {
+  type AuthSnapshot,
+  createSessionStore,
+  type SessionClient,
+} from '@ssm-usor/spa-runtime/session';
+import type { Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
 
 type AuthError = { message: string; code?: string; status?: number };
 
 type Factor = { id: string; factor_type: string; status: string };
 
-export interface AuthClient {
-  getSession(): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
-  onAuthStateChange(callback: (event: AuthChangeEvent, session: Session | null) => void): {
-    data: { subscription: { unsubscribe(): void } };
-  };
+export interface AuthClient extends SessionClient {
   signInWithPassword(credentials: {
     email: string;
     password: string;
     options: { captchaToken?: string };
   }): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
-  signOut(options: { scope: 'local' }): Promise<{ error: AuthError | null }>;
   mfa: {
     listFactors(): Promise<
       { data: { all: Factor[] }; error: null } | { data: null; error: AuthError }
@@ -75,68 +75,16 @@ export function stepOf(session: Session | null): Step {
   return verifiedTotp(session) ? 'verify' : 'enrol';
 }
 
-export interface AuthSnapshot {
-  status: 'loading' | 'ready' | 'error' | 'unconfigured';
-  session: Session | null;
-}
+export type { AuthSnapshot };
 
 export function createAuthStore(client: AuthClient | null, queryClient: QueryClient) {
-  let snapshot: AuthSnapshot = { status: client ? 'loading' : 'unconfigured', session: null };
-  let revision = 0;
-  let disposed = false;
-  const listeners = new Set<() => void>();
-
-  const publish = (session: Session | null) => {
-    if (disposed) return;
-    revision += 1;
-    if (snapshot.session?.user.id !== session?.user.id) queryClient.clear();
-    snapshot = { status: 'ready', session };
-    listeners.forEach((listener) => listener());
-  };
-
-  // Keep this callback synchronous. Calling Supabase auth methods inside it can deadlock.
-  const subscription = client?.onAuthStateChange((_event, session) => publish(session)).data
-    .subscription;
-  const initialRevision = revision;
-  const ready = client
-    ? client
-        .getSession()
-        .then(({ data, error }) => {
-          if (disposed || revision !== initialRevision) return;
-          if (error) throw error;
-          publish(data.session);
-        })
-        .catch(() => {
-          if (disposed || revision !== initialRevision) return;
-          snapshot = { status: 'error', session: null };
-          listeners.forEach((listener) => listener());
-        })
-    : Promise.resolve();
-
-  async function refreshSnapshot() {
-    if (!client) return;
-    const { data, error } = await client.getSession();
-    if (!error) publish(data.session);
-  }
+  const { store, publish, refreshSnapshot } = createSessionStore(client, queryClient);
+  const { ready } = store;
+  const currentSession = () => store.getSnapshot().session;
 
   return {
-    ready,
-    getSnapshot: () => snapshot,
-    step: () => stepOf(snapshot.session),
-    // getSession() renews an expired token and waits for a refresh in progress.
-    async getAccessToken() {
-      await ready;
-      if (!client || !snapshot.session) return null;
-      const { data, error } = await client.getSession();
-      if (error) return snapshot.session?.access_token ?? null;
-      return data.session?.access_token ?? null;
-    },
-    subscribe(listener: () => void) {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
+    ...store,
+    step: () => stepOf(currentSession()),
     async signIn(email: string, password: string, captchaToken?: string): Promise<SignInResult> {
       if (!client) return 'unreachable';
       await ready;
@@ -176,7 +124,10 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       if (error) throw error;
       return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
     },
-    verifiedFactorId: () => (snapshot.session ? verifiedTotp(snapshot.session)?.id : undefined),
+    verifiedFactorId: () => {
+      const current = currentSession();
+      return current ? verifiedTotp(current)?.id : undefined;
+    },
     async verifyCode(factorId: string, code: string): Promise<VerifyResult> {
       if (!client) return 'unreachable';
       try {
@@ -190,17 +141,6 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       } catch {
         return 'unreachable';
       }
-    },
-    async signOut() {
-      if (!client) return;
-      const { error } = await client.signOut({ scope: 'local' });
-      if (error) throw error;
-      publish(null);
-    },
-    dispose() {
-      disposed = true;
-      subscription?.unsubscribe();
-      listeners.clear();
     },
   };
 }
