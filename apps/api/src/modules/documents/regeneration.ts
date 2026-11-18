@@ -14,11 +14,10 @@ import {
   type RunningRegeneration,
   type TemplateVersionKind,
 } from '@ssm-usor/contracts';
-import type { PostgrestError } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import type { AdminClient } from '../../lib/admin-db';
-import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import type { RegenerationQueue } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import type { Actor } from './documents';
@@ -66,25 +65,6 @@ const inSet = <T extends FilterBuilder<T>>(query: T, set: DocumentSet) =>
 const jobLifetimeMs = 60 * 60 * 1000;
 
 // PostgREST answers at most `max_rows` (supabase/config.toml) rows a request.
-const pageSize = 1000;
-
-// Pages in a stable order until a short page, so every row behind is read however many there are.
-async function allPages<Row>(
-  page: (
-    from: number,
-    to: number
-  ) => PromiseLike<{ data: Row[] | null; error: PostgrestError | null }>,
-  context: string
-) {
-  const rows: Row[] = [];
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await page(from, from + pageSize - 1);
-    if (error) throw fromDatabaseError(error, context);
-    rows.push(...(data ?? []));
-    if ((data?.length ?? 0) < pageSize) return rows;
-  }
-}
-
 async function runningJobs(db: DataClient, organizationId: string) {
   const { data, error } = await db
     .from('regeneration_jobs')
@@ -132,7 +112,7 @@ export async function listDocumentsBehind(
   organizationId: string
 ): Promise<DocumentsBehindType[]> {
   const [rows, running] = await Promise.all([
-    allPages(
+    everyRow(
       (from, to) =>
         db
           .from('documents_behind')
@@ -288,7 +268,7 @@ export async function startRegeneration(
   typeKey: BuiltInDocumentTypeKey
 ) {
   if (!queue) throw unavailable();
-  const behind = await allPages(
+  const behind = await everyRow(
     (from, to) =>
       db
         .from('documents_behind')
@@ -333,7 +313,7 @@ export async function startSetRegeneration(
 ) {
   if (!queue) throw unavailable();
   const [behind, running] = await Promise.all([
-    allPages(
+    everyRow(
       (from, to) =>
         inSet(
           db

@@ -281,7 +281,7 @@ describe('GET /legislation/changes', () => {
           outcome: 'quote_differs',
           comparedWith: '2026-08-25',
           assessedAt: '2026-11-13T03:18:00+00:00',
-          amendingActs: [{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }],
+          amendingActs: [{ name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: null }],
           amendedUnits: [
             {
               unit: 'Art. 36 alin. (2)',
@@ -437,7 +437,9 @@ describe('GET /legislation/changes', () => {
     });
     const response = await request('/legislation/changes');
     const [item] = legalChangeListResponseSchema.parse(await response.json()).items;
-    expect(item!.amendingActs).toEqual([{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }]);
+    expect(item!.amendingActs).toEqual([
+      { name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: null },
+    ]);
     expect(item!.amendedUnits.map((unit) => unit.unit)).toEqual(['Art. 36 alin. (2)']);
     expect(item!.passages[0]!.hunks).toEqual(quoted.hunks);
   });
@@ -456,7 +458,9 @@ describe('GET /legislation/changes', () => {
     const {
       items: [item],
     } = (await response.json()) as { items: Record<string, unknown>[] };
-    expect(item!.amendingActs).toEqual([{ name: 'Legea 207/2026', adoptedOn: '2026-11-03' }]);
+    expect(item!.amendingActs).toEqual([
+      { name: 'Legea 207/2026', adoptedOn: '2026-11-03', portalId: 301234 },
+    ]);
     expect(item!.amendedUnits).toEqual([
       {
         unit: 'Art. 36 alin. (2)',

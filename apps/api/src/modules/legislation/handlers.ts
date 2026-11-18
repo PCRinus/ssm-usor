@@ -62,9 +62,9 @@ const toAct = (
   checkedByHandOn: row.checked_by_hand_on,
 });
 
-type StoredPassage = Omit<PassageRow, 'change_id' | 'manifest' | 'article'>;
+export type StoredPassage = Omit<PassageRow, 'change_id' | 'manifest' | 'article'>;
 
-const toPassage = (row: StoredPassage) =>
+export const toPassage = (row: StoredPassage) =>
   legalChangePassageSchema.parse({
     id: row.id,
     templateFile: row.template_file,
@@ -79,13 +79,23 @@ const toPassage = (row: StoredPassage) =>
     hunks: storedHunksSchema.parse(row.hunks),
   });
 
-const passageOrder = (
+export const passageOrder = (
   a: Pick<PassageRow, 'template_file' | 'paragraph' | 'unit_label'>,
   b: Pick<PassageRow, 'template_file' | 'paragraph' | 'unit_label'>
 ) =>
   a.template_file.localeCompare(b.template_file) ||
   a.paragraph - b.paragraph ||
   a.unit_label.localeCompare(b.unit_label);
+
+export const amendingActsOf = (stored: unknown) =>
+  storedAmendingActsSchema
+    .parse(stored)
+    .map((act) => ({ name: act.name, adoptedOn: act.date, portalId: act.portalId }));
+
+export const amendedUnitsOf = (stored: unknown) =>
+  storedAmendedUnitsSchema
+    .parse(stored)
+    .map(({ unit, operation, date, amendingAct }) => ({ unit, operation, date, amendingAct }));
 
 const toChange = (
   row: Omit<ChangeRow, 'act_id' | 'review'> & {
@@ -105,12 +115,8 @@ const toChange = (
   outcome: row.outcome as LegalChangeOutcome | null,
   comparedWith: row.compared_with,
   assessedAt: row.assessed_at,
-  amendingActs: storedAmendingActsSchema
-    .parse(row.amending_acts)
-    .map((act) => ({ name: act.name, adoptedOn: act.date })),
-  amendedUnits: storedAmendedUnitsSchema
-    .parse(row.amended_units)
-    .map(({ unit, operation, date, amendingAct }) => ({ unit, operation, date, amendingAct })),
+  amendingActs: amendingActsOf(row.amending_acts),
+  amendedUnits: amendedUnitsOf(row.amended_units),
   passages: [...row.passages].sort(passageOrder).map(toPassage),
   updatedDocuments: [
     ...new Map(
