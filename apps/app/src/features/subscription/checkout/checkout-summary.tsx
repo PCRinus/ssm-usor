@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { choiceAmounts, formatEuro, perInterval } from '../billing-format';
 import { creditsCount } from '../credits-copy';
-import { roDate } from '../subscription-copy';
+import { monthlyRenewalDay, roDate } from '../subscription-copy';
 import type { CheckoutMode } from './checkout-choice';
 
 interface When {
@@ -13,14 +13,6 @@ interface When {
   title: string;
   text: string;
   note?: string;
-}
-
-// Stripe renews on the purchase day, not on the first renewal's date, which a short month
-// moves to its last day.
-function monthlyRenewal(purchasedAt: string) {
-  const day = new Date(purchasedAt).getDate();
-  const shorter = day > 28 ? ', iar în lunile mai scurte, în ultima zi a lunii' : '';
-  return `Abonamentul se reînnoiește în fiecare lună, pe ${day}${shorter}.`;
 }
 
 function whenFor(
@@ -32,7 +24,7 @@ function whenFor(
   const next = preview.nextRenewal;
   const renews =
     preview.choice.interval === 'month'
-      ? monthlyRenewal(preview.appliesAt)
+      ? `Abonamentul se reînnoiește ${monthlyRenewalDay(preview.appliesAt)}.`
       : `Abonamentul se reînnoiește pe ${roDate(next.at)}.`;
 
   if (mode === 'new') {
