@@ -15,6 +15,14 @@ interface When {
   note?: string;
 }
 
+// Stripe renews on the purchase day, not on the first renewal's date, which a short month
+// moves to its last day.
+function monthlyRenewal(purchasedAt: string) {
+  const day = new Date(purchasedAt).getDate();
+  const shorter = day > 28 ? ', iar în lunile mai scurte, în ultima zi a lunii' : '';
+  return `Abonamentul se reînnoiește în fiecare lună, pe ${day}${shorter}.`;
+}
+
 function whenFor(
   mode: CheckoutMode,
   preview: BillingPreview,
@@ -24,7 +32,7 @@ function whenFor(
   const next = preview.nextRenewal;
   const renews =
     preview.choice.interval === 'month'
-      ? `Abonamentul se reînnoiește în fiecare lună, pe ${new Date(next.at).getDate()}.`
+      ? monthlyRenewal(preview.appliesAt)
       : `Abonamentul se reînnoiește pe ${roDate(next.at)}.`;
 
   if (mode === 'new') {
