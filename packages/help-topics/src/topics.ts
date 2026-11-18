@@ -453,7 +453,7 @@ export const helpTopics = {
   'legislatie.ce-nu-faci': { path: '/legislatie/', anchor: 'ce-nu-ai-de-făcut' },
   'legislatie.citat-in': { path: '/legislatie/', anchor: 'preluări-și-trimiteri' },
   'legislatie.documente': { path: '/legislatie/', anchor: 'documentele-de-actualizat' },
-  'legislatie.in-verificare': { path: '/legislatie/', anchor: 'o-modificare-în-verificare' },
+  'legislatie.in-analiza': { path: '/legislatie/', anchor: 'o-modificare-în-analiză' },
   'legislatie.incheiere': { path: '/legislatie/', anchor: 'cum-se-încheie-o-modificare' },
   'legislatie.pagina': { path: '/legislatie/', anchor: 'ce-urmărește-pagina-legislație' },
   'legislatie.verificare': { path: '/legislatie/', anchor: 'verificarea-zilnică' },
