@@ -24,7 +24,7 @@ import { roDate } from './subscription-copy';
 
 vi.mock('./leave', () => ({ leaveFor: vi.fn() }));
 
-type Route = (init: RequestInit | undefined) => Response;
+type Route = (init: RequestInit | undefined) => Response | Promise<Response>;
 type Owner = NonNullable<BillingOverview['owner']>;
 
 const fetchMock = vi.fn<typeof fetch>();
