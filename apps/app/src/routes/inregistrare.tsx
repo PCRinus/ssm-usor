@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Input } from '@ssm-usor/ui/components/input';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -13,7 +14,6 @@ import { PasswordStrengthIndicator } from '@/components/password-strength-indica
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useAuth } from '@/features/auth/auth-context';
 import { registerErrorMessage } from '@/features/auth/auth-errors';
-import { useCaptcha } from '@/features/auth/captcha';
 import { GoogleSignIn } from '@/features/auth/google-sign-in';
 import {
   newPasswordHint,

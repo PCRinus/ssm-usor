@@ -1,4 +1,9 @@
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import {
+  type AuthSnapshot,
+  createSessionStore,
+  type SessionClient,
+} from '@ssm-usor/spa-runtime/session';
+import type { Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
 
 type AuthError = { message: string; code?: string; status?: number; name?: string };
@@ -7,11 +12,7 @@ type AuthError = { message: string; code?: string; status?: number; name?: strin
 type CaptchaOptions = { captchaToken?: string };
 
 // A small SDK boundary keeps session behavior testable without network requests.
-export interface AuthClient {
-  getSession(): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
-  onAuthStateChange(callback: (event: AuthChangeEvent, session: Session | null) => void): {
-    data: { subscription: { unsubscribe(): void } };
-  };
+export interface AuthClient extends SessionClient {
   signInWithPassword(credentials: {
     email: string;
     password: string;
@@ -96,17 +97,9 @@ const verifiedTotp = (session: Session) =>
 export const hasSecondFactor = (session: Session | null) =>
   Boolean(session && verifiedTotp(session));
 
-export interface AuthSnapshot {
-  status: 'loading' | 'ready' | 'error' | 'unconfigured';
-  session: Session | null;
-}
+export type { AuthSnapshot };
 
 export function createAuthStore(client: AuthClient | null, queryClient: QueryClient) {
-  let snapshot: AuthSnapshot = { status: client ? 'loading' : 'unconfigured', session: null };
-  let revision = 0;
-  let disposed = false;
-  const listeners = new Set<() => void>();
-
   // The account whose session a recovery link signed in, until it sets its new password.
   let recoveredUserId = readRecoveredUser();
   const setRecoveredUser = (userId: string | null) => {
@@ -114,39 +107,17 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
     storeRecoveredUser(userId);
   };
 
-  const publish = (session: Session | null) => {
-    if (disposed) return;
-    revision += 1;
-    if (snapshot.session?.user.id !== session?.user.id) {
-      // clear() also cancels cached queries, preventing old results from being reused.
-      queryClient.clear();
-    }
-    if (recoveredUserId !== null && session?.user.id !== recoveredUserId) setRecoveredUser(null);
-    snapshot = { status: 'ready', session };
-    listeners.forEach((listener) => listener());
-  };
+  const { store, publish, refreshSnapshot } = createSessionStore(client, queryClient, {
+    onPublish: (session) => {
+      if (recoveredUserId !== null && session?.user.id !== recoveredUserId) setRecoveredUser(null);
+    },
+  });
+  const { ready } = store;
+  const currentSession = () => store.getSnapshot().session;
 
-  // Keep this callback synchronous. Calling Supabase auth methods inside it can deadlock.
-  const subscription = client?.onAuthStateChange((_event, session) => publish(session)).data
-    .subscription;
-  const initialRevision = revision;
   // The code can be exchanged once: a second exchange, from a re-render or a remount, fails
   // after the first one has signed the person in.
   const exchanges = new Map<string, Promise<void>>();
-  const ready = client
-    ? client
-        .getSession()
-        .then(({ data, error }) => {
-          if (disposed || revision !== initialRevision) return;
-          if (error) throw error;
-          publish(data.session);
-        })
-        .catch(() => {
-          if (disposed || revision !== initialRevision) return;
-          snapshot = { status: 'error', session: null };
-          listeners.forEach((listener) => listener());
-        })
-    : Promise.resolve();
 
   // For the signed-in user. Other devices are signed out: whoever knew the old password
   // should not keep a session.
@@ -164,24 +135,19 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
     await client.signOut({ scope: 'others' }).catch(() => undefined);
   }
 
-  async function refreshSnapshot() {
-    if (!client) return;
-    const { data, error } = await client.getSession();
-    if (!error) publish(data.session);
-  }
-
   // Supabase Auth refuses a password change at aal1 to an account with a verified factor, and
   // ends its aal1 sessions whenever the factor is verified elsewhere, as in the admin app.
   async function needsSecondFactor() {
     await ready;
-    if (!client || !snapshot.session) return false;
+    if (!client || !currentSession()) return false;
     const { data } = await client.mfa.getAuthenticatorAssuranceLevel();
     return data?.currentLevel === 'aal1' && data.nextLevel === 'aal2';
   }
 
   async function verifySecondFactor(code: string): Promise<VerifyResult> {
-    if (client && !snapshot.session) return 'signed-out';
-    const factor = snapshot.session && verifiedTotp(snapshot.session);
+    const current = currentSession();
+    if (client && !current) return 'signed-out';
+    const factor = current && verifiedTotp(current);
     if (!client || !factor) return 'unreachable';
     try {
       const { error } = await client.mfa.challengeAndVerify({ factorId: factor.id, code });
@@ -199,29 +165,11 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
   }
 
   return {
-    ready,
-    getSnapshot: () => snapshot,
+    ...store,
     needsSecondFactor,
     verifySecondFactor,
     isRecoverySession: (session: Session | null) =>
       recoveredUserId !== null && session?.user.id === recoveredUserId,
-    // The snapshot can hold an expired token: after the computer wakes from sleep, queries
-    // refetch before Supabase's refresh reaches onAuthStateChange.
-    // getSession() waits for a refresh in progress and renews an expired token itself.
-    async getAccessToken() {
-      await ready;
-      if (!client || !snapshot.session) return null;
-      const { data, error } = await client.getSession();
-      // The refresh failed, most likely offline. The request fails either way.
-      if (error) return snapshot.session?.access_token ?? null;
-      return data.session?.access_token ?? null;
-    },
-    subscribe(listener: () => void) {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
     async signIn(email: string, password: string, captchaToken?: string) {
       if (!client) throw new Error('Authentication is not configured.');
       await ready;
@@ -233,12 +181,6 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
       if (error) throw error;
       if (!data.session) throw new Error('No session was returned.');
       publish(data.session);
-    },
-    async signOut() {
-      if (!client) return;
-      const { error } = await client.signOut({ scope: 'local' });
-      if (error) throw error;
-      publish(null);
     },
     // Supabase answers the same for an address that already has an account, and sends the
     // confirmation email through the API's hook. A session comes back only where
@@ -326,11 +268,6 @@ export function createAuthStore(client: AuthClient | null, queryClient: QueryCli
         if (verified !== 'verified') throw new SecondFactorError(verified);
       }
       await updatePassword(newPassword);
-    },
-    dispose() {
-      disposed = true;
-      subscription?.unsubscribe();
-      listeners.clear();
     },
   };
 }

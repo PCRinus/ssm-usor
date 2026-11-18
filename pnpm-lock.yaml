@@ -277,6 +277,9 @@ importers:
       '@ssm-usor/help-topics':
         specifier: workspace:*
         version: link:../../packages/help-topics
+      '@ssm-usor/spa-runtime':
+        specifier: workspace:*
+        version: link:../../packages/spa-runtime
       '@ssm-usor/ui':
         specifier: workspace:*
         version: link:../../packages/ui

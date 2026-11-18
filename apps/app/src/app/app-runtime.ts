@@ -1,3 +1,4 @@
+import { invalidateOnSessionChange } from '@ssm-usor/spa-runtime/session';
 import type { QueryClient } from '@tanstack/react-query';
 import type { RouterHistory } from '@tanstack/react-router';
 
@@ -30,19 +31,7 @@ export function createAppRuntime(
     pageIdentity: identity,
   };
   const router = createAppRouter({ auth, queryClient, apiRequest }, history);
-  // Route guards read the session at navigation time only. When the signed-in user changes
-  // (sign-out, another tab, a different account) re-run them so protected pages disappear.
-  let userId = auth.getSnapshot().session?.user.id;
-  let disposed = false;
-  const unsubscribe = auth.subscribe(() => {
-    const nextUserId = auth.getSnapshot().session?.user.id;
-    if (nextUserId === userId) return;
-    userId = nextUserId;
-    // Leave the Supabase event callback before re-running route guards.
-    queueMicrotask(() => {
-      if (!disposed) void router.invalidate();
-    });
-  });
+  const stopInvalidating = invalidateOnSessionChange(auth, router);
 
   return {
     auth,
@@ -51,8 +40,7 @@ export function createAppRuntime(
     apiRequest,
     identity,
     dispose() {
-      disposed = true;
-      unsubscribe();
+      stopInvalidating();
       identity.dispose();
       auth.dispose();
       queryClient.clear();

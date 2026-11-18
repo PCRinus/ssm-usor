@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import { useAuth } from './auth-context';
 import { loginErrorMessage } from './auth-errors';
-import { useCaptcha } from './captcha';
 import { loginSchema, type LoginValues } from './login-schema';
 
 export function useLoginForm(invitation?: string) {

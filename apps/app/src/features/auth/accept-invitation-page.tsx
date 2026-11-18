@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { currentTermsVersion } from '@ssm-usor/contracts';
+import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Input } from '@ssm-usor/ui/components/input';
 import { useQuery } from '@tanstack/react-query';
 import { getRouteApi, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
@@ -30,7 +31,6 @@ import {
   type JoinValues,
 } from './accept-schema';
 import { useAuth } from './auth-context';
-import { useCaptcha } from './captcha';
 import { newPasswordHint } from './password-schema';
 
 const invitationRoute = getRouteApi('/invitatie');
