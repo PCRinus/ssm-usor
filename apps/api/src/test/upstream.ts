@@ -1,4 +1,4 @@
-import type { AccessLevel } from '@ssm-usor/contracts';
+import type { AccessLevel, OrganizationRole } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 import type { ApiEnv } from '../lib/env';
@@ -40,13 +40,13 @@ export const membershipRow = (
   overrides: {
     user_id?: string;
     organization_id?: string;
-    role?: 'owner' | 'specialist';
+    role?: OrganizationRole;
     access?: AccessLevel;
   } = {}
 ) => ({
   user_id: testUser.id,
   organization_id: testOrganizationId,
-  role: 'specialist' as const,
+  role: 'specialist' as OrganizationRole,
   access: 'full' as AccessLevel,
   ...overrides,
 });
