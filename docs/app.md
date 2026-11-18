@@ -830,8 +830,10 @@ their tab bars read.
   responsible persons below. The first card holds the periodic training schedule: duration, interval for administrative staff and for workers, first month, and the
   days of the month. It previews the resulting months ("Instruiri în: Februarie, August.")
   with `trainingMonths` from the contracts, the same function the documents will use. Workers
-  are offered no interval above six months. `PUT /clients/{clientId}/document-details`
-  replaces every field, so an emptied input clears what was saved. An archived client is
+  are offered no interval above six months. `PATCH /clients/{clientId}/document-details`
+  takes only the card's own fields (ADR 044), so the legal representative's card and this one
+  never take back what the other saved, and an emptied input sends null, which clears it. An
+  archived client is
   shown read-only. The legal representative is a row of "Detalii"'s "Date firmă și
   persoane" panel, beside the company's registration data and the contact, each with its own
   "Modifică" that opens its form in place; the workplaces panel lists the registered office and
@@ -856,7 +858,8 @@ their tab bars read.
   The workplace and person routes replace the whole row, so every save, including "Folosește
   această adresă" and "Folosește această funcție", sends the fire-safety fields as saved.
 - "Instruire PSI", the card after the occupational safety schedule (ADR 018), edits
-  `GET`/`PUT /clients/{clientId}/fire-safety` in place: the duration in hours, the interval of
+  `GET`/`PATCH /clients/{clientId}/fire-safety` in place, each of its two cards sending only
+  its own fields (ADR 044): the duration in hours, the interval of
   each staff category (one to six months), the first month and the days, the smoking rule
   (which may stay "Nestabilit" until the set is generated, which asks for it;
   `?focus=fire-smoking` opens the form on it) and, under "Permis numai în locuri amenajate" only, the

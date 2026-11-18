@@ -6,7 +6,6 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { hashKey } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
@@ -20,7 +19,6 @@ import {
 
 import {
   type ApiErrorResponse,
-  type ClientFireSafetyResponse,
   getGetClientFireSafetyQueryKey,
   type UpdateClientFireSafetyRequest,
   useGetClientFireSafety,
@@ -38,7 +36,6 @@ import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { type FireTrainingFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
-import { inTurn } from '@/lib/in-turn';
 
 import {
   completeFireSchedule,
@@ -48,7 +45,6 @@ import {
   fireRulesFormSchema,
   type FireRulesFormValues,
   type FireSafety,
-  fireSafetyRequest,
   fireScheduleChange,
   fireScheduleFormSchema,
   type FireScheduleFormValues,
@@ -147,11 +143,8 @@ export function FireSafetySection({
   );
 }
 
-// The route replaces every field and two cards edit the row, so each sends its own fields over
-// what is saved when its turn to save comes.
 function useFireSafetySave<Values extends FieldValues>({
   form,
-  saved,
   clientId,
   userId,
   change,
@@ -160,10 +153,9 @@ function useFireSafetySave<Values extends FieldValues>({
   onDone,
 }: {
   form: UseFormReturn<Values>;
-  saved: FireSafety;
   clientId: string;
   userId: string;
-  change: (values: Values) => Partial<UpdateClientFireSafetyRequest>;
+  change: (values: Values) => UpdateClientFireSafetyRequest;
   successMessage: string;
   failureMessage: string;
   onDone: () => void;
@@ -175,15 +167,7 @@ function useFireSafetySave<Values extends FieldValues>({
   const queryKey = [...getGetClientFireSafetyQueryKey(clientId), userId];
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await inTurn(hashKey(queryKey), async () => {
-        // `saved` is from the last render, and the other card may have saved since.
-        const latest = queryClient.getQueryData<ClientFireSafetyResponse>(queryKey)?.fireSafety;
-        const response = await update.mutateAsync({
-          clientId,
-          data: { ...fireSafetyRequest(latest ?? saved), ...change(values) },
-        });
-        queryClient.setQueryData(queryKey, response);
-      });
+      await update.mutateAsync({ clientId, data: change(values) });
       await queryClient.invalidateQueries({ queryKey });
       savedToast(successMessage);
       onDone();
@@ -248,7 +232,6 @@ function FireScheduleCard({
     >
       {editing ? (
         <FireScheduleForm
-          saved={saved}
           start={start}
           starting={starting}
           categories={categories}
@@ -314,7 +297,6 @@ function FireScheduleSummary({
 }
 
 function FireScheduleForm({
-  saved,
   start,
   starting,
   categories,
@@ -322,7 +304,6 @@ function FireScheduleForm({
   userId,
   onDone,
 }: {
-  saved: FireSafety;
   start: FireSafety;
   starting: boolean;
   categories: readonly CategoryPosts[];
@@ -347,7 +328,6 @@ function FireScheduleForm({
   });
   const { onSubmit, busy } = useFireSafetySave({
     form,
-    saved,
     clientId,
     userId,
     change: (values) => fireScheduleChange(values, categories),
@@ -582,7 +562,6 @@ function FireRulesForm({
   });
   const { onSubmit, busy } = useFireSafetySave({
     form,
-    saved,
     clientId,
     userId,
     change: fireRulesChange,
