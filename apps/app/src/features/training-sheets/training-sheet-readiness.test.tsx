@@ -38,10 +38,13 @@ const sheetStatus = (readiness: Readiness) => ({
 });
 
 function mockSheetsApi({ ssm = ready, su = ready }: { ssm?: Readiness; su?: Readiness } = {}) {
-  mockApi((_init, url) => {
-    if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
-  });
+  mockApi(
+    (_init, url) => {
+      if (url.pathname === `${employeePath}/training-sheets`)
+        return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
+    },
+    { me: null }
+  );
 }
 
 const snapshot = { status: 'ready', session: makeSession() };

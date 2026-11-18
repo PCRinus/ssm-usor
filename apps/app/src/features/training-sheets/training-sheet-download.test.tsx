@@ -55,19 +55,22 @@ function mockSheetsApi({
       },
     }),
 }: { ssm?: Readiness; su?: Readiness; sheet?: () => Response | Promise<Response> } = {}) {
-  mockApi((_init, url) => {
-    if (url.pathname === `${employeePath}/training-sheets`)
-      return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
-    if (url.pathname === `${employeePath}/training-sheet`) return sheet();
-    if (url.pathname === `${employeePath}/training-sheet/link`) {
-      const sequence = url.searchParams.get('sequence');
-      return Response.json({
-        url: `https://files.example.test/signed/${url.searchParams.get('domain')}-${sequence}`,
-        fileName: `Fisa-SSM-Popescu-Ion${sequence === '1' ? '' : `-${sequence}`}.pdf`,
-        expiresInSeconds: 600,
-      });
-    }
-  });
+  mockApi(
+    (_init, url) => {
+      if (url.pathname === `${employeePath}/training-sheets`)
+        return Response.json({ ssm: sheetStatus(ssm), su: sheetStatus(su) });
+      if (url.pathname === `${employeePath}/training-sheet`) return sheet();
+      if (url.pathname === `${employeePath}/training-sheet/link`) {
+        const sequence = url.searchParams.get('sequence');
+        return Response.json({
+          url: `https://files.example.test/signed/${url.searchParams.get('domain')}-${sequence}`,
+          fileName: `Fisa-SSM-Popescu-Ion${sequence === '1' ? '' : `-${sequence}`}.pdf`,
+          expiresInSeconds: 600,
+        });
+      }
+    },
+    { me: null }
+  );
 }
 
 function mount(...domains: TrainingDomain[]) {
