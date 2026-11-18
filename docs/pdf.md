@@ -212,8 +212,9 @@ a new draft.
 
 `pnpm --filter @ssm-usor/pdf start` is the other way: it runs `wrangler dev` for the Worker
 itself, which builds the image and starts the container on the first conversion, for working
-on `apps/pdf`. Tests (`src/convert.test.ts`) cover the request and the failure handling
-without a container.
+on `apps/pdf`. Tests cover the request (`src/convert.test.ts`) and the retry, timeout and
+logging it shares with the signer and the extractor (`src/container-call.test.ts`) without a
+container.
 
 ## Signer
 
