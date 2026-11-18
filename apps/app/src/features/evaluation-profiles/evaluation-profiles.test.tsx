@@ -779,6 +779,47 @@ describe('a profile page', () => {
     );
   });
 
+  it('shows why a profile is not deleted while the profile is read again, and stays open', async () => {
+    let release: () => void = () => undefined;
+    const reread = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let refused = false;
+    let held = 0;
+    mockApi();
+    const ownLibrary = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) => {
+      const pathname = new URL(String(input)).pathname;
+      if (pathname !== `/evaluation-profiles/${driver.id}`) return ownLibrary(input, init);
+      if (init?.method === 'DELETE') {
+        refused = true;
+        return conflict('evaluation_profile_in_use');
+      }
+      if (refused) {
+        held += 1;
+        await reread;
+      }
+      return ownLibrary(input, init);
+    });
+    mount(`/evaluari-de-risc/${driver.id}`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('risk-profile-remove'));
+    const dialog = await screen.findByTestId('risk-profile-remove-dialog');
+    await user.click(within(dialog).getByTestId('risk-profile-remove-confirm'));
+    await waitFor(() => expect(held).toBeGreaterThan(0));
+    expect(within(dialog).getByTestId('risk-profile-remove-error').textContent).toContain(
+      'Evaluarea este folosită la clienți'
+    );
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('risk-profile-remove-dialog')).toBe(dialog);
+    release();
+    await waitFor(() =>
+      expect(
+        within(dialog).getByTestId<HTMLButtonElement>('risk-profile-remove-confirm').disabled
+      ).toBe(false)
+    );
+  });
+
   it('offers archiving in place of deleting while clients use the profile', async () => {
     mockApi();
     mount(`/evaluari-de-risc/${office.id}`);

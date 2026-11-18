@@ -42,6 +42,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
@@ -344,37 +345,23 @@ export function EquipmentCard({
         onClose={() => setCopying(false)}
         onCopied={refresh}
       />
-      <Dialog
-        open={removing !== null}
-        onOpenChange={(open) => !open && !remove.isPending && setRemoving(null)}
-      >
-        {removing && (
-          <DialogContent data-testid="equipment-remove-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Ștergi articolul?</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground">{removing.item}</span>
-                {items.length === 1
-                  ? ' este singurul articol al postului. Fără el, postul rămâne nedecis până spui ce primește sau că nu necesită echipament.'
-                  : ' nu va mai apărea în lista internă de dotare la următoarea generare.'}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button variant="ghost" disabled={remove.isPending} onClick={() => setRemoving(null)}>
-                Renunță
-              </Button>
-              <Button
-                variant="destructive"
-                data-testid="equipment-remove-confirm"
-                disabled={remove.isPending}
-                onClick={() => void removeEntry(removing)}
-              >
-                {remove.isPending ? 'Se șterge…' : 'Șterge'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {removing && (
+        <ConfirmDialog
+          open
+          busy={remove.isPending}
+          testId="equipment-remove"
+          title="Ștergi articolul?"
+          confirmLabel="Șterge"
+          pendingLabel="Se șterge…"
+          onConfirm={() => void removeEntry(removing)}
+          onClose={() => setRemoving(null)}
+        >
+          <span className="font-medium text-foreground">{removing.item}</span>
+          {items.length === 1
+            ? ' este singurul articol al postului. Fără el, postul rămâne nedecis până spui ce primește sau că nu necesită echipament.'
+            : ' nu va mai apărea în lista internă de dotare la următoarea generare.'}
+        </ConfirmDialog>
+      )}
     </SectionCard>
   );
 }

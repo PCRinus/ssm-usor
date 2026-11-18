@@ -43,13 +43,16 @@ export function CancelDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const cancel = useCancelSubscription({ request: apiRequest });
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog open={open} onOpenChange={(next) => !next && !cancel.isPending && onClose()}>
       <DialogContent data-testid="cancel-dialog" className="sm:max-w-[560px]">
         {open && (
           <CancelForm
             subscription={subscription}
             scheduledChange={scheduledChange}
+            cancel={cancel}
             onClose={onClose}
           />
         )}
@@ -61,14 +64,15 @@ export function CancelDialog({
 function CancelForm({
   subscription,
   scheduledChange,
+  cancel,
   onClose,
 }: {
   subscription: BillingSubscription;
   scheduledChange: BillingOwner['scheduledChange'];
+  cancel: ReturnType<typeof useCancelSubscription>;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const cancel = useCancelSubscription({ request: apiRequest });
+  const { queryClient } = useRouteContext({ from: '__root__' });
   const [reason, setReason] = useState<CancellationReason | ''>('');
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);

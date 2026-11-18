@@ -680,6 +680,32 @@ describe("a record's signatures", () => {
     ]);
   });
 
+  it('stays open while a slot is marked on paper, and words a refusal', async () => {
+    let refuse: (response: Response) => void = () => undefined;
+    mockApi({
+      [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
+      [`GET ${signaturesPath}`]: () =>
+        Response.json({ recordId, slots: [pendingTrainee, slot('verifier', 'unassigned')] }),
+      [`POST ${signaturesPath}/paper`]: () =>
+        new Promise<Response>((resolve) => {
+          refuse = resolve;
+        }),
+    });
+    const user = userEvent.setup();
+    mount(`${employeePage}/instruire/ssm`);
+    await openRecordRow();
+    await user.click(await screen.findByTestId('record-signatures-paper'));
+    const dialog = await screen.findByTestId('paper-signature-dialog');
+    await user.click(within(dialog).getByTestId('paper-signature-submit'));
+    await waitFor(() => expect(requests('POST', `${signaturesPath}/paper`)).toHaveLength(1));
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('paper-signature-dialog')).toBe(dialog);
+    refuse(conflict('client_archived'));
+    expect((await within(dialog).findByTestId('paper-signature-error')).textContent).toBe(
+      'Clientul este arhivat; semnăturile lui nu se mai schimbă.'
+    );
+  });
+
   it('marks a slot signed on paper with the name the record prints', async () => {
     let marked = false;
     mockApi({
@@ -743,11 +769,15 @@ describe("a record's signatures", () => {
     expect(await menuDisabled('training-record-edit')).toBe(false);
   });
 
-  it('asks for a reason before voiding, and words a refusal', async () => {
+  it('asks for a reason before voiding, stays open while voiding, and words a refusal', async () => {
+    let refuse: (response: Response) => void = () => undefined;
     mockApi({
       [`GET ${employeePath}/training-records`]: () => Response.json({ items: [record()] }),
       [`GET ${signaturesPath}`]: () => Response.json({ recordId, slots: [pendingTrainee] }),
-      [`POST ${signaturesPath}/void`]: () => conflict('client_archived'),
+      [`POST ${signaturesPath}/void`]: () =>
+        new Promise<Response>((resolve) => {
+          refuse = resolve;
+        }),
     });
     const user = userEvent.setup();
     mount(`${employeePage}/instruire/ssm`);
@@ -760,6 +790,10 @@ describe("a record's signatures", () => {
 
     await user.type(within(dialog).getByTestId('void-signatures-reason'), 'Durata greșită');
     await user.click(within(dialog).getByTestId('void-signatures-confirm'));
+    await waitFor(() => expect(requests('POST', `${signaturesPath}/void`)).toHaveLength(1));
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('void-signatures-dialog')).toBe(dialog);
+    refuse(conflict('client_archived'));
     expect((await within(dialog).findByTestId('void-signatures-error')).textContent).toBe(
       'Clientul este arhivat; semnăturile lui nu se mai schimbă.'
     );

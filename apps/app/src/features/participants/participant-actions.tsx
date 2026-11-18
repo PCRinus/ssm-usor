@@ -1,13 +1,5 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
@@ -19,6 +11,7 @@ import {
   useRevokeClientParticipant,
   useRevokeParticipantInvitation,
 } from '@/api/generated/api';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
 import { wordingRefusalHere } from '@/features/impersonation/refusal';
@@ -137,7 +130,7 @@ export function InvitationStatus({
           <ConfirmDialog
             open={confirming}
             busy={revoke.isPending}
-            testId="participant-invitation-revoke-dialog"
+            testId="participant-invitation-revoke"
             title="Revoci invitația?"
             confirmLabel="Revocă invitația"
             pendingLabel="Se revocă…"
@@ -222,7 +215,7 @@ export function ParticipantStatus({
           <ConfirmDialog
             open={confirming}
             busy={revoke.isPending}
-            testId="participant-revoke-dialog"
+            testId="participant-revoke"
             title="Revoci accesul la portal?"
             confirmLabel="Revocă accesul"
             pendingLabel="Se revocă…"
@@ -276,51 +269,5 @@ function StatusRow({
       </div>
       <div className="flex flex-wrap gap-2">{actions}</div>
     </div>
-  );
-}
-
-export function ConfirmDialog({
-  open,
-  busy,
-  testId,
-  title,
-  confirmLabel,
-  pendingLabel,
-  onConfirm,
-  onClose,
-  children,
-}: {
-  open: boolean;
-  busy: boolean;
-  testId: string;
-  title: string;
-  confirmLabel: string;
-  pendingLabel: string;
-  onConfirm: () => void;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={(next) => !busy && !next && onClose()}>
-      <DialogContent data-testid={testId} className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{children}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="mt-2">
-          <Button variant="ghost" disabled={busy} onClick={onClose}>
-            Renunță
-          </Button>
-          <Button
-            variant="destructive"
-            data-testid={`${testId}-confirm`}
-            disabled={busy}
-            onClick={onConfirm}
-          >
-            {busy ? pendingLabel : confirmLabel}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

@@ -5,14 +5,6 @@ import {
   type ResponsiblePersonRole,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
@@ -29,6 +21,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -311,41 +304,25 @@ export function ResponsiblePersonsCard({
           setPointedRole(null);
         }}
       />
-      <Dialog
-        open={archiving !== null}
-        onOpenChange={(open) => !open && !archive.isPending && setArchiving(null)}
-      >
-        {archiving && (
-          <DialogContent data-testid="responsible-archive-dialog" className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Scoți persoana din listă?</DialogTitle>
-              <DialogDescription>
-                <span className="font-medium text-foreground" {...replayMask}>
-                  {archiving.fullName}
-                </span>{' '}
-                nu va mai fi numită în documentele generate de acum înainte. Documentele deja emise
-                rămân neschimbate, iar lucrătorul rămâne în lista de lucrători.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-2">
-              <Button
-                variant="ghost"
-                disabled={archive.isPending}
-                onClick={() => setArchiving(null)}
-              >
-                Renunță
-              </Button>
-              <Button
-                data-testid="responsible-archive-confirm"
-                disabled={archive.isPending}
-                onClick={() => void archivePerson(archiving)}
-              >
-                {archive.isPending ? 'Se scoate…' : 'Scoate din listă'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        )}
-      </Dialog>
+      {archiving && (
+        <ConfirmDialog
+          open
+          busy={archive.isPending}
+          destructive={false}
+          testId="responsible-archive"
+          title="Scoți persoana din listă?"
+          confirmLabel="Scoate din listă"
+          pendingLabel="Se scoate…"
+          onConfirm={() => void archivePerson(archiving)}
+          onClose={() => setArchiving(null)}
+        >
+          <span className="font-medium text-foreground" {...replayMask}>
+            {archiving.fullName}
+          </span>{' '}
+          nu va mai fi numită în documentele generate de acum înainte. Documentele deja emise rămân
+          neschimbate, iar lucrătorul rămâne în lista de lucrători.
+        </ConfirmDialog>
+      )}
     </SectionCard>
   );
 }

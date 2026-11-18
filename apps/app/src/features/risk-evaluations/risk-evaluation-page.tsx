@@ -1,12 +1,4 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import {
   type ErrorComponentProps,
@@ -31,6 +23,7 @@ import { ApiHttpError } from '@/api/http';
 import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
@@ -406,6 +399,11 @@ function RemoveEvaluationDialog({
   const [error, setError] = useState<string | null>(null);
   const count = evaluation.factors.length;
 
+  function close() {
+    setError(null);
+    onClose();
+  }
+
   async function removeEvaluation() {
     setError(null);
     try {
@@ -428,39 +426,24 @@ function RemoveEvaluationDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && !remove.isPending && onClose()}>
-      <DialogContent data-testid="risk-evaluation-remove-dialog" className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Ștergi fișa de evaluare a riscurilor?</DialogTitle>
-          <DialogDescription>
-            {count === 0
-              ? 'Fișa nu are factori de risc.'
-              : `${factorCountLabel(count)} și măsurile ${count === 1 ? 'lui' : 'lor'} se șterg odată cu ea.`}{' '}
-            {evaluation.kind === 'other'
-              ? 'Nu va mai apărea în evaluarea riscurilor și în planul de prevenire.'
-              : 'Documentația nu se mai poate genera până nu o refaci.'}
-          </DialogDescription>
-        </DialogHeader>
-        {error && (
-          <Notice variant="destructive" data-testid="risk-evaluation-remove-error">
-            {error}
-          </Notice>
-        )}
-        <DialogFooter className="mt-2">
-          <Button variant="ghost" disabled={remove.isPending} onClick={onClose}>
-            Renunță
-          </Button>
-          <Button
-            variant="destructive"
-            data-testid="risk-evaluation-remove-confirm"
-            disabled={remove.isPending}
-            onClick={() => void removeEvaluation()}
-          >
-            {remove.isPending ? 'Se șterge…' : 'Șterge fișa'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      open={open}
+      busy={remove.isPending}
+      error={error}
+      testId="risk-evaluation-remove"
+      title="Ștergi fișa de evaluare a riscurilor?"
+      confirmLabel="Șterge fișa"
+      pendingLabel="Se șterge…"
+      onConfirm={removeEvaluation}
+      onClose={close}
+    >
+      {count === 0
+        ? 'Fișa nu are factori de risc.'
+        : `${factorCountLabel(count)} și măsurile ${count === 1 ? 'lui' : 'lor'} se șterg odată cu ea.`}{' '}
+      {evaluation.kind === 'other'
+        ? 'Nu va mai apărea în evaluarea riscurilor și în planul de prevenire.'
+        : 'Documentația nu se mai poate genera până nu o refaci.'}
+    </ConfirmDialog>
   );
 }
 

@@ -24,7 +24,7 @@ import { roDate } from './subscription-copy';
 
 vi.mock('./leave', () => ({ leaveFor: vi.fn() }));
 
-type Route = (init: RequestInit | undefined) => Response;
+type Route = (init: RequestInit | undefined) => Response | Promise<Response>;
 type Owner = NonNullable<BillingOverview['owner']>;
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -198,6 +198,32 @@ describe('the Abonament tab', () => {
     });
     expect(
       await screen.findByText('Ai renunțat la plan. Perioada de probă continuă.')
+    ).toBeTruthy();
+  });
+
+  it('keeps the cancel dialog open while the cancellation runs, and shows its refusal', async () => {
+    let refuse: (response: Response) => void = () => undefined;
+    mockApi({
+      overview: overviewWith({ subscription: trialChosenSubscription(), owner: ownerPart() }),
+      routes: {
+        'POST /billing/subscription/cancel': () =>
+          new Promise<Response>((resolve) => {
+            refuse = resolve;
+          }),
+      },
+    });
+    mount();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('subscription-cancel'));
+    const dialog = await screen.findByTestId('cancel-dialog');
+    await user.click(within(dialog).getByTestId('cancel-confirm'));
+    await waitFor(() => expect(requests('/billing/subscription/cancel', 'POST')).toHaveLength(1));
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('cancel-dialog')).toBe(dialog);
+    refuse(Response.json({ error: 'forbidden', message: 'Owner only' }, { status: 403 }));
+    expect(
+      await within(dialog).findByText('Doar adminul organizației schimbă abonamentul.')
     ).toBeTruthy();
   });
 

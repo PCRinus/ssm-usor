@@ -40,14 +40,20 @@ export function DeleteTrainingDialog({
   training: TrainingToDelete | null;
   onClose: () => void;
 }) {
+  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const remove = useDeleteTraining({ request: apiRequest });
   return (
-    <Dialog open={training !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={training !== null}
+      onOpenChange={(open) => !open && !remove.isPending && onClose()}
+    >
       {training && (
         <DeleteTrainingContent
           key={training.id}
           clientId={clientId}
           userId={userId}
           training={training}
+          remove={remove}
           onClose={onClose}
         />
       )}
@@ -59,15 +65,16 @@ function DeleteTrainingContent({
   clientId,
   userId,
   training,
+  remove,
   onClose,
 }: {
   clientId: string;
   userId: string;
   training: TrainingToDelete;
+  remove: ReturnType<typeof useDeleteTraining>;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteTraining({ request: apiRequest });
   const [error, setError] = useState<string | null>(null);
   const detail = useGetTraining(clientId, training.id, {
     request: apiRequest,
