@@ -54,6 +54,13 @@ describe('libraryTitle', () => {
       'Instrucțiuni proprii în domeniul securității în muncă'
     );
   });
+
+  it('keeps a title within the database’s 200 characters', () => {
+    const long =
+      'Utilizarea mașinii de tocat carne și a feliatorului din laboratorul de cofetărie '.repeat(4);
+
+    expect(libraryTitle(long)).toBe(long.slice(0, 200).trim());
+  });
 });
 
 const named = packFile('SSM/Client.docx', [

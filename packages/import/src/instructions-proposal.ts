@@ -24,6 +24,7 @@ import {
   namesClient,
   type PackInstruction,
   similarityPairs,
+  titleMax,
 } from './instructions-library';
 import type { InstructionsAnswer } from './instructions-request';
 
@@ -108,7 +109,9 @@ const genitiveLead = /^activitatilor desfasurate (?:in|la) /u;
 
 // "Instrucțiuni proprii în domeniul securității și sănătății în muncă privind utilizarea
 // autoturismelor" names the library's module "Utilizarea autoturismelor".
-export function libraryTitle(written: string) {
+export const libraryTitle = (written: string) => shortTitle(written).slice(0, titleMax).trim();
+
+function shortTitle(written: string) {
   const words = written.trim().split(/\s+/u);
   const folded = words.map((word) => foldText(word));
   const subjectEnd = folded.slice(0, 14).findIndex((word) => leadEnds.has(word));
