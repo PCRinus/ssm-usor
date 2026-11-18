@@ -2471,7 +2471,9 @@ describe('knowledge tests', () => {
       .map(documentTextOf)
       .filter((paragraph) => paragraph.startsWith('TEST '));
     expect(titles).toEqual(
-      Array(2).fill('TEST ANUAL DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SITUAȚIILE DE URGENȚĂ')
+      Array(2).fill(
+        'TEST ANUAL DE VERIFICARE A CUNOȘTINȚELOR PRIVIND SITUAȚIILE\u00a0DE\u00a0URGENȚĂ'
+      )
     );
     for (const part of ['word/header1.xml', 'word/header2.xml', 'word/header3.xml']) {
       const header = documentTextOf(zip.file(part)!.asText());
