@@ -113,7 +113,8 @@ type Upstream =
   | 'testSheets'
   | 'requests'
   | 'testSheetSignatures'
-  | 'paperMark';
+  | 'paperMark'
+  | 'legalActs';
 
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   const defaults: Record<Upstream, Handler> = {
@@ -142,6 +143,20 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     requests: () => Response.json([]),
     testSheetSignatures: () => Response.json([]),
     paperMark: () => Response.json({}),
+    legalActs: () =>
+      Response.json([
+        {
+          id: 'lege-319-2006',
+          article_anchors: [
+            {
+              annex: null,
+              article: '1',
+              path: '/Public/DetaliiDocument/73772',
+              anchor: 'id_artA17',
+            },
+          ],
+        },
+      ]),
   };
   const paths: Record<string, Upstream> = {
     '/rest/v1/test_questions': 'questions',
@@ -154,6 +169,7 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
     '/rest/v1/signature_requests': 'requests',
     '/rest/v1/test_sheet_signatures': 'testSheetSignatures',
     '/rest/v1/rpc/mark_test_sheet_paper_signature': 'paperMark',
+    '/rest/v1/legal_acts': 'legalActs',
   };
   mockSignedInUpstream(
     Object.fromEntries(
@@ -215,6 +231,65 @@ describe('GET /organization/tests/questions', () => {
     );
     const hides = new URL(String(calls('/rest/v1/test_question_hides')[0]![0])).searchParams;
     expect(hides.get('organization_id')).toBe(`eq.${organizationId}`);
+  });
+
+  it("links each citation's article on legislatie.just.ro, reading each act's anchors once", async () => {
+    mockUpstream({
+      questions: () =>
+        Response.json([
+          question(1),
+          question(2, { citation: 'Legea 319/2006, art. 99' }),
+          question(3, { citation: 'IPSU, art. 151' }),
+          question(4, { citation: null }),
+        ]),
+    });
+    const response = await request('/organization/tests/questions?domain=ssm');
+    const [hiring] = testBankResponseSchema.parse(await response.json()).tests;
+    const parts = hiring!.questions.map((each) => each.citationParts);
+    expect(parts[0]).toEqual([
+      {
+        text: 'Legea 319/2006',
+        act: 'lege-319-2006',
+        article: null,
+        annex: null,
+        url: 'https://legislatie.just.ro/Public/DetaliiDocument/73772',
+        target: 'act',
+      },
+      { text: ', ', act: null, article: null, annex: null, url: null, target: null },
+      {
+        text: 'art. 1',
+        act: 'lege-319-2006',
+        article: '1',
+        annex: null,
+        url: 'https://legislatie.just.ro/Public/DetaliiDocument/73772#id_artA17',
+        target: 'article',
+      },
+    ]);
+    expect(parts[1]!.at(-1)).toMatchObject({
+      article: '99',
+      url: 'https://legislatie.just.ro/Public/DetaliiDocument/73772',
+      target: 'act',
+    });
+    expect(parts[2]).toEqual([
+      { text: 'IPSU, art. 151', act: null, article: null, annex: null, url: null, target: null },
+    ]);
+    expect(parts[3]).toEqual([]);
+    const acts = calls('/rest/v1/legal_acts');
+    expect(acts).toHaveLength(1);
+    expect(new URL(String(acts[0]![0])).searchParams.get('id')).toBe('in.(lege-319-2006)');
+  });
+
+  it('links to the act until the daily check has read its anchors', async () => {
+    mockUpstream({
+      questions: () => Response.json([question(1)]),
+      legalActs: () => Response.json([{ id: 'lege-319-2006', article_anchors: null }]),
+    });
+    const response = await request('/organization/tests/questions?domain=ssm');
+    const [hiring] = testBankResponseSchema.parse(await response.json()).tests;
+    expect(hiring!.questions[0]!.citationParts.at(-1)).toMatchObject({
+      url: 'https://legislatie.just.ro/Public/DetaliiDocument/73772',
+      target: 'act',
+    });
   });
 
   it('narrows the list to one test', async () => {

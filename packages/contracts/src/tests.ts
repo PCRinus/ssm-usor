@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { citationPartSchema } from './legal-citations';
 import { signatureSlotStateSchema } from './signature-slot-states';
 import { type TrainingDomain, trainingDomainSchema } from './trainings';
 
@@ -77,6 +78,9 @@ export const testQuestionSchema = z.object({
   options: z.array(testQuestionOptionSchema),
   explanation: z.string().nullable(),
   citation: z.string().nullable(),
+  // The citation split into the acts and articles it names, each with its link on
+  // legislatie.just.ro; empty without a citation.
+  citationParts: z.array(citationPartSchema),
   // A built-in question is the app's: read by every organization, edited by none, hidden apart.
   builtIn: z.boolean(),
   // Only a built-in is hidden; an own question is deleted instead.

@@ -1,4 +1,5 @@
 import type {
+  CitationPart,
   TestAttempt,
   TestAttemptSummary,
   TestQuestion,
@@ -32,7 +33,8 @@ export function toTestQuestion(
     | 'created_at'
     | 'updated_at'
   >,
-  hidden: boolean
+  hidden: boolean,
+  citationParts: CitationPart[]
 ): TestQuestion {
   return {
     id: row.id,
@@ -44,6 +46,7 @@ export function toTestQuestion(
     options: row.options as TestQuestion['options'],
     explanation: row.explanation,
     citation: row.citation,
+    citationParts,
     builtIn: row.organization_id === null,
     hidden,
     replacesQuestionId: row.replaces_question_id,

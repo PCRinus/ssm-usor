@@ -4191,6 +4191,12 @@
                         "type": "string",
                         "nullable": true
                       },
+                      "citationParts": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/CitationPart"
+                        }
+                      },
                       "builtIn": {
                         "type": "boolean"
                       },
@@ -4220,6 +4226,7 @@
                       "options",
                       "explanation",
                       "citation",
+                      "citationParts",
                       "builtIn",
                       "hidden",
                       "replacesQuestionId",
@@ -4234,6 +4241,37 @@
           }
         },
         "required": ["sittingSize", "minimumActiveQuestions", "passMarkPercent", "tests"]
+      },
+      "CitationPart": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "act": {
+            "type": "string",
+            "nullable": true
+          },
+          "article": {
+            "type": "string",
+            "nullable": true
+          },
+          "annex": {
+            "type": "string",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri"
+          },
+          "target": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["article", "annex", "act", null]
+          }
+        },
+        "required": ["text", "act", "article", "annex", "url", "target"]
       },
       "TestQuestionResponse": {
         "type": "object",
@@ -4285,6 +4323,12 @@
                 "type": "string",
                 "nullable": true
               },
+              "citationParts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CitationPart"
+                }
+              },
               "builtIn": {
                 "type": "boolean"
               },
@@ -4314,6 +4358,7 @@
               "options",
               "explanation",
               "citation",
+              "citationParts",
               "builtIn",
               "hidden",
               "replacesQuestionId",
