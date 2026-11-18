@@ -209,9 +209,14 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
     await createAdminFileStore(c).writeDocument(path, bytes, { replace: true });
   } catch (error) {
     // Only a first copy: after a failed replacement the row still describes the earlier
-    // file, under a hash the client's next try corrects.
+    // file, under a hash the client's next try corrects. Only this try's row: a second
+    // upload may have replaced it and stored its file meanwhile.
     if (!revision.document_signed_copies) {
-      await admin.from('document_signed_copies').delete().eq('revision_id', revision.id);
+      await admin
+        .from('document_signed_copies')
+        .delete()
+        .eq('revision_id', revision.id)
+        .eq('uploaded_at', uploadedAt);
     }
     throw error;
   }

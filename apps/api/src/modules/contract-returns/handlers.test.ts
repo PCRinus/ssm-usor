@@ -268,8 +268,14 @@ describe('the return link', () => {
   it('takes a first copy back when its file cannot be stored, and keeps an earlier one', async () => {
     mockUpstream({ upload: () => Response.json({ message: 'down' }, { status: 500 }) });
     expect((await upload()).status).toBeGreaterThanOrEqual(500);
+    const [recorded] = calls('/rest/v1/document_signed_copies', 'POST');
+    const { uploaded_at: uploadedAt } = JSON.parse(String(recorded![1]?.body)) as {
+      uploaded_at: string;
+    };
     const [removed] = calls('/rest/v1/document_signed_copies', 'DELETE');
-    expect(new URL(String(removed![0])).searchParams.get('revision_id')).toBe(`eq.${revisionId}`);
+    const removedWhere = new URL(String(removed![0])).searchParams;
+    expect(removedWhere.get('revision_id')).toBe(`eq.${revisionId}`);
+    expect(removedWhere.get('uploaded_at')).toBe(`eq.${uploadedAt}`);
     expect(calls('/rest/v1/service_contract_sends', 'PATCH')).toHaveLength(1);
     expect(sendSignedCopyReceived).not.toHaveBeenCalled();
 
