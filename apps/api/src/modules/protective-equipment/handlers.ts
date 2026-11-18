@@ -5,6 +5,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { pickSuggestions } from '../../lib/suggestions';
 import {
   findJobPosition,
   jobPositionColumns,
@@ -227,8 +228,6 @@ export const decideProtectiveEquipment: RouteHandler<
   return c.json({ jobPosition: toJobPosition(data, counts.get(jobPositionId)) }, 200);
 };
 
-const suggestionLimit = 20;
-
 export const listEquipmentSuggestions: RouteHandler<
   typeof equipmentSuggestionsRoute,
   ApiEnv
@@ -243,16 +242,6 @@ export const listEquipmentSuggestions: RouteHandler<
     .order('updated_at', { ascending: false })
     .limit(1000);
   if (error) throw fromDatabaseError(error, 'list equipment suggestions');
-  const needle = query.toLocaleLowerCase('ro');
-  const seen = new Set<string>();
-  const items: string[] = [];
-  for (const row of data as unknown as Record<string, string>[]) {
-    const value = row[field]!;
-    const key = value.toLocaleLowerCase('ro');
-    if (seen.has(key) || !key.includes(needle)) continue;
-    seen.add(key);
-    items.push(value);
-    if (items.length === suggestionLimit) break;
-  }
-  return c.json({ items }, 200);
+  const values = (data as unknown as Record<string, string>[]).map((row) => row[field]!);
+  return c.json({ items: pickSuggestions(values, query) }, 200);
 };

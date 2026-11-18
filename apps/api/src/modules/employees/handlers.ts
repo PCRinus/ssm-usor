@@ -197,8 +197,25 @@ async function onlyActiveWorkplace(db: DataClient, clientId: string) {
   return data.length === 1 ? data[0]!.id : null;
 }
 
-function sheetFields(body: CreateEmployeeRequest) {
+function employeeFields(body: CreateEmployeeRequest) {
   return {
+    last_name: body.lastName,
+    first_name: body.firstName,
+    // Validation guarantees a well-formed CNP.
+    cnp: body.cnp ? normalizeCnp(body.cnp) : null,
+    employee_number: body.employeeNumber ?? null,
+    email: body.email ?? null,
+    phone: body.phone ?? null,
+    job_title: body.jobTitle,
+    contract_number: body.contractNumber ?? null,
+    hired_at: body.hiredAt,
+    birth_date: body.birthDate ?? null,
+    birth_place: body.birthPlace ?? null,
+    home_address: body.homeAddress ?? null,
+    residence_address: body.residenceAddress ?? null,
+    blood_group: body.bloodGroup ?? null,
+    rh_factor: body.rhFactor ?? null,
+    notes: body.notes ?? null,
     qualification: body.qualification ?? null,
     education: body.education ?? null,
     authorizations: body.authorizations ?? null,
@@ -619,25 +636,8 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
     .insert({
       organization_id: membership.organizationId,
       client_id: clientId,
-      last_name: body.lastName,
-      first_name: body.firstName,
-      // Validation guarantees a well-formed CNP.
-      cnp: body.cnp ? normalizeCnp(body.cnp) : null,
-      employee_number: body.employeeNumber ?? null,
-      email: body.email ?? null,
-      phone: body.phone ?? null,
-      job_title: body.jobTitle,
-      contract_number: body.contractNumber ?? null,
-      hired_at: body.hiredAt,
-      birth_date: body.birthDate ?? null,
-      birth_place: body.birthPlace ?? null,
-      home_address: body.homeAddress ?? null,
-      residence_address: body.residenceAddress ?? null,
-      blood_group: body.bloodGroup ?? null,
-      rh_factor: body.rhFactor ?? null,
-      notes: body.notes ?? null,
+      ...employeeFields(body),
       workplace_id: workplaceId,
-      ...sheetFields(body),
       created_by: c.get('user').id,
       // Left out, the database assigns the job position named like the contract title,
       // creating it if the client lacks it (ADR 006). The generated types cannot know that.
@@ -759,25 +759,9 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
   const { data, error } = await db
     .from('employees')
     .update({
-      last_name: body.lastName,
-      first_name: body.firstName,
-      cnp: body.cnp ? normalizeCnp(body.cnp) : null,
-      employee_number: body.employeeNumber ?? null,
-      email: body.email ?? null,
-      phone: body.phone ?? null,
-      job_title: body.jobTitle,
-      contract_number: body.contractNumber ?? null,
+      ...employeeFields(body),
       ...(body.jobPositionId ? { job_position_id: body.jobPositionId } : {}),
-      hired_at: body.hiredAt,
-      birth_date: body.birthDate ?? null,
-      birth_place: body.birthPlace ?? null,
-      home_address: body.homeAddress ?? null,
-      residence_address: body.residenceAddress ?? null,
-      blood_group: body.bloodGroup ?? null,
-      rh_factor: body.rhFactor ?? null,
-      notes: body.notes ?? null,
       ...(body.workplaceId === undefined ? {} : { workplace_id: body.workplaceId }),
-      ...sheetFields(body),
     })
     .eq('id', employeeId)
     .eq('client_id', clientId)

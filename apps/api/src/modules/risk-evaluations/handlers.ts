@@ -19,6 +19,7 @@ import {
 } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { pickSuggestions } from '../../lib/suggestions';
 import { findJobPosition } from '../job-positions/handlers';
 import {
   bySortOrder,
@@ -469,8 +470,6 @@ const suggestionColumns = {
   observations: 'observations',
 } as const satisfies Record<RiskFactorSuggestionField, keyof Tables['risk_factors']['Row']>;
 
-const suggestionLimit = 20;
-
 async function typedValues(
   db: DataClient,
   table: 'risk_factors' | 'evaluation_profile_factors',
@@ -505,16 +504,6 @@ export const listRiskFactorSuggestions: RouteHandler<
   )
     .flat()
     .sort((a, b) => b.updated_at!.localeCompare(a.updated_at!));
-  const needle = query.toLocaleLowerCase('ro');
-  const seen = new Set<string>();
-  const items: string[] = [];
-  for (const row of data) {
-    const value = row[column]!;
-    const key = value.toLocaleLowerCase('ro');
-    if (seen.has(key) || !key.includes(needle)) continue;
-    seen.add(key);
-    items.push(value);
-    if (items.length === suggestionLimit) break;
-  }
-  return c.json({ items }, 200);
+  const values = data.map((row) => row[column]!);
+  return c.json({ items: pickSuggestions(values, query) }, 200);
 };
