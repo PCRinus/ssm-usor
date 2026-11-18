@@ -272,7 +272,7 @@ export function DocumentEditorView({
         </span>
       )}
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         data-testid="editor-download"
         className="max-sm:ml-auto"
@@ -282,7 +282,7 @@ export function DocumentEditorView({
         <span className="max-sm:sr-only">Descarcă</span>
       </Button>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         data-testid="editor-print"
         disabled={printing}
@@ -347,7 +347,7 @@ export function DocumentEditorView({
             Acest document are o așezare în pagină pe care editorul din aplicație nu o poate afișa.
             Descarcă-l, modifică-l în Word și păstrează-l; conținutul lui nu este afectat.
           </p>
-          <Button className="w-fit" variant="outline" onClick={() => void download()}>
+          <Button className="w-fit" onClick={() => void download()}>
             <Download aria-hidden="true" />
             Descarcă documentul
           </Button>

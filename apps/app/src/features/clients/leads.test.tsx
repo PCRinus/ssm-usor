@@ -530,7 +530,7 @@ describe('leads', () => {
     );
     expect(within(company).getByTestId('company-cui').textContent).toBe('41760933');
     expect(within(company).getByTestId('company-edit').getAttribute('data-variant')).toBe(
-      'outline'
+      'secondary'
     );
     expect(screen.queryByTestId('company-people-panel')).toBeNull();
     expect(within(screen.getByTestId('contact-card')).getByRole('heading').textContent).toBe(

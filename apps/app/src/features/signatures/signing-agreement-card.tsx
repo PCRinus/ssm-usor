@@ -202,7 +202,7 @@ export function SigningAgreementCard({
           <div className="flex flex-wrap justify-end gap-2">
             {unsigned && !readOnly && (
               <Button
-                variant="tonal"
+                variant="secondary"
                 size="sm"
                 data-testid="signing-agreement-paper"
                 onClick={() => setMarking(true)}
@@ -213,7 +213,7 @@ export function SigningAgreementCard({
             )}
             {state !== 'in_contract' && stored && (
               <FileLinkButton
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="signing-agreement-download"
                 link={storedLink}
@@ -224,7 +224,7 @@ export function SigningAgreementCard({
             )}
             {state !== 'in_contract' && !stored && (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="signing-agreement-download"
                 disabled={downloading}

@@ -13,6 +13,7 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { cn } from '@ssm-usor/ui/lib/utils';
+import { Pencil } from 'lucide-react';
 import {
   type ComponentProps,
   type FormEvent,
@@ -26,7 +27,6 @@ import {
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Masked } from '@/components/replay';
-import { EditAction } from '@/components/section-card';
 import { CommuteMeansCombobox } from '@/features/employees/commute-means-combobox';
 
 import { PendingNote, StatusDot, type Tone } from '../library/decision-row';
@@ -298,7 +298,12 @@ function GroupHeading({
   return (
     <div className="flex min-h-11 items-center justify-between gap-2">
       <h3 className="text-[15px] font-semibold">{title}</h3>
-      {onEdit && <EditAction aria-label={label} title={label} onClick={onEdit} />}
+      {onEdit && (
+        <Button variant="outline" size="sm" aria-label={label} title={label} onClick={onEdit}>
+          <Pencil aria-hidden="true" />
+          Modifică
+        </Button>
+      )}
     </div>
   );
 }

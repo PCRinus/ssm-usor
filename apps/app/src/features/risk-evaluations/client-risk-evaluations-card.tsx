@@ -71,7 +71,7 @@ export function ClientRiskEvaluationsCard({
       action={
         !readOnly && (
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             data-testid="client-risk-evaluation-add"
             onClick={() => setAdding(true)}
@@ -168,7 +168,7 @@ function SensitiveGroupsRow({
         actions && (
           <>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               data-testid="sensitive-groups-start"
               disabled={busy}
@@ -188,7 +188,7 @@ function SensitiveGroupsRow({
               </Button>
             ) : (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="sensitive-groups-none"
                 disabled={busy}

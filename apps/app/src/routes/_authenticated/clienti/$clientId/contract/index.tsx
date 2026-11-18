@@ -37,7 +37,7 @@ function ContractPage() {
         readOnly={client.archivedAt !== null}
         focus={focus}
         editor={(children, testId) => (
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="secondary" size="sm">
             <Link
               to="/clienti/$clientId/contract/editare"
               params={{ clientId: client.id }}

@@ -140,7 +140,7 @@ export function ClientLayout() {
             !client.archivedAt && (
               <>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   data-testid="client-import"
                   onClick={() => setImporting(true)}
@@ -150,7 +150,7 @@ export function ClientLayout() {
                 </Button>
                 {isOwner && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     data-testid="client-archive"
                     onClick={() => setArchiveChange({ client, action: 'archive' })}

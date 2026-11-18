@@ -74,7 +74,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
           </TitleWithBack>
           <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               data-testid="risk-profile-rename"
               onClick={() => setNaming(renaming(profile))}
@@ -84,7 +84,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
             </Button>
             {archived ? (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="risk-profile-restore"
                 onClick={() => setArchiveChange({ profile, action: 'restore' })}
@@ -94,7 +94,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
               </Button>
             ) : (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 data-testid="risk-profile-archive"
                 onClick={() => setArchiveChange({ profile, action: 'archive' })}

@@ -143,11 +143,11 @@ export function EquipmentCard({
   const decision = equipment.data?.needsProtectiveEquipment ?? position.needsProtectiveEquipment;
   const items = equipment.data?.items ?? [];
 
-  const addAction = (label: string) =>
+  const addAction = (label: string, variant: 'default' | 'secondary') =>
     !readOnly &&
     decision !== false && (
       <Button
-        variant="tonal"
+        variant={variant}
         size="sm"
         data-testid="equipment-add"
         onClick={() => setEditing('new')}
@@ -159,7 +159,7 @@ export function EquipmentCard({
 
   const copyAction = !readOnly && (
     <Button
-      variant="outline"
+      variant="secondary"
       size="sm"
       data-testid="equipment-copy"
       onClick={() => setCopying(true)}
@@ -186,7 +186,7 @@ export function EquipmentCard({
           )}
         </span>
       }
-      action={items.length > 0 && addAction('Adaugă')}
+      action={items.length > 0 && addAction('Adaugă', 'secondary')}
     >
       {error && (
         <Notice variant="destructive" data-testid="equipment-error">
@@ -238,9 +238,9 @@ export function EquipmentCard({
           actions={
             !readOnly && (
               <>
-                {addAction('Adaugă un articol')}
+                {addAction('Adaugă un articol', 'default')}
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   data-testid="equipment-decide-none"
                   disabled={decide.isPending}

@@ -284,7 +284,7 @@ function RiskEvaluationView({
             <>
               {canSave && (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   data-testid="risk-evaluation-save-as-profile"
                   onClick={saveToLibrary}
@@ -354,7 +354,7 @@ function FactorSources({ evaluation, userId }: { evaluation: RiskEvaluation; use
   return (
     <>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         data-testid="risk-factors-apply-profile"
         onClick={() => setSource('profile')}
@@ -363,7 +363,7 @@ function FactorSources({ evaluation, userId }: { evaluation: RiskEvaluation; use
         Aplică din bibliotecă
       </Button>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         data-testid="risk-factors-copy"
         onClick={() => setSource('evaluation')}

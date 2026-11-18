@@ -175,16 +175,22 @@ export function PositionInstructionsCard({
 
   const items = instructions.data?.items ?? [];
 
-  const pickAction = !readOnly && (
-    <Button variant="tonal" size="sm" data-testid={testId('pick')} onClick={() => setPicking(true)}>
-      <ListChecks aria-hidden="true" />
-      Alege instrucțiunile
-    </Button>
-  );
+  const pickAction = (variant: 'default' | 'secondary') =>
+    !readOnly && (
+      <Button
+        variant={variant}
+        size="sm"
+        data-testid={testId('pick')}
+        onClick={() => setPicking(true)}
+      >
+        <ListChecks aria-hidden="true" />
+        Alege instrucțiunile
+      </Button>
+    );
 
   const copyAction = !readOnly && (
     <Button
-      variant="outline"
+      variant="secondary"
       size="sm"
       data-testid={testId('copy')}
       onClick={() => setCopying(true)}
@@ -213,7 +219,7 @@ export function PositionInstructionsCard({
           )}
         </span>
       }
-      action={items.length > 0 && pickAction}
+      action={items.length > 0 && pickAction('secondary')}
     >
       {error && (
         <Notice variant="destructive" data-testid={testId('error')}>
@@ -244,7 +250,7 @@ export function PositionInstructionsCard({
           actions={
             !readOnly && (
               <>
-                {pickAction}
+                {pickAction('default')}
                 {copyAction}
               </>
             )

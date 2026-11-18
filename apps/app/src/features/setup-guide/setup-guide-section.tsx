@@ -64,7 +64,7 @@ export function SetupGuideSection() {
           </div>
           <Button
             data-testid="settings-setup-guide-show"
-            variant="outline"
+            variant="secondary"
             size="sm"
             disabled={Boolean(hiddenBecause)}
             aria-describedby={hiddenBecause ? reasonId : undefined}

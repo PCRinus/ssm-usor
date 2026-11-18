@@ -116,7 +116,7 @@ export function InvitationStatus({
         <>
           {!readOnly && (
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               data-testid="participant-invitation-resend"
               disabled={busy || !resendable}

@@ -117,7 +117,7 @@ export function TrainingSheetDownload({
       {storedSequence !== null ? (
         <FileLinkButton
           data-testid={`training-sheet-${domain}`}
-          variant="outline"
+          variant="secondary"
           link={storedDownload}
         >
           <FileDown aria-hidden="true" />
@@ -126,7 +126,7 @@ export function TrainingSheetDownload({
       ) : (
         <Button
           data-testid={`training-sheet-${domain}`}
-          variant="outline"
+          variant="secondary"
           disabled={disabled}
           onClick={() => void download()}
         >
@@ -142,7 +142,7 @@ export function TrainingSheetDownload({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="outline"
+              variant="secondary"
               data-testid={`training-sheet-${domain}-originals`}
               disabled={busy !== null}
             >
@@ -173,7 +173,7 @@ export function TrainingSheetDownload({
       {storedSequence !== null ? (
         <FileLinkButton
           data-testid={`training-sheet-${domain}-preview`}
-          variant="outline"
+          variant="secondary"
           aria-label={`Previzualizează fișa ${domainLabel}`}
           link={storedPreview}
         >
@@ -183,7 +183,7 @@ export function TrainingSheetDownload({
       ) : (
         <Button
           data-testid={`training-sheet-${domain}-preview`}
-          variant="outline"
+          variant="secondary"
           aria-label={`Previzualizează fișa ${domainLabel}`}
           disabled={disabled}
           onClick={() => void preview()}
