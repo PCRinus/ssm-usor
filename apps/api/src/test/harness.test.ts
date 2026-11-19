@@ -14,6 +14,7 @@ import {
   testOrganizationId,
   testSecretKey,
   testUser,
+  upstreamCalls,
 } from './upstream';
 
 stubFetch();
@@ -133,6 +134,10 @@ describe('mockUpstream', () => {
       { body: 'a=b', secret: false },
     ]);
     expect(callsTo('/rest/v1/clients', 'GET')).toEqual([]);
+    expect(upstreamCalls().map(({ method, url }) => `${method} ${url.pathname}`)).toEqual([
+      'POST /rest/v1/clients',
+      'POST /rest/v1/clients',
+    ]);
   });
 
   it('reads the method and URL of a Request', async () => {

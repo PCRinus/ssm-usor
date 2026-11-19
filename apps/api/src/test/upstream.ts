@@ -139,7 +139,9 @@ export function routeUpstream(...layers: UpstreamRoutes[]) {
 export const mockUpstream = (...layers: UpstreamRoutes[]) =>
   routeUpstream(...layers, signedInUserRoutes, membershipRoutes);
 
+export const upstreamCalls = () => fetchMock.mock.calls.map(([input, init]) => toCall(input, init));
+
 export const callsTo = (pathname: string, method?: string) =>
-  fetchMock.mock.calls
-    .map(([input, init]) => toCall(input, init))
-    .filter((call) => call.url.pathname === pathname && (!method || call.method === method));
+  upstreamCalls().filter(
+    (call) => call.url.pathname === pathname && (!method || call.method === method)
+  );
