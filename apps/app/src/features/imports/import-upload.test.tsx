@@ -1,33 +1,30 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { strToU8, zipSync } from 'fflate';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { MeResponse } from '@/api/generated/api';
 import { sha256Of, uploadImportObject } from '@/features/imports/import-storage';
+import { bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { summaryOf as subscriptionSummaryOf, trialSubscription } from '@/test/billing-fixture';
 import {
-  bodyOf,
   clientId,
-  fetchMock,
   importDetail,
   importFile,
   importId,
-  meResponse,
   meWithCredits,
-  mockApi,
-  requestsTo,
   summaryOf,
 } from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientRecord, meResponse } from '@/test/records';
 
 vi.mock('@/features/imports/import-storage', async (original) => ({
   ...(await original<typeof import('@/features/imports/import-storage')>()),
   uploadImportObject: vi.fn(async () => undefined),
 }));
 
-const client = {
-  id: clientId,
+const client = clientRecord({
   legalName: 'Brutăria Spicul Auriu SRL',
   cui: '31458207',
   vatPayer: true,
@@ -39,59 +36,55 @@ const client = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 0,
   currentEmployeeCount: 0,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
   promotedAt: '2026-09-20T10:00:00+00:00',
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 const started = importDetail({ status: 'preparing', files: [importFile({ state: 'uploaded' })] });
 
 function mockImportApi(
   listed: unknown[] = [],
   start: () => Response = () => Response.json({ import: summaryOf(started) }),
-  me: unknown = meResponse
+  me: MeResponse = meResponse
 ) {
-  mockApi((init, url) => {
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/me') return Response.json(me);
-    if (url.pathname === '/clients' && method === 'GET') {
-      return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
-    }
-    if (url.pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (url.pathname === '/imports' && method === 'GET') return Response.json({ items: listed });
-    if (url.pathname === '/imports' && method === 'POST') {
-      return Response.json(
-        { import: summaryOf(importDetail({ status: 'uploading' })) },
-        { status: 201 }
-      );
-    }
-    if (url.pathname === `/imports/${importId}/files`) {
-      const { files } = JSON.parse(String(init?.body)) as { files: { uploadPath: string }[] };
-      return Response.json(
-        {
-          files: files.map((file, index) => ({
-            id: `f0000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
-            uploadPath: file.uploadPath,
-            bucket: 'imports',
-            storagePath: `org/${importId}/${index + 1}`,
-          })),
-        },
-        { status: 201 }
-      );
-    }
-    if (url.pathname === `/imports/${importId}/start`) return start();
-    if (url.pathname === `/imports/${importId}/abandon`) {
-      return Response.json({ import: summaryOf(importDetail({ status: 'abandoned' })) });
-    }
-    if (url.pathname === `/imports/${importId}`) return Response.json({ import: started });
-    if (url.pathname.startsWith(`/clients/${clientId}/`)) return Response.json({}, { status: 404 });
-    return undefined;
-  });
+  mockApi(
+    (init, url) => {
+      const method = init?.method ?? 'GET';
+      if (url.pathname === '/clients' && method === 'GET') {
+        return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+      }
+      if (url.pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (url.pathname === '/imports' && method === 'GET') return Response.json({ items: listed });
+      if (url.pathname === '/imports' && method === 'POST') {
+        return Response.json(
+          { import: summaryOf(importDetail({ status: 'uploading' })) },
+          { status: 201 }
+        );
+      }
+      if (url.pathname === `/imports/${importId}/files`) {
+        const { files } = JSON.parse(String(init?.body)) as { files: { uploadPath: string }[] };
+        return Response.json(
+          {
+            files: files.map((file, index) => ({
+              id: `f0000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+              uploadPath: file.uploadPath,
+              bucket: 'imports',
+              storagePath: `org/${importId}/${index + 1}`,
+            })),
+          },
+          { status: 201 }
+        );
+      }
+      if (url.pathname === `/imports/${importId}/start`) return start();
+      if (url.pathname === `/imports/${importId}/abandon`) {
+        return Response.json({ import: summaryOf(importDetail({ status: 'abandoned' })) });
+      }
+      if (url.pathname === `/imports/${importId}`) return Response.json({ import: started });
+      if (url.pathname.startsWith(`/clients/${clientId}/`))
+        return Response.json({}, { status: 404 });
+      return undefined;
+    },
+    { me }
+  );
 }
 
 const refusedStart = (reason: string) => () =>
@@ -121,16 +114,11 @@ const zip = (entries: Record<string, string>) =>
 const choose = (files: File[]) =>
   fireEvent.change(screen.getByTestId('import-files-input'), { target: { files } });
 
+installFetchMock();
+
 beforeEach(() => {
-  fetchMock.mockReset();
   vi.mocked(uploadImportObject).mockReset();
   vi.mocked(uploadImportObject).mockResolvedValue(undefined);
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
 });
 
 describe('starting an import from the client list', () => {

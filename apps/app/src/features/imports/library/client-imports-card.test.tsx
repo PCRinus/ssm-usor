@@ -1,12 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { clientId, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord } from '@/test/records';
 
-const client = {
-  id: clientId,
+const client = clientRecord({
   legalName: 'Royal Hotel SRL',
   cui: '18452117',
   vatPayer: true,
@@ -18,15 +18,9 @@ const client = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 42,
   currentEmployeeCount: 42,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: null,
   createdAt: '2026-09-02T10:00:00+00:00',
   updatedAt: '2026-11-05T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 function confirmedImport(
   id: string,
@@ -127,17 +121,15 @@ const confirmedLists = () =>
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date('2026-11-05T12:00:00.000Z'));
+afterEach(() => {
+  vi.useRealTimers();
 });
 
-afterEach(() => {
-  disposeRuntimes();
-  vi.useRealTimers();
-  vi.unstubAllGlobals();
+installFetchMock();
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-05T12:00:00.000Z'));
 });
 
 describe("the client's imports from documents", () => {

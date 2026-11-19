@@ -1,8 +1,9 @@
 import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
   bakerId,
@@ -13,12 +14,10 @@ import {
   sheetRow,
   workplaces,
 } from '@/test/employee-import-fixture';
-import { bodyOf, fetchMock, mockApi, requestsTo } from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
-import { noTests, untrained } from '@/test/training-fixture';
+import { mountApp } from '@/test/mount';
+import { clientRecord, employeeListItem } from '@/test/records';
 
-const client = {
-  id: clientId,
+const client = clientRecord({
   legalName: 'Brutăria Spicul Auriu SRL',
   cui: '31458207',
   vatPayer: true,
@@ -30,15 +29,7 @@ const client = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 0,
   currentEmployeeCount: 0,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 const foundSheets = {
   items: [
@@ -181,25 +172,17 @@ function mockEmployeeImport({
   });
 }
 
-const baker = {
+const baker = employeeListItem({
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   lastName: 'Popa',
   firstName: 'Maria',
-  employeeNumber: null,
-  email: null,
-  phone: null,
   jobTitle: 'Brutar',
   jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Brutar' },
   hiredAt: '2024-03-01',
-  status: 'active',
-  terminatedAt: null,
-  training: untrained,
-  tests: noTests,
   workplace: null,
   createdAt: '2026-10-30T10:00:00+00:00',
   updatedAt: '2026-10-30T10:00:00+00:00',
-};
+});
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
 
@@ -262,15 +245,7 @@ const saved = (index: number) =>
     };
   };
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe("the client's Lucrători tab", () => {
   it('offers the sheets found in the documentation while some are untaken, and new photos', async () => {

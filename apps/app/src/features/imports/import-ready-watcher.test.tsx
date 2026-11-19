@@ -3,16 +3,10 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import {
-  clientId,
-  fetchMock,
-  importDetail,
-  importId,
-  mockApi,
-  summaryOf,
-} from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientId, importDetail, importId, summaryOf } from '@/test/import-fixture';
+import { mountApp } from '@/test/mount';
 
 import { importListPollMs } from './import-format';
 
@@ -60,16 +54,14 @@ async function finishReading(
 
 beforeEach(() => {
   listed = [employeeImport({ status: 'reading' })];
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
 });
 
 afterEach(() => {
   toast.dismiss();
-  disposeRuntimes();
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
+
+installFetchMock();
 
 describe('the import ready notice', () => {
   it("announces the member's employee import once read, and opens its review", async () => {

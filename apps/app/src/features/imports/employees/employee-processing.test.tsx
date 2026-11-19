@@ -1,15 +1,15 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ImportDetail } from '@/api/generated/api';
+import { installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, employeeDetail, importId } from '@/test/employee-import-fixture';
-import { fetchMock, mockApi } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientRecord } from '@/test/records';
 
-const client = {
-  id: clientId,
+const client = clientRecord({
   legalName: 'Brutăria Spicul Auriu SRL',
   cui: '31458207',
   vatPayer: true,
@@ -21,15 +21,7 @@ const client = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 0,
   currentEmployeeCount: 3,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 function mount(detail: ImportDetail, path = '') {
   mockApi((_init, url) => {
@@ -64,15 +56,7 @@ function mount(detail: ImportDetail, path = '') {
 const heading = async () =>
   (await screen.findByTestId('employee-processing')).querySelector('h1')?.textContent;
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the page of an employee import that is not ready', () => {
   it('says the upload did not finish once its time runs out, on a page left open', async () => {

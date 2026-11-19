@@ -1,20 +1,13 @@
 import { QueryClient } from '@tanstack/react-query';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { fetchMock, installFetchMock } from '@/test/api';
 
 import { LibraryReviewStore } from './use-library-parts';
 
 const importId = '0b6f2f4e-7d2a-4c1e-9a55-3e1f0c2d4b61';
 
-const fetchMock = vi.fn<typeof fetch>();
-
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  fetchMock.mockReset();
-});
+installFetchMock();
 
 const store = () =>
   new LibraryReviewStore(
