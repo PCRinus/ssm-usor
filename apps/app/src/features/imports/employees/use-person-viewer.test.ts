@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { SheetPage } from './employee-review-model';
 import {
@@ -207,5 +207,63 @@ describe('the focus once the viewer closes', () => {
     act(() => result.current.close());
     result.current.giveFocusBack(closing());
     expect(document.activeElement).toBe(choice);
+  });
+
+  it('keeps the first opener when the viewer moves on to the next choice', () => {
+    const opener = button('opener');
+    opener.focus();
+    const { result } = renderHook(() =>
+      usePersonViewer({ section: 'decisions', openChoices: ['cnp', 'hiredAt'] })
+    );
+    act(() => result.current.show('p1', { choice: 'cnp', highlight: null }));
+    button('inside').focus();
+    act(() => result.current.show('p2', { choice: 'hiredAt', highlight: null }));
+    act(() => result.current.close());
+    result.current.giveFocusBack(closing());
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('scrolls the row asked for into view, and falls back to the opener when it is gone', () => {
+    const opener = button('opener');
+    opener.focus();
+    const row = button('match');
+    row.scrollIntoView = vi.fn();
+    const { result } = renderHook(() => usePersonViewer({ section: 'data', openChoices: [] }));
+    act(() => result.current.show('p1', { highlight: null }));
+    act(() => result.current.closeTo('match'));
+    result.current.giveFocusBack(closing());
+    expect(row.scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+
+    opener.focus();
+    act(() => result.current.show('p1', { highlight: null }));
+    act(() => result.current.closeTo('gone'));
+    result.current.giveFocusBack(closing());
+    expect(document.activeElement).toBe(opener);
+  });
+
+  it('leaves the focus alone with its opener gone and nothing else to go to, else goes to the decisions', () => {
+    const { result } = renderHook(() => usePersonViewer({ section: 'data', openChoices: [] }));
+    const openAndClose = () => {
+      const opener = button('opener');
+      opener.focus();
+      act(() => result.current.show('p1', { highlight: null }));
+      opener.remove();
+      act(() => result.current.close());
+    };
+    openAndClose();
+    const nothing = closing();
+    result.current.giveFocusBack(nothing);
+    expect(nothing.defaultPrevented).toBe(false);
+
+    const decisions = document.createElement('div');
+    decisions.dataset.testid = 'person-decisions';
+    const group = document.createElement('div');
+    group.setAttribute('role', 'group');
+    group.tabIndex = -1;
+    decisions.append(group);
+    document.body.append(decisions);
+    openAndClose();
+    result.current.giveFocusBack(closing());
+    expect(document.activeElement).toBe(group);
   });
 });
