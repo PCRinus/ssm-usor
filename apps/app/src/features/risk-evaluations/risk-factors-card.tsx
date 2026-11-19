@@ -1,4 +1,4 @@
-import { gravityConsequence, probabilityFrequency } from '@ssm-usor/contracts';
+import { gravityConsequence, probabilityFrequency, uncapitalized } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Notice } from '@ssm-usor/ui/components/notice';
@@ -393,9 +393,7 @@ function FactorRow({
   onRemove: () => void;
 }) {
   const gap = readOnly ? null : factorGap(factor);
-  const group = withComponent
-    ? factor.group.charAt(0).toLocaleLowerCase('ro') + factor.group.slice(1)
-    : factor.group;
+  const group = withComponent ? uncapitalized(factor.group) : factor.group;
   const consequence = gravityConsequence(factor.gravityClass);
   const period = probabilityFrequency(factor.probabilityClass).period;
   return (

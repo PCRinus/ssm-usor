@@ -1,5 +1,6 @@
-const runOn = (text: string) =>
-  /^.\p{Ll}/u.test(text) ? text[0]!.toLocaleLowerCase('ro') + text.slice(1) : text;
+import { uncapitalized } from '@ssm-usor/contracts/romanian';
+
+const runOn = (text: string) => (/^.\p{Ll}/u.test(text) ? uncapitalized(text) : text);
 export const person = (name: string, jobTitle: string) => ({
   name,
   jobTitle,

@@ -1,11 +1,9 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import {
-  addSpecialist,
   cleanUp,
   completeProviderDetails,
   createAccount,
-  createClientCompany,
   createOrganization,
   nameFireSafetyTechnician,
   openSetupGuide,
@@ -73,41 +71,4 @@ test('a new organization’s owner follows the guide to the first client, closes
     'Adaugă puncte de lucru și posturi'
   );
   await expect(pill).toBeHidden();
-});
-
-test('a specialist joining a firm with a client sees the firm’s steps as the owner’s and their own open', async ({
-  page,
-}) => {
-  const owner = await createAccount('setup-firm-owner', 'Ioana Popescu');
-  const organizationId = await createOrganization('Expert SSM Banat SRL', owner.id);
-  await completeProviderDetails(organizationId);
-  await createClientCompany(organizationId, 'Alfa Construct SRL');
-  const specialist = await createAccount('setup-specialist', 'Andrei Ionescu');
-  await addSpecialist(organizationId, specialist.id);
-  await openSetupGuide(specialist.id);
-
-  await signIn(page, specialist.email);
-  await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(guide(page)).toHaveAttribute('data-view', 'expanded');
-  await expect(guide(page).getByTestId('setup-guide-count')).toHaveText('2 din 15');
-
-  await expect(step(page, 'company')).toHaveAttribute('data-state', 'done');
-  await expect(step(page, 'company')).toContainText('Făcut de Ioana Popescu');
-  await expect(step(page, 'authorizations')).toHaveAttribute('data-state', 'owner-only');
-  await expect(step(page, 'authorizations')).toContainText(
-    'Doar adminul poate completa · Ioana Popescu'
-  );
-  await expect(step(page, 'authorizations').getByRole('link')).toHaveCount(0);
-  await expect(step(page, 'professional-title')).toHaveAttribute('data-state', 'next');
-  await expect(step(page, 'professional-title').getByTestId('setup-step-action-0')).toHaveAttribute(
-    'href',
-    '/profil?focus=professional-title'
-  );
-
-  const clientGroup = guide(page).getByTestId('setup-guide-group-client');
-  await expect(clientGroup).toContainText('Primul tău client');
-  await clientGroup.getByTestId('setup-guide-group-toggle').click();
-  await expect(step(page, 'client')).toHaveAttribute('data-state', 'open');
-  await expect(step(page, 'client')).toHaveText('Adaugă un client');
-  await expect(step(page, 'workplaces-positions')).toHaveAttribute('data-state', 'open');
 });

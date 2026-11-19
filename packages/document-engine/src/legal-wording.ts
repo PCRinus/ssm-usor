@@ -1,3 +1,5 @@
+import { capitalized } from '@ssm-usor/contracts/romanian';
+
 import type { ActKind, ActName } from './citations';
 import { superscriptDigits } from './text';
 import { diff, tokenize } from './token-diff';
@@ -85,7 +87,7 @@ const otherActs: [RegExp, (kind: string, num: string, year: string) => string][]
   ],
   [
     new RegExp(String.raw`\b(Legea|Legii|Ordinul|Ordinului) (?:nr\.\s*)?${number}`, 'gi'),
-    (kind, num, year) => `${kind[0]!.toUpperCase()}${kind.slice(1).toLowerCase()} ${num}/${year}`,
+    (kind, num, year) => `${capitalized(kind.toLocaleLowerCase('ro'))} ${num}/${year}`,
   ],
   [
     new RegExp(String.raw`\b(H\.\s?G\.|O\.\s?U\.\s?G\.|O\.\s?G\.|OMAI) (?:nr\.\s*)?${number}`, 'g'),
@@ -230,7 +232,7 @@ function romanianQuote(mark: string, before: string) {
 }
 
 function matchCase(source: string, target: string) {
-  return /^\p{Lu}/u.test(source) ? target[0]!.toUpperCase() + target.slice(1) : target;
+  return /^\p{Lu}/u.test(source) ? capitalized(target) : target;
 }
 
 interface NewWords {
