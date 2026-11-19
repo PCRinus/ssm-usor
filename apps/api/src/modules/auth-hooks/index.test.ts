@@ -2,8 +2,9 @@ import type { MailService, SmsService } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
 import { createSmsUpstream, plainTrial, type SmsUpstream } from '../../test/sms';
+import { callsTo, routeUpstream, stubFetch, testEnv, testSecretKey } from '../../test/upstream';
 
 const sendPasswordReset = vi.fn<MailService['sendPasswordReset']>();
 const sendSignupConfirmation = vi.fn<MailService['sendSignupConfirmation']>();
@@ -14,10 +15,8 @@ const sendSignInCodeSms = vi.fn<SmsService['sendSignInCode']>();
 const base64 = (text: string) => btoa(text);
 const key = base64('a-hook-signing-key-of-32-bytes!!');
 const smsKey = base64('the-sms-hook-signing-key-32-byte');
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: 'sb_secret_test_key_value',
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   SUPABASE_AUTH_HOOK_SECRET: `v1,whsec_${key}`,
   SUPABASE_AUTH_SMS_HOOK_SECRET: `v1,whsec_${smsKey}`,
   APP_ORIGIN: 'https://app.example.ro',
@@ -43,7 +42,7 @@ const env: ApiEnv['Bindings'] = {
     sendSigningCode: vi.fn(),
     sendSignatureRequest: vi.fn(),
   },
-};
+});
 
 const payload = (type = 'recovery', appMetadata: Record<string, unknown> = {}) => ({
   user: {
@@ -83,12 +82,21 @@ async function sign(body: string, { id = 'msg_1', at = Date.now(), withKey = key
   };
 }
 
-const post = (body: string, headers: Record<string, string>, targetEnv = env) =>
-  createApp().request(
-    '/hooks/supabase/send-email',
-    { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body },
+const hook = (path: string, body: string, headers: Record<string, string>, targetEnv = env) =>
+  apiRequest(
+    path,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body,
+      token: null,
+      client: null,
+    },
     targetEnv
   );
+
+const post = (body: string, headers: Record<string, string>, targetEnv = env) =>
+  hook('/hooks/supabase/send-email', body, headers, targetEnv);
 
 beforeEach(() => {
   sendPasswordReset.mockReset().mockResolvedValue({ id: 'msg_1' });
@@ -314,33 +322,23 @@ const organizationB = '5e2d3b0f-8c4a-4f9b-8d6e-3a7c9b1f2d4e';
 let sms: SmsUpstream;
 let invitedBy: { organization_id: string; last_sent_at: string }[];
 let participatesIn: { organization_id: string; created_at: string }[];
-const smsFetch = vi.fn<typeof fetch>(async (input, init) => {
-  const url = new URL(input instanceof Request ? input.url : String(input));
-  const answer = sms.handle(url, init);
-  if (answer) return answer;
-  if (url.pathname === '/rest/v1/participant_invitations') return Response.json(invitedBy);
-  if (url.pathname === '/rest/v1/client_participants') return Response.json(participatesIn);
-  throw new Error(`Unexpected upstream request: ${url}`);
-});
-
 const postSms = (body: string, headers: Record<string, string>, targetEnv = env) =>
-  createApp().request(
-    '/hooks/supabase/send-sms',
-    { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body },
-    targetEnv
-  );
+  hook('/hooks/supabase/send-sms', body, headers, targetEnv);
 
 describe('POST /hooks/supabase/send-sms', () => {
+  stubFetch();
+
   beforeEach(() => {
     sms = createSmsUpstream();
     invitedBy = [{ organization_id: organizationA, last_sent_at: '2026-10-30T10:00:00Z' }];
     participatesIn = [];
-    smsFetch.mockClear();
-    vi.stubGlobal('fetch', smsFetch);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
+    routeUpstream(
+      { '/*': ({ url, init }) => sms.handle(url, init) ?? undefined },
+      {
+        '/rest/v1/participant_invitations': () => Response.json(invitedBy),
+        '/rest/v1/client_participants': () => Response.json(participatesIn),
+      }
+    );
   });
 
   it('hands the code to the SMS Worker with the number in E.164', async () => {
@@ -413,9 +411,7 @@ describe('POST /hooks/supabase/send-sms', () => {
 
     expect(response.status).toBe(200);
     expect(sms.claims[0]).toMatchObject({ p_organization_id: organizationB });
-    const participantsQuery = smsFetch.mock.calls
-      .map(([input]) => new URL(String(input)))
-      .find((url) => url.pathname === '/rest/v1/client_participants')!;
+    const participantsQuery = callsTo('/rest/v1/client_participants')[0]!.url;
     expect(participantsQuery.searchParams.get('user_id')).toBe(
       'eq.0f7c8d96-479c-47b3-b49e-01f4555a0221'
     );
