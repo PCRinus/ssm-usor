@@ -54,8 +54,7 @@ const megabyte = 1024 * 1024;
 
 const megabytes = (count: number) => new Uint8Array(count * megabyte);
 
-// The caps read only a file's size, so a few bytes stand in for many; the large cases that read
-// real bytes keep them.
+// The caps read only a file's size, so a few bytes stand in for many.
 function weighing(count: number, text = 'x') {
   const light = blob(text);
   Object.defineProperty(light, 'size', { value: count * megabyte });
