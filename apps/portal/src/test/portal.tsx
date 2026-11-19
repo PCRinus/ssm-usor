@@ -1,7 +1,7 @@
 import { currentPrivacyNoticeVersion } from '@ssm-usor/contracts';
-import { createQueryClient } from '@ssm-usor/spa-runtime/query-client';
+import { createQueryClientDefaults } from '@ssm-usor/spa-runtime/query-client';
 import type { Session } from '@supabase/supabase-js';
-import type { SkipToken, UseQueryResult } from '@tanstack/react-query';
+import { QueryClient, type SkipToken, type UseQueryResult } from '@tanstack/react-query';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
@@ -57,6 +57,13 @@ export function fakeAuthClient(session: Session | null = null) {
 
 const runtimes: PortalRuntime[] = [];
 
+function createTestQueryClient() {
+  const defaults = createQueryClientDefaults();
+  return new QueryClient({
+    defaultOptions: { ...defaults, queries: { ...defaults.queries, retryDelay: 0 } },
+  });
+}
+
 export function disposeRuntimes() {
   runtimes.splice(0).forEach((runtime) => runtime.dispose());
 }
@@ -64,7 +71,7 @@ export function disposeRuntimes() {
 export function mountPortal(client: AuthClient | null, path = '/') {
   const runtime = createPortalRuntime(
     client,
-    createQueryClient(),
+    createTestQueryClient(),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:8787'
   );

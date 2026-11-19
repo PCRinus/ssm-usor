@@ -10,10 +10,18 @@ import { runtimes } from './runtimes';
 
 export { disposeRuntimes } from './runtimes';
 
+// Not `retry: false`: a test of a failed read still goes through the app's retries.
+export function createTestQueryClient() {
+  const queryClient = createQueryClient();
+  const defaults = queryClient.getDefaultOptions();
+  queryClient.setDefaultOptions({ ...defaults, queries: { ...defaults.queries, retryDelay: 0 } });
+  return queryClient;
+}
+
 export function mountApp(client: AuthClient | null, path = '/dashboard') {
   const runtime = createAppRuntime(
     client,
-    createQueryClient(),
+    createTestQueryClient(),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:8787'
   );
