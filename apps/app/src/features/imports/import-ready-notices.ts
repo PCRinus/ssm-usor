@@ -70,7 +70,7 @@ function noticeOf(item: ImportItem): ImportReadyNotice | null {
 }
 
 // Only a change this tab saw happen: an import first seen already ready or failed finished while
-// the app was closed, and stays on the client's page or the Clienți list.
+// the app was closed, and stays on the client's page or on Importuri AI.
 export function importReadyNotices({
   previous,
   items,

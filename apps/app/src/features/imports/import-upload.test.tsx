@@ -506,7 +506,6 @@ describe('the client list', () => {
     mountApp(authFixture(makeSession()).client, '/clienti');
 
     await screen.findByTestId('clients-empty');
-    await waitFor(() => expect(requestsTo('/imports')).not.toHaveLength(0));
     expect(screen.queryByTestId('import-list')).toBeNull();
     expect(requestsTo(`/imports/${importId}`)).toHaveLength(0);
   });
