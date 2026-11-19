@@ -3,6 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { ClosedImportListResponse } from '@/api/generated/api';
 import { fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { inDays, meFor } from '@/test/billing-fixture';
@@ -57,6 +58,15 @@ let me: Record<string, unknown> | undefined;
 function mount() {
   mockApi((_init, url) => {
     if (url.pathname === '/imports') return Response.json({ items });
+    if (url.pathname === '/imports/closed') {
+      const pageSize = Number(url.searchParams.get('pageSize'));
+      return Response.json({
+        items: [],
+        page: 1,
+        pageSize,
+        total: 0,
+      } satisfies ClosedImportListResponse);
+    }
     if (url.pathname === '/me' && me) return Response.json(me);
     return undefined;
   });

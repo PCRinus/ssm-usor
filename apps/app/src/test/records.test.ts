@@ -1,6 +1,11 @@
-import { clientDocumentDetailsSchema, clientFireSafetySchema } from '@ssm-usor/contracts';
+import {
+  clientDocumentDetailsSchema,
+  clientFireSafetySchema,
+  importSourceResponseSchema,
+} from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
+import { employeeDetail, sheetSource } from './employee-import-fixture';
 import {
   documentDetailsRecord,
   employeeListItem,
@@ -30,5 +35,15 @@ describe('the builders of a client with nothing filled in yet', () => {
     expect(clientDocumentDetailsSchema.parse(documentDetailsRecord())).toEqual(
       documentDetailsRecord()
     );
+  });
+});
+
+describe('the sheet source builder', () => {
+  it("answers each photographed sheet of the employee import with that file's id", () => {
+    for (const file of employeeDetail().files as { id: string; uploadPath: string }[]) {
+      const source = sheetSource(file.uploadPath);
+      expect(importSourceResponseSchema.parse(source)).toEqual(source);
+      expect(source.fileId).toBe(file.id);
+    }
   });
 });

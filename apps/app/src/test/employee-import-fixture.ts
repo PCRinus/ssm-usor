@@ -1,4 +1,4 @@
-import type { ImportDetail } from '@/api/generated/api';
+import type { ImportDetail, ImportSourceResponse } from '@/api/generated/api';
 
 import { clientId, importDetail, importFile, importId } from './import-fixture';
 import { jobPositionRecord, workplaceListItem } from './records';
@@ -242,6 +242,23 @@ export function employeeDetail(overrides: Record<string, unknown> = {}) {
     employees: { proposal, changes: null, states: {} },
     ...overrides,
   }) as unknown as ImportDetail;
+}
+
+export function sheetSource(uploadPath: string): ImportSourceResponse {
+  const index = Number(/^IMG_p(\d+)\.jpg$/.exec(uploadPath)?.[1]) - 1;
+  return {
+    fileId: fileIds[index]!,
+    uploadPath,
+    fileName: uploadPath,
+    page: null,
+    original: { url: `https://storage.test/${uploadPath}`, mimeType: 'image/jpeg' },
+    derived: { url: `https://storage.test/derived/${uploadPath}`, mimeType: 'image/jpeg' },
+    text: null,
+    pages: null,
+    match: null,
+    locations: null,
+    expiresInSeconds: 300,
+  };
 }
 
 export const positions = [

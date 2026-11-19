@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MeResponse } from '@/api/generated/api';
 import { fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { employeeDetail } from '@/test/employee-import-fixture';
+import { employeeDetail, sheetSource } from '@/test/employee-import-fixture';
 import {
   clientId,
   importDetail,
@@ -105,6 +105,9 @@ function mockImport(
         return report();
       }
       if (url.pathname === `/imports/${importId}/library-parts`) return Response.json(libraryParts);
+      if (url.pathname === `/imports/${importId}/source`) {
+        return Response.json(sheetSource(url.searchParams.get('file')!));
+      }
       if (url.pathname === '/imports') return Response.json({ items: [] });
       if (url.pathname === '/clients') {
         return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });

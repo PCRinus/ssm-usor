@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { MeResponse } from '@/api/generated/api';
+import type { FoundSheetsResponse, JobPositionListResponse, MeResponse } from '@/api/generated/api';
 import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importDetail, meWithCredits, summaryOf } from '@/test/import-fixture';
@@ -130,6 +130,26 @@ function mount(path: string) {
       });
     }
     if (url.pathname === '/me') return Response.json(me);
+    if (url.pathname === `/imports/${confirmedClosed.id}`) {
+      return Response.json({
+        import: importDetail({
+          id: confirmedClosed.id,
+          status: 'confirmed',
+          client: confirmedClosed.client,
+          intoExistingClient: false,
+          companyName: confirmedClosed.companyName,
+          companyCui: confirmedClosed.companyCui,
+          fileCount: confirmedClosed.fileCount,
+          confirmedAt: confirmedClosed.confirmedAt,
+        }),
+      });
+    }
+    if (url.pathname === `/clients/${clientId}/found-sheets`) {
+      return Response.json({ items: [], total: 0 } satisfies FoundSheetsResponse);
+    }
+    if (url.pathname === `/clients/${clientId}/job-positions`) {
+      return Response.json({ items: [] } satisfies JobPositionListResponse);
+    }
     return undefined;
   });
   return mountApp(authFixture(makeSession()).client, path);

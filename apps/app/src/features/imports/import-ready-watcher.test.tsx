@@ -3,10 +3,17 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type {
+  ClientResponse,
+  JobPositionListResponse,
+  WorkplaceListResponse,
+} from '@/api/generated/api';
 import { fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
+import { employeeDetail, positions, sheetSource, workplaces } from '@/test/employee-import-fixture';
 import { clientId, importDetail, importId, summaryOf } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
+import { clientRecord } from '@/test/records';
 
 import { importListPollMs } from './import-format';
 
@@ -36,9 +43,31 @@ const watcherCalls = () =>
   });
 
 function mount(path = '/profil') {
-  mockApi((_init, url) =>
-    url.pathname === '/imports' ? Response.json({ items: listed }) : undefined
-  );
+  mockApi((_init, url) => {
+    if (url.pathname === '/imports') return Response.json({ items: listed });
+    if (url.pathname === `/imports/${importId}`) {
+      return Response.json({ import: employeeDetail({ people: readyImport.people }) });
+    }
+    if (url.pathname === `/imports/${importId}/source`) {
+      return Response.json(sheetSource(url.searchParams.get('file')!));
+    }
+    if (url.pathname === `/clients/${clientId}/job-positions`) {
+      return Response.json({ items: positions } satisfies JobPositionListResponse);
+    }
+    if (url.pathname === `/clients/${clientId}/workplaces`) {
+      return Response.json({
+        items: workplaces,
+        unassignedEmployeeCount: 0,
+      } satisfies WorkplaceListResponse);
+    }
+    if (url.pathname === `/clients/${clientId}`) {
+      return Response.json({
+        client: clientRecord({ legalName: client.legalName }),
+        canDelete: false,
+      } satisfies ClientResponse);
+    }
+    return undefined;
+  });
   return mountApp(authFixture(makeSession()).client, path);
 }
 
