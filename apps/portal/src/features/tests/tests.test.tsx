@@ -384,7 +384,7 @@ describe('the test sheet in Instruiri', () => {
     });
     vi.mocked(useGetPortalTests).mockReturnValue(passedWith([notDrawnUp]));
     vi.spyOn(window, 'open').mockReturnValue({
-      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => null },
+      document: { write: vi.fn(), close: vi.fn(), title: '' },
       location: { replace: vi.fn() },
       close: vi.fn(),
     } as never);
@@ -413,7 +413,7 @@ describe('the test sheet in Instruiri', () => {
       ])
     );
     vi.spyOn(window, 'open').mockReturnValue({
-      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => null },
+      document: { write: vi.fn(), close: vi.fn(), title: '' },
       location: { replace: vi.fn() },
       close: vi.fn(),
     } as never);

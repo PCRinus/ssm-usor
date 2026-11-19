@@ -453,9 +453,8 @@ describe('Instruiri', () => {
   });
 
   it('opens a ready sheet as a PDF in a tab opened before the request', async () => {
-    const pending = document.createElement('p');
     const tab = {
-      document: { write: vi.fn(), close: vi.fn(), title: '', querySelector: () => pending },
+      document: { write: vi.fn(), close: vi.fn(), title: '' },
       location: { replace: vi.fn() },
       close: vi.fn(),
     };
@@ -475,7 +474,9 @@ describe('Instruiri', () => {
       expect.objectContaining({ baseUrl: 'http://localhost:8787' })
     );
     expect(tab.document.title).toBe('Fișa individuală SU');
-    expect(pending.textContent).toBe('Se pregătește fișa…');
+    expect(tab.document.write).toHaveBeenCalledWith(
+      expect.stringContaining('>Se pregătește fișa…</p>')
+    );
     expect(tab.location.replace).toHaveBeenCalledWith('blob:sheet');
     open.mockRestore();
   });
