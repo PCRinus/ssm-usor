@@ -1,4 +1,4 @@
-import { countOf, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
+import { capitalized, countOf, staffCategories, type StaffCategory } from '@ssm-usor/contracts';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { cn } from '@ssm-usor/ui/lib/utils';
@@ -12,7 +12,6 @@ import { monthNames } from '@/features/clients/document-details/document-details
 import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
 
 import {
-  capitalized,
   type CategoryPosts,
   durations,
   type HeldPosition,

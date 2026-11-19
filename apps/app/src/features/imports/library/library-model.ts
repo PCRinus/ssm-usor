@@ -1,4 +1,5 @@
 import {
+  capitalized,
   countOf,
   type InstructionBody,
   instructionCategoriesByDomain,
@@ -61,7 +62,7 @@ export function partsNoun(parts: readonly { part: ImportLibraryPart['part'] }[])
   ];
   if (names.length === 0) return null;
   const text = names.join(' și ');
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+  return capitalized(text);
 }
 
 export const partOfDomain: Record<InstructionDomain, PartName> = {
@@ -217,7 +218,7 @@ export function partDescription(part: LibraryPart, clientConfirmed: boolean, now
       const identical =
         asked.length > 0 && counts.identical > 0 ? ` ${counts.identical} deja în bibliotecă.` : '';
       const description = `${found}${identical}`;
-      return description.charAt(0).toUpperCase() + description.slice(1);
+      return capitalized(description);
     }
   }
 }

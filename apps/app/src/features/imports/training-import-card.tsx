@@ -1,4 +1,4 @@
-import { countOf, type StaffCategory, type TrainingDomain } from '@ssm-usor/contracts';
+import { capitalized, countOf, type StaffCategory, type TrainingDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
@@ -112,8 +112,6 @@ const titles: Record<
     icon: CalendarClock,
   },
 };
-
-const capitalized = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);
 
 const shown = (path: string, value: string | number | null) =>
   capitalized(formatFieldValue(path, value));

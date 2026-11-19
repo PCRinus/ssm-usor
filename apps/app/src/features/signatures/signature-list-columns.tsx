@@ -1,4 +1,5 @@
 import {
+  capitalized,
   countOf,
   formatEmployeeName,
   type KnowledgeTest,
@@ -38,7 +39,7 @@ const joined = (parts: readonly string[]) =>
 
 export function roleLabel(slots: readonly SignatureListSlot[]) {
   const text = joined(slots.map((slot) => roleLabels[slot]));
-  return text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);
+  return capitalized(text);
 }
 
 export function signAsPhrase(slots: readonly SignatureListSlot[]) {

@@ -2,6 +2,7 @@ import {
   type BillingChoice,
   billingPlans,
   type BillingPreview,
+  capitalized,
   planStep,
   vatPercent,
 } from '@ssm-usor/contracts';
@@ -89,7 +90,7 @@ function recurringRows(preview: BillingPreview, from: string): AmountRow[] {
     })),
     { label: `TVA ${vatPercent} %`, value: formatEuro(preview.recurring.vatCents) },
     {
-      label: `${per.charAt(0).toUpperCase()}${per.slice(1)}, de pe ${from}`,
+      label: `${capitalized(per)}, de pe ${from}`,
       value: formatEuro(preview.recurring.totalCents),
       strong: true,
     },

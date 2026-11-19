@@ -1,3 +1,4 @@
+import { capitalized } from '@ssm-usor/contracts';
 import { Link } from '@tanstack/react-router';
 import { Check, ChevronRight } from 'lucide-react';
 import { useId } from 'react';
@@ -15,8 +16,6 @@ const dayFormat = new Intl.DateTimeFormat('ro-RO', {
   month: 'long',
   year: 'numeric',
 });
-
-const capitalized = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 
 export function ClientImportsCard({
   items,

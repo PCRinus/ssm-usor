@@ -1,4 +1,10 @@
-import { countOf, foldText, importCredits, importErrorReasons } from '@ssm-usor/contracts';
+import {
+  capitalized,
+  countOf,
+  foldText,
+  importCredits,
+  importErrorReasons,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link } from '@tanstack/react-router';
 import { ListX } from 'lucide-react';
@@ -106,7 +112,7 @@ function doneToast(result: {
   ];
   if (parts.length === 0) return 'Ai confirmat evaluările de risc.';
   const text = parts.join(' și ');
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
+  return `${capitalized(text)}.`;
 }
 
 type Editing = { sheet: string; factor: FactorState } | null;

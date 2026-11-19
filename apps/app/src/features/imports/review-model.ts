@@ -1,6 +1,7 @@
 import {
   assemblyPointPath,
   caenClassName,
+  capitalized,
   clientImportValuesDiffer,
   countNoun,
   type CountyCode,
@@ -1430,7 +1431,7 @@ export function flagNote(flag: Flag, proposal: Proposal, changes: Changes): stri
     case 'unknown_reference': {
       const noun = referenceNouns[parts.at(-1) ?? ''] ?? 'elementul';
       return flag.detail
-        ? `${noun[0]!.toUpperCase()}${noun.slice(1)} «${flag.detail}» nu se potrivește cu niciunul din propunere.`
+        ? `${capitalized(noun)} «${flag.detail}» nu se potrivește cu niciunul din propunere.`
         : `Alege ${noun}.`;
     }
     case 'cui_not_registered':

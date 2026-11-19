@@ -1,4 +1,5 @@
 import {
+  capitalized,
   formatEmployeeName,
   supplementaryTrainingReasonLabels,
   type TrainingDomain,
@@ -82,8 +83,6 @@ function StatusFact({ label, children }: { label: string; children: ReactNode })
     </div>
   );
 }
-
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 const sourceLinkClass = 'underline underline-offset-4 hover:text-foreground';
 
