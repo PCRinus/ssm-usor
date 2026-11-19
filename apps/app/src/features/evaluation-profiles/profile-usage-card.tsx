@@ -1,4 +1,3 @@
-import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 
 import {
@@ -7,7 +6,7 @@ import {
   useGetEvaluationProfileUsage,
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { SectionCard } from '@/components/section-card';
 import { EvaluationLink } from '@/features/risk-evaluations/evaluation-link';
 import {
@@ -73,21 +72,14 @@ export function ProfileUsageCard({ profileId, inUse }: { profileId: string; inUs
       {usage.isPending ? (
         <Skeleton className="h-16 w-full" />
       ) : usage.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="risk-profile-usage-error"
-          action={
-            <Button
-              variant="outline"
-              disabled={usage.isFetching}
-              onClick={() => void usage.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={usage.error}
+          testId="risk-profile-usage-error"
+          busy={usage.isFetching}
+          onRetry={() => void usage.refetch()}
         >
           Nu am putut încărca fișele de evaluare a riscurilor care o folosesc.
-        </Notice>
+        </LoadFailed>
       ) : items.length === 0 && inUse ? (
         <p data-testid="risk-profile-usage-archived-only" className="text-sm text-muted-foreground">
           Evaluarea nu este folosită la niciun post activ, dar fișele unor posturi arhivate au încă

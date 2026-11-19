@@ -4,6 +4,7 @@ import { ArrowLeft, LoaderCircle, LockKeyhole, RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ImportDetail, ImportLibraryPartsResponse } from '@/api/generated/api';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 
 import { creditsLabel } from '../import-credits';
@@ -50,17 +51,14 @@ export function PartTaskLoader<P extends AnyPart>({
   return (
     <div className="grid gap-6">
       {query.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="library-task-error"
-          action={
-            <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={query.error}
+          testId="library-task-error"
+          size="sm"
+          onRetry={() => void query.refetch()}
         >
           {loadFailed}
-        </Notice>
+        </LoadFailed>
       ) : !part ? (
         <Notice variant="info" data-testid="library-task-missing">
           {missing}

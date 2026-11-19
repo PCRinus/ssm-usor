@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -12,6 +11,7 @@ import {
   useSaveServiceContract,
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
@@ -64,20 +64,13 @@ export function ServiceContractCard({
       {contract.isPending ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : contract.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={contract.isFetching}
-              onClick={() => void contract.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={contract.error}
+          busy={contract.isFetching}
+          onRetry={() => void contract.refetch()}
         >
           Nu am putut încărca contractul.
-        </Notice>
+        </LoadFailed>
       ) : (
         // Keyed by what is saved, so the form starts again from what the server holds.
         <ServiceContractBody

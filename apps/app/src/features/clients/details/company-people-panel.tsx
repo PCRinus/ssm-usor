@@ -4,7 +4,6 @@ import {
   countyNames,
   formatEmployeeName,
 } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -12,7 +11,7 @@ import type { ReactNode } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import {
@@ -195,21 +194,14 @@ export function CompanyPeoplePanel({
           {details.isPending ? (
             <Skeleton className="h-10 w-48" />
           ) : details.isError ? (
-            <Notice
-              variant="destructive"
-              data-testid="legal-representative-unavailable"
-              action={
-                <Button
-                  variant="outline"
-                  disabled={details.isFetching}
-                  onClick={() => void details.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              }
+            <LoadFailed
+              error={details.error}
+              testId="legal-representative-unavailable"
+              busy={details.isFetching}
+              onRetry={() => void details.refetch()}
             >
               Nu am putut încărca reprezentantul legal.
-            </Notice>
+            </LoadFailed>
           ) : representativeEmpty ? (
             <SummaryEmpty data-testid="legal-representative-empty" />
           ) : (

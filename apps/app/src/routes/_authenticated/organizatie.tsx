@@ -1,10 +1,9 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
-import { Button } from '@ssm-usor/ui/components/button';
 import { createFileRoute, Outlet, useMatches } from '@tanstack/react-router';
 import { Award, Building2, CreditCard, UsersRound } from 'lucide-react';
 
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { TabSheet } from '@/components/tab-sheet';
@@ -41,16 +40,9 @@ function OrganizationLayout() {
   }
   if (me.isError) {
     return (
-      <Notice
-        variant="destructive"
-        action={
-          <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
-            Încearcă din nou
-          </Button>
-        }
-      >
+      <LoadFailed error={me.error} busy={me.isFetching} onRetry={() => void me.refetch()}>
         Nu am putut încărca organizația.
-      </Notice>
+      </LoadFailed>
     );
   }
 

@@ -17,6 +17,7 @@ import { keepOpener, openedHere } from '@/app/opener';
 import { DataTable } from '@/components/data-table/data-table';
 import { HelpLink } from '@/components/help-link';
 import { ListCardHeader } from '@/components/list-card-header';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import {
   memberSeatsOf,
@@ -178,20 +179,13 @@ export function TeamCard({
           })
         }
         error={
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={members.isFetching || invitations.isFetching}
-                onClick={retry}
-              >
-                Încearcă din nou
-              </Button>
-            }
+          <LoadFailed
+            error={members.error ?? invitations.error}
+            busy={members.isFetching || invitations.isFetching}
+            onRetry={retry}
           >
             Nu am putut încărca echipa.
-          </Notice>
+          </LoadFailed>
         }
         empty={null}
       />

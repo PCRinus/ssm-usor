@@ -137,6 +137,7 @@ export function SetupGuideProvider({
     guide,
     isPending: query.isPending,
     isError: query.isError || query.data === null,
+    error: query.error,
     retry: () => void query.refetch(),
     doneCount,
     complete,

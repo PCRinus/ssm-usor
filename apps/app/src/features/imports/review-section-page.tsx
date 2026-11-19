@@ -7,6 +7,7 @@ import { useState } from 'react';
 import type { ImportDetail } from '@/api/generated/api';
 import { keepOpener } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 
 import { ImportActionBar } from './import-action-bar';
@@ -120,22 +121,15 @@ export function ReviewSectionPage({
           </Notice>
         )}
         {section === 'training' && existing.positionsFailed ? (
-          <Notice
-            variant="destructive"
-            data-testid="import-review-positions-error"
-            action={
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={existing.positionsRetrying}
-                onClick={existing.retryPositions}
-              >
-                Încearcă din nou
-              </Button>
-            }
+          <LoadFailed
+            error={existing.positionsError}
+            testId="import-review-positions-error"
+            size="sm"
+            busy={existing.positionsRetrying}
+            onRetry={existing.retryPositions}
           >
             Nu am putut încărca posturile clientului, de care depind intervalele instruirii.
-          </Notice>
+          </LoadFailed>
         ) : (
           (section === 'identity' || section === 'training') && (
             <FieldsSection section={section} context={context} />

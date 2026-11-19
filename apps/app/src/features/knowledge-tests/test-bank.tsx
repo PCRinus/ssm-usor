@@ -9,7 +9,7 @@ import { useHideTestQuestion, useRestoreTestQuestion } from '@/api/generated/api
 import { apiErrorReason } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 
 import { DeleteQuestionDialog } from './delete-question-dialog';
 import { QuestionDialog, type QuestionEditing } from './question-dialog';
@@ -44,21 +44,14 @@ export function TestBank({ domain, test }: { domain: TrainingDomain; test: Knowl
   if (bank.isError) {
     return (
       <div className="p-4 sm:p-6">
-        <Notice
-          variant="destructive"
-          data-testid="test-bank-load-error"
-          action={
-            <Button
-              variant="outline"
-              disabled={bank.isFetching}
-              onClick={() => void bank.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={bank.error}
+          testId="test-bank-load-error"
+          busy={bank.isFetching}
+          onRetry={() => void bank.refetch()}
         >
           Nu am putut încărca întrebările.
-        </Notice>
+        </LoadFailed>
       </div>
     );
   }

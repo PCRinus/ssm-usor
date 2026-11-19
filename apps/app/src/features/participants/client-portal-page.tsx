@@ -1,11 +1,10 @@
 import type { ImportInvitee } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useCallback, useState } from 'react';
 
 import { getListClientParticipantsQueryKey, useListClientParticipants } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import type { Client } from '@/features/clients/client-form-schema';
 import { ClientSignatureRequests } from '@/features/signatures/client-signature-requests';
 
@@ -63,20 +62,9 @@ export function ClientPortalPage({ client }: { client: Client }) {
   if (list.isError) {
     return (
       <div data-testid="client-portal-page" className="grid gap-4">
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={list.isFetching}
-              onClick={() => void list.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
-        >
+        <LoadFailed error={list.error} busy={list.isFetching} onRetry={() => void list.refetch()}>
           Nu am putut încărca accesul la portal.
-        </Notice>
+        </LoadFailed>
       </div>
     );
   }

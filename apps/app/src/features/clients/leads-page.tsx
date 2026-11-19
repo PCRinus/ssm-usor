@@ -31,8 +31,8 @@ import { PendingCountLabel } from '@/components/list-filters/pending-count-label
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
+import { LoadFailed } from '@/components/load-failed';
 import { SearchInput } from '@/components/search-input';
-import { sessionExpiredMessage } from '@/lib/api-errors';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -236,27 +236,22 @@ export function LeadsPage() {
           onSortChange={onSortChange}
           onPageChange={onPageChange}
           error={
-            <>
-              <p data-testid="leads-error" role="alert" className="text-sm">
-                {leads.error instanceof ApiHttpError && leads.error.status === 401
-                  ? sessionExpiredMessage
-                  : leads.error instanceof ApiHttpError && leads.error.status === 403
-                    ? 'Doar adminii organizației lucrează cu ofertele.'
-                    : 'Nu am putut încărca lista ofertelor. Încearcă din nou.'}
-              </p>
-              {request.baseUrl &&
-                !(leads.error instanceof ApiHttpError && leads.error.status === 403) && (
-                  <Button
-                    data-testid="leads-retry"
-                    variant="outline"
-                    className="mt-4"
-                    disabled={leads.isFetching}
-                    onClick={() => void leads.refetch()}
-                  >
-                    Încearcă din nou
-                  </Button>
-                )}
-            </>
+            <LoadFailed
+              error={leads.error}
+              testId="leads-error"
+              retryTestId="leads-retry"
+              busy={leads.isFetching}
+              onRetry={
+                request.baseUrl &&
+                !(leads.error instanceof ApiHttpError && leads.error.status === 403)
+                  ? () => void leads.refetch()
+                  : undefined
+              }
+            >
+              {leads.error instanceof ApiHttpError && leads.error.status === 403
+                ? 'Doar adminii organizației lucrează cu ofertele.'
+                : 'Nu am putut încărca lista ofertelor. Încearcă din nou.'}
+            </LoadFailed>
           }
           empty={
             narrowed ? (

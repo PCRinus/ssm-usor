@@ -393,6 +393,46 @@ describe('the fire-safety training card', () => {
     expect(screen.queryByTestId('fire-safety-card')).toBeNull();
   });
 
+  const failDetailsAndPositions = () => {
+    mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook] });
+    const answer = fetchMock.getMockImplementation()!;
+    let failing = true;
+    fetchMock.mockImplementation(async (input, init) => {
+      const { pathname } = new URL(String(input));
+      const shared =
+        pathname === `/clients/${clientId}/document-details` ||
+        pathname === `/clients/${clientId}/job-positions`;
+      return failing && shared
+        ? Response.json({ reason: 'internal' }, { status: 500 })
+        : answer(input, init);
+    });
+    return () => {
+      failing = false;
+    };
+  };
+
+  it('loads again everything that failed when the fire-safety card is retried', async () => {
+    const recover = failDetailsAndPositions();
+    mount();
+
+    const failed = await screen.findByTestId('fire-safety-unavailable');
+    recover();
+    await userEvent.setup().click(within(failed).getByRole('button', { name: 'Încearcă din nou' }));
+
+    expect(await screen.findByTestId('fire-safety-card')).toBeTruthy();
+  });
+
+  it('loads again everything that failed when the training program card is retried', async () => {
+    const recover = failDetailsAndPositions();
+    mount();
+
+    const failed = await screen.findByTestId('document-details-unavailable');
+    recover();
+    await userEvent.setup().click(within(failed).getByRole('button', { name: 'Încearcă din nou' }));
+
+    expect(await screen.findByTestId('training-program-card')).toBeTruthy();
+  });
+
   it('saves the two cards back to back, each sending only its own fields, and keeps both', async () => {
     mockApi({ fireSafety: savedFireSafety, exists: true, positions: [cook, manager] });
     const answer = fetchMock.getMockImplementation()!;

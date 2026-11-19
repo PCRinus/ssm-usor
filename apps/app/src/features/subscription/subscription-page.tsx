@@ -20,6 +20,7 @@ import {
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 import { formatRoDate } from '@/lib/dates';
@@ -61,20 +62,13 @@ export function SubscriptionPage() {
   }
   if (billing.isError) {
     return (
-      <Notice
-        variant="destructive"
-        action={
-          <Button
-            variant="outline"
-            disabled={billing.isFetching}
-            onClick={() => void billing.refetch()}
-          >
-            Încearcă din nou
-          </Button>
-        }
+      <LoadFailed
+        error={billing.error}
+        busy={billing.isFetching}
+        onRetry={() => void billing.refetch()}
       >
         Nu am putut încărca abonamentul.
-      </Notice>
+      </LoadFailed>
     );
   }
 

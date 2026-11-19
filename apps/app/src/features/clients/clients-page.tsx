@@ -43,13 +43,13 @@ import { PendingCountLabel } from '@/components/list-filters/pending-count-label
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
+import { LoadFailed } from '@/components/load-failed';
 import { SearchInput } from '@/components/search-input';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 import { ImportListCard } from '@/features/imports/import-list-card';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { StartWays } from '@/features/imports/start-ways';
-import { sessionExpiredMessage } from '@/lib/api-errors';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -349,26 +349,17 @@ export function ClientsPage() {
           onSortChange={onSortChange}
           onPageChange={onPageChange}
           error={
-            <>
-              <p data-testid="clients-error" role="alert" className="text-sm">
-                {clients.error instanceof ApiHttpError && clients.error.status === 401
-                  ? sessionExpiredMessage
-                  : clients.error instanceof ApiHttpError && clients.error.status === 403
-                    ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
-                    : 'Nu am putut încărca lista clienților. Încearcă din nou.'}
-              </p>
-              {request.baseUrl && (
-                <Button
-                  data-testid="clients-retry"
-                  variant="outline"
-                  className="mt-4"
-                  disabled={clients.isFetching}
-                  onClick={() => void clients.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              )}
-            </>
+            <LoadFailed
+              error={clients.error}
+              testId="clients-error"
+              retryTestId="clients-retry"
+              busy={clients.isFetching}
+              onRetry={request.baseUrl ? () => void clients.refetch() : undefined}
+            >
+              {clients.error instanceof ApiHttpError && clients.error.status === 403
+                ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
+                : 'Nu am putut încărca lista clienților. Încearcă din nou.'}
+            </LoadFailed>
           }
           empty={
             narrowed ? (

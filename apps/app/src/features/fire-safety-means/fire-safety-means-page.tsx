@@ -27,6 +27,7 @@ import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { type FireSafetyMeansFocus, useFocusRequest } from '@/features/missing-data/focus';
 
@@ -188,25 +189,24 @@ export function FireSafetyMeansPage({
     return (
       <Card data-testid="fire-means-page">
         <CardContent>
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                onClick={() => {
-                  void workplaces.refetch();
-                  void equipment.refetch();
-                  void installations.refetch();
-                  void maintenanceItems.refetch();
-                  void buildings.refetch();
-                }}
-              >
-                Încearcă din nou
-              </Button>
+          <LoadFailed
+            error={
+              workplaces.error ??
+              equipment.error ??
+              installations.error ??
+              maintenanceItems.error ??
+              buildings.error
             }
+            onRetry={() => {
+              void workplaces.refetch();
+              void equipment.refetch();
+              void installations.refetch();
+              void maintenanceItems.refetch();
+              void buildings.refetch();
+            }}
           >
             Nu am putut încărca mijloacele de apărare împotriva incendiilor.
-          </Notice>
+          </LoadFailed>
         </CardContent>
       </Card>
     );

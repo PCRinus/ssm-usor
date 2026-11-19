@@ -24,6 +24,7 @@ import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { HelpLink } from '@/components/help-link';
 import { ListCardHeader } from '@/components/list-card-header';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { DocumentMissingRows } from '@/features/documents/document-missing-rows';
 import { documentsLink } from '@/features/documents/document-sets';
@@ -137,20 +138,13 @@ export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: str
   if (behind.isError) {
     return (
       <div className="p-5">
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={behind.isFetching}
-              onClick={() => void behind.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={behind.error}
+          busy={behind.isFetching}
+          onRetry={() => void behind.refetch()}
         >
           Nu am putut încărca documentele de actualizat.
-        </Notice>
+        </LoadFailed>
       </div>
     );
   }

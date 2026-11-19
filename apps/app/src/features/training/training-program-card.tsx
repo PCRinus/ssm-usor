@@ -5,6 +5,7 @@ import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { EditAction, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -100,24 +101,17 @@ export function TrainingProgramSection({
     return <Skeleton className="h-64 w-full rounded-xl" />;
   }
   if (details.isError || positions.isError) {
-    const failed = details.isError ? details : positions;
+    const failed = [details, positions].filter((query) => query.isError);
     return (
       <Card data-testid="document-details-unavailable">
         <CardContent>
-          <Notice
-            variant="destructive"
-            action={
-              <Button
-                variant="outline"
-                disabled={failed.isFetching}
-                onClick={() => void failed.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            }
+          <LoadFailed
+            error={failed[0]?.error}
+            busy={failed.some((query) => query.isFetching)}
+            onRetry={() => failed.forEach((query) => void query.refetch())}
           >
             Nu am putut încărca programul de instruire.
-          </Notice>
+          </LoadFailed>
         </CardContent>
       </Card>
     );

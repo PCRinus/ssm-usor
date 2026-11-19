@@ -4,7 +4,6 @@ import {
   requiredWorkersRepresentatives,
   type ResponsiblePersonRole,
 } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Fragment, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
@@ -22,6 +21,7 @@ import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
+import { LoadFailed } from '@/components/load-failed';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
@@ -260,20 +260,13 @@ export function ResponsiblePersonsCard({
             : 'Nicio persoană responsabilă încă.'}
         </p>
       ) : persons.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={persons.isFetching}
-              onClick={() => void persons.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={persons.error}
+          busy={persons.isFetching}
+          onRetry={() => void persons.refetch()}
         >
           Nu am putut încărca persoanele responsabile.
-        </Notice>
+        </LoadFailed>
       ) : (
         <DataTable
           testId="responsible-persons-table"

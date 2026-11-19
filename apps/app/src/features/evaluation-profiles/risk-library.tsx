@@ -32,6 +32,7 @@ import { PendingCountLabel } from '@/components/list-filters/pending-count-label
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
+import { LoadFailed } from '@/components/load-failed';
 import { SearchInput } from '@/components/search-input';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
@@ -277,19 +278,14 @@ export function RiskLibrary({ search }: { search: RiskLibrarySearch }) {
           onSortChange={onSortChange}
           onPageChange={onPageChange}
           error={
-            <>
-              <p data-testid="risk-library-load-error" role="alert" className="text-sm">
-                Nu am putut încărca biblioteca.
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                disabled={profiles.isFetching}
-                onClick={() => void profiles.refetch()}
-              >
-                Încearcă din nou
-              </Button>
-            </>
+            <LoadFailed
+              error={profiles.error}
+              testId="risk-library-load-error"
+              busy={profiles.isFetching}
+              onRetry={() => void profiles.refetch()}
+            >
+              Nu am putut încărca biblioteca.
+            </LoadFailed>
           }
           empty={
             narrowed ? (

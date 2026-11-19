@@ -42,6 +42,7 @@ import { replayShow } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
@@ -230,20 +231,13 @@ export function PositionInstructionsCard({
       {instructions.isPending ? (
         <Skeleton className="h-24 w-full" />
       ) : instructions.isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={instructions.isFetching}
-              onClick={() => void instructions.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
+        <LoadFailed
+          error={instructions.error}
+          busy={instructions.isFetching}
+          onRetry={() => void instructions.refetch()}
         >
           Nu am putut încărca instrucțiunile postului.
-        </Notice>
+        </LoadFailed>
       ) : items.length === 0 ? (
         <EmptyState
           data-testid={testId('empty')}

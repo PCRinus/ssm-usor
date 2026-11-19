@@ -9,6 +9,7 @@ import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '@/api/gener
 import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { ChangePasswordCard } from '@/features/account/change-password-card';
@@ -42,16 +43,9 @@ function ProfilePage() {
   }
   if (me.isError) {
     return (
-      <Notice
-        variant="destructive"
-        action={
-          <Button variant="outline" disabled={me.isFetching} onClick={() => void me.refetch()}>
-            Încearcă din nou
-          </Button>
-        }
-      >
+      <LoadFailed error={me.error} busy={me.isFetching} onRetry={() => void me.refetch()}>
         Nu am putut încărca profilul.
-      </Notice>
+      </LoadFailed>
     );
   }
 

@@ -3,7 +3,7 @@ import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Eye } from 'lucide-react';
 import { useId } from 'react';
 
-import { Notice } from '@/components/notice';
+import { LoadFailed } from '@/components/load-failed';
 import { SectionCard } from '@/components/section-card';
 
 import { type GuideHiddenReason, useSetupGuide } from './setup-guide-context';
@@ -15,22 +15,16 @@ const hiddenReasons: Record<GuideHiddenReason, string> = {
 };
 
 export function SetupGuideSection() {
-  const { guide, isPending, isError, retry, doneCount, reopen, hiddenBecause } = useSetupGuide();
+  const { guide, isPending, isError, error, retry, doneCount, reopen, hiddenBecause } =
+    useSetupGuide();
   const reasonId = useId();
 
   return (
     <SectionCard data-testid="settings-guides" title="Ghiduri">
       {isError ? (
-        <Notice
-          variant="destructive"
-          action={
-            <Button variant="outline" onClick={retry}>
-              Încearcă din nou
-            </Button>
-          }
-        >
+        <LoadFailed error={error} onRetry={retry}>
           Nu am putut încărca ghidul de configurare.
-        </Notice>
+        </LoadFailed>
       ) : isPending || !guide ? (
         <Skeleton className="h-16 w-full" />
       ) : (
