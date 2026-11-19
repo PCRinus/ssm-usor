@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
+import type { LegalAct } from './citation-index';
 import {
+  type ActKind,
   markerPrefix,
   parseAct,
   parseMarker,
@@ -247,7 +249,7 @@ describe("the built-in templates' citations", () => {
   const sources = templateSources();
   const index = buildCitationIndex(sources);
   const { acts } = JSON.parse(readFileSync(new URL('legal-acts.json', templatesUrl), 'utf8')) as {
-    acts: { id: string; name: string; portalId: number | null }[];
+    acts: LegalAct[];
   };
 
   it('open every quoted article with a marker the parser reads', () => {
@@ -271,6 +273,30 @@ describe("the built-in templates' citations", () => {
     for (const act of acts) {
       if (act.portalId !== null)
         expect(Number.isInteger(act.portalId) && act.portalId > 0).toBe(true);
+    }
+  });
+
+  // The legislation check, the Worker and the API take the list as it is typed, unparsed.
+  it('give each act the fields its type names, its number as text', () => {
+    const kinds: ActKind[] = ['lege', 'hg', 'oug', 'og', 'ordin', 'omai'];
+    for (const act of acts) {
+      expect(Object.keys(act).sort(), act.id).toEqual([
+        'id',
+        'kind',
+        'name',
+        'number',
+        'portalId',
+        'title',
+        'year',
+      ]);
+      expect(act.id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)+$/);
+      expect(kinds, act.id).toContain(act.kind);
+      expect(typeof act.number, act.id).toBe('string');
+      expect(act.number, act.id).toMatch(/^[1-9][0-9]*(\/[1-9][0-9]*)*$/);
+      expect(Number.isInteger(act.year) && act.year >= 1800 && act.year <= 2100, act.id).toBe(true);
+      expect(act.name.length, act.id).toBeGreaterThanOrEqual(2);
+      expect(act.name.length, act.id).toBeLessThanOrEqual(120);
+      expect(act.title === null || typeof act.title === 'string', act.id).toBe(true);
     }
   });
 
