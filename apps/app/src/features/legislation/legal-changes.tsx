@@ -2,7 +2,7 @@ import { appliedLegalChangePageSize, pageCount } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import { History, Scale } from 'lucide-react';
 
 import {
@@ -13,6 +13,7 @@ import {
   useListAppliedLegalChanges,
   useListOpenLegalChanges,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
 import { Pager } from '@/components/pager';
@@ -28,19 +29,19 @@ import { ChangePanel, ChangeRow, ChangeRows } from './legal-change-row';
 
 const route = getRouteApi('/_authenticated/legislatie/modificari');
 
-export function LegalChanges({ userId }: { userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function LegalChanges() {
+  const { request, key } = useApi();
   const page = route.useSearch({ select: (search) => search.page ?? 1 });
   const navigate = route.useNavigate();
   const params = { page, pageSize: appliedLegalChangePageSize };
   const open = useListOpenLegalChanges({
-    request: apiRequest,
-    query: { queryKey: [...getListOpenLegalChangesQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getListOpenLegalChangesQueryKey()) },
   });
   const applied = useListAppliedLegalChanges(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListAppliedLegalChangesQueryKey(params), userId],
+      queryKey: key(getListAppliedLegalChangesQueryKey(params)),
       placeholderData: keepPreviousData,
     },
   });

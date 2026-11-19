@@ -1,8 +1,6 @@
 import type { DocumentSet } from '@ssm-usor/contracts';
 import { createContext, useContext } from 'react';
 
-import { getGetRegenerationJobQueryKey } from '@/api/generated/api';
-
 import type { BehindType, RegenerationJob } from './regeneration-copy';
 
 export const summaryPollMs = 4000;
@@ -58,8 +56,3 @@ export function useRegenerations() {
   if (!context) throw new Error('useRegenerations needs a RegenerationsProvider.');
   return context;
 }
-
-export const regenerationJobQueryKey = (jobId: string, userId: string) => [
-  ...getGetRegenerationJobQueryKey(jobId),
-  userId,
-];

@@ -1,24 +1,21 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import {
   getGetDocumentsBehindSummaryQueryKey,
   useGetDocumentsBehindSummary,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useMe } from '@/features/account/use-me';
-import { useAuth } from '@/features/auth/auth-context';
 
 import { summaryPollMs } from './regenerations-context';
 
 export const behindSummaryQueryKey = getGetDocumentsBehindSummaryQueryKey;
 
 export function useBehindSummary() {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, key } = useApi();
   const member = Boolean(useMe().data?.membership);
   return useGetDocumentsBehindSummary({
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetDocumentsBehindSummaryQueryKey(), session?.user.id],
+      queryKey: key(getGetDocumentsBehindSummaryQueryKey()),
       enabled: member,
       // One request follows every job of the organization, whoever started it.
       refetchInterval: (query) => (query.state.data?.running?.length ? summaryPollMs : false),

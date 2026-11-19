@@ -8,7 +8,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { CircleCheck, FileCheck2, LoaderCircle, RefreshCw, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -18,6 +18,7 @@ import {
   useListDocumentsBehind,
 } from '@/api/generated/api';
 import { apiErrorReason } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
@@ -56,10 +57,10 @@ const rowKey = (type: BehindType) => type.typeKey;
 type Confirming = { scope: 'all' } | { scope: 'one'; type: BehindType };
 
 export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const behind = useListDocumentsBehind({
-    request: apiRequest,
-    query: { queryKey: [...getListDocumentsBehindQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getListDocumentsBehindQueryKey()) },
   });
   const regenerations = useRegenerations();
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
