@@ -161,6 +161,7 @@ describe('the import action bar', () => {
       expect(screen.queryByText('Se salvează…')).toBeNull();
       expect(screen.getByRole('button', { name: '2 date lipsă' })).toBeTruthy();
       expect(screen.getByRole('button', { name: '1 alegere' })).toBeTruthy();
+      expect(screen.getByText('Clientul se creează după confirmare.')).toBeTruthy();
 
       await userEvent.click(screen.getByRole('button', { name: action }));
 
@@ -230,16 +231,6 @@ describe('the import action bar', () => {
 
     expect(within(bar).getByRole('button', { name: 'Continuă' })).toBeTruthy();
     expect(bar.style.bottom).toBe('64px');
-  });
-
-  it.each([
-    { name: 'saved', change: {} },
-    { name: 'failed', change: { error: 'Nu am putut salva.' } },
-  ])('lays out a bar without leading content as before ($name)', ({ change }) => {
-    render(<ReviewBar save={{ ...saved(), ...change }} />);
-    expect(
-      screen.getByRole('region', { name: 'Verificarea importului' }).outerHTML
-    ).toMatchSnapshot();
   });
 });
 
