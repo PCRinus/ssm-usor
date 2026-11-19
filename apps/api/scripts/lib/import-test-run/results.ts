@@ -24,7 +24,7 @@ import { storedChanges, storedProposal } from '../../../src/modules/imports/impo
 import {
   positionPostsOf,
   reviewedInstructions,
-} from '../../../src/modules/imports/library-handlers';
+} from '../../../src/modules/imports/instruction-review';
 import {
   type ClientImportPayload,
   noExistingRecords,

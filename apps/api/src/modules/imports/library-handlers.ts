@@ -45,6 +45,7 @@ import {
   storedChanges,
   storedProposal,
 } from './import-queries';
+import { positionPostsOf, reviewedInstructions } from './instruction-review';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
@@ -192,22 +193,6 @@ async function postsOf(db: DataClient, row: FoundImport): Promise<ImportLibraryP
   return posts;
 }
 
-export function positionPostsOf(
-  proposal: InstructionsProposal,
-  row: Pick<FoundImport, 'proposal'>
-) {
-  const stored = storedProposal(row.proposal);
-  const byName = new Map(
-    (stored?.proposal.jobPositions ?? []).map((position) => [foldText(position.name), position.id])
-  );
-  return Object.fromEntries(
-    proposal.positions.map((position) => [
-      position.key,
-      position.clientPost ? (byName.get(foldText(position.clientPost)) ?? null) : null,
-    ])
-  );
-}
-
 // A sheet names its posts as the client proposal named them when it was read.
 function postReferencesOf(proposal: RisksProposal, row: FoundImport) {
   const stored = storedProposal(row.proposal);
@@ -220,13 +205,6 @@ function postReferencesOf(proposal: RisksProposal, row: FoundImport) {
     [...names].map((name) => [name, byName.get(foldText(name)) ?? null] as const)
   );
 }
-
-const defaultPosts = (
-  instruction: ProposedInstruction,
-  positionPosts: Record<string, string | null>
-) => [
-  ...new Set(instruction.posts.flatMap((key) => (positionPosts[key] ? [positionPosts[key]] : []))),
-];
 
 async function creditsByPart(c: Context<ApiEnv>, importId: string) {
   const entries = await creditsStore(createAdminClient(c)).importEntries([importId]);
@@ -462,27 +440,6 @@ interface LibraryPayload {
     job_position_ids: string[];
   }[];
   use: { module_id: string; job_position_ids: string[] }[];
-}
-
-export function reviewedInstructions(
-  proposal: InstructionsProposal,
-  changes: InstructionImportChanges | null,
-  positionPosts: Record<string, string | null>
-) {
-  return proposal.instructions.flatMap((instruction) => {
-    const change = changes?.instructions[instruction.key] ?? {};
-    if (change.included === false) return [];
-    return [
-      {
-        instruction,
-        references: change.posts ?? defaultPosts(instruction, positionPosts),
-        choice: change.choice ?? instruction.choice,
-        title: (change.title ?? instruction.title).trim(),
-        category: change.category ?? instruction.category,
-        body: change.body ?? instruction.body,
-      },
-    ];
-  });
 }
 
 async function libraryPayload(
