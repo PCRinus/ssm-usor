@@ -122,17 +122,11 @@ export function UsageBar({
   className?: string;
 }) {
   const share = limit > 0 ? Math.min(1, used / limit) : 1;
-  const over = used > limit;
-  const fill = tone
-    ? toneFills[tone]
-    : over
-      ? 'bg-chart-3'
-      : share >= 0.85
-        ? 'bg-warning-border'
-        : 'bg-ring';
+  const shown: MeterTone = tone ?? (used > limit ? 'over' : share >= 0.85 ? 'warning' : 'normal');
   return (
     <div
       role="meter"
+      data-tone={shown}
       aria-label={label}
       aria-valuemin={0}
       aria-valuemax={limit}
@@ -140,7 +134,7 @@ export function UsageBar({
       className={cn('relative h-2.5 overflow-hidden rounded-full bg-muted', className)}
     >
       <div
-        className={cn('absolute inset-y-0 left-0 rounded-full', fill)}
+        className={cn('absolute inset-y-0 left-0 rounded-full', toneFills[shown])}
         style={{ width: `${share * 100}%` }}
       />
       {ticks.map((tick) => (
