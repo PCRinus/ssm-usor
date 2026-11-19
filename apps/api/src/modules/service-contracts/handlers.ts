@@ -6,6 +6,7 @@ import {
   createDataClient,
   type DataClient,
   fromDatabaseError,
+  saveByKey,
 } from '../../lib/db';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
@@ -147,33 +148,37 @@ export const saveServiceContract: RouteHandler<typeof saveServiceContractRoute, 
     updated_by: userId,
   };
   // An update, then an insert: an upsert would write `created_by` again on every save.
-  let saved = await db
-    .from('service_contracts')
-    .update(details)
-    .eq('client_id', clientId)
-    .select('id')
-    .maybeSingle();
-  if (!saved.error && !saved.data) {
-    saved = await db
-      .from('service_contracts')
-      .insert({
-        ...details,
-        organization_id: c.get('membership').organizationId,
-        client_id: clientId,
-        created_by: userId,
-      })
-      .select('id')
-      .single();
-  }
-  if (saved.error?.code === '23505') {
-    throw new ApiError(
-      'conflict',
-      'Another contract of that year has this number.',
-      undefined,
-      serviceContractConflictReasons.numberTaken
-    );
-  }
-  if (saved.error) throw fromDatabaseError(saved.error, 'save service contract');
+  await saveByKey({
+    update: () =>
+      db
+        .from('service_contracts')
+        .update(details)
+        .eq('client_id', clientId)
+        .select('id')
+        .maybeSingle(),
+    insert: () =>
+      db
+        .from('service_contracts')
+        .insert({
+          ...details,
+          organization_id: c.get('membership').organizationId,
+          client_id: clientId,
+          created_by: userId,
+        })
+        .select('id')
+        .single(),
+    refusal: (error) => {
+      const refused = fromDatabaseError(error, 'save service contract');
+      return refused.constraint?.name === 'service_contracts_number_key'
+        ? new ApiError(
+            'conflict',
+            'Another contract of that year has this number.',
+            undefined,
+            serviceContractConflictReasons.numberTaken
+          )
+        : refused;
+    },
+  });
   return c.json(await respond(db, clientId), 200);
 };
 

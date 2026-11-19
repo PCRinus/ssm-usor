@@ -16,10 +16,9 @@ import {
   type FireSubstanceRequest,
   type UpdateClientFireSafetyRequest,
 } from '@ssm-usor/contracts';
-import type { PostgrestError } from '@supabase/supabase-js';
 
 import type { Database } from '../../database.types';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError, saveByKey } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { sentColumns } from '../../lib/partial-update';
@@ -55,28 +54,6 @@ type Tables = Database['public']['Tables'];
 function fireSafetyError(error: { code: string }, context: string) {
   if (error.code === '23503') return workplaceNotOfClient();
   return fromDatabaseError(error, context);
-}
-
-type Saved<T> = PromiseLike<{ data: T; error: PostgrestError | null }>;
-
-// Not an upsert: PostgREST's would also set the keys, which members may not update.
-async function saveByKey<T>(save: {
-  update: () => Saved<T>;
-  insert: () => Saved<T>;
-  refusal: (error: PostgrestError, step: 'update' | 'insert') => Error;
-}): Promise<NonNullable<T>> {
-  const updated = await save.update();
-  if (updated.error) throw save.refusal(updated.error, 'update');
-  if (updated.data) return updated.data;
-  const inserted = await save.insert();
-  if (inserted.error?.code === '23505') {
-    // Another first save got there in between.
-    const again = await save.update();
-    if (again.error) throw save.refusal(again.error, 'update');
-    if (again.data) return again.data;
-  }
-  if (inserted.error) throw save.refusal(inserted.error, 'insert');
-  return inserted.data!;
 }
 
 async function activeWorkplaceOrder(db: DataClient, clientId: string) {
