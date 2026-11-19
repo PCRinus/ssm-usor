@@ -19,6 +19,7 @@ import {
   captchaToken,
   e2ePassword,
   mailbox,
+  removeTestOrganization,
   runAddresses,
   stackClient,
 } from '@ssm-usor/spa-runtime/testing/e2e-stack';
@@ -932,117 +933,14 @@ export async function emailedLink(to: string, kind: string) {
   return email.url;
 }
 
-// Storage lists one level at a time, a folder as an entry without an id.
-async function storageFolder(bucket: string, folder: string): Promise<string[]> {
-  const paths: string[] = [];
-  for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await admin.storage.from(bucket).list(folder, { limit: 1000, offset });
-    if (error) throw error;
-    for (const entry of data) {
-      const path = `${folder}/${entry.name}`;
-      if (entry.id === null) paths.push(...(await storageFolder(bucket, path)));
-      else paths.push(path);
-    }
-    if (data.length < 1000) return paths;
-  }
-}
-
-// Every refusal is reported: a row left behind keeps its organization in the local stack, and a
-// restricting trigger added later would otherwise leave organizations behind unnoticed.
-class CleanUpRefused extends Error {}
-
-function refused(what: string, result: { error: { message: string } | null }) {
-  if (result.error) throw new CleanUpRefused(`${what}: ${result.error.message}`);
-}
-
-async function removeRows(table: string, organizationId: string) {
-  refused(table, await admin.from(table).delete().eq('organization_id', organizationId));
-}
-
-async function removeFiles(bucket: string, paths: string[]) {
-  if (paths.length > 0) refused(`${bucket} files`, await admin.storage.from(bucket).remove(paths));
-}
-
-async function pathsOf(table: string, column: string, organizationId: string) {
-  const rows = await admin.from(table).select(column).eq('organization_id', organizationId);
-  refused(table, rows);
-  return ((rows.data ?? []) as unknown as Record<string, string>[]).map((row) => row[column]!);
-}
-
-async function removeOrganization(id: string) {
-  // Generated files first, then the rows that say where they are.
-  await removeFiles('documents', await pathsOf('document_revisions', 'docx_path', id));
-  await removeFiles('documents', await pathsOf('document_signed_copies', 'storage_path', id));
-  await removeRows('document_signed_copies', id);
-  await removeRows('regeneration_jobs', id);
-  await removeRows('service_contract_sends', id);
-  await removeRows('document_revisions', id);
-  await removeRows('client_documents', id);
-  await removeRows('document_generations', id);
-  // Clients restrict the deletion of their organization, and their rows that of the client.
-  await removeRows('client_responsible_persons', id);
-  await removeRows('fire_equipment', id);
-  await removeRows('fire_installations', id);
-  await removeRows('fire_maintenance_items', id);
-  await removeRows('fire_buildings', id);
-  await removeRows('fire_substances', id);
-  await removeRows('client_fire_safety', id);
-  // Their records go with them, and the records restrict the deletion of the employees.
-  await removeRows('trainings', id);
-  // Before the employees, whom a file can belong to.
-  await removeFiles('client-files', await pathsOf('client_files', 'storage_path', id));
-  await removeRows('client_files', id);
-  // An import names its client, and restricts the client's deletion.
-  await removeRows('imports', id);
-  // A copy outlives its import, and restricts the deletion of its organization.
-  const copyPaths = await storageFolder('import-copies', id);
-  for (let start = 0; start < copyPaths.length; start += 100) {
-    await removeFiles('import-copies', copyPaths.slice(start, start + 100));
-  }
-  await removeRows('import_copies', id);
-  // A participant's attempts restrict their deletion, and a result restricts its attempt's.
-  await removeRows('test_results', id);
-  await removeRows('test_attempts', id);
-  await removeRows('participant_invitations', id);
-  await removeRows('client_participants', id);
-  await removeRows('employees', id);
-  // After the employees, who point at them.
-  await removeRows('client_workplaces', id);
-  // Their factors and measures go with them; a position's would go with the position.
-  await removeRows('risk_evaluations', id);
-  // After the evaluations, whose factors keep the library's entries from being deleted.
-  await removeRows('evaluation_profiles', id);
-  // After the employees, who point at them.
-  await removeRows('job_positions', id);
-  await removeRows('client_owner_notes', id);
-  await removeRows('service_contracts', id);
-  await removeRows('clients', id);
-  // The hides first: deleting an own question is refused while it would leave fewer than ten.
-  await removeRows('test_question_hides', id);
-  await removeRows('test_questions', id);
-  refused('organizations', await admin.from('organizations').delete().eq('id', id));
-}
-
+// Every refusal is reported after the rest is cleaned up, so one leftover does not leave the
+// other organizations behind with it.
 export async function cleanUp() {
   const failures: string[] = [];
-  // Accounts created through the UI are found by this run's address suffix.
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (error) failures.push(`listing the accounts: ${error.message}`);
-  const mine = (data?.users ?? []).filter((user) => isOfRun(user.email));
-  for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
-    const removed = await admin.auth.admin.deleteUser(id);
-    // A flow that deleted its account has done the work already.
-    if (removed.error && removed.error.status !== 404) {
-      failures.push(`account ${id}: ${removed.error.message}`);
-    }
-  }
   for (const id of created.organizations) {
-    try {
-      await removeOrganization(id);
-    } catch (cause) {
-      if (!(cause instanceof CleanUpRefused)) throw cause;
-      failures.push(`organization ${id}, ${cause.message}`);
-    }
+    await removeTestOrganization(admin, id).catch((cause: Error) =>
+      failures.push(`organization ${id}, ${cause.message}`)
+    );
   }
   const keptVersions: typeof created.templateVersions = [];
   for (const version of created.templateVersions) {
@@ -1063,15 +961,24 @@ export async function cleanUp() {
     const removed = await admin.from('releases').delete().in('tag', created.releases);
     if (removed.error) failures.push(`releases: ${removed.error.message}`);
   }
+  // Accounts created through the UI are found by this run's address suffix.
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) failures.push(`listing the accounts: ${error.message}`);
+  const mine = (data?.users ?? []).filter((user) => isOfRun(user.email));
+  for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
+    const removed = await admin.auth.admin.deleteUser(id);
+    // A flow that deleted its account has done the work already.
+    if (removed.error && removed.error.status !== 404) {
+      failures.push(`account ${id}: ${removed.error.message}`);
+    }
+  }
   // Spec files share this module in a worker, and each cleans up after itself.
   created.users = [];
   created.organizations = [];
   created.templateVersions = keptVersions;
   created.releases = [];
-  // A warning, not a failure: the signature flow's requests and paper marks restrict their
-  // organization and account and are not deleted here yet, so a throw would fail every run.
   if (failures.length > 0) {
-    console.warn(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
+    throw new Error(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
   }
 }
 

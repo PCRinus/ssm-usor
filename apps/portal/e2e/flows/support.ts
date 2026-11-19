@@ -2,6 +2,7 @@ import {
   captchaToken,
   e2ePassword as password,
   mailbox,
+  removeTestOrganization,
   runAddresses,
   stackClient,
 } from '@ssm-usor/spa-runtime/testing/e2e-stack';
@@ -188,32 +189,27 @@ export async function answerKey(organizationId: string, domain: 'ssm' | 'su', te
   );
 }
 
+// The same order as the app's flows: organizations first, accounts after them, and every
+// refusal reported once the rest is cleaned up.
 export async function cleanUp() {
-  const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const mine = data.users.filter((user) => isOfRun(user.email));
+  const failures: string[] = [];
   for (const id of created.organizations) {
-    // A finished test attempt is frozen even for the secret key and restricts its employee,
-    // client and organization (ADR 024), so such an organization stays in the local stack.
-    const attempts = await admin
-      .from('test_attempts')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', id);
-    if ((attempts.count ?? 0) > 0) continue;
-    // Participants and invitations restrict the deletion of their employees and client.
-    await admin.from('participant_invitations').delete().eq('organization_id', id);
-    await admin.from('client_participants').delete().eq('organization_id', id);
-    await admin.from('trainings').delete().eq('organization_id', id);
-    await admin.from('client_responsible_persons').delete().eq('organization_id', id);
-    await admin.from('employees').delete().eq('organization_id', id);
-    await admin.from('client_workplaces').delete().eq('organization_id', id);
-    await admin.from('job_positions').delete().eq('organization_id', id);
-    await admin.from('clients').delete().eq('organization_id', id);
-    const removed = await admin.from('organizations').delete().eq('id', id);
-    if (removed.error) throw removed.error;
+    await removeTestOrganization(admin, id).catch((cause: Error) =>
+      failures.push(`organization ${id}, ${cause.message}`)
+    );
   }
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) failures.push(`listing the accounts: ${error.message}`);
+  const mine = (data?.users ?? []).filter((user) => isOfRun(user.email));
   for (const id of new Set([...created.users, ...mine.map((user) => user.id)])) {
-    await admin.auth.admin.deleteUser(id);
+    const removed = await admin.auth.admin.deleteUser(id);
+    if (removed.error && removed.error.status !== 404) {
+      failures.push(`account ${id}: ${removed.error.message}`);
+    }
   }
   created.users = [];
   created.organizations = [];
+  if (failures.length > 0) {
+    throw new Error(`The clean-up left rows in the local stack:\n${failures.join('\n')}`);
+  }
 }
