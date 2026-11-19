@@ -413,7 +413,7 @@ describe('the service contract of a lead', () => {
     expect(screen.getByTestId('contract-edited')).toBeTruthy();
     await user.click(screen.getByTestId('contract-draft-actions'));
     await user.click(await screen.findByTestId('contract-generate'));
-    expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('contract-dialog')).textContent).toContain(
       'Prețurile și celelalte modificări făcute de mână în ea se pierd'
     );
     expect(requests(`/clients/${leadId}/service-contract/generate`, 'POST')).toHaveLength(0);
@@ -444,7 +444,7 @@ describe('the service contract of a lead', () => {
     expect(
       (await screen.findByText('Contractul mai are text de completat')).textContent
     ).toBeTruthy();
-    expect(screen.getByTestId('contract-confirm-dialog').textContent).toContain('prețurile');
+    expect(screen.getByTestId('contract-dialog').textContent).toContain('prețurile');
     await user.click(screen.getByTestId('contract-confirm'));
     expect(await screen.findByText('Contractul a fost emis.')).toBeTruthy();
     expect(asked).toBe(2);
@@ -507,6 +507,18 @@ describe('the service contract of a lead', () => {
 
     await user.click(screen.getByTestId('contract-details-cancel'));
     expect(screen.getByTestId('contract-details-summary')).toBeTruthy();
+  });
+
+  it('puts the focus back on "Modifică" when the edit is given up', async () => {
+    mockApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('contract-details-edit'));
+    await user.click(screen.getByTestId('contract-details-cancel'));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByTestId('contract-details-edit'))
+    );
   });
 
   it('shows a contract left without any revision as not generated, and does not break', async () => {
@@ -697,7 +709,7 @@ describe('the signed copy', () => {
     );
     await user.click(screen.getByTestId('contract-signed-actions'));
     await user.click(await screen.findByTestId('contract-signed-remove'));
-    expect((await screen.findByTestId('contract-confirm-dialog')).textContent).toContain(
+    expect((await screen.findByTestId('contract-dialog')).textContent).toContain(
       'Contractul emis rămâne neschimbat'
     );
     await user.click(screen.getByTestId('contract-confirm'));
