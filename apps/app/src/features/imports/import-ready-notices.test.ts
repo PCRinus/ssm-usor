@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ImportListResponseItemsItem } from '@/api/generated/api';
 import { clientId, importDetail, importId, summaryOf } from '@/test/import-fixture';
 
-import { importReadyNotices, isMineRunning } from './import-ready-notices';
+import { importReadyNotices } from './import-ready-notices';
 
 const me = 'user-one';
 const otherId = '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a';
@@ -137,17 +137,14 @@ describe('importReadyNotices', () => {
   });
 });
 
-describe('isMineRunning', () => {
-  it("is true only for the member's own import still reading", () => {
-    expect(isMineRunning([item({ status: 'reading' })], me)).toBe(true);
-    expect(isMineRunning([item({ status: 'ready' }), item({ status: 'uploading' })], me)).toBe(
-      false
-    );
-    expect(
-      isMineRunning(
-        [item({ status: 'reading', createdBy: { id: 'user-two', fullName: null } })],
-        me
-      )
-    ).toBe(false);
+describe('the confirmed client imports the list also carries', () => {
+  it('announces none of them, their library parts reading or not', () => {
+    const confirmed = item({
+      status: 'confirmed',
+      confirmedAt: '2026-10-28T10:00:00+00:00',
+      libraryParts: [{ part: 'risk_evaluations', status: 'reading', expiresAt: null }],
+    });
+    expect(notices({ [importId]: 'reading' }, [confirmed])).toEqual({ shown: [], quiet: [] });
+    expect(notices({ [importId]: 'confirmed' }, [confirmed])).toEqual({ shown: [], quiet: [] });
   });
 });

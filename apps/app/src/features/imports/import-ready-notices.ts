@@ -22,9 +22,6 @@ export type ImportReadyNotice = {
   link: ImportLink;
 };
 
-export const isMineRunning = (items: ImportItem[], userId: string) =>
-  items.some((item) => item.createdBy?.id === userId && isRunning(item.status));
-
 export function linkOf(item: ImportItem): ImportLink {
   if (item.kind === 'employees' && item.client) {
     return {

@@ -92,19 +92,18 @@ describe('the import ready notice', () => {
     expect(screen.queryByText(/sunt citite/)).toBeNull();
   });
 
-  it('stays quiet about an import another member started, and does not follow it', async () => {
+  it('follows an import another member started for the page, and stays quiet when it is read', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const someoneElse = { createdBy: { id: 'user-two', fullName: 'Ana Pop' } };
     listed = [employeeImport({ status: 'reading', ...someoneElse })];
-    const runtime = mount();
+    mount();
     await waitFor(() => expect(watcherCalls()).toHaveLength(1));
 
-    await vi.advanceTimersByTimeAsync(importListPollMs * 2);
-    expect(watcherCalls()).toHaveLength(1);
-
     listed = [{ ...readyImport, ...someoneElse }];
-    await runtime.queryClient.invalidateQueries({ queryKey: ['/imports'] });
+    await vi.advanceTimersByTimeAsync(importListPollMs);
     await waitFor(() => expect(watcherCalls()).toHaveLength(2));
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByText(/sunt citite/)).toBeNull();
   });
 
