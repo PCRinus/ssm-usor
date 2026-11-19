@@ -1,3 +1,5 @@
+import '@/test/api-mock';
+
 import { screen, waitFor } from '@testing-library/react';
 import type { PostHog } from 'posthog-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,20 +7,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useGetPortalMe,
   useGetPortalSigningAgreementState,
-  useGetPortalTests,
-  useListPortalResponsiblePersons,
   useListPortalSignatureRequests,
   useListPortalSigningAgreements,
-  useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import {
   disposeRuntimes,
   fakeAuthClient,
   fakeSession,
+  mockQuery,
   mountPortal,
   participation,
-  queryPending,
-  queryResult,
 } from '@/test/portal';
 
 const posthog = vi.hoisted(() => ({
@@ -40,28 +38,12 @@ vi.mock('./posthog', async (importOriginal) => ({
   loadPostHog: async () => posthog as unknown as PostHog,
 }));
 
-vi.mock('@/api/generated/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/api/generated/api')>()),
-  useGetPortalMe: vi.fn(),
-  useGetPortalSigningAgreementState: vi.fn(),
-  useListPortalSignatureRequests: vi.fn(),
-  useListPortalSigningAgreements: vi.fn(),
-  useListPortalTrainingRecords: vi.fn(),
-  useGetPortalTests: vi.fn(),
-  useListPortalResponsiblePersons: vi.fn(),
-}));
-
 beforeEach(() => {
   Object.values(posthog).forEach((mock) => mock.mockReset());
-  vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-    queryResult({ agreement: null, unavailable: null })
-  );
-  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryPending());
-  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
-  vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
+  mockQuery(useGetPortalMe, { participations: [participation()] });
+  mockQuery(useGetPortalSigningAgreementState, { agreement: null, unavailable: null });
+  mockQuery(useListPortalSignatureRequests, { items: [] });
+  mockQuery(useListPortalSigningAgreements, { items: [] });
 });
 
 afterEach(() => disposeRuntimes());
