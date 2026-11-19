@@ -10,30 +10,30 @@ import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { documentArchive } from './archive';
 import { hasRiskEvaluator, undecidedJobPositions, workersRepresentativeClash } from './context';
 import {
-  type Actor,
-  attachSignedCopy,
-  confirmSignedCopy,
-  deleteDraft,
   documentAnnexFile,
   documentDownloadLink,
   documentWordFile,
-  generateClientDocuments as generate,
-  issueDocument as issue,
-  listClientDocuments as list,
   printDocument as print,
-  regenerateDocument as regenerate,
-  removeSignedCopy,
-  saveDraftFile,
-  startDraftFromIssued,
-  uploadDocumentFile as upload,
-} from './documents';
+} from './downloads';
 import { loadDocumentFacts } from './facts';
 import { incompleteFireSubstances } from './fire-safety';
+import { generateClientDocuments as generate, regenerateDocument as regenerate } from './generate';
+import { listClientDocuments as list } from './present';
 import {
   listDocumentsBehind as listBehind,
   readRegenerationJob,
   startRegeneration,
 } from './regeneration';
+import {
+  attachSignedCopy,
+  confirmSignedCopy,
+  deleteDraft,
+  issueDocument as issue,
+  removeSignedCopy,
+  saveDraftFile,
+  startDraftFromIssued,
+  uploadDocumentFile as upload,
+} from './revisions';
 import { incompleteRiskEvaluations } from './risk-assessment';
 import type {
   attachDocumentSignedCopyRoute,
@@ -57,6 +57,7 @@ import type {
   startDocumentRegenerationRoute,
   uploadClientDocumentRoute,
 } from './routes';
+import type { Actor } from './rows';
 import { rulesOf } from './sets';
 
 // During an impersonation the documents belong to the impersonated member's organization and

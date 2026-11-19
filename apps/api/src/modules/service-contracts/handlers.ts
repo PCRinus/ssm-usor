@@ -13,10 +13,8 @@ import { createFileStore } from '../../lib/files';
 import { stableJson } from '../../lib/json';
 import { requireOffersFor } from '../../lib/offers';
 import { createToken, hashToken } from '../../lib/tokens';
-import {
-  generateServiceContractDocument,
-  readServiceContractDocument,
-} from '../documents/documents';
+import { generateServiceContractDocument } from '../documents/generate';
+import { readServiceContractDocument } from '../documents/present';
 import { buildServiceContractContext, contractFileName } from './context';
 import { loadServiceContractFacts, missingServiceContractData } from './facts';
 import type {

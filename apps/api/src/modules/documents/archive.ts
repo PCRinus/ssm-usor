@@ -6,7 +6,9 @@ import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
 import { fileNameOf } from '../../lib/text';
 import { withAnnexes } from './annexes';
-import { documentFileName, type DocumentRow, inSetOrder, readDocuments } from './documents';
+import { documentFileName } from './downloads';
+import { inSetOrder } from './present';
+import { type DocumentRow, readDocuments } from './rows';
 
 const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'SU' };
 

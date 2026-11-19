@@ -15,7 +15,7 @@ import type { AdminClient } from '../../lib/admin-db';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import type { RegenerationQueue } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import type { Actor } from './documents';
+import type { Actor } from './rows';
 
 const typeOrder = new Map<string, number>(
   builtInDocumentTypeKeySchema.options.map((typeKey, index) => [typeKey, index])
