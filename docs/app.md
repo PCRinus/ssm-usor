@@ -93,7 +93,7 @@ folder per concept of the [glossary](../CONTEXT.md): `clients/` (leads, the lega
 representative, workplaces and the document-details form included), `employees/` (the employee
 picker other features use included), `training/` (the client's training program and responsible
 persons; the trainings held are `trainings/`), `auth/` (login, onboarding and invitations), and so
-on. A piece several features use lives with the concept it edits, not with its first user. `src/components/` is UI no feature owns,
+on. `src/components/` is UI no feature owns,
 `src/lib/` holds helpers and the `localities/` dataset, `src/api/` the HTTP adapter and the
 generated client, and `src/routes/` the file routes. A route file declares the route and composes
 a page from `features/`.
