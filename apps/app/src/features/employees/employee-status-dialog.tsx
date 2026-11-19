@@ -13,7 +13,6 @@ import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   type EmployeeListResponse,
   getGetClientQueryKey,
   getGetEmployeeQueryKey,
@@ -22,7 +21,7 @@ import {
   getListWorkplacesQueryKey,
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
-import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { type ApiErrorBody, apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -60,7 +59,7 @@ function serverMessage(cause: unknown) {
   return 'Nu am putut salva modificarea. Verifică conexiunea și încearcă din nou.';
 }
 
-function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
+function conflictMessage(body: Partial<ApiErrorBody> | undefined) {
   if (body?.reason === 'client_archived') {
     return 'Clientul este arhivat; situația lucrătorilor nu se mai schimbă.';
   }

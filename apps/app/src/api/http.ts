@@ -20,7 +20,7 @@ import { openReloadDialog } from '@/features/reload-prompts/reload-dialog-store'
 
 export { ApiHttpError, isClientOutdatedError } from '@ssm-usor/api-http';
 
-type ApiErrorBody = Omit<ApiErrorResponse, 'reason'> & { reason?: ApiErrorReason };
+export type ApiErrorBody = Omit<ApiErrorResponse, 'reason'> & { reason?: ApiErrorReason };
 
 export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorBody>(cause);
 

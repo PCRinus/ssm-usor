@@ -1,11 +1,10 @@
-import { importErrorReasons } from '@ssm-usor/contracts';
+import { type ApiErrorReason, importErrorReasons } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   confirmImportLibraryPart,
   type ConfirmImportLibraryPartResponse,
   getListImportLibraryPartsQueryKey,
@@ -13,14 +12,14 @@ import {
   type ImportDetail,
   retryImportLibraryPart,
 } from '@/api/generated/api';
-import { apiErrorBody } from '@/api/http';
+import { type ApiErrorBody, apiErrorBody } from '@/api/http';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 
 import { importErrorMessage } from '../import-format';
 import { libraryDay } from './library-model';
 import { type AnyPart, ClientPrerequisiteNote } from './part-task';
 
-type ConfirmBody = Partial<ApiErrorResponse> | undefined;
+type ConfirmBody = Partial<ApiErrorBody> | undefined;
 
 export function usePartConfirm({
   detail,
@@ -43,7 +42,7 @@ export function usePartConfirm({
   reasons: Record<string, string>;
   failed: string;
   // Undefined leaves the sentence to `reasons` and `failed`.
-  onRefused?: (reason: string | undefined, body: ConfirmBody) => string | undefined;
+  onRefused?: (reason: ApiErrorReason | undefined, body: ConfirmBody) => string | undefined;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
