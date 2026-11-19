@@ -343,6 +343,11 @@ describe('client fire-safety documents', () => {
       'document-missing',
       'document-missing',
     ]);
+    expect(
+      within(missing[1]!)
+        .getAllByRole('cell')
+        .map((cell) => cell.textContent)
+    ).toEqual(['Permis de lucru cu foc', 'Negenerat', '—', '']);
     for (const row of missing) {
       expect(within(row).queryByRole('link')).toBeNull();
       expect(within(row).queryByRole('button')).toBeNull();
