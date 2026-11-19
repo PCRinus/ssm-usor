@@ -5,7 +5,7 @@ import type { Release } from '@/api/generated/api';
 
 import { bodiesOf, bodyOf, finishedSetupGuide, installFetchMock, mockApi, requestsTo } from './api';
 import { quietSummary } from './dashboard-fixture';
-import { meRecord } from './records';
+import { clientId, meRecord } from './records';
 
 installFetchMock();
 
@@ -55,13 +55,20 @@ describe('the shared API mock', () => {
 
     expect(await (await fetch(`${api}/releases`)).json()).toEqual({ items: [release] });
     expect(await (await fetch(`${api}/me/setup`)).json()).toEqual(finishedSetupGuide);
-    expect(await (await fetch(`${api}/imports?kind=employees`)).json()).toEqual({ items: [] });
+    expect(await (await fetch(`${api}/imports?kind=all`)).json()).toEqual({ items: [] });
     expect(await (await fetch(`${api}/documents/behind/summary`)).json()).toEqual({
       counts: { occupational_safety: 0, fire_safety: 0 },
       running: [],
     });
     expect(await (await fetch(`${api}/dashboard/summary`)).json()).toEqual(quietSummary);
-    await expect(fetch(`${api}/imports`, { method: 'POST' })).rejects.toThrow(
+    await expect(fetch(`${api}/imports`)).rejects.toThrow('Unexpected request: GET /imports');
+    await expect(fetch(`${api}/imports?kind=employees&clientId=${clientId}`)).rejects.toThrow(
+      'Unexpected request: GET /imports'
+    );
+    await expect(fetch(`${api}/documents/behind/summary?set=fire_safety`)).rejects.toThrow(
+      'Unexpected request: GET /documents/behind/summary'
+    );
+    await expect(fetch(`${api}/imports?kind=all`, { method: 'POST' })).rejects.toThrow(
       'Unexpected request: POST /imports'
     );
   });

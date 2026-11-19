@@ -31,6 +31,8 @@ export const finishedSetupGuide: SetupGuide = {
   finished: true,
 };
 
+// Keyed by path and query exactly as the shell asks, so a page's own read of the same path stays
+// unrouted and its test must answer it.
 const shellReads: Record<string, () => unknown> = {
   '/releases': () => ({ items: [] }) satisfies ReleaseListResponse,
   '/me/setup': () => finishedSetupGuide,
@@ -39,7 +41,7 @@ const shellReads: Record<string, () => unknown> = {
       counts: { occupational_safety: 0, fire_safety: 0 },
       running: [],
     }) satisfies DocumentsBehindSummary,
-  '/imports': () => ({ items: [] }) satisfies ImportListResponse,
+  '/imports?kind=all': () => ({ items: [] }) satisfies ImportListResponse,
   '/dashboard/summary': () => quietSummary satisfies DashboardSummary,
 };
 
@@ -53,7 +55,7 @@ export function mockApi(
     if (answer) return answer;
     if (url.pathname === '/me' && me) return Response.json(me);
     const method = init?.method ?? 'GET';
-    const shellRead = method === 'GET' ? shellReads[url.pathname] : undefined;
+    const shellRead = method === 'GET' ? shellReads[`${url.pathname}${url.search}`] : undefined;
     if (shellRead) return Response.json(shellRead());
     throw new Error(`Unexpected request: ${method} ${url.pathname}`);
   });
