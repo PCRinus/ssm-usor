@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
+import type { OrganizationSeatsResponse } from '@/api/generated/api';
 import { bodiesOf, fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
@@ -62,6 +63,14 @@ function mockApi({
       );
     }
     if (pathname === '/organization/members') return Response.json({ items: [] });
+    if (pathname === '/organization/seats') {
+      return Response.json({
+        members: 2,
+        invitations: 0,
+        limit: 3,
+        canUpgrade: false,
+      } satisfies OrganizationSeatsResponse);
+    }
   });
 }
 

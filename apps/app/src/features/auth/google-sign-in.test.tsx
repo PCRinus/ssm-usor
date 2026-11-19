@@ -3,10 +3,11 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { InvitationLookupResponse } from '@/api/generated/api';
 import { installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { meRecord } from '@/test/records';
+import { meRecord, meResponse } from '@/test/records';
 
 const captured = vi.hoisted(() => vi.fn());
 vi.mock('@/app/observability/posthog', async (importOriginal) => ({
@@ -20,6 +21,17 @@ function mockApi({ member = true, profile = true } = {}) {
   mockRoutes(
     (_init, { pathname }) => {
       if (pathname === '/me/invitations') return Response.json({ items: [] });
+      if (pathname === '/invitations/lookup') {
+        return Response.json({
+          organizationName: 'Protect SSM SRL',
+          email: meResponse.user.email,
+          role: 'specialist',
+          status: 'open',
+          inviterName: 'Ana Popescu',
+          accountExists: true,
+          expiresAt: '2026-11-26T10:00:00.000Z',
+        } satisfies InvitationLookupResponse);
+      }
     },
     {
       me: meRecord({
