@@ -17,52 +17,26 @@ import { filesLabel, uploadSummary, usageLine } from './import-format';
 import { ImportReviewIssues } from './import-review-issues';
 import { LibraryGroup, RisksGroup } from './library/library-group';
 import { ReportImportButton } from './report-import-button';
-import { anchorOf, type Blocker, sectionIds, sectionLabels, sectionOf } from './review-model';
+import { anchorOf, sectionIds, sectionLabels, sectionOf } from './review-model';
 import { SectionHeader, StatusTag } from './review-parts';
 import {
   blockerHeading,
-  blockerLinks,
   type ExistingScope,
-  fieldStates,
   keptPaths,
-  reviewName,
   sectionDescription,
   sectionIcons,
   sectionReviewHints,
-  sectionStatuses,
 } from './review-summary';
-import { keptPosts, withoutAbsentCategories } from './training-category';
-import { useExistingValues, useImportReview } from './use-import-review';
+import { useClientReview } from './use-import-review';
 
 export function ReviewHub({ detail }: { detail: ImportDetail }) {
-  const proposal = detail.proposal!;
-  const review = useImportReview(detail);
-  const existing = useExistingValues(detail);
+  const { proposal, review, existing, blockers, states, applying, statuses, links, name } =
+    useClientReview(detail);
   const navigate = useNavigate();
   const [abandoning, setAbandoning] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const blockers = detail.blockers as Blocker[];
-  const states = fieldStates(
-    proposal,
-    review.changes,
-    existing.valueAt,
-    detail.intoExistingClient ? null : detail.registeredCompany
-  );
-  const applying = withoutAbsentCategories(
-    states,
-    keptPosts(proposal, review.changes, existing.positions)
-  );
-  const statuses = sectionStatuses(
-    proposal,
-    review.changes,
-    blockers,
-    applying,
-    detail.registeredCompany
-  );
-  const links = blockerLinks(proposal, review.changes, blockers);
   const kept = keptPaths(applying);
   const done = sectionIds.filter((section) => statuses[section].kind === 'done').length;
-  const name = reviewName(detail, proposal, review.changes);
   const read = detail.files.filter((file) => file.state === 'read').length;
   const summary = uploadSummary(detail.files);
   const intoExisting = detail.intoExistingClient;
