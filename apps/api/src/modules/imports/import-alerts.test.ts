@@ -53,7 +53,7 @@ function row(overrides: Partial<ImportRecordRow> = {}): ImportRecordRow {
     cached_input_tokens: 0,
     output_tokens: 100,
     cost_usd: 0.12,
-    usage_by_step: null,
+    usage_by_step: {},
     ...overrides,
   };
 }

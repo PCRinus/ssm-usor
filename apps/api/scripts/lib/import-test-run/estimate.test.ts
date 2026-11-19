@@ -10,7 +10,7 @@ import { importRecord, partRecord } from './test/fixtures';
 const folder = 'org/import';
 
 const clientCase = (
-  bySteps: Record<string, Record<string, number>> | null,
+  bySteps: Record<string, Record<string, number>>,
   readCharacters = 32_500
 ): TestCase => ({
   type: 'import',
@@ -88,8 +88,8 @@ const risksCase: TestCase = {
 
 describe('stepsOf', () => {
   it('sends a scan to a model again only with --rescan', () => {
-    expect(stepsOf(clientCase(null), false)).toEqual(['sorting', 'reading']);
-    expect(stepsOf(clientCase(null), true)).toEqual(['sorting', 'scanning', 'reading']);
+    expect(stepsOf(clientCase({}), false)).toEqual(['sorting', 'reading']);
+    expect(stepsOf(clientCase({}), true)).toEqual(['sorting', 'scanning', 'reading']);
     expect(stepsOf(employeeCase, false)).toEqual([]);
     expect(stepsOf(employeeCase, true)).toEqual(['scanning']);
     expect(stepsOf(risksCase, false)).toEqual(['risks']);
@@ -126,7 +126,7 @@ describe('estimateCases', () => {
   });
 
   it('guesses a step that stored no usage from the copy’s text, its output at the step’s limit', async () => {
-    const estimate = estimateCases([clientCase(null)], await currentVersions(), false);
+    const estimate = estimateCases([clientCase({})], await currentVersions(), false);
 
     expect(estimate).toMatchObject({ fromText: 1, unknown: 0 });
     expect(estimate.byModel['gpt-6.1-terra']!.usage).toEqual({
