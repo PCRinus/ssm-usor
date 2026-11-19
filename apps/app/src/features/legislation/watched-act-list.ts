@@ -1,11 +1,12 @@
-import { countOf, defaultPageSize, legalActDomains, sortOrderSchema } from '@ssm-usor/contracts';
+import { countOf, defaultPageSize, legalActDomains } from '@ssm-usor/contracts';
 import { CircleDot, Layers } from 'lucide-react';
 import { z } from 'zod';
 
 import type { LegalActListResponseItemsItem } from '@/api/generated/api';
 import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterFacet } from '@/components/list-filters/types';
-import { filterSearchSchema, listQuerySearchSchema } from '@/components/list-filters/url';
+import { filterSearchSchema } from '@/components/list-filters/url';
+import { listPageSearchSchema } from '@/components/list-filters/use-list-search';
 
 export type WatchedAct = LegalActListResponseItemsItem;
 
@@ -40,11 +41,7 @@ export const attentionSort = 'attention';
 export const watchedActFilterKeys = ['domain', 'status'] as const;
 export type WatchedActFilterKey = (typeof watchedActFilterKeys)[number];
 
-export const watchedActListSearch = z.object({
-  page: z.number().int().min(1).optional().catch(undefined),
-  sort: z.enum(watchedActSortKeys).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
-  q: listQuerySearchSchema,
+export const watchedActListSearch = listPageSearchSchema(watchedActSortKeys).extend({
   domain: filterSearchSchema(legalActDomains),
   status: filterSearchSchema(actStates),
 });

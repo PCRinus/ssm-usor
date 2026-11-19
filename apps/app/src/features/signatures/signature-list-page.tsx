@@ -28,6 +28,7 @@ import { useState } from 'react';
 
 import {
   getListMySignaturesQueryKey,
+  getListMySignaturesQueryOptions,
   type ListMySignaturesParams,
   useListMySignatures,
 } from '@/api/generated/api';
@@ -38,8 +39,10 @@ import { HelpLink } from '@/components/help-link';
 import { ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { Masked } from '@/components/replay';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
@@ -137,11 +140,6 @@ function useSignatures(params: ListMySignaturesParams) {
   });
 }
 
-function PendingSignaturesLabel({ params }: { params: ListMySignaturesParams }) {
-  const signatures = useSignatures({ ...params, page: 1, pageSize: 1 }).data?.signatures;
-  return signatures === undefined ? 'Arată rezultatele' : `Arată ${signatureNoun(signatures)}`;
-}
-
 function overLimitMessage(chosen: Chosen, rows: number) {
   const over = chosen.size - SIGNING_SESSION_MAX_ITEMS;
   const limit = `Cu un cod semnezi cel mult ${SIGNING_SESSION_MAX_ITEMS}.`;
@@ -214,14 +212,28 @@ export function SignatureListPage() {
   const [signing, setSigning] = useState(false);
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
 
-  const changeSearch = (next: Partial<typeof search>) =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, ...next, page: undefined }),
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: (values: ListFilterValues<FilterKey>) =>
+      listFilters.searchOf(values) as SignatureListFilters,
+  });
+  const pendingQuery = (pending: ListFilterValues<FilterKey>) => {
+    const counted: ListMySignaturesParams = {
+      ...params,
+      ...(listFilters.searchOf(pending) as SignatureListFilters),
+      page: 1,
+      pageSize: 1,
+    };
+    return getListMySignaturesQueryOptions(counted, {
+      request: apiRequest,
+      query: {
+        queryKey: [...getListMySignaturesQueryKey(counted), session?.user.id],
+        enabled: Boolean(session && apiRequest.baseUrl),
+      },
     });
-  const changeFilters = (values: ListFilterValues<FilterKey>) =>
-    changeSearch(listFilters.searchOf(values) as Partial<typeof search>);
+  };
   const toggleOpen = (row: SignatureRow) =>
     setOpened((current) => {
       const next = new Set(current);
@@ -289,7 +301,7 @@ export function SignatureListPage() {
               <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-xl md:grow">
                 <SearchInput
                   value={q}
-                  onSearch={(next) => changeSearch({ q: next || undefined })}
+                  onSearch={changeQuery}
                   placeholder={phone ? 'Caută un nume' : 'Caută după numele unui lucrător'}
                   label="Caută după numele unui lucrător"
                   testId="signatures-search"
@@ -304,11 +316,10 @@ export function SignatureListPage() {
                       : undefined
                   }
                   applyLabel={(pending) => (
-                    <PendingSignaturesLabel
-                      params={{
-                        ...params,
-                        ...(listFilters.searchOf(pending) as SignatureListFilters),
-                      }}
+                    <PendingCountLabel
+                      query={pendingQuery(pending)}
+                      count={(data) => data.signatures}
+                      noun={signatureNoun}
                     />
                   )}
                   countLabel={signatureNoun}
@@ -369,18 +380,8 @@ export function SignatureListPage() {
           isFetching={signatures.isFetching}
           isPlaceholderData={signatures.isPlaceholderData}
           sort={{ sort, order }}
-          onSortChange={(next) =>
-            changeSearch({
-              sort:
-                next.sort === defaultSort.sort ? undefined : (next.sort as SignatureListSortKey),
-              order: next.order === defaultSort.order ? undefined : next.order,
-            })
-          }
-          onPageChange={(next) =>
-            void navigate({
-              search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }),
-            })
-          }
+          onSortChange={onSortChange}
+          onPageChange={onPageChange}
           error={
             <WorkersListError
               error={signatures.error}
@@ -400,7 +401,7 @@ export function SignatureListPage() {
                   <Button
                     variant="outline"
                     data-testid="signatures-empty-filtered-clear"
-                    onClick={() => (filtered ? changeFilters({}) : changeSearch({ q: undefined }))}
+                    onClick={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
                   >
                     {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                   </Button>

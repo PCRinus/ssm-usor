@@ -14,6 +14,7 @@ import { useMemo, useState } from 'react';
 
 import {
   getListEvaluationProfilesQueryKey,
+  getListEvaluationProfilesQueryOptions,
   type ListEvaluationProfilesParams,
   useCreateEvaluationProfile,
   useListEvaluationProfiles,
@@ -26,8 +27,10 @@ import { HelpLink } from '@/components/help-link';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { SearchInput } from '@/components/search-input';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
@@ -84,25 +87,6 @@ const profileCount = (count: number) => countOf(count, ...profileNoun);
 
 const rowKey = (row: EvaluationProfileSummary) => row.id;
 
-function PendingProfilesLabel({
-  params,
-  userId,
-}: {
-  params: ListEvaluationProfilesParams;
-  userId: string;
-}) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const counted = { ...params, page: 1, pageSize: 1 };
-  const total = useListEvaluationProfiles(counted, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListEvaluationProfilesQueryKey(counted), userId],
-      placeholderData: keepPreviousData,
-    },
-  }).data?.total;
-  return total === undefined ? 'Arată rezultatele' : `Arată ${profileCount(total)}`;
-}
-
 export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; userId: string }) {
   const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status, q } = search;
   const archived = status === 'archived';
@@ -149,22 +133,25 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
       }),
     []
   );
-  const changeFilters = (values: ListFilterValues<FilterKey>) =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({
-        ...prev,
-        ...(listFilters.searchOf(values) as EvaluationProfileListFilters),
-        page: undefined,
-      }),
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: (values: ListFilterValues<FilterKey>) =>
+      listFilters.searchOf(values) as EvaluationProfileListFilters,
+  });
+  const pendingQuery = (pending: ListFilterValues<FilterKey>) => {
+    const counted: ListEvaluationProfilesParams = {
+      ...tabParams,
+      ...(listFilters.searchOf(pending) as EvaluationProfileListFilters),
+      page: 1,
+      pageSize: 1,
+    };
+    return getListEvaluationProfilesQueryOptions(counted, {
+      request: apiRequest,
+      query: { queryKey: [...getListEvaluationProfilesQueryKey(counted), userId] },
     });
-  const clearSearch = () =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, q: undefined, page: undefined }),
-    });
+  };
 
   const open = (profileId: string) =>
     navigate({
@@ -235,13 +222,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
             <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
               <SearchInput
                 value={q}
-                onSearch={(next) =>
-                  void navigate({
-                    replace: true,
-                    resetScroll: false,
-                    search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
-                  })
-                }
+                onSearch={changeQuery}
                 placeholder="Caută după post"
                 label="Caută evaluări după post"
                 testId="risk-library-search"
@@ -252,13 +233,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
                 onChange={changeFilters}
                 total={profiles.isSuccess && !profiles.isPlaceholderData ? meta.total : undefined}
                 applyLabel={(pending) => (
-                  <PendingProfilesLabel
-                    params={{
-                      ...tabParams,
-                      ...(listFilters.searchOf(pending) as EvaluationProfileListFilters),
-                    }}
-                    userId={userId}
-                  />
+                  <PendingCountLabel query={pendingQuery(pending)} noun={profileCount} />
                 )}
                 countLabel={profileCount}
                 testId="risk-library-filters"
@@ -298,24 +273,8 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
           isFetching={profiles.isFetching}
           isPlaceholderData={profiles.isPlaceholderData}
           sort={{ sort, order }}
-          onSortChange={(next) =>
-            void navigate({
-              replace: true,
-              resetScroll: false,
-              search: (prev) => ({
-                ...prev,
-                sort:
-                  next.sort === defaultSort.sort
-                    ? undefined
-                    : (next.sort as EvaluationProfileSortKey),
-                order: next.order === defaultSort.order ? undefined : next.order,
-                page: undefined,
-              }),
-            })
-          }
-          onPageChange={(next) =>
-            void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
-          }
+          onSortChange={onSortChange}
+          onPageChange={onPageChange}
           error={
             <>
               <p data-testid="risk-library-load-error" role="alert" className="text-sm">
@@ -341,7 +300,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
                   <Button
                     variant="outline"
                     data-testid="risk-library-empty-clear"
-                    onClick={filtered ? () => changeFilters({}) : clearSearch}
+                    onClick={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
                   >
                     {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                   </Button>

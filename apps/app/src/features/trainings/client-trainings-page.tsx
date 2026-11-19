@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   getListTrainingsQueryKey,
+  getListTrainingsQueryOptions,
   type ListTrainingsParams,
   useListTrainings,
 } from '@/api/generated/api';
@@ -30,8 +31,10 @@ import {
 } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
 import { WorkersListError } from '@/features/employees/workers-list';
@@ -60,26 +63,6 @@ const domainFilters: { domain: TrainingDomain | undefined; label: string }[] = [
 type Filters = Pick<ListTrainingsParams, 'phase' | 'signatures' | 'mode' | 'from' | 'to'>;
 
 const rowKey = (row: TrainingRow) => row.id;
-
-function PendingTrainingsLabel({
-  clientId,
-  params,
-}: {
-  clientId: string;
-  params: ListTrainingsParams;
-}) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const total = useListTrainings(clientId, params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListTrainingsQueryKey(clientId, params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
-      placeholderData: keepPreviousData,
-    },
-  }).data?.total;
-  return total === undefined ? 'Arată rezultatele' : `Arată ${trainingNoun(total)}`;
-}
 
 export function ClientTrainingsPage() {
   const search = route.useSearch();
@@ -164,15 +147,30 @@ export function ClientTrainingsPage() {
       if (!next.delete(training.id)) next.add(training.id);
       return next;
     });
-  const changeSearch = (next: Partial<typeof search>) =>
-    void navigate({
-      state: keepOpener,
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, ...next, page: undefined, open: undefined }),
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: toSearch,
+    reset: { open: undefined },
+    state: keepOpener,
+  });
+  const pendingQuery = (pending: ListFilterValues<TrainingFilterKey>) => {
+    const counted: ListTrainingsParams = {
+      ...params,
+      page: 1,
+      open: undefined,
+      pageSize: 1,
+      ...toSearch(pending),
+    };
+    return getListTrainingsQueryOptions(clientId, counted, {
+      request: apiRequest,
+      query: {
+        queryKey: [...getListTrainingsQueryKey(clientId, counted), session?.user.id],
+        enabled: Boolean(session && apiRequest.baseUrl),
+      },
     });
-  const changeFilters = (values: ListFilterValues<TrainingFilterKey>) =>
-    changeSearch(toSearch(values));
+  };
   const record = () => setTarget({ kind: 'new', domain: domain ?? 'ssm', phase: 'periodic' });
   const recordButton = (
     <Button data-testid="trainings-record" onClick={record}>
@@ -209,7 +207,7 @@ export function ClientTrainingsPage() {
             <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-xl md:grow">
               <SearchInput
                 value={q}
-                onSearch={(next) => changeSearch({ q: next || undefined })}
+                onSearch={changeQuery}
                 placeholder={phone ? 'Caută un nume' : 'Caută după numele unui participant'}
                 label="Caută după participant"
                 testId="trainings-search"
@@ -220,16 +218,7 @@ export function ClientTrainingsPage() {
                 onChange={changeFilters}
                 total={trainings.isSuccess && !trainings.isPlaceholderData ? meta.total : undefined}
                 applyLabel={(pending) => (
-                  <PendingTrainingsLabel
-                    clientId={clientId}
-                    params={{
-                      ...params,
-                      page: 1,
-                      open: undefined,
-                      pageSize: 1,
-                      ...toSearch(pending),
-                    }}
-                  />
+                  <PendingCountLabel query={pendingQuery(pending)} noun={trainingNoun} />
                 )}
                 countLabel={trainingNoun}
                 testId="trainings-filters"
@@ -289,18 +278,8 @@ export function ClientTrainingsPage() {
           isFetching={trainings.isFetching}
           isPlaceholderData={trainings.isPlaceholderData}
           sort={{ sort, order }}
-          onSortChange={(next) =>
-            changeSearch({
-              sort: next.sort === defaultSort.sort ? undefined : (next.sort as TrainingSortKey),
-              order: next.order === defaultSort.order ? undefined : next.order,
-            })
-          }
-          onPageChange={(next) =>
-            void navigate({
-              search: (prev) => ({ ...prev, page: next > 1 ? next : undefined, open: undefined }),
-              state: keepOpener,
-            })
-          }
+          onSortChange={onSortChange}
+          onPageChange={onPageChange}
           error={
             <WorkersListError
               error={trainings.error}
@@ -321,7 +300,7 @@ export function ClientTrainingsPage() {
                   <Button
                     variant="outline"
                     data-testid="trainings-empty-filtered-clear"
-                    onClick={() => (filtered ? changeFilters({}) : changeSearch({ q: undefined }))}
+                    onClick={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
                   >
                     {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                   </Button>
