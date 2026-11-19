@@ -28,7 +28,6 @@ import {
 import { type ReactNode, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   confirmImport,
   getGetImportQueryKey,
   getListClientsQueryKey,
@@ -36,7 +35,7 @@ import {
   getListImportsQueryKey,
   type ImportDetail,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody } from '@/api/http';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { roCount, roNoun } from '@/features/employees/employee-format';
@@ -198,10 +197,7 @@ export function ConfirmImportDialog({
         });
       }
     } catch (cause) {
-      const body =
-        cause instanceof ApiHttpError
-          ? (cause.body as Partial<ApiErrorResponse> | undefined)
-          : undefined;
+      const body = apiErrorBody(cause);
       const reason = body?.reason;
       setError(
         reason === importErrorReasons.refused

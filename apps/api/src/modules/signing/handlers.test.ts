@@ -8,6 +8,7 @@ import {
   signerCandidatesResponseSchema,
 } from '@ssm-usor/contracts';
 import { documentText } from '@ssm-usor/document-engine';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApiEnv } from '../../lib/env';
@@ -713,8 +714,6 @@ describe('the portal’s request lists', () => {
     expect(response.status).toBe(403);
   });
 });
-
-const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 
 const employeeRow = {
   last_name: 'Popescu',

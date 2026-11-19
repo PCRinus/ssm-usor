@@ -1,7 +1,9 @@
+import { readOnlyReason } from '@ssm-usor/contracts';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { readOnlyMessage } from '@/lib/api-errors';
 import { bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
@@ -527,6 +529,28 @@ describe('changing a client file', () => {
     );
     expect(await screen.findByText('Fișierul a fost salvat.')).toBeTruthy();
     await waitFor(() => expect(screen.queryByTestId('client-file-dialog')).toBeNull());
+  });
+
+  it('says the account is read-only, not who may change the file, when a rename is refused for it', async () => {
+    mockFilesApi({
+      update: () =>
+        Response.json(
+          { error: 'forbidden', message: 'Read-only', reason: readOnlyReason },
+          { status: 403 }
+        ),
+    });
+    mount();
+    const user = userEvent.setup();
+
+    const [first] = await screen.findAllByTestId('client-file-row');
+    await user.click(within(first!).getByTestId('client-file-actions'));
+    await user.click(await screen.findByTestId('client-file-rename'));
+    await user.type(await screen.findByTestId('client-file-name'), ' nou');
+    await user.click(screen.getByTestId('client-file-save'));
+
+    expect((await screen.findByTestId('client-file-dialog-error')).textContent).toBe(
+      readOnlyMessage
+    );
   });
 
   it('deletes a file only after a confirmation that names it', async () => {

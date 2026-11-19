@@ -216,9 +216,6 @@ export const listClientFiles: RouteHandler<typeof listClientFilesRoute, ApiEnv> 
 export const uploadClientFile: RouteHandler<typeof uploadClientFileRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const query = c.req.valid('query');
-  if (Number(c.req.header('Content-Length') ?? 0) > maxClientFileBytes) {
-    throw refused(clientFileErrorReasons.tooLarge, 'The file is larger than 25 MiB.');
-  }
   // The body is the file itself, not JSON, so it is read here rather than validated above.
   const bytes = new Uint8Array(await c.req.arrayBuffer());
   const type = checkedType(query.fileName, bytes);

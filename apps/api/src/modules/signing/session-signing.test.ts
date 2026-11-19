@@ -6,6 +6,7 @@ import {
   signSessionResponseSchema,
   type SmsService,
 } from '@ssm-usor/contracts';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import type { Context } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -423,8 +424,6 @@ const agreementRow = (overrides: Record<string, unknown> = {}) => ({
   clients: { archived_at: null },
   ...overrides,
 });
-
-const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 
 /** What drawing the agreement up reads: the employee, the client, the provider and the template. */
 const agreementSources = (client: Record<string, unknown> = {}): Record<string, UpstreamRoute> => ({

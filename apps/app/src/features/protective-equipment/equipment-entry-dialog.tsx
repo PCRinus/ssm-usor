@@ -29,6 +29,7 @@ import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   allocationHints,
@@ -142,13 +143,12 @@ function EquipmentEntryForm({
     } catch (cause) {
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 404
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 404
             ? 'Postul sau articolul nu mai există la acest client.'
             : cause instanceof ApiHttpError && cause.status === 409
               ? 'Clientul este arhivat; echipamentul lui nu se mai schimbă.'
-              : cause instanceof ApiHttpError && cause.status === 401
-                ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                : 'Nu am putut salva articolul. Verifică conexiunea și încearcă din nou.',
+              : 'Nu am putut salva articolul. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

@@ -2,7 +2,7 @@ import type Stripe from 'stripe';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { extrasStore } from '../extras/store';
-import { choiceFromItems } from './rules';
+import { choiceFromItems, isPlanProduct, productOf } from './rules';
 import {
   type ChangeRecord,
   findSubscriptionByCustomer,
@@ -27,10 +27,7 @@ const iso = (seconds: number | null | undefined) =>
 const live = new Set(['trialing', 'active', 'past_due', 'unpaid', 'paused']);
 
 export function planItemOf(subscription: Stripe.Subscription) {
-  return subscription.items.data.find((item) => {
-    const key = item.price.lookup_key ?? '';
-    return key.startsWith('start_') || key.startsWith('profesional_');
-  });
+  return subscription.items.data.find((item) => isPlanProduct(productOf(item.price.lookup_key)));
 }
 
 export function choiceOf(subscription: Stripe.Subscription) {

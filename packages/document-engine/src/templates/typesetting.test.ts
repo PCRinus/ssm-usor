@@ -1,0 +1,380 @@
+import PizZip from 'pizzip';
+import { describe, expect, it } from 'vitest';
+
+import { documentText } from '../text';
+import { bodyOf, decisionFiles, documentTextOf, read, typesetFiles } from './read';
+
+// The house style the import script typesets every template to.
+describe('typesetting', () => {
+  const paragraphsOf = (xml: string) => xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+
+  it.each(decisionFiles)('%s centres the signature block instead of spacing it out', (name) => {
+    for (const placeholder of [
+      '{{client.legalName}}',
+      '{{client.representativeRole}}',
+      '{{client.representativeName}}',
+    ]) {
+      const block = paragraphsOf(bodyOf(name)).filter(
+        (paragraph) => documentTextOf(paragraph) === placeholder
+      );
+      expect(block.length, placeholder).toBeGreaterThan(0);
+      for (const paragraph of block) expect(paragraph).toContain('<w:jc w:val="center"/>');
+    }
+  });
+
+  // The in-app editor evaluates a page field only when its code is the bare keyword; the
+  // "\\* ARABIC" LibreOffice spells out makes it paint the cached result on every page.
+  it.each(typesetFiles)('%s writes its page fields without a format switch', (name) => {
+    const zip = new PizZip(read(name));
+    const parts = Object.keys(zip.files).filter((file) =>
+      /^word\/(header|footer)\d*\.xml$/.test(file)
+    );
+    const codes = parts.flatMap(
+      (part) =>
+        zip
+          .file(part)!
+          .asText()
+          .match(/<w:instrText[^>]*>[^<]*<\/w:instrText>/g) ?? []
+    );
+    expect(codes.filter((code) => /PAGE/.test(code) && /\\\*/.test(code))).toEqual([]);
+  });
+
+  it.each(typesetFiles)('%s numbers its pages through, without a restart', (name) => {
+    expect(bodyOf(name)).not.toMatch(/<w:pgNumType\b[^>]*w:start=/);
+  });
+
+  it.each(typesetFiles)(
+    '%s aligns nothing with spaces and spaces nothing with empty paragraphs',
+    (name) => {
+      // A table cell or a text box may be empty; a paragraph that holds a picture is not.
+      // A table of contents is empty until the merge writes its entries.
+      const body = bodyOf(name)
+        .replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '<w:tbl/>')
+        .replace(/<w:txbxContent>[\s\S]*?<\/w:txbxContent>/g, '')
+        .replace(/<w:sdt>(?:(?!<\/w:sdt>)[\s\S])*?Table of Contents[\s\S]*?<\/w:sdt>/g, '');
+      const texts = paragraphsOf(body).map(documentTextOf);
+      expect(texts.filter((text) => /^[ \u00a0\t]/.test(text))).toEqual([]);
+      // Loop tags stand alone in a paragraph. The only empty paragraphs are the ones Word needs
+      // after a table: at the end, or between two tables that would otherwise be saved as one;
+      // and a page break that a section prints for some items of a loop only.
+      const empty = paragraphsOf(body).filter(
+        (paragraph) =>
+          documentTextOf(paragraph).trim() === '' &&
+          !/<w:drawing|<w:object|<w:pict|<mc:AlternateContent|<w:br w:type="page"\/>/.test(
+            paragraph
+          )
+      );
+      // Or set at 1 pt, where it takes no room: one original cannot be saved without them.
+      for (const paragraph of empty.filter((item) => !item.includes('<w:sz w:val="2"/>'))) {
+        expect(body.slice(0, body.indexOf(paragraph)).trimEnd()).toMatch(/<w:tbl\/>$/);
+      }
+    }
+  );
+
+  // The outline is what the contents, the PDF's bookmarks and the editor's navigation list:
+  // the originals set long runs of articles in the heading styles.
+  it.each([
+    ['11_employer_briefing.docx', 19],
+    ['2.2_general_training_material.docx', 17],
+    ['3.2_own_instructions.docx', 13],
+    ['9_risk_assessment.docx', 20],
+    ['fire/2.1_fire_own_instructions.docx', 25],
+  ] as const)('%s has a table of contents, and its %i headings are its titles', (name, count) => {
+    const body = bodyOf(name);
+    expect(body.match(/<w:docPartGallery w:val="Table of Contents"\/>/g)).toHaveLength(1);
+    const headings = paragraphsOf(body)
+      .filter((paragraph) => /<w:pStyle w:val="Heading\d"\/>/.test(paragraph))
+      .map(documentTextOf);
+    expect(headings).toHaveLength(count);
+    for (const heading of headings) {
+      expect(heading).toMatch(
+        /^((Sub)?[Cc]apitolul|(SUB)?CAPITOLUL) [IVXLC]+\.|^Anexa Nr\. \d\.|^BIBLIOGRAFIE$/
+      );
+    }
+    expect(body).not.toContain('<w:outlineLvl');
+  });
+
+  it.each(typesetFiles)('%s uses one font, the body and title sizes, and Romanian', (name) => {
+    const xml = bodyOf(name);
+    // Of the runs that carry text, here and below: a paragraph's end mark may keep a font, a
+    // size or a language of its own, which nothing shows and LibreOffice does not let go of.
+    const fonts = new Set(
+      [
+        ...xml.matchAll(
+          /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:rFonts [^>]*w:ascii="([^"]+)"(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
+        ),
+      ].map((match) => match[1])
+    );
+    const sizes = new Set(
+      [
+        ...xml.matchAll(
+          /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(\d+)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
+        ),
+      ].map((match) => Number(match[1]) / 2)
+    );
+    // Of the runs that carry text: that is what spell-check and hyphenation read. A paragraph's
+    // end mark may keep a language of its own, which nothing shows.
+    const languages = new Set(
+      [
+        ...xml.matchAll(
+          /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:lang [^>]*w:val="([^"]+)"(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/g
+        ),
+      ].map((match) => match[1])
+    );
+    expect([...fonts]).toEqual(['Arial']);
+    // 10 pt body; 12 pt document titles; 14 and 16 pt on a cover page. Smaller only inside a
+    // table too wide for the body size, never for a heading over running text.
+    expect([...sizes].filter((size) => ![7, 8, 9, 10, 12, 14, 16].includes(size))).toEqual([]);
+    const outsideTables = xml.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, '');
+    expect(outsideTables).not.toMatch(
+      /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:sz w:val="(14|16|18)"\/>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >]/
+    );
+    expect([...languages]).toEqual(['ro-RO']);
+  });
+
+  // A label takes its size from its list level, or without one from its paragraph's end mark,
+  // which the originals left at 9 pt under 10 pt text.
+  it.each(typesetFiles)(
+    '%s prints its list labels at the size of their text, and its dashes as en dashes in Arial',
+    (name) => {
+      const zip = new PizZip(read(name));
+      const numbering = zip.file('word/numbering.xml')?.asText() ?? '';
+      const abstractOf = new Map(
+        [
+          ...numbering.matchAll(/<w:num w:numId="(\d+)"[^>]*>\s*<w:abstractNumId w:val="(\d+)"/g),
+        ].map(([, num, abstract]) => [num!, abstract!])
+      );
+      const levels = new Map(
+        [
+          ...numbering.matchAll(
+            /<w:abstractNum\b[^>]*w:abstractNumId="(\d+)"[^>]*>([\s\S]*?)<\/w:abstractNum>/g
+          ),
+        ].flatMap(([, abstract, body = '']) =>
+          [...body.matchAll(/<w:lvl w:ilvl="(\d)"[^>]*>([\s\S]*?)<\/w:lvl>/g)].map(
+            ([, level, definition = '']) => [`${abstract}/${level}`, definition] as const
+          )
+        )
+      );
+      const sizeOf = (properties = '') => /<w:sz w:val="(\d+)"\/>/.exec(properties)?.[1];
+      const mismatched: string[] = [];
+      for (const paragraph of bodyOf(name).match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? []) {
+        const properties = /^<w:p\b[^>]*>\s*(<w:pPr>[\s\S]*?<\/w:pPr>)/.exec(paragraph)?.[1] ?? '';
+        const num = /<w:numId w:val="(\d+)"/.exec(properties)?.[1];
+        const level = levels.get(
+          `${abstractOf.get(num ?? '')}/${/<w:ilvl w:val="(\d)"/.exec(properties)?.[1] ?? '0'}`
+        );
+        const text = /<w:r>(?:(?!<\/w:r>)[\s\S])*?<w:t[ >][^<]/.exec(
+          paragraph.slice(paragraph.indexOf(properties) + properties.length)
+        )?.[0];
+        if (!level || !text || /<w:lvlText w:val=""\/>/.test(level)) continue;
+        const label =
+          sizeOf(/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(level)?.[1]) ??
+          sizeOf(/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(properties)?.[1]);
+        const dashFont = /<w:lvlText w:val="[-–]"\/>/.test(level)
+          ? /<w:rFonts [^>]*w:ascii="([^"]+)"/.exec(level)?.[1]
+          : undefined;
+        if (
+          (label && label !== sizeOf(text)) ||
+          /<w:lvlText w:val="-"\/>/.test(level) ||
+          (dashFont && dashFont !== 'Arial')
+        ) {
+          mismatched.push(documentTextOf(paragraph).slice(0, 40));
+        }
+      }
+      expect(mismatched).toEqual([]);
+    }
+  );
+
+  it.each(typesetFiles)('%s justifies nothing', (name) => {
+    // Without hyphenation a justified line opens uneven gaps between words.
+    expect(bodyOf(name)).not.toContain('<w:jc w:val="both"/>');
+  });
+
+  it.each(typesetFiles)("%s names none of LibreOffice's own fonts in its styles", (name) => {
+    // No text uses them, but a viewer without them warns that it shows substitutes.
+    const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
+    expect(styles).not.toMatch(/"(Liberation (Serif|Sans)|Noto [^"]*)"/);
+  });
+
+  it.each(typesetFiles)('%s has no picture floating at the left between two lines', (name) => {
+    // The in-app editor cannot lay out the page around one; as a character it looks the same.
+    const floating = bodyOf(name).match(/<wp:anchor .*?<\/wp:anchor>/gs) ?? [];
+    const atTheLeft = floating.filter((anchor) => {
+      const offset = /<wp:positionH\b.*?<wp:posOffset>(-?\d+)<\/wp:posOffset>/s.exec(anchor);
+      return (
+        anchor.includes('<wp:wrapTopAndBottom') && offset && Math.abs(Number(offset[1])) <= 360000
+      );
+    });
+    expect(atTheLeft).toHaveLength(0);
+  });
+
+  it.each(typesetFiles)('%s contains no hyperlinks', (name) => {
+    // The originals carry dead internal links, and clearing them carelessly wraps all the text
+    // in a link to nowhere, which some viewers draw as links.
+    expect(bodyOf(name)).not.toContain('<w:hyperlink');
+  });
+
+  it.each(typesetFiles)(
+    '%s has the house margins, no header but the document details, and a footer that ends with the branding line',
+    (name) => {
+      const xml = bodyOf(name);
+      // 25 mm left for binding, 20 mm elsewhere, in twentieths of a point.
+      expect(xml).toMatch(/<w:pgMar [^>]*w:left="1417"[^>]*w:right="1134"/);
+      // The footer sits inside the bottom margin: 12 mm to the footer, the text ends above 20 mm.
+      expect(xml).toMatch(/<w:pgMar [^>]*w:footer="680"/);
+      const bottom = Number(/<w:pgMar [^>]*w:bottom="(\d+)"/.exec(xml)![1]);
+      expect(bottom).toBeGreaterThanOrEqual(1134);
+      expect(bottom).toBeLessThan(1500);
+      // No header, or the box of document details, which sits inside the top margin the way
+      // the footer sits inside the bottom one. Every footer ends with the branding line, which
+      // the merge data switches.
+      const zip = new PizZip(read(name));
+      const parts = Object.keys(zip.files);
+      const headers = parts
+        .filter((file) => /word\/header\d*\.xml/.test(file))
+        .map((part) => documentTextOf(zip.file(part)!.asText()).trim());
+      if (headers.every((text) => text === '')) {
+        expect(xml).toMatch(/<w:pgMar [^>]*w:top="1134"/);
+      } else {
+        expect(xml).toMatch(/<w:pgMar [^>]*w:header="680"/);
+        for (const text of headers) {
+          expect(text).toContain('Data întocmirii documentului:{{issueDate}}');
+          expect(text).toContain('Întocmit pentru:{{client.legalName}}');
+          expect(text).toMatch(/Cod document:.+Denumire document:.+(Pag\. |Anexa \{\{number\}\})/);
+        }
+      }
+      const footers = parts.filter((file) => /word\/footer\d*\.xml/.test(file));
+      expect(footers.length).toBeGreaterThan(0);
+      for (const part of footers) {
+        expect(documentTextOf(zip.file(part)!.asText()), part).toMatch(
+          /\{\{#branding\}\}Document generat cu SSM Ușor · ssmusor\.ro\{\{\/branding\}\}$/
+        );
+      }
+    }
+  );
+
+  const keepsNext = (properties: string) => {
+    const match = /<w:keepNext(?: w:val="(\w+)")?\/>/.exec(properties);
+    return match ? !['false', '0', 'off'].includes(match[1] ?? 'true') : undefined;
+  };
+
+  // The Heading styles of the imported files keep with the next paragraph too.
+  const keepingOf = (name: string) => {
+    const styles = new PizZip(read(name)).file('word/styles.xml')!.asText();
+    const definitions = new Map(
+      [...styles.matchAll(/<w:style ([^>]*)>([\s\S]*?)<\/w:style>/g)]
+        .filter(([, attributes = '']) => attributes.includes('w:type="paragraph"'))
+        .map(([, attributes = '', body = '']) => [
+          /w:styleId="([^"]+)"/.exec(attributes)![1]!,
+          {
+            basedOn: /<w:basedOn w:val="([^"]+)"/.exec(body)?.[1],
+            own: keepsNext(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(body)?.[0] ?? ''),
+            isDefault: /w:default="(1|true)"/.test(attributes),
+          },
+        ])
+    );
+    const styleKeeps = (id: string | undefined, depth = 0): boolean => {
+      const style = id === undefined ? undefined : definitions.get(id);
+      if (!style || depth > 20) return false;
+      return style.own ?? styleKeeps(style.basedOn, depth + 1);
+    };
+    const defaultStyle = [...definitions].find(([, style]) => style.isDefault)?.[0];
+    return (block: string) => {
+      if (block.startsWith('<w:tbl>')) return false;
+      const style = /<w:pStyle w:val="([^"]+)"/.exec(propertiesOf(block))?.[1] ?? defaultStyle;
+      return keepsNext(propertiesOf(block)) ?? styleKeeps(style);
+    };
+  };
+  const propertiesOf = (block: string) =>
+    /^<w:p\b[^>]*>\s*<w:pPr>[\s\S]*?<\/w:pPr>/.exec(block)?.[0] ?? '';
+  // The originals typed many of their lists' letters and dashes by hand.
+  const isListItem = (block: string) =>
+    block.startsWith('<w:p') &&
+    (propertiesOf(block).includes('<w:numPr>') ||
+      /^([a-z]\)|\d{1,2}[.)]\s|[-–•]\s)/.test(documentTextOf(block).trim()));
+  const blocksOf = (name: string) =>
+    bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>|<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+
+  // A heading, the paragraph that introduces a table, and a loop tag between them, or more lines
+  // as short as a staff category's heading and the lines naming its place, posts and trainer. A
+  // longer run moves to the next page whole and leaves most of a page empty before it.
+  it.each(typesetFiles)(
+    '%s keeps at most three paragraphs in a row with the next, or a few short lines',
+    (name) => {
+      const paragraphKeeps = keepingOf(name);
+      const runs: string[][] = [[]];
+      for (const block of blocksOf(name)) {
+        if (paragraphKeeps(block)) runs.at(-1)!.push(documentTextOf(block).trim());
+        else runs.push([]);
+      }
+      for (const run of runs.filter((each) => each.length > 3)) {
+        expect(run.join('').replace(/\{\{[^}]*\}\}/g, '').length).toBeLessThanOrEqual(400);
+      }
+    }
+  );
+
+  it.each(typesetFiles)('%s keeps a line ending in ":" with the list item after it', (name) => {
+    const paragraphKeeps = keepingOf(name);
+    const blocks = blocksOf(name);
+    const stranded = blocks
+      .filter(
+        (block, index) =>
+          !block.startsWith('<w:tbl>') &&
+          documentTextOf(block).trim().endsWith(':') &&
+          isListItem(blocks[index + 1] ?? '') &&
+          !paragraphKeeps(block)
+      )
+      .map(documentTextOf);
+    expect(stranded).toEqual([]);
+  });
+
+  it.each(decisionFiles)(
+    '%s keeps a heading, what follows it, and its table on one page',
+    (name) => {
+      const heading = paragraphsOf(bodyOf(name)).find((paragraph) =>
+        documentTextOf(paragraph).includes('PROCES-VERBAL DE LUARE DE CUNOȘTINȚĂ')
+      );
+      expect(heading).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
+      // A table that may not split is written as rows that keep with the next one.
+      const table = bodyOf(name).match(/<w:tbl>[\s\S]*?<\/w:tbl>/)![0];
+      expect(table).toMatch(/<w:keepNext(\/| w:val="true"\/)>/);
+    }
+  );
+});
+
+// The editorial pass of `tools/import/wording.ro.json`: what the originals got wrong.
+describe('wording', () => {
+  const texts = typesetFiles.map((name) => [name, documentText(read(name))] as const);
+
+  it.each(texts)(
+    '%s uses comma-below letters, single spaces, no space before punctuation',
+    (name, text) => {
+      expect(text).not.toMatch(/[şţŞŢǎ]/);
+      // The risk assessment writes its formulas as embedded objects, which leave gaps in the
+      // extracted text where the page shows a formula.
+      if (name.includes('risk_assessment')) return;
+      expect(text).not.toMatch(/\S {2,}\S/);
+      expect(text).not.toMatch(/\S[ \u00a0]+[,;:](\s|$)/m);
+    }
+  );
+
+  // A Symbol font's private-use code points (an arrow, a degree sign) print as a gap in Arial.
+  it.each(texts)('%s carries no private-use character', (_, text) => {
+    expect(text).not.toMatch(/[\uE000-\uF8FF]/);
+  });
+
+  it.each(texts)("%s has none of the originals' typos or missing diacritics", (_, text) => {
+    expect(text).not.toMatch(
+      /instuirii|activitatatilor|deasemeni|deoparte|în tabelului|securitatii|sanatatii|(?<!\p{L})in munca(?!\p{L})|(?<!\p{L})si(?!\p{L})|functia|Subsemnat|laindemana|tinanduse|preventelor|contcteaza|cf\.deciziei|vor hotăra/u
+    );
+  });
+
+  it.each(texts.filter(([name]) => name.includes('_decision_')))(
+    '%s words the acknowledgement for one signer or several',
+    (_, text) => {
+      expect(text).toContain(
+        'fiecare persoană desemnată confirmă că a luat cunoștință de prezenta decizie'
+      );
+    }
+  );
+});

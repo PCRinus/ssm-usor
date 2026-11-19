@@ -296,6 +296,20 @@ describe('the return link', () => {
     expect(calls('/rest/v1/document_signed_copies', 'DELETE')).toHaveLength(0);
   });
 
+  it('refuses a form past the 15 MB file before reading it or the link, and takes 15 MB', async () => {
+    mockUpstream();
+    const tooLarge = new Uint8Array(16 * 1024 * 1024);
+    tooLarge.set(pdf);
+    const response = await upload(tooLarge);
+    expect(response.status).toBe(400);
+    expect(apiErrorResponseSchema.parse(await response.json()).message).toBe(
+      'The file is larger than 15 MB.'
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    expect((await upload(tooLarge.subarray(0, 15 * 1024 * 1024))).status).toBe(200);
+  });
+
   it('takes only a PDF, and only so many times', async () => {
     mockUpstream();
     const notPdf = await upload(new TextEncoder().encode('hello'));

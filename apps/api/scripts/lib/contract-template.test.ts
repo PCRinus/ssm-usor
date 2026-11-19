@@ -7,6 +7,7 @@ import {
   unfilledMark,
 } from '@ssm-usor/contracts';
 import { documentText, renderTemplate } from '@ssm-usor/document-engine';
+import { manifestEntries, templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -18,11 +19,8 @@ import type { ServiceContractFacts } from '../../src/modules/service-contracts/f
 // Lives with the scripts because it reads the repository's files, which the Worker's own
 // code cannot: the starter contract, merged with the context the API builds.
 
-const otherUrl = new URL('../../../../packages/document-engine/templates/other/', import.meta.url);
-const manifest = JSON.parse(readFileSync(new URL('manifest.json', otherUrl), 'utf8')) as {
-  templates: { typeKey: string; title: string; file: string }[];
-};
-const template = new Uint8Array(readFileSync(new URL('service_contract.docx', otherUrl)));
+const manifest = { templates: manifestEntries().filter((entry) => entry.set === 'other') };
+const template = new Uint8Array(readFileSync(new URL('other/service_contract.docx', templatesUrl)));
 
 const facts: ServiceContractFacts = {
   client: {

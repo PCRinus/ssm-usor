@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { checkReferences } from './checks';
 import { proposalSchema } from './proposal';
 import { type Reading, toProposal } from './reading';
+import { emptyReading } from './testing';
 
 type Entry = Reading['fireEquipment'][number];
 
@@ -28,21 +29,11 @@ const workplace = (name: string, addressLine: string): Reading['workplaces'][num
 const reading = (
   fireEquipment: Entry[],
   workplaces = [workplace('Sediu', 'Str. Florilor nr. 3')]
-): Reading => ({
-  facts: [],
-  workplaces,
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositions: [],
-  jobPositionFacts: [],
-  responsiblePersons: [],
-  fireEquipment,
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-});
+): Reading =>
+  emptyReading({
+    workplaces,
+    fireEquipment,
+  });
 
 const powder = (file: string, count: number | null, room: string | null = null): Entry => ({
   workplace: 'Sediu',

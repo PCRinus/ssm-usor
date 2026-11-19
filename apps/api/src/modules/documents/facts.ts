@@ -9,6 +9,7 @@ import {
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
 import { romanianDay } from '../../lib/romanian';
 import { clientNotFound } from '../clients/lookup';
+import { bySortOrder } from '../risk-evaluations/evaluation';
 import type { DocumentFacts, SsmSetFacts } from './context';
 import type { FireSafetySetFacts, FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
@@ -573,11 +574,6 @@ export async function loadDocumentFacts(
     ? fireSafetyFactsOf(db, clientId, common, ownReads.reads)
     : occupationalSafetyFactsOf(common, ownReads.reads);
 }
-
-const bySortOrder = (
-  a: { sort_order: number; id: string },
-  b: { sort_order: number; id: string }
-) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
 
 export async function loadRiskEvaluations(
   db: DataClient,

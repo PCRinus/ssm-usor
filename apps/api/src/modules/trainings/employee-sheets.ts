@@ -2,7 +2,6 @@ import {
   type FileLinkResponse,
   type MissingSheetData,
   type MissingSheetDataResponse,
-  orderedCommuteMeans,
   type TrainingDomain,
   trainingDomains,
   type TrainingSheetsResponse,
@@ -17,51 +16,19 @@ import { adminFileStore } from '../../lib/files';
 import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { createSigner } from '../../lib/signer';
 import { mergeBuiltIn } from '../../lib/templates';
+import { particularsColumns, toParticulars } from '../employees/particulars';
 import { supabaseSheetStore } from '../signed-sheets/store';
 import { currentSheetPdf } from '../signed-sheets/stored';
 import {
   buildTrainingSheetData,
   missingSheetDataOf,
   type SheetIdentity,
-  type SheetRecord,
-  toSheetTestResult,
   type TrainingSheetFacts,
   trainingSheetFileName,
 } from './sheet';
-import { toAdmission, toTraining, trainingColumns } from './training-rows';
 
 const noSuchEmployee = () =>
   new ApiError('not_found', 'This employee does not exist under this client.');
-
-export async function loadRecords(db: DataClient, employeeId: string, domain: TrainingDomain) {
-  const { data, error } = await db
-    .from('training_records')
-    .select(
-      `occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(${trainingColumns})`
-    )
-    .eq('employee_id', employeeId)
-    .eq('trainings.domain', domain);
-  if (error) throw fromDatabaseError(error, 'list sheet training records');
-  return data.map((record): SheetRecord => {
-    const training = toTraining(record.trainings);
-    return {
-      source: training.source,
-      occupation: record.occupation,
-      admission: toAdmission(record),
-      training,
-    };
-  });
-}
-
-export async function loadTestResults(db: DataClient, employeeId: string, domain: TrainingDomain) {
-  const { data, error } = await db
-    .from('test_results')
-    .select('test, taken_on, material, examiner_name, examiner_job_title, created_at')
-    .eq('employee_id', employeeId)
-    .eq('domain', domain);
-  if (error) throw fromDatabaseError(error, 'list sheet test results');
-  return data.map(toSheetTestResult);
-}
 
 // Row-level security hides other organizations' clients and their employees, so a missing row
 // is a 404 whoever the client belongs to.
@@ -74,7 +41,7 @@ export async function loadSheetFacts(
     db
       .from('employees')
       .select(
-        'last_name, first_name, employee_number, job_title, home_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, job_positions(name, work_zone), client_workplaces!employees_workplace_in_client(id, name)'
+        `last_name, first_name, employee_number, job_title, ${particularsColumns}, job_positions(name, work_zone), client_workplaces!employees_workplace_in_client(id, name)`
       )
       .eq('id', employeeId)
       .eq('client_id', clientId)
@@ -104,18 +71,7 @@ export async function loadSheetFacts(
       firstName: row.first_name,
       employeeNumber: row.employee_number,
       contractTitle: row.job_title,
-      homeAddress: row.home_address,
-      birthDate: row.birth_date,
-      birthPlace: row.birth_place,
-      bloodGroup: row.blood_group,
-      rhFactor: row.rh_factor,
-      qualification: row.qualification,
-      education: row.education,
-      authorizations: row.authorizations,
-      commuteRoute: row.commute_route,
-      commuteMeans: orderedCommuteMeans(row.commute_means),
-      commuteMeansOther: row.commute_means_other,
-      commuteMinutes: row.commute_minutes,
+      ...toParticulars(row),
       workplace: row.client_workplaces,
       position: { name: row.job_positions.name, workZone: row.job_positions.work_zone },
     },
@@ -188,10 +144,11 @@ export async function drawTrainingSheet(
 ): Promise<DrawnSheet> {
   const { clientId, employeeId, domain, sequence } = sheet;
   const identity = await loadSheetFacts(db, clientId, employeeId);
+  // The route has authorized this sheet, through member policies or the participation.
+  const store = supabaseSheetStore(db);
   const stored = await currentSheetPdf(
     {
-      // The route has authorized this sheet, through member policies or the participation.
-      store: supabaseSheetStore(db),
+      store,
       files: { readDocument: (path) => adminFileStore(c.env, c.req.raw.signal).readDocument(path) },
       pdf: createPdfConverter(c),
       signer: createSigner(c),
@@ -210,8 +167,8 @@ export async function drawTrainingSheet(
     throw new ApiError('not_found', 'The employee has no signed sheet of this number.');
   }
   const [records, testResults] = await Promise.all([
-    loadRecords(db, employeeId, domain),
-    loadTestResults(db, employeeId, domain),
+    store.records(employeeId, domain),
+    store.results(employeeId, domain),
   ]);
   const facts: TrainingSheetFacts = { ...identity, domain, records, testResults };
   const missing = missingSheetDataOf(facts);

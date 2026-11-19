@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { checkAllowedValues, checkQuotes } from './checks';
 import { proposalChoices, proposalSchema } from './proposal';
 import { type Reading, readingAnswer, toProposal } from './reading';
+import { emptyReading } from './testing';
 
 type Named = Reading['substances'][number];
 type Fact = Reading['facts'][number];
@@ -11,21 +12,11 @@ const riskEvaluation = 'Dosar/SSM/Evaluarea riscurilor.docx';
 const cleaningPlan = 'Dosar/SSM/Plan de igienizare.docx';
 const meansList = 'Dosar/PSI/Lista mijloacelor.docx';
 
-const reading = (substances: Named[], facts: Fact[] = []): Reading => ({
-  facts,
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositions: [],
-  jobPositionFacts: [],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances,
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-});
+const reading = (substances: Named[], facts: Fact[] = []): Reading =>
+  emptyReading({
+    facts,
+    substances,
+  });
 
 const named = (name: string, file: string, quote: string, otherCompany: string | null = null) => ({
   name,

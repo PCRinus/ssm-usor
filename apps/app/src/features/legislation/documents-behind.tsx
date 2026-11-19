@@ -8,12 +8,11 @@ import { CircleCheck, FileCheck2, LoaderCircle, RefreshCw, X } from 'lucide-reac
 import { useMemo, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   getGetDashboardSummaryQueryKey,
   getListDocumentsBehindQueryKey,
   useListDocumentsBehind,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason } from '@/api/http';
 import { openedHere } from '@/app/opener';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
@@ -105,9 +104,7 @@ export function DocumentsBehind({ set, userId }: { set: DocumentSet; userId: str
     } catch (cause) {
       // A start that failed part way may still have jobs running; those are followed instead.
       const following = await regenerations.followRunning(set, types).catch(() => false);
-      const alreadyRunning =
-        cause instanceof ApiHttpError &&
-        (cause.body as Partial<ApiErrorResponse> | null)?.reason === 'regeneration_running';
+      const alreadyRunning = apiErrorReason(cause) === 'regeneration_running';
       if (!following && !alreadyRunning) setFailure(regenerationFailure(cause));
     } finally {
       setConfirming(null);

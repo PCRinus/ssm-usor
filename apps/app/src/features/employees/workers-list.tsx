@@ -3,6 +3,7 @@ import { SearchX } from 'lucide-react';
 
 import { ApiHttpError } from '@/api/http';
 import { EmptyState } from '@/components/empty-state';
+import { sessionExpiredMessage } from '@/lib/api-errors';
 
 import { workerNoun } from './employee-format';
 
@@ -80,7 +81,7 @@ export function WorkersListError({
     <>
       <p data-testid={`${testId}-error`} role="alert" className="text-sm">
         {status === 401
-          ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+          ? sessionExpiredMessage
           : status === 403
             ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
             : status === 404 && notFound

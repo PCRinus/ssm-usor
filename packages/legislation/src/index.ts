@@ -47,6 +47,7 @@ export {
 export {
   type ActOutcome,
   type ChangeSeen,
+  type CheckedAct,
   checkLegislation,
   type CheckOptions,
   describeOutcome,

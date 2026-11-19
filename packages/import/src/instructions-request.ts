@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import type { CompletionRequest } from './gateway';
 import { instructionsModel } from './models';
-import { type ChatMessage, dataNotInstructions, fileHeader } from './prompts';
+import { type ChatMessage, dataNotInstructions, fileHeader, listMessage } from './prompts';
 import { type AnswerFormat, answerFormat } from './wire';
 
 export interface InstructionsTextFile {
@@ -120,10 +120,8 @@ const citationExamples: Record<InstructionDomain, string> = {
 
 const documentName: Record<InstructionDomain, string> = { ssm: 'IPSSM', su: 'IPSU' };
 
-function rulesPrompt(domain: InstructionDomain, posts: string[]) {
+function rulesPrompt(domain: InstructionDomain) {
   const name = documentName[domain];
-  const postList =
-    posts.length > 0 ? posts.map((post) => `- ${post}`).join('\n') : '(the proposal has no posts)';
   return `${instructionsRules[domain]}
 - One instruction is one entry. Its sections, such as one on a piece of equipment the post uses ("Instrucțiuni … la utilizarea feliatorului") or its own "CAPITOLUL I" headings, belong to it and are never entries of their own.
 - file: the path exactly as given. title: as its heading writes it, without the label and the number.
@@ -137,11 +135,8 @@ positions: the posts the training themes name, with the citations of the ${name}
 - The introductory-general training of the whole staff ("Întreg personalul", "Conform MISSMIG Art. 1 – 327") cites the general training material: it is never a post. The plan tables of a training ("Nr. crt. | Conținutul materialului de instruire | Planul de desfășurare") are not per post: skip them.
 - post: as written. A heading that names several posts ("Personal de execuție ( Mecanic utilaj , Operator mecanic )") gives one entry for each post it names, each with the whole citation; a category heading that names no post is the post as written.
 - variant: the words the themes add to a post to tell two of its entries apart ("FARA CONDUCERE AUTO"), "" otherwise.
-- clientPost: the client's post from the list below that the post is, written as the list writes it; "" when none is.
-- file: the themes' path; quote: a verbatim passage of it, at most 200 characters: the post's name, "…", then the citation.
-
-The client's posts:
-${postList}`;
+- clientPost: the client's post from the list in the message just after this one that the post is, written as the list writes it; "" when none is.
+- file: the themes' path; quote: a verbatim passage of it, at most 200 characters: the post's name, "…", then the citation.`;
 }
 
 export function instructionsInputCharacters(input: InstructionsRequestInput) {
@@ -149,7 +144,7 @@ export function instructionsInputCharacters(input: InstructionsRequestInput) {
 }
 
 // The files come before the task so that a repeated request ("Citește din nou") reads them from
-// the provider's cache; only the task, with the posts, changes between imports.
+// the provider's cache; only the task and the posts after it change between imports.
 export function instructionsMessages(input: InstructionsRequestInput): ChatMessage[] {
   const files = [...input.instructions, ...input.themes]
     .map((file) => `${fileHeader(file.path)}\n${file.text}`)
@@ -157,7 +152,8 @@ export function instructionsMessages(input: InstructionsRequestInput): ChatMessa
   return [
     { role: 'system', content: instructionsSystemPrompt },
     { role: 'user', content: files },
-    { role: 'system', content: rulesPrompt(input.domain, input.posts) },
+    { role: 'system', content: rulesPrompt(input.domain) },
+    listMessage("The client's posts:", input.posts, '(the proposal has no posts)'),
   ];
 }
 

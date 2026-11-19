@@ -24,12 +24,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getListFireSubstancesQueryKey,
   useCreateFireSubstance,
   useUpdateFireSubstance,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -248,7 +247,7 @@ function SubstanceForm({
       const notListed =
         cause instanceof ApiHttpError &&
         cause.status === 409 &&
-        (cause.body as Partial<ApiErrorResponse>).reason === 'substances_not_listed';
+        apiErrorReason(cause) === 'substances_not_listed';
       if (notListed) {
         await queryClient.invalidateQueries({
           queryKey: getListFireSubstancesQueryKey(clientId),

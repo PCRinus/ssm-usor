@@ -1,6 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
-  orderedCommuteMeans,
   type PortalClientEmployee,
   type PortalEmployeeData,
   type PortalMe,
@@ -16,7 +15,12 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { createPortalReadClient, type Participation, participationOf } from '../../lib/participant';
+import {
+  createPortalReadClient,
+  participantEmployee,
+  participationOf,
+} from '../../lib/participant';
+import { particularsColumns, toParticulars } from '../employees/particulars';
 import { recordSlots, requestColumns, signatureColumns } from '../signing/record-slots';
 import { testStatusColumns, toEmployeeTests } from '../tests/status';
 import {
@@ -25,7 +29,7 @@ import {
   storedSheetLink,
   trainingSheetReadiness,
 } from '../trainings/employee-sheets';
-import { toEmployeeTraining } from '../trainings/status';
+import { toEmployeeTraining, trainingStatusColumns } from '../trainings/status';
 import { toAdmission } from '../trainings/training-rows';
 import type {
   getPortalEmployeeDataRoute,
@@ -46,12 +50,10 @@ import type {
 
 // Read with the secret key: every select names its columns, so the CNP, the specialist's notes and
 // the provider's bank and terms never leave.
-const trainingStatusColumns =
-  'training_status(ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, su_state, su_due_on, su_last_periodic_on, su_interval_months, su_interval_source)';
-
 const recordColumns = `id, occupation, admitted_on, admitted_by_name, admitted_by_job_title, trainings!inner(domain, phase, held_on, duration_minutes, material, trainer_name, trainer_job_title, verifier_name, verifier_job_title, supplementary_reason, source, created_at), signature_requests!signature_requests_record_of_client(${requestColumns}), training_signatures!training_signatures_record_of_client(${signatureColumns})`;
 
-const dataColumns = `last_name, first_name, employee_number, job_title, hired_at, home_address, residence_address, birth_date, birth_place, blood_group, rh_factor, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}`;
+const dataColumns =
+  `last_name, first_name, employee_number, job_title, hired_at, residence_address, ${particularsColumns}, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}` as const;
 
 const employeeListColumns =
   `id, last_name, first_name, job_positions(name), client_workplaces!employees_workplace_in_client(name), ${trainingStatusColumns}, ${testStatusColumns}` as const;
@@ -60,13 +62,6 @@ const responsiblePersonColumns =
   'id, full_name, job_title, roles, employee_id, client_workplaces!client_responsible_persons_workplace_of_client(name)';
 
 type EmployeeRef = { clientId: string; employeeId: string };
-
-function ownEmployee(participation: Participation): EmployeeRef {
-  if (!participation.employeeId) {
-    throw new ApiError('not_found', 'This participant is not an employee of the client.');
-  }
-  return { clientId: participation.clientId, employeeId: participation.employeeId };
-}
 
 // The reads take the secret key, so this is the only check between an employee participant and
 // the rest of the client's employees.
@@ -220,7 +215,7 @@ export const listPortalTrainingRecords: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId } = c.req.valid('param');
-  const employee = ownEmployee(participationOf(c, participantId));
+  const employee = participantEmployee(participationOf(c, participantId));
   return c.json(await trainingRecords(createPortalReadClient(c), employee), 200);
 };
 
@@ -230,7 +225,7 @@ export const getPortalEmployeeData: RouteHandler<
 > = async (c) => {
   const { participantId } = c.req.valid('param');
   const participation = participationOf(c, participantId);
-  const { clientId, employeeId } = ownEmployee(participation);
+  const { clientId, employeeId } = participantEmployee(participation);
   const db = createPortalReadClient(c);
   const [employee, organization] = await Promise.all([
     db
@@ -255,19 +250,8 @@ export const getPortalEmployeeData: RouteHandler<
         position: row.job_positions.name,
         workplace: row.client_workplaces?.name ?? null,
         hiredAt: row.hired_at,
-        homeAddress: row.home_address,
         residenceAddress: row.residence_address,
-        birthDate: row.birth_date,
-        birthPlace: row.birth_place,
-        bloodGroup: row.blood_group as PortalEmployeeData['employee']['bloodGroup'],
-        rhFactor: row.rh_factor as PortalEmployeeData['employee']['rhFactor'],
-        qualification: row.qualification,
-        education: row.education,
-        authorizations: row.authorizations,
-        commuteRoute: row.commute_route,
-        commuteMeans: orderedCommuteMeans(row.commute_means),
-        commuteMeansOther: row.commute_means_other,
-        commuteMinutes: row.commute_minutes,
+        ...toParticulars(row),
       },
       training: toEmployeeTraining(row.training_status),
       client: { name: participation.clientName },
@@ -282,7 +266,7 @@ export const getPortalTrainingSheets: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { participantId } = c.req.valid('param');
-  return c.json(await sheets(c, ownEmployee(participationOf(c, participantId))), 200);
+  return c.json(await sheets(c, participantEmployee(participationOf(c, participantId))), 200);
 };
 
 export const getPortalTrainingSheet: RouteHandler<
@@ -291,7 +275,12 @@ export const getPortalTrainingSheet: RouteHandler<
 > = async (c) => {
   const { participantId, domain } = c.req.valid('param');
   const { sequence } = c.req.valid('query');
-  const drawn = await sheet(c, ownEmployee(participationOf(c, participantId)), domain, sequence);
+  const drawn = await sheet(
+    c,
+    participantEmployee(participationOf(c, participantId)),
+    domain,
+    sequence
+  );
   if ('missing' in drawn) return c.json(missingSheetDataResponse(drawn.missing), 409);
   return c.body(new Uint8Array(drawn.pdf), 200, {
     'Content-Type': 'application/pdf',
@@ -376,7 +365,7 @@ export const getPortalTrainingSheetLink: RouteHandler<
 > = async (c) => {
   const { participantId, domain } = c.req.valid('param');
   const { sequence } = c.req.valid('query');
-  const employee = ownEmployee(participationOf(c, participantId));
+  const employee = participantEmployee(participationOf(c, participantId));
   return c.json(
     await storedSheetLink(c, createPortalReadClient(c), { ...employee, domain, sequence }),
     200

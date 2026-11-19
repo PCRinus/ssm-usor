@@ -17,25 +17,21 @@ const resolvedChangeSchema = z.object({
   consolidatedOn: z.iso.date(),
 });
 
-export const manifestSchema = z.object({
-  templates: z.array(
-    z.object({
-      // Absent on a per-employee sheet (ADR 021), which is registered but never part of a set.
-      number: z.string().optional(),
-      perEmployee: z.literal(true).optional(),
-      typeKey: z.string().regex(/^[a-z][a-z0-9_]{1,59}$/),
-      title: z.string().min(2).max(200),
-      file: z.string().endsWith('.docx'),
-      change: z.object({
-        kind: templateVersionKindSchema,
-        note: z.string().trim().min(2).max(500),
-        resolves: z
-          .union([resolvedChangeSchema, z.array(resolvedChangeSchema).min(1)])
-          .transform((value) => (Array.isArray(value) ? value : [value]))
-          .optional(),
-      }),
-    })
-  ),
+export const manifestEntrySchema = z.object({
+  // Absent on a per-employee sheet (ADR 021), which is registered but never part of a set.
+  number: z.string().optional(),
+  perEmployee: z.literal(true).optional(),
+  typeKey: z.string().regex(/^[a-z][a-z0-9_]{1,59}$/),
+  title: z.string().min(2).max(200),
+  file: z.string().endsWith('.docx'),
+  change: z.object({
+    kind: templateVersionKindSchema,
+    note: z.string().trim().min(2).max(500),
+    resolves: z
+      .union([resolvedChangeSchema, z.array(resolvedChangeSchema).min(1)])
+      .transform((value) => (Array.isArray(value) ? value : [value]))
+      .optional(),
+  }),
 });
 
 export type TemplateFile = {

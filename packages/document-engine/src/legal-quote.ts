@@ -4,21 +4,19 @@ import { fileURLToPath } from 'node:url';
 
 import PizZip from 'pizzip';
 
-import { type PatchProblem, patchQuote, type QuotePatch } from '../src/quote-patch';
+import { type PatchProblem, patchQuote, type QuotePatch } from './quote-patch';
 import {
   applyQuotePlan,
   type QuoteReplacement,
   type QuoteReplacementSummary,
   replaceQuote,
   summaryMarkdown,
-} from '../src/quote-replacement';
-import {
-  nextTemplateChange,
-  type TemplateChange,
-  templateChangeProblems,
-} from '../src/template-change';
-import { decode, paragraphsOf } from '../src/text';
-import { buildCitationIndex, serializeIndex, templateSources } from './template-sources';
+} from './quote-replacement';
+import { nextTemplateChange, type TemplateChange, templateChangeProblems } from './template-change';
+import { buildCitationIndex, serializeIndex, templateSources } from './template-store';
+import { decode, paragraphsOf } from './text';
+
+export type { LineChange } from './quote-replacement';
 
 interface LegalChange {
   /** The manifest entry of every template the change reaches; left as it is without one. */
@@ -44,6 +42,9 @@ export type LegalQuoteResult =
   | { status: 'needs-review'; problems: PatchProblem[]; markdown: string }
   /** The law changed only what the quote does not hold: nothing was written. */
   | { status: 'nothing-to-apply'; notes: string[]; markdown: string };
+
+/** The change cannot join the one the template's entry holds since the last release. */
+export class PendingChangeError extends Error {}
 
 /** A manifest's text at the last release, by its path in the templates folder; null if absent. */
 export type ReleasedManifest = (path: string) => string | null;
@@ -105,7 +106,7 @@ interface CopiedPassage {
   last: string;
 }
 
-const dictionaryUrl = new URL('import/wording.ro.json', import.meta.url);
+const dictionaryUrl = new URL('../tools/import/wording.ro.json', import.meta.url);
 
 const documentXml = (source: Uint8Array) =>
   new PizZip(source).file('word/document.xml')?.asText() ?? '';
@@ -364,7 +365,9 @@ export function replaceLegalQuote(
     const next = changeOf(manifests, released, path, change!);
     const problems = templateChangeProblems(next.change, actIds);
     if (problems.length) {
-      throw new Error(`${path}: the change joined to the pending one: ${problems.join('; ')}.`);
+      throw new PendingChangeError(
+        `${path}: the change joined to the pending one: ${problems.join('; ')}.`
+      );
     }
     manifests.set(manifest, recordChange(manifests.get(manifest)!, next.name, next.change));
   }

@@ -5,13 +5,12 @@ import { getRouteApi, useRouteContext } from '@tanstack/react-router';
 import { type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   type ContractReturnResponse,
   downloadContractReturn,
   lookupContractReturn,
   useUploadContractReturn,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { PublicFrame } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
@@ -137,8 +136,7 @@ export function ContractReturnPage() {
 }
 
 function uploadMessage(cause: unknown) {
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  if (body?.reason === 'return_link_too_many_uploads') {
+  if (apiErrorReason(cause) === 'return_link_too_many_uploads') {
     return 'Acest link a primit deja prea multe fișiere. Scrieți persoanei care v-a trimis contractul.';
   }
   if (cause instanceof ApiHttpError && cause.status === 400) {
@@ -203,8 +201,7 @@ function ReturnForm({
       onDone();
     } catch (cause) {
       if (cause instanceof ApiHttpError && cause.status === 409) {
-        const body = cause.body as Partial<ApiErrorResponse>;
-        if (body.reason === 'return_link_closed') return onChanged();
+        if (apiErrorReason(cause) === 'return_link_closed') return onChanged();
       }
       setError(uploadMessage(cause));
     }

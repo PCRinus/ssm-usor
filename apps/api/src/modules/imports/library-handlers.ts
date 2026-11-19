@@ -36,7 +36,15 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { creditsStore } from '../credits/store';
 import { storeRiskLevels } from '../evaluation-profiles/stored-risk-levels';
-import { existingRecords, findImport, queueEnded, storedChanges, storedProposal } from './handlers';
+import {
+  adminImportStore,
+  existingRecords,
+  findImport,
+  modelUsageOf,
+  queueEnded,
+  storedChanges,
+  storedProposal,
+} from './import-queries';
 import { clientPeople, libraryPartExpiry, libraryReasons, riskReasons } from './library';
 import { toClientPayload } from './payload';
 import { describe } from './pipeline';
@@ -54,7 +62,7 @@ import type {
   retryImportLibraryPartRoute,
   saveImportLibraryPartChangesRoute,
 } from './routes';
-import { missingImportSettings } from './settings';
+import { requireImportService } from './settings';
 import { importStore } from './store';
 
 type PartRow = Pick<
@@ -223,13 +231,6 @@ const defaultPosts = (
   ...new Set(instruction.posts.flatMap((key) => (positionPosts[key] ? [positionPosts[key]] : []))),
 ];
 
-const usageOf = (part: PartRow) => ({
-  costUsd: Number(part.cost_usd ?? 0),
-  inputTokens: Number(part.input_tokens ?? 0),
-  cachedInputTokens: Number(part.cached_input_tokens ?? 0),
-  outputTokens: Number(part.output_tokens ?? 0),
-});
-
 async function creditsByPart(c: Context<ApiEnv>, importId: string) {
   const entries = await creditsStore(createAdminClient(c)).importEntries([importId]);
   const credits = new Map<string, number>();
@@ -262,7 +263,7 @@ function present(
     confirmedAt: part.confirmed_at,
     expiresAt: row.status === 'confirmed' ? libraryPartExpiry(row.confirmed_at) : null,
     credits: Math.max(0, credits.get(part.part) ?? 0),
-    ...(adminToolsAllowed(c) ? { usage: usageOf(part) } : {}),
+    ...(adminToolsAllowed(c) ? { usage: modelUsageOf(part) } : {}),
   };
   if (!isInstructionsPart(part.part)) {
     const proposal = storedRisks(part.proposal);
@@ -824,16 +825,7 @@ export const retryImportLibraryPart: RouteHandler<
   ApiEnv
 > = async (c) => {
   const { importId, part } = c.req.valid('param');
-  const missing = missingImportSettings(c.env);
-  if (missing.length > 0) {
-    console.error(`Imports are not configured: missing ${missing.join(', ')}.`);
-    throw new ApiError(
-      'service_unavailable',
-      'Importul din documente nu este disponibil acum.',
-      undefined,
-      importErrorReasons.unavailable
-    );
-  }
+  const queue = requireImportService(c);
   const db = createDataClient(c);
   const { data: attempt, error } = await db.rpc('retry_import_library_part', {
     p_import_id: importId,
@@ -841,7 +833,7 @@ export const retryImportLibraryPart: RouteHandler<
   });
   if (error) throw partError(error, 'retry library part');
   try {
-    await c.env.IMPORT_QUEUE!.send(
+    await queue.send(
       isInstructionsPart(part)
         ? { type: 'read-instructions', importId, part, attempt }
         : { type: 'read-risks', importId, attempt }
@@ -850,17 +842,15 @@ export const retryImportLibraryPart: RouteHandler<
     console.error(
       `Library part ${part} of import ${importId} was not queued: ${describe(failure)}`
     );
-    await createAdminClient(c)
-      .from('import_library_parts')
-      .update({
+    await adminImportStore(c)
+      .updateLibraryPart(importId, part, attempt, {
         status: 'failed',
         failure_reason: isInstructionsPart(part) ? libraryReasons.failed : riskReasons.failed,
         failed_at: new Date().toISOString(),
       })
-      .eq('import_id', importId)
-      .eq('part', part)
-      .eq('attempt', attempt)
-      .eq('status', 'reading');
+      .catch((undo: unknown) =>
+        console.error(`Library part ${part} of import ${importId} stays reading: ${describe(undo)}`)
+      );
     throw new ApiError('service_unavailable', undefined, undefined, importErrorReasons.unavailable);
   }
   const row = await findImport(db, importId);

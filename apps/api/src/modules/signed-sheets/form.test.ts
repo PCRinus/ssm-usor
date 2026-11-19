@@ -8,6 +8,7 @@ import {
   transcriptionLineField,
 } from '@ssm-usor/contracts';
 import { renderDocument } from '@ssm-usor/document-engine';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
@@ -282,7 +283,6 @@ describe('wrapToBox', () => {
   });
 });
 
-const templates = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 const templateFiles: Record<TrainingDomain, string> = {
   ssm: 'fisa_instruire_ssm.docx',
   su: 'fire/fisa_instructaj_su.docx',
@@ -291,7 +291,7 @@ const templateFiles: Record<TrainingDomain, string> = {
 describe.each(['ssm', 'su'] as const)('the %s template', (domain) => {
   it('has a field for every name of the contracts, and no other', () => {
     const docx = renderDocument(
-      new Uint8Array(readFileSync(new URL(templateFiles[domain], templates))),
+      new Uint8Array(readFileSync(new URL(templateFiles[domain], templatesUrl))),
       signedSheetData(sheetFacts, domain, 1, [])
     );
     const titles = [

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
@@ -12,7 +13,6 @@ import {
 // The training themes cite chapters of 3.2, 2.2 and the IPSU as article ranges written into the
 // code and the 4.2 template (ADR 014, ADR 019); an article added to any of them moves them.
 
-const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
 const fireOwnInstructions = 'fire/2.1_fire_own_instructions.docx';
 
 function documentXml(file: string) {

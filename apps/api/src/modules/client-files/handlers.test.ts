@@ -429,6 +429,54 @@ describe('POST /clients/{clientId}/files', () => {
     expect((await upload({ fileName: 'mare.pdf' }, bytes.subarray(0, -1))).status).toBe(201);
   });
 
+  it('refuses a body past 25 MiB before reading it, by its length or as it streams in', async () => {
+    mockUpstream();
+    const tooLarge = 25 * 1024 * 1024 + 1;
+    const declared = await apiRequest(
+      `/clients/${clientId}/files?fileName=mare.pdf`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': `${tooLarge}` },
+        body: pdf,
+      },
+      env
+    );
+    const chunk = new Uint8Array(1024 * 1024);
+    chunk.set(pdf);
+    let sent = 0;
+    let readPastLimit = false;
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          if (sent > tooLarge) {
+            readPastLimit = true;
+            controller.error(new Error('The body was read past the limit.'));
+            return;
+          }
+          sent += chunk.byteLength;
+          controller.enqueue(chunk);
+        },
+      },
+      { highWaterMark: 0 }
+    );
+    const streamed = await apiRequest(
+      `/clients/${clientId}/files?fileName=mare.pdf`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body,
+        duplex: 'half',
+      } as RequestInit,
+      env
+    );
+    expect(readPastLimit).toBe(false);
+    for (const response of [declared, streamed]) {
+      expect(response.status).toBe(400);
+      expect(await reasonOf(response)).toBe('client_file_too_large');
+    }
+    expect(calls('/rest/v1/clients', 'GET')).toHaveLength(0);
+  });
+
   it('keeps a file for owners only only when an owner asks', async () => {
     mockUpstream();
     expect((await upload({ fileName: 'oferta.pdf', ownersOnly: 'true' }, pdf)).status).toBe(403);
