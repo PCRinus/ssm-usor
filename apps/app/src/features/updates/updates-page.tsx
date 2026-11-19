@@ -1,11 +1,19 @@
 import { Button } from '@ssm-usor/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@ssm-usor/ui/components/dropdown-menu';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link } from '@tanstack/react-router';
-import { Sparkles } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { ChevronDown, ChevronLeft, ChevronRight, Megaphone } from 'lucide-react';
 
 import type { Release } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
+import { HelpLink } from '@/components/help-link';
 
 import { InlineMarkdown } from './inline-markdown';
 import {
@@ -15,6 +23,8 @@ import {
   formatReleaseWeekday,
   improvementCount,
   newCount,
+  releaseMonthKey,
+  unreadCount as unreadLabel,
 } from './release-format';
 import { useAcknowledgeReleases, useReleases } from './use-releases';
 
@@ -32,15 +42,83 @@ function chipsOf(release: Release) {
   ].filter((chip) => chip.count > 0);
 }
 
+type MonthGroup = { key: string; month: string; releases: Release[]; unread: number };
+
 function byMonth(releases: Release[]) {
-  const groups: { month: string; releases: Release[] }[] = [];
+  const groups: MonthGroup[] = [];
   for (const release of releases) {
-    const month = formatReleaseMonth(release.publishedAt);
-    const last = groups.at(-1);
-    if (last?.month === month) last.releases.push(release);
-    else groups.push({ month, releases: [release] });
+    const key = releaseMonthKey(release.publishedAt);
+    let group = groups.at(-1);
+    if (group?.key !== key) {
+      group = { key, month: formatReleaseMonth(release.publishedAt), releases: [], unread: 0 };
+      groups.push(group);
+    }
+    group.releases.push(release);
+    if (release.unread) group.unread += 1;
   }
   return groups;
+}
+
+function UnreadPill({ count }: { count: number }) {
+  return (
+    <span className="shrink-0 rounded-full bg-brand-lime px-2 py-0.5 text-xs font-semibold text-foreground">
+      {unreadLabel(count)}
+    </span>
+  );
+}
+
+function MonthPicker({ months, shown }: { months: MonthGroup[]; shown: MonthGroup }) {
+  const navigate = useNavigate();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          data-testid="updates-month-picker"
+          variant="outline"
+          className="h-10 rounded-[10px] max-sm:h-11"
+        >
+          {shown.month}
+          <ChevronDown aria-hidden="true" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-56">
+        <DropdownMenuRadioGroup
+          value={shown.key}
+          onValueChange={(key) => void navigate({ to: '/actualizari', search: { luna: key } })}
+        >
+          {months.map((group) => (
+            <DropdownMenuRadioItem
+              key={group.key}
+              value={group.key}
+              data-testid="updates-month-option"
+              className="justify-between gap-4 py-2"
+            >
+              {group.month}
+              {group.unread > 0 && <UnreadPill count={group.unread} />}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function MonthLink({ group, direction }: { group: MonthGroup; direction: 'newer' | 'older' }) {
+  return (
+    <Button variant="outline" asChild className="h-10 rounded-[10px] max-sm:h-11">
+      <Link
+        to="/actualizari"
+        search={{ luna: group.key }}
+        data-testid={direction === 'newer' ? 'updates-newer-month' : 'updates-older-month'}
+        className={direction === 'older' ? 'ml-auto' : undefined}
+      >
+        {direction === 'newer' && <ChevronLeft aria-hidden="true" />}
+        {group.month}
+        {group.unread > 0 && <UnreadPill count={group.unread} />}
+        {direction === 'older' && <ChevronRight aria-hidden="true" />}
+      </Link>
+    </Button>
+  );
 }
 
 function ReleaseRow({ release, last }: { release: Release; last: boolean }) {
@@ -107,50 +185,69 @@ function ReleaseRow({ release, last }: { release: Release; last: boolean }) {
   );
 }
 
-export function UpdatesPage() {
+export function UpdatesPage({ month }: { month?: string }) {
   const { releases, unreadCount } = useReleases();
   const { acknowledge, pending } = useAcknowledgeReleases();
+  const months = byMonth(releases);
+  const index = Math.max(
+    0,
+    months.findIndex((group) => group.key === month)
+  );
+  const shown = months[index];
+  const newer = months[index - 1];
+  const older = months[index + 1];
   const oldest = releases.at(-1);
 
   return (
     <div data-testid="updates-page" className="mx-auto grid w-full max-w-[860px] gap-5 sm:gap-7">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1.5">
-        <div className="grid max-w-[560px] gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex items-center gap-1.5">
           <h1 className="text-[26px] font-bold tracking-[-0.02em] sm:text-[28px]">Actualizări</h1>
-          <p className="text-[15px] leading-[1.55] text-release-body">
-            Ce s-a schimbat în SSM Ușor, de la cea mai nouă versiune la prima.
-          </p>
+          <HelpLink topic="actualizari.lista" label="Ajutor: Actualizări" />
         </div>
-        {unreadCount > 0 && (
-          <Button
-            data-testid="updates-acknowledge-all"
-            variant="outline"
-            disabled={pending}
-            onClick={() => acknowledge()}
-            className="h-10 rounded-[10px] max-sm:h-11 max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:font-semibold max-sm:underline max-sm:underline-offset-[3px] max-sm:shadow-none"
-          >
-            Marchează toate ca citite
-          </Button>
+        {shown && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {unreadCount > 0 && (
+              <Button
+                data-testid="updates-acknowledge-all"
+                variant="outline"
+                disabled={pending}
+                onClick={() => acknowledge()}
+                className="h-10 rounded-[10px] max-sm:order-last max-sm:h-11 max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:font-semibold max-sm:underline max-sm:underline-offset-[3px] max-sm:shadow-none"
+              >
+                Marchează toate ca citite
+              </Button>
+            )}
+            <MonthPicker months={months} shown={shown} />
+          </div>
         )}
       </div>
 
-      {releases.length === 0 ? (
-        <EmptyState icon={Sparkles} className="py-10" data-testid="updates-empty">
+      {!shown ? (
+        <EmptyState icon={Megaphone} className="py-10" data-testid="updates-empty">
           Nicio actualizare încă.
         </EmptyState>
       ) : (
         <>
-          {byMonth(releases).map((group) => (
-            <section key={group.month} data-testid="release-month">
-              <h2 className="mb-3 text-[15px] font-semibold text-release-body">{group.month}</h2>
-              <ol>
-                {group.releases.map((release) => (
-                  <ReleaseRow key={release.tag} release={release} last={release === oldest} />
-                ))}
-              </ol>
-            </section>
-          ))}
-          {oldest && (
+          <section data-testid="release-month">
+            <h2 className="mb-3 text-[15px] font-semibold text-release-body">{shown.month}</h2>
+            <ol>
+              {shown.releases.map((release) => (
+                <ReleaseRow
+                  key={release.tag}
+                  release={release}
+                  last={release === shown.releases.at(-1)}
+                />
+              ))}
+            </ol>
+          </section>
+          {(newer || older) && (
+            <nav aria-label="Alte luni" className="flex flex-wrap gap-3">
+              {newer && <MonthLink group={newer} direction="newer" />}
+              {older && <MonthLink group={older} direction="older" />}
+            </nav>
+          )}
+          {!older && oldest && (
             <p className="text-sm leading-normal text-muted-foreground">
               Acestea sunt toate versiunile. Prima a fost publicată pe{' '}
               {formatReleaseDay(oldest.publishedAt)}.

@@ -12,6 +12,7 @@ import type { ApiEnv } from '../../lib/env';
 import { openApiConfig } from '../../lib/openapi';
 import { apiRequest, testAccessToken } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   membershipRow,
   mockUpstream as mockSignedInUpstream,
@@ -20,6 +21,7 @@ import {
   testSecretKey,
   testUser as user,
   type UpstreamCall,
+  upstreamCalls,
 } from '../../test/upstream';
 
 const env = testEnv({
@@ -115,9 +117,6 @@ function mockUpstream(
   });
 }
 
-const calls = (pathname: string) =>
-  fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
-
 const request = (
   path: string,
   init: RequestInit = {},
@@ -205,12 +204,12 @@ describe('GET /clients', () => {
       ],
       unfilteredTotal: 1,
     });
-    const [rpcUrl, rpcInit] = calls('/rest/v1/rpc/current_membership')[0]!;
-    expect(new URL(String(rpcUrl)).origin).toBe('https://example.supabase.co');
+    const { url: rpcUrl, init: rpcInit } = callsTo('/rest/v1/rpc/current_membership')[0]!;
+    expect(rpcUrl.origin).toBe('https://example.supabase.co');
     expect(new Headers(rpcInit?.headers).get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(new Headers(rpcInit?.headers).get('apikey')).toBe(env.SUPABASE_PUBLISHABLE_KEY);
-    const [listUrl, listInit] = calls('/rest/v1/client_list')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
+    const { url: listUrl, init: listInit } = callsTo('/rest/v1/client_list')[0]!;
+    const query = listUrl.searchParams;
     expect(query.get('archived_at')).toBe('is.null');
     expect(query.get('stage')).toBe('eq.client');
     expect(query.get('order')).toBe('legal_name.asc,id.asc');
@@ -220,7 +219,7 @@ describe('GET /clients', () => {
     expect(headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     expect(headers.get('Prefer')).toContain('count=exact');
     expect(listInit?.signal).toBeInstanceOf(AbortSignal);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
@@ -230,8 +229,8 @@ describe('GET /clients', () => {
     const response = await request('/clients?page=2&sort=currentEmployeeCount&order=desc');
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ page: 2, pageSize: 25, total: 26 });
-    const [listUrl] = calls('/rest/v1/client_list')[0]!;
-    const query = new URL(String(listUrl)).searchParams;
+    const { url: listUrl } = callsTo('/rest/v1/client_list')[0]!;
+    const query = listUrl.searchParams;
     expect(query.get('order')).toBe('current_employee_count.desc,legal_name.desc,id.asc');
     expect(query.get('offset')).toBe('25');
   });
@@ -255,8 +254,8 @@ describe('GET /clients', () => {
   ])('sorts by %s %s through the computed fields', async (sort, order, expected) => {
     mockUpstream({});
     expect((await request(`/clients?sort=${sort}&order=${order}`)).status).toBe(200);
-    const [listUrl] = calls('/rest/v1/client_list')[0]!;
-    expect(new URL(String(listUrl)).searchParams.get('order')).toBe(expected);
+    const { url: listUrl } = callsTo('/rest/v1/client_list')[0]!;
+    expect(listUrl.searchParams.get('order')).toBe(expected);
   });
 
   const itemOf = async (row: Record<string, unknown>) => {
@@ -285,17 +284,15 @@ describe('GET /clients', () => {
 
   it('reads no participants: the list counts the signing annex itself', async () => {
     await itemOf({});
-    expect(calls('/rest/v1/client_participants')).toHaveLength(0);
-    expect(calls('/rest/v1/participant_invitations')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_participants')).toHaveLength(0);
+    expect(callsTo('/rest/v1/participant_invitations')).toHaveLength(0);
   });
 
   it('matches every search term in the name, CUI and locality, without legal forms or RO', async () => {
     mockUpstream({});
     await request(`/clients?q=${encodeURIComponent('S.C. Alfa Bacău RO1590082 S.R.L.')}`);
     await request(`/clients?q=${encodeURIComponent('RO 15 900 82')}`);
-    const [named, cui] = calls('/rest/v1/client_list').map(
-      ([url]) => new URL(String(url)).searchParams
-    );
+    const [named, cui] = callsTo('/rest/v1/client_list').map(({ url }) => url.searchParams);
     expect(named!.getAll('search_text')).toEqual([
       'ilike.*alfa*',
       'ilike.*bacau*',
@@ -307,7 +304,7 @@ describe('GET /clients', () => {
   it('searches the leads by the same text, and never by their contact', async () => {
     mockUpstream({});
     await request('/clients?stage=lead&q=alfa');
-    const query = new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/lead_list')[0]!.url.searchParams;
     expect(query.get('search_text')).toBe('ilike.*alfa*');
     expect([...query.keys()].some((key) => key.startsWith('contact_'))).toBe(false);
   });
@@ -318,7 +315,7 @@ describe('GET /clients', () => {
       '/clients?documentation=none&documentation=in_progress&fireSafetyDocumentation=issued&training=untrained&training=current&attention=documentsBehind&attention=missingBasicData&attention=signaturesPending&attention=testsPending&county=CJ&county=BH&contract=endingWithin60Days'
     );
     expect(response.status).toBe(200);
-    const query = new URL(String(calls('/rest/v1/client_list')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/client_list')[0]!.url.searchParams;
     expect(query.get('documentation_state')).toBe('in.(none,in_progress)');
     expect(query.get('fire_safety_state')).toBe('in.(issued)');
     expect(query.getAll('or')).toEqual([
@@ -344,8 +341,8 @@ describe('GET /clients', () => {
     const response = await request('/clients?county=CJ');
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ total: 1, unfilteredTotal: 80 });
-    const [countUrl, countInit] = calls('/rest/v1/clients')[0]!;
-    const count = new URL(String(countUrl)).searchParams;
+    const { url: countUrl, init: countInit } = callsTo('/rest/v1/clients')[0]!;
+    const count = countUrl.searchParams;
     expect(countInit?.method).toBe('HEAD');
     expect(count.get('stage')).toBe('eq.client');
     expect(count.get('archived_at')).toBe('is.null');
@@ -356,14 +353,14 @@ describe('GET /clients', () => {
     mockUpstream({});
     expect((await request('/clients?stage=lead&county=CJ')).status).toBe(400);
     expect((await request('/clients?stage=lead&contract=endingWithin60Days')).status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
-    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/lead_list')).toHaveLength(0);
 
     fetchMock.mockClear();
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     const refused = await request('/clients?contract=endingWithin60Days');
     expect(refused.status).toBe(403);
-    expect(calls('/rest/v1/client_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_list')).toHaveLength(0);
     expect((await request('/clients?county=CJ&training=due')).status).toBe(200);
   });
 
@@ -372,7 +369,7 @@ describe('GET /clients', () => {
     async (search) => {
       mockUpstream({});
       expect((await request(`/clients?${search}`)).status).toBe(400);
-      expect(calls('/rest/v1/client_list')).toHaveLength(0);
+      expect(callsTo('/rest/v1/client_list')).toHaveLength(0);
     }
   );
 
@@ -396,10 +393,10 @@ describe('GET /clients', () => {
       total: 3,
       unfilteredTotal: 3,
     });
-    expect(calls('/rest/v1/client_list')).toHaveLength(2);
-    const [recountUrl, recountInit] = calls('/rest/v1/client_list')[1]!;
+    expect(callsTo('/rest/v1/client_list')).toHaveLength(2);
+    const { url: recountUrl, init: recountInit } = callsTo('/rest/v1/client_list')[1]!;
     expect(recountInit?.method).toBe('HEAD');
-    expect(new URL(String(recountUrl)).searchParams.get('select')).toBe('id');
+    expect(recountUrl.searchParams.get('select')).toBe('id');
   });
 
   it.each([
@@ -412,7 +409,7 @@ describe('GET /clients', () => {
   ])('refuses to sort leads by %s, which only a client has', async (sort) => {
     mockUpstream({});
     expect((await request(`/clients?stage=lead&sort=${sort}`)).status).toBe(400);
-    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/lead_list')).toHaveLength(0);
   });
 
   it.each(['declaredEmployeeCount', 'serviceContractState', 'createdAt'])(
@@ -420,7 +417,7 @@ describe('GET /clients', () => {
     async (sort) => {
       mockUpstream({});
       expect((await request(`/clients?sort=${sort}`)).status).toBe(400);
-      expect(calls('/rest/v1/client_list')).toHaveLength(0);
+      expect(callsTo('/rest/v1/client_list')).toHaveLength(0);
     }
   );
 
@@ -446,8 +443,8 @@ describe('GET /clients', () => {
   ])('sorts leads by %s %s', async (sort, order, expected) => {
     mockUpstream({});
     expect((await request(`/clients?stage=lead&sort=${sort}&order=${order}`)).status).toBe(200);
-    const [listUrl] = calls('/rest/v1/lead_list')[0]!;
-    expect(new URL(String(listUrl)).searchParams.get('order')).toBe(expected);
+    const { url: listUrl } = callsTo('/rest/v1/lead_list')[0]!;
+    expect(listUrl.searchParams.get('order')).toBe(expected);
   });
 
   it('filters the leads by any of the contract states chosen, and only the leads', async () => {
@@ -464,12 +461,12 @@ describe('GET /clients', () => {
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ total: 1, unfilteredTotal: 18 });
-    const query = new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/lead_list')[0]!.url.searchParams;
     expect(query.get('service_contract_state')).toBe('in.(sent,received)');
     expect(query.get('search_text')).toBe('ilike.*alfa*');
     expect(query.get('archived_at')).toBe('is.null');
-    const [countUrl] = calls('/rest/v1/clients')[0]!;
-    const count = new URL(String(countUrl)).searchParams;
+    const { url: countUrl } = callsTo('/rest/v1/clients')[0]!;
+    const count = countUrl.searchParams;
     expect(count.get('stage')).toBe('eq.lead');
     expect(count.get('service_contract_state')).toBeNull();
 
@@ -477,8 +474,8 @@ describe('GET /clients', () => {
     mockUpstream({});
     expect((await request('/clients?contractState=sent')).status).toBe(400);
     expect((await request('/clients?stage=lead&contractState=refused')).status).toBe(400);
-    expect(calls('/rest/v1/client_list')).toHaveLength(0);
-    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/lead_list')).toHaveLength(0);
   });
 
   it('counts the filtered leads again for a page past the end', async () => {
@@ -495,8 +492,8 @@ describe('GET /clients', () => {
     });
     const response = await request('/clients?stage=lead&page=3&contractState=signed');
     expect(await response.json()).toMatchObject({ items: [], total: 4, unfilteredTotal: 18 });
-    const [recountUrl, recountInit] = calls('/rest/v1/lead_list')[1]!;
-    const recount = new URL(String(recountUrl)).searchParams;
+    const { url: recountUrl, init: recountInit } = callsTo('/rest/v1/lead_list')[1]!;
+    const recount = recountUrl.searchParams;
     expect(recountInit?.method).toBe('HEAD');
     expect(recount.get('select')).toBe('id');
     expect(recount.get('service_contract_state')).toBe('in.(signed)');
@@ -505,7 +502,7 @@ describe('GET /clients', () => {
   it('reads no contract for a client', async () => {
     mockUpstream({});
     await request('/clients');
-    const select = new URL(String(calls('/rest/v1/client_list')[0]![0])).searchParams.get('select');
+    const select = callsTo('/rest/v1/client_list')[0]!.url.searchParams.get('select');
     expect(select).toContain('fire_safety_issued_count');
     expect(select).toContain('training_attention_count');
     expect(select).not.toContain('client_documents');
@@ -518,9 +515,9 @@ describe('GET /clients', () => {
     const body = clientListResponseSchema.parse(
       await (await request('/clients?stage=lead')).json()
     );
-    expect(
-      new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams.get('select')
-    ).not.toContain('documentation_issued_count');
+    expect(callsTo('/rest/v1/lead_list')[0]!.url.searchParams.get('select')).not.toContain(
+      'documentation_issued_count'
+    );
     expect(body.items[0]).toMatchObject({
       serviceContractState: 'none',
       serviceContractStateAt: null,
@@ -537,16 +534,16 @@ describe('GET /clients', () => {
     async (search) => {
       mockUpstream({});
       expect((await request(`/clients?${search}`)).status).toBe(400);
-      expect(calls('/rest/v1/clients')).toHaveLength(0);
-      expect(calls('/rest/v1/client_list')).toHaveLength(0);
+      expect(callsTo('/rest/v1/clients')).toHaveLength(0);
+      expect(callsTo('/rest/v1/client_list')).toHaveLength(0);
     }
   );
 
   it('lists the archived clients instead when asked', async () => {
     mockUpstream({});
     expect((await request('/clients?status=archived')).status).toBe(200);
-    const [url] = calls('/rest/v1/client_list')[0]!;
-    expect(new URL(String(url)).searchParams.get('archived_at')).toBe('not.is.null');
+    const { url } = callsTo('/rest/v1/client_list')[0]!;
+    expect(url.searchParams.get('archived_at')).toBe('not.is.null');
     expect((await request('/clients?status=all')).status).toBe(400);
   });
 
@@ -574,21 +571,21 @@ describe('GET /clients', () => {
   it('lists the leads instead for an owner, and tells anyone else why not', async () => {
     mockUpstream({});
     expect((await request('/clients?stage=lead')).status).toBe(200);
-    const query = new URL(String(calls('/rest/v1/lead_list')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/lead_list')[0]!.url.searchParams;
     expect(query.get('stage')).toBeNull();
     expect(query.get('order')).toBe('legal_name.asc,id.asc');
     expect(query.get('select')).toContain(
       'service_contract_state,service_contract_state_at,service_contract_return_expires_at'
     );
-    expect(calls('/rest/v1/client_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_list')).toHaveLength(0);
 
     fetchMock.mockClear();
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     for (const search of ['stage=lead', 'stage=lead&contractState=sent']) {
       expect((await request(`/clients?${search}`)).status).toBe(403);
     }
-    expect(calls('/rest/v1/lead_list')).toHaveLength(0);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/lead_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('says where the contract of a lead stands, since when, and until when its link works', async () => {
@@ -630,8 +627,8 @@ describe('GET /clients', () => {
     const response = await request('/clients');
     expect(response.status).toBe(403);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
-    expect(calls('/rest/v1/client_list')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_list')).toHaveLength(0);
   });
 
   it('reports a database outage as unavailable without details', async () => {
@@ -667,8 +664,8 @@ describe('GET /clients/{clientId}', () => {
     const { client } = clientResponseSchema.parse(await response.json());
     expect(client.id).toBe(clientRow.id);
     expect(client.archivedAt).toBe('2026-01-01T00:00:00+00:00');
-    const [url] = calls('/rest/v1/clients')[0]!;
-    expect(new URL(String(url)).searchParams.get('id')).toBe(`eq.${clientRow.id}`);
+    const { url } = callsTo('/rest/v1/clients')[0]!;
+    expect(url.searchParams.get('id')).toBe(`eq.${clientRow.id}`);
   });
 
   it('answers 404 when the client is not visible to the organization', async () => {
@@ -694,7 +691,7 @@ describe('GET /clients/{clientId}', () => {
   it('rejects a malformed id', async () => {
     mockUpstream({});
     expect((await request('/clients/nope')).status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 });
 
@@ -714,7 +711,7 @@ describe('POST /clients', () => {
     const response = await postClient(validBody);
     expect(response.status).toBe(201);
     expect(clientResponseSchema.parse(await response.json()).client.cui).toBe('1590082');
-    const [, init] = calls('/rest/v1/clients')[0]!;
+    const { init } = callsTo('/rest/v1/clients')[0]!;
     expect(init?.method).toBe('POST');
     expect(JSON.parse(String(init?.body))).toEqual({
       organization_id: membership.organization_id,
@@ -752,7 +749,7 @@ describe('POST /clients', () => {
     const response = await postClient(lead);
     expect(response.status).toBe(201);
     expect(clientResponseSchema.parse(await response.json()).client.stage).toBe('lead');
-    expect(JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body))).toMatchObject({
+    expect(callsTo('/rest/v1/clients')[0]!.body).toMatchObject({
       stage: 'lead',
       contact_name: 'Andrei Pop',
       contact_email: 'andrei@velocita.example',
@@ -764,13 +761,13 @@ describe('POST /clients', () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await postClient(lead)).status).toBe(403);
     expect((await postClient({ ...validBody, contactEmail: 'andrei' })).status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('keeps an explicit VAT flag when the CUI has no prefix', async () => {
     mockUpstream({ clients: () => Response.json(clientRow, { status: 201 }) });
     await postClient({ legalName: 'Firma', cui: '1590082', vatPayer: true });
-    expect(JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body))).toMatchObject({
+    expect(callsTo('/rest/v1/clients')[0]!.body).toMatchObject({
       cui: '1590082',
       vat_payer: true,
     });
@@ -789,7 +786,7 @@ describe('POST /clients', () => {
     const error = apiErrorResponseSchema.parse(await response.json());
     expect(error.error).toBe('validation_error');
     expect(error.issues?.map((issue) => issue.path)).toContain(path);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('rejects a duplicate CUI within the organization', async () => {
@@ -821,9 +818,7 @@ describe('POST /clients', () => {
     const response = await postClient(validBody);
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(reason);
-    expect(new URL(String(calls('/rest/v1/clients')[1]![0])).searchParams.get('cui')).toBe(
-      'eq.1590082'
-    );
+    expect(callsTo('/rest/v1/clients')[1]!.url.searchParams.get('cui')).toBe('eq.1590082');
   });
 
   it('maps a row-level security rejection to forbidden', async () => {
@@ -870,9 +865,9 @@ describe('PUT /clients/{clientId}', () => {
     const response = await putClient({ ...validBody, legalRepresentativeName: 'Ion Pop' });
     expect(response.status).toBe(200);
     expect(clientResponseSchema.parse(await response.json()).client.id).toBe(clientRow.id);
-    const [input, init] = calls('/rest/v1/clients')[0]!;
+    const { url: input, init } = callsTo('/rest/v1/clients')[0]!;
     expect(init?.method).toBe('PATCH');
-    const query = new URL(String(input)).searchParams;
+    const query = input.searchParams;
     expect(query.get('id')).toBe(`eq.${clientRow.id}`);
     expect(query.get('archived_at')).toBe('is.null');
     expect(JSON.parse(String(init?.body))).toEqual({
@@ -891,14 +886,14 @@ describe('PUT /clients/{clientId}', () => {
   it("keeps what a lead declared when a client's form leaves the count out", async () => {
     mockUpstream({ clients: () => Response.json([clientRow]) });
     await putClient({ ...validBody, declaredEmployeeCount: undefined });
-    const sent = JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body)) as object;
+    const sent = callsTo('/rest/v1/clients')[0]!.body as object;
     expect(sent).not.toHaveProperty('declared_employee_count');
   });
 
   it('writes the contact fields that were sent, a cleared one included, and no others', async () => {
     mockUpstream({ clients: () => Response.json([clientRow]) });
     await putClient({ ...validBody, contactName: 'Andrei Pop', contactPhone: null, stage: 'lead' });
-    const sent = JSON.parse(String(calls('/rest/v1/clients')[0]![1]?.body));
+    const sent = callsTo('/rest/v1/clients')[0]!.body;
     expect(sent).toMatchObject({ contact_name: 'Andrei Pop', contact_phone: null });
     expect(sent).not.toHaveProperty('contact_email');
     expect(sent).not.toHaveProperty('stage');
@@ -908,7 +903,7 @@ describe('PUT /clients/{clientId}', () => {
     mockUpstream({});
     const response = await putClient({ ...validBody, cui: '1590083' });
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 
   it('rejects a CUI another client of the organization has', async () => {
@@ -949,9 +944,9 @@ describe('archiving a client', () => {
     const response = await post('archive');
     expect(response.status).toBe(200);
     expect(clientResponseSchema.parse(await response.json()).client.archivedAt).not.toBeNull();
-    const [input, init] = calls('/rest/v1/clients')[0]!;
+    const { url: input, init } = callsTo('/rest/v1/clients')[0]!;
     expect(init?.method).toBe('PATCH');
-    expect(new URL(String(input)).searchParams.get('archived_at')).toBe('is.null');
+    expect(input.searchParams.get('archived_at')).toBe('is.null');
     expect(JSON.parse(String(init?.body)).archived_at).toEqual(expect.any(String));
   });
 
@@ -970,8 +965,8 @@ describe('archiving a client', () => {
     mockUpstream({ clients: () => Response.json([clientRow]) });
     const response = await post('restore');
     expect(response.status).toBe(200);
-    const [input, init] = calls('/rest/v1/clients')[0]!;
-    expect(new URL(String(input)).searchParams.get('archived_at')).toBe('not.is.null');
+    const { url: input, init } = callsTo('/rest/v1/clients')[0]!;
+    expect(input.searchParams.get('archived_at')).toBe('not.is.null');
     expect(JSON.parse(String(init?.body))).toEqual({ archived_at: null });
   });
 
@@ -996,7 +991,7 @@ describe('archiving a client', () => {
   it.each(['archive', 'restore'] as const)('leaves %s to owners', async (action) => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await post(action)).status).toBe(403);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 });
 
@@ -1011,9 +1006,7 @@ describe('DELETE /clients/{clientId}', () => {
   const remove = (bindings = env, token?: string) =>
     request(`/clients/${clientRow.id}`, { method: 'DELETE' }, token, bindings);
   const storageCalls = () =>
-    fetchMock.mock.calls.filter(([input]) =>
-      new URL(String(input)).pathname.startsWith('/storage/v1/object/')
-    );
+    upstreamCalls().filter(({ url }) => url.pathname.startsWith('/storage/v1/object/'));
 
   it('deletes an archived client with the secret key, then its objects bucket by bucket', async () => {
     mockUpstream({
@@ -1022,15 +1015,15 @@ describe('DELETE /clients/{clientId}', () => {
     });
     const response = await remove();
     expect(response.status).toBe(204);
-    const [, rpcInit] = calls('/rest/v1/rpc/delete_archived_client')[0]!;
+    const { init: rpcInit } = callsTo('/rest/v1/rpc/delete_archived_client')[0]!;
     expect(JSON.parse(String(rpcInit?.body))).toEqual({
       p_organization_id: membership.organization_id,
       p_client_id: clientRow.id,
     });
     expect(new Headers(rpcInit?.headers).get('apikey')).toBe(env.SUPABASE_SECRET_KEY);
-    const removed = storageCalls().map(([input, init]) => [
-      new URL(String(input)).pathname,
-      JSON.parse(String(init?.body)).prefixes,
+    const removed = storageCalls().map(({ url, body }) => [
+      url.pathname,
+      (body as { prefixes: string[] }).prefixes,
     ]);
     expect(removed).toEqual([
       ['/storage/v1/object/documents', [objects[0]!.path, objects[1]!.path]],
@@ -1043,8 +1036,8 @@ describe('DELETE /clients/{clientId}', () => {
     const response = await remove(production);
     expect(response.status).toBe(403);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
-    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
   });
 
   it('is open to a platform admin in production, past the second factor', async () => {
@@ -1053,9 +1046,9 @@ describe('DELETE /clients/{clientId}', () => {
       clients: () => Response.json([archived]),
     });
     expect((await remove(production, accessTokenAt('aal1'))).status).toBe(403);
-    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
     expect((await remove(production, accessTokenAt('aal2'))).status).toBe(204);
-    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(1);
+    expect(callsTo('/rest/v1/rpc/delete_archived_client')).toHaveLength(1);
   });
 
   it('refuses a client that is not archived, before and inside the database', async () => {
@@ -1063,7 +1056,7 @@ describe('DELETE /clients/{clientId}', () => {
     const active = await remove();
     expect(active.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await active.json()).reason).toBe('client_not_archived');
-    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
 
     mockUpstream({
       clients: () => Response.json([archived]),
@@ -1077,7 +1070,7 @@ describe('DELETE /clients/{clientId}', () => {
   it('answers 404 for a client the caller does not reach', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await remove()).status).toBe(404);
-    expect(calls('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/delete_archived_client')).toHaveLength(0);
 
     mockUpstream({
       clients: () => Response.json([archived]),
@@ -1114,10 +1107,10 @@ describe('POST /clients/{clientId}/promote', () => {
     const { client } = clientResponseSchema.parse(await response.json());
     expect(client.stage).toBe('client');
     expect(client.promotedAt).toBe('2026-09-21T09:00:00+00:00');
-    const [input, init] = calls('/rest/v1/clients')[0]!;
+    const { url: input, init } = callsTo('/rest/v1/clients')[0]!;
     expect(init?.method).toBe('PATCH');
     expect(JSON.parse(String(init?.body))).toEqual({ stage: 'client' });
-    const query = new URL(String(input)).searchParams;
+    const query = input.searchParams;
     expect(query.get('stage')).toBe('eq.lead');
     expect(query.get('archived_at')).toBe('is.null');
   });
@@ -1136,7 +1129,7 @@ describe('POST /clients/{clientId}/promote', () => {
   it("is an owner's", async () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await promote()).status).toBe(403);
-    expect(calls('/rest/v1/clients')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
   });
 });
 
@@ -1181,8 +1174,8 @@ describe("the owners' notes about a client", () => {
     mockUpstream({ notes: () => Response.json(noteRow) });
     const response = await putNotes({ body: noteRow.body });
     expect(response.status).toBe(200);
-    const [input, init] = calls('/rest/v1/client_owner_notes')[0]!;
-    expect(new URL(String(input)).searchParams.get('on_conflict')).toBe('client_id');
+    const { url: input, init } = callsTo('/rest/v1/client_owner_notes')[0]!;
+    expect(input.searchParams.get('on_conflict')).toBe('client_id');
     expect(new Headers(init?.headers).get('Prefer')).toContain('resolution=merge-duplicates');
     expect(JSON.parse(String(init?.body))).toEqual({
       client_id: clientRow.id,
@@ -1206,7 +1199,7 @@ describe("the owners' notes about a client", () => {
     mockUpstream({ membership: () => Response.json([{ ...membership, role: 'specialist' }]) });
     expect((await request(notesPath)).status).toBe(403);
     expect((await putNotes({ body: 'x' })).status).toBe(403);
-    expect(calls('/rest/v1/client_owner_notes')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_owner_notes')).toHaveLength(0);
   });
 });
 

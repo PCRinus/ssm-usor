@@ -15,6 +15,7 @@ import {
   type RisksProposal,
   toProposal,
 } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import {
   captchaToken,
   e2ePassword,
@@ -654,39 +655,30 @@ export async function createLibraryImport(input: {
   });
   const clientProposal =
     input.clientProposal ??
-    toProposal({
-      facts: [
-        { field: 'client.legalName', value: input.legalName, ...quote(input.legalName) },
-        { field: 'client.cui', value: input.cui, ...quote(input.cui) },
-        // Posts without a category are execution staff, whose interval would otherwise wait to be confirmed.
-        {
-          field: 'trainingSchedule.workerTrainingIntervalMonths',
-          value: '3 luni',
-          ...quote('la 3 luni'),
-        },
-      ],
-      workplaces: [],
-      workplaceFacts: [],
-      workplaceSuggestions: [],
-      jobPositionFacts: [],
-      jobPositions: input.posts.map((name) => ({
-        name,
-        staffCategory: null,
-        trainingIntervalMonths: null,
-        workZone: null,
-        activities: null,
-        managementOnly: false,
-        needsProtectiveEquipment: null,
-        ...quote(name),
-      })),
-      responsiblePersons: [],
-      fireEquipment: [],
-      fireInstallations: [],
-      substances: [],
-      protectiveEquipment: [],
-      employees: [],
-      notes: [],
-    });
+    toProposal(
+      emptyReading({
+        facts: [
+          { field: 'client.legalName', value: input.legalName, ...quote(input.legalName) },
+          { field: 'client.cui', value: input.cui, ...quote(input.cui) },
+          // Posts without a category are execution staff, whose interval would otherwise wait to be confirmed.
+          {
+            field: 'trainingSchedule.workerTrainingIntervalMonths',
+            value: '3 luni',
+            ...quote('la 3 luni'),
+          },
+        ],
+        jobPositions: input.posts.map((name) => ({
+          name,
+          staffCategory: null,
+          trainingIntervalMonths: null,
+          workZone: null,
+          activities: null,
+          managementOnly: false,
+          needsProtectiveEquipment: null,
+          ...quote(name),
+        })),
+      })
+    );
   const now = new Date().toISOString();
   const created = await admin
     .from('imports')

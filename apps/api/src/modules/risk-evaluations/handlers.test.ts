@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
   testEnv,
@@ -145,15 +145,6 @@ function mockUpstream(
   });
 }
 
-const calls = (path: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === `/rest/v1/${path}` && (init?.method ?? 'GET') === method
-  );
-
-const sent = (path: string, method: string, index = 0) =>
-  JSON.parse(String(calls(path, method)[index]![1]?.body)) as unknown;
-
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -252,7 +243,7 @@ describe('GET /clients/{clientId}/risk-evaluations', () => {
   it('answers 404 for a client outside the organization', async () => {
     mockUpstream({ clients: () => Response.json([]) });
     expect((await request(base)).status).toBe(404);
-    expect(calls('risk_evaluations', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/risk_evaluations', 'GET')).toHaveLength(0);
   });
 });
 
@@ -270,9 +261,11 @@ describe('PUT /clients/{clientId}/sensitive-groups-state', () => {
     expect(sensitiveGroupsStateResponseSchema.parse(await response.json())).toEqual({
       state: 'none',
     });
-    expect(sent('clients', 'PATCH')).toEqual({ sensitive_groups_state: 'none' });
-    const [update] = calls('clients', 'PATCH');
-    expect(new URL(String(update![0])).searchParams.get('archived_at')).toBe('is.null');
+    expect(callsTo('/rest/v1/clients', 'PATCH')[0]!.body).toEqual({
+      sensitive_groups_state: 'none',
+    });
+    const [update] = callsTo('/rest/v1/clients', 'PATCH');
+    expect(update!.url.searchParams.get('archived_at')).toBe('is.null');
   });
 
   it('opens the question again', async () => {
@@ -284,7 +277,7 @@ describe('PUT /clients/{clientId}/sensitive-groups-state', () => {
   it('never takes evaluated, which follows the evaluation', async () => {
     mockUpstream();
     expect((await request(statePath, 'PUT', { state: 'evaluated' })).status).toBe(400);
-    expect(calls('clients', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients', 'PATCH')).toHaveLength(0);
   });
 
   it('refuses none while the sensitive groups are evaluated', async () => {
@@ -330,7 +323,7 @@ describe('POST /clients/{clientId}/risk-evaluations', () => {
     expect(riskEvaluationResponseSchema.parse(await response.json()).evaluation.id).toBe(
       evaluationId
     );
-    expect(sent('risk_evaluations', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/risk_evaluations', 'POST')[0]!.body).toEqual({
       organization_id: testOrganizationId,
       client_id: clientId,
       kind: 'job_position',
@@ -355,7 +348,7 @@ describe('POST /clients/{clientId}/risk-evaluations', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe(
       'jobPositionId'
     );
-    expect(calls('risk_evaluations', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/risk_evaluations', 'POST')).toHaveLength(0);
   });
 
   it('records the work task and the persons exposed of a client-level evaluation only', async () => {
@@ -367,7 +360,7 @@ describe('POST /clients/{clientId}/risk-evaluations', () => {
       exposedPersons: 'Min. 3 persoane',
     });
     expect(other.status).toBe(201);
-    expect(sent('risk_evaluations', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/risk_evaluations', 'POST')[0]!.body).toMatchObject({
       work_task: 'Cumpără înghețată',
       exposed_persons: 'Min. 3 persoane',
     });
@@ -380,14 +373,14 @@ describe('POST /clients/{clientId}/risk-evaluations', () => {
     expect(apiErrorResponseSchema.parse(await position.json()).issues?.[0]?.path).toBe(
       'exposedPersons'
     );
-    expect(calls('risk_evaluations', 'POST')).toHaveLength(1);
+    expect(callsTo('/rest/v1/risk_evaluations', 'POST')).toHaveLength(1);
   });
 
   it('requires a name for another evaluation, and none for the sensitive groups', async () => {
     mockUpstream();
     expect((await request(base, 'POST', { kind: 'other' })).status).toBe(400);
     expect((await request(base, 'POST', { kind: 'sensitive_groups' })).status).toBe(201);
-    expect(sent('risk_evaluations', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/risk_evaluations', 'POST')[0]!.body).toMatchObject({
       kind: 'sensitive_groups',
       name: null,
       job_position_id: null,
@@ -449,9 +442,7 @@ describe('GET …/risk-evaluations/{evaluationId}', () => {
       'organizational',
     ]);
     expect(evaluation.globalRiskLevel).toBe(3.33);
-    const [find] = calls('risk_evaluations', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [find] = callsTo('/rest/v1/risk_evaluations', 'GET').map(({ url }) => url.searchParams);
     expect(find!.get('client_id')).toBe(`eq.${clientId}`);
   });
 
@@ -469,8 +460,8 @@ describe('GET …/risk-evaluations/{evaluationId}', () => {
       ['Ritm de muncă intens', null],
       ['Electrocutare prin atingere indirectă', { id: profileId, name: 'Lucrător de birou' }],
     ]);
-    const read = calls('risk_evaluations', 'GET')
-      .map(([input]) => new URL(String(input)).searchParams.get('select')!)
+    const read = callsTo('/rest/v1/risk_evaluations', 'GET')
+      .map(({ url }) => url.searchParams.get('select')!)
       .find((select) => select.includes('risk_factors'));
     expect(read).toContain(
       'source_profile_factor:evaluation_profile_factors(evaluation_profiles(id,name))'
@@ -487,9 +478,7 @@ describe('GET …/job-positions/{jobPositionId}/risk-evaluation', () => {
     expect(response.status).toBe(200);
     const body = jobPositionRiskEvaluationResponseSchema.parse(await response.json());
     expect(body.evaluation?.factors).toHaveLength(2);
-    const [read] = calls('risk_evaluations', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [read] = callsTo('/rest/v1/risk_evaluations', 'GET').map(({ url }) => url.searchParams);
     expect(read!.get('job_position_id')).toBe(`eq.${managerId}`);
   });
 
@@ -512,7 +501,7 @@ describe('PATCH and DELETE …/risk-evaluations/{evaluationId}', () => {
       exposure: '4 h / schimb',
     });
     expect(response.status).toBe(200);
-    expect(sent('risk_evaluations', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/risk_evaluations', 'PATCH')[0]!.body).toEqual({
       work_environment: null,
       exposure: '4 h / schimb',
     });
@@ -523,7 +512,7 @@ describe('PATCH and DELETE …/risk-evaluations/{evaluationId}', () => {
     const response = await request(evaluationPath, 'PATCH', { name: 'Altceva' });
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('name');
-    expect(calls('risk_evaluations', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/risk_evaluations', 'PATCH')).toHaveLength(0);
   });
 
   it('refuses a work task or exposed persons for the evaluation of a position', async () => {
@@ -531,7 +520,7 @@ describe('PATCH and DELETE …/risk-evaluations/{evaluationId}', () => {
     const response = await request(evaluationPath, 'PATCH', { workTask: 'Vânzare' });
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).issues?.[0]?.path).toBe('workTask');
-    expect(calls('risk_evaluations', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/risk_evaluations', 'PATCH')).toHaveLength(0);
   });
 
   it('changes the work task and the persons exposed of a client-level evaluation', async () => {
@@ -546,7 +535,7 @@ describe('PATCH and DELETE …/risk-evaluations/{evaluationId}', () => {
       exposedPersons: null,
     });
     expect(response.status).toBe(200);
-    expect(sent('risk_evaluations', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/risk_evaluations', 'PATCH')[0]!.body).toEqual({
       work_task: 'Lucrători sub 18 ani',
       exposed_persons: null,
     });
@@ -570,7 +559,7 @@ describe('factors', () => {
     expect(
       riskEvaluationResponseSchema.parse(await response.json()).evaluation.factors
     ).toHaveLength(2);
-    expect(sent('rpc/save_risk_factor', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/save_risk_factor', 'POST')[0]!.body).toEqual({
       p_evaluation_id: evaluationId,
       p_component: 'means_of_production',
       p_factor_group: 'Factori de risc electric',
@@ -592,7 +581,7 @@ describe('factors', () => {
       (await request(`${evaluationPath}/factors`, 'POST', { ...factorBody, probabilityClass: 7 }))
         .status
     ).toBe(400);
-    expect(calls('rpc/save_risk_factor', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/save_risk_factor', 'POST')).toHaveLength(0);
   });
 
   it('replaces a factor, and answers 404 for one not on the evaluation', async () => {
@@ -603,7 +592,9 @@ describe('factors', () => {
       factorBody
     );
     expect(response.status).toBe(200);
-    expect(sent('rpc/save_risk_factor', 'POST')).toMatchObject({ p_factor_id: electrocutionId });
+    expect(callsTo('/rest/v1/rpc/save_risk_factor', 'POST')[0]!.body).toMatchObject({
+      p_factor_id: electrocutionId,
+    });
     mockUpstream({ rpc: () => Response.json(null) });
     expect(
       (await request(`${evaluationPath}/factors/${electrocutionId}`, 'PUT', factorBody)).status
@@ -614,9 +605,7 @@ describe('factors', () => {
     mockUpstream();
     const response = await request(`${evaluationPath}/factors/${electrocutionId}`, 'DELETE');
     expect(response.status).toBe(200);
-    const [remove] = calls('risk_factors', 'DELETE').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [remove] = callsTo('/rest/v1/risk_factors', 'DELETE').map(({ url }) => url.searchParams);
     expect(remove!.get('evaluation_id')).toBe(`eq.${evaluationId}`);
     mockUpstream({
       factors: (init) => (init?.method === 'DELETE' ? Response.json([]) : undefined),
@@ -630,7 +619,7 @@ describe('factors', () => {
     mockUpstream();
     const order = { factorIds: [electrocutionId, rhythmId] };
     expect((await request(`${evaluationPath}/factor-order`, 'PUT', order)).status).toBe(200);
-    expect(sent('rpc/reorder_risk_factors', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/reorder_risk_factors', 'POST')[0]!.body).toEqual({
       p_evaluation_id: evaluationId,
       p_factor_ids: order.factorIds,
     });
@@ -648,7 +637,7 @@ describe('POST …/factors/copy', () => {
       fromEvaluationId: sensitiveId,
     });
     expect(response.status).toBe(200);
-    expect(sent('rpc/copy_risk_factors', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/copy_risk_factors', 'POST')[0]!.body).toEqual({
       p_evaluation_id: evaluationId,
       p_from_evaluation_id: sensitiveId,
     });
@@ -670,7 +659,7 @@ describe('POST …/factors/copy', () => {
       (await request(`${evaluationPath}/factors/copy`, 'POST', { fromEvaluationId: evaluationId }))
         .status
     ).toBe(400);
-    expect(calls('rpc/copy_risk_factors', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/copy_risk_factors', 'POST')).toHaveLength(0);
     const other = await request(`${evaluationPath}/factors/copy`, 'POST', {
       fromEvaluationId: sensitiveId,
     });
@@ -698,9 +687,7 @@ describe('GET /risk-factor-suggestions', () => {
       'Factori de risc electric',
       'Factori de risc mecanic',
     ]);
-    const [list] = calls('risk_factors', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [list] = callsTo('/rest/v1/risk_factors', 'GET').map(({ url }) => url.searchParams);
     expect(list!.get('select')).toBe('factor_group,updated_at');
     expect(list!.get('factor_group')).toBe('not.is.null');
   });
@@ -716,9 +703,7 @@ describe('GET /risk-factor-suggestions', () => {
     expect(riskFactorSuggestionsResponseSchema.parse(await response.json()).items).toEqual([
       'Se reia la instruirea periodică.',
     ]);
-    const [list] = calls('risk_factors', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [list] = callsTo('/rest/v1/risk_factors', 'GET').map(({ url }) => url.searchParams);
     expect(list!.get('select')).toBe('observations,updated_at');
   });
 

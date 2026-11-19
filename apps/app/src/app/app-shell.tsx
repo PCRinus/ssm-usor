@@ -49,12 +49,12 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Megaphone,
   MessageSquareWarning,
   Scale,
   Settings,
   ShieldAlert,
   Signature,
-  Sparkles,
   UserRound,
   UsersRound,
 } from 'lucide-react';
@@ -381,7 +381,7 @@ function AppNavigation({
                 }
                 onClick={closeOnMobile}
               >
-                <Sparkles aria-hidden="true" />
+                <Megaphone aria-hidden="true" />
                 <span>Actualizări</span>
                 {unreadReleases > 0 && (
                   <span data-testid="nav-actualizari-badge" className={navPill}>

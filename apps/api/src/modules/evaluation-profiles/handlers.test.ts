@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { apiRequest, testAccessToken } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
@@ -115,9 +116,9 @@ const missingLevelsColumns = 'id,evaluation_profile_factors!inner(id)';
 const officeLevels = { global_risk_level: 3.33, unacceptable_factor_count: 1 };
 
 const storedLevels = () =>
-  calls('evaluation_profiles', 'PATCH').map(([input, init]) => ({
-    id: new URL(String(input)).searchParams.get('id'),
-    levels: JSON.parse(String(init?.body)) as unknown,
+  callsTo('/rest/v1/evaluation_profiles', 'PATCH').map(({ url, body }) => ({
+    id: url.searchParams.get('id'),
+    levels: body,
   }));
 
 type Handler = (init: RequestInit | undefined, url: URL) => Response | undefined;
@@ -186,15 +187,6 @@ function mockUpstream(
   });
 }
 
-const calls = (path: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === `/rest/v1/${path}` && (init?.method ?? 'GET') === method
-  );
-
-const sent = (path: string, method: string, index = 0) =>
-  JSON.parse(String(calls(path, method)[index]![1]?.body)) as unknown;
-
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -220,7 +212,7 @@ const nameConflict = () =>
 stubFetch();
 
 const listQuery = (index = 0) =>
-  new URL(String(calls('evaluation_profile_list', 'GET')[index]![0])).searchParams;
+  callsTo('/rest/v1/evaluation_profile_list', 'GET')[index]!.url.searchParams;
 
 describe('GET /evaluation-profiles', () => {
   const summary = (
@@ -249,7 +241,7 @@ describe('GET /evaluation-profiles', () => {
     updated_at: stamp,
   });
 
-  const headCalls = () => calls('evaluation_profile_list', 'HEAD');
+  const headCalls = () => callsTo('/rest/v1/evaluation_profile_list', 'HEAD');
 
   it('lists a page of the active library by name, with its stored levels and usage', async () => {
     mockUpstream({
@@ -294,7 +286,7 @@ describe('GET /evaluation-profiles', () => {
     expect(query.get('order')).toBe('name.asc,id.asc');
     expect(query.get('offset')).toBe('0');
     expect(query.get('limit')).toBe('25');
-    expect(calls('risk_factors', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/risk_factors', 'GET')).toHaveLength(0);
     expect(headCalls()).toHaveLength(0);
   });
 
@@ -307,8 +299,8 @@ describe('GET /evaluation-profiles', () => {
       list: () => Response.json([], { headers: { 'Content-Range': '*/0' } }),
     });
     expect((await request('/evaluation-profiles')).status).toBe(200);
-    const [missing] = calls('evaluation_profiles', 'GET');
-    const query = new URL(String(missing![0])).searchParams;
+    const [missing] = callsTo('/rest/v1/evaluation_profiles', 'GET');
+    const query = missing!.url.searchParams;
     expect(query.get('global_risk_level')).toBe('is.null');
     expect(query.get('evaluation_profile_factors.limit')).toBe('1');
     expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
@@ -397,7 +389,7 @@ describe('GET /evaluation-profiles', () => {
     });
     expect(listQuery().get('or')).toBe('(global_risk_level.gt.3.5,factor_count.eq.0)');
     expect(listQuery().get('sheet_count')).toBe('eq.0');
-    const tab = new URL(String(headCalls()[0]![0])).searchParams;
+    const tab = headCalls()[0]!.url.searchParams;
     expect(tab.get('archived_at')).toBe('is.null');
     expect(tab.get('or')).toBeNull();
     expect(tab.get('sheet_count')).toBeNull();
@@ -407,7 +399,7 @@ describe('GET /evaluation-profiles', () => {
     mockUpstream();
     expect((await request('/evaluation-profiles?level=high')).status).toBe(400);
     expect((await request('/evaluation-profiles?usage=used')).status).toBe(400);
-    expect(calls('evaluation_profile_list', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/evaluation_profile_list', 'GET')).toHaveLength(0);
   });
 
   it.each([
@@ -474,12 +466,12 @@ describe('GET /evaluation-profiles', () => {
     mockUpstream();
     expect((await request('/evaluation-profiles?usage=unused')).status).toBe(200);
     const sent = [
-      ...calls('evaluation_profile_list', 'GET'),
-      ...calls('evaluation_profile_list', 'HEAD'),
+      ...callsTo('/rest/v1/evaluation_profile_list', 'GET'),
+      ...callsTo('/rest/v1/evaluation_profile_list', 'HEAD'),
     ];
     expect(sent).toHaveLength(2);
-    for (const [, init] of sent) {
-      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${testAccessToken}`);
+    for (const { headers } of sent) {
+      expect(headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
     }
   });
 
@@ -488,7 +480,7 @@ describe('GET /evaluation-profiles', () => {
     expect((await request('/evaluation-profiles?sort=factorCount')).status).toBe(400);
     expect((await request('/evaluation-profiles?sort=unacceptableFactorCount')).status).toBe(400);
     expect((await request('/evaluation-profiles?pageSize=101')).status).toBe(400);
-    expect(calls('evaluation_profile_list', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/evaluation_profile_list', 'GET')).toHaveLength(0);
   });
 });
 
@@ -534,7 +526,7 @@ describe('POST /evaluation-profiles', () => {
     });
     expect(response.status).toBe(201);
     expect(evaluationProfileResponseSchema.parse(await response.json()).profile.id).toBe(profileId);
-    expect(sent('evaluation_profiles', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/evaluation_profiles', 'POST')[0]!.body).toEqual({
       organization_id: testOrganizationId,
       name: 'Lucrător de birou',
       created_by: user.id,
@@ -553,7 +545,7 @@ describe('POST /evaluation-profiles', () => {
   it('refuses a name of one character', async () => {
     mockUpstream();
     expect((await request('/evaluation-profiles', 'POST', { name: ' L ' })).status).toBe(400);
-    expect(calls('evaluation_profiles', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/evaluation_profiles', 'POST')).toHaveLength(0);
   });
 });
 
@@ -653,15 +645,15 @@ describe('GET /evaluation-profiles/{profileId}/usage', () => {
       ['Beta SRL', null, visitors, 'Vizitatori', 2],
     ]);
     expect(items[1]).toMatchObject({ clientId: beta.id, kind: 'job_position' });
-    const [read] = calls('risk_factors', 'GET');
-    const params = new URL(String(read![0])).searchParams;
+    const [read] = callsTo('/rest/v1/risk_factors', 'GET');
+    const params = read!.url.searchParams;
     expect(params.get('evaluation_profile_factors.profile_id')).toBe(`eq.${profileId}`);
   });
 
   it('answers 404 for a profile outside the organization', async () => {
     mockUpstream({ profiles: () => Response.json([]) });
     expect((await request(`${profilePath}/usage`)).status).toBe(404);
-    expect(calls('risk_factors', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/risk_factors', 'GET')).toHaveLength(0);
   });
 });
 
@@ -670,7 +662,7 @@ describe('PATCH /evaluation-profiles/{profileId}', () => {
     mockUpstream();
     const response = await request(profilePath, 'PATCH', { name: 'Birou' });
     expect(response.status).toBe(200);
-    expect(sent('evaluation_profiles', 'PATCH')).toEqual({ name: 'Birou' });
+    expect(callsTo('/rest/v1/evaluation_profiles', 'PATCH')[0]!.body).toEqual({ name: 'Birou' });
   });
 
   it('answers 409 on a name the library already holds', async () => {
@@ -692,11 +684,15 @@ describe('PATCH /evaluation-profiles/{profileId}', () => {
   it('archives a profile clients use, and restores it', async () => {
     mockUpstream();
     expect((await request(profilePath, 'PATCH', { archived: true })).status).toBe(200);
-    const archived = sent('evaluation_profiles', 'PATCH') as { archived_at: string };
+    const archived = callsTo('/rest/v1/evaluation_profiles', 'PATCH')[0]!.body as {
+      archived_at: string;
+    };
     expect(Object.keys(archived)).toEqual(['archived_at']);
     expect(Number.isNaN(Date.parse(archived.archived_at))).toBe(false);
     expect((await request(profilePath, 'PATCH', { archived: false })).status).toBe(200);
-    expect(sent('evaluation_profiles', 'PATCH', 1)).toEqual({ archived_at: null });
+    expect(callsTo('/rest/v1/evaluation_profiles', 'PATCH')[1]!.body).toEqual({
+      archived_at: null,
+    });
   });
 
   it('writes and clears the work-system texts, leaving out the ones not sent', async () => {
@@ -706,7 +702,7 @@ describe('PATCH /evaluation-profiles/{profileId}', () => {
       exposure: null,
     });
     expect(response.status).toBe(200);
-    expect(sent('evaluation_profiles', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/evaluation_profiles', 'PATCH')[0]!.body).toEqual({
       means_of_production: 'Strung, polizor',
       exposure: null,
     });
@@ -715,7 +711,7 @@ describe('PATCH /evaluation-profiles/{profileId}', () => {
   it('refuses an exposure of spaces', async () => {
     mockUpstream();
     expect((await request(profilePath, 'PATCH', { exposure: '   ' })).status).toBe(400);
-    expect(calls('evaluation_profiles', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/evaluation_profiles', 'PATCH')).toHaveLength(0);
   });
 });
 
@@ -723,7 +719,7 @@ describe('DELETE /evaluation-profiles/{profileId}', () => {
   it('deletes the profile', async () => {
     mockUpstream();
     expect((await request(profilePath, 'DELETE')).status).toBe(204);
-    expect(calls('evaluation_profiles', 'DELETE')).toHaveLength(1);
+    expect(callsTo('/rest/v1/evaluation_profiles', 'DELETE')).toHaveLength(1);
   });
 
   it('answers 404 for a profile outside the organization', async () => {
@@ -756,7 +752,7 @@ describe('the factors of a profile', () => {
     mockUpstream();
     const response = await request(`${profilePath}/factors`, 'POST', factorBody);
     expect(response.status).toBe(201);
-    expect(sent('rpc/save_evaluation_profile_factor', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/save_evaluation_profile_factor', 'POST')[0]!.body).toEqual({
       p_profile_id: profileId,
       p_component: 'means_of_production',
       p_factor_group: 'Factori de risc electric',
@@ -779,7 +775,7 @@ describe('the factors of a profile', () => {
     mockUpstream();
     const response = await request(`${profilePath}/factors/${factorId}`, 'PUT', factorBody);
     expect(response.status).toBe(200);
-    expect(sent('rpc/save_evaluation_profile_factor', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/rpc/save_evaluation_profile_factor', 'POST')[0]!.body).toMatchObject({
       p_profile_id: profileId,
       p_factor_id: factorId,
     });
@@ -797,8 +793,8 @@ describe('the factors of a profile', () => {
     mockUpstream();
     const response = await request(`${profilePath}/factors/${factorId}`, 'DELETE');
     expect(response.status).toBe(200);
-    const [deleted] = calls('evaluation_profile_factors', 'DELETE');
-    const params = new URL(String(deleted![0])).searchParams;
+    const [deleted] = callsTo('/rest/v1/evaluation_profile_factors', 'DELETE');
+    const params = deleted!.url.searchParams;
     expect(params.get('id')).toBe(`eq.${factorId}`);
     expect(params.get('profile_id')).toBe(`eq.${profileId}`);
     expect(storedLevels()).toEqual([{ id: `eq.${profileId}`, levels: officeLevels }]);
@@ -851,7 +847,7 @@ describe('POST …/risk-evaluations/{evaluationId}/save-as-profile', () => {
     expect(evaluationProfileResponseSchema.parse(await response.json()).profile.name).toBe(
       'Lucrător de birou'
     );
-    expect(sent('rpc/save_risk_evaluation_as_profile', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/save_risk_evaluation_as_profile', 'POST')[0]!.body).toEqual({
       p_evaluation_id: evaluationId,
       p_name: 'Lucrător de birou',
     });
@@ -875,7 +871,7 @@ describe('POST …/risk-evaluations/{evaluationId}/save-as-profile', () => {
       name: 'Lucrător de birou',
     });
     expect(response.status).toBe(404);
-    expect(calls('rpc/save_risk_evaluation_as_profile', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/rpc/save_risk_evaluation_as_profile', 'POST')).toHaveLength(0);
   });
 });
 
@@ -889,7 +885,7 @@ describe('POST …/risk-evaluations/{evaluationId}/factors/apply-profile', () =>
     const body = applyEvaluationProfileResponseSchema.parse(await response.json());
     expect(body.addedFactorCount).toBe(2);
     expect(body.evaluation.id).toBe(evaluationId);
-    expect(sent('rpc/apply_evaluation_profile', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/apply_evaluation_profile', 'POST')[0]!.body).toEqual({
       p_evaluation_id: evaluationId,
       p_profile_id: profileId,
     });

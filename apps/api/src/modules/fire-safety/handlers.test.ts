@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
   testEnv,
@@ -210,15 +210,6 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   });
 }
 
-const calls = (table: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === `/rest/v1/${table}` && (init?.method ?? 'GET') === method
-  );
-
-const sent = (table: string, method: string, index = 0) =>
-  JSON.parse(String(calls(table, method)[index]![1]?.body)) as Record<string, unknown>;
-
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -303,8 +294,8 @@ describe('/clients/{clientId}/fire-safety', () => {
     mockUpstream({ clients: noClient });
     expect((await request(path)).status).toBe(404);
     expect((await request(path, 'PATCH', body)).status).toBe(404);
-    expect(calls('client_fire_safety', 'GET')).toHaveLength(0);
-    expect(calls('client_fire_safety', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_fire_safety', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')).toHaveLength(0);
   });
 
   it('changes only the fields sent, leaving the others as saved', async () => {
@@ -314,7 +305,7 @@ describe('/clients/{clientId}/fire-safety', () => {
     const response = await request(path, 'PATCH', body);
     expect(response.status).toBe(200);
     expect(clientFireSafetyResponseSchema.parse(await response.json()).exists).toBe(true);
-    expect(sent('client_fire_safety', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[0]!.body).toEqual({
       periodic_training_hours: 2,
       administrative_training_interval_months: 3,
       worker_training_interval_months: 3,
@@ -324,11 +315,11 @@ describe('/clients/{clientId}/fire-safety', () => {
       waste_kinds: ['deșeuri de carton, hârtie, plastic'],
       waste_contractor: 'Salubris S.A.',
     });
-    const [update] = calls('client_fire_safety', 'PATCH').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [update] = callsTo('/rest/v1/client_fire_safety', 'PATCH').map(
+      ({ url }) => url.searchParams
     );
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
-    expect(calls('client_fire_safety', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_fire_safety', 'POST')).toHaveLength(0);
   });
 
   it('clears a field sent as null, and the smoking place with the policy', async () => {
@@ -337,7 +328,7 @@ describe('/clients/{clientId}/fire-safety', () => {
     });
     const response = await request(path, 'PATCH', { wasteContractor: null, smokingPolicy: null });
     expect(response.status).toBe(200);
-    expect(sent('client_fire_safety', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[0]!.body).toEqual({
       waste_contractor: null,
       smoking_policy: null,
       smoking_place: null,
@@ -347,7 +338,7 @@ describe('/clients/{clientId}/fire-safety', () => {
   it('refuses a body with nothing to change', async () => {
     mockUpstream();
     expect((await request(path, 'PATCH', {})).status).toBe(400);
-    expect(calls('client_fire_safety', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')).toHaveLength(0);
   });
 
   it('saves who collects the waste, trimmed, and reads it back', async () => {
@@ -362,7 +353,9 @@ describe('/clients/{clientId}/fire-safety', () => {
     expect(clientFireSafetyResponseSchema.parse(await response.json()).fireSafety).toMatchObject({
       wasteCollectors: collectors,
     });
-    expect(sent('client_fire_safety', 'PATCH')).toMatchObject({ waste_collectors: collectors });
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[0]!.body).toMatchObject({
+      waste_collectors: collectors,
+    });
   });
 
   it('saves whether other firms work on the premises, and reads it back', async () => {
@@ -376,7 +369,9 @@ describe('/clients/{clientId}/fire-safety', () => {
     expect(clientFireSafetyResponseSchema.parse(await response.json()).fireSafety).toMatchObject({
       hasThirdParties: true,
     });
-    expect(sent('client_fire_safety', 'PATCH')).toMatchObject({ has_third_parties: true });
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[0]!.body).toMatchObject({
+      has_third_parties: true,
+    });
   });
 
   it('keeps the smoking place with designated places and drops it with any other policy', async () => {
@@ -400,7 +395,7 @@ describe('/clients/{clientId}/fire-safety', () => {
       smokingPolicy: 'designated_places',
       smokingPlace: place,
     });
-    expect(sent('client_fire_safety', 'PATCH')).toMatchObject({
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[0]!.body).toMatchObject({
       smoking_policy: 'designated_places',
       smoking_place: place,
     });
@@ -410,20 +405,20 @@ describe('/clients/{clientId}/fire-safety', () => {
       smokingPolicy: 'forbidden_everywhere',
       smokingPlace: place,
     });
-    expect(sent('client_fire_safety', 'PATCH', 1)).toMatchObject({
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[1]!.body).toMatchObject({
       smoking_policy: 'forbidden_everywhere',
       smoking_place: null,
     });
 
     await request(path, 'PATCH', { smokingPolicy: 'designated_places' });
-    expect(sent('client_fire_safety', 'PATCH', 2)).toEqual({
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[2]!.body).toEqual({
       smoking_policy: 'designated_places',
     });
 
     const alone = await request(path, 'PATCH', { smokingPlace: place });
     expect(alone.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await alone.json()).issues?.[0]?.path).toBe('smokingPlace');
-    expect(calls('client_fire_safety', 'PATCH')).toHaveLength(3);
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')).toHaveLength(3);
   });
 
   it('creates the row on the first save, with only what was sent', async () => {
@@ -436,7 +431,7 @@ describe('/clients/{clientId}/fire-safety', () => {
     });
     const response = await request(path, 'PATCH', { periodicTrainingHours: 2 });
     expect(response.status).toBe(200);
-    expect(sent('client_fire_safety', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/client_fire_safety', 'POST')[0]!.body).toEqual({
       client_id: clientId,
       organization_id: organizationId,
       created_by: user.id,
@@ -470,7 +465,7 @@ describe('/clients/{clientId}/fire-safety', () => {
     ]) {
       expect((await request(path, 'PATCH', { ...body, ...fields })).status).toBe(400);
     }
-    expect(calls('client_fire_safety', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')).toHaveLength(0);
   });
 
   it('words the refusals of an archived client and a lead', async () => {
@@ -522,8 +517,8 @@ describe('/clients/{clientId}/fire-equipment', () => {
       shopCo2.id,
       shopSand.id,
     ]);
-    const [workplaces] = calls('client_workplaces', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [workplaces] = callsTo('/rest/v1/client_workplaces', 'GET').map(
+      ({ url }) => url.searchParams
     );
     expect(workplaces!.get('client_id')).toBe(`eq.${clientId}`);
     expect(workplaces!.get('archived_at')).toBe('is.null');
@@ -535,8 +530,8 @@ describe('/clients/{clientId}/fire-equipment', () => {
     mockUpstream({ clients: noClient });
     expect((await request(path)).status).toBe(404);
     expect((await request(path, 'POST', extinguisher)).status).toBe(404);
-    expect(calls('fire_equipment', 'GET')).toHaveLength(0);
-    expect(calls('fire_equipment', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_equipment', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_equipment', 'POST')).toHaveLength(0);
   });
 
   it('adds a unit to an active workplace of the client', async () => {
@@ -547,7 +542,7 @@ describe('/clients/{clientId}/fire-equipment', () => {
     const response = await request(path, 'POST', { ...extinguisher, label: ' P6-001 ' });
     expect(response.status).toBe(201);
     expect(fireEquipmentResponseSchema.parse(await response.json()).equipment.agent).toBe('powder');
-    expect(sent('fire_equipment', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/fire_equipment', 'POST')[0]!.body).toEqual({
       organization_id: organizationId,
       client_id: clientId,
       workplace_id: shopId,
@@ -563,9 +558,7 @@ describe('/clients/{clientId}/fire-equipment', () => {
       maintainer: null,
       created_by: user.id,
     });
-    const [find] = calls('client_workplaces', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [find] = callsTo('/rest/v1/client_workplaces', 'GET').map(({ url }) => url.searchParams);
     expect(find!.get('id')).toBe(`eq.${shopId}`);
     expect(find!.get('client_id')).toBe(`eq.${clientId}`);
     expect(find!.get('archived_at')).toBe('is.null');
@@ -586,8 +579,8 @@ describe('/clients/{clientId}/fire-equipment', () => {
         message: 'No activity takes place at this registered office.',
       });
     }
-    expect(calls('fire_equipment', 'POST')).toHaveLength(0);
-    expect(calls('fire_equipment', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_equipment', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_equipment', 'PATCH')).toHaveLength(0);
   });
 
   it('refuses a workplace that is not an active one of this client', async () => {
@@ -602,8 +595,8 @@ describe('/clients/{clientId}/fire-equipment', () => {
         'workplaceId'
       );
     }
-    expect(calls('fire_equipment', 'POST')).toHaveLength(0);
-    expect(calls('fire_equipment', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_equipment', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_equipment', 'PATCH')).toHaveLength(0);
   });
 
   it('names the workplace when the foreign key refuses it', async () => {
@@ -629,8 +622,8 @@ describe('/clients/{clientId}/fire-equipment', () => {
       expect(response.status).toBe(400);
       expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
     }
-    expect(calls('clients', 'GET')).toHaveLength(0);
-    expect(calls('fire_equipment', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/clients', 'GET')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_equipment', 'POST')).toHaveLength(0);
   });
 
   it('replaces a unit scoped to the client, and answers 404 when it is not there', async () => {
@@ -639,12 +632,12 @@ describe('/clients/{clientId}/fire-equipment', () => {
     expect(
       (await request(item, 'PUT', { ...extinguisher, location: 'Lângă casa de marcat' })).status
     ).toBe(200);
-    const [update] = calls('fire_equipment', 'PATCH').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [update] = callsTo('/rest/v1/fire_equipment', 'PATCH').map(({ url }) => url.searchParams);
     expect(update!.get('id')).toBe(`eq.${shopPowder.id}`);
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
-    expect(sent('fire_equipment', 'PATCH')).toMatchObject({ location: 'Lângă casa de marcat' });
+    expect(callsTo('/rest/v1/fire_equipment', 'PATCH')[0]!.body).toMatchObject({
+      location: 'Lângă casa de marcat',
+    });
 
     mockUpstream({ equipment: () => Response.json(null) });
     expect((await request(item, 'PUT', extinguisher)).status).toBe(404);
@@ -654,8 +647,8 @@ describe('/clients/{clientId}/fire-equipment', () => {
     mockUpstream({ equipment: () => Response.json([{ id: shopPowder.id }]) });
     const item = `${path}/${shopPowder.id}`;
     expect((await request(item, 'DELETE')).status).toBe(204);
-    const [remove] = calls('fire_equipment', 'DELETE').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [remove] = callsTo('/rest/v1/fire_equipment', 'DELETE').map(
+      ({ url }) => url.searchParams
     );
     expect(remove!.get('client_id')).toBe(`eq.${clientId}`);
 
@@ -721,7 +714,7 @@ describe('/clients/{clientId}/fire-installations', () => {
     });
     expect(response.status).toBe(201);
     fireInstallationResponseSchema.parse(await response.json());
-    expect(sent('fire_installations', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/fire_installations', 'POST')[0]!.body).toEqual({
       organization_id: organizationId,
       client_id: clientId,
       workplace_id: shopId,
@@ -778,9 +771,7 @@ describe('/clients/{clientId}/fire-substances', () => {
       storagePlace: 'Cușca metalică din curte',
       handling: null,
     });
-    const [list] = calls('fire_substances', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [list] = callsTo('/rest/v1/fire_substances', 'GET').map(({ url }) => url.searchParams);
     expect(list!.get('order')).toBe('sort_order.asc,created_at.asc,id.asc');
   });
 
@@ -800,7 +791,7 @@ describe('/clients/{clientId}/fire-substances', () => {
     expect((await request(path)).status).toBe(404);
     expect((await request(statePath, 'PUT', { state: 'none' })).status).toBe(404);
     expect((await request(path, 'POST', body)).status).toBe(404);
-    expect(calls('fire_substances', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_substances', 'POST')).toHaveLength(0);
   });
 
   it('saves the state on the fire-safety row', async () => {
@@ -813,8 +804,10 @@ describe('/clients/{clientId}/fire-substances', () => {
     expect(fireSubstancesStateResponseSchema.parse(await response.json())).toEqual({
       state: 'none',
     });
-    expect(sent('client_fire_safety', 'PATCH')).toEqual({ substances_state: 'none' });
-    expect(calls('client_fire_safety', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/client_fire_safety', 'PATCH')[0]!.body).toEqual({
+      substances_state: 'none',
+    });
+    expect(callsTo('/rest/v1/client_fire_safety', 'POST')).toHaveLength(0);
   });
 
   it('creates the row with the state alone when the client has none', async () => {
@@ -828,7 +821,7 @@ describe('/clients/{clientId}/fire-substances', () => {
     });
     const response = await request(statePath, 'PUT', { state: 'listed' });
     expect(fireSubstancesStateResponseSchema.parse(await response.json()).state).toBe('listed');
-    expect(sent('client_fire_safety', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/client_fire_safety', 'POST')[0]!.body).toEqual({
       client_id: clientId,
       organization_id: organizationId,
       substances_state: 'listed',
@@ -853,7 +846,7 @@ describe('/clients/{clientId}/fire-substances', () => {
     const response = await request(path, 'POST', body);
     expect(response.status).toBe(201);
     expect(fireSubstanceResponseSchema.parse(await response.json()).substance.name).toBe('Propan');
-    expect(sent('fire_substances', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/fire_substances', 'POST')[0]!.body).toEqual({
       name: 'Propan',
       classification: 'Flam. Gas 1, H220',
       quantity: '2 butelii de 11 kg',
@@ -882,14 +875,14 @@ describe('/clients/{clientId}/fire-substances', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'substances_not_listed'
     );
-    expect(sent('fire_substances', 'POST')).toMatchObject({ sort_order: 0 });
+    expect(callsTo('/rest/v1/fire_substances', 'POST')[0]!.body).toMatchObject({ sort_order: 0 });
   });
 
   it('refuses a blank classification', async () => {
     mockUpstream();
     const response = await request(path, 'POST', { ...body, classification: ' ' });
     expect(response.status).toBe(400);
-    expect(calls('fire_substances', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_substances', 'POST')).toHaveLength(0);
   });
 
   it('adds an entry by its name alone, its classification and quantity null until known', async () => {
@@ -905,7 +898,7 @@ describe('/clients/{clientId}/fire-substances', () => {
       classification: null,
       quantity: null,
     });
-    expect(sent('fire_substances', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/fire_substances', 'POST')[0]!.body).toMatchObject({
       name: 'Diluant',
       classification: null,
       quantity: null,
@@ -921,7 +914,7 @@ describe('/clients/{clientId}/fire-substances', () => {
     });
     const response = await request(entryPath, 'PUT', { name: 'Propan' });
     expect(response.status).toBe(200);
-    expect(sent('fire_substances', 'PATCH')).toMatchObject({
+    expect(callsTo('/rest/v1/fire_substances', 'PATCH')[0]!.body).toMatchObject({
       name: 'Propan',
       classification: null,
       quantity: null,
@@ -936,9 +929,11 @@ describe('/clients/{clientId}/fire-substances', () => {
     });
     const response = await request(entryPath, 'PUT', { ...body, storagePlace: null });
     expect(response.status).toBe(200);
-    expect(sent('fire_substances', 'PATCH')).toMatchObject({ storage_place: null });
-    const [update] = calls('fire_substances', 'PATCH').map(
-      ([input]) => new URL(String(input)).searchParams
+    expect(callsTo('/rest/v1/fire_substances', 'PATCH')[0]!.body).toMatchObject({
+      storage_place: null,
+    });
+    const [update] = callsTo('/rest/v1/fire_substances', 'PATCH').map(
+      ({ url }) => url.searchParams
     );
     expect(update!.get('id')).toBe(`eq.${propane.id}`);
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
@@ -1014,7 +1009,7 @@ describe('/clients/{clientId}/fire-maintenance-items', () => {
     mockUpstream({ clients: noClient });
     expect((await request(path)).status).toBe(404);
     expect((await request(path, 'POST', body)).status).toBe(404);
-    expect(calls('fire_maintenance_items', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_maintenance_items', 'POST')).toHaveLength(0);
   });
 
   it("adds a row after the workplace's last one, trimmed", async () => {
@@ -1029,7 +1024,7 @@ describe('/clients/{clientId}/fire-maintenance-items', () => {
     expect(fireMaintenanceItemResponseSchema.parse(await response.json()).item.subject).toBe(
       'Coșul de fum'
     );
-    expect(sent('fire_maintenance_items', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/fire_maintenance_items', 'POST')[0]!.body).toEqual({
       workplace_id: shopId,
       subject: 'Coșul de fum',
       interval_label: 'anual',
@@ -1039,8 +1034,8 @@ describe('/clients/{clientId}/fire-maintenance-items', () => {
       client_id: clientId,
       created_by: user.id,
     });
-    const [last] = calls('fire_maintenance_items', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [last] = callsTo('/rest/v1/fire_maintenance_items', 'GET').map(
+      ({ url }) => url.searchParams
     );
     expect(last!.get('workplace_id')).toBe(`eq.${shopId}`);
   });
@@ -1050,7 +1045,7 @@ describe('/clients/{clientId}/fire-maintenance-items', () => {
     expect((await request(path, 'POST', { ...body, intervalLabel: ' ' })).status).toBe(400);
     mockUpstream({ workplaces: () => Response.json([]) });
     expect((await request(path, 'POST', body)).status).toBe(400);
-    expect(calls('fire_maintenance_items', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_maintenance_items', 'POST')).toHaveLength(0);
   });
 
   it('replaces a row scoped to the client, and answers 404 when it is not there', async () => {
@@ -1062,14 +1057,14 @@ describe('/clients/{clientId}/fire-maintenance-items', () => {
     });
     const response = await request(itemPath, 'PUT', { ...body, intervalLabel: 'la 6 luni' });
     expect(response.status).toBe(200);
-    expect(sent('fire_maintenance_items', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/fire_maintenance_items', 'PATCH')[0]!.body).toEqual({
       workplace_id: shopId,
       subject: 'Coșul de fum',
       interval_label: 'la 6 luni',
       checked_by: 'Firmă autorizată de coșerit',
     });
-    const [update] = calls('fire_maintenance_items', 'PATCH').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [update] = callsTo('/rest/v1/fire_maintenance_items', 'PATCH').map(
+      ({ url }) => url.searchParams
     );
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
 
@@ -1122,8 +1117,8 @@ describe('/clients/{clientId}/fire-buildings', () => {
     const { items } = fireBuildingListResponseSchema.parse(await response.json());
     expect(items.map((item) => item.workplaceId)).toEqual([officeId, shopId]);
     expect(items[1]).toMatchObject({ yearBuilt: 1987, builtAreaM2: 412.5, levels: 'P+1E' });
-    const [workplaces] = calls('client_workplaces', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [workplaces] = callsTo('/rest/v1/client_workplaces', 'GET').map(
+      ({ url }) => url.searchParams
     );
     expect(workplaces!.get('kind')).toBe('eq.fixed_space');
     expect(workplaces!.get('office_has_activity')).toBe('eq.true');
@@ -1135,7 +1130,7 @@ describe('/clients/{clientId}/fire-buildings', () => {
     expect((await request(path)).status).toBe(404);
     expect((await request(shopPath, 'PUT', body)).status).toBe(404);
     expect((await request(shopPath, 'DELETE')).status).toBe(404);
-    expect(calls('fire_buildings', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_buildings', 'PATCH')).toHaveLength(0);
   });
 
   it('replaces the facts of a building it has, clearing what is left out', async () => {
@@ -1143,7 +1138,7 @@ describe('/clients/{clientId}/fire-buildings', () => {
     const response = await request(shopPath, 'PUT', body);
     expect(response.status).toBe(200);
     expect(fireBuildingResponseSchema.parse(await response.json()).building.levels).toBe('P+1E');
-    expect(sent('fire_buildings', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/fire_buildings', 'PATCH')[0]!.body).toEqual({
       year_built: 1987,
       built_area_m2: 412.5,
       levels: 'P+1E',
@@ -1156,12 +1151,10 @@ describe('/clients/{clientId}/fire-buildings', () => {
       water_reserve_m3: 0,
       notes: null,
     });
-    const [update] = calls('fire_buildings', 'PATCH').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [update] = callsTo('/rest/v1/fire_buildings', 'PATCH').map(({ url }) => url.searchParams);
     expect(update!.get('client_id')).toBe(`eq.${clientId}`);
     expect(update!.get('workplace_id')).toBe(`eq.${shopId}`);
-    expect(calls('fire_buildings', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_buildings', 'POST')).toHaveLength(0);
   });
 
   it('creates the building the first time', async () => {
@@ -1171,7 +1164,7 @@ describe('/clients/{clientId}/fire-buildings', () => {
         init?.method === 'POST' ? Response.json(shopBuilding, { status: 201 }) : Response.json([]),
     });
     expect((await request(shopPath, 'PUT', { levels: 'P+1E' })).status).toBe(200);
-    expect(sent('fire_buildings', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/fire_buildings', 'POST')[0]!.body).toMatchObject({
       levels: 'P+1E',
       year_built: null,
       client_id: clientId,
@@ -1195,15 +1188,15 @@ describe('/clients/{clientId}/fire-buildings', () => {
       workplaces: () => Response.json([{ kind: 'fixed_space', office_has_activity: false }]),
     });
     expect((await request(shopPath, 'PUT', body)).status).toBe(409);
-    expect(calls('fire_buildings', 'PATCH')).toHaveLength(0);
-    expect(calls('fire_buildings', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_buildings', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/fire_buildings', 'POST')).toHaveLength(0);
   });
 
   it('clears a building, and answers 204 also where there was none', async () => {
     mockUpstream({ buildings: () => new Response(null, { status: 204 }) });
     expect((await request(shopPath, 'DELETE')).status).toBe(204);
-    const [deleted] = calls('fire_buildings', 'DELETE').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [deleted] = callsTo('/rest/v1/fire_buildings', 'DELETE').map(
+      ({ url }) => url.searchParams
     );
     expect(deleted!.get('client_id')).toBe(`eq.${clientId}`);
     expect(deleted!.get('workplace_id')).toBe(`eq.${shopId}`);

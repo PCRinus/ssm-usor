@@ -11,11 +11,9 @@ import {
   comanFront,
   comanPeriodic,
   existingPop,
-  page,
   pagesOf,
   popFront,
   positions,
-  row,
   rusuFront,
   today,
   tomaFront,
@@ -23,6 +21,7 @@ import {
   trainedAndTested,
   workplaces,
 } from './test/sheets';
+import { page, row } from './testing';
 
 const client: EmployeeImportClient = {
   jobPositions: positions,

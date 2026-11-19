@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
+  callsTo,
   fetchMock,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
@@ -186,15 +187,6 @@ function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
   );
 }
 
-const calls = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
-const sent = (pathname: string, method: string) =>
-  JSON.parse(String(calls(pathname, method)[0]![1]?.body)) as Record<string, unknown>;
-
 const request = (path: string, method = 'GET', body?: unknown, bindings = env) =>
   apiRequest(path, { method, body }, bindings);
 
@@ -227,11 +219,11 @@ describe('GET /organization/tests/questions', () => {
       hidden: false,
       replacesQuestionId: builtIns[2]!.id,
     });
-    const query = new URL(String(calls('/rest/v1/test_questions')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/test_questions', 'GET')[0]!.url.searchParams;
     expect(query.get('order')).toBe(
       'position.asc,organization_id.asc.nullsfirst,created_at.asc,id.asc'
     );
-    const hides = new URL(String(calls('/rest/v1/test_question_hides')[0]![0])).searchParams;
+    const hides = callsTo('/rest/v1/test_question_hides', 'GET')[0]!.url.searchParams;
     expect(hides.get('organization_id')).toBe(`eq.${organizationId}`);
   });
 
@@ -276,9 +268,9 @@ describe('GET /organization/tests/questions', () => {
       { text: 'IPSU, art. 151', act: null, article: null, annex: null, url: null, target: null },
     ]);
     expect(parts[3]).toEqual([]);
-    const acts = calls('/rest/v1/legal_acts');
+    const acts = callsTo('/rest/v1/legal_acts', 'GET');
     expect(acts).toHaveLength(1);
-    expect(new URL(String(acts[0]![0])).searchParams.get('id')).toBe('in.(lege-319-2006)');
+    expect(acts[0]!.url.searchParams.get('id')).toBe('in.(lege-319-2006)');
   });
 
   it.each([
@@ -356,7 +348,7 @@ describe('GET /organization/tests/questions', () => {
     const response = await request('/organization/tests/questions?domain=su&test=annual');
     const body = testBankResponseSchema.parse(await response.json());
     expect(body.tests.map((test) => test.code)).toEqual(['TPSU']);
-    const query = new URL(String(calls('/rest/v1/test_questions')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/test_questions', 'GET')[0]!.url.searchParams;
     expect(query.get('domain')).toBe('eq.su');
     expect(query.get('test')).toBe('eq.annual');
   });
@@ -385,7 +377,7 @@ describe('POST /organization/tests/questions', () => {
       builtIn: false,
       hidden: false,
     });
-    expect(sent('/rest/v1/test_questions', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/test_questions', 'POST')[0]!.body).toEqual({
       organization_id: organizationId,
       domain: 'ssm',
       test: 'hiring',
@@ -421,7 +413,7 @@ describe('POST /organization/tests/questions', () => {
       options: options.map((option) => ({ ...option, correct: false })),
     });
     expect(response.status).toBe(400);
-    expect(calls('/rest/v1/test_questions', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/test_questions', 'POST')).toHaveLength(0);
   });
 });
 
@@ -432,7 +424,7 @@ describe('PATCH and DELETE /organization/tests/questions/{questionId}', () => {
     mockUpstream();
     const response = await request(`/organization/tests/questions/${own.id}`, 'PATCH', edit);
     expect(response.status).toBe(200);
-    expect(sent('/rest/v1/test_questions', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/test_questions', 'PATCH')[0]!.body).toEqual({
       text: 'Ce lege se aplică?',
       options,
       explanation: 'Legea 319/2006.',
@@ -453,14 +445,14 @@ describe('PATCH and DELETE /organization/tests/questions/{questionId}', () => {
     );
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('question_built_in');
-    expect(calls('/rest/v1/test_questions', method)).toHaveLength(0);
+    expect(callsTo('/rest/v1/test_questions', method)).toHaveLength(0);
   });
 
   it('deletes an own question', async () => {
     mockUpstream();
     const response = await request(`/organization/tests/questions/${own.id}`, 'DELETE');
     expect(response.status).toBe(204);
-    const query = new URL(String(calls('/rest/v1/test_questions', 'DELETE')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/test_questions', 'DELETE')[0]!.url.searchParams;
     expect(query.get('id')).toBe(`eq.${own.id}`);
   });
 
@@ -496,7 +488,7 @@ describe('PUT and DELETE /organization/tests/questions/{questionId}/hidden', () 
       id: builtIn.id,
       hidden: true,
     });
-    expect(sent('/rest/v1/test_question_hides', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/test_question_hides', 'POST')[0]!.body).toEqual({
       organization_id: organizationId,
       question_id: builtIn.id,
     });
@@ -520,7 +512,7 @@ describe('PUT and DELETE /organization/tests/questions/{questionId}/hidden', () 
       'PUT'
     );
     expect(response.status).toBe(200);
-    expect(calls('/rest/v1/test_question_hides', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/test_question_hides', 'POST')).toHaveLength(0);
   });
 
   it('restores a hidden built-in', async () => {
@@ -531,8 +523,7 @@ describe('PUT and DELETE /organization/tests/questions/{questionId}/hidden', () 
     );
     expect(response.status).toBe(200);
     expect(testQuestionResponseSchema.parse(await response.json()).question.hidden).toBe(false);
-    const query = new URL(String(calls('/rest/v1/test_question_hides', 'DELETE')[0]![0]))
-      .searchParams;
+    const query = callsTo('/rest/v1/test_question_hides', 'DELETE')[0]!.url.searchParams;
     expect(query.get('organization_id')).toBe(`eq.${organizationId}`);
     expect(query.get('question_id')).toBe(`eq.${builtIns[2]!.id}`);
   });
@@ -575,7 +566,7 @@ describe('GET /clients/{clientId}/employees/{employeeId}/tests', () => {
         passed: false,
       },
     ]);
-    const attempts = new URL(String(calls('/rest/v1/test_attempts')[0]![0])).searchParams;
+    const attempts = callsTo('/rest/v1/test_attempts', 'GET')[0]!.url.searchParams;
     expect(attempts.get('select')).not.toContain('questions');
     expect(attempts.get('employee_id')).toBe(`eq.${employeeId}`);
   });
@@ -599,7 +590,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
     const response = await request(`${testsPath}/results`, 'POST', paper);
     expect(response.status).toBe(201);
     expect(testResultResponseSchema.parse(await response.json()).result.id).toBe(resultId);
-    expect(sent('/rest/v1/test_results', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/test_results', 'POST')[0]!.body).toEqual({
       organization_id: organizationId,
       client_id: clientId,
       employee_id: employeeId,
@@ -622,7 +613,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       examiner: null,
     });
     expect(response.status).toBe(201);
-    expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/test_results', 'POST')[0]!.body).toMatchObject({
       examiner_name: null,
       examiner_job_title: null,
       source: 'paper',
@@ -643,7 +634,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       SUPABASE_SECRET_KEY: testSecretKey,
     });
     expect(response.status).toBe(201);
-    const sheets = new URL(String(calls('/rest/v1/signed_sheets')[0]![0])).searchParams;
+    const sheets = callsTo('/rest/v1/signed_sheets', 'GET')[0]!.url.searchParams;
     expect(sheets.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(sheets.get('domain')).toBe('eq.ssm');
   });
@@ -660,7 +651,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
     const response = await request(`${testsPath}/results`, 'POST', body);
     expect(response.status).toBe(409);
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('test_not_awaiting');
-    expect(calls('/rest/v1/test_results', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/test_results', 'POST')).toHaveLength(0);
   });
 
   it("takes an annual result once there is a pass, a leaver's included", async () => {
@@ -681,9 +672,8 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       takenOn: '2026-01-10',
     });
     expect(response.status).toBe(201);
-    expect(sent('/rest/v1/test_results', 'POST').material).toBe(
-      'Verificare anuală pe bază de test (TPSU)'
-    );
+    const result = callsTo('/rest/v1/test_results', 'POST')[0]!.body as { material: string };
+    expect(result.material).toBe('Verificare anuală pe bază de test (TPSU)');
   });
 
   it('takes an annual result with no earlier pass, as a paper sheet records it', async () => {
@@ -704,7 +694,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       takenOn: '2025-03-04',
     });
     expect(response.status).toBe(201);
-    expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/test_results', 'POST')[0]!.body).toMatchObject({
       domain: 'su',
       test: 'annual',
       taken_on: '2025-03-04',
@@ -728,7 +718,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       takenOn: '2019-03-04',
     });
     expect(response.status).toBe(201);
-    expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/test_results', 'POST')[0]!.body).toMatchObject({
       domain: 'ssm',
       test: 'hiring',
       taken_on: '2019-03-04',
@@ -758,10 +748,10 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
       takenOn: '2019-03-05',
     });
     expect(response.status).toBe(201);
-    const lookup = new URL(String(calls('/rest/v1/test_results')[0]![0])).searchParams;
+    const lookup = callsTo('/rest/v1/test_results', 'GET')[0]!.url.searchParams;
     expect(lookup.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(lookup.get('domain')).toBe('eq.su');
-    expect(sent('/rest/v1/test_results', 'POST')).toMatchObject({
+    expect(callsTo('/rest/v1/test_results', 'POST')[0]!.body).toMatchObject({
       domain: 'su',
       test: 'hiring',
       taken_on: '2019-03-05',
@@ -776,7 +766,7 @@ describe('POST /clients/{clientId}/employees/{employeeId}/tests/results', () => 
     expect(
       (await request(`${testsPath}/results`, 'POST', { ...paper, test: 'annual' })).status
     ).toBe(400);
-    expect(calls('/rest/v1/test_results', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/test_results', 'POST')).toHaveLength(0);
   });
 });
 
@@ -789,11 +779,11 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/tests/results/{result
       examiner: { name: 'Elena VOICU', jobTitle: 'Inspector SSM' },
     });
     expect(response.status).toBe(200);
-    expect(sent('/rest/v1/test_results', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/test_results', 'PATCH')[0]!.body).toEqual({
       examiner_name: 'Elena VOICU',
       examiner_job_title: 'Inspector SSM',
     });
-    const query = new URL(String(calls('/rest/v1/test_results', 'PATCH')[0]![0])).searchParams;
+    const query = callsTo('/rest/v1/test_results', 'PATCH')[0]!.url.searchParams;
     expect(query.get('employee_id')).toBe(`eq.${employeeId}`);
     expect(query.get('client_id')).toBe(`eq.${clientId}`);
   });
@@ -852,7 +842,7 @@ describe('the test sheet of a result', () => {
       available: true,
       signed: { trainee: 'pending', examiner: 'paper' },
     });
-    const sheets = new URL(String(calls('/rest/v1/test_sheets')[0]![0])).searchParams;
+    const sheets = callsTo('/rest/v1/test_sheets', 'GET')[0]!.url.searchParams;
     expect(sheets.get('test_result_id')).toBe(`in.(${resultId})`);
   });
 
@@ -915,8 +905,8 @@ describe('the test sheet of a result', () => {
       fileName: 'Fisa-de-test-TASSM-Popescu-Ion-2026-01-06.pdf',
       expiresInSeconds: 600,
     });
-    const [signing] = calls(`/storage/v1/object/sign/documents/${storagePath}`, 'POST');
-    expect(new Headers(signing![1]?.headers).get('Authorization')).toBe(`Bearer ${testSecretKey}`);
+    const [signing] = callsTo(`/storage/v1/object/sign/documents/${storagePath}`, 'POST');
+    expect(signing!.headers.get('Authorization')).toBe(`Bearer ${testSecretKey}`);
   });
 
   it('has no link for a sheet the pass could not draw up', async () => {
@@ -931,7 +921,7 @@ describe('the test sheet of a result', () => {
     expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe(
       'test_sheet_not_available'
     );
-    expect(calls('/rest/v1/test_sheets', 'POST')).toEqual([]);
+    expect(callsTo('/rest/v1/test_sheets', 'POST')).toEqual([]);
   });
 
   it('marks a slot of the stored sheet as signed on paper', async () => {
@@ -957,7 +947,7 @@ describe('the test sheet of a result', () => {
       resultId,
       sheet: { available: true, signed: { trainee: 'unassigned', examiner: 'paper' } },
     });
-    expect(sent('/rest/v1/rpc/mark_test_sheet_paper_signature', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/rpc/mark_test_sheet_paper_signature', 'POST')[0]!.body).toEqual({
       p_test_sheet_id: sheetId,
       p_slot: 'examiner',
     });

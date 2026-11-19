@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { apiRequest } from '../../test/request';
 import {
-  fetchMock,
+  callsTo,
   mockUpstream as mockSignedInUpstream,
   stubFetch,
   testEnv,
@@ -101,15 +101,6 @@ function mockUpstream(handlers: { positions?: Handler; equipment?: Handler } = {
   });
 }
 
-const calls = (table: string, method: string) =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === `/rest/v1/${table}` && (init?.method ?? 'GET') === method
-  );
-
-const sent = (table: string, method: string, index = 0) =>
-  JSON.parse(String(calls(table, method)[index]![1]?.body)) as unknown;
-
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -128,8 +119,8 @@ describe('GET …/equipment', () => {
       ['Mască de sudură', 1, 24],
       ['Mănuși de sudor', 2, 3],
     ]);
-    const [list] = calls('job_position_equipment', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [list] = callsTo('/rest/v1/job_position_equipment', 'GET').map(
+      ({ url }) => url.searchParams
     );
     expect(list!.get('job_position_id')).toBe(`eq.${welderId}`);
     expect(list!.get('order')).toBe('created_at.asc,id.asc');
@@ -139,9 +130,7 @@ describe('GET …/equipment', () => {
     mockUpstream({ positions: (init) => (isGet(init) ? Response.json([]) : undefined) });
     const response = await request(path);
     expect(response.status).toBe(404);
-    const [find] = calls('job_positions', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
-    );
+    const [find] = callsTo('/rest/v1/job_positions', 'GET').map(({ url }) => url.searchParams);
     expect(find!.get('client_id')).toBe(`eq.${clientId}`);
     expect(find!.get('archived_at')).toBe('is.null');
   });
@@ -160,7 +149,7 @@ describe('POST …/equipment', () => {
     expect(equipmentEntryResponseSchema.parse(await response.json()).entry.item).toBe(
       'Mască de sudură'
     );
-    expect(sent('job_position_equipment', 'POST')).toEqual({
+    expect(callsTo('/rest/v1/job_position_equipment', 'POST')[0]!.body).toEqual({
       risk: 'Radiații, împroșcare (față, ochi)',
       item: 'Mască de sudură',
       quantity: 1,
@@ -190,7 +179,7 @@ describe('POST …/equipment', () => {
         message: 'Inventory has a duration of use; a consumable has none.',
       },
     ]);
-    expect(calls('job_position_equipment', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_position_equipment', 'POST')).toHaveLength(0);
   });
 
   it('answers 409 when the client is archived', async () => {
@@ -224,15 +213,15 @@ describe('PUT and DELETE …/equipment/{entryId}', () => {
       allocation: 'personal_inventory',
     });
     expect(response.status).toBe(200);
-    expect(sent('job_position_equipment', 'PATCH')).toEqual({
+    expect(callsTo('/rest/v1/job_position_equipment', 'PATCH')[0]!.body).toEqual({
       risk: 'Radiații',
       item: 'Mască de sudură',
       quantity: 1,
       duration_months: 12,
       allocation: 'personal_inventory',
     });
-    const [update] = calls('job_position_equipment', 'PATCH').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [update] = callsTo('/rest/v1/job_position_equipment', 'PATCH').map(
+      ({ url }) => url.searchParams
     );
     expect(update!.get('id')).toBe(`eq.${maskId}`);
     expect(update!.get('job_position_id')).toBe(`eq.${welderId}`);
@@ -270,7 +259,7 @@ describe('POST …/equipment/copy', () => {
     const body = equipmentListResponseSchema.parse(await response.json());
     expect(body.items).toHaveLength(2);
     expect(listed).toBe(2);
-    expect(sent('job_position_equipment', 'POST')).toEqual([
+    expect(callsTo('/rest/v1/job_position_equipment', 'POST')[0]!.body).toEqual([
       {
         risk: gloves.risk,
         item: gloves.item,
@@ -299,7 +288,7 @@ describe('POST …/equipment/copy', () => {
     expect(apiErrorResponseSchema.parse(await other.json()).issues?.[0]?.path).toBe(
       'fromJobPositionId'
     );
-    expect(calls('job_position_equipment', 'POST')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_position_equipment', 'POST')).toHaveLength(0);
   });
 });
 
@@ -321,7 +310,9 @@ describe('PATCH …/protective-equipment', () => {
       jobPosition.employeeCount,
       jobPosition.equipmentCount,
     ]).toEqual([false, 3, 2]);
-    expect(sent('job_positions', 'PATCH')).toEqual({ needs_protective_equipment: false });
+    expect(callsTo('/rest/v1/job_positions', 'PATCH')[0]!.body).toEqual({
+      needs_protective_equipment: false,
+    });
   });
 
   it('refuses "needs equipment" in words, and "needs none" while entries exist', async () => {
@@ -331,7 +322,7 @@ describe('PATCH …/protective-equipment', () => {
     expect(apiErrorResponseSchema.parse(await inWords.json()).reason).toBe(
       'equipment_decided_by_entries'
     );
-    expect(calls('job_positions', 'PATCH')).toHaveLength(0);
+    expect(callsTo('/rest/v1/job_positions', 'PATCH')).toHaveLength(0);
 
     mockUpstream({
       positions: (init) =>
@@ -367,8 +358,8 @@ describe('GET /equipment-suggestions', () => {
       'Mănuși de sudor',
       'Mască de sudură',
     ]);
-    const [list] = calls('job_position_equipment', 'GET').map(
-      ([input]) => new URL(String(input)).searchParams
+    const [list] = callsTo('/rest/v1/job_position_equipment', 'GET').map(
+      ({ url }) => url.searchParams
     );
     expect(list!.get('select')).toBe('item,updated_at');
     expect(list!.get('order')).toBe('updated_at.desc');
