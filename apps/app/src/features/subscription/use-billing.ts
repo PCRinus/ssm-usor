@@ -1,21 +1,17 @@
 import type { BillingChoice, BillingOverview } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 
 import { getGetBillingQueryKey, getGetMeQueryKey, useGetBilling } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 
 export type BillingSubscription = NonNullable<BillingOverview['subscription']>;
 export type BillingOwner = NonNullable<BillingOverview['owner']>;
 
-export const billingQueryKey = (userId: string | undefined) => [...getGetBillingQueryKey(), userId];
-
 export function useBilling({ refetchOnWindowFocus = true } = {}) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   return useGetBilling({
-    request: apiRequest,
-    query: { queryKey: billingQueryKey(session?.user.id), refetchOnWindowFocus },
+    request,
+    query: { queryKey: key(getGetBillingQueryKey()), refetchOnWindowFocus },
   });
 }
 

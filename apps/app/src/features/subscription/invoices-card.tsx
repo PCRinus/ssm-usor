@@ -1,9 +1,10 @@
 import { countOf } from '@ssm-usor/contracts';
-import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi } from '@tanstack/react-router';
 import { Receipt } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
 import { getBillingInvoicePdf } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
@@ -35,7 +36,7 @@ export function InvoicesCard({
   vatPayer: boolean;
   emptyText: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const [opening, setOpening] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export function InvoicesCard({
       const tab = window.open('', '_blank');
       if (tab) tab.opener = null;
       try {
-        const link = await getBillingInvoicePdf(invoice.stripeInvoiceId, apiRequest);
+        const link = await getBillingInvoicePdf(invoice.stripeInvoiceId, request);
         if (tab) tab.location.href = link.url;
         else leaveFor(link.url);
       } catch (cause) {
@@ -69,7 +70,7 @@ export function InvoicesCard({
         setOpening(null);
       }
     },
-    [apiRequest]
+    [request]
   );
 
   const columns = useMemo(

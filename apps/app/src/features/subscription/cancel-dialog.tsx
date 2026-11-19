@@ -18,10 +18,10 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useCancelSubscription } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 
@@ -43,8 +43,8 @@ export function CancelDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const cancel = useCancelSubscription({ request: apiRequest });
+  const { request } = useApi();
+  const cancel = useCancelSubscription({ request });
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !cancel.isPending && onClose()}>
       <DialogContent data-testid="cancel-dialog" className="sm:max-w-[560px]">
@@ -72,7 +72,7 @@ function CancelForm({
   cancel: ReturnType<typeof useCancelSubscription>;
   onClose: () => void;
 }) {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const [reason, setReason] = useState<CancellationReason | ''>('');
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);

@@ -3,11 +3,11 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { ExternalLink } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { useUpdateInvoiceEmail } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { billingErrorMessage } from './billing-errors';
 import { cardBrand } from './billing-format';
@@ -93,8 +93,8 @@ function InvoiceEmailForm({
   ownerEmail: string | null;
   canAct: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const update = useUpdateInvoiceEmail({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const update = useUpdateInvoiceEmail({ request });
   const [value, setValue] = useState(saved ?? '');
   const [error, setError] = useState<string | null>(null);
   const trimmed = value.trim();

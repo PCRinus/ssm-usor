@@ -5,10 +5,11 @@ import { Label } from '@ssm-usor/ui/components/label';
 import { Switch } from '@ssm-usor/ui/components/switch';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { type FormEvent, type ReactNode, useId, useState } from 'react';
 
 import { setBillingExtra } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { billingErrorMessage } from './billing-errors';
 import { BillingCard, UsageBar } from './billing-ui';
@@ -157,7 +158,7 @@ function OwnerRow({
   canAct: boolean;
   renewsAt: string | null;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +168,7 @@ function OwnerRow({
     setBusy(true);
     setError(null);
     try {
-      await setBillingExtra(kind, { ceilingEuros: euros }, apiRequest);
+      await setBillingExtra(kind, { ceilingEuros: euros }, request);
     } catch (cause) {
       setError(billingErrorMessage(cause));
       setBusy(false);
