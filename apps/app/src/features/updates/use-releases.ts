@@ -1,6 +1,5 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getListReleasesQueryKey,
@@ -11,14 +10,12 @@ import {
   useListReleases,
 } from '@/api/generated/api';
 import type { ApiRequestOptions } from '@/api/http';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi, withUserId } from '@/api/use-api';
 
 const releasesStaleTime = 5 * 60_000;
 
-export const releasesQueryKey = (userId: string | undefined) => [
-  ...getListReleasesQueryKey(),
-  userId,
-];
+export const releasesQueryKey = (userId: string | undefined) =>
+  withUserId(userId)(getListReleasesQueryKey());
 
 export const releasesQueryOptions = (request: ApiRequestOptions, userId: string | undefined) =>
   getListReleasesQueryOptions({
@@ -27,15 +24,13 @@ export const releasesQueryOptions = (request: ApiRequestOptions, userId: string 
   });
 
 export function useReleases() {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const userId = session?.user.id;
+  const { request, ready, key } = useApi();
   const query = useListReleases({
-    request: apiRequest,
+    request,
     query: {
-      queryKey: releasesQueryKey(userId),
+      queryKey: key(getListReleasesQueryKey()),
       staleTime: releasesStaleTime,
-      enabled: Boolean(session && apiRequest.baseUrl),
+      enabled: ready,
     },
   });
   const releases: Release[] = query.data?.items ?? [];
@@ -52,12 +47,11 @@ export function useReleases() {
 }
 
 export function useAcknowledgeReleases() {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const queryClient = useQueryClient();
   const { newest, unreadCount, find } = useReleases();
-  const queryKey = releasesQueryKey(session?.user.id);
-  const mutation = useAcknowledgeReleasesMutation({ request: apiRequest });
+  const queryKey = key(getListReleasesQueryKey());
+  const mutation = useAcknowledgeReleasesMutation({ request });
 
   function acknowledge(tag = newest?.tag) {
     const through = find(tag);
