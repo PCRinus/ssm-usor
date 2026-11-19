@@ -53,10 +53,11 @@ describe('mockUpstream', () => {
     ]);
   });
 
-  it('routes a path under a prefix, preferring an exact path and then the longest prefix', async () => {
+  it('routes a path under a prefix, preferring an exact path, then the longest prefix, then a method', async () => {
     mockUpstream({
+      'POST /storage/v1/object/*': () => ['post'],
       '/storage/v1/object/*': () => ['any'],
-      'POST /storage/v1/object/sign/*': () => ['sign'],
+      '/storage/v1/object/sign/*': () => ['sign'],
       '/storage/v1/object/sign/a.pdf': () => ['exact'],
     });
     const answer = async (path: string, method = 'GET') =>
@@ -64,7 +65,8 @@ describe('mockUpstream', () => {
 
     expect(await answer('/storage/v1/object/sign/a.pdf', 'POST')).toEqual(['exact']);
     expect(await answer('/storage/v1/object/sign/b.pdf', 'POST')).toEqual(['sign']);
-    expect(await answer('/storage/v1/object/sign/b.pdf')).toEqual(['any']);
+    expect(await answer('/storage/v1/object/files/b.pdf', 'POST')).toEqual(['post']);
+    expect(await answer('/storage/v1/object/files/b.pdf')).toEqual(['any']);
     await expect(fetch('https://example.supabase.co/storage/v1/objects')).rejects.toThrow(
       'Unexpected upstream request'
     );

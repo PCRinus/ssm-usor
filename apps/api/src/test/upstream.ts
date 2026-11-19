@@ -100,16 +100,17 @@ export const membershipRoutes: UpstreamRoutes = {
 function routeIn(layer: UpstreamRoutes, { method, url }: UpstreamCall) {
   const exact = layer[`${method} ${url.pathname}`] ?? layer[url.pathname];
   if (exact) return exact;
-  const prefix = Object.keys(layer)
-    .filter((key) => {
-      if (!key.endsWith('*')) return false;
-      const path = key.startsWith('/') ? key : key.slice(key.indexOf(' ') + 1);
-      return (
-        (path === key || key.startsWith(`${method} `)) && url.pathname.startsWith(path.slice(0, -1))
-      );
-    })
-    .sort((a, b) => b.length - a.length)[0];
-  return prefix === undefined ? undefined : layer[prefix];
+  const prefixes = Object.keys(layer).flatMap((key) => {
+    if (!key.endsWith('*')) return [];
+    const [keyMethod, path] = key.startsWith('/') ? [null, key] : key.split(' ');
+    if (keyMethod && keyMethod !== method) return [];
+    const prefix = path!.slice(0, -1);
+    return url.pathname.startsWith(prefix)
+      ? [{ key, rank: prefix.length * 2 + (keyMethod ? 1 : 0) }]
+      : [];
+  });
+  const best = prefixes.sort((a, b) => b.rank - a.rank)[0];
+  return best && layer[best.key];
 }
 
 function asResponse(call: UpstreamCall, result: unknown) {
@@ -123,7 +124,8 @@ function asResponse(call: UpstreamCall, result: unknown) {
 }
 
 // An earlier layer wins, even its bare `/path` over a later layer's `METHOD /path`, so a test can
-// replace a module's defaults. Within a layer an exact path wins over a `/prefix*`, and a route
+// replace a module's defaults. Within a layer an exact path wins over a `/prefix*`, a longer prefix
+// over a shorter one, and a `METHOD` over none on the same prefix. A route
 // that answers `undefined` leaves the call to the later layers. When supabase-js asks for one
 // object, rows go back as PostgREST answers them: the first row, or 406 PGRST116 for none.
 export function routeUpstream(...layers: UpstreamRoutes[]) {
