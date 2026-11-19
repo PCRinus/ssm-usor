@@ -162,12 +162,14 @@ describe('choosing the files of an import', () => {
       { path: 'mare.pdf', blob: new Blob([new Uint8Array(20 * 1024 * 1024 + 1)]) },
       { path: 'Decizie.docx', blob: blob() },
       { path: 'stricat.zip', blob: blob('not a zip') },
+      { path: 'acte.zip', blob: zipDeclaring({ 'Registru mare.pdf': 'x' }, 21) },
     ]);
     const second = await addToSelection(first, [{ path: 'Decizie.docx', blob: blob('y') }]);
 
     expect(second.archives).toEqual(['acte-psi-2021.rar']);
     expect(second.brokenZips).toEqual(['stricat.zip']);
     expect(second.setAside.map((file) => [file.path, file.reason])).toEqual([
+      ['acte.zip/Registru mare.pdf', 'too_large'],
       ['gol.pdf', 'empty'],
       ['mare.pdf', 'too_large'],
     ]);
