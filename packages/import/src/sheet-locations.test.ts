@@ -7,7 +7,7 @@ import {
   locatingTargets,
   sheetLocations,
 } from './sheet-locations';
-import { page, row } from './test/sheets';
+import { page, row } from './testing';
 
 const front = page({
   pageKind: 'ssm_sheet_front',

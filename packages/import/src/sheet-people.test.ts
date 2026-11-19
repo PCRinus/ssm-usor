@@ -8,15 +8,14 @@ import {
   comanPeriodic,
   moraruUpload,
   otherPhoto,
-  page,
   pagesOf,
-  row,
   rusuFront,
   today,
   tomaFront,
   tomaPeriodic,
   withControlDigit,
 } from './test/sheets';
+import { page, row } from './testing';
 
 describe('nearName', () => {
   it('joins a misread letter and a given name cut short', () => {
