@@ -8,7 +8,7 @@ stubFetch();
 
 const documentId = '7a3b0c0e-6d1f-4d55-9a8e-3f0f2b9c1d11';
 const clientId = '2c9d8e1f-4b3a-4f6e-8d7c-1a2b3c4d5e6f';
-const limit = 20 * 1024 * 1024;
+const limit = 15 * 1024 * 1024;
 
 const routes = [
   ['PUT', `/documents/${documentId}/draft/file`],
@@ -34,13 +34,13 @@ const refusedAsTooLarge = async (response: Response) => {
   expect(response.status).toBe(400);
   expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
     error: 'validation_error',
-    message: 'The file is larger than 20 MiB.',
+    message: 'The file is larger than 15 MB.',
   });
   const reached = fetchMock.mock.calls.map(([input]) => new URL(String(input)).pathname);
   expect(reached.filter((path) => !signInOnly.includes(path))).toEqual([]);
 };
 
-describe('a document file past 20 MiB', () => {
+describe('a document file past 15 MB', () => {
   it.each(routes)('is refused by its declared length at %s %s', async (method, path) => {
     mockUpstream();
     await refusedAsTooLarge(

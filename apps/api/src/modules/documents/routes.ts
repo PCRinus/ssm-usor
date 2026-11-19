@@ -21,6 +21,7 @@ import { bodyLimit } from 'hono/body-limit';
 
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
+import { maxDocxBytes } from '../../lib/docx';
 import { ApiError } from '../../lib/errors';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
@@ -36,11 +37,10 @@ const noSuchClient = {
   content: errorContent,
 };
 
-// The documents bucket takes files of 20 MiB at most.
 const documentWithinLimit = bodyLimit({
-  maxSize: 20 * 1024 * 1024,
+  maxSize: maxDocxBytes,
   onError: () => {
-    throw new ApiError('validation_error', 'The file is larger than 20 MiB.');
+    throw new ApiError('validation_error', 'The file is larger than 15 MB.');
   },
 });
 
