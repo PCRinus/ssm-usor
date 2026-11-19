@@ -7,7 +7,6 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { Fragment, type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
 import {
@@ -19,6 +18,7 @@ import {
   useUpdateResponsiblePerson,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
@@ -56,25 +56,23 @@ const rowKey = (person: ResponsiblePerson) => person.id;
 // `readOnly` is an archived client.
 export function ResponsiblePersonsCard({
   clientId,
-  userId,
   readOnly,
   currentEmployeeCount,
   focus,
 }: {
   clientId: string;
-  userId: string;
   readOnly: boolean;
   currentEmployeeCount: number;
   focus?: ResponsiblePersonFocus;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const persons = useListResponsiblePersons(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListResponsiblePersonsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListResponsiblePersonsQueryKey(clientId)) },
   });
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)) },
   });
   const workplaceItems = workplaces.data?.items;
   const workplaceNames = useMemo(
@@ -82,11 +80,11 @@ export function ResponsiblePersonsCard({
       workplaceItems && new Map(workplaceItems.map((workplace) => [workplace.id, workplace.name])),
     [workplaceItems]
   );
-  const archive = useArchiveResponsiblePerson({ request: apiRequest });
-  const update = useUpdateResponsiblePerson({ request: apiRequest });
+  const archive = useArchiveResponsiblePerson({ request });
+  const update = useUpdateResponsiblePerson({ request });
   const [editing, setEditing] = useState<ResponsiblePersonEditing>(null);
   const [pointedRole, setPointedRole] = useState<ResponsiblePersonRole | null>(null);
-  const details = useDocumentDetails(clientId, userId);
+  const details = useDocumentDetails(clientId);
   const [archiving, setArchiving] = useState<ResponsiblePerson | null>(null);
   const [error, setError] = useState<ReactNode>(null);
 
@@ -292,7 +290,6 @@ export function ResponsiblePersonsCard({
       )}
       <ResponsiblePersonDialog
         clientId={clientId}
-        userId={userId}
         editing={editing}
         pointedRole={pointedRole}
         onClose={() => {

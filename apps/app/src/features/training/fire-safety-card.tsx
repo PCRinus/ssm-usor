@@ -6,7 +6,6 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 import {
@@ -24,6 +23,7 @@ import {
   useUpdateClientFireSafety,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -75,11 +75,11 @@ import {
   startingInterval,
 } from './schedule-rules';
 
-function useFireSafety(clientId: string, userId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+function useFireSafety(clientId: string) {
+  const { request, key } = useApi();
   return useGetClientFireSafety(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetClientFireSafetyQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getGetClientFireSafetyQueryKey(clientId)) },
   });
 }
 
@@ -87,17 +87,15 @@ type FireRulesClient = ClientSummary & { currentEmployeeCount: number };
 
 export function FireSafetySection({
   client,
-  userId,
   focus,
 }: {
   client: FireRulesClient;
-  userId: string;
   focus?: FireTrainingFocus;
 }) {
-  const fireSafety = useFireSafety(client.id, userId);
+  const fireSafety = useFireSafety(client.id);
   // The starting calendar is the occupational safety card's, which loads the same query.
-  const details = useDocumentDetails(client.id, userId);
-  const positions = useJobPositionOptions(client.id, userId);
+  const details = useDocumentDetails(client.id);
+  const positions = useJobPositionOptions(client.id);
   if (fireSafety.isPending || details.isPending || positions.isPending) {
     return <Skeleton className="h-56 w-full rounded-xl" />;
   }
@@ -133,14 +131,12 @@ export function FireSafetySection({
         occupational={details.data.documentDetails}
         positions={positions.data.items}
         client={client}
-        userId={userId}
         focus={focus === 'fire-training-schedule'}
       />
       <FireRulesCard
         saved={saved}
         exists={exists}
         client={client}
-        userId={userId}
         focus={focus === 'fire-smoking' || focus === 'fire-waste' ? focus : undefined}
       />
     </>
@@ -150,7 +146,6 @@ export function FireSafetySection({
 function useFireSafetySave<Values extends FieldValues>({
   form,
   clientId,
-  userId,
   change,
   successMessage,
   failureMessage,
@@ -158,17 +153,16 @@ function useFireSafetySave<Values extends FieldValues>({
 }: {
   form: UseFormReturn<Values>;
   clientId: string;
-  userId: string;
   change: (values: Values) => UpdateClientFireSafetyRequest;
   successMessage: string;
   failureMessage: string;
   onDone: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const savedToast = useSavedToast();
-  const update = useUpdateClientFireSafety({ request: apiRequest });
+  const update = useUpdateClientFireSafety({ request });
 
-  const queryKey = [...getGetClientFireSafetyQueryKey(clientId), userId];
+  const queryKey = key(getGetClientFireSafetyQueryKey(clientId));
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       // A refetch that fails keeps the cache it had, so the saved row goes in first.
@@ -202,7 +196,6 @@ function FireScheduleCard({
   occupational,
   positions,
   client,
-  userId,
   focus,
 }: {
   saved: FireSafety;
@@ -210,7 +203,6 @@ function FireScheduleCard({
   occupational: Parameters<typeof startingFireSchedule>[1];
   positions: readonly JobPosition[];
   client: ClientSummary;
-  userId: string;
   focus: boolean;
 }) {
   const readOnly = client.archivedAt !== null;
@@ -241,7 +233,6 @@ function FireScheduleCard({
           starting={starting}
           categories={categories}
           clientId={client.id}
-          userId={userId}
           onDone={close}
         />
       ) : empty ? (
@@ -306,14 +297,12 @@ function FireScheduleForm({
   starting,
   categories,
   clientId,
-  userId,
   onDone,
 }: {
   start: FireSafety;
   starting: boolean;
   categories: readonly CategoryPosts[];
   clientId: string;
-  userId: string;
   onDone: () => void;
 }) {
   const unsaved = categories
@@ -334,7 +323,6 @@ function FireScheduleForm({
   const { onSubmit, busy } = useFireSafetySave({
     form,
     clientId,
-    userId,
     change: (values) => fireScheduleChange(values, categories),
     successMessage: 'Instruirea SU a fost salvată.',
     failureMessage: 'Nu am putut salva instruirea SU. Verifică conexiunea și încearcă din nou.',
@@ -437,13 +425,11 @@ function FireRulesCard({
   saved,
   exists,
   client,
-  userId,
   focus,
 }: {
   saved: FireSafety;
   exists: boolean;
   client: FireRulesClient;
-  userId: string;
   focus?: 'fire-smoking' | 'fire-waste';
 }) {
   const readOnly = client.archivedAt !== null;
@@ -478,7 +464,6 @@ function FireRulesCard({
         <FireRulesForm
           saved={saved}
           clientId={client.id}
-          userId={userId}
           asksThirdParties={asksThirdParties}
           onDone={close}
         />
@@ -551,13 +536,11 @@ function WasteChips({
 function FireRulesForm({
   saved,
   clientId,
-  userId,
   asksThirdParties,
   onDone,
 }: {
   saved: FireSafety;
   clientId: string;
-  userId: string;
   asksThirdParties: boolean;
   onDone: () => void;
 }) {
@@ -568,7 +551,6 @@ function FireRulesForm({
   const { onSubmit, busy } = useFireSafetySave({
     form,
     clientId,
-    userId,
     change: fireRulesChange,
     successMessage: 'Fumatul și deșeurile au fost salvate.',
     failureMessage:

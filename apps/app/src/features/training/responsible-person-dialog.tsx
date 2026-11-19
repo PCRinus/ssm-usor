@@ -18,7 +18,6 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
@@ -34,6 +33,7 @@ import {
   type WorkplaceListResponse,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -80,13 +80,11 @@ export const responsiblePersonsOfArchivedClientMessage =
 // holds it, the checkbox to untick.
 export function ResponsiblePersonDialog({
   clientId,
-  userId,
   editing,
   pointedRole = null,
   onClose,
 }: {
   clientId: string;
-  userId: string;
   editing: ResponsiblePersonEditing;
   pointedRole?: ResponsiblePersonRole | null;
   onClose: () => void;
@@ -97,7 +95,6 @@ export function ResponsiblePersonDialog({
         <ResponsiblePersonForm
           key={editing === 'new' ? 'new' : editing.id}
           clientId={clientId}
-          userId={userId}
           person={editing === 'new' ? null : editing}
           pointedRole={pointedRole}
           onClose={onClose}
@@ -109,35 +106,33 @@ export function ResponsiblePersonDialog({
 
 function ResponsiblePersonForm({
   clientId,
-  userId,
   person,
   pointedRole,
   onClose,
 }: {
   clientId: string;
-  userId: string;
   person: ResponsiblePerson | null;
   pointedRole: ResponsiblePersonRole | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const savedToast = useSavedToast();
-  const create = useCreateResponsiblePerson({ request: apiRequest });
-  const update = useUpdateResponsiblePerson({ request: apiRequest });
+  const create = useCreateResponsiblePerson({ request });
+  const update = useUpdateResponsiblePerson({ request });
   // The page shows the legal representative from the same query, so it is already loaded.
   const details = useGetClientDocumentDetails(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetClientDocumentDetailsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getGetClientDocumentDetailsQueryKey(clientId)) },
   });
   // The client page loaded it; refetched because adding employees does not invalidate it, and
   // its count is the one generation goes by (ADR 010).
   const client = useGetClient(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetClientQueryKey(clientId), userId], refetchOnMount: 'always' },
+    request,
+    query: { queryKey: key(getGetClientQueryKey(clientId)), refetchOnMount: 'always' },
   });
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)) },
   });
   const form = useForm<ResponsiblePersonFormValues>({
     resolver: zodResolver(responsiblePersonFormSchema),
@@ -232,7 +227,7 @@ function ResponsiblePersonForm({
       if (status === 400 && body?.issues?.some((issue) => issue.path === 'workplaceId')) {
         await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
         const chosen = queryClient
-          .getQueryData<WorkplaceListResponse>([...getListWorkplacesQueryKey(clientId), userId])
+          .getQueryData<WorkplaceListResponse>(key(getListWorkplacesQueryKey(clientId)))
           ?.items.find((workplace) => workplace.id === values.workplaceId);
         form.setError('workplaceId', {
           message:
@@ -295,7 +290,6 @@ function ResponsiblePersonForm({
                 <EmployeeCombobox
                   id="responsible-employee"
                   clientId={clientId}
-                  userId={userId}
                   value={
                     administratorChosen && !administrator.employeeId
                       ? administratorValue
