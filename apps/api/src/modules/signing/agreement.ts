@@ -188,11 +188,9 @@ export async function signingAgreementDocx(
   // their codes go.
   const contact = contactOf({ emails: [employee.data.email], phones: [employee.data.phone] });
   if (!contact) {
-    throw new ApiError(
-      'conflict',
-      'The employee has neither an email nor a phone for the signing codes.',
-      undefined,
-      signatureErrorReasons.employeeHasNoAddress
+    throw ApiError.conflict(
+      signatureErrorReasons.employeeHasNoAddress,
+      'The employee has neither an email nor a phone for the signing codes.'
     );
   }
   const row = employee.data;

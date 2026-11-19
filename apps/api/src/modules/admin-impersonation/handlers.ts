@@ -131,11 +131,9 @@ const constraintOf = (message: string | undefined) =>
 
 function startRefusal(error: { code?: string | null; message?: string }) {
   if (error.code === '23505' && constraintOf(error.message) === 'impersonations_active_admin_key') {
-    return new ApiError(
-      'conflict',
-      'Another impersonation is being started.',
-      undefined,
-      adminImpersonationErrorReasons.startInProgress
+    return ApiError.conflict(
+      adminImpersonationErrorReasons.startInProgress,
+      'Another impersonation is being started.'
     );
   }
   if (error.code === 'IMS02' || error.code === '23503') {

@@ -114,11 +114,9 @@ export const removeJobPosition: RouteHandler<typeof removeJobPositionRoute, ApiE
     .update({ archived_at: new Date().toISOString() })
     .eq('id', jobPositionId);
   if (archived.error?.code === 'JOB01') {
-    throw new ApiError(
-      'conflict',
-      'Employees are still in this job position. Move them to another one first.',
-      undefined,
-      'job_position_held'
+    throw ApiError.conflict(
+      'job_position_held',
+      'Employees are still in this job position. Move them to another one first.'
     );
   }
   if (archived.error) throw fromDatabaseError(archived.error, 'archive job position');

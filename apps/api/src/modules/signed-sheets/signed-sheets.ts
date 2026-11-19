@@ -127,27 +127,18 @@ function storagePathOf(
 }
 
 const sheetBusy = () =>
-  new ApiError(
-    'conflict',
-    'The training sheet changed while it was being written. Try again.',
-    undefined,
-    'sheet_busy'
+  ApiError.conflict(
+    'sheet_busy',
+    'The training sheet changed while it was being written. Try again.'
   );
 
 const notOnSheet = () =>
-  new ApiError(
-    'conflict',
-    'The training record has no row on a signed sheet.',
-    undefined,
-    'record_not_on_sheet'
-  );
+  ApiError.conflict('record_not_on_sheet', 'The training record has no row on a signed sheet.');
 
 const rowLocked = () =>
-  new ApiError(
-    'conflict',
-    "A signature on the sheet holds the record's row as it was; void the record's signatures to correct it.",
-    undefined,
-    'row_locked'
+  ApiError.conflict(
+    'row_locked',
+    "A signature on the sheet holds the record's row as it was; void the record's signatures to correct it."
   );
 
 async function forget(ctx: SignedSheetContext, path: string) {
@@ -232,11 +223,9 @@ async function createSheet(
   const facts = await ctx.sheetFacts(owner.clientId, employeeId);
   const missing = missingSheetDataOf({ ...facts, domain });
   if (missing.length > 0) {
-    throw new ApiError(
-      'conflict',
-      `The sheet cannot be drawn up without: ${missing.map((code) => missingSheetDataLabels[code]).join(', ')}.`,
-      undefined,
-      'missing_sheet_data'
+    throw ApiError.conflict(
+      'missing_sheet_data',
+      `The sheet cannot be drawn up without: ${missing.map((code) => missingSheetDataLabels[code]).join(', ')}.`
     );
   }
   const docx = await ctx.drawForm(
@@ -717,11 +706,9 @@ export async function applySignature(
   if (!live) throw notOnSheet();
   const field = signatureFieldOf(record.domain, live.rowKey, slot);
   if (!field) {
-    throw new ApiError(
-      'conflict',
-      `The ${record.domain} sheet has no signature for the ${slot} of this record.`,
-      undefined,
-      'slot_not_on_sheet'
+    throw ApiError.conflict(
+      'slot_not_on_sheet',
+      `The ${record.domain} sheet has no signature for the ${slot} of this record.`
     );
   }
   const service = need(ctx.signer, signerUnavailable);

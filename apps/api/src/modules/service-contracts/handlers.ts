@@ -170,11 +170,9 @@ export const saveServiceContract: RouteHandler<typeof saveServiceContractRoute, 
     refusal: (error) => {
       const refused = fromDatabaseError(error, 'save service contract');
       return refused.constraint?.name === 'service_contracts_number_key'
-        ? new ApiError(
-            'conflict',
-            'Another contract of that year has this number.',
-            undefined,
-            serviceContractConflictReasons.numberTaken
+        ? ApiError.conflict(
+            serviceContractConflictReasons.numberTaken,
+            'Another contract of that year has this number.'
           )
         : refused;
     },
@@ -193,11 +191,9 @@ export const generateServiceContract: RouteHandler<
   await requireOffersFor(db, facts.client);
   const missing = missingServiceContractData(facts);
   if (!facts.contract || missing.length > 0) {
-    throw new ApiError(
-      'conflict',
-      `Data the contract prints is missing: ${missing.join(', ')}.`,
-      undefined,
-      serviceContractConflictReasons.missingData
+    throw ApiError.conflict(
+      serviceContractConflictReasons.missingData,
+      `Data the contract prints is missing: ${missing.join(', ')}.`
     );
   }
   const membership = c.get('membership');
@@ -233,11 +229,9 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
   await requireOffersFor(db, facts.client);
   const { document } = await readServiceContractDocument(db, clientId);
   if (!facts.contract || !document?.issued) {
-    throw new ApiError(
-      'conflict',
-      'Only an issued contract is sent.',
-      undefined,
-      serviceContractConflictReasons.notIssued
+    throw ApiError.conflict(
+      serviceContractConflictReasons.notIssued,
+      'Only an issued contract is sent.'
     );
   }
   const [revision, profile, organization] = await Promise.all([
@@ -251,11 +245,9 @@ export const sendServiceContract: RouteHandler<typeof sendServiceContractRoute, 
   if (!revision.data.pdf_path) {
     // Issued where no converter was configured. The Word file is not sent in its place: it
     // invites the recipient to change clauses.
-    throw new ApiError(
-      'conflict',
-      'The issued contract has no PDF to send.',
-      undefined,
-      serviceContractConflictReasons.pdfMissing
+    throw ApiError.conflict(
+      serviceContractConflictReasons.pdfMissing,
+      'The issued contract has no PDF to send.'
     );
   }
 

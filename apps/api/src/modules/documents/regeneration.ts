@@ -225,11 +225,9 @@ async function openJob(
     p_client_ids: clientIds,
   });
   if (started.error?.code === '23505') {
-    throw new ApiError(
-      'conflict',
-      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.',
-      undefined,
-      'regeneration_running'
+    throw ApiError.conflict(
+      'regeneration_running',
+      'Documentul se regenerează deja pentru toți clienții. Așteaptă să se termine.'
     );
   }
   if (started.error) throw fromDatabaseError(started.error, 'start regeneration job');
@@ -280,20 +278,13 @@ export async function startRegeneration(
     'documents behind of a type'
   );
   if (behind.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Niciun client nu are acest document în urmă.',
-      undefined,
-      'nothing_behind'
-    );
+    throw ApiError.conflict('nothing_behind', 'Niciun client nu are acest document în urmă.');
   }
   const clientIds = regenerable(behind);
   if (clientIds.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Fiecare ciornă a acestui document e editată de mână. Regenerează-le de pe pagina fiecărui client.',
-      undefined,
-      'nothing_behind'
+    throw ApiError.conflict(
+      'nothing_behind',
+      'Fiecare ciornă a acestui document e editată de mână. Regenerează-le de pe pagina fiecărui client.'
     );
   }
   return readRegenerationJob(db, await openJob(admin, queue, actor, typeKey, clientIds));
@@ -341,11 +332,9 @@ export async function startSetRegeneration(
         a.typeKey.localeCompare(b.typeKey)
     );
   if (todo.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Niciun document nu are ce regenera: ce a rămas în urmă sunt ciorne editate de mână.',
-      undefined,
-      'nothing_behind'
+    throw ApiError.conflict(
+      'nothing_behind',
+      'Niciun document nu are ce regenera: ce a rămas în urmă sunt ciorne editate de mână.'
     );
   }
 
@@ -380,11 +369,9 @@ export async function startSetRegeneration(
     }
   }
   if (started.length === 0) {
-    throw new ApiError(
-      'conflict',
-      'Documentele se regenerează deja. Așteaptă să se termine.',
-      undefined,
-      'regeneration_running'
+    throw ApiError.conflict(
+      'regeneration_running',
+      'Documentele se regenerează deja. Așteaptă să se termine.'
     );
   }
   return { jobs: [...already, ...started], notStarted };

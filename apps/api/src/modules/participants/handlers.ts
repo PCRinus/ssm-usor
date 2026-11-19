@@ -511,11 +511,9 @@ async function createInvitationAtAddress(
     error.message === participantErrorReasons.addressNotOfEmployee
   ) {
     console.error(`Bulk invitation contact failed: ${error.code}`);
-    throw new ApiError(
-      'conflict',
-      'The address could not be saved to the employee.',
-      undefined,
-      bulkInvitationFailureReasons.contactNotSaved
+    throw ApiError.conflict(
+      bulkInvitationFailureReasons.contactNotSaved,
+      'The address could not be saved to the employee.'
     );
   }
   throw fromParticipantError(error, 'bulk invitation create');

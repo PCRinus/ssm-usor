@@ -163,11 +163,9 @@ export const updateSetupGuide: RouteHandler<typeof updateSetupGuideRoute, ApiEnv
       .select('user_id');
     if (error) throw fromDatabaseError(error, 'setup guide update');
     if (data.length === 0) {
-      throw new ApiError(
-        'conflict',
-        'The account has no profile yet.',
-        undefined,
-        'profile_missing' satisfies SetupErrorReason
+      throw ApiError.conflict(
+        'profile_missing' satisfies SetupErrorReason,
+        'The account has no profile yet.'
       );
     }
   }

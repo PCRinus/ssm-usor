@@ -91,12 +91,7 @@ const pdfUnavailable = () =>
   );
 
 const sheetBusy = () =>
-  new ApiError(
-    'conflict',
-    'The test sheet changed while it was being written. Try again.',
-    undefined,
-    'sheet_busy'
-  );
+  ApiError.conflict('sheet_busy', 'The test sheet changed while it was being written. Try again.');
 
 export const testSheetNotAvailable = () =>
   new ApiError(

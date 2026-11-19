@@ -202,19 +202,15 @@ function employeeFields(body: CreateEmployeeRequest) {
 
 function conflictError(detail: string | undefined) {
   if (detail?.includes('employees_client_cnp_key')) {
-    return new ApiError(
-      'conflict',
-      'A current employee of this client already has this CNP.',
-      undefined,
-      employeeConflictReasons.cnpTaken
+    return ApiError.conflict(
+      employeeConflictReasons.cnpTaken,
+      'A current employee of this client already has this CNP.'
     );
   }
   if (detail?.includes('employees_client_employee_number_key')) {
-    return new ApiError(
-      'conflict',
-      'A current employee of this client already has this number.',
-      undefined,
-      employeeConflictReasons.numberTaken
+    return ApiError.conflict(
+      employeeConflictReasons.numberTaken,
+      'A current employee of this client already has this number.'
     );
   }
   return new ApiError('conflict', 'This employee conflicts with an existing one.');

@@ -185,11 +185,9 @@ async function createSession(
     place: signer.place,
   });
   if (!contact) {
-    throw new ApiError(
-      'conflict',
-      'There is neither an email nor a phone to send your signing code to.',
-      undefined,
-      signatureErrorReasons.signerHasNoAddress
+    throw ApiError.conflict(
+      signatureErrorReasons.signerHasNoAddress,
+      'There is neither an email nor a phone to send your signing code to.'
     );
   }
   const { sessionId, expiresAt } = await signingSessionsOf(c).create(

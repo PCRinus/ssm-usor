@@ -69,11 +69,9 @@ export const acknowledgeReleases: RouteHandler<typeof acknowledgeReleasesRoute, 
   if (error) {
     if (error.code === 'REL01') throw releaseNotFound();
     if (error.code === 'REL02') {
-      throw new ApiError(
-        'conflict',
-        'The account has no profile yet.',
-        undefined,
-        'profile_missing' satisfies ReleaseErrorReason
+      throw ApiError.conflict(
+        'profile_missing' satisfies ReleaseErrorReason,
+        'The account has no profile yet.'
       );
     }
     throw fromDatabaseError(error, 'releases acknowledge');

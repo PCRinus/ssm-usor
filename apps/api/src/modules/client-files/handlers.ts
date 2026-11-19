@@ -143,11 +143,9 @@ function requireChangeable(c: Context<ApiEnv>, row: FileRow) {
 }
 
 const leadOwnersOnly = () =>
-  new ApiError(
-    'conflict',
-    'The files of a lead are for owners only until it is promoted.',
-    undefined,
-    clientFileErrorReasons.leadOwnersOnly
+  ApiError.conflict(
+    clientFileErrorReasons.leadOwnersOnly,
+    'The files of a lead are for owners only until it is promoted.'
   );
 
 const refused = (reason: ApiErrorReason, message: string) =>

@@ -114,12 +114,7 @@ const titleTaken = () =>
   );
 
 const moduleArchived = () =>
-  new ApiError(
-    'conflict',
-    'The module is archived; restore it first.',
-    undefined,
-    'instruction_module_archived'
-  );
+  ApiError.conflict('instruction_module_archived', 'The module is archived; restore it first.');
 
 const noSuchModule = () =>
   new ApiError('not_found', 'This module does not exist in your organization.');
@@ -368,11 +363,9 @@ export const updateInstructionModule: RouteHandler<
     // The category changed with a concurrent move to the other domain.
     if (error?.code === '23514') throw categoryOfOtherDomain();
     if (error?.code === 'INS04') {
-      throw new ApiError(
-        'conflict',
-        'A job position still applies this module; remove it there first.',
-        undefined,
-        'instruction_module_applied'
+      throw ApiError.conflict(
+        'instruction_module_applied',
+        'A job position still applies this module; remove it there first.'
       );
     }
     if (error?.code === 'INS07') {

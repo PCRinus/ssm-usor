@@ -345,11 +345,9 @@ export async function generateServiceContractDocument(
 ) {
   const [template] = await builtInTemplates(db, [serviceContractTypeKey]);
   if (!template) {
-    throw new ApiError(
-      'conflict',
-      'This document has no template to be generated from.',
-      undefined,
-      'template_missing'
+    throw ApiError.conflict(
+      'template_missing',
+      'This document has no template to be generated from.'
     );
   }
   const { bytes, snapshot } = merge(

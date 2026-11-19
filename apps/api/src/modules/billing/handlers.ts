@@ -282,12 +282,7 @@ export const previewBilling: RouteHandler<typeof previewBillingRoute, ApiEnv> = 
   const billing = billingOf(c);
   const [row, usage] = await ownerState(billing);
   if (row?.plan === 'enterprise') {
-    throw new ApiError(
-      'conflict',
-      'An Enterprise subscription is changed by email.',
-      undefined,
-      'enterprise_plan'
-    );
+    throw ApiError.conflict('enterprise_plan', 'An Enterprise subscription is changed by email.');
   }
   const result = await preview(
     { ...billing, stripe: () => withStripe(c, billing) },
@@ -356,12 +351,7 @@ export const createPortalSession: RouteHandler<typeof createPortalSessionRoute, 
   const billing = billingOf(c);
   const row = await loadSubscription(billing.db, billing.organizationId);
   if (!row?.stripe_customer_id) {
-    throw new ApiError(
-      'conflict',
-      'The organization has no card on file yet.',
-      undefined,
-      'no_subscription'
-    );
+    throw ApiError.conflict('no_subscription', 'The organization has no card on file yet.');
   }
   const stripeBilling = await withStripe(c, billing);
   const returnUrl = subscriptionUrl(c.env);
@@ -387,12 +377,7 @@ export const updateInvoiceEmail: RouteHandler<typeof updateInvoiceEmailRoute, Ap
   const { email } = c.req.valid('json');
   const row = await loadSubscription(billing.db, billing.organizationId);
   if (!row) {
-    throw new ApiError(
-      'conflict',
-      'The organization has no subscription to invoice.',
-      undefined,
-      'no_subscription'
-    );
+    throw ApiError.conflict('no_subscription', 'The organization has no subscription to invoice.');
   }
   const saved = await saveSubscription(
     billing.db,
@@ -412,12 +397,7 @@ export const getInvoicePdf: RouteHandler<typeof getInvoicePdfRoute, ApiEnv> = as
     throw new ApiError('not_found', 'No such invoice.');
   }
   if (!row.pdf_path) {
-    throw new ApiError(
-      'conflict',
-      'The PDF of this invoice is not stored yet.',
-      undefined,
-      'pdf_pending'
-    );
+    throw ApiError.conflict('pdf_pending', 'The PDF of this invoice is not stored yet.');
   }
   const expiresInSeconds = 60;
   const fileName = row.pdf_path.split('/').pop()!;

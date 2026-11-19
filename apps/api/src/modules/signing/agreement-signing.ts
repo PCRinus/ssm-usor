@@ -31,19 +31,15 @@ const partyLabels: Record<SigningAgreementParty, string> = {
 };
 
 export const agreementNotAwaiting = () =>
-  new ApiError(
-    'conflict',
-    'The signing agreement does not await this signature.',
-    undefined,
-    'agreement_not_awaiting'
+  ApiError.conflict(
+    'agreement_not_awaiting',
+    'The signing agreement does not await this signature.'
   );
 
 const agreementChanged = () =>
-  new ApiError(
-    'conflict',
-    'The signing agreement changed since the code was asked for; ask for a new code.',
-    undefined,
-    'agreement_changed'
+  ApiError.conflict(
+    'agreement_changed',
+    'The signing agreement changed since the code was asked for; ask for a new code.'
   );
 
 const unavailable = (reason: 'pdf_unavailable' | 'signer_unavailable') =>

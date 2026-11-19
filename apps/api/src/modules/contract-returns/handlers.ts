@@ -125,11 +125,9 @@ async function respond(found: Found): Promise<ContractReturnResponse> {
 }
 
 const closed = () =>
-  new ApiError(
-    'conflict',
-    'This link no longer takes a signed copy.',
-    undefined,
-    contractReturnConflictReasons.closed
+  ApiError.conflict(
+    contractReturnConflictReasons.closed,
+    'This link no longer takes a signed copy.'
   );
 
 export const lookupContractReturn: RouteHandler<typeof lookupContractReturnRoute, ApiEnv> = async (
@@ -162,11 +160,9 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
   const found = await findSend(c, token);
   if (found.status !== 'open' && found.status !== 'received') throw closed();
   if (found.send.return_uploads >= maxUploads) {
-    throw new ApiError(
-      'conflict',
-      'This link has taken as many files as it will.',
-      undefined,
-      contractReturnConflictReasons.tooManyUploads
+    throw ApiError.conflict(
+      contractReturnConflictReasons.tooManyUploads,
+      'This link has taken as many files as it will.'
     );
   }
   const bytes = new Uint8Array(await file.arrayBuffer());

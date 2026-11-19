@@ -203,19 +203,15 @@ const nameTaken = () =>
   );
 
 const inUse = () =>
-  new ApiError(
-    'conflict',
-    'Evaluarea este folosită la clienți, așa că nu se poate șterge. O poți arhiva.',
-    undefined,
-    'evaluation_profile_in_use'
+  ApiError.conflict(
+    'evaluation_profile_in_use',
+    'Evaluarea este folosită la clienți, așa că nu se poate șterge. O poți arhiva.'
   );
 
 const profileArchived = () =>
-  new ApiError(
-    'conflict',
-    'Evaluarea este arhivată. Reactiveaz-o ca să o aplici.',
-    undefined,
-    'evaluation_profile_archived'
+  ApiError.conflict(
+    'evaluation_profile_archived',
+    'Evaluarea este arhivată. Reactiveaz-o ca să o aplici.'
   );
 
 async function loadProfile(db: DataClient, profileId: string) {

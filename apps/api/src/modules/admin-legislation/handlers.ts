@@ -245,11 +245,9 @@ function writeRefusal(error: { code?: string | null; message?: string }, context
     case 'P0002':
       return new ApiError('not_found', error.message);
     case 'LGA01':
-      return new ApiError(
-        'conflict',
-        'The legal change is already resolved.',
-        undefined,
-        adminLegislationErrorReasons.changeNotOpen
+      return ApiError.conflict(
+        adminLegislationErrorReasons.changeNotOpen,
+        'The legal change is already resolved.'
       );
     case 'LGA02':
       return new ApiError(

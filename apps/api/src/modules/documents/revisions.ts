@@ -109,11 +109,9 @@ export async function issueDocument(
   await requireActiveClient(db, document.client_id);
   const bytes = await files.readDocument(draft.docx_path);
   if (!input.acceptUnfilled && hasUnfilledText(bytes)) {
-    throw new ApiError(
-      'conflict',
-      `The draft still reads "${unfilledMark}". Fill it in, or issue it as it is with acceptUnfilled.`,
-      undefined,
-      'unfilled_text'
+    throw ApiError.conflict(
+      'unfilled_text',
+      `The draft still reads "${unfilledMark}". Fill it in, or issue it as it is with acceptUnfilled.`
     );
   }
   const hash = await sha256(bytes);
@@ -201,11 +199,9 @@ export async function uploadDocumentFile(
 
   if (!existing) {
     // A document is numbered and dated by its generation; uploading over nothing would skip both.
-    throw new ApiError(
-      'conflict',
-      'This document is generated first; a file can then replace its draft.',
-      undefined,
-      'not_generated_yet'
+    throw ApiError.conflict(
+      'not_generated_yet',
+      'This document is generated first; a file can then replace its draft.'
     );
   }
 
@@ -239,7 +235,7 @@ export async function startDraftFromIssued(
 ) {
   const document = await readDocument(db, documentId);
   if (draftOf(document)) {
-    throw new ApiError('conflict', 'This document already has a draft.', undefined, 'draft_exists');
+    throw ApiError.conflict('draft_exists', 'This document already has a draft.');
   }
   const issued = issuedOf(document);
   if (!issued)
@@ -363,12 +359,7 @@ export async function attachSignedCopy(
   const document = await readDocument(db, documentId);
   const issued = issuedOf(document);
   if (!issued) {
-    throw new ApiError(
-      'conflict',
-      'Only an issued document has a signed copy.',
-      undefined,
-      'not_issued'
-    );
+    throw ApiError.conflict('not_issued', 'Only an issued document has a signed copy.');
   }
   await requireActiveClient(db, document.client_id);
   await recordSignedCopy(db, files, {
@@ -392,11 +383,9 @@ export async function confirmSignedCopy(db: DataClient, actor: Actor, documentId
   const document = await readDocument(db, documentId);
   const issued = issuedOf(document);
   if (!issued?.document_signed_copies || issued.document_signed_copies.confirmed_at) {
-    throw new ApiError(
-      'conflict',
-      'This document has no received copy to confirm.',
-      undefined,
-      confirmSignedCopyConflictReason
+    throw ApiError.conflict(
+      confirmSignedCopyConflictReason,
+      'This document has no received copy to confirm.'
     );
   }
   await requireActiveClient(db, document.client_id);

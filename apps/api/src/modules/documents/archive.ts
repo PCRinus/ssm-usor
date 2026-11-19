@@ -56,13 +56,11 @@ export async function documentArchive(
       return revision ? [{ document, revision }] : [];
     });
   if (entries.length === 0) {
-    throw new ApiError(
-      'conflict',
+    throw ApiError.conflict(
+      'nothing_to_archive',
       format === 'pdf'
         ? 'No document of this set has been issued with a PDF yet.'
-        : 'No document of this set has been generated yet.',
-      undefined,
-      'nothing_to_archive'
+        : 'No document of this set has been generated yet.'
     );
   }
 

@@ -83,11 +83,9 @@ const nameTaken = () =>
   );
 
 const alreadyEvaluated = () =>
-  new ApiError(
-    'conflict',
-    'This is evaluated already; open its evaluation instead.',
-    undefined,
-    'risk_evaluation_exists'
+  ApiError.conflict(
+    'risk_evaluation_exists',
+    'This is evaluated already; open its evaluation instead.'
   );
 
 async function findClientWithGroupsState(db: DataClient, clientId: string) {
@@ -136,11 +134,9 @@ export const updateSensitiveGroupsState: RouteHandler<
     .select('sensitive_groups_state')
     .maybeSingle();
   if (error?.code === 'SGR01') {
-    throw new ApiError(
-      'conflict',
-      'The sensitive groups are evaluated; delete their evaluation before saying the client has none.',
-      undefined,
-      'sensitive_groups_evaluated'
+    throw ApiError.conflict(
+      'sensitive_groups_evaluated',
+      'The sensitive groups are evaluated; delete their evaluation before saying the client has none.'
     );
   }
   if (error) throw fromDatabaseError(error, 'update sensitive groups state');
