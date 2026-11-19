@@ -1,15 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { adminClient } from '../../lib/admin-db';
+import { stubFetch } from '../../test/upstream';
 import { createStripe } from '../billing/stripe';
-import {
-  createFake,
-  env,
-  type Fake,
-  fetchMock,
-  organizationId,
-  paidRow,
-} from '../billing/upstream.fixture';
+import { createFake, env, type Fake, organizationId, paidRow } from '../billing/upstream.fixture';
 import { reportOverage, retryOverageReports } from './overage';
 
 const start = { plan: 'start', step: 250, interval: 'month' } as const;
@@ -33,14 +27,13 @@ const overageRow = (id: string, overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
