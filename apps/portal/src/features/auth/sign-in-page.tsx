@@ -13,6 +13,7 @@ import { type FormEvent, type Ref, useEffect, useRef, useState } from 'react';
 import { PublicFrame } from '@/app/public-frame';
 import { CodeInput } from '@/components/code-input';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
+import { unreachableMessage } from '@/features/signing/signing-messages';
 
 import { useAuth } from './auth-context';
 import type { CodeRequestResult, CodeVerificationResult, SignInAddress } from './auth-store';
@@ -21,8 +22,6 @@ import { parseSignInAddress } from './sign-in-address';
 // Supabase sends one code per address per minute and refuses a second request before.
 const resendDelaySeconds = 60;
 const codeLength = { min: 6, max: 8 };
-
-const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.`;
 
 const requestFailures: Record<Exclude<CodeRequestResult, 'requested'>, MessageDescriptor> = {
   unreachable: unreachableMessage,

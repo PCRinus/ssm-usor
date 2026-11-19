@@ -405,7 +405,6 @@ msgstr "Ask for a new code"
 msgid "Cere un cod nou în {secondsLeft} s"
 msgstr "Ask for a new code in {secondsLeft} s"
 
-#: src/features/auth/sign-in-page.tsx
 #: src/features/signing/signing-messages.ts
 msgid "Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou."
 msgstr "The request could not be sent. Check your internet connection and try again."
