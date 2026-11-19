@@ -9,8 +9,8 @@ import {
   type WorkplaceListResponse,
 } from '@/api/generated/api';
 import { useAuth } from '@/features/auth/auth-context';
-import { todayIso } from '@/features/employees/employee-format';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
+import { todayIso } from '@/lib/dates';
 
 import {
   type Changes,

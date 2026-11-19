@@ -6,8 +6,8 @@ import {
 
 import type { TrainingListResponseItemsItem } from '@/api/generated/api';
 import { createDataTableColumns } from '@/components/data-table/columns';
-import { formatDate } from '@/features/employees/employee-format';
 import { trainingLocks } from '@/features/signatures/use-record-signatures';
+import { formatDate } from '@/lib/dates';
 
 import { TrainingDuration } from './not-on-sheet';
 import { PhaseCell, SignatureState, TrainerCell, TrainingActions } from './training-cells';

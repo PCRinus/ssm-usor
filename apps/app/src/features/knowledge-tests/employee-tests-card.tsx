@@ -21,9 +21,8 @@ import {
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { SectionCard } from '@/components/section-card';
-import { formatDate } from '@/features/employees/employee-format';
-import { formatDay } from '@/features/participants/participant-format';
 import { notOnSheet } from '@/features/trainings/training-format';
+import { formatDate, formatDay } from '@/lib/dates';
 
 import { type TestResult, TestResultDialog, type TestResultTarget } from './test-result-dialog';
 import { TestSheetLine } from './test-sheet-line';

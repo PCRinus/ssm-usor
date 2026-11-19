@@ -8,7 +8,7 @@ import { useState } from 'react';
 
 import type { RecordSignaturesResponseSlotsItem } from '@/api/generated/api';
 import { Masked } from '@/components/replay';
-import { formatDay } from '@/features/participants/participant-format';
+import { formatDay } from '@/lib/dates';
 
 import {
   PaperSignatureDialog,

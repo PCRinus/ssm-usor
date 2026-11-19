@@ -5,23 +5,6 @@ export const employeeStatusLabels: Record<EmployeeStatus, string> = {
   terminated: 'Foști',
 };
 
-const dateFormat = new Intl.DateTimeFormat('ro-RO', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
-
-// Today's calendar date in the browser's time zone, as YYYY-MM-DD for date inputs.
-export function todayIso() {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
-}
-
-export function formatDate(isoDate: string) {
-  return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));
-}
-
 export const workerNoun = (count: number) => countOf(count, 'lucrător', 'lucrători');
 
 export const pendingWorkersLabel = (total: number | undefined) =>

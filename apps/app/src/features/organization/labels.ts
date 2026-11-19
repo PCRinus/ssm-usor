@@ -6,11 +6,3 @@ export const roleLabels: Record<OrganizationRole, string> = {
   owner: 'Admin',
   specialist: 'Specialist',
 };
-
-const dayFormat = new Intl.DateTimeFormat('ro-RO', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
-
-export const formatDay = (isoTimestamp: string) => dayFormat.format(new Date(isoTimestamp));

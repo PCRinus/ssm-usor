@@ -11,7 +11,7 @@ import type {
   TrainingRequest,
   TrainingResponseTraining,
 } from '@/api/generated/api';
-import { todayIso } from '@/features/employees/employee-format';
+import { todayIso } from '@/lib/dates';
 
 const optionalPersonText = z.string().trim().max(160, 'Cel mult 160 de caractere.');
 

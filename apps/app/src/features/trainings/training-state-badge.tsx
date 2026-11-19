@@ -7,7 +7,7 @@ import {
 import { Badge } from '@ssm-usor/ui/components/badge';
 
 import { CellEmpty, CellNote } from '@/components/data-table/cell-note';
-import { formatDate } from '@/features/employees/employee-format';
+import { formatDate } from '@/lib/dates';
 
 const stateBadges: Record<
   TrainingState,

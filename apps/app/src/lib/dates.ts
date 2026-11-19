@@ -25,6 +25,31 @@ export function formatRoDate(value: string) {
 // The day a moment falls on where the reader is, not in UTC.
 export const formatRoDateOf = (timestamp: string) => formatRoDate(dateToIso(new Date(timestamp)));
 
+// Today's calendar date in the browser's time zone, as YYYY-MM-DD for date inputs.
+export function todayIso() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
+const dateFormat = new Intl.DateTimeFormat('ro-RO', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+export function formatDate(isoDate: string) {
+  return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));
+}
+
+const dayFormat = new Intl.DateTimeFormat('ro-RO', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
+export const formatDay = (isoTimestamp: string) => dayFormat.format(new Date(isoTimestamp));
+
 export function parseRoDate(text: string) {
   const match = romanian.exec(text);
   if (!match) return null;

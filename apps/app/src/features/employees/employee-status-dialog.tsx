@@ -34,8 +34,7 @@ import {
   isEmployeesOverStepError,
   refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
-
-import { formatDate, todayIso } from './employee-format';
+import { formatDate, todayIso } from '@/lib/dates';
 
 type Employee = Omit<EmployeeListResponse['items'][number], 'signaturesPending' | 'portal'>;
 

@@ -19,8 +19,8 @@ import {
 
 import type { SignSessionResponseFailedItemReason } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { formatDate } from '@/features/employees/employee-format';
 import { impersonationRefusal } from '@/features/impersonation/refusal';
+import { formatDate } from '@/lib/dates';
 
 export const slotStateLabels: Record<SignatureSlotState, string> = {
   pending: 'De semnat',

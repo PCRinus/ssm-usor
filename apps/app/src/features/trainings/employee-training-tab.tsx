@@ -27,7 +27,6 @@ import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch, periodSearch, periodValue } from '@/components/list-filters/url';
 import { useAuth } from '@/features/auth/auth-context';
-import { formatDate } from '@/features/employees/employee-format';
 import { EmployeePending } from '@/features/employees/employee-pending';
 import { useEmployee } from '@/features/employees/use-employee';
 import { WorkersListError } from '@/features/employees/workers-list';
@@ -37,6 +36,7 @@ import { RecordSignatures } from '@/features/signatures/record-signatures';
 import { trainingLocks, useRecordSignatures } from '@/features/signatures/use-record-signatures';
 import { TrainingSheetDownload } from '@/features/training-sheets/training-sheet-download';
 import { TrainingSheetReadiness } from '@/features/training-sheets/training-sheet-readiness';
+import { formatDate } from '@/lib/dates';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { DeleteTrainingDialog, type TrainingToDelete } from './delete-training-dialog';

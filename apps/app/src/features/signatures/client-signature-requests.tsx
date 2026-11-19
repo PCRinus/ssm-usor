@@ -23,8 +23,7 @@ import { DataTable } from '@/components/data-table/data-table';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
-import { formatDate } from '@/features/employees/employee-format';
-import { formatDay } from '@/features/participants/participant-format';
+import { formatDate, formatDay } from '@/lib/dates';
 
 import { AgreementWarning } from './agreement-warning';
 import { requestDocument } from './signature-format';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dateToIso, formatRoDate, isoToDate, parseRoDate } from './dates';
+import { dateToIso, formatDate, formatRoDate, isoToDate, parseRoDate } from './dates';
 
 describe('calendar dates', () => {
   it('round-trips ISO dates through local Date objects', () => {
@@ -9,6 +9,10 @@ describe('calendar dates', () => {
     expect(dateToIso(date)).toBe('2020-03-01');
     expect(isoToDate('2021-02-29')).toBeUndefined();
     expect(isoToDate('1.3.2020')).toBeUndefined();
+  });
+
+  it('formats ISO dates in Romanian', () => {
+    expect(formatDate('2020-03-01')).toBe('1 mar. 2020');
   });
 
   it('formats for display and parses what people type', () => {

@@ -17,8 +17,7 @@ import {
 } from '@/components/data-table/columns';
 import { TestStatesLine } from '@/features/knowledge-tests/test-state-badge';
 import { TrainingStateCell } from '@/features/trainings/training-state-badge';
-
-import { formatDate } from './employee-format';
+import { formatDate } from '@/lib/dates';
 
 interface WorkerRow {
   id: string;

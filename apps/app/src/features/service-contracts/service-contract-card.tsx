@@ -66,7 +66,6 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
 import { isOffersNotInPlanError, offersNotInPlanMessage } from '@/features/clients/offers-plan';
 import { pdfOfRevision, usePrint } from '@/features/documents/print';
-import { todayIso } from '@/features/employees/employee-format';
 import { type ContractFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
 import {
@@ -76,7 +75,7 @@ import {
   type MissingRow,
 } from '@/features/missing-data/missing-rows';
 import { useStartWayBack } from '@/features/missing-data/way-back';
-import { formatRoDate } from '@/lib/dates';
+import { formatRoDate, todayIso } from '@/lib/dates';
 
 import { SendContractDialog } from './send-contract-dialog';
 import {

@@ -15,8 +15,8 @@ import { useState } from 'react';
 import { getGetTrainingQueryKey, useDeleteTraining, useGetTraining } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
-import { formatDate } from '@/features/employees/employee-format';
 import { signingMessage } from '@/features/signatures/signature-format';
+import { formatDate } from '@/lib/dates';
 
 import { attendeeCountLabel } from './training-format';
 import { invalidateTrainings } from './training-queries';
