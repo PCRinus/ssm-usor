@@ -6,13 +6,6 @@ import {
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
-import {
   Table,
   TableBody,
   TableCell,
@@ -21,10 +14,11 @@ import {
   TableRow,
 } from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { MoreHorizontal, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { rowClickProps } from '@/components/data-table/row-click';
+import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
 import { type Workplace, workplaceAddress } from '@/features/clients/workplace-schema';
 import { dateToIso, formatRoDate } from '@/lib/dates';
@@ -177,7 +171,7 @@ export function WorkplaceMeansCard({
                   </TableCell>
                   {!readOnly && (
                     <TableCell>
-                      <RowMenu
+                      <RowActionsMenu
                         name={unitTitle(unit)}
                         testId="fire-equipment"
                         onEdit={() => onEditEquipment(unit)}
@@ -264,7 +258,7 @@ export function WorkplaceMeansCard({
                   </TableCell>
                   {!readOnly && (
                     <TableCell>
-                      <RowMenu
+                      <RowActionsMenu
                         name={fireInstallationKindLabels[installation.kind]}
                         testId="fire-installation"
                         onEdit={() => onEditInstallation(installation)}
@@ -338,7 +332,7 @@ export function WorkplaceMeansCard({
                     </TableCell>
                     {!readOnly && (
                       <TableCell>
-                        <RowMenu
+                        <RowActionsMenu
                           name={item.subject}
                           testId="fire-maintenance"
                           onEdit={() => onEditMaintenanceItem(item)}
@@ -495,45 +489,5 @@ function ServiceDates({
         </span>
       )}
     </span>
-  );
-}
-
-function RowMenu({
-  name,
-  testId,
-  onEdit,
-  onDelete,
-}: {
-  name: string;
-  testId: string;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          data-testid={`${testId}-actions`}
-          aria-label={`Acțiuni pentru ${name}`}
-        >
-          <MoreHorizontal aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem data-testid={`${testId}-edit`} onSelect={onEdit}>
-          Modifică
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          data-testid={`${testId}-delete`}
-          variant="destructive"
-          onSelect={onDelete}
-        >
-          Șterge
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
