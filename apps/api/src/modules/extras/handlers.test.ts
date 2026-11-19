@@ -11,6 +11,7 @@ import {
   owner,
   paidRow,
   priceIdOf,
+  stripeDown,
   stripeList,
   stripeSubscription,
   stripeWrites,
@@ -298,11 +299,7 @@ describe('PUT /billing/extras/{kind}', () => {
       fake.tables.subscriptions!.push(paidRow({ ...start, step: 500 }));
       const state = { items: [...plan], schedule: futurePhase as unknown, metadata: {} };
       stripeState(fake, state);
-      fake.stripe['POST /v1/subscription_items'] = () =>
-        new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
-          status: 500,
-          headers: { 'content-type': 'application/json' },
-        });
+      fake.stripe['POST /v1/subscription_items'] = stripeDown;
 
       const response = await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 });
 
@@ -366,11 +363,7 @@ describe('PUT /billing/extras/{kind}', () => {
         id: 'si_c',
         object: 'subscription_item',
       });
-      fake.stripe['POST /v1/subscription_schedules'] = () =>
-        new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
-          status: 500,
-          headers: { 'content-type': 'application/json' },
-        });
+      fake.stripe['POST /v1/subscription_schedules'] = stripeDown;
       const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const response = await request('PUT', '/billing/extras/credits', { ceilingEuros: 10 });

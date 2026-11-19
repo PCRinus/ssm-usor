@@ -1,3 +1,4 @@
+import { capitalized, uncapitalized } from '@ssm-usor/contracts';
 import {
   answerFormat,
   type ChatMessage,
@@ -98,9 +99,7 @@ export function fallbackNote(input: Pick<ReadingInput, 'act' | 'units' | 'amendi
   );
 }
 
-const readable = (label: string) =>
-  (label.charAt(0).toLowerCase() + label.slice(1)).replaceAll('Art.', 'art.');
-const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export const readable = (label: string) => uncapitalized(label).replaceAll('Art.', 'art.');
 const clipped = (text: string, max: number) =>
   text.length > max ? `${text.slice(0, max - 1)}…` : text;
 const clipNote = (text: string) => clipped(text, noteMaxLength);

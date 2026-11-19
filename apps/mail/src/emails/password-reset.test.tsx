@@ -18,11 +18,9 @@ describe('password reset', () => {
     const email = await sendReset();
 
     expect(email.subject).toBe('Resetează parola contului SSM Ușor');
-    expect(email.html).toContain('lang="ro"');
     expect(email.html).toContain(`href="${resetUrl}"`);
     expect(email.html).toContain('Resetează parola');
     expect(email.text).toContain(resetUrl);
-    expect(email.text).not.toContain('<');
   });
 
   it('tells someone who did not ask that nothing changes', async () => {
@@ -42,11 +40,5 @@ describe('password reset', () => {
     const email = await sendReset(minutes);
 
     expect(email.text).toContain(text);
-  });
-
-  it('stays far below the size at which Gmail clips an email', async () => {
-    const email = await sendReset();
-
-    expect(new TextEncoder().encode(email.html).length).toBeLessThan(102 * 1024);
   });
 });

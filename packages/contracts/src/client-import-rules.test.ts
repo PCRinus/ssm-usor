@@ -27,6 +27,12 @@ describe('what a client import proposes unticked', () => {
     );
     expect(proposedIncluded({ otherCompanyName: null, managementOnly: true })).toBe(false);
   });
+
+  it('proposes ticked only what nothing holds back', () => {
+    expect(proposedIncluded({ ...employee, otherCompanyName: 'ALTA S.R.L.' })).toBe(false);
+    expect(proposedIncluded({ ...employee, role: 'legal_representative' })).toBe(false);
+    expect(proposedIncluded({ otherCompanyName: null })).toBe(true);
+  });
 });
 
 const field = (...options: [string | number, string | null][]) => ({

@@ -1117,17 +1117,3 @@ describe('a value written two ways', () => {
     );
   });
 });
-
-describe('proposedIncluded', () => {
-  it('proposes the legal representative as an employee unticked, the workers’ one ticked', () => {
-    const proposal = fromWire(wireAnswer());
-    const employee = proposal.employees[0]!;
-
-    expect(proposedIncluded(employee)).toBe(true);
-    expect(proposedIncluded({ ...employee, role: 'legal_representative' })).toBe(false);
-    expect(proposedIncluded({ ...employee, otherCompanyName: 'ATELIERUL INVENTAT S.R.L.' })).toBe(
-      false
-    );
-    expect(proposedIncluded(proposal.workplaces[0]!)).toBe(true);
-  });
-});

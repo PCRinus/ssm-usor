@@ -14,8 +14,13 @@ import { FONT_ASSET_ROOT, packagedFonts } from '@docx-editor.dev/fonts';
 import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
-import { ssmAnnexData, ssmAnnexSample, suAnnexData, suAnnexSample } from '../tools/annex-samples';
-import { appendAnnexes, renderAnnex } from './annex';
+import {
+  ssmAnnexData,
+  ssmAnnexSample,
+  suAnnexData,
+  suAnnexSample,
+} from '../../tools/annex-samples';
+import { appendAnnexes, renderAnnex } from '../annex';
 
 // Outside a bundler the packaged faces are files; without them the engine measures every glyph
 // the same width and breaks pages elsewhere than the browser does.
@@ -27,7 +32,7 @@ const fonts = packagedFonts({
   }),
 });
 
-const templatesUrl = new URL('../templates/', import.meta.url);
+const templatesUrl = new URL('../../templates/', import.meta.url);
 const ssmAnnex = 'annex';
 const suAnnex = 'fire annex';
 const appended = 'own instructions with annexes';
@@ -36,6 +41,8 @@ const docxIn = (folder: string) =>
     .filter((name) => name.endsWith('.docx'))
     .map((name) => `${folder}${name}`);
 const files = [...docxIn(''), ...docxIn('fire/'), ...docxIn('other/'), ssmAnnex, suAnnex, appended];
+
+const editorLayoutParts = 4;
 const template = (name: string) => new Uint8Array(readFileSync(new URL(name, templatesUrl)));
 const built: Record<string, () => Uint8Array> = {
   [ssmAnnex]: () => renderAnnex('ssm', ssmAnnexSample, ssmAnnexData),
@@ -90,28 +97,32 @@ function laidOutText(layout: SemanticLayout) {
   return paragraphs.join(' ');
 }
 
-describe('in-app editor', () => {
-  // The editor refuses a file it cannot paginate, and drops the lines a table cell cannot hold
-  // without saying so: a word missing from the pages is how a clipped cell shows.
-  it.each(files)(
-    '%s opens with every word on its pages',
-    async (name) => {
-      const bytes = read(name);
-      const opened = await openFontBackedDocumentForExport(bytes, {
-        fonts,
-        displayMode: 'proposed',
-      });
-      if (!opened.ok) throw new Error(`The editor rejected the file: ${opened.reason}`);
-      try {
-        const laidOut = counted(words(laidOutText(await opened.session.layout())));
-        const missing = [...counted(words(fileText(bytes)))]
-          .filter(([word, count]) => (laidOut.get(word) ?? 0) < count)
-          .map(([word]) => word);
-        expect(missing).toEqual([]);
-      } finally {
-        opened.session.dispose();
-      }
-    },
-    60_000
-  );
-});
+// One file's templates would take most of the package's run in a single worker; each part file
+// checks every editorLayoutParts-th one, so together they check them all.
+export function describeEditorLayout(part: number) {
+  describe('in-app editor', () => {
+    // The editor refuses a file it cannot paginate, and drops the lines a table cell cannot hold
+    // without saying so: a word missing from the pages is how a clipped cell shows.
+    it.each(files.filter((_, index) => index % editorLayoutParts === part))(
+      '%s opens with every word on its pages',
+      async (name) => {
+        const bytes = read(name);
+        const opened = await openFontBackedDocumentForExport(bytes, {
+          fonts,
+          displayMode: 'proposed',
+        });
+        if (!opened.ok) throw new Error(`The editor rejected the file: ${opened.reason}`);
+        try {
+          const laidOut = counted(words(laidOutText(await opened.session.layout())));
+          const missing = [...counted(words(fileText(bytes)))]
+            .filter(([word, count]) => (laidOut.get(word) ?? 0) < count)
+            .map(([word]) => word);
+          expect(missing).toEqual([]);
+        } finally {
+          opened.session.dispose();
+        }
+      },
+      60_000
+    );
+  });
+}

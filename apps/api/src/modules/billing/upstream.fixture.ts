@@ -54,6 +54,13 @@ export type Fake = {
 
 export const priceIdOf = (lookupKey: string) => `price_${lookupKey}`;
 
+// Without the header the SDK retries a 500 twice with backoff, a second's wait per test.
+export const stripeDown = () =>
+  new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
+    status: 500,
+    headers: { 'content-type': 'application/json', 'stripe-should-retry': 'false' },
+  });
+
 export function stripePrice(lookupKey: string) {
   const price = cataloguePrices.find((candidate) => candidate.lookupKey === lookupKey);
   return {

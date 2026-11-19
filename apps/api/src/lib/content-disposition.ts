@@ -1,3 +1,5 @@
+import { capitalized } from '@ssm-usor/contracts';
+
 // An ASCII name for the plain `filename`, and the real one in `filename*` (RFC 6266 / RFC
 // 8187), which every current browser prefers. Storage's own header percent-encodes the plain
 // one, and browsers save "Copertă" as "Copert%C4%83".
@@ -19,4 +21,4 @@ export const fileNameWords = (text: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean)
-    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());
+    .map((word) => capitalized(word.toLocaleLowerCase('ro')));

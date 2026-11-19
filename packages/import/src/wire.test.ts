@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+import { similarityAnswer } from './instructions-library';
+import { instructionsAnswer } from './instructions-request';
 import { readingAnswer } from './reading';
+import { retypedAnswer, risksAnswer } from './risks-request';
+import { safetySheetAnswer } from './safety-sheet';
+import { sheetPageAnswer } from './sheet-page';
 import { sortingAnswer } from './sorting';
 import { wireAnswer } from './test/fixtures';
 import { answerFormat, flatten, minutes, months, restore, strictJsonSchema } from './wire';
@@ -163,19 +168,29 @@ describe('the wire form', () => {
     expect(() => format.parse({ name: 'x', count: '', kind: 'c', items: [] })).toThrow(z.ZodError);
   });
 
-  it('keeps the strict rules at every level of the real answers', () => {
-    for (const format of [readingAnswer, sortingAnswer]) {
-      visit(format.jsonSchema, (node) => {
-        expect(node.anyOf).toBeUndefined();
-        expect(node.type).not.toBe('null');
-        expect(node.type).not.toBe('number');
-        expect(node.type).not.toBe('integer');
-        if (node.type === 'object') {
-          expect(node.additionalProperties).toBe(false);
-          expect(node.required).toEqual(Object.keys(node.properties as object));
-        }
-      });
-      expect(format.jsonSchema.$schema).toBeUndefined();
-    }
+  it.each([
+    ['reading', readingAnswer],
+    ['sorting', sortingAnswer],
+    ['sheet page', sheetPageAnswer],
+    ['risks', risksAnswer],
+    ['retyped factors', retypedAnswer],
+    ['similarity', similarityAnswer],
+    ['SSM instructions', instructionsAnswer('ssm')],
+    ['SU instructions', instructionsAnswer('su')],
+    ['safety sheet', safetySheetAnswer],
+  ])('keeps the strict rules at every level of the %s answer', (_, format) => {
+    visit(format.jsonSchema, (node) => {
+      expect(node.anyOf).toBeUndefined();
+      expect(node.type).not.toBe('null');
+      expect(node.type).not.toEqual(expect.arrayContaining(['null']));
+      expect(node.enum ?? []).not.toContain(null);
+      expect(node.type).not.toBe('number');
+      expect(node.type).not.toBe('integer');
+      if (node.type === 'object') {
+        expect(node.additionalProperties).toBe(false);
+        expect(node.required).toEqual(Object.keys(node.properties as object));
+      }
+    });
+    expect(format.jsonSchema.$schema).toBeUndefined();
   });
 });

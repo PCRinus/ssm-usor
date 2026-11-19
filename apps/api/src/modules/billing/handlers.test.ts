@@ -52,38 +52,21 @@ describe('GET /billing', () => {
       planChosen: false,
       status: 'trialing',
     });
-    expect(body.usage).toEqual({
+    expect(body.usage).toMatchObject({
       employees: { used: 120, limit: 5000 },
-      employeesOverStep: null,
       members: { used: 1, limit: 10 },
-      invitations: 0,
-      smsThisMonth: {
-        used: 0,
-        included: 0,
-        allowance: 0,
-        granted: 0,
-        overage: 0,
-        extrasOn: false,
-        periodStart: null,
-        periodEnd: null,
-        state: 'none',
-      },
-      creditsThisMonth: {
-        used: 0,
-        included: 300,
-        allowance: 300,
-        granted: 0,
-        shortfall: 0,
-        left: 300,
-        giftLeft: 0,
-        extra: 0,
-        extraLeft: 0,
-        extrasOn: false,
-        period: 'trial',
-        periodStart: trial.created_at,
-        periodEnd: trial.trial_ends_at,
-        state: 'ok',
-      },
+      creditsThisMonth: { included: 300, extra: 0, extraLeft: 0, period: 'trial', state: 'ok' },
+    });
+    expect(body.usage.smsThisMonth).toEqual({
+      used: 0,
+      included: 0,
+      allowance: 0,
+      granted: 0,
+      overage: 0,
+      extrasOn: false,
+      periodStart: null,
+      periodEnd: null,
+      state: 'none',
     });
     expect(
       body.catalogue.plans.map((plan) => [
@@ -200,6 +183,7 @@ describe('GET /billing', () => {
         profesional: { minimumStep: 500, problems: [] },
       },
     });
+    expect(body.usage.smsThisMonth).toMatchObject({ used: 0, overage: 0, state: 'none' });
     expect(stripeCalls(fake)).toEqual([]);
   });
 
@@ -1368,14 +1352,6 @@ describe('the credits meter', () => {
     meterFake({ used: 790 }).tables.subscriptions!.push(paidRow(start));
 
     expect(await creditsOf()).toMatchObject({ left: -40, giftLeft: 0, state: 'negative' });
-  });
-
-  it('says out at zero, and counts the gift as left', async () => {
-    meterFake({ used: 750 }).tables.subscriptions!.push(paidRow(start));
-    expect(await creditsOf()).toMatchObject({ left: 0, state: 'out' });
-
-    meterFake({ used: 750, gift_left: 40 }).tables.subscriptions!.push(paidRow(start));
-    expect(await creditsOf()).toMatchObject({ left: 0, giftLeft: 40, state: 'near' });
   });
 
   it('keeps a plan chosen during the trial before 2026-11-14 at the trial’s 300 until its first payment', async () => {

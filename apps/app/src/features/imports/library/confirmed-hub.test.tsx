@@ -161,16 +161,6 @@ describe('a confirmed client import with parts still open', () => {
     ).toEqual(['Vezi IPSSM', 'Vezi evaluările']);
     expect(panel.textContent).not.toContain('Am găsit în pachet');
   });
-
-  it('says the last day has come', async () => {
-    vi.setSystemTime(new Date('2026-11-19T08:00:00.000Z'));
-    mockHub([ssm({ counts: { identical: 0, similar: 0, new: 1, unread: 0 } })]);
-    mount();
-
-    expect((await screen.findByTestId('import-next-steps-deadline')).textContent).toBe(
-      'Până pe 19 noiembrie · expiră azi'
-    );
-  });
 });
 
 describe('a confirmed client import with nothing left open', () => {

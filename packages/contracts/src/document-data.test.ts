@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatTrainingDuration,
+  isLegalRepresentative,
   periodicTrainingMinutesOptions,
   requiredWorkersRepresentatives,
   responsiblePersonRequestSchema,
-  samePersonName,
   trainingMonths,
   updateClientDocumentDetailsRequestSchema,
 } from './document-data';
@@ -141,15 +141,19 @@ describe('responsiblePersonRequestSchema', () => {
   });
 });
 
-describe('samePersonName', () => {
-  it('ignores order, case, diacritics and hyphens', () => {
-    expect(samePersonName('Florin Cristian TALOȘ', 'talos florin-cristian')).toBe(true);
-    expect(samePersonName('  Ana  Pop ', 'POP ANA')).toBe(true);
+describe('isLegalRepresentative', () => {
+  const person = (fullName: string) => ({ employeeId: null, fullName });
+
+  it('tells by name someone not on the employee list', () => {
+    expect(isLegalRepresentative(person('Pop Ana'), person(' Ana POP '))).toBe(true);
+    expect(isLegalRepresentative(person('Pop Ana'), person('Ana Popa'))).toBe(false);
+    expect(isLegalRepresentative(person('Pop Ana'), { employeeId: null, fullName: null })).toBe(
+      false
+    );
   });
 
-  it('tells different people apart', () => {
-    expect(samePersonName('Ana Pop', 'Ana Popa')).toBe(false);
-    expect(samePersonName('Ana Pop', 'Ana Maria Pop')).toBe(false);
+  it('takes no one for a representative whose name has no letters', () => {
+    expect(isLegalRepresentative(person('-'), person('--'))).toBe(false);
   });
 });
 

@@ -252,7 +252,8 @@ prints the page counts. No check replaces reading the pages. The two samples of 
 sets are in `tools/set-samples.ts`, and `src/templates/set-samples.test.ts` fails when a
 template of either set asks for a field they do not give.
 
-`src/editor-layout.test.ts` opens every template in the layout engine of the in-app editor, at
+`src/test/editor-layout.ts`, run by the four `src/editor-layout.*.test.ts` files that share the
+templates between them, opens every template in the layout engine of the in-app editor, at
 the version the app uses (both take it from the `catalog` in `pnpm-workspace.yaml`), and fails
 when the editor refuses a file or a word of it is missing from the laid-out pages. The editor
 drops what a table cell cannot hold instead of growing the row: text set vertically never makes
@@ -1005,7 +1006,7 @@ The API builds the data once per generation and merges every template with it
 - `buildDocumentContext(facts)` turns the stored facts into the names of the table below:
   dates as `19.01.2026`, people under the roles they hold in the order they were designated,
   each person once with the first job title even when named for several workplaces (compared
-  as `samePersonName` compares, as the fire-safety set does), the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`,
+  as `samePerson` compares, as the fire-safety set does), the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`,
   its number and unit joined by no-break spaces so a line cannot end between them), and
   `branding`. Where a sentence names everyone who holds a role, one text names them all and
   reads for one person or several: `workplaceManagersText` and `imminentDangerText`

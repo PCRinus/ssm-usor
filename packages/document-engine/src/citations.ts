@@ -81,7 +81,6 @@ const marker = new RegExp(
 export const markerPrefix = '(Preluare din';
 
 const sectionTag = /\{\{([#^/])([^{}]+?)\}\}/g;
-const opensLikeArticle = new RegExp(String.raw`^(?:${alineat}|Art\.)`, 'u');
 const opensLikeQuoteLine = new RegExp(String.raw`^(?:${alineat}|${letter})`, 'u');
 const heading = /^(?:Capitolul|CAPITOLUL|Subcapitolul|Secțiunea|SECȚIUNEA)\b/;
 
@@ -126,10 +125,6 @@ export function parseMarker(text: string): Marker | null {
 export function markerLocatorSpan(text: string): { start: number; end: number } | null {
   const span = new RegExp(marker.source, 'du').exec(text)?.indices?.groups?.locator;
   return span ? { start: span[0], end: span[1] } : null;
-}
-
-export function readsLikeArticle(text: string) {
-  return opensLikeArticle.test(text.trimStart());
 }
 
 interface Numbering {

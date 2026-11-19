@@ -1,8 +1,17 @@
+import { setupStepIds } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import type { MeResponse } from '@/api/generated/api';
+import type {
+  DashboardSummary,
+  DocumentsBehindSummary,
+  ImportListResponse,
+  MeResponse,
+  ReleaseListResponse,
+  SetupGuide,
+} from '@/api/generated/api';
 
-import { meRecord } from './records';
+import { quietSummary } from './dashboard-fixture';
+import { clientId, meRecord, meResponse } from './records';
 import { disposeRuntimes } from './runtimes';
 
 export type Route = (
@@ -11,6 +20,36 @@ export type Route = (
 ) => Response | Promise<Response> | undefined;
 
 export const fetchMock = vi.fn<typeof fetch>();
+
+export const finishedSetupGuide: SetupGuide = {
+  steps: setupStepIds.map((id) => ({ id, state: 'done', canDo: true })),
+  next: null,
+  clientId,
+  ownerName: meResponse.profile.fullName,
+  organizationHasClients: true,
+  closed: false,
+  finished: true,
+};
+
+// Keyed by path and query exactly as the shell asks, so a page's own read of the same path stays
+// unrouted and its test must answer it.
+const shellReads: Record<string, () => unknown> = {
+  '/releases': () => ({ items: [] }) satisfies ReleaseListResponse,
+  '/me/setup': () => finishedSetupGuide,
+  '/documents/behind/summary': () =>
+    ({
+      counts: { occupational_safety: 0, fire_safety: 0 },
+      running: [],
+    }) satisfies DocumentsBehindSummary,
+  '/imports?kind=all': () => ({ items: [] }) satisfies ImportListResponse,
+};
+
+// The dashboard's own read, not the shell's: answered because mountApp lands on /dashboard.
+const landingPageReads: Record<string, () => unknown> = {
+  '/dashboard/summary': () => quietSummary satisfies DashboardSummary,
+};
+
+const defaultReads = { ...shellReads, ...landingPageReads };
 
 export function mockApi(
   route: Route,
@@ -21,7 +60,10 @@ export function mockApi(
     const answer = route(init, url);
     if (answer) return answer;
     if (url.pathname === '/me' && me) return Response.json(me);
-    throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${url.pathname}`);
+    const method = init?.method ?? 'GET';
+    const defaultRead = method === 'GET' ? defaultReads[`${url.pathname}${url.search}`] : undefined;
+    if (defaultRead) return Response.json(defaultRead());
+    throw new Error(`Unexpected request: ${method} ${url.pathname}`);
   });
 }
 

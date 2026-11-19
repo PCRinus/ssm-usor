@@ -40,6 +40,17 @@ describe('the employee limit the database counts against', () => {
     ).toBe(selfServeLimits.employees);
   });
 
+  it('is the step once the trial has ended, though the row still says it is trialing', () => {
+    expect(body).toContain(
+      `else coalesce(p_employee_step, case p_plan when 'start' then ${billingPlans.start.steps[0]!.employees}`
+    );
+    const ended = { plan: 'start', status: 'trialing', trial_ends_at: '2026-11-10T00:00:00Z' };
+    expect(usageLimits({ ...ended, employee_step: 750 }, now).employees).toBe(750);
+    expect(usageLimits({ ...ended, employee_step: null }, now).employees).toBe(
+      billingPlans.start.steps[0]!.employees
+    );
+  });
+
   it("is a plan's first step where the row has no step", () => {
     expect(body).toContain(
       `case p_plan when 'start' then ${billingPlans.start.steps[0]!.employees} else ${billingPlans.profesional.steps[0]!.employees} end`

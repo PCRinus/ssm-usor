@@ -4,7 +4,14 @@ import { adminClient } from '../../lib/admin-db';
 import { stubFetch } from '../../test/upstream';
 import { meterReporter } from './meter-reports';
 import { createStripe } from './stripe';
-import { createFake, env, type Fake, organizationId, paidRow } from './upstream.fixture';
+import {
+  createFake,
+  env,
+  type Fake,
+  organizationId,
+  paidRow,
+  stripeDown,
+} from './upstream.fixture';
 
 const start = { plan: 'start', step: 250, interval: 'month' } as const;
 const at = new Date(Date.now() - 60 * 60_000);
@@ -78,11 +85,7 @@ describe('reporting a row to a Stripe meter', () => {
   it('unmarks the row when Stripe refuses, for the daily retry', async () => {
     const fake = createFake();
     fake.tables.credit_extra_blocks = [row('m3')];
-    fake.stripe['POST /v1/billing/meter_events'] = () =>
-      new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
-        status: 500,
-        headers: { 'content-type': 'application/json' },
-      });
+    fake.stripe['POST /v1/billing/meter_events'] = stripeDown;
 
     await expect(meter.report(deps(), { id: 'm3', at, customerId: 'cus_1Test' })).rejects.toThrow();
     expect(fake.tables.credit_extra_blocks![0]!.reported_at).toBeNull();

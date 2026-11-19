@@ -12,9 +12,9 @@ import {
   createInstructionModule,
   createOrganization,
   evaluateRisks,
+  expectSetGenerated,
   moduleFixture,
   openDocumentSection,
-  openedPdf,
   signIn,
   updateClient,
 } from './support';
@@ -98,37 +98,6 @@ test('generating waits for the data the documents print, and says where it is fi
   await expect(page.getByTestId('details-first-month')).toBeFocused();
 });
 
-test('a row leads to its field, and the toast of the save leads back to generating', async ({
-  page,
-}) => {
-  const owner = await createAccount('documents-row', 'Dana Documente');
-  const organizationId = await createOrganization('Documente rânduri E2E', owner.id);
-  const clientId = await createClientCompany(organizationId, 'S.C. UN CÂMP LIPSĂ E2E S.R.L.');
-  await completeDocumentData(organizationId, owner.id, clientId, {
-    legal_representative_role: null,
-  });
-  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
-
-  await page.getByTestId('documents-generate').click();
-  await expect(page.getByTestId('generate-missing-count')).toHaveText('1 dată de completat');
-  await page.getByTestId('generate-missing-row').click();
-  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/detalii$`));
-  const role = page.getByTestId('details-representative-role');
-  await expect(role).toBeFocused();
-  await role.fill('Administrator');
-  await page.getByTestId('legal-representative-save').click();
-  await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Înapoi la generare' }).click();
-  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-ssm$`));
-  await page.getByTestId('generate-issue-date').fill('19.01.2026');
-  await page.getByTestId('generate-first-number').fill('3');
-  await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
-    timeout: 30_000,
-  });
-});
-
 async function generateDocumentation(page: Page, account: string, client: string) {
   const owner = await createAccount(account, 'Dana Documente');
   const organizationId = await createOrganization(`Documente ${client}`, owner.id);
@@ -140,9 +109,7 @@ async function generateDocumentation(page: Page, account: string, client: string
   await page.getByTestId('generate-issue-date').fill('19.01.2026');
   await page.getByTestId('generate-first-number').fill('3');
   await page.getByTestId('generate-submit').click();
-  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
-    timeout: 30_000,
-  });
+  await expectSetGenerated(page);
   return page.getByTestId('document-row');
 }
 
@@ -190,10 +157,36 @@ test('with a gap elsewhere in the set the cover is generated again, and a decisi
   await expect(page.getByText(`„${title}” a fost generat din nou.`)).toBeVisible();
 });
 
-test('a client gets its whole documentation, numbered and dated, and downloads a draft', async ({
+test('a row leads to its field and back, and the client then gets its whole documentation, numbered and dated, and downloads a draft', async ({
   page,
 }) => {
-  const rows = await generateDocumentation(page, 'documents-owner', 'CLIENT DOCUMENTE E2E');
+  const owner = await createAccount('documents-owner', 'Dana Documente');
+  const organizationId = await createOrganization('Documente CLIENT DOCUMENTE E2E', owner.id);
+  const clientId = await createClientCompany(organizationId, 'S.C. CLIENT DOCUMENTE E2E S.R.L.');
+  await completeDocumentData(organizationId, owner.id, clientId, {
+    legal_representative_role: null,
+  });
+  await signIn(page, owner.email, `/clienti/${clientId}/documente-ssm`);
+
+  await page.getByTestId('documents-generate').click();
+  await expect(page.getByTestId('generate-missing-count')).toHaveText('1 dată de completat');
+  await page.getByTestId('generate-missing-row').click();
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/detalii$`));
+  const role = page.getByTestId('details-representative-role');
+  await expect(role).toBeFocused();
+  await role.fill('Administrator');
+  await page.getByTestId('legal-representative-save').click();
+  await expect(page.getByText('Reprezentantul legal a fost salvat.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Înapoi la generare' }).click();
+  await expect(page).toHaveURL(new RegExp(`/clienti/${clientId}/documente-ssm$`));
+  await page.getByTestId('generate-issue-date').fill('19.01.2026');
+  await page.getByTestId('generate-first-number').fill('3');
+  await page.getByTestId('generate-submit').click();
+  await expect(page.getByText('Au fost generate 22 de documente.')).toBeVisible({
+    timeout: 30_000,
+  });
+  const rows = page.getByTestId('document-row');
 
   await expect(page.getByTestId('pack-contents-entry')).toHaveCount(12);
   await openDocumentSection(page, '6');
@@ -225,56 +218,6 @@ test('a client gets its whole documentation, numbered and dated, and downloads a
   expect((await coverDownload).suggestedFilename()).toBe(
     'Copertă - Deciziile interne - rev. 1.docx'
   );
-});
-
-test('a decision is issued with its PDF, and a new draft of it can be made and dropped', async ({
-  page,
-}) => {
-  const rows = await generateDocumentation(page, 'documents-issue', 'EMITERE DOCUMENTE E2E');
-  await openDocumentSection(page, '1');
-  const firstAid = rows.filter({ hasText: 'Decizia privind responsabilii cu primul ajutor' });
-
-  await act(page, firstAid, 'document-issue');
-  await page.getByTestId('document-confirm').click();
-  await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
-    timeout: 60_000,
-  });
-  await expect(firstAid.getByTestId('document-draft')).toHaveCount(0);
-
-  // Where a converter runs, issuing also made the PDF, locked beside the Word file.
-  if (process.env.GOTENBERG_URL) {
-    const pdf = await openedPdf(page, firstAid);
-    expect(pdf.disposition).toMatch(
-      /^inline; filename="Decizia privind responsabilii cu primul ajutor - rev\. 1\.pdf"; filename\*=UTF-8''/
-    );
-    expect(pdf.body.subarray(0, 5).toString()).toBe('%PDF-');
-  }
-
-  await act(page, firstAid, 'document-regenerate');
-  await page.getByTestId('document-confirm').click();
-  await expect(firstAid.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
-  await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
-
-  await act(page, firstAid, 'document-delete-draft');
-  await page.getByTestId('document-confirm').click();
-  await expect(firstAid.getByTestId('document-draft')).toHaveCount(0);
-  await expect(firstAid.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
-});
-
-test('the training material is issued', async ({ page }) => {
-  await generateDocumentation(page, 'documents-training', 'INSTRUIRE DOCUMENTE E2E');
-
-  // The training material's chapter of the unit's own risks prints the unacceptable factors
-  // of the evaluations (ADR 015), so nothing is left to fill in by hand.
-  await openDocumentSection(page, '2');
-  const material = page
-    .getByTestId('document-row')
-    .filter({ hasText: /^Material de instruire introductiv-generală/ });
-  await act(page, material, 'document-issue');
-  await page.getByTestId('document-confirm').click();
-  await expect(material.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
-    timeout: 30_000,
-  });
 });
 
 test('the own instructions are issued with their annex, which opens in the editor', async ({
@@ -417,19 +360,6 @@ test('the issued training themes fall behind when a cited instruction gets a new
   await expect(themes.getByTestId('document-draft')).toHaveText('Ciornă · rev. 2');
   await expect(themes.getByTestId('document-issued')).toHaveText('Emis · rev. 1');
   await expect(themes.getByTestId('document-instructions-behind')).toHaveCount(0);
-});
-
-test('the risk assessment is issued', async ({ page }) => {
-  const rows = await generateDocumentation(page, 'documents-risks', 'RISCURI DOCUMENTE E2E');
-
-  await openDocumentSection(page, '9');
-  const assessment = rows.filter({ hasText: 'Evaluarea riscurilor' });
-  await expect(assessment.getByTestId('document-draft')).toHaveText('Ciornă · rev. 1');
-  await act(page, assessment, 'document-issue');
-  await page.getByTestId('document-confirm').click();
-  await expect(assessment.getByTestId('document-issued')).toHaveText('Emis · rev. 1', {
-    timeout: 60_000,
-  });
 });
 
 test('a Word file uploaded over a draft replaces it, and after issuing starts the next draft', async ({

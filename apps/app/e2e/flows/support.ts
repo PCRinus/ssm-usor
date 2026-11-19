@@ -210,9 +210,9 @@ export async function createClientCompany(
   return client.data.id as string;
 }
 
-// What a service contract prints about the provider, save for the bank account, which the
-// flow fills in through the app (ADR 007), and the fire-safety technician, which
-// `nameFireSafetyTechnician` adds.
+// What a service contract prints about the provider, save for the bank account, which one
+// flow fills in through the app (ADR 007) and `addBankAccount` sets, and the fire-safety
+// technician, which `nameFireSafetyTechnician` adds.
 export async function completeProviderDetails(organizationId: string) {
   const organization = await admin
     .from('organizations')
@@ -230,6 +230,14 @@ export async function completeProviderDetails(organizationId: string) {
       authorization_certificate_date: '2022-09-30',
       authorization_certificate_issuer: 'Direcția de muncă și protecție socială Timiș',
     })
+    .eq('id', organizationId);
+  if (organization.error) throw organization.error;
+}
+
+export async function addBankAccount(organizationId: string) {
+  const organization = await admin
+    .from('organizations')
+    .update({ iban: 'RO49AAAA1B31007593840000', bank_name: 'Banca Transilvania' })
     .eq('id', organizationId);
   if (organization.error) throw organization.error;
 }
@@ -911,13 +919,6 @@ export async function accessTokenOf(email: string, withPassword = password) {
   return (await sessionOf(email, withPassword)).access_token;
 }
 
-// What the recovery email would carry, without sending one.
-export async function recoveryTokenHash(email: string) {
-  const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email });
-  if (error) throw error;
-  return data.properties.hashed_token;
-}
-
 export const emailsTo = (to: string, kind: string) => mailbox(process.env.E2E_API_URL!, to, kind);
 
 export async function emailedLink(to: string, kind: string) {
@@ -967,6 +968,14 @@ export async function openDocumentSection(page: Page, number: string) {
     .filter({ has: page.getByText(number, { exact: true }) });
   if ((await entry.getAttribute('aria-current')) !== 'true') await entry.click();
   await expect(entry).toHaveAttribute('aria-current', 'true');
+}
+
+// Which documents a set holds changes often and is pinned by the API's tests; the flows pin the
+// exact count once per set and size, in documents.spec.ts and fire-safety-documents.spec.ts.
+export async function expectSetGenerated(page: Page) {
+  await expect(page.getByText(/^Au fost generate [1-9]\d* (de )?documente\.$/)).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 // Past the login form, which password.spec.ts and registration.spec.ts test.

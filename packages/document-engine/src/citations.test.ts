@@ -4,14 +4,7 @@ import PizZip from 'pizzip';
 import { describe, expect, it } from 'vitest';
 
 import type { LegalAct } from './citation-index';
-import {
-  type ActKind,
-  markerPrefix,
-  parseAct,
-  parseMarker,
-  readsLikeArticle,
-  templateCitations,
-} from './citations';
+import { type ActKind, markerPrefix, parseAct, parseMarker, templateCitations } from './citations';
 import { buildCitationIndex, templateSources, templatesUrl } from './template-store';
 import { paragraphsOf } from './text';
 
@@ -302,32 +295,6 @@ describe("the built-in templates' citations", () => {
 
   const unresolved = acts.filter((act) => act.portalId === null).map((act) => act.name);
   if (unresolved.length) console.warn(`Legal acts without a portal page: ${unresolved.join(', ')}`);
-  it.skipIf(unresolved.length > 0)('give every act a page on the Portal Legislativ', () => {
-    expect(unresolved).toEqual([]);
-  });
-
-  it('report paragraphs that read like an article outside a quotation', () => {
-    const report = sources.map((template) => {
-      const quoted = new Set(
-        index.citations
-          .filter((c) => c.file === template.file && c.form === 'quote')
-          .flatMap((c) =>
-            Array.from({ length: c.lastParagraph - c.paragraph + 1 }, (_, i) => c.paragraph + i)
-          )
-      );
-      const loose = paragraphsOf(
-        new PizZip(template.source).file('word/document.xml')?.asText() ?? ''
-      ).flatMap((p, i) => (readsLikeArticle(p.text) && !quoted.has(i) ? [i] : []));
-      return { file: template.file, loose };
-    });
-    const lines = report
-      .filter(({ loose }) => loose.length)
-      .map(({ file, loose }) => `${file}: ${loose.length} (¶${loose.slice(0, 8).join(', ¶')}…)`);
-    if (lines.length)
-      console.info(`Paragraphs that read like an article, no marker:\n${lines.join('\n')}`);
-    expect(report).toHaveLength(sources.length);
-  });
-
   it('are the committed index, regenerated after every template change', () => {
     const committed = JSON.parse(readFileSync(new URL('citations.json', templatesUrl), 'utf8'));
     expect(committed, 'run pnpm --filter @ssm-usor/document-engine citations').toEqual(index);

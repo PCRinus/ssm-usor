@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { locatingModel } from './models';
 import {
   locatingAnswer,
   locatingRequest,
@@ -110,7 +111,7 @@ describe('locatingRequest', () => {
     const targets = locatingTargets(front).slice(0, 2);
     const request = locatingRequest('data:image/jpeg;base64,AAAA', targets);
 
-    expect(request).toMatchObject({ model: 'gemini-3.1-flash-lite', answer: locatingAnswer });
+    expect(request).toMatchObject({ model: locatingModel, answer: locatingAnswer });
     expect(request).not.toHaveProperty('reasoningEffort');
     expect(request.messages[1]).toEqual({
       role: 'user',

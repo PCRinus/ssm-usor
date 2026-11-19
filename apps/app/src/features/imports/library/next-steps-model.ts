@@ -1,8 +1,6 @@
 import { countOf, type ImportLibraryPart } from '@ssm-usor/contracts';
 
-import { shortDayMonthFormat } from '@/lib/dates';
-
-import { isExpired, isOpenPart, joinNames, libraryDay, type PartStatus } from './library-model';
+import { isExpired, joinNames, libraryDay, type PartStatus } from './library-model';
 
 type PartTiming = { part: ImportLibraryPart; status: PartStatus; expiresAt: string | null };
 
@@ -55,20 +53,10 @@ export function foundSentence(
   return names.length > 0 ? `Am găsit în pachet ${names.join(' și ')} pe care nu le ai.` : null;
 }
 
-export type ImportOutcome =
-  | { kind: 'open'; label: string }
-  | { kind: 'done'; label: string }
-  | { kind: 'expired'; label: string };
+export type ImportOutcome = { kind: 'done'; label: string } | { kind: 'expired'; label: string };
 
+// Only an import with nothing left open reaches the client's page; one with open parts waits above.
 export function importOutcome(parts: readonly PartTiming[], now = Date.now()): ImportOutcome {
-  const open = parts.filter((part) => isOpenPart(part, now));
-  if (open.length > 0) {
-    const until = earliestExpiry(open);
-    return {
-      kind: 'open',
-      label: `${open.length} de verificat${until ? `, până pe ${shortDayMonthFormat.format(new Date(until))}` : ''}`,
-    };
-  }
   const expired = parts.filter((part) => isExpired(part, now));
   if (expired.length === 0) return { kind: 'done', label: 'Încheiat' };
   const instructions = expired.some((part) => !isRisks(part));

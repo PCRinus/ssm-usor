@@ -108,6 +108,7 @@ function importRow(overrides: Record<string, unknown> = {}) {
     ready_at: null,
     failed_at: null,
     confirmed_at: null,
+    abandoned_at: null,
     clients: null,
     import_files: [{ count: 2 }],
     last_file: [],
@@ -843,6 +844,264 @@ describe('GET /imports with status confirmed', () => {
   });
 });
 
+describe('GET /imports with open library parts', () => {
+  const now = '2026-11-19T12:00:00.000Z';
+  const colleagueId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
+  const confirmedId = (n: number) => `c0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const confirmedRow = (n: number, parts: { part: string; status: string }[]) =>
+    importRow({
+      id: confirmedId(n),
+      status: 'confirmed',
+      client_id: clientId,
+      clients: { id: clientId, legal_name: 'Royal Hotel SRL' },
+      created_at: `2026-11-1${n}T09:00:00+00:00`,
+      ready_at: `2026-11-1${n}T09:30:00+00:00`,
+      confirmed_at: `2026-11-1${n}T10:00:00+00:00`,
+      import_library_parts: parts,
+    });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(now));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const listsOf = (status: string) =>
+    callsTo('/rest/v1/imports').filter((call) => call.url.searchParams.get('status') === status);
+
+  function mockLists(open: unknown[], confirmed: unknown[]) {
+    mockUpstream(({ url }) => {
+      if (url.pathname !== '/rest/v1/imports') return undefined;
+      return Response.json(url.searchParams.get('status') === 'eq.confirmed' ? confirmed : open);
+    });
+  }
+
+  it('adds the confirmed client imports with a part not yet confirmed, newest first among the open ones', async () => {
+    mockLists(
+      [
+        importRow({ status: 'ready', created_at: '2026-11-18T09:00:00+00:00' }),
+        importRow({
+          id: splitId,
+          status: 'failed',
+          failure_reason: 'Nu s-a putut citi.',
+          failed_at: '2026-11-11T09:00:00+00:00',
+          created_at: '2026-11-11T09:00:00+00:00',
+          created_by: colleagueId,
+        }),
+      ],
+      [
+        confirmedRow(6, [
+          { part: 'instructions_ssm', status: 'to_review' },
+          { part: 'risk_evaluations', status: 'confirmed' },
+        ]),
+        confirmedRow(7, [{ part: 'risk_evaluations', status: 'reading' }]),
+        confirmedRow(5, [
+          { part: 'instructions_ssm', status: 'confirmed' },
+          { part: 'instructions_su', status: 'nothing_new' },
+        ]),
+        confirmedRow(4, [{ part: 'risk_evaluations', status: 'failed' }]),
+        confirmedRow(8, [
+          { part: 'instructions_ssm', status: 'confirmed' },
+          { part: 'risk_evaluations', status: 'confirmed' },
+        ]),
+        confirmedRow(9, []),
+      ]
+    );
+    const response = await request('/imports?withOpenParts=true');
+
+    expect(response.status).toBe(200);
+    const { items } = (await response.json()) as {
+      items: { id: string; libraryParts: unknown[]; progress: unknown }[];
+    };
+    expect(items.map((item) => item.id)).toEqual([
+      importId,
+      confirmedId(7),
+      confirmedId(6),
+      confirmedId(5),
+      confirmedId(4),
+      splitId,
+    ]);
+    expect(items[2]).toMatchObject({
+      status: 'confirmed',
+      progress: null,
+      libraryParts: [
+        { part: 'instructions_ssm', status: 'to_review', expiresAt: '2026-11-30T10:00:00.000Z' },
+        { part: 'risk_evaluations', status: 'confirmed', expiresAt: '2026-11-30T10:00:00.000Z' },
+      ],
+    });
+    const [confirmed] = listsOf('eq.confirmed');
+    expect(confirmed!.url.searchParams.get('kind')).toBe('eq.client');
+    expect(confirmed!.url.searchParams.get('confirmed_at')).toBe('gt.2026-11-05T12:00:00.000Z');
+  });
+
+  it('reads nothing more without the flag, with it false, or for employee imports', async () => {
+    for (const path of [
+      '/imports',
+      '/imports?withOpenParts=false',
+      '/imports?kind=employees&withOpenParts=true',
+      '/imports?status=confirmed&withOpenParts=true',
+    ]) {
+      fetchMock.mockClear();
+      mockLists([], [confirmedRow(6, [{ part: 'instructions_ssm', status: 'to_review' }])]);
+      const response = await request(path);
+
+      expect(response.status).toBe(200);
+      expect(callsTo('/rest/v1/imports')).toHaveLength(1);
+      if (!path.includes('status=confirmed')) {
+        expect(await response.json()).toEqual({ items: [] });
+      }
+    }
+    fetchMock.mockClear();
+    mockLists([], []);
+    await request('/imports');
+    const [open] = callsTo('/rest/v1/imports');
+    expect(open!.url.searchParams.get('status')).toBe(
+      'in.(uploading,preparing,sorting,reading,checking,ready,failed)'
+    );
+    expect(open!.url.searchParams.get('order')).toBe('created_at.desc');
+  });
+
+  it("narrows both lists to a client, and reads them as the member, so another organization's stay out", async () => {
+    mockLists([], [confirmedRow(6, [{ part: 'instructions_ssm', status: 'to_review' }])]);
+    await request(`/imports?clientId=${clientId}&withOpenParts=true`);
+
+    const lists = callsTo('/rest/v1/imports');
+    expect(lists).toHaveLength(2);
+    for (const list of lists) {
+      expect(list.url.searchParams.get('client_id')).toBe(`eq.${clientId}`);
+      expect(list.secret).toBe(false);
+      expect(list.url.searchParams.has('created_by')).toBe(false);
+      expect(list.url.searchParams.has('organization_id')).toBe(false);
+    }
+  });
+
+  it("lists another member's imports with their name", async () => {
+    mockLists([importRow({ created_by: colleagueId })], []);
+    await request('/imports?withOpenParts=true');
+
+    const [names] = callsTo('/rest/v1/profiles');
+    expect(names!.url.searchParams.get('user_id')).toBe(`in.(${colleagueId})`);
+    expect(names!.secret).toBe(false);
+  });
+});
+
+describe('GET /imports/closed', () => {
+  const closedId = (n: number) => `d0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const closed = [
+    importRow({
+      id: closedId(1),
+      status: 'abandoned',
+      created_at: '2026-11-17T09:00:00+00:00',
+      abandoned_at: '2026-11-18T08:00:00+00:00',
+      import_files: [{ count: 3 }],
+    }),
+    importRow({
+      id: closedId(2),
+      status: 'confirmed',
+      client_id: clientId,
+      clients: { id: clientId, legal_name: 'Royal Hotel SRL' },
+      ready_at: '2026-11-10T09:30:00+00:00',
+      confirmed_at: '2026-11-10T10:00:00+00:00',
+      import_library_parts: [{ part: 'instructions_ssm', status: 'nothing_new' }],
+    }),
+    importRow({ id: closedId(3), status: 'abandoned', abandoned_at: '2026-11-09T10:00:00+00:00' }),
+  ];
+
+  function mockClosed() {
+    mockUpstream(({ method, url }) => {
+      if (url.pathname !== '/rest/v1/imports') return undefined;
+      if (method === 'HEAD') {
+        return new Response(null, { headers: { 'Content-Range': `*/${closed.length}` } });
+      }
+      const from = Number(url.searchParams.get('offset') ?? 0);
+      const limit = Number(url.searchParams.get('limit') ?? 1000);
+      if (from >= closed.length && from > 0) {
+        return Response.json(
+          { code: 'PGRST103', message: 'Requested range not satisfiable' },
+          { status: 416 }
+        );
+      }
+      const rows = closed.slice(from, from + limit);
+      return Response.json(rows, {
+        headers: { 'Content-Range': `${from}-${from + rows.length - 1}/${closed.length}` },
+      });
+    });
+  }
+
+  it('pages the confirmed and abandoned imports of a kind, latest ended first, with the total', async () => {
+    mockClosed();
+    const response = await request('/imports/closed?kind=client&page=1&pageSize=2');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      page: 1,
+      pageSize: 2,
+      total: 3,
+      items: [
+        {
+          id: closedId(1),
+          status: 'abandoned',
+          abandonedAt: '2026-11-18T08:00:00+00:00',
+          confirmedAt: null,
+          expiresAt: null,
+          fileCount: 3,
+          createdBy: { id: user.id, fullName: 'Ana Popescu' },
+          progress: null,
+          people: null,
+          uninvited: null,
+        },
+        {
+          id: closedId(2),
+          status: 'confirmed',
+          abandonedAt: null,
+          client: { id: clientId, legalName: 'Royal Hotel SRL' },
+          libraryParts: [
+            {
+              part: 'instructions_ssm',
+              status: 'nothing_new',
+              expiresAt: '2026-11-24T10:00:00.000Z',
+            },
+          ],
+        },
+      ],
+    });
+    const [list] = callsTo('/rest/v1/imports');
+    expect(list!.url.searchParams.get('kind')).toBe('eq.client');
+    expect(list!.url.searchParams.get('status')).toBe('in.(confirmed,abandoned)');
+    expect(list!.url.searchParams.get('order')).toBe('closed_at.desc,id.desc');
+    expect(list!.url.searchParams.get('offset')).toBe('0');
+    expect(list!.url.searchParams.get('limit')).toBe('2');
+    expect(list!.headers.get('Prefer')).toContain('count=exact');
+    expect(list!.secret).toBe(false);
+  });
+
+  it('serves the next page, and an empty one past the end with the total', async () => {
+    mockClosed();
+    const second = await request('/imports/closed?kind=client&page=2&pageSize=2');
+
+    expect(await second.json()).toMatchObject({
+      page: 2,
+      total: 3,
+      items: [{ id: closedId(3), abandonedAt: '2026-11-09T10:00:00+00:00' }],
+    });
+    expect(callsTo('/rest/v1/imports')[0]!.url.searchParams.get('offset')).toBe('2');
+
+    const past = await request('/imports/closed?kind=client&page=5&pageSize=2');
+    expect(past.status).toBe(200);
+    expect(await past.json()).toEqual({ items: [], page: 5, pageSize: 2, total: 3 });
+  });
+
+  it('asks for a kind', async () => {
+    mockClosed();
+    const response = await request('/imports/closed');
+
+    expect(response.status).toBe(400);
+  });
+});
+
 describe('GET /imports/{importId}', () => {
   it('shows the files, the progress, the other companies and what blocks confirming', async () => {
     const proposal = { ...toProposal(reading), registeredCompany: null };
@@ -1245,56 +1504,6 @@ describe('POST /imports/{importId}/confirm', () => {
         registeredCompany: null,
       },
     });
-    const confirming = (changes: unknown) => {
-      mockUpstream(({ url }) => {
-        if (url.pathname === '/rest/v1/imports') {
-          return Response.json(withSuggestions(ready(changes)));
-        }
-        if (url.pathname === '/rest/v1/rpc/apply_client_import') {
-          return Response.json({ client_id: clientId, files: [] });
-        }
-      });
-      return request(`/imports/${importId}/confirm`, 'POST', { version: 4 });
-    };
-
-    it('blocks confirming while the office and the workplace’s suggestions wait', async () => {
-      const response = await confirming({ fields: {}, items: {} });
-
-      expect(response.status).toBe(422);
-      expect(await response.json()).toMatchObject({
-        reason: 'import_incomplete',
-        issues: [
-          { path: 'officeActivity.workplace-1', message: 'choice' },
-          { path: 'suggestedValues.workplace-2', message: 'choice' },
-        ],
-      });
-      expect(callsTo('/rest/v1/rpc/apply_client_import')).toEqual([]);
-    });
-
-    it('writes the office with no activity and the values kept, changed or emptied, counting each', async () => {
-      const response = await confirming({
-        fields: {
-          'officeActivity.workplace-1': { option: 0 },
-          'suggestedValues.workplace-2': { option: 0 },
-        },
-        items: { 'workplace-2': { values: { specificMeasures: null } } },
-      });
-
-      expect(response.status).toBe(200);
-      const { p_payload } = callsTo('/rest/v1/rpc/apply_client_import')[0]!.body as {
-        p_payload: { workplaces: Record<string, unknown>[]; quality: Record<string, unknown> };
-      };
-      expect(p_payload.workplaces).toEqual([
-        expect.objectContaining({ key: 'workplace-1', office_has_activity: false }),
-        expect.objectContaining({
-          key: 'workplace-2',
-          combustible_materials: 'rumeguș, plăci din PAL',
-        }),
-      ]);
-      expect(p_payload.workplaces[1]).not.toHaveProperty('specific_measures');
-      expect(p_payload.quality.suggestedValues).toEqual({ changed: 0, unticked: 1, kept: 2 });
-    });
-
     it('answers an office where another member placed employees since the review as outdated', async () => {
       mockUpstream(({ url }) => {
         if (url.pathname === '/rest/v1/imports') {

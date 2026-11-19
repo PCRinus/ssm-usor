@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './errors';
-import { listPage, matchingEveryTerm, orderedBy } from './list-page';
+import { listPage } from './list-page';
 
 const listed = <Row>(data: Row[] | null, count: number | null, code?: string) =>
   Promise.resolve({ data, count, error: code ? { code, message: code } : null });
@@ -93,55 +93,5 @@ describe('listPage', () => {
       what: 'clients',
     });
     await expect(uncounted).rejects.toMatchObject({ code: 'forbidden' });
-  });
-});
-
-type Call = [string, ...unknown[]];
-
-function recorder() {
-  const calls: Call[] = [];
-  const query = {
-    order(column: string, options: { ascending: boolean; nullsFirst?: boolean }) {
-      calls.push(['order', column, options]);
-      return query;
-    },
-    ilike(column: string, pattern: string) {
-      calls.push(['ilike', column, pattern]);
-      return query;
-    },
-  };
-  return { query, calls };
-}
-
-describe('orderedBy', () => {
-  it('orders by each column in turn, as asked, reversed, ascending always or nulls last', () => {
-    const { query, calls } = recorder();
-    orderedBy(
-      query,
-      [
-        { column: 'state', alwaysAscending: true },
-        { column: 'count', reversed: true },
-        { column: 'due_on', nullsLast: true },
-        { column: 'name' },
-      ],
-      'desc'
-    );
-    expect(calls).toEqual([
-      ['order', 'state', { ascending: true }],
-      ['order', 'count', { ascending: true }],
-      ['order', 'due_on', { ascending: false, nullsFirst: false }],
-      ['order', 'name', { ascending: false }],
-    ]);
-  });
-});
-
-describe('matchingEveryTerm', () => {
-  it('asks the column to hold every term', () => {
-    const { query, calls } = recorder();
-    matchingEveryTerm(query, 'search_text', ['popescu', '12']);
-    expect(calls).toEqual([
-      ['ilike', 'search_text', '*popescu*'],
-      ['ilike', 'search_text', '*12*'],
-    ]);
   });
 });

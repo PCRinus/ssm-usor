@@ -2,7 +2,7 @@ import {
   isLegalRepresentative,
   type LegalRepresentativeRef,
   type ResponsiblePersonRole,
-  samePersonName,
+  samePerson as samePersonByName,
 } from '@ssm-usor/contracts';
 
 import type { DocumentFacts } from './context';
@@ -46,7 +46,7 @@ export function samePerson(
   const secondId = identityOf(second, legalRepresentative);
   return firstId && secondId
     ? firstId === secondId
-    : samePersonName(first.fullName, second.fullName);
+    : samePersonByName(first.fullName, second.fullName);
 }
 
 export function distinctPeople<Item extends Identified>(

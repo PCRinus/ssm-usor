@@ -20,22 +20,7 @@ const env = testEnv({
   CORS_ORIGINS: 'https://app.ssmusor.ro',
   API_ORIGIN: 'https://api.ssmusor.ro',
   MARKETING_ORIGIN: 'https://ssmusor.ro',
-  MAIL: {
-    sendWaitlistConfirmation,
-    sendOrganizationInvitation: vi.fn(),
-    sendPasswordReset: vi.fn(),
-    sendPasswordChanged: vi.fn(),
-    sendSignupConfirmation: vi.fn(),
-    sendServiceContract: vi.fn(),
-    sendSignedCopyReceived: vi.fn(),
-    sendParticipantInvitation: vi.fn(),
-    sendSignInCode: vi.fn(),
-    sendSigningCode: vi.fn(),
-    sendSignatureRequest: vi.fn(),
-    sendSmsUsageNotice: vi.fn(),
-    sendEmployeesOverStepNotice: vi.fn(),
-    sendExtrasNotice: vi.fn(),
-  },
+  MAIL: { sendWaitlistConfirmation } as unknown as MailService,
 });
 
 type Row = {

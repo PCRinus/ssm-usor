@@ -1,5 +1,5 @@
 begin;
-select plan(115);
+select plan(120);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -1055,6 +1055,60 @@ select results_eq(
             ('10000000-0000-4000-8000-000000000018'::uuid, 'failed', 'Importul a rămas neterminat.', true),
             ('10000000-0000-4000-8000-000000000019'::uuid, 'failed', 'Importul a rămas neterminat.', true) $$,
   'with the reason for each, from today, so the clean-up deletes them 14 days on'
+);
+
+select pg_temp.act_as_postgres();
+
+insert into public.imports (id, organization_id, kind, client_id, into_existing_client, status, started_at, ready_at, confirmed_at, abandoned_at, failed_at, failure_reason) values
+  ('10000000-0000-4000-8000-000000000030', '11111111-0000-4000-8000-000000000001', 'client', 'cccccccc-0000-4000-8000-000000000001', true, 'confirmed', '2026-11-10 08:00+00', '2026-11-10 09:00+00', '2026-11-10 10:00+00', null, null, null),
+  ('10000000-0000-4000-8000-000000000031', '11111111-0000-4000-8000-000000000001', 'client', null, false, 'abandoned', null, null, null, '2026-11-12 10:00+00', null, null),
+  ('10000000-0000-4000-8000-000000000032', '11111111-0000-4000-8000-000000000001', 'client', null, false, 'failed', null, null, null, null, '2026-11-11 10:00+00', 'Nu s-a putut citi.'),
+  ('10000000-0000-4000-8000-000000000033', '11111111-0000-4000-8000-000000000001', 'client', null, false, 'uploading', null, null, null, null, null, null),
+  ('10000000-0000-4000-8000-000000000034', '22222222-0000-4000-8000-000000000002', 'client', null, false, 'abandoned', null, null, null, '2026-11-13 10:00+00', null, null);
+
+select results_eq(
+  $$ select id, public.closed_at(i) from public.imports i
+     where id between '10000000-0000-4000-8000-000000000030' and '10000000-0000-4000-8000-000000000033'
+     order by id $$,
+  $$ values ('10000000-0000-4000-8000-000000000030'::uuid, '2026-11-10 10:00+00'::timestamptz),
+            ('10000000-0000-4000-8000-000000000031'::uuid, '2026-11-12 10:00+00'::timestamptz),
+            ('10000000-0000-4000-8000-000000000032'::uuid, null::timestamptz),
+            ('10000000-0000-4000-8000-000000000033'::uuid, null::timestamptz) $$,
+  'an import is closed when it was confirmed or abandoned, and not while open or failed'
+);
+
+select pg_temp.act_as('bbbbbbbb-0000-4000-8000-000000000001');
+
+select lives_ok(
+  $$ select public.abandon_import('10000000-0000-4000-8000-000000000032') $$,
+  'a member abandons a failed import'
+);
+
+select is(
+  (select public.closed_at(i) from public.imports i where id = '10000000-0000-4000-8000-000000000032'),
+  '2026-11-11 10:00+00'::timestamptz,
+  'which is closed when it failed'
+);
+
+select results_eq(
+  $$ select id from public.imports i
+     where kind = 'client' and status in ('confirmed', 'abandoned')
+       and id between '10000000-0000-4000-8000-000000000030' and '10000000-0000-4000-8000-000000000034'
+     order by public.closed_at(i) desc, id desc $$,
+  $$ values ('10000000-0000-4000-8000-000000000031'::uuid), ('10000000-0000-4000-8000-000000000032'::uuid),
+            ('10000000-0000-4000-8000-000000000030'::uuid) $$,
+  'the closed list holds the organization''s closed imports, latest closed first, and none of another'
+);
+
+select pg_temp.act_as('aaaaaaaa-0000-4000-8000-000000000002');
+
+select results_eq(
+  $$ select id from public.imports i
+     where kind = 'client' and status in ('confirmed', 'abandoned')
+       and id between '10000000-0000-4000-8000-000000000030' and '10000000-0000-4000-8000-000000000034'
+     order by public.closed_at(i) desc, id desc $$,
+  $$ values ('10000000-0000-4000-8000-000000000034'::uuid) $$,
+  'and the other organization''s holds only its own'
 );
 
 select * from finish();

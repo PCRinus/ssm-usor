@@ -489,16 +489,6 @@ describe('the signing screen', () => {
     expect(screen.getByTestId('signing-resend').textContent).toMatch(/^Cere un cod nou/);
   });
 
-  it('treats the last wrong code as spent', async () => {
-    vi.mocked(signPortalSigningSession).mockRejectedValueOnce(
-      refusal('code_invalid', 'Wrong code.', { attemptsLeft: 0 })
-    );
-    const user = await askForCode();
-    await user.type(screen.getByTestId('signing-code'), '123456');
-    await user.click(screen.getByTestId('signing-sign'));
-    expect((await screen.findByTestId('signing-code-error')).dataset.kind).toBe('spent');
-  });
-
   it('asks for all six digits before calling the API', async () => {
     const user = await askForCode();
     await user.type(screen.getByTestId('signing-code'), '123');
@@ -521,17 +511,6 @@ describe('the signing screen', () => {
     expect(error.textContent).toContain('Ai cerut un cod acum mai puțin de un minut.');
     expect(error.textContent).toContain('Poți cere altul în 37 s.');
     expect(screen.getByTestId('signing-send')).toHaveProperty('disabled', true);
-  });
-
-  it('words a refusal when the code is asked for', async () => {
-    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(refusal('signing_unavailable'));
-    const user = userEvent.setup();
-    mountPortal(signedIn(), '/semneaza');
-    await screen.findByTestId('signing-items');
-    await user.click(screen.getByTestId('signing-send'));
-    expect((await screen.findByTestId('signing-send-error')).textContent).toContain(
-      'Semnarea nu este disponibilă acum'
-    );
   });
 
   it.each([

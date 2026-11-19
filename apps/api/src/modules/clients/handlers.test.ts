@@ -6,10 +6,8 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import { accessTokenAt } from '../../lib/access-token.fixture';
 import type { ApiEnv } from '../../lib/env';
-import { openApiConfig } from '../../lib/openapi';
 import { apiRequest, testAccessToken } from '../../test/request';
 import {
   callsTo,
@@ -1201,40 +1199,6 @@ describe("the owners' notes about a client", () => {
     expect((await putNotes({ body: 'x' })).status).toBe(403);
     expect(callsTo('/rest/v1/client_owner_notes')).toHaveLength(0);
   });
-});
-
-describe('CORS', () => {
-  it('allows POST preflight from the app origin', async () => {
-    const response = await createApp().request(
-      '/clients',
-      {
-        method: 'OPTIONS',
-        headers: {
-          Origin: 'https://app.ssmusor.ro',
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'authorization,content-type',
-        },
-      },
-      env
-    );
-    expect(response.status).toBe(204);
-    expect(response.headers.get('Access-Control-Allow-Methods')).toMatch(/\bPOST\b/);
-    expect(response.headers.get('Access-Control-Allow-Headers')?.toLowerCase()).toContain(
-      'content-type'
-    );
-  });
-});
-
-it('documents the client routes with bearer security and request schemas', () => {
-  const document = createApp().getOpenAPIDocument(openApiConfig);
-  expect(document.paths?.['/clients']?.get?.operationId).toBe('listClients');
-  expect(document.paths?.['/clients']?.post?.operationId).toBe('createClient');
-  expect(document.paths?.['/clients/{clientId}']?.get?.operationId).toBe('getClient');
-  expect(document.paths?.['/clients']?.post?.security).toEqual([{ bearerAuth: [] }]);
-  expect(document.paths?.['/companies/lookup']?.get?.operationId).toBe('lookupCompany');
-  expect(document.components?.schemas?.CreateClientRequest).toBeDefined();
-  expect(document.components?.schemas?.ClientListResponse).toBeDefined();
-  expect(document.components?.schemas?.CompanyLookupResponse).toBeDefined();
 });
 
 describe('a lead on a plan without offers', () => {

@@ -297,6 +297,7 @@ describe('POST /me/signing-sessions', () => {
       p_client_ip: '203.0.113.7',
       p_user_agent: 'Firefox',
       p_interval_seconds: 60,
+      p_valid_minutes: 10,
     });
     expect(session!.body).not.toHaveProperty('p_participant_id');
     const [items] = callsTo('/rest/v1/signing_session_items', 'POST');

@@ -1,4 +1,4 @@
-import { formatEmployeeName, maxPageSize, samePersonName } from '@ssm-usor/contracts';
+import { formatEmployeeName, maxPageSize, samePerson } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
@@ -73,7 +73,7 @@ export function LegalRepresentativeForm({
     if (suggested.current || employeeId || !employees.data) return;
     suggested.current = true;
     const matching = employees.data.items.filter((employee) =>
-      samePersonName(formatEmployeeName(employee), typedName)
+      samePerson(formatEmployeeName(employee), typedName)
     );
     if (matching.length === 1) {
       form.setValue('legalRepresentativeEmployeeId', matching[0]!.id, { shouldDirty: true });

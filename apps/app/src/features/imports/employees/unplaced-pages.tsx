@@ -1,3 +1,4 @@
+import { uncapitalized } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import {
@@ -105,7 +106,7 @@ export function UnplacedPages({
           photos={pages.map((page, index) => ({
             key: page.id,
             name: pageFileName(page),
-            detail: `Fotografia neatribuită ${index + 1} din ${pages.length} · ${pageKindLabel(page)} · ${lowerFirst(readSummary(page).rows)}`,
+            detail: `Fotografia neatribuită ${index + 1} din ${pages.length} · ${pageKindLabel(page)} · ${uncapitalized(readSummary(page).rows)}`,
             view: (
               <SheetPageView importId={detail.id} page={page} className="h-full rounded-none" />
             ),
@@ -130,8 +131,6 @@ export function UnplacedPages({
     </section>
   );
 }
-
-const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 
 function UnplacedRow({
   detail,
