@@ -55,8 +55,10 @@ export const quoteToolAt =
         releasedManifestAt(undefined, fileURLToPath(templates))
       );
     } catch (error) {
-      if (error instanceof PendingChangeError) throw error;
-      const message = error instanceof Error ? error.message : String(error);
+      // Clipped as the command's output was: the message reaches an issue and Discord.
+      const message = (error instanceof Error ? error.message : String(error)).slice(0, 1_000);
+      if (error instanceof PendingChangeError)
+        throw new PendingChangeError(message, { cause: error });
       throw new Error(`replace-quote failed on ${input.citation.file}: ${message}`, {
         cause: error,
       });
