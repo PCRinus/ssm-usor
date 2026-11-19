@@ -1,7 +1,43 @@
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { type AuthChangeEvent, createClient, type Session } from '@supabase/supabase-js';
 import type { QueryClient } from '@tanstack/react-query';
 
-type AuthError = { message: string; code?: string; status?: number };
+export type AuthError = { message: string; code?: string; status?: number; name?: string };
+
+// supabase-js reports a request that never got an answer with status 0.
+export const unreachable = (error: AuthError) => error.status === 0;
+
+export const verifiedTotp = (session: Session) =>
+  session.user.factors?.find(
+    (factor) => factor.factor_type === 'totp' && factor.status === 'verified'
+  );
+
+export function createSupabaseClient({
+  url,
+  publishableKey,
+  flowType,
+}: {
+  url: string | undefined;
+  publishableKey: string | undefined;
+  flowType?: 'pkce';
+}) {
+  const address = url?.trim();
+  const key = publishableKey?.trim();
+  if (!address || !key) return null;
+  // These applications use publishable keys; server secret keys never belong in Vite env.
+  if (!key.startsWith('sb_publishable_')) return null;
+  try {
+    return createClient(address, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        ...(flowType && { flowType }),
+      },
+    });
+  } catch {
+    return null;
+  }
+}
 
 export interface SessionClient {
   getSession(): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
