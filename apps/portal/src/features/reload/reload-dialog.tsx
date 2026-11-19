@@ -1,4 +1,5 @@
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useSecondsLeft } from '@ssm-usor/spa-runtime/countdown';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -8,7 +9,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Check, Hourglass, Info, RotateCw } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import { dismissNewVersionToast } from './new-version-toast';
 import {
@@ -24,26 +25,9 @@ export function ReloadDialog() {
   return <OutdatedDialog outdated={outdated} />;
 }
 
-const secondsUntil = (until: number | null) =>
-  until === null ? 0 : Math.max(0, Math.ceil((until - Date.now()) / 1000));
-
-function useSecondsLeft(until: number | null) {
-  const [seconds, setSeconds] = useState(() => secondsUntil(until));
-  useEffect(() => {
-    if (until === null) return;
-    const timer = setInterval(() => {
-      const next = secondsUntil(until);
-      setSeconds(next);
-      if (next === 0) clearInterval(timer);
-    }, 250);
-    return () => clearInterval(timer);
-  }, [until]);
-  return seconds;
-}
-
 function OutdatedDialog({ outdated }: { outdated: OutdatedState }) {
   const { t } = useLingui();
-  const secondsLeft = useSecondsLeft(outdated.lockedUntil);
+  const secondsLeft = useSecondsLeft(outdated.lockedUntil, 250);
   const locked = secondsLeft > 0;
   const countdown = `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`;
   const { context } = outdated;
