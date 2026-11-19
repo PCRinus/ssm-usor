@@ -3,7 +3,7 @@ import { currentTermsVersion } from '@ssm-usor/contracts';
 import { useCaptcha } from '@ssm-usor/spa-runtime/captcha';
 import { Input } from '@ssm-usor/ui/components/input';
 import { useQuery } from '@tanstack/react-query';
-import { getRouteApi, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -15,6 +15,7 @@ import {
   useJoinWithInvitation,
 } from '@/api/generated/api';
 import { apiErrorBody, apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -107,13 +108,13 @@ function TermsNotice({ action }: { action: string }) {
 
 export function AcceptInvitationPage() {
   const { token } = invitationRoute.useSearch();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const { auth, session } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const lookup = useQuery({
     queryKey: ['invitation-lookup', token],
-    queryFn: ({ signal }) => lookupInvitation({ token: token! }, { ...apiRequest, signal }),
-    enabled: Boolean(token && apiRequest.baseUrl),
+    queryFn: ({ signal }) => lookupInvitation({ token: token! }, { ...request, signal }),
+    enabled: Boolean(token && request.baseUrl),
     retry: false,
     staleTime: Infinity,
   });
@@ -126,7 +127,7 @@ export function AcceptInvitationPage() {
       />
     );
   }
-  if (lookup.isError || !apiRequest.baseUrl) {
+  if (lookup.isError || !request.baseUrl) {
     return (
       <Frame
         title="Nu am putut încărca invitația"
@@ -229,11 +230,11 @@ interface AcceptFormProps {
 // The API creates the account already confirmed, because the token reached the invited
 // mailbox, then we sign in with what was typed.
 function CreateAccountForm({ token, invitation, description }: AcceptFormProps) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const { auth } = useAuth();
   const { ref: captchaRef, withToken } = useCaptcha();
   const navigate = useNavigate();
-  const accept = useAcceptInvitation({ request: apiRequest });
+  const accept = useAcceptInvitation({ request });
   const form = useForm<CreateAccountValues>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: { fullName: '', password: '' },
@@ -330,10 +331,10 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
 }
 
 function JoinForm({ token, invitation, description }: AcceptFormProps) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const navigate = useNavigate();
   const me = useMe();
-  const join = useJoinWithInvitation({ request: apiRequest });
+  const join = useJoinWithInvitation({ request });
   const needsName = me.isSuccess && !me.data.profile;
   const form = useForm<JoinValues>({
     resolver: needsName ? zodResolver(joinSchema) : undefined,

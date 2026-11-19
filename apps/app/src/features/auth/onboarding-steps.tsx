@@ -3,7 +3,7 @@ import { bankNameAfterIbanChange, bankNameForIban, formatIban } from '@ssm-usor/
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
-import { Navigate, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Navigate, useNavigate } from '@tanstack/react-router';
 import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
@@ -17,6 +17,7 @@ import {
   useUpdateOrganizationCompanyDetails,
   useUpdateProfile,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { captureAsMember } from '@/app/observability/posthog';
 import { replayShow } from '@/app/observability/replay-masking';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
@@ -104,10 +105,10 @@ function WithCompanyDetails({
   me: Member;
   children: (me: Member, saved: CompanyDetails) => ReactNode;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const details = useGetOrganizationCompanyDetails({
-    request: apiRequest,
-    query: { queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), me.user.id] },
+    request,
+    query: { queryKey: key(getGetOrganizationCompanyDetailsQueryKey()) },
   });
   if (details.isPending) return <StepLoading copy={copy} />;
   if (details.isError) return <StepFailed copy={copy} retry={() => void details.refetch()} />;
@@ -168,12 +169,12 @@ function useStepNavigation(me: Member, step: 2 | 3) {
   };
 }
 
-function useSaveDetails(me: Member) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const update = useUpdateOrganizationCompanyDetails({ request: apiRequest });
+function useSaveDetails() {
+  const { request, queryClient, key } = useApi();
+  const update = useUpdateOrganizationCompanyDetails({ request });
   return async (saved: CompanyDetails, changes: Partial<CompanyDetails>) => {
     const response = await update.mutateAsync({ data: withStepDetails(saved, changes) });
-    queryClient.setQueryData([...getGetOrganizationCompanyDetailsQueryKey(), me.user.id], response);
+    queryClient.setQueryData(key(getGetOrganizationCompanyDetailsQueryKey()), response);
   };
 }
 
@@ -231,9 +232,9 @@ function StepSection({ id, title, children }: { id: string; title: string; child
 }
 
 function SignatoryForm({ me, saved }: { me: Member; saved: CompanyDetails }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const saveDetails = useSaveDetails(me);
-  const updateProfile = useUpdateProfile({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const saveDetails = useSaveDetails();
+  const updateProfile = useUpdateProfile({ request });
   const steps = useStepNavigation(me, 2);
   const ownName = me.profile?.fullName ?? '';
   const form = useForm<SignatoryStepValues>({
@@ -423,7 +424,7 @@ function FromAnaf() {
 }
 
 function ContractForm({ me, saved }: { me: Member; saved: CompanyDetails }) {
-  const saveDetails = useSaveDetails(me);
+  const saveDetails = useSaveDetails();
   const steps = useStepNavigation(me, 3);
   const fromAnaf = Boolean(saved.legalName);
   const form = useForm<ContractStepValues>({
