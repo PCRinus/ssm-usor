@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import {
+  callsTo,
+  fetchMock,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser,
+} from '../../test/upstream';
 
 // The regeneration itself is the single-document path, tested with the routes; here it only
 // says whether it succeeded.
@@ -12,15 +21,9 @@ import { consumeRegenerationBatch, lastDelivery, type QueueMessage } from './reg
 
 const regenerate = vi.mocked(regenerateDraft);
 
-const secretKey = 'sb_secret_test_key_regeneration';
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
-};
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const requesterId = '0f7c8d96-479c-47b3-b49e-01f4555a0221';
+const requesterId = testUser.id;
 const jobId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 const clientId = 'c0000000-0000-4000-8000-000000000001';
 const documentId = 'd0000000-0000-4000-8000-000000000001';
@@ -35,23 +38,13 @@ const itemRow = (status = 'queued', requestedBy: string | null = requesterId) =>
 });
 
 type Handler = () => Response;
-const fetchMock = vi.fn<typeof fetch>();
 
 function mockUpstream(handlers: Partial<Record<'item' | 'behind' | 'record', Handler>> = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    switch (url.pathname) {
-      case '/rest/v1/regeneration_job_items':
-        return handlers.item?.() ?? Response.json(itemRow());
-      case '/rest/v1/documents_behind':
-        return (
-          handlers.behind?.() ?? Response.json({ document_id: documentId, edited_draft: false })
-        );
-      case '/rest/v1/rpc/record_regeneration_item':
-        return handlers.record?.() ?? Response.json(true);
-      default:
-        throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
-    }
+  routeUpstream({
+    '/rest/v1/regeneration_job_items': () => handlers.item?.() ?? Response.json(itemRow()),
+    '/rest/v1/documents_behind': () =>
+      handlers.behind?.() ?? Response.json({ document_id: documentId, edited_draft: false }),
+    '/rest/v1/rpc/record_regeneration_item': () => handlers.record?.() ?? Response.json(true),
   });
 }
 
@@ -61,21 +54,18 @@ const message = (attempts = 1, body: unknown = { jobId, clientId }) => {
 };
 
 const records = () =>
-  fetchMock.mock.calls
-    .filter(
-      ([input]) => new URL(String(input)).pathname === '/rest/v1/rpc/record_regeneration_item'
-    )
-    .map(([, init]) => JSON.parse(String(init?.body)) as Record<string, unknown>);
+  callsTo('/rest/v1/rpc/record_regeneration_item').map(
+    (call) => call.body as Record<string, unknown>
+  );
+
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
   regenerate.mockReset();
   regenerate.mockResolvedValue({} as Awaited<ReturnType<typeof regenerateDraft>>);
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -95,7 +85,7 @@ describe('the regeneration queue consumer', () => {
     ]);
     expect(delivered.ack).toHaveBeenCalledOnce();
     for (const [, init] of fetchMock.mock.calls) {
-      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${secretKey}`);
+      expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${testSecretKey}`);
     }
     const behind = fetchMock.mock.calls
       .map(([input]) => new URL(String(input)))
