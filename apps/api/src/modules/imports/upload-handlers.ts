@@ -45,15 +45,8 @@ import {
   toSummary,
   wrongKind,
 } from './import-queries';
-import {
-  characterCount,
-  describe,
-  fileToRead,
-  loadPrepared,
-  readingCapBreach,
-  sendAll,
-  startCreditsOf,
-} from './pipeline';
+import { characterCount, describe, readingCapBreach, sendAll } from './pipeline';
+import { fileToRead, loadPrepared, startCreditsOf } from './pipeline-files';
 import { importRecords } from './records';
 import type {
   addFoundSheetsRoute,

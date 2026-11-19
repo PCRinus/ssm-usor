@@ -7,7 +7,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
 import { listFilesOf, notFound } from './import-queries';
-import { isImage, pageLocationsPathOf, type PreparedPages, textPathOf } from './pipeline';
+import { isImage, pageLocationsPathOf, type PreparedPages, textPathOf } from './pipeline-files';
 import type { getImportSourceRoute } from './routes';
 
 // The source needs only the import's kind and to know it is the caller's; the detail's columns

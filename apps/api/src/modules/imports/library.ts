@@ -37,20 +37,22 @@ import {
 
 import { alertImport, importEnded } from './import-alerts';
 import {
-  claimed,
-  dataUrl,
   failureReasonOf,
   ImportFailure,
+  isTransient,
+  meteredCompletion,
+  type PipelineDeps,
+} from './pipeline';
+import {
+  claimed,
+  dataUrl,
   isImage,
   isLibraryFile,
   isRiskFile,
-  isTransient,
   loadPrepared,
-  meteredCompletion,
   pageImage,
   pageLabel,
-  type PipelineDeps,
-} from './pipeline';
+} from './pipeline-files';
 import { instructionsReadingFlags, risksReadingFlags } from './reading-flags';
 import { readingVersion } from './reading-version';
 import { existingByPostName } from './risk-sheets';

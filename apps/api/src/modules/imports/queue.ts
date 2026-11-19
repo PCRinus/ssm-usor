@@ -9,6 +9,7 @@ import { createExtractor } from '../../lib/extractor';
 import { adminFileStore } from '../../lib/files';
 import { lookupCompany } from '../companies/anaf';
 import { blocksReporter } from '../extras/reporting';
+import { checkImport, readImport, sortImport } from './client-steps';
 import { keepStep } from './copies';
 import { importEnded } from './import-alerts';
 import {
@@ -21,9 +22,6 @@ import {
   riskReasons,
 } from './library';
 import {
-  afterPreparing,
-  checkImport,
-  copyFolder,
   describe,
   failImport,
   fileFailureReason,
@@ -33,17 +31,13 @@ import {
   importReasons,
   isExtractorUnavailable,
   isTransient,
-  locatePage,
   type PipelineDeps,
-  prepareFile,
-  readImport,
   scanBatchPages,
-  scanFile,
-  scanPages,
-  sortImport,
 } from './pipeline';
+import { afterPreparing, copyFolder, prepareFile, scanFile, scanPages } from './pipeline-files';
 import { importRecords } from './records';
 import { importModel } from './settings';
+import { locatePage } from './sheet-steps';
 import { importStore } from './store';
 
 // The consumer's `max_retries` in wrangler.jsonc plus one: the delivery the queue gives up after.
