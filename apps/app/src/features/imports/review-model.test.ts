@@ -1,4 +1,4 @@
-import { proposedIncluded } from '@ssm-usor/import';
+import { proposedIncluded } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { proposalFixture } from '@/test/import-fixture';

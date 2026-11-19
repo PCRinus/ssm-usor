@@ -1,6 +1,6 @@
 import {
   type AccessLevel,
-  type BillingAmounts,
+  amountsWithVat,
   type BillingChoice,
   type BillingChoiceProblem,
   type BillingInterval,
@@ -12,7 +12,6 @@ import {
   readOnlyDays,
   selfServeLimits,
   stepFor,
-  vatPercent,
 } from '@ssm-usor/contracts';
 
 import { addMonths } from './entitlements';
@@ -36,15 +35,6 @@ export function problemsWith(choice: BillingChoice, usage: Usage): BillingChoice
   return problems;
 }
 
-export function vatOf(subtotalCents: number) {
-  return Math.round((subtotalCents * vatPercent) / 100);
-}
-
-export function amounts(subtotalCents: number): BillingAmounts {
-  const vatCents = vatOf(subtotalCents);
-  return { subtotalCents, vatCents, totalCents: subtotalCents + vatCents };
-}
-
 const priceOf = (choice: BillingChoice) =>
   planStep(choice.plan, choice.step)!.prices[choice.interval];
 
@@ -59,7 +49,7 @@ export function recurringPrice(choice: BillingChoice) {
   return {
     interval: choice.interval,
     lines: [{ product: choice.plan, quantity: 1, amountCents: subtotal }],
-    ...amounts(subtotal),
+    ...amountsWithVat(subtotal),
   };
 }
 

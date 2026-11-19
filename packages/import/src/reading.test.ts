@@ -1,7 +1,8 @@
+import { proposedIncluded } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 
-import { proposalChoices, proposalSchema, proposedIncluded } from './proposal';
+import { proposalChoices, proposalSchema } from './proposal';
 import { fromWire, type Reading, readingAnswer, toProposal } from './reading';
 import { wireAnswer } from './test/fixtures';
 

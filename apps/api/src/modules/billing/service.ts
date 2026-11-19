@@ -1,4 +1,5 @@
 import {
+  amountsWithVat,
   type BillingChoice,
   type BillingPreview,
   type BillingProductKey,
@@ -11,7 +12,6 @@ import type { AdminClient } from '../../lib/admin-db';
 import { ApiError } from '../../lib/errors';
 import {
   addInterval,
-  amounts,
   type ChangeSplit,
   choiceFromItems,
   choiceLines,
@@ -176,7 +176,7 @@ export async function preview(
     minimumStep: minimumStepFor(choice.plan, usage.employees),
     recurring,
   };
-  const none = amounts(0);
+  const none = amountsWithVat(0);
   const recurringAmounts = {
     subtotalCents: recurring.subtotalCents,
     vatCents: recurring.vatCents,
@@ -272,7 +272,7 @@ export async function preview(
     appliesAt: (split.atRenewal ? renewalAt : now).toISOString(),
     dueToday,
     proration,
-    nextRenewal: { at: nextRenewalAt.toISOString(), ...amounts(nextSubtotal) },
+    nextRenewal: { at: nextRenewalAt.toISOString(), ...amountsWithVat(nextSubtotal) },
     firstChargeAt: (dueToday.totalCents > 0 ? now : nextRenewalAt).toISOString(),
     prorationDate: split.now ? fromSeconds(prorationDate).toISOString() : null,
   };

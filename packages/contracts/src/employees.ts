@@ -8,7 +8,25 @@ import { phoneSchema } from './phone';
 import { employeeTestsSchema, testStateFilterSchema } from './tests';
 import { employeeTrainingSchema, employeeTrainingStateFilterSchema } from './trainings';
 
-const optionalText = (min: number, max: number) => z.string().trim().min(min).max(max).nullish();
+const text = ([min, max]: readonly [number, number]) => z.string().trim().min(min).max(max);
+const optionalText = (min: number, max: number) => text([min, max]).nullish();
+
+// The lengths an employee's text takes, which an import's values are checked against too.
+export const employeeTextLimits = {
+  lastName: [1, 100],
+  firstName: [1, 100],
+  employeeNumber: [1, 40],
+  birthPlace: [1, 160],
+  homeAddress: [1, 240],
+  residenceAddress: [1, 240],
+  education: [1, 160],
+  qualification: [1, 160],
+  jobTitle: [2, 160],
+  commuteRoute: [1, 1000],
+} as const satisfies Record<string, readonly [number, number]>;
+
+const optionalLimited = (name: keyof typeof employeeTextLimits) =>
+  text(employeeTextLimits[name]).nullish();
 
 // Absences will be dated events, not a status.
 export const employeeStatuses = ['active', 'terminated'] as const;
@@ -34,35 +52,35 @@ const cnpInputSchema = z
 // accepts spacing; the API stores digits.
 export const createEmployeeRequestSchema = z
   .object({
-    lastName: z.string().trim().min(1).max(100),
-    firstName: z.string().trim().min(1).max(100),
+    lastName: text(employeeTextLimits.lastName),
+    firstName: text(employeeTextLimits.firstName),
     cnp: cnpInputSchema.nullish(),
-    employeeNumber: optionalText(1, 40),
+    employeeNumber: optionalLimited('employeeNumber'),
     email: z.email().trim().toLowerCase().max(254).nullish(),
     phone: phoneSchema.nullish(),
     // The title in the employment contract. Usually the name of the job position, and not the
     // same fact (ADR 006).
-    jobTitle: z.string().trim().min(2).max(160),
+    jobTitle: text(employeeTextLimits.jobTitle),
     contractNumber: optionalText(1, 50),
     // The post the person fills. Left out, the position named like the contract title, which
     // the client gets if it lacks it.
     jobPositionId: z.uuid().nullish(),
     hiredAt: z.iso.date(),
     birthDate: z.iso.date().nullish(),
-    birthPlace: optionalText(1, 160),
-    homeAddress: optionalText(1, 240),
+    birthPlace: optionalLimited('birthPlace'),
+    homeAddress: optionalLimited('homeAddress'),
     // Where the person lives when it is not their domicile; no sheet prints it.
-    residenceAddress: optionalText(1, 240),
+    residenceAddress: optionalLimited('residenceAddress'),
     bloodGroup: bloodGroupSchema.nullish(),
     rhFactor: rhFactorSchema.nullish(),
     notes: optionalText(1, 2000),
     // Left out when adding someone, the client's only active workplace if it has exactly one;
     // left out when editing, the stored one stays (ADR 021).
     workplaceId: z.uuid().nullish(),
-    qualification: optionalText(1, 160),
-    education: optionalText(1, 160),
+    qualification: optionalLimited('qualification'),
+    education: optionalLimited('education'),
     authorizations: optionalText(1, 500),
-    commuteRoute: optionalText(1, 1000),
+    commuteRoute: optionalLimited('commuteRoute'),
     // Left out, none; repeated codes count once.
     commuteMeans: z.array(commuteMeanSchema).max(20).nullish(),
     commuteMeansOther: optionalText(1, commuteMeansOtherMaxLength),
@@ -269,7 +287,7 @@ export type ClientEmployeeListItem = z.infer<typeof clientEmployeeListItemSchema
 export const updateEmployeeJobPositionRequestSchema = z.object({
   jobPositionId: z.uuid(),
   // Given when the contract changed with the post; left out, the contract title stays.
-  jobTitle: z.string().trim().min(2).max(160).optional(),
+  jobTitle: text(employeeTextLimits.jobTitle).optional(),
 });
 
 export type UpdateEmployeeJobPositionRequest = z.infer<

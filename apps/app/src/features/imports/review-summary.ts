@@ -1,3 +1,4 @@
+import { smokingPlacePath, substancesStatePath } from '@ssm-usor/contracts';
 import {
   BriefcaseBusiness,
   Building2,
@@ -46,10 +47,8 @@ import {
   sectionStatus,
   smokingPlaceAsked,
   smokingPlaceDecision,
-  smokingPlacePath,
   substancesAdded,
   substancesAnswer,
-  substancesStatePath,
   suggestedFields,
   suggestedValue,
   suggestionsConfirmed,

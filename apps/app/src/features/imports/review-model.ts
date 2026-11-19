@@ -1,9 +1,11 @@
 import {
+  assemblyPointPath,
   caenClassName,
   type CountyCode,
   countyNames,
   type EquipmentAllocation,
   extinguisherCode,
+  fireEquipmentCountPath,
   type FireEquipmentKind,
   fireEquipmentKindLabels,
   type FireExtinguishingAgent,
@@ -12,14 +14,24 @@ import {
   fireInstallationKindLabels,
   type FireSmokingPolicy,
   fireSmokingPolicyLabels,
+  foldText,
   formatCui,
+  type ImportBlocker,
+  type ImportChanges,
   maxEquipmentDurationMonths,
+  officeActivityPath,
+  proposedUntickedReason,
   registeredNameAsWritten,
   registeredNameOffered,
   type ResponsiblePersonRole,
   responsiblePersonRoleLabels,
   sameCompany,
   sameName,
+  smokingPlacePath,
+  substancesStatePath,
+  suggestedValuesPath,
+  type SuggestedWorkplaceFieldName,
+  suggestedWorkplaceFieldNames,
 } from '@ssm-usor/contracts';
 
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
@@ -39,20 +51,9 @@ export type Option = {
 };
 export type ProposedField = { options: Option[] };
 
-type ChangedValue = string | number | boolean | null | string[];
-export type FieldChange = {
-  option?: number;
-  value?: string | number | null;
-  included?: boolean;
-  replace?: boolean;
-};
-export type ItemChange = {
-  included?: boolean;
-  values?: Record<string, ChangedValue>;
-  existingId?: string | null;
-  replace?: string[];
-};
-export type Changes = { fields: Record<string, FieldChange>; items: Record<string, ItemChange> };
+export type Changes = ImportChanges;
+export type FieldChange = Changes['fields'][string];
+export type ItemChange = Changes['items'][string];
 
 export const noChanges: Changes = { fields: {}, items: {} };
 
@@ -267,8 +268,6 @@ export const fieldInfo: Record<string, FieldInfo> = {
   },
 };
 
-export const substancesStatePath = 'fireSafety.substancesState';
-
 export const substancesStateLabels: Record<'listed' | 'none', string> = {
   listed: 'Se utilizează substanțe periculoase',
   none: 'Nu se utilizează substanțe periculoase',
@@ -416,14 +415,6 @@ export function formatFieldValue(
       return text;
   }
 }
-
-export const foldText = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
 
 const words = (text: string) =>
   text
@@ -656,11 +647,7 @@ export function smokingPlaceApplies(states: Record<string, FieldState>) {
 }
 
 export const appliesAt = (states: Record<string, FieldState>, path: string) =>
-  path !== 'fireSafety.smokingPlace' || smokingPlaceApplies(states);
-
-export const smokingPlacePath = 'fireSafety.smokingPlace';
-
-export const assemblyPointPath = (workplaceId: string) => `assemblyPoints.${workplaceId}`;
+  path !== smokingPlacePath || smokingPlaceApplies(states);
 
 // A value read that is never taken unchanged (ADR 041); null while it waits.
 export type FactDecision =
@@ -710,21 +697,6 @@ export function assemblyPointDecision(
     : null;
 }
 
-// The fields drafted from the client's activity, as the API's payload asks them (ADR 041).
-export const suggestedFieldNames = [
-  'combustibleMaterials',
-  'ignitionSources',
-  'fireRiskEquipment',
-  'specificMeasures',
-  'extinguisherNorm',
-] as const;
-
-export type SuggestedFieldName = (typeof suggestedFieldNames)[number];
-
-export const suggestedValuesPath = (workplaceId: string) => `suggestedValues.${workplaceId}`;
-
-export const officeActivityPath = (workplaceId: string) => `officeActivity.${workplaceId}`;
-
 const suggestedOf = (item: object) =>
   ((item as { suggested?: unknown }).suggested ?? {}) as Record<string, Source[]>;
 
@@ -734,7 +706,7 @@ export const suggestionSources = (item: object, field: string): Source[] =>
 // A mobile site has no norm, so one suggested before the member changed the kind goes.
 export function suggestedFields(state: Pick<ItemState, 'item' | 'values'>, changes: Changes) {
   const written = changes.items[state.item.id]?.values ?? {};
-  return suggestedFieldNames.filter(
+  return suggestedWorkplaceFieldNames.filter(
     (field) =>
       suggestedOf(state.item)[field] !== undefined &&
       !(field === 'extinguisherNorm' && state.values.kind === 'mobile_site' && !(field in written))
@@ -747,7 +719,7 @@ export type SuggestedValue =
 export function suggestedValue(
   item: { id: string },
   changes: Changes,
-  field: SuggestedFieldName
+  field: SuggestedWorkplaceFieldName
 ): SuggestedValue {
   const written = changes.items[item.id]?.values ?? {};
   if (!(field in written)) return { kind: 'keep' };
@@ -934,7 +906,7 @@ export const itemsOf = (proposal: Proposal, list: ItemList) =>
   (proposal[list] ?? []) as unknown as AnyItem[];
 
 export type UntickedReason =
-  'other_company' | 'legal_representative' | 'management_only' | 'position_left_out';
+  NonNullable<ReturnType<typeof proposedUntickedReason>> | 'position_left_out';
 
 export type ItemState = {
   list: ItemList;
@@ -942,7 +914,7 @@ export type ItemState = {
   item: AnyItem;
   values: Record<string, unknown>;
   included: boolean;
-  // Ticked unless the member unticks it; as the API's `proposedIncluded` and payload decide.
+  // Ticked unless the member unticks it, as the confirm's payload decides.
   proposed: boolean;
   untickedReason: UntickedReason | null;
   edited: boolean;
@@ -953,9 +925,8 @@ function untickedReason(
   written: Record<string, unknown>,
   leftOutPositions: Set<string>
 ): UntickedReason | null {
-  if (item.otherCompanyName !== null) return 'other_company';
-  if (item.role === 'legal_representative') return 'legal_representative';
-  if (item.managementOnly === true) return 'management_only';
+  const proposed = proposedUntickedReason(item);
+  if (proposed) return proposed;
   const position = (item.jobPosition as { id: string | null } | undefined)?.id;
   if (written.jobPosition === undefined && position && leftOutPositions.has(position)) {
     return 'position_left_out';
@@ -994,8 +965,6 @@ export type FireEquipmentCount = NonNullable<Proposal['fireEquipmentCounts']>[nu
 
 export const fireEquipmentCountsOf = (proposal: Proposal): FireEquipmentCount[] =>
   proposal.fireEquipmentCounts ?? [];
-
-export const fireEquipmentCountPath = (id: string) => `fireEquipmentCounts.${id}`;
 
 /** The option the member chose, as the API's payload reads it; null while the choice waits. */
 export function chosenCountOption(count: FireEquipmentCount, changes: Changes): number | null {
@@ -1175,10 +1144,7 @@ const spellingLabels: Record<string, string> = {
 
 export const itemSpellingLabel = (field: string) => spellingLabels[field] ?? itemFieldLabel(field);
 
-export type Blocker = {
-  path: string;
-  code: 'choice' | 'missing' | 'unknown_reference' | 'invalid';
-};
+export type Blocker = ImportBlocker;
 
 export type BlockerLink = {
   text: string;
@@ -1658,8 +1624,8 @@ export function substancesAdded(
 }
 
 export const changesOf = (changes: ImportDetail['changes']): Changes => ({
-  fields: (changes?.fields ?? {}) as Changes['fields'],
-  items: (changes?.items ?? {}) as Changes['items'],
+  fields: changes?.fields ?? {},
+  items: changes?.items ?? {},
 });
 
 export const personalPaths = new Set([

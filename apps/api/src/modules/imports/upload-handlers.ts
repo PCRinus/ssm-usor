@@ -2,13 +2,13 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type CreditsShort,
   type FoundSheet,
-  importCredits,
   importErrorReasons,
   importFileExtensions,
   type ImportFileType,
   type ImportKind,
   type ImportLimits,
   importLimits,
+  importStartCredits,
   isSystemPath,
   sheetFileTypes,
   type SkippedImportFile,
@@ -41,7 +41,7 @@ import {
   wrongKind,
 } from './import-queries';
 import { characterCount, describe, readingCapBreach, sendAll } from './pipeline';
-import { fileToRead, loadPrepared, startCreditsOf } from './pipeline-files';
+import { fileToRead, loadPrepared, startReadOf } from './pipeline-files';
 import { importRecords } from './records';
 import type {
   addFoundSheetsRoute,
@@ -301,10 +301,7 @@ async function beginReading(
     );
   }
   const charges = importCharges(creditsStore(admin, blocksReporterOf(c)));
-  const needed = arrived.reduce(
-    (total, file) => total + startCreditsOf(file, kind),
-    kind === 'client' ? importCredits.clientReading : 0
-  );
+  const needed = importStartCredits(kind, startReadOf(arrived));
   const charge = await charges.start(organizationId, importId, needed);
   if (!charge.started) throw creditsShort(charge.short);
   const marked = await admin
@@ -698,6 +695,7 @@ export const listFoundSheets: RouteHandler<typeof listFoundSheetsRoute, ApiEnv> 
       fileName: sheet.clientFile.original_file_name,
       mimeType: sheet.clientFile.mime_type as FoundSheet['mimeType'],
       sizeBytes: sheet.clientFile.size_bytes,
+      pageCount: sheet.pageCount,
     });
     byImport.set(sheet.importId, group);
   }

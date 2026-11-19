@@ -1,4 +1,4 @@
-import { importCredits, type ImportKind, type PdfPageText } from '@ssm-usor/contracts';
+import { type PdfPageText } from '@ssm-usor/contracts';
 import {
   type ChatMessage,
   type DocumentKind,
@@ -58,19 +58,17 @@ const wordTypes = new Set(['application/msword', docxType]);
 const isWord = (file: Pick<ImportFileRow, 'mime_type'>) => wordTypes.has(file.mime_type);
 export const isImage = (file: Pick<ImportFileRow, 'mime_type'>) =>
   file.mime_type.startsWith('image/');
-/**
- * What starting an import charges for a file it holds (ADR 030): a photograph is always read, and
- * an employee import reads every page of a PDF, as many as the browser counted. A client's PDF
- * is covered by the reading's 25 until its scanned pages are found.
- */
-export function startCreditsOf(
-  file: Pick<ImportFileRow, 'mime_type' | 'declared_pages'>,
-  kind: ImportKind = 'employees'
-) {
-  if (isImage(file)) return importCredits.perPage;
-  if (kind === 'client' || file.mime_type !== 'application/pdf') return 0;
-  return (file.declared_pages ?? 1) * importCredits.perPage;
-}
+/** The photographs and PDF pages starting an import charges for, a PDF's as the browser counted. */
+export const startReadOf = (
+  files: readonly Pick<ImportFileRow, 'mime_type' | 'declared_pages'>[]
+) => ({
+  photos: files.filter(isImage).length,
+  pdfPages: files.reduce(
+    (total, file) =>
+      total + (file.mime_type === 'application/pdf' ? (file.declared_pages ?? 1) : 0),
+    0
+  ),
+});
 
 export const isSheetFile = (file: Pick<ImportFileRow, 'mime_type'>) =>
   isImage(file) || file.mime_type === 'application/pdf';

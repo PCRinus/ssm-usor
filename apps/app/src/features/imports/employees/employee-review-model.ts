@@ -1,11 +1,15 @@
 import {
-  bloodGroups,
   decodeCnp,
-  foldName,
+  employeeImportTextLimits,
+  employeeImportValueAllowed,
+  foldText,
+  heldTrainingKey,
+  hiringTestRowIds,
   isValidCnp,
-  parseCommuteMeansKey,
-  rhFactors,
-  sameHomeAddress,
+  personIncludedByDefault,
+  resolveEmployeeImportField,
+  reviewedRowValue,
+  rowExaminer,
   type TrainingDomain,
   trainingDomainLabels,
   type TrainingPhase,
@@ -20,8 +24,6 @@ import type {
 } from '@/api/generated/api';
 import { roCount } from '@/features/employees/employee-format';
 import { formatRoDate } from '@/lib/dates';
-
-import { foldText } from '../review-model';
 
 export type Review = NonNullable<EmployeeImportReview>;
 export type Proposal = Review['proposal'];
@@ -203,14 +205,7 @@ export type ResolvedField = {
   replaced: boolean;
 };
 
-export const differs = (name: FieldName, a: FieldValue, b: FieldValue) =>
-  typeof a === 'number' || typeof b === 'number'
-    ? Number(a) !== Number(b)
-    : name === 'homeAddress' || name === 'residenceAddress'
-      ? !sameHomeAddress(a, b)
-      : foldText(String(a)) !== foldText(String(b));
-
-/** A person's field as confirming would take it, as `@ssm-usor/import` resolves it. */
+/** A person's field as confirming would take it. */
 export function resolveField(
   context: Pick<ReviewContext, 'proposal' | 'changes'>,
   person: Person,
@@ -220,38 +215,24 @@ export function resolveField(
     options: { value: FieldValue; pageIds: string[] }[];
     app?: FieldValue | null;
   };
-  const change = context.changes.people[person.id]?.fields?.[name];
-  const declined = context.changes.people[person.id]?.existing === false;
-  const pages = new Set(pagesOf(context, person.id).map((page) => page.id));
-  const options = field.options
-    .map((option, index) => ({ ...option, index }))
-    .filter((option) => option.pageIds.some((id) => pages.has(id)));
   // A declined match leaves the person new: the employee's values are no one's to keep.
-  const app = declined ? undefined : field.app;
-  const sheet = options.length === 1 ? options[0]!.value : null;
-  const base = { options, app, sheet, choice: false, replaced: false };
-  if (change?.value !== undefined) {
-    return {
-      ...base,
-      value: change.value,
-      edited: true,
-      replaced: app !== undefined && change.value !== app,
-    };
-  }
-  let value: FieldValue | null = null;
-  let choice = false;
-  if (change?.option !== undefined) value = field.options[change.option]?.value ?? null;
-  else if (options.length === 1) value = options[0]!.value;
-  else if (options.length > 1) {
-    if (app === null || app === undefined) choice = true;
-    value = app ?? null;
-  }
-  const edited = change?.option !== undefined;
-  const kept = app ?? null;
-  if (value === null) return { ...base, value: kept, choice, edited };
-  if (kept === null) return { ...base, value, choice, edited };
-  const replaced = differs(name, kept, value) && change?.replace === true;
-  return { ...base, value: replaced ? value : kept, choice, edited, replaced };
+  const app = context.changes.people[person.id]?.existing === false ? undefined : field.app;
+  const pages = new Set(pagesOf(context, person.id).map((page) => page.id));
+  const resolved = resolveEmployeeImportField(
+    name,
+    { options: field.options, app },
+    context.changes.people[person.id]?.fields?.[name],
+    pages
+  );
+  return {
+    value: resolved.value,
+    choice: resolved.choice,
+    edited: resolved.edited,
+    options: resolved.own,
+    app,
+    sheet: resolved.own.length === 1 ? resolved.own[0]!.value : null,
+    replaced: resolved.replace,
+  };
 }
 
 export const matchOf = (changes: Changes, person: Person) =>
@@ -269,16 +250,15 @@ export const withoutContact = (context: Pick<ReviewContext, 'changes'>, person: 
   person.flags.some((flag) => flag.code === 'no_contact') ||
   (person.existing !== null && !isExisting(context, person));
 
-/** Whether a person is written unless the member decides otherwise, as `@ssm-usor/import`. */
-export const includedByDefault = (leftOn: string | null, existing: boolean) =>
-  leftOn === null || existing;
-
 export function proposedPersonIncluded(
   context: Pick<ReviewContext, 'proposal' | 'changes'>,
   person: Person
 ) {
   const leftOn = resolveField(context, person, 'leftOn').value;
-  return includedByDefault(typeof leftOn === 'string' ? leftOn : null, isExisting(context, person));
+  return personIncludedByDefault(
+    typeof leftOn === 'string' ? leftOn : null,
+    isExisting(context, person)
+  );
 }
 
 export const includedOf = (context: Pick<ReviewContext, 'proposal' | 'changes'>, person: Person) =>
@@ -389,38 +369,6 @@ export function testIncluded(changes: Changes, row: SheetRow, matched: boolean) 
   return change?.test ?? (row.testOnly ? (change?.included ?? proposed) : proposed);
 }
 
-const testPhases: Record<TrainingDomain, TrainingPhase[]> = {
-  ssm: ['introductory_general'],
-  su: ['workplace', 'introductory_general'],
-};
-
-/**
- * The rows whose paper hiring test is written, one a domain, as `@ssm-usor/import`'s
- * `hiringTestRowIds`: the newest of the phase the test closes, among the rows the person's pages
- * now hold, with the dates as the member left them.
- */
-export function hiringTestRowIds(
-  rows: readonly Pick<SheetRow, 'id' | 'domain' | 'phase' | 'heldOn' | 'testOnly' | 'test'>[]
-): Set<string> {
-  const ids = new Set<string>();
-  for (const domain of ['ssm', 'su'] as const) {
-    const phase = testPhases[domain].find((each) =>
-      rows.some((row) => row.domain === domain && row.phase === each && !row.testOnly)
-    );
-    const newest = rows
-      .filter(
-        (row) =>
-          row.domain === domain &&
-          row.phase === phase &&
-          !row.testOnly &&
-          row.test?.test === 'hiring'
-      )
-      .sort((a, b) => (b.heldOn ?? '').localeCompare(a.heldOn ?? ''))[0];
-    if (newest) ids.add(newest.id);
-  }
-  return ids;
-}
-
 /** The rows of a person whose test confirming writes: the annual tests and one hiring test. */
 export function testedRows(context: Pick<ReviewContext, 'proposal' | 'changes'>, personId: string) {
   const rows = ownRows(context, personId).map(({ row }) => row);
@@ -442,29 +390,11 @@ export type RowValues = {
   verifierJobTitle: string | null;
 };
 
-// As `@ssm-usor/import`: a value an older proposal took from the client's themes is no reading
-// of the sheet, so it counts as empty unless the member typed one (ADR 042).
-const sameValue = (a: unknown, b: unknown) =>
-  (typeof a === 'string' ? a.trim() : (a ?? null)) ===
-  (typeof b === 'string' ? b.trim() : (b ?? null));
-
-// The row dialogs saved every field on any edit, so a stored change equal to the themed value is
-// that save, not a value the member typed.
-function reviewedValue(
-  values: Record<string, unknown>,
-  name: string,
-  proposed: unknown,
-  themed: boolean
-) {
-  if (name in values && !(themed && sameValue(values[name], proposed))) return values[name];
-  return themed ? null : proposed;
-}
-
 export function rowValues(changes: Changes, row: SheetRow): RowValues {
   const values: Record<string, unknown> = changes.rows[row.id]?.values ?? {};
   const fromThemes: readonly string[] = row.fromThemes;
   const pick = <K extends keyof RowValues>(name: K) =>
-    reviewedValue(values, name, row[name], fromThemes.includes(name)) as RowValues[K];
+    reviewedRowValue(values, name, row[name], fromThemes.includes(name)) as RowValues[K];
   return {
     heldOn: pick('heldOn'),
     durationMinutes: pick('durationMinutes'),
@@ -477,30 +407,8 @@ export function rowValues(changes: Changes, row: SheetRow): RowValues {
   };
 }
 
-/**
- * The examiner a row's test names, as the member left it: the verifier's box, else the trainer's,
- * never a trainer an older proposal took from the client's themes, as `@ssm-usor/import` reads it.
- */
-export function examinerValues(changes: Changes, row: SheetRow) {
-  const own: Record<string, unknown> = changes.rows[row.id]?.values ?? {};
-  const byVerifier = row.signatures.verifier !== 'no_box' && row.verifierName !== null;
-  const typed = (['examinerName', 'examinerJobTitle'] as const).some(
-    (name) => name in own && !sameValue(own[name], row.test?.[name] ?? null)
-  );
-  const examiner = (name: 'examinerName' | 'examinerJobTitle', trainer: string) =>
-    reviewedValue(
-      own,
-      name,
-      row.test?.[name] ?? null,
-      !(typed && name in own) &&
-        !byVerifier &&
-        (row.fromThemes as readonly string[]).includes(trainer)
-    ) as string | null;
-  return {
-    examinerName: examiner('examinerName', 'trainerName'),
-    examinerJobTitle: examiner('examinerJobTitle', 'trainerJobTitle'),
-  };
-}
+export const examinerValues = (changes: Changes, row: SheetRow) =>
+  rowExaminer(row, changes.rows[row.id]?.values);
 
 const filled = (value: unknown) =>
   value !== null && value !== undefined && !(typeof value === 'string' && value.trim() === '');
@@ -579,21 +487,6 @@ function fieldAnchor(
   return medicalFields.has(name) ? 'medical' : 'personal';
 }
 
-// As `@ssm-usor/import` checks a value before confirming: the employee form's and the
-// database's limits.
-const textLimits: Partial<Record<FieldName, [number, number]>> = {
-  lastName: [1, 100],
-  firstName: [1, 100],
-  employeeNumber: [1, 40],
-  birthPlace: [1, 160],
-  homeAddress: [1, 240],
-  residenceAddress: [1, 240],
-  education: [1, 160],
-  qualification: [1, 160],
-  jobTitle: [2, 160],
-  commuteRoute: [1, 1000],
-};
-
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
 const inMinutesRange = (value: unknown) =>
@@ -613,38 +506,15 @@ function invalidField(
     tag: `${fieldLabels[name]} de corectat`,
     tone: 'destructive',
   });
-  if (name === 'commuteMinutes') {
-    return inMinutesRange(value) ? null : decision(`Corectează ${lower}: între 1 și 600 de minute`);
-  }
-  if (name === 'bloodGroup' || name === 'rhFactor') {
-    const allowed: readonly FieldValue[] = name === 'bloodGroup' ? bloodGroups : rhFactors;
-    return allowed.includes(value) ? null : decision(`Corectează ${lower}`);
-  }
-  if (name === 'birthDate' || name === 'hiredAt' || name === 'leftOn') {
-    return typeof value === 'string' && isoDate.test(value)
-      ? null
-      : decision(`Corectează ${lower}`);
-  }
-  if (name === 'commuteMeans') {
-    return typeof value === 'string' && parseCommuteMeansKey(value) !== null
-      ? null
-      : decision(`Corectează ${lower}`);
-  }
-  if (typeof value !== 'string') return decision(`Corectează ${lower}`);
-  const limits = textLimits[name];
-  if (!limits) return null;
-  const length = value.trim().length;
-  if (length < limits[0]) {
-    return decision(
-      `Corectează ${lower}: are cel puțin ${roCount(limits[0], 'caracter', 'caractere')}`
-    );
-  }
-  if (length > limits[1]) {
-    return decision(
-      `Corectează ${lower}: are cel mult ${roCount(limits[1], 'caracter', 'caractere')}`
-    );
-  }
-  return null;
+  if (employeeImportValueAllowed(name, value)) return null;
+  if (name === 'commuteMinutes') return decision(`Corectează ${lower}: între 1 și 600 de minute`);
+  const limits = employeeImportTextLimits(name);
+  if (!limits || typeof value !== 'string') return decision(`Corectează ${lower}`);
+  return decision(
+    value.trim().length < limits[0]
+      ? `Corectează ${lower}: are cel puțin ${roCount(limits[0], 'caracter', 'caractere')}`
+      : `Corectează ${lower}: are cel mult ${roCount(limits[1], 'caracter', 'caractere')}`
+  );
 }
 
 /** The CNP confirming would take: the offered correction when the member took it. */
@@ -1376,32 +1246,13 @@ export function trainingsByDomain(
   });
 }
 
-type HeldKeyRow = { domain: string; phase: string } & RowValues;
-
-// As `@ssm-usor/import`'s grouping, which keeps a verifier only when both halves are written.
-const heldKey = (row: HeldKeyRow) => {
-  const verified = filled(row.verifierName) && filled(row.verifierJobTitle);
-  return JSON.stringify([
-    row.domain,
-    row.phase,
-    row.heldOn,
-    foldName(row.trainerName ?? ''),
-    foldText(row.trainerJobTitle ?? ''),
-    verified ? foldName(row.verifierName ?? '') : '',
-    verified ? foldText(row.verifierJobTitle ?? '') : '',
-    row.durationMinutes,
-    foldText(row.material ?? ''),
-    row.phase === 'supplementary' ? row.supplementaryReason : null,
-  ]);
-};
-
 /**
  * The people a row's training is held with: rows of others the confirm groups with it, as one
  * training held, when domain, phase, date, trainer and their function, verifier, duration and
  * material all match.
  */
 export function heldWith(context: ReviewContext, personId: string, row: SheetRow) {
-  const key = heldKey({ ...row, ...rowValues(context.changes, row) });
+  const key = heldTrainingKey({ ...row, ...rowValues(context.changes, row) });
   const others = new Set<string>();
   for (const person of context.proposal.people) {
     if (person.id === personId || stateOf(context, person.id) === 'set_aside') continue;
@@ -1410,7 +1261,7 @@ export function heldWith(context: ReviewContext, personId: string, row: SheetRow
       ({ row: each }) =>
         !each.testOnly &&
         rowIncluded(context.changes, each, matched) &&
-        heldKey({ ...each, ...rowValues(context.changes, each) }) === key
+        heldTrainingKey({ ...each, ...rowValues(context.changes, each) }) === key
     );
     if (match) others.add(person.id);
   }
@@ -1496,7 +1347,7 @@ export function confirmSummary(context: ReviewContext) {
       if (seen.has(own)) continue;
       seen.add(own);
       rows += 1;
-      held.add(heldKey({ ...row, ...values }));
+      held.add(heldTrainingKey({ ...row, ...values }));
       if (row.flags.includes('unusual_duration') || row.flags.includes('before_hire'))
         unusual.push({ person, row });
     }
