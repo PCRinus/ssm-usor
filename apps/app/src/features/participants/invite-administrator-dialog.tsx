@@ -3,7 +3,6 @@ import { formatEmployeeName, normalizePhone } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -16,6 +15,8 @@ import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import { useInviteClientAdministrator } from '@/api/generated/api';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field, FieldMessage } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -48,7 +49,7 @@ export function InviteAdministratorDialog({
   onMessage: (message: ParticipantMessage) => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <FormDialog open={open} onClose={onClose}>
       {/* Mounted per opening, so a reopened dialog starts from the client's proposals. */}
       {open && (
         <InviteAdministratorForm
@@ -58,7 +59,7 @@ export function InviteAdministratorDialog({
           onMessage={onMessage}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -100,6 +101,7 @@ function InviteAdministratorForm({
   const isEmployee = useWatch({ control: form.control, name: 'isEmployee' });
   const channel = useWatch({ control: form.control, name: 'channel' });
   const busy = invite.isPending;
+  useHoldOpen(busy);
 
   const onSubmit = form.handleSubmit(async (values) => {
     const address = values.channel === 'sms' ? values.phone : values.email;
@@ -132,7 +134,11 @@ function InviteAdministratorForm({
   });
 
   return (
-    <DialogContent data-testid="administrator-invite-dialog" className="sm:max-w-lg">
+    <DialogContent
+      data-testid="administrator-invite-dialog"
+      className="sm:max-w-lg"
+      showCloseButton={!busy}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Invită administratorul clientului</DialogTitle>

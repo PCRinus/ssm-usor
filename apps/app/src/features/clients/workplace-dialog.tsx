@@ -13,7 +13,6 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogFooter,
@@ -36,6 +35,8 @@ import {
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -131,7 +132,7 @@ export function WorkplaceDialog({
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
-    <Dialog open={editing !== null || Boolean(draft)} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null || Boolean(draft)} onClose={onClose}>
       {draft && (
         <WorkplaceForm
           clientId={clientId}
@@ -152,7 +153,7 @@ export function WorkplaceDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -187,6 +188,7 @@ function WorkplaceForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
   const [countyCode, kind, norm, isRegisteredOffice, officeHasActivity] = useWatch({
     control: form.control,
     name: ['countyCode', 'kind', 'extinguisherNorm', 'isRegisteredOffice', 'officeHasActivity'],
@@ -247,6 +249,7 @@ function WorkplaceForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="workplace-dialog"
       className="sm:max-w-2xl"
       aria-describedby={undefined}

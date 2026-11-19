@@ -4,6 +4,7 @@ import type {
   OrganizationAuthorizationsResponse,
   UpdateOrganizationAuthorizationsRequest,
 } from '@/api/generated/api';
+import { isOptionalIsoDate } from '@/lib/dates';
 
 import { optionalText, textOrNull } from './optional-text';
 
@@ -17,7 +18,7 @@ export const authorizationsFormSchema = z
       '',
       'Numărul are cel mult 40 de caractere.'
     ),
-    authorizationCertificateDate: z.string(),
+    authorizationCertificateDate: z.string().refine(isOptionalIsoDate, 'Alege o dată validă.'),
     authorizationCertificateIssuer: optionalText(
       2,
       200,

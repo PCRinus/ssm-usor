@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -23,6 +22,8 @@ import {
   useUpdateEmployeeJobPosition,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -58,7 +59,7 @@ export function EmployeeJobPositionDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={employee !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={employee !== null} onClose={onClose}>
       {employee && (
         <Form
           key={employee.id}
@@ -68,7 +69,7 @@ export function EmployeeJobPositionDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -92,6 +93,7 @@ function Form({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = move.isPending;
+  useHoldOpen(busy);
 
   const filledTitle = useRef(employee.jobPosition.name);
   function choosePosition(value: string, name: string) {
@@ -132,7 +134,11 @@ function Form({
   });
 
   return (
-    <DialogContent data-testid="employee-job-position-dialog" className="sm:max-w-xl">
+    <DialogContent
+      data-testid="employee-job-position-dialog"
+      className="sm:max-w-xl"
+      showCloseButton={!busy}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Schimbă postul de lucru</DialogTitle>

@@ -17,6 +17,8 @@ export function isoToDate(value: string) {
   return dateToIso(date) === value ? date : undefined;
 }
 
+export const isOptionalIsoDate = (value: string) => value === '' || isoToDate(value) !== undefined;
+
 export function formatRoDate(value: string) {
   const match = iso.exec(value);
   return match ? `${match[3]}.${match[2]}.${match[1]}` : '';

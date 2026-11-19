@@ -1,20 +1,11 @@
 import { type TrainingPhase, trainingPhaseLabels } from '@ssm-usor/contracts';
-import { Button } from '@ssm-usor/ui/components/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { getGetTrainingQueryKey, useDeleteTraining, useGetTraining } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { Notice } from '@/components/notice';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { signingMessage } from '@/features/signatures/signature-format';
 import { formatDate } from '@/lib/dates';
 
@@ -40,41 +31,32 @@ export function DeleteTrainingDialog({
   training: TrainingToDelete | null;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteTraining({ request: apiRequest });
   return (
-    <Dialog
-      open={training !== null}
-      onOpenChange={(open) => !open && !remove.isPending && onClose()}
-    >
-      {training && (
-        <DeleteTrainingContent
-          key={training.id}
-          clientId={clientId}
-          userId={userId}
-          training={training}
-          remove={remove}
-          onClose={onClose}
-        />
-      )}
-    </Dialog>
+    training && (
+      <DeleteTrainingConfirm
+        key={training.id}
+        clientId={clientId}
+        userId={userId}
+        training={training}
+        onClose={onClose}
+      />
+    )
   );
 }
 
-function DeleteTrainingContent({
+function DeleteTrainingConfirm({
   clientId,
   userId,
   training,
-  remove,
   onClose,
 }: {
   clientId: string;
   userId: string;
   training: TrainingToDelete;
-  remove: ReturnType<typeof useDeleteTraining>;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const remove = useDeleteTraining({ request: apiRequest });
   const [error, setError] = useState<string | null>(null);
   const detail = useGetTraining(clientId, training.id, {
     request: apiRequest,
@@ -108,40 +90,27 @@ function DeleteTrainingContent({
   }
 
   return (
-    <DialogContent data-testid="training-delete-dialog" className="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle>Ștergi instruirea?</DialogTitle>
-        <DialogDescription>
-          Instruirea {trainingPhaseLabels[training.phase].toLowerCase()} din{' '}
-          {formatDate(training.heldOn)} dispare din fișele participanților.
-          {attendeeCount !== undefined && attendeeCount > 1 && (
-            <>
-              {' '}
-              <span className="font-medium text-foreground" data-testid="training-delete-count">
-                Are {attendeeCountLabel(attendeeCount)}; ștergerea îi privește pe toți.
-              </span>
-            </>
-          )}
-        </DialogDescription>
-      </DialogHeader>
-      {error && (
-        <Notice variant="destructive" data-testid="training-delete-error">
-          {error}
-        </Notice>
+    <ConfirmDialog
+      open
+      busy={remove.isPending}
+      testId="training-delete"
+      title="Ștergi instruirea?"
+      confirmLabel="Șterge instruirea"
+      pendingLabel="Se șterge…"
+      error={error}
+      onConfirm={confirm}
+      onClose={onClose}
+    >
+      Instruirea {trainingPhaseLabels[training.phase].toLowerCase()} din{' '}
+      {formatDate(training.heldOn)} dispare din fișele participanților.
+      {attendeeCount !== undefined && attendeeCount > 1 && (
+        <>
+          {' '}
+          <span className="font-medium text-foreground" data-testid="training-delete-count">
+            Are {attendeeCountLabel(attendeeCount)}; ștergerea îi privește pe toți.
+          </span>
+        </>
       )}
-      <DialogFooter className="mt-2">
-        <Button variant="ghost" disabled={remove.isPending} onClick={onClose}>
-          Renunță
-        </Button>
-        <Button
-          variant="destructive"
-          data-testid="training-delete-confirm"
-          disabled={remove.isPending}
-          onClick={() => void confirm()}
-        >
-          {remove.isPending ? 'Se șterge…' : 'Șterge instruirea'}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+    </ConfirmDialog>
   );
 }

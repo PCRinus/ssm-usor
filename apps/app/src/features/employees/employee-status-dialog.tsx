@@ -1,7 +1,6 @@
 import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -19,7 +18,9 @@ import {
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
@@ -82,7 +83,7 @@ export function EmployeeStatusDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={change !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={change !== null} onClose={onClose}>
       {change && (
         <StatusForm
           key={`${change.employee.id}-${change.action}`}
@@ -91,7 +92,7 @@ export function EmployeeStatusDialog({
           {...change}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -108,6 +109,7 @@ function StatusForm({
   const [error, setError] = useState<string | null>(null);
   const name = formatEmployeeName(employee);
   const busy = update.isPending;
+  useHoldOpen(busy);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -142,7 +144,11 @@ function StatusForm({
   }
 
   return (
-    <DialogContent data-testid="employee-status-dialog" className="sm:max-w-md">
+    <DialogContent
+      data-testid="employee-status-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!busy}
+    >
       <form onSubmit={(event) => void submit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>
