@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { userOnlyMe } from '@/test/records';
 
 import { bankTestCounts, sittingRules } from './test-format';
 
@@ -139,16 +138,12 @@ const bankFor = (url: URL, questions: Question[]) => {
 type Handler = (url: URL, init: RequestInit | undefined) => Response | Promise<Response>;
 
 function mockBankApi(routes: Partial<Record<string, Handler>> = {}, questions = ssmQuestions()) {
-  mockApi(
-    (init, url) => {
-      const key = `${init?.method ?? 'GET'} ${url.pathname}`;
-      const route = routes[key];
-      if (route) return route(url, init);
-      if (key === 'GET /organization/tests/questions')
-        return Response.json(bankFor(url, questions));
-    },
-    { me: userOnlyMe }
-  );
+  mockApi((init, url) => {
+    const key = `${init?.method ?? 'GET'} ${url.pathname}`;
+    const route = routes[key];
+    if (route) return route(url, init);
+    if (key === 'GET /organization/tests/questions') return Response.json(bankFor(url, questions));
+  });
 }
 
 const requests = (method: string, pathname: string) =>

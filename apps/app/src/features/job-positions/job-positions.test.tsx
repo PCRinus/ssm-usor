@@ -6,7 +6,7 @@ import { openedHere } from '@/app/opener';
 import { bodiesOf, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { clientId, clientRecord, jobPositionRecord, userOnlyMe } from '@/test/records';
+import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
 
 import { employeeCountLabel } from './job-position-schema';
 
@@ -70,26 +70,23 @@ function mockPositionsApi({
     Response.json({ jobPosition: { ...manager, ...JSON.parse(String(init?.body)) } })) as Route,
   remove = (() => new Response(null, { status: 204 })) as Route,
 } = {}) {
-  mockApi(
-    (init, { pathname }) => {
-      const method = init?.method ?? 'GET';
-      if (pathname === `/clients/${clientId}`) return Response.json({ client });
-      if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
-      if (pathname === `/clients/${clientId}/risk-evaluations`) {
-        return Response.json({ items: evaluations });
-      }
-      if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
-      if (pathname.endsWith('/equipment')) {
-        return Response.json({ items: [], needsProtectiveEquipment: null });
-      }
-      if (pathname.startsWith(`${listPath}/`))
-        return method === 'DELETE' ? remove(init) : update(init);
-      if (pathname.endsWith('/instructions')) {
-        return Response.json({ items: [] });
-      }
-    },
-    { me: userOnlyMe }
-  );
+  mockApi((init, { pathname }) => {
+    const method = init?.method ?? 'GET';
+    if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
+    if (pathname === `/clients/${clientId}/risk-evaluations`) {
+      return Response.json({ items: evaluations });
+    }
+    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
+    if (pathname.endsWith('/equipment')) {
+      return Response.json({ items: [], needsProtectiveEquipment: null });
+    }
+    if (pathname.startsWith(`${listPath}/`))
+      return method === 'DELETE' ? remove(init) : update(init);
+    if (pathname.endsWith('/instructions')) {
+      return Response.json({ items: [] });
+    }
+  });
 }
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/posturi`);

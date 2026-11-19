@@ -8,7 +8,7 @@ import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store
 import { bodiesOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { clientId, clientRecord, jobPositionRecord, pageOf, userOnlyMe } from '@/test/records';
+import { clientId, clientRecord, jobPositionRecord, pageOf } from '@/test/records';
 
 import { instructionStateLabel, moduleCountLabel } from './instruction-schema';
 
@@ -199,113 +199,109 @@ function mockInstructionsApi({
   clients = [sampleClient] as (typeof sampleClient)[],
   moduleBody = body as unknown,
 } = {}) {
-  mockApi(
-    (init, url) => {
-      const { pathname } = url;
-      const method = init?.method ?? 'GET';
-      if (pathname === `/clients/${clientId}`) return Response.json({ client: sampleClient });
-      if (pathname === `/clients/${clientId}/job-positions`) {
-        return Response.json({ items: [welder, fitter] });
-      }
-      if (pathname === '/clients') {
-        return Response.json(pageOf(clients, { pageSize: 100 }));
-      }
-      if (pathname === '/instruction-modules' && method === 'POST') return create(init, url);
-      if (pathname === '/instruction-modules/preview') {
-        return new Response(new Uint8Array([80, 75, 3, 4, 7]), {
+  mockApi((init, url) => {
+    const { pathname } = url;
+    const method = init?.method ?? 'GET';
+    if (pathname === `/clients/${clientId}`) return Response.json({ client: sampleClient });
+    if (pathname === `/clients/${clientId}/job-positions`) {
+      return Response.json({ items: [welder, fitter] });
+    }
+    if (pathname === '/clients') {
+      return Response.json(pageOf(clients, { pageSize: 100 }));
+    }
+    if (pathname === '/instruction-modules' && method === 'POST') return create(init, url);
+    if (pathname === '/instruction-modules/preview') {
+      return new Response(new Uint8Array([80, 75, 3, 4, 7]), {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      });
+    }
+    if (/^\/instruction-modules\/[^/]+\/body$/.test(pathname)) return saveBody(init, url);
+    if (pathname === '/instruction-modules/choices') {
+      const domain = url.searchParams.get('domain');
+      return Response.json({
+        items: modules
+          .filter((module) => !domain || module.domain === domain)
+          .map(({ id, title, group, domain: moduleDomain }) => ({
+            id,
+            title,
+            group,
+            domain: moduleDomain,
+          })),
+      });
+    }
+    if (pathname === '/instruction-modules') {
+      const domain = url.searchParams.get('domain');
+      const tab = (url.searchParams.get('status') === 'archived' ? archived : modules).filter(
+        (module) => !domain || module.domain === domain
+      );
+      const q = url.searchParams.get('q')?.toLowerCase();
+      const categories = url.searchParams.getAll('category');
+      const unused = url.searchParams.getAll('usage').includes('unused');
+      const items = tab.filter(
+        (module) =>
+          (!q || module.title.toLowerCase().includes(q)) &&
+          (categories.length === 0 || categories.includes(module.group)) &&
+          (!unused || module.positionCount === 0)
+      );
+      return Response.json({
+        items,
+        page: Number(url.searchParams.get('page')),
+        pageSize: Number(url.searchParams.get('pageSize')),
+        total: items.length,
+        unfilteredTotal: tab.length,
+      });
+    }
+    const moduleMatch = pathname.match(
+      /^\/instruction-modules\/([^/]+)(?:\/(download)|\/versions\/([^/]+))?$/
+    );
+    if (moduleMatch) {
+      const [, moduleId, download, versionId] = moduleMatch;
+      if (download) {
+        return new Response(new Uint8Array([80, 75, 3, 4]), {
           headers: {
             'Content-Type':
               'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('Scări metalice.docx')}`,
           },
         });
       }
-      if (/^\/instruction-modules\/[^/]+\/body$/.test(pathname)) return saveBody(init, url);
-      if (pathname === '/instruction-modules/choices') {
-        const domain = url.searchParams.get('domain');
+      if (versionId) {
         return Response.json({
-          items: modules
-            .filter((module) => !domain || module.domain === domain)
-            .map(({ id, title, group, domain: moduleDomain }) => ({
-              id,
-              title,
-              group,
-              domain: moduleDomain,
-            })),
+          version: {
+            ...version,
+            id: versionId,
+            number: 1,
+            createdAt: '2026-09-20T10:00:00.000Z',
+          },
+          body,
         });
       }
-      if (pathname === '/instruction-modules') {
-        const domain = url.searchParams.get('domain');
-        const tab = (url.searchParams.get('status') === 'archived' ? archived : modules).filter(
-          (module) => !domain || module.domain === domain
-        );
-        const q = url.searchParams.get('q')?.toLowerCase();
-        const categories = url.searchParams.getAll('category');
-        const unused = url.searchParams.getAll('usage').includes('unused');
-        const items = tab.filter(
-          (module) =>
-            (!q || module.title.toLowerCase().includes(q)) &&
-            (categories.length === 0 || categories.includes(module.group)) &&
-            (!unused || module.positionCount === 0)
-        );
-        return Response.json({
-          items,
-          page: Number(url.searchParams.get('page')),
-          pageSize: Number(url.searchParams.get('pageSize')),
-          total: items.length,
-          unfilteredTotal: tab.length,
-        });
-      }
-      const moduleMatch = pathname.match(
-        /^\/instruction-modules\/([^/]+)(?:\/(download)|\/versions\/([^/]+))?$/
+      if (method === 'PATCH') return update(init, url);
+      const module = [...(modules as (typeof ladders)[]), welding, hotWork].find(
+        (item) => item.id === moduleId
       );
-      if (moduleMatch) {
-        const [, moduleId, download, versionId] = moduleMatch;
-        if (download) {
-          return new Response(new Uint8Array([80, 75, 3, 4]), {
-            headers: {
-              'Content-Type':
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-              'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent('Scări metalice.docx')}`,
-            },
-          });
-        }
-        if (versionId) {
-          return Response.json({
-            version: {
-              ...version,
-              id: versionId,
-              number: 1,
-              createdAt: '2026-09-20T10:00:00.000Z',
-            },
-            body,
-          });
-        }
-        if (method === 'PATCH') return update(init, url);
-        const module = [...(modules as (typeof ladders)[]), welding, hotWork].find(
-          (item) => item.id === moduleId
-        );
-        return module
-          ? Response.json({ module, body: moduleBody })
-          : Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
-      }
-      const instructionsMatch = pathname.match(
-        /\/job-positions\/([^/]+)\/instructions(?:\/(copy))?$/
+      return module
+        ? Response.json({ module, body: moduleBody })
+        : Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
+    }
+    const instructionsMatch = pathname.match(
+      /\/job-positions\/([^/]+)\/instructions(?:\/(copy))?$/
+    );
+    if (instructionsMatch) {
+      const positionId = instructionsMatch[1]!;
+      if (instructionsMatch[2] === 'copy') return Response.json({ items: [applied(ladders)] });
+      if (method === 'PUT') return apply(init, url);
+      return Response.json(
+        (url.searchParams.get('domain') === 'su' ? fireInstructions : instructions)[positionId]
       );
-      if (instructionsMatch) {
-        const positionId = instructionsMatch[1]!;
-        if (instructionsMatch[2] === 'copy') return Response.json({ items: [applied(ladders)] });
-        if (method === 'PUT') return apply(init, url);
-        return Response.json(
-          (url.searchParams.get('domain') === 'su' ? fireInstructions : instructions)[positionId]
-        );
-      }
-      if (pathname.endsWith('/equipment')) {
-        return Response.json({ items: [], needsProtectiveEquipment: null });
-      }
-      if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
-    },
-    { me: userOnlyMe }
-  );
+    }
+    if (pathname.endsWith('/equipment')) {
+      return Response.json({ items: [], needsProtectiveEquipment: null });
+    }
+    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
+  });
 }
 
 const mount = (path = '/instructiuni') => mountApp(authFixture(makeSession()).client, path);

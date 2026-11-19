@@ -10,7 +10,7 @@ import type {
 import { bodiesOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
-import { clientId, clientRecord, jobPositionRecord, pageOf, userOnlyMe } from '@/test/records';
+import { clientId, clientRecord, jobPositionRecord, pageOf } from '@/test/records';
 
 import { type EvaluationProfile, profileCountLabel, profileTotalsLabel } from './profile-schema';
 
@@ -174,119 +174,116 @@ function mockProfilesApi({
       })),
     });
 
-  mockApi(
-    (init, url) => {
-      const { pathname } = url;
-      const method = init?.method ?? 'GET';
-      const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
-      if (pathname === `/clients/${clientId}`) return Response.json({ client });
-      if (pathname === positionsPath) return Response.json({ items: [accountant] });
-      if (pathname === '/risk-factor-suggestions') return Response.json({ items: [] });
-      if (pathname === `${positionsPath}/${accountant.id}/risk-evaluation`) {
-        return Response.json({ evaluation: current });
-      }
-      if (pathname === evaluationsPath) {
-        return Response.json({ items: [summaryOf(current)] });
-      }
-      if (pathname === `${evaluationsPath}/${current.id}/save-as-profile`) {
-        const saved = makeProfile({
-          name: String(body.name),
-          factors: current.factors.map((f) => ({ ...f, sourceProfile: null })),
-        });
-        const link = { id: saved.id, name: saved.name };
-        current = makeEvaluation({
-          ...current,
-          factors: current.factors.map((f) => ({ ...f, sourceProfile: f.sourceProfile ?? link })),
-        });
-        return answer(saved, 201);
-      }
-      if (pathname === `${evaluationsPath}/${current.id}/factors/apply-profile`) {
-        const profile = library.get(String(body.profileId))!;
-        if (profile.archivedAt) return conflict('evaluation_profile_archived');
-        current = makeEvaluation({
-          ...current,
-          factors: [
-            ...current.factors,
-            ...profile.factors.map((f) => ({
-              ...f,
-              id: uuid(),
-              sourceProfile: { id: profile.id, name: profile.name },
-            })),
-          ],
-        });
-        return Response.json({ evaluation: current, addedFactorCount: profile.factors.length });
-      }
-      if (pathname === '/evaluation-profiles') {
-        if (method === 'POST') {
-          return (createProfile ?? (() => answer(makeProfile({ name: String(body.name) }), 201)))(
-            init
-          );
-        }
-        const archived = url.searchParams.get('status') === 'archived';
-        const tab = [...library.values()].filter(
-          (profile) => (profile.archivedAt !== null) === archived
+  mockApi((init, url) => {
+    const { pathname } = url;
+    const method = init?.method ?? 'GET';
+    const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
+    if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === positionsPath) return Response.json({ items: [accountant] });
+    if (pathname === '/risk-factor-suggestions') return Response.json({ items: [] });
+    if (pathname === `${positionsPath}/${accountant.id}/risk-evaluation`) {
+      return Response.json({ evaluation: current });
+    }
+    if (pathname === evaluationsPath) {
+      return Response.json({ items: [summaryOf(current)] });
+    }
+    if (pathname === `${evaluationsPath}/${current.id}/save-as-profile`) {
+      const saved = makeProfile({
+        name: String(body.name),
+        factors: current.factors.map((f) => ({ ...f, sourceProfile: null })),
+      });
+      const link = { id: saved.id, name: saved.name };
+      current = makeEvaluation({
+        ...current,
+        factors: current.factors.map((f) => ({ ...f, sourceProfile: f.sourceProfile ?? link })),
+      });
+      return answer(saved, 201);
+    }
+    if (pathname === `${evaluationsPath}/${current.id}/factors/apply-profile`) {
+      const profile = library.get(String(body.profileId))!;
+      if (profile.archivedAt) return conflict('evaluation_profile_archived');
+      current = makeEvaluation({
+        ...current,
+        factors: [
+          ...current.factors,
+          ...profile.factors.map((f) => ({
+            ...f,
+            id: uuid(),
+            sourceProfile: { id: profile.id, name: profile.name },
+          })),
+        ],
+      });
+      return Response.json({ evaluation: current, addedFactorCount: profile.factors.length });
+    }
+    if (pathname === '/evaluation-profiles') {
+      if (method === 'POST') {
+        return (createProfile ?? (() => answer(makeProfile({ name: String(body.name) }), 201)))(
+          init
         );
-        const q = url.searchParams.get('q')?.toLowerCase();
-        const levels = url.searchParams.getAll('level');
-        const unused = url.searchParams.getAll('usage').includes('unused');
-        const levelOf = ({ globalRiskLevel: level, factors }: EvaluationProfile) =>
-          factors.length === 0 ? 'none' : level !== null && level > 3.5 ? 'over' : 'within';
-        const items = tab
-          .filter(
-            (profile) =>
-              (!q || profile.name.toLowerCase().includes(q)) &&
-              (levels.length === 0 || levels.includes(levelOf(profile))) &&
-              (!unused || !usages.has(profile.id))
-          )
+      }
+      const archived = url.searchParams.get('status') === 'archived';
+      const tab = [...library.values()].filter(
+        (profile) => (profile.archivedAt !== null) === archived
+      );
+      const q = url.searchParams.get('q')?.toLowerCase();
+      const levels = url.searchParams.getAll('level');
+      const unused = url.searchParams.getAll('usage').includes('unused');
+      const levelOf = ({ globalRiskLevel: level, factors }: EvaluationProfile) =>
+        factors.length === 0 ? 'none' : level !== null && level > 3.5 ? 'over' : 'within';
+      const items = tab
+        .filter(
+          (profile) =>
+            (!q || profile.name.toLowerCase().includes(q)) &&
+            (levels.length === 0 || levels.includes(levelOf(profile))) &&
+            (!unused || !usages.has(profile.id))
+        )
+        .sort(byName)
+        .map(profileSummaryOf);
+      if (url.searchParams.get('order') === 'desc') items.reverse();
+      return Response.json({ ...pageOf(items), unfilteredTotal: tab.length });
+    }
+    if (pathname === '/evaluation-profiles/choices') {
+      return Response.json({
+        items: [...library.values()]
+          .filter((profile) => profile.archivedAt === null && profile.factors.length > 0)
           .sort(byName)
-          .map(profileSummaryOf);
-        if (url.searchParams.get('order') === 'desc') items.reverse();
-        return Response.json({ ...pageOf(items), unfilteredTotal: tab.length });
-      }
-      if (pathname === '/evaluation-profiles/choices') {
-        return Response.json({
-          items: [...library.values()]
-            .filter((profile) => profile.archivedAt === null && profile.factors.length > 0)
-            .sort(byName)
-            .map(profileSummaryOf),
-        });
-      }
-      const usageMatch = pathname.match(/^\/evaluation-profiles\/([^/]+)\/usage$/);
-      if (usageMatch) return usage(usageMatch[1]!);
-      const match = pathname.match(/^\/evaluation-profiles\/([^/]+)(?:\/factors(?:\/([^/]+))?)?$/);
-      if (match) {
-        const [, profileId, factorId] = match;
-        const profile = library.get(profileId!);
-        if (!profile) return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
-        const factorsPath = pathname.endsWith('/factors') || factorId;
-        if (!factorsPath) {
-          if (method === 'DELETE') {
-            if (profile.inUse) return conflict('evaluation_profile_in_use');
-            library.delete(profile.id);
-            return new Response(null, { status: 204 });
-          }
-          if (method === 'PATCH') {
-            return answer({
-              ...profile,
-              ...(body.name === undefined ? {} : { name: String(body.name) }),
-              ...(body.archived === undefined ? {} : { archivedAt: body.archived ? stamp : null }),
-              ...Object.fromEntries(
-                (['meansOfProduction', 'workEnvironment', 'exposure'] as const)
-                  .filter((field) => body[field] !== undefined)
-                  .map((field) => [field, body[field] as string | null])
-              ),
-            });
-          }
-          return Response.json({ profile });
+          .map(profileSummaryOf),
+      });
+    }
+    const usageMatch = pathname.match(/^\/evaluation-profiles\/([^/]+)\/usage$/);
+    if (usageMatch) return usage(usageMatch[1]!);
+    const match = pathname.match(/^\/evaluation-profiles\/([^/]+)(?:\/factors(?:\/([^/]+))?)?$/);
+    if (match) {
+      const [, profileId, factorId] = match;
+      const profile = library.get(profileId!);
+      if (!profile) return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
+      const factorsPath = pathname.endsWith('/factors') || factorId;
+      if (!factorsPath) {
+        if (method === 'DELETE') {
+          if (profile.inUse) return conflict('evaluation_profile_in_use');
+          library.delete(profile.id);
+          return new Response(null, { status: 204 });
         }
-        if (factorId && method === 'DELETE') {
-          return answer({ ...profile, factors: profile.factors.filter((f) => f.id !== factorId) });
+        if (method === 'PATCH') {
+          return answer({
+            ...profile,
+            ...(body.name === undefined ? {} : { name: String(body.name) }),
+            ...(body.archived === undefined ? {} : { archivedAt: body.archived ? stamp : null }),
+            ...Object.fromEntries(
+              (['meansOfProduction', 'workEnvironment', 'exposure'] as const)
+                .filter((field) => body[field] !== undefined)
+                .map((field) => [field, body[field] as string | null])
+            ),
+          });
         }
-        return answer({ ...profile, factors: [...profile.factors, toFactor(body)] }, 201);
+        return Response.json({ profile });
       }
-    },
-    { me: userOnlyMe }
-  );
+      if (factorId && method === 'DELETE') {
+        return answer({ ...profile, factors: profile.factors.filter((f) => f.id !== factorId) });
+      }
+      return answer({ ...profile, factors: [...profile.factors, toFactor(body)] }, 201);
+    }
+  });
 }
 
 const listQuery = (index = 0) =>

@@ -2,12 +2,11 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { MeResponse } from '@/api/generated/api';
 import { bodiesOf, fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { meWithCredits } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
-import { clientId, clientRecord, userOnlyMe, workplaceListItem } from '@/test/records';
+import { clientId, clientRecord, meRecord, workplaceListItem } from '@/test/records';
 
 import { extinguisherHint } from './fire-means-schema';
 import { droppedSentence, filledSentence, offeredSentence } from './substances-schema';
@@ -162,7 +161,7 @@ function mockFireMeansApi({
   updateEquipment = ((init) =>
     Response.json({ equipment: { ...officeP6, ...JSON.parse(String(init?.body)) } })) as Route,
   deleteEquipment = (() => new Response(null, { status: 204 })) as Route,
-  me = userOnlyMe as MeResponse | typeof userOnlyMe,
+  me = meRecord(),
   substancesState = 'none',
   substances = [] as unknown[],
   saveState = ((init) => Response.json(JSON.parse(String(init?.body)))) as Route,
