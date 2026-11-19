@@ -17,9 +17,11 @@ import {
   regenerationJobResponseSchema,
   startRegenerationRequestSchema,
 } from '@ssm-usor/contracts';
+import { bodyLimit } from 'hono/body-limit';
 
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
+import { ApiError } from '../../lib/errors';
 import { requireMembership } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
 
@@ -33,6 +35,14 @@ const noSuchClient = {
   description: 'The client does not exist in the organization',
   content: errorContent,
 };
+
+// The documents bucket takes files of 20 MiB at most.
+const documentWithinLimit = bodyLimit({
+  maxSize: 20 * 1024 * 1024,
+  onError: () => {
+    throw new ApiError('validation_error', 'The file is larger than 20 MiB.');
+  },
+});
 
 export const getDocumentReadinessRoute = createRoute({
   method: 'get',
@@ -355,7 +365,7 @@ export const saveDocumentDraftFileRoute = createRoute({
   description:
     'Takes the bytes of a `.docx`, as the in-app editor saves them or as edited elsewhere, up to 15 MB. The draft is marked as edited. An issued revision has no file that can be written.',
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, documentWithinLimit] as const,
   request: {
     params: documentParams,
     body: {
@@ -384,7 +394,7 @@ export const printDocumentRoute = createRoute({
   description:
     'Takes the bytes of a `.docx`, up to 15 MB, as the editor shows it, unsaved edits included, and answers with its PDF, made by the converter that makes the PDF at issuing. Nothing is stored. The PDF made at issuing is at the download link of the revision.',
   security: bearerSecurity,
-  middleware: [requireAuth, allowWhileReadOnly, requireMembership] as const,
+  middleware: [requireAuth, allowWhileReadOnly, requireMembership, documentWithinLimit] as const,
   request: {
     params: documentParams,
     body: {
@@ -423,7 +433,7 @@ export const attachDocumentSignedCopyRoute = createRoute({
   description:
     "Takes the bytes of a PDF, up to 15 MB: a scan of the signed paper, or the file signed with the signer's own certificate. It is kept beside the issued revision with its hash. The app records that a file was attached, not that it is signed. A revision that is later superseded keeps its copy.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, documentWithinLimit] as const,
   request: {
     params: documentParams,
     body: {
@@ -501,7 +511,7 @@ export const uploadClientDocumentRoute = createRoute({
   description:
     "Takes the bytes of a `.docx`, up to 15 MB. The file replaces the draft, or starts the next draft beside the issued revision. A document that was not generated yet is refused with the reason `not_generated_yet`. For a dated type (ADR 020), `period` names the year's document; left out, the newest year's.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, documentWithinLimit] as const,
   request: {
     params: uploadParams,
     query: documentUploadQuerySchema,

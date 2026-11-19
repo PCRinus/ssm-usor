@@ -429,6 +429,35 @@ describe('POST /clients/{clientId}/files', () => {
     expect((await upload({ fileName: 'mare.pdf' }, bytes.subarray(0, -1))).status).toBe(201);
   });
 
+  it('refuses a body past 25 MiB before reading it, by its length or as it streams in', async () => {
+    mockUpstream();
+    const tooLarge = 25 * 1024 * 1024 + 1;
+    const declared = await apiRequest(
+      `/clients/${clientId}/files?fileName=mare.pdf`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': `${tooLarge}` },
+        body: pdf,
+      },
+      env
+    );
+    const streamed = await apiRequest(
+      `/clients/${clientId}/files?fileName=mare.pdf`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: new Blob([new Uint8Array(tooLarge)]).stream(),
+        duplex: 'half',
+      } as RequestInit,
+      env
+    );
+    for (const response of [declared, streamed]) {
+      expect(response.status).toBe(400);
+      expect(await reasonOf(response)).toBe('client_file_too_large');
+    }
+    expect(calls('/rest/v1/clients', 'GET')).toHaveLength(0);
+  });
+
   it('keeps a file for owners only only when an owner asks', async () => {
     mockUpstream();
     expect((await upload({ fileName: 'oferta.pdf', ownersOnly: 'true' }, pdf)).status).toBe(403);

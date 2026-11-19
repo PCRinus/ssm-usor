@@ -1,18 +1,34 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  clientFileErrorReasons,
   clientFileListResponseSchema,
   clientFileResponseSchema,
   listClientFilesQuerySchema,
+  maxClientFileBytes,
   setClientFileOwnersOnlyRequestSchema,
   updateClientFileRequestSchema,
   uploadClientFileQuerySchema,
 } from '@ssm-usor/contracts';
+import { bodyLimit } from 'hono/body-limit';
 
 import { requireAuth } from '../../lib/auth';
+import { ApiError } from '../../lib/errors';
 import { requireMembership, requireOwner } from '../../lib/membership';
 import { bearerSecurity, errorContent, membershipErrors, ownerErrors } from '../../lib/openapi';
 
 const clientParams = z.object({ clientId: z.uuid() });
+
+const fileWithinLimit = bodyLimit({
+  maxSize: maxClientFileBytes,
+  onError: () => {
+    throw new ApiError(
+      'validation_error',
+      'The file is larger than 25 MiB.',
+      undefined,
+      clientFileErrorReasons.tooLarge
+    );
+  },
+});
 const fileParams = z.object({ clientId: z.uuid(), fileId: z.uuid() });
 
 const noSuchClient = {
@@ -68,7 +84,7 @@ export const uploadClientFileRoute = createRoute({
   description:
     "Takes the bytes of the file, up to 25 MiB, as the body; one file per request. `fileName` is the file's own name, whose extension decides the type: PDF, JPEG, PNG, Word (`.docx`, `.doc`) or Excel (`.xlsx`, `.xls`); any other is refused (reason `client_file_type_not_allowed`), and so is content that is not of that type (reason `client_file_content_mismatch`). An empty file answers the reason `client_file_empty`, a larger one `client_file_too_large`. The name defaults to the file name without its extension. Only an owner uploads a file for owners only (`403`); a lead's files are always for owners only. `employeeId` makes the file one of an employee of this client (ADR 021), and an employee the client does not have answers `400` on `employeeId`; it cannot be changed after the upload.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, fileWithinLimit] as const,
   request: {
     params: clientParams,
     query: uploadClientFileQuerySchema,
