@@ -1,18 +1,13 @@
+import '@/test/api-mock';
+
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useGetPortalMe } from '@/api/generated/api';
-import { disposeRuntimes, fakeAuthClient, mountPortal, queryPending } from '@/test/portal';
-
-vi.mock('@/api/generated/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/api/generated/api')>()),
-  useGetPortalMe: vi.fn(),
-}));
+import { disposeRuntimes, fakeAuthClient, mountPortal } from '@/test/portal';
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  vi.mocked(useGetPortalMe).mockReturnValue(queryPending());
 });
 
 afterEach(() => {

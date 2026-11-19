@@ -1,3 +1,5 @@
+import '@/test/api-mock';
+
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,14 +11,10 @@ import {
   useGetPortalEmployeeTrainingSheets,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
-  useGetPortalTests,
   useGetPortalTrainingSheets,
   useListPortalClientEmployees,
-  useListPortalClientSignatureRequests,
   useListPortalEmployeeTrainingRecords,
   useListPortalResponsiblePersons,
-  useListPortalSignatureRequests,
-  useListPortalSigningAgreements,
   useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import {
@@ -24,39 +22,16 @@ import {
   employeeData,
   fakeAuthClient,
   fakeSession,
+  mockQuery,
   mountPortal,
   participation,
-  queryPending,
-  queryResult,
+  readySheets,
   recordSlot,
+  stubEmployeePortal,
   testStatus,
   trainingRecords,
   trainingStatus,
 } from '@/test/portal';
-
-vi.mock('@/api/generated/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/api/generated/api')>()),
-  useGetPortalSigningAgreementState: vi.fn(),
-  useListPortalClientSignatureRequests: vi.fn(),
-  useListPortalSignatureRequests: vi.fn(),
-  useListPortalSigningAgreements: vi.fn(),
-  useGetPortalMe: vi.fn(),
-  useListPortalTrainingRecords: vi.fn(),
-  useGetPortalTests: vi.fn(),
-  useGetPortalEmployeeData: vi.fn(),
-  useGetPortalTrainingSheets: vi.fn(),
-  getPortalTrainingSheet: vi.fn(),
-  useListPortalClientEmployees: vi.fn(),
-  useListPortalEmployeeTrainingRecords: vi.fn(),
-  useGetPortalEmployeeTrainingSheets: vi.fn(),
-  getPortalEmployeeTrainingSheetLink: vi.fn(),
-  useListPortalResponsiblePersons: vi.fn(),
-}));
-
-const sheetsReady = {
-  ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-  su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-};
 
 const agreementSignedOnPaper = {
   state: 'signed_on_paper' as const,
@@ -69,21 +44,11 @@ const agreementSignedOnPaper = {
 };
 
 beforeEach(() => {
-  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-    queryResult({ agreement: agreementSignedOnPaper, unavailable: null })
-  );
-  vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
-  vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
-  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
-  vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
-  vi.mocked(useGetPortalTrainingSheets).mockReturnValue(queryResult(sheetsReady));
-  vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
-  vi.mocked(useListPortalEmployeeTrainingRecords).mockReturnValue(queryPending());
-  vi.mocked(useGetPortalEmployeeTrainingSheets).mockReturnValue(queryPending());
-  vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
+  stubEmployeePortal();
+  mockQuery(useGetPortalSigningAgreementState, {
+    agreement: agreementSignedOnPaper,
+    unavailable: null,
+  });
 });
 
 afterEach(disposeRuntimes);
@@ -112,16 +77,15 @@ describe('Acasă', () => {
 
   it('counts the trainings of a domain transcribed from the paper sheet', async () => {
     const [ssm, su] = trainingRecords().items;
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(
-        trainingRecords({
-          items: [
-            { ...ssm!, source: 'paper', slots: [] },
-            { ...ssm!, id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a3', source: 'paper', slots: [] },
-            su!,
-          ],
-        })
-      )
+    mockQuery(
+      useListPortalTrainingRecords,
+      trainingRecords({
+        items: [
+          { ...ssm!, source: 'paper', slots: [] },
+          { ...ssm!, id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a3', source: 'paper', slots: [] },
+          su!,
+        ],
+      })
     );
     mountPortal(signedIn(), '/');
 
@@ -132,16 +96,15 @@ describe('Acasă', () => {
   });
 
   it('says a domain without a training has none recorded yet, and nothing else', async () => {
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(
-        trainingRecords({
-          items: [trainingRecords().items[0]!],
-          training: {
-            ssm: trainingStatus(),
-            su: trainingStatus({ state: 'untrained', dueOn: null }),
-          },
-        })
-      )
+    mockQuery(
+      useListPortalTrainingRecords,
+      trainingRecords({
+        items: [trainingRecords().items[0]!],
+        training: {
+          ssm: trainingStatus(),
+          su: trainingStatus({ state: 'untrained', dueOn: null }),
+        },
+      })
     );
     mountPortal(signedIn(), '/');
 
@@ -159,7 +122,7 @@ describe('Acasă', () => {
   it('sums up the employee data beside the training, with the provider to ask', async () => {
     const data = employeeData();
     data.employee.commuteRoute = null;
-    vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(data));
+    mockQuery(useGetPortalEmployeeData, data);
     mountPortal(signedIn(), '/');
 
     const link = await screen.findByTestId('home-my-data');
@@ -172,11 +135,9 @@ describe('Acasă', () => {
   });
 
   it('shows a client administrator the employees with how many are due and overdue', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({
-        participations: [participation({ kind: 'client_administrator', employeeId: null })],
-      })
-    );
+    mockQuery(useGetPortalMe, {
+      participations: [participation({ kind: 'client_administrator', employeeId: null })],
+    });
     const employee = (id: string, ssm: string, su: string) => ({
       id,
       lastName: 'Pop',
@@ -187,16 +148,15 @@ describe('Acasă', () => {
         ssm: trainingStatus({ state: ssm as 'current' }),
         su: trainingStatus({ state: su as 'current' }),
       },
+      tests: { ssm: testStatus(), su: testStatus() },
     });
-    vi.mocked(useListPortalClientEmployees).mockReturnValue(
-      queryResult({
-        items: [
-          employee('a', 'current', 'current'),
-          employee('b', 'due', 'current'),
-          employee('c', 'due', 'overdue'),
-        ],
-      })
-    );
+    mockQuery(useListPortalClientEmployees, {
+      items: [
+        employee('a', 'current', 'current'),
+        employee('b', 'due', 'current'),
+        employee('c', 'due', 'overdue'),
+      ],
+    });
     mountPortal(signedIn(), '/');
 
     expect((await screen.findByTestId('home-employees')).getAttribute('href')).toBe('/angajati');
@@ -207,25 +167,21 @@ describe('Acasă', () => {
   });
 
   it("shows a client administrator the client's responsible persons with their roles", async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({
-        participations: [participation({ kind: 'client_administrator', employeeId: null })],
-      })
-    );
-    vi.mocked(useListPortalResponsiblePersons).mockReturnValue(
-      queryResult({
-        items: [
-          {
-            id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000b1',
-            fullName: 'Radu Stan',
-            jobTitle: 'Șef de atelier',
-            roles: ['workplace_manager', 'fire_intervention_leader'],
-            employeeId: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e3',
-            workplace: 'Atelierul din Lugoj',
-          },
-        ],
-      })
-    );
+    mockQuery(useGetPortalMe, {
+      participations: [participation({ kind: 'client_administrator', employeeId: null })],
+    });
+    mockQuery(useListPortalResponsiblePersons, {
+      items: [
+        {
+          id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000b1',
+          fullName: 'Radu Stan',
+          jobTitle: 'Șef de atelier',
+          roles: ['workplace_manager', 'fire_intervention_leader'],
+          employeeId: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e3',
+          workplace: 'Atelierul din Lugoj',
+        },
+      ],
+    });
     mountPortal(signedIn(), '/');
 
     const person = await screen.findByTestId('responsible-person');
@@ -237,12 +193,10 @@ describe('Acasă', () => {
   });
 
   it('says when the client has designated nobody yet', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({
-        participations: [participation({ kind: 'client_administrator', employeeId: null })],
-      })
-    );
-    vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryResult({ items: [] }));
+    mockQuery(useGetPortalMe, {
+      participations: [participation({ kind: 'client_administrator', employeeId: null })],
+    });
+    mockQuery(useListPortalResponsiblePersons, { items: [] });
     mountPortal(signedIn(), '/');
 
     expect((await screen.findByTestId('responsible-persons-empty')).textContent).toBe(
@@ -260,22 +214,21 @@ describe('Acasă', () => {
 
 describe('Instruiri', () => {
   it('lists the records newest first by year, with phase, material, trainer and duration', async () => {
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(
-        trainingRecords({
-          items: [
-            ...trainingRecords().items,
-            {
-              ...trainingRecords().items[0]!,
-              id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a3',
-              phase: 'workplace',
-              heldOn: '2025-07-01',
-              durationMinutes: 61,
-              admission: { admittedOn: '2025-07-01', name: 'Radu Stan', jobTitle: 'Șef' },
-            },
-          ],
-        })
-      )
+    mockQuery(
+      useListPortalTrainingRecords,
+      trainingRecords({
+        items: [
+          ...trainingRecords().items,
+          {
+            ...trainingRecords().items[0]!,
+            id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000a3',
+            phase: 'workplace',
+            heldOn: '2025-07-01',
+            durationMinutes: 61,
+            admission: { admittedOn: '2025-07-01', name: 'Radu Stan', jobTitle: 'Șef' },
+          },
+        ],
+      })
     );
     mountPortal(signedIn(), '/instruiri');
 
@@ -300,39 +253,38 @@ describe('Instruiri', () => {
 
   it('says which slots are signed, electronically by the day in Romania or on paper', async () => {
     const [first, second] = trainingRecords().items;
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(
-        trainingRecords({
-          items: [
-            {
-              ...first!,
-              verifier: { name: 'Maria Ionescu', jobTitle: 'Inspector SSM' },
-              admission: { admittedOn: '2026-09-12', name: 'Radu Stan', jobTitle: 'Șef' },
-              slots: [
-                recordSlot('trainee', {
-                  state: 'signed',
-                  signedAt: '2026-10-17T22:30:00.000Z',
-                  signerName: 'Pop Ana',
-                }),
-                recordSlot('trainer', {
-                  state: 'signed',
-                  signedAt: '2026-10-18T07:00:00.000Z',
-                  signerName: 'Radu Stan',
-                  signerJobTitle: 'Șef de atelier',
-                }),
-                recordSlot('verifier', {
-                  state: 'paper',
-                  signedAt: '2026-10-16T09:00:00.000Z',
-                  signerName: 'Maria Ionescu',
-                  signerJobTitle: 'Inspector SSM',
-                }),
-                recordSlot('admitter', { state: 'void' }),
-              ],
-            },
-            second!,
-          ],
-        })
-      )
+    mockQuery(
+      useListPortalTrainingRecords,
+      trainingRecords({
+        items: [
+          {
+            ...first!,
+            verifier: { name: 'Maria Ionescu', jobTitle: 'Inspector SSM' },
+            admission: { admittedOn: '2026-09-12', name: 'Radu Stan', jobTitle: 'Șef' },
+            slots: [
+              recordSlot('trainee', {
+                state: 'signed',
+                signedAt: '2026-10-17T22:30:00.000Z',
+                signerName: 'Pop Ana',
+              }),
+              recordSlot('trainer', {
+                state: 'signed',
+                signedAt: '2026-10-18T07:00:00.000Z',
+                signerName: 'Radu Stan',
+                signerJobTitle: 'Șef de atelier',
+              }),
+              recordSlot('verifier', {
+                state: 'paper',
+                signedAt: '2026-10-16T09:00:00.000Z',
+                signerName: 'Maria Ionescu',
+                signerJobTitle: 'Inspector SSM',
+              }),
+              recordSlot('admitter', { state: 'void' }),
+            ],
+          },
+          second!,
+        ],
+      })
     );
     mountPortal(signedIn(), '/instruiri');
 
@@ -350,21 +302,20 @@ describe('Instruiri', () => {
 
   it('says in words what a training from the paper sheet does not write', async () => {
     const [first] = trainingRecords().items;
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(
-        trainingRecords({
-          items: [
-            {
-              ...first!,
-              source: 'paper',
-              slots: [],
-              durationMinutes: null,
-              material: null,
-              trainer: { name: null, jobTitle: null },
-            },
-          ],
-        })
-      )
+    mockQuery(
+      useListPortalTrainingRecords,
+      trainingRecords({
+        items: [
+          {
+            ...first!,
+            source: 'paper',
+            slots: [],
+            durationMinutes: null,
+            material: null,
+            trainer: { name: null, jobTitle: null },
+          },
+        ],
+      })
     );
     mountPortal(signedIn(), '/instruiri');
 
@@ -379,8 +330,9 @@ describe('Instruiri', () => {
 
   it('says a training from the paper sheet was transcribed and signed there', async () => {
     const [first, second] = trainingRecords().items;
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(trainingRecords({ items: [{ ...first!, source: 'paper', slots: [] }, second!] }))
+    mockQuery(
+      useListPortalTrainingRecords,
+      trainingRecords({ items: [{ ...first!, source: 'paper', slots: [] }, second!] })
     );
     mountPortal(signedIn(), '/instruiri');
 
@@ -400,8 +352,9 @@ describe('Instruiri', () => {
   });
 
   it('says a sheet without a training of its domain comes with the first one', async () => {
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(trainingRecords({ items: [trainingRecords().items[0]!] }))
+    mockQuery(
+      useListPortalTrainingRecords,
+      trainingRecords({ items: [trainingRecords().items[0]!] })
     );
     mountPortal(signedIn(), '/instruiri');
 
@@ -413,9 +366,7 @@ describe('Instruiri', () => {
   });
 
   it('says when no training is recorded yet', async () => {
-    vi.mocked(useListPortalTrainingRecords).mockReturnValue(
-      queryResult(trainingRecords({ items: [] }))
-    );
+    mockQuery(useListPortalTrainingRecords, trainingRecords({ items: [] }));
     mountPortal(signedIn(), '/instruiri');
     expect((await screen.findByTestId('training-records-empty')).textContent).toBe(
       'Nicio instruire înregistrată încă.'
@@ -423,24 +374,22 @@ describe('Instruiri', () => {
   });
 
   it('says what a sheet that is not ready lacks, for the specialist to fill', async () => {
-    vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
-      queryResult({
-        ssm: {
-          ready: false,
-          missing: ['employee.commute_route', 'employee.workplace'],
-          stored: false,
-          sequences: [],
-          versions: {},
-        },
-        su: {
-          ready: false,
-          missing: ['employee.workplace'],
-          stored: false,
-          sequences: [],
-          versions: {},
-        },
-      })
-    );
+    mockQuery(useGetPortalTrainingSheets, {
+      ssm: {
+        ready: false,
+        missing: ['employee.commute_route', 'employee.workplace'],
+        stored: false,
+        sequences: [],
+        versions: {},
+      },
+      su: {
+        ready: false,
+        missing: ['employee.workplace'],
+        stored: false,
+        sequences: [],
+        versions: {},
+      },
+    });
     mountPortal(signedIn(), '/instruiri');
 
     expect((await screen.findByTestId('training-sheet-ssm-missing')).textContent).toBe(
@@ -521,7 +470,7 @@ describe('Datele mele', () => {
   it('shows where the worker lives when the specialist wrote an address apart from the domicile', async () => {
     const data = employeeData();
     data.employee.residenceAddress = 'Str. Florilor 9, Timișoara';
-    vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(data));
+    mockQuery(useGetPortalEmployeeData, data);
     mountPortal(signedIn(), '/datele-mele');
 
     const facts = await screen.findByTestId('my-data');
@@ -534,7 +483,7 @@ describe('Datele mele', () => {
     const data = employeeData();
     data.employee.commuteMeans = ['public_transport', 'on_foot'];
     data.employee.commuteMeansOther = 'Bacul de pe Mureș';
-    vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(data));
+    mockQuery(useGetPortalEmployeeData, data);
     mountPortal(signedIn(), '/datele-mele');
 
     const facts = await screen.findByTestId('my-data');
@@ -548,7 +497,7 @@ describe('Datele mele', () => {
     data.employee.commuteRoute = null;
     data.employee.commuteMeans = [];
     data.employee.commuteMinutes = 25;
-    vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(data));
+    mockQuery(useGetPortalEmployeeData, data);
     mountPortal(signedIn(), '/datele-mele');
 
     const facts = await screen.findByTestId('my-data');
@@ -571,14 +520,12 @@ describe('Contul meu', () => {
   });
 
   it('offers to switch the client when there are several', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({
-        participations: [
-          participation(),
-          participation({ participantId: '6f0c3e43-0c1b-4f4b-8a1e-000000000002' }),
-        ],
-      })
-    );
+    mockQuery(useGetPortalMe, {
+      participations: [
+        participation(),
+        participation({ participantId: '6f0c3e43-0c1b-4f4b-8a1e-000000000002' }),
+      ],
+    });
     localStorage.setItem('ssm-usor.portal.participant.user-1', participation().participantId);
     mountPortal(signedIn(), '/contul-meu');
 
@@ -596,32 +543,28 @@ describe('Contul meu', () => {
 
 describe('Lucrători', () => {
   beforeEach(() => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({
-        participations: [participation({ kind: 'client_administrator', employeeId: null })],
-      })
-    );
-    vi.mocked(useListPortalClientEmployees).mockReturnValue(
-      queryResult({
-        items: [
-          {
-            id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e2',
-            lastName: 'Ionescu',
-            firstName: 'Dan',
-            position: 'Șofer',
-            workplace: 'Depozit',
-            training: {
-              ssm: trainingStatus({ state: 'due', dueOn: '2026-11-01' }),
-              su: trainingStatus({ state: 'untrained', dueOn: null }),
-            },
-            tests: {
-              ssm: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
-              su: testStatus(),
-            },
+    mockQuery(useGetPortalMe, {
+      participations: [participation({ kind: 'client_administrator', employeeId: null })],
+    });
+    mockQuery(useListPortalClientEmployees, {
+      items: [
+        {
+          id: '6f0c3e43-0c1b-4f4b-8a1e-0000000000e2',
+          lastName: 'Ionescu',
+          firstName: 'Dan',
+          position: 'Șofer',
+          workplace: 'Depozit',
+          training: {
+            ssm: trainingStatus({ state: 'due', dueOn: '2026-11-01' }),
+            su: trainingStatus({ state: 'untrained', dueOn: null }),
           },
-        ],
-      })
-    );
+          tests: {
+            ssm: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
+            su: testStatus(),
+          },
+        },
+      ],
+    });
   });
 
   it('lists the client employees with their two training states and their two test states', async () => {
@@ -639,19 +582,17 @@ describe('Lucrători', () => {
   });
 
   it('finds an employee by name, without diacritics', async () => {
-    vi.mocked(useListPortalClientEmployees).mockReturnValue(
-      queryResult({
-        items: ['Ionescu Dan', 'Țăran Ștefan', 'Popa Ana'].map((name, index) => ({
-          id: `6f0c3e43-0c1b-4f4b-8a1e-0000000000f${index}`,
-          lastName: name.split(' ')[0]!,
-          firstName: name.split(' ')[1]!,
-          position: 'Șofer',
-          workplace: null,
-          training: { ssm: trainingStatus(), su: trainingStatus() },
-          tests: { ssm: testStatus(), su: testStatus() },
-        })),
-      })
-    );
+    mockQuery(useListPortalClientEmployees, {
+      items: ['Ionescu Dan', 'Țăran Ștefan', 'Popa Ana'].map((name, index) => ({
+        id: `6f0c3e43-0c1b-4f4b-8a1e-0000000000f${index}`,
+        lastName: name.split(' ')[0]!,
+        firstName: name.split(' ')[1]!,
+        position: 'Șofer',
+        workplace: null,
+        training: { ssm: trainingStatus(), su: trainingStatus() },
+        tests: { ssm: testStatus(), su: testStatus() },
+      })),
+    });
     mountPortal(signedIn(), '/angajati');
 
     await userEvent.type(await screen.findByTestId('employees-search'), 'stefan tar');
@@ -667,8 +608,8 @@ describe('Lucrători', () => {
   });
 
   it("opens an employee's records and sheets", async () => {
-    vi.mocked(useListPortalEmployeeTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
-    vi.mocked(useGetPortalEmployeeTrainingSheets).mockReturnValue(queryResult(sheetsReady));
+    mockQuery(useListPortalEmployeeTrainingRecords, trainingRecords());
+    mockQuery(useGetPortalEmployeeTrainingSheets, readySheets());
     mountPortal(signedIn(), '/angajati/6f0c3e43-0c1b-4f4b-8a1e-0000000000e2');
 
     expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe('Ionescu Dan');
@@ -683,10 +624,8 @@ describe('Lucrători', () => {
 
   it("gives each employee's stored sheet its own link", async () => {
     const stored = { ready: true, missing: [], stored: true, sequences: [1], versions: {} };
-    vi.mocked(useListPortalEmployeeTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
-    vi.mocked(useGetPortalEmployeeTrainingSheets).mockReturnValue(
-      queryResult({ ssm: stored, su: stored })
-    );
+    mockQuery(useListPortalEmployeeTrainingRecords, trainingRecords());
+    mockQuery(useGetPortalEmployeeTrainingSheets, { ssm: stored, su: stored });
     vi.mocked(getPortalEmployeeTrainingSheetLink).mockImplementation(
       async (_participant, employeeId, domain, params) =>
         Promise.resolve({
@@ -716,7 +655,7 @@ describe('Lucrători', () => {
   });
 
   it('keeps an employee out of the administrator pages', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
+    mockQuery(useGetPortalMe, { participations: [participation()] });
     const runtime = mountPortal(signedIn(), '/angajati');
     expect(await screen.findByTestId('portal-home')).toBeTruthy();
     expect(runtime.router.state.location.pathname).toBe('/');
