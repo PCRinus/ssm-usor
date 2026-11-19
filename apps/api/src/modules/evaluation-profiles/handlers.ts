@@ -29,7 +29,7 @@ import {
   riskFactorFieldColumns,
   type RiskFactorFields,
   toRiskFactor,
-} from '../risk-evaluations/handlers';
+} from '../risk-evaluations/evaluation';
 import type {
   applyEvaluationProfileRoute,
   createEvaluationProfileFactorRoute,

@@ -25,7 +25,7 @@ import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../l
 import { renderInstructionAnnex } from '../documents/annexes';
 import { printedDate, romanianDay } from '../documents/context';
 import { fileNameOf } from '../documents/documents';
-import { findJobPosition } from '../job-positions/handlers';
+import { findJobPosition } from '../job-positions/positions';
 import type {
   applyPositionInstructionsRoute,
   copyPositionInstructionsRoute,

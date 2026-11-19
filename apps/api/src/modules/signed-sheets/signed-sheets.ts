@@ -23,6 +23,7 @@ import { adminFileStore } from '../../lib/files';
 import { createPdfConverter, type PdfConverter } from '../../lib/pdf';
 import { createSigner } from '../../lib/signer';
 import { builtInTemplates, merge } from '../documents/documents';
+import { loadSheetFacts } from '../trainings/employee-sheets';
 import {
   chronological,
   chronologicalResults,
@@ -33,7 +34,6 @@ import {
   type TrainingSheetData,
   transcriptionLine,
 } from '../trainings/sheet';
-import { loadSheetFacts } from '../trainings/sheet-handlers';
 import {
   drawnSheetForm,
   type HiringMaterials,

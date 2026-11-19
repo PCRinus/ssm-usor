@@ -24,7 +24,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { sentColumns } from '../../lib/partial-update';
 import { requireClient } from '../clients/lookup';
-import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../document-data/handlers';
+import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../document-data/workplaces';
 import type {
   createFireEquipmentRoute,
   createFireInstallationRoute,

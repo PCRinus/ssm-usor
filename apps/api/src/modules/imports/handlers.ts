@@ -45,7 +45,7 @@ import { creditsStore } from '../credits/store';
 import { importCharges, importCreditsOf } from '../credits/usage';
 import { romanianDay } from '../documents/context';
 import { blocksReporterOf } from '../extras/reporting';
-import { uninvitedOfImports } from '../participants/handlers';
+import { uninvitedOfImports } from '../participants/standings';
 import {
   signedSheetContext,
   syncResultRows,

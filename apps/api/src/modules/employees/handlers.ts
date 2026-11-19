@@ -33,7 +33,7 @@ import { ApiError } from '../../lib/errors';
 import { listPage, orderedBy } from '../../lib/list-page';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { requireClient, requireWritableClient } from '../clients/lookup';
-import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
+import { refuseWorkplaceOfAnotherClient } from '../document-data/workplaces';
 import {
   testStatusColumns,
   testStatusFields,
@@ -51,6 +51,7 @@ import type {
   updateEmployeeRoute,
   updateEmployeeStatusRoute,
 } from './routes';
+import { toTrainMatch } from './training-match';
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
 
@@ -361,9 +362,6 @@ const listFilterKeys = [
   'client',
   'portal',
 ] as const satisfies readonly (keyof ListFilters)[];
-
-export const toTrainMatch =
-  'ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue)';
 
 const attentionMatches: Record<EmployeeAttentionFilter, string> = {
   signaturesPending: 'signatures_pending_count.gt.0',
