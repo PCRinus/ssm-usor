@@ -15,11 +15,6 @@ import { type FormEvent, useState } from 'react';
 import {
   type ApiErrorResponse,
   type EmployeeListResponse,
-  getGetClientQueryKey,
-  getGetEmployeeQueryKey,
-  getListEmployeesQueryKey,
-  getListJobPositionsQueryKey,
-  getListWorkplacesQueryKey,
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
@@ -32,10 +27,11 @@ import { Notice } from '@/components/notice';
 import {
   employeesOverStepMessage,
   isEmployeesOverStepError,
-  refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
 import { commonFailure } from '@/lib/api-errors';
 import { formatDate, todayIso } from '@/lib/dates';
+
+import { refreshWorkforce } from './employee-cache';
 
 type Employee = Omit<EmployeeListResponse['items'][number], 'signaturesPending' | 'portal'>;
 
@@ -130,18 +126,7 @@ function StatusForm({
         data:
           action === 'terminate' ? { status: 'terminated', terminatedAt } : { status: 'active' },
       });
-      // Every filtered variant of the client's list shares this key prefix; the detail
-      // page reads its own query.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
-        refreshEmployeesOverStep(queryClient),
-        queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
-        // A leaver no longer counts in their job position or workplace, nor among the client's
-        // current workers; someone reactivated does again.
-        queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
-        queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) }),
-        queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
-      ]);
+      await refreshWorkforce(queryClient, clientId, { employeeId: employee.id });
       toast.success(
         action === 'terminate'
           ? maskPeople`${name} a fost trecut la foști lucrători.`

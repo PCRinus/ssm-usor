@@ -6,10 +6,7 @@ import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
-  getGetClientQueryKey,
-  getGetEmployeeQueryKey,
   getGetTrainingSheetsQueryKey,
-  getListEmployeesQueryKey,
   getListJobPositionsQueryKey,
   getListWorkplacesQueryKey,
   useCreateEmployee,
@@ -29,6 +26,7 @@ import {
 } from '@/features/subscription/employees-over-step';
 import { commonFailure, type IssueTarget, setApiIssues } from '@/lib/api-errors';
 
+import { refreshWorkforce } from './employee-cache';
 import {
   birthDateFromCnp,
   type Employee,
@@ -122,24 +120,12 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         const data = toUpdateEmployeeRequest(values, employee);
         await update.mutateAsync({ clientId, employeeId: employee.id, data });
         await queryClient.invalidateQueries({
-          queryKey: getGetEmployeeQueryKey(clientId, employee.id),
-        });
-        await queryClient.invalidateQueries({
           queryKey: getGetTrainingSheetsQueryKey(clientId, employee.id),
         });
       } else {
         await create.mutateAsync({ clientId, data: toCreateEmployeeRequest(values) });
       }
-      // Every filtered variant of this client's list starts with the same key prefix.
-      await queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) });
-      await refreshEmployeesOverStep(queryClient);
-      // The position just gained a person, whether it was new or not, and so did a workplace
-      // and the client's count of current workers.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
-        queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) }),
-        queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
-      ]);
+      await refreshWorkforce(queryClient, clientId, { employeeId: employee?.id });
       if (employee) {
         savedToast('Datele lucrătorului au fost salvate.', { returning: true });
         if (returnToRecord()) return;
