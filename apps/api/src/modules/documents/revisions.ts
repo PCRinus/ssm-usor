@@ -8,11 +8,12 @@ import {
 import { documentText } from '@ssm-usor/document-engine';
 
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
-import { maxDocxBytes, requireDocx, sha256 } from '../../lib/docx';
+import { maxDocxBytes, requireDocx } from '../../lib/docx';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { sha256 } from '../../lib/hash';
 import { requireOffersFor } from '../../lib/offers';
-import type { PdfConverter } from '../../lib/pdf';
+import { isPdf, type PdfConverter } from '../../lib/pdf';
 import { clientNotFound, requireWritableClient } from '../clients/lookup';
 import { renderSnapshotAnnexes } from './annexes';
 import { presentChanged } from './present';
@@ -283,7 +284,13 @@ export async function deleteDraft(db: DataClient, files: FileStore, documentId: 
   if (error) throw fromDatabaseError(error, 'delete document revision');
 }
 
-const pdfSignature = new TextEncoder().encode('%PDF-');
+export function requireSignedCopy(bytes: Uint8Array) {
+  if (bytes.length === 0 || bytes.length > maxDocxBytes) {
+    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
+  }
+  if (!isPdf(bytes)) throw new ApiError('validation_error', 'The signed copy is a PDF.');
+}
+
 const signedCopyPathOf = (docxPath: string) => docxPath.replace(/\.docx$/, '.signed.pdf');
 
 /**
@@ -350,12 +357,7 @@ export async function attachSignedCopy(
   documentId: string,
   bytes: Uint8Array
 ) {
-  if (bytes.length === 0 || bytes.length > maxDocxBytes) {
-    throw new ApiError('validation_error', 'The file is empty or larger than 15 MB.');
-  }
-  if (!pdfSignature.every((byte, index) => bytes[index] === byte)) {
-    throw new ApiError('validation_error', 'The signed copy is a PDF.');
-  }
+  requireSignedCopy(bytes);
   const document = await readDocument(db, documentId);
   const issued = issuedOf(document);
   if (!issued) {

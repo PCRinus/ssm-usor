@@ -23,7 +23,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../lib/list-page';
 import { sentColumns } from '../../lib/partial-update';
-import { printedDate, romanianDay } from '../../lib/romanian';
+import { printedDay } from '../../lib/romanian';
 import { fileNameOf } from '../../lib/text';
 import { renderInstructionAnnex } from '../documents/annexes';
 import { findJobPosition } from '../job-positions/positions';
@@ -427,7 +427,7 @@ async function libraryAnnexData(
   return {
     // Every plan carries the line for now (docs/document-branding.md).
     branding: true,
-    issueDate: printedDate(romanianDay(new Date().toISOString())),
+    issueDate: printedDay(new Date()),
     provider: {
       legalName: filled(data.legal_name),
       representativeName: filled(data.legal_representative_name),
@@ -454,7 +454,7 @@ export const downloadInstructionModule: RouteHandler<
   const { version, body } = await readVersion(db, moduleId, versionId ?? module.version.id);
   const data = await libraryAnnexData(db, c.get('membership').organizationId, {
     title: module.title,
-    versionDate: printedDate(romanianDay(version.createdAt)),
+    versionDate: printedDay(version.createdAt),
   });
   const bytes = renderInstructionAnnex(module.domain, body, data);
   const fileName = `${fileNameOf(
@@ -471,7 +471,7 @@ export const previewInstruction: RouteHandler<typeof previewInstructionRoute, Ap
 ) => {
   const { title, domain, body } = c.req.valid('json');
   const db = createDataClient(c);
-  const today = printedDate(romanianDay(new Date().toISOString()));
+  const today = printedDay(new Date());
   const data = await libraryAnnexData(db, c.get('membership').organizationId, {
     title,
     versionDate: today,

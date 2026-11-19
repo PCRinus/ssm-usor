@@ -27,6 +27,7 @@ import {
 } from '../../lib/db';
 import { type ApiEnv, portalOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import { clientNotFound } from '../clients/lookup';
 import { smsRefusalError, smsSenderOf } from '../sms-usage/sender';
 import { ensureParticipantAccount } from './account';
@@ -86,8 +87,6 @@ interface ParticipantRow {
   participant_invitations: { channel: string; address: string; accepted_at: string | null }[];
 }
 
-const toIso = (value: string) => new Date(value).toISOString();
-
 const nameOf = (employee: EmployeeName, fullName: string | null) =>
   employee ? `${employee.last_name} ${employee.first_name}` : (fullName ?? '');
 
@@ -125,7 +124,7 @@ function toParticipant(row: ParticipantRow): ClientParticipant {
     channel: (invitation?.channel as ParticipantChannel | undefined) ?? null,
     address: invitation?.address ?? null,
     createdAt: toIso(row.created_at),
-    revokedAt: row.revoked_at ? toIso(row.revoked_at) : null,
+    revokedAt: toIsoOrNull(row.revoked_at),
     noticeVersion: row.notice_version,
     language: row.language as PortalLanguage | null,
   };

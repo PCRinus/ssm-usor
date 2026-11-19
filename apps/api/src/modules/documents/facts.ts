@@ -558,21 +558,18 @@ export async function loadDocumentFacts(
   set: DocumentSet,
   periods: readonly number[] = []
 ): Promise<StoredDocumentFacts> {
-  const own =
-    set === 'fire_safety'
-      ? fireSafetyReads(db, clientId, preparer, periods).then((reads) => ({
-          set: 'fire_safety' as const,
-          reads,
-        }))
-      : occupationalSafetyReads(db, clientId, preparer).then((reads) => ({
-          set: 'occupational_safety' as const,
-          reads,
-        }));
-  const [shared, ownReads] = await Promise.all([sharedReads(db, clientId, preparer), own]);
-  const common = sharedFactsOf(shared);
-  return ownReads.set === 'fire_safety'
-    ? fireSafetyFactsOf(db, clientId, common, ownReads.reads)
-    : occupationalSafetyFactsOf(common, ownReads.reads);
+  if (set === 'fire_safety') {
+    const [reads, shared] = await Promise.all([
+      fireSafetyReads(db, clientId, preparer, periods),
+      sharedReads(db, clientId, preparer),
+    ]);
+    return fireSafetyFactsOf(db, clientId, sharedFactsOf(shared), reads);
+  }
+  const [reads, shared] = await Promise.all([
+    occupationalSafetyReads(db, clientId, preparer),
+    sharedReads(db, clientId, preparer),
+  ]);
+  return occupationalSafetyFactsOf(sharedFactsOf(shared), reads);
 }
 
 export async function loadRiskEvaluations(

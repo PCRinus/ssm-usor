@@ -13,7 +13,9 @@ import { createAdminClient } from '../../lib/admin-db';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { hex } from '../../lib/hash';
 import { currentImpersonation, endActiveImpersonation } from '../../lib/impersonation';
+import { toIsoOrNull } from '../../lib/timestamps';
 import { employeesOverStepOf } from '../billing/employees-over-step';
 import { deletesAtOf } from '../billing/rules';
 import { creditsStore } from '../credits/store';
@@ -56,14 +58,13 @@ function toSubscription(
   row: SubscriptionRow,
   access: SubscriptionSummary['access']
 ): SubscriptionSummary {
-  const iso = (value: string | null) => (value ? new Date(value).toISOString() : null);
   return {
     plan: row.plan,
     planChosen: row.stripe_subscription_id !== null,
     step: row.employee_step ?? null,
     status: row.status,
-    trialEndsAt: iso(row.trial_ends_at),
-    accessUntil: iso(row.access_until),
+    trialEndsAt: toIsoOrNull(row.trial_ends_at),
+    accessUntil: toIsoOrNull(row.access_until),
     access,
     deletesAt: deletesAtOf(row.access_until, access),
   };
@@ -209,9 +210,7 @@ export const getSupportIdentity: RouteHandler<typeof supportIdentityRoute, ApiEn
     ['sign']
   );
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(distinctId));
-  const hash = Array.from(new Uint8Array(signature), (byte) =>
-    byte.toString(16).padStart(2, '0')
-  ).join('');
+  const hash = hex(new Uint8Array(signature));
 
   return c.json({ distinctId, hash } satisfies SupportIdentity, 200);
 };

@@ -18,7 +18,7 @@ import {
   sortingModel,
 } from '@ssm-usor/import';
 
-import { sha256 } from '../../lib/docx';
+import { sha256 } from '../../lib/hash';
 
 export interface ReadingVersion {
   // By step, as `usage_by_step` names them.

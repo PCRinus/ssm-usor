@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  definiteRole,
-  listed,
-  printedDate,
-  romanianDay,
-  runOn,
-  withoutFinalStop,
-} from './romanian';
+import { definiteRole, listed, printedDay, romanianDay, runOn, withoutFinalStop } from './romanian';
 
 describe('a list in words', () => {
   it('joins the last item with "și" and the others with commas', () => {
@@ -64,7 +57,28 @@ describe('a day in Romania', () => {
     expect(romanianDay('2026-01-15T21:30:00+00:00')).toBe('2026-01-15');
   });
 
-  it('is printed day first, with dots', () => {
-    expect(printedDate('2026-01-09')).toBe('09.01.2026');
+  it('is printed day first, with dots, as the Romanian locale writes it', () => {
+    const romanianLocale = new Intl.DateTimeFormat('ro-RO', {
+      timeZone: 'Europe/Bucharest',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    const moments = [
+      '2026-10-17T22:30:00Z',
+      '2026-10-15T20:59:59Z',
+      '2026-01-15T22:30:00Z',
+      '2026-01-15T21:30:00Z',
+      '2026-03-29T00:59:59Z',
+      '2026-03-29T01:00:00Z',
+      '2026-10-25T00:59:59Z',
+      '2026-10-25T01:00:00Z',
+      '2026-12-31T22:00:00Z',
+    ];
+    for (const moment of moments) {
+      expect(printedDay(new Date(moment))).toBe(romanianLocale.format(new Date(moment)));
+      expect(printedDay(moment)).toBe(romanianLocale.format(new Date(moment)));
+    }
+    expect(printedDay(new Date('2026-10-17T22:30:00Z'))).toBe('18.10.2026');
   });
 });

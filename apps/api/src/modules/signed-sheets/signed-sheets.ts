@@ -16,10 +16,11 @@ import {
 import type { Context } from 'hono';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
-import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError, failureLabel } from '../../lib/errors';
+import { sha256 } from '../../lib/hash';
 import {
+  arrayBufferOf,
   type PdfSigningServices,
   pdfSigningServices,
   rewriteVersioned,
@@ -108,8 +109,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
   return service;
 }
 
-const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
-
 /** SHA-256 of a row's values, the same whatever order they were built in. */
 export function rowDigest(values: Record<string, string>) {
   const sorted = Object.keys(values)
@@ -188,7 +187,7 @@ async function rewriteSheet(
       if (notes.length > 0) {
         const values = Object.fromEntries(notes.map(({ note }) => [note, voidedNote]));
         bytes = new Uint8Array(
-          await need(ctx.signer, signerUnavailable).fillFields(buffer(bytes), values)
+          await need(ctx.signer, signerUnavailable).fillFields(arrayBufferOf(bytes), values)
         );
       }
       return { ...(await rewrite(sheet, bytes)), notes };
@@ -236,11 +235,11 @@ async function createSheet(
   const pdf = await need(ctx.pdf, pdfUnavailable).convertForm(docx);
   const signer = need(ctx.signer, signerUnavailable);
   let prepared = new Uint8Array(
-    await signer.prepareSheet(buffer(pdf), signatureFieldsOf(domain, printed))
+    await signer.prepareSheet(arrayBufferOf(pdf), signatureFieldsOf(domain, printed))
   );
   if (printed.length > 0 && form >= sheetForms.transcribing) {
     prepared = new Uint8Array(
-      await signer.fillFields(buffer(prepared), {
+      await signer.fillFields(arrayBufferOf(prepared), {
         [transcriptionLineField]: transcriptionLine,
       })
     );
@@ -444,7 +443,7 @@ async function fillRows(
     return table?.table === 'p' ? [table.index] : [];
   });
   const { after } = await rewriteSheet(ctx, sheetId, async (sheet, bytes) => ({
-    bytes: new Uint8Array(await signer.fillFields(buffer(bytes), values)),
+    bytes: new Uint8Array(await signer.fillFields(arrayBufferOf(bytes), values)),
     changes: periodic.length > 0 ? { rowsUsed: Math.max(sheet.rowsUsed, ...periodic) } : undefined,
   }));
   for (const { row, values: own } of rows) {

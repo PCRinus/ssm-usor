@@ -24,6 +24,7 @@ import { type ApiEnv, subscriptionUrl } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { adminFileStore } from '../../lib/files';
 import { isOwnerInPerson } from '../../lib/membership';
+import { toIsoOrNull } from '../../lib/timestamps';
 import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
 import { creditsForMember, smsForMember } from '../extras/members';
@@ -83,8 +84,6 @@ async function withStripe(c: Context<ApiEnv>, billing: Billing): Promise<StripeB
   const access = stripeFor(c.env);
   return { ...billing, access, catalogue: await stripeCatalogue(access) };
 }
-
-const iso = (value: string | null) => (value ? new Date(value).toISOString() : null);
 const fromSeconds = (value: number) => new Date(value * 1000).toISOString();
 
 const catalogue: BillingCatalogue = {
@@ -109,7 +108,7 @@ const catalogue: BillingCatalogue = {
 // A row past due keeps the retry grace as its end, so a cancellation set meanwhile is known
 // only from Stripe, which the owner's view reads; access ends at whichever comes first.
 function cancelsAtOf(row: SubscriptionRow, stripeCancelAt: string | null) {
-  if (row.status === 'active') return iso(row.access_until);
+  if (row.status === 'active') return toIsoOrNull(row.access_until);
   if (row.status !== 'past_due' || !stripeCancelAt) return null;
   if (!row.access_until) return stripeCancelAt;
   return new Date(Math.min(Date.parse(stripeCancelAt), Date.parse(row.access_until))).toISOString();
@@ -126,10 +125,10 @@ function subscriptionView(
     status: row.status,
     interval: row.billing_interval,
     step: row.employee_step,
-    trialEndsAt: iso(row.trial_ends_at),
-    currentPeriodEnd: iso(row.current_period_end),
-    billingAnchorAt: iso(row.billing_anchor_at),
-    accessUntil: iso(row.access_until),
+    trialEndsAt: toIsoOrNull(row.trial_ends_at),
+    currentPeriodEnd: toIsoOrNull(row.current_period_end),
+    billingAnchorAt: toIsoOrNull(row.billing_anchor_at),
+    accessUntil: toIsoOrNull(row.access_until),
     access,
     deletesAt: deletesAtOf(row.access_until, access),
     cancelsAt: cancelsAtOf(row, stripeCancelAt),
@@ -141,7 +140,7 @@ function invoiceView(row: InvoiceRow): BillingInvoice {
     stripeInvoiceId: row.stripe_invoice_id,
     kind: row.kind,
     number: row.oblio_series && row.oblio_number ? `${row.oblio_series}-${row.oblio_number}` : null,
-    issuedAt: iso(row.issued_at),
+    issuedAt: toIsoOrNull(row.issued_at),
     amountCents: row.amount_cents,
     subtotalCents: row.subtotal_cents,
     currency: row.currency,

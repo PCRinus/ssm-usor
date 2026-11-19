@@ -1,4 +1,4 @@
-import { type CountyCode, countyNames } from '@ssm-usor/contracts';
+import { type CountyCode, countyNames, printedDate } from '@ssm-usor/contracts';
 
 import { romanianDay } from '../../lib/romanian';
 import type {
@@ -65,32 +65,15 @@ export type PaidStripeInvoice = {
 
 export const shouldIssue = (invoice: Pick<PaidStripeInvoice, 'total'>) => invoice.total > 0;
 
-const romanianDate = new Intl.DateTimeFormat('ro-RO', {
-  timeZone: 'Europe/Bucharest',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-});
-
-const utcDate = new Intl.DateTimeFormat('ro-RO', {
-  timeZone: 'UTC',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-});
-
 // Stripe's period ends at the moment the next one starts, so the last day covered is the calendar
 // day before it in Romania; taking 24 hours off would land on the wrong day across a change of
 // summer time.
 export function periodText(start: Date, end: Date) {
-  const [year, month, day] = romanianDay(end.toISOString()).split('-').map(Number);
-  const dayBefore = new Date(Date.UTC(year!, month! - 1, day! - 1));
-  const startDay = romanianDay(start.toISOString());
-  const last =
-    dayBefore.toISOString().slice(0, 10) < startDay
-      ? romanianDate.format(start)
-      : utcDate.format(dayBefore);
-  return `Perioada ${romanianDate.format(start)} – ${last}`;
+  const [year, month, day] = romanianDay(end).split('-').map(Number);
+  const dayBefore = new Date(Date.UTC(year!, month! - 1, day! - 1)).toISOString().slice(0, 10);
+  const startDay = romanianDay(start);
+  const last = printedDate(dayBefore < startDay ? startDay : dayBefore);
+  return `Perioada ${printedDate(startDay)} – ${last}`;
 }
 
 const withFullStop = (sentence: string) => (sentence.endsWith('.') ? sentence : `${sentence}.`);

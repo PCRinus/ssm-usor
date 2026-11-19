@@ -1,4 +1,5 @@
 import { ApiError } from './errors';
+import { hex, sha256 } from './hash';
 import { x509 } from './x509';
 
 // The API signs whatever `toSign` the signer container hands it. Before it does, it checks that
@@ -53,20 +54,6 @@ function oidOf(bytes: Uint8Array, node: Node) {
   return parts.join('.');
 }
 
-const hex = (bytes: Uint8Array) =>
-  Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-
-async function sha256(...parts: Uint8Array[]) {
-  const total = parts.reduce((sum, part) => sum + part.length, 0);
-  const joined = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    joined.set(part, offset);
-    offset += part.length;
-  }
-  return hex(new Uint8Array(await crypto.subtle.digest('SHA-256', joined)));
-}
-
 /** The digest the signature covers: the newest `/ByteRange`, the placeholder just added. */
 export async function byteRangeDigest(pdf: Uint8Array) {
   let text = '';
@@ -79,7 +66,10 @@ export async function byteRangeDigest(pdf: Uint8Array) {
   if (!last) throw new Error('no ByteRange');
   const [a, b, c, d] = last.slice(1, 5).map(Number) as [number, number, number, number];
   if (a !== 0 || a + b > c || c + d > pdf.length) throw new Error('bad ByteRange');
-  return sha256(pdf.subarray(a, a + b), pdf.subarray(c, c + d));
+  const covered = new Uint8Array(b + d);
+  covered.set(pdf.subarray(a, a + b));
+  covered.set(pdf.subarray(c, c + d), b);
+  return sha256(covered);
 }
 
 type SignedAttributes = { messageDigest: string; certificateHash: string | null };

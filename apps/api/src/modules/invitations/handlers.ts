@@ -13,6 +13,7 @@ import { createAdminClient } from '../../lib/admin-db';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import { createToken, hashToken } from '../../lib/tokens';
 import { usageLimits } from '../billing/rules';
 import { countMemberSeats, loadSubscription } from '../billing/store';
@@ -43,15 +44,13 @@ interface InvitationRow {
   created_at: string;
 }
 
-const toIso = (value: string) => new Date(value).toISOString();
-
 function toInvitation(row: InvitationRow): Invitation {
   return {
     id: row.id,
     email: row.email,
     role: row.role,
     status: Date.parse(row.expires_at) <= Date.now() ? 'expired' : 'open',
-    sentAt: row.sent_at ? toIso(row.sent_at) : null,
+    sentAt: toIsoOrNull(row.sent_at),
     expiresAt: toIso(row.expires_at),
     createdAt: toIso(row.created_at),
   };

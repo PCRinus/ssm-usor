@@ -1,11 +1,12 @@
 import type { BeginSignatureOptions, SignerService } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
-import { sha256 } from './docx';
 import type { ApiEnv } from './env';
 import type { ApiError } from './errors';
 import { adminFileStore } from './files';
+import { sha256 } from './hash';
 import { createPdfConverter, type PdfConverter } from './pdf';
+import { printedDay } from './romanian';
 import { createSigner } from './signer';
 
 type PdfSigningFiles = {
@@ -36,18 +37,8 @@ export function pdfSigningServices(c: Context<ApiEnv>): PdfSigningServices {
   };
 }
 
-const signedOnFormat = new Intl.DateTimeFormat('ro-RO', {
-  timeZone: 'Europe/Bucharest',
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-});
-
-export function signedOn(moment: Date) {
-  return signedOnFormat.format(moment);
-}
-
-const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
+// A copy with a plain ArrayBuffer behind it, which is what the signer is typed to take.
+export const arrayBufferOf = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
 /**
  * The box prints the name, "semnat electronic" and the day alone: what the signer signs as is
@@ -63,10 +54,10 @@ export async function signField(
   sign: (toSign: ArrayBuffer, prepared: ArrayBuffer) => Promise<ArrayBuffer>
 ) {
   const { signedAt, name, ...begin } = options;
-  const begun = await signer.beginSignature(buffer(pdf), {
+  const begun = await signer.beginSignature(arrayBufferOf(pdf), {
     ...begin,
     signedAt: signedAt.toISOString(),
-    appearanceLines: [name, 'semnat electronic', signedOn(signedAt)],
+    appearanceLines: [name, 'semnat electronic', printedDay(signedAt)],
   });
   const signature = await sign(begun.toSign, begun.prepared);
   return new Uint8Array(

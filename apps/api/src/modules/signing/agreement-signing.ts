@@ -3,10 +3,11 @@ import type { Context } from 'hono';
 
 import { type AdminClient, createLastingAdminClient } from '../../lib/admin-db';
 import { archivedClientError, fromDatabaseError } from '../../lib/db';
-import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
-import { pdfSigningServices, signedOn, signField } from '../../lib/pdf-signing';
+import { sha256 } from '../../lib/hash';
+import { arrayBufferOf, pdfSigningServices, signField } from '../../lib/pdf-signing';
+import { printedDay } from '../../lib/romanian';
 import { checkToSign } from '../../lib/signed-attributes';
 import { signingAgreementDocx } from './agreement';
 import { type AgreementStateRow, awaits } from './agreement-state';
@@ -44,8 +45,6 @@ const agreementChanged = () =>
 
 const unavailable = (reason: 'pdf_unavailable' | 'signer_unavailable') =>
   new ApiError('service_unavailable', undefined, undefined, reason);
-
-const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
 // What the employee is shown is the agreement as drawn up from the template and the merge data;
 // the converted PDF differs on every conversion, so the digest is of what goes into it.
@@ -161,7 +160,7 @@ export async function signAgreement(
     if (agreement.digest !== input.digest) throw agreementChanged();
     const form = await ctx.pdf.convertForm(agreement.docx);
     before = new Uint8Array(
-      await signerService.prepareSheet(buffer(form), Object.values(agreementSignatureFields))
+      await signerService.prepareSheet(arrayBufferOf(form), Object.values(agreementSignatureFields))
     );
   } else {
     before = await ctx.files.readDocument(row!.storage_path!);
@@ -183,8 +182,8 @@ export async function signAgreement(
   const identity = await identities.identityFor(signer.accountId, input.accountName);
   const signedAt = new Date();
   before = new Uint8Array(
-    await signerService.fillFields(buffer(before), {
-      [agreementDateFields[party]]: signedOn(signedAt),
+    await signerService.fillFields(arrayBufferOf(before), {
+      [agreementDateFields[party]]: printedDay(signedAt),
     })
   );
   const signed = await signField(

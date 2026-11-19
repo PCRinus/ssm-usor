@@ -15,6 +15,7 @@ import type { Json } from '../../database.types';
 import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { romanianDay } from '../../lib/romanian';
 import {
   builtInTemplates,
   merge,
@@ -41,11 +42,7 @@ import { rulesOf, setOfGroup, setRules, type ThemesRule } from './sets';
 
 /** The year it is in Romania, which the documents are dated by. */
 function currentYear() {
-  return Number(
-    new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Europe/Bucharest' }).format(
-      new Date()
-    )
-  );
+  return Number(romanianDay(new Date()).slice(0, 4));
 }
 
 /**

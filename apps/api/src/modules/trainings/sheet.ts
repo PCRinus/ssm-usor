@@ -6,6 +6,7 @@ import {
   foldText,
   type KnowledgeTest,
   type MissingSheetData,
+  printedDate,
   sheetRowKeys,
   supplementaryTrainingReasonLabels,
   tableRowOf,
@@ -18,8 +19,9 @@ import {
 } from '@ssm-usor/contracts';
 
 import { fileNameWords } from '../../lib/content-disposition';
-import { listed, printedDate, runOn, withoutFinalStop } from '../../lib/romanian';
+import { listed, runOn, withoutFinalStop } from '../../lib/romanian';
 import { gapRules } from '../documents/gaps';
+import { resultExaminer } from '../signing/printed-signers';
 
 /**
  * While the signatures are collected on paper the printed sheet is the signed original, so each
@@ -68,10 +70,7 @@ export function toSheetTestResult(row: {
     test: row.test,
     takenOn: row.taken_on,
     material: row.material,
-    examiner:
-      row.examiner_name !== null && row.examiner_job_title !== null
-        ? { name: row.examiner_name, jobTitle: row.examiner_job_title }
-        : null,
+    examiner: resultExaminer(row),
     createdAt: row.created_at,
   };
 }

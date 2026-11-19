@@ -17,6 +17,7 @@ import {
   type Actor,
   type DocumentRow,
   draftOf,
+  issuedOf,
   lastGeneration,
   readDocument,
   readDocuments,
@@ -197,10 +198,8 @@ function toDocument(
   facts: StoredDocumentFacts | null,
   lookup: AnnexLookup
 ): ClientDocument {
-  const current = (status: RevisionRow['status']) => {
-    const revision = document.document_revisions.find((item) => item.status === status);
-    return revision ? toRevision(document, revision, facts, lookup) : null;
-  };
+  const presented = (revision: RevisionRow | undefined) =>
+    revision ? toRevision(document, revision, facts, lookup) : null;
   return {
     id: document.id,
     clientId: document.client_id,
@@ -208,8 +207,8 @@ function toDocument(
     title: document.title,
     decisionNumber: document.decision_number,
     period: document.period,
-    draft: current('draft'),
-    issued: current('issued'),
+    draft: presented(draftOf(document)),
+    issued: presented(issuedOf(document)),
   };
 }
 

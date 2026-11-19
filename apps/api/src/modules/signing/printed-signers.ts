@@ -59,3 +59,12 @@ export const printedTestSheetSlot = (slot: TestSheetSignerSlot, sheet: TestSheet
       ? sheet.employees.job_positions?.name?.trim() || sheet.employees.job_title
       : (sheet.test_results.examiner_job_title ?? ''),
 });
+
+// The database keeps a result's examiner whole: both the name and the function, or neither.
+export const resultExaminer = (result: {
+  examiner_name: string | null;
+  examiner_job_title: string | null;
+}) =>
+  result.examiner_name !== null && result.examiner_job_title !== null
+    ? { name: result.examiner_name, jobTitle: result.examiner_job_title }
+    : null;

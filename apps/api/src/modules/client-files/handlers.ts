@@ -11,10 +11,10 @@ import type { Context } from 'hono';
 
 import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
-import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { sha256 } from '../../lib/hash';
 import { requireOffersFor } from '../../lib/offers';
 import { sentColumns } from '../../lib/partial-update';
 import { requireClient, requireWritableClient } from '../clients/lookup';

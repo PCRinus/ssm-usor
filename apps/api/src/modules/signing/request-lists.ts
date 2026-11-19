@@ -23,7 +23,7 @@ import { ApiError } from '../../lib/errors';
 import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import { requireClient } from '../clients/lookup';
-import { printedSlot, printedTestSheetName } from './printed-signers';
+import { printedSlot, printedTestSheetName, resultExaminer } from './printed-signers';
 import { nameIn } from './record-slots';
 import type {
   listClientSignatureRequestsRoute,
@@ -285,10 +285,7 @@ function toPortalSheetRequest(
 ): PortalSignatureRequest {
   const result = sheet.test_results;
   const employee = toRequestEmployee(sheet.employees);
-  const examiner =
-    result.examiner_name !== null && result.examiner_job_title !== null
-      ? { name: result.examiner_name, jobTitle: result.examiner_job_title }
-      : null;
+  const examiner = resultExaminer(result);
   return {
     id: request.id,
     kind: 'test_sheet',

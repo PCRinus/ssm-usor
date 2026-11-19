@@ -22,7 +22,7 @@ import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { later } from '../../lib/later';
-import { romanianDay } from '../../lib/romanian';
+import { printedDay } from '../../lib/romanian';
 import { requireWritableClient } from '../clients/lookup';
 import { creditsStore } from '../credits/store';
 import { importCharges } from '../credits/usage';
@@ -586,8 +586,6 @@ async function offeredSheets(db: DataClient, clientId: string) {
     }));
 }
 
-const day = (timestamp: string) => romanianDay(timestamp).split('-').reverse().join('.');
-
 const maxUploadPath = 1024;
 
 function numbered(path: string, copy: number) {
@@ -601,7 +599,7 @@ function numbered(path: string, copy: number) {
 // The documentation's own folders are kept under one of the import's, so a person's pages stay
 // together and in order, as the upload orders them.
 function foundSheetPath(sheet: OfferedSheet, copy: number) {
-  const folder = `Din documentația importată pe ${day(sheet.confirmedAt)}`;
+  const folder = `Din documentația importată pe ${printedDay(sheet.confirmedAt)}`;
   const path = `${folder}/${numbered(sheet.uploadPath, copy)}`;
   return path.length <= maxUploadPath
     ? path
