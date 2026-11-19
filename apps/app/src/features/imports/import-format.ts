@@ -3,6 +3,7 @@ import { countOf, importErrorReasons, type ImportKind } from '@ssm-usor/contract
 import type { ImportUsage } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { commonFailure } from '@/lib/api-errors';
+import { timeFormat } from '@/lib/dates';
 
 import { refusalSentence } from './import-credits';
 
@@ -143,7 +144,6 @@ export function uploadName(files: UploadedFile[]) {
   return `Import din ${filesLabel(files.length)}`;
 }
 
-const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
 const dayFormat = new Intl.DateTimeFormat('ro-RO', {
   day: '2-digit',
   month: '2-digit',

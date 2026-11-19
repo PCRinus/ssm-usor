@@ -52,6 +52,21 @@ const dayFormat = new Intl.DateTimeFormat('ro-RO', {
 
 export const formatDay = (isoTimestamp: string) => dayFormat.format(new Date(isoTimestamp));
 
+export const shortDayMonthFormat = new Intl.DateTimeFormat('ro-RO', {
+  day: 'numeric',
+  month: 'short',
+});
+
+export const dayMonthFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
+
+export const longDateFormat = new Intl.DateTimeFormat('ro-RO', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+export const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit' });
+
 export function parseRoDate(text: string) {
   const match = romanian.exec(text);
   if (!match) return null;

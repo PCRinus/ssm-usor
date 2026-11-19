@@ -18,6 +18,7 @@ import type {
   InstructionsProposalPositionsItem,
   InstructionsProposalUnreadItem,
 } from '@/api/generated/api';
+import { dayMonthFormat } from '@/lib/dates';
 
 export type LibraryPart = InstructionsLibraryPart;
 export type LibraryPost = ImportLibraryPartsResponse['posts'][number];
@@ -85,9 +86,7 @@ export const statusLabels: Record<PartStatus, string> = {
   confirmed: 'Confirmat',
 };
 
-const dayFormat = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long' });
-
-export const libraryDay = (iso: string) => dayFormat.format(new Date(iso));
+export const libraryDay = (iso: string) => dayMonthFormat.format(new Date(iso));
 
 type PartTiming = { status: PartStatus; expiresAt: string | null };
 
