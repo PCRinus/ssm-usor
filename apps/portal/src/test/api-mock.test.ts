@@ -12,6 +12,7 @@ import {
   useSetPortalLanguage,
 } from '@/api/generated/api';
 
+import { takeUnexpectedCalls } from './api-mock';
 import { mockFailure, mockPending, mockQuery, readySheets } from './portal';
 
 describe('the generated API mock', () => {
@@ -25,6 +26,7 @@ describe('the generated API mock', () => {
     await expect(getPortalTrainingSheet('participant', 'ssm')).rejects.toThrow(
       'Unexpected call: getPortalTrainingSheet'
     );
+    expect(takeUnexpectedCalls()).toEqual(['getPortalTrainingSheet']);
   });
 
   it('keeps the query keys and the constants real', () => {

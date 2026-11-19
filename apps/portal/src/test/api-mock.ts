@@ -1,4 +1,4 @@
-import { beforeEach, type Mock, vi } from 'vitest';
+import { afterEach, beforeEach, expect, type Mock, vi } from 'vitest';
 
 import * as api from '@/api/generated/api';
 
@@ -23,13 +23,30 @@ const mutationIdle = () => ({
   isError: false,
 });
 
+const unexpectedCalls: string[] = [];
+
+export const takeUnexpectedCalls = () => unexpectedCalls.splice(0);
+
+const isQueryHook = (name: string) =>
+  /^use[A-Z]/.test(name) && `get${name.slice('use'.length)}QueryKey` in api;
+
 beforeEach(() => {
   for (const [name, value] of Object.entries(api)) {
     if (!vi.isMockFunction(value)) continue;
     const stub = value as Mock;
     stub.mockReset();
-    if (/^use(Get|List)[A-Z]/.test(name)) stub.mockReturnValue(queryPending());
+    if (isQueryHook(name)) stub.mockReturnValue(queryPending());
     else if (/^use[A-Z]/.test(name)) stub.mockReturnValue(mutationIdle());
-    else stub.mockRejectedValue(new Error(`Unexpected call: ${name}`));
+    else {
+      stub.mockImplementation(() => {
+        unexpectedCalls.push(name);
+        return Promise.reject(new Error(`Unexpected call: ${name}`));
+      });
+    }
   }
+});
+
+// The page catches the rejection and shows its error state, which a test may never look at.
+afterEach(() => {
+  expect(takeUnexpectedCalls(), 'calls to the API nobody stubbed').toEqual([]);
 });
