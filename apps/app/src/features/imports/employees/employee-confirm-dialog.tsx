@@ -36,6 +36,7 @@ import {
   confirmImport,
   getGetClientQueryKey,
   getGetImportQueryKey,
+  getListClosedImportsQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
 } from '@/api/generated/api';
@@ -176,6 +177,7 @@ export function EmployeeConfirmDialog({
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getListClosedImportsQueryKey() }),
         refreshEmployeesOverStep(queryClient),
         queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(detail.id) }),
         queryClient.invalidateQueries({

@@ -153,7 +153,8 @@ function PickerBody({
               data-testid="imports-client-capped"
               className="px-3 py-2 text-[13px] text-muted-foreground"
             >
-              Se văd primii {items.length} clienți. Caută-l pe cel pe care nu-l găsești.
+              Se văd primii {countOf(items.length, 'client', 'clienți')}. Caută-l pe cel pe care
+              nu-l găsești.
             </p>
           )}
         </div>
