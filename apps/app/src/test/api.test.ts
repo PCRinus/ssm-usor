@@ -55,7 +55,9 @@ describe('the shared API mock', () => {
 
     expect(await (await fetch(`${api}/releases`)).json()).toEqual({ items: [release] });
     expect(await (await fetch(`${api}/me/setup`)).json()).toEqual(finishedSetupGuide);
-    expect(await (await fetch(`${api}/imports?kind=all`)).json()).toEqual({ items: [] });
+    expect(await (await fetch(`${api}/imports?kind=all&withOpenParts=true`)).json()).toEqual({
+      items: [],
+    });
     expect(await (await fetch(`${api}/documents/behind/summary`)).json()).toEqual({
       counts: { occupational_safety: 0, fire_safety: 0 },
       running: [],
@@ -68,9 +70,9 @@ describe('the shared API mock', () => {
     await expect(fetch(`${api}/documents/behind/summary?set=fire_safety`)).rejects.toThrow(
       'Unexpected request: GET /documents/behind/summary'
     );
-    await expect(fetch(`${api}/imports?kind=all`, { method: 'POST' })).rejects.toThrow(
-      'Unexpected request: POST /imports'
-    );
+    await expect(
+      fetch(`${api}/imports?kind=all&withOpenParts=true`, { method: 'POST' })
+    ).rejects.toThrow('Unexpected request: POST /imports');
   });
 
   it('answers a setup guide the app can read, with every step once', () => {

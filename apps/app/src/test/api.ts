@@ -41,7 +41,7 @@ const shellReads: Record<string, () => unknown> = {
       counts: { occupational_safety: 0, fire_safety: 0 },
       running: [],
     }) satisfies DocumentsBehindSummary,
-  '/imports?kind=all': () => ({ items: [] }) satisfies ImportListResponse,
+  '/imports?kind=all&withOpenParts=true': () => ({ items: [] }) satisfies ImportListResponse,
 };
 
 // The dashboard's own read, not the shell's: answered because mountApp lands on /dashboard.
