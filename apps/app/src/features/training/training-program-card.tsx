@@ -103,14 +103,14 @@ export function TrainingProgramSection({
     return <Skeleton className="h-64 w-full rounded-xl" />;
   }
   if (details.isError || positions.isError) {
-    const failed = details.isError ? details : positions;
+    const failed = [details, positions].filter((query) => query.isError);
     return (
       <Card data-testid="document-details-unavailable">
         <CardContent>
           <LoadFailed
-            error={failed.error}
-            busy={failed.isFetching}
-            onRetry={() => void failed.refetch()}
+            error={failed[0]?.error}
+            busy={failed.some((query) => query.isFetching)}
+            onRetry={() => failed.forEach((query) => void query.refetch())}
           >
             Nu am putut încărca programul de instruire.
           </LoadFailed>

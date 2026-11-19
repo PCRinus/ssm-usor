@@ -103,14 +103,14 @@ export function FireSafetySection({
     return <Skeleton className="h-56 w-full rounded-xl" />;
   }
   if (fireSafety.isError || positions.isError || details.isError) {
-    const failed = fireSafety.isError ? fireSafety : positions.isError ? positions : details;
+    const failed = [fireSafety, positions, details].filter((query) => query.isError);
     return (
       <Card data-testid="fire-safety-unavailable">
         <CardContent>
           <LoadFailed
-            error={failed.error}
-            busy={failed.isFetching}
-            onRetry={() => void failed.refetch()}
+            error={failed[0]?.error}
+            busy={failed.some((query) => query.isFetching)}
+            onRetry={() => failed.forEach((query) => void query.refetch())}
           >
             Nu am putut încărca instruirea SU.
           </LoadFailed>
