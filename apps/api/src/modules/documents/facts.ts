@@ -7,8 +7,8 @@ import {
 } from '@ssm-usor/contracts';
 
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
-import { ApiError } from '../../lib/errors';
 import { romanianDay } from '../../lib/romanian';
+import { clientNotFound } from '../clients/lookup';
 import type { DocumentFacts, SsmSetFacts } from './context';
 import type { FireSafetySetFacts, FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
@@ -213,9 +213,7 @@ function sharedFactsOf([
   openInvitations,
 ]: SharedReads) {
   if (client.error) throw fromDatabaseError(client.error, 'document facts: client');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   if (organization.error)
     throw fromDatabaseError(organization.error, 'document facts: organization');
   if (persons.error) throw fromDatabaseError(persons.error, 'document facts: responsible persons');

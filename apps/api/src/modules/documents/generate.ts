@@ -12,7 +12,7 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Json } from '../../database.types';
-import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { archivedClientError, type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
 import {
@@ -74,9 +74,7 @@ export async function generateClientDocuments(
     ]);
   }
   const facts = await loadDocumentFacts(db, clientId, actor, set);
-  if (facts.clientArchived) {
-    throw new ApiError('conflict', 'Documents are only generated for an active client.');
-  }
+  if (facts.clientArchived) throw archivedClientError();
   const asked = {
     issueDate: request.issueDate,
     firstDecisionNumber: request.firstDecisionNumber ?? 1,
@@ -423,9 +421,7 @@ export async function regenerateDraft(
     set,
     document.period === null ? [] : [document.period]
   );
-  if (facts.clientArchived) {
-    throw new ApiError('conflict', 'Documents are only generated for an active client.');
-  }
+  if (facts.clientArchived) throw archivedClientError();
   const latest = newest(document);
   const issueDate = request.issueDate ?? latest?.document_generations?.issue_date;
   if (!issueDate) {

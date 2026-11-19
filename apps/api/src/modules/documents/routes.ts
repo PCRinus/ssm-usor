@@ -24,18 +24,18 @@ import {
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+} from '../../lib/openapi';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const documentParams = z.object({ documentId: z.uuid() });
 const uploadParams = z.object({ clientId: z.uuid(), typeKey: builtInDocumentTypeKeySchema });
 const revisionParams = z.object({ documentId: z.uuid(), revisionId: z.uuid() });
 const jobParams = z.object({ jobId: z.uuid() });
-
-const noSuchClient = {
-  description: 'The client does not exist in the organization',
-  content: errorContent,
-};
 
 export const getDocumentReadinessRoute = createRoute({
   method: 'get',
@@ -57,7 +57,7 @@ export const getDocumentReadinessRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -83,7 +83,7 @@ export const listClientDocumentsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -119,8 +119,11 @@ export const generateClientDocumentsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or body', content: errorContent },
-    404: noSuchClient,
-    409: { description: 'Data is missing, or the client is archived', content: errorContent },
+    404: clientNotFoundResponse,
+    409: {
+      description: 'Data is missing, or the client is archived (reason `client_archived`)',
+      content: errorContent,
+    },
     ...membershipErrors,
   },
 });
@@ -223,7 +226,7 @@ export const getDocumentArchiveRoute = createRoute({
       },
     },
     400: { description: 'Invalid path, set or format', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: { description: 'No document has a file in this format', content: errorContent },
     ...membershipErrors,
   },
@@ -264,7 +267,8 @@ export const regenerateDocumentRoute = createRoute({
     400: { description: 'Invalid path or body', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'Data is missing, the client is archived, or the type has no template',
+      description:
+        'Data is missing, the client is archived (reason `client_archived`), or the type has no template',
       content: errorContent,
     },
     ...membershipErrors,
@@ -326,7 +330,7 @@ export const startDocumentDraftRoute = createRoute({
     404: noSuchDocument,
     409: {
       description:
-        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived',
+        'The document already has a draft (`draft_exists`), has nothing issued, or its client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -444,7 +448,8 @@ export const attachDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path, or not a PDF', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'Nothing is issued (`not_issued`), or the client is archived',
+      description:
+        'Nothing is issued (`not_issued`), or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -469,7 +474,8 @@ export const confirmDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'There is no received copy (`no_received_copy`), or the client is archived',
+      description:
+        'There is no received copy (`no_received_copy`), or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -489,7 +495,7 @@ export const removeDocumentSignedCopyRoute = createRoute({
     400: { description: 'Invalid path', content: errorContent },
     404: noSuchDocument,
     409: {
-      description: 'There is no signed copy, or the client is archived',
+      description: 'There is no signed copy, or the client is archived (reason `client_archived`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -520,9 +526,10 @@ export const uploadClientDocumentRoute = createRoute({
   responses: {
     200: { description: 'The document with the uploaded draft', content: documentContent },
     400: { description: 'Invalid path, or not a Word document', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
-      description: 'The client is archived, or the document has to be generated first',
+      description:
+        'The client is archived (reason `client_archived`), or the document has to be generated first',
       content: errorContent,
     },
     ...membershipErrors,

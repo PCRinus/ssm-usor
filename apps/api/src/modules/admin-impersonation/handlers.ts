@@ -23,6 +23,7 @@ import {
   type ImpersonationRow,
   readCurrentImpersonation,
 } from '../../lib/impersonation';
+import { parsed } from '../../lib/validation';
 
 type Nullable<Row, Column extends keyof Row> = Omit<Row, Column> & {
   [Key in Column]: Row[Key] | null;
@@ -54,9 +55,7 @@ async function membersPage(
 }
 
 export async function listMembers(c: Context<ApiEnv>) {
-  const parsed = adminMemberListQuerySchema.safeParse(c.req.query());
-  if (!parsed.success) throw new ApiError('validation_error');
-  const { search, page, pageSize } = parsed.data;
+  const { search, page, pageSize } = parsed(adminMemberListQuerySchema, c.req.query());
   const db = createAdminClient(c);
   const rows = await membersPage(db, search, pageSize, (page - 1) * pageSize);
   // A page past the end has no row to carry the total.
@@ -170,24 +169,15 @@ function startRefusal(error: { code?: string | null; message?: string }) {
 }
 
 export async function startImpersonation(c: Context<ApiEnv>) {
-  const parsed = adminImpersonationStartRequestSchema.safeParse(
+  const { targetUserId, reason } = parsed(
+    adminImpersonationStartRequestSchema,
     await c.req.json().catch(() => undefined)
   );
-  if (!parsed.success) {
-    throw new ApiError(
-      'validation_error',
-      undefined,
-      parsed.error.issues.map((issue) => ({
-        path: issue.path.map(String).join('.'),
-        message: issue.message,
-      }))
-    );
-  }
   // One call ends the admin's open impersonation and starts the next in one transaction, with
   // his own token, so a refused switch leaves the open one as it was.
   const { data, error } = await createDataClient(c).rpc('start_impersonation', {
-    p_target_user_id: parsed.data.targetUserId,
-    p_reason: parsed.data.reason,
+    p_target_user_id: targetUserId,
+    p_reason: reason,
   });
   if (error) throw startRefusal(error);
   // The impersonation is in force by now, so a failed read of whom it names must not answer
@@ -208,9 +198,7 @@ export async function endImpersonation(c: Context<ApiEnv>) {
 }
 
 export async function listImpersonations(c: Context<ApiEnv>) {
-  const parsed = adminImpersonationListQuerySchema.safeParse(c.req.query());
-  if (!parsed.success) throw new ApiError('validation_error');
-  const { page, pageSize } = parsed.data;
+  const { page, pageSize } = parsed(adminImpersonationListQuerySchema, c.req.query());
   const db = createDataClient(c);
   const listed = () =>
     db

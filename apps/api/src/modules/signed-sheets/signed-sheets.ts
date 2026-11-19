@@ -18,7 +18,7 @@ import type { Context } from 'hono';
 import { createLastingAdminClient } from '../../lib/admin-db';
 import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import {
   type PdfSigningServices,
   pdfSigningServices,
@@ -26,6 +26,7 @@ import {
   signField,
 } from '../../lib/pdf-signing';
 import { mergeBuiltIn } from '../../lib/templates';
+import { loadSheetFacts } from '../trainings/employee-sheets';
 import {
   chronological,
   chronologicalResults,
@@ -36,7 +37,6 @@ import {
   type TrainingSheetData,
   transcriptionLine,
 } from '../trainings/sheet';
-import { loadSheetFacts } from '../trainings/sheet-handlers';
 import {
   drawnSheetForm,
   type HiringMaterials,
@@ -615,7 +615,7 @@ export async function syncTrainingRows(ctx: SignedSheetContext, recordIds: strin
       await syncRecordRow(ctx, recordId, { create: false });
     } catch (error) {
       console.error(
-        `Signed sheet row of ${recordId} not brought up to date: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+        `Signed sheet row of ${recordId} not brought up to date: ${failureLabel(error)}`
       );
     }
   }
@@ -654,7 +654,7 @@ export async function syncResultRows(ctx: SignedSheetContext, resultIds: string[
       await syncResultRow(ctx, resultId);
     } catch (error) {
       console.error(
-        `Signed sheet row of test result ${resultId} not brought up to date: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+        `Signed sheet row of test result ${resultId} not brought up to date: ${failureLabel(error)}`
       );
     }
   }

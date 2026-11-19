@@ -1,6 +1,5 @@
 import type { RouteHandler } from '@hono/zod-openapi';
 import {
-  clientConflictReasons,
   confirmedListed,
   type CreditsShort,
   type EmployeeImportPeople,
@@ -36,21 +35,18 @@ import type { Database, Json } from '../../database.types';
 import { type AdminClient, adminClient, createAdminClient } from '../../lib/admin-db';
 import { alertSender } from '../../lib/alerts';
 import { adminToolsAllowed } from '../../lib/auth';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
+import { later } from '../../lib/later';
 import { romanianDay } from '../../lib/romanian';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
+import { requireWritableClient } from '../clients/lookup';
 import { creditsStore } from '../credits/store';
 import { importCharges, importCreditsOf } from '../credits/usage';
 import { blocksReporterOf } from '../extras/reporting';
-import { uninvitedOfImports } from '../participants/handlers';
+import { uninvitedOfImports } from '../participants/standings';
 import {
   signedSheetContext,
   syncResultRows,
@@ -464,22 +460,7 @@ export const createImport: RouteHandler<typeof createImportRoute, ApiEnv> = asyn
   requireImportService(c);
   const { clientId, kind = 'client', addFoundSheets } = c.req.valid('json');
   const db = createDataClient(c);
-  if (clientId) {
-    const { data, error } = await db
-      .from('clients')
-      .select('id, stage, archived_at')
-      .eq('id', clientId)
-      .maybeSingle();
-    if (error) throw fromDatabaseError(error, 'find import client');
-    if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-    if (data.archived_at) throw archivedClientError();
-    if (data.stage === 'lead') {
-      throw conflict(
-        'The company is still a lead; promote it first.',
-        clientConflictReasons.clientIsLead
-      );
-    }
-  }
+  if (clientId) await requireWritableClient(db, clientId, { lead: 'refused' });
   const found = addFoundSheets && clientId ? await offeredSheets(db, clientId) : [];
   if (addFoundSheets && found.length === 0) throw noFoundSheets();
   const admin = createAdminClient(c);
@@ -941,15 +922,6 @@ async function beginReading(
       { importId, organizationId, kind }
     )
   );
-}
-
-// Hono's executionCtx throws where the runtime gives none, as in tests.
-export function later(c: Context<ApiEnv>, work: Promise<unknown>) {
-  try {
-    c.executionCtx.waitUntil(work);
-  } catch {
-    void work;
-  }
 }
 
 export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async (c) => {

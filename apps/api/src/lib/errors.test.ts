@@ -1,7 +1,7 @@
 import { SigningAgreementDataError } from '@ssm-usor/document-engine';
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, fromEngineError } from './errors';
+import { ApiError, failureLabel, fromEngineError } from './errors';
 
 describe('fromEngineError', () => {
   it('answers a signing agreement without the representative as the data it lacks', () => {
@@ -17,5 +17,19 @@ describe('fromEngineError', () => {
   it('leaves any other error as it is', () => {
     const error = new Error('boom');
     expect(fromEngineError(error)).toBe(error);
+  });
+});
+
+describe('failureLabel', () => {
+  it('names an API error by its reason, else its code', () => {
+    expect(failureLabel(new ApiError('conflict', 'x', undefined, 'slot_signed'))).toBe(
+      'slot_signed'
+    );
+    expect(failureLabel(new ApiError('service_unavailable'))).toBe('service_unavailable');
+  });
+
+  it('names any other error by its name alone, never its message', () => {
+    expect(failureLabel(new TypeError('the row of Popescu Ion'))).toBe('TypeError');
+    expect(failureLabel('a string')).toBe('unknown');
   });
 });

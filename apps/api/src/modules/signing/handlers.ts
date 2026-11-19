@@ -3,7 +3,8 @@ import type { RecordSignaturesResponse } from '@ssm-usor/contracts';
 
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
+import { requireClient } from '../clients/lookup';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
 import {
   recordSlots,
@@ -12,7 +13,6 @@ import {
   signatureColumns,
   type SignatureRow,
 } from './record-slots';
-import { findClient } from './request-lists';
 import type {
   getRecordSignaturesRoute,
   listSignerCandidatesRoute,
@@ -29,7 +29,7 @@ export const listSignerCandidates: RouteHandler<typeof listSignerCandidatesRoute
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const seen = new Set<string>();
   const items = (await signersOfClient(db, clientId)).flatMap(
     ({ accountId, name, jobTitle, kind, employeeId }) => {
@@ -152,7 +152,7 @@ export const voidRecordSignatures: RouteHandler<typeof voidRecordSignaturesRoute
   } catch (failure) {
     if (!(failure instanceof ApiError && failure.reason === 'record_not_on_sheet')) {
       console.error(
-        `The voided row of ${recordId} was not marked on its sheet: ${failure instanceof ApiError ? (failure.reason ?? failure.code) : failure instanceof Error ? failure.name : 'unknown'}`
+        `The voided row of ${recordId} was not marked on its sheet: ${failureLabel(failure)}`
       );
     }
   }

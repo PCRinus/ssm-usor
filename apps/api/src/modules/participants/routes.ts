@@ -17,12 +17,13 @@ import { refuseDuringImpersonation } from '../../lib/impersonation';
 import { requireMembership } from '../../lib/membership';
 import {
   bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
   errorContent,
   inPersonMembershipErrors,
   membershipErrors,
 } from '../../lib/openapi';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const employeeParams = clientParams.extend({ employeeId: z.uuid() });
 const invitationParams = z.object({ invitationId: z.uuid() });
 const participantParams = z.object({ participantId: z.uuid() });
@@ -204,7 +205,7 @@ export const inviteEmployeeParticipantsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or body', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     409: {
       description: 'The client is archived or a lead; see `reason`',
       content: errorContent,
@@ -233,7 +234,7 @@ export const listClientParticipantsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });

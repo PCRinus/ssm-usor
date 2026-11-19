@@ -9,7 +9,6 @@ import {
   type InstructionModuleGroup,
   type InstructionModuleListFilters,
   type InstructionModuleSortKey,
-  pageRange,
   searchTerms,
   spacedBody,
   textHash,
@@ -22,10 +21,11 @@ import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../lib/list-page';
 import { printedDate, romanianDay } from '../../lib/romanian';
 import { fileNameOf } from '../../lib/text';
 import { renderInstructionAnnex } from '../documents/annexes';
-import { findJobPosition } from '../job-positions/handlers';
+import { findJobPosition } from '../job-positions/positions';
 import type {
   applyPositionInstructionsRoute,
   copyPositionInstructionsRoute,
@@ -135,11 +135,11 @@ const categoryOfOtherDomain = () =>
   );
 
 // The enum's order is the categories' order. Ties go by title, A to Z in either order.
-const sortColumns: Record<InstructionModuleSortKey, string[]> = {
-  title: ['title'],
-  group: ['module_group'],
-  version: ['version_created_at'],
-  appliedCount: ['position_count', 'client_count'],
+const sortColumns: Record<InstructionModuleSortKey, SortColumn[]> = {
+  title: [{ column: 'title' }],
+  group: [{ column: 'module_group' }],
+  version: [{ column: 'version_created_at' }],
+  appliedCount: [{ column: 'position_count' }, { column: 'client_count' }],
 };
 
 type ListQuery<Query> = {
@@ -155,10 +155,7 @@ function matching<Query extends ListQuery<Query>>(
   filters: InstructionModuleListFilters,
   q: string | undefined
 ) {
-  let filtered = searchTerms(q).reduce(
-    (each, term) => each.ilike('search_text', `*${term}*`),
-    query
-  );
+  let filtered = matchingEveryTerm(query, 'search_text', searchTerms(q));
   if (filters.category) filtered = filtered.in('module_group', filters.category);
   if (filters.usage?.includes('unused')) filtered = filtered.eq('position_count', 0);
   return filtered;
@@ -278,36 +275,21 @@ export const listInstructionModules: RouteHandler<
   };
   const listed = (columns: string, head: boolean) => matching(inTab(columns, head), filters, q);
   const narrowed = Boolean(category || usage) || searchTerms(q).length > 0;
-  let query = listed(moduleColumns, false);
-  for (const column of sortColumns[sort]) {
-    query = query.order(column, { ascending: order === 'asc' });
-  }
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    (sort === 'title' ? query : query.order('title'))
-      .order('id')
-      .range(from, to)
-      .returns<ModuleRow[]>(),
-    narrowed ? inTab('id', true) : null,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count instruction modules');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end: empty, with the real total.
-    const recount = await listed('id', true);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count instruction modules');
-    const total = recount.count ?? 0;
-    return c.json(
-      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
-      200
-    );
-  }
-  if (error) throw fromDatabaseError(error, 'list instruction modules');
-  const total = count ?? 0;
-  return c.json(
-    { items: data.map(toModule), page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
-    200
-  );
+  const { rows, total, unfilteredTotal } = await listPage({
+    page,
+    pageSize,
+    rows: (from, to) => {
+      const query = orderedBy(listed(moduleColumns, false), sortColumns[sort], order);
+      return (sort === 'title' ? query : query.order('title'))
+        .order('id')
+        .range(from, to)
+        .returns<ModuleRow[]>();
+    },
+    recount: () => listed('id', true),
+    unfiltered: narrowed ? () => inTab('id', true) : undefined,
+    what: 'instruction modules',
+  });
+  return c.json({ items: rows.map(toModule), page, pageSize, total, unfilteredTotal }, 200);
 };
 
 export const listInstructionModuleChoices: RouteHandler<

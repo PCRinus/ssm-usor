@@ -17,11 +17,12 @@ import {
 import type { Context } from 'hono';
 
 import { createAdminClient } from '../../lib/admin-db';
-import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
+import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { toIso, toIsoOrNull } from '../../lib/timestamps';
+import { requireClient } from '../clients/lookup';
 import { printedSlot, printedTestSheetName } from './printed-signers';
 import { nameIn } from './record-slots';
 import type {
@@ -30,15 +31,6 @@ import type {
   listPortalSignatureRequestsRoute,
 } from './routes';
 import { signersOfClient } from './signers';
-
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
-
-export async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
-  if (error) throw fromDatabaseError(error, 'signing client');
-  if (!data) throw noSuchClient();
-}
 
 const agreementColumnsOfEmployee =
   'employee_signing_agreements(state, employee_signed_at, employer_signed_at)';
@@ -160,7 +152,7 @@ export const listClientSignatureRequests: RouteHandler<
   const { clientId } = c.req.valid('param');
   const { state } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('signature_requests')
     .select(listColumns)

@@ -1,5 +1,4 @@
 import { noPreview } from '@ssm-usor/discord';
-import type { Context } from 'hono';
 
 import type { AdminClient } from '../../lib/admin-db';
 import { type AlertMessage, alertSender } from '../../lib/alerts';
@@ -261,16 +260,5 @@ export function billingAlerts(
         })
       );
     },
-  };
-}
-
-// Hono's executionCtx throws where the runtime gives none, as in tests.
-export function laterOf(c: Context<ApiEnv>) {
-  return (work: Promise<unknown>) => {
-    try {
-      c.executionCtx.waitUntil(work);
-    } catch {
-      void work;
-    }
   };
 }
