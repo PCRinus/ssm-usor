@@ -31,7 +31,13 @@ import {
   recordChange,
   updateInvoice,
 } from './store';
-import { idOf, isStripeError, type StripeAccess, type StripeCatalogue } from './stripe';
+import {
+  idOf,
+  isStripeError,
+  lookupKeyOfLine,
+  type StripeAccess,
+  type StripeCatalogue,
+} from './stripe';
 import { syncSubscription } from './sync';
 
 export type InvoiceDeps = {
@@ -67,9 +73,7 @@ const productNames = new Map<string, string>(
 const stepGroups = /\B(?=(\d{3})+(?!\d))/g;
 
 function lineName(line: Stripe.InvoiceLineItem, catalogue: StripeCatalogue) {
-  const price = line.pricing?.price_details?.price;
-  const lookupKey = price ? catalogue.lookupKeys.get(idOf(price) ?? '') : undefined;
-  const parsed = parseLookupKey(lookupKey);
+  const parsed = parseLookupKey(lookupKeyOfLine(line, catalogue));
   const product = parsed && productNames.get(parsed.product);
   const step = parsed?.step;
   const name =

@@ -38,10 +38,15 @@ import {
 import { allowWhileReadOnly } from '../../lib/access';
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+} from '../../lib/openapi';
 
 const importParams = z.object({ importId: z.uuid() });
-const clientParams = z.object({ clientId: z.uuid() });
 const importFileParams = z.object({ importId: z.uuid(), fileId: z.uuid() });
 const libraryPartParams = z.object({ importId: z.uuid(), part: importLibraryPartSchema });
 
@@ -87,7 +92,7 @@ export const createImportRoute = createRoute({
   responses: {
     201: { description: 'The import', content: summaryContent },
     400: { description: 'Invalid request body', content: errorContent },
-    404: { description: 'The client does not exist in the organization', content: errorContent },
+    404: clientNotFoundResponse,
     409: { description: 'The client is archived or a lead', content: errorContent },
     422: {
       description: 'The client has no sheet photographs found in its documentation to add',

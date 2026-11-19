@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 
-import { buildCitationIndex, serializeIndex, templatesUrl } from './template-sources';
+import { buildCitationIndex, serializeIndex, templatesUrl } from '../src/template-store';
 
 const index = buildCitationIndex();
 writeFileSync(new URL('citations.json', templatesUrl), serializeIndex(index));

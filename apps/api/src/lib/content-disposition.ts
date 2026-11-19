@@ -12,3 +12,11 @@ export function contentDisposition(kind: 'attachment' | 'inline', name: string) 
   );
   return `${kind}; filename="${ascii}"; filename*=UTF-8''${encoded}`;
 }
+
+export const fileNameWords = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());

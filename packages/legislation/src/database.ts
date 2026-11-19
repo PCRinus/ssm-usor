@@ -222,11 +222,16 @@ export type LegislationDatabase = {
 export type LegislationClient = SupabaseClient<LegislationDatabase>;
 
 // The secret key bypasses row-level security; nobody signed in may write these tables.
-export function createLegislationClient(url: string, secretKey: string): LegislationClient {
+export function createLegislationClient(
+  url: string,
+  secretKey: string,
+  send?: typeof fetch
+): LegislationClient {
   return createClient<LegislationDatabase>(url, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
-      fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(30_000) }),
+      fetch: (input, init) =>
+        (send ?? fetch)(input, { ...init, signal: AbortSignal.timeout(30_000) }),
     },
   });
 }

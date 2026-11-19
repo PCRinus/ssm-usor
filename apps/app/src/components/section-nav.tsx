@@ -233,12 +233,17 @@ export function SectionNav({
   );
 }
 
+export const countPill =
+  'shrink-0 rounded-full bg-brand-lime px-2 py-px text-xs font-semibold text-foreground tabular-nums';
+
 function SectionNavAnchor({
   icon: Icon,
+  count,
+  countUnit,
   className,
   children,
   ...props
-}: ComponentProps<'a'> & { icon: LucideIcon }) {
+}: ComponentProps<'a'> & { icon: LucideIcon; count?: number; countUnit?: string }) {
   const variant = useContext(SectionNavVariantContext);
   const open = props['aria-current'] === 'page';
   const folder = variant === 'folder';
@@ -261,6 +266,12 @@ function SectionNavAnchor({
         </span>
       ) : (
         children
+      )}
+      {count !== undefined && count > 0 && (
+        <span data-testid="section-nav-count" className={countPill}>
+          {count}
+          {countUnit && <span className="sr-only"> {countUnit}</span>}
+        </span>
       )}
     </a>
   );

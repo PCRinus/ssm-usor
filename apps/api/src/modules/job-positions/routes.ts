@@ -7,15 +7,16 @@ import {
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+} from '../../lib/openapi';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const jobPositionParams = clientParams.extend({ jobPositionId: z.uuid() });
 
-const noSuchClient = {
-  description: 'The client does not exist in the organization',
-  content: errorContent,
-};
 const noSuchJobPosition = {
   description: 'The job position does not exist under this client',
   content: errorContent,
@@ -50,7 +51,7 @@ export const listJobPositionsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -66,7 +67,7 @@ export const createJobPositionRoute = createRoute({
   responses: {
     201: { description: 'The job position', content: jobPositionContent },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
       description:
         'The client is archived (reason `client_archived`), or already has a position of this name (reason `job_position_name_taken`)',

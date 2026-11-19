@@ -16,18 +16,18 @@ import { ApiHttpError } from '@/api/http';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
+import { commonFailure } from '@/lib/api-errors';
 
 import { roleLabels } from './labels';
 import { refreshTeam } from './refresh-team';
 import type { Member } from './team-list';
 
 function actionMessage(cause: unknown, name: string) {
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) return maskPeople`${name} nu mai face parte din organizație.`;
     if (cause.status === 403) return 'Doar adminii organizației pot gestiona membrii.';
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-    }
   }
   return 'Acțiunea nu a reușit. Verifică conexiunea și încearcă din nou.';
 }

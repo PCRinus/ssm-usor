@@ -447,19 +447,40 @@ export interface Mapping {
   blockers: ImportBlocker[];
 }
 
-/**
- * The proposal with the member's changes, shaped as `apply_client_import` takes it (ADR 030,
- * docs/data-model.md), and what keeps it from being confirmed.
- */
-export function toClientPayload(input: {
+type PayloadInput = {
   proposal: Proposal;
   changes: ImportChanges | null;
   intoExistingClient: boolean;
   existing: ExistingRecords;
   registeredCompany?: RegisteredCompany | null;
-}): Mapping {
+};
+
+type Included<T> = { item: T; index: number; values: Record<string, unknown> };
+
+interface PayloadContext {
+  proposal: Proposal;
+  changes: ImportChanges;
+  existing: ExistingRecords;
+  intoExistingClient: boolean;
+  registeredCompany: RegisteredCompany | null | undefined;
+  blockers: ImportBlocker[];
+  block: (path: string, code: ImportBlocker['code']) => void;
+  quality: Quality;
+  flagged: (prefix: string) => Flag[];
+  included: <L extends ItemList>(
+    list: L,
+    proposedOf?: (item: Proposal[L][number]) => boolean,
+    options?: { leftOut?: (item: Proposal[L][number]) => boolean; blocks?: boolean }
+  ) => Included<Proposal[L][number]>[];
+  existingRow: (
+    rows: { id: string }[],
+    id: string | null | undefined,
+    path: string
+  ) => string | null | undefined;
+}
+
+function payloadContext(input: PayloadInput): PayloadContext {
   const { proposal, existing, intoExistingClient } = input;
-  const existingFire = decidedFireSafety(existing.fireSafety);
   const changes: ImportChanges = input.changes ?? { fields: {}, items: {} };
   const blockers: ImportBlocker[] = [];
   const block = (path: string, code: ImportBlocker['code']) => {
@@ -477,14 +498,98 @@ export function toClientPayload(input: {
         invalidCodes.has(flag.code) && (flag.path === prefix || flag.path.startsWith(`${prefix}.`))
     );
 
+  const included = <L extends ItemList>(
+    list: L,
+    proposedOf: (item: Proposal[L][number]) => boolean = proposedIncluded,
+    options: { leftOut?: (item: Proposal[L][number]) => boolean; blocks?: boolean } = {}
+  ): Included<Proposal[L][number]>[] => {
+    const items = proposal[list] as Proposal[L][number][];
+    const { leftOut = () => false, blocks = true } = options;
+    return items.flatMap((item, index) => {
+      if (leftOut(item)) return [];
+      const change: ItemChange | undefined = changes.items[item.id];
+      const proposed = proposedOf(item);
+      const take = change?.included ?? proposed;
+      // A suggested value is counted on its own, as kept, changed or left empty.
+      const suggested = (item as { suggested?: Record<string, unknown> }).suggested ?? {};
+      const edited = Object.keys(change?.values ?? {}).some((key) => !(key in suggested));
+      if (proposed && change?.included === false) quality[list].unticked++;
+      if (!take) return [];
+      if (edited || (!proposed && change?.included === true)) quality[list].changed++;
+      const written = change?.values ?? {};
+      const own = Object.fromEntries(
+        Object.entries(item as unknown as Record<string, unknown>).filter(
+          ([key]) => !referenceFields.has(key)
+        )
+      );
+      // A reference is in `values` only when the member set it; the proposal's is on the item.
+      const values: Record<string, unknown> = { ...own, ...written };
+      const parsed = (
+        itemSchemas[list] as unknown as z.ZodObject<Record<string, z.ZodType>>
+      ).safeParse({
+        ...(item as unknown as Record<string, unknown>),
+        ...Object.fromEntries(Object.entries(written).filter(([key]) => !referenceFields.has(key))),
+      });
+      if (!blocks) return [{ item, index, values }];
+      if (!parsed.success) block(`${list}.${index}`, 'invalid');
+      for (const flag of flagged(`${list}.${index}`)) {
+        const field = flag.path.split('.')[2];
+        const settledBy = field === undefined ? [] : (settlingFields[field] ?? [field]);
+        if (!settledBy.some((name) => name in written)) block(flag.path, 'invalid');
+      }
+      return [{ item, index, values }];
+    });
+  };
+
+  // The member picked the row on the review; it may have been archived since, or never be the
+  // client's, which the database would refuse as a broken payload.
+  const existingRow = (
+    rows: { id: string }[],
+    id: string | null | undefined,
+    path: string
+  ): string | null | undefined => {
+    if (id === undefined || id === null || !intoExistingClient) return id;
+    if (rows.some((row) => row.id === id)) return id;
+    block(path, 'unknown_reference');
+    return null;
+  };
+  return {
+    proposal,
+    changes,
+    existing,
+    intoExistingClient,
+    registeredCompany: input.registeredCompany,
+    blockers,
+    block,
+    quality,
+    flagged,
+    included,
+    existingRow,
+  };
+}
+
+const reference = (written: unknown, proposedId: string | null) =>
+  written === undefined ? proposedId : typeof written === 'string' ? written : null;
+
+function clientFields(ctx: PayloadContext) {
+  const {
+    proposal,
+    changes,
+    existing,
+    intoExistingClient,
+    registeredCompany,
+    blockers,
+    block,
+    quality,
+    flagged,
+  } = ctx;
+  const existingFire = decidedFireSafety(existing.fireSafety);
   const client: Row = {};
   const clientReplace: string[] = [];
   const fireSafety: Row = {};
   const fireReplace: string[] = [];
   const placeDropped = smokingPlaceDropped(proposal, changes, intoExistingClient, existing);
-  const anafName = intoExistingClient
-    ? null
-    : anafLegalName(proposal, changes, input.registeredCompany);
+  const anafName = intoExistingClient ? null : anafLegalName(proposal, changes, registeredCompany);
   const applyField = ({ section, path, field }: ReturnType<typeof fieldsOf>[number]) => {
     const change = changes.fields[path];
     const interval = intervalPaths[path];
@@ -556,73 +661,19 @@ export function toClientPayload(input: {
     if (vatPayer === 'true' || vatPayer === 'false') {
       client.vat_payer = vatPayer === 'true';
     } else if (
-      input.registeredCompany &&
+      registeredCompany &&
       client.cui !== undefined &&
-      input.registeredCompany.cui === client.cui
+      registeredCompany.cui === client.cui
     ) {
-      client.vat_payer = input.registeredCompany.vatPayer;
+      client.vat_payer = registeredCompany.vatPayer;
     }
   }
-  type Included<T> = { item: T; index: number; values: Record<string, unknown> };
-  const included = <L extends ItemList>(
-    list: L,
-    proposedOf: (item: Proposal[L][number]) => boolean = proposedIncluded,
-    options: { leftOut?: (item: Proposal[L][number]) => boolean; blocks?: boolean } = {}
-  ): Included<Proposal[L][number]>[] => {
-    const items = proposal[list] as Proposal[L][number][];
-    const { leftOut = () => false, blocks = true } = options;
-    return items.flatMap((item, index) => {
-      if (leftOut(item)) return [];
-      const change: ItemChange | undefined = changes.items[item.id];
-      const proposed = proposedOf(item);
-      const take = change?.included ?? proposed;
-      // A suggested value is counted on its own, as kept, changed or left empty.
-      const suggested = (item as { suggested?: Record<string, unknown> }).suggested ?? {};
-      const edited = Object.keys(change?.values ?? {}).some((key) => !(key in suggested));
-      if (proposed && change?.included === false) quality[list].unticked++;
-      if (!take) return [];
-      if (edited || (!proposed && change?.included === true)) quality[list].changed++;
-      const written = change?.values ?? {};
-      const own = Object.fromEntries(
-        Object.entries(item as unknown as Record<string, unknown>).filter(
-          ([key]) => !referenceFields.has(key)
-        )
-      );
-      // A reference is in `values` only when the member set it; the proposal's is on the item.
-      const values: Record<string, unknown> = { ...own, ...written };
-      const parsed = (
-        itemSchemas[list] as unknown as z.ZodObject<Record<string, z.ZodType>>
-      ).safeParse({
-        ...(item as unknown as Record<string, unknown>),
-        ...Object.fromEntries(Object.entries(written).filter(([key]) => !referenceFields.has(key))),
-      });
-      if (!blocks) return [{ item, index, values }];
-      if (!parsed.success) block(`${list}.${index}`, 'invalid');
-      for (const flag of flagged(`${list}.${index}`)) {
-        const field = flag.path.split('.')[2];
-        const settledBy = field === undefined ? [] : (settlingFields[field] ?? [field]);
-        if (!settledBy.some((name) => name in written)) block(flag.path, 'invalid');
-      }
-      return [{ item, index, values }];
-    });
-  };
+  return { client, clientReplace, fireSafety, fireReplace, existingFire, applyField };
+}
 
-  const reference = (written: unknown, proposedId: string | null) =>
-    written === undefined ? proposedId : typeof written === 'string' ? written : null;
-
-  // The member picked the row on the review; it may have been archived since, or never be the
-  // client's, which the database would refuse as a broken payload.
-  const existingRow = (
-    rows: { id: string }[],
-    id: string | null | undefined,
-    path: string
-  ): string | null | undefined => {
-    if (id === undefined || id === null || !intoExistingClient) return id;
-    if (rows.some((row) => row.id === id)) return id;
-    block(path, 'unknown_reference');
-    return null;
-  };
-
+function workplacesOf(ctx: PayloadContext) {
+  const { changes, existing, intoExistingClient, blockers, block, quality, included, existingRow } =
+    ctx;
   const workplaceKeys = new Set<string>();
   // By the proposal's workplace id, and by the client's own id for an existing office.
   const inactiveOffices = new Set<string>();
@@ -766,7 +817,11 @@ export function toClientPayload(input: {
   };
   const atInactiveOffice = (reference: Row) =>
     inactiveOffices.has(String(reference.workplace_key ?? reference.workplace_id));
+  return { workplaces, workplaceKeys, inactiveOffices, workplaceReference, atInactiveOffice };
+}
 
+function positionsOf(ctx: PayloadContext) {
+  const { proposal, changes, existing, intoExistingClient, block, included, existingRow } = ctx;
   const positionKeys = new Set<string>();
   const positionValues = included('jobPositions');
   const jobPositions = positionValues.map(({ item, index, values }) => {
@@ -837,7 +892,11 @@ export function toClientPayload(input: {
       ];
     }
   );
+  return { jobPositions, positionValues, equipment, positionReference };
+}
 
+function employeesOf(ctx: PayloadContext, { positionReference }: ReturnType<typeof positionsOf>) {
+  const { existing, intoExistingClient, block, quality, included } = ctx;
   const employeeKeys = new Map<string, string>();
   const existingEmployeeOf = (values: Record<string, unknown>) =>
     existing.employees.find(
@@ -903,8 +962,16 @@ export function toClientPayload(input: {
     if (required) block(path, 'missing');
     return {};
   };
+  return { employees, employeeReference };
+}
 
-  const responsiblePersons = included('responsiblePersons').flatMap(({ item, index, values }) => {
+function responsiblePersonsOf(
+  ctx: PayloadContext,
+  { workplaceReference }: ReturnType<typeof workplacesOf>,
+  { employeeReference }: ReturnType<typeof employeesOf>
+) {
+  const { existing, intoExistingClient, block, quality, included } = ctx;
+  return included('responsiblePersons').flatMap(({ item, index, values }) => {
     const fullName = String(values.fullName ?? '');
     if (
       intoExistingClient &&
@@ -939,7 +1006,18 @@ export function toClientPayload(input: {
       }),
     ];
   });
+}
 
+function fireEquipmentOf(
+  ctx: PayloadContext,
+  {
+    workplaceKeys,
+    inactiveOffices,
+    workplaceReference,
+    atInactiveOffice,
+  }: ReturnType<typeof workplacesOf>
+) {
+  const { proposal, changes, block, included } = ctx;
   const notCounted = new Set<string>();
   for (const count of proposal.fireEquipmentCounts) {
     // A workplace left out, or an office with no activity, takes none of these means, so which
@@ -960,7 +1038,7 @@ export function toClientPayload(input: {
     }
   }
   // A tick kept from before the member chose another file's count would add its units again.
-  const fireEquipment = included('fireEquipment', proposedIncluded, {
+  return included('fireEquipment', proposedIncluded, {
     leftOut: (item) => notCounted.has(item.id),
   }).flatMap(({ item, index, values }) => {
     const workplace = workplaceReference(
@@ -980,7 +1058,13 @@ export function toClientPayload(input: {
     });
     return Array.from({ length: Math.min(count, 999) }, () => ({ ...unit }));
   });
+}
 
+function markUnequippedPositions({
+  jobPositions,
+  positionValues,
+  equipment,
+}: ReturnType<typeof positionsOf>) {
   // A post's decision that it needs no equipment goes only where none of its entries is written,
   // since an entry decides that it needs some.
   const equippedPositions = new Set(
@@ -996,8 +1080,14 @@ export function toClientPayload(input: {
       row.needs_protective_equipment = false;
     }
   }
+}
 
-  const fireInstallations = included('fireInstallations').flatMap(({ item, index, values }) => {
+function fireInstallationsOf(
+  ctx: PayloadContext,
+  { workplaceReference, atInactiveOffice }: ReturnType<typeof workplacesOf>
+) {
+  const { included } = ctx;
+  return included('fireInstallations').flatMap(({ item, index, values }) => {
     const workplace = workplaceReference(
       reference(values.workplace, item.workplace.id),
       `fireInstallations.${index}.workplace`,
@@ -1006,7 +1096,10 @@ export function toClientPayload(input: {
     if (!workplace || atInactiveOffice(workplace)) return [];
     return [dropEmpty({ ...workplace, kind: values.kind, description: values.description })];
   });
+}
 
+function countRenamedPositions(ctx: PayloadContext, jobPositions: Row[]) {
+  const { existing, intoExistingClient, quality } = ctx;
   if (intoExistingClient) {
     for (const row of jobPositions) {
       const known = row.id
@@ -1024,7 +1117,15 @@ export function toClientPayload(input: {
       }
     }
   }
+}
 
+function schedulesAndSubstances(
+  ctx: PayloadContext,
+  fields: ReturnType<typeof clientFields>,
+  jobPositions: Row[]
+) {
+  const { proposal, existing, intoExistingClient, block, quality, included } = ctx;
+  const { client, clientReplace, fireSafety, fireReplace, existingFire, applyField } = fields;
   const withPosts = staffCategoriesWithPosts(
     postsAfterImport(
       intoExistingClient
@@ -1148,21 +1249,41 @@ export function toClientPayload(input: {
       if (!replace.includes(column)) client.replace = [...replace, column];
     }
   }
+  return fireSubstances;
+}
+
+/**
+ * The proposal with the member's changes, shaped as `apply_client_import` takes it (ADR 030,
+ * docs/data-model.md), and what keeps it from being confirmed.
+ */
+export function toClientPayload(input: PayloadInput): Mapping {
+  const ctx = payloadContext(input);
+  const fields = clientFields(ctx);
+  const workplaces = workplacesOf(ctx);
+  const positions = positionsOf(ctx);
+  const employees = employeesOf(ctx, positions);
+  const responsiblePersons = responsiblePersonsOf(ctx, workplaces, employees);
+  const fireEquipment = fireEquipmentOf(ctx, workplaces);
+  markUnequippedPositions(positions);
+  const fireInstallations = fireInstallationsOf(ctx, workplaces);
+  countRenamedPositions(ctx, positions.jobPositions);
+  const fireSubstances = schedulesAndSubstances(ctx, fields, positions.jobPositions);
+  const { client, fireSafety } = fields;
 
   const payload: ClientImportPayload = {
     client,
-    workplaces,
-    job_positions: jobPositions,
-    equipment,
-    employees,
+    workplaces: workplaces.workplaces,
+    job_positions: positions.jobPositions,
+    equipment: positions.equipment,
+    employees: employees.employees,
     responsible_persons: responsiblePersons,
     fire_equipment: fireEquipment,
     fire_installations: fireInstallations,
     fire_substances: fireSubstances,
-    quality,
+    quality: ctx.quality,
   };
   if (Object.keys(fireSafety).length > 0) payload.fire_safety = fireSafety;
-  return { payload, blockers };
+  return { payload, blockers: ctx.blockers };
 }
 
 function dropEmpty(row: Row): Row {

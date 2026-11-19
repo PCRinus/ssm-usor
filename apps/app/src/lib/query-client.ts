@@ -4,7 +4,7 @@ import { MutationCache, QueryClient } from '@tanstack/react-query';
 import { getGetMeQueryKey, getGetMySetupGuideQueryKey, type SetupGuide } from '@/api/generated/api';
 import { isOffersNotInPlanError } from '@/features/clients/offers-plan';
 import { setupGuideMutationKeys } from '@/features/setup-guide/guide-mutation-keys';
-import { isReadOnlyError } from '@/features/subscription/read-only';
+import { isReadOnlyError } from '@/lib/api-errors';
 
 // A loop of changes, such as an import's rows, asks for the guide once.
 const guideRefetchDelay = 300;

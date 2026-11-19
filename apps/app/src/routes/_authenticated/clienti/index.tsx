@@ -59,6 +59,7 @@ import { roCount } from '@/features/employees/employee-format';
 import { ImportListCard } from '@/features/imports/import-list-card';
 import { ImportUploadDialog } from '@/features/imports/import-upload-dialog';
 import { StartWays } from '@/features/imports/start-ways';
+import { sessionExpiredMessage } from '@/lib/api-errors';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 const defaultSort: DataTableSort & { sort: ClientSortKey } = { sort: 'legalName', order: 'asc' };
@@ -406,7 +407,7 @@ function ClientsPage() {
             <>
               <p data-testid="clients-error" role="alert" className="text-sm">
                 {clients.error instanceof ApiHttpError && clients.error.status === 401
-                  ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+                  ? sessionExpiredMessage
                   : clients.error instanceof ApiHttpError && clients.error.status === 403
                     ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'
                     : 'Nu am putut încărca lista clienților. Încearcă din nou.'}

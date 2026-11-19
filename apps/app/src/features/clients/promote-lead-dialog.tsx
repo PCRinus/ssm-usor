@@ -14,16 +14,16 @@ import { useState } from 'react';
 import { getGetClientQueryKey, getListClientsQueryKey, usePromoteLead } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { commonFailure } from '@/lib/api-errors';
 
 function serverMessage(cause: unknown) {
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) return 'Oferta nu mai există în organizația ta.';
     if (cause.status === 409) return 'Oferta este arhivată. Reactivează-o mai întâi.';
     if (cause.status === 403) {
       return 'Doar un admin al organizației poate transforma o ofertă în client.';
-    }
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
   }
   return 'Nu am putut face transformarea. Verifică conexiunea și încearcă din nou.';

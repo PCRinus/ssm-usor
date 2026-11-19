@@ -45,11 +45,11 @@ try {
         .parse(process.env);
   const client = createLegislationClient(config.url, config.secret ?? secretFromCli(config.url));
 
-  const { acts } = legalActsSchema.parse(
-    values.acts
-      ? JSON.parse(readFileSync(path.resolve(process.env.INIT_CWD ?? '.', values.acts), 'utf8'))
-      : { acts: legalActs() }
-  );
+  const acts = values.acts
+    ? legalActsSchema.parse(
+        JSON.parse(readFileSync(path.resolve(process.env.INIT_CWD ?? '.', values.acts), 'utf8'))
+      ).acts
+    : legalActs();
   const portal = portalOptionsFromEnv(process.env);
   const run = await runLegislationCheck(client, acts, {
     portal,

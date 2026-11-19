@@ -12,7 +12,7 @@ import type { Database } from '../src/database.types';
 import { changeFilter, readOpenChanges, readRuns } from './lib/legislation-fix/changes';
 import { runLegislationFix } from './lib/legislation-fix/fix';
 import { createGitHub } from './lib/legislation-fix/github';
-import { gitAt, replaceQuoteTool, templatesAt } from './lib/legislation-fix/workspace';
+import { gitAt, quoteToolAt, templatesAt } from './lib/legislation-fix/workspace';
 import { localSupabase } from './lib/supabase-cli';
 
 // legislation-fix.yml runs this every morning after production's legislation check (ADR 017):
@@ -66,13 +66,14 @@ try {
       ? createModelClient({ baseUrl: env.AI_GATEWAY_URL, token: env.AI_GATEWAY_TOKEN })
       : null;
   const acts = legalActs();
+  const templates = new URL('packages/document-engine/templates/', root);
 
   const report = await runLegislationFix(
     {
       changes: () => readOpenChanges(db),
       runs: () => readRuns(db),
-      templates: templatesAt(new URL('packages/document-engine/templates/', root)),
-      tool: replaceQuoteTool,
+      templates: templatesAt(templates),
+      tool: quoteToolAt(templates),
       git: gitAt(root, { pushToken: env.LEGISLATION_APP_TOKEN }),
       github: env.GITHUB_TOKEN
         ? createGitHub({

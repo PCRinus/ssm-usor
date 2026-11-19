@@ -89,6 +89,14 @@ export const archivedClientError = () =>
 // Raised by the triggers that keep employees, positions, workplaces and documents off a lead.
 const leadCode = 'CLL01';
 
+export const clientIsLeadError = () =>
+  new ApiError(
+    'conflict',
+    'The company is still a lead; it has no safety records until it is promoted.',
+    undefined,
+    clientConflictReasons.clientIsLead
+  );
+
 // Raised by the triggers that keep a lead as it is on a plan without offers.
 const offersNotInPlanCode = 'CLL03';
 
@@ -200,12 +208,7 @@ export function fromDatabaseError(error: PostgrestError, context: string): ApiEr
     case archivedClientCode:
       return archivedClientError();
     case leadCode:
-      return new ApiError(
-        'conflict',
-        'The company is still a lead; it has no safety records until it is promoted.',
-        undefined,
-        clientConflictReasons.clientIsLead
-      );
+      return clientIsLeadError();
     case employeesOverStepCode:
       return employeesOverStepError();
     case offersNotInPlanCode:

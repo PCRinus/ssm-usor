@@ -21,6 +21,8 @@ import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
+import { useBehindSummary } from '@/features/legislation/use-behind-summary';
+import { sessionExpiredMessage } from '@/lib/api-errors';
 
 import {
   countOf,
@@ -99,7 +101,7 @@ export function DashboardPage() {
           }
         >
           {summary.error instanceof ApiHttpError && summary.error.status === 401
-            ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+            ? sessionExpiredMessage
             : 'Nu am putut încărca cifrele dashboardului.'}
         </Notice>
       ) : data ? (
@@ -114,11 +116,18 @@ export function DashboardPage() {
 const withCount = (items: CardItem[]) => items.filter((item) => item.count > 0);
 
 const todoTotal = (data: DashboardSummary) =>
-  data.todo.mySignatures + data.todo.draftsToIssue + data.todo.clientsMissingData;
+  data.todo.mySignatures +
+  data.todo.draftsToIssue +
+  data.todo.clientsMissingData +
+  data.todo.documentsBehind;
 
 function DashboardSections({ data, now }: { data: DashboardSummary; now: Date }) {
   const { todo, trainings, nextDue, portfolio, contracts } = data;
   const total = todoTotal(data);
+  const behindCounts = useBehindSummary().data?.counts;
+  const suOnly = Boolean(
+    behindCounts && behindCounts.occupational_safety === 0 && behindCounts.fire_safety > 0
+  );
   const tiles = withCount([
     {
       icon: PenLine,
@@ -144,6 +153,14 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
       alert: true,
       target: dashboardLinks.clients(),
       testId: 'dashboard-todo-missing-data',
+    },
+    {
+      icon: RefreshCw,
+      count: todo.documentsBehind,
+      label: nounFor(todo.documentsBehind, 'document de actualizat', 'documente de actualizat'),
+      detail: 'Șablonul sau instrucțiunile s-au schimbat după emitere',
+      target: dashboardLinks.documentsBehind(suOnly),
+      testId: 'dashboard-documents-behind',
     },
   ]);
   const waiting = withCount([
@@ -247,24 +264,6 @@ function DashboardSections({ data, now }: { data: DashboardSummary; now: Date })
           <div className="border-t border-muted">
             <TrainingRow domain="su" counts={trainings.su} />
           </div>
-          {todo.documentsBehind > 0 && (
-            <div className="border-t border-muted py-1.5">
-              <DashboardItem
-                icon={RefreshCw}
-                tone="ink"
-                surface="row"
-                count={todo.documentsBehind}
-                label={nounFor(
-                  todo.documentsBehind,
-                  'document de actualizat',
-                  'documente de actualizat'
-                )}
-                detail="Șablonul sau instrucțiunile s-au schimbat după emitere"
-                target={dashboardLinks.documentsBehind()}
-                testId="dashboard-documents-behind"
-              />
-            </div>
-          )}
         </div>
       </section>
 

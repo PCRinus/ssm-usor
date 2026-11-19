@@ -2,7 +2,7 @@ import type { MissingServiceContractData, ServiceContract } from '@ssm-usor/cont
 
 import type { Database } from '../../database.types';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
-import { ApiError } from '../../lib/errors';
+import { clientNotFound } from '../clients/lookup';
 
 type Tables = Database['public']['Tables'];
 
@@ -92,9 +92,7 @@ export async function loadServiceContractFacts(
     db.from('service_contracts').select(contractColumns).eq('client_id', clientId).maybeSingle(),
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'contract facts: client');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   if (organization.error)
     throw fromDatabaseError(organization.error, 'contract facts: organization');
   if (contract.error) throw fromDatabaseError(contract.error, 'contract facts: contract');

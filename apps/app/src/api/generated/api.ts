@@ -7346,6 +7346,14 @@ export interface ReadSafetySheetResponse {
   credits: number;
 }
 
+export type DocumentsBehindResponseItemsItemSet =
+  (typeof DocumentsBehindResponseItemsItemSet)[keyof typeof DocumentsBehindResponseItemsItemSet];
+
+export const DocumentsBehindResponseItemsItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
 export type DocumentsBehindResponseItemsItemNewestVersionKind =
   (typeof DocumentsBehindResponseItemsItemNewestVersionKind)[keyof typeof DocumentsBehindResponseItemsItemNewestVersionKind];
 
@@ -7361,6 +7369,11 @@ export type DocumentsBehindResponseItemsItemNewestVersion = {
   kind: DocumentsBehindResponseItemsItemNewestVersionKind;
   /** @nullable */
   note: string | null;
+};
+
+export type DocumentsBehindResponseItemsItemLegalChangesItem = {
+  id: string;
+  actName: string;
 };
 
 export type DocumentsBehindResponseItemsItemClientsItemInstructionChangesItemCode =
@@ -7379,6 +7392,14 @@ export type DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem = 
   newestVersionAt: string | null;
 };
 
+export type DocumentsBehindResponseItemsItemClientsItemStatus =
+  (typeof DocumentsBehindResponseItemsItemClientsItemStatus)[keyof typeof DocumentsBehindResponseItemsItemClientsItemStatus];
+
+export const DocumentsBehindResponseItemsItemClientsItemStatus = {
+  draft: 'draft',
+  issued: 'issued',
+} as const;
+
 export type DocumentsBehindResponseItemsItemClientsItem = {
   documentId: string;
   clientId: string;
@@ -7388,12 +7409,17 @@ export type DocumentsBehindResponseItemsItemClientsItem = {
   editedDraft: boolean;
   behindTemplate: boolean;
   instructionChanges: DocumentsBehindResponseItemsItemClientsItemInstructionChangesItem[];
+  status: DocumentsBehindResponseItemsItemClientsItemStatus;
+  /** @nullable */
+  issueDate: string | null;
 };
 
 export type DocumentsBehindResponseItemsItem = {
   typeKey: string;
   title: string;
+  set: DocumentsBehindResponseItemsItemSet;
   newestVersion: DocumentsBehindResponseItemsItemNewestVersion;
+  legalChanges: DocumentsBehindResponseItemsItemLegalChangesItem[];
   /** @nullable */
   runningJobId: string | null;
   clients: DocumentsBehindResponseItemsItemClientsItem[];
@@ -7401,6 +7427,42 @@ export type DocumentsBehindResponseItemsItem = {
 
 export interface DocumentsBehindResponse {
   items: DocumentsBehindResponseItemsItem[];
+}
+
+export type DocumentsBehindSummaryCounts = {
+  /** @minimum 0 */
+  occupational_safety: number;
+  /** @minimum 0 */
+  fire_safety: number;
+};
+
+export type DocumentsBehindSummaryRunningItemSet =
+  (typeof DocumentsBehindSummaryRunningItemSet)[keyof typeof DocumentsBehindSummaryRunningItemSet];
+
+export const DocumentsBehindSummaryRunningItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type DocumentsBehindSummaryRunningItem = {
+  id: string;
+  typeKey: string;
+  set: DocumentsBehindSummaryRunningItemSet;
+  /** @nullable */
+  requestedBy: string | null;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  done: number;
+  /** @minimum 0 */
+  skipped: number;
+  /** @minimum 0 */
+  failed: number;
+};
+
+export interface DocumentsBehindSummary {
+  counts: DocumentsBehindSummaryCounts;
+  running: DocumentsBehindSummaryRunningItem[];
 }
 
 export type RegenerationJobResponseJobItemsItemStatus =
@@ -7545,6 +7607,47 @@ export const StartRegenerationRequestTypeKey = {
 
 export interface StartRegenerationRequest {
   typeKey: StartRegenerationRequestTypeKey;
+}
+
+export type SetRegenerationResponseJobsItemSet =
+  (typeof SetRegenerationResponseJobsItemSet)[keyof typeof SetRegenerationResponseJobsItemSet];
+
+export const SetRegenerationResponseJobsItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type SetRegenerationResponseJobsItem = {
+  id: string;
+  typeKey: string;
+  set: SetRegenerationResponseJobsItemSet;
+  /** @nullable */
+  requestedBy: string | null;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  done: number;
+  /** @minimum 0 */
+  skipped: number;
+  /** @minimum 0 */
+  failed: number;
+};
+
+export interface SetRegenerationResponse {
+  jobs: SetRegenerationResponseJobsItem[];
+  notStarted: string[];
+}
+
+export type StartSetRegenerationRequestSet =
+  (typeof StartSetRegenerationRequestSet)[keyof typeof StartSetRegenerationRequestSet];
+
+export const StartSetRegenerationRequestSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export interface StartSetRegenerationRequest {
+  set: StartSetRegenerationRequestSet;
 }
 
 export type DocumentReadinessResponseMissingItem =
@@ -14577,7 +14680,7 @@ export interface LegalActListResponse {
   items: LegalActListResponseItemsItem[];
 }
 
-export type LegalChangeListResponseItemsItemAct = {
+export type OpenLegalChangeListResponseItemsItemAct = {
   id: string;
   name: string;
   /**
@@ -14585,12 +14688,169 @@ export type LegalChangeListResponseItemsItemAct = {
    * @nullable
    */
   portalId: number | null;
+  /** @nullable */
+  subject: string | null;
 };
 
-export type LegalChangeListResponseItemsItemResolution =
-  (typeof LegalChangeListResponseItemsItemResolution)[keyof typeof LegalChangeListResponseItemsItemResolution];
+/**
+ * @nullable
+ */
+export type OpenLegalChangeListResponseItemsItemOutcome =
+  | (typeof OpenLegalChangeListResponseItemsItemOutcome)[keyof typeof OpenLegalChangeListResponseItemsItemOutcome]
+  | null;
 
-export const LegalChangeListResponseItemsItemResolution = {
+export const OpenLegalChangeListResponseItemsItemOutcome = {
+  no_impact: 'no_impact',
+  quote_differs: 'quote_differs',
+  needs_review: 'needs_review',
+} as const;
+
+export type OpenLegalChangeListResponseItemsItemTouchedDocumentsItemSet =
+  (typeof OpenLegalChangeListResponseItemsItemTouchedDocumentsItemSet)[keyof typeof OpenLegalChangeListResponseItemsItemTouchedDocumentsItemSet];
+
+export const OpenLegalChangeListResponseItemsItemTouchedDocumentsItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type OpenLegalChangeListResponseItemsItemTouchedDocumentsItem = {
+  typeKey: string;
+  title: string;
+  set: OpenLegalChangeListResponseItemsItemTouchedDocumentsItemSet;
+};
+
+export type OpenLegalChangeListResponseItemsItemTouched = {
+  documents: OpenLegalChangeListResponseItemsItemTouchedDocumentsItem[];
+  units: string[];
+};
+
+export type OpenLegalChangeListResponseItemsItemCitedByItemSet =
+  (typeof OpenLegalChangeListResponseItemsItemCitedByItemSet)[keyof typeof OpenLegalChangeListResponseItemsItemCitedByItemSet];
+
+export const OpenLegalChangeListResponseItemsItemCitedByItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type OpenLegalChangeListResponseItemsItemCitedByItem = {
+  typeKey: string;
+  title: string;
+  set: OpenLegalChangeListResponseItemsItemCitedByItemSet;
+};
+
+export type OpenLegalChangeListResponseItemsItem = {
+  id: string;
+  act: OpenLegalChangeListResponseItemsItemAct;
+  consolidatedOn: string;
+  seenAt: string;
+  /** @nullable */
+  outcome: OpenLegalChangeListResponseItemsItemOutcome;
+  touched: OpenLegalChangeListResponseItemsItemTouched;
+  citedBy: OpenLegalChangeListResponseItemsItemCitedByItem[];
+};
+
+export interface OpenLegalChangeListResponse {
+  items: OpenLegalChangeListResponseItemsItem[];
+}
+
+export type AppliedLegalChangeListResponseItemsItemAct = {
+  id: string;
+  name: string;
+  /**
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  portalId: number | null;
+  /** @nullable */
+  subject: string | null;
+};
+
+export type AppliedLegalChangeListResponseItemsItemUpdatedDocumentsItemSet =
+  (typeof AppliedLegalChangeListResponseItemsItemUpdatedDocumentsItemSet)[keyof typeof AppliedLegalChangeListResponseItemsItemUpdatedDocumentsItemSet];
+
+export const AppliedLegalChangeListResponseItemsItemUpdatedDocumentsItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type AppliedLegalChangeListResponseItemsItemUpdatedDocumentsItem = {
+  typeKey: string;
+  title: string;
+  set: AppliedLegalChangeListResponseItemsItemUpdatedDocumentsItemSet;
+  /** @exclusiveMinimum 0 */
+  version: number;
+  /** @nullable */
+  note: string | null;
+  registeredAt: string;
+};
+
+export type AppliedLegalChangeListResponseItemsItemBehindTypesItemSet =
+  (typeof AppliedLegalChangeListResponseItemsItemBehindTypesItemSet)[keyof typeof AppliedLegalChangeListResponseItemsItemBehindTypesItemSet];
+
+export const AppliedLegalChangeListResponseItemsItemBehindTypesItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type AppliedLegalChangeListResponseItemsItemBehindTypesItem = {
+  typeKey: string;
+  title: string;
+  set: AppliedLegalChangeListResponseItemsItemBehindTypesItemSet;
+  /** @exclusiveMinimum 0 */
+  documents: number;
+  /** @exclusiveMinimum 0 */
+  clients: number;
+};
+
+export type AppliedLegalChangeListResponseItemsItemBehind = {
+  /** @minimum 0 */
+  documents: number;
+  /** @minimum 0 */
+  clients: number;
+  types: AppliedLegalChangeListResponseItemsItemBehindTypesItem[];
+};
+
+export type AppliedLegalChangeListResponseItemsItem = {
+  id: string;
+  act: AppliedLegalChangeListResponseItemsItemAct;
+  consolidatedOn: string;
+  seenAt: string;
+  appliedAt: string;
+  /** @nullable */
+  note: string | null;
+  updatedDocuments: AppliedLegalChangeListResponseItemsItemUpdatedDocumentsItem[];
+  behind: AppliedLegalChangeListResponseItemsItemBehind;
+};
+
+export interface AppliedLegalChangeListResponse {
+  items: AppliedLegalChangeListResponseItemsItem[];
+  /** @minimum 1 */
+  page: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize: number;
+  /** @minimum 0 */
+  total: number;
+}
+
+export type LegalChangeDetailResponseChangeAct = {
+  id: string;
+  name: string;
+  /**
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  portalId: number | null;
+  /** @nullable */
+  subject: string | null;
+};
+
+export type LegalChangeDetailResponseChangeResolution =
+  (typeof LegalChangeDetailResponseChangeResolution)[keyof typeof LegalChangeDetailResponseChangeResolution];
+
+export const LegalChangeDetailResponseChangeResolution = {
   open: 'open',
   no_impact: 'no_impact',
   template_version: 'template_version',
@@ -14599,26 +14859,31 @@ export const LegalChangeListResponseItemsItemResolution = {
 /**
  * @nullable
  */
-export type LegalChangeListResponseItemsItemOutcome =
-  | (typeof LegalChangeListResponseItemsItemOutcome)[keyof typeof LegalChangeListResponseItemsItemOutcome]
+export type LegalChangeDetailResponseChangeOutcome =
+  | (typeof LegalChangeDetailResponseChangeOutcome)[keyof typeof LegalChangeDetailResponseChangeOutcome]
   | null;
 
-export const LegalChangeListResponseItemsItemOutcome = {
+export const LegalChangeDetailResponseChangeOutcome = {
   no_impact: 'no_impact',
   quote_differs: 'quote_differs',
   needs_review: 'needs_review',
 } as const;
 
-export type LegalChangeListResponseItemsItemAmendingActsItem = {
+export type LegalChangeDetailResponseChangeAmendingActsItem = {
   name: string;
   /** @nullable */
   adoptedOn: string | null;
+  /**
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  portalId: number | null;
 };
 
-export type LegalChangeListResponseItemsItemAmendedUnitsItemOperation =
-  (typeof LegalChangeListResponseItemsItemAmendedUnitsItemOperation)[keyof typeof LegalChangeListResponseItemsItemAmendedUnitsItemOperation];
+export type LegalChangeDetailResponseChangeAmendedUnitsItemOperation =
+  (typeof LegalChangeDetailResponseChangeAmendedUnitsItemOperation)[keyof typeof LegalChangeDetailResponseChangeAmendedUnitsItemOperation];
 
-export const LegalChangeListResponseItemsItemAmendedUnitsItemOperation = {
+export const LegalChangeDetailResponseChangeAmendedUnitsItemOperation = {
   modified: 'modified',
   supplemented: 'supplemented',
   inserted: 'inserted',
@@ -14626,9 +14891,9 @@ export const LegalChangeListResponseItemsItemAmendedUnitsItemOperation = {
   other: 'other',
 } as const;
 
-export type LegalChangeListResponseItemsItemAmendedUnitsItem = {
+export type LegalChangeDetailResponseChangeAmendedUnitsItem = {
   unit: string;
-  operation: LegalChangeListResponseItemsItemAmendedUnitsItemOperation;
+  operation: LegalChangeDetailResponseChangeAmendedUnitsItemOperation;
   date: string;
   /** @nullable */
   amendingAct: string | null;
@@ -14637,23 +14902,23 @@ export type LegalChangeListResponseItemsItemAmendedUnitsItem = {
 /**
  * @nullable
  */
-export type LegalChangeListResponseItemsItemPassagesItemDocument = {
+export type LegalChangeDetailResponseChangePassagesItemDocument = {
   typeKey: string;
   title: string;
 } | null;
 
-export type LegalChangeListResponseItemsItemPassagesItemCitationForm =
-  (typeof LegalChangeListResponseItemsItemPassagesItemCitationForm)[keyof typeof LegalChangeListResponseItemsItemPassagesItemCitationForm];
+export type LegalChangeDetailResponseChangePassagesItemCitationForm =
+  (typeof LegalChangeDetailResponseChangePassagesItemCitationForm)[keyof typeof LegalChangeDetailResponseChangePassagesItemCitationForm];
 
-export const LegalChangeListResponseItemsItemPassagesItemCitationForm = {
+export const LegalChangeDetailResponseChangePassagesItemCitationForm = {
   quote: 'quote',
   reference: 'reference',
 } as const;
 
-export type LegalChangeListResponseItemsItemPassagesItemStatus =
-  (typeof LegalChangeListResponseItemsItemPassagesItemStatus)[keyof typeof LegalChangeListResponseItemsItemPassagesItemStatus];
+export type LegalChangeDetailResponseChangePassagesItemStatus =
+  (typeof LegalChangeDetailResponseChangePassagesItemStatus)[keyof typeof LegalChangeDetailResponseChangePassagesItemStatus];
 
-export const LegalChangeListResponseItemsItemPassagesItemStatus = {
+export const LegalChangeDetailResponseChangePassagesItemStatus = {
   changed: 'changed',
   added: 'added',
   repealed: 'repealed',
@@ -14661,61 +14926,117 @@ export const LegalChangeListResponseItemsItemPassagesItemStatus = {
   uncompared: 'uncompared',
 } as const;
 
-export type LegalChangeListResponseItemsItemPassagesItemHunksItem = {
+export type LegalChangeDetailResponseChangePassagesItemHunksItem = {
   old: string;
   new: string;
   before: string;
   after: string;
 };
 
-export type LegalChangeListResponseItemsItemPassagesItem = {
+export type LegalChangeDetailResponseChangePassagesItem = {
   id: string;
   templateFile: string;
   /** @nullable */
-  document: LegalChangeListResponseItemsItemPassagesItemDocument;
-  citationForm: LegalChangeListResponseItemsItemPassagesItemCitationForm;
+  document: LegalChangeDetailResponseChangePassagesItemDocument;
+  citationForm: LegalChangeDetailResponseChangePassagesItemCitationForm;
   /** @nullable */
   locator: string | null;
   unit: string;
-  status: LegalChangeListResponseItemsItemPassagesItemStatus;
+  status: LegalChangeDetailResponseChangePassagesItemStatus;
   /** @nullable */
   oldText: string | null;
   /** @nullable */
   newText: string | null;
-  hunks: LegalChangeListResponseItemsItemPassagesItemHunksItem[];
+  hunks: LegalChangeDetailResponseChangePassagesItemHunksItem[];
 };
 
-export type LegalChangeListResponseItemsItemUpdatedDocumentsItem = {
+export type LegalChangeDetailResponseChangeUpdatedDocumentsItemSet =
+  (typeof LegalChangeDetailResponseChangeUpdatedDocumentsItemSet)[keyof typeof LegalChangeDetailResponseChangeUpdatedDocumentsItemSet];
+
+export const LegalChangeDetailResponseChangeUpdatedDocumentsItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type LegalChangeDetailResponseChangeUpdatedDocumentsItem = {
   typeKey: string;
   title: string;
+  set: LegalChangeDetailResponseChangeUpdatedDocumentsItemSet;
+  /** @exclusiveMinimum 0 */
+  version: number;
+  /** @nullable */
+  note: string | null;
+  registeredAt: string;
 };
 
-export type LegalChangeListResponseItemsItem = {
+export type LegalChangeDetailResponseChangeCitedByItemSet =
+  (typeof LegalChangeDetailResponseChangeCitedByItemSet)[keyof typeof LegalChangeDetailResponseChangeCitedByItemSet];
+
+export const LegalChangeDetailResponseChangeCitedByItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type LegalChangeDetailResponseChangeCitedByItem = {
+  typeKey: string;
+  title: string;
+  set: LegalChangeDetailResponseChangeCitedByItemSet;
+};
+
+export type LegalChangeDetailResponseChangeBehindTypesItemSet =
+  (typeof LegalChangeDetailResponseChangeBehindTypesItemSet)[keyof typeof LegalChangeDetailResponseChangeBehindTypesItemSet];
+
+export const LegalChangeDetailResponseChangeBehindTypesItemSet = {
+  occupational_safety: 'occupational_safety',
+  fire_safety: 'fire_safety',
+} as const;
+
+export type LegalChangeDetailResponseChangeBehindTypesItem = {
+  typeKey: string;
+  title: string;
+  set: LegalChangeDetailResponseChangeBehindTypesItemSet;
+  /** @exclusiveMinimum 0 */
+  documents: number;
+  /** @exclusiveMinimum 0 */
+  clients: number;
+};
+
+export type LegalChangeDetailResponseChangeBehind = {
+  /** @minimum 0 */
+  documents: number;
+  /** @minimum 0 */
+  clients: number;
+  types: LegalChangeDetailResponseChangeBehindTypesItem[];
+};
+
+export type LegalChangeDetailResponseChange = {
   id: string;
-  act: LegalChangeListResponseItemsItemAct;
+  act: LegalChangeDetailResponseChangeAct;
   seenAt: string;
   consolidatedOn: string;
   /** @nullable */
   amendingAct: string | null;
-  resolution: LegalChangeListResponseItemsItemResolution;
+  resolution: LegalChangeDetailResponseChangeResolution;
   /** @nullable */
   resolvedAt: string | null;
   /** @nullable */
   resolvedByNote: string | null;
   /** @nullable */
-  outcome: LegalChangeListResponseItemsItemOutcome;
+  outcome: LegalChangeDetailResponseChangeOutcome;
   /** @nullable */
   comparedWith: string | null;
   /** @nullable */
   assessedAt: string | null;
-  amendingActs: LegalChangeListResponseItemsItemAmendingActsItem[];
-  amendedUnits: LegalChangeListResponseItemsItemAmendedUnitsItem[];
-  passages: LegalChangeListResponseItemsItemPassagesItem[];
-  updatedDocuments: LegalChangeListResponseItemsItemUpdatedDocumentsItem[];
+  amendingActs: LegalChangeDetailResponseChangeAmendingActsItem[];
+  amendedUnits: LegalChangeDetailResponseChangeAmendedUnitsItem[];
+  passages: LegalChangeDetailResponseChangePassagesItem[];
+  updatedDocuments: LegalChangeDetailResponseChangeUpdatedDocumentsItem[];
+  citedBy: LegalChangeDetailResponseChangeCitedByItem[];
+  behind: LegalChangeDetailResponseChangeBehind;
 };
 
-export interface LegalChangeListResponse {
-  items: LegalChangeListResponseItemsItem[];
+export interface LegalChangeDetailResponse {
+  change: LegalChangeDetailResponseChange;
 }
 
 export type LatestLegalCheckRunResponseRunStatus =
@@ -17201,6 +17522,19 @@ export type UpdateInvoiceEmail200 = {
    * @nullable
    */
   email: string | null;
+};
+
+export type ListAppliedLegalChangesParams = {
+  /**
+   * @minimum 1
+   * @maximum 100000
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
 };
 
 export type ListMySignaturesParams = {
@@ -34042,7 +34376,7 @@ export const getListDocumentsBehindUrl = () => {
 };
 
 /**
- * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: the template's newest version, the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.
+ * A document is behind when its newest revision was generated from a template version older than a `legal` or `correction` version of the same template (ADR 017); a `layout` version alone prompts nothing, and an uploaded file is never behind. The own instructions and the training themes of either set are also behind when the library holds a newer version of an instruction module they were built from, or when the client's current positions apply another set of modules than they cite (ADR 012, ADR 014): an issued revision is frozen, so only regenerating brings the change in. Only active clients count, and the service contract, regenerated from its own page, never does. Per type: its set, the template's newest version and the legal changes that version answers (with the act's name), the regeneration under way if there is one, and the clients behind, each with the version their newest revision came from, whether that revision is a `draft` or `issued` and the date it carries, whether it is a draft edited by hand, `behindTemplate`, and the `instructionChanges` per module (`module_version` with the date of the library's newest version, `module_added`, `module_removed`). Types with nobody behind are left out.
  * @summary List the organization's documents behind their template or their instructions, by document type
  */
 export const listDocumentsBehind = async (
@@ -34161,12 +34495,139 @@ export function useListDocumentsBehind<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export const getGetDocumentsBehindSummaryUrl = () => {
+  return `/documents/behind/summary`;
+};
+
+/**
+ * What the navigation and the dashboard show on every page, without the list: the count per set of the rows `GET /documents/behind` lists (one per client and document type, drafts edited by hand included), and the organization's unfinished regeneration jobs of the last hour, each with its type, its set, the member who started it and its counts, so a page can follow every job with this one request.
+ * @summary Count the documents behind per set, and list the regenerations under way
+ */
+export const getDocumentsBehindSummary = async (
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<DocumentsBehindSummary> => {
+  return apiFetch<DocumentsBehindSummary>(getGetDocumentsBehindSummaryUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetDocumentsBehindSummaryQueryKey = () => {
+  return [`/documents/behind/summary`] as const;
+};
+
+export const getGetDocumentsBehindSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDocumentsBehindSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDocumentsBehindSummary>>> = ({
+    signal,
+  }) => getDocumentsBehindSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDocumentsBehindSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentsBehindSummary>>
+>;
+export type GetDocumentsBehindSummaryQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDocumentsBehindSummary>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the documents behind per set, and list the regenerations under way
+ */
+
+export function useGetDocumentsBehindSummary<
+  TData = Awaited<ReturnType<typeof getDocumentsBehindSummary>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getDocumentsBehindSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDocumentsBehindSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getStartDocumentRegenerationUrl = () => {
   return `/documents/behind/regenerate`;
 };
 
 /**
- * Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is skipped, since regenerating would discard the edits; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind, and `regeneration_running` while a job of the same type is under way.
+ * Starts a regeneration job with one queued item per client behind, each regenerated in the background as `POST /documents/{documentId}/regenerate` would, with the caller as the specialist. A draft edited by hand is left out, since regenerating would discard the edits, and skipped should it be edited before its turn; an issued document gets a new draft, and issuing stays per client. Follow the progress with `GET /documents/regeneration-jobs/{jobId}`. `409` with the reason `nothing_behind` when no client is behind or every one behind is a draft edited by hand, and `regeneration_running` while a job of the same type is under way.
  * @summary Regenerate one document type for every client behind it
  */
 export const startDocumentRegeneration = async (
@@ -34269,6 +34730,113 @@ export const useStartDocumentRegeneration = <
   TContext
 > => {
   return useMutation(getStartDocumentRegenerationMutationOptions(options), queryClient);
+};
+
+export const getStartSetRegenerationUrl = () => {
+  return `/documents/behind/regenerate-all`;
+};
+
+/**
+ * Starts one job per document type of the set with a client to regenerate, as `POST /documents/behind/regenerate` does for one type; a type already regenerating keeps its job. Answers every job of the set under way afterwards, with its counts, and in `notStarted` the types that did not start because the queue failed after some jobs had; those stay behind. A job unfinished after an hour no longer counts as under way: starting closes it, as `start_regeneration_job` does. `409` with the reason `nothing_behind` when nothing in the set can be regenerated, only drafts edited by hand, and `regeneration_running` when every type that could be is already regenerating; `503` when no job could be queued.
+ * @summary Regenerate every document type of a set for every client behind it
+ */
+export const startSetRegeneration = async (
+  startSetRegenerationRequest: StartSetRegenerationRequest,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<SetRegenerationResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string]
+        )
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<SetRegenerationResponse>(getStartSetRegenerationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startSetRegenerationRequest),
+  });
+};
+
+export const getStartSetRegenerationMutationKey = () => ['startSetRegeneration'] as const;
+
+export const getStartSetRegenerationMutationOptions = <
+  TError = ErrorType<ApiErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startSetRegeneration>>,
+    TError,
+    StartSetRegenerationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startSetRegeneration>>,
+  TError,
+  StartSetRegenerationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getStartSetRegenerationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startSetRegeneration>>,
+    StartSetRegenerationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return startSetRegeneration(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartSetRegenerationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startSetRegeneration>>
+>;
+export type StartSetRegenerationMutationBody = StartSetRegenerationRequest;
+export type StartSetRegenerationMutationError = ErrorType<ApiErrorResponse>;
+export type StartSetRegenerationMutationVariables = { data: StartSetRegenerationRequest };
+
+/**
+ * @summary Regenerate every document type of a set for every client behind it
+ */
+export const useStartSetRegeneration = <TError = ErrorType<ApiErrorResponse>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof startSetRegeneration>>,
+      TError,
+      StartSetRegenerationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof startSetRegeneration>>,
+  TError,
+  StartSetRegenerationMutationVariables,
+  TContext
+> => {
+  return useMutation(getStartSetRegenerationMutationOptions(options), queryClient);
 };
 
 export const getGetRegenerationJobUrl = (jobId: string) => {
@@ -42008,62 +42576,66 @@ export function useListLegalActs<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export const getListLegalChangesUrl = () => {
-  return `/legislation/changes`;
+export const getListOpenLegalChangesUrl = () => {
+  return `/legislation/changes/open`;
 };
 
 /**
- * Newer consolidated forms of the watched acts, newest first, each with its act, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended and the cited passages it touched, with the law's text before and after. The same for every organization; not paginated.
- * @summary List the legal changes
+ * The open legal changes, newest consolidated form first, each with its act and subject, the outcome of the comparison (null while unassessed), the documents and units of the cited passages it touched, and every document type citing the act. The same for every organization; not paginated.
+ * @summary List the legal changes under review
  */
-export const listLegalChanges = async (
+export const listOpenLegalChanges = async (
   options?: Parameters<typeof apiFetch>[1]
-): Promise<LegalChangeListResponse> => {
-  return apiFetch<LegalChangeListResponse>(getListLegalChangesUrl(), {
+): Promise<OpenLegalChangeListResponse> => {
+  return apiFetch<OpenLegalChangeListResponse>(getListOpenLegalChangesUrl(), {
     ...options,
     method: 'GET',
   });
 };
 
-export const getListLegalChangesQueryKey = () => {
-  return [`/legislation/changes`] as const;
+export const getListOpenLegalChangesQueryKey = () => {
+  return [`/legislation/changes/open`] as const;
 };
 
-export const getListLegalChangesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+export const getListOpenLegalChangesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listOpenLegalChanges>>,
   TError = ErrorType<ApiErrorResponse>,
 >(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>>;
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOpenLegalChanges>>, TError, TData>>;
   request?: SecondParameter<typeof apiFetch>;
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListLegalChangesQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListOpenLegalChangesQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listLegalChanges>>> = ({ signal }) =>
-    listLegalChanges({ signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOpenLegalChanges>>> = ({ signal }) =>
+    listOpenLegalChanges({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listLegalChanges>>,
+    Awaited<ReturnType<typeof listOpenLegalChanges>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type ListLegalChangesQueryResult = NonNullable<Awaited<ReturnType<typeof listLegalChanges>>>;
-export type ListLegalChangesQueryError = ErrorType<ApiErrorResponse>;
+export type ListOpenLegalChangesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOpenLegalChanges>>
+>;
+export type ListOpenLegalChangesQueryError = ErrorType<ApiErrorResponse>;
 
-export function useListLegalChanges<
-  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+export function useListOpenLegalChanges<
+  TData = Awaited<ReturnType<typeof listOpenLegalChanges>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>> &
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOpenLegalChanges>>, TError, TData>
+    > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listLegalChanges>>,
+          Awaited<ReturnType<typeof listOpenLegalChanges>>,
           TError,
-          Awaited<ReturnType<typeof listLegalChanges>>
+          Awaited<ReturnType<typeof listOpenLegalChanges>>
         >,
         'initialData'
       >;
@@ -42071,17 +42643,19 @@ export function useListLegalChanges<
   },
   queryClient?: QueryClient
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListLegalChanges<
-  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+export function useListOpenLegalChanges<
+  TData = Awaited<ReturnType<typeof listOpenLegalChanges>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>> &
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOpenLegalChanges>>, TError, TData>
+    > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listLegalChanges>>,
+          Awaited<ReturnType<typeof listOpenLegalChanges>>,
           TError,
-          Awaited<ReturnType<typeof listLegalChanges>>
+          Awaited<ReturnType<typeof listOpenLegalChanges>>
         >,
         'initialData'
       >;
@@ -42089,31 +42663,307 @@ export function useListLegalChanges<
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useListLegalChanges<
-  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+export function useListOpenLegalChanges<
+  TData = Awaited<ReturnType<typeof listOpenLegalChanges>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>>;
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOpenLegalChanges>>, TError, TData>
+    >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the legal changes
+ * @summary List the legal changes under review
  */
 
-export function useListLegalChanges<
-  TData = Awaited<ReturnType<typeof listLegalChanges>>,
+export function useListOpenLegalChanges<
+  TData = Awaited<ReturnType<typeof listOpenLegalChanges>>,
   TError = ErrorType<ApiErrorResponse>,
 >(
   options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listLegalChanges>>, TError, TData>>;
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listOpenLegalChanges>>, TError, TData>
+    >;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getListLegalChangesQueryOptions(options);
+  const queryOptions = getListOpenLegalChangesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListAppliedLegalChangesUrl = (params?: ListAppliedLegalChangesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/legislation/changes/applied?${stringifiedParams}`
+    : `/legislation/changes/applied`;
+};
+
+/**
+ * The legal changes a template version answers, newest consolidated form first, 20 a page by default; changes resolved with no impact are left out. Each with its act and subject, when it was applied, the note of the version that answered it first and every document type whose template it updated, with that version and its note. `behind` counts the organization's documents of active clients still made from a template version older than the one that answers the change (a draft edited by hand included), in all and per document type with its set; regenerating those types, `POST /documents/behind/regenerate` for each, brings the change in.
+ * @summary List the legal changes applied in documents
+ */
+export const listAppliedLegalChanges = async (
+  params?: ListAppliedLegalChangesParams,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<AppliedLegalChangeListResponse> => {
+  return apiFetch<AppliedLegalChangeListResponse>(getListAppliedLegalChangesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListAppliedLegalChangesQueryKey = (params?: ListAppliedLegalChangesParams) => {
+  return [`/legislation/changes/applied`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAppliedLegalChangesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListAppliedLegalChangesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listAppliedLegalChanges>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAppliedLegalChangesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAppliedLegalChanges>>> = ({
+    signal,
+  }) => listAppliedLegalChanges(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListAppliedLegalChangesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAppliedLegalChanges>>
+>;
+export type ListAppliedLegalChangesQueryError = ErrorType<ApiErrorResponse>;
+
+export function useListAppliedLegalChanges<
+  TData = Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params: undefined | ListAppliedLegalChangesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listAppliedLegalChanges>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+          TError,
+          Awaited<ReturnType<typeof listAppliedLegalChanges>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListAppliedLegalChanges<
+  TData = Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListAppliedLegalChangesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listAppliedLegalChanges>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+          TError,
+          Awaited<ReturnType<typeof listAppliedLegalChanges>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListAppliedLegalChanges<
+  TData = Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListAppliedLegalChangesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listAppliedLegalChanges>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the legal changes applied in documents
+ */
+
+export function useListAppliedLegalChanges<
+  TData = Awaited<ReturnType<typeof listAppliedLegalChanges>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  params?: ListAppliedLegalChangesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listAppliedLegalChanges>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListAppliedLegalChangesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetLegalChangeUrl = (changeId: string) => {
+  return `/legislation/changes/${changeId}`;
+};
+
+/**
+ * One legal change: its act and subject, how it was resolved, the outcome of comparing it with the form the templates were verified against, the units it amended with each amending act's portal page, the cited passages it touched with the law's text before and after, every document type citing the act, and the template versions that answer it with their notes. `behind` counts the organization's documents of active clients still made from a template version older than the one that answers the change (a draft edited by hand included), in all and per document type with its set; regenerating those types, `POST /documents/behind/regenerate` for each, brings the change in.
+ * @summary Get a legal change
+ */
+export const getLegalChange = async (
+  changeId: string,
+  options?: Parameters<typeof apiFetch>[1]
+): Promise<LegalChangeDetailResponse> => {
+  return apiFetch<LegalChangeDetailResponse>(getGetLegalChangeUrl(changeId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetLegalChangeQueryKey = (changeId: string) => {
+  return [`/legislation/changes/${changeId}`] as const;
+};
+
+export const getGetLegalChangeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLegalChange>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  changeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLegalChange>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLegalChangeQueryKey(changeId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLegalChange>>> = ({ signal }) =>
+    getLegalChange(changeId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: changeId !== null && changeId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getLegalChange>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type GetLegalChangeQueryResult = NonNullable<Awaited<ReturnType<typeof getLegalChange>>>;
+export type GetLegalChangeQueryError = ErrorType<ApiErrorResponse>;
+
+export function useGetLegalChange<
+  TData = Awaited<ReturnType<typeof getLegalChange>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  changeId: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLegalChange>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLegalChange>>,
+          TError,
+          Awaited<ReturnType<typeof getLegalChange>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetLegalChange<
+  TData = Awaited<ReturnType<typeof getLegalChange>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  changeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLegalChange>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getLegalChange>>,
+          TError,
+          Awaited<ReturnType<typeof getLegalChange>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetLegalChange<
+  TData = Awaited<ReturnType<typeof getLegalChange>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  changeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLegalChange>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get a legal change
+ */
+
+export function useGetLegalChange<
+  TData = Awaited<ReturnType<typeof getLegalChange>>,
+  TError = ErrorType<ApiErrorResponse>,
+>(
+  changeId: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getLegalChange>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetLegalChangeQueryOptions(changeId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

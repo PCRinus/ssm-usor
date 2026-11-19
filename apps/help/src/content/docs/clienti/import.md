@@ -96,6 +96,9 @@ sources:
   - apps/api/src/modules/imports/payload.ts
   - apps/app/src/features/imports/credits-notices.tsx
   - apps/api/src/modules/imports/handlers.ts
+  - apps/api/src/modules/imports/upload-handlers.ts
+  - apps/api/src/modules/imports/review-handlers.ts
+  - apps/api/src/modules/imports/source-handler.ts
   - apps/api/src/modules/imports/employees.ts
   - apps/api/src/modules/imports/cleanup.ts
   - packages/import/src/sheet-people.ts

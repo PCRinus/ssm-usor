@@ -14,8 +14,10 @@ import {
   renderDocument,
   renderTemplate,
   signingTypeKeys,
+  type TemplateSet,
   testSheetTypeKey,
 } from '@ssm-usor/document-engine';
+import { manifestEntries, templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { describe, expect, it } from 'vitest';
 
 import type { Json } from '../../src/database.types';
@@ -42,18 +44,13 @@ import { annexesData } from '../../src/modules/documents/snapshot';
 // Lives with the scripts because it reads the repository's files, which the Worker's own
 // code cannot: the templates, merged with the context the API builds.
 
-const templatesUrl = new URL('../../../../packages/document-engine/templates/', import.meta.url);
-type ManifestEntry = { typeKey: string; title: string; file: string; perEmployee?: true };
-const manifestIn = (folder: URL) =>
-  JSON.parse(readFileSync(new URL('manifest.json', folder), 'utf8')) as {
-    templates: ManifestEntry[];
-  };
+const entries = manifestEntries();
 // The individual training sheets are registered with the set's templates and never merged with
 // a client's context (ADR 021).
-const setTemplatesIn = (folder: URL) => ({
-  templates: manifestIn(folder).templates.filter((entry) => !entry.perEmployee),
+const setTemplates = (set: TemplateSet) => ({
+  templates: entries.filter((entry) => entry.set === set && !entry.perEmployee),
 });
-const manifest = setTemplatesIn(templatesUrl);
+const manifest = setTemplates('ssm');
 
 const refusedFor = (merging: () => unknown) => {
   try {
@@ -68,11 +65,7 @@ const refusedFor = (merging: () => unknown) => {
 };
 
 describe('the per-employee templates', () => {
-  const perEmployee = [templatesUrl, new URL('fire/', templatesUrl)].flatMap((folder) =>
-    manifestIn(folder)
-      .templates.filter((entry) => entry.perEmployee)
-      .map((entry) => entry.typeKey)
-  );
+  const perEmployee = entries.filter((entry) => entry.perEmployee).map((entry) => entry.typeKey);
 
   it('are the two individual training sheets, the signing agreement and the test sheet', () => {
     expect(perEmployee).toEqual([
@@ -880,7 +873,7 @@ describe('the risk assessment', () => {
 
 describe('the fire-safety templates', () => {
   const fireUrl = new URL('fire/', templatesUrl);
-  const fireManifest = setTemplatesIn(fireUrl);
+  const fireManifest = setTemplates('fire');
 
   it('are the fire-safety document types of the contracts, in the same order', () => {
     expect(fireManifest.templates.map((entry) => entry.typeKey)).toEqual([

@@ -55,7 +55,7 @@ export {
   toEmployeePayload,
   type TrainingPayloadRow,
 } from './employee-payload';
-export * from './employee-proposal';
+export { type EmployeeImportProposal, employeeImportProposalSchema } from './employee-proposal';
 export {
   type Completion,
   type CompletionRequest,
@@ -187,6 +187,7 @@ export {
   type ContentPart,
   type ExistingClient,
   fileHeader,
+  identityMessage,
   type ImportFile,
   type ProviderIdentity,
   readingMessages,
@@ -197,7 +198,20 @@ export {
   sortingMessages,
   sortingSystemPrompt,
 } from './prompts';
-export * from './proposal';
+export {
+  type Field,
+  type Flag,
+  type Proposal,
+  proposalSchema,
+  proposedEmployeeSchema,
+  proposedFireEquipmentSchema,
+  proposedFireInstallationSchema,
+  proposedJobPositionSchema,
+  proposedProtectiveEquipmentSchema,
+  proposedResponsiblePersonSchema,
+  proposedSubstanceSchema,
+  proposedWorkplaceSchema,
+} from './proposal';
 export {
   factFields,
   fromWire,
@@ -206,14 +220,42 @@ export {
   readingSchema,
   toProposal,
 } from './reading';
-export * from './risks-library';
-export * from './risks-payload';
-export * from './risks-proposal';
-export * from './risks-read';
-export * from './risks-request';
-export * from './risks-rows';
+export { type LibraryEvaluation } from './risks-library';
+export {
+  planFactorsOf,
+  reviewedRiskFactors,
+  reviewedSheetTexts,
+  type RiskImportPayload,
+  riskImportPayload,
+} from './risks-payload';
+export {
+  entryName,
+  type ExistingEvaluations,
+  type ProposedRiskFactor,
+  type ProposedRiskSheet,
+  proposeRisks,
+  type RisksProposal,
+} from './risks-proposal';
+export { type ReadFactor, readRisksAnswer, type ReadSheet } from './risks-read';
+export {
+  type RetypedAnswer,
+  retypeRequest,
+  retypeSheets,
+  type RisksAnswer,
+  risksCharacters,
+  risksRequest,
+  RisksTooLargeError,
+  withRetyped,
+} from './risks-request';
+export { type RisksTextFile, squeezeLayout } from './risks-rows';
 export { risksProposalSchema } from './risks-schema';
-export * from './safety-sheet';
+export {
+  hasSafetySheetStructure,
+  readSafetySheetAnswer,
+  type SafetySheetAnswer,
+  safetySheetRequest,
+  SafetySheetTooLongError,
+} from './safety-sheet';
 export {
   type LocatingAnswer,
   locatingAnswer,

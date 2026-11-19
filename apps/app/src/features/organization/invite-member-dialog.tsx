@@ -15,16 +15,17 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
-import { type ApiErrorResponse, useCreateInvitation } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { useCreateInvitation } from '@/api/generated/api';
+import { apiErrorBody, apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { impersonationRefusal, wordingRefusalHere } from '@/features/impersonation/refusal';
+import { wordingRefusalHere } from '@/features/impersonation/refusal';
 import { type MemberSeats, upgradeSearch, userNoun } from '@/features/subscription/member-seats';
 import { contactEmail } from '@/features/subscription/subscription-copy';
+import { commonFailure } from '@/lib/api-errors';
 
 import { inviteFormSchema, type InviteFormValues } from './invite-schema';
 import { roleLabels } from './labels';
@@ -38,18 +39,15 @@ const emailReasons: Record<string, string> = {
 };
 
 function serverMessage(cause: unknown) {
-  const refused = impersonationRefusal(cause);
-  if (refused) return refused;
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
-    const body = cause.body as Partial<ApiErrorResponse> | undefined;
-    if (body?.reason === 'member_limit_reached') {
+    const reason = apiErrorReason(cause);
+    if (reason === 'member_limit_reached') {
       return 'Toți utilizatorii planului sunt ocupați de membri sau de invitații în așteptare. Poți revoca o invitație. Pe Start, treci pe Profesional din Abonament; peste 10 utilizatori, scrie-ne la contact@ssmusor.ro pentru o ofertă.';
     }
-    if (body?.reason === 'too_many_open_invitations') {
+    if (reason === 'too_many_open_invitations') {
       return 'Organizația are deja 20 de invitații în așteptare. Revocă una înainte de a trimite alta.';
-    }
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
     if (cause.status === 403) return 'Doar adminii organizației pot trimite invitații.';
     if (cause.status === 503) {
@@ -129,7 +127,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
       toast.success(`Invitația a fost trimisă la ${invitation.email}.`);
       onClose();
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       const emailMessage =
         (body?.reason && emailReasons[body.reason]) ||
         (body?.issues?.some((issue) => issue.path === 'email')

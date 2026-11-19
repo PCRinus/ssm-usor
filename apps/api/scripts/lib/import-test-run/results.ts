@@ -20,7 +20,7 @@ import {
   storedEmployeeChanges,
   storedEmployeeProposal,
 } from '../../../src/modules/imports/employees';
-import { storedChanges, storedProposal } from '../../../src/modules/imports/handlers';
+import { storedChanges, storedProposal } from '../../../src/modules/imports/import-queries';
 import {
   positionPostsOf,
   reviewedInstructions,

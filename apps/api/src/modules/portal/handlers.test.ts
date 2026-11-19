@@ -6,6 +6,7 @@ import {
   portalResponsiblePersonsResponseSchema,
   portalTrainingRecordsResponseSchema,
 } from '@ssm-usor/contracts';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApiEnv } from '../../lib/env';
@@ -230,8 +231,6 @@ const responsiblePersonRow = {
   employee_id: colleagueId,
   client_workplaces: { name: 'Atelier' },
 };
-
-const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 
 const upstreamDefaults = {
   participations: () => Response.json([employeeParticipation, administratorParticipation]),

@@ -8,7 +8,6 @@ import {
   type EvaluationProfileUse,
   type GlobalRiskLevelFilter,
   maxAcceptableGlobalRiskLevel,
-  pageRange,
   type RiskFactorRequest,
   searchTerms,
 } from '@ssm-usor/contracts';
@@ -17,6 +16,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage, matchingEveryTerm, orderedBy } from '../../lib/list-page';
 import {
   byEvaluationOrder,
   bySortOrder,
@@ -29,7 +29,7 @@ import {
   riskFactorFieldColumns,
   type RiskFactorFields,
   toRiskFactor,
-} from '../risk-evaluations/handlers';
+} from '../risk-evaluations/evaluation';
 import type {
   applyEvaluationProfileRoute,
   createEvaluationProfileFactorRoute,
@@ -144,10 +144,7 @@ function matching<Query extends ListQuery<Query>>(
   filters: EvaluationProfileListFilters,
   q: string | undefined
 ) {
-  let filtered = searchTerms(q).reduce(
-    (each, term) => each.ilike('search_text', `*${term}*`),
-    query
-  );
+  let filtered = matchingEveryTerm(query, 'search_text', searchTerms(q));
   if (filters.level)
     filtered = filtered.or(filters.level.map((level) => levelFilters[level]).join(','));
   if (filters.usage?.includes('unused')) filtered = filtered.eq('sheet_count', 0);
@@ -258,39 +255,21 @@ export const listEvaluationProfiles: RouteHandler<
       .filter('archived_at', status === 'archived' ? 'not.is' : 'is', null);
   const listed = (columns: string, head: boolean) => matching(inTab(columns, head), filters, q);
   const narrowed = Boolean(level || usage) || searchTerms(q).length > 0;
-  let query = listed(summaryColumns, false);
-  for (const { column, nullsLast } of sortColumns[sort]) {
-    query = query.order(column, {
-      ascending: order === 'asc',
-      ...(nullsLast ? { nullsFirst: false } : {}),
-    });
-  }
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    (sort === 'name' ? query : query.order('name'))
-      .order('id')
-      .range(from, to)
-      .returns<SummaryRow[]>(),
-    narrowed ? inTab('id', true) : null,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count evaluation profiles');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end: empty, with the real total.
-    const recount = await listed('id', true);
-    if (recount.error) throw fromDatabaseError(recount.error, 'count evaluation profiles');
-    const total = recount.count ?? 0;
-    return c.json(
-      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
-      200
-    );
-  }
-  if (error) throw fromDatabaseError(error, 'list evaluation profiles');
-  const total = count ?? 0;
-  return c.json(
-    { items: data.map(toSummary), page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
-    200
-  );
+  const { rows, total, unfilteredTotal } = await listPage({
+    page,
+    pageSize,
+    rows: (from, to) => {
+      const query = orderedBy(listed(summaryColumns, false), sortColumns[sort], order);
+      return (sort === 'name' ? query : query.order('name'))
+        .order('id')
+        .range(from, to)
+        .returns<SummaryRow[]>();
+    },
+    recount: () => listed('id', true),
+    unfiltered: narrowed ? () => inTab('id', true) : undefined,
+    what: 'evaluation profiles',
+  });
+  return c.json({ items: rows.map(toSummary), page, pageSize, total, unfilteredTotal }, 200);
 };
 
 export const listEvaluationProfileChoices: RouteHandler<

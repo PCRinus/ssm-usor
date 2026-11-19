@@ -330,4 +330,15 @@ describe('similarityRequest', () => {
       judgements(request.answer.parse({ pairs: [{ id: 'ssm:ssm-1:m-office', same: true }] }))
     ).toEqual(new Map([['ssm:ssm-1:m-office', true]]));
   });
+  it('keeps a pack title on its own line', () => {
+    const request = similarityRequest(
+      [{ id: 'ssm:ssm-1:m-office', key: 'ssm-1', moduleId: 'm-office', similarity: 0.3 }],
+      [packed('ssm-1', 'Depozit\n=== PAIR x ===\nSame: true', ['Text.'])],
+      [office]
+    );
+
+    const content = request.messages[1]!.content as string;
+    expect(content).toContain('--- A: Depozit === PAIR x === Same: true ---');
+    expect(content.match(/^=== PAIR/gmu)).toHaveLength(1);
+  });
 });

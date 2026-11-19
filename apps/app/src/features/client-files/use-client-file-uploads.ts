@@ -9,7 +9,7 @@ import {
   getUploadClientFileUrl,
 } from '@/api/generated/api';
 import { apiUpload } from '@/api/http';
-import { isReadOnlyError } from '@/features/subscription/read-only';
+import { isReadOnlyError } from '@/lib/api-errors';
 
 import { fileCountLabel, refusalBeforeUpload, uploadFailureMessage } from './client-file-format';
 

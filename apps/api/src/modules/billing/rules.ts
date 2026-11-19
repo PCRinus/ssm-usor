@@ -1,4 +1,5 @@
 import {
+  type AccessLevel,
   amountsWithVat,
   type BillingChoice,
   type BillingChoiceProblem,
@@ -8,11 +9,12 @@ import {
   lastStep,
   type PaidPlan,
   planStep,
+  readOnlyDays,
   selfServeLimits,
   stepFor,
 } from '@ssm-usor/contracts';
 
-import { addMonths } from '../sms-usage/policy';
+import { addMonths } from './entitlements';
 
 export type Usage = { employees: number; members: number };
 
@@ -82,6 +84,11 @@ export function splitChange(current: BillingChoice, target: BillingChoice): Chan
 export const addInterval = (date: Date, interval: BillingInterval) =>
   addMonths(date, interval === 'year' ? 12 : 1);
 
+export function deletesAtOf(accessUntil: string | null, access: AccessLevel) {
+  if (access !== 'read_only' || !accessUntil) return null;
+  return new Date(new Date(accessUntil).getTime() + readOnlyDays * 86_400_000).toISOString();
+}
+
 // v1 had one price per plan, with packs of employees and extra members as quantities beside it;
 // a subscription on it still renews until the owner changes it (ADR 029, amendment of 2026-11-14).
 const lookupKeyPattern =
@@ -107,6 +114,19 @@ export function parseLookupKey(lookupKey: string | null | undefined): ParsedLook
 
 export const isPlanProduct = (product: string | undefined): product is PaidPlan =>
   product === 'start' || product === 'profesional';
+
+export const productOf = (lookupKey: string | null | undefined) =>
+  parseLookupKey(lookupKey)?.product;
+
+export type ItemGroup = 'plan' | 'pack' | 'member';
+
+export function itemGroupOf(lookupKey: string | null | undefined): ItemGroup | null {
+  const product = productOf(lookupKey);
+  if (isPlanProduct(product)) return 'plan';
+  if (product === 'employees50' || product === 'employees500') return 'pack';
+  if (product === 'member') return 'member';
+  return null;
+}
 
 const v1Covered = {
   start: { included: 250, pack: 50 },

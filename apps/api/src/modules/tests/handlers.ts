@@ -17,7 +17,7 @@ import {
 import { contentDisposition } from '../../lib/content-disposition';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { romanianDay } from '../documents/context';
 import {
   issueTestSheetRequests,
@@ -49,11 +49,10 @@ import type {
 } from './routes';
 import {
   afterResult,
-  attemptSummaryColumns,
+  employeeTestsOf,
   noSuchEmployee,
   questionColumns,
   resultColumns,
-  toAttemptSummary,
   toTestQuestion,
   toTestResult,
 } from './rows';
@@ -280,36 +279,14 @@ async function readStanding(db: DataClient, clientId: string, employeeId: string
 export const getEmployeeTests: RouteHandler<typeof getEmployeeTestsRoute, ApiEnv> = async (c) => {
   const { clientId, employeeId } = c.req.valid('param');
   const db = createDataClient(c);
-  const [employee, results, attempts] = await Promise.all([
+  const [employee, testsOf] = await Promise.all([
     readStanding(db, clientId, employeeId),
-    db
-      .from('test_results')
-      .select(resultColumns)
-      .eq('employee_id', employeeId)
-      .eq('client_id', clientId)
-      .order('taken_on', { ascending: false })
-      .order('created_at', { ascending: false }),
-    db
-      .from('test_attempts')
-      .select(attemptSummaryColumns)
-      .eq('employee_id', employeeId)
-      .eq('client_id', clientId)
-      .order('started_at', { ascending: false })
-      .limit(200),
+    employeeTestsOf(db, { clientId, employeeId }, { finishedOnly: false, limit: 200 }),
   ]);
-  if (results.error) throw fromDatabaseError(results.error, 'employee test results');
-  if (attempts.error) throw fromDatabaseError(attempts.error, 'employee test attempts');
   const status = toEmployeeTests(employee.test_status);
-  const sheets = await testSheetSummaries(
-    db,
-    results.data.map((row) => row.id)
-  );
   const ofDomain = (domain: TrainingDomain): EmployeeDomainTests => ({
     status: status[domain],
-    results: results.data
-      .filter((row) => row.domain === domain)
-      .map((row) => ({ ...toTestResult(row), sheet: summaryOf(sheets, row.id) })),
-    attempts: attempts.data.filter((row) => row.domain === domain).map(toAttemptSummary),
+    ...testsOf(domain),
   });
   return c.json({ ssm: ofDomain('ssm'), su: ofDomain('su') }, 200);
 };
@@ -426,7 +403,7 @@ async function afterExaminerChange(c: Parameters<typeof testSheetDeps>[0], resul
     await issueTestSheetRequests(deps, refilled, c.get('user').id);
   } catch (failure) {
     console.error(
-      `Test sheet of ${resultId} not brought up to date with its examiner: ${failure instanceof ApiError ? (failure.reason ?? failure.code) : failure instanceof Error ? failure.name : 'unknown'}`
+      `Test sheet of ${resultId} not brought up to date with its examiner: ${failureLabel(failure)}`
     );
   }
 }

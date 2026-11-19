@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+import { documentSetSchema } from './documents';
+import { maxPageSize, pageSchema } from './list';
+
 // The same for every organization, and read only: a scheduled job writes them (ADR 017).
 
 export const legalActStatuses = ['in_force', 'repealed'] as const;
@@ -65,6 +68,8 @@ export const legalAmendingActSchema = z.object({
   name: z.string(),
   // When it was adopted; null when the portal's note gives no date.
   adoptedOn: z.iso.date().nullable(),
+  // Its page on legislatie.just.ro; null when the note does not link it.
+  portalId: z.int().positive().nullable(),
 });
 
 export type LegalAmendingAct = z.infer<typeof legalAmendingActSchema>;
@@ -143,9 +148,108 @@ export const legalChangeSchema = z.object({
 
 export type LegalChange = z.infer<typeof legalChangeSchema>;
 
-export const legalChangeListResponseSchema = z.object({ items: z.array(legalChangeSchema) });
+export const legalChangeActSchema = legalActSchema
+  .pick({ id: true, name: true, portalId: true })
+  .extend({ subject: watchedLegalActSchema.shape.subject });
 
-export type LegalChangeListResponse = z.infer<typeof legalChangeListResponseSchema>;
+export type LegalChangeAct = z.infer<typeof legalChangeActSchema>;
+
+export const legalChangeDocumentSchema = z.object({
+  typeKey: z.string(),
+  title: z.string(),
+  set: documentSetSchema,
+});
+
+export type LegalChangeDocument = z.infer<typeof legalChangeDocumentSchema>;
+
+export const legalChangeUpdatedDocumentSchema = legalChangeDocumentSchema.extend({
+  // The earliest template version that answers the change, and when it was registered.
+  version: z.int().positive(),
+  note: z.string().nullable(),
+  registeredAt: z.iso.datetime({ offset: true }),
+});
+
+export type LegalChangeUpdatedDocument = z.infer<typeof legalChangeUpdatedDocumentSchema>;
+
+// The organization's documents still made from a template version older than the one that answers
+// the change, a draft edited by hand included; regenerating their types brings the change in.
+export const legalChangeBehindSchema = z.object({
+  documents: z.int().nonnegative(),
+  clients: z.int().nonnegative(),
+  types: z.array(
+    legalChangeDocumentSchema.extend({
+      documents: z.int().positive(),
+      clients: z.int().positive(),
+    })
+  ),
+});
+
+export type LegalChangeBehind = z.infer<typeof legalChangeBehindSchema>;
+
+export const openLegalChangeSchema = z.object({
+  id: z.uuid(),
+  act: legalChangeActSchema,
+  consolidatedOn: z.iso.date(),
+  seenAt: z.iso.datetime({ offset: true }),
+  outcome: legalChangeOutcomeSchema.nullable(),
+  // The documents and units of the passages the change touched; empty until it is assessed.
+  touched: z.object({
+    documents: z.array(legalChangeDocumentSchema),
+    units: z.array(z.string()),
+  }),
+  // Every document type the templates have citing the act, what an unassessed change may touch.
+  citedBy: z.array(legalChangeDocumentSchema),
+});
+
+export type OpenLegalChange = z.infer<typeof openLegalChangeSchema>;
+
+export const openLegalChangeListResponseSchema = z.object({
+  items: z.array(openLegalChangeSchema),
+});
+
+export type OpenLegalChangeListResponse = z.infer<typeof openLegalChangeListResponseSchema>;
+
+export const appliedLegalChangePageSize = 20;
+
+export const maxAppliedLegalChangePage = 100_000;
+
+export const appliedLegalChangeListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(maxAppliedLegalChangePage).default(1),
+  pageSize: z.coerce.number().int().min(1).max(maxPageSize).default(appliedLegalChangePageSize),
+});
+
+export type AppliedLegalChangeListQuery = z.infer<typeof appliedLegalChangeListQuerySchema>;
+
+export const appliedLegalChangeSchema = z.object({
+  id: z.uuid(),
+  act: legalChangeActSchema,
+  consolidatedOn: z.iso.date(),
+  seenAt: z.iso.datetime({ offset: true }),
+  appliedAt: z.iso.datetime({ offset: true }),
+  // The note of the template version that answered the change first.
+  note: z.string().nullable(),
+  updatedDocuments: z.array(legalChangeUpdatedDocumentSchema),
+  behind: legalChangeBehindSchema,
+});
+
+export type AppliedLegalChange = z.infer<typeof appliedLegalChangeSchema>;
+
+export const appliedLegalChangeListResponseSchema = pageSchema(appliedLegalChangeSchema);
+
+export type AppliedLegalChangeListResponse = z.infer<typeof appliedLegalChangeListResponseSchema>;
+
+export const legalChangeDetailSchema = legalChangeSchema.omit({ updatedDocuments: true }).extend({
+  act: legalChangeActSchema,
+  updatedDocuments: z.array(legalChangeUpdatedDocumentSchema),
+  citedBy: z.array(legalChangeDocumentSchema),
+  behind: legalChangeBehindSchema,
+});
+
+export type LegalChangeDetail = z.infer<typeof legalChangeDetailSchema>;
+
+export const legalChangeDetailResponseSchema = z.object({ change: legalChangeDetailSchema });
+
+export type LegalChangeDetailResponse = z.infer<typeof legalChangeDetailResponseSchema>;
 
 export const legalCheckRunStatuses = ['running', 'succeeded', 'failed'] as const;
 
