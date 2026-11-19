@@ -10,10 +10,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type FormEvent, useState } from 'react';
 
-import {
-  type EmployeeListResponse,
-  useUpdateEmployeeStatus,
-} from '@/api/generated/api';
+import { type EmployeeListResponse, useUpdateEmployeeStatus } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
