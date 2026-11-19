@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   addFoundSheetsRequestSchema,
+  closedImportListResponseSchema,
   confirmImportLibraryPartRequestSchema,
   confirmImportRequestSchema,
   confirmImportResponseSchema,
@@ -17,6 +18,7 @@ import {
   importSourceResponseSchema,
   importSummarySchema,
   instructionsPartDetailSchema,
+  listClosedImportsQuerySchema,
   listImportsQuerySchema,
   registerImportFilesRequestSchema,
   registerImportFilesResponseSchema,
@@ -119,6 +121,30 @@ export const listImportsRoute = createRoute({
       content: {
         'application/json': {
           schema: importListResponseSchema.meta({ id: 'ImportListResponse' }),
+        },
+      },
+    },
+    400: { description: 'Invalid query', content: errorContent },
+    ...membershipErrors,
+  },
+});
+
+export const listClosedImportsRoute = createRoute({
+  method: 'get',
+  path: '/imports/closed',
+  operationId: 'listClosedImports',
+  summary: "List a page of the organization's confirmed and abandoned imports",
+  description:
+    'The confirmed and abandoned imports of `kind`, latest first by when they were confirmed or abandoned: the history the imports page shows under Încheiate. An abandoned import is listed until the clean-up deletes it, 14 days after it was abandoned.',
+  security: bearerSecurity,
+  middleware: [requireAuth, requireMembership] as const,
+  request: { query: listClosedImportsQuerySchema },
+  responses: {
+    200: {
+      description: 'A page of the closed imports',
+      content: {
+        'application/json': {
+          schema: closedImportListResponseSchema.meta({ id: 'ClosedImportListResponse' }),
         },
       },
     },

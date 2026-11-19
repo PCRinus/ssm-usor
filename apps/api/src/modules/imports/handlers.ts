@@ -19,7 +19,7 @@ import {
   summaryColumns,
   toSummary,
 } from './import-queries';
-import type { abandonImportRoute, listImportsRoute } from './routes';
+import type { abandonImportRoute, listClosedImportsRoute, listImportsRoute } from './routes';
 
 const runningStatuses: readonly string[] = ['preparing', 'sorting', 'reading', 'checking'];
 
@@ -128,6 +128,10 @@ function peopleIdsOf(value: unknown) {
   );
   return { people };
 }
+
+export const listClosedImports: RouteHandler<typeof listClosedImportsRoute, ApiEnv> = async () => {
+  throw new ApiError('not_found');
+};
 
 export const abandonImport: RouteHandler<typeof abandonImportRoute, ApiEnv> = async (c) => {
   const { importId } = c.req.valid('param');

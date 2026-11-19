@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { importChangePathPattern } from './import-change-paths';
 import { instructionBodySchema, instructionCategorySchema } from './instruction-body';
 import { type InstructionDomain, instructionDomainSchema } from './instruction-modules';
+import { defaultPageSize, maxPageSize, pageSchema } from './list';
 import { preventionMeasureRequestSchema, workSystemComponentSchema } from './risk-evaluations';
 
 // Imports from documents (ADR 030). The proposal itself is `@ssm-usor/import`'s schema, which
@@ -323,6 +324,7 @@ export const importSummarySchema = z.object({
   readyAt: z.iso.datetime({ offset: true }).nullable(),
   failedAt: z.iso.datetime({ offset: true }).nullable(),
   confirmedAt: z.iso.datetime({ offset: true }).nullable(),
+  abandonedAt: z.iso.datetime({ offset: true }).nullable(),
   // While uploading or ready for review: when the import fails if nobody changes it, 14 days
   // after its last change. Null at the other steps.
   expiresAt: z.iso.datetime({ offset: true }).nullable(),
@@ -365,6 +367,10 @@ export const listImportsQuerySchema = z.object({
     .meta({
       description: `The open imports when left out; \`confirmed\` the ${confirmedListed} confirmed last, or, with \`clientId\` and client imports (\`kind\` left out or \`client\`), every confirmed import of that client; with \`uninvited\` counted for a client's employee imports.`,
     }),
+  withOpenParts: z.stringbool().optional().meta({
+    description:
+      'With the open imports: also the confirmed client imports with a library part still reading or to review and not expired.',
+  }),
 });
 
 export type ListImportsQuery = z.infer<typeof listImportsQuerySchema>;
@@ -372,6 +378,18 @@ export type ListImportsQuery = z.infer<typeof listImportsQuerySchema>;
 export const importListResponseSchema = z.object({ items: z.array(importSummarySchema) });
 
 export type ImportListResponse = z.infer<typeof importListResponseSchema>;
+
+export const listClosedImportsQuerySchema = z.object({
+  kind: z.enum(importKinds),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(maxPageSize).default(defaultPageSize),
+});
+
+export type ListClosedImportsQuery = z.infer<typeof listClosedImportsQuerySchema>;
+
+export const closedImportListResponseSchema = pageSchema(importSummarySchema);
+
+export type ClosedImportListResponse = z.infer<typeof closedImportListResponseSchema>;
 
 export const importFileSchema = z.object({
   id: z.uuid(),
