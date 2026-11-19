@@ -643,7 +643,11 @@ function PaperAgreementForm({
   const items = files.data?.items ?? [];
   const noFiles = files.isSuccess && items.length === 0;
   return (
-    <DialogContent data-testid="signing-agreement-paper-dialog" className="sm:max-w-md">
+    <DialogContent
+      data-testid="signing-agreement-paper-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!busy}
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();

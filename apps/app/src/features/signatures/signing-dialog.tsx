@@ -199,7 +199,12 @@ function SigningFlow({
   const count = trainingCount(requests.length);
 
   return (
-    <DialogContent data-testid="signing-dialog" data-step={step.kind} className="sm:max-w-lg">
+    <DialogContent
+      data-testid="signing-dialog"
+      data-step={step.kind}
+      className="sm:max-w-lg"
+      showCloseButton={!busy}
+    >
       {step.kind === 'review' && (
         <>
           <DialogHeader>

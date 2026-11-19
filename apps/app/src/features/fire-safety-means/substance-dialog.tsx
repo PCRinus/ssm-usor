@@ -291,7 +291,7 @@ function SubstanceForm({
     <DialogContent
       data-testid="fire-substance-dialog"
       className="sm:max-w-2xl"
-      showCloseButton={!readingSheet}
+      showCloseButton={!(busy || readingSheet)}
       onOpenAutoFocus={(event) => {
         // The sheet's button comes first, but most entries are still typed by hand.
         event.preventDefault();

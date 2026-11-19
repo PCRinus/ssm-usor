@@ -250,6 +250,7 @@ function ResponsiblePersonForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="responsible-dialog"
       className="sm:max-w-2xl"
       onOpenAutoFocus={

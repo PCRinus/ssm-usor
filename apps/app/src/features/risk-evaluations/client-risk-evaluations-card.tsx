@@ -308,7 +308,11 @@ function AddEvaluationForm({ clientId, onClose }: { clientId: string; onClose: (
     errors.name ?? (failure?.nameTaken ? { type: 'server', message: failure.message } : undefined);
 
   return (
-    <DialogContent data-testid="client-risk-evaluation-dialog" className="sm:max-w-md">
+    <DialogContent
+      data-testid="client-risk-evaluation-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!pending}
+    >
       <form
         {...replayShow}
         ref={formRef}

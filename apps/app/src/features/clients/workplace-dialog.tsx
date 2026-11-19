@@ -249,6 +249,7 @@ function WorkplaceForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="workplace-dialog"
       className="sm:max-w-2xl"
       aria-describedby={undefined}

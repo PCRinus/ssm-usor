@@ -156,7 +156,7 @@ function EquipmentEntryForm({
   });
 
   return (
-    <DialogContent data-testid="equipment-dialog" className="sm:max-w-2xl">
+    <DialogContent data-testid="equipment-dialog" className="sm:max-w-2xl" showCloseButton={!busy}>
       <form
         {...replayShow}
         ref={formRef}

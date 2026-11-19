@@ -241,17 +241,15 @@ export function ChangeDialog({
 }) {
   return (
     <FormDialog open={target !== null} onClose={onClose}>
-      <DialogContent data-testid="change-dialog" className="sm:max-w-[560px]">
-        {target && (
-          <ChangeForm
-            current={current}
-            target={target}
-            inTrial={inTrial}
-            onClose={onClose}
-            onDone={onDone}
-          />
-        )}
-      </DialogContent>
+      {target && (
+        <ChangeForm
+          current={current}
+          target={target}
+          inTrial={inTrial}
+          onClose={onClose}
+          onDone={onDone}
+        />
+      )}
     </FormDialog>
   );
 }
@@ -315,7 +313,11 @@ function ChangeForm({
   }
 
   return (
-    <>
+    <DialogContent
+      data-testid="change-dialog"
+      className="sm:max-w-[560px]"
+      showCloseButton={!pending}
+    >
       <DialogHeader>
         <DialogTitle className="text-xl leading-snug font-bold text-balance">
           {copy?.title ?? 'Se calculează schimbarea…'}
@@ -375,6 +377,6 @@ function ChangeForm({
           {pending ? 'Se aplică…' : (copy?.confirm ?? 'Confirmă')}
         </Button>
       </DialogFooter>
-    </>
+    </DialogContent>
   );
 }

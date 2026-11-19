@@ -553,7 +553,7 @@ describe('changing a client file', () => {
     );
   });
 
-  it('cannot be closed while the rename saves, so its failure stays on screen', async () => {
+  it('has no close button and ignores Escape while the rename saves, so its failure stays on screen', async () => {
     let fail = () => {};
     mockFilesApi({
       update: () =>
@@ -571,8 +571,8 @@ describe('changing a client file', () => {
     await user.click(screen.getByTestId('client-file-save'));
     expect(screen.getByTestId('client-file-save').textContent).toBe('Se salvează…');
 
+    expect(screen.queryByRole('button', { name: 'Închide' })).toBeNull();
     await user.keyboard('{Escape}');
-    await user.click(screen.getByRole('button', { name: 'Închide' }));
     expect(screen.getByTestId('client-file-dialog')).toBeTruthy();
 
     fail();

@@ -134,7 +134,11 @@ function Form({
   });
 
   return (
-    <DialogContent data-testid="employee-job-position-dialog" className="sm:max-w-xl">
+    <DialogContent
+      data-testid="employee-job-position-dialog"
+      className="sm:max-w-xl"
+      showCloseButton={!busy}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Schimbă postul de lucru</DialogTitle>

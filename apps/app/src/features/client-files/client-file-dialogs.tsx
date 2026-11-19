@@ -113,7 +113,7 @@ function RenameForm({
   });
 
   return (
-    <DialogContent data-testid="client-file-dialog" className="sm:max-w-lg">
+    <DialogContent data-testid="client-file-dialog" className="sm:max-w-lg" showCloseButton={!busy}>
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Redenumește fișierul</DialogTitle>

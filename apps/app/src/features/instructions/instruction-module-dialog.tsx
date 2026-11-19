@@ -120,7 +120,11 @@ function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: (
   });
 
   return (
-    <DialogContent data-testid="instruction-module-dialog" className="sm:max-w-lg">
+    <DialogContent
+      data-testid="instruction-module-dialog"
+      className="sm:max-w-lg"
+      showCloseButton={!busy}
+    >
       <form
         {...replayShow}
         ref={formRef}

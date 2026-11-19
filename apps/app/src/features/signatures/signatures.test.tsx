@@ -1941,7 +1941,7 @@ describe('signing from the Semnături place', () => {
     expect(within(dialog).queryByTestId('signing-code')).toBeNull();
   });
 
-  it('cannot be closed by its close button while the code is being sent', async () => {
+  it('has no close button and ignores Escape while the code is being sent', async () => {
     let refuse = () => {};
     const { user, dialog } = await openSigning({
       [`POST ${sessionPath}`]: () =>
@@ -1962,13 +1962,15 @@ describe('signing from the Semnături place', () => {
     await user.click(within(dialog).getByTestId('signing-send'));
     expect(within(dialog).getByTestId('signing-send').textContent).toBe('Se trimite…');
 
-    await user.click(within(dialog).getByRole('button', { name: 'Închide' }));
+    expect(within(dialog).queryByRole('button', { name: 'Închide' })).toBeNull();
+    await user.keyboard('{Escape}');
     expect(screen.getByTestId('signing-dialog')).toBeTruthy();
 
     refuse();
     expect((await within(dialog).findByTestId('signing-send-error')).textContent).toBe(
       'Codul nu a putut fi trimis. Nu s-a semnat nimic; încearcă din nou.'
     );
+    expect(within(dialog).getByRole('button', { name: 'Închide' })).toBeTruthy();
   });
 
   it('lets go of a request that no longer waits, once the session says so', async () => {

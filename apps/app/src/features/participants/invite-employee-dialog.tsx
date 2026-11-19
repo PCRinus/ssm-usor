@@ -112,7 +112,11 @@ function InviteEmployeeForm({
   }
 
   return (
-    <DialogContent data-testid="participant-invite-dialog" className="sm:max-w-md">
+    <DialogContent
+      data-testid="participant-invite-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!busy}
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();

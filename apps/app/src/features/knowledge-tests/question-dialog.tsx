@@ -118,6 +118,7 @@ function QuestionForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="test-question-dialog"
       className="sm:max-w-2xl"
       onCloseAutoFocus={onCloseAutoFocus}

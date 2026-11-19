@@ -159,7 +159,11 @@ function StatusForm({
   }
 
   return (
-    <DialogContent data-testid="employee-status-dialog" className="sm:max-w-md">
+    <DialogContent
+      data-testid="employee-status-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!busy}
+    >
       <form onSubmit={(event) => void submit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>

@@ -147,7 +147,11 @@ function MaintenanceItemForm({
   );
 
   return (
-    <DialogContent data-testid="fire-maintenance-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="fire-maintenance-dialog"
+      className="sm:max-w-2xl"
+      showCloseButton={!busy}
+    >
       <form
         {...replayShow}
         ref={formRef}

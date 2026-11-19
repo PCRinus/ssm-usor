@@ -134,7 +134,11 @@ function InviteAdministratorForm({
   });
 
   return (
-    <DialogContent data-testid="administrator-invite-dialog" className="sm:max-w-lg">
+    <DialogContent
+      data-testid="administrator-invite-dialog"
+      className="sm:max-w-lg"
+      showCloseButton={!busy}
+    >
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Invită administratorul clientului</DialogTitle>

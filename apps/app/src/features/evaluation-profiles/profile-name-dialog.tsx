@@ -63,7 +63,11 @@ function ProfileNameForm({ naming, onClose }: { naming: ProfileNaming; onClose: 
   });
 
   return (
-    <DialogContent data-testid="profile-name-dialog" className="sm:max-w-lg">
+    <DialogContent
+      data-testid="profile-name-dialog"
+      className="sm:max-w-lg"
+      showCloseButton={!busy}
+    >
       <form
         {...replayShow}
         ref={formRef}

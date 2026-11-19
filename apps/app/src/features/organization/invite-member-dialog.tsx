@@ -141,7 +141,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <DialogContent data-testid="invite-dialog" className="sm:max-w-md">
+    <DialogContent data-testid="invite-dialog" className="sm:max-w-md" showCloseButton={!busy}>
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Invită un membru</DialogTitle>

@@ -192,6 +192,7 @@ function GenerateDocumentsForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="generate-documents-dialog"
       className="sm:max-w-2xl"
       aria-describedby={undefined}

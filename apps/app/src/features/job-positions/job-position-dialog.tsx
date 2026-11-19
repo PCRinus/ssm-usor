@@ -182,6 +182,7 @@ function JobPositionForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="job-position-dialog"
       className="sm:max-w-2xl"
       onCloseAutoFocus={onCloseAutoFocus}
