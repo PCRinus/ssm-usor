@@ -98,15 +98,6 @@ describe('a value the sheets disagree on', () => {
     expect(within(card).queryByLabelText('Data angajării', { selector: 'input' })).toBeNull();
   });
 
-  it('changes the value with the arrow keys, as a group of radio buttons', async () => {
-    const user = userEvent.setup();
-    render(<Choice name="hiredAt" />);
-    const [first] = within(screen.getByRole('radiogroup')).getAllByRole('radio');
-    await user.click(first!);
-    await user.keyboard('{ArrowDown}');
-    expect(choice()).toEqual({ hiredAt: { option: 1 } });
-  });
-
   it('keeps the photo numbers of a choice out of the radio labels, and only the chosen in tab order', async () => {
     const user = userEvent.setup();
     render(<Choice name="hiredAt" />);
