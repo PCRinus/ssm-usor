@@ -7,7 +7,15 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from '../../admin-app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  upstreamCalls,
+} from '../../test/upstream';
 
 const admin = {
   id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
@@ -21,31 +29,16 @@ const admin = {
 };
 const member = { ...admin, app_metadata: { provider: 'email' } };
 
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 const goneId = '7a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
 const ownCopyId = 'c0c0c0c0-0000-4000-8000-000000000001';
 const partCopyId = 'c0c0c0c0-0000-4000-8000-000000000002';
-const secretKey = 'sb_secret_test_key_admin_imports';
 const folder = `${organizationId}/${importId}`;
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
-};
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: admin.id, aal: 'aal2' })}.c2ln`;
-
-type Call = {
-  method: string;
-  url: URL;
-  body: unknown;
-  secret: boolean;
-  actor: string | null;
-  aal: string | null;
-};
 
 const listRow = {
   import_id: importId,
@@ -223,72 +216,59 @@ const records: Record<string, unknown> = {
   [`${organizationId}/${goneId}/record.json`]: { import: goneId, status: 'abandoned' },
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
 let user: typeof admin | typeof member = admin;
 let listRows: unknown[] = [];
 let copyRowsOverride: unknown[] | null = null;
 
-function mockUpstream() {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const headers = new Headers(init?.headers);
-    const raw = init?.body;
-    calls.push({
-      method,
-      url,
-      body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
-      secret: headers.get('Authorization') === `Bearer ${secretKey}`,
-      actor: headers.get('x-audit-actor'),
-      aal: headers.get('x-audit-aal'),
-    });
-    const body = calls.at(-1)!.body as Record<string, unknown>;
-    const path = decodeURIComponent(url.pathname);
-    const eq = (name: string) => url.searchParams.get(name)?.replace(/^eq\./, '');
+const eq = (url: URL, name: string) => url.searchParams.get(name)?.replace(/^eq\./, '');
+const pathOf = (url: URL) => decodeURIComponent(url.pathname);
+type RpcBody = Record<string, unknown>;
 
-    if (path === '/auth/v1/user') return Response.json(user);
-    if (path === '/rest/v1/rpc/admin_list_imports') {
-      const offset = Number(body.p_offset);
-      return Response.json(listRows.slice(offset, offset + Number(body.p_limit)));
-    }
-    if (path === '/rest/v1/rpc/record_admin_event') return Response.json(1);
-    if (path === '/rest/v1/imports') {
-      return Response.json(eq('id') === importId ? importRow : null);
-    }
-    if (path === '/rest/v1/import_library_parts') {
-      return Response.json(eq('import_id') === importId ? [partRow] : []);
-    }
-    if (path === '/rest/v1/import_copies')
-      return Response.json(copyRowsOverride ?? copyRows(eq('import_id')!));
-    if (path === '/rest/v1/organizations') return Response.json({ name: 'Protecția Muncii SRL' });
-    if (path === '/storage/v1/object/list/import-copies') {
-      return Response.json(objects(String(body.prefix)));
-    }
-    if (path.startsWith('/storage/v1/object/sign/import-copies/') && method === 'POST') {
-      return Response.json({
-        signedURL: `${path.slice('/storage/v1'.length)}?token=signed`,
-      });
-    }
-    if (path.startsWith('/storage/v1/object/sign/import-copies/') && method === 'GET') {
-      const key = path.slice('/storage/v1/object/sign/import-copies/'.length);
+function mockUpstream() {
+  routeUpstream({
+    '/auth/v1/user': () => Response.json(user),
+    '/rest/v1/rpc/admin_list_imports': ({ body }) => {
+      const offset = Number((body as RpcBody).p_offset);
+      return Response.json(listRows.slice(offset, offset + Number((body as RpcBody).p_limit)));
+    },
+    '/rest/v1/rpc/record_admin_event': () => Response.json(1),
+    '/rest/v1/imports': ({ url }) => Response.json(eq(url, 'id') === importId ? importRow : null),
+    '/rest/v1/import_library_parts': ({ url }) =>
+      Response.json(eq(url, 'import_id') === importId ? [partRow] : []),
+    '/rest/v1/import_copies': ({ url }) =>
+      Response.json(copyRowsOverride ?? copyRows(eq(url, 'import_id')!)),
+    '/rest/v1/organizations': () => Response.json({ name: 'Protecția Muncii SRL' }),
+    '/storage/v1/object/list/import-copies': ({ body }) =>
+      Response.json(objects(String((body as RpcBody).prefix))),
+    'POST /storage/v1/object/sign/import-copies/*': ({ url }) =>
+      Response.json({ signedURL: `${pathOf(url).slice('/storage/v1'.length)}?token=signed` }),
+    'GET /storage/v1/object/sign/import-copies/*': ({ url }) => {
+      const key = pathOf(url).slice('/storage/v1/object/sign/import-copies/'.length);
       return key in records ? Response.json(records[key]) : new Response(null, { status: 404 });
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
+    },
   });
 }
 
 const request = (path: string) =>
-  createAdminApp().request(path, { headers: { Authorization: `Bearer ${token}` } }, env);
+  apiRequest(path, { app: createAdminApp(), token, client: null }, env);
 
+const calls = () =>
+  upstreamCalls().map(({ method, url, body, headers, secret }, order) => ({
+    order,
+    method,
+    url,
+    body,
+    secret,
+    actor: headers.get('x-audit-actor'),
+    aal: headers.get('x-audit-aal'),
+  }));
 const events = () =>
-  calls.filter((call) => call.url.pathname === '/rest/v1/rpc/record_admin_event');
-const storageCalls = () => calls.filter((call) => call.url.pathname.startsWith('/storage/'));
+  calls().filter((call) => call.url.pathname === '/rest/v1/rpc/record_admin_event');
+const storageCalls = () => calls().filter((call) => call.url.pathname.startsWith('/storage/'));
+
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   user = admin;
   copyRowsOverride = null;
   listRows = [listRow, goneRow, { ...goneRow, import_id: 'aaaaaaaa-0000-4000-8000-000000000003' }];
@@ -297,7 +277,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -306,7 +285,7 @@ describe('GET /admin/imports', () => {
     user = member;
     const response = await request('/admin/imports');
     expect(response.status).toBe(403);
-    expect(calls.map((call) => call.url.pathname)).toEqual(['/auth/v1/user']);
+    expect(calls().map((call) => call.url.pathname)).toEqual(['/auth/v1/user']);
   });
 
   it('lists every organization’s imports with the secret key, as a page with its total', async () => {
@@ -317,7 +296,7 @@ describe('GET /admin/imports', () => {
     expect(response.status).toBe(200);
     const page = adminImportListSchema.parse(await response.json());
     expect(page).toMatchObject({ page: 1, pageSize: 2, total: 3 });
-    const [rpc] = calls.filter((call) => call.url.pathname === '/rest/v1/rpc/admin_list_imports');
+    const [rpc] = calls().filter((call) => call.url.pathname === '/rest/v1/rpc/admin_list_imports');
     expect(rpc!.secret).toBe(true);
     expect(rpc!.body).toEqual({
       p_kind: 'client',
@@ -388,7 +367,9 @@ describe('GET /admin/imports', () => {
     const response = await request('/admin/imports?page=2147483647&pageSize=100');
     expect(response.status).toBe(400);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('validation_error');
-    expect(calls.map((call) => call.url.pathname)).not.toContain('/rest/v1/rpc/admin_list_imports');
+    expect(calls().map((call) => call.url.pathname)).not.toContain(
+      '/rest/v1/rpc/admin_list_imports'
+    );
   });
 
   it('refuses a filter it does not know, naming it', async () => {
@@ -417,7 +398,7 @@ describe('GET /admin/imports/{id}', () => {
     expect(events()[0]!.secret).toBe(true);
     expect(events()[0]!.actor).toBe(admin.id);
     expect(events()[0]!.aal).toBe('aal2');
-    expect(calls.indexOf(events()[0]!)).toBeLessThan(calls.indexOf(storageCalls()[0]!));
+    expect(events()[0]!.order).toBeLessThan(storageCalls()[0]!.order);
 
     expect(detail.organization).toEqual({ id: organizationId, name: 'Protecția Muncii SRL' });
     expect(detail.import).toMatchObject({
@@ -524,7 +505,7 @@ describe('GET /admin/imports/{id}/files', () => {
     ]);
     const sign = storageCalls().find((call) => call.url.pathname.includes('/object/sign/'))!;
     expect(sign.body).toEqual({ expiresIn: 60 });
-    expect(calls.indexOf(events()[0]!)).toBeLessThan(calls.indexOf(sign));
+    expect(events()[0]!.order).toBeLessThan(sign.order);
   });
 
   it('names the part’s copy for a file under its folder', async () => {
