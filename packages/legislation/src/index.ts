@@ -25,13 +25,7 @@ export {
   parseNote,
   type UnitPath,
 } from './amendments';
-export {
-  type ActAnchors,
-  type AnchorReader,
-  type ArticleAnchor,
-  articleAnchors,
-  portalAnchorReader,
-} from './anchors';
+export { type ActAnchors, type AnchorReader, articleAnchors, portalAnchorReader } from './anchors';
 export {
   type AmendedUnit,
   amendedUnitsOf,
