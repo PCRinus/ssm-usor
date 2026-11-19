@@ -1963,14 +1963,6 @@ describe('the spotlight on a photo opened from a value', () => {
     expect(shown?.dataset.dimmed).toBe('true');
   });
 
-  it('lights up the whole name for the given name', async () => {
-    mockEmployeeImport({ locations });
-    const user = userEvent.setup();
-    mount(`${importPath}/toma`);
-    await user.click(await screen.findByRole('button', { name: /^Fotografia 1, Prenume:/ }));
-    expect((await spotlight())?.dataset.box).toBe('120 200 160 500');
-  });
-
   it("lights up a choice's value on each option's photo", async () => {
     mockEmployeeImport({ detail: tomaWithChoices(), locations });
     const user = userEvent.setup();
@@ -1984,72 +1976,72 @@ describe('the spotlight on a photo opened from a value', () => {
     await waitFor(async () => expect((await spotlight())?.dataset.box).toBe('240 200 280 500'));
   });
 
-  it('lights up the whole row of a training, by its place on the page', async () => {
-    mockEmployeeImport({ locations });
-    const user = userEvent.setup();
-    mount(`${importPath}/toma`);
-    await user.click(
-      await screen.findByRole('button', { name: 'Fotografia 2, Instruire SSM din 11.08.2025' })
-    );
-    expect((await spotlight())?.dataset.box).toBe('460 50 500 350');
-  });
-
-  it('lights up the row of a hiring test', async () => {
-    mockEmployeeImport({
-      locations: {
+  it.each([
+    {
+      name: 'the whole name for the given name',
+      person: 'toma',
+      locations: () => locations,
+      button: /^Fotografia 1, Prenume:/,
+      box: '120 200 160 500',
+    },
+    {
+      name: 'the whole row of a training, by its place on the page',
+      person: 'toma',
+      locations: () => locations,
+      button: 'Fotografia 2, Instruire SSM din 11.08.2025',
+      box: '460 50 500 350',
+    },
+    {
+      name: 'the row of a hiring test',
+      person: 'toma',
+      locations: () => ({
         ...locations,
         'IMG_p1.jpg': [...locations['IMG_p1.jpg'], box('trainings[0]', 600, 40)],
-      },
-    });
-    const user = userEvent.setup();
-    mount(`${importPath}/toma`);
-    await user.click(
-      await screen.findByRole('button', { name: 'Fotografia 1, Testul la angajare SSM' })
-    );
-    expect((await spotlight())?.dataset.box).toBe('600 40 640 340');
-  });
-
-  it('lights up the row of an annual test', async () => {
-    const annualTest = sheetRow('r9', {
-      heldOn: '2025-03-04',
-      testOnly: true,
-      test: unsignedAnnualTest.test,
-    });
-    mockEmployeeImport({
-      detail: popWith({}, [annualTest]),
-      locations: { 'IMG_p3.jpg': [box('trainings[0]', 300, 40), box('trainings[1]', 360, 40)] },
-    });
-    const user = userEvent.setup();
-    mount(`${importPath}/pop`);
-    await user.click(
-      await screen.findByRole('button', { name: /^Fotografia 1, Testul anual SSM, la / })
-    );
-    expect((await spotlight())?.dataset.box).toBe('360 40 400 340');
-  });
-
-  it('lights up the day of admission to work', async () => {
-    const workplace = sheetRow('r9', {
-      phase: 'workplace',
-      heldOn: '2023-05-02',
-      durationMinutes: 480,
-      admission: {
-        admittedOn: '2023-05-03',
-        admittedByName: 'Barbu Ionuț',
-        admittedByJobTitle: 'inspector SSM',
-      },
-    });
-    mockEmployeeImport({
-      detail: popWith({}, [workplace]),
-      locations: {
+      }),
+      button: 'Fotografia 1, Testul la angajare SSM',
+      box: '600 40 640 340',
+    },
+    {
+      name: 'the row of an annual test',
+      person: 'pop',
+      detail: () =>
+        popWith({}, [
+          sheetRow('r9', { heldOn: '2025-03-04', testOnly: true, test: unsignedAnnualTest.test }),
+        ]),
+      locations: () => ({
+        'IMG_p3.jpg': [box('trainings[0]', 300, 40), box('trainings[1]', 360, 40)],
+      }),
+      button: /^Fotografia 1, Testul anual SSM, la /,
+      box: '360 40 400 340',
+    },
+    {
+      name: 'the day of admission to work',
+      person: 'pop',
+      detail: () =>
+        popWith({}, [
+          sheetRow('r9', {
+            phase: 'workplace',
+            heldOn: '2023-05-02',
+            durationMinutes: 480,
+            admission: {
+              admittedOn: '2023-05-03',
+              admittedByName: 'Barbu Ionuț',
+              admittedByJobTitle: 'inspector SSM',
+            },
+          }),
+        ]),
+      locations: () => ({
         'IMG_p3.jpg': [box('trainings[1]', 360, 40), box('admission.admittedOn', 420, 600)],
-      },
-    });
+      }),
+      button: /^Fotografia 1, Admis la lucru la /,
+      box: '420 600 460 900',
+    },
+  ])('lights up $name', async (row) => {
+    mockEmployeeImport({ detail: row.detail?.(), locations: row.locations() });
     const user = userEvent.setup();
-    mount(`${importPath}/pop`);
-    await user.click(
-      await screen.findByRole('button', { name: /^Fotografia 1, Admis la lucru la / })
-    );
-    expect((await spotlight())?.dataset.box).toBe('420 600 460 900');
+    mount(`${importPath}/${row.person}`);
+    await user.click(await screen.findByRole('button', { name: row.button }));
+    expect((await spotlight())?.dataset.box).toBe(row.box);
   });
 
   it('lights up a value located after its photo was first opened', async () => {
