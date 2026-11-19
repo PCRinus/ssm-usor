@@ -56,7 +56,12 @@ import {
 } from './equipment';
 import { type ContextParts, gapRules } from './gaps';
 import { installationParts, installationText } from './installations';
-import { knowledgeTestData, type PrintedTest, printedTests } from './knowledge-tests';
+import {
+  knowledgeTestData,
+  type PrintedTest,
+  printedTests,
+  type TestQuestionFacts,
+} from './knowledge-tests';
 import {
   asPerson,
   distinctPeople,
@@ -466,8 +471,7 @@ export type FireSafetySetFacts = Pick<
   | 'jobPositions'
   | 'fireSafety'
   | 'fireOwnInstructions'
-  | 'testQuestions'
->;
+> & { testQuestions: Pick<TestQuestionFacts, 'fire_test_hiring' | 'fire_test_annual'> };
 
 const requiredWorkplaceFacts = [
   'activity',

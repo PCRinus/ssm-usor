@@ -57,7 +57,7 @@ import type {
   startDocumentRegenerationRoute,
   uploadClientDocumentRoute,
 } from './routes';
-import { setRules } from './sets';
+import { rulesOf } from './sets';
 
 // During an impersonation the documents belong to the impersonated member's organization and
 // name them as the specialist, while `created_by` records the platform admin, as elsewhere.
@@ -72,20 +72,21 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
 ) => {
   const { clientId } = c.req.valid('param');
   const { set } = c.req.valid('query');
-  const facts = await loadDocumentFacts(createDataClient(c), clientId, c.get('membership'));
+  const facts = await loadDocumentFacts(createDataClient(c), clientId, c.get('membership'), set);
   // The date and the first decision number are asked when generating; neither can be missing.
-  const missing = setRules[set].missing({
-    ...facts,
+  const missing = rulesOf(facts, {
     issueDate: '2000-01-01',
     period: null,
     firstDecisionNumber: 1,
-  });
-  const occupational = set === 'occupational_safety';
+  }).missing();
   return c.json(
     {
       ready: missing.length === 0,
       missing,
-      hints: occupational && !hasRiskEvaluator(facts) ? ['provider.riskEvaluator' as const] : [],
+      hints:
+        facts.set === 'occupational_safety' && !hasRiskEvaluator(facts)
+          ? ['provider.riskEvaluator' as const]
+          : [],
       currentEmployeeCount: facts.currentEmployeeCount,
       workersRepresentativeClash: missing.includes(
         'responsible.workers_representative_is_legal_representative'
@@ -94,18 +95,18 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
         : null,
       undecidedJobPositions: undecidedJobPositions(
         facts,
-        occupational ? ['equipment', 'instructions'] : ['fire_instructions']
+        facts.set === 'occupational_safety' ? ['equipment', 'instructions'] : ['fire_instructions']
       ),
-      incompleteRiskEvaluations: occupational
-        ? incompleteRiskEvaluations(
-            facts.riskEvaluations,
-            facts.jobPositions,
-            facts.client.sensitiveGroupsState
-          )
-        : [],
-      incompleteFireSubstances: occupational
-        ? []
-        : incompleteFireSubstances(facts.fireSafety.substances),
+      incompleteRiskEvaluations:
+        facts.set === 'occupational_safety'
+          ? incompleteRiskEvaluations(
+              facts.riskEvaluations,
+              facts.jobPositions,
+              facts.client.sensitiveGroupsState
+            )
+          : [],
+      incompleteFireSubstances:
+        facts.set === 'fire_safety' ? incompleteFireSubstances(facts.fireSafety.substances) : [],
     },
     200
   );

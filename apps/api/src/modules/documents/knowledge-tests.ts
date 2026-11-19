@@ -55,7 +55,7 @@ export function printedTest(typeKey: KnowledgeTestTypeKey, questions: BankQuesti
 }
 
 export function printedTests<Keys extends KnowledgeTestTypeKey>(
-  facts: TestQuestionFacts,
+  facts: Pick<TestQuestionFacts, Keys>,
   typeKeys: readonly Keys[]
 ): Record<Keys, PrintedTest> {
   return Object.fromEntries(
@@ -83,11 +83,11 @@ const asBankQuestion = (row: QuestionRow): BankQuestion => ({
  * Run as the caller, so a member reads their own organization's bank; the queue consumer's secret
  * key reads it too, the organization being the job's.
  */
-export async function loadTestQuestions(
+export async function loadTestQuestions<Keys extends KnowledgeTestTypeKey>(
   db: DataClient,
-  organizationId: string
-): Promise<TestQuestionFacts> {
-  const typeKeys = Object.keys(knowledgeTestDocuments) as KnowledgeTestTypeKey[];
+  organizationId: string,
+  typeKeys: readonly Keys[]
+): Promise<Pick<TestQuestionFacts, Keys>> {
   const answers = await Promise.all(
     typeKeys.map((typeKey) =>
       db
@@ -105,5 +105,5 @@ export async function loadTestQuestions(
       if (error) throw fromDatabaseError(error, `document facts: questions of ${typeKey}`);
       return [typeKey, data.map(asBankQuestion)];
     })
-  ) as TestQuestionFacts;
+  ) as Pick<TestQuestionFacts, Keys>;
 }

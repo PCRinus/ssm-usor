@@ -12,26 +12,28 @@ import {
   type DocumentFacts,
   documentGapConcerns,
   missingDocumentData,
+  type SsmSetFacts,
 } from './context';
+import type { StoredDocumentFacts } from './facts';
 import {
   buildPartialFireSafetyContext,
   fireSafetyDocumentData,
   fireSafetyGapConcerns,
+  type FireSafetySetFacts,
   missingFireSafetyData,
 } from './fire-safety';
 
-type SetRules = {
-  missing: (facts: DocumentFacts, typeKey?: string) => MissingDocumentData[];
+type SetRules<Facts> = {
+  missing: (facts: Facts, typeKey?: string) => MissingDocumentData[];
   concerns: (code: MissingDocumentData, printedNames: readonly string[]) => boolean;
   /** What the gaps of `missing(facts, typeKey)` cover is left out of the data. */
-  data: (
-    facts: DocumentFacts,
-    typeKey: string,
-    decisionNumber: number | null
-  ) => Record<string, unknown>;
+  data: (facts: Facts, typeKey: string, decisionNumber: number | null) => Record<string, unknown>;
 };
 
-export const setRules: Record<DocumentSet, SetRules> = {
+export const setRules: {
+  occupational_safety: SetRules<SsmSetFacts>;
+  fire_safety: SetRules<FireSafetySetFacts>;
+} = {
   occupational_safety: {
     missing: missingDocumentData,
     concerns: documentGapConcerns,
@@ -45,6 +47,25 @@ export const setRules: Record<DocumentSet, SetRules> = {
       fireSafetyDocumentData(buildPartialFireSafetyContext(facts, typeKey), typeKey),
   },
 };
+
+export type AskedFacts = Pick<DocumentFacts, 'issueDate' | 'firstDecisionNumber' | 'period'>;
+
+export type BoundSetRules = {
+  missing: (typeKey?: string) => MissingDocumentData[];
+  concerns: SetRules<unknown>['concerns'];
+  data: (typeKey: string, decisionNumber: number | null) => Record<string, unknown>;
+};
+
+const bound = <Facts>(rules: SetRules<Facts>, facts: Facts): BoundSetRules => ({
+  missing: (typeKey) => rules.missing(facts, typeKey),
+  concerns: rules.concerns,
+  data: (typeKey, decisionNumber) => rules.data(facts, typeKey, decisionNumber),
+});
+
+export const rulesOf = (facts: StoredDocumentFacts, asked: AskedFacts): BoundSetRules =>
+  facts.set === 'fire_safety'
+    ? bound(setRules.fire_safety, { ...facts, ...asked })
+    : bound(setRules.occupational_safety, { ...facts, ...asked });
 
 /** Null for the other documents, such as the service contract, which no set holds. */
 export function setOfGroup(group: DocumentGroup): DocumentSet | null {

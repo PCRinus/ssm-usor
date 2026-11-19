@@ -46,7 +46,7 @@ import {
   type StoredDocumentFacts,
 } from './facts';
 import { buildFireSafetyContext, fireSafetyDocumentData } from './fire-safety';
-import { setOfGroup, setRules } from './sets';
+import { rulesOf, setOfGroup } from './sets';
 import { annexDomainOf, annexedVersionIds, snapshotAnnexes } from './snapshot';
 
 type Tables = Database['public']['Tables'];
@@ -118,23 +118,21 @@ function dataChanged(
   facts: StoredDocumentFacts | null
 ) {
   if (!facts || !isComparedDraft(document, revision)) return false;
-  const set = setOfGroup(document.document_group)!;
-  const rules = setRules[set];
-  const input = {
-    ...facts,
+  if (setOfGroup(document.document_group) !== facts.set) return false;
+  const rules = rulesOf(facts, {
     issueDate: revision.document_generations.issue_date,
     period: document.period,
     firstDecisionNumber:
-      set === 'fire_safety'
+      facts.set === 'fire_safety'
         ? (fireFirstDecisionNumber(document, revision.document_generations.first_decision_number) ??
           1)
         : 1,
-  };
+  });
   // The snapshot holds what the document printed; the rest of the data is not its concern.
   const printed = revision.data_snapshot as Record<string, unknown>;
-  const missing = rules.missing(input, document.type_key);
+  const missing = rules.missing(document.type_key);
   if (missing.some((code) => rules.concerns(code, Object.keys(printed)))) return true;
-  const current = rules.data(input, document.type_key, document.decision_number);
+  const current = rules.data(document.type_key, document.decision_number);
   return Object.entries(printed).some(
     ([name, value]) => stableJson(current[name]) !== stableJson(value)
   );
@@ -277,6 +275,7 @@ async function withYearRecords(
   documents: DocumentRow[],
   facts: StoredDocumentFacts
 ): Promise<StoredDocumentFacts> {
+  if (facts.set !== 'fire_safety') return facts;
   const periods = documents.flatMap((document) =>
     document.period !== null &&
     isDatedDocumentType(document.type_key) &&
@@ -318,9 +317,11 @@ async function presentDocument(
 
 async function presentChanged(db: DataClient, actor: Actor, documentId: string) {
   const document = await readDocument(db, documentId);
-  const facts = document.document_revisions.some((revision) => isComparedDraft(document, revision))
-    ? await loadDocumentFacts(db, document.client_id, actor)
-    : null;
+  const set = setOfGroup(document.document_group);
+  const facts =
+    set && document.document_revisions.some((revision) => isComparedDraft(document, revision))
+      ? await loadDocumentFacts(db, document.client_id, actor, set)
+      : null;
   return presentDocument(db, document, facts);
 }
 
@@ -402,7 +403,7 @@ export async function listClientDocuments(
 ) {
   const [facts, documents, generation] = await Promise.all([
     // Also answers 404 for a client of another organization.
-    loadDocumentFacts(db, clientId, actor),
+    loadDocumentFacts(db, clientId, actor, set),
     readDocuments(db, clientId, set),
     lastGeneration(db, clientId, set),
   ]);
@@ -449,7 +450,7 @@ export async function generateClientDocuments(
       },
     ]);
   }
-  const facts = await loadDocumentFacts(db, clientId, actor);
+  const facts = await loadDocumentFacts(db, clientId, actor, set);
   if (facts.clientArchived) {
     throw new ApiError('conflict', 'Documents are only generated for an active client.');
   }
@@ -459,8 +460,7 @@ export async function generateClientDocuments(
   };
   const period = request.period ?? currentYear();
   const periodOf = (typeKey: string) => (isDatedDocumentType(typeKey) ? period : null);
-  const input = { ...facts, ...asked, period: null };
-  const missing = setRules[set].missing(input);
+  const missing = rulesOf(facts, { ...asked, period: null }).missing();
   if (missing.length > 0) throw missingDocumentDataError(missing);
 
   const [templates, existing] = await Promise.all([
@@ -507,8 +507,9 @@ export async function generateClientDocuments(
       set,
     });
   const createdIds: string[] = [];
-  let current = facts;
-  if (fire) {
+  let current: StoredDocumentFacts = facts;
+  if (facts.set === 'fire_safety') {
+    const input = { ...facts, ...asked, period: null };
     const fireMerged =
       (context: ReturnType<typeof buildFireSafetyContext>) => (template: Template) =>
         create(template, {
@@ -525,28 +526,31 @@ export async function generateClientDocuments(
       ))
     );
     if (themes) {
-      current = {
+      const reloaded = {
         ...facts,
         fireOwnInstructions: await loadOwnInstructions(db, clientId, 'fire_own_instructions'),
       };
+      current = reloaded;
       // Nothing to cite only when the IPSU is an uploaded file: the themes wait for it.
-      if (current.fireOwnInstructions) {
+      if (reloaded.fireOwnInstructions) {
         createdIds.push(
-          await fireMerged(buildFireSafetyContext({ ...current, ...asked, period: null }))(themes)
+          await fireMerged(buildFireSafetyContext({ ...reloaded, ...asked, period: null }))(themes)
         );
       }
     }
     // A dated document reports on the set, so it is merged with what this run has just made.
     if (dated.length > 0) {
-      current = await loadDocumentFacts(db, clientId, actor, [period]);
+      const reloaded = await loadDocumentFacts(db, clientId, actor, 'fire_safety', [period]);
+      current = reloaded;
       createdIds.push(
         ...(await inBatches(
           dated,
-          fireMerged(buildFireSafetyContext({ ...current, ...asked, period }))
+          fireMerged(buildFireSafetyContext({ ...reloaded, ...asked, period }))
         ))
       );
     }
   } else {
+    const input = { ...facts, ...asked, period: null };
     const context = buildDocumentContext(input);
     const fromContext = (built: typeof context, typeKey: string): Merged => {
       const decisionNumber = decisionNumberOf(built, typeKey);
@@ -561,11 +565,12 @@ export async function generateClientDocuments(
       ))
     );
     if (themes) {
-      current = { ...facts, ownInstructions: await loadOwnInstructions(db, clientId) };
+      const reloaded = { ...facts, ownInstructions: await loadOwnInstructions(db, clientId) };
+      current = reloaded;
       // Nothing to cite only when the own instructions are an uploaded file: the themes wait
       // for them to be generated.
-      if (current.ownInstructions) {
-        const themesContext = buildDocumentContext({ ...current, ...asked, period: null });
+      if (reloaded.ownInstructions) {
+        const themesContext = buildDocumentContext({ ...reloaded, ...asked, period: null });
         createdIds.push(await create(themes, fromContext(themesContext, themes.typeKey)));
       }
     }
@@ -858,11 +863,11 @@ export async function regenerateDraft(
     // It would be merged with the facts of a documentation set, which it does not print.
     throw new ApiError('conflict', 'This document is generated from its own page.');
   }
-  const rules = setRules[set];
   const facts = await loadDocumentFacts(
     db,
     document.client_id,
     actor,
+    set,
     document.period === null ? [] : [document.period]
   );
   if (facts.clientArchived) {
@@ -887,18 +892,17 @@ export async function regenerateDraft(
             previous.data?.first_decision_number
         )
       : null;
-  const input = {
-    ...facts,
+  const rules = rulesOf(facts, {
     issueDate,
     period: document.period,
     firstDecisionNumber: fireFirstNumber ?? 1,
-  };
-  const missing = rules.missing(input, document.type_key);
+  });
+  const missing = rules.missing(document.type_key);
   const [template] = await builtInTemplates(db, [document.type_key]);
   if (!template) {
     throw new ApiError('conflict', 'This document has no template to be generated from.');
   }
-  const data = rules.data(input, document.type_key, document.decision_number);
+  const data = rules.data(document.type_key, document.decision_number);
   // Gaps elsewhere in the set do not refuse it (ADR 005, amended 2026-10-10).
   const { bytes, snapshot } = merge(
     await files.readTemplate(template.storagePath),
