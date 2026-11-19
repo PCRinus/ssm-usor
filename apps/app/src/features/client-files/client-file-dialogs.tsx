@@ -11,7 +11,6 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -21,6 +20,7 @@ import {
   useUpdateClientFile,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -81,8 +81,8 @@ function RenameForm({
   file: ClientFile;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const update = useUpdateClientFile({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const update = useUpdateClientFile({ request });
   const form = useForm<ClientFileFormValues>({
     resolver: zodResolver(clientFileFormSchema),
     defaultValues: { name: file.name, note: file.note ?? '' },
@@ -184,8 +184,8 @@ export function DeleteClientFileDialog({
   onClose: () => void;
   onError: (message: string) => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteClientFile({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const remove = useDeleteClientFile({ request });
 
   async function deleteFile(target: ClientFile) {
     try {
