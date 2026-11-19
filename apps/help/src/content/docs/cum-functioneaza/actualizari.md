@@ -14,6 +14,7 @@ sources:
   - apps/app/src/features/reload-prompts/new-version-toast.ts
   - apps/app/src/features/reload-prompts/kept-text.ts
   - packages/spa-runtime/src/version-watch.ts
+  - packages/spa-runtime/src/countdown.ts
 ---
 
 Aplicația primește versiuni noi des, de obicei de câteva ori pe săptămână. Pentru fiecare versiune care schimbă ceva din ce vezi sau din ce poți face, scriem ce e nou, ce merge mai bine și ce nu mai greșește. Le găsești în **Actualizări**, în partea de jos a meniului. Numărul de lângă **Actualizări** arată câte versiuni n-ai citit încă.
