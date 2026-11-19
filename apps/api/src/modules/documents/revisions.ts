@@ -291,10 +291,62 @@ const pdfSignature = new TextEncoder().encode('%PDF-');
 const signedCopyPathOf = (docxPath: string) => docxPath.replace(/\.docx$/, '.signed.pdf');
 
 /**
- * Attaches what came back signed to the issued revision, or replaces what was attached. The
- * row first, with the hash of the file, because the policies let a file be written only
+ * The row first, with the hash of the file, because the policies let a file be written only
  * where a row says it lives.
  */
+export async function recordSignedCopy(
+  db: DataClient,
+  files: FileStore,
+  copy: {
+    revision: { id: string; docxPath: string; hasCopy: boolean };
+    documentId: string;
+    organizationId: string;
+    bytes: Uint8Array;
+    uploadedBy: string | null;
+    // An owner looked at what they attach; a copy from the return link waits for one.
+    source: 'owner' | 'client';
+    context: string;
+  }
+) {
+  const { revision, bytes } = copy;
+  const path = signedCopyPathOf(revision.docxPath);
+  const uploadedAt = new Date().toISOString();
+  const confirmed = copy.source === 'owner';
+  const recorded = await db.from('document_signed_copies').upsert(
+    {
+      revision_id: revision.id,
+      organization_id: copy.organizationId,
+      document_id: copy.documentId,
+      storage_path: path,
+      sha256: await sha256(bytes),
+      uploaded_by: copy.uploadedBy,
+      uploaded_at: uploadedAt,
+      source: copy.source,
+      confirmed_at: confirmed ? uploadedAt : null,
+      confirmed_by: confirmed ? copy.uploadedBy : null,
+    },
+    { onConflict: 'revision_id' }
+  );
+  if (recorded.error) throw fromDatabaseError(recorded.error, copy.context);
+  try {
+    await files.writeDocument(path, bytes, { replace: true });
+  } catch (error) {
+    // Only a first copy: after a failed replacement the row still describes the earlier file,
+    // under a hash the next attempt corrects. Only this attempt's row: an owner and the return
+    // link write the same row, and the other may have replaced it and stored its file meanwhile.
+    if (!revision.hasCopy) {
+      await db
+        .from('document_signed_copies')
+        .delete()
+        .eq('revision_id', revision.id)
+        .eq('uploaded_at', uploadedAt);
+    }
+    throw error;
+  }
+  return uploadedAt;
+}
+
+/** Attaches what came back signed to the issued revision, or replaces what was attached. */
 export async function attachSignedCopy(
   db: DataClient,
   files: FileStore,
@@ -319,34 +371,19 @@ export async function attachSignedCopy(
     );
   }
   await requireActiveClient(db, document.client_id);
-  const path = signedCopyPathOf(issued.docx_path);
-  const recorded = await db.from('document_signed_copies').upsert(
-    {
-      revision_id: issued.id,
-      organization_id: actor.organizationId,
-      document_id: document.id,
-      storage_path: path,
-      sha256: await sha256(bytes),
-      uploaded_by: actor.createdBy,
-      uploaded_at: new Date().toISOString(),
-      // An owner looked at what they attach.
-      source: 'owner',
-      confirmed_at: new Date().toISOString(),
-      confirmed_by: actor.createdBy,
+  await recordSignedCopy(db, files, {
+    revision: {
+      id: issued.id,
+      docxPath: issued.docx_path,
+      hasCopy: Boolean(issued.document_signed_copies),
     },
-    { onConflict: 'revision_id' }
-  );
-  if (recorded.error) throw fromDatabaseError(recorded.error, 'record signed copy');
-  try {
-    await files.writeDocument(path, bytes, { replace: true });
-  } catch (error) {
-    // Only a first copy: after a failed replacement the row still describes a file, the
-    // earlier one, under a hash that is no longer its own, which the next attempt corrects.
-    if (!issued.document_signed_copies) {
-      await db.from('document_signed_copies').delete().eq('revision_id', issued.id);
-    }
-    throw error;
-  }
+    documentId: document.id,
+    organizationId: actor.organizationId,
+    bytes,
+    uploadedBy: actor.createdBy,
+    source: 'owner',
+    context: 'record signed copy',
+  });
   return presentChanged(db, actor, documentId);
 }
 
