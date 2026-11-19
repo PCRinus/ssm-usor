@@ -2,7 +2,7 @@ import { defaultPageSize, type OrganizationEmployeeSortKey } from '@ssm-usor/con
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import { UsersRound } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -12,6 +12,7 @@ import {
   type ListOrganizationEmployeesParams,
   useListOrganizationEmployees,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -24,7 +25,6 @@ import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
 import { SearchInput } from '@/components/search-input';
-import { useAuth } from '@/features/auth/auth-context';
 
 import { employeeStatusLabels, workerNoun } from './employee-format';
 import {
@@ -72,10 +72,9 @@ export function OrganizationEmployeesPage() {
   const sort =
     !search.sort || (former && trainingSortKeys.has(search.sort)) ? defaultSort.sort : search.sort;
   const navigate = route.useNavigate();
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const phone = useIsMobile();
-  const clients = useEveryClient(session?.user.id);
+  const clients = useEveryClient();
   const facets = useMemo(
     () =>
       organizationWorkerFacets({
@@ -98,10 +97,10 @@ export function OrganizationEmployeesPage() {
     ...filters,
   };
   const employees = useListOrganizationEmployees(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListOrganizationEmployeesQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListOrganizationEmployeesQueryKey(params)),
+      enabled: ready,
       placeholderData: keepPreviousData,
     },
   });
@@ -121,10 +120,10 @@ export function OrganizationEmployeesPage() {
       ...(listFilters.searchOf(pending) as Filters),
     };
     return getListOrganizationEmployeesQueryOptions(counted, {
-      request: apiRequest,
+      request,
       query: {
-        queryKey: [...getListOrganizationEmployeesQueryKey(counted), session?.user.id],
-        enabled: Boolean(session && apiRequest.baseUrl),
+        queryKey: key(getListOrganizationEmployeesQueryKey(counted)),
+        enabled: ready,
       },
     });
   };
@@ -208,7 +207,7 @@ export function OrganizationEmployeesPage() {
           }
           meta={meta}
           noun={['lucrător', 'lucrători']}
-          status={!apiRequest.baseUrl ? 'error' : employees.status}
+          status={!request.baseUrl ? 'error' : employees.status}
           isFetching={employees.isFetching}
           isPlaceholderData={employees.isPlaceholderData}
           sort={{ sort, order }}
@@ -218,7 +217,7 @@ export function OrganizationEmployeesPage() {
             <WorkersListError
               error={employees.error}
               testId="organization-employees"
-              onRetry={apiRequest.baseUrl ? () => void employees.refetch() : undefined}
+              onRetry={request.baseUrl ? () => void employees.refetch() : undefined}
               retrying={employees.isFetching}
             />
           }

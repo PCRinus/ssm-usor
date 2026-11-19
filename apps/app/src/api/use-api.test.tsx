@@ -27,8 +27,8 @@ const userId = 'user-one';
 function Harness() {
   useMe();
   useEmployee(clientId, employeeId);
-  useEveryClient(userId);
-  useCurrentEmployees(clientId, userId);
+  useEveryClient();
+  useCurrentEmployees(clientId);
   const { key, ready } = useApi();
   return <p>{JSON.stringify({ key: key(['/somewhere', { page: 2 }]), ready })}</p>;
 }

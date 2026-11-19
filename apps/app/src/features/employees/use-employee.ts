@@ -1,16 +1,13 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import { getGetEmployeeQueryKey, useGetEmployee } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 
 export function useEmployee(clientId: string, employeeId: string) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   return useGetEmployee(clientId, employeeId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetEmployeeQueryKey(clientId, employeeId), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getGetEmployeeQueryKey(clientId, employeeId)),
+      enabled: ready,
     },
   });
 }

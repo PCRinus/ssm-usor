@@ -1,11 +1,12 @@
 import { formatEmployeeName, maxPageSize } from '@ssm-usor/contracts';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 
 import {
   type EmployeeListResponse,
   getListEmployeesQueryKey,
   useListEmployees,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox';
 import { normalizeSearch } from '@/lib/normalize-search';
 
@@ -42,7 +43,6 @@ export function EmployeeCombobox({
   id,
   testId = 'responsible-employee',
   clientId,
-  userId,
   value,
   administrator,
   onSelect,
@@ -54,7 +54,6 @@ export function EmployeeCombobox({
   id: string;
   testId?: string;
   clientId: string;
-  userId: string;
   value: string;
   // Null when the client has no legal representative recorded; undefined offers no entry.
   administrator?: Administrator | null;
@@ -64,10 +63,10 @@ export function EmployeeCombobox({
   invalid?: boolean;
   describedBy?: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const employees = useListEmployees(clientId, listParams, {
-    request: apiRequest,
-    query: { queryKey: [...getListEmployeesQueryKey(clientId, listParams), userId] },
+    request,
+    query: { queryKey: key(getListEmployeesQueryKey(clientId, listParams)) },
   });
   const options = employees.data?.items ?? [];
   const items: ComboboxItem[] = options

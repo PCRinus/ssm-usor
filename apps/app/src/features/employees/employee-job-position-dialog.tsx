@@ -9,7 +9,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -22,6 +21,7 @@ import {
   useUpdateEmployeeJobPosition,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
@@ -49,25 +49,17 @@ type Values = z.infer<typeof schema>;
 // old post's name follows the new post, as it does in the employee form.
 export function EmployeeJobPositionDialog({
   clientId,
-  userId,
   employee,
   onClose,
 }: {
   clientId: string;
-  userId: string;
   employee: Employee | null;
   onClose: () => void;
 }) {
   return (
     <FormDialog open={employee !== null} onClose={onClose}>
       {employee && (
-        <Form
-          key={employee.id}
-          clientId={clientId}
-          userId={userId}
-          employee={employee}
-          onClose={onClose}
-        />
+        <Form key={employee.id} clientId={clientId} employee={employee} onClose={onClose} />
       )}
     </FormDialog>
   );
@@ -75,17 +67,15 @@ export function EmployeeJobPositionDialog({
 
 function Form({
   clientId,
-  userId,
   employee,
   onClose,
 }: {
   clientId: string;
-  userId: string;
   employee: Employee;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const move = useUpdateEmployeeJobPosition({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const move = useUpdateEmployeeJobPosition({ request });
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { jobPosition: employee.jobPosition.id, jobTitle: employee.jobTitle },
@@ -162,7 +152,6 @@ function Form({
                   id="employee-position"
                   testId="employee-position"
                   clientId={clientId}
-                  userId={userId}
                   value={field.value}
                   onChange={choosePosition}
                   onBlur={field.onBlur}
