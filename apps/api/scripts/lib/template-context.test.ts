@@ -279,6 +279,17 @@ describe('a document generated again while the set lacks data', () => {
 
   // The names a template printed from the whole context are what its snapshot keeps, so a
   // refusal here is also what marks its draft as changed.
+  const printedNames = new Map<string, string[]>();
+  const printedBy = (typeKey: string, template: Buffer) => {
+    const known = printedNames.get(typeKey);
+    if (known) return known;
+    const { usedNames } = renderTemplate(
+      template,
+      documentData(buildDocumentContext(facts), typeKey)
+    );
+    printedNames.set(typeKey, usedNames);
+    return usedNames;
+  };
   it.each(
     manifest.templates.flatMap((entry) =>
       withGaps.map(([label, variant]) => [entry.typeKey, label, entry.file, variant] as const)
@@ -287,10 +298,7 @@ describe('a document generated again while the set lacks data', () => {
     '%s is refused for exactly the gaps it prints, lacking %s',
     (typeKey, _, file, variant) => {
       const template = readFileSync(new URL(file, templatesUrl));
-      const { usedNames } = renderTemplate(
-        template,
-        documentData(buildDocumentContext(facts), typeKey)
-      );
+      const usedNames = printedBy(typeKey, template);
       const missing = missingDocumentData(variant, typeKey);
       expect(
         refusedFor(() =>
@@ -1244,6 +1252,17 @@ describe('the fire-safety templates', () => {
 
   // As for the occupational safety set: the names a template printed from the whole context are
   // what its snapshot keeps, so a refusal here is also what marks its draft as changed.
+  const printedNames = new Map<string, string[]>();
+  const printedBy = (typeKey: string, template: Buffer) => {
+    const known = printedNames.get(typeKey);
+    if (known) return known;
+    const { usedNames } = renderTemplate(
+      template,
+      fireSafetyDocumentData(buildFireSafetyContext(datedFor(typeKey, facts)), typeKey)
+    );
+    printedNames.set(typeKey, usedNames);
+    return usedNames;
+  };
   it.each(
     fireManifest.templates.flatMap((entry) =>
       fireGaps.map(([label, variant]) => [entry.typeKey, label, entry.file, variant] as const)
@@ -1252,10 +1271,7 @@ describe('the fire-safety templates', () => {
     '%s is generated again or refused for exactly the gaps it prints, lacking %s',
     (typeKey, _, file, variant) => {
       const template = readFileSync(new URL(file, fireUrl));
-      const { usedNames } = renderTemplate(
-        template,
-        fireSafetyDocumentData(buildFireSafetyContext(datedFor(typeKey, facts)), typeKey)
-      );
+      const usedNames = printedBy(typeKey, template);
       const missing = missingFireSafetyData(variant, typeKey);
       expect(
         refusedFor(() =>

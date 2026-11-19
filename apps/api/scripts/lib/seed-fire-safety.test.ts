@@ -4,6 +4,7 @@ import {
   fireEquipmentRequestSchema,
   fireInstallationRequestSchema,
   fireMaintenanceItemRequestSchema,
+  fireSafetyStartingValues,
   fireSubstanceRequestSchema,
   updateClientFireSafetyRequestSchema,
   updateOrganizationAuthorizationsRequestSchema,
@@ -34,9 +35,10 @@ describe('fireSafetyFor', () => {
       userId
     );
     expect(row).toMatchObject({
-      periodic_training_hours: 2,
-      administrative_training_interval_months: 6,
-      worker_training_interval_months: 3,
+      periodic_training_hours: fireSafetyStartingValues.periodicTrainingHours,
+      administrative_training_interval_months:
+        fireSafetyStartingValues.administrativeTrainingIntervalMonths,
+      worker_training_interval_months: fireSafetyStartingValues.workerTrainingIntervalMonths,
       training_first_month: 3,
       training_day_from: 4,
       training_day_to: 9,

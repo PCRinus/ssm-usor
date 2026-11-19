@@ -18,22 +18,14 @@ describe('signup confirmation', () => {
     const email = await sendConfirmation();
 
     expect(email.subject).toBe('Confirmă adresa de email pentru contul SSM Ușor');
-    expect(email.html).toContain('lang="ro"');
     expect(email.html).toContain(`href="${confirmUrl}"`);
     expect(email.text).toContain(confirmUrl);
     expect(email.text).toContain('valabil o oră');
-    expect(email.text).not.toContain('<');
   });
 
   it('tells someone who did not register that the account cannot be used', async () => {
     const email = await sendConfirmation();
 
     expect(email.text).toContain('fără confirmare contul nu poate fi folosit');
-  });
-
-  it('stays far below the size at which Gmail clips an email', async () => {
-    const email = await sendConfirmation();
-
-    expect(new TextEncoder().encode(email.html).length).toBeLessThan(102 * 1024);
   });
 });

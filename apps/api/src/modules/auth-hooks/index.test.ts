@@ -21,27 +21,12 @@ const env = testEnv({
   SUPABASE_AUTH_SMS_HOOK_SECRET: `v1,whsec_${smsKey}`,
   APP_ORIGIN: 'https://app.example.ro',
   MAIL: {
-    sendWaitlistConfirmation: vi.fn(),
-    sendOrganizationInvitation: vi.fn(),
     sendPasswordReset,
     sendSignupConfirmation,
-    sendServiceContract: vi.fn(),
-    sendSignedCopyReceived: vi.fn(),
     sendPasswordChanged,
-    sendParticipantInvitation: vi.fn(),
     sendSignInCode: sendSignInCodeEmail,
-    sendSigningCode: vi.fn(),
-    sendSignatureRequest: vi.fn(),
-    sendSmsUsageNotice: vi.fn(),
-    sendEmployeesOverStepNotice: vi.fn(),
-    sendExtrasNotice: vi.fn(),
-  },
-  SMS: {
-    sendParticipantInvitation: vi.fn(),
-    sendSignInCode: sendSignInCodeSms,
-    sendSigningCode: vi.fn(),
-    sendSignatureRequest: vi.fn(),
-  },
+  } as unknown as MailService,
+  SMS: { sendSignInCode: sendSignInCodeSms } as unknown as SmsService,
 });
 
 const payload = (type = 'recovery', appMetadata: Record<string, unknown> = {}) => ({

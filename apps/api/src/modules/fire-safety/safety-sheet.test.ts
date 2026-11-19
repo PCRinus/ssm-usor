@@ -303,13 +303,16 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
     expect(refunds()).toHaveLength(1);
   });
 
-  it('gives the credits back when the gateway fails', async () => {
+  it('gives the credits back when the gateway fails, and says so', async () => {
     mockUpstream({ model: () => new Response('bad request', { status: 400 }) });
 
     const response = await read();
 
     expect(response.status).toBe(503);
-    expect((await refusal(response)).reason).toBe('safety_sheet_failed');
+    expect(await refusal(response)).toMatchObject({
+      reason: 'safety_sheet_failed',
+      creditsRefunded: true,
+    });
     expect(refunds()).toHaveLength(1);
   });
 
@@ -357,14 +360,6 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
     const body = await refusal(response);
     expect(body.reason).toBe('safety_sheet_unavailable');
     expect(body).not.toHaveProperty('creditsRefunded');
-  });
-
-  it('says the credits were given back when a reading fails after its charge', async () => {
-    mockUpstream({ model: () => new Response('bad request', { status: 400 }) });
-
-    const body = await refusal(await read());
-
-    expect(body).toMatchObject({ reason: 'safety_sheet_failed', creditsRefunded: true });
   });
 
   it('does not say the credits came back when giving them back failed', async () => {

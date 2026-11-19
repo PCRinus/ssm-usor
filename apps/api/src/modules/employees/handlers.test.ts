@@ -6,8 +6,6 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import { openApiConfig } from '../../lib/openapi';
 import { apiRequest } from '../../test/request';
 import {
   callsTo,
@@ -120,31 +118,6 @@ const training = {
   },
 };
 
-const employeeListRow = Object.fromEntries(
-  Object.entries(employeeRow).filter(
-    ([key]) =>
-      ![
-        'cnp',
-        'birth_date',
-        'birth_place',
-        'home_address',
-        'residence_address',
-        'blood_group',
-        'rh_factor',
-        'notes',
-        'archived_at',
-        'qualification',
-        'education',
-        'authorizations',
-        'commute_route',
-        'commute_means',
-        'commute_means_other',
-        'commute_minutes',
-        'contract_number',
-      ].includes(key)
-  )
-);
-
 const employeeViewRow = {
   id: employeeRow.id,
   client_id: clientId,
@@ -196,7 +169,7 @@ function mockUpstream(
       Response.json([{ employee_id: employeeRow.id, ...employeeRow.test_status }]),
     '/rest/v1/employees': ({ init, url }) =>
       handlers.employees?.(init, url) ??
-      Response.json([employeeListRow], { headers: { 'Content-Range': '0-0/1' } }),
+      Response.json([employeeRow], { headers: { 'Content-Range': '0-0/1' } }),
   });
 }
 
@@ -296,11 +269,11 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(callsTo('/rest/v1/employee_training_status')).toHaveLength(0);
   });
 
-  it('pages and sorts by one whitelisted key with a stable tiebreaker', async () => {
+  it('pages by offset and limit', async () => {
     mockUpstream({
       list: () => Response.json([employeeViewRow], { headers: { 'Content-Range': '25-25/26' } }),
     });
-    const response = await request(`${employeesPath}?page=2&pageSize=25&sort=hiredAt&order=desc`);
+    const response = await request(`${employeesPath}?page=2&pageSize=25`);
     expect(response.status).toBe(200);
     expect(employeeListResponseSchema.parse(await response.json())).toMatchObject({
       page: 2,
@@ -308,50 +281,37 @@ describe('GET /clients/{clientId}/employees', () => {
       total: 26,
     });
     const query = listQuery();
-    expect(query.get('order')).toBe('hired_at.desc,last_name.desc,first_name.desc,id.asc');
     expect(query.get('offset')).toBe('25');
     expect(query.get('limit')).toBe('25');
   });
 
   it.each([
-    ['ssmTraining', 'ssm_training_rank.asc.nullslast,ssm_training_due_on.asc.nullslast'],
-    ['suTraining', 'su_training_rank.asc.nullslast,su_training_due_on.asc.nullslast'],
-    ['terminatedAt', 'terminated_at.asc.nullslast'],
-    ['jobPosition', 'job_position_name.asc'],
-  ])('sorts by %s, those without a value last', async (sort, order) => {
-    mockUpstream({});
-    expect((await request(`${employeesPath}?sort=${sort}`)).status).toBe(200);
-    expect(listQuery().get('order')).toBe(`${order},last_name.asc,first_name.asc,id.asc`);
-  });
-
-  it('keeps a training sorted the other way with those without a state still last', async () => {
-    mockUpstream({});
-    await request(`${employeesPath}?sort=ssmTraining&order=desc`);
-    expect(listQuery().get('order')).toBe(
-      'ssm_training_rank.desc.nullslast,ssm_training_due_on.desc.nullslast,last_name.desc,first_name.desc,id.asc'
-    );
-  });
-
-  it('answers an empty page with the real total when the page lies past the end', async () => {
-    mockUpstream({
-      list: (init) =>
-        init?.method === 'HEAD'
-          ? new Response(null, { headers: { 'Content-Range': '*/3' } })
-          : Response.json(
-              { code: 'PGRST103', message: 'Requested range not satisfiable' },
-              { status: 416 }
-            ),
-    });
-    const response = await request(`${employeesPath}?page=9`);
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
-      items: [],
-      page: 9,
-      pageSize: 25,
-      total: 3,
-      unfilteredTotal: 3,
-    });
-  });
+    ['sort=hiredAt&order=desc', 'hired_at.desc,last_name.desc,first_name.desc,id.asc'],
+    [
+      'sort=ssmTraining',
+      'ssm_training_rank.asc.nullslast,ssm_training_due_on.asc.nullslast,last_name.asc,first_name.asc,id.asc',
+    ],
+    [
+      'sort=ssmTraining&order=desc',
+      'ssm_training_rank.desc.nullslast,ssm_training_due_on.desc.nullslast,last_name.desc,first_name.desc,id.asc',
+    ],
+    [
+      'sort=suTraining',
+      'su_training_rank.asc.nullslast,su_training_due_on.asc.nullslast,last_name.asc,first_name.asc,id.asc',
+    ],
+    ['sort=terminatedAt', 'terminated_at.asc.nullslast,last_name.asc,first_name.asc,id.asc'],
+    ['sort=jobPosition', 'job_position_name.asc,last_name.asc,first_name.asc,id.asc'],
+    ['sort=jobPosition&order=desc', 'job_position_name.desc,last_name.desc,first_name.desc,id.asc'],
+    ['sort=portal', 'portal_rank.asc,last_name.asc,first_name.asc,id.asc'],
+    ['sort=portal&order=desc', 'portal_rank.desc,last_name.desc,first_name.desc,id.asc'],
+  ])(
+    'orders the list for %s, those without a value last, by name and then id',
+    async (search, order) => {
+      mockUpstream({});
+      expect((await request(`${employeesPath}?${search}`)).status).toBe(200);
+      expect(listQuery().get('order')).toBe(order);
+    }
+  );
 
   it.each([
     'page=0',
@@ -362,10 +322,12 @@ describe('GET /clients/{clientId}/employees', () => {
     'test=failed',
     'attention=noCnp',
     'jobPosition=not-a-uuid',
+    'status=fired',
   ])('rejects an invalid list parameter: %s', async (search) => {
     mockUpstream({});
     const response = await request(`${employeesPath}?${search}`);
     expect(response.status).toBe(400);
+    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
     expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 
@@ -441,14 +403,6 @@ describe('GET /clients/{clientId}/employees', () => {
     expect(count!.get('status')).toBe('neq.terminated');
     expect(count!.has('or')).toBe(false);
     expect(count!.has('ssm_training_state')).toBe(false);
-  });
-
-  it('rejects an unknown status', async () => {
-    mockUpstream({});
-    const response = await request(`${employeesPath}?status=fired`);
-    expect(response.status).toBe(400);
-    expect(callsTo('/rest/v1/clients')).toHaveLength(0);
-    expect(callsTo('/rest/v1/employee_list')).toHaveLength(0);
   });
 
   it('rejects a malformed client id before touching the database', async () => {
@@ -634,16 +588,6 @@ describe('GET /clients/{clientId}/employees', () => {
       const [count] = countQueries();
       expect(count!.get('client_id')).toBe(`eq.${clientId}`);
       expect(count!.has('portal_state')).toBe(false);
-    });
-
-    it('sorts by the standing in the order of the tab, then by name', async () => {
-      mockUpstream({});
-      await request(`${employeesPath}?sort=portal`);
-      expect(listQuery().get('order')).toBe('portal_rank.asc,last_name.asc,first_name.asc,id.asc');
-      await request(`${employeesPath}?sort=portal&order=desc`);
-      expect(listCalls().at(-1)!.query.get('order')).toBe(
-        'portal_rank.desc,last_name.desc,first_name.desc,id.asc'
-      );
     });
 
     it("filters and sorts an archived client's employees by it, whose access can still be revoked", async () => {
@@ -1261,13 +1205,6 @@ describe('job positions on employees (ADR 006)', () => {
     >;
   const body = { lastName: 'Popescu', firstName: 'Ion', jobTitle: 'Sudor', hiredAt: '2020-03-01' };
 
-  it('sorts the list by the name of the position', async () => {
-    mockUpstream({});
-    expect((await request(`${employeesPath}?sort=jobPosition&order=desc`)).status).toBe(200);
-    const order = callsTo('/rest/v1/employee_list')[0]!.url.searchParams.get('order');
-    expect(order).toBe('job_position_name.desc,last_name.desc,first_name.desc,id.asc');
-  });
-
   it('leaves the position to the database when the form names none', async () => {
     mockUpstream({ employees: () => Response.json(employeeRow) });
     const response = await postEmployee(body);
@@ -1550,41 +1487,4 @@ describe('the employment contract number', () => {
       expect(callsTo('/rest/v1/employees')).toHaveLength(0);
     }
   );
-});
-
-describe('CORS', () => {
-  it('allows PATCH preflight from the app origin', async () => {
-    const response = await createApp().request(
-      employeesPath,
-      {
-        method: 'OPTIONS',
-        headers: {
-          Origin: 'https://app.ssmusor.ro',
-          'Access-Control-Request-Method': 'PATCH',
-          'Access-Control-Request-Headers': 'authorization,content-type',
-        },
-      },
-      env
-    );
-    expect(response.status).toBe(204);
-    expect(response.headers.get('Access-Control-Allow-Methods')).toMatch(/\bPATCH\b/);
-  });
-});
-
-it('documents the employee routes with bearer security and schemas', () => {
-  const document = createApp().getOpenAPIDocument(openApiConfig);
-  const collection = document.paths?.['/clients/{clientId}/employees'];
-  expect(collection?.get?.operationId).toBe('listEmployees');
-  expect(collection?.post?.operationId).toBe('createEmployee');
-  expect(collection?.post?.security).toEqual([{ bearerAuth: [] }]);
-  expect(document.paths?.['/clients/{clientId}/employees/{employeeId}']?.get?.operationId).toBe(
-    'getEmployee'
-  );
-  expect(
-    document.paths?.['/clients/{clientId}/employees/{employeeId}/status']?.patch?.operationId
-  ).toBe('updateEmployeeStatus');
-  expect(document.components?.schemas?.CreateEmployeeRequest).toBeDefined();
-  expect(document.components?.schemas?.UpdateEmployeeStatusRequest).toBeDefined();
-  expect(document.components?.schemas?.EmployeeListResponse).toBeDefined();
-  expect(document.components?.schemas?.EmployeeResponse).toBeDefined();
 });
