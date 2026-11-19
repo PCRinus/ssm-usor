@@ -2,7 +2,6 @@ import {
   type AdminLegalChangeDetail,
   adminLegislationErrorReasons,
   type AdminTemplateVersion,
-  type ApiErrorResponse,
   maxLegalChangeNoteLength,
   minLegalChangeNoteLength,
 } from '@ssm-usor/contracts';
@@ -23,7 +22,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
-import { ApiHttpError, isRefusedByApi } from '@/api/http';
+import { apiErrorBody, isRefusedByApi } from '@/api/http';
 import { formatDateTime } from '@/lib/format';
 
 import { legislationKey, linkTemplateVersion, refreshLegislation, resolveNoImpact } from './api';
@@ -31,7 +30,7 @@ import { formatDay, versionKindLabels } from './format';
 
 function refusalOf(error: Error) {
   if (isRefusedByApi(error)) return 'This session may not change the legislation. Sign in again.';
-  const body = error instanceof ApiHttpError ? (error.body as ApiErrorResponse | undefined) : null;
+  const body = apiErrorBody(error);
   if (body?.reason === adminLegislationErrorReasons.changeNotOpen) {
     return 'The change was resolved in the meantime. Close this and look at it again.';
   }
@@ -64,8 +63,7 @@ function useResolve(
       onDone();
     },
     onError: (error) => {
-      const body =
-        error instanceof ApiHttpError ? (error.body as ApiErrorResponse | undefined) : null;
+      const body = apiErrorBody(error);
       if (
         body?.reason === adminLegislationErrorReasons.olderChangeOpen ||
         body?.reason === adminLegislationErrorReasons.changeNotAssessed

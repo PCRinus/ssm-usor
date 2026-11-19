@@ -1,9 +1,8 @@
 import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
-import type { ApiErrorResponse } from '@ssm-usor/contracts';
 
 import type { SignSessionResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 
 import type { SigningItem } from './signing-items';
 import {
@@ -19,11 +18,6 @@ import { type SmsRefusal, smsRefusalOf } from './sms-refusal';
 // The API sends one signing code per account a minute.
 export const resendDelaySeconds = 60;
 
-const errorBody = (cause: unknown) =>
-  cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse> | null) : null;
-
-export const reasonOf = (cause: unknown) => errorBody(cause)?.reason ?? null;
-
 export type SessionFailure = {
   message: MessageDescriptor;
   retryAfterSeconds: number;
@@ -31,7 +25,7 @@ export type SessionFailure = {
 };
 
 export function sessionFailureOf(cause: unknown): SessionFailure {
-  const body = errorBody(cause);
+  const body = apiErrorBody(cause);
   const reason = body?.reason ?? null;
   const sms = smsRefusalOf(body);
   if (sms)
@@ -63,7 +57,7 @@ export type CodeError =
   | { kind: 'other'; message: MessageDescriptor };
 
 export function codeErrorOf(cause: unknown): CodeError {
-  const body = errorBody(cause);
+  const body = apiErrorBody(cause);
   const reason = body?.reason ?? null;
   if (reason === 'code_invalid') {
     const attemptsLeft = body?.attemptsLeft ?? null;

@@ -22,7 +22,7 @@ import {
   getListWorkplacesQueryKey,
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -34,6 +34,7 @@ import {
   isEmployeesOverStepError,
   refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
+import { commonFailure } from '@/lib/api-errors';
 
 import { formatDate, todayIso } from './employee-format';
 
@@ -48,12 +49,11 @@ export interface EmployeeStatusChange {
 
 function serverMessage(cause: unknown) {
   if (isEmployeesOverStepError(cause)) return employeesOverStepMessage;
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) return 'Lucrătorul nu mai există la acest client.';
-    if (cause.status === 409) return conflictMessage(cause.body as Partial<ApiErrorResponse>);
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-    }
+    if (cause.status === 409) return conflictMessage(apiErrorBody(cause));
     if (cause.status === 403) {
       return 'Contul tău nu face parte dintr-o organizație. Contactează adminul.';
     }
@@ -150,7 +150,7 @@ function StatusForm({
       );
       onClose();
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       const issue = body?.issues?.find((item) => item.path === 'terminatedAt');
       if (issue) setDateError('Data plecării nu poate fi înaintea datei angajării.');
       else setError(serverMessage(cause));

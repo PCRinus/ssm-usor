@@ -1,20 +1,5 @@
 import { createRouter } from '../../router';
-import {
-  abandonImport,
-  addFoundSheets,
-  confirmImport,
-  createImport,
-  getImport,
-  getImportSource,
-  listFoundSheets,
-  listImports,
-  readImportFile,
-  registerImportFiles,
-  saveEmployeeImportChanges,
-  saveImportChanges,
-  splitImport,
-  startImport,
-} from './handlers';
+import { abandonImport, listImports } from './handlers';
 import {
   confirmImportLibraryPart,
   listImportLibraryParts,
@@ -22,6 +7,12 @@ import {
   saveImportLibraryPartChanges,
 } from './library-handlers';
 import { reportImport, reportImportLibraryPart } from './report-handlers';
+import {
+  confirmImport,
+  getImport,
+  saveEmployeeImportChanges,
+  saveImportChanges,
+} from './review-handlers';
 import {
   abandonImportRoute,
   addFoundSheetsRoute,
@@ -44,6 +35,16 @@ import {
   splitImportRoute,
   startImportRoute,
 } from './routes';
+import { getImportSource } from './source-handler';
+import {
+  addFoundSheets,
+  createImport,
+  listFoundSheets,
+  readImportFile,
+  registerImportFiles,
+  splitImport,
+  startImport,
+} from './upload-handlers';
 
 export const importsRouter = createRouter()
   .openapi(createImportRoute, createImport)

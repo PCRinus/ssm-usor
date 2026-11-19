@@ -14,7 +14,7 @@ import {
 
 import type { AdminClient } from '../../lib/admin-db';
 import { type DataClient, everyRow } from '../../lib/db';
-import { romanianDay } from '../documents/context';
+import { romanianDay } from '../../lib/romanian';
 
 type Db = DataClient | AdminClient;
 

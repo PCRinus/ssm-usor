@@ -1,8 +1,4 @@
-import {
-  hiringTestRowIds as packageHiringTestRowIds,
-  includedByDefault as packageIncludedByDefault,
-  toEmployeePayload,
-} from '@ssm-usor/import';
+import { toEmployeePayload } from '@ssm-usor/import';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -24,9 +20,7 @@ import {
   firstToCheck,
   handoversOf,
   heldWith,
-  hiringTestRowIds,
   hubCounts,
-  includedByDefault,
   includedOf,
   isWritten,
   leaving,
@@ -791,19 +785,6 @@ describe('the hiring test confirming writes', () => {
     }),
   ]);
 
-  it('is the newest row of the phase, as the import picks it', () => {
-    const rows = twoIntroductions().proposal.pages.flatMap((page) => page.rows);
-    expect(hiringTestRowIds(rows)).toEqual(new Set(['r1']));
-    expect(hiringTestRowIds(rows)).toEqual(packageHiringTestRowIds(rows as never));
-    const su = [
-      sheetRow('a', { domain: 'su', phase: 'introductory_general', test: hiringTest }),
-      sheetRow('b', { domain: 'su', phase: 'workplace', heldOn: '2020-01-01', test: hiringTest }),
-      sheetRow('c', { domain: 'su', phase: 'workplace', heldOn: null, test: hiringTest }),
-    ] as unknown as Parameters<typeof hiringTestRowIds>[0];
-    expect(hiringTestRowIds(su)).toEqual(new Set(['b']));
-    expect(hiringTestRowIds(su)).toEqual(packageHiringTestRowIds(su as never));
-  });
-
   it('asks nothing of the other rows, and counts one test', () => {
     const context = twoIntroductions(
       withPersonChange(withTitle(emptyChanges(), 'title-helper', sellerId), 'toma', () => ({
@@ -879,13 +860,6 @@ describe('who is created', () => {
     expect(includedOf(contextOf(ticked), person('pop'))).toBe(true);
     const leftLazar = withField(emptyChanges(), 'lazar', 'leftOn', { value: '2024-01-31' });
     expect(includedOf(contextOf(leftLazar), person('lazar'))).toBe(true);
-    for (const [leftOn, existing] of [
-      [null, false],
-      ['2024-01-31', false],
-      ['2024-01-31', true],
-    ] as const) {
-      expect(includedByDefault(leftOn, existing)).toBe(packageIncludedByDefault(leftOn, existing));
-    }
   });
 });
 

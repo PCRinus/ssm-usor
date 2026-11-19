@@ -18,25 +18,29 @@ import {
   fireSubstancesResponseSchema,
   fireSubstancesStateResponseSchema,
   readSafetySheetResponseSchema,
+  safetySheetLimits,
   updateClientFireSafetyRequestSchema,
   updateFireSubstancesStateRequestSchema,
 } from '@ssm-usor/contracts';
+import { bodyLimit } from 'hono/body-limit';
 
 import { requireAuth } from '../../lib/auth';
 import { requireMembership } from '../../lib/membership';
-import { bearerSecurity, errorContent, membershipErrors } from '../../lib/openapi';
+import {
+  bearerSecurity,
+  clientNotFoundResponse,
+  clientParams,
+  errorContent,
+  membershipErrors,
+} from '../../lib/openapi';
+import { tooLarge } from './safety-sheet';
 
-const clientParams = z.object({ clientId: z.uuid() });
 const equipmentParams = clientParams.extend({ equipmentId: z.uuid() });
 const installationParams = clientParams.extend({ installationId: z.uuid() });
 const substanceParams = clientParams.extend({ substanceId: z.uuid() });
 const maintenanceItemParams = clientParams.extend({ itemId: z.uuid() });
 const buildingParams = clientParams.extend({ workplaceId: z.uuid() });
 
-const noSuchClient = {
-  description: 'The client does not exist in the organization',
-  content: errorContent,
-};
 const noSuchEquipment = {
   description: 'The client or the equipment does not exist',
   content: errorContent,
@@ -104,7 +108,7 @@ export const getClientFireSafetyRoute = createRoute({
   responses: {
     200: { description: 'The fire-safety facts', content: fireSafetyContent },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -134,7 +138,7 @@ export const updateClientFireSafetyRoute = createRoute({
   responses: {
     200: { description: 'The fire-safety facts after the change', content: fireSafetyContent },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: refusedClient,
     ...membershipErrors,
   },
@@ -160,7 +164,7 @@ export const listFireEquipmentRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -178,7 +182,7 @@ export const createFireEquipmentRoute = createRoute({
   responses: {
     201: { description: 'The created unit', content: equipmentContent },
     400: invalidBody,
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: refusedClient,
     ...membershipErrors,
   },
@@ -243,7 +247,7 @@ export const listFireInstallationsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -260,7 +264,7 @@ export const createFireInstallationRoute = createRoute({
   responses: {
     201: { description: 'The created installation', content: installationContent },
     400: invalidBody,
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: refusedClient,
     ...membershipErrors,
   },
@@ -335,7 +339,7 @@ export const listFireSubstancesRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -372,7 +376,7 @@ export const updateFireSubstancesStateRoute = createRoute({
       },
     },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
       description:
         'The client is archived (`client_archived`) or a lead (`client_is_lead`), or still has entries (`substances_listed`)',
@@ -395,7 +399,7 @@ export const createFireSubstanceRoute = createRoute({
   responses: {
     201: { description: 'The created entry', content: substanceContent },
     400: { description: 'Invalid path or request body', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
       description:
         'The client is archived (`client_archived`) or a lead (`client_is_lead`), or does not list its substances (`substances_not_listed`)',
@@ -442,6 +446,13 @@ export const deleteFireSubstanceRoute = createRoute({
   },
 });
 
+const sheetWithinLimit = bodyLimit({
+  maxSize: safetySheetLimits.maxBytes,
+  onError: () => {
+    throw tooLarge();
+  },
+});
+
 export const readSafetySheetRoute = createRoute({
   method: 'post',
   path: '/clients/{clientId}/fire-substances/read-safety-sheet',
@@ -450,7 +461,7 @@ export const readSafetySheetRoute = createRoute({
   description:
     "Takes one PDF with a text layer as the body, at most 10 MiB and 40 pages: the safety data sheet of one product. A model reads it and the answer is a draft of the substance's fields; nothing is saved, and the file is not kept (ADR 018). The quantity and the storage place are never in the draft. Every H statement, CAS, EC and UN number the reading wrote that the file does not hold is left out, and `droppedCodes` counts them. A reading takes 3 credits, refused with `409` and `credits_insufficient` (and `credits`) when what is left does not cover it, and given back when the reading fails or the file is refused; such an answer carries `creditsRefunded` (`true` once given back, `false` if that failed), and a refusal before the charge carries none. A body over the limit is refused by its `Content-Length` before anything else, and one without the header is read no further than the limit. Refused with `422`: `safety_sheet_not_pdf`, `safety_sheet_too_large`, `safety_sheet_too_many_pages`, `safety_sheet_scanned` for a PDF whose pages are mostly scans, `safety_sheet_unreadable` for a damaged or protected file, `safety_sheet_not_a_sheet` for a file that is not a safety data sheet. `503` with `safety_sheet_failed` when the reading fails, and `safety_sheet_unavailable` where the model gateway or the extractor is not configured.",
   security: bearerSecurity,
-  middleware: [requireAuth, requireMembership] as const,
+  middleware: [requireAuth, requireMembership, sheetWithinLimit] as const,
   request: {
     params: clientParams,
     body: {
@@ -472,7 +483,7 @@ export const readSafetySheetRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: {
       description:
         'The client is archived (`client_archived`) or a lead (`client_is_lead`), or the credits left do not cover the reading (`credits_insufficient`)',
@@ -524,7 +535,7 @@ export const listFireMaintenanceItemsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -542,7 +553,7 @@ export const createFireMaintenanceItemRoute = createRoute({
   responses: {
     201: { description: 'The created row', content: maintenanceItemContent },
     400: invalidBody,
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: refusedClient,
     ...membershipErrors,
   },
@@ -608,7 +619,7 @@ export const listFireBuildingsRoute = createRoute({
       },
     },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     ...membershipErrors,
   },
 });
@@ -665,7 +676,7 @@ export const deleteFireBuildingRoute = createRoute({
   responses: {
     204: { description: 'Cleared' },
     400: { description: 'Invalid path', content: errorContent },
-    404: noSuchClient,
+    404: clientNotFoundResponse,
     409: refusedClient,
     ...membershipErrors,
   },

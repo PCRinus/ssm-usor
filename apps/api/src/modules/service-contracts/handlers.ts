@@ -10,13 +10,12 @@ import {
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
+import { stableJson } from '../../lib/json';
 import { requireOffersFor } from '../../lib/offers';
 import { createToken, hashToken } from '../../lib/tokens';
-import { stableJson } from '../documents/context';
-import {
-  generateServiceContractDocument,
-  readServiceContractDocument,
-} from '../documents/documents';
+import { clientNotFound } from '../clients/lookup';
+import { generateServiceContractDocument } from '../documents/generate';
+import { readServiceContractDocument } from '../documents/present';
 import { buildServiceContractContext, contractFileName } from './context';
 import { loadServiceContractFacts, missingServiceContractData } from './facts';
 import type {
@@ -137,9 +136,7 @@ export const saveServiceContract: RouteHandler<typeof saveServiceContractRoute, 
           .maybeSingle()
       : await db.from('clients').select('id').eq('id', clientId).maybeSingle();
   if (client.error) throw fromDatabaseError(client.error, 'client of the service contract');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
 
   const details = {
     contract_number: body.contractNumber,

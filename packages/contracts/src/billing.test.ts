@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  amountsWithVat,
   annualCents,
   billingChoiceSchema,
   type BillingInterval,
@@ -8,11 +9,13 @@ import {
   cataloguePrices,
   catalogueProducts,
   changeSubscriptionRequestSchema,
+  importStartCredits,
   type PaidPlan,
   planStep,
   priceVersion,
   selfServeLimits,
   stepFor,
+  vatOf,
 } from './billing';
 
 const euros = (plan: PaidPlan, interval: BillingInterval) =>
@@ -131,5 +134,31 @@ describe('billing choice', () => {
         interval: 'month',
       }).success
     ).toBe(false);
+  });
+});
+
+describe('VAT on a subtotal', () => {
+  it('adds 21 % rounded to the cent', () => {
+    expect(vatOf(3900)).toBe(819);
+    expect(vatOf(1)).toBe(0);
+    expect(vatOf(3)).toBe(1);
+    expect(amountsWithVat(8349)).toEqual({
+      subtotalCents: 8349,
+      vatCents: 1753,
+      totalCents: 10102,
+    });
+    expect(amountsWithVat(0)).toEqual({ subtotalCents: 0, vatCents: 0, totalCents: 0 });
+  });
+});
+
+describe('what starting an import charges', () => {
+  it("takes a client's reading and its photographs, never its PDF pages", () => {
+    expect(importStartCredits('client', { photos: 0, pdfPages: 0 })).toBe(25);
+    expect(importStartCredits('client', { photos: 3, pdfPages: 40 })).toBe(28);
+  });
+
+  it('takes every photograph and PDF page of an employee import', () => {
+    expect(importStartCredits('employees', { photos: 4, pdfPages: 10 })).toBe(14);
+    expect(importStartCredits('employees', { photos: 0, pdfPages: 0 })).toBe(0);
   });
 });

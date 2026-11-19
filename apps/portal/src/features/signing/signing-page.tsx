@@ -17,7 +17,7 @@ import {
   signPortalSigningSession,
   type SignSessionResponse,
 } from '@/api/generated/api';
-import { isClientOutdatedError } from '@/api/http';
+import { apiErrorReason, isClientOutdatedError } from '@/api/http';
 import { CodeInput } from '@/components/code-input';
 import { cardClass, Page, PageFailed, PageHeader, PageLoading } from '@/components/page';
 import {
@@ -35,7 +35,6 @@ import {
   type CodeError,
   codeErrorOf,
   outcomesOf,
-  reasonOf,
   resendDelaySeconds,
   type SessionFailure,
   sessionFailureOf,
@@ -270,7 +269,7 @@ function ChooseStep({
       const next = sessionFailureOf(cause);
       setFailure(next);
       if (next.retryAfterSeconds > 0) restart(next.retryAfterSeconds);
-      if (reasonOf(cause) === 'signing_item_not_found') {
+      if (apiErrorReason(cause) === 'signing_item_not_found') {
         setChoice(new Set(chosen));
         void invalidateSigningQueries(queryClient);
       }

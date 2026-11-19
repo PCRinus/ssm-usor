@@ -2,7 +2,6 @@ import {
   type AdminActiveImpersonation,
   adminImpersonationErrorReasons,
   type AdminMemberListItem,
-  type ApiErrorResponse,
   maxImpersonationReasonLength,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
@@ -22,7 +21,7 @@ import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-quer
 import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, type RefObject, useState } from 'react';
 
-import { ApiHttpError, isRefusedByApi } from '@/api/http';
+import { apiErrorBody, isRefusedByApi } from '@/api/http';
 import { roleLabels } from '@/features/members/api';
 
 import {
@@ -45,7 +44,7 @@ function refusalOf(error: Error): { reason?: string; general?: string } {
   if (isRefusedByApi(error)) {
     return { general: 'This account may not start an impersonation. Sign in again.' };
   }
-  const body = error instanceof ApiHttpError ? (error.body as ApiErrorResponse | undefined) : null;
+  const body = apiErrorBody(error);
   if (body?.error === 'validation_error') {
     const reason = body.issues?.find((issue) => issue.path === 'reason');
     const other = body.issues?.find((issue) => issue.path !== 'reason');

@@ -1,5 +1,6 @@
 import type { SignatureRequestSlot, SignatureSlot, SignerSlot } from '@ssm-usor/contracts';
 
+import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import type { Signer } from './signers';
 
 export const requestColumns =
@@ -29,9 +30,6 @@ export type SignatureRow = {
   voided_at: string | null;
   void_reason: string | null;
 };
-
-const toIso = (value: string) => new Date(value).toISOString();
-const toIsoOrNull = (value: string | null) => (value ? toIso(value) : null);
 
 export const nameIn = (directory: Signer[], accountId: string | null) =>
   accountId

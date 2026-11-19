@@ -1,4 +1,4 @@
-import { type BillingChoice, type BillingOverview, trialDays } from '@ssm-usor/contracts';
+import { type BillingChoice, type BillingOverview, trialDays, vatOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
@@ -12,7 +12,6 @@ import {
   formatCount,
   formatEuro,
   perInterval,
-  vatOf,
 } from './billing-format';
 import { type AmountRow, AmountRows, BillingCard, SealChip, StateChip } from './billing-ui';
 import { extrasLines } from './extras-copy';

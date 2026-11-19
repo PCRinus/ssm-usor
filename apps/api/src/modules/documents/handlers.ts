@@ -10,30 +10,32 @@ import { createPdfConverter, requirePdfConverter } from '../../lib/pdf';
 import { documentArchive } from './archive';
 import { hasRiskEvaluator, undecidedJobPositions, workersRepresentativeClash } from './context';
 import {
-  type Actor,
-  attachSignedCopy,
-  confirmSignedCopy,
-  deleteDraft,
   documentAnnexFile,
   documentDownloadLink,
   documentWordFile,
-  generateClientDocuments as generate,
-  issueDocument as issue,
-  listClientDocuments as list,
   printDocument as print,
-  regenerateDocument as regenerate,
-  removeSignedCopy,
-  saveDraftFile,
-  startDraftFromIssued,
-  uploadDocumentFile as upload,
-} from './documents';
+} from './downloads';
 import { loadDocumentFacts } from './facts';
 import { incompleteFireSubstances } from './fire-safety';
+import { generateClientDocuments as generate, regenerateDocument as regenerate } from './generate';
+import { listClientDocuments as list } from './present';
 import {
   listDocumentsBehind as listBehind,
   readRegenerationJob,
   startRegeneration,
+  startSetRegeneration as startSetJobs,
+  summarizeDocumentsBehind,
 } from './regeneration';
+import {
+  attachSignedCopy,
+  confirmSignedCopy,
+  deleteDraft,
+  issueDocument as issue,
+  removeSignedCopy,
+  saveDraftFile,
+  startDraftFromIssued,
+  uploadDocumentFile as upload,
+} from './revisions';
 import { incompleteRiskEvaluations } from './risk-assessment';
 import type {
   attachDocumentSignedCopyRoute,
@@ -44,6 +46,7 @@ import type {
   getDocumentArchiveRoute,
   getDocumentDownloadRoute,
   getDocumentReadinessRoute,
+  getDocumentsBehindSummaryRoute,
   getDocumentWordRoute,
   getRegenerationJobRoute,
   issueDocumentRoute,
@@ -55,9 +58,11 @@ import type {
   saveDocumentDraftFileRoute,
   startDocumentDraftRoute,
   startDocumentRegenerationRoute,
+  startSetRegenerationRoute,
   uploadClientDocumentRoute,
 } from './routes';
-import { setRules } from './sets';
+import type { Actor } from './rows';
+import { rulesOf } from './sets';
 
 // During an impersonation the documents belong to the impersonated member's organization and
 // name them as the specialist, while `created_by` records the platform admin, as elsewhere.
@@ -72,20 +77,21 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
 ) => {
   const { clientId } = c.req.valid('param');
   const { set } = c.req.valid('query');
-  const facts = await loadDocumentFacts(createDataClient(c), clientId, c.get('membership'));
+  const facts = await loadDocumentFacts(createDataClient(c), clientId, c.get('membership'), set);
   // The date and the first decision number are asked when generating; neither can be missing.
-  const missing = setRules[set].missing({
-    ...facts,
+  const missing = rulesOf(facts, {
     issueDate: '2000-01-01',
     period: null,
     firstDecisionNumber: 1,
-  });
-  const occupational = set === 'occupational_safety';
+  }).missing();
   return c.json(
     {
       ready: missing.length === 0,
       missing,
-      hints: occupational && !hasRiskEvaluator(facts) ? ['provider.riskEvaluator' as const] : [],
+      hints:
+        facts.set === 'occupational_safety' && !hasRiskEvaluator(facts)
+          ? ['provider.riskEvaluator' as const]
+          : [],
       currentEmployeeCount: facts.currentEmployeeCount,
       workersRepresentativeClash: missing.includes(
         'responsible.workers_representative_is_legal_representative'
@@ -94,18 +100,18 @@ export const getDocumentReadiness: RouteHandler<typeof getDocumentReadinessRoute
         : null,
       undecidedJobPositions: undecidedJobPositions(
         facts,
-        occupational ? ['equipment', 'instructions'] : ['fire_instructions']
+        facts.set === 'occupational_safety' ? ['equipment', 'instructions'] : ['fire_instructions']
       ),
-      incompleteRiskEvaluations: occupational
-        ? incompleteRiskEvaluations(
-            facts.riskEvaluations,
-            facts.jobPositions,
-            facts.client.sensitiveGroupsState
-          )
-        : [],
-      incompleteFireSubstances: occupational
-        ? []
-        : incompleteFireSubstances(facts.fireSafety.substances),
+      incompleteRiskEvaluations:
+        facts.set === 'occupational_safety'
+          ? incompleteRiskEvaluations(
+              facts.riskEvaluations,
+              facts.jobPositions,
+              facts.client.sensitiveGroupsState
+            )
+          : [],
+      incompleteFireSubstances:
+        facts.set === 'fire_safety' ? incompleteFireSubstances(facts.fireSafety.substances) : [],
     },
     200
   );
@@ -337,6 +343,30 @@ export const startDocumentRegeneration: RouteHandler<
     c.req.valid('json').typeKey
   );
   return c.json({ job }, 201);
+};
+
+export const getDocumentsBehindSummary: RouteHandler<
+  typeof getDocumentsBehindSummaryRoute,
+  ApiEnv
+> = async (c) => {
+  const summary = await summarizeDocumentsBehind(
+    createDataClient(c),
+    c.get('membership').organizationId
+  );
+  return c.json(summary, 200);
+};
+
+export const startSetRegeneration: RouteHandler<typeof startSetRegenerationRoute, ApiEnv> = async (
+  c
+) => {
+  const started = await startSetJobs(
+    createDataClient(c),
+    createAdminClient(c),
+    c.env.REGENERATION_QUEUE,
+    actorOf(c),
+    c.req.valid('json').set
+  );
+  return c.json(started, 201);
 };
 
 export const getRegenerationJob: RouteHandler<typeof getRegenerationJobRoute, ApiEnv> = async (

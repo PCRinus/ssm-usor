@@ -826,7 +826,7 @@ describe('GET /clients/{clientId}/documents/readiness', () => {
 
   it('counts the current employees exactly, past the thousand rows a request returns, and per fixed space', async () => {
     mockUpstream({ employees: currentEmployees(1500, { [workplaceRow.id]: 1500 }) });
-    const response = await request(`/clients/${clientId}/documents/readiness`);
+    const response = await request(`/clients/${clientId}/documents/readiness?set=fire_safety`);
     expect(documentReadinessResponseSchema.parse(await response.json()).currentEmployeeCount).toBe(
       1500
     );
@@ -1050,15 +1050,19 @@ describe('GET /clients/{clientId}/documents', () => {
       }
     });
 
-    it('asks the bank of each test for the organization', async () => {
-      mockUpstream({ documents: testDraft(printed) });
-      await listed();
-      expect(
+    it("asks the bank of each of the set's tests for the organization", async () => {
+      const asked = () =>
         calls('/rest/v1/rpc/active_test_questions', 'POST').map(([, init]) =>
           JSON.parse(String(init?.body))
-        )
-      ).toEqual([
+        );
+      mockUpstream({ documents: testDraft(printed) });
+      await listed();
+      expect(asked()).toEqual([
         { p_organization_id: organizationId, p_domain: 'ssm', p_test: 'hiring' },
+      ]);
+      fetchMock.mockClear();
+      expect((await request(`/clients/${clientId}/documents?set=fire_safety`)).status).toBe(200);
+      expect(asked()).toEqual([
         { p_organization_id: organizationId, p_domain: 'su', p_test: 'hiring' },
         { p_organization_id: organizationId, p_domain: 'su', p_test: 'annual' },
       ]);
@@ -1287,7 +1291,9 @@ describe('POST /clients/{clientId}/documents/generate', () => {
     mockUpstream({
       clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
     });
-    expect((await generate()).status).toBe(409);
+    const response = await generate();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 
   it('says so when no template is registered', async () => {
@@ -1532,6 +1538,9 @@ describe('GET /clients/{clientId}/documents/archive', () => {
     archive({ clients: () => Response.json(null) });
     const response = await request(`/clients/${clientId}/documents/archive`);
     expect(response.status).toBe(404);
+    expect(apiErrorResponseSchema.parse(await response.json()).message).toBe(
+      'This client does not exist in your organization.'
+    );
     expect(calls('/rest/v1/client_documents')).toHaveLength(0);
   });
 });
@@ -1637,6 +1646,15 @@ describe('POST /documents/{documentId}/regenerate', () => {
     expect(calls('/rest/v1/document_revisions', 'PATCH')).toHaveLength(0);
   });
 
+  it('takes the new revision back when its file cannot be stored', async () => {
+    mockUpstream({
+      documents: oneDocument([issuedRevision]),
+      upload: () => Response.json({ message: 'down' }, { status: 500 }),
+    });
+    expect((await regenerate()).status).toBeGreaterThanOrEqual(500);
+    expect(calls('/rest/v1/document_revisions', 'DELETE')).toHaveLength(1);
+  });
+
   it('asks for a date when the document was never generated', async () => {
     mockUpstream({
       documents: oneDocument([{ ...revisionRow, document_generations: null, data_snapshot: null }]),
@@ -1662,6 +1680,16 @@ describe('POST /documents/{documentId}/regenerate', () => {
 
     mockUpstream({ documents: oneDocument([revisionRow]), templates: () => Response.json([]) });
     expect((await regenerate()).status).toBe(409);
+  });
+
+  it('refuses an archived client, with the reason', async () => {
+    mockUpstream({
+      documents: oneDocument([revisionRow]),
+      clients: () => Response.json({ ...clientRow, archived_at: '2026-09-01T00:00:00+00:00' }),
+    });
+    const response = await regenerate();
+    expect(response.status).toBe(409);
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
   });
 
   const ofType = (typeKey: string) => ({
@@ -3029,9 +3057,7 @@ describe('POST /clients/{clientId}/documents/{typeKey}/upload', () => {
     });
     const response = await upload('decision_first_aid');
     expect(response.status).toBe(409);
-    expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
-      message: 'Documents are only uploaded for an active client.',
-    });
+    expect(apiErrorResponseSchema.parse(await response.json()).reason).toBe('client_archived');
     expect(calls('/storage/v1/object/documents/', 'POST')).toHaveLength(0);
   });
 
@@ -4418,8 +4444,8 @@ describe('the document a change answers with', () => {
       const document = after() ?? before;
       return Response.json(url?.searchParams.has('id') ? document : [document]);
     };
-  // Only the facts read this table.
-  const factLoads = () => calls('/rest/v1/client_fire_safety').length;
+  // Only the facts read this table, whichever set they are of.
+  const factLoads = () => calls('/rest/v1/client_responsible_persons').length;
   const subrequests = () => fetchMock.mock.calls.length;
   const issueChanging = (before: typeof documentRow | typeof serviceContract) => {
     let done = false;
@@ -4572,4 +4598,68 @@ describe('the document a change answers with', () => {
     expect(attached.status).toBe(200);
     expect(factLoads()).toBe(1);
   });
+});
+
+describe("a documentation set's tab", () => {
+  const read = (pathname: string, method = 'GET') =>
+    fetchMock.mock.calls
+      .map(([input, init]) => ({ url: new URL(String(input)), init }))
+      .filter(({ url, init }) => url.pathname === pathname && (init?.method ?? 'GET') === method);
+  const ownInstructionsReads = (typeKey: string) =>
+    read('/rest/v1/document_revisions').filter(
+      ({ url }) => url.searchParams.get('client_documents.type_key') === `eq.${typeKey}`
+    ).length;
+  const questionDomains = () =>
+    read('/rest/v1/rpc/active_test_questions', 'POST').map(
+      ({ init }) => (JSON.parse(String(init?.body)) as { p_domain: string }).p_domain
+    );
+  const workplaceCounts = () =>
+    [...read('/rest/v1/employees', 'HEAD'), ...read('/rest/v1/employees')].filter(({ url }) =>
+      url.searchParams.has('workplace_id')
+    ).length;
+  const fireReads = () =>
+    [
+      '/rest/v1/client_fire_safety',
+      '/rest/v1/fire_equipment',
+      '/rest/v1/fire_installations',
+      '/rest/v1/fire_substances',
+      '/rest/v1/fire_maintenance_items',
+      '/rest/v1/fire_buildings',
+    ].flatMap((pathname) => read(pathname)).length +
+    ownInstructionsReads('fire_own_instructions') +
+    workplaceCounts();
+  const occupationalReads = () =>
+    ['/rest/v1/organization_members', '/rest/v1/profiles', '/rest/v1/risk_evaluations'].flatMap(
+      (pathname) => read(pathname)
+    ).length + ownInstructionsReads('own_instructions');
+
+  const totals = {
+    list: { occupational: 18, fire: 23 },
+    readiness: { occupational: 16, fire: 21 },
+  };
+
+  for (const [route, label] of [
+    ['', 'list'],
+    ['/readiness', 'readiness'],
+  ] as const) {
+    it(`reads none of the fire-safety facts for the occupational safety ${label}`, async () => {
+      mockUpstream();
+      const response = await request(`/clients/${clientId}/documents${route}`);
+      expect(response.status).toBe(200);
+      expect(fireReads()).toBe(0);
+      expect(questionDomains()).toEqual(['ssm']);
+      expect(occupationalReads()).toBe(4);
+      expect(fetchMock.mock.calls).toHaveLength(totals[label].occupational);
+    });
+
+    it(`reads none of the occupational safety facts for the fire-safety ${label}`, async () => {
+      mockUpstream();
+      const response = await request(`/clients/${clientId}/documents${route}?set=fire_safety`);
+      expect(response.status).toBe(200);
+      expect(occupationalReads()).toBe(0);
+      expect(questionDomains()).toEqual(['su', 'su']);
+      expect(fireReads()).toBe(8);
+      expect(fetchMock.mock.calls).toHaveLength(totals[label].fire);
+    });
+  }
 });

@@ -2,12 +2,12 @@ import type { MessageDescriptor } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react/macro';
 import { type Disposition, type FileLink, useFileLink } from '@ssm-usor/api-http/file-link';
-import type { ApiErrorResponse, TrainingDomain } from '@ssm-usor/contracts';
+import type { TrainingDomain } from '@ssm-usor/contracts';
 import { openPreview, PreviewBlockedError, saveFile } from '@ssm-usor/ui/lib/save-file';
 import { useState } from 'react';
 
 import type { PortalTrainingSheetsResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { trainingDomainMessages } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 
@@ -15,11 +15,11 @@ function failureOf(cause: unknown): MessageDescriptor {
   if (cause instanceof PreviewBlockedError) {
     return msg`Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal sau descarcă fișa.`;
   }
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  if (body?.reason === 'missing_sheet_data') {
+  const reason = apiErrorReason(cause);
+  if (reason === 'missing_sheet_data') {
     return msg`Fișa nu poate fi întocmită încă: lipsesc date pe care le completează specialistul.`;
   }
-  if (body?.reason === 'pdf_unavailable') {
+  if (reason === 'pdf_unavailable') {
     return msg`Fișa nu poate fi pregătită acum. Încearcă din nou peste câteva minute.`;
   }
   return msg`Nu am putut deschide fișa. Verifică conexiunea la internet și încearcă din nou.`;

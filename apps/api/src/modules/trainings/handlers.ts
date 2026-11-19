@@ -12,15 +12,16 @@ import type {
   TrainingSortKey,
   TrainingSource,
 } from '@ssm-usor/contracts';
-import { pageRange, proposalEmployeeIds, searchTerms } from '@ssm-usor/contracts';
+import { proposalEmployeeIds, searchTerms } from '@ssm-usor/contracts';
 import type { Context } from 'hono';
 
 import type { Database, Json } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
-import { collator } from '../../lib/romanian';
-import { romanianDay } from '../documents/context';
+import { ApiError, failureLabel } from '../../lib/errors';
+import { listPage, orderedBy } from '../../lib/list-page';
+import { collator, romanianDay } from '../../lib/romanian';
+import { clientNotFound } from '../clients/lookup';
 import { signedSheetContext, syncTrainingRows } from '../signed-sheets/signed-sheets';
 import {
   issueSignatureRequests,
@@ -87,8 +88,6 @@ function signingOf(source: TrainingSource, records: RecordSigning[]) {
   };
 }
 
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
 const noSuchTraining = () =>
   new ApiError('not_found', 'This training does not exist under this client.');
 
@@ -103,7 +102,7 @@ async function findClient(db: DataClient, clientId: string) {
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw noSuchClient();
+  if (!data) throw clientNotFound();
   return data;
 }
 
@@ -365,15 +364,7 @@ function ordered<Query extends OrderableQuery<Query>>(
   sort: TrainingSortKey,
   order: SortOrder
 ) {
-  const sorted = sortColumns[sort].reduce(
-    (each, { column, nullsLast }) =>
-      each.order(column, {
-        ascending: order === 'asc',
-        ...(nullsLast ? { nullsFirst: false } : {}),
-      }),
-    query
-  );
-  return sorted.order('id', { ascending: true });
+  return orderedBy(query, sortColumns[sort], order).order('id', { ascending: true });
 }
 
 function toListItem(row: ListViewRow): TrainingListItem {
@@ -418,36 +409,26 @@ export const listTrainings: RouteHandler<typeof listTrainingsRoute, ApiEnv> = as
     }
   }
 
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    ordered(filtered(listViewColumns, { count: 'exact' }), sort, order)
-      .range(from, to)
-      .returns<ListViewRow[]>(),
-    narrowed
-      ? inScope(db.from('training_list').select('id', { count: 'exact', head: true }))
-      : null,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count trainings');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end (trainings went since the caller last looked): empty, real total.
-    const recount = await filtered('id', { count: 'exact', head: true });
-    if (recount.error) throw fromDatabaseError(recount.error, 'count trainings');
-    const total = recount.count ?? 0;
-    return c.json(
-      { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) },
-      200
-    );
-  }
-  if (error) throw fromDatabaseError(error, 'list trainings');
-  const total = count ?? 0;
+  const { rows, total, unfilteredTotal } = await listPage({
+    page,
+    pageSize,
+    rows: (from, to) =>
+      ordered(filtered(listViewColumns, { count: 'exact' }), sort, order)
+        .range(from, to)
+        .returns<ListViewRow[]>(),
+    recount: () => filtered('id', { count: 'exact', head: true }),
+    unfiltered: narrowed
+      ? () => inScope(db.from('training_list').select('id', { count: 'exact', head: true }))
+      : undefined,
+    what: 'trainings',
+  });
   return c.json(
     {
-      items: data.map(toListItem),
+      items: rows.map(toListItem),
       page,
       pageSize,
       total,
-      unfilteredTotal: unfilteredTotal(total),
+      unfilteredTotal,
     },
     200
   );
@@ -468,7 +449,7 @@ async function afterSave(
     await issueSignatureRequests(c, db, input);
   } catch (error) {
     console.error(
-      `Signature requests of training ${input.trainingId} not issued: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+      `Signature requests of training ${input.trainingId} not issued: ${failureLabel(error)}`
     );
   }
   try {
@@ -483,7 +464,7 @@ async function afterSave(
     );
   } catch (error) {
     console.error(
-      `Signed sheet rows of training ${input.trainingId} not brought up to date: ${error instanceof Error ? error.name : 'unknown'}`
+      `Signed sheet rows of training ${input.trainingId} not brought up to date: ${failureLabel(error)}`
     );
   }
 }
@@ -495,7 +476,7 @@ export const createTraining: RouteHandler<typeof createTrainingRoute, ApiEnv> = 
   const body = c.req.valid('json');
   const plan = await planSignatureRequests(db, clientId, body);
   const trainingId = await saveTraining(db, clientId, undefined, body);
-  if (!trainingId) throw noSuchClient();
+  if (!trainingId) throw clientNotFound();
   await afterSave(c, db, { clientId, trainingId, plan });
   return c.json({ training: await loadTraining(db, clientId, trainingId) }, 201);
 };

@@ -1,3 +1,4 @@
+import { substancesStatePath } from '@ssm-usor/contracts';
 import { useRouteContext } from '@tanstack/react-router';
 
 import {
@@ -22,13 +23,11 @@ import {
 
 import { refetchImport } from './refetch-import';
 import {
-  type Blocker,
   type Changes,
   changesOf,
   type ExistingWorkplace,
   type FieldChange,
   type ItemChange,
-  substancesStatePath,
 } from './review-model';
 import { blockerLinks, fieldStates, reviewName, sectionStatuses } from './review-summary';
 import { keptPosts, withoutAbsentCategories } from './training-category';
@@ -137,7 +136,7 @@ export function useClientReview(detail: ImportDetail) {
   const proposal = detail.proposal!;
   const review = useImportReview(detail);
   const existing = useExistingValues(detail);
-  const blockers = detail.blockers as Blocker[];
+  const blockers = detail.blockers;
   const registered = detail.registeredCompany;
   const states = fieldStates(
     proposal,

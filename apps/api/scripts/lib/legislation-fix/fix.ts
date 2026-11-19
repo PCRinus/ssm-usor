@@ -1,4 +1,10 @@
 import { type DiscordMessage, discordPayloads } from '@ssm-usor/discord';
+import type { Citation } from '@ssm-usor/document-engine';
+import {
+  type LegalQuoteResult,
+  type PatchInput,
+  PendingChangeError,
+} from '@ssm-usor/document-engine/legal-quote';
 import type { ModelClient } from '@ssm-usor/import';
 import { isStale, staleMessage } from '@ssm-usor/legislation-check';
 
@@ -28,15 +34,7 @@ import {
   resolvesOf,
 } from './messages';
 import { readChange, type Reading } from './model';
-import {
-  type Git,
-  type IndexedQuote,
-  type PatchInput,
-  PendingChangeError,
-  type QuoteTool,
-  type Templates,
-  type ToolResult,
-} from './workspace';
+import type { Git, QuoteTool, Templates } from './workspace';
 
 export interface FixDependencies {
   changes: () => Promise<OpenChange[]>;
@@ -88,11 +86,11 @@ export function deadManDue(runs: RunsSeen, now: number) {
 const monday = 1;
 
 interface CitedPassages {
-  citation: IndexedQuote | null;
+  citation: Citation | null;
   passages: OpenChange['passages'];
 }
 
-function citedPassages(change: OpenChange, citations: IndexedQuote[]): CitedPassages[] {
+function citedPassages(change: OpenChange, citations: Citation[]): CitedPassages[] {
   const groups = new Map<string, CitedPassages>();
   for (const passage of change.passages) {
     if (passage.citation_form !== 'quote') continue;
@@ -117,7 +115,7 @@ function citedPassages(change: OpenChange, citations: IndexedQuote[]): CitedPass
 }
 
 const inputOf = (
-  citation: IndexedQuote,
+  citation: Citation,
   passages: OpenChange['passages'],
   change?: PatchInput['change']
 ): PatchInput => ({
@@ -333,7 +331,7 @@ export async function runLegislationFix(
     const applied: AppliedQuote[] = [];
     const written = new Set<string>();
     for (const { citation, passages } of groups) {
-      let result: ToolResult;
+      let result: LegalQuoteResult;
       try {
         result = deps.tool(
           inputOf(citation!, passages, {

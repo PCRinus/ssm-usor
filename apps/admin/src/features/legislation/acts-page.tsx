@@ -1,8 +1,4 @@
-import {
-  type AdminLegalAct,
-  adminLegislationErrorReasons,
-  type ApiErrorResponse,
-} from '@ssm-usor/contracts';
+import { type AdminLegalAct, adminLegislationErrorReasons } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -31,7 +27,7 @@ import { Link, useRouteContext } from '@tanstack/react-router';
 import { ArrowDown, ArrowUp, ChevronsUpDown, ExternalLink } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
-import { ApiHttpError, isRefusedByApi } from '@/api/http';
+import { apiErrorBody, isRefusedByApi } from '@/api/http';
 import { AdminShell, LoadFailure } from '@/components/admin-shell';
 import { formatDateTime } from '@/lib/format';
 
@@ -86,7 +82,7 @@ function SortHeader({
 
 function refusalOf(error: Error) {
   if (isRefusedByApi(error)) return 'This session may not change the legislation. Sign in again.';
-  const body = error instanceof ApiHttpError ? (error.body as ApiErrorResponse | undefined) : null;
+  const body = apiErrorBody(error);
   if (body?.reason === adminLegislationErrorReasons.formNotSeen) {
     return 'The check has not seen a form of that date or later. Choose a date no later than the last form seen.';
   }

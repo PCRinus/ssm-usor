@@ -1,14 +1,23 @@
 import {
+  apiErrorBody as readApiErrorBody,
   type ApiRequestOptions,
   createApiHttp,
   type ErrorType as ApiErrorType,
 } from '@ssm-usor/api-http';
 import { clientContract } from '@ssm-usor/contracts';
 
+import type { ApiErrorResponse } from '@/api/generated/api';
 import { captureEvent } from '@/app/observability/posthog';
 import { openOutdatedDialog } from '@/features/reload/reload-store';
 
-export { ApiHttpError, type ApiRequestOptions, isClientOutdatedError } from '@ssm-usor/api-http';
+export {
+  apiErrorReason,
+  ApiHttpError,
+  type ApiRequestOptions,
+  isClientOutdatedError,
+} from '@ssm-usor/api-http';
+
+export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorResponse>(cause);
 
 const http = createApiHttp({
   clientContract: clientContract('portal'),

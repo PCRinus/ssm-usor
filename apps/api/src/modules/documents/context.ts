@@ -19,7 +19,7 @@ import {
   trainingMonths,
 } from '@ssm-usor/contracts';
 
-import { collator, countOf, listed } from '../../lib/romanian';
+import { collator, countOf, listed, printedDate, romanianDay } from '../../lib/romanian';
 import { filled } from '../../lib/text';
 import type { FireSafetyClientFacts, FireWorkplaceFacts } from './fire-safety';
 import { type ContextParts, gapRules } from './gaps';
@@ -171,6 +171,11 @@ export type DocumentFacts = {
   /** The organization's question bank, what the three tests print (ADR 024). */
   testQuestions: TestQuestionFacts;
 };
+
+export type SsmSetFacts = Omit<
+  DocumentFacts,
+  'fireSafety' | 'fireOwnInstructions' | 'currentEmployeesByWorkplace' | 'testQuestions'
+> & { testQuestions: Pick<TestQuestionFacts, 'test_hiring'> };
 
 type PositionContext = {
   name: string;
@@ -362,7 +367,7 @@ export const categoryInterval = (
  * What is in the way of generating, in the order the form lists it. Empty when ready. With a
  * `typeKey`, what generating that one document again needs.
  */
-export function missingDocumentData(facts: DocumentFacts, typeKey?: string): MissingDocumentData[] {
+export function missingDocumentData(facts: SsmSetFacts, typeKey?: string): MissingDocumentData[] {
   const { organization, specialist, client } = facts;
   const sharedSchedule = [
     client.periodicTrainingMinutes,
@@ -512,7 +517,7 @@ export const hasRiskEvaluator = (facts: Pick<DocumentFacts, 'organization'>) =>
   filled(facts.organization.riskEvaluatorName) && filled(facts.organization.riskEvaluatorTitle);
 
 // Only a name with a title stands in; a name alone would print beside the specialist's title.
-function riskEvaluatorOf(facts: DocumentFacts): DocumentContext['riskEvaluator'] {
+function riskEvaluatorOf(facts: SsmSetFacts): DocumentContext['riskEvaluator'] {
   const { organization, specialist } = facts;
   if (!hasRiskEvaluator(facts)) {
     return {
@@ -593,28 +598,8 @@ function imminentDangerWordingOf(facts: Pick<DocumentFacts, 'client' | 'responsi
   return { wording, designatedManagers, others };
 }
 
-export function printedDate(isoDate: string) {
-  const [year, month, day] = isoDate.split('-');
-  return `${day}.${month}.${year}`;
-}
-
-const romanianDayFormat = new Intl.DateTimeFormat('en', {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  timeZone: 'Europe/Bucharest',
-});
-
-/** The ISO date a timestamp falls on in Romania, which the documents are dated by. */
-export function romanianDay(timestamp: string) {
-  const parts = Object.fromEntries(
-    romanianDayFormat.formatToParts(new Date(timestamp)).map((part) => [part.type, part.value])
-  );
-  return `${parts.year}-${parts.month}-${parts.day}`;
-}
-
 // A part is only called when no gap leaves it out, which is what makes its `!` safe.
-function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
+function contextParts(facts: SsmSetFacts): ContextParts<DocumentContext> {
   const { organization, client } = facts;
   const year = Number(facts.issueDate.slice(0, 4));
   const legalRepresentative = legalRepresentativeOf(facts);
@@ -820,7 +805,7 @@ function contextParts(facts: DocumentFacts): ContextParts<DocumentContext> {
   };
 }
 
-const documentGaps = gapRules<DocumentFacts, MissingDocumentData, DocumentContext>({
+const documentGaps = gapRules<SsmSetFacts, MissingDocumentData, DocumentContext>({
   missing: missingDocumentData,
   printedAs,
   parts: contextParts,
@@ -836,7 +821,7 @@ export const documentGapConcerns: (
  * The data every template is merged with. Call `missingDocumentData` first: this throws when
  * something is missing, because a data field is never left blank in a document.
  */
-export const buildDocumentContext: (facts: DocumentFacts) => DocumentContext = documentGaps.build;
+export const buildDocumentContext: (facts: SsmSetFacts) => DocumentContext = documentGaps.build;
 
 /**
  * The data one document is merged with when it is generated again: what the gaps of
@@ -844,8 +829,9 @@ export const buildDocumentContext: (facts: DocumentFacts) => DocumentContext = d
  * that prints any of it has no value for it.
  */
 export const buildPartialDocumentContext = documentGaps.buildPartial as (
-  facts: DocumentFacts,
-  typeKey: string
+  facts: SsmSetFacts,
+  typeKey: string,
+  only?: ReadonlySet<string>
 ) => PartialDocumentContext;
 
 const groupOrder = (group: InstructionModuleGroup) => instructionCategories.indexOf(group);
@@ -932,16 +918,4 @@ export function decisionNumberOf(
   return typeKey in context.decisionNumbers
     ? context.decisionNumbers[typeKey as keyof DocumentContext['decisionNumbers']]
     : null;
-}
-
-/** JSON with sorted keys: the database stores a snapshot as jsonb, which reorders them. */
-export function stableJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, item]) => item !== undefined)
-      .sort(([a], [b]) => (a < b ? -1 : 1));
-    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
 }

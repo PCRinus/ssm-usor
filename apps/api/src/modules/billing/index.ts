@@ -1,6 +1,4 @@
 import { createRouter } from '../../router';
-import { setExtra } from '../extras/handlers';
-import { setExtraRoute } from '../extras/routes';
 import {
   cancelSubscriptionHandler,
   changeSubscriptionHandler,
@@ -37,5 +35,4 @@ export const billingRouter = createRouter()
   .openapi(createPortalSessionRoute, createPortalSession)
   .openapi(updateInvoiceEmailRoute, updateInvoiceEmail)
   .openapi(getInvoicePdfRoute, getInvoicePdf)
-  .openapi(setExtraRoute, setExtra)
   .post('/billing/stripe-webhook', stripeWebhook);

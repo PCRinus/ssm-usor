@@ -20,6 +20,7 @@ import { fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
+import { parsed } from '../../lib/validation';
 import { changedShare, type ReadingFlags } from '../imports/reading-flags';
 
 type AdminEvent = 'import_copy_opened' | 'import_copy_file_opened';
@@ -102,9 +103,7 @@ async function listPage(
 }
 
 export async function listImports(c: Context<ApiEnv>) {
-  const parsed = adminImportListQuerySchema.safeParse(c.req.query());
-  if (!parsed.success) throw new ApiError('validation_error');
-  const query = parsed.data;
+  const query = parsed(adminImportListQuerySchema, c.req.query());
   const db = createAdminClient(c);
   const rows = await listPage(db, query, query.pageSize, (query.page - 1) * query.pageSize);
   // A page past the end has no row to carry the total.
@@ -145,9 +144,9 @@ export async function listImports(c: Context<ApiEnv>) {
 const importIdSchema = z.uuid();
 
 function importIdOf(c: Context<ApiEnv>) {
-  const parsed = importIdSchema.safeParse(c.req.param('id'));
-  if (!parsed.success) throw new ApiError('not_found', 'No such import.');
-  return parsed.data;
+  const id = importIdSchema.safeParse(c.req.param('id'));
+  if (!id.success) throw new ApiError('not_found', 'No such import.');
+  return id.data;
 }
 
 async function copiesOf(db: AdminClient, importId: string) {

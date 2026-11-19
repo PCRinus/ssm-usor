@@ -4,14 +4,12 @@ import { type Zippable, zipSync } from 'fflate';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
 import { ApiError } from '../../lib/errors';
 import type { FileStore } from '../../lib/files';
+import { fileNameOf } from '../../lib/text';
+import { clientNotFound } from '../clients/lookup';
 import { withAnnexes } from './annexes';
-import {
-  documentFileName,
-  type DocumentRow,
-  fileNameOf,
-  inSetOrder,
-  readDocuments,
-} from './documents';
+import { documentFileName } from './downloads';
+import { inSetOrder } from './present';
+import { type DocumentRow, readDocuments } from './rows';
 
 const setNames: Record<DocumentSet, string> = { occupational_safety: 'SSM', fire_safety: 'SU' };
 
@@ -48,7 +46,7 @@ export async function documentArchive(
     .eq('id', clientId)
     .maybeSingle();
   if (error) throw fromDatabaseError(error, 'find client of document archive');
-  if (!client) throw new ApiError('not_found', 'This client does not exist.');
+  if (!client) throw clientNotFound();
 
   const order = inSetOrder(set);
   const entries = (await readDocuments(db, clientId, set))

@@ -1,4 +1,5 @@
 import {
+  amountsWithVat,
   type BillingChoice,
   type BillingPreview,
   type BillingProductKey,
@@ -11,14 +12,14 @@ import type { AdminClient } from '../../lib/admin-db';
 import { ApiError } from '../../lib/errors';
 import {
   addInterval,
-  amounts,
   type ChangeSplit,
   choiceFromItems,
   choiceLines,
   isPlanProduct,
+  itemGroupOf,
   minimumStepFor,
-  parseLookupKey,
   problemsWith,
+  productOf,
   recurringPrice,
   sameChoice,
   splitChange,
@@ -32,7 +33,7 @@ import {
   saveSubscription,
   type SubscriptionRow,
 } from './store';
-import { idOf, priceId, type StripeAccess, type StripeCatalogue } from './stripe';
+import { idOf, lookupKeyOfLine, priceId, type StripeAccess, type StripeCatalogue } from './stripe';
 import { choiceOf, plainTrial, planItemOf, stateFromStripe } from './sync';
 
 export type Billing = {
@@ -85,14 +86,6 @@ export function currentChoice(row: SubscriptionRow): BillingChoice | null {
   return { plan: row.plan, step: row.employee_step, interval: row.billing_interval };
 }
 
-function itemGroup(lookupKey: string | null) {
-  if (!lookupKey) return null;
-  if (lookupKey.startsWith('start_') || lookupKey.startsWith('profesional_')) return 'plan';
-  if (lookupKey.startsWith('employees')) return 'pack';
-  if (lookupKey.startsWith('member_')) return 'member';
-  return null;
-}
-
 // Stripe changes a subscription item by its id: a price or quantity in place, a removal by
 // `deleted`, so the items are matched to the choice by what they are, not by their price. A v1
 // subscription's packs and extra members are removed by the first change that moves it to v2.
@@ -107,8 +100,10 @@ export function itemChanges(
   const wanted = choiceLines(target);
   const changes: Stripe.SubscriptionUpdateParams.Item[] = [];
   for (const group of ['plan', 'pack', 'member'] as const) {
-    const want = wanted.find((line) => itemGroup(line.lookupKey) === group);
-    const have = subscription.items.data.find((item) => itemGroup(item.price.lookup_key) === group);
+    const want = wanted.find((line) => itemGroupOf(line.lookupKey) === group);
+    const have = subscription.items.data.find(
+      (item) => itemGroupOf(item.price.lookup_key) === group
+    );
     if (want) {
       const price = priceId(catalogue, want.lookupKey);
       if (!have) changes.push({ price, quantity: want.quantity });
@@ -133,7 +128,7 @@ export function itemChanges(
 
 // Any version of the price counts: each version of a metered product bills the same meter.
 export const hasMetered = (subscription: Stripe.Subscription, product: BillingProductKey) =>
-  subscription.items.data.some((item) => (item.price.lookup_key ?? '').startsWith(`${product}_`));
+  subscription.items.data.some((item) => productOf(item.price.lookup_key) === product);
 
 function phaseItems(choice: BillingChoice, catalogue: StripeCatalogue) {
   return [
@@ -150,9 +145,7 @@ const isProration = (line: Stripe.InvoiceLineItem) =>
 
 function planPeriodEnd(invoice: Stripe.Invoice, catalogue: StripeCatalogue) {
   const line = invoice.lines.data.find((line) => {
-    const price = idOf(line.pricing?.price_details?.price);
-    const key = parseLookupKey(catalogue.lookupKeys.get(price ?? ''));
-    return !isProration(line) && isPlanProduct(key?.product);
+    return !isProration(line) && isPlanProduct(productOf(lookupKeyOfLine(line, catalogue)));
   });
   return line ? fromSeconds(line.period.end) : null;
 }
@@ -183,7 +176,7 @@ export async function preview(
     minimumStep: minimumStepFor(choice.plan, usage.employees),
     recurring,
   };
-  const none = amounts(0);
+  const none = amountsWithVat(0);
   const recurringAmounts = {
     subtotalCents: recurring.subtotalCents,
     vatCents: recurring.vatCents,
@@ -279,7 +272,7 @@ export async function preview(
     appliesAt: (split.atRenewal ? renewalAt : now).toISOString(),
     dueToday,
     proration,
-    nextRenewal: { at: nextRenewalAt.toISOString(), ...amounts(nextSubtotal) },
+    nextRenewal: { at: nextRenewalAt.toISOString(), ...amountsWithVat(nextSubtotal) },
     firstChargeAt: (dueToday.totalCents > 0 ? now : nextRenewalAt).toISOString(),
     prorationDate: split.now ? fromSeconds(prorationDate).toISOString() : null,
   };

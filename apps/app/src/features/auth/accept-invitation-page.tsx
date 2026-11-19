@@ -8,14 +8,13 @@ import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getGetMeQueryKey,
   type InvitationLookupResponse,
   lookupInvitation,
   useAcceptInvitation,
   useJoinWithInvitation,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, apiErrorReason, ApiHttpError } from '@/api/http';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -51,8 +50,7 @@ const closedMessages: Record<string, { title: string; text: string }> = {
 };
 
 function acceptMessage(cause: unknown) {
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
-  switch (body?.reason) {
+  switch (apiErrorReason(cause)) {
     case 'invitation_accepted':
       return 'Invitația a fost deja acceptată. Autentifică-te ca să intri în organizație.';
     case 'invitation_revoked':
@@ -248,7 +246,7 @@ function CreateAccountForm({ token, invitation, description }: AcceptFormProps) 
         data: { token, fullName, password, termsVersion: currentTermsVersion },
       });
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (body?.issues?.some((issue) => issue.path === 'password')) {
         form.setError('password', {
           message: 'Parola este prea slabă. Alege una mai greu de ghicit.',

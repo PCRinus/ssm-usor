@@ -14,27 +14,26 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { createPortalReadClient, participationOf } from '../../lib/participant';
-import { fileNameOf } from '../documents/documents';
+import {
+  createPortalReadClient,
+  participantEmployee,
+  participationOf,
+} from '../../lib/participant';
+import { fileNameOf } from '../../lib/text';
 import { clientIpOf } from '../signing/session-signing';
 import {
   afterTestPass,
   storedTestSheetLink,
-  summaryOf,
   testSheetFileName,
   testSheetNotAvailable,
   testSheetPdf,
-  testSheetSummaries,
 } from '../test-sheets/test-sheets';
 import {
   afterResult,
-  attemptSummaryColumns,
+  employeeTestsOf,
   markedQuestions,
   noSuchEmployee,
-  resultColumns,
-  toAttemptSummary,
   toTestAttempt,
-  toTestResult,
 } from '../tests/rows';
 import { testStatusColumns, toEmployeeTests } from '../tests/status';
 import type {
@@ -51,14 +50,9 @@ import type {
 
 type AttemptRow = Database['public']['Tables']['test_attempts']['Row'];
 
-// The participant's own employee: a client administrator who is not one takes no test.
-function testedEmployee(c: Context<ApiEnv>, participantId: string) {
-  const participation = participationOf(c, participantId);
-  if (!participation.employeeId) {
-    throw new ApiError('not_found', 'This participant is not an employee of the client.');
-  }
-  return { ...participation, employeeId: participation.employeeId };
-}
+// A client administrator who is not one of the client's employees takes no test.
+const testedEmployee = (c: Context<ApiEnv>, participantId: string) =>
+  participantEmployee(participationOf(c, participantId));
 
 function ofItsDomain(domain: TrainingDomain, test: KnowledgeTest) {
   if (!isKnowledgeTestOf(domain, test)) {
@@ -105,28 +99,14 @@ export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = 
   const { participantId } = c.req.valid('param');
   const { clientId, employeeId } = testedEmployee(c, participantId);
   const db = createPortalReadClient(c);
-  const [employee, results, finished, inProgress] = await Promise.all([
+  const [employee, testsOf, inProgress] = await Promise.all([
     db
       .from('employees')
       .select(`id, ${testStatusColumns}`)
       .eq('id', employeeId)
       .eq('client_id', clientId)
       .maybeSingle(),
-    db
-      .from('test_results')
-      .select(resultColumns)
-      .eq('employee_id', employeeId)
-      .eq('client_id', clientId)
-      .order('taken_on', { ascending: false })
-      .order('created_at', { ascending: false }),
-    db
-      .from('test_attempts')
-      .select(attemptSummaryColumns)
-      .eq('employee_id', employeeId)
-      .eq('client_id', clientId)
-      .not('finished_at', 'is', null)
-      .order('started_at', { ascending: false })
-      .limit(100),
+    employeeTestsOf(db, { clientId, employeeId }, { finishedOnly: true, limit: 100 }),
     db
       .from('test_attempts')
       .select('id, domain, test, started_at, total, questions')
@@ -134,15 +114,9 @@ export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = 
       .is('finished_at', null),
   ]);
   if (employee.error) throw fromDatabaseError(employee.error, 'portal tested employee');
-  if (results.error) throw fromDatabaseError(results.error, 'portal test results');
-  if (finished.error) throw fromDatabaseError(finished.error, 'portal test attempts');
   if (inProgress.error) throw fromDatabaseError(inProgress.error, 'portal attempts in progress');
   if (!employee.data) throw noSuchEmployee();
   const status = toEmployeeTests(employee.data.test_status);
-  const sheets = await testSheetSummaries(
-    db,
-    results.data.map((row) => row.id)
-  );
   // The start resumes only the attempt of the test that awaits; another one left open, after a
   // paper pass, is refused as not awaiting and would never close.
   const ofDomain = (domain: TrainingDomain): PortalDomainTests => {
@@ -151,10 +125,7 @@ export const getPortalTests: RouteHandler<typeof getPortalTestsRoute, ApiEnv> = 
     );
     return {
       status: status[domain],
-      results: results.data
-        .filter((row) => row.domain === domain)
-        .map((row) => ({ ...toTestResult(row), sheet: summaryOf(sheets, row.id) })),
-      attempts: finished.data.filter((row) => row.domain === domain).map(toAttemptSummary),
+      ...testsOf(domain),
       inProgress: resumed ? toTestAttempt(resumed) : null,
     };
   };

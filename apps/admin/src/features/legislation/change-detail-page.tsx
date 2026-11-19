@@ -107,7 +107,7 @@ function Resolution({ change }: { change: AdminLegalChangeDetail }) {
     <Section
       title="Resolve"
       testId="change-actions"
-      description="Members see this change as “în verificare” until it is resolved."
+      description="Members see this change as “în analiză” until it is resolved."
     >
       <div className="space-y-4">
         {change.awaitingAssessment && (

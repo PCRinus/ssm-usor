@@ -12,12 +12,11 @@ import { cn } from '@ssm-usor/ui/lib/utils';
 import { FileText, LoaderCircle } from 'lucide-react';
 
 import { getPortalMaterialLink, type TestStudyCard } from '@/api/generated/api';
+import { apiErrorReason } from '@/api/http';
 import { FileLinkButton } from '@/components/file-link-button';
 import { cardClass, SectionLabel } from '@/components/page';
 import { romanianDayOf, useFormatDate } from '@/lib/format';
 import { useApiRequest } from '@/lib/request';
-
-import { reasonOf } from './test-errors';
 
 const passScore = Math.ceil((testSittingSize * testPassMarkPercent) / 100);
 
@@ -116,7 +115,7 @@ function MaterialRow({
     disposition: 'inline',
   });
 
-  if (!material || reasonOf(link.error) === testErrorReasons.materialNotIssued) {
+  if (!material || apiErrorReason(link.error) === testErrorReasons.materialNotIssued) {
     return (
       <p data-testid="test-material-missing" className="text-sm leading-relaxed text-foreground/80">
         {domain === 'ssm'

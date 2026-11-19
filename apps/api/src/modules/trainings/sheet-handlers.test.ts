@@ -7,6 +7,7 @@ import {
   trainingSheetsResponseSchema,
 } from '@ssm-usor/contracts';
 import { documentText } from '@ssm-usor/document-engine';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -101,7 +102,6 @@ const recordRows = [
   },
 ];
 
-const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 const templateFiles: Record<string, string> = {
   training_sheet_ssm: 'fisa_instruire_ssm.docx',
   training_sheet_su: 'fire/fisa_instructaj_su.docx',

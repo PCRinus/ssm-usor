@@ -4,6 +4,11 @@ import type { Database } from '../../database.types';
 
 type StatusRow = Database['public']['Views']['employee_training_status']['Row'];
 
+export const trainingStatusFields =
+  'ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, su_state, su_due_on, su_last_periodic_on, su_interval_months, su_interval_source';
+
+export const trainingStatusColumns = `training_status(${trainingStatusFields})` as const;
+
 export type TrainingStatusRow = Pick<
   StatusRow,
   | 'ssm_state'

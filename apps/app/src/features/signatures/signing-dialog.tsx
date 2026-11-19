@@ -1,5 +1,4 @@
 import {
-  type ApiErrorResponse,
   formatEmployeeName,
   signatureErrorReasons,
   trainingDomainLabels,
@@ -26,7 +25,7 @@ import {
   useCreateMySigningSession,
   useSignMySigningSession,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, apiErrorReason } from '@/api/http';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -36,7 +35,6 @@ import { AgreementWarning } from './agreement-warning';
 import {
   attemptsLeftOf,
   codeNeedsRenewal,
-  reasonOf,
   renewalMessages,
   requestDocument,
   signAsLabel,
@@ -57,9 +55,7 @@ const timeFormat = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '
 
 // The refusal names the request that no longer waits by its place in the list sent.
 function namedRequests(cause: unknown, requests: readonly SignatureRequest[]) {
-  const issues =
-    cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>)?.issues : undefined;
-  return (issues ?? []).flatMap(({ path }) => {
+  return (apiErrorBody(cause)?.issues ?? []).flatMap(({ path }) => {
     const index = /^requestIds\.(\d+)$/.exec(path)?.[1];
     const request = index === undefined ? undefined : requests[Number(index)];
     return request ? [request.id] : [];
@@ -147,7 +143,7 @@ function SigningFlow({
       setSignError(null);
       wantsFocus.current = true;
     } catch (cause) {
-      if (reasonOf(cause) === signatureErrorReasons.signingItemNotFound) {
+      if (apiErrorReason(cause) === signatureErrorReasons.signingItemNotFound) {
         touched.current = true;
         onGone?.(namedRequests(cause, requests));
       }
@@ -174,7 +170,7 @@ function SigningFlow({
           .map((item) => item.requestId),
       ]);
     } catch (cause) {
-      const reason = reasonOf(cause);
+      const reason = apiErrorReason(cause);
       if (reason === signatureErrorReasons.codeInvalid) {
         const left = attemptsLeftOf(cause);
         if (left === 0) {

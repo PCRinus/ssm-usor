@@ -6,7 +6,6 @@ import {
   type SheetRowKey,
   type SheetSignerSlot,
   signatureFieldOf,
-  type SignerService,
   tableCapacity,
   tableRowKey,
   tableRowOf,
@@ -17,12 +16,17 @@ import {
 import type { Context } from 'hono';
 
 import { createLastingAdminClient } from '../../lib/admin-db';
+import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
-import { adminFileStore } from '../../lib/files';
-import { createPdfConverter, type PdfConverter } from '../../lib/pdf';
-import { createSigner } from '../../lib/signer';
-import { builtInTemplates, merge } from '../documents/documents';
+import { ApiError, failureLabel } from '../../lib/errors';
+import {
+  type PdfSigningServices,
+  pdfSigningServices,
+  rewriteVersioned,
+  signField,
+} from '../../lib/pdf-signing';
+import { mergeBuiltIn } from '../../lib/templates';
+import { loadSheetFacts } from '../trainings/employee-sheets';
 import {
   chronological,
   chronologicalResults,
@@ -33,7 +37,6 @@ import {
   type TrainingSheetData,
   transcriptionLine,
 } from '../trainings/sheet';
-import { loadSheetFacts } from '../trainings/sheet-handlers';
 import {
   drawnSheetForm,
   type HiringMaterials,
@@ -46,7 +49,6 @@ import {
   type SheetTrainingRecord,
   signatureFieldsOf,
   signatureReason,
-  signedOn,
   signedSheetData,
   voidedNote,
 } from './form';
@@ -63,57 +65,25 @@ import {
 
 export { currentSheetPdf, sheetCopyText } from './stored';
 
-// Writes to one sheet are serialized by its version: each makes the next version from the current
-// bytes and moves the row on only if nobody else did first, and the loser tries once more. Not a
-// Postgres advisory lock: a write spans calls to the signer, and PostgREST holds no transaction
-// across requests.
-
-export type SignedSheetFiles = {
-  readTemplate(path: string): Promise<Uint8Array>;
-  readDocument(path: string): Promise<Uint8Array>;
-  writeDocument(path: string, bytes: Uint8Array, options: { replace: boolean }): Promise<void>;
-  removeDocument(path: string): Promise<void>;
-};
-
-export type SignedSheetContext = {
+export type SignedSheetContext = PdfSigningServices & {
   store: SignedSheetStore;
-  files: SignedSheetFiles;
-  pdf: PdfConverter | null;
-  signer: SignerService | null;
   sheetFacts(clientId: string, employeeId: string): Promise<SheetIdentity>;
   drawForm(domain: TrainingDomain, data: TrainingSheetData): Promise<Uint8Array>;
-  now(): Date;
 };
 
-/**
- * Everything with the secret key: the signing flow has checked who may act before calling. No
- * request signal: a signature the signer has put on a sheet must reach its evidence even when the
- * caller has gone.
- */
+/** With the secret key and no request signal, as `pdfSigningServices`. */
 export function signedSheetContext(c: Context<ApiEnv>): SignedSheetContext {
   const db = createLastingAdminClient(c);
-  const files = adminFileStore(c.env);
+  const services = pdfSigningServices(c);
+  const { files } = services;
   return {
+    ...services,
     store: supabaseSheetStore(db),
-    files,
-    pdf: createPdfConverter(c),
-    signer: createSigner(c),
     sheetFacts: (clientId, employeeId) => loadSheetFacts(db, clientId, employeeId),
     async drawForm(domain, data) {
       const typeKey = trainingSheetTypeKeys[domain];
-      const [template] = await builtInTemplates(db, [typeKey]);
-      if (!template) {
-        console.error(`The template ${typeKey} is not registered: run pnpm templates:register.`);
-        throw new ApiError(
-          'service_unavailable',
-          'The training sheet template is not available yet.',
-          undefined,
-          'template_missing'
-        );
-      }
-      return merge(await files.readTemplate(template.storagePath), data, typeKey).bytes;
+      return (await mergeBuiltIn(db, files.readTemplate, typeKey, data, 'training sheet')).bytes;
     },
-    now: () => new Date(),
   };
 }
 
@@ -140,11 +110,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
 
 const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
-async function sha256(bytes: Uint8Array) {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer(bytes)));
-  return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
 /** SHA-256 of a row's values, the same whatever order they were built in. */
 export function rowDigest(values: Record<string, string>) {
   const sorted = Object.keys(values)
@@ -153,8 +118,6 @@ export function rowDigest(values: Record<string, string>) {
   return sha256(new TextEncoder().encode(JSON.stringify(sorted)));
 }
 
-// A version gets a path of its own, so that a write that loses the race never overwrites the
-// bytes the row points to, and every version stays for the evidence's digests.
 function storagePathOf(
   sheet: Pick<StoredSheet, 'organizationId' | 'clientId' | 'employeeId' | 'domain' | 'sequence'>,
   version: number
@@ -214,41 +177,47 @@ async function rewriteSheet(
   sheetId: string,
   rewrite: (sheet: StoredSheet, bytes: Uint8Array) => Promise<Rewrite>
 ): Promise<{ before: StoredSheet; after: StoredSheet }> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const sheet = await ctx.store.sheet(sheetId);
-    if (!sheet) throw new ApiError('not_found', 'The signed sheet does not exist.');
-    let bytes = await ctx.files.readDocument(sheet.storagePath);
-    if ((await sha256(bytes)) !== sheet.digest) {
+  return rewriteVersioned(ctx.files, {
+    async read() {
+      const sheet = await ctx.store.sheet(sheetId);
+      if (!sheet) throw new ApiError('not_found', 'The signed sheet does not exist.');
+      return sheet;
+    },
+    pathOf: (sheet) => sheet.storagePath,
+    nextPathOf: (sheet) => storagePathOf(sheet, sheet.version + 1),
+    unverified(sheet) {
       console.error(
         `Signed sheet ${sheet.id} does not match its digest at version ${sheet.version}.`
       );
-      throw new ApiError('internal_error', 'The stored training sheet could not be verified.');
-    }
-    const notes = notesToWrite(sheet, await ctx.store.rowsOf(sheet.id));
-    if (notes.length > 0) {
-      const values = Object.fromEntries(notes.map(({ note }) => [note, voidedNote]));
-      bytes = new Uint8Array(
-        await need(ctx.signer, signerUnavailable).fillFields(buffer(bytes), values)
-      );
-    }
-    const next = await rewrite(sheet, bytes);
-    const path = storagePathOf(sheet, sheet.version + 1);
-    await ctx.files.writeDocument(path, next.bytes, { replace: false });
-    const after = await ctx.store.advance(sheet, {
-      ...next.changes,
-      storagePath: path,
-      digest: await sha256(next.bytes),
-    });
-    if (after) {
-      await ctx.store.markVoidNoted(
-        notes.map(({ row }) => row.id),
-        ctx.now().toISOString()
-      );
-      return { before: sheet, after };
-    }
-    await forget(ctx, path);
-  }
-  throw sheetBusy();
+      return new ApiError('internal_error', 'The stored training sheet could not be verified.');
+    },
+    async rewrite(sheet, stored) {
+      let bytes = stored;
+      const notes = notesToWrite(sheet, await ctx.store.rowsOf(sheet.id));
+      if (notes.length > 0) {
+        const values = Object.fromEntries(notes.map(({ note }) => [note, voidedNote]));
+        bytes = new Uint8Array(
+          await need(ctx.signer, signerUnavailable).fillFields(buffer(bytes), values)
+        );
+      }
+      return { ...(await rewrite(sheet, bytes)), notes };
+    },
+    async advance(sheet, next, { path, digest }) {
+      const after = await ctx.store.advance(sheet, {
+        ...next.changes,
+        storagePath: path,
+        digest,
+      });
+      if (after) {
+        await ctx.store.markVoidNoted(
+          next.notes.map(({ row }) => row.id),
+          ctx.now().toISOString()
+        );
+      }
+      return after;
+    },
+    busy: sheetBusy,
+  });
 }
 
 async function createSheet(
@@ -646,7 +615,7 @@ export async function syncTrainingRows(ctx: SignedSheetContext, recordIds: strin
       await syncRecordRow(ctx, recordId, { create: false });
     } catch (error) {
       console.error(
-        `Signed sheet row of ${recordId} not brought up to date: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+        `Signed sheet row of ${recordId} not brought up to date: ${failureLabel(error)}`
       );
     }
   }
@@ -685,7 +654,7 @@ export async function syncResultRows(ctx: SignedSheetContext, resultIds: string[
       await syncResultRow(ctx, resultId);
     } catch (error) {
       console.error(
-        `Signed sheet row of test result ${resultId} not brought up to date: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+        `Signed sheet row of test result ${resultId} not brought up to date: ${failureLabel(error)}`
       );
     }
   }
@@ -759,22 +728,23 @@ export async function applySignature(
   let signedAt = ctx.now();
   const { before, after } = await rewriteSheet(ctx, live.signedSheetId, async (sheet, bytes) => {
     signedAt = ctx.now();
-    const begun = await service.beginSignature(buffer(bytes), {
-      field,
-      certificatePem: signer.certificatePem,
-      chainPem: signer.chainPem,
-      reason: signatureReason(record, slot),
-      signedAt: signedAt.toISOString(),
-      certify: sheet.certifiedAt === null,
-      lockFields: lockFieldsOf(record.domain, live.rowKey),
-      // No job title: the row or the block prints it, and a periodic row's box is too narrow for
-      // a long line, which would shrink the whole appearance.
-      appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
-    });
-    const signature = await sign(begun.toSign, begun.prepared);
-    const signed = await service.finishSignature(begun.prepared, begun.sessionToken, signature);
+    const signed = await signField(
+      service,
+      bytes,
+      {
+        field,
+        certificatePem: signer.certificatePem,
+        chainPem: signer.chainPem,
+        reason: signatureReason(record, slot),
+        signedAt,
+        certify: sheet.certifiedAt === null,
+        lockFields: lockFieldsOf(record.domain, live.rowKey),
+        name: signer.name,
+      },
+      sign
+    );
     return {
-      bytes: new Uint8Array(signed),
+      bytes: signed,
       changes: { certifiedAt: sheet.certifiedAt ?? signedAt.toISOString() },
     };
   });

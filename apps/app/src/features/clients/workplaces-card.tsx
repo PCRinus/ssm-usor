@@ -6,7 +6,6 @@ import { useNavigate, useRouteContext } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   type ClientResponse,
   getListFireEquipmentQueryKey,
   getListFireInstallationsQueryKey,
@@ -17,13 +16,14 @@ import {
   useListWorkplaces,
   useUpdateWorkplace,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { openedHere } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useFocusRequest, type WorkplacesFocus } from '@/features/missing-data/focus';
+import { commonFailure } from '@/lib/api-errors';
 import { dateToIso } from '@/lib/dates';
 
 import { SheetAction } from './details/sheet-action';
@@ -40,12 +40,6 @@ import {
   type Workplace,
   workplaceRequestOf,
 } from './workplace-schema';
-
-function reasonOf(cause: unknown) {
-  return cause instanceof ApiHttpError
-    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
-    : undefined;
-}
 
 const workplaceRowId = (id: string) => `workplace-${id}`;
 
@@ -140,9 +134,10 @@ export function WorkplacesCard({
         toast.success(`Adresa pentru ${workplace.name} a fost actualizată.`);
       } catch (cause) {
         setError(
-          reasonOf(cause) === clientConflictReasons.clientArchived
-            ? workplacesOfArchivedClientMessage
-            : 'Nu am putut actualiza adresa. Verifică conexiunea și încearcă din nou.'
+          commonFailure(cause) ??
+            (apiErrorReason(cause) === clientConflictReasons.clientArchived
+              ? workplacesOfArchivedClientMessage
+              : 'Nu am putut actualiza adresa. Verifică conexiunea și încearcă din nou.')
         );
       }
       await queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) });
@@ -156,15 +151,16 @@ export function WorkplacesCard({
       await archive.mutateAsync({ clientId, workplaceId: workplace.id });
       toast.success(`${workplace.name} a fost arhivat.`);
     } catch (cause) {
-      const reason = reasonOf(cause);
+      const reason = apiErrorReason(cause);
       setError(
-        reason === workplaceConflictReasons.officeNeedsWorkplace
-          ? `${workplace.name} este singurul punct de lucru activ, iar la sediul social nu se desfășoară activitate. Bifează activitatea la sediu sau adaugă punctul de lucru care îi ia locul, apoi arhivează-l.`
-          : reason === clientConflictReasons.clientArchived
-            ? workplacesOfArchivedClientMessage
-            : cause instanceof ApiHttpError && cause.status === 404
-              ? `${workplace.name} nu mai există la acest client.`
-              : 'Nu am putut arhiva punctul de lucru. Verifică conexiunea și încearcă din nou.'
+        commonFailure(cause) ??
+          (reason === workplaceConflictReasons.officeNeedsWorkplace
+            ? `${workplace.name} este singurul punct de lucru activ, iar la sediul social nu se desfășoară activitate. Bifează activitatea la sediu sau adaugă punctul de lucru care îi ia locul, apoi arhivează-l.`
+            : reason === clientConflictReasons.clientArchived
+              ? workplacesOfArchivedClientMessage
+              : cause instanceof ApiHttpError && cause.status === 404
+                ? `${workplace.name} nu mai există la acest client.`
+                : 'Nu am putut arhiva punctul de lucru. Verifică conexiunea și încearcă din nou.')
       );
     }
     setArchiving(null);

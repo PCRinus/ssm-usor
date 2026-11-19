@@ -33,6 +33,7 @@ import { AnafLookupButton } from '@/features/clients/anaf-lookup-button';
 import { CountyCombobox } from '@/features/clients/county-combobox';
 import { type OrganizationCompanyFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   companyDetailsFormSchema,
@@ -214,11 +215,10 @@ function CompanyDetailsForm({
     } catch (cause) {
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 403
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 403
             ? 'Doar adminii organizației pot modifica datele firmei.'
-            : cause instanceof ApiHttpError && cause.status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut salva datele firmei. Verifică conexiunea și încearcă din nou.',
+            : 'Nu am putut salva datele firmei. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

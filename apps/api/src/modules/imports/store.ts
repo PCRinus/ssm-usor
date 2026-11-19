@@ -85,8 +85,14 @@ export interface ImportStore {
   listFiles(importId: string): Promise<ImportFileRow[]>;
   // With `from`, only a file still in that state is changed; false when it was not.
   updateFile(fileId: string, patch: ImportFileUpdate, from?: ImportFileState): Promise<boolean>;
-  // False when the import was no longer at `from`, which another delivery moved on.
-  advance(importId: string, from: ImportStatus, patch: ImportUpdate): Promise<boolean>;
+  // False when the import was no longer at `from`, which another delivery moved on, or no longer
+  // at `version` when one is given.
+  advance(
+    importId: string,
+    from: ImportStatus,
+    patch: ImportUpdate,
+    version?: number
+  ): Promise<boolean>;
   recordUsage(
     importId: string,
     fileId: string | null,
@@ -197,13 +203,11 @@ export function importStore(admin: AdminClient, hooks?: CreditsHooks): ImportSto
       return data.length > 0;
     },
 
-    async advance(importId, from, patch) {
-      const { data, error } = await admin
-        .from('imports')
-        .update(patch)
-        .eq('id', importId)
-        .eq('status', from)
-        .select('id');
+    async advance(importId, from, patch, version) {
+      const query = admin.from('imports').update(patch).eq('id', importId).eq('status', from);
+      const { data, error } = await (
+        version === undefined ? query : query.eq('version', version)
+      ).select('id');
       if (error) throw fromDatabaseError(error, 'advance import');
       return data.length > 0;
     },

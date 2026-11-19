@@ -71,3 +71,9 @@ export function fromEngineError(error: Error): Error {
   }
   return error;
 }
+
+// A best-effort failure is logged by its reason or name alone: its message can quote a row.
+export function failureLabel(error: unknown) {
+  if (error instanceof ApiError) return error.reason ?? error.code;
+  return error instanceof Error ? error.name : 'unknown';
+}

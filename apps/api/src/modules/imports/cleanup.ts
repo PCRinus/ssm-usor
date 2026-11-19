@@ -2,7 +2,8 @@ import type { ApiEnv } from '../../lib/env';
 import { type CopyBudget, inlineCopyObjects, keepMissingCopies, withCopiesKept } from './copies';
 import { alertImport, daySummary } from './import-alerts';
 import { libraryReasons, riskReasons } from './library';
-import { copyFolder, describe, importReasons, type PipelineDeps } from './pipeline';
+import { describe, importReasons, type PipelineDeps } from './pipeline';
+import { copyFolder } from './pipeline-files';
 import { pipelineDeps } from './queue';
 import type { ImportCopy, ImportObjectList } from './store';
 

@@ -1,3 +1,5 @@
+import { type LegalQuoteResult, PendingChangeError } from '@ssm-usor/document-engine/legal-quote';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import type { ModelClient } from '@ssm-usor/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -6,7 +8,7 @@ import type { OpenChange, RunsSeen } from './changes';
 import { deadManDue, type FixDependencies, runLegislationFix } from './fix';
 import type { GitHub } from './github';
 import { readChange } from './model';
-import { PendingChangeError, type QuoteTool, templatesAt, type ToolResult } from './workspace';
+import { type QuoteTool, templatesAt } from './workspace';
 
 const oldText =
   '(2) Pe timpul deplasării pe drumurile publice, conducătorii motocicletelor, mopedelor și persoanele transportate pe acestea au obligația să poarte casca de protecție omologată.';
@@ -37,7 +39,7 @@ const roads: OpenChange = {
   ],
 };
 
-const applied: ToolResult = {
+const applied: LegalQuoteResult = {
   status: 'applied',
   written: ['2.2_general_training_material.docx', 'citations.json', 'manifest.json'],
   summary: {
@@ -86,9 +88,7 @@ function setup({
   resolves?: boolean;
   model?: ModelClient | null;
 } = {}) {
-  const real = templatesAt(
-    new URL('../../../../../packages/document-engine/templates/', import.meta.url)
-  );
+  const real = templatesAt(templatesUrl);
   const gh: GitHub = {
     pullForBranch: vi.fn().mockResolvedValue(null),
     answersByMarker: vi.fn().mockResolvedValue([]),
@@ -222,7 +222,14 @@ describe('a change whose quote differs', () => {
     const { deps, gh, git, discord } = setup({
       tool: () => ({
         status: 'needs-review',
-        problems: [{ alineat: '2', reason: "the template's passage does not hold the old words" }],
+        problems: [
+          {
+            alineat: '2',
+            old: oldText,
+            new: newText,
+            reason: "the template's passage does not hold the old words",
+          },
+        ],
         markdown: '',
       }),
     });

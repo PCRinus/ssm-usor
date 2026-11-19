@@ -15,7 +15,6 @@ import {
   noWorkplace,
   orderedCommuteMeans,
   type OrganizationEmployeeSortKey,
-  pageRange,
   type ParticipantChannel,
   type PortalAccessState,
   type PortalLanguage,
@@ -28,23 +27,26 @@ import {
 } from '@ssm-usor/contracts';
 
 import type { Database } from '../../database.types';
-import {
-  archivedClientError,
-  createDataClient,
-  type DataClient,
-  fromDatabaseError,
-} from '../../lib/db';
+import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { listPage, orderedBy } from '../../lib/list-page';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
-import { refuseWorkplaceOfAnotherClient } from '../document-data/handlers';
+import { requireClient, requireWritableClient } from '../clients/lookup';
+import { refuseWorkplaceOfAnotherClient } from '../document-data/workplaces';
 import {
   testStatusColumns,
   testStatusFields,
   type TestStatusRow,
   toEmployeeTests,
 } from '../tests/status';
-import { toEmployeeTraining, type TrainingStatusRow } from '../trainings/status';
+import {
+  toEmployeeTraining,
+  trainingStatusColumns,
+  trainingStatusFields,
+  type TrainingStatusRow,
+} from '../trainings/status';
+import { particularsColumns, toParticulars } from './particulars';
 import type {
   createEmployeeRoute,
   getEmployeeRoute,
@@ -55,22 +57,20 @@ import type {
   updateEmployeeRoute,
   updateEmployeeStatusRoute,
 } from './routes';
+import { toTrainMatch } from './training-match';
 
 type EmployeeRow = Database['public']['Tables']['employees']['Row'];
-
-const trainingStatusFields =
-  'ssm_state, ssm_due_on, ssm_last_periodic_on, ssm_interval_months, ssm_interval_source, su_state, su_due_on, su_last_periodic_on, su_interval_months, su_interval_source';
 
 // The job position rides along by its foreign key: every employee has exactly one.
 const employeeColumnsWithoutStatus =
   'id, client_id, last_name, first_name, employee_number, email, phone, job_title, hired_at, status, terminated_at, created_at, updated_at, job_positions(id, name), workplace_id, client_workplaces!employees_workplace_in_client(id, name)';
 
 export const employeeListColumns =
-  `${employeeColumnsWithoutStatus}, training_status(${trainingStatusFields}), ${testStatusColumns}` as const;
+  `${employeeColumnsWithoutStatus}, ${trainingStatusColumns}, ${testStatusColumns}` as const;
 
 // The CNP and the training-sheet details are read only for one employee at a time.
 export const employeeColumns =
-  `${employeeListColumns}, cnp, birth_date, birth_place, home_address, residence_address, blood_group, rh_factor, notes, archived_at, qualification, education, authorizations, commute_route, commute_means, commute_means_other, commute_minutes, contract_number` as const;
+  `${employeeListColumns}, cnp, residence_address, notes, archived_at, contract_number, ${particularsColumns}` as const;
 
 type EmployeeListRow = Pick<
   EmployeeRow,
@@ -133,37 +133,12 @@ export function toEmployee(
   return {
     ...toEmployeeListItem(row),
     cnp: row.cnp,
-    birthDate: row.birth_date,
-    birthPlace: row.birth_place,
-    homeAddress: row.home_address,
     residenceAddress: row.residence_address,
-    // The database constrains both to the shared lists.
-    bloodGroup: row.blood_group as Employee['bloodGroup'],
-    rhFactor: row.rh_factor as Employee['rhFactor'],
     notes: row.notes,
     archivedAt: row.archived_at,
-    qualification: row.qualification,
-    education: row.education,
-    authorizations: row.authorizations,
-    commuteRoute: row.commute_route,
-    commuteMeans: orderedCommuteMeans(row.commute_means),
-    commuteMeansOther: row.commute_means_other,
-    commuteMinutes: row.commute_minutes,
     contractNumber: row.contract_number,
+    ...toParticulars(row),
   };
-}
-
-// Row-level security hides other organizations' clients, so a missing row is a 404
-// whether the client belongs to someone else or does not exist at all.
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db
-    .from('clients')
-    .select('id, archived_at, stage')
-    .eq('id', clientId)
-    .maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw new ApiError('not_found', 'This client does not exist in your organization.');
-  return data;
 }
 
 // A position of another client, or an archived one, is a wrong choice on the form.
@@ -195,8 +170,25 @@ async function onlyActiveWorkplace(db: DataClient, clientId: string) {
   return data.length === 1 ? data[0]!.id : null;
 }
 
-function sheetFields(body: CreateEmployeeRequest) {
+function employeeFields(body: CreateEmployeeRequest) {
   return {
+    last_name: body.lastName,
+    first_name: body.firstName,
+    // Validation guarantees a well-formed CNP.
+    cnp: body.cnp ? normalizeCnp(body.cnp) : null,
+    employee_number: body.employeeNumber ?? null,
+    email: body.email ?? null,
+    phone: body.phone ?? null,
+    job_title: body.jobTitle,
+    contract_number: body.contractNumber ?? null,
+    hired_at: body.hiredAt,
+    birth_date: body.birthDate ?? null,
+    birth_place: body.birthPlace ?? null,
+    home_address: body.homeAddress ?? null,
+    residence_address: body.residenceAddress ?? null,
+    blood_group: body.bloodGroup ?? null,
+    rh_factor: body.rhFactor ?? null,
+    notes: body.notes ?? null,
     qualification: body.qualification ?? null,
     education: body.education ?? null,
     authorizations: body.authorizations ?? null,
@@ -379,9 +371,6 @@ const listFilterKeys = [
   'portal',
 ] as const satisfies readonly (keyof ListFilters)[];
 
-export const toTrainMatch =
-  'ssm_training_state.in.(untrained,overdue),su_training_state.in.(untrained,overdue)';
-
 const attentionMatches: Record<EmployeeAttentionFilter, string> = {
   signaturesPending: 'signatures_pending_count.gt.0',
   noPhone: 'phone.is.null',
@@ -474,40 +463,22 @@ async function listFromView(
       matchingFilters(current(db.from('employee_list').select(columns, options)), filters),
       q
     );
-  let listQuery = filtered(withPortal ? `${listViewColumns}, ${portalColumns}` : listViewColumns, {
-    count: 'exact',
-  });
-  for (const { column, nullsLast } of sortColumns[sort]) {
-    listQuery = listQuery.order(column, {
-      ascending: order === 'asc',
-      ...(nullsLast ? { nullsFirst: false } : {}),
-    });
-  }
-  const { from, to } = pageRange(page, pageSize);
-  const [{ data, error, count }, all] = await Promise.all([
-    listQuery.order('id').range(from, to).returns<ListViewRow[]>(),
-    narrowed
-      ? current(db.from('employee_list').select('id', { count: 'exact', head: true }))
-      : null,
-  ]);
-  if (all?.error) throw fromDatabaseError(all.error, 'count employees');
-  const unfilteredTotal = (total: number) => (all ? (all.count ?? 0) : total);
-  if (error?.code === 'PGRST103') {
-    // The page lies past the end (rows left since the caller last looked): empty, real total.
-    const recount = await filtered('id', { count: 'exact', head: true });
-    if (recount.error) throw fromDatabaseError(recount.error, 'count employees');
-    const total = recount.count ?? 0;
-    return { items: [], page, pageSize, total, unfilteredTotal: unfilteredTotal(total) };
-  }
-  if (error) throw fromDatabaseError(error, 'list employees');
-  const total = count ?? 0;
-  return {
-    items: await listedEmployees(db, data),
+  const columns = withPortal ? `${listViewColumns}, ${portalColumns}` : listViewColumns;
+  const { rows, total, unfilteredTotal } = await listPage({
     page,
     pageSize,
-    total,
-    unfilteredTotal: unfilteredTotal(total),
-  };
+    rows: (from, to) =>
+      orderedBy(filtered(columns, { count: 'exact' }), sortColumns[sort], order)
+        .order('id')
+        .range(from, to)
+        .returns<ListViewRow[]>(),
+    recount: () => filtered('id', { count: 'exact', head: true }),
+    unfiltered: narrowed
+      ? () => current(db.from('employee_list').select('id', { count: 'exact', head: true }))
+      : undefined,
+    what: 'employees',
+  });
+  return { items: await listedEmployees(db, rows), page, pageSize, total, unfilteredTotal };
 }
 
 type ScopableQuery<Query> = {
@@ -520,7 +491,7 @@ export const listEmployees: RouteHandler<typeof listEmployeesRoute, ApiEnv> = as
   const { clientId } = c.req.valid('param');
   const { status, q, page, pageSize, sort, order, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
+  const client = await requireClient(db, clientId);
   const readsStates =
     Boolean(filters.ssmTraining || filters.suTraining || filters.test) ||
     Boolean(filters.attention?.some((need) => need === 'toTrain' || need === 'trainingDue')) ||
@@ -562,7 +533,7 @@ export const listEmployeeInvitees: RouteHandler<typeof listEmployeeInviteesRoute
   const { clientId } = c.req.valid('param');
   const { q, ...filters } = c.req.valid('query');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error, count } = await matchingEveryTerm(
     matchingFilters(
       db
@@ -606,8 +577,7 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
   const body = c.req.valid('json');
   const membership = c.get('membership');
   const db = createDataClient(c);
-  const client = await findClient(db, clientId);
-  if (client.archived_at) throw archivedClientError();
+  await requireWritableClient(db, clientId);
   if (body.jobPositionId) await requireJobPosition(db, clientId, body.jobPositionId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const workplaceId =
@@ -617,25 +587,8 @@ export const createEmployee: RouteHandler<typeof createEmployeeRoute, ApiEnv> = 
     .insert({
       organization_id: membership.organizationId,
       client_id: clientId,
-      last_name: body.lastName,
-      first_name: body.firstName,
-      // Validation guarantees a well-formed CNP.
-      cnp: body.cnp ? normalizeCnp(body.cnp) : null,
-      employee_number: body.employeeNumber ?? null,
-      email: body.email ?? null,
-      phone: body.phone ?? null,
-      job_title: body.jobTitle,
-      contract_number: body.contractNumber ?? null,
-      hired_at: body.hiredAt,
-      birth_date: body.birthDate ?? null,
-      birth_place: body.birthPlace ?? null,
-      home_address: body.homeAddress ?? null,
-      residence_address: body.residenceAddress ?? null,
-      blood_group: body.bloodGroup ?? null,
-      rh_factor: body.rhFactor ?? null,
-      notes: body.notes ?? null,
+      ...employeeFields(body),
       workplace_id: workplaceId,
-      ...sheetFields(body),
       created_by: c.get('user').id,
       // Left out, the database assigns the job position named like the contract title,
       // creating it if the client lacks it (ADR 006). The generated types cannot know that.
@@ -757,25 +710,9 @@ export const updateEmployee: RouteHandler<typeof updateEmployeeRoute, ApiEnv> = 
   const { data, error } = await db
     .from('employees')
     .update({
-      last_name: body.lastName,
-      first_name: body.firstName,
-      cnp: body.cnp ? normalizeCnp(body.cnp) : null,
-      employee_number: body.employeeNumber ?? null,
-      email: body.email ?? null,
-      phone: body.phone ?? null,
-      job_title: body.jobTitle,
-      contract_number: body.contractNumber ?? null,
+      ...employeeFields(body),
       ...(body.jobPositionId ? { job_position_id: body.jobPositionId } : {}),
-      hired_at: body.hiredAt,
-      birth_date: body.birthDate ?? null,
-      birth_place: body.birthPlace ?? null,
-      home_address: body.homeAddress ?? null,
-      residence_address: body.residenceAddress ?? null,
-      blood_group: body.bloodGroup ?? null,
-      rh_factor: body.rhFactor ?? null,
-      notes: body.notes ?? null,
       ...(body.workplaceId === undefined ? {} : { workplace_id: body.workplaceId }),
-      ...sheetFields(body),
     })
     .eq('id', employeeId)
     .eq('client_id', clientId)

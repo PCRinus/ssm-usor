@@ -4,6 +4,7 @@ import {
   type RisksProposal,
   toProposal,
 } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -42,7 +43,7 @@ const position = (name: string) => ({
   otherCompany: null,
 });
 
-const reading = {
+const reading = emptyReading({
   facts: [
     {
       field: 'client.legalName',
@@ -52,19 +53,8 @@ const reading = {
       otherCompany: null,
     },
   ],
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositionFacts: [],
   jobPositions: [position('Brutar'), position('Șofer')],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-};
+});
 
 describe('clientReadingFlags', () => {
   const files = [

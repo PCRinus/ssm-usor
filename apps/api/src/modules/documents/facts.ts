@@ -1,4 +1,5 @@
 import {
+  type DocumentSet,
   type EquipmentAllocation,
   fireSafetyDocumentTypeKeys,
   fireSafetyTypeKeysFromTenEmployees,
@@ -6,9 +7,11 @@ import {
 } from '@ssm-usor/contracts';
 
 import { type DataClient, everyRow, fromDatabaseError } from '../../lib/db';
-import { ApiError } from '../../lib/errors';
-import { type DocumentFacts, romanianDay } from './context';
-import type { FireYearRecords } from './fire-safety';
+import { romanianDay } from '../../lib/romanian';
+import { clientNotFound } from '../clients/lookup';
+import { bySortOrder } from '../risk-evaluations/evaluation';
+import type { DocumentFacts, SsmSetFacts } from './context';
+import type { FireSafetySetFacts, FireYearRecords } from './fire-safety';
 import { loadTestQuestions } from './knowledge-tests';
 import type { RiskEvaluationFacts } from './risk-assessment';
 import { snapshotAnnexes } from './snapshot';
@@ -16,12 +19,19 @@ import { snapshotAnnexes } from './snapshot';
 // Row-level security scopes every query to the caller's organization. With the secret key
 // nothing does but the ids: the client's must already be known to be the preparer's.
 
-export type StoredDocumentFacts = Omit<
-  DocumentFacts,
-  'issueDate' | 'firstDecisionNumber' | 'period'
-> & {
+type Asked = 'issueDate' | 'firstDecisionNumber' | 'period';
+
+export type SsmStoredFacts = Omit<SsmSetFacts, Asked> & {
+  set: 'occupational_safety';
   clientArchived: boolean;
 };
+
+export type FireStoredFacts = Omit<FireSafetySetFacts, Asked> & {
+  set: 'fire_safety';
+  clientArchived: boolean;
+};
+
+export type StoredDocumentFacts = SsmStoredFacts | FireStoredFacts;
 
 const moduleVersionsPath =
   'job_position_instructions.instruction_modules.instruction_module_versions';
@@ -32,40 +42,8 @@ const moduleVersionsPath =
  */
 export type Preparer = { userId: string; organizationId: string };
 
-/**
- * `periods` are the years whose fire-safety records a dated document reads (ADR 020): its own
- * year when one is generated or compared, none for every other document.
- */
-export async function loadDocumentFacts(
-  db: DataClient,
-  clientId: string,
-  preparer: Preparer,
-  periods: readonly number[] = []
-): Promise<StoredDocumentFacts> {
-  const [
-    client,
-    organization,
-    membership,
-    profile,
-    persons,
-    headcount,
-    conditionalDocuments,
-    positions,
-    ownInstructions,
-    fireOwnInstructions,
-    workplaces,
-    riskEvaluations,
-    fireSafety,
-    fireEquipment,
-    fireInstallations,
-    fireSubstances,
-    fireMaintenanceItems,
-    fireBuildings,
-    participants,
-    openInvitations,
-    testQuestions,
-    yearRecords,
-  ] = await Promise.all([
+function sharedReads(db: DataClient, clientId: string, preparer: Preparer) {
+  return Promise.all([
     db
       .from('clients')
       .select(
@@ -80,17 +58,6 @@ export async function loadDocumentFacts(
       )
       .eq('id', preparer.organizationId)
       .single(),
-    db
-      .from('organization_members')
-      .select('user_id')
-      .eq('organization_id', preparer.organizationId)
-      .eq('user_id', preparer.userId)
-      .maybeSingle(),
-    db
-      .from('profiles')
-      .select('full_name, professional_title')
-      .eq('user_id', preparer.userId)
-      .maybeSingle(),
     db
       .from('client_responsible_persons')
       .select(
@@ -134,8 +101,6 @@ export async function loadDocumentFacts(
       // The current version of each applied module: the newest number, one row.
       .order('number', { referencedTable: moduleVersionsPath, ascending: false })
       .limit(1, { referencedTable: moduleVersionsPath }),
-    loadOwnInstructions(db, clientId),
-    loadOwnInstructions(db, clientId, 'fire_own_instructions'),
     db
       .from('client_workplaces')
       .select(
@@ -145,7 +110,48 @@ export async function loadDocumentFacts(
       .is('archived_at', null)
       .order('name')
       .order('id'),
+    db
+      .from('client_participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .is('revoked_at', null),
+    db
+      .from('participant_invitations')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .is('accepted_at', null)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString()),
+  ]);
+}
+
+function occupationalSafetyReads(db: DataClient, clientId: string, preparer: Preparer) {
+  return Promise.all([
+    db
+      .from('organization_members')
+      .select('user_id')
+      .eq('organization_id', preparer.organizationId)
+      .eq('user_id', preparer.userId)
+      .maybeSingle(),
+    db
+      .from('profiles')
+      .select('full_name, professional_title')
+      .eq('user_id', preparer.userId)
+      .maybeSingle(),
+    loadOwnInstructions(db, clientId),
     loadRiskEvaluations(db, clientId),
+    loadTestQuestions(db, preparer.organizationId, ['test_hiring']),
+  ]);
+}
+
+function fireSafetyReads(
+  db: DataClient,
+  clientId: string,
+  preparer: Preparer,
+  periods: readonly number[]
+) {
+  return Promise.all([
+    loadOwnInstructions(db, clientId, 'fire_own_instructions'),
     db
       .from('client_fire_safety')
       .select(
@@ -189,67 +195,41 @@ export async function loadDocumentFacts(
         'workplace_id, year_built, built_area_m2, levels, classification, structure, heating_fuel, gas_use, electrical_maintainer, electrical_last_check_on, water_reserve_m3, notes'
       )
       .eq('client_id', clientId),
-    db
-      .from('client_participants')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId)
-      .is('revoked_at', null),
-    db
-      .from('participant_invitations')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId)
-      .is('accepted_at', null)
-      .is('revoked_at', null)
-      .gt('expires_at', new Date().toISOString()),
-    loadTestQuestions(db, preparer.organizationId),
+    loadTestQuestions(db, preparer.organizationId, ['fire_test_hiring', 'fire_test_annual']),
     loadFireYearRecords(db, clientId, periods),
   ]);
+}
+
+type SharedReads = Awaited<ReturnType<typeof sharedReads>>;
+
+function sharedFactsOf([
+  client,
+  organization,
+  persons,
+  headcount,
+  conditionalDocuments,
+  positions,
+  workplaces,
+  participants,
+  openInvitations,
+]: SharedReads) {
   if (client.error) throw fromDatabaseError(client.error, 'document facts: client');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   if (organization.error)
     throw fromDatabaseError(organization.error, 'document facts: organization');
-  if (membership.error) throw fromDatabaseError(membership.error, 'document facts: membership');
-  if (profile.error) throw fromDatabaseError(profile.error, 'document facts: profile');
   if (persons.error) throw fromDatabaseError(persons.error, 'document facts: responsible persons');
   if (headcount.error) throw fromDatabaseError(headcount.error, 'document facts: employee count');
   if (conditionalDocuments.error) {
     throw fromDatabaseError(conditionalDocuments.error, 'document facts: conditional documents');
   }
-  const generated = new Set(conditionalDocuments.data.map((document) => document.type_key));
   if (positions.error) throw fromDatabaseError(positions.error, 'document facts: job positions');
   if (workplaces.error) throw fromDatabaseError(workplaces.error, 'document facts: workplaces');
-  if (fireSafety.error) throw fromDatabaseError(fireSafety.error, 'document facts: fire safety');
-  if (fireEquipment.error) {
-    throw fromDatabaseError(fireEquipment.error, 'document facts: fire equipment');
-  }
-  if (fireInstallations.error) {
-    throw fromDatabaseError(fireInstallations.error, 'document facts: fire installations');
-  }
-  if (fireSubstances.error) {
-    throw fromDatabaseError(fireSubstances.error, 'document facts: fire substances');
-  }
-  if (fireMaintenanceItems.error) {
-    throw fromDatabaseError(fireMaintenanceItems.error, 'document facts: fire maintenance items');
-  }
-  if (fireBuildings.error) {
-    throw fromDatabaseError(fireBuildings.error, 'document facts: fire buildings');
-  }
   if (participants.error)
     throw fromDatabaseError(participants.error, 'document facts: participants');
   if (openInvitations.error) {
     throw fromDatabaseError(openInvitations.error, 'document facts: participant invitations');
   }
-  const currentEmployeesByWorkplace = await countCurrentEmployeesByWorkplace(
-    db,
-    clientId,
-    workplaces.data.filter(
-      (workplace) => workplace.kind === 'fixed_space' && workplace.office_has_activity
-    )
-  );
-
-  return {
+  const shared = {
     // Every plan carries the line for now; the switch arrives with billing (docs/document-branding.md).
     branding: true,
     clientArchived: client.data.archived_at !== null,
@@ -265,12 +245,6 @@ export async function loadDocumentFacts(
       riskEvaluatorCertificate: organization.data.risk_evaluator_certificate,
       phone: organization.data.phone,
     },
-    specialist: membership.data
-      ? {
-          fullName: profile.data?.full_name ?? null,
-          professionalTitle: profile.data?.professional_title ?? null,
-        }
-      : null,
     client: {
       legalName: client.data.legal_name,
       representativeName: client.data.legal_representative_name,
@@ -311,118 +285,6 @@ export async function loadDocumentFacts(
       fireRiskEquipment: workplace.fire_risk_equipment,
       specificMeasures: workplace.specific_measures,
     })),
-    fireSafety: {
-      card: fireSafety.data && {
-        periodicTrainingHours: fireSafety.data.periodic_training_hours,
-        administrativeTrainingIntervalMonths:
-          fireSafety.data.administrative_training_interval_months,
-        workerTrainingIntervalMonths: fireSafety.data.worker_training_interval_months,
-        trainingFirstMonth: fireSafety.data.training_first_month,
-        trainingDayFrom: fireSafety.data.training_day_from,
-        trainingDayTo: fireSafety.data.training_day_to,
-        smokingPolicy: fireSafety.data.smoking_policy,
-        smokingPlace: fireSafety.data.smoking_place,
-        wasteKinds: fireSafety.data.waste_kinds,
-        wasteContractor: fireSafety.data.waste_contractor,
-        wasteCollectors: fireSafety.data.waste_collectors,
-        hasThirdParties: fireSafety.data.has_third_parties,
-      },
-      equipment: fireEquipment.data.map((unit) => ({
-        workplaceId: unit.workplace_id,
-        kind: unit.kind,
-        agent: unit.agent,
-        capacity: unit.capacity,
-        wheeled: unit.wheeled,
-        label: unit.label,
-        location: unit.location,
-        manufacturedYear: unit.manufactured_year,
-        lastServiceOn: unit.last_service_on,
-        nextServiceOn: unit.next_service_on,
-        maintainer: unit.maintainer,
-      })),
-      installations: fireInstallations.data.map((installation) => ({
-        workplaceId: installation.workplace_id,
-        kind: installation.kind,
-        description: installation.description,
-        maintainer: installation.maintainer,
-        lastCheckOn: installation.last_check_on,
-        nextCheckOn: installation.next_check_on,
-      })),
-      maintenanceItems: fireMaintenanceItems.data.map((item) => ({
-        workplaceId: item.workplace_id,
-        subject: item.subject,
-        intervalLabel: item.interval_label,
-        checkedBy: item.checked_by,
-      })),
-      buildings: fireBuildings.data.map((building) => ({
-        workplaceId: building.workplace_id,
-        yearBuilt: building.year_built,
-        builtAreaM2: building.built_area_m2,
-        levels: building.levels,
-        classification: building.classification,
-        structure: building.structure,
-        heatingFuel: building.heating_fuel,
-        gasUse: building.gas_use,
-        electricalMaintainer: building.electrical_maintainer,
-        electricalLastCheckOn: building.electrical_last_check_on,
-        waterReserveM3: building.water_reserve_m3,
-        notes: building.notes,
-      })),
-      generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
-        generated.has(typeKey)
-      ),
-      documents: conditionalDocuments.data
-        .filter((document) => document.type_key.startsWith('fire_'))
-        .map((document) => {
-          const current = (status: 'draft' | 'issued') => {
-            const revision = document.document_revisions.find((each) => each.status === status);
-            return revision
-              ? {
-                  revision: revision.revision,
-                  issueDate: revision.document_generations?.issue_date ?? null,
-                }
-              : null;
-          };
-          return {
-            typeKey: document.type_key,
-            title: document.title,
-            decisionNumber: document.decision_number,
-            period: document.period,
-            draft: current('draft'),
-            issued: current('issued'),
-            issuedRevisions: document.document_revisions.flatMap((revision) =>
-              revision.status !== 'draft' && revision.issued_at !== null
-                ? [
-                    {
-                      revision: revision.revision,
-                      issueDate: revision.document_generations?.issue_date ?? null,
-                      issuedOn: romanianDay(revision.issued_at),
-                    },
-                  ]
-                : []
-            ),
-          };
-        }),
-      yearRecords,
-      substances: {
-        state: fireSafety.data?.substances_state ?? 'undecided',
-        entries: fireSubstances.data.map((substance) => ({
-          id: substance.id,
-          name: substance.name,
-          classification: substance.classification,
-          quantity: substance.quantity,
-          physicalChemicalProperties: substance.physical_chemical_properties,
-          identificationCodes: substance.identification_codes,
-          healthEnvironmentRisks: substance.health_environment_risks,
-          protectionMeans: substance.protection_means,
-          interventionMeasures: substance.intervention_measures,
-          extinguishingAgents: substance.extinguishing_agents,
-          storagePlace: substance.storage_place,
-          handling: substance.handling,
-        })),
-      },
-    },
-    testQuestions,
     responsiblePersons: persons.data.map((person) => ({
       employeeId: person.employee_id,
       fullName: person.full_name,
@@ -470,19 +332,248 @@ export async function loadDocumentFacts(
       })),
     })),
     currentEmployeeCount: headcount.count ?? 0,
-    currentEmployeesByWorkplace,
     hasParticipants: (participants.count ?? 0) + (openInvitations.count ?? 0) > 0,
+  };
+
+  return {
+    shared,
+    generated: new Set(conditionalDocuments.data.map((document) => document.type_key)),
+    conditionalDocuments: conditionalDocuments.data,
+    workplaces: workplaces.data,
+  };
+}
+
+function occupationalSafetyFactsOf(
+  { shared, generated }: ReturnType<typeof sharedFactsOf>,
+  [membership, profile, ownInstructions, riskEvaluations, testQuestions]: Awaited<
+    ReturnType<typeof occupationalSafetyReads>
+  >
+): SsmStoredFacts {
+  if (membership.error) throw fromDatabaseError(membership.error, 'document facts: membership');
+  if (profile.error) throw fromDatabaseError(profile.error, 'document facts: profile');
+  return {
+    ...shared,
+    set: 'occupational_safety',
+    specialist: membership.data
+      ? {
+          fullName: profile.data?.full_name ?? null,
+          professionalTitle: profile.data?.professional_title ?? null,
+        }
+      : null,
+    testQuestions,
     workersRepresentativeDecisionGenerated: generated.has('decision_workers_representative'),
     ownInstructions,
-    fireOwnInstructions,
     riskEvaluations,
   };
 }
 
-const bySortOrder = (
-  a: { sort_order: number; id: string },
-  b: { sort_order: number; id: string }
-) => a.sort_order - b.sort_order || a.id.localeCompare(b.id);
+async function fireSafetyFactsOf(
+  db: DataClient,
+  clientId: string,
+  { shared, generated, conditionalDocuments, workplaces }: ReturnType<typeof sharedFactsOf>,
+  [
+    fireOwnInstructions,
+    fireCard,
+    fireEquipment,
+    fireInstallations,
+    fireSubstances,
+    fireMaintenanceItems,
+    fireBuildings,
+    testQuestions,
+    yearRecords,
+  ]: Awaited<ReturnType<typeof fireSafetyReads>>
+): Promise<FireStoredFacts> {
+  if (fireCard.error) throw fromDatabaseError(fireCard.error, 'document facts: fire safety');
+  if (fireEquipment.error) {
+    throw fromDatabaseError(fireEquipment.error, 'document facts: fire equipment');
+  }
+  if (fireInstallations.error) {
+    throw fromDatabaseError(fireInstallations.error, 'document facts: fire installations');
+  }
+  if (fireSubstances.error) {
+    throw fromDatabaseError(fireSubstances.error, 'document facts: fire substances');
+  }
+  if (fireMaintenanceItems.error) {
+    throw fromDatabaseError(fireMaintenanceItems.error, 'document facts: fire maintenance items');
+  }
+  if (fireBuildings.error) {
+    throw fromDatabaseError(fireBuildings.error, 'document facts: fire buildings');
+  }
+  const card = fireCard.data;
+  const currentEmployeesByWorkplace = await countCurrentEmployeesByWorkplace(
+    db,
+    clientId,
+    workplaces.filter(
+      (workplace) => workplace.kind === 'fixed_space' && workplace.office_has_activity
+    )
+  );
+  return {
+    ...shared,
+    set: 'fire_safety',
+    fireSafety: {
+      card: card && {
+        periodicTrainingHours: card.periodic_training_hours,
+        administrativeTrainingIntervalMonths: card.administrative_training_interval_months,
+        workerTrainingIntervalMonths: card.worker_training_interval_months,
+        trainingFirstMonth: card.training_first_month,
+        trainingDayFrom: card.training_day_from,
+        trainingDayTo: card.training_day_to,
+        smokingPolicy: card.smoking_policy,
+        smokingPlace: card.smoking_place,
+        wasteKinds: card.waste_kinds,
+        wasteContractor: card.waste_contractor,
+        wasteCollectors: card.waste_collectors,
+        hasThirdParties: card.has_third_parties,
+      },
+      equipment: fireEquipment.data.map((unit) => ({
+        workplaceId: unit.workplace_id,
+        kind: unit.kind,
+        agent: unit.agent,
+        capacity: unit.capacity,
+        wheeled: unit.wheeled,
+        label: unit.label,
+        location: unit.location,
+        manufacturedYear: unit.manufactured_year,
+        lastServiceOn: unit.last_service_on,
+        nextServiceOn: unit.next_service_on,
+        maintainer: unit.maintainer,
+      })),
+      installations: fireInstallations.data.map((installation) => ({
+        workplaceId: installation.workplace_id,
+        kind: installation.kind,
+        description: installation.description,
+        maintainer: installation.maintainer,
+        lastCheckOn: installation.last_check_on,
+        nextCheckOn: installation.next_check_on,
+      })),
+      maintenanceItems: fireMaintenanceItems.data.map((item) => ({
+        workplaceId: item.workplace_id,
+        subject: item.subject,
+        intervalLabel: item.interval_label,
+        checkedBy: item.checked_by,
+      })),
+      buildings: fireBuildings.data.map((building) => ({
+        workplaceId: building.workplace_id,
+        yearBuilt: building.year_built,
+        builtAreaM2: building.built_area_m2,
+        levels: building.levels,
+        classification: building.classification,
+        structure: building.structure,
+        heatingFuel: building.heating_fuel,
+        gasUse: building.gas_use,
+        electricalMaintainer: building.electrical_maintainer,
+        electricalLastCheckOn: building.electrical_last_check_on,
+        waterReserveM3: building.water_reserve_m3,
+        notes: building.notes,
+      })),
+      generatedFromTenEmployees: fireSafetyTypeKeysFromTenEmployees.filter((typeKey) =>
+        generated.has(typeKey)
+      ),
+      documents: conditionalDocuments
+        .filter((document) => document.type_key.startsWith('fire_'))
+        .map((document) => {
+          const current = (status: 'draft' | 'issued') => {
+            const revision = document.document_revisions.find((each) => each.status === status);
+            return revision
+              ? {
+                  revision: revision.revision,
+                  issueDate: revision.document_generations?.issue_date ?? null,
+                }
+              : null;
+          };
+          return {
+            typeKey: document.type_key,
+            title: document.title,
+            decisionNumber: document.decision_number,
+            period: document.period,
+            draft: current('draft'),
+            issued: current('issued'),
+            issuedRevisions: document.document_revisions.flatMap((revision) =>
+              revision.status !== 'draft' && revision.issued_at !== null
+                ? [
+                    {
+                      revision: revision.revision,
+                      issueDate: revision.document_generations?.issue_date ?? null,
+                      issuedOn: romanianDay(revision.issued_at),
+                    },
+                  ]
+                : []
+            ),
+          };
+        }),
+      yearRecords,
+      substances: {
+        state: card?.substances_state ?? 'undecided',
+        entries: fireSubstances.data.map((substance) => ({
+          id: substance.id,
+          name: substance.name,
+          classification: substance.classification,
+          quantity: substance.quantity,
+          physicalChemicalProperties: substance.physical_chemical_properties,
+          identificationCodes: substance.identification_codes,
+          healthEnvironmentRisks: substance.health_environment_risks,
+          protectionMeans: substance.protection_means,
+          interventionMeasures: substance.intervention_measures,
+          extinguishingAgents: substance.extinguishing_agents,
+          storagePlace: substance.storage_place,
+          handling: substance.handling,
+        })),
+      },
+    },
+    testQuestions,
+    currentEmployeesByWorkplace,
+    fireOwnInstructions,
+  };
+}
+
+/**
+ * `periods` are the years whose fire-safety records a dated document reads (ADR 020): its own
+ * year when one is generated or compared, none for every other document.
+ */
+export async function loadDocumentFacts(
+  db: DataClient,
+  clientId: string,
+  preparer: Preparer,
+  set: 'occupational_safety',
+  periods?: readonly number[]
+): Promise<SsmStoredFacts>;
+export async function loadDocumentFacts(
+  db: DataClient,
+  clientId: string,
+  preparer: Preparer,
+  set: 'fire_safety',
+  periods?: readonly number[]
+): Promise<FireStoredFacts>;
+export async function loadDocumentFacts(
+  db: DataClient,
+  clientId: string,
+  preparer: Preparer,
+  set: DocumentSet,
+  periods?: readonly number[]
+): Promise<StoredDocumentFacts>;
+export async function loadDocumentFacts(
+  db: DataClient,
+  clientId: string,
+  preparer: Preparer,
+  set: DocumentSet,
+  periods: readonly number[] = []
+): Promise<StoredDocumentFacts> {
+  const own =
+    set === 'fire_safety'
+      ? fireSafetyReads(db, clientId, preparer, periods).then((reads) => ({
+          set: 'fire_safety' as const,
+          reads,
+        }))
+      : occupationalSafetyReads(db, clientId, preparer).then((reads) => ({
+          set: 'occupational_safety' as const,
+          reads,
+        }));
+  const [shared, ownReads] = await Promise.all([sharedReads(db, clientId, preparer), own]);
+  const common = sharedFactsOf(shared);
+  return ownReads.set === 'fire_safety'
+    ? fireSafetyFactsOf(db, clientId, common, ownReads.reads)
+    : occupationalSafetyFactsOf(common, ownReads.reads);
+}
 
 export async function loadRiskEvaluations(
   db: DataClient,

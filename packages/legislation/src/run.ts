@@ -1,10 +1,10 @@
 import {
   type ActOutcome,
+  type CheckedAct,
   checkLegislation,
   type CheckOptions,
   type Failure,
   failureOf,
-  type LegalAct,
   summarize,
   tally,
 } from './check';
@@ -42,7 +42,7 @@ export async function runInProgress(db: LegislationClient, now = Date.now()) {
 
 export async function runLegislationCheck(
   db: LegislationClient,
-  acts: LegalAct[],
+  acts: CheckedAct[],
   options: RunOptions = {}
 ): Promise<CheckRun> {
   const started = await db.from('legal_check_runs').insert({}).select('id').single();

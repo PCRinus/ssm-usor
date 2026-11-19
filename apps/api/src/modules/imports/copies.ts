@@ -3,6 +3,7 @@ import type { ExistingClient, ProviderIdentity } from '@ssm-usor/import';
 
 import type { ImportMessage } from '../../lib/env';
 import { alertImport } from './import-alerts';
+import { modelUsageOf } from './import-queries';
 import { describe, type PipelineDeps, sendAll } from './pipeline';
 import type { CopyToWrite, ImportRecord, PartRecordRow } from './records';
 
@@ -22,18 +23,6 @@ const folderOf = (record: ImportRecord) => `${record.row.organization_id}/${reco
 // its own copy, which may be written days after the import's.
 const partOfObject = (name: string) =>
   importLibraryParts.find((part) => name.startsWith(`${part}.`)) ?? null;
-
-const usageOf = (row: {
-  input_tokens: number | null;
-  cached_input_tokens: number | null;
-  output_tokens: number | null;
-  cost_usd: number | string | null;
-}) => ({
-  inputTokens: Number(row.input_tokens ?? 0),
-  cachedInputTokens: Number(row.cached_input_tokens ?? 0),
-  outputTokens: Number(row.output_tokens ?? 0),
-  costUsd: Number(row.cost_usd ?? 0),
-});
 
 export interface CopyContext {
   createdBy: string | null;
@@ -111,7 +100,7 @@ export function importCopyRecord(record: ImportRecord, objects: string[], contex
     readingVersion: row.reading_version,
     readingFlags: row.reading_flags,
     usage: {
-      ...usageOf(row),
+      ...modelUsageOf(row),
       readCharacters: row.read_characters,
       bySteps: row.usage_by_step,
     },
@@ -145,7 +134,7 @@ export function partCopyRecord(
     quality: part.quality,
     readingVersion: part.reading_version,
     readingFlags: part.reading_flags,
-    usage: usageOf(part),
+    usage: modelUsageOf(part),
     objects: objects.map((name) => `files/${name}`),
   };
 }

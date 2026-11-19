@@ -515,10 +515,10 @@ jobs:
           ref: ${{ inputs.sha }}
       - uses: ./.github/actions/setup
 
-      # The script validates each manifest entry with the contracts package, which resolves to
-      # its built output.
-      - name: Build the contracts package
-        run: pnpm --filter @ssm-usor/contracts build
+      # The script reads the manifests through the document engine and validates each entry with
+      # the contracts package; both resolve to their built output.
+      - name: Build the contracts and document engine packages
+        run: pnpm --filter @ssm-usor/contracts --filter @ssm-usor/document-engine build
 
       # A file already in Storage is not sent again, and a hash already registered stays the
       # version it was, so this does nothing when no template changed.

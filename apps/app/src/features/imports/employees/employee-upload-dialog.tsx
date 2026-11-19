@@ -1,4 +1,4 @@
-import { importLimits } from '@ssm-usor/contracts';
+import { importLimits, importStartCredits } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   Dialog,
@@ -39,9 +39,9 @@ import {
   UploadDropZone,
   UploadProgress,
 } from '../upload-parts';
-import { removeFiles, type SelectedFile } from '../upload-selection';
+import { isPhoto, removeFiles, type SelectedFile, type Selection } from '../upload-selection';
 import { useUploadForm } from '../use-upload-form';
-import { type FoundBatch, foundIn, foundOn, useFoundSheets } from './found-sheets';
+import { type FoundBatch, foundIn, foundOn, foundSheetPages, useFoundSheets } from './found-sheets';
 import { FoundSheetView, FoundStrip, FoundThumb } from './found-strip';
 
 const limits = importLimits.employees;
@@ -118,22 +118,33 @@ function UploadForm({
   // `null` until the list arrives, when a dialog opened with them takes every batch.
   const addedIds = added ?? batches.flatMap((batch) => batch.sheets.map((sheet) => sheet.id));
   const addedSheets = batches.flatMap((batch) =>
-    batch.sheets.filter((sheet) => addedIds.includes(sheet.id))
+    batch.sheets
+      .filter((sheet) => addedIds.includes(sheet.id))
+      .map((sheet) => ({ ...sheet, pages: foundSheetPages(sheet) }))
   );
+  const isPdf = (file: { mimeType: string }) => file.mimeType === 'application/pdf';
+  const addedPdfs = addedSheets.filter(isPdf);
+  const readOf = (chosen: Selection) => ({
+    photos: chosen.files.filter(isPhoto).length + addedSheets.length - addedPdfs.length,
+    pdfPages: [...chosen.files.filter(isPdf), ...addedPdfs].reduce(
+      (total, file) => total + file.pages,
+      0
+    ),
+  });
   const form = useUploadForm({
     kind: 'employees',
     clientId: client.id,
     onStarted,
     onClose,
     leaveWhileBusy: 'Fotografiile încă se încarcă. Dacă pleci acum, renunți la import. Pleci?',
-    creditsNeeded: (_selection, totals) => totals.pages,
+    creditsNeeded: (chosen) => importStartCredits('employees', readOf(chosen)),
     addedSheets,
   });
   const { selection, totals, over, opening, busy, choosing, refusal, balance, isOwner, leave } =
     form;
   const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
   const noPosts = positions.isSuccess && (positions.data?.items ?? []).length === 0;
-  const pdfs = selection.files.filter((file) => file.mimeType === 'application/pdf').length;
+  const pdfs = selection.files.filter(isPdf).length + addedPdfs.length;
   const nearLimits =
     totals.pages >= metersFrom * limits.scannedPages ||
     totals.bytes >= metersFrom * limits.totalBytes;
@@ -327,7 +338,7 @@ function UploadForm({
               >
                 <CreditsLine
                   className={nearLimits ? 'sm:basis-full' : 'sm:flex-1'}
-                  uses={usesSentence('employees', { photos: 0, pages: totals.pages, pdfs })}
+                  uses={usesSentence('employees', { ...readOf(selection), pdfs })}
                   balance={balance}
                   short={refusal !== null}
                 />

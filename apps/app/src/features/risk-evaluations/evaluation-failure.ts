@@ -1,13 +1,10 @@
 import type { RiskEvaluationErrorReason } from '@ssm-usor/contracts';
 
-import type { ApiErrorResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { commonFailure } from '@/lib/api-errors';
 
 export const failureReason = (cause: unknown) =>
-  cause instanceof ApiHttpError
-    ? ((cause.body as Partial<ApiErrorResponse> | null)?.reason as
-        RiskEvaluationErrorReason | undefined)
-    : undefined;
+  apiErrorReason(cause) as RiskEvaluationErrorReason | undefined;
 
 export function evaluationFailure(cause: unknown, fallback: string) {
   if (!(cause instanceof ApiHttpError)) return fallback;
@@ -25,8 +22,5 @@ export function evaluationFailure(cause: unknown, fallback: string) {
     return 'Clientul este arhivat; fișele lui de evaluare a riscurilor nu se mai schimbă.';
   }
   if (cause.status === 404) return 'Fișa sau factorul nu mai există la acest client.';
-  if (cause.status === 401) {
-    return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-  }
-  return fallback;
+  return commonFailure(cause) ?? fallback;
 }

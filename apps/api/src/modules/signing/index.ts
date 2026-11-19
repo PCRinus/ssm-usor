@@ -5,19 +5,23 @@ import {
   getPortalSigningAgreement,
   getPortalSigningAgreementLink,
   getPortalSigningAgreementState,
-  getRecordSignatures,
   getSigningAgreement,
   getSigningAgreementLink,
   getSigningAgreementState,
+  listPortalSigningAgreements,
+  putSigningAgreementState,
+} from './agreement';
+import {
+  getRecordSignatures,
+  listSignerCandidates,
+  markPaperSignature,
+  voidRecordSignatures,
+} from './handlers';
+import {
   listClientSignatureRequests,
   listPortalClientSignatureRequests,
   listPortalSignatureRequests,
-  listPortalSigningAgreements,
-  listSignerCandidates,
-  markPaperSignature,
-  putSigningAgreementState,
-  voidRecordSignatures,
-} from './handlers';
+} from './request-lists';
 import {
   createMySigningSessionRoute,
   createPortalSigningSessionRoute,

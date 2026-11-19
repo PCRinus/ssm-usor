@@ -14,13 +14,19 @@ import { buildTestSheetData, testSheetTypeKey } from '@ssm-usor/document-engine'
 import type { Context } from 'hono';
 
 import { type AdminClient, createAdminClient, createLastingAdminClient } from '../../lib/admin-db';
+import { fileNameWords } from '../../lib/content-disposition';
 import { type DataClient, fromDatabaseError } from '../../lib/db';
+import { sha256 } from '../../lib/docx';
 import type { ApiEnv } from '../../lib/env';
-import { ApiError } from '../../lib/errors';
+import { ApiError, failureLabel } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
-import { builtInTemplates, merge } from '../documents/documents';
-import { signedOn } from '../signed-sheets/form';
-import { type SignedSheetContext, signedSheetContext } from '../signed-sheets/signed-sheets';
+import {
+  type PdfSigningServices,
+  pdfSigningServices,
+  rewriteVersioned,
+  signField,
+} from '../../lib/pdf-signing';
+import { mergeBuiltIn } from '../../lib/templates';
 import type { MarkedQuestion } from '../tests/rows';
 
 export const testSheetColumns =
@@ -60,12 +66,12 @@ const resultColumns =
 /** Everything with the secret key: the callers have read the result as the person they serve. */
 export type TestSheetDeps = {
   admin: AdminClient;
-  sheets: Pick<SignedSheetContext, 'files' | 'pdf' | 'signer' | 'now'>;
+  sheets: PdfSigningServices;
 };
 
 export const testSheetDeps = (c: Context<ApiEnv>): TestSheetDeps => ({
   admin: createLastingAdminClient(c),
-  sheets: signedSheetContext(c),
+  sheets: pdfSigningServices(c),
 });
 
 const signerUnavailable = () =>
@@ -107,13 +113,6 @@ function need<T>(service: T | null, unavailable: () => ApiError): T {
 
 const buffer = (bytes: Uint8Array) => new Uint8Array(bytes).buffer;
 
-async function sha256(bytes: Uint8Array) {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer(bytes)));
-  return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-// Every version is a file of its own, as a signed sheet's: the evidence's digest before a
-// signature names a file that still exists.
 const storagePathOf = (
   sheet: Pick<TestSheetRow, 'organization_id' | 'client_id' | 'employee_id' | 'test_result_id'>,
   version: number
@@ -195,20 +194,9 @@ async function drawTestSheet(deps: TestSheetDeps, result: ResultRow) {
         ? { name: result.examiner_name, jobTitle: result.examiner_job_title }
         : null,
   });
-  const [template] = await builtInTemplates(admin, [testSheetTypeKey]);
-  if (!template) {
-    console.error(
-      `The template ${testSheetTypeKey} is not registered: run pnpm templates:register.`
-    );
-    throw new ApiError(
-      'service_unavailable',
-      'The test sheet template is not available yet.',
-      undefined,
-      'template_missing'
-    );
-  }
-  return merge(await deps.sheets.files.readTemplate(template.storagePath), data, testSheetTypeKey)
-    .bytes;
+  return (
+    await mergeBuiltIn(admin, deps.sheets.files.readTemplate, testSheetTypeKey, data, 'test sheet')
+  ).bytes;
 }
 
 /** Null for a paper result: its test is signed on the printed test, and has no test sheet. */
@@ -260,8 +248,6 @@ export async function ensureTestSheet(
   return data as TestSheetRow;
 }
 
-// Serialized by the version, not a Postgres lock, for the signed sheet's reason: a write spans
-// calls to the signer, and PostgREST holds no transaction across requests.
 async function rewriteTestSheet(
   deps: TestSheetDeps,
   sheetId: string,
@@ -271,45 +257,48 @@ async function rewriteTestSheet(
   ) => Promise<{ bytes: Uint8Array; certify?: string }>
 ): Promise<{ before: TestSheetRow; after: TestSheetRow }> {
   const { admin, sheets } = deps;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const read = await admin
-      .from('test_sheets')
-      .select(testSheetColumns)
-      .eq('id', sheetId)
-      .maybeSingle();
-    if (read.error) throw fromDatabaseError(read.error, 'test sheet');
-    const sheet = read.data as TestSheetRow | null;
-    if (!sheet) throw new ApiError('not_found', 'The test sheet does not exist.');
-    const bytes = await sheets.files.readDocument(sheet.storage_path);
-    if ((await sha256(bytes)) !== sheet.digest) {
+  return rewriteVersioned(sheets.files, {
+    async read() {
+      const read = await admin
+        .from('test_sheets')
+        .select(testSheetColumns)
+        .eq('id', sheetId)
+        .maybeSingle();
+      if (read.error) throw fromDatabaseError(read.error, 'test sheet');
+      const sheet = read.data as TestSheetRow | null;
+      if (!sheet) throw new ApiError('not_found', 'The test sheet does not exist.');
+      return sheet;
+    },
+    pathOf: (sheet) => sheet.storage_path,
+    nextPathOf: (sheet) => storagePathOf(sheet, sheet.version + 1),
+    unverified(sheet) {
       console.error(
         `Test sheet ${sheet.id} does not match its digest at version ${sheet.version}.`
       );
-      throw new ApiError('internal_error', 'The stored test sheet could not be verified.');
-    }
-    const next = await rewrite(sheet, bytes);
-    const path = storagePathOf(sheet, sheet.version + 1);
-    await sheets.files.writeDocument(path, next.bytes, { replace: false });
-    const moved = await admin
-      .from('test_sheets')
-      .update({
-        storage_path: path,
-        digest: await sha256(next.bytes),
-        version: sheet.version + 1,
-        ...(next.certify && !sheet.certified_at ? { certified_at: next.certify } : {}),
-      })
-      .eq('id', sheet.id)
-      .eq('version', sheet.version)
-      .select(testSheetColumns)
-      .maybeSingle();
-    if (moved.error) {
-      await sheets.files.removeDocument(path).catch(() => undefined);
-      throw fromDatabaseError(moved.error, 'advance test sheet');
-    }
-    if (moved.data) return { before: sheet, after: moved.data as TestSheetRow };
-    await sheets.files.removeDocument(path).catch(() => undefined);
-  }
-  throw sheetBusy();
+      return new ApiError('internal_error', 'The stored test sheet could not be verified.');
+    },
+    rewrite,
+    async advance(sheet, next, { path, digest }) {
+      const moved = await admin
+        .from('test_sheets')
+        .update({
+          storage_path: path,
+          digest,
+          version: sheet.version + 1,
+          ...(next.certify && !sheet.certified_at ? { certified_at: next.certify } : {}),
+        })
+        .eq('id', sheet.id)
+        .eq('version', sheet.version)
+        .select(testSheetColumns)
+        .maybeSingle();
+      if (moved.error) {
+        await sheets.files.removeDocument(path).catch(() => undefined);
+        throw fromDatabaseError(moved.error, 'advance test sheet');
+      }
+      return moved.data as TestSheetRow | null;
+    },
+    busy: sheetBusy,
+  });
 }
 
 // Never after the examiner signed: the database refuses the change, and the signature locks the
@@ -358,23 +347,24 @@ export async function applyTestSheetSignature(
       bytes = new Uint8Array(await service.fillFields(buffer(bytes), examinerValues(result)));
     }
     signedAt = deps.sheets.now();
-    const begun = await service.beginSignature(buffer(bytes), {
-      field: testSheetFieldNames.signatures[slot],
-      certificatePem: signer.certificatePem,
-      chainPem: signer.chainPem,
-      reason: `Fișa de test: ${slotReason[slot]}`,
-      signedAt: signedAt.toISOString(),
-      certify: sheet.certified_at === null,
-      lockFields:
-        slot === 'examiner'
-          ? [testSheetFieldNames.examinerName, testSheetFieldNames.examinerJobTitle]
-          : [],
-      appearanceLines: [signer.name, 'semnat electronic', signedOn(signedAt)],
-    });
-    const signature = await sign(begun.toSign, begun.prepared);
     return {
-      bytes: new Uint8Array(
-        await service.finishSignature(begun.prepared, begun.sessionToken, signature)
+      bytes: await signField(
+        service,
+        bytes,
+        {
+          field: testSheetFieldNames.signatures[slot],
+          certificatePem: signer.certificatePem,
+          chainPem: signer.chainPem,
+          reason: `Fișa de test: ${slotReason[slot]}`,
+          signedAt,
+          certify: sheet.certified_at === null,
+          lockFields:
+            slot === 'examiner'
+              ? [testSheetFieldNames.examinerName, testSheetFieldNames.examinerJobTitle]
+              : [],
+          name: signer.name,
+        },
+        sign
       ),
       certify: signedAt.toISOString(),
     };
@@ -525,9 +515,7 @@ export async function afterTestPass(c: Context<ApiEnv>, resultId: string) {
     const sheet = await ensureTestSheet(deps, resultId);
     if (sheet) await issueTestSheetRequests(deps, sheet, null);
   } catch (error) {
-    console.error(
-      `Test sheet of ${resultId} not drawn up: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
-    );
+    console.error(`Test sheet of ${resultId} not drawn up: ${failureLabel(error)}`);
   }
 }
 
@@ -592,14 +580,6 @@ export async function testSheetSummaries(
 export const summaryOf = (summaries: Map<string, TestSheetSummary>, resultId: string) =>
   summaries.get(resultId) ?? emptySummary(false);
 
-const fileWords = (text: string) =>
-  text
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .map((word) => word[0]!.toUpperCase() + word.slice(1).toLowerCase());
-
 export function testSheetFileName(
   employee: { last_name: string; first_name: string },
   result: { domain: 'ssm' | 'su'; test: 'hiring' | 'annual'; taken_on: string }
@@ -608,7 +588,7 @@ export function testSheetFileName(
     [
       'Fisa-de-test',
       knowledgeTestCodeOf(result.domain, result.test),
-      ...fileWords(`${employee.last_name} ${employee.first_name}`),
+      ...fileNameWords(`${employee.last_name} ${employee.first_name}`),
       result.taken_on,
     ].join('-') + '.pdf'
   );
@@ -618,9 +598,7 @@ async function issueQuietly(deps: TestSheetDeps, sheet: TestSheetRow, resultId: 
   try {
     await issueTestSheetRequests(deps, sheet, null);
   } catch (error) {
-    console.error(
-      `Test sheet requests of ${resultId} not issued: ${error instanceof ApiError ? (error.reason ?? error.code) : 'unknown'}`
-    );
+    console.error(`Test sheet requests of ${resultId} not issued: ${failureLabel(error)}`);
   }
 }
 

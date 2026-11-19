@@ -6,7 +6,6 @@ import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getGetClientQueryKey,
   getGetEmployeeQueryKey,
   getGetTrainingSheetsQueryKey,
@@ -17,7 +16,7 @@ import {
   useListWorkplaces,
   useUpdateEmployee,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { keepOpener } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
@@ -28,7 +27,7 @@ import {
   isEmployeesOverStepError,
   refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
-import { type IssueTarget, setApiIssues } from '@/lib/api-issues';
+import { commonFailure, type IssueTarget, setApiIssues } from '@/lib/api-errors';
 
 import {
   birthDateFromCnp,
@@ -162,7 +161,7 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
         return;
       }
       if (cause instanceof ApiHttpError) {
-        const body = cause.body as Partial<ApiErrorResponse> | undefined;
+        const body = apiErrorBody(cause);
         if (cause.status === 409) {
           const message = body?.message ?? '';
           if (body?.reason === clientConflictReasons.clientArchived) {
@@ -201,10 +200,9 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
           });
           return;
         }
-        if (cause.status === 401) {
-          form.setError('root.server', {
-            message: 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.',
-          });
+        const common = commonFailure(cause);
+        if (common) {
+          form.setError('root.server', { message: common });
           return;
         }
         if (cause.status === 403) {

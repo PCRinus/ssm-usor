@@ -13,18 +13,17 @@ import {
   finishPortalTestAttempt,
   type TestAttemptOutcome,
 } from '@/api/generated/api';
-import { isClientOutdatedError } from '@/api/http';
+import { apiErrorReason, isClientOutdatedError } from '@/api/http';
 import { useReloadContext } from '@/features/reload/reload-store';
 import { useApiRequest } from '@/lib/request';
 
 import type { Attempt } from './attempt';
-import { reasonOf } from './test-errors';
 
 const sameChoice = (a: number[], b: number[]) =>
   a.length === b.length && a.every((option) => b.includes(option));
 
 function failureOf(cause: unknown, finishing: boolean): MessageDescriptor {
-  if (reasonOf(cause) === testErrorReasons.attemptFinished) {
+  if (apiErrorReason(cause) === testErrorReasons.attemptFinished) {
     return msg`Testul acesta a fost deja trimis. Întoarce-te la Instruiri pentru rezultat.`;
   }
   return finishing

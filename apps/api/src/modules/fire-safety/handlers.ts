@@ -14,16 +14,17 @@ import {
   type FireMaintenanceItemRequest,
   type FireSubstance,
   type FireSubstanceRequest,
-  type FireSubstancesState,
   type UpdateClientFireSafetyRequest,
 } from '@ssm-usor/contracts';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 import type { Database } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { sentColumns } from '../../lib/partial-update';
-import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../document-data/handlers';
+import { requireClient } from '../clients/lookup';
+import { refuseWorkplaceOfAnotherClient, workplaceNotOfClient } from '../document-data/workplaces';
 import type {
   createFireEquipmentRoute,
   createFireInstallationRoute,
@@ -51,18 +52,31 @@ import type {
 
 type Tables = Database['public']['Tables'];
 
-const noSuchClient = () =>
-  new ApiError('not_found', 'This client does not exist in your organization.');
-
-async function findClient(db: DataClient, clientId: string) {
-  const { data, error } = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find client');
-  if (!data) throw noSuchClient();
-}
-
 function fireSafetyError(error: { code: string }, context: string) {
   if (error.code === '23503') return workplaceNotOfClient();
   return fromDatabaseError(error, context);
+}
+
+type Saved<T> = PromiseLike<{ data: T; error: PostgrestError | null }>;
+
+// Not an upsert: PostgREST's would also set the keys, which members may not update.
+async function saveByKey<T>(save: {
+  update: () => Saved<T>;
+  insert: () => Saved<T>;
+  refusal: (error: PostgrestError, step: 'update' | 'insert') => Error;
+}): Promise<NonNullable<T>> {
+  const updated = await save.update();
+  if (updated.error) throw save.refusal(updated.error, 'update');
+  if (updated.data) return updated.data;
+  const inserted = await save.insert();
+  if (inserted.error?.code === '23505') {
+    // Another first save got there in between.
+    const again = await save.update();
+    if (again.error) throw save.refusal(again.error, 'update');
+    if (again.data) return again.data;
+  }
+  if (inserted.error) throw save.refusal(inserted.error, 'insert');
+  return inserted.data!;
 }
 
 async function activeWorkplaceOrder(db: DataClient, clientId: string) {
@@ -170,7 +184,7 @@ export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, 
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('client_fire_safety')
     .select(fireSafetyColumns)
@@ -181,7 +195,6 @@ export const getClientFireSafety: RouteHandler<typeof getClientFireSafetyRoute, 
   return c.json({ fireSafety: saved ? toFireSafety(data) : noFireSafety, exists: saved }, 200);
 };
 
-// Not an upsert: PostgREST's would also set the keys, which members may not update.
 export const updateClientFireSafety: RouteHandler<
   typeof updateClientFireSafetyRoute,
   ApiEnv
@@ -189,35 +202,33 @@ export const updateClientFireSafety: RouteHandler<
   const { clientId } = c.req.valid('param');
   const fields = fireSafetyFields(c.req.valid('json'));
   const db = createDataClient(c);
-  await findClient(db, clientId);
-  const update = () =>
-    db
-      .from('client_fire_safety')
-      .update(fields)
-      .eq('client_id', clientId)
-      .select(fireSafetyColumns)
-      .maybeSingle();
-  const updated = await update();
-  if (updated.error) throw fromDatabaseError(updated.error, 'update client fire safety');
-  if (updated.data) return c.json({ fireSafety: toFireSafety(updated.data), exists: true }, 200);
-  const inserted = await db
-    .from('client_fire_safety')
-    .insert({
-      ...fields,
-      client_id: clientId,
-      organization_id: c.get('membership').organizationId,
-      created_by: c.get('user').id,
-    })
-    .select(fireSafetyColumns)
-    .single();
-  if (inserted.error?.code === '23505') {
-    // Another first save got there in between.
-    const again = await update();
-    if (again.error) throw fromDatabaseError(again.error, 'update client fire safety');
-    if (again.data) return c.json({ fireSafety: toFireSafety(again.data), exists: true }, 200);
-  }
-  if (inserted.error) throw fromDatabaseError(inserted.error, 'create client fire safety');
-  return c.json({ fireSafety: toFireSafety(inserted.data), exists: true }, 200);
+  await requireClient(db, clientId);
+  const saved = await saveByKey({
+    update: () =>
+      db
+        .from('client_fire_safety')
+        .update(fields)
+        .eq('client_id', clientId)
+        .select(fireSafetyColumns)
+        .maybeSingle(),
+    insert: () =>
+      db
+        .from('client_fire_safety')
+        .insert({
+          ...fields,
+          client_id: clientId,
+          organization_id: c.get('membership').organizationId,
+          created_by: c.get('user').id,
+        })
+        .select(fireSafetyColumns)
+        .single(),
+    refusal: (error, step) =>
+      fromDatabaseError(
+        error,
+        step === 'update' ? 'update client fire safety' : 'create client fire safety'
+      ),
+  });
+  return c.json({ fireSafety: toFireSafety(saved), exists: true }, 200);
 };
 
 const equipmentColumns =
@@ -286,7 +297,7 @@ const byText = (first: string | null, second: string | null) =>
 export const listFireEquipment: RouteHandler<typeof listFireEquipmentRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplaces = await activeWorkplaceOrder(db, clientId);
   const { data, error } = await db
     .from('fire_equipment')
@@ -314,7 +325,7 @@ export const createFireEquipment: RouteHandler<typeof createFireEquipmentRoute, 
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_equipment')
@@ -336,7 +347,7 @@ export const updateFireEquipment: RouteHandler<typeof updateFireEquipmentRoute, 
   const { clientId, equipmentId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_equipment')
@@ -413,7 +424,7 @@ export const listFireInstallations: RouteHandler<
 > = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplaces = await activeWorkplaceOrder(db, clientId);
   const { data, error } = await db
     .from('fire_installations')
@@ -440,7 +451,7 @@ export const createFireInstallation: RouteHandler<
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_installations')
@@ -463,7 +474,7 @@ export const updateFireInstallation: RouteHandler<
   const { clientId, installationId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_installations')
@@ -536,7 +547,7 @@ export const listFireMaintenanceItems: RouteHandler<
 > = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplaces = await activeWorkplaceOrder(db, clientId);
   const { data, error } = await db
     .from('fire_maintenance_items')
@@ -563,7 +574,7 @@ export const createFireMaintenanceItem: RouteHandler<
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const last = await db
     .from('fire_maintenance_items')
@@ -596,7 +607,7 @@ export const updateFireMaintenanceItem: RouteHandler<
   const { clientId, itemId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
   const { data, error } = await db
     .from('fire_maintenance_items')
@@ -683,7 +694,7 @@ const buildingFields = (body: FireBuildingRequest) => ({
 export const listFireBuildings: RouteHandler<typeof listFireBuildingsRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data: workplaces, error: workplacesError } = await db
     .from('client_workplaces')
     .select('id')
@@ -714,7 +725,7 @@ export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, Ap
   const { clientId, workplaceId } = c.req.valid('param');
   const fields = buildingFields(c.req.valid('json'));
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const workplace = await db
     .from('client_workplaces')
     .select('kind, office_has_activity')
@@ -732,36 +743,31 @@ export const updateFireBuilding: RouteHandler<typeof updateFireBuildingRoute, Ap
   if (!workplace.data.office_has_activity) {
     throw new ApiError('conflict', 'No activity takes place at this registered office.');
   }
-  const update = () =>
-    db
-      .from('fire_buildings')
-      .update(fields)
-      .eq('client_id', clientId)
-      .eq('workplace_id', workplaceId)
-      .select(buildingColumns)
-      .maybeSingle();
-  const updated = await update();
-  if (updated.error) throw fromDatabaseError(updated.error, 'update fire building');
-  if (updated.data) return c.json({ building: toBuilding(updated.data) }, 200);
-  const inserted = await db
-    .from('fire_buildings')
-    .insert({
-      ...fields,
-      client_id: clientId,
-      workplace_id: workplaceId,
-      organization_id: c.get('membership').organizationId,
-      created_by: c.get('user').id,
-    })
-    .select(buildingColumns)
-    .single();
-  if (inserted.error?.code === '23505') {
-    // Another first save got there in between.
-    const again = await update();
-    if (again.error) throw fromDatabaseError(again.error, 'update fire building');
-    if (again.data) return c.json({ building: toBuilding(again.data) }, 200);
-  }
-  if (inserted.error) throw fromDatabaseError(inserted.error, 'create fire building');
-  return c.json({ building: toBuilding(inserted.data) }, 200);
+  const saved = await saveByKey({
+    update: () =>
+      db
+        .from('fire_buildings')
+        .update(fields)
+        .eq('client_id', clientId)
+        .eq('workplace_id', workplaceId)
+        .select(buildingColumns)
+        .maybeSingle(),
+    insert: () =>
+      db
+        .from('fire_buildings')
+        .insert({
+          ...fields,
+          client_id: clientId,
+          workplace_id: workplaceId,
+          organization_id: c.get('membership').organizationId,
+          created_by: c.get('user').id,
+        })
+        .select(buildingColumns)
+        .single(),
+    refusal: (error, step) =>
+      fromDatabaseError(error, step === 'update' ? 'update fire building' : 'create fire building'),
+  });
+  return c.json({ building: toBuilding(saved) }, 200);
 };
 
 export const deleteFireBuilding: RouteHandler<typeof deleteFireBuildingRoute, ApiEnv> = async (
@@ -769,7 +775,7 @@ export const deleteFireBuilding: RouteHandler<typeof deleteFireBuildingRoute, Ap
 ) => {
   const { clientId, workplaceId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { error } = await db
     .from('fire_buildings')
     .delete()
@@ -851,7 +857,7 @@ export const listFireSubstances: RouteHandler<typeof listFireSubstancesRoute, Ap
 ) => {
   const { clientId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const [state, entries] = await Promise.all([
     substancesStateOf(db, clientId),
     db
@@ -874,44 +880,37 @@ export const updateFireSubstancesState: RouteHandler<
   const { clientId } = c.req.valid('param');
   const { state } = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
-  const refusal = (error: { code: string }) =>
-    error.code === 'SUB01'
-      ? new ApiError(
-          'conflict',
-          'The client has dangerous substances listed; delete them before saying it uses none.',
-          undefined,
-          'substances_listed'
-        )
-      : fromDatabaseError(error, 'update fire substances state');
-  const update = () =>
-    db
-      .from('client_fire_safety')
-      .update({ substances_state: state })
-      .eq('client_id', clientId)
-      .select('substances_state')
-      .maybeSingle();
-  const respond = (saved: FireSubstancesState) => c.json({ state: saved }, 200);
-  const updated = await update();
-  if (updated.error) throw refusal(updated.error);
-  if (updated.data) return respond(updated.data.substances_state);
-  const inserted = await db
-    .from('client_fire_safety')
-    .insert({
-      client_id: clientId,
-      organization_id: c.get('membership').organizationId,
-      substances_state: state,
-      created_by: c.get('user').id,
-    })
-    .select('substances_state')
-    .single();
-  if (inserted.error?.code === '23505') {
-    const again = await update();
-    if (again.error) throw refusal(again.error);
-    if (again.data) return respond(again.data.substances_state);
-  }
-  if (inserted.error) throw refusal(inserted.error);
-  return respond(inserted.data.substances_state);
+  await requireClient(db, clientId);
+  const saved = await saveByKey({
+    update: () =>
+      db
+        .from('client_fire_safety')
+        .update({ substances_state: state })
+        .eq('client_id', clientId)
+        .select('substances_state')
+        .maybeSingle(),
+    insert: () =>
+      db
+        .from('client_fire_safety')
+        .insert({
+          client_id: clientId,
+          organization_id: c.get('membership').organizationId,
+          substances_state: state,
+          created_by: c.get('user').id,
+        })
+        .select('substances_state')
+        .single(),
+    refusal: (error) =>
+      error.code === 'SUB01'
+        ? new ApiError(
+            'conflict',
+            'The client has dangerous substances listed; delete them before saying it uses none.',
+            undefined,
+            'substances_listed'
+          )
+        : fromDatabaseError(error, 'update fire substances state'),
+  });
+  return c.json({ state: saved.substances_state }, 200);
 };
 
 export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, ApiEnv> = async (
@@ -920,7 +919,7 @@ export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, 
   const { clientId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const last = await db
     .from('fire_substances')
     .select('sort_order')
@@ -957,7 +956,7 @@ export const updateFireSubstance: RouteHandler<typeof updateFireSubstanceRoute, 
 ) => {
   const { clientId, substanceId } = c.req.valid('param');
   const db = createDataClient(c);
-  await findClient(db, clientId);
+  await requireClient(db, clientId);
   const { data, error } = await db
     .from('fire_substances')
     .update(substanceFields(c.req.valid('json')))

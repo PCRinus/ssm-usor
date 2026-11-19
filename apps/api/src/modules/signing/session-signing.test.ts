@@ -6,6 +6,7 @@ import {
   signSessionResponseSchema,
   type SmsService,
 } from '@ssm-usor/contracts';
+import { templatesUrl } from '@ssm-usor/document-engine/template-store';
 import type { Context } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -48,8 +49,18 @@ const sheetSigner = {
   finishSignature: vi.fn<(...args: unknown[]) => Promise<ArrayBuffer>>(),
 };
 
+vi.mock('../../lib/pdf-signing', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/pdf-signing')>()),
+  pdfSigningServices: () => ({
+    files: sheetFiles,
+    pdf: sheetPdf,
+    signer: sheetSigner,
+    now: () => new Date(),
+  }),
+}));
+
 vi.mock('../signed-sheets/signed-sheets', () => ({
-  signedSheetContext: () => ({ files: sheetFiles, pdf: sheetPdf, signer: sheetSigner }),
+  signedSheetContext: () => ({ ctx: 'signed sheets' }),
   placeRecord: vi.fn(),
   applySignature: vi.fn(),
 }));
@@ -413,8 +424,6 @@ const agreementRow = (overrides: Record<string, unknown> = {}) => ({
   clients: { archived_at: null },
   ...overrides,
 });
-
-const templatesUrl = new URL('../../../../../packages/document-engine/templates/', import.meta.url);
 
 /** What drawing the agreement up reads: the employee, the client, the provider and the template. */
 const agreementSources = (client: Record<string, unknown> = {}): Record<string, UpstreamRoute> => ({
