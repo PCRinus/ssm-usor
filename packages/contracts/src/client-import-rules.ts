@@ -31,7 +31,7 @@ type ClientImportFieldChange = {
   included?: boolean;
 };
 
-export type ResolvedClientImportField = {
+type ResolvedClientImportField = {
   status: 'value' | 'choice' | 'missing' | 'unticked';
   value: FieldValue | null;
   // The option taken, whose flags then apply; null for the member's own value or nothing.
