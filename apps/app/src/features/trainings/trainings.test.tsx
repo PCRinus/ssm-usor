@@ -794,6 +794,19 @@ describe("a client's trainings held", () => {
     await waitFor(() => expect(screen.queryByTestId('training-dialog')).toBeNull());
   });
 
+  it('tells an expired session why the training form did not load', async () => {
+    mockApi({
+      [`GET /clients/${clientId}/job-positions`]: () =>
+        Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-record'));
+    expect((await screen.findByTestId('training-dialog-load-error')).textContent).toBe(
+      sessionExpiredMessage
+    );
+  });
+
   it('puts a signer refusal on the signer field in its own words', async () => {
     mockApi({
       [`POST ${trainingsPath}`]: () =>

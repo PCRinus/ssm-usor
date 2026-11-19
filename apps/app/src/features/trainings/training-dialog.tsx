@@ -46,6 +46,7 @@ import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { signingMessage } from '@/features/signatures/signature-format';
@@ -151,11 +152,14 @@ function TrainingDialogContent({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {failed ? (
-          <Notice variant="destructive" data-testid="training-dialog-load-error">
+          <LoadFailed
+            testId="training-dialog-load-error"
+            error={positions.error ?? employees.error ?? training.error}
+          >
             {training.error instanceof ApiHttpError && training.error.status === 404
               ? 'Instruirea nu mai există la acest client.'
               : 'Nu am putut încărca datele instruirii. Închide și încearcă din nou.'}
-          </Notice>
+          </LoadFailed>
         ) : (
           <div className="grid gap-4" aria-busy="true">
             <Skeleton className="h-11 w-full" />

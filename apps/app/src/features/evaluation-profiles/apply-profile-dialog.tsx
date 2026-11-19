@@ -17,6 +17,7 @@ import {
   useListEvaluationProfileChoices,
 } from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { evaluationFailure } from '@/features/risk-evaluations/evaluation-failure';
@@ -117,7 +118,7 @@ export function ApplyProfileDialog({
           {profiles.isPending ? (
             <Skeleton className="h-24 w-full" />
           ) : profiles.isError ? (
-            <Notice variant="destructive">Nu am putut încărca biblioteca.</Notice>
+            <LoadFailed error={profiles.error}>Nu am putut încărca biblioteca.</LoadFailed>
           ) : sources.length === 0 ? (
             <Notice variant="info" data-testid="apply-profile-none">
               Biblioteca nu are încă evaluări cu factori. Salvează în bibliotecă o fișă de evaluare
