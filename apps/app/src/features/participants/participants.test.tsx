@@ -3,13 +3,29 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
+import type {
+  ClientDocumentDetailsResponse,
+  ClientDocumentListResponse,
+  ClientFireSafetyResponse,
+  JobPositionListResponse,
+  ResponsiblePersonListResponse,
+  SigningAgreementResponse,
+  WorkplaceListResponse,
+} from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
 import { bodiesOf, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { smsUsage } from '@/test/billing-fixture';
 import { mountApp } from '@/test/mount';
-import { clientId, clientRecord, employeeRecord, meRecord } from '@/test/records';
+import {
+  clientId,
+  clientRecord,
+  documentDetailsRecord,
+  employeeRecord,
+  fireSafetyRecord,
+  meRecord,
+} from '@/test/records';
 import { fullText } from '@/test/text';
 
 import { participantFailure } from './participant-errors';
@@ -132,6 +148,43 @@ function mockApi(
       }
       if (pathname === `/clients/${clientId}/signature-requests`) {
         return Response.json({ items: [] });
+      }
+      if (pathname === `${employeePath}/signing-agreement/state`) {
+        return Response.json({
+          agreement: null,
+          unavailable: null,
+        } satisfies SigningAgreementResponse);
+      }
+      if (pathname === `/clients/${clientId}/documents`) {
+        return Response.json({
+          items: [],
+          lastGeneration: null,
+          notApplicable: [],
+          currentEmployeeCount: 1,
+        } satisfies ClientDocumentListResponse);
+      }
+      if (pathname === `/clients/${clientId}/document-details`) {
+        return Response.json({
+          documentDetails: documentDetailsRecord(),
+        } satisfies ClientDocumentDetailsResponse);
+      }
+      if (pathname === `/clients/${clientId}/fire-safety`) {
+        return Response.json({
+          fireSafety: fireSafetyRecord(),
+          exists: false,
+        } satisfies ClientFireSafetyResponse);
+      }
+      if (pathname === `/clients/${clientId}/job-positions`) {
+        return Response.json({ items: [] } satisfies JobPositionListResponse);
+      }
+      if (pathname === `/clients/${clientId}/responsible-persons`) {
+        return Response.json({ items: [] } satisfies ResponsiblePersonListResponse);
+      }
+      if (pathname === `/clients/${clientId}/workplaces`) {
+        return Response.json({
+          items: [],
+          unassignedEmployeeCount: 1,
+        } satisfies WorkplaceListResponse);
       }
     },
     { me: meRecord({ smsThisMonth: routes.sms ?? null }) }
