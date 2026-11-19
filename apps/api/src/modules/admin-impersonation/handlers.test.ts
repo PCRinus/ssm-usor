@@ -8,7 +8,15 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from '../../admin-app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  upstreamCalls,
+} from '../../test/upstream';
 
 const admin = {
   id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
@@ -22,30 +30,15 @@ const admin = {
 };
 const member = { ...admin, app_metadata: { provider: 'email' } };
 
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const targetId = '9ae7d65f-fac5-4b57-9d9b-3e502febfd31';
 const leftId = '5c2e7b1a-8d4f-4e3a-9b6c-1f0e2d3c4b5a';
 const impersonationId = 'b1b1b1b1-0000-4000-8000-000000000001';
 const pastId = 'b1b1b1b1-0000-4000-8000-000000000002';
-const secretKey = 'sb_secret_test_key_admin_impersonation';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
-};
+const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
 const token = `${encode({ alg: 'ES256', typ: 'JWT' })}.${encode({ sub: admin.id, aal: 'aal2' })}.c2ln`;
-
-type Call = {
-  method: string;
-  url: URL;
-  body: unknown;
-  secret: boolean;
-  ownToken: boolean;
-  headers: Headers;
-};
 
 const memberRow = {
   user_id: targetId,
@@ -98,8 +91,6 @@ const accounts: Record<string, unknown> = {
   },
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
 let user: typeof admin | typeof member = admin;
 let memberRows: unknown[] = [];
 let active: unknown = null;
@@ -107,49 +98,36 @@ let history: unknown[] = [];
 let startError: { code: string; message: string } | null = null;
 let accountsFail = false;
 
-function mockUpstream() {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const headers = new Headers(init?.headers);
-    const raw = init?.body;
-    calls.push({
-      method,
-      url,
-      body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
-      secret: headers.get('Authorization') === `Bearer ${secretKey}`,
-      ownToken: headers.get('Authorization') === `Bearer ${token}`,
-      headers,
-    });
-    const body = calls.at(-1)!.body as Record<string, unknown>;
-    const path = url.pathname;
+type RpcBody = Record<string, unknown>;
 
-    if (path === '/auth/v1/user') return Response.json(user);
-    if (path === '/rest/v1/rpc/admin_list_members') {
-      const offset = Number(body.p_offset);
-      return Response.json(memberRows.slice(offset, offset + Number(body.p_limit)));
-    }
-    if (path === '/rest/v1/rpc/admin_accounts') {
+function mockUpstream() {
+  routeUpstream({
+    '/auth/v1/user': () => Response.json(user),
+    '/rest/v1/rpc/admin_list_members': ({ body }) => {
+      const offset = Number((body as RpcBody).p_offset);
+      return Response.json(memberRows.slice(offset, offset + Number((body as RpcBody).p_limit)));
+    },
+    '/rest/v1/rpc/admin_accounts': ({ body }) => {
       if (accountsFail)
         return Response.json({ code: '57014', message: 'timeout' }, { status: 500 });
       return Response.json(
-        (body.p_user_ids as string[]).flatMap((id) => (accounts[id] ? [accounts[id]] : []))
+        ((body as RpcBody).p_user_ids as string[]).flatMap((id) =>
+          accounts[id] ? [accounts[id]] : []
+        )
       );
-    }
-    if (path === '/rest/v1/rpc/start_impersonation') {
+    },
+    '/rest/v1/rpc/start_impersonation': ({ body }) => {
       if (startError) return Response.json(startError, { status: 400 });
       return Response.json({
         ...activeRow,
         admin_user_id: admin.id,
-        target_user_id: body.p_target_user_id,
-        reason: body.p_reason,
+        target_user_id: (body as RpcBody).p_target_user_id,
+        reason: (body as RpcBody).p_reason,
       });
-    }
-    if (path === '/rest/v1/rpc/current_impersonation') return Response.json(active);
-    if (path === '/rest/v1/impersonations' && method === 'PATCH') {
-      return new Response(null, { status: 204 });
-    }
-    if (path === '/rest/v1/impersonations' && method === 'GET') {
+    },
+    '/rest/v1/rpc/current_impersonation': () => Response.json(active),
+    'PATCH /rest/v1/impersonations': () => new Response(null, { status: 204 }),
+    'GET /rest/v1/impersonations': ({ url }) => {
       const from = Number(url.searchParams.get('offset') ?? 0);
       const limit = Number(url.searchParams.get('limit') ?? 1000);
       if (from >= history.length && from > 0) {
@@ -162,27 +140,34 @@ function mockUpstream() {
       return Response.json(rows, {
         headers: { 'Content-Range': `${from}-${from + rows.length - 1}/${history.length}` },
       });
-    }
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
+    },
   });
 }
 
 const request = (path: string, init: RequestInit = {}) =>
-  createAdminApp().request(
+  apiRequest(
     path,
     {
       ...init,
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      app: createAdminApp(),
+      token,
+      client: null,
+      headers: { 'Content-Type': 'application/json' },
     },
     env
   );
 
-const restCalls = () => calls.filter((call) => call.url.pathname.startsWith('/rest/'));
+const restCalls = () =>
+  upstreamCalls()
+    .filter((call) => call.url.pathname.startsWith('/rest/'))
+    .map((call) => ({
+      ...call,
+      ownToken: call.headers.get('Authorization') === `Bearer ${token}`,
+    }));
+
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   user = admin;
   memberRows = [
     memberRow,
@@ -205,7 +190,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
