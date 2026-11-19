@@ -250,6 +250,7 @@ function BuildingForm({
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
+                    keepUnfinished
                     disabled={busy}
                     invalid={Boolean(errors.electricalLastCheckOn)}
                     describedBy={

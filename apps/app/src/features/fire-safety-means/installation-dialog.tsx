@@ -138,6 +138,7 @@ function InstallationForm({
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}
+            keepUnfinished
             disabled={busy}
             invalid={Boolean(errors[name])}
             describedBy={errors[name] ? `${id}-error` : undefined}
