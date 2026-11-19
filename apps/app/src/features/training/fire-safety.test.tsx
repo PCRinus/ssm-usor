@@ -1,29 +1,17 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { getGetClientFireSafetyQueryKey } from '@/api/generated/api';
+import {
+  getGetClientFireSafetyQueryKey,
+  type JobPositionResponseJobPosition,
+} from '@/api/generated/api';
+import { bodiesOf, fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  currentEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord();
 
 const occupationalDetails = {
   legalRepresentativeName: 'Maria Popescu',
@@ -90,20 +78,15 @@ const rulesOf = (fireSafety: FireSafety) => ({
 
 const firePath = `/clients/${clientId}/fire-safety`;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-const position = (name: string, staffCategory: string) => ({
-  id: `00000000-0000-4000-8000-${name.length.toString().padStart(12, '0')}`,
-  clientId,
-  name,
-  staffCategory,
-  workZone: null,
-  activities: null,
-  trainingIntervalMonths: null,
-  employeeCount: 2,
-  createdAt: '2026-09-20T10:00:00+00:00',
-  updatedAt: '2026-09-20T10:00:00+00:00',
-});
+const position = (name: string, staffCategory: JobPositionResponseJobPosition['staffCategory']) =>
+  jobPositionRecord({
+    id: `00000000-0000-4000-8000-${name.length.toString().padStart(12, '0')}`,
+    name,
+    staffCategory,
+    employeeCount: 2,
+    createdAt: '2026-09-20T10:00:00+00:00',
+    updatedAt: '2026-09-20T10:00:00+00:00',
+  });
 const cook = position('Bucătar', 'execution');
 const manager = position('Manager restaurant', 'technical_administrative');
 
@@ -115,12 +98,8 @@ function mockApi({
   positions = [] as ReturnType<typeof position>[],
 } = {}) {
   let current = { fireSafety, exists };
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails: details });
@@ -138,17 +117,8 @@ function mockApi({
       }
       return Response.json(current);
     }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = (search = '') =>
   mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire${search}`);
@@ -156,15 +126,7 @@ const mount = (search = '') =>
 const value = (testId: string) => screen.getByTestId<HTMLInputElement>(testId).value;
 const checked = (testId: string) => screen.getByTestId<HTMLInputElement>(testId).checked;
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the fire-safety training card', () => {
   it('sits after the occupational safety schedule, before its own smoking and waste card', async () => {
@@ -207,7 +169,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-safety-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         {
           periodicTrainingHours: 2,
           administrativeTrainingIntervalMonths: 6,
@@ -295,7 +257,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-safety-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         {
           periodicTrainingHours: 2,
           workerTrainingIntervalMonths: 1,
@@ -317,7 +279,7 @@ describe('the fire-safety training card', () => {
     fetchMock.mockImplementation(async (input, init) => {
       const read =
         new URL(String(input)).pathname === firePath && (init?.method ?? 'GET') === 'GET';
-      if (read && requests(firePath, 'PATCH').length > 0) await held;
+      if (read && bodiesOf(firePath, 'PATCH').length > 0) await held;
       return answer(input, init);
     });
     const { queryClient } = mount();
@@ -356,7 +318,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-safety-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         scheduleOf({ ...savedFireSafety, administrativeTrainingIntervalMonths: 6 }),
       ])
     );
@@ -375,7 +337,7 @@ describe('the fire-safety training card', () => {
     expect((await screen.findByTestId('fire-day-to-error')).textContent).toBe(
       'Ultima zi vine după prima. Scrie o zi între 10 și 31.'
     );
-    expect(requests(firePath, 'PATCH')).toEqual([]);
+    expect(bodiesOf(firePath, 'PATCH')).toEqual([]);
   });
 
   it('offers to load again instead of a calendar when the occupational schedule fails to load', async () => {
@@ -442,7 +404,7 @@ describe('the fire-safety training card', () => {
     });
     fetchMock.mockImplementation(async (input, init) => {
       const write = new URL(String(input)).pathname === firePath && init?.method === 'PATCH';
-      if (write && requests(firePath, 'PATCH').length === 1) await held;
+      if (write && bodiesOf(firePath, 'PATCH').length === 1) await held;
       return answer(input, init);
     });
     mount();
@@ -452,12 +414,12 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-edit'));
     await user.click(screen.getByTestId('fire-worker-interval-1'));
     await user.click(screen.getByTestId('fire-safety-save'));
-    await waitFor(() => expect(requests(firePath, 'PATCH')).toHaveLength(1));
+    await waitFor(() => expect(bodiesOf(firePath, 'PATCH')).toHaveLength(1));
     await user.type(screen.getByTestId('fire-waste-input'), 'deșeuri menajere{Enter}');
     await user.click(screen.getByTestId('fire-rules-save'));
 
-    await waitFor(() => expect(requests(firePath, 'PATCH')).toHaveLength(2));
-    expect(requests(firePath, 'PATCH')).toEqual([
+    await waitFor(() => expect(bodiesOf(firePath, 'PATCH')).toHaveLength(2));
+    expect(bodiesOf(firePath, 'PATCH')).toEqual([
       scheduleOf({ ...savedFireSafety, workerTrainingIntervalMonths: 1 }),
       rulesOf({
         ...savedFireSafety,
@@ -487,7 +449,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         rulesOf({ ...emptyFireSafety, wasteKinds: ['deșeuri de carton', 'uleiuri uzate'] }),
       ])
     );
@@ -535,7 +497,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         rulesOf({
           ...savedFireSafety,
           wasteCollectors: 'muncitorii necalificați și șeful de șantier',
@@ -564,7 +526,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         rulesOf({ ...savedFireSafety, hasThirdParties: true }),
       ])
     );
@@ -604,7 +566,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         rulesOf({
           ...savedFireSafety,
           smokingPolicy: null,
@@ -633,7 +595,7 @@ describe('the fire-safety training card', () => {
     await user.click(screen.getByTestId('fire-rules-save'));
 
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         rulesOf({ ...savedFireSafety, smokingPolicy: 'forbidden_everywhere', smokingPlace: null }),
       ])
     );
@@ -659,12 +621,12 @@ describe('the fire-safety training card', () => {
     expect((await screen.findByTestId('fire-smoking-place-input-error')).textContent).toBe(
       'Locul are cel puțin 2 caractere.'
     );
-    expect(requests(firePath, 'PATCH')).toEqual([]);
+    expect(bodiesOf(firePath, 'PATCH')).toEqual([]);
 
     await user.type(screen.getByTestId('fire-smoking-place-input'), ' lângă rampa de descărcare ');
     await user.click(screen.getByTestId('fire-rules-save'));
     await waitFor(() =>
-      expect(requests(firePath, 'PATCH')).toEqual([
+      expect(bodiesOf(firePath, 'PATCH')).toEqual([
         rulesOf({
           ...savedFireSafety,
           smokingPolicy: 'designated_places',

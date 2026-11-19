@@ -1,20 +1,20 @@
 import type { BillingSmsUsage } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { ApiHttpError } from '@/api/http';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
+import { bodiesOf, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { smsUsage } from '@/test/billing-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, employeeRecord, meRecord } from '@/test/records';
 import { fullText } from '@/test/text';
-import { noTests, untrained } from '@/test/training-fixture';
 
 import { participantFailure } from './participant-errors';
 import { formatTime } from './participant-format';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const employeePath = `/clients/${clientId}/employees/${employeeId}`;
 const employeePage = `/clienti/${clientId}/angajati/${employeeId}`;
@@ -24,61 +24,23 @@ const listPath = `/clients/${clientId}/participants`;
 const invitationId = '3f2c1b0a-9e8d-4c7b-a6f5-e4d3c2b1a090';
 const participantId = '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
 
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
+const sampleClient = clientRecord({
   contactName: 'Ioana Dinu',
   contactEmail: 'office@veloce.ro',
   contactPhone: '+40722000111',
-  stage: 'client',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+});
 
-const sampleEmployee = {
+const sampleEmployee = employeeRecord({
   id: employeeId,
-  clientId,
   lastName: 'Popescu',
   firstName: 'Ion',
-  cnp: null,
-  employeeNumber: null,
-  email: 'ion.popescu@example.com' as string | null,
-  phone: '+40721000000' as string | null,
+  email: 'ion.popescu@example.com',
+  phone: '+40721000000',
   jobTitle: 'Barista',
   jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Barista' },
   hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  birthDate: null,
-  birthPlace: null,
-  homeAddress: null,
-  bloodGroup: null,
-  rhFactor: null,
-  notes: null,
   workplace: null,
-  qualification: null,
-  education: null,
-  authorizations: null,
-  commuteRoute: null,
-  commuteMeans: [],
-  commuteMeansOther: null,
-  commuteMinutes: null,
-  training: untrained,
-  tests: noTests,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
 
@@ -118,8 +80,6 @@ const conflict = (reason: string, status = 409) =>
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi(
   routes: Partial<
     Record<
@@ -132,74 +92,55 @@ function mockApi(
     sms?: BillingSmsUsage;
   } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        smsThisMonth: routes.sms ?? null,
-      });
-    }
-    if (pathname === `/clients/${clientId}`) {
-      return Response.json({ client: routes.client ?? sampleClient });
-    }
-    if (pathname === employeePath) {
-      return Response.json({ employee: routes.employee ?? sampleEmployee });
-    }
-    if (pathname === statePath) {
-      return routes.state?.(init) ?? Response.json({ participant: null, invitation: null });
-    }
-    if (pathname === invitePath && method === 'POST') {
-      return routes.invite?.(init) ?? Response.json(invitation(), { status: 201 });
-    }
-    if (pathname === listPath) {
-      return routes.list?.(init) ?? Response.json({ participants: [], invitations: [] });
-    }
-    if (pathname === `/clients/${clientId}/participant-invitations` && method === 'POST') {
-      return (
-        routes.administrator?.(init) ??
-        Response.json(invitation({ kind: 'client_administrator', employeeId: null }), {
-          status: 201,
-        })
-      );
-    }
-    if (pathname === `/participant-invitations/${invitationId}/resend`) {
-      return routes.resend?.(init) ?? Response.json(invitation());
-    }
-    if (pathname === `/participant-invitations/${invitationId}/revoke`) {
-      return routes.revoke?.(init) ?? new Response(null, { status: 204 });
-    }
-    if (pathname === `/client-participants/${participantId}/revoke`) {
-      return routes.revokeAccess?.(init) ?? new Response(null, { status: 204 });
-    }
-    if (pathname === `/clients/${clientId}/employees`) {
-      return Response.json({ items: [sampleEmployee], page: 1, pageSize: 100, total: 1 });
-    }
-    if (pathname === `/clients/${clientId}/signature-requests`) {
-      return Response.json({ items: [] });
-    }
-    return Response.json({ error: 'not_found', message: 'Not mocked.' }, { status: 404 });
-  });
+  mockRoutes(
+    (init, { pathname }) => {
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${clientId}`) {
+        return Response.json({ client: routes.client ?? sampleClient });
+      }
+      if (pathname === employeePath) {
+        return Response.json({ employee: routes.employee ?? sampleEmployee });
+      }
+      if (pathname === statePath) {
+        return routes.state?.(init) ?? Response.json({ participant: null, invitation: null });
+      }
+      if (pathname === invitePath && method === 'POST') {
+        return routes.invite?.(init) ?? Response.json(invitation(), { status: 201 });
+      }
+      if (pathname === listPath) {
+        return routes.list?.(init) ?? Response.json({ participants: [], invitations: [] });
+      }
+      if (pathname === `/clients/${clientId}/participant-invitations` && method === 'POST') {
+        return (
+          routes.administrator?.(init) ??
+          Response.json(invitation({ kind: 'client_administrator', employeeId: null }), {
+            status: 201,
+          })
+        );
+      }
+      if (pathname === `/participant-invitations/${invitationId}/resend`) {
+        return routes.resend?.(init) ?? Response.json(invitation());
+      }
+      if (pathname === `/participant-invitations/${invitationId}/revoke`) {
+        return routes.revoke?.(init) ?? new Response(null, { status: 204 });
+      }
+      if (pathname === `/client-participants/${participantId}/revoke`) {
+        return routes.revokeAccess?.(init) ?? new Response(null, { status: 204 });
+      }
+      if (pathname === `/clients/${clientId}/employees`) {
+        return Response.json({ items: [sampleEmployee], page: 1, pageSize: 100, total: 1 });
+      }
+      if (pathname === `/clients/${clientId}/signature-requests`) {
+        return Response.json({ items: [] });
+      }
+    },
+    { me: meRecord({ smsThisMonth: routes.sms ?? null }) }
+  );
 }
 
-const requests = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
+const requests = (pathname: string, method = 'GET') => bodiesOf(pathname, method);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 const mountEmployee = () => mountApp(authFixture(makeSession()).client, employeePage);
 const portalCard = () => screen.findByTestId('employee-portal-card');

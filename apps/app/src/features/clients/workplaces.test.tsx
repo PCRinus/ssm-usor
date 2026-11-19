@@ -1,29 +1,15 @@
 import { readOnlyReason } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { readOnlyMessage } from '@/lib/api-errors';
+import { bodiesOf as requests, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, workplaceListItem } from '@/test/records';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord();
 
 const emptyDetails = {
   legalRepresentativeName: null,
@@ -48,20 +34,11 @@ const noFireData = {
   specificMeasures: null,
 };
 
-const office = {
-  ...noFireData,
-  id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
-  name: 'Sediu social',
-  isRegisteredOffice: true,
-  officeHasActivity: true,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: 'Calea Victoriei 122A',
+const office = workplaceListItem({
   createdAt: '2026-09-18T10:00:00.000Z',
   updatedAt: '2026-09-18T10:00:00.000Z',
   currentEmployeeCount: 3,
-};
+});
 
 const shop = {
   ...office,
@@ -91,8 +68,6 @@ const listPath = `/clients/${clientId}/workplaces`;
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   client = sampleClient,
   items = [office, shop] as unknown[],
@@ -108,13 +83,12 @@ function mockApi({
     Response.json({ workplace: { ...shop, ...JSON.parse(String(init?.body)) } })) as Route,
   archive = (() => new Response(null, { status: 204 })) as Route,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === `/clients/${clientId}/owner-notes` && method === 'GET') {
+      return Response.json({ notes: { body: '', updatedAt: null } });
+    }
     if (pathname === `/clients/${clientId}/responsible-persons`)
       return Response.json({ items: [] });
     if (pathname === `/clients/${clientId}/document-details`) {
@@ -134,17 +108,8 @@ function mockApi({
     if (pathname === `${listPath}/${shop.id}` || pathname === `${listPath}/${office.id}`) {
       return method === 'DELETE' ? archive(init) : update(init);
     }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/detalii`);
 
@@ -154,15 +119,7 @@ async function openRowMenu(user: ReturnType<typeof userEvent.setup>, name: strin
   await user.click(within(row).getByTestId('workplace-actions'));
 }
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('client workplaces', () => {
   it('says when the client moved its registered office, and adopts the address in one click', async () => {

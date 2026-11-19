@@ -1,7 +1,7 @@
 import type { OrganizationSeats } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   getGetBillingQueryKey,
@@ -9,18 +9,20 @@ import {
   type OrganizationCompanyDetailsResponse,
 } from '@/api/generated/api';
 import { impersonationRefusedMessage } from '@/features/impersonation/refusal';
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { meRecord, meResponse } from '@/test/records';
 import { replayedInput, replayedText } from '@/test/replay';
 import { fullText } from '@/test/text';
 
 const organization = { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' };
 
-const meAs = (role: 'owner' | 'specialist' | null) => ({
-  user: { id: 'user-one', email: 'review@example.test' },
-  profile: { fullName: 'Ana Popescu', termsVersion: null, termsAcceptedAt: null },
-  membership: role ? { organization, role } : null,
-});
+const meAs = (role: 'owner' | 'specialist' | null) =>
+  meRecord({
+    profile: { ...meResponse.profile, fullName: 'Ana Popescu' },
+    membership: role ? { organization, role } : null,
+  });
 
 const members = [
   {
@@ -122,8 +124,6 @@ const conflict = (reason: string) =>
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   role = 'owner' as 'owner' | 'specialist' | null,
   invitations = [invitation] as unknown[],
@@ -139,46 +139,40 @@ function mockApi({
   saveAuthorizations = (() => Response.json({ authorizations })) as Route,
   lookup = (() => Response.json({ company: anafCompany })) as Route,
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') return Response.json(meAs(role));
-    if (pathname === '/me/invitations') return Response.json({ items: [] });
-    if (pathname === '/organization/members') {
-      return Response.json({ items: role === 'owner' ? members : withoutActivity });
-    }
-    if (pathname === '/organization/seats') return Response.json(seats);
-    if (pathname === '/billing') {
-      return Response.json({ error: 'service_unavailable', message: 'Stripe' }, { status: 503 });
-    }
-    if (pathname === '/organization/company-details') {
-      return method === 'PUT'
-        ? saveCompanyDetails(init)
-        : Response.json({ companyDetails: savedCompanyDetails });
-    }
-    if (pathname === '/organization/authorizations') {
-      return method === 'PUT'
-        ? saveAuthorizations(init)
-        : Response.json({ authorizations: savedAuthorizations });
-    }
-    if (pathname === '/companies/lookup') return lookup(init);
-    if (pathname === '/organization/members/user-two') {
-      return method === 'DELETE' ? removeMember(init) : changeRole(init);
-    }
-    if (pathname === '/organization/invitations') {
-      return method === 'POST' ? create(init) : Response.json({ items: invitations });
-    }
-    if (pathname.endsWith('/resend')) return resend(init);
-    if (pathname.endsWith('/revoke')) return revoke(init);
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
-  });
-}
-
-const requests = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
+  mockRoutes(
+    (init, { pathname }) => {
+      const method = init?.method ?? 'GET';
+      if (pathname === '/me/invitations') return Response.json({ items: [] });
+      if (pathname === '/organization/members') {
+        return Response.json({ items: role === 'owner' ? members : withoutActivity });
+      }
+      if (pathname === '/organization/seats') return Response.json(seats);
+      if (pathname === '/billing') {
+        return Response.json({ error: 'service_unavailable', message: 'Stripe' }, { status: 503 });
+      }
+      if (pathname === '/organization/company-details') {
+        return method === 'PUT'
+          ? saveCompanyDetails(init)
+          : Response.json({ companyDetails: savedCompanyDetails });
+      }
+      if (pathname === '/organization/authorizations') {
+        return method === 'PUT'
+          ? saveAuthorizations(init)
+          : Response.json({ authorizations: savedAuthorizations });
+      }
+      if (pathname === '/companies/lookup') return lookup(init);
+      if (pathname === '/organization/members/user-two') {
+        return method === 'DELETE' ? removeMember(init) : changeRole(init);
+      }
+      if (pathname === '/organization/invitations') {
+        return method === 'POST' ? create(init) : Response.json({ items: invitations });
+      }
+      if (pathname.endsWith('/resend')) return resend(init);
+      if (pathname.endsWith('/revoke')) return revoke(init);
+    },
+    { me: meAs(role) }
   );
+}
 
 const mount = (path = '/organizatie') => mountApp(authFixture(makeSession()).client, path);
 
@@ -188,15 +182,7 @@ async function openInviteDialog() {
   return { user, dialog: await screen.findByTestId('invite-dialog') };
 }
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 const headers = () =>
   within(screen.getByTestId('team-table'))
@@ -251,7 +237,7 @@ describe('team table', () => {
     expect(screen.queryByTestId('invitation-row')).toBeNull();
     expect(screen.queryByTestId('invite-open')).toBeNull();
     expect(screen.queryByTestId('member-actions')).toBeNull();
-    expect(requests('/organization/invitations')).toHaveLength(0);
+    expect(requestsTo('/organization/invitations')).toHaveLength(0);
     expect((await screen.findByTestId('team-seats')).textContent).toBe(
       '3 membri · 1 invitație în așteptare'
     );
@@ -315,8 +301,8 @@ describe('team table', () => {
     mount();
 
     expect((await screen.findByTestId('team-seats')).textContent).toBe('4 din 10 utilizatori');
-    expect(requests('/organization/seats')).toHaveLength(1);
-    expect(requests('/billing')).toHaveLength(0);
+    expect(requestsTo('/organization/seats')).toHaveLength(1);
+    expect(requestsTo('/billing')).toHaveLength(0);
   });
 
   it('turns the count amber on a full Start and makes the upgrade the one primary action', async () => {
@@ -374,7 +360,7 @@ describe('team table', () => {
 
     await screen.findByTestId('onboarding-page');
     expect(runtime.router.state.location.pathname).toBe('/configurare');
-    expect(requests('/organization/members')).toHaveLength(0);
+    expect(requestsTo('/organization/members')).toHaveLength(0);
   });
 });
 
@@ -383,7 +369,7 @@ describe('inviting a member', () => {
     mockApi();
     mount();
     const { user, dialog } = await openInviteDialog();
-    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/organization/seats')).toHaveLength(1));
 
     await user.type(within(dialog).getByTestId('invite-email'), 'Maria@Example.test');
     await user.selectOptions(within(dialog).getByTestId('invite-role'), 'owner');
@@ -391,14 +377,14 @@ describe('inviting a member', () => {
 
     expect(await screen.findByText('Invitația a fost trimisă la maria@example.test.')).toBeTruthy();
     await waitFor(() => expect(screen.queryByTestId('invite-dialog')).toBeNull());
-    const [, init] = requests('/organization/invitations', 'POST')[0]!;
+    const [, init] = requestsTo('/organization/invitations', 'POST')[0]!;
     expect(JSON.parse(init?.body as string)).toEqual({
       email: 'Maria@Example.test',
       role: 'owner',
     });
-    await waitFor(() => expect(requests('/organization/invitations')).toHaveLength(2));
-    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(2));
-    expect(requests('/billing')).toHaveLength(0);
+    await waitFor(() => expect(requestsTo('/organization/invitations')).toHaveLength(2));
+    await waitFor(() => expect(requestsTo('/organization/seats')).toHaveLength(2));
+    expect(requestsTo('/billing')).toHaveLength(0);
   });
 
   it('explains the roles in the help article, not under the field', async () => {
@@ -448,7 +434,7 @@ describe('inviting a member', () => {
     expect((await screen.findByTestId('invite-email-error')).textContent).toBe(
       'Adresa de email nu este validă.'
     );
-    expect(requests('/organization/invitations', 'POST')).toHaveLength(0);
+    expect(requestsTo('/organization/invitations', 'POST')).toHaveLength(0);
   });
 
   it.each([
@@ -536,7 +522,7 @@ describe('pending invitation actions', () => {
     await resend();
 
     expect(await screen.findByText('Am retrimis invitația la maria@example.test.')).toBeTruthy();
-    expect(requests(`/organization/invitations/${invitation.id}/resend`, 'POST')).toHaveLength(1);
+    expect(requestsTo(`/organization/invitations/${invitation.id}/resend`, 'POST')).toHaveLength(1);
   });
 
   it('reports a resend made too soon inline', async () => {
@@ -567,7 +553,7 @@ describe('pending invitation actions', () => {
   it('revokes, confirms with a toast, and refreshes the rows and the count', async () => {
     mockApi();
     mount();
-    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/organization/seats')).toHaveLength(1));
     const user = await openInvitationMenu();
 
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual([
@@ -578,10 +564,10 @@ describe('pending invitation actions', () => {
     expect(
       await screen.findByText('Invitația pentru maria@example.test a fost revocată.')
     ).toBeTruthy();
-    expect(requests(`/organization/invitations/${invitation.id}/revoke`, 'POST')).toHaveLength(1);
-    await waitFor(() => expect(requests('/organization/invitations')).toHaveLength(2));
-    await waitFor(() => expect(requests('/organization/seats')).toHaveLength(2));
-    expect(requests('/billing')).toHaveLength(0);
+    expect(requestsTo(`/organization/invitations/${invitation.id}/revoke`, 'POST')).toHaveLength(1);
+    await waitFor(() => expect(requestsTo('/organization/invitations')).toHaveLength(2));
+    await waitFor(() => expect(requestsTo('/organization/seats')).toHaveLength(2));
+    expect(requestsTo('/billing')).toHaveLength(0);
   });
 });
 
@@ -613,9 +599,9 @@ describe('managing members', () => {
     await user.click(await screen.findByTestId('member-switch-role'));
 
     expect(await screen.findByText(fullText('ion@example.test este acum admin.'))).toBeTruthy();
-    const [, init] = requests('/organization/members/user-two', 'PATCH')[0]!;
+    const [, init] = requestsTo('/organization/members/user-two', 'PATCH')[0]!;
     expect(JSON.parse(init?.body as string)).toEqual({ role: 'owner' });
-    await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));
+    await waitFor(() => expect(requestsTo('/organization/members')).toHaveLength(2));
   });
 
   it('removes a member only after confirmation', async () => {
@@ -626,14 +612,14 @@ describe('managing members', () => {
     await user.click(await screen.findByTestId('member-remove'));
     const dialog = await screen.findByTestId('member-remove-dialog');
     expect(dialog.textContent).toContain('ion@example.test');
-    expect(requests('/organization/members/user-two', 'DELETE')).toHaveLength(0);
+    expect(requestsTo('/organization/members/user-two', 'DELETE')).toHaveLength(0);
 
     await user.click(within(dialog).getByTestId('member-remove-confirm'));
 
     expect(
       await screen.findByText(fullText('ion@example.test nu mai face parte din organizație.'))
     ).toBeTruthy();
-    expect(requests('/organization/members/user-two', 'DELETE')).toHaveLength(1);
+    expect(requestsTo('/organization/members/user-two', 'DELETE')).toHaveLength(1);
     await waitFor(() => expect(screen.queryByTestId('member-remove-dialog')).toBeNull());
   });
 
@@ -647,7 +633,7 @@ describe('managing members', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Renunță' }));
 
     await waitFor(() => expect(screen.queryByTestId('member-remove-dialog')).toBeNull());
-    expect(requests('/organization/members/user-two', 'DELETE')).toHaveLength(0);
+    expect(requestsTo('/organization/members/user-two', 'DELETE')).toHaveLength(0);
   });
 
   it('reports a member who is already gone inline and refreshes the list', async () => {
@@ -662,7 +648,7 @@ describe('managing members', () => {
     expect((await screen.findByTestId('team-error')).textContent).toBe(
       'ion@example.test nu mai face parte din organizație.'
     );
-    await waitFor(() => expect(requests('/organization/members')).toHaveLength(2));
+    await waitFor(() => expect(requestsTo('/organization/members')).toHaveLength(2));
   });
 });
 
@@ -679,8 +665,8 @@ describe('organization sections', () => {
       'Abilitări',
       'Abonament',
     ]);
-    expect(requests('/organization/company-details')).toHaveLength(0);
-    expect(requests('/organization/authorizations')).toHaveLength(0);
+    expect(requestsTo('/organization/company-details')).toHaveLength(0);
+    expect(requestsTo('/organization/authorizations')).toHaveLength(0);
   });
 
   it('moves between sections', async () => {
@@ -778,8 +764,8 @@ describe('company details', () => {
     await user.type(screen.getByTestId('company-bankName'), 'Banca Transilvania');
     await user.click(screen.getByTestId('company-details-save'));
 
-    await waitFor(() => expect(requests('/organization/company-details', 'PUT')).toHaveLength(1));
-    const [, init] = requests('/organization/company-details', 'PUT')[0]!;
+    await waitFor(() => expect(requestsTo('/organization/company-details', 'PUT')).toHaveLength(1));
+    const [, init] = requestsTo('/organization/company-details', 'PUT')[0]!;
     expect(JSON.parse(String(init?.body))).toEqual({
       ...companyDetails,
       addressLine: null,
@@ -803,7 +789,7 @@ describe('company details', () => {
 
     expect(await screen.findByText('Datele firmei au fost salvate.')).toBeTruthy();
     expect(runtime.queryClient.getQueryState(billingKey)?.isInvalidated).toBe(true);
-    expect(requests('/billing')).toHaveLength(0);
+    expect(requestsTo('/billing')).toHaveLength(0);
   });
 
   it('takes the VAT status from ANAF with the rest, and leaves it editable', async () => {
@@ -824,8 +810,8 @@ describe('company details', () => {
     await user.click(vat);
     await user.click(screen.getByTestId('company-details-save'));
 
-    await waitFor(() => expect(requests('/organization/company-details', 'PUT')).toHaveLength(1));
-    const [, init] = requests('/organization/company-details', 'PUT')[0]!;
+    await waitFor(() => expect(requestsTo('/organization/company-details', 'PUT')).toHaveLength(1));
+    const [, init] = requestsTo('/organization/company-details', 'PUT')[0]!;
     expect(JSON.parse(String(init?.body))).toMatchObject({
       vatPayer: true,
       legalName: 'PROTECT SSM SRL',
@@ -852,8 +838,8 @@ describe('company details', () => {
     );
 
     await user.click(screen.getByTestId('company-details-save'));
-    await waitFor(() => expect(requests('/organization/company-details', 'PUT')).toHaveLength(1));
-    const [, init] = requests('/organization/company-details', 'PUT')[0]!;
+    await waitFor(() => expect(requestsTo('/organization/company-details', 'PUT')).toHaveLength(1));
+    const [, init] = requestsTo('/organization/company-details', 'PUT')[0]!;
     expect(JSON.parse(String(init?.body))).toMatchObject({
       phone: '0256 000 111',
       iban: 'RO49 AAAA 1B31 0075 9384 0000',
@@ -945,7 +931,7 @@ describe('company details', () => {
     await user.click(screen.getByTestId('company-details-save'));
 
     expect((await screen.findByTestId(`${testId}-error`)).textContent).toContain(message);
-    expect(requests('/organization/company-details', 'PUT')).toHaveLength(0);
+    expect(requestsTo('/organization/company-details', 'PUT')).toHaveLength(0);
   });
 
   it('shows a specialist the details read-only, without save or lookup', async () => {
@@ -1010,7 +996,7 @@ describe('authorizations', () => {
 
     expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+      JSON.parse(String(requestsTo('/organization/authorizations', 'PUT')[0]![1]?.body))
     ).toEqual({
       ...authorizations,
       authorizationCertificateNumber: '17664',
@@ -1038,13 +1024,13 @@ describe('authorizations', () => {
     const error = await within(form).findByText('Alege o dată validă.');
     expect(error.id).toBe('authorizations-authorizationCertificateDate-error');
     expect(date.getAttribute('aria-invalid')).toBe('true');
-    expect(requests('/organization/authorizations', 'PUT')).toHaveLength(0);
+    expect(requestsTo('/organization/authorizations', 'PUT')).toHaveLength(0);
 
     await user.clear(date);
     await user.click(within(form).getByTestId('authorizations-save'));
     expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+      JSON.parse(String(requestsTo('/organization/authorizations', 'PUT')[0]![1]?.body))
     ).toMatchObject({
       authorizationCertificateNumber: '17664',
       authorizationCertificateDate: null,
@@ -1070,7 +1056,7 @@ describe('authorizations', () => {
 
     expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+      JSON.parse(String(requestsTo('/organization/authorizations', 'PUT')[0]![1]?.body))
     ).toEqual({
       ...authorizations,
       fireSafetyTechnicianName: 'Radu Stan',
@@ -1103,7 +1089,7 @@ describe('authorizations', () => {
 
     expect(await screen.findByText('Abilitările au fost salvate.')).toBeTruthy();
     expect(
-      JSON.parse(String(requests('/organization/authorizations', 'PUT')[0]![1]?.body))
+      JSON.parse(String(requestsTo('/organization/authorizations', 'PUT')[0]![1]?.body))
     ).toEqual({
       ...authorizations,
       riskEvaluatorName: 'Ing. Maria IONESCU',
@@ -1142,7 +1128,7 @@ describe('authorizations', () => {
     expect((await screen.findByTestId('authorizations-riskEvaluatorTitle-error')).textContent).toBe(
       'Completează și calitatea evaluatorului.'
     );
-    expect(requests('/organization/authorizations', 'PUT')).toHaveLength(0);
+    expect(requestsTo('/organization/authorizations', 'PUT')).toHaveLength(0);
   });
 
   it('refuses an authorization of one character', async () => {
@@ -1157,7 +1143,7 @@ describe('authorizations', () => {
     expect(
       (await screen.findByTestId('authorizations-fireSafetyAuthorization-error')).textContent
     ).toBe('Autorizația are cel puțin 2 caractere.');
-    expect(requests('/organization/authorizations', 'PUT')).toHaveLength(0);
+    expect(requestsTo('/organization/authorizations', 'PUT')).toHaveLength(0);
   });
 
   it('shows a specialist the authorizations read-only', async () => {

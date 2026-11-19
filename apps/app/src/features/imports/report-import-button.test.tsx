@@ -1,22 +1,21 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PostHog } from 'posthog-js';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { MeResponse } from '@/api/generated/api';
+import { fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { employeeDetail } from '@/test/employee-import-fixture';
 import {
   clientId,
-  fetchMock,
   importDetail,
   importId,
-  meResponse,
   meWithCredits,
-  mockApi,
   readyDetail,
-  requestsTo,
 } from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientRecord, meResponse } from '@/test/records';
 
 const { posthog } = vi.hoisted(() => ({
   posthog: {
@@ -50,8 +49,7 @@ function fakePostHog() {
   };
 }
 
-const client = {
-  id: clientId,
+const client = clientRecord({
   legalName: 'Brutăria Spicul Auriu SRL',
   cui: '31458207',
   vatPayer: true,
@@ -63,15 +61,7 @@ const client = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 0,
   currentEmployeeCount: 0,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 const partFields = {
   status: 'failed',
@@ -96,43 +86,45 @@ const libraryParts = {
   posts: [],
 };
 
-let me: unknown = meResponse;
+let me: MeResponse = meResponse;
 
 function mockImport(
   detail: ReturnType<typeof importDetail> | ReturnType<typeof employeeDetail>,
   report: () => Response = () => new Response(null, { status: 204 })
 ) {
-  mockApi((init, url) => {
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/me') return Response.json(me);
-    if (url.pathname === '/me/support-identity') {
-      return Response.json({ distinctId: 'user-one', hash: 'support-hash' });
-    }
-    if (url.pathname === `/imports/${importId}` && method === 'GET') {
-      return Response.json({ import: detail });
-    }
-    if (url.pathname.startsWith(`/imports/${importId}/`) && url.pathname.endsWith('/report')) {
-      return report();
-    }
-    if (url.pathname === `/imports/${importId}/library-parts`) return Response.json(libraryParts);
-    if (url.pathname === '/imports') return Response.json({ items: [] });
-    if (url.pathname === '/clients') {
-      return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
-    }
-    if (url.pathname === `/clients/${clientId}`) {
-      return Response.json({ client, canDelete: false });
-    }
-    if (
-      url.pathname === `/clients/${clientId}/job-positions` ||
-      url.pathname === `/clients/${clientId}/workplaces`
-    ) {
-      return Response.json({ items: [] });
-    }
-    if (url.pathname === `/clients/${clientId}/found-sheets`) {
-      return Response.json({ items: [], total: 0 });
-    }
-    return undefined;
-  });
+  mockApi(
+    (init, url) => {
+      const method = init?.method ?? 'GET';
+      if (url.pathname === '/me/support-identity') {
+        return Response.json({ distinctId: 'user-one', hash: 'support-hash' });
+      }
+      if (url.pathname === `/imports/${importId}` && method === 'GET') {
+        return Response.json({ import: detail });
+      }
+      if (url.pathname.startsWith(`/imports/${importId}/`) && url.pathname.endsWith('/report')) {
+        return report();
+      }
+      if (url.pathname === `/imports/${importId}/library-parts`) return Response.json(libraryParts);
+      if (url.pathname === '/imports') return Response.json({ items: [] });
+      if (url.pathname === '/clients') {
+        return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+      }
+      if (url.pathname === `/clients/${clientId}`) {
+        return Response.json({ client, canDelete: false });
+      }
+      if (
+        url.pathname === `/clients/${clientId}/job-positions` ||
+        url.pathname === `/clients/${clientId}/workplaces`
+      ) {
+        return Response.json({ items: [] });
+      }
+      if (url.pathname === `/clients/${clientId}/found-sheets`) {
+        return Response.json({ items: [], total: 0 });
+      }
+      return undefined;
+    },
+    { me }
+  );
 }
 
 const mount = (path: string) => mountApp(authFixture(makeSession()).client, path);
@@ -147,17 +139,12 @@ const recorded = 'Am primit semnalarea și ne uităm la import.';
 const failedAt = '2026-10-28T09:30:00+00:00';
 const failureReason = 'Citirea s-a oprit din cauza unei erori.';
 
+installFetchMock();
+
 beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
   posthog.client = null;
   posthog.openSupportChat.mockReset().mockResolvedValue(true);
   me = meResponse;
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
 });
 
 describe('reporting a problem with an import', () => {

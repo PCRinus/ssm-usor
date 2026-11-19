@@ -1,30 +1,25 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
-import { noTests, untrained } from '@/test/training-fixture';
+import { mountApp } from '@/test/mount';
+import { clientRecord, employeeListItem, pageOf } from '@/test/records';
 
 const petromId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const navalId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 
-const client = (id: string, legalName: string) => ({
-  id,
-  legalName,
-  cui: '1590082',
-  vatPayer: true,
-  caenCode: '0610',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: null,
-  addressLine: null,
-  legalRepresentativeName: null,
-  declaredEmployeeCount: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-});
+const client = (id: string, legalName: string) =>
+  clientRecord({
+    id,
+    legalName,
+    vatPayer: true,
+    caenCode: '0610',
+    locality: null,
+    legalRepresentativeName: null,
+    declaredEmployeeCount: null,
+  });
 
 const employee = (
   id: string,
@@ -33,22 +28,17 @@ const employee = (
   clientId: string,
   clientName: string
 ) => ({
-  id,
-  clientId,
-  lastName,
-  firstName,
-  employeeNumber: 'A-17',
-  email: null,
-  phone: null,
-  jobTitle: 'Sudor',
-  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
-  hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  training: untrained,
-  tests: noTests,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
+  ...employeeListItem({
+    id,
+    clientId,
+    lastName,
+    firstName,
+    employeeNumber: 'A-17',
+    jobTitle: 'Sudor',
+    jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
+    hiredAt: '2020-03-01',
+    workplace: null,
+  }),
   client: { id: clientId, name: clientName },
 });
 
@@ -68,28 +58,18 @@ const taranu = employee(
 );
 
 const page = (items: unknown[], total = items.length, unfilteredTotal = total) => ({
-  items,
-  page: 1,
-  pageSize: 25,
-  total,
+  ...pageOf(items, { total }),
   unfilteredTotal,
 });
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi(list: (url: URL) => Response = () => Response.json(page([popescu, taranu]))) {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(String(input));
-    if (url.pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
+  mockRoutes((_init, url) => {
     if (url.pathname === '/employees') return list(url);
     if (url.pathname === '/clients') {
       return Response.json(
         page([client(petromId, 'OMV PETROM SA'), client(navalId, 'Șantierul Naval SA')])
       );
     }
-    throw new Error(`Unexpected request: ${url}`);
   });
 }
 
@@ -98,15 +78,7 @@ const listRequests = () =>
     .map(([input]) => new URL(String(input)))
     .filter((url) => url.pathname === '/employees');
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe("the organization's employees", () => {
   it('opens from the sidebar and lists every client’s employees with their client', async () => {

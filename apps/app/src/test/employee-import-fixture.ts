@@ -1,6 +1,7 @@
 import type { ImportDetail } from '@/api/generated/api';
 
 import { clientId, importDetail, importFile, importId } from './import-fixture';
+import { jobPositionRecord, workplaceListItem } from './records';
 
 export { clientId, importId };
 
@@ -246,42 +247,27 @@ export function employeeDetail(overrides: Record<string, unknown> = {}) {
 export const positions = [
   { id: bakerId, name: 'Brutar' },
   { id: sellerId, name: 'Vânzător' },
-].map((position) => ({
-  ...position,
-  clientId,
-  staffCategory: 'execution',
-  workZone: null,
-  activities: null,
-  trainingIntervalMonths: 6,
-  employeeCount: 3,
-  needsProtectiveEquipment: null,
-  equipmentCount: 0,
-  instructionCount: 0,
-  fireInstructionCount: 0,
-  createdAt: '2026-10-01T10:00:00+00:00',
-  updatedAt: '2026-10-01T10:00:00+00:00',
-}));
+].map((position) =>
+  jobPositionRecord({
+    ...position,
+    trainingIntervalMonths: 6,
+    employeeCount: 3,
+    createdAt: '2026-10-01T10:00:00+00:00',
+    updatedAt: '2026-10-01T10:00:00+00:00',
+  })
+);
 
 export const workplaces = [
   { id: shopId, name: 'Magazin Str. Lungă 5' },
   { id: bakeryId, name: 'Laborator producție' },
-].map((workplace) => ({
-  ...workplace,
-  clientId,
-  isRegisteredOffice: false,
-  officeHasActivity: true,
-  countyCode: 'SB',
-  locality: 'Sibiu',
-  addressLine: null,
-  activity: null,
-  kind: 'fixed_space',
-  floorAreaM2: null,
-  extinguisherNorm: null,
-  assemblyPoint: null,
-  combustibleMaterials: null,
-  ignitionSources: null,
-  fireRiskEquipment: null,
-  specificMeasures: null,
-  createdAt: '2026-09-20T10:00:00.000Z',
-  updatedAt: '2026-09-20T10:00:00.000Z',
-}));
+].map((workplace) =>
+  workplaceListItem({
+    ...workplace,
+    isRegisteredOffice: false,
+    countyCode: 'SB',
+    locality: 'Sibiu',
+    addressLine: null,
+    createdAt: '2026-09-20T10:00:00.000Z',
+    updatedAt: '2026-09-20T10:00:00.000Z',
+  })
+);

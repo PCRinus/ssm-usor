@@ -1,5 +1,7 @@
 import type {
   ClientResponseClient,
+  EmployeeListResponseItemsItem,
+  EmployeeListResponseItemsItemPortal,
   EmployeeResponseEmployee,
   JobPositionResponseJobPosition,
   MeResponse,
@@ -160,6 +162,66 @@ export function employeeRecord(
     archivedAt: null,
     training: untrained,
     tests: noTests,
+    ...overrides,
+  };
+}
+
+export const noPortalAccess: EmployeeListResponseItemsItemPortal = {
+  state: 'none',
+  since: null,
+  expiresAt: null,
+  revokedAt: null,
+  resendableAt: null,
+  channel: null,
+  address: null,
+  language: null,
+  participantId: null,
+  invitationId: null,
+  administrator: false,
+};
+
+export function employeeListItem(
+  overrides: Partial<EmployeeListResponseItemsItem> = {}
+): EmployeeListResponseItemsItem {
+  const {
+    id,
+    clientId,
+    lastName,
+    firstName,
+    employeeNumber,
+    email,
+    phone,
+    jobTitle,
+    jobPosition,
+    hiredAt,
+    status,
+    terminatedAt,
+    workplace,
+    createdAt,
+    updatedAt,
+    training,
+    tests,
+  } = employeeRecord();
+  return {
+    id,
+    clientId,
+    lastName,
+    firstName,
+    employeeNumber,
+    email,
+    phone,
+    jobTitle,
+    jobPosition,
+    hiredAt,
+    status,
+    terminatedAt,
+    workplace,
+    createdAt,
+    updatedAt,
+    training,
+    tests,
+    signaturesPending: 0,
+    portal: noPortalAccess,
     ...overrides,
   };
 }

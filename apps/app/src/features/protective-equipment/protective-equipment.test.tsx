@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { bodiesOf, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { clientId, clientRecord, jobPositionRecord, userOnlyMe } from '@/test/records';
+import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
 
 import { entryCountLabel, equipmentStateLabel, quantityLabel } from './equipment-schema';
 
@@ -89,29 +89,26 @@ function mockEquipmentApi({
   copy = (() => Response.json({ items: [mask, gloves], needsProtectiveEquipment: true })) as Route,
   suggestions = (() => Response.json({ items: ['Mască de sudură', 'Mănuși de sudor'] })) as Route,
 } = {}) {
-  mockApi(
-    (init, url) => {
-      const { pathname } = url;
-      const method = init?.method ?? 'GET';
-      if (pathname === `/clients/${clientId}`) return Response.json({ client });
-      if (pathname === positionsPath) return Response.json({ items: positions });
-      if (pathname === '/equipment-suggestions') return suggestions(init, url);
-      const equipmentMatch = pathname.match(/\/job-positions\/([^/]+)\/equipment(?:\/([^/]+))?$/);
-      if (equipmentMatch) {
-        const [, positionId, entryId] = equipmentMatch;
-        if (entryId === 'copy') return copy(init, url);
-        if (entryId) return method === 'DELETE' ? remove(init, url) : update(init, url);
-        if (method === 'POST') return create(init, url);
-        return Response.json(equipment[positionId!]);
-      }
-      if (pathname.endsWith('/protective-equipment')) return decide(init, url);
-      if (pathname.endsWith('/instructions')) {
-        return Response.json({ items: [] });
-      }
-      if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
-    },
-    { me: userOnlyMe }
-  );
+  mockApi((init, url) => {
+    const { pathname } = url;
+    const method = init?.method ?? 'GET';
+    if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === positionsPath) return Response.json({ items: positions });
+    if (pathname === '/equipment-suggestions') return suggestions(init, url);
+    const equipmentMatch = pathname.match(/\/job-positions\/([^/]+)\/equipment(?:\/([^/]+))?$/);
+    if (equipmentMatch) {
+      const [, positionId, entryId] = equipmentMatch;
+      if (entryId === 'copy') return copy(init, url);
+      if (entryId) return method === 'DELETE' ? remove(init, url) : update(init, url);
+      if (method === 'POST') return create(init, url);
+      return Response.json(equipment[positionId!]);
+    }
+    if (pathname.endsWith('/protective-equipment')) return decide(init, url);
+    if (pathname.endsWith('/instructions')) {
+      return Response.json({ items: [] });
+    }
+    if (pathname.endsWith('/risk-evaluation')) return Response.json({ evaluation: null });
+  });
 }
 
 const mount = (path = welderPage) => mountApp(authFixture(makeSession()).client, path);

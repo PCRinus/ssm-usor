@@ -1,9 +1,10 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { clientId, fetchMock, importDetail, importId, mockApi } from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientId, importDetail, importId } from '@/test/import-fixture';
+import { mountApp } from '@/test/mount';
 
 const legalName = 'Royal Hotel SRL';
 const confirmedAt = '2026-11-05T10:00:00+00:00';
@@ -75,17 +76,15 @@ const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/import
 const partsOf = (testId: string) =>
   screen.queryAllByTestId(testId).map((row) => row.getAttribute('data-part'));
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-  vi.useFakeTimers({ toFake: ['Date'] });
-  vi.setSystemTime(new Date('2026-11-05T12:00:00.000Z'));
+afterEach(() => {
+  vi.useRealTimers();
 });
 
-afterEach(() => {
-  disposeRuntimes();
-  vi.useRealTimers();
-  vi.unstubAllGlobals();
+installFetchMock();
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-05T12:00:00.000Z'));
 });
 
 describe('a confirmed client import with parts still open', () => {

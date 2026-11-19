@@ -1,29 +1,20 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { bodiesOf, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import {
+  clientId,
+  clientRecord,
+  employeeListItem,
+  pageOf,
+  workplaceListItem,
+} from '@/test/records';
 import { fullText } from '@/test/text';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  currentEmployeeCount: 12,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+const sampleClient = clientRecord({ currentEmployeeCount: 12 });
 
 const emptyDetails = {
   legalRepresentativeName: null,
@@ -36,21 +27,13 @@ const emptyDetails = {
   trainingDayTo: null,
 };
 
-const employee = {
+const employee = employeeListItem({
   id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
-  clientId,
   lastName: 'Luca',
   firstName: 'Paolo-Antonio',
-  employeeNumber: null,
-  email: null,
-  phone: null,
   jobTitle: 'Manager magazin',
   hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-};
+});
 
 const manager = {
   id: '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d',
@@ -79,20 +62,17 @@ const emptyFireSafety = {
   wasteContractor: null,
 };
 
-const shop = {
+const shop = workplaceListItem({
   id: '3f1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5e',
-  clientId,
   name: 'Gelaterie Timișoara',
   isRegisteredOffice: false,
   officeHasActivity: true,
-};
+});
 
 const listPath = `/clients/${clientId}/responsible-persons`;
 const itemPath = `${listPath}/${manager.id}`;
 
 type Route = (init: RequestInit | undefined) => Response;
-
-const fetchMock = vi.fn<typeof fetch>();
 
 function mockApi({
   client = sampleClient,
@@ -110,12 +90,8 @@ function mockApi({
   details = emptyDetails as Record<string, unknown>,
   workplaces = [] as unknown[],
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/document-details`) {
       return Response.json({ documentDetails: details });
@@ -125,21 +101,12 @@ function mockApi({
       return Response.json({ fireSafety: emptyFireSafety, exists: false });
     }
     if (pathname === `/clients/${clientId}/employees`) {
-      return Response.json({ items: [employee], page: 1, pageSize: 100, total: 1 });
+      return Response.json(pageOf([employee], { pageSize: 100 }));
     }
     if (pathname === listPath) return method === 'POST' ? create(init) : Response.json({ items });
     if (pathname === itemPath) return method === 'DELETE' ? archive(init) : update(init);
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
-
-const requests = (pathname: string, method: string) =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([, init]) => (init?.body ? (JSON.parse(String(init.body)) as unknown) : null));
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire`);
 
@@ -148,15 +115,7 @@ const renderedRoles = () =>
     checkbox.getAttribute('data-testid')!.replace('responsible-role-', '')
   );
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('client responsible persons', () => {
   it('lists each person with their roles, and names the roles nobody holds', async () => {
@@ -319,7 +278,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-save'));
 
     await waitFor(() =>
-      expect(requests(listPath, 'POST')).toEqual([
+      expect(bodiesOf(listPath, 'POST')).toEqual([
         {
           employeeId: employee.id,
           workplaceId: null,
@@ -344,7 +303,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-save'));
 
     await waitFor(() =>
-      expect(requests(listPath, 'POST')).toEqual([
+      expect(bodiesOf(listPath, 'POST')).toEqual([
         {
           employeeId: null,
           workplaceId: null,
@@ -384,7 +343,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-role-first_aid'));
     await user.click(screen.getByTestId('responsible-save'));
     await waitFor(() =>
-      expect(requests(listPath, 'POST')).toEqual([
+      expect(bodiesOf(listPath, 'POST')).toEqual([
         {
           employeeId: null,
           workplaceId: null,
@@ -458,7 +417,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-role-first_aid'));
     await user.click(screen.getByTestId('responsible-save'));
     await waitFor(() =>
-      expect(requests(listPath, 'POST')).toEqual([
+      expect(bodiesOf(listPath, 'POST')).toEqual([
         {
           employeeId: employee.id,
           workplaceId: null,
@@ -569,7 +528,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-save'));
 
     await waitFor(() =>
-      expect(requests(listPath, 'POST')).toEqual([
+      expect(bodiesOf(listPath, 'POST')).toEqual([
         {
           employeeId: null,
           workplaceId: shop.id,
@@ -599,7 +558,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-save'));
 
     await waitFor(() =>
-      expect(requests(itemPath, 'PUT')).toEqual([
+      expect(bodiesOf(itemPath, 'PUT')).toEqual([
         expect.objectContaining({ workplaceId: shop.id, roles: ['workplace_manager'] }),
       ])
     );
@@ -705,7 +664,7 @@ describe('client responsible persons', () => {
     expect(screen.getByTestId('responsible-roles-error').textContent).toContain(
       'cel puțin o responsabilitate'
     );
-    expect(requests(listPath, 'POST')).toEqual([]);
+    expect(bodiesOf(listPath, 'POST')).toEqual([]);
   });
 
   it('reports an employee who is already listed on the employee field', async () => {
@@ -765,7 +724,7 @@ describe('client responsible persons', () => {
     expect((await screen.findByTestId('responsible-employee-error')).textContent).toContain(
       'dintre lucrătorii clientului'
     );
-    expect(requests(listPath, 'POST')).toEqual([]);
+    expect(bodiesOf(listPath, 'POST')).toEqual([]);
   });
 
   it('names both people when the legal representative is chosen to represent the workers', async () => {
@@ -809,7 +768,7 @@ describe('client responsible persons', () => {
     await user.click(screen.getByTestId('responsible-save'));
 
     await waitFor(() =>
-      expect(requests(itemPath, 'PUT')).toEqual([
+      expect(bodiesOf(itemPath, 'PUT')).toEqual([
         {
           employeeId: employee.id,
           workplaceId: null,
@@ -831,8 +790,8 @@ describe('client responsible persons', () => {
     expect(drift.textContent).toContain('Director magazin');
     await user.click(within(drift).getByTestId('responsible-title-adopt'));
 
-    await waitFor(() => expect(requests(itemPath, 'PUT')).toHaveLength(1));
-    expect(requests(itemPath, 'PUT')[0]).toEqual({
+    await waitFor(() => expect(bodiesOf(itemPath, 'PUT')).toHaveLength(1));
+    expect(bodiesOf(itemPath, 'PUT')[0]).toEqual({
       employeeId: employee.id,
       workplaceId: null,
       fullName: 'Paolo-Antonio Luca',
@@ -865,7 +824,7 @@ describe('client responsible persons', () => {
     await user.click(await screen.findByTestId('responsible-actions'));
     await user.click(await screen.findByTestId('responsible-archive'));
     await user.click(await screen.findByTestId('responsible-archive-confirm'));
-    await waitFor(() => expect(requests(itemPath, 'DELETE')).toHaveLength(1));
+    await waitFor(() => expect(bodiesOf(itemPath, 'DELETE')).toHaveLength(1));
     expect((await screen.findByTestId('responsible-persons-error')).textContent).toContain(
       'arhivat'
     );
@@ -887,10 +846,10 @@ describe('client responsible persons', () => {
     await user.click(await screen.findByTestId('responsible-archive'));
     const dialog = await screen.findByTestId('responsible-archive-dialog');
     expect(dialog.textContent).toContain('Paolo-Antonio Luca');
-    expect(requests(itemPath, 'DELETE')).toEqual([]);
+    expect(bodiesOf(itemPath, 'DELETE')).toEqual([]);
 
     await user.click(within(dialog).getByTestId('responsible-archive-confirm'));
-    await waitFor(() => expect(requests(itemPath, 'DELETE')).toHaveLength(1));
+    await waitFor(() => expect(bodiesOf(itemPath, 'DELETE')).toHaveLength(1));
     expect(
       await screen.findByText(fullText('Paolo-Antonio Luca a fost scos din listă.'))
     ).toBeTruthy();

@@ -1,19 +1,11 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { bodyOf, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import {
-  bodyOf,
-  fetchMock,
-  importDetail,
-  importFile,
-  importId,
-  mockApi,
-  requestsTo,
-  summaryOf,
-} from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { importDetail, importFile, importId, summaryOf } from '@/test/import-fixture';
+import { mountApp } from '@/test/mount';
 
 const splitId = '7a2f3e4d-5c6b-4d7e-8f90-a1b2c3d4e5f6';
 
@@ -126,15 +118,7 @@ function mockImport(detail: ReturnType<typeof importDetail>, read?: () => Respon
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/import/${importId}`);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the processing page', () => {
   it('reads the documents together and counts the scans one by one', async () => {

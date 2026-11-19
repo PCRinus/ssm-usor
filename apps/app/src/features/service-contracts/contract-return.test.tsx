@@ -1,9 +1,10 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
 
 const contract = {
   status: 'open',
@@ -16,41 +17,32 @@ const contract = {
   receivedAt: null,
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   lookup = () => Response.json(contract),
   upload = () =>
     Response.json({ ...contract, status: 'received', receivedAt: '2026-09-22T09:30:00+00:00' }),
 }: { lookup?: () => Response; upload?: () => Response } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    if (pathname === '/contract-returns/lookup') return lookup();
-    if (pathname === '/contract-returns/upload') return upload();
-    if (pathname === '/contract-returns/download') {
-      return Response.json({
-        url: 'https://files.example/x',
-        fileName: 'x.pdf',
-        expiresInSeconds: 60,
-      });
-    }
-    throw new Error(`Unexpected request: ${init?.method ?? 'GET'} ${pathname}`);
-  });
+  mockRoutes(
+    (_init, { pathname }) => {
+      if (pathname === '/contract-returns/lookup') return lookup();
+      if (pathname === '/contract-returns/upload') return upload();
+      if (pathname === '/contract-returns/download') {
+        return Response.json({
+          url: 'https://files.example/x',
+          fileName: 'x.pdf',
+          expiresInSeconds: 60,
+        });
+      }
+    },
+    { me: null }
+  );
 }
 
-const calls = (pathname: string) =>
-  fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === pathname);
-
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
 afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+
+installFetchMock();
 
 describe('the return page', () => {
   it('names the contract and the parties, and asks for the token in the body', async () => {
@@ -63,7 +55,7 @@ describe('the return page', () => {
     expect(page.textContent).toContain('S.C. VELOCITA URBANA S.R.L.');
     expect(page.textContent).toContain('certificatul calificat');
     expect(page.textContent).toContain('Politica de confidențialitate');
-    const [lookup] = calls('/contract-returns/lookup');
+    const [lookup] = requestsTo('/contract-returns/lookup', 'POST');
     expect(JSON.parse(String(lookup![1]?.body))).toEqual({ token: 'tok-123' });
     expect(String(lookup![0])).not.toContain('tok-123');
   });
@@ -82,7 +74,7 @@ describe('the return page', () => {
     expect((await screen.findByTestId('return-done')).textContent).toContain(
       'a primit exemplarul semnat'
     );
-    const [upload] = calls('/contract-returns/upload');
+    const [upload] = requestsTo('/contract-returns/upload', 'POST');
     const form = upload![1]?.body as FormData;
     expect(form.get('token')).toBe('tok-123');
     expect((form.get('file') as File).name).toBe('contract semnat.pdf');
@@ -100,7 +92,7 @@ describe('the return page', () => {
     expect(address.searchParams.get('name')).toBe('x.pdf');
     expect(address.searchParams.get('disposition')).toBe('inline');
     expect(address.href).not.toContain('tok-123');
-    const [download] = calls('/contract-returns/download');
+    const [download] = requestsTo('/contract-returns/download', 'POST');
     expect(JSON.parse(String(download![1]?.body))).toEqual({ token: 'tok-123' });
   });
 

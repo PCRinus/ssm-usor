@@ -1,41 +1,36 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession, withFactor } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
-
-const fetchMock = vi.fn<typeof fetch>();
+import { mountApp } from '@/test/mount';
+import { meRecord } from '@/test/records';
 
 // Only the pages behind the login call the API.
 function mockApi() {
-  fetchMock.mockImplementation(async (input) => {
-    const { pathname } = new URL(String(input));
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        profile: { fullName: 'Ana Popescu', termsVersion: null, termsAcceptedAt: null },
-        membership: {
-          organization: { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' },
-          role: 'specialist',
-        },
-      });
-    }
-    throw new Error(`Unexpected request: ${pathname}`);
+  mockRoutes(() => undefined, {
+    me: meRecord({
+      profile: {
+        fullName: 'Ana Popescu',
+        professionalTitle: null,
+        termsVersion: null,
+        termsAcceptedAt: null,
+      },
+      membership: {
+        organization: { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' },
+        role: 'specialist',
+      },
+    }),
   });
 }
 
 const authError = (code: string) => ({ message: code, code });
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-  mockApi();
-});
+installFetchMock();
 
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
+beforeEach(() => {
+  mockApi();
 });
 
 describe('forgot password', () => {

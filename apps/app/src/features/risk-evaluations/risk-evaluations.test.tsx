@@ -7,7 +7,7 @@ import { ApiHttpError } from '@/api/http';
 import { bodiesOf, fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { clientId, clientRecord, jobPositionRecord, userOnlyMe } from '@/test/records';
+import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
 
 import { evaluationFailure } from './evaluation-failure';
 import {
@@ -196,109 +196,104 @@ function mockEvaluationsApi({
       })),
     });
 
-  mockApi(
-    (init, url) => {
-      const { pathname } = url;
-      const method = init?.method ?? 'GET';
-      const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
-      if (pathname === `/clients/${clientId}`) return Response.json({ client });
-      if (pathname === positionsPath) {
-        return Response.json({ items: [welder, fitter, cashier] });
-      }
-      if (pathname.endsWith('/equipment')) {
-        return Response.json({ items: [], needsProtectiveEquipment: true });
-      }
-      if (pathname.endsWith('/instructions')) {
-        return Response.json({ items: [] });
-      }
-      if (pathname === '/risk-factor-suggestions') return suggestions(init, url);
-      if (pathname === `/clients/${clientId}/document-details`) {
-        return Response.json({
-          documentDetails: {
-            legalRepresentativeName: 'Maria Popescu',
-            legalRepresentativeRole: 'Administrator',
-            periodicTrainingMinutes: null,
-            administrativeTrainingIntervalMonths: null,
-            administrativeTrainingNotApplicable: false,
-            workerTrainingIntervalMonths: null,
-            workerTrainingNotApplicable: false,
-            trainingFirstMonth: null,
-            trainingDayFrom: null,
-            trainingDayTo: null,
-          },
-        });
-      }
-      if (pathname === `/clients/${clientId}/responsible-persons`) {
-        return Response.json({ items: [workshopLead, firstAider] });
-      }
-      const byPosition = pathname.match(/\/job-positions\/([^/]+)\/risk-evaluation$/);
-      if (byPosition) {
-        const evaluation = [...store.values()].find(
-          (candidate) => candidate.jobPosition?.id === byPosition[1]
-        );
-        return Response.json({ evaluation: evaluation ?? null });
-      }
-      if (pathname === `/clients/${clientId}/sensitive-groups-state`) {
-        groupsState = body.state as typeof groupsState;
-        return Response.json({ state: groupsState });
-      }
-      if (pathname === evaluationsPath) {
-        if (method === 'POST') {
-          const response = (create ?? created)(init, url);
-          if (response.status === 201 && body.kind === 'sensitive_groups')
-            groupsState = 'evaluated';
-          return response;
-        }
-        return Response.json({
-          items: [...store.values()].map(summaryOf),
-          sensitiveGroupsState: groupsState,
-        });
-      }
-      const match = pathname.match(
-        /\/risk-evaluations\/([^/]+)(?:\/(factors|factor-order)(?:\/([^/]+))?)?$/
+  mockApi((init, url) => {
+    const { pathname } = url;
+    const method = init?.method ?? 'GET';
+    const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
+    if (pathname === `/clients/${clientId}`) return Response.json({ client });
+    if (pathname === positionsPath) {
+      return Response.json({ items: [welder, fitter, cashier] });
+    }
+    if (pathname.endsWith('/equipment')) {
+      return Response.json({ items: [], needsProtectiveEquipment: true });
+    }
+    if (pathname.endsWith('/instructions')) {
+      return Response.json({ items: [] });
+    }
+    if (pathname === '/risk-factor-suggestions') return suggestions(init, url);
+    if (pathname === `/clients/${clientId}/document-details`) {
+      return Response.json({
+        documentDetails: {
+          legalRepresentativeName: 'Maria Popescu',
+          legalRepresentativeRole: 'Administrator',
+          periodicTrainingMinutes: null,
+          administrativeTrainingIntervalMonths: null,
+          administrativeTrainingNotApplicable: false,
+          workerTrainingIntervalMonths: null,
+          workerTrainingNotApplicable: false,
+          trainingFirstMonth: null,
+          trainingDayFrom: null,
+          trainingDayTo: null,
+        },
+      });
+    }
+    if (pathname === `/clients/${clientId}/responsible-persons`) {
+      return Response.json({ items: [workshopLead, firstAider] });
+    }
+    const byPosition = pathname.match(/\/job-positions\/([^/]+)\/risk-evaluation$/);
+    if (byPosition) {
+      const evaluation = [...store.values()].find(
+        (candidate) => candidate.jobPosition?.id === byPosition[1]
       );
-      if (match) {
-        const [, evaluationId, part, factorId] = match;
-        const evaluation = store.get(evaluationId!);
-        if (!evaluation)
-          return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
-        if (!part) {
-          if (method === 'DELETE') {
-            store.delete(evaluation.id);
-            return new Response(null, { status: 204 });
-          }
-          if (method === 'PATCH') return answer({ ...evaluation, ...body });
-          return Response.json({ evaluation });
-        }
-        if (factorId === 'copy') {
-          const source = store.get(String(body.fromEvaluationId))!;
-          return answer({
-            ...evaluation,
-            factors: [
-              ...evaluation.factors,
-              ...source.factors.map((factor) => ({ ...factor, id: uuid() })),
-            ],
-          });
-        }
-        if (factorId && method === 'DELETE') {
-          return answer({
-            ...evaluation,
-            factors: evaluation.factors.filter((factor) => factor.id !== factorId),
-          });
-        }
-        if (factorId) {
-          return answer({
-            ...evaluation,
-            factors: evaluation.factors.map((factor) =>
-              factor.id === factorId ? toFactor(body, factorId) : factor
-            ),
-          });
-        }
-        return answer({ ...evaluation, factors: [...evaluation.factors, toFactor(body)] }, 201);
+      return Response.json({ evaluation: evaluation ?? null });
+    }
+    if (pathname === `/clients/${clientId}/sensitive-groups-state`) {
+      groupsState = body.state as typeof groupsState;
+      return Response.json({ state: groupsState });
+    }
+    if (pathname === evaluationsPath) {
+      if (method === 'POST') {
+        const response = (create ?? created)(init, url);
+        if (response.status === 201 && body.kind === 'sensitive_groups') groupsState = 'evaluated';
+        return response;
       }
-    },
-    { me: userOnlyMe }
-  );
+      return Response.json({
+        items: [...store.values()].map(summaryOf),
+        sensitiveGroupsState: groupsState,
+      });
+    }
+    const match = pathname.match(
+      /\/risk-evaluations\/([^/]+)(?:\/(factors|factor-order)(?:\/([^/]+))?)?$/
+    );
+    if (match) {
+      const [, evaluationId, part, factorId] = match;
+      const evaluation = store.get(evaluationId!);
+      if (!evaluation) return Response.json({ error: 'not_found', message: 'no' }, { status: 404 });
+      if (!part) {
+        if (method === 'DELETE') {
+          store.delete(evaluation.id);
+          return new Response(null, { status: 204 });
+        }
+        if (method === 'PATCH') return answer({ ...evaluation, ...body });
+        return Response.json({ evaluation });
+      }
+      if (factorId === 'copy') {
+        const source = store.get(String(body.fromEvaluationId))!;
+        return answer({
+          ...evaluation,
+          factors: [
+            ...evaluation.factors,
+            ...source.factors.map((factor) => ({ ...factor, id: uuid() })),
+          ],
+        });
+      }
+      if (factorId && method === 'DELETE') {
+        return answer({
+          ...evaluation,
+          factors: evaluation.factors.filter((factor) => factor.id !== factorId),
+        });
+      }
+      if (factorId) {
+        return answer({
+          ...evaluation,
+          factors: evaluation.factors.map((factor) =>
+            factor.id === factorId ? toFactor(body, factorId) : factor
+          ),
+        });
+      }
+      return answer({ ...evaluation, factors: [...evaluation.factors, toFactor(body)] }, 201);
+    }
+  });
 }
 
 async function typeResponsible(user: ReturnType<typeof userEvent.setup>, name: string) {
@@ -1244,11 +1239,14 @@ describe("a client's evaluations outside its positions", () => {
     mockEvaluationsApi();
     mount(positionsPage);
     const card = await screen.findByTestId('client-risk-evaluations-card');
-    fetchMock.mockImplementationOnce(async () =>
-      Response.json(
-        { error: 'conflict', message: 'taken', reason: 'sensitive_groups_evaluated' },
-        { status: 409 }
-      )
+    const answers = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input)).pathname === sensitiveGroupsPath
+        ? Response.json(
+            { error: 'conflict', message: 'taken', reason: 'sensitive_groups_evaluated' },
+            { status: 409 }
+          )
+        : answers(input, init)
     );
     await userEvent.setup().click(await within(card).findByTestId('sensitive-groups-none'));
     expect((await within(card).findByTestId('client-risk-evaluations-error')).textContent).toBe(

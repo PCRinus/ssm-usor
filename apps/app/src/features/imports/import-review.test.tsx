@@ -1,28 +1,27 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import type { MeResponse, WorkplaceListResponseItemsItem } from '@/api/generated/api';
+import { bodyOf, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
-  bodyOf,
   clientId,
-  fetchMock,
   fireCountProposal,
   importFile,
   importId,
   managementPostProposal,
   meWithCredits,
-  mockApi,
   placesProposal,
   proposalFixture,
   readyBlockers,
   readyDetail,
-  requestsTo,
   secondPostProposal,
   substancesProposal,
   suggestedValuesProposal,
 } from '@/test/import-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientRecord, workplaceListItem } from '@/test/records';
 
 import type { Proposal } from './review-model';
 
@@ -30,8 +29,7 @@ type Detail = ReturnType<typeof readyDetail>;
 
 const proposalOf = (detail: Detail) => detail.proposal as unknown as Proposal;
 
-const existingClient = {
-  id: clientId,
+const existingClient = clientRecord({
   legalName: 'Brutăria Spicul Auriu SRL',
   cui: '31458207',
   vatPayer: true,
@@ -43,15 +41,8 @@ const existingClient = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 0,
   currentEmployeeCount: 0,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
   contactPhone: '0269 214 300',
-  promotedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 let saves: number;
 
@@ -68,72 +59,77 @@ function mockReview(
   }: {
     save?: (body: unknown) => Response | Promise<Response>;
     confirm?: () => Response;
-    me?: unknown;
+    me?: MeResponse;
     documentDetails?: Record<string, unknown>;
     positions?: () => Response;
     substances?: { state: string; items: { name: string }[] };
-    workplaces?: Record<string, unknown>[];
+    workplaces?: WorkplaceListResponseItemsItem[];
   } = {}
 ) {
   saves = 0;
-  mockApi((init, url) => {
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/me' && me) return Response.json(me);
-    if (url.pathname === `/imports/${importId}` && method === 'GET') {
-      return Response.json({ import: detail });
-    }
-    if (url.pathname === `/imports/${importId}/changes`) {
-      saves += 1;
-      const body = JSON.parse(String(init?.body)) as { version: number };
-      const answer =
-        save?.(body) ?? Response.json({ version: body.version + 1, blockers: detail.blockers });
-      return Promise.resolve(answer).then(async (response) => {
-        if (response.ok) {
-          detail.blockers = ((await response.clone().json()) as Pick<Detail, 'blockers'>).blockers;
-        }
-        return response;
-      });
-    }
-    if (url.pathname === `/imports/${importId}/confirm`) {
-      return confirm?.() ?? Response.json({ clientId, fileCount: 3 });
-    }
-    if (url.pathname === '/imports') return Response.json({ items: [] });
-    if (url.pathname === '/clients') {
-      return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
-    }
-    if (url.pathname === `/clients/${clientId}`) return Response.json({ client: existingClient });
-    if (url.pathname === `/clients/${clientId}/document-details`) {
-      return Response.json({
-        documentDetails: {
-          legalRepresentativeName: null,
-          legalRepresentativeRole: null,
-          legalRepresentativeEmployeeId: null,
-          legalRepresentativeEmployee: null,
-          periodicTrainingMinutes: null,
-          administrativeTrainingIntervalMonths: null,
-          administrativeTrainingNotApplicable: false,
-          workerTrainingIntervalMonths: null,
-          workerTrainingNotApplicable: false,
-          trainingFirstMonth: null,
-          trainingDayFrom: null,
-          trainingDayTo: null,
-          ...documentDetails,
-        },
-      });
-    }
-    if (url.pathname === `/clients/${clientId}/job-positions`) return positions();
-    if (url.pathname === `/clients/${clientId}/fire-safety`) {
-      return Response.json({ fireSafety: null });
-    }
-    if (url.pathname === `/clients/${clientId}/fire-substances`) {
-      return Response.json(substances);
-    }
-    if (url.pathname === `/clients/${clientId}/workplaces`) {
-      return Response.json({ items: workplaces });
-    }
-    if (url.pathname.startsWith(`/clients/${clientId}/`)) return Response.json({}, { status: 404 });
-    return undefined;
-  });
+  mockApi(
+    (init, url) => {
+      const method = init?.method ?? 'GET';
+      if (url.pathname === `/imports/${importId}` && method === 'GET') {
+        return Response.json({ import: detail });
+      }
+      if (url.pathname === `/imports/${importId}/changes`) {
+        saves += 1;
+        const body = JSON.parse(String(init?.body)) as { version: number };
+        const answer =
+          save?.(body) ?? Response.json({ version: body.version + 1, blockers: detail.blockers });
+        return Promise.resolve(answer).then(async (response) => {
+          if (response.ok) {
+            detail.blockers = (
+              (await response.clone().json()) as Pick<Detail, 'blockers'>
+            ).blockers;
+          }
+          return response;
+        });
+      }
+      if (url.pathname === `/imports/${importId}/confirm`) {
+        return confirm?.() ?? Response.json({ clientId, fileCount: 3 });
+      }
+      if (url.pathname === '/imports') return Response.json({ items: [] });
+      if (url.pathname === '/clients') {
+        return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+      }
+      if (url.pathname === `/clients/${clientId}`) return Response.json({ client: existingClient });
+      if (url.pathname === `/clients/${clientId}/document-details`) {
+        return Response.json({
+          documentDetails: {
+            legalRepresentativeName: null,
+            legalRepresentativeRole: null,
+            legalRepresentativeEmployeeId: null,
+            legalRepresentativeEmployee: null,
+            periodicTrainingMinutes: null,
+            administrativeTrainingIntervalMonths: null,
+            administrativeTrainingNotApplicable: false,
+            workerTrainingIntervalMonths: null,
+            workerTrainingNotApplicable: false,
+            trainingFirstMonth: null,
+            trainingDayFrom: null,
+            trainingDayTo: null,
+            ...documentDetails,
+          },
+        });
+      }
+      if (url.pathname === `/clients/${clientId}/job-positions`) return positions();
+      if (url.pathname === `/clients/${clientId}/fire-safety`) {
+        return Response.json({ fireSafety: null });
+      }
+      if (url.pathname === `/clients/${clientId}/fire-substances`) {
+        return Response.json(substances);
+      }
+      if (url.pathname === `/clients/${clientId}/workplaces`) {
+        return Response.json({ items: workplaces });
+      }
+      if (url.pathname.startsWith(`/clients/${clientId}/`))
+        return Response.json({}, { status: 404 });
+      return undefined;
+    },
+    { me }
+  );
 }
 
 const mount = (path = '') =>
@@ -145,15 +141,7 @@ const savedChanges = (index: number) =>
     changes: { fields: Record<string, unknown>; items: Record<string, unknown> };
   };
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('the review hub', () => {
   it('lists what blocks confirming, links each to its row, and gives each section a status', async () => {
@@ -3376,20 +3364,21 @@ describe('suggested values', () => {
   });
 
   describe('into an existing client', () => {
-    const existingOffice = (officeHasActivity: boolean) => ({
-      id: '7c2e1d4a-5b6f-4a8e-9c0d-1e2f3a4b5c6d',
-      name: 'Sediu',
-      addressLine: 'Str. Morilor nr. 14',
-      isRegisteredOffice: true,
-      officeHasActivity,
-    });
-    const depot = {
+    const existingOffice = (officeHasActivity: boolean) =>
+      workplaceListItem({
+        id: '7c2e1d4a-5b6f-4a8e-9c0d-1e2f3a4b5c6d',
+        name: 'Sediu',
+        addressLine: 'Str. Morilor nr. 14',
+        isRegisteredOffice: true,
+        officeHasActivity,
+      });
+    const depot = workplaceListItem({
       id: '8d3f2e5b-6c7a-4b9f-8d1e-2f3a4b5c6d7e',
       name: 'Depozit',
       addressLine: 'Str. Fabricii nr. 2',
       isRegisteredOffice: false,
       officeHasActivity: true,
-    };
+    });
 
     it('takes nothing for the client’s own office that already has no activity', async () => {
       const detail = suggestedDetail({ intoExistingClient: true, blockers: [] });

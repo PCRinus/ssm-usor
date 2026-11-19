@@ -2,16 +2,10 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import {
-  fetchMock,
-  importId,
-  mockApi,
-  proposalFixture,
-  readyDetail,
-  requestsTo,
-} from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { importId, proposalFixture, readyDetail } from '@/test/import-fixture';
+import { mountApp } from '@/test/mount';
 
 const wordLinks: string[] = [];
 const viewers = {
@@ -179,16 +173,14 @@ beforeEach(() => {
   viewers.progress = null;
   sourceGate = null;
   quoteGates.clear();
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
 });
 
 afterEach(() => {
   vi.useRealTimers();
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
+
+installFetchMock();
 
 describe('the source dialog', () => {
   it('counts passages from one file in the singular', async () => {

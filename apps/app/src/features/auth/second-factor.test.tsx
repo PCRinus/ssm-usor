@@ -1,33 +1,34 @@
 import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession, withFactor } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import { meRecord } from '@/test/records';
 
-const fetchMock = vi.fn<typeof fetch>();
+installFetchMock();
 
 beforeEach(() => {
-  fetchMock.mockReset();
-  fetchMock.mockImplementation(async (input) =>
-    new URL(String(input)).pathname === '/dashboard/summary'
-      ? Response.json(quietSummary)
-      : Response.json({
-          user: { id: 'user-one', email: 'review@example.test' },
-          profile: { fullName: 'Ana Popescu', termsVersion: null, termsAcceptedAt: null },
-          membership: {
-            organization: { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' },
-            role: 'owner',
-          },
-        })
+  mockApi(
+    (_init, { pathname }) =>
+      pathname === '/dashboard/summary' ? Response.json(quietSummary) : undefined,
+    {
+      me: meRecord({
+        profile: {
+          fullName: 'Ana Popescu',
+          professionalTitle: null,
+          termsVersion: null,
+          termsAcceptedAt: null,
+        },
+        membership: {
+          organization: { id: '4d1c2a9e-7b3f-4e8a-9c5d-2f6b8a0e1c3d', name: 'Protect SSM' },
+          role: 'owner',
+        },
+      }),
+    }
   );
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
 });
 
 // Like the real client, signing in saves the session and announces it before answering.

@@ -1,15 +1,21 @@
-import type { BillingSmsUsage, PortalAccessState } from '@ssm-usor/contracts';
+import type { BillingSmsUsage } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { smsUsage } from '@/test/billing-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import {
+  clientId,
+  clientRecord,
+  employeeListItem,
+  meRecord,
+  noPortalAccess as noAccess,
+} from '@/test/records';
 import { fullText } from '@/test/text';
-import { noTests, untrained } from '@/test/training-fixture';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const employeesPath = `/clients/${clientId}/employees`;
 const inviteesPath = `/clients/${clientId}/employee-invitees`;
 const participantsPath = `/clients/${clientId}/participants`;
@@ -17,26 +23,11 @@ const bulkPath = `/clients/${clientId}/employee-participant-invitations`;
 const administratorPath = `/clients/${clientId}/participant-invitations`;
 const portalPage = `/clienti/${clientId}/portal`;
 
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
-  tradeRegisterNumber: null,
-  countyCode: 'B',
-  locality: 'București',
-  addressLine: null,
-  legalRepresentativeName: 'Maria Popescu',
+const sampleClient = clientRecord({
   contactName: 'Ioana Dinu',
   contactEmail: 'office@veloce.ro',
   contactPhone: '+40722000111',
-  stage: 'client',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+});
 
 const idOf = (n: number) => `7c9e6679-7425-40de-944b-${String(n).padStart(12, '0')}`;
 const participantIdOf = (n: number) => `0a1b2c3d-4e5f-4a6b-8c7d-${String(n).padStart(12, '0')}`;
@@ -44,43 +35,20 @@ const invitationIdOf = (n: number) => `3f2c1b0a-9e8d-4c7b-a6f5-${String(n).padSt
 const later = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
 const earlier = (minutes: number) => later(-minutes);
 
-const noAccess = {
-  state: 'none' as PortalAccessState,
-  since: null as string | null,
-  expiresAt: null as string | null,
-  revokedAt: null as string | null,
-  resendableAt: null as string | null,
-  channel: null as 'email' | 'sms' | null,
-  address: null as string | null,
-  language: null as 'ro' | 'en' | null,
-  participantId: null as string | null,
-  invitationId: null as string | null,
-  administrator: false,
-};
-
 type Access = typeof noAccess;
 
-const worker = (n: number, lastName: string, portal: Partial<Access> = {}) => ({
-  id: idOf(n),
-  clientId,
-  lastName,
-  firstName: 'Ion',
-  employeeNumber: null,
-  email: `${lastName.toLowerCase()}@example.ro`,
-  phone: null,
-  jobTitle: 'Barista',
-  jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Barista' },
-  hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  workplace: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  training: untrained,
-  tests: noTests,
-  signaturesPending: 0,
-  portal: { ...noAccess, ...portal },
-});
+const worker = (n: number, lastName: string, portal: Partial<Access> = {}) =>
+  employeeListItem({
+    id: idOf(n),
+    lastName,
+    firstName: 'Ion',
+    email: `${lastName.toLowerCase()}@example.ro`,
+    jobTitle: 'Barista',
+    jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Barista' },
+    hiredAt: '2020-03-01',
+    workplace: null,
+    portal: { ...noAccess, ...portal },
+  });
 
 type Worker = ReturnType<typeof worker>;
 
@@ -158,8 +126,6 @@ const administratorInvitation = {
   createdAt: '2026-11-12T09:00:00.000Z',
 };
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   workers = mixed(),
   client = sampleClient,
@@ -177,112 +143,94 @@ function mockApi({
   sms?: BillingSmsUsage;
   signatures?: unknown[];
 } = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
-    const { pathname, searchParams } = url;
-    const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        smsThisMonth: sms ?? null,
-      });
-    }
-    if (pathname === `/clients/${clientId}`) return Response.json({ client });
-    if (pathname === participantsPath) return Response.json({ participants, invitations });
-    if (pathname === employeesPath && method === 'GET') {
-      const states = searchParams.getAll('portal');
-      const rows = workers.filter(
-        (row) => states.length === 0 || states.includes(row.portal.state)
-      );
-      const page = Number(searchParams.get('page') ?? 1);
-      const size = Number(searchParams.get('pageSize') ?? 25);
-      return Response.json({
-        items: rows.slice((page - 1) * size, page * size),
-        page,
-        pageSize: size,
-        total: rows.length,
-        unfilteredTotal: workers.length,
-      });
-    }
-    if (pathname === inviteesPath) {
-      if (invitees) return invitees(url);
-      const states = searchParams.getAll('portal');
-      const rows = workers.filter(
-        (row) => states.length === 0 || states.includes(row.portal.state)
-      );
-      return Response.json({
-        items: rows.map((row) => ({
-          employeeId: row.id,
-          lastName: row.lastName,
-          firstName: row.firstName,
-          position: row.jobPosition.name,
-          email: row.email,
-          phone: row.phone,
-          current: true,
-          portal: null,
-        })),
-        total: rows.length,
-      });
-    }
-    if (pathname === bulkPath && method === 'POST') {
-      const body = JSON.parse(String(init!.body)) as {
-        invitations: { employeeId: string; address: string }[];
-      };
-      return Response.json({
-        results: body.invitations.map((row) => ({
-          employeeId: row.employeeId,
-          outcome: 'invited',
-          reason: null,
-          invitation: null,
-        })),
-      });
-    }
-    if (pathname.endsWith('/participant-invitations') && pathname.includes('/employees/')) {
-      return Response.json(
-        { ...administratorInvitation, kind: 'employee', employeeId: pathname.split('/')[4] },
-        { status: 201 }
-      );
-    }
-    if (pathname === administratorPath && method === 'POST') {
-      return Response.json(administratorInvitation, { status: 201 });
-    }
-    if (pathname.endsWith('/resend') && method === 'POST') {
-      return Response.json(administratorInvitation);
-    }
-    if (pathname.endsWith('/revoke') && method === 'POST') {
-      return new Response(null, { status: 204 });
-    }
-    if (pathname === `/clients/${clientId}/signature-requests`) {
-      return Response.json({ items: signatures });
-    }
-    if (pathname === `/clients/${clientId}/job-positions`) {
-      return Response.json({ items: [] });
-    }
-    if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
-    return Response.json({ error: 'not_found', message: 'Not mocked.' }, { status: 404 });
-  });
+  mockRoutes(
+    (init, url) => {
+      const { pathname, searchParams } = url;
+      const method = init?.method ?? 'GET';
+      if (pathname === `/clients/${clientId}`) return Response.json({ client });
+      if (pathname === participantsPath) return Response.json({ participants, invitations });
+      if (pathname === employeesPath && method === 'GET') {
+        const states = searchParams.getAll('portal');
+        const rows = workers.filter(
+          (row) => states.length === 0 || states.includes(row.portal.state)
+        );
+        const page = Number(searchParams.get('page') ?? 1);
+        const size = Number(searchParams.get('pageSize') ?? 25);
+        return Response.json({
+          items: rows.slice((page - 1) * size, page * size),
+          page,
+          pageSize: size,
+          total: rows.length,
+          unfilteredTotal: workers.length,
+        });
+      }
+      if (pathname === inviteesPath) {
+        if (invitees) return invitees(url);
+        const states = searchParams.getAll('portal');
+        const rows = workers.filter(
+          (row) => states.length === 0 || states.includes(row.portal.state)
+        );
+        return Response.json({
+          items: rows.map((row) => ({
+            employeeId: row.id,
+            lastName: row.lastName,
+            firstName: row.firstName,
+            position: row.jobPosition.name,
+            email: row.email,
+            phone: row.phone,
+            current: true,
+            portal: null,
+          })),
+          total: rows.length,
+        });
+      }
+      if (pathname === bulkPath && method === 'POST') {
+        const body = JSON.parse(String(init!.body)) as {
+          invitations: { employeeId: string; address: string }[];
+        };
+        return Response.json({
+          results: body.invitations.map((row) => ({
+            employeeId: row.employeeId,
+            outcome: 'invited',
+            reason: null,
+            invitation: null,
+          })),
+        });
+      }
+      if (pathname.endsWith('/participant-invitations') && pathname.includes('/employees/')) {
+        return Response.json(
+          { ...administratorInvitation, kind: 'employee', employeeId: pathname.split('/')[4] },
+          { status: 201 }
+        );
+      }
+      if (pathname === administratorPath && method === 'POST') {
+        return Response.json(administratorInvitation, { status: 201 });
+      }
+      if (pathname.endsWith('/resend') && method === 'POST') {
+        return Response.json(administratorInvitation);
+      }
+      if (pathname.endsWith('/revoke') && method === 'POST') {
+        return new Response(null, { status: 204 });
+      }
+      if (pathname === `/clients/${clientId}/signature-requests`) {
+        return Response.json({ items: signatures });
+      }
+      if (pathname === `/clients/${clientId}/job-positions`) {
+        return Response.json({ items: [] });
+      }
+      if (pathname === `/clients/${clientId}/workplaces`) return Response.json({ items: [] });
+    },
+    { me: meRecord({ smsThisMonth: sms ?? null }) }
+  );
 }
 
 const calls = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls
-    .filter(
-      ([input, init]) =>
-        new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-    )
-    .map(([input, init]) => ({
-      url: new URL(String(input)),
-      body: init?.body ? (JSON.parse(String(init.body)) as unknown) : null,
-    }));
+  requestsTo(pathname, method).map(([input, init]) => ({
+    url: new URL(String(input)),
+    body: init?.body ? (JSON.parse(String(init.body)) as unknown) : null,
+  }));
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 const mountPortal = (path = portalPage) => mountApp(authFixture(makeSession()).client, path);
 const roster = () => screen.findByTestId('portal-roster');

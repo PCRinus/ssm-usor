@@ -1,21 +1,16 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import type { MeResponse } from '@/api/generated/api';
+import { bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importId, positions, workplaces } from '@/test/employee-import-fixture';
-import {
-  bodyOf,
-  fetchMock,
-  meResponse,
-  meWithCredits,
-  mockApi,
-  requestsTo,
-} from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { meWithCredits } from '@/test/import-fixture';
+import { mountApp } from '@/test/mount';
+import { clientRecord, meRecord } from '@/test/records';
 
-const client = {
-  id: clientId,
+const client = clientRecord({
   legalName: 'Brutăria Spicul Auriu SRL',
   cui: '31458207',
   vatPayer: true,
@@ -27,15 +22,7 @@ const client = {
   legalRepresentativeName: null,
   declaredEmployeeCount: 0,
   currentEmployeeCount: 0,
-  stage: 'client',
-  contactName: null,
-  contactEmail: null,
-  contactPhone: null,
-  promotedAt: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
 const sheet = (index: number) => ({
   id: `a0000000-0000-4000-8000-00000000010${index}`,
@@ -85,40 +72,42 @@ function mockUpload({
   create = () => Response.json({ import: uploading }, { status: 201 }),
   addFound = () => Response.json({ files: [] }, { status: 201 }),
   abandon = () => Response.json({ import: { ...uploading, status: 'abandoned' } }),
-  me = meResponse,
+  me = meRecord(),
 }: {
   found?: () => ReturnType<typeof foundOf>;
   jobPositions?: unknown[];
   create?: Answer;
   addFound?: Answer;
   abandon?: Answer;
-  me?: unknown;
+  me?: MeResponse;
 } = {}) {
-  mockApi((init, url) => {
-    const method = init?.method ?? 'GET';
-    if (url.pathname === '/me') return Response.json(me);
-    if (url.pathname === '/imports' && method === 'POST') return create();
-    if (url.pathname === '/imports') return Response.json({ items: [] });
-    if (url.pathname === `/imports/${importId}/found-sheets`) return addFound();
-    if (url.pathname === `/imports/${importId}/abandon`) return abandon();
-    if (url.pathname === `/clients/${clientId}`) {
-      return Response.json({ client, canDelete: false });
-    }
-    if (url.pathname === `/clients/${clientId}/job-positions`) {
-      return Response.json({ items: jobPositions });
-    }
-    if (url.pathname === `/clients/${clientId}/workplaces`) {
-      return Response.json({ items: workplaces });
-    }
-    if (url.pathname === `/clients/${clientId}/found-sheets`) return Response.json(found());
-    if (url.pathname.startsWith(`/clients/${clientId}/files/`)) {
-      return Response.json({}, { status: 404 });
-    }
-    if (url.pathname === `/clients/${clientId}/employees`) {
-      return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
-    }
-    return undefined;
-  });
+  mockApi(
+    (init, url) => {
+      const method = init?.method ?? 'GET';
+      if (url.pathname === '/imports' && method === 'POST') return create();
+      if (url.pathname === '/imports') return Response.json({ items: [] });
+      if (url.pathname === `/imports/${importId}/found-sheets`) return addFound();
+      if (url.pathname === `/imports/${importId}/abandon`) return abandon();
+      if (url.pathname === `/clients/${clientId}`) {
+        return Response.json({ client, canDelete: false });
+      }
+      if (url.pathname === `/clients/${clientId}/job-positions`) {
+        return Response.json({ items: jobPositions });
+      }
+      if (url.pathname === `/clients/${clientId}/workplaces`) {
+        return Response.json({ items: workplaces });
+      }
+      if (url.pathname === `/clients/${clientId}/found-sheets`) return Response.json(found());
+      if (url.pathname.startsWith(`/clients/${clientId}/files/`)) {
+        return Response.json({}, { status: 404 });
+      }
+      if (url.pathname === `/clients/${clientId}/employees`) {
+        return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
+      }
+      return undefined;
+    },
+    { me }
+  );
 }
 
 function deferred() {
@@ -136,15 +125,7 @@ async function openDialog(button: 'employees-start-import' | 'employees-start-fo
 const refused = (reason: string, status = 422) =>
   Response.json({ error: 'refused', message: reason, reason }, { status });
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('photographs over the caps until they are shrunk', () => {
   it('takes a 30 MB photograph, and refuses it before uploading when it cannot be shrunk', async () => {

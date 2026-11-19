@@ -2,9 +2,9 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
-import { installFetchMock } from '@/test/api';
+import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { importId, mockApi, readyDetail, requestsTo } from '@/test/import-fixture';
+import { importId, readyDetail } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
 
 installFetchMock();

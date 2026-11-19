@@ -1,22 +1,29 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { startWayBack } from '@/features/missing-data/way-back';
 import { resetReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 import { formatRoDate } from '@/lib/dates';
+import { fetchMock, installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
+import {
+  clientId,
+  clientRecord,
+  employeeListItem,
+  employeeRecord,
+  jobPositionRecord,
+  meRecord,
+  pageOf,
+  workplaceListItem,
+} from '@/test/records';
 import { replayedInput, replayedText } from '@/test/replay';
 import { fullText } from '@/test/text';
-import { employeeTests, noTests, untrained } from '@/test/training-fixture';
+import { employeeTests } from '@/test/training-fixture';
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-
-const sampleClient = {
-  id: clientId,
+const sampleClient = clientRecord({
   legalName: 'OMV PETROM SA',
-  cui: '1590082',
   vatPayer: true,
   caenCode: '0610',
   tradeRegisterNumber: 'J1997008302407',
@@ -25,14 +32,10 @@ const sampleClient = {
   addressLine: 'Str. Coralilor, nr. 22',
   legalRepresentativeName: null,
   declaredEmployeeCount: 120,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null,
-};
+});
 
-const sampleRecord = {
+const person = {
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  clientId,
   lastName: 'Popescu',
   firstName: 'Ion',
   employeeNumber: 'A-17',
@@ -41,59 +44,28 @@ const sampleRecord = {
   jobTitle: 'Sudor',
   jobPosition: { id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f', name: 'Sudor' },
   hiredAt: '2020-03-01',
-  status: 'active',
-  terminatedAt: null,
-  training: untrained,
-  tests: noTests,
   workplace: null,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
 };
 
-const sampleEmployee = { ...sampleRecord, signaturesPending: 2 };
+const sampleEmployee = employeeListItem({ ...person, signaturesPending: 2 });
 
-const createdEmployee = {
-  ...sampleRecord,
+const createdEmployee = employeeRecord({
+  ...person,
   cnp: '1900101400127',
   birthDate: '1990-01-01',
-  birthPlace: null,
-  homeAddress: null,
-  residenceAddress: null,
-  bloodGroup: null,
-  rhFactor: null,
-  notes: null,
-  archivedAt: null,
-  qualification: null,
-  education: null,
-  authorizations: null,
-  commuteRoute: null,
-  commuteMeans: [],
-  commuteMeansOther: null,
-  commuteMinutes: null,
-  contractNumber: null,
-};
-
-const workplace = (id: string, name: string, isRegisteredOffice = false) => ({
-  id,
-  clientId,
-  name,
-  isRegisteredOffice,
-  officeHasActivity: true,
-  countyCode: 'CJ',
-  locality: 'Cluj-Napoca',
-  addressLine: null,
-  activity: null,
-  kind: 'fixed_space',
-  floorAreaM2: null,
-  extinguisherNorm: null,
-  assemblyPoint: null,
-  combustibleMaterials: null,
-  ignitionSources: null,
-  fireRiskEquipment: null,
-  specificMeasures: null,
-  createdAt: '2026-09-20T10:00:00.000Z',
-  updatedAt: '2026-09-20T10:00:00.000Z',
 });
+
+const workplace = (id: string, name: string, isRegisteredOffice = false) =>
+  workplaceListItem({
+    id,
+    name,
+    isRegisteredOffice,
+    countyCode: 'CJ',
+    locality: 'Cluj-Napoca',
+    addressLine: null,
+    createdAt: '2026-09-20T10:00:00.000Z',
+    updatedAt: '2026-09-20T10:00:00.000Z',
+  });
 const registeredOffice = workplace(
   'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f',
   'Sediu Str. Lungă 5',
@@ -105,10 +77,7 @@ const employeesPath = `/clients/${clientId}/employees`;
 const employeesPage = `/clienti/${clientId}/angajati`;
 
 const page = (items: unknown[], meta: Partial<{ page: number; total: number }> = {}) => ({
-  items,
-  page: meta.page ?? 1,
-  pageSize: 25,
-  total: meta.total ?? items.length,
+  ...pageOf(items, meta),
   unfilteredTotal: meta.total ?? items.length,
 });
 
@@ -116,17 +85,13 @@ type Route = (init: RequestInit | undefined, url: URL) => Response | Promise<Res
 
 const positionsPath = `/clients/${clientId}/job-positions`;
 const newPositionId = '9b2e4c1a-3d5f-4a6b-8c7d-0e9f8a7b6c5d';
-const welderPosition = {
+const welderPosition = jobPositionRecord({
   id: sampleEmployee.jobPosition.id,
-  clientId,
   name: 'Sudor',
-  staffCategory: 'execution',
-  workZone: null,
-  activities: null,
   employeeCount: 1,
   createdAt: '2026-09-20T10:00:00.000Z',
   updatedAt: '2026-09-20T10:00:00.000Z',
-};
+});
 
 // Opens the position picker, types, and takes the option that shows.
 async function pickPosition(
@@ -141,8 +106,6 @@ async function pickPosition(
     await within(await screen.findByRole('listbox')).findByRole('option', { name: option })
   );
 }
-
-const fetchMock = vi.fn<typeof fetch>();
 
 const emptyDocumentDetails = {
   legalRepresentativeName: null,
@@ -176,20 +139,17 @@ function mockApi(
     >
   > = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
+  mockRoutes((init, url) => {
     const method = init?.method ?? 'GET';
-    if (url.pathname === '/me') {
-      return (
-        routes.me?.(init, url) ??
-        Response.json({ user: { id: 'user-one', email: 'review@example.test' } })
-      );
-    }
+    if (url.pathname === '/me' && routes.me) return routes.me(init, url);
     if (url.pathname === '/clients' && method === 'GET') {
       return routes.clients?.(init, url) ?? Response.json(page([sampleClient]));
     }
     if (url.pathname === `/clients/${clientId}` && method === 'GET') {
       return routes.client?.(init, url) ?? Response.json({ client: sampleClient });
+    }
+    if (url.pathname === `/clients/${clientId}/owner-notes` && method === 'GET') {
+      return Response.json({ notes: { body: '', updatedAt: null } });
     }
     if (url.pathname === employeesPath && method === 'GET') {
       return routes.list?.(init, url) ?? Response.json(page([]));
@@ -207,7 +167,7 @@ function mockApi(
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'PUT') {
       return (
         routes.update?.(init, url) ??
-        Response.json({ employee: { ...sampleEmployee, ...JSON.parse(String(init?.body)) } })
+        Response.json({ employee: { ...createdEmployee, ...JSON.parse(String(init?.body)) } })
       );
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}` && method === 'GET') {
@@ -255,31 +215,16 @@ function mockApi(
       return routes.positions?.(init, url) ?? Response.json({ items: [welderPosition] });
     }
     if (url.pathname === `${employeesPath}/${sampleEmployee.id}/job-position`) {
-      return routes.move?.(init, url) ?? Response.json({ employee: sampleEmployee });
+      return routes.move?.(init, url) ?? Response.json({ employee: createdEmployee });
     }
-    throw new Error(`Unexpected request: ${method} ${url}`);
   });
 }
-
-const requests = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
 
 // The date picker takes typed Romanian dates; the form receives the ISO value.
 const setDate = (element: HTMLElement, value: string) =>
   fireEvent.change(element, { target: { value: formatRoDate(value) } });
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('client employees list', () => {
   it('shows the client header, its way back to the clients, and the employees with their status', async () => {
@@ -309,7 +254,7 @@ describe('client employees list', () => {
     expect(screen.getByTestId('employees-count').textContent).toBe('1 lucrător');
     expect(screen.getByTestId('pager-summary').textContent).toBe('1 lucrător');
     expect(screen.queryByTestId('pager-next')).toBeNull();
-    const [url, init] = requests(employeesPath)[0]!;
+    const [url, init] = requestsTo(employeesPath)[0]!;
     const query = new URL(String(url)).searchParams;
     expect(query.has('status')).toBe(false);
     expect(query.get('page')).toBe('1');
@@ -323,7 +268,7 @@ describe('client employees list', () => {
     await userEvent.setup().click(await screen.findByTestId('clients-open'));
     await screen.findByTestId('client-details-page');
     expect(runtime.router.state.location.pathname).toBe(`/clienti/${clientId}/detalii`);
-    expect(requests(`/clients/${clientId}`)).toHaveLength(1);
+    expect(requestsTo(`/clients/${clientId}`)).toHaveLength(1);
   });
 
   it('redirects the bare client path to its details', async () => {
@@ -353,7 +298,7 @@ describe('client employees list', () => {
     expect(screen.getByTestId('employees-filter-terminated').getAttribute('aria-current')).toBe(
       'page'
     );
-    const [url] = requests(employeesPath)[1]!;
+    const [url] = requestsTo(employeesPath)[1]!;
     expect(new URL(String(url)).searchParams.get('status')).toBe('terminated');
   });
 
@@ -447,7 +392,7 @@ describe('client employees list', () => {
       })
     );
     await waitFor(() => {
-      const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+      const sent = new URL(String(requestsTo(employeesPath).at(-1)![0])).searchParams;
       expect(sent.getAll('workplace')).toEqual([workshop.id]);
       expect(sent.getAll('jobPosition')).toEqual([welderPosition.id]);
     });
@@ -498,7 +443,7 @@ describe('client employees list', () => {
     );
     await screen.findByTestId('employees-row');
     await waitFor(() => {
-      const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+      const sent = new URL(String(requestsTo(employeesPath).at(-1)![0])).searchParams;
       expect(sent.has('attention')).toBe(false);
       expect(sent.has('ssmTraining')).toBe(false);
       expect(sent.has('jobPosition')).toBe(false);
@@ -518,7 +463,7 @@ describe('client employees list', () => {
       `${employeesPage}?sort=ssmTraining&ssmTraining=overdue&attention=noPhone`
     );
     await screen.findByTestId('employees-row');
-    const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+    const sent = new URL(String(requestsTo(employeesPath).at(-1)![0])).searchParams;
     expect(sent.get('sort')).toBe('name');
     expect(sent.has('ssmTraining')).toBe(false);
     expect(sent.getAll('attention')).toEqual(['noPhone']);
@@ -546,7 +491,7 @@ describe('client employees list', () => {
     mountApp(authFixture(makeSession()).client, `${employeesPage}?workplace=none`);
     await screen.findByTestId('employees-row');
     await waitFor(() => {
-      const sent = new URL(String(requests(employeesPath).at(-1)![0])).searchParams;
+      const sent = new URL(String(requestsTo(employeesPath).at(-1)![0])).searchParams;
       expect(sent.getAll('workplace')).toEqual(['none']);
     });
     expect(screen.getByTestId('employees-applied-filters-workplace').textContent).toContain(
@@ -598,7 +543,7 @@ describe('client employees list', () => {
     await user.click(screen.getByTestId('sort-hiredAt'));
     await waitFor(() => expect(runtime.router.state.location.search).toEqual({ sort: 'hiredAt' }));
     // Each sort state was requested once; the third click reuses the cached ascending page.
-    const sorts = requests(employeesPath).map(([url]) => {
+    const sorts = requestsTo(employeesPath).map(([url]) => {
       const query = new URL(String(url)).searchParams;
       return `${query.get('sort')}:${query.get('order')}:${query.get('page')}`;
     });
@@ -650,7 +595,7 @@ describe('client employees list', () => {
     });
     mountApp(authFixture(makeSession()).client, employeesPage);
     await screen.findByTestId('client-not-found');
-    expect(requests(employeesPath)).toHaveLength(0);
+    expect(requestsTo(employeesPath)).toHaveLength(0);
   });
 
   it('explains a missing membership when the client cannot load', async () => {
@@ -695,7 +640,7 @@ describe('employee creation', () => {
     expect(screen.getByTestId('phone-error').textContent).toBe(
       'Numărul de telefon nu este valid pentru țara aleasă.'
     );
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
   });
 
   it('prefills the birth date from the CNP and rejects a contradicting one', async () => {
@@ -718,7 +663,7 @@ describe('employee creation', () => {
     expect(
       within(mismatch).getByRole('link', { name: 'De ce?' }).getAttribute('data-help-topic')
     ).toBe('angajati.data-nasterii');
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
   });
 
   it('flags an unfinished birth date instead of saving it as no date', async () => {
@@ -733,7 +678,7 @@ describe('employee creation', () => {
     await user.type(screen.getByTestId('employee-birth-date'), '01.01.19');
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('birthDate-error')).textContent).toBe('Alege o dată validă.');
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
   });
 
   it('sends the normalized request and returns to the list', async () => {
@@ -756,7 +701,7 @@ describe('employee creation', () => {
     expect(runtime.router.state.location.pathname).toBe(employeesPage);
     expect(await screen.findByText(fullText('Popescu Ion a fost adăugat.'))).toBeTruthy();
     await screen.findByTestId('employees-row');
-    const [, init] = requests(employeesPath, 'POST')[0]!;
+    const [, init] = requestsTo(employeesPath, 'POST')[0]!;
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
     expect(JSON.parse(String(init?.body))).toEqual({
       lastName: 'Popescu',
@@ -799,7 +744,7 @@ describe('employee creation', () => {
     setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       cnp: null,
       employeeNumber: null,
       email: null,
@@ -900,19 +845,20 @@ describe('employee creation', () => {
         'conflict cu alt lucrător'
       )
     );
-    expect(requests(employeesPath, 'POST')).toHaveLength(3);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(3);
   });
 });
 
 describe('a month over the step of employees', () => {
   const meOver =
-    (blocked: boolean, role = 'owner') =>
+    (blocked: boolean, role: 'owner' | 'specialist' = 'owner') =>
     () =>
-      Response.json({
-        user: { id: 'user-one', email: 'review@example.test' },
-        membership: { organization: { id: 'org-1', name: 'SSM Test' }, role },
-        employeesOverStep: { since: '2026-11-02T10:00:00.000Z', lastDay: '2026-12-02', blocked },
-      });
+      Response.json(
+        meRecord({
+          membership: { organization: { id: 'org-1', name: 'SSM Test' }, role },
+          employeesOverStep: { since: '2026-11-02T10:00:00.000Z', lastDay: '2026-12-02', blocked },
+        })
+      );
 
   it('says until when new employees can still be added, and keeps adding open', async () => {
     mockApi({ me: meOver(false), list: () => Response.json(page([sampleEmployee])) });
@@ -979,7 +925,7 @@ describe('the employment contract number', () => {
     setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       contractNumber: '118/2020',
     });
   });
@@ -993,7 +939,7 @@ describe('the employment contract number', () => {
     await user.paste('1'.repeat(51));
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('contractNumber-error')).textContent).toContain('50');
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
   });
 
   it('shows on the employee page beside the contract title', async () => {
@@ -1024,7 +970,7 @@ describe('the employment contract number', () => {
     await user.clear(field);
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employee-page');
-    const [, init] = requests(detailPath, 'PUT')[0]!;
+    const [, init] = requestsTo(detailPath, 'PUT')[0]!;
     expect(JSON.parse(String(init?.body))).toMatchObject({ contractNumber: null });
   });
 });
@@ -1080,7 +1026,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     await user.type(screen.getByTestId('employee-commute-minutes'), '35');
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       commuteMeans: ['on_foot', 'public_transport'],
       commuteMeansOther: null,
       workplaceId: registeredOffice.id,
@@ -1119,7 +1065,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     );
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       commuteMeans: ['public_transport'],
       commuteMeansOther: 'Bacul de pe Mureș',
     });
@@ -1140,10 +1086,10 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(means.textContent).toBe('Alege unul sau mai multe');
     await user.click(screen.getByTestId('employee-submit'));
     await waitFor(() =>
-      expect(requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')).toHaveLength(1)
+      expect(requestsTo(`${employeesPath}/${sampleEmployee.id}`, 'PUT')).toHaveLength(1)
     );
     expect(
-      JSON.parse(String(requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]![1]?.body))
+      JSON.parse(String(requestsTo(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]![1]?.body))
     ).toMatchObject({ commuteMeans: [], commuteMeansOther: null });
   });
 
@@ -1169,7 +1115,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     await user.click(options[1]!);
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       workplaceId: workshop.id,
     });
   });
@@ -1234,13 +1180,13 @@ describe('training sheet fields on employees (ADR 021)', () => {
       'Stivuitorist'
     );
     // Saving the workplace did not submit the form it was opened from.
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
 
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    const [, created] = requests(`/clients/${clientId}/workplaces`, 'POST')[0]!;
+    const [, created] = requestsTo(`/clients/${clientId}/workplaces`, 'POST')[0]!;
     expect(JSON.parse(String(created?.body))).toMatchObject({ name: 'Depozit Florești' });
-    expect(JSON.parse(String(requests(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo(employeesPath, 'POST')[0]![1]?.body))).toMatchObject({
       workplaceId: warehouse.id,
       qualification: 'Stivuitorist',
     });
@@ -1257,7 +1203,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect((await screen.findByTestId('commuteMinutes-error')).textContent).toBe(
       'Durata trebuie să fie între 1 și 600 de minute.'
     );
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
   });
 
   it('shows the sheet fields on the employee page', async () => {
@@ -1331,7 +1277,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect(screen.getByTestId<HTMLInputElement>('employee-commute-minutes').value).toBe('35');
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employee-page');
-    const unchanged = JSON.parse(String(requests(detailPath, 'PUT')[0]![1]?.body)) as Record<
+    const unchanged = JSON.parse(String(requestsTo(detailPath, 'PUT')[0]![1]?.body)) as Record<
       string,
       unknown
     >;
@@ -1347,7 +1293,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     );
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employee-page');
-    expect(JSON.parse(String(requests(detailPath, 'PUT')[1]![1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requestsTo(detailPath, 'PUT')[1]![1]?.body))).toMatchObject({
       workplaceId: registeredOffice.id,
     });
   });
@@ -1423,7 +1369,7 @@ describe('training sheet fields on employees (ADR 021)', () => {
     expect((await screen.findByTestId('workplaceId-error')).textContent).toBe(
       'Punctul de lucru ales nu mai este activ la acest client. Alege altul.'
     );
-    expect(requests(`/clients/${clientId}/workplaces`).length).toBeGreaterThan(1);
+    expect(requestsTo(`/clients/${clientId}/workplaces`).length).toBeGreaterThan(1);
   });
 });
 
@@ -1461,7 +1407,7 @@ describe('employee status changes', () => {
     await user.click(screen.getByTestId('employee-status-confirm'));
     await screen.findByTestId('employees-empty');
     expect(screen.queryByTestId('employee-status-dialog')).toBeNull();
-    const [, init] = requests(statusPath, 'PATCH')[0]!;
+    const [, init] = requestsTo(statusPath, 'PATCH')[0]!;
     expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-access-token');
     expect(JSON.parse(String(init?.body))).toEqual({
       status: 'terminated',
@@ -1505,7 +1451,7 @@ describe('employee status changes', () => {
     expect((await screen.findByTestId('terminatedAt-error')).textContent).toContain(
       'înaintea datei angajării'
     );
-    expect(requests(statusPath, 'PATCH')).toHaveLength(0);
+    expect(requestsTo(statusPath, 'PATCH')).toHaveLength(0);
   });
 
   it('shows the API field issue and a generic failure in the dialog', async () => {
@@ -1562,7 +1508,7 @@ describe('employee status changes', () => {
     expect(within(dialog).queryByTestId('employee-terminated-at')).toBeNull();
     await user.click(screen.getByTestId('employee-status-confirm'));
     await waitFor(() => expect(screen.queryByTestId('employee-status-dialog')).toBeNull());
-    expect(JSON.parse(String(requests(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
+    expect(JSON.parse(String(requestsTo(statusPath, 'PATCH')[0]![1]?.body))).toEqual({
       status: 'active',
     });
     expect(
@@ -1781,7 +1727,7 @@ describe('job positions on employees (ADR 006)', () => {
     const row = await screen.findByTestId('employees-row');
     expect(row.textContent).toContain('Sudor autorizat');
     expect(screen.getByRole('columnheader', { name: /Post de lucru/ })).toBeTruthy();
-    const [input] = requests(employeesPath, 'GET')[0]!;
+    const [input] = requestsTo(employeesPath, 'GET')[0]!;
     expect(new URL(String(input)).searchParams.get('sort')).toBe('jobPosition');
   });
 
@@ -1818,16 +1764,16 @@ describe('job positions on employees (ADR 006)', () => {
     );
     expect(screen.getByTestId<HTMLInputElement>('employee-job-title').value).toBe('Electrician');
     // Saving the post did not submit the form it was opened from.
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
 
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    const [, position] = requests(positionsPath, 'POST')[0]!;
+    const [, position] = requestsTo(positionsPath, 'POST')[0]!;
     expect(JSON.parse(String(position?.body))).toMatchObject({
       name: 'Electrician',
       staffCategory: 'technical_administrative',
     });
-    const [, employee] = requests(employeesPath, 'POST')[0]!;
+    const [, employee] = requestsTo(employeesPath, 'POST')[0]!;
     expect(JSON.parse(String(employee?.body))).toMatchObject({
       jobPositionId: newPositionId,
       jobTitle: 'Electrician',
@@ -1847,12 +1793,12 @@ describe('job positions on employees (ADR 006)', () => {
     );
     await user.click(screen.getByTestId('employee-submit'));
     await screen.findByTestId('employees-page');
-    const [, employee] = requests(employeesPath, 'POST')[0]!;
+    const [, employee] = requestsTo(employeesPath, 'POST')[0]!;
     expect(JSON.parse(String(employee?.body))).toMatchObject({
       jobPositionId: sampleEmployee.jobPosition.id,
       jobTitle: 'Lăcătuș mecanic',
     });
-    expect(requests(positionsPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(positionsPath, 'POST')).toHaveLength(0);
   });
 
   it('asks for a post before saving', async () => {
@@ -1866,7 +1812,7 @@ describe('job positions on employees (ADR 006)', () => {
     expect((await screen.findByTestId('jobPosition-error')).textContent).toContain(
       'Alege postul de lucru'
     );
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
   });
 
   it('shows the post and the contract title apart, and moves the person to another post', async () => {
@@ -1890,11 +1836,11 @@ describe('job positions on employees (ADR 006)', () => {
     await user.click(screen.getByTestId('employee-job-position-save'));
 
     await waitFor(() =>
-      expect(requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')).toHaveLength(
-        1
-      )
+      expect(
+        requestsTo(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')
+      ).toHaveLength(1)
     );
-    const [, init] = requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')[0]!;
+    const [, init] = requestsTo(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')[0]!;
     // The contract did not change, so its title is not sent.
     expect(JSON.parse(String(init?.body))).toEqual({ jobPositionId: newPositionId });
     expect(await screen.findByText('Postul de lucru a fost schimbat.')).toBeTruthy();
@@ -1917,11 +1863,11 @@ describe('job positions on employees (ADR 006)', () => {
     await user.click(screen.getByTestId('employee-job-position-save'));
 
     await waitFor(() =>
-      expect(requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')).toHaveLength(
-        1
-      )
+      expect(
+        requestsTo(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')
+      ).toHaveLength(1)
     );
-    const [, init] = requests(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')[0]!;
+    const [, init] = requestsTo(`${employeesPath}/${sampleEmployee.id}/job-position`, 'PATCH')[0]!;
     expect(JSON.parse(String(init?.body))).toEqual({
       jobPositionId: newPositionId,
       jobTitle: 'Ajutor sudor',
@@ -1997,7 +1943,7 @@ describe('employee editing', () => {
     await screen.findByTestId('employee-page');
     expect(runtime.router.state.location.pathname).toBe(`${employeesPage}/${sampleEmployee.id}`);
     expect(await screen.findByText('Datele lucrătorului au fost salvate.')).toBeTruthy();
-    const [, init] = requests(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
+    const [, init] = requestsTo(`${employeesPath}/${sampleEmployee.id}`, 'PUT')[0]!;
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body).toMatchObject({
       lastName: 'Popescu-Ionescu',
@@ -2006,7 +1952,7 @@ describe('employee editing', () => {
       jobTitle: 'Muncitor calificat',
     });
     expect(body).not.toHaveProperty('jobPositionId');
-    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+    expect(requestsTo(employeesPath, 'POST')).toHaveLength(0);
   });
 
   it('keeps none of the typed personal data across the reload a refused save asks for', async () => {
@@ -2125,13 +2071,13 @@ describe('employee editing', () => {
     const user = userEvent.setup();
     await screen.findByTestId('edit-employee-page');
     await screen.findByText(/Sudor/);
-    const positionLoads = requests(positionsPath).length;
+    const positionLoads = requestsTo(positionsPath).length;
     await user.click(screen.getByTestId('employee-submit'));
     expect((await screen.findByTestId('jobPosition-error')).textContent).toBe(
       'Postul ales nu mai există la acest client. Alege altul.'
     );
     expect(screen.queryByTestId('employee-form-error')).toBeNull();
-    await waitFor(() => expect(requests(positionsPath).length).toBeGreaterThan(positionLoads));
+    await waitFor(() => expect(requestsTo(positionsPath).length).toBeGreaterThan(positionLoads));
   });
 });
 

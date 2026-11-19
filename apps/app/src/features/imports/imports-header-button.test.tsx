@@ -3,10 +3,11 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fetchMock, installFetchMock, mockApi } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { inDays, meFor } from '@/test/billing-fixture';
-import { clientId, fetchMock, importDetail, mockApi, summaryOf } from '@/test/import-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { clientId, importDetail, summaryOf } from '@/test/import-fixture';
+import { mountApp } from '@/test/mount';
 
 const mine = { id: 'user-one', fullName: 'Radu Pop' };
 
@@ -87,15 +88,13 @@ const groupsIn = (list: HTMLElement) =>
 beforeEach(() => {
   items = [];
   me = undefined;
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
 });
 
 afterEach(() => {
   toast.dismiss();
-  disposeRuntimes();
-  vi.unstubAllGlobals();
 });
+
+installFetchMock();
 
 describe('the imports button in the header', () => {
   it('stays out of the header while the member has no open import', async () => {
