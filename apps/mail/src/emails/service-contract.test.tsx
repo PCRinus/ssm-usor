@@ -39,7 +39,6 @@ describe('service contract', () => {
 
   it('names the contract and the parties, with the owner’s note, in the HTML and in the plain text', async () => {
     const email = await send();
-    expect(email.html).toContain('lang="ro"');
     for (const body of [email.html, email.text]) {
       expect(body).toContain('nr. 52 din');
       expect(body).toContain('21.09.2026');

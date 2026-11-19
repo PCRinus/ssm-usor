@@ -14,7 +14,6 @@ describe('password changed', () => {
     });
 
     expect(email.subject).toBe('Parola contului tău SSM Ușor a fost schimbată');
-    expect(email.html).toContain('lang="ro"');
     for (const body of [email.html, email.text]) {
       expect(body).toContain('a fost schimbată');
       expect(body).toContain('Dacă nu ai fost tu');

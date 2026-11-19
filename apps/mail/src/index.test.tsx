@@ -359,10 +359,18 @@ describe('the Mail entrypoint', () => {
     expect(cases.map(({ method }) => method).sort()).toEqual(methods.sort());
   });
 
-  it.each(cases)('$method sends its own subject and body', async ({ send, email }) => {
-    expect(await send(mail())).toEqual({ id: 'msg_1' });
-    expect(sent).toEqual([await sentEmail(email)]);
-  });
+  // Gmail clips a message whose HTML passes 102 KB and hides the rest behind a link.
+  it.each(cases)(
+    '$method sends its own subject and body, in Romanian, unclipped, with text free of markup',
+    async ({ send, email }) => {
+      expect(await send(mail())).toEqual({ id: 'msg_1' });
+      expect(sent).toEqual([await sentEmail(email)]);
+      const [{ html, text }] = sent as [OutgoingEmail];
+      expect(html).toContain('lang="ro"');
+      expect(new TextEncoder().encode(html).length).toBeLessThan(102 * 1024);
+      expect(text).not.toContain('<');
+    }
+  );
 
   it('refuses input its schema rejects, before sending anything', async () => {
     await expect(
