@@ -795,68 +795,28 @@ describe("a client's trainings held", () => {
     await waitFor(() => expect(screen.queryByTestId('training-dialog')).toBeNull());
   });
 
-  it('tells an expired session why the training form did not load', async () => {
-    mockApi({
-      [`GET /clients/${clientId}/job-positions`]: () =>
-        Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 }),
-    });
-    mountApp(authFixture(makeSession()).client, trainingsPage);
-    const user = userEvent.setup();
-    await user.click(await screen.findByTestId('trainings-record'));
-    expect((await screen.findByTestId('training-dialog-load-error')).textContent).toBe(
-      sessionExpiredMessage
-    );
-  });
-
-  it('tells an expired session why the training form did not load, whatever else failed', async () => {
-    mockApi({
-      [`GET /clients/${clientId}/job-positions`]: () =>
-        Response.json({ error: 'not_found', message: 'Gone' }, { status: 404 }),
-      [`GET ${employeesPath}`]: () =>
-        Response.json({ error: 'unauthorized', message: 'Expired' }, { status: 401 }),
-    });
-    mountApp(authFixture(makeSession()).client, trainingsPage);
-    const user = userEvent.setup();
-    await user.click(await screen.findByTestId('trainings-record'));
-    expect((await screen.findByTestId('training-dialog-load-error')).textContent).toBe(
-      sessionExpiredMessage
-    );
-  });
-
-  it('puts a signer refusal on the signer field in its own words', async () => {
-    mockApi({
-      [`POST ${trainingsPath}`]: () =>
-        Response.json(
-          {
-            error: 'validation_error',
-            message: 'Invalid',
-            reason: 'signer_name_mismatch',
-            issues: [{ path: 'signers.trainer', message: 'Signer name does not match the slot' }],
-          },
-          { status: 400 }
-        ),
-    });
-    mountApp(authFixture(makeSession()).client, trainingsPage);
-    const user = userEvent.setup();
-    await user.click(await screen.findByTestId('trainings-record'));
-    const dialog = await screen.findByTestId('training-dialog');
-    await user.selectOptions(within(dialog).getByTestId('training-phase'), 'introductory_general');
-    await user.click((await within(dialog).findAllByTestId('training-attendee'))[0]!);
-    await waitFor(() =>
-      expect((within(dialog).getByTestId('training-duration') as HTMLInputElement).value).toBe(
-        '120'
-      )
-    );
-    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
-    await user.click(within(dialog).getByTestId('training-save'));
-    expect(
-      await within(dialog).findByText(
-        'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.'
-      )
-    ).toBeTruthy();
-    expect(within(dialog).queryByText(/does not match/)).toBeNull();
-    expect(within(dialog).queryByTestId('training-error')).toBeNull();
-  });
+  it.each([
+    ['', { job_positions: 401 }],
+    [', whatever else failed', { job_positions: 404, employees: 401 }],
+  ])(
+    'tells an expired session why the training form did not load%s',
+    async (_, failing: { job_positions: number; employees?: number }) => {
+      const failure = (status: number) => () =>
+        status === 401
+          ? Response.json({ error: 'unauthorized', message: 'Expired' }, { status })
+          : Response.json({ error: 'not_found', message: 'Gone' }, { status });
+      mockApi({
+        [`GET /clients/${clientId}/job-positions`]: failure(failing.job_positions),
+        ...(failing.employees && { [`GET ${employeesPath}`]: failure(failing.employees) }),
+      });
+      mountApp(authFixture(makeSession()).client, trainingsPage);
+      const user = userEvent.setup();
+      await user.click(await screen.findByTestId('trainings-record'));
+      expect((await screen.findByTestId('training-dialog-load-error')).textContent).toBe(
+        sessionExpiredMessage
+      );
+    }
+  );
 
   it('lists every current employee for an introductory training, and marks the field an API issue names', async () => {
     mockApi({

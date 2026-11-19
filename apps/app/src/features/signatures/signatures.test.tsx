@@ -487,25 +487,30 @@ describe('signers on the training flow', () => {
     ).not.toHaveProperty('admitter');
   });
 
-  it("puts the API's name mismatch under the picker", async () => {
+  it.each([
+    { slot: 'verifier', status: 422, error: 'unprocessable' },
+    { slot: 'trainer', status: 400, error: 'validation_error' },
+  ])("puts the API's name mismatch under the picker, %o", async ({ slot, status, error }) => {
     mockApi({
       [`POST ${trainingsPath}`]: () =>
         Response.json(
           {
-            error: 'unprocessable',
+            error,
             message: 'The signer is not the person the slot names.',
             reason: 'signer_name_mismatch',
-            issues: [{ path: 'signers.verifier', message: "The account's name is not Dan Marin." }],
+            issues: [{ path: `signers.${slot}`, message: "The account's name is not Dan Marin." }],
           },
-          { status: 422 }
+          { status }
         ),
     });
     const { user, dialog } = await openWorkplaceTraining();
     await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
     await user.click(within(dialog).getByTestId('training-save'));
-    expect((await within(dialog).findByTestId('training-verifier-signer-error')).textContent).toBe(
+    expect((await within(dialog).findByTestId(`training-${slot}-signer-error`)).textContent).toBe(
       'Contul ales nu poartă numele tipărit în rubrică. Alege persoana cu acest nume sau folosește numele semnatarului.'
     );
+    expect(within(dialog).queryByText(/Dan Marin|slot names/)).toBeNull();
+    expect(within(dialog).queryByTestId('training-error')).toBeNull();
   });
 
   it('asks nobody for a training typed from a paper sheet', async () => {
