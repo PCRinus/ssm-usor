@@ -7,8 +7,8 @@ import { errorMessage } from '../../lib/errors';
 import { stripeFor } from './stripe';
 
 export type MeterDeps = { db: AdminClient; stripe: Stripe };
-export type MeterItem = { id: string; at: Date; customerId: string };
-export type MeterSweep = { organizationId?: string; olderThan?: Date; now?: Date };
+type MeterItem = { id: string; at: Date; customerId: string };
+type MeterSweep = { organizationId?: string; olderThan?: Date; now?: Date };
 
 // Stripe takes a meter event at most 35 days old; one that reaches it after the month's invoice
 // is final is accepted and never billed, so a row is reported as soon as it is written.

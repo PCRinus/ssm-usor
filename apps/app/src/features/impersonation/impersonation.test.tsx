@@ -1,3 +1,4 @@
+import { actingAsHeader } from '@ssm-usor/contracts';
 import type { Session } from '@supabase/supabase-js';
 import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -10,7 +11,6 @@ import { authFixture, makeSession, withFactor } from '@/test/auth-fixture';
 import { quietSummary } from '@/test/dashboard-fixture';
 import { disposeRuntimes, mountApp } from '@/test/mount';
 
-import { actingAsHeader } from './acting-as';
 import { identityPage } from './identity';
 import { impersonationRefusedMessage, wordingRefusalHere } from './refusal';
 

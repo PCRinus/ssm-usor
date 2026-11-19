@@ -24,12 +24,12 @@ import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Notice } from '@/components/notice';
+import { workerNoun } from '@/features/employees/employee-format';
 
 import { billingErrorMessage, problemMessage } from './billing-errors';
 import {
   choiceLines,
   choiceSummary,
-  employeesLabel,
   formatEuro,
   perInterval,
   shortPlanNames,
@@ -173,7 +173,7 @@ function copyFor(kind: ChangeKind, current: BillingChoice, preview: BillingPrevi
       };
     case 'stepUp':
       return {
-        title: `Treci la treapta de ${employeesLabel(target.step)}?`,
+        title: `Treci la treapta de ${workerNoun(target.step)}?`,
         lead: `Treapta nouă începe azi, cu ${includes(target)}. Diferența de coduri și de credite AI o primești pentru luna aceasta.`,
         rows: nowRows(),
         note: prorationNote,
@@ -191,7 +191,7 @@ function copyFor(kind: ChangeKind, current: BillingChoice, preview: BillingPrevi
       };
     case 'stepDown':
       return {
-        title: `Treci la treapta de ${employeesLabel(target.step)} de pe ${applies}?`,
+        title: `Treci la treapta de ${workerNoun(target.step)} de pe ${applies}?`,
         lead: `Până pe ${applies} rămâi pe treapta de acum, iar perioada plătită nu se returnează. Apoi ai ${includes(target)}.`,
         ...atRenewal(applies),
         confirm: `Schimbă treapta pe ${applies}`,

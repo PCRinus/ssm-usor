@@ -30,7 +30,7 @@ export function usageNoticeStore(db: AdminClient) {
   };
 }
 
-export type UsageNoticeStore = ReturnType<typeof usageNoticeStore>;
+type UsageNoticeStore = ReturnType<typeof usageNoticeStore>;
 
 export async function noticeRecipient(
   db: AdminClient,
@@ -61,7 +61,7 @@ export function noticeDepsFor(env: ApiEnv['Bindings'], db: AdminClient) {
 }
 
 // 'unaddressed' stays recorded without an email; 'failed' only when onFailure took the error.
-export type NoticeOutcome = 'sent' | 'unaddressed' | 'duplicate' | 'failed';
+type NoticeOutcome = 'sent' | 'unaddressed' | 'duplicate' | 'failed';
 
 export async function sendNoticeOnce(
   deps: NoticeDeps,

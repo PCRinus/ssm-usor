@@ -30,7 +30,7 @@ export function planItemOf(subscription: Stripe.Subscription) {
   return subscription.items.data.find((item) => isPlanProduct(productOf(item.price.lookup_key)));
 }
 
-export function choiceOf(subscription: Stripe.Subscription) {
+function choiceOf(subscription: Stripe.Subscription) {
   return choiceFromItems(
     subscription.items.data.map((item) => ({
       lookupKey: item.price.lookup_key,

@@ -48,9 +48,6 @@ export function useFormatDuration() {
   };
 }
 
-export const formatPerson = (person: { name: string; jobTitle: string }) =>
-  person.jobTitle ? `${person.name}, ${person.jobTitle}` : person.name;
-
 // Supabase keeps a phone without its plus sign.
 export function formatSignInAddress(user: { email?: string; phone?: string }) {
   if (user.email) return user.email;

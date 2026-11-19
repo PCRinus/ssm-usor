@@ -1,5 +1,4 @@
 import {
-  countOf,
   type EvaluationProfileErrorReason,
   evaluationProfileSortKeys,
   globalRiskLevelFilters,
@@ -61,11 +60,6 @@ export function profileTotalsLabel(
 ) {
   if (profile.factorCount === 0) return factorCountLabel(0);
   return `${factorCountLabel(profile.factorCount)}, ${unacceptableCountLabel(profile.unacceptableFactorCount)}`;
-}
-
-export function profileCountLabel(count: number) {
-  if (count === 0) return 'Nicio evaluare';
-  return countOf(count, 'evaluare', 'evaluări');
 }
 
 export function profileFailure(cause: unknown, fallback: string) {

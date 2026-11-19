@@ -25,17 +25,6 @@ export const fireSmokingChoices: Record<FireSmokingPolicy, string> = {
   designated_places: 'Permis numai în locuri amenajate',
 };
 
-const intervalNames: Record<number, string> = {
-  1: 'Lunar',
-  3: 'Trimestrial (la 3 luni)',
-  6: 'Semestrial (la 6 luni)',
-};
-
-export const fireIntervalChoices = [1, 2, 3, 4, 5, 6].map((months) => ({
-  value: String(months),
-  label: intervalNames[months] ?? `La ${months} luni`,
-}));
-
 export const maxWasteKinds = 12;
 
 const maxWasteKindLength = 240;

@@ -1,8 +1,6 @@
 import { apiErrorReason, ApiHttpError } from '@ssm-usor/api-http';
 import { impersonationErrorReasons } from '@ssm-usor/contracts';
 
-import { identityChangedReason } from './acting-as';
-
 export const impersonationRefusedMessage =
   'Nu se poate în timp ce acționezi ca membru: semnarea și trimiterile sunt oprite.';
 
@@ -12,7 +10,7 @@ export const isImpersonationRefused = (error: unknown) =>
 export const isIdentityChanged = (error: unknown) =>
   error instanceof ApiHttpError &&
   error.status === 409 &&
-  apiErrorReason(error) === identityChangedReason;
+  apiErrorReason(error) === impersonationErrorReasons.identityChanged;
 
 // For the pages that send what is refused: the page shows the message where the action was, and
 // the toast every other page relies on stays away.

@@ -29,9 +29,6 @@ export const extraNames: Record<ExtraKind, { label: string; rate: string; short:
   },
 };
 
-export const unitsLabel = (kind: ExtraKind, count: number) =>
-  kind === 'sms' ? codesLabel(count) : creditsCount(count);
-
 export type CeilingCheck = { ok: true; euros: number } | { ok: false; error: string };
 
 export function checkCeiling(text: string): CeilingCheck {

@@ -1,18 +1,28 @@
+import type { ImportKind } from '@ssm-usor/contracts';
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 
 import {
-  addToSelection,
   cleanPath,
   emptySelection,
   keptFirst,
+  mergeSelection,
+  openPicked,
+  type PickedFile,
   removeFiles,
   removeGroup,
   removeLoosePhotos,
+  type Selection,
   selectionRows,
   selectionTotals,
   withCopiesAside,
 } from './upload-selection';
+
+const addToSelection = async (
+  current: Selection,
+  picked: PickedFile[],
+  kind: ImportKind = 'client'
+) => mergeSelection(current, await openPicked(picked, kind));
 
 const blob = (text = 'x', type = '') => new Blob([text], { type });
 

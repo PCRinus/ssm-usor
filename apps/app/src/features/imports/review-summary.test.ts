@@ -17,7 +17,6 @@ import {
 import {
   type Blocker,
   type Changes,
-  noChanges,
   type Proposal,
   type RegisteredCompany,
   type SectionId,
@@ -37,6 +36,8 @@ import {
   sectionStatuses,
   smokingRule,
 } from './review-summary';
+
+const noChanges: Changes = { fields: {}, items: {} };
 
 const changesOf = (fields: Changes['fields'] = {}, items: Changes['items'] = {}): Changes => ({
   fields,

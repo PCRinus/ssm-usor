@@ -12,10 +12,10 @@ import {
 
 import {
   type Changes,
+  changesOf,
   confirmSummary,
   decisionsOf,
   decisionSummary,
-  emptyChanges,
   examinerValues,
   firstToCheck,
   handoversOf,
@@ -50,6 +50,8 @@ import {
   withRow,
 } from './employee-review-model';
 import { withPage, withTitle, withWorkplace } from './review-changes';
+
+const emptyChanges = () => changesOf(undefined);
 
 const proposal = employeeProposal() as unknown as Proposal;
 

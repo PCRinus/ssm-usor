@@ -18,11 +18,6 @@ export const defaultTeamSort: DataTableSort & { sort: TeamSortKey } = {
 // The team is read whole, so it sorts here; the address keeps the choice as on every list.
 export const teamListSearch = listSortSearchSchema(teamSortKeys).shape;
 
-export type TeamListSearch = {
-  sort?: TeamSortKey;
-  order?: DataTableSort['order'];
-};
-
 const byName = new Intl.Collator('ro', { sensitivity: 'base', numeric: true });
 
 export const memberName = (member: Member) => member.fullName ?? member.email ?? '';

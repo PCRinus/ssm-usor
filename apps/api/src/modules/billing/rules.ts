@@ -118,7 +118,7 @@ export const isPlanProduct = (product: string | undefined): product is PaidPlan 
 export const productOf = (lookupKey: string | null | undefined) =>
   parseLookupKey(lookupKey)?.product;
 
-export type ItemGroup = 'plan' | 'pack' | 'member';
+type ItemGroup = 'plan' | 'pack' | 'member';
 
 export function itemGroupOf(lookupKey: string | null | undefined): ItemGroup | null {
   const product = productOf(lookupKey);

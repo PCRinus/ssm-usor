@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import type { LibraryPost } from './library-model';
 import {
   cleanRiskChanges,
-  confirmSentence,
   existingByReference,
   factorChangeFrom,
   factorState,
@@ -28,7 +27,6 @@ import {
   type RiskSheet,
   type RisksPart,
   risksPartDescription,
-  riskSummary,
   type SheetChange,
   type SheetContext,
   sheetFlagText,
@@ -576,7 +574,6 @@ describe('the plan rows placed on a sheet', () => {
     const after = withPlan({ factors: { 'plan-R22': added } });
     expect(after.written).toBe(3);
     expect(after.planRows[0]).toMatchObject({ included: true, complete: true, level: 2 });
-    expect(riskSummary([after]).factors).toBe(3);
   });
 
   it('says how many rows are for the post and how many the member added', () => {
@@ -596,70 +593,6 @@ describe('the plan rows placed on a sheet', () => {
 });
 
 describe('the confirm bar and the header', () => {
-  const visitors = sheet({
-    key: 'visitors',
-    kind: 'other',
-    name: 'Vizitatori',
-    posts: [],
-    existing: { factors: 0, choice: null },
-    choice: 'skip',
-  });
-
-  it('names what confirming adds to the library and counts what it writes on the client', () => {
-    const states = [
-      sheetState(sheet(), undefined, context()),
-      sheetState(
-        sheet({ key: 'similar', status: 'similar', match, choice: 'use_existing' }),
-        undefined,
-        context()
-      ),
-      sheetState(visitors, undefined, context()),
-    ];
-    const summary = riskSummary(states);
-    expect(summary).toEqual({
-      created: [{ name: 'Bucătar', factors: 2 }],
-      used: ['Bucătar'],
-      sheets: 3,
-      factors: 6,
-      post: null,
-    });
-    expect(confirmSentence(summary)).toBe(
-      'Când confirmi, adăugăm „Bucătar” în bibliotecă, cu 2 factori, folosim „Bucătar” din biblioteca ta, și scriem 6 factori pe 3 fișe ale clientului.'
-    );
-    expect(confirmSentence({ created: [], used: [], sheets: 0, factors: 0, post: null })).toBe(
-      'Nu adăugăm nimic în bibliotecă și nu scriem nimic pe fișele clientului.'
-    );
-    expect(
-      confirmSentence({
-        created: ['A', 'B', 'C', 'D'].map((name) => ({ name, factors: 1 })),
-        used: [],
-        sheets: 0,
-        factors: 0,
-        post: null,
-      })
-    ).toBe(
-      'Când confirmi, adăugăm 4 evaluări în bibliotecă, fără să scriem factori pe fișele clientului.'
-    );
-  });
-
-  it('names the evaluation and its post, one factor fewer once one is unticked', () => {
-    const one = sheet();
-    const all = sheetState(one, undefined, context());
-    expect(confirmSentence(riskSummary([all]))).toBe(
-      'Când confirmi, adăugăm „Bucătar” în bibliotecă, cu 2 factori, și îi scriem pe fișa postului „Bucătar”.'
-    );
-    const unticked = sheetState(one, withIncluded({}, [all.factors[0]!], false), context());
-    expect(confirmSentence(riskSummary([unticked]))).toBe(
-      'Când confirmi, adăugăm „Bucătar” în bibliotecă, cu un factor, și îi scriem pe fișa postului „Bucătar”.'
-    );
-    const renamed = sheetState(one, { libraryName: 'Bucătărie caldă' }, context());
-    expect(
-      confirmSentence(riskSummary([renamed, sheetState(visitors, undefined, context())]))
-    ).toBe(
-      'Când confirmi, adăugăm „Bucătărie caldă” în bibliotecă, cu 2 factori, și scriem 4 factori pe 2 fișe ale clientului.'
-    );
-  });
-
   it('names the evaluations a refused confirm asks to change', () => {
     expect(takenNamesText(['Contabil'])).toBe(
       'Biblioteca are deja o evaluare cu numele ales. Schimbă numele marcat la evaluarea „Contabil”.'

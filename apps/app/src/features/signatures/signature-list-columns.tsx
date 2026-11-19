@@ -12,6 +12,7 @@ import { Link } from '@tanstack/react-router';
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
+import { workerNoun } from '@/features/employees/employee-format';
 import { dateToIso, formatDate, todayIso } from '@/lib/dates';
 
 import { agreementAwaitsEmployer, agreementSigned } from './signature-format';
@@ -51,7 +52,6 @@ export function signAsPhrase(slots: readonly SignatureListSlot[]) {
 }
 
 export const signatureNoun = (count: number) => countOf(count, 'semnătură', 'semnături');
-export const workerNoun = (count: number) => countOf(count, 'lucrător', 'lucrători');
 
 export function rowName(row: SignatureRow) {
   const what = row.phase

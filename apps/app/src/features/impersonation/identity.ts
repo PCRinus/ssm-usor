@@ -1,8 +1,7 @@
+import { actingAsSelf } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { getGetMeQueryKey, type MeResponse } from '@/api/generated/api';
-
-import { actingAsSelf } from './acting-as';
 
 const endedKey = 'ssm-usor:impersonation-ended';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { choiceAmounts, choiceSummary, employeesLabel, formatEuro } from './billing-format';
+import { choiceAmounts, choiceSummary, formatEuro } from './billing-format';
 
 describe('billing format', () => {
   it.each([
@@ -12,19 +12,6 @@ describe('billing format', () => {
     [-8349, '-83,49 €'],
   ])('writes %i cents as %s', (cents, text) => {
     expect(formatEuro(cents)).toBe(text);
-  });
-
-  it.each([
-    [0, '0 lucrători'],
-    [1, '1 lucrător'],
-    [2, '2 lucrători'],
-    [19, '19 lucrători'],
-    [20, '20 de lucrători'],
-    [101, '101 lucrători'],
-    [120, '120 de lucrători'],
-    [1500, '1.500 de lucrători'],
-  ])('counts %i employees as %s', (count, text) => {
-    expect(employeesLabel(count)).toBe(text);
   });
 
   it('prices a choice as the API does, VAT rounded to the cent', () => {

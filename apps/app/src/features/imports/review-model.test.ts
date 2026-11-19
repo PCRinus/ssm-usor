@@ -35,7 +35,6 @@ import {
   linkedWorkplace,
   meansTaken,
   nameSpellings,
-  noChanges,
   officeActivityStates,
   type Proposal,
   refusedValueMessage,
@@ -54,6 +53,8 @@ import {
   vatPayerInForce,
 } from './review-model';
 import { spellingCorrection } from './review-types';
+
+const noChanges: Changes = { fields: {}, items: {} };
 
 const fixture = () => {
   const proposal = proposalFixture();

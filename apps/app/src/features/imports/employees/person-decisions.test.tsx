@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { employeeProposal } from '@/test/employee-import-fixture';
 
-import { emptyChanges, type FieldName, type Proposal, statesOf } from './employee-review-model';
+import { changesOf, type FieldName, type Proposal, statesOf } from './employee-review-model';
 import { FieldChoice } from './person-decisions';
 
 const disagreeing = {
@@ -34,7 +34,7 @@ const proposal = {
 const person = proposal.people.find((each) => each.id === 'toma')!;
 
 function Choice({ name }: { name: FieldName }) {
-  const [current, setCurrent] = useState(emptyChanges);
+  const [current, setCurrent] = useState(() => changesOf(undefined));
   return (
     <>
       <FieldChoice

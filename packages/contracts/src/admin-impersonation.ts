@@ -97,9 +97,6 @@ export const adminImpersonationErrorReasons = {
   startInProgress: 'impersonation_start_in_progress',
 } as const;
 
-export type AdminImpersonationErrorReason =
-  (typeof adminImpersonationErrorReasons)[keyof typeof adminImpersonationErrorReasons];
-
 // The `reason` of the 403 for what an admin impersonating a member may not do in the member's
 // name: sign, or send an email or SMS to another person (ADR 038). The member app words it.
 export const impersonationErrorReasons = {

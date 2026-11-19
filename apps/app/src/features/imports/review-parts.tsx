@@ -257,14 +257,6 @@ export function EditButton({
   );
 }
 
-export function SavingNote({ saving }: { saving: boolean }) {
-  return (
-    <span className="text-xs text-muted-foreground" role="status" aria-live="polite">
-      {saving ? 'Se salvează…' : ''}
-    </span>
-  );
-}
-
 function DiffText({ runs, markClassName }: { runs: DiffRun[]; markClassName: string }) {
   return runs.map((run, index) =>
     run.changed ? (

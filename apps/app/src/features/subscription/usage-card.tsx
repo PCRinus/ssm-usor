@@ -12,8 +12,9 @@ import { Link } from '@tanstack/react-router';
 import { Gift } from 'lucide-react';
 
 import { openedHere } from '@/app/opener';
+import { workerNoun } from '@/features/employees/employee-format';
 
-import { employeesLabel, shortPlanNames, stepLabel } from './billing-format';
+import { shortPlanNames, stepLabel } from './billing-format';
 import { BillingCard, UsageBar } from './billing-ui';
 import { nextStepAction, nextStepOf } from './checkout/checkout-choice';
 import {
@@ -98,10 +99,10 @@ export function UsageCard({
       employeeLimit === null
         ? 'Fără limită.'
         : startStep
-          ? `Pentru ${employeesLabel(employees)}, treapta potrivită e de ${formatCount(startStep.employees)} pe Start sau de ${formatCount(stepFor('profesional', employees)!.employees)} pe Profesional.`
+          ? `Pentru ${workerNoun(employees)}, treapta potrivită e de ${formatCount(startStep.employees)} pe Start sau de ${formatCount(stepFor('profesional', employees)!.employees)} pe Profesional.`
           : profesionalStep
             ? `Start acoperă cel mult 750 de lucrători; pe Profesional, treapta potrivită e de ${formatCount(profesionalStep.employees)}.`
-            : `Peste ${employeesLabel(selfServeLimits.employees)}, scrie-ne pentru o ofertă.`;
+            : `Peste ${workerNoun(selfServeLimits.employees)}, scrie-ne pentru o ofertă.`;
   } else {
     const step = `Treapta ${stepLabel(choice.step)}`;
     employeeHint =

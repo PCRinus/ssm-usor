@@ -32,7 +32,6 @@ import {
   useActiveImpersonation,
 } from './api';
 import { memberAppUrl } from './member-app';
-import { startInProgressReason } from './reasons';
 
 const reasonRequired = 'Give the reason for acting as this member.';
 
@@ -64,7 +63,7 @@ function refusalOf(error: Error): { reason?: string; general?: string } {
   if (body?.reason === adminImpersonationErrorReasons.targetIsSelf) {
     return { general: 'This is your own account. Choose another member.' };
   }
-  if (body?.reason === startInProgressReason) {
+  if (body?.reason === adminImpersonationErrorReasons.startInProgress) {
     return { general: 'A start is already in progress. Wait a moment and try again.' };
   }
   return { general: 'The impersonation could not be started. Check the connection and try again.' };

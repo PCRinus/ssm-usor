@@ -98,9 +98,3 @@ export function createSigner(c: Context<ApiEnv>): SignerService | null {
     stampPages: (pdf, text) => guarded(() => service.stampPages(pdf, text)),
   };
 }
-
-export function requireSigner(c: Context<ApiEnv>): SignerService {
-  const signer = createSigner(c);
-  if (!signer) throw unavailable();
-  return signer;
-}

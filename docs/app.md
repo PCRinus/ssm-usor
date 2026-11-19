@@ -416,7 +416,7 @@ app as himself; `GET /me` then answers with the member's `membership` and an `im
   request but `GET /me` carries it as `X-Acting-As` (`apiFetch` and `apiUpload` in
   `src/api/http.ts`), and the API refuses one from a page built for another identity with `409`
   and `reason: 'identity_changed'` before it reads or writes anything. The header's name and the
-  reason are in `acting-as.ts`.
+  reason come from `@ssm-usor/contracts`.
 - **A change of identity reloads the page.** Every `/me` answer is compared with the page's
   first one; when they differ (another member, a member from none, or none from a member), and
   on any `identity_changed` refusal, after reading `/me` again, the app first replaces everything

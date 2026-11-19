@@ -321,12 +321,6 @@ export function mergeSelection(current: Selection, added: Selection): Selection 
   };
 }
 
-export const addToSelection = async (
-  current: Selection,
-  picked: PickedFile[],
-  kind: ImportKind = 'client'
-) => mergeSelection(current, await openPicked(picked, kind));
-
 // A copy set aside is the same content, so it goes with the file taken out instead of taking
 // its place.
 function withoutFiles(selection: Selection, gone: (file: SelectedFile) => boolean): Selection {
