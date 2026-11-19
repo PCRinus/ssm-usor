@@ -1,26 +1,14 @@
 import { apiErrorResponseSchema, currentUserSchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createAdminApp } from './admin-app';
 import { accessTokenAt } from './lib/access-token.fixture';
-import type { ApiEnv } from './lib/env';
 import { apiRequest } from './test/request';
+import { fetchMock, routeUpstream, stubFetch, testEnv, testUser } from './test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-};
+const env = testEnv();
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'mircea@example.ro',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email', role: 'admin' },
-  user_metadata: {},
-};
+const user = { ...testUser, app_metadata: { provider: 'email', role: 'admin' } };
 
 const member = {
   ...user,
@@ -31,30 +19,16 @@ const member = {
 
 const token = (aal: 'aal1' | 'aal2') => accessTokenAt(aal, user.id);
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockAuth(answer: () => Response) {
-  fetchMock.mockImplementation(async (input) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.pathname === '/auth/v1/user') return answer();
-    throw new Error(`Unexpected upstream request: ${url}`);
-  });
+  routeUpstream({ '/auth/v1/user': answer });
 }
 
-const requestAdmin = (authorization?: string, path = '/admin/me') =>
-  createAdminApp().request(
-    path,
-    { headers: authorization ? { Authorization: authorization } : {} },
-    env
-  );
+const requestAdmin = (accessToken: string | null = null, path = '/admin/me') =>
+  apiRequest(path, { app: createAdminApp(), token: accessToken, client: null }, env);
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
+stubFetch();
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -68,21 +42,21 @@ describe('the admin API guard', () => {
 
   it('refuses a token Supabase Auth does not accept', async () => {
     mockAuth(() => Response.json({ code: 'bad_jwt', message: 'invalid JWT' }, { status: 401 }));
-    const response = await requestAdmin(`Bearer ${token('aal2')}`);
+    const response = await requestAdmin(token('aal2'));
     expect(response.status).toBe(401);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('unauthorized');
   });
 
   it('refuses a member without the admin claim, whatever the second factor', async () => {
     mockAuth(() => Response.json(member));
-    const response = await requestAdmin(`Bearer ${token('aal2')}`);
+    const response = await requestAdmin(token('aal2'));
     expect(response.status).toBe(403);
     expect(apiErrorResponseSchema.parse(await response.json()).error).toBe('forbidden');
   });
 
   it('refuses an admin whose session has not passed a second factor', async () => {
     mockAuth(() => Response.json(user));
-    const response = await requestAdmin(`Bearer ${token('aal1')}`);
+    const response = await requestAdmin(token('aal1'));
     expect(response.status).toBe(403);
     expect(apiErrorResponseSchema.parse(await response.json())).toMatchObject({
       error: 'forbidden',
@@ -92,7 +66,7 @@ describe('the admin API guard', () => {
 
   it('answers an admin with a second factor with their identity only', async () => {
     mockAuth(() => Response.json(user));
-    const response = await requestAdmin(`Bearer ${token('aal2')}`);
+    const response = await requestAdmin(token('aal2'));
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(await response.json()).toEqual(
@@ -104,7 +78,7 @@ describe('the admin API guard', () => {
   });
 
   it('checks the token before answering that a route does not exist', async () => {
-    expect((await requestAdmin(undefined, '/admin/missing')).status).toBe(401);
+    expect((await requestAdmin(null, '/admin/missing')).status).toBe(401);
   });
 });
 
