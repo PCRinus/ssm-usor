@@ -88,6 +88,14 @@ describe('mockUpstream', () => {
     );
   });
 
+  it('refuses an exact route that answers undefined, rather than falling through', async () => {
+    mockUpstream({ '/rest/v1/rpc/current_membership': () => undefined });
+
+    await expect(
+      fetch('https://example.supabase.co/rest/v1/rpc/current_membership', { method: 'POST' })
+    ).rejects.toThrow('The route for POST /rest/v1/rpc/current_membership answered undefined');
+  });
+
   it('hands a route the request init as the caller sent it', async () => {
     const form = new FormData();
     mockUpstream({ 'POST /storage/v1/object/files': ({ init }) => [init?.body === form] });

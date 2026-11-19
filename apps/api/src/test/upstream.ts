@@ -99,7 +99,7 @@ export const membershipRoutes: UpstreamRoutes = {
 
 function routeIn(layer: UpstreamRoutes, { method, url }: UpstreamCall) {
   const exact = layer[`${method} ${url.pathname}`] ?? layer[url.pathname];
-  if (exact) return exact;
+  if (exact) return { route: exact, prefix: false };
   const prefixes = Object.keys(layer).flatMap((key) => {
     if (!key.endsWith('*')) return [];
     const [keyMethod, path] = key.startsWith('/') ? [null, key] : key.split(' ');
@@ -110,7 +110,7 @@ function routeIn(layer: UpstreamRoutes, { method, url }: UpstreamCall) {
       : [];
   });
   const best = prefixes.sort((a, b) => b.rank - a.rank)[0];
-  return best && layer[best.key];
+  return best && { route: layer[best.key]!, prefix: true };
 }
 
 function asResponse(call: UpstreamCall, result: unknown) {
@@ -125,16 +125,21 @@ function asResponse(call: UpstreamCall, result: unknown) {
 
 // An earlier layer wins, even its bare `/path` over a later layer's `METHOD /path`, so a test can
 // replace a module's defaults. Within a layer an exact path wins over a `/prefix*`, a longer prefix
-// over a shorter one, and a `METHOD` over none on the same prefix. A route
-// that answers `undefined` leaves the call to the later layers. When supabase-js asks for one
-// object, rows go back as PostgREST answers them: the first row, or 406 PGRST116 for none.
+// over a shorter one, and a `METHOD` over none on the same prefix. A `/prefix*` route that answers
+// `undefined` leaves the call to the later layers; an exact route that does throws, so an override
+// missing its `return` cannot fall through to a default. When supabase-js asks for one object,
+// rows go back as PostgREST answers them: the first row, or 406 PGRST116 for none.
 export function routeUpstream(...layers: UpstreamRoutes[]) {
   fetchMock.mockImplementation(async (input, init) => {
     const call = toCall(input, init);
     for (const layer of layers) {
-      const route = routeIn(layer, call);
-      const result = route && (await route(call));
+      const found = routeIn(layer, call);
+      if (!found) continue;
+      const result = await found.route(call);
       if (result !== undefined) return asResponse(call, result);
+      if (!found.prefix) {
+        throw new Error(`The route for ${call.method} ${call.url.pathname} answered undefined`);
+      }
     }
     throw new Error(`Unexpected upstream request: ${call.method} ${call.url}`);
   });
