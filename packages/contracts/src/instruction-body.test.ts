@@ -38,6 +38,11 @@ describe('foldText', () => {
     );
     expect(foldText('ţeavă')).toBe(foldText('țeavă'));
   });
+
+  it('drops diacritics of both the comma and the cedilla forms', () => {
+    expect(foldText('Ștefănescu Ţăranu şi Ș.A.')).toBe('stefanescu taranu si s a');
+    expect(foldText('ştiinţă')).toBe(foldText('știință'));
+  });
 });
 
 describe('instructionBodySchema', () => {

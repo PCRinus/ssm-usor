@@ -5,63 +5,15 @@ import {
   cuiDigits,
   findQuote,
   findQuotes,
-  foldName,
-  foldText,
   placeQuote,
   sameAddress,
-  sameName,
-  similar,
   streetKey,
 } from './match';
 
-describe('foldText', () => {
-  it('drops diacritics of both the comma and the cedilla forms', () => {
-    expect(foldText('Ștefănescu Ţăranu şi Ș.A.')).toBe('stefanescu taranu si s a');
-    expect(foldText('ştiinţă')).toBe(foldText('știință'));
-  });
-});
-
-describe('foldName', () => {
-  it('drops the company form', () => {
-    expect(foldName('S.C. Brutăria Fictivă S.R.L.')).toBe('brutaria fictiva');
-    expect(foldName('BRUTARIA FICTIVA SRL')).toBe('brutaria fictiva');
-    expect(foldName('BRUTĂRIA FICTIVĂ S.A.')).toBe('brutaria fictiva');
-  });
-
-  it('drops the form of a sole trader or a family business', () => {
-    expect(foldName('VASILESCU M. ANA PFA')).toBe('vasilescu m ana');
-    expect(foldName('VASILESCU M.ANA P.F.A.')).toBe('vasilescu m ana');
-    expect(foldName('P.F.A. Vasilescu Ana')).toBe('vasilescu ana');
-    expect(foldName('Vasilescu Ana I.I.')).toBe('vasilescu ana');
-    expect(foldName('Vasilescu Ana I. I.')).toBe('vasilescu ana');
-    expect(foldName('Familia Vasilescu I.F.')).toBe('familia vasilescu');
-  });
-
-  it('keeps a bare II or IF, which numbers a building or is part of a name', () => {
-    expect(foldName('Hala II')).toBe('hala ii');
-    expect(foldName('Hala II')).not.toBe(foldName('Hala'));
-    expect(foldName('Depozit IF')).toBe('depozit if');
-  });
-});
-
-describe('similar and contained', () => {
-  it('ignore word order and company forms', () => {
-    expect(similar('Vasilescu Ana', 'ANA VASILESCU')).toBe(1);
-    expect(similar('S.C. Brutăria Fictivă S.R.L.', 'Brutaria Fictiva')).toBe(1);
-  });
-
+describe('contained', () => {
   it('counts a prefix as found', () => {
     expect(contained('Sediu social', 'Sediul social al societății')).toBe(1);
     expect(contained('Sediu social', 'Punct de lucru Depozit')).toBe(0);
-  });
-});
-
-describe('sameName', () => {
-  it('knows a company despite its form, never by a name that only starts like it', () => {
-    expect(sameName('S.C. Brutăria Fictivă S.R.L.', 'BRUTARIA FICTIVA SRL')).toBe(true);
-    expect(sameName('Protect SRL', 'Protecție Construct SRL')).toBe(false);
-    expect(sameName('Alfa SRL', 'Alfa Construct SRL')).toBe(false);
-    expect(sameName('VASILESCU M. ANA PFA', 'VASILESCU M.ANA P.F.A.')).toBe(true);
   });
 });
 

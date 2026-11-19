@@ -8,21 +8,30 @@ import {
   sameCompany,
   sameName,
   sameSpelling,
+  similar,
 } from './name-match';
 
 describe('foldName', () => {
   it.each([
     ['S.C. Brutăria Fictivă S.R.L.', 'brutaria fictiva'],
+    ['BRUTARIA FICTIVA SRL', 'brutaria fictiva'],
+    ['BRUTĂRIA FICTIVĂ S.A.', 'brutaria fictiva'],
     ['Mobila SA Prod S.R.L.', 'mobila prod'],
+    ['VASILESCU M. ANA PFA', 'vasilescu m ana'],
+    ['VASILESCU M.ANA P.F.A.', 'vasilescu m ana'],
+    ['P.F.A. Vasilescu Ana', 'vasilescu ana'],
+    ['Vasilescu Ana I.I.', 'vasilescu ana'],
     ['Vasilescu Ana I. I.', 'vasilescu ana'],
     ['Maria I. I. Pop', 'maria pop'],
     ['P. F. A. Vasilescu Ana', 'vasilescu ana'],
+    ['Familia Vasilescu I.F.', 'familia vasilescu'],
     ['D-na Popescu Ana', 'popescu ana'],
   ])('drops SC, SRL, SA, PFA, I.I. and I.F. from %j', (name, folded) => {
     expect(foldName(name)).toBe(folded);
   });
 
   it.each([
+    ['Hala', 'hala'],
     ['Hala II', 'hala ii'],
     ['Depozit IF', 'depozit if'],
     ['Ahmad Bin Ismail', 'ahmad bin ismail'],
@@ -44,6 +53,24 @@ describe('foldName', () => {
   it('keeps a name that is nothing but a legal form', () => {
     expect(foldName('SRL')).toBe('srl');
     expect(sameName('S.R.L.', 'S.A.')).toBe(false);
+  });
+});
+
+describe('similar', () => {
+  it('ignores word order and company forms', () => {
+    expect(similar('Vasilescu Ana', 'ANA VASILESCU')).toBe(1);
+    expect(similar('S.C. Brutăria Fictivă S.R.L.', 'Brutaria Fictiva')).toBe(1);
+  });
+});
+
+describe('sameName', () => {
+  it.each([
+    ['S.C. Brutăria Fictivă S.R.L.', 'BRUTARIA FICTIVA SRL', true],
+    ['VASILESCU M. ANA PFA', 'VASILESCU M.ANA P.F.A.', true],
+    ['Protect SRL', 'Protecție Construct SRL', false],
+    ['Alfa SRL', 'Alfa Construct SRL', false],
+  ])('takes %j and %j for one name: %j', (a, b, same) => {
+    expect(sameName(a, b)).toBe(same);
   });
 });
 
