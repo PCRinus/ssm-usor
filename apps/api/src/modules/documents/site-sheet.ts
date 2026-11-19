@@ -11,7 +11,7 @@ import {
   fireSafetyTypeKeysFromTenEmployees,
   formatCount,
   printedDate,
-  samePersonName,
+  samePerson,
   unfilledMark,
 } from '@ssm-usor/contracts';
 
@@ -157,7 +157,7 @@ export function buildSiteSheet({
   const contactIsRepresentative =
     representativeName !== null &&
     trimmed(client.contactName) !== null &&
-    samePersonName(client.contactName!.trim(), representativeName);
+    samePerson(client.contactName!.trim(), representativeName);
   const operatorAddress =
     printedAddress(client) || (registeredOffice && printedAddress(registeredOffice)) || null;
   const contacts = [

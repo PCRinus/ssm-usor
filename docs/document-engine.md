@@ -1005,7 +1005,7 @@ The API builds the data once per generation and merges every template with it
 - `buildDocumentContext(facts)` turns the stored facts into the names of the table below:
   dates as `19.01.2026`, people under the roles they hold in the order they were designated,
   each person once with the first job title even when named for several workplaces (compared
-  as `samePersonName` compares, as the fire-safety set does), the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`,
+  as `samePerson` compares, as the fire-safety set does), the training schedule in words (`TRIMESTRIAL`, `februarie, mai, august, noiembrie`, `2 ore`,
   its number and unit joined by no-break spaces so a line cannot end between them), and
   `branding`. Where a sentence names everyone who holds a role, one text names them all and
   reads for one person or several: `workplaceManagersText` and `imminentDangerText`
