@@ -54,8 +54,7 @@ export type Fake = {
 
 export const priceIdOf = (lookupKey: string) => `price_${lookupKey}`;
 
-// Without the header the SDK retries a 500 twice with backoff, a second's wait per test. A test of
-// the retries themselves stubs a 500 without it.
+// Without the header the SDK retries a 500 twice with backoff, a second's wait per test.
 export const stripeDown = () =>
   new Response(JSON.stringify({ error: { type: 'api_error', message: 'down' } }), {
     status: 500,
