@@ -13,6 +13,7 @@ import { ApiError } from '../../lib/errors';
 import { createFileStore } from '../../lib/files';
 import { stableJson } from '../../lib/json';
 import { requireOffersFor } from '../../lib/offers';
+import { sentColumns } from '../../lib/partial-update';
 import { createToken, hashToken } from '../../lib/tokens';
 import { clientNotFound } from '../clients/lookup';
 import { generateServiceContractDocument } from '../documents/generate';
@@ -119,14 +120,10 @@ export const saveServiceContract: RouteHandler<typeof saveServiceContractRoute, 
 
   // The client first: a lead or a client that is not there answers 404 before anything is
   // written, and an archived one is refused by its trigger.
-  const representative = {
-    ...(body.clientRepresentativeName !== undefined && {
-      legal_representative_name: body.clientRepresentativeName,
-    }),
-    ...(body.clientRepresentativeRole !== undefined && {
-      legal_representative_role: body.clientRepresentativeRole,
-    }),
-  };
+  const representative = sentColumns({
+    legal_representative_name: body.clientRepresentativeName,
+    legal_representative_role: body.clientRepresentativeRole,
+  });
   const client =
     Object.keys(representative).length > 0
       ? await db

@@ -14,6 +14,7 @@ import type { Database } from '../../database.types';
 import { createDataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { sentColumns } from '../../lib/partial-update';
 import type {
   getSetupGuideRoute,
   skipSetupStepRoute,
@@ -151,9 +152,10 @@ export const getSetupGuide: RouteHandler<typeof getSetupGuideRoute, ApiEnv> = as
 export const updateSetupGuide: RouteHandler<typeof updateSetupGuideRoute, ApiEnv> = async (c) => {
   const { closed, finished } = c.req.valid('json');
   const now = new Date().toISOString();
-  const changes: Database['public']['Tables']['profiles']['Update'] = {};
-  if (closed !== undefined) changes.setup_guide_closed_at = closed ? now : null;
-  if (finished !== undefined) changes.setup_guide_finished_at = finished ? now : null;
+  const changes = sentColumns({
+    setup_guide_closed_at: closed === undefined ? undefined : closed ? now : null,
+    setup_guide_finished_at: finished === undefined ? undefined : finished ? now : null,
+  });
 
   if (Object.keys(changes).length > 0) {
     const { data, error } = await createDataClient(c)

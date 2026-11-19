@@ -15,6 +15,7 @@ import {
 } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { sentColumns } from '../../lib/partial-update';
 import { pickSuggestions } from '../../lib/suggestions';
 import { clientNotFound, requireClient } from '../clients/lookup';
 import { findJobPosition } from '../job-positions/positions';
@@ -237,13 +238,14 @@ export const updateRiskEvaluation: RouteHandler<typeof updateRiskEvaluationRoute
       );
     }
   }
-  const changes: Tables['risk_evaluations']['Update'] = {};
-  if (body.name !== undefined) changes.name = body.name;
-  if (body.meansOfProduction !== undefined) changes.means_of_production = body.meansOfProduction;
-  if (body.workEnvironment !== undefined) changes.work_environment = body.workEnvironment;
-  if (body.exposure !== undefined) changes.exposure = body.exposure;
-  if (body.workTask !== undefined) changes.work_task = body.workTask;
-  if (body.exposedPersons !== undefined) changes.exposed_persons = body.exposedPersons;
+  const changes = sentColumns({
+    name: body.name,
+    means_of_production: body.meansOfProduction,
+    work_environment: body.workEnvironment,
+    exposure: body.exposure,
+    work_task: body.workTask,
+    exposed_persons: body.exposedPersons,
+  });
   if (Object.keys(changes).length > 0) {
     const { error } = await db
       .from('risk_evaluations')

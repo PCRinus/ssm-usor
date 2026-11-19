@@ -22,6 +22,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../lib/list-page';
+import { sentColumns } from '../../lib/partial-update';
 import { printedDate, romanianDay } from '../../lib/romanian';
 import { fileNameOf } from '../../lib/text';
 import { renderInstructionAnnex } from '../documents/annexes';
@@ -339,13 +340,13 @@ export const updateInstructionModule: RouteHandler<
   const { moduleId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  const changes: Database['public']['Tables']['instruction_modules']['Update'] = {};
-  if (body.title !== undefined) changes.title = body.title;
-  if (body.group !== undefined) changes.module_group = body.group;
-  if (body.domain !== undefined) changes.domain = body.domain;
-  if (body.archived !== undefined) {
-    changes.archived_at = body.archived ? new Date().toISOString() : null;
-  }
+  const changes = sentColumns({
+    title: body.title,
+    module_group: body.group,
+    domain: body.domain,
+    archived_at:
+      body.archived === undefined ? undefined : body.archived ? new Date().toISOString() : null,
+  });
   if (body.group !== undefined || body.domain !== undefined) {
     const current = await readModule(db, moduleId);
     if (!categoryFitsDomain(body.group ?? current.group, body.domain ?? current.domain)) {

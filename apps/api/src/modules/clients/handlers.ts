@@ -31,6 +31,7 @@ import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { clientObjectBuckets, createAdminFileStore } from '../../lib/files';
 import { listPage, matchingEveryTerm, orderedBy, type SortColumn } from '../../lib/list-page';
+import { sentColumns } from '../../lib/partial-update';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { clientNotFound, requireClient } from './lookup';
 import type {
@@ -484,13 +485,13 @@ export const updateClient: RouteHandler<typeof updateClientRoute, ApiEnv> = asyn
       county_code: body.countyCode ?? null,
       locality: body.locality ?? null,
       address_line: body.addressLine ?? null,
-      // A client's form no longer asks for it; what its lead declared stays.
-      ...(body.declaredEmployeeCount !== undefined && {
+      ...sentColumns({
+        // A client's form no longer asks for it; what its lead declared stays.
         declared_employee_count: body.declaredEmployeeCount,
+        contact_name: body.contactName,
+        contact_email: body.contactEmail,
+        contact_phone: body.contactPhone,
       }),
-      ...(body.contactName !== undefined && { contact_name: body.contactName }),
-      ...(body.contactEmail !== undefined && { contact_email: body.contactEmail }),
-      ...(body.contactPhone !== undefined && { contact_phone: body.contactPhone }),
     })
     .eq('id', clientId)
     .is('archived_at', null)

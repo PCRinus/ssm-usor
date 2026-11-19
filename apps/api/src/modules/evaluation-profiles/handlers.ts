@@ -17,6 +17,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { listPage, matchingEveryTerm, orderedBy } from '../../lib/list-page';
+import { sentColumns } from '../../lib/partial-update';
 import {
   byEvaluationOrder,
   bySortOrder,
@@ -324,14 +325,14 @@ export const updateEvaluationProfile: RouteHandler<
   const { profileId } = c.req.valid('param');
   const body = c.req.valid('json');
   const db = createDataClient(c);
-  const changes: Tables['evaluation_profiles']['Update'] = {};
-  if (body.name !== undefined) changes.name = body.name;
-  if (body.archived !== undefined) {
-    changes.archived_at = body.archived ? new Date().toISOString() : null;
-  }
-  if (body.meansOfProduction !== undefined) changes.means_of_production = body.meansOfProduction;
-  if (body.workEnvironment !== undefined) changes.work_environment = body.workEnvironment;
-  if (body.exposure !== undefined) changes.exposure = body.exposure;
+  const changes = sentColumns({
+    name: body.name,
+    archived_at:
+      body.archived === undefined ? undefined : body.archived ? new Date().toISOString() : null,
+    means_of_production: body.meansOfProduction,
+    work_environment: body.workEnvironment,
+    exposure: body.exposure,
+  });
   if (Object.keys(changes).length === 0) {
     await findProfile(db, profileId);
   } else {
