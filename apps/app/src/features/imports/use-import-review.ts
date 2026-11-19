@@ -162,32 +162,32 @@ export function useClientReview(detail: ImportDetail) {
 }
 
 export function useExistingValues(detail: ImportDetail) {
-  const { request } = useApi();
+  const { request, key } = useApi();
   const clientId = detail.intoExistingClient ? (detail.client?.id ?? '') : '';
   const enabled = clientId !== '';
   const client = useGetClient(clientId, {
     request,
-    query: { queryKey: getGetClientQueryKey(clientId), enabled },
+    query: { queryKey: key(getGetClientQueryKey(clientId)), enabled },
   });
   const details = useGetClientDocumentDetails(clientId, {
     request,
-    query: { queryKey: getGetClientDocumentDetailsQueryKey(clientId), enabled },
+    query: { queryKey: key(getGetClientDocumentDetailsQueryKey(clientId)), enabled },
   });
   const fireSafety = useGetClientFireSafety(clientId, {
     request,
-    query: { queryKey: getGetClientFireSafetyQueryKey(clientId), enabled },
+    query: { queryKey: key(getGetClientFireSafetyQueryKey(clientId)), enabled },
   });
   const positions = useListJobPositions(clientId, {
     request,
-    query: { queryKey: getListJobPositionsQueryKey(clientId), enabled },
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)), enabled },
   });
   const substances = useListFireSubstances(clientId, {
     request,
-    query: { queryKey: getListFireSubstancesQueryKey(clientId), enabled },
+    query: { queryKey: key(getListFireSubstancesQueryKey(clientId)), enabled },
   });
   const workplaces = useListWorkplaces(clientId, {
     request,
-    query: { queryKey: getListWorkplacesQueryKey(clientId), enabled },
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)), enabled },
   });
   if (!enabled) {
     return {
