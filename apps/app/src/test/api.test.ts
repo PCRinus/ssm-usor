@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 
 import type { Release } from '@/api/generated/api';
 
-import { bodiesOf, bodyOf, finishedSetupGuide, installFetchMock, mockApi, requestsTo } from './api';
+import {
+  bodiesOf,
+  bodyOf,
+  finishedSetupGuide,
+  installFetchMock,
+  mockApi,
+  requestsTo,
+  takeUnroutedRequests,
+} from './api';
 import { quietSummary } from './dashboard-fixture';
 import { clientId, meRecord } from './records';
 
@@ -22,6 +30,7 @@ describe('the shared API mock', () => {
     await expect(fetch(`${api}/workplaces`, { method: 'DELETE' })).rejects.toThrow(
       'Unexpected request: DELETE /workplaces'
     );
+    expect(takeUnroutedRequests()).toEqual(['DELETE /workplaces']);
   });
 
   it('lets a route answer /me, a test hand in its own /me, or refuse /me', async () => {
@@ -36,6 +45,7 @@ describe('the shared API mock', () => {
 
     mockApi(() => undefined, { me: null });
     await expect(fetch(`${api}/me`)).rejects.toThrow('Unexpected request: GET /me');
+    expect(takeUnroutedRequests()).toEqual(['GET /me']);
   });
 
   it("answers the shell's background reads unless a route does", async () => {
@@ -73,7 +83,22 @@ describe('the shared API mock', () => {
     await expect(
       fetch(`${api}/imports?kind=all&withOpenParts=true`, { method: 'POST' })
     ).rejects.toThrow('Unexpected request: POST /imports');
+    expect(takeUnroutedRequests()).toEqual([
+      'GET /imports',
+      `GET /imports?kind=employees&clientId=${clientId}`,
+      'GET /documents/behind/summary?set=fire_safety',
+      'POST /imports?kind=all&withOpenParts=true',
+    ]);
   });
+
+  it.fails(
+    'fails a test that leaves a request unrouted, though the page caught the refusal',
+    async () => {
+      mockApi(() => undefined);
+
+      await fetch(`${api}/workplaces`).catch(() => undefined);
+    }
+  );
 
   it('answers a setup guide the app can read, with every step once', () => {
     expect(setupGuideSchema.parse(finishedSetupGuide)).toEqual(finishedSetupGuide);
