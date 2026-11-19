@@ -10,7 +10,12 @@ import { BackLink, TitleWithBack } from '@/components/back-link';
 
 import { InlineMarkdown } from './inline-markdown';
 import { KindSquare } from './kind-square';
-import { formatReleaseDay, formatReleaseDayBeside, kindTitles } from './release-format';
+import {
+  formatReleaseDay,
+  formatReleaseDayBeside,
+  kindTitles,
+  releaseMonthKey,
+} from './release-format';
 import { ReleaseTag } from './release-tag';
 import { useAcknowledgeReleases, useReleases } from './use-releases';
 
@@ -138,6 +143,7 @@ function OtherReleases({
       )}
       <Link
         to="/actualizari"
+        search={{ luna: releaseMonthKey(release.publishedAt) }}
         data-testid="release-all"
         className="flex sm:flex-1 sm:basis-[260px] flex-col justify-center gap-1 rounded-xl border border-dashed border-input px-4 py-3.5 outline-none hover:bg-card focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-5 sm:py-4"
       >
@@ -187,7 +193,13 @@ export function ReleasePage({ tag }: { tag: string }) {
         <TitleWithBack
           className="max-w-[640px] gap-y-0 sm:gap-y-3"
           line="text-[25px] leading-[1.2] sm:text-[34px] sm:leading-[1.15]"
-          back={<BackLink to="/actualizari" label="Înapoi la actualizări" />}
+          back={
+            <BackLink
+              to="/actualizari"
+              search={{ luna: releaseMonthKey(release.publishedAt) }}
+              label="Înapoi la actualizări"
+            />
+          }
           eyebrow={
             <span className="hidden text-sm text-release-sand-muted sm:block">
               Publicată pe {published}

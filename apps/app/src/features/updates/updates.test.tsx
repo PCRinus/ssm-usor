@@ -16,7 +16,9 @@ import {
   formatReleaseWeekday,
   improvementCount,
   newCount,
+  releaseMonthKey,
   tagCalendar,
+  unreadCount,
 } from './release-format';
 import { runsRelease } from './use-update-dialog-open';
 
@@ -112,6 +114,12 @@ describe('formatting', () => {
     expect(formatReleaseMonth('2026-11-06T08:00:00.000Z')).toBe('Noiembrie 2026');
   });
 
+  it('keys a release under its month in Bucharest', () => {
+    expect(releaseMonthKey('2026-11-06T08:00:00.000Z')).toBe('2026-11');
+    expect(releaseMonthKey('2026-10-31T22:30:00.000Z')).toBe('2026-11');
+    expect(releaseMonthKey('2026-01-31T21:59:00.000Z')).toBe('2026-01');
+  });
+
   it('counts in Romanian', () => {
     expect(newCount(1)).toBe('1 nouă');
     expect(newCount(3)).toBe('3 noi');
@@ -119,6 +127,8 @@ describe('formatting', () => {
     expect(improvementCount(4)).toBe('4 îmbunătățiri');
     expect(fixCount(1)).toBe('1 remediere');
     expect(fixCount(20)).toBe('20 de remedieri');
+    expect(unreadCount(1)).toBe('1 necitită');
+    expect(unreadCount(2)).toBe('2 necitite');
   });
 
   it('picks up to three features and fills four rows, counting what it leaves out', () => {
@@ -366,34 +376,78 @@ describe('the update dialog and the running build', () => {
 });
 
 describe('the Actualizări list', () => {
-  it('groups the releases by month with their counts and marks the unread ones', async () => {
+  const shownMonth = () => within(screen.getByTestId('release-month')).getByRole('heading');
+
+  it('shows the newest month with its counts and marks the unread ones', async () => {
     mockReleasesApi([newest, { ...reminders, unread: false }, fixesOnly, first]);
     mount('/actualizari');
     await screen.findByTestId('updates-page');
-    const months = screen.getAllByTestId('release-month');
-    expect(months.map((month) => within(month).getByRole('heading').textContent)).toEqual([
-      'Noiembrie 2026',
-      'Octombrie 2026',
-    ]);
-    expect(within(months[1]!).getAllByTestId('release-row')).toHaveLength(3);
+    expect(screen.getAllByTestId('release-month')).toHaveLength(1);
+    expect(shownMonth().textContent).toBe('Noiembrie 2026');
+    expect(screen.getByTestId('updates-month-picker').textContent).toBe('Noiembrie 2026');
+    expect(screen.queryByText('Ce s-a schimbat în SSM Ușor', { exact: false })).toBeNull();
 
     const cards = screen.getAllByTestId('release-card');
-    const chips = (card: HTMLElement) =>
-      within(card)
+    expect(cards).toHaveLength(1);
+    expect(
+      within(cards[0]!)
         .getAllByTestId('release-chip')
-        .map((chip) => chip.textContent);
-    expect(chips(cards[0]!)).toEqual(['3 noi', '2 îmbunătățiri', '1 remediere']);
-    expect(chips(cards[1]!)).toEqual(['1 nouă', '1 îmbunătățire']);
-    expect(chips(cards[2]!)).toEqual(['2 remedieri']);
+        .map((chip) => chip.textContent)
+    ).toEqual(['3 noi', '2 îmbunătățiri', '1 remediere']);
     expect(within(cards[0]!).getByText('Necitită')).toBeTruthy();
-    expect(within(cards[1]!).queryByText('Necitită')).toBeNull();
     expect(cards[0]!.getAttribute('href')).toBe('/actualizari/2026.11.06');
+
+    expect(screen.queryByTestId('updates-newer-month')).toBeNull();
+    expect(screen.getByTestId('updates-older-month').getAttribute('href')).toBe(
+      '/actualizari?luna=2026-10'
+    );
+    expect(screen.queryByText('Acestea sunt toate versiunile', { exact: false })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('shows the month the link names, closing the oldest with the first release', async () => {
+    mockReleasesApi([newest, { ...reminders, unread: false }, fixesOnly, first]);
+    mount('/actualizari?luna=2026-10');
+    await screen.findByTestId('updates-page');
+    expect(shownMonth().textContent).toBe('Octombrie 2026');
+    const cards = screen.getAllByTestId('release-card');
+    expect(cards.map((card) => card.getAttribute('href'))).toEqual([
+      '/actualizari/2026.10.30',
+      '/actualizari/2026.10.28',
+      '/actualizari/2026.10.23',
+    ]);
+    expect(within(cards[2]!).queryAllByTestId('release-chip')).toHaveLength(1);
+    const newer = screen.getByTestId('updates-newer-month');
+    expect(newer.textContent).toBe('Noiembrie 20261 necitită');
+    expect(newer.getAttribute('href')).toBe('/actualizari?luna=2026-11');
+    expect(screen.queryByTestId('updates-older-month')).toBeNull();
     expect(
       screen.getByText(
         'Acestea sunt toate versiunile. Prima a fost publicată pe 23 octombrie 2026.'
       )
     ).toBeTruthy();
-    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('falls back to the newest month for a month without releases', async () => {
+    mockReleasesApi([newest, first]);
+    mount('/actualizari?luna=2025-01');
+    await screen.findByTestId('updates-page');
+    expect(shownMonth().textContent).toBe('Noiembrie 2026');
+  });
+
+  it('switches the month from the menu, which counts the unread releases of each', async () => {
+    mockReleasesApi([newest, reminders, fixesOnly, first]);
+    const { router } = mount('/actualizari');
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('updates-month-picker'));
+    const options = await screen.findAllByTestId('updates-month-option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      'Noiembrie 20261 necitită',
+      'Octombrie 20261 necitită',
+    ]);
+    await user.click(options[1]!);
+    await waitFor(() => expect(shownMonth().textContent).toBe('Octombrie 2026'));
+    expect(router.state.location.search).toEqual({ luna: '2026-10' });
   });
 
   it('marks everything as read through the newest release', async () => {
@@ -404,6 +458,7 @@ describe('the Actualizări list', () => {
     await waitFor(() => expect(acknowledgements()).toEqual([{ tag: newest.tag }]));
     await waitFor(() => expect(screen.queryByText('Necitită')).toBeNull());
     expect(screen.queryByRole('button', { name: 'Marchează toate ca citite' })).toBeNull();
+    expect(screen.getByTestId('updates-older-month').textContent).toBe('Octombrie 2026');
   });
 
   it('says so when there is no release yet', async () => {
@@ -412,6 +467,7 @@ describe('the Actualizări list', () => {
     expect((await screen.findByTestId('updates-empty')).textContent).toBe(
       'Nicio actualizare încă.'
     );
+    expect(screen.queryByTestId('updates-month-picker')).toBeNull();
   });
 });
 
@@ -492,6 +548,16 @@ describe('the release page', () => {
     await screen.findByTestId('release-page');
     expect(screen.queryByTestId('release-previous')).toBeNull();
     expect(screen.getByTestId('release-all').textContent).toBe('Toate actualizările');
+  });
+
+  it('leads back to the month the release sits in', async () => {
+    mockReleasesApi([{ ...newest, unread: false }, first]);
+    mount('/actualizari/2026.10.23');
+    await screen.findByTestId('release-page');
+    expect(screen.getByTestId('release-all').getAttribute('href')).toBe(
+      '/actualizari?luna=2026-10'
+    );
+    expect(screen.getByTestId('page-back').getAttribute('href')).toBe('/actualizari?luna=2026-10');
   });
 
   it('calls the newest release the newest', async () => {
