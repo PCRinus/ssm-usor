@@ -538,6 +538,21 @@ describe('toEmployeeProposal', () => {
     });
   });
 
+  it('keeps a trade acronym in capitals inside a job title written in capitals', () => {
+    const proposal = toEmployeeProposal({
+      pages: pagesOf(
+        page({
+          pageKind: 'ssm_sheet_front',
+          person: { lastName: 'Ionescu', firstName: 'Mihai' },
+          fields: { jobTitle: 'RESPONSABIL RSVTI' },
+        })
+      ),
+      client,
+      today,
+    });
+    expect(proposal.people[0]!.fields.jobTitle.options[0]!.value).toBe('Responsabil RSVTI');
+  });
+
   it('takes one address written in another order for the same, but not another flat', () => {
     const proposal = toEmployeeProposal({
       pages: pagesOf(

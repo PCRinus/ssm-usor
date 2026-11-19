@@ -8,11 +8,11 @@ import type { Context } from 'hono';
 
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
-import { sha256 } from '../../lib/docx';
 import { type ApiEnv, appOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore } from '../../lib/files';
 import { hashToken } from '../../lib/tokens';
+import { recordSignedCopy } from '../documents/revisions';
 import { contractFileName } from '../service-contracts/context';
 import type {
   downloadContractReturnRoute,
@@ -178,46 +178,25 @@ export const uploadContractReturn: RouteHandler<typeof uploadContractReturnRoute
   }
 
   const { admin, send, revision } = found;
-  const path = revision.docx_path.replace(/\.docx$/, '.signed.pdf');
-  const uploadedAt = new Date().toISOString();
-  // The row first, then the file, as an owner's attachment does; the counter goes up
-  // before the file so that a failing upload still counts as a try.
+  // The counter goes up before the file so that a failing upload still counts as a try.
   const counted = await admin
     .from('service_contract_sends')
     .update({ return_uploads: send.return_uploads + 1 })
     .eq('id', send.id);
   if (counted.error) throw fromDatabaseError(counted.error, 'count return upload');
-  const recorded = await admin.from('document_signed_copies').upsert(
-    {
-      revision_id: revision.id,
-      organization_id: send.organization_id,
-      document_id: send.document_id,
-      storage_path: path,
-      sha256: await sha256(bytes),
-      uploaded_by: null,
-      uploaded_at: uploadedAt,
-      source: 'client',
-      confirmed_at: null,
-      confirmed_by: null,
+  const uploadedAt = await recordSignedCopy(admin, createAdminFileStore(c), {
+    revision: {
+      id: revision.id,
+      docxPath: revision.docx_path,
+      hasCopy: Boolean(revision.document_signed_copies),
     },
-    { onConflict: 'revision_id' }
-  );
-  if (recorded.error) throw fromDatabaseError(recorded.error, 'record received copy');
-  try {
-    await createAdminFileStore(c).writeDocument(path, bytes, { replace: true });
-  } catch (error) {
-    // Only a first copy: after a failed replacement the row still describes the earlier
-    // file, under a hash the client's next try corrects. Only this try's row: a second
-    // upload may have replaced it and stored its file meanwhile.
-    if (!revision.document_signed_copies) {
-      await admin
-        .from('document_signed_copies')
-        .delete()
-        .eq('revision_id', revision.id)
-        .eq('uploaded_at', uploadedAt);
-    }
-    throw error;
-  }
+    documentId: send.document_id,
+    organizationId: send.organization_id,
+    bytes,
+    uploadedBy: null,
+    source: 'client',
+    context: 'record received copy',
+  });
 
   // The owner hears of it; a copy that arrived is not lost when the email is.
   const to = await senderEmail(admin, send.sent_by);
