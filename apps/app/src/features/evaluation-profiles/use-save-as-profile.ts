@@ -1,7 +1,8 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 
 import { useSaveRiskEvaluationAsProfile } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import {
   evaluationTitle,
   type RiskEvaluation,
@@ -12,11 +13,11 @@ import type { ProfileNaming } from './profile-naming';
 import { useProfileCache } from './use-profile-cache';
 
 export function useSaveAsProfile(clientId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const navigate = useNavigate();
   const cache = useProfileCache();
   const evaluationCache = useEvaluationCache(clientId);
-  const save = useSaveRiskEvaluationAsProfile({ request: apiRequest });
+  const save = useSaveRiskEvaluationAsProfile({ request });
 
   return (evaluation: RiskEvaluation): ProfileNaming => ({
     title: 'Salvează în bibliotecă',

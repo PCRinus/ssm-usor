@@ -8,7 +8,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { keepPreviousData } from '@tanstack/react-query';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { Archive, BriefcaseBusiness, Gauge, Library, Plus, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -19,6 +19,7 @@ import {
   useCreateEvaluationProfile,
   useListEvaluationProfiles,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -87,10 +88,10 @@ const profileCount = (count: number) => countOf(count, ...profileNoun);
 
 const rowKey = (row: EvaluationProfileSummary) => row.id;
 
-export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; userId: string }) {
+export function RiskLibrary({ search }: { search: RiskLibrarySearch }) {
   const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status, q } = search;
   const archived = status === 'archived';
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const navigate = useNavigate({ from: libraryPath });
   const cache = useProfileCache();
   const phone = useIsMobile();
@@ -108,9 +109,9 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
     ...filters,
   };
   const profiles = useListEvaluationProfiles(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListEvaluationProfilesQueryKey(params), userId],
+      queryKey: key(getListEvaluationProfilesQueryKey(params)),
       placeholderData: keepPreviousData,
     },
   });
@@ -118,7 +119,7 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
   const unfilteredTotal = profiles.data?.unfilteredTotal ?? 0;
   const libraryEmpty = !archived && !narrowed && isEmptyOrLoading(profiles.status, unfilteredTotal);
   const state = archived ? 'arhivată' : 'activă';
-  const create = useCreateEvaluationProfile({ request: apiRequest });
+  const create = useCreateEvaluationProfile({ request });
   const renaming = useProfileRenaming();
   const [naming, setNaming] = useState<ProfileNaming | null>(null);
   const [renamed, setRenamed] = useState<EvaluationProfileSummary | null>(null);
@@ -148,8 +149,8 @@ export function RiskLibrary({ search, userId }: { search: RiskLibrarySearch; use
       pageSize: 1,
     };
     return getListEvaluationProfilesQueryOptions(counted, {
-      request: apiRequest,
-      query: { queryKey: [...getListEvaluationProfilesQueryKey(counted), userId] },
+      request,
+      query: { queryKey: key(getListEvaluationProfilesQueryKey(counted)) },
     });
   };
 

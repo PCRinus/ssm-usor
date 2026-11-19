@@ -1,5 +1,3 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import {
   type EvaluationProfileResponse,
   getGetEvaluationProfileQueryKey,
@@ -11,6 +9,7 @@ import {
   useUpdateEvaluationProfile,
   useUpdateEvaluationProfileFactor,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import type { FactorStore } from '@/features/risk-evaluations/factor-store';
 import { toLibraryWorkSystemRequest } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { invalidateEvaluations } from '@/features/risk-evaluations/use-evaluation-cache';
@@ -19,7 +18,7 @@ import type { WorkSystemStore } from '@/features/risk-evaluations/work-system-st
 import { type EvaluationProfile, profileFailure } from './profile-schema';
 
 export function useProfileCache() {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const listsChanged = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: getListEvaluationProfilesQueryKey() }),
@@ -67,11 +66,11 @@ export function useProfileCache() {
 }
 
 export function useProfileFactorStore(profile: EvaluationProfile): FactorStore {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const cache = useProfileCache();
-  const create = useCreateEvaluationProfileFactor({ request: apiRequest });
-  const update = useUpdateEvaluationProfileFactor({ request: apiRequest });
-  const remove = useRemoveEvaluationProfileFactor({ request: apiRequest });
+  const create = useCreateEvaluationProfileFactor({ request });
+  const update = useUpdateEvaluationProfileFactor({ request });
+  const remove = useRemoveEvaluationProfileFactor({ request });
 
   return {
     save: async (factorId, data) => {
@@ -90,9 +89,9 @@ export function useProfileFactorStore(profile: EvaluationProfile): FactorStore {
 }
 
 export function useProfileWorkSystemStore(profile: EvaluationProfile): WorkSystemStore {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const cache = useProfileCache();
-  const update = useUpdateEvaluationProfile({ request: apiRequest });
+  const update = useUpdateEvaluationProfile({ request });
 
   return {
     save: async (values) => {
