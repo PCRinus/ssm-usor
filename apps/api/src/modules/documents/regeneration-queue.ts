@@ -40,7 +40,8 @@ const details = {
 
 export async function consumeRegenerationBatch(
   batch: { messages: readonly QueueMessage[] },
-  env: ApiEnv['Bindings']
+  env: ApiEnv['Bindings'],
+  regenerate: typeof regenerateDraft = regenerateDraft
 ) {
   const admin = adminClient(env);
   const files = adminFileStore(env);
@@ -52,7 +53,13 @@ export async function consumeRegenerationBatch(
       continue;
     }
     try {
-      await regenerateQueuedClient(admin, files, parsed.data, message.attempts >= lastDelivery);
+      await regenerateQueuedClient(
+        admin,
+        files,
+        parsed.data,
+        message.attempts >= lastDelivery,
+        regenerate
+      );
       message.ack();
     } catch (error) {
       console.error(
@@ -71,7 +78,8 @@ export async function regenerateQueuedClient(
   admin: AdminClient,
   files: FileStore,
   { jobId, clientId }: RegenerationMessage,
-  lastAttempt: boolean
+  lastAttempt: boolean,
+  regenerate: typeof regenerateDraft = regenerateDraft
 ) {
   const item = await admin
     .from('regeneration_job_items')
@@ -113,7 +121,7 @@ export async function regenerateQueuedClient(
     createdBy: job.requested_by,
   };
   try {
-    await regenerateDraft(admin, files, actor, behind.data.document_id!, {});
+    await regenerate(admin, files, actor, behind.data.document_id!, {});
   } catch (error) {
     if (transient(error) && !lastAttempt) throw error;
     return record('failed', failureDetail(error), missingOf(error));

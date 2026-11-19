@@ -11,15 +11,8 @@ import {
   testSecretKey,
   testUser,
 } from '../../test/upstream';
-
-// The regeneration itself is the single-document path, tested with the routes; here it only
-// says whether it succeeded.
-vi.mock('./generate', () => ({ regenerateDraft: vi.fn() }));
-
-import { regenerateDraft } from './generate';
+import type { regenerateDraft } from './generate';
 import { consumeRegenerationBatch, lastDelivery, type QueueMessage } from './regeneration-queue';
-
-const regenerate = vi.mocked(regenerateDraft);
 
 const env = testEnv({ SUPABASE_SECRET_KEY: testSecretKey });
 
@@ -53,6 +46,12 @@ const message = (attempts = 1, body: unknown = { jobId, clientId }) => {
   return sent;
 };
 
+// The regeneration itself is the single-document path, tested with the routes; here it only
+// says whether it succeeded.
+const regenerate = vi.fn<typeof regenerateDraft>();
+const consume = (...messages: QueueMessage[]) =>
+  consumeRegenerationBatch({ messages }, env, regenerate);
+
 const records = () =>
   callsTo('/rest/v1/rpc/record_regeneration_item').map(
     (call) => call.body as Record<string, unknown>
@@ -73,7 +72,7 @@ describe('the regeneration queue consumer', () => {
   it('regenerates the document behind as the member who asked, with the secret key', async () => {
     mockUpstream();
     const delivered = message();
-    await consumeRegenerationBatch({ messages: [delivered] }, env);
+    await consume(delivered);
 
     expect(regenerate).toHaveBeenCalledOnce();
     const [, , actor, regenerated, request] = regenerate.mock.calls[0]!;
@@ -98,7 +97,7 @@ describe('the regeneration queue consumer', () => {
   it('skips a draft edited by hand, saying why', async () => {
     mockUpstream({ behind: () => Response.json({ document_id: documentId, edited_draft: true }) });
     const delivered = message();
-    await consumeRegenerationBatch({ messages: [delivered] }, env);
+    await consume(delivered);
 
     expect(regenerate).not.toHaveBeenCalled();
     expect(records()).toEqual([
@@ -116,7 +115,7 @@ describe('the regeneration queue consumer', () => {
   it('leaves a client already recorded as it is when the message comes again', async () => {
     mockUpstream({ item: () => Response.json(itemRow('done')) });
     const delivered = message(2);
-    await consumeRegenerationBatch({ messages: [delivered] }, env);
+    await consume(delivered);
 
     expect(regenerate).not.toHaveBeenCalled();
     expect(records()).toEqual([]);
@@ -125,7 +124,7 @@ describe('the regeneration queue consumer', () => {
 
   it('skips a document that is no longer behind', async () => {
     mockUpstream({ behind: () => Response.json([]) });
-    await consumeRegenerationBatch({ messages: [message()] }, env);
+    await consume(message());
 
     expect(regenerate).not.toHaveBeenCalled();
     expect(records()).toMatchObject([
@@ -136,7 +135,7 @@ describe('the regeneration queue consumer', () => {
   it('drops the message of a job that was taken back', async () => {
     mockUpstream({ item: () => Response.json([]) });
     const delivered = message();
-    await consumeRegenerationBatch({ messages: [delivered] }, env);
+    await consume(delivered);
 
     expect(regenerate).not.toHaveBeenCalled();
     expect(records()).toEqual([]);
@@ -145,7 +144,7 @@ describe('the regeneration queue consumer', () => {
 
   it('fails a client whose requester has no account any more', async () => {
     mockUpstream({ item: () => Response.json(itemRow('queued', null)) });
-    await consumeRegenerationBatch({ messages: [message()] }, env);
+    await consume(message());
 
     expect(regenerate).not.toHaveBeenCalled();
     expect(records()).toMatchObject([
@@ -165,7 +164,7 @@ describe('the regeneration queue consumer', () => {
       )
     );
     const delivered = message();
-    await consumeRegenerationBatch({ messages: [delivered] }, env);
+    await consume(delivered);
 
     expect(records()).toEqual([
       {
@@ -187,13 +186,13 @@ describe('the regeneration queue consumer', () => {
     regenerate.mockRejectedValue(new ApiError('service_unavailable'));
 
     const first = message(1);
-    await consumeRegenerationBatch({ messages: [first] }, env);
+    await consume(first);
     expect(first.retry).toHaveBeenCalledWith({ delaySeconds: 30 });
     expect(first.ack).not.toHaveBeenCalled();
     expect(records()).toEqual([]);
 
     const last = message(lastDelivery);
-    await consumeRegenerationBatch({ messages: [last] }, env);
+    await consume(last);
     expect(records()).toMatchObject([
       {
         p_status: 'failed',
@@ -207,7 +206,7 @@ describe('the regeneration queue consumer', () => {
     mockUpstream({ record: () => Response.json({ message: 'down' }, { status: 503 }) });
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const delivered = message();
-    await consumeRegenerationBatch({ messages: [delivered] }, env);
+    await consume(delivered);
 
     expect(delivered.retry).toHaveBeenCalledOnce();
     expect(delivered.ack).not.toHaveBeenCalled();
@@ -217,7 +216,7 @@ describe('the regeneration queue consumer', () => {
     mockUpstream();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const delivered = message(1, { jobId: 'nope' });
-    await consumeRegenerationBatch({ messages: [delivered] }, env);
+    await consume(delivered);
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(delivered.ack).toHaveBeenCalledOnce();
@@ -228,7 +227,7 @@ describe('the regeneration queue consumer', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     regenerate.mockRejectedValueOnce(new TypeError('fetch failed'));
     const [first, second] = [message(1), message(1)];
-    await consumeRegenerationBatch({ messages: [first, second] }, env);
+    await consume(first, second);
 
     expect(first.retry).toHaveBeenCalledOnce();
     expect(second.ack).toHaveBeenCalledOnce();
