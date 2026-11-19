@@ -258,7 +258,7 @@ Un plan ales în perioada de probă înainte de 14 noiembrie 2026 se plătește 
 
 ## Contul doar pentru citire
 
-Contul devine doar pentru citire când proba se încheie fără un plan, când se încheie un abonament anulat sau după 14 zile de plată nereușită. Tu, colegii și clienții vedeți și descărcați tot, dar nimeni nu mai poate schimba nimic. Nu se mai trimit SMS-uri. Dacă salvezi ceva dintr-o pagină deschisă dinainte, mesajul este „Contul este doar pentru citire, așa că nu se mai pot face modificări.” Pagina **Abonament** arată data la care se șterg datele.
+Contul devine doar pentru citire când proba se încheie fără un plan, când se încheie un abonament anulat sau după 14 zile de plată nereușită. Tu, colegii și clienții vedeți și descărcați tot, dar nimeni nu mai poate schimba nimic. Nu se mai trimit SMS-uri. Dacă salvezi ceva dintr-o pagină deschisă dinainte, salvarea nu trece, iar în cele mai multe ferestre mesajul este „Contul este doar pentru citire, așa că nu se mai pot face modificări.” Pagina **Abonament** arată data la care se șterg datele.
 
 Pagina **Abonament** funcționează și în acest timp. Cu **Alege un plan** sau **Reactivează abonamentul** plătești pe loc și contul revine imediat la acces complet, cu tot ce aveai. Dacă o plată de reînnoire e cea care nu a reușit, folosește **Schimbă cardul**: plata se reîncearcă, iar după ce reușește contul revine la acces complet.
 
