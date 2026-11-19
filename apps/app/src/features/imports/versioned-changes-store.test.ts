@@ -99,6 +99,44 @@ describe('a review that saves its changes on a version', () => {
     expect(store.getSnapshot().error).toBeNull();
   });
 
+  it('still sends an edit made while a save that fails was on its way, and clears the error', async () => {
+    const first = deferred<Saved>();
+    const save = vi
+      .fn<(version: number, changes: Changes) => Promise<Saved>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ version: 4 });
+    const store = storeWith(save);
+
+    store.update(set('a', 1));
+    store.update(set('b', 2));
+    first.reject(new ApiHttpError(503, undefined));
+
+    await vi.waitFor(() => expect(store.getSnapshot().saving).toBe(false));
+    expect(save.mock.calls).toEqual([
+      [3, { values: { a: 1 } }],
+      [3, { values: { a: 1, b: 2 } }],
+    ]);
+    expect(store.getSnapshot()).toMatchObject({ error: null, saving: false });
+  });
+
+  it('sends an edit made after the last save returned, before the round of saves ended', async () => {
+    const first = deferred<Saved>();
+    const save = vi
+      .fn<(version: number, changes: Changes) => Promise<Saved>>()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ version: 5 });
+    const store = storeWith(save);
+
+    store.update(set('a', 1));
+    first.resolve({ version: 4 });
+    await first.promise;
+    store.update(set('b', 2));
+
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save).toHaveBeenLastCalledWith(4, { values: { a: 1, b: 2 } });
+    await vi.waitFor(() => expect(store.getSnapshot().saving).toBe(false));
+  });
+
   it('takes the saved changes and version again on reload, and saves again after a conflict', async () => {
     const save = vi
       .fn()

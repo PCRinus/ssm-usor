@@ -2,7 +2,6 @@ import { importErrorReasons } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
 import { createContext, use, useSyncExternalStore } from 'react';
 
-import { getGetImportQueryKey, type ImportDetailResponse } from '@/api/generated/api';
 import type { ApiRequestOptions } from '@/api/http';
 
 import { importErrorMessage, importErrorReason } from './import-format';
@@ -110,7 +109,8 @@ export class VersionedChangesStore<C, R extends Saved = Saved> {
         this.options.onSaved?.(changes, saved);
       } catch (cause) {
         this.refused(cause);
-        return;
+        // A newer edit carries the failed one, so it is still worth sending.
+        if (this.stopped || this.snapshot.changes === changes) return;
       }
     }
     if (!this.unsaved) this.set({ error: null });
@@ -177,11 +177,4 @@ export function useChangesStores() {
 
 export function useChangesSnapshot<C, R extends Saved>(store: VersionedChangesStore<C, R>) {
   return useSyncExternalStore(store.subscribe, store.getSnapshot);
-}
-
-export async function refetchImport(queryClient: QueryClient, importId: string) {
-  await queryClient.refetchQueries({ queryKey: getGetImportQueryKey(importId) });
-  return queryClient
-    .getQueriesData<ImportDetailResponse>({ queryKey: getGetImportQueryKey(importId) })
-    .find(([, data]) => data)?.[1]?.import;
 }

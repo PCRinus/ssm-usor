@@ -20,6 +20,7 @@ import {
   useListWorkplaces,
 } from '@/api/generated/api';
 
+import { refetchImport } from './refetch-import';
 import {
   type Blocker,
   type Changes,
@@ -33,7 +34,6 @@ import { blockerLinks, fieldStates, reviewName, sectionStatuses } from './review
 import { keptPosts, withoutAbsentCategories } from './training-category';
 import {
   type ChangesStores,
-  refetchImport,
   useChangesSnapshot,
   useChangesStores,
   VersionedChangesStore,
