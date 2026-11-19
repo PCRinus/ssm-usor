@@ -70,6 +70,22 @@ describe('mockUpstream', () => {
     );
   });
 
+  it('leaves a call a route answers undefined to the later layers', async () => {
+    mockUpstream(
+      { '/*': ({ url }) => (url.pathname === '/rest/v1/clients' ? ['test'] : undefined) },
+      { '/rest/v1/employees': () => ['module'] }
+    );
+    const answer = async (path: string) =>
+      (await fetch(`https://example.supabase.co${path}`)).json();
+
+    expect(await answer('/rest/v1/clients')).toEqual(['test']);
+    expect(await answer('/rest/v1/employees')).toEqual(['module']);
+    expect(await answer('/auth/v1/user')).toEqual(testUser);
+    await expect(fetch('https://example.supabase.co/rest/v1/sites')).rejects.toThrow(
+      'Unexpected upstream request: GET https://example.supabase.co/rest/v1/sites'
+    );
+  });
+
   it('hands a route the request init as the caller sent it', async () => {
     const form = new FormData();
     mockUpstream({ 'POST /storage/v1/object/files': ({ init }) => [init?.body === form] });

@@ -112,27 +112,29 @@ function routeIn(layer: UpstreamRoutes, { method, url }: UpstreamCall) {
   return prefix === undefined ? undefined : layer[prefix];
 }
 
+function asResponse(call: UpstreamCall, result: unknown) {
+  if (result instanceof Response) return result;
+  const one = call.headers.get('Accept')?.includes('vnd.pgrst.object');
+  if (!one || !Array.isArray(result)) return Response.json(result);
+  if (!result.length) {
+    return databaseError('PGRST116', 'JSON object requested, multiple (or no) rows returned', 406);
+  }
+  return Response.json(result[0]);
+}
+
 // An earlier layer wins, even its bare `/path` over a later layer's `METHOD /path`, so a test can
-// replace a module's defaults. Within a layer an exact path wins over a `/prefix*`. When
-// supabase-js asks for one object, rows go back as PostgREST answers them: the first row, or 406
-// PGRST116 for none.
+// replace a module's defaults. Within a layer an exact path wins over a `/prefix*`, and a route
+// that answers `undefined` leaves the call to the later layers. When supabase-js asks for one
+// object, rows go back as PostgREST answers them: the first row, or 406 PGRST116 for none.
 export function routeUpstream(...layers: UpstreamRoutes[]) {
   fetchMock.mockImplementation(async (input, init) => {
     const call = toCall(input, init);
-    const route = layers.map((layer) => routeIn(layer, call)).find(Boolean);
-    if (!route) throw new Error(`Unexpected upstream request: ${call.method} ${call.url}`);
-    const result = await route(call);
-    if (result instanceof Response) return result;
-    const one = call.headers.get('Accept')?.includes('vnd.pgrst.object');
-    if (!one || !Array.isArray(result)) return Response.json(result);
-    if (!result.length) {
-      return databaseError(
-        'PGRST116',
-        'JSON object requested, multiple (or no) rows returned',
-        406
-      );
+    for (const layer of layers) {
+      const route = routeIn(layer, call);
+      const result = route && (await route(call));
+      if (result !== undefined) return asResponse(call, result);
     }
-    return Response.json(result[0]);
+    throw new Error(`Unexpected upstream request: ${call.method} ${call.url}`);
   });
 }
 
