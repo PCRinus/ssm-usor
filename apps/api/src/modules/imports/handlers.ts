@@ -39,6 +39,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv, ImportMessage, ImportQueue } from '../../lib/env';
 import { ApiError, type BrokenConstraint } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
+import { later } from '../../lib/later';
 import { noticeEmployeesOverStepLater } from '../billing/employees-over-step-notices';
 import { requireWritableClient } from '../clients/lookup';
 import { creditsStore } from '../credits/store';
@@ -921,15 +922,6 @@ async function beginReading(
       { importId, organizationId, kind }
     )
   );
-}
-
-// Hono's executionCtx throws where the runtime gives none, as in tests.
-export function later(c: Context<ApiEnv>, work: Promise<unknown>) {
-  try {
-    c.executionCtx.waitUntil(work);
-  } catch {
-    void work;
-  }
 }
 
 export const startImport: RouteHandler<typeof startImportRoute, ApiEnv> = async (c) => {

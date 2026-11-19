@@ -19,6 +19,7 @@ import type { Database, Json } from '../../database.types';
 import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/db';
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { failureLabel } from '../../lib/later';
 import { listPage, orderedBy } from '../../lib/list-page';
 import { collator } from '../../lib/romanian';
 import { clientNotFound } from '../clients/lookup';
@@ -450,7 +451,7 @@ async function afterSave(
     await issueSignatureRequests(c, db, input);
   } catch (error) {
     console.error(
-      `Signature requests of training ${input.trainingId} not issued: ${error instanceof ApiError ? (error.reason ?? error.code) : error instanceof Error ? error.name : 'unknown'}`
+      `Signature requests of training ${input.trainingId} not issued: ${failureLabel(error)}`
     );
   }
   try {
@@ -465,7 +466,7 @@ async function afterSave(
     );
   } catch (error) {
     console.error(
-      `Signed sheet rows of training ${input.trainingId} not brought up to date: ${error instanceof Error ? error.name : 'unknown'}`
+      `Signed sheet rows of training ${input.trainingId} not brought up to date: ${failureLabel(error)}`
     );
   }
 }

@@ -29,6 +29,7 @@ import { createDataClient, type DataClient, fromDatabaseError } from '../../lib/
 import type { ApiEnv } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
 import { createAdminFileStore, createFileStore } from '../../lib/files';
+import { failureLabel } from '../../lib/later';
 import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
@@ -226,7 +227,7 @@ export const voidRecordSignatures: RouteHandler<typeof voidRecordSignaturesRoute
   } catch (failure) {
     if (!(failure instanceof ApiError && failure.reason === 'record_not_on_sheet')) {
       console.error(
-        `The voided row of ${recordId} was not marked on its sheet: ${failure instanceof ApiError ? (failure.reason ?? failure.code) : failure instanceof Error ? failure.name : 'unknown'}`
+        `The voided row of ${recordId} was not marked on its sheet: ${failureLabel(failure)}`
       );
     }
   }
