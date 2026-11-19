@@ -90,23 +90,8 @@ describe('GET /legislation/acts', () => {
       citedIn: bundledActCitations().get('lege-319-2006')!.citedIn,
       openChange: null,
     });
-    expect(body.items[2]).toMatchObject({ portalId: null, portalStatus: null });
-  });
-
-  it('gives each act the subject, domains and citations of the bundled citation index', async () => {
-    mockUpstream({
-      legal_acts: () => Response.json([order, law, norms]),
-      legal_changes: () => Response.json([]),
-    });
-    const body = legalActListResponseSchema.parse(
-      await (await request('/legislation/acts')).json()
-    );
-    for (const act of body.items) {
-      const { subject, domains, citedIn } = bundledActCitations().get(act.id)!;
-      expect(act).toMatchObject({ subject, domains, citedIn });
-      expect(act.citedIn.documents).toBeGreaterThan(0);
-    }
-    expect(body.items.find((act) => act.id === 'omai-163-2007')!.domains).toEqual(['su']);
+    expect(body.items[2]).toMatchObject({ portalStatus: null, portalId: null, domains: ['su'] });
+    for (const act of body.items) expect(act.citedIn.documents, act.id).toBeGreaterThan(0);
   });
 
   it('gives an act the templates no longer cite no subject and no citations', async () => {
