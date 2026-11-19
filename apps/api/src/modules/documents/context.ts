@@ -830,7 +830,8 @@ export const buildDocumentContext: (facts: SsmSetFacts) => DocumentContext = doc
  */
 export const buildPartialDocumentContext = documentGaps.buildPartial as (
   facts: SsmSetFacts,
-  typeKey: string
+  typeKey: string,
+  only?: ReadonlySet<string>
 ) => PartialDocumentContext;
 
 const groupOrder = (group: InstructionModuleGroup) => instructionCategories.indexOf(group);

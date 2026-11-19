@@ -132,7 +132,11 @@ function dataChanged(
   const printed = revision.data_snapshot as Record<string, unknown>;
   const missing = rules.missing(document.type_key);
   if (missing.some((code) => rules.concerns(code, Object.keys(printed)))) return true;
-  const current = rules.data(document.type_key, document.decision_number);
+  const current = rules.printedData(
+    document.type_key,
+    document.decision_number,
+    Object.keys(printed)
+  );
   return Object.entries(printed).some(
     ([name, value]) => stableJson(current[name]) !== stableJson(value)
   );

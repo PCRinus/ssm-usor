@@ -9,11 +9,15 @@ export function gapRules<Facts, Code extends string, Context extends object>({
   printedAs: Record<Code, readonly (keyof Context)[]>;
   parts: (facts: Facts) => ContextParts<Context>;
 }) {
-  const contextWithout = (facts: Facts, gaps: readonly Code[]): Partial<Context> => {
+  const contextWithout = (
+    facts: Facts,
+    gaps: readonly Code[],
+    only?: ReadonlySet<string>
+  ): Partial<Context> => {
     const leftOut = new Set<PropertyKey>(gaps.flatMap((code) => printedAs[code]));
     return Object.fromEntries(
       Object.entries<() => unknown>(parts(facts)).flatMap(([name, part]) => {
-        if (leftOut.has(name)) return [];
+        if (leftOut.has(name) || (only && !only.has(name))) return [];
         const value = part();
         return value === undefined ? [] : [[name, value]];
       })
@@ -30,7 +34,8 @@ export function gapRules<Facts, Code extends string, Context extends object>({
       if (gaps.length > 0) throw new Error(`Missing document data: ${gaps.join(', ')}`);
       return contextWithout(facts, []) as Context;
     },
-    buildPartial: (facts: Facts, typeKey?: string) =>
-      contextWithout(facts, missing(facts, typeKey)),
+    /** With `only`, the parts not named there are left out too. */
+    buildPartial: (facts: Facts, typeKey?: string, only?: ReadonlySet<string>) =>
+      contextWithout(facts, missing(facts, typeKey), only),
   };
 }

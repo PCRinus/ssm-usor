@@ -35,8 +35,16 @@ export type ThemesRule<Stored> = {
 type SetRules<Facts, Stored> = {
   missing: (facts: Facts, typeKey?: string) => MissingDocumentData[];
   concerns: (code: MissingDocumentData, printedNames: readonly string[]) => boolean;
-  /** What the gaps of `missing(facts, typeKey)` cover is left out of the data. */
-  data: (facts: Facts, typeKey: string, decisionNumber: number | null) => Record<string, unknown>;
+  /**
+   * What the gaps of `missing(facts, typeKey)` cover is left out of the data, and with `only`, the
+   * context's parts not named there.
+   */
+  data: (
+    facts: Facts,
+    typeKey: string,
+    decisionNumber: number | null,
+    only?: ReadonlySet<string>
+  ) => Record<string, unknown>;
   themes: ThemesRule<Stored>;
 };
 
@@ -47,8 +55,8 @@ export const setRules: {
   occupational_safety: {
     missing: missingDocumentData,
     concerns: documentGapConcerns,
-    data: (facts, typeKey, decisionNumber) =>
-      documentData(buildPartialDocumentContext(facts, typeKey), typeKey, decisionNumber),
+    data: (facts, typeKey, decisionNumber, only) =>
+      documentData(buildPartialDocumentContext(facts, typeKey, only), typeKey, decisionNumber),
     themes: {
       typeKey: 'training_themes',
       cites: 'own_instructions',
@@ -59,8 +67,8 @@ export const setRules: {
   fire_safety: {
     missing: missingFireSafetyData,
     concerns: fireSafetyGapConcerns,
-    data: (facts, typeKey) =>
-      fireSafetyDocumentData(buildPartialFireSafetyContext(facts, typeKey), typeKey),
+    data: (facts, typeKey, _decisionNumber, only) =>
+      fireSafetyDocumentData(buildPartialFireSafetyContext(facts, typeKey, only), typeKey),
     themes: {
       typeKey: 'fire_training_themes',
       cites: 'fire_own_instructions',
@@ -76,7 +84,17 @@ export type BoundSetRules = {
   missing: (typeKey?: string) => MissingDocumentData[];
   concerns: (code: MissingDocumentData, printedNames: readonly string[]) => boolean;
   data: (typeKey: string, decisionNumber: number | null) => Record<string, unknown>;
+  /** The data under the names a document printed, without evaluating the rest of the context. */
+  printedData: (
+    typeKey: string,
+    decisionNumber: number | null,
+    printedNames: readonly string[]
+  ) => Record<string, unknown>;
 };
+
+// A test prints its questions under names of their own, `test` and `questions`, drawn from this
+// part of the context.
+const derivedFrom = ['knowledgeTests'];
 
 const bound = <Facts>(
   rules: Omit<SetRules<Facts, never>, 'themes'>,
@@ -85,6 +103,8 @@ const bound = <Facts>(
   missing: (typeKey) => rules.missing(facts, typeKey),
   concerns: rules.concerns,
   data: (typeKey, decisionNumber) => rules.data(facts, typeKey, decisionNumber),
+  printedData: (typeKey, decisionNumber, printedNames) =>
+    rules.data(facts, typeKey, decisionNumber, new Set([...printedNames, ...derivedFrom])),
 });
 
 export const rulesOf = (facts: StoredDocumentFacts, asked: AskedFacts): BoundSetRules =>
