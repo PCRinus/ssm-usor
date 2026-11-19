@@ -8,6 +8,7 @@ export type UpstreamCall = {
   url: URL;
   headers: Headers;
   body: unknown;
+  init: RequestInit | undefined;
   secret: boolean;
 };
 
@@ -83,6 +84,7 @@ function toCall(input: Parameters<typeof fetch>[0], init?: RequestInit): Upstrea
     url: new URL(request ? request.url : String(input)),
     headers,
     body: parseBody(init?.body),
+    init,
     secret: headers.get('Authorization') === `Bearer ${testSecretKey}`,
   };
 }
@@ -95,14 +97,29 @@ export const membershipRoutes: UpstreamRoutes = {
   '/rest/v1/rpc/current_membership': () => [membershipRow()],
 };
 
+function routeIn(layer: UpstreamRoutes, { method, url }: UpstreamCall) {
+  const exact = layer[`${method} ${url.pathname}`] ?? layer[url.pathname];
+  if (exact) return exact;
+  const prefix = Object.keys(layer)
+    .filter((key) => {
+      if (!key.endsWith('*')) return false;
+      const path = key.startsWith('/') ? key : key.slice(key.indexOf(' ') + 1);
+      return (
+        (path === key || key.startsWith(`${method} `)) && url.pathname.startsWith(path.slice(0, -1))
+      );
+    })
+    .sort((a, b) => b.length - a.length)[0];
+  return prefix === undefined ? undefined : layer[prefix];
+}
+
 // An earlier layer wins, even its bare `/path` over a later layer's `METHOD /path`, so a test can
-// replace a module's defaults. When supabase-js asks for one object, rows go back as PostgREST
-// answers them: the first row, or 406 PGRST116 for none.
+// replace a module's defaults. Within a layer an exact path wins over a `/prefix*`. When
+// supabase-js asks for one object, rows go back as PostgREST answers them: the first row, or 406
+// PGRST116 for none.
 export function routeUpstream(...layers: UpstreamRoutes[]) {
   fetchMock.mockImplementation(async (input, init) => {
     const call = toCall(input, init);
-    const keys = [`${call.method} ${call.url.pathname}`, call.url.pathname];
-    const route = layers.flatMap((layer) => keys.map((key) => layer[key])).find(Boolean);
+    const route = layers.map((layer) => routeIn(layer, call)).find(Boolean);
     if (!route) throw new Error(`Unexpected upstream request: ${call.method} ${call.url}`);
     const result = await route(call);
     if (result instanceof Response) return result;

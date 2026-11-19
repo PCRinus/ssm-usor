@@ -52,6 +52,35 @@ describe('mockUpstream', () => {
     ]);
   });
 
+  it('routes a path under a prefix, preferring an exact path and then the longest prefix', async () => {
+    mockUpstream({
+      '/storage/v1/object/*': () => ['any'],
+      'POST /storage/v1/object/sign/*': () => ['sign'],
+      '/storage/v1/object/sign/a.pdf': () => ['exact'],
+    });
+    const answer = async (path: string, method = 'GET') =>
+      (await fetch(`https://example.supabase.co${path}`, { method })).json();
+
+    expect(await answer('/storage/v1/object/sign/a.pdf', 'POST')).toEqual(['exact']);
+    expect(await answer('/storage/v1/object/sign/b.pdf', 'POST')).toEqual(['sign']);
+    expect(await answer('/storage/v1/object/sign/b.pdf')).toEqual(['any']);
+    await expect(fetch('https://example.supabase.co/storage/v1/objects')).rejects.toThrow(
+      'Unexpected upstream request'
+    );
+  });
+
+  it('hands a route the request init as the caller sent it', async () => {
+    const form = new FormData();
+    mockUpstream({ 'POST /storage/v1/object/files': ({ init }) => [init?.body === form] });
+
+    const response = await fetch('https://example.supabase.co/storage/v1/object/files', {
+      method: 'POST',
+      body: form,
+    });
+
+    expect(await response.json()).toEqual([true]);
+  });
+
   it('answers one object when supabase-js asks for one, and PGRST116 when there is none', async () => {
     mockUpstream({
       '/rest/v1/clients': () => [{ id: 'a' }, { id: 'b' }],
