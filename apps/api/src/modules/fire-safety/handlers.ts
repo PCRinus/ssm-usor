@@ -544,26 +544,6 @@ export const listFireMaintenanceItems: RouteHandler<
   return c.json({ items }, 200);
 };
 
-type SortOrdered = {
-  order(
-    column: 'sort_order',
-    options: { ascending: false }
-  ): {
-    limit(count: 1): {
-      maybeSingle(): PromiseLike<{
-        data: { sort_order: number } | null;
-        error: Parameters<typeof fromDatabaseError>[0] | null;
-      }>;
-    };
-  };
-};
-
-async function nextSortOrder(rows: SortOrdered, what: string) {
-  const last = await rows.order('sort_order', { ascending: false }).limit(1).maybeSingle();
-  if (last.error) throw fromDatabaseError(last.error, what);
-  return (last.data?.sort_order ?? -1) + 1;
-}
-
 export const createFireMaintenanceItem: RouteHandler<
   typeof createFireMaintenanceItemRoute,
   ApiEnv
@@ -573,19 +553,20 @@ export const createFireMaintenanceItem: RouteHandler<
   const db = createDataClient(c);
   await requireClient(db, clientId);
   await refuseWorkplaceOfAnotherClient(db, clientId, body.workplaceId, { withActivity: true });
-  const sortOrder = await nextSortOrder(
-    db
-      .from('fire_maintenance_items')
-      .select('sort_order')
-      .eq('client_id', clientId)
-      .eq('workplace_id', body.workplaceId),
-    'last fire maintenance item'
-  );
+  const last = await db
+    .from('fire_maintenance_items')
+    .select('sort_order')
+    .eq('client_id', clientId)
+    .eq('workplace_id', body.workplaceId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last.error) throw fromDatabaseError(last.error, 'last fire maintenance item');
   const { data, error } = await db
     .from('fire_maintenance_items')
     .insert({
       ...maintenanceItemFields(body),
-      sort_order: sortOrder,
+      sort_order: (last.data?.sort_order ?? -1) + 1,
       organization_id: c.get('membership').organizationId,
       client_id: clientId,
       created_by: c.get('user').id,
@@ -914,15 +895,19 @@ export const createFireSubstance: RouteHandler<typeof createFireSubstanceRoute, 
   const body = c.req.valid('json');
   const db = createDataClient(c);
   await requireClient(db, clientId);
-  const sortOrder = await nextSortOrder(
-    db.from('fire_substances').select('sort_order').eq('client_id', clientId),
-    'last fire substance'
-  );
+  const last = await db
+    .from('fire_substances')
+    .select('sort_order')
+    .eq('client_id', clientId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (last.error) throw fromDatabaseError(last.error, 'last fire substance');
   const { data, error } = await db
     .from('fire_substances')
     .insert({
       ...substanceFields(body),
-      sort_order: sortOrder,
+      sort_order: (last.data?.sort_order ?? -1) + 1,
       organization_id: c.get('membership').organizationId,
       client_id: clientId,
       created_by: c.get('user').id,
