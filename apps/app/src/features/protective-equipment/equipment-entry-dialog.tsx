@@ -10,7 +10,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { useRouteContext } from '@tanstack/react-router';
 import { useForm, useWatch } from 'react-hook-form';
 
 import {
@@ -23,6 +22,7 @@ import {
   useUpdateEquipmentEntry,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -82,10 +82,10 @@ function Suggestions({
   field: ListEquipmentSuggestionsField;
   query: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const params = { field, query: query.trim() };
   const suggestions = useListEquipmentSuggestions(params, {
-    request: apiRequest,
+    request,
     query: { queryKey: getListEquipmentSuggestionsQueryKey(params), staleTime: 30_000 },
   });
   return (
@@ -108,10 +108,10 @@ function EquipmentEntryForm({
   entry: EquipmentEntry | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const create = useCreateEquipmentEntry({ request: apiRequest });
-  const update = useUpdateEquipmentEntry({ request: apiRequest });
+  const create = useCreateEquipmentEntry({ request });
+  const update = useUpdateEquipmentEntry({ request });
   const form = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentFormSchema),
     defaultValues: entry ? toEquipmentForm(entry) : emptyEquipmentForm,
