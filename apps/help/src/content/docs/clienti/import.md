@@ -123,6 +123,7 @@ sources:
   - apps/app/src/features/imports/employees/people-list.tsx
   - apps/app/src/features/imports/employees/unplaced-pages.tsx
   - apps/app/src/features/imports/employees/person-page.tsx
+  - apps/app/src/features/imports/employees/use-person-viewer.ts
   - apps/app/src/features/imports/employees/person-decisions.tsx
   - apps/app/src/features/imports/employees/person-fields.tsx
   - apps/app/src/features/imports/employees/person-trainings.tsx
