@@ -29,6 +29,7 @@ import { ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { phoneBleed } from '@/components/page-spacing';
 import { Masked } from '@/components/replay';
@@ -363,20 +364,9 @@ export function ClientFilesCard({
                   })
                 }
                 error={
-                  <Notice
-                    variant="destructive"
-                    action={
-                      <Button
-                        variant="outline"
-                        disabled={files.isFetching}
-                        onClick={() => void files.refetch()}
-                      >
-                        Încearcă din nou
-                      </Button>
-                    }
-                  >
+                  <LoadFailed busy={files.isFetching} onRetry={() => void files.refetch()}>
                     Nu am putut încărca fișierele.
-                  </Notice>
+                  </LoadFailed>
                 }
                 empty={
                   <EmptyState
