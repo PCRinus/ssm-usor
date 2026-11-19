@@ -1,7 +1,7 @@
 import { clientConflictReasons, noWorkplace, workplaceConflictReasons } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
@@ -16,6 +16,7 @@ import {
   useUpdateWorkplace,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
@@ -51,33 +52,31 @@ const rowTestId = (row: WorkplaceRow) =>
 // `readOnly` is an archived client.
 export function WorkplacesCard({
   client,
-  userId,
   readOnly,
   focus,
 }: {
   client: ClientResponse['client'];
-  userId: string;
   readOnly: boolean;
   focus?: WorkplacesFocus;
 }) {
   const clientId = client.id;
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const navigate = useNavigate();
   // The counts move with every change to the client's workers, made on other tabs.
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId], staleTime: 0 },
+    request,
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)), staleTime: 0 },
   });
   const equipment = useListFireEquipment(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListFireEquipmentQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListFireEquipmentQueryKey(clientId)) },
   });
   const installations = useListFireInstallations(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListFireInstallationsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListFireInstallationsQueryKey(clientId)) },
   });
-  const archive = useArchiveWorkplace({ request: apiRequest });
-  const update = useUpdateWorkplace({ request: apiRequest });
+  const archive = useArchiveWorkplace({ request });
+  const update = useUpdateWorkplace({ request });
   const [editing, setEditing] = useState<WorkplaceEditing>(null);
   const [archiving, setArchiving] = useState<Workplace | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -4,7 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import type { SetupGuide, SetupStep } from '@/api/generated/api';
+import { getGetMySetupGuideQueryKey, type SetupGuide, type SetupStep } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { captureEvent } from '@/app/observability/posthog';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
@@ -24,7 +25,7 @@ import {
 } from './setup-guide-context';
 import { countsAsDone, isComplete } from './steps';
 import { setGuideFootprint } from './toast-offset';
-import { setupGuideQueryKey, useSetupGuideChanges, useSetupGuideQuery } from './use-setup-guide';
+import { useSetupGuideChanges, useSetupGuideQuery } from './use-setup-guide';
 
 const settingsPath = '/setari';
 
@@ -40,6 +41,7 @@ export function SetupGuideProvider({
 }) {
   const { session } = useAuth();
   const userId = session?.user.id;
+  const { key } = useApi();
   const me = useMe();
   const membership = me.data?.membership;
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -115,11 +117,11 @@ export function SetupGuideProvider({
   useEffect(() => {
     if (!refetchOnRoute) return;
     void queryClient.refetchQueries({
-      queryKey: setupGuideQueryKey(userId),
+      queryKey: key(getGetMySetupGuideQueryKey()),
       stale: true,
       type: 'active',
     });
-  }, [pathname, queryClient, userId, refetchOnRoute]);
+  }, [pathname, queryClient, key, refetchOnRoute]);
 
   const [focusRequest, setFocusRequest] = useState<GuideFocusTarget | null>(null);
   const focusAfterStepChange = (next: SetupGuide) =>

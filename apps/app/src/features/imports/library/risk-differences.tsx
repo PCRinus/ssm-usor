@@ -1,7 +1,5 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 import { measureCountLabel } from '@/features/risk-evaluations/factor-list';
 
 import { factorsLabel, type RiskSheet } from './risks-model';
@@ -41,14 +39,13 @@ const classes = (gravity: number | null, probability: number | null) =>
   `gravitate ${gravity ?? '–'}, probabilitate ${probability ?? '–'}`;
 
 export function RiskDifferences({ sheet }: { sheet: RiskSheet }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, key: userKey } = useApi();
   const match = sheet.match!;
   const changed = match.pairs.filter((pair) => pair.otherClasses || pair.otherMeasures);
   const library = useGetEvaluationProfile(match.evaluationId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetEvaluationProfileQueryKey(match.evaluationId), session?.user.id],
+      queryKey: userKey(getGetEvaluationProfileQueryKey(match.evaluationId)),
       enabled: match.onlyInLibrary.length > 0 || changed.length > 0,
     },
   });

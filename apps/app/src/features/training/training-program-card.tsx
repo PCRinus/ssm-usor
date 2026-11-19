@@ -90,15 +90,13 @@ function completeProgram(saved: DocumentDetails, categories: readonly CategoryPo
 
 export function TrainingProgramSection({
   client,
-  userId,
   focus = false,
 }: {
   client: ClientSummary;
-  userId: string;
   focus?: boolean;
 }) {
-  const details = useDocumentDetails(client.id, userId);
-  const positions = useJobPositionOptions(client.id, userId);
+  const details = useDocumentDetails(client.id);
+  const positions = useJobPositionOptions(client.id);
   if (details.isPending || positions.isPending) {
     return <Skeleton className="h-64 w-full rounded-xl" />;
   }
@@ -123,7 +121,6 @@ export function TrainingProgramSection({
       saved={details.data.documentDetails}
       positions={positions.data.items}
       client={client}
-      userId={userId}
       focus={focus}
     />
   );
@@ -143,13 +140,11 @@ function TrainingProgramCard({
   saved,
   positions,
   client,
-  userId,
   focus,
 }: {
   saved: DocumentDetails;
   positions: readonly JobPosition[];
   client: ClientSummary;
-  userId: string;
   focus: boolean;
 }) {
   const categories = categoriesWithPosts(positions);
@@ -195,7 +190,6 @@ function TrainingProgramCard({
           categories={categories}
           positions={positions}
           client={client}
-          userId={userId}
           onCancel={program ? () => setEditedKey(null) : undefined}
         />
       ) : program ? (
@@ -346,14 +340,12 @@ function TrainingProgramForm({
   categories,
   positions,
   client,
-  userId,
   onCancel,
 }: {
   saved: DocumentDetails;
   categories: readonly CategoryPosts[];
   positions: readonly JobPosition[];
   client: ClientSummary;
-  userId: string;
   onCancel?: () => void;
 }) {
   const unsaved = categories
@@ -382,7 +374,6 @@ function TrainingProgramForm({
   const { form, onSubmit, busy, locked } = useDocumentDetailsForm({
     saved,
     client,
-    userId,
     fields: [...sharedFields, ...categories.map(({ category }) => intervalField[category])],
     successMessage: 'Programul de instruire a fost salvat.',
     starting,

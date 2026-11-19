@@ -1,10 +1,10 @@
 import { type WorkSystemComponent, workSystemComponentGroups } from '@ssm-usor/contracts';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getListRiskFactorSuggestionsQueryKey,
   useListRiskFactorSuggestions,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox';
 import { normalizeSearch } from '@/lib/normalize-search';
 
@@ -34,9 +34,9 @@ export function FactorGroupCombobox({
   invalid?: boolean;
   describedBy?: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const typed = useListRiskFactorSuggestions(typedGroupsParams, {
-    request: apiRequest,
+    request,
     query: { queryKey: getListRiskFactorSuggestionsQueryKey(typedGroupsParams), staleTime: 30_000 },
   });
   const own = ownGroups(typed.data?.items ?? []);

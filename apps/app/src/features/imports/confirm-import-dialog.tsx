@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import {
   BookOpenCheck,
   BriefcaseBusiness,
@@ -41,6 +41,7 @@ import {
   type ImportDetail,
 } from '@/api/generated/api';
 import { apiErrorBody } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import {
@@ -140,7 +141,7 @@ export function ConfirmImportDialog({
   name: string;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [sending, setSending] = useState(false);
@@ -162,7 +163,7 @@ export function ConfirmImportDialog({
         setSending(false);
         return;
       }
-      const result = await confirmImport(detail.id, { version: saved.version }, apiRequest);
+      const result = await confirmImport(detail.id, { version: saved.version }, request);
       leaveImportNotice(result.clientId, {
         existing,
         files: result.fileCount,

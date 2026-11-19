@@ -1,9 +1,9 @@
 import type { BillingChoice } from '@ssm-usor/contracts';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import { previewBilling } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { billingPreviewKey } from './use-billing';
@@ -23,11 +23,11 @@ function useSettled(choice: BillingChoice | null) {
 
 export function useBillingPreview(choice: BillingChoice | null) {
   const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const settled = useSettled(choice);
   const query = useQuery({
     queryKey: [...billingPreviewKey, session?.user.id, settled],
-    queryFn: () => previewBilling(settled!, apiRequest),
+    queryFn: () => previewBilling(settled!, request),
     enabled: settled !== null,
     placeholderData: keepPreviousData,
     staleTime: 30_000,

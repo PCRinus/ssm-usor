@@ -6,6 +6,7 @@ import {
   getGetRiskEvaluationQueryOptions,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { withUserId } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import {
   ClientRiskEvaluationPage,
@@ -25,17 +26,14 @@ export const Route = createFileRoute(
   validateSearch: factorListSearch,
   params: { parse: (params) => ({ evaluationId: z.uuid().parse(params.evaluationId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     let evaluation;
     try {
       ({ evaluation } = await queryClient.ensureQueryData(
         getGetRiskEvaluationQueryOptions(params.clientId, params.evaluationId, {
           request: apiRequest,
           query: {
-            queryKey: [
-              ...getGetRiskEvaluationQueryKey(params.clientId, params.evaluationId),
-              userId,
-            ],
+            queryKey: key(getGetRiskEvaluationQueryKey(params.clientId, params.evaluationId)),
           },
         })
       ));

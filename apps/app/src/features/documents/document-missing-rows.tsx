@@ -4,9 +4,9 @@ import {
   type MissingDocumentData,
 } from '@ssm-usor/contracts';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 
 import { getGetDocumentReadinessQueryKey, useGetDocumentReadiness } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useMe } from '@/features/account/use-me';
 import { MissingDataList } from '@/features/missing-data/missing-data-list';
 import { documentMissingGroups } from '@/features/missing-data/missing-rows';
@@ -28,15 +28,15 @@ export function DocumentMissingRows({
   missing: readonly MissingDocumentData[];
   testId: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const set = documentSetOf(typeKey);
   const params = setParams(set);
   // A refusal names only codes; the readiness names the positions and evaluations behind them,
   // so the rows are those of the generation form. Without it the codes still lead somewhere.
   const readiness = useGetDocumentReadiness(clientId, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetDocumentReadinessQueryKey(clientId, params), userId],
+      queryKey: key(getGetDocumentReadinessQueryKey(clientId, params)),
       staleTime: 0,
     },
   });

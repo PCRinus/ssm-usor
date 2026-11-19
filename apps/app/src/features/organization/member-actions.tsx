@@ -7,12 +7,12 @@ import {
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { MoreHorizontal } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 import { useChangeMemberRole, useRemoveMember } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
@@ -40,9 +40,9 @@ export function MemberActions({
   member: Member;
   onError: (message: ReactNode) => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const changeRole = useChangeMemberRole({ request: apiRequest });
-  const remove = useRemoveMember({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const changeRole = useChangeMemberRole({ request });
+  const remove = useRemoveMember({ request });
   const [confirming, setConfirming] = useState(false);
   const name = member.fullName ?? member.email ?? 'Membrul';
   const otherRole = member.role === 'owner' ? 'specialist' : 'owner';

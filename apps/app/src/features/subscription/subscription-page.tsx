@@ -9,7 +9,7 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Info } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
@@ -18,6 +18,7 @@ import {
   createBillingPortalSession,
   resumeSubscription,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
@@ -87,7 +88,7 @@ function SubscriptionContent({
   isOwner: boolean;
   impersonating: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const view = viewOf(overview.subscription);
   const subscription = overview.subscription;
   const owner = overview.owner;
@@ -114,21 +115,21 @@ function SubscriptionContent({
 
   const resume = () =>
     run('resume', async () => {
-      await resumeSubscription(apiRequest);
+      await resumeSubscription(request);
       toast.success('Abonamentul se reînnoiește din nou.');
       await refreshBilling(queryClient);
     });
 
   const changeCard = () =>
     run('card', async () => {
-      const { url } = await createBillingPortalSession(apiRequest);
+      const { url } = await createBillingPortalSession(request);
       leaveFor(url);
     });
 
   const withdrawScheduled = () =>
     run('withdraw', async () => {
       if (!choice) return;
-      await changeSubscription(choice, apiRequest);
+      await changeSubscription(choice, request);
       toast.success('Schimbarea programată a fost anulată.');
       await refreshBilling(queryClient);
     });

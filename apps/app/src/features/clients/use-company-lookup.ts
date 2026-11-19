@@ -1,10 +1,10 @@
 import { isValidCuiInput, normalizeCui } from '@ssm-usor/contracts';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
 import { type CompanyLookupResponse, lookupCompany } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 
 import type { ClientFormValues } from './client-form-schema';
 
@@ -32,7 +32,7 @@ export function useCompanyLookup<V extends CompanyFields>(
   form: UseFormReturn<V>,
   fillRest: (company: AnafCompany) => void
 ) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
   // A generic form's paths do not resolve to these names, though every caller has them.
   const company = form as unknown as UseFormReturn<CompanyFields>;
@@ -46,7 +46,7 @@ export function useCompanyLookup<V extends CompanyFields>(
     company.clearErrors('cui');
     setLookup({ status: 'loading' });
     try {
-      const found = (await lookupCompany({ cui: normalizeCui(input)!.cui }, apiRequest)).company;
+      const found = (await lookupCompany({ cui: normalizeCui(input)!.cui }, request)).company;
       company.setValue('legalName', found.legalName, anafFill);
       company.setValue('vatPayer', found.vatPayer, anafFill);
       company.setValue('tradeRegisterNumber', found.tradeRegisterNumber ?? '', anafFill);

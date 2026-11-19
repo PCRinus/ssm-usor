@@ -8,10 +8,11 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useInviteEmployeeParticipant } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -68,8 +69,8 @@ function InviteEmployeeForm({
   onClose: () => void;
   onMessage: (message: ParticipantMessage) => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const invite = useInviteEmployeeParticipant({ request: wordingRefusalHere(apiRequest) });
+  const { request } = useApi();
+  const invite = useInviteEmployeeParticipant({ request: wordingRefusalHere(request) });
   const refresh = useRefreshParticipants(employee.clientId);
   const smsOff = useSmsOff();
   const smsBlock = employee.phone ? smsBlockOf(employee.phone, smsOff) : null;

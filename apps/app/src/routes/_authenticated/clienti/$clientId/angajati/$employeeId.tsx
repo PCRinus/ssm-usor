@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { getGetEmployeeQueryKey, getGetEmployeeQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { withUserId } from '@/api/use-api';
 import {
   EmployeeError,
   EmployeeLayout,
@@ -18,13 +19,13 @@ export const Route = createFileRoute('/_authenticated/clienti/$clientId/angajati
   // The client layout already validates clientId; this route owns employeeId.
   params: { parse: (params) => ({ employeeId: z.uuid().parse(params.employeeId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     try {
       const { employee } = await queryClient.ensureQueryData(
         getGetEmployeeQueryOptions(params.clientId, params.employeeId, {
           request: apiRequest,
           query: {
-            queryKey: [...getGetEmployeeQueryKey(params.clientId, params.employeeId), userId],
+            queryKey: key(getGetEmployeeQueryKey(params.clientId, params.employeeId)),
           },
         })
       );

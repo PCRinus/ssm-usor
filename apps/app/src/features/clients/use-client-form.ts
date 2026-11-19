@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import { getListClientsQueryKey, useCreateClient, useUpdateClient } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 
@@ -26,7 +27,7 @@ import { useClientCompanyLookup } from './use-company-lookup';
 export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
   const stage = lead ? 'lead' : newStage;
   const words = clientWording[stage];
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const navigate = useNavigate();
   const router = useRouter();
   const returnToRecord = useReturnToOpener(lead ? `/oferte/${lead.id}` : undefined);
@@ -34,8 +35,8 @@ export function useClientForm(lead?: Client, newStage: ClientStage = 'client') {
     resolver: zodResolver(clientFormSchema),
     defaultValues: lead ? toClientForm(lead) : emptyClientForm,
   });
-  const create = useCreateClient({ request: apiRequest });
-  const update = useUpdateClient({ request: apiRequest });
+  const create = useCreateClient({ request });
+  const update = useUpdateClient({ request });
   const { lookup, lookupCui } = useClientCompanyLookup(form);
 
   const onSubmit = form.handleSubmit(async (values) => {

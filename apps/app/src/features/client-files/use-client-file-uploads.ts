@@ -1,5 +1,4 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 
 import {
@@ -9,6 +8,7 @@ import {
   getUploadClientFileUrl,
 } from '@/api/generated/api';
 import { apiUpload } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { isReadOnlyError } from '@/lib/api-errors';
 
 import { fileCountLabel, refusalBeforeUpload, uploadFailureMessage } from './client-file-format';
@@ -51,7 +51,7 @@ export function useClientFileUploads(
   initialFiles: File[],
   onAllUploaded: () => void
 ) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const [chosen, setChosen] = useState<ChosenFile[]>(() => initialFiles.map(choose));
   const [started, setStarted] = useState(false);
   const queue = useRef<Job[]>([]);
@@ -84,7 +84,7 @@ export function useClientFileUploads(
         }),
         job.file,
         {
-          ...apiRequest,
+          ...request,
           onProgress: (sent, total) =>
             change(job.key, { percent: Math.round((sent / total) * 100) }),
         }

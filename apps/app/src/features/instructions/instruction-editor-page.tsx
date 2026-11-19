@@ -1,7 +1,7 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { BookOpenText, Download } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 
@@ -12,6 +12,7 @@ import {
   useGetInstructionModule,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { useEditorLayout } from '@/app/editor-layout';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { editorFrameClassName, saveAs } from '@/features/documents/editor-frame';
@@ -29,18 +30,16 @@ type Loaded = { versionId: string; number: number; bytes: Uint8Array; fileName: 
 // annex prints.
 export function InstructionEditorPage({
   moduleId,
-  userId,
   pinnedVersionId,
 }: {
   moduleId: string;
-  userId: string;
   pinnedVersionId?: string;
 }) {
   useEditorLayout();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const query = useGetInstructionModule(moduleId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
+    request,
+    query: { queryKey: key(getGetInstructionModuleQueryKey(moduleId)) },
   });
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [failedVersionId, setFailedVersionId] = useState<string | null>(null);
@@ -64,10 +63,10 @@ export function InstructionEditorPage({
           downloadInstructionModule(
             moduleId,
             pinnedVersionId ? { versionId: pinnedVersionId } : undefined,
-            apiRequest
+            request
           ),
           pinnedVersionId
-            ? getInstructionModuleVersion(moduleId, pinnedVersionId, apiRequest).then(
+            ? getInstructionModuleVersion(moduleId, pinnedVersionId, request).then(
                 (read) => read.version.number
               )
             : currentNumber!,
@@ -83,7 +82,7 @@ export function InstructionEditorPage({
       cancelled = true;
     };
   }, [
-    apiRequest,
+    request,
     moduleId,
     pinnedVersionId,
     versionId,

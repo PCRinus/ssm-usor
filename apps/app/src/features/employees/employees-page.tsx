@@ -2,7 +2,7 @@ import { defaultPageSize, type EmployeeSortKey } from '@ssm-usor/contracts';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi } from '@tanstack/react-router';
 import { UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -16,6 +16,7 @@ import {
   useListJobPositions,
   useListWorkplaces,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -35,7 +36,6 @@ import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
 import { sheetPadding } from '@/components/page-spacing';
 import { SearchInput } from '@/components/search-input';
-import { useAuth } from '@/features/auth/auth-context';
 import {
   EmployeeImportButtons,
   EmployeesImportedCard,
@@ -93,22 +93,20 @@ export function EmployeesPage() {
       ? defaultSort.sort
       : search.sort;
   const navigate = employeesRoute.useNavigate();
-  const { session } = useAuth();
-  const userId = session?.user.id;
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const phone = useIsMobile();
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListJobPositionsQueryKey(clientId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getListJobPositionsQueryKey(clientId)),
+      enabled: ready,
     },
   });
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListWorkplacesQueryKey(clientId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getListWorkplacesQueryKey(clientId)),
+      enabled: ready,
     },
   });
   const facets = useMemo(
@@ -145,16 +143,16 @@ export function EmployeesPage() {
     ...filters,
   };
   const employees = useListEmployees(clientId, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListEmployeesQueryKey(clientId, params), userId],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListEmployeesQueryKey(clientId, params)),
+      enabled: ready,
       placeholderData: keepPreviousData,
     },
   });
   const meta = employees.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = employees.data?.unfilteredTotal ?? 0;
-  const listStatus = !apiRequest.baseUrl ? 'error' : employees.status;
+  const listStatus = !request.baseUrl ? 'error' : employees.status;
   const startsFromEmpty = !readOnly && !former && !narrowed;
   const [change, setChange] = useState<EmployeeStatusChange | null>(null);
   const columns = useMemo(
@@ -176,10 +174,10 @@ export function EmployeesPage() {
       ...(listFilters.searchOf(pending) as Filters),
     };
     return getListEmployeesQueryOptions(clientId, counted, {
-      request: apiRequest,
+      request,
       query: {
-        queryKey: [...getListEmployeesQueryKey(clientId, counted), userId],
-        enabled: Boolean(session && apiRequest.baseUrl),
+        queryKey: key(getListEmployeesQueryKey(clientId, counted)),
+        enabled: ready,
       },
     });
   };
@@ -304,7 +302,7 @@ export function EmployeesPage() {
               error={employees.error}
               testId="employees"
               notFound="Clientul nu mai există în organizația ta."
-              onRetry={apiRequest.baseUrl ? () => void employees.refetch() : undefined}
+              onRetry={request.baseUrl ? () => void employees.refetch() : undefined}
               retrying={employees.isFetching}
             />
           }

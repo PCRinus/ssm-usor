@@ -84,21 +84,21 @@ The client lives inside the SPA workspace: import generated operations from
 The SPA supplies request configuration through its typed router context:
 
 ```tsx
-const { apiRequest } = useRouteContext({ from: '__root__' });
-const { session } = useAuth();
+const { request, key, ready } = useApi();
 const me = useGetMe({
-  request: apiRequest,
-  query: {
-    queryKey: [...getGetMeQueryKey(), session?.user.id],
-    enabled: Boolean(session && apiRequest.baseUrl),
-  },
+  request,
+  query: { queryKey: key(getGetMeQueryKey()), enabled: ready },
 });
 ```
 
 `getGetMeQueryOptions({ request: apiRequest })` is also available for QueryClient calls and
-future route loaders. Include the user ID in private-data query keys consistently, as the
-dashboard does. Never put access tokens in keys. Account changes clear the QueryClient and
-cancel in-flight work; token refresh keeps the current account's cached data.
+route loaders. Include the user ID in private-data query keys consistently: `useApi()` in
+`src/api/use-api.ts` gives the request options, the QueryClient, `ready` (signed in with an
+API URL) and `key()`, which appends the signed-in user's ID; loaders and other code outside
+React use `withUserId(userId)` from the same file. Use the same `key()` for a query and for
+every `setQueryData`/`getQueryData` on it, and invalidate by the unsuffixed generated key,
+which matches every user's entry. Never put access tokens in keys. Account changes clear the
+QueryClient and cancel in-flight work; token refresh keeps the current account's cached data.
 
 The request adapter:
 

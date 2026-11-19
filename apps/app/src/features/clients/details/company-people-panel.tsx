@@ -49,13 +49,11 @@ const joined = (parts: ReactNode[]) =>
 
 export function CompanyPeoplePanel({
   client,
-  userId,
   readOnly,
   companyFocus,
   representativeFocus,
 }: {
   client: Client;
-  userId: string;
   readOnly: boolean;
   companyFocus?: CompanyFocus;
   representativeFocus?: LegalRepresentativeFocus;
@@ -78,7 +76,7 @@ export function CompanyPeoplePanel({
     open: openContact,
     close: closeContact,
   } = useInPlaceEdit();
-  const details = useDocumentDetails(client.id, userId);
+  const details = useDocumentDetails(client.id);
   const saved = details.data?.documentDetails;
 
   useFocusRequest(companyFocus !== undefined, {
@@ -188,7 +186,6 @@ export function CompanyPeoplePanel({
               <LegalRepresentativeForm
                 saved={saved}
                 client={client}
-                userId={userId}
                 onClose={closeRepresentative}
               />
             )

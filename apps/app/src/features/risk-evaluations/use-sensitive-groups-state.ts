@@ -1,4 +1,3 @@
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -6,6 +5,7 @@ import {
   getListRiskEvaluationsQueryKey,
   useUpdateSensitiveGroupsState,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
 import { evaluationFailure } from './evaluation-failure';
@@ -16,9 +16,9 @@ const messages = {
 };
 
 export function useSensitiveGroupsState(clientId: string) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const update = useUpdateSensitiveGroupsState({ request: apiRequest });
+  const update = useUpdateSensitiveGroupsState({ request });
   const [failure, setFailure] = useState<string | null>(null);
 
   async function declare(state: 'none' | 'undecided') {

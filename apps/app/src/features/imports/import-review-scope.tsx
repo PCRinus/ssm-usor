@@ -1,13 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Outlet, useRouteContext } from '@tanstack/react-router';
+import { Outlet } from '@tanstack/react-router';
 import { useState } from 'react';
+
+import { useApi } from '@/api/use-api';
 
 import { ChangesStores, ChangesStoresContext } from './versioned-changes-store';
 
 export function ImportReviewScope() {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
-  const [stores] = useState(() => new ChangesStores(apiRequest, queryClient));
+  const [stores] = useState(() => new ChangesStores(request, queryClient));
   return (
     <ChangesStoresContext value={stores}>
       <Outlet />

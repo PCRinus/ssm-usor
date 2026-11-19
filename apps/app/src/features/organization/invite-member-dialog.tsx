@@ -11,11 +11,12 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import { useCreateInvitation } from '@/api/generated/api';
 import { apiErrorBody, apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { openedHere } from '@/app/opener';
 import { useHoldOpen } from '@/components/close-guard';
@@ -111,8 +112,8 @@ function PlanFull({ seats, onClose }: { seats: MemberSeats; onClose: () => void 
 }
 
 function InviteForm({ onClose }: { onClose: () => void }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const create = useCreateInvitation({ request: wordingRefusalHere(apiRequest) });
+  const { request, queryClient } = useApi();
+  const create = useCreateInvitation({ request: wordingRefusalHere(request) });
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
     defaultValues: { email: '', role: 'specialist' },

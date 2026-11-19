@@ -7,7 +7,7 @@ import {
   type TrainingStatus,
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import { ClipboardCheck, Plus, SearchX, Signature } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
 import type { z } from 'zod';
@@ -17,6 +17,7 @@ import {
   getListEmployeeTrainingRecordsQueryKey,
   useListEmployeeTrainingRecords,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { createDataTableColumns, type DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -203,14 +204,14 @@ export function EmployeeTrainingTab({
   const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const employee = useEmployee(clientId, employeeId).data?.employee;
   const params = { domain };
   const records = useListEmployeeTrainingRecords(clientId, employeeId, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListEmployeeTrainingRecordsQueryKey(clientId, employeeId, params), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getListEmployeeTrainingRecordsQueryKey(clientId, employeeId, params)),
+      enabled: ready,
     },
   });
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
@@ -232,7 +233,6 @@ export function EmployeeTrainingTab({
     () =>
       ownTrainingColumns({
         clientId,
-        userId,
         onEdit: readOnly
           ? undefined
           : (record) => setTarget({ kind: 'edit', trainingId: record.training.id }),
@@ -244,7 +244,7 @@ export function EmployeeTrainingTab({
             attendeeCount: record.attendeeCount,
           }),
       }),
-    [clientId, userId, readOnly]
+    [clientId, readOnly]
   );
   if (!employee) return <EmployeePending />;
   const status = employee.training[domain];
@@ -331,7 +331,6 @@ export function EmployeeTrainingTab({
       <EmployeeTestsCard
         clientId={clientId}
         employeeId={employeeId}
-        userId={userId}
         domain={domain}
         readOnly={readOnly}
       />
@@ -399,7 +398,6 @@ export function EmployeeTrainingTab({
               render: (row) => (
                 <RecordDetails
                   clientId={clientId}
-                  userId={userId}
                   employeeName={formatEmployeeName(employee)}
                   record={row}
                   readOnly={readOnly}
@@ -462,7 +460,6 @@ export function EmployeeTrainingTab({
       />
       <DeleteTrainingDialog
         clientId={clientId}
-        userId={userId}
         training={deleting}
         onClose={() => setDeleting(null)}
       />
@@ -472,12 +469,10 @@ export function EmployeeTrainingTab({
 
 function ownTrainingColumns({
   clientId,
-  userId,
   onEdit,
   onDelete,
 }: {
   clientId: string;
-  userId: string;
   onEdit?: (record: EmployeeTrainingRecord) => void;
   onDelete: (record: EmployeeTrainingRecord) => void;
 }) {
@@ -567,7 +562,6 @@ function ownTrainingColumns({
         onEdit ? (
           <OwnTrainingActions
             clientId={clientId}
-            userId={userId}
             record={row.original}
             onEdit={() => onEdit(row.original)}
             onDelete={() => onDelete(row.original)}
@@ -580,23 +574,16 @@ function ownTrainingColumns({
 // The record's own slots lock it too, before the list's flags catch up with a signature.
 function OwnTrainingActions({
   clientId,
-  userId,
   record,
   onEdit,
   onDelete,
 }: {
   clientId: string;
-  userId: string;
   record: EmployeeTrainingRecord;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const signatures = useRecordSignatures(
-    clientId,
-    record.id,
-    userId,
-    record.training.source === 'app'
-  );
+  const signatures = useRecordSignatures(clientId, record.id, record.training.source === 'app');
   return (
     <TrainingActions
       locks={trainingLocks(record, signatures.data)}
@@ -610,13 +597,11 @@ function OwnTrainingActions({
 
 function RecordDetails({
   clientId,
-  userId,
   employeeName,
   record,
   readOnly,
 }: {
   clientId: string;
-  userId: string;
   employeeName: string;
   record: EmployeeTrainingRecord;
   readOnly: boolean;
@@ -624,7 +609,7 @@ function RecordDetails({
   const { training, admission } = record;
   // A training typed from a paper sheet has its signatures on that sheet.
   const signs = training.source === 'app';
-  const signatures = useRecordSignatures(clientId, record.id, userId, signs);
+  const signatures = useRecordSignatures(clientId, record.id, signs);
   return (
     <div data-testid="training-record-details" className="grid max-w-3xl gap-3 text-sm">
       <TrainingMaterial text={training.material} named />

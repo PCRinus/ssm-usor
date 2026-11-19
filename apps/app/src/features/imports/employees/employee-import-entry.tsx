@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { CircleAlert, FileCheck2, LoaderCircle, PenLine, Send, Sparkles } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
@@ -12,9 +12,9 @@ import {
   type ImportListResponseItemsItem,
   useListImports,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedFromRecord, openedHere } from '@/app/opener';
 import { Masked } from '@/components/replay';
-import { useAuth } from '@/features/auth/auth-context';
 import { useBulkInvite } from '@/features/participants/use-bulk-invite';
 import { uninvitedOf, useImportInvitees } from '@/features/participants/use-import-invitees';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
@@ -182,14 +182,13 @@ export function EmployeeStartWays({
 }
 
 export function OpenEmployeeImports({ clientId }: { clientId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, ready, key } = useApi();
   const params = { clientId, kind: 'employees' as const };
   const imports = useListImports(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListImportsQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListImportsQueryKey(params)),
+      enabled: ready,
       refetchInterval: (query) =>
         query.state.data?.items.some((item) => isRunning(item.status) || isUploadUnderway(item))
           ? importListPollMs
@@ -326,14 +325,13 @@ function OpenImportCard({
 }
 
 export function EmployeesImportedCard({ clientId }: { clientId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, ready, key } = useApi();
   const params = { clientId, kind: 'employees' as const, status: 'confirmed' as const };
   const confirmed = useListImports(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListImportsQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListImportsQueryKey(params)),
+      enabled: ready,
     },
   });
   // Read in the initializer and dropped in an effect: development mode calls an initializer

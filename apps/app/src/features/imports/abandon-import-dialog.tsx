@@ -9,10 +9,10 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { abandonImport, getGetImportQueryKey, getListImportsQueryKey } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 
 import { importErrorMessage } from './import-format';
@@ -30,7 +30,7 @@ export function AbandonImportDialog({
   onClose: () => void;
   onAbandoned: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export function AbandonImportDialog({
     setSending(true);
     setError(null);
     try {
-      await abandonImport(importId, apiRequest);
+      await abandonImport(importId, request);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(importId) }),

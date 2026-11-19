@@ -1,8 +1,8 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useUpdateEvaluationProfile } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 import { profileFailure } from './profile-schema';
@@ -20,9 +20,9 @@ export function ProfileArchiveDialog({
   change: ProfileArchiveChange | null;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const cache = useProfileCache();
-  const update = useUpdateEvaluationProfile({ request: apiRequest });
+  const update = useUpdateEvaluationProfile({ request });
   const [error, setError] = useState<string | null>(null);
   const busy = update.isPending;
 

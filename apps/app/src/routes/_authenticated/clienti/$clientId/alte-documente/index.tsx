@@ -26,7 +26,6 @@ function OtherDocumentsPage() {
     <div data-testid="other-documents-page">
       <ClientFilesCard
         client={client}
-        userId={session.user.id}
         readOnly={client.archivedAt !== null}
         search={search}
         onSearch={(next) =>

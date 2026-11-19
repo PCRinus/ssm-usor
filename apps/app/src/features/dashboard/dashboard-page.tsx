@@ -1,7 +1,6 @@
 import { countNoun, countOf, type DashboardSummary } from '@ssm-usor/contracts';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import {
   Calendar,
   Check,
@@ -15,10 +14,10 @@ import {
 import { useState } from 'react';
 
 import { getGetDashboardSummaryQueryKey, useGetDashboardSummary } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
 import { Masked } from '@/components/replay';
 import { useMe } from '@/features/account/use-me';
-import { useAuth } from '@/features/auth/auth-context';
 import { useBehindSummary } from '@/features/legislation/use-behind-summary';
 
 import {
@@ -38,14 +37,13 @@ import { TrainingRow } from './training-row';
 const autoFitGrid = 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))]';
 
 export function DashboardPage() {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const me = useMe();
   const summary = useGetDashboardSummary({
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetDashboardSummaryQueryKey(), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getGetDashboardSummaryQueryKey()),
+      enabled: ready,
     },
   });
   const [now] = useState(() => new Date());

@@ -1,10 +1,11 @@
 import { formatCui } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { createFileRoute, getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi, Link } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, Pencil, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener, openedFromRecord, openedHere } from '@/app/opener';
 import { BackLink } from '@/components/back-link';
 import { Notice } from '@/components/notice';
@@ -49,12 +50,12 @@ function LeadPage() {
   useEndWayBackOutside(lead.id, session?.user.id);
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState(false);
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   // The same query the contract card reads, so this costs no request of its own.
   const contract = useGetServiceContract(lead.id, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetServiceContractQueryKey(lead.id), session?.user.id],
+      queryKey: key(getGetServiceContractQueryKey(lead.id)),
       enabled: Boolean(session),
     },
   });
@@ -168,7 +169,6 @@ function LeadPage() {
         />
         <ClientFilesCard
           client={lead}
-          userId={session.user.id}
           readOnly={readOnly}
           title="Alte documente"
           search={search}
@@ -181,7 +181,7 @@ function LeadPage() {
             })
           }
         />
-        <OwnerNotesCard clientId={lead.id} userId={session.user.id} readOnly={readOnly} />
+        <OwnerNotesCard clientId={lead.id} readOnly={readOnly} />
       </div>
       <ClientArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <PromoteLeadDialog

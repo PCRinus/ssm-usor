@@ -207,24 +207,15 @@ export function EmployeePage() {
         </Section>
 
         {session && (
-          <EmployeePortalCard
-            employee={employee}
-            userId={session.user.id}
-            readOnly={client.archivedAt !== null}
-          />
+          <EmployeePortalCard employee={employee} readOnly={client.archivedAt !== null} />
         )}
 
         {session && (
-          <SigningAgreementCard
-            employee={employee}
-            userId={session.user.id}
-            readOnly={client.archivedAt !== null}
-          />
+          <SigningAgreementCard employee={employee} readOnly={client.archivedAt !== null} />
         )}
       </div>
       <EmployeeJobPositionDialog
         clientId={clientId}
-        userId={session?.user.id ?? ''}
         employee={moving ? employee : null}
         onClose={() => setMoving(false)}
       />

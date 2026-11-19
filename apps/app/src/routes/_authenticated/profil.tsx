@@ -2,10 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent, CardHeader } from '@ssm-usor/ui/components/card';
 import { Input } from '@ssm-usor/ui/components/input';
-import { createFileRoute, useRouteContext } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
@@ -54,9 +55,9 @@ function ProfilePage() {
 }
 
 function ProfileForm({ me }: { me: MeResponse }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const update = useUpdateProfile({ request: apiRequest });
+  const update = useUpdateProfile({ request });
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {

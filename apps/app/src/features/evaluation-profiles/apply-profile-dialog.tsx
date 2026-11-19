@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -16,6 +16,7 @@ import {
   useApplyEvaluationProfile,
   useListEvaluationProfileChoices,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { evaluationFailure } from '@/features/risk-evaluations/evaluation-failure';
@@ -39,24 +40,22 @@ function addedFactorsMessage(added: number, profileName: string) {
 
 export function ApplyProfileDialog({
   evaluation,
-  userId,
   open,
   onClose,
 }: {
   evaluation: RiskEvaluation;
-  userId: string;
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const savedToast = useSavedToast();
   const cache = useEvaluationCache(evaluation.clientId);
   const profileCache = useProfileCache();
   const profiles = useListEvaluationProfileChoices({
-    request: apiRequest,
-    query: { queryKey: [...getListEvaluationProfileChoicesQueryKey(), userId], enabled: open },
+    request,
+    query: { queryKey: key(getListEvaluationProfileChoicesQueryKey()), enabled: open },
   });
-  const apply = useApplyEvaluationProfile({ request: apiRequest });
+  const apply = useApplyEvaluationProfile({ request });
   const [selected, setSelected] = useState('');
   const [error, setError] = useState<string | null>(null);
   const sources = profiles.data?.items ?? [];

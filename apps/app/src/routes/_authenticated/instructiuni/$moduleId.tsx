@@ -5,7 +5,7 @@ import {
   getGetInstructionModuleQueryKey,
   getGetInstructionModuleQueryOptions,
 } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { withUserId } from '@/api/use-api';
 import { InstructionEditorPage } from '@/features/instructions/instruction-editor-page';
 import { InstructionModulePage } from '@/features/instructions/instruction-module-page';
 
@@ -15,11 +15,11 @@ export const Route = createFileRoute('/_authenticated/instructiuni/$moduleId')({
   // A version a document annexed, opened from that document, only to read.
   validateSearch: z.object({ version: z.uuid().optional().catch(undefined) }),
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     const { module } = await queryClient.ensureQueryData(
       getGetInstructionModuleQueryOptions(params.moduleId, {
         request: apiRequest,
-        query: { queryKey: [...getGetInstructionModuleQueryKey(params.moduleId), userId] },
+        query: { queryKey: key(getGetInstructionModuleQueryKey(params.moduleId)) },
       })
     );
     return { crumb: module.title };
@@ -30,16 +30,9 @@ export const Route = createFileRoute('/_authenticated/instructiuni/$moduleId')({
 function InstructionModuleRoute() {
   const { moduleId } = Route.useParams();
   const { version } = Route.useSearch();
-  const { session } = useAuth();
-  const userId = session?.user.id ?? '';
   return version ? (
-    <InstructionEditorPage
-      key={version}
-      moduleId={moduleId}
-      userId={userId}
-      pinnedVersionId={version}
-    />
+    <InstructionEditorPage key={version} moduleId={moduleId} pinnedVersionId={version} />
   ) : (
-    <InstructionModulePage key={moduleId} moduleId={moduleId} userId={userId} />
+    <InstructionModulePage key={moduleId} moduleId={moduleId} />
   );
 }

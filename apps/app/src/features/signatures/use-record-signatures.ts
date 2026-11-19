@@ -1,25 +1,19 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import {
   getGetRecordSignaturesQueryKey,
   type RecordSignaturesResponse,
   useGetRecordSignatures,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { printedTrainingMessage } from './signature-format';
 
-export function useRecordSignatures(
-  clientId: string,
-  recordId: string,
-  userId: string,
-  enabled: boolean
-) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function useRecordSignatures(clientId: string, recordId: string, enabled: boolean) {
+  const { request, ready, key } = useApi();
   return useGetRecordSignatures(clientId, recordId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetRecordSignaturesQueryKey(clientId, recordId), userId],
-      enabled: enabled && Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getGetRecordSignaturesQueryKey(clientId, recordId)),
+      enabled: enabled && ready,
     },
   });
 }

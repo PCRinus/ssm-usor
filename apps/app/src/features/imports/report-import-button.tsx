@@ -1,11 +1,11 @@
 import type { ImportLibraryPart } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { LoaderCircle, MessageSquareWarning } from 'lucide-react';
 import { useState } from 'react';
 
 import { reportImport, reportImportLibraryPart } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useReportProblem } from '@/app/report-problem-context';
 
 import { importErrorMessage } from './import-format';
@@ -22,7 +22,7 @@ export function ReportImportButton({
   variant?: 'ghost' | 'outline';
   className?: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const reportProblem = useReportProblem();
   const canReport = useCanReportImport();
   const [sending, setSending] = useState(false);
@@ -31,8 +31,8 @@ export function ReportImportButton({
     setSending(true);
     try {
       await (part
-        ? reportImportLibraryPart(importId, part, apiRequest)
-        : reportImport(importId, apiRequest));
+        ? reportImportLibraryPart(importId, part, request)
+        : reportImport(importId, request));
     } catch (cause) {
       setSending(false);
       toast.error(importErrorMessage(cause, 'Nu am putut trimite semnalarea. Încearcă din nou.'));

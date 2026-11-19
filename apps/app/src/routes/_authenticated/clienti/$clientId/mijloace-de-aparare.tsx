@@ -24,7 +24,6 @@ function FireSafetyMeansRoute() {
   return (
     <FireSafetyMeansPage
       clientId={client.id}
-      userId={session.user.id}
       currentEmployeeCount={client.currentEmployeeCount}
       readOnly={client.archivedAt !== null}
       focus={focus}

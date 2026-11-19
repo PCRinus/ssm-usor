@@ -1,5 +1,3 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import {
   getGetClientDocumentDetailsQueryKey,
   getListResponsiblePersonsQueryKey,
@@ -8,8 +6,8 @@ import {
   useListResponsiblePersons,
   useListRiskFactorSuggestions,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { type ComboboxItem, SearchCombobox } from '@/components/search-combobox';
-import { useAuth } from '@/features/auth/auth-context';
 import { normalizeSearch } from '@/lib/normalize-search';
 
 const suggestionParams = { field: 'responsiblePerson', query: '' } as const;
@@ -42,26 +40,24 @@ export function ResponsiblePersonCombobox({
   invalid?: boolean;
   describedBy?: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
-  const userId = session?.user.id ?? '';
+  const { request, key: userKey } = useApi();
   const ofClient = clientId ?? '';
   const details = useGetClientDocumentDetails(ofClient, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetClientDocumentDetailsQueryKey(ofClient), userId],
+      queryKey: userKey(getGetClientDocumentDetailsQueryKey(ofClient)),
       enabled: Boolean(clientId),
     },
   });
   const persons = useListResponsiblePersons(ofClient, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListResponsiblePersonsQueryKey(ofClient), userId],
+      queryKey: userKey(getListResponsiblePersonsQueryKey(ofClient)),
       enabled: Boolean(clientId),
     },
   });
   const typed = useListRiskFactorSuggestions(suggestionParams, {
-    request: apiRequest,
+    request,
     query: { queryKey: getListRiskFactorSuggestionsQueryKey(suggestionParams), staleTime: 30_000 },
   });
 

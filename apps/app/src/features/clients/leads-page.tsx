@@ -8,7 +8,7 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import { Archive, FileText, Handshake, Plus, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -19,6 +19,7 @@ import {
   useListClients,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -32,7 +33,6 @@ import { listFilterSearch } from '@/components/list-filters/url';
 import { useListSearch } from '@/components/list-filters/use-list-search';
 import { LoadFailed } from '@/components/load-failed';
 import { SearchInput } from '@/components/search-input';
-import { useAuth } from '@/features/auth/auth-context';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -79,8 +79,7 @@ export function LeadsPage() {
   const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status, q } = search;
   const archived = status === 'archived';
   const navigate = leadsRoute.useNavigate();
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const shownFacets = archived ? [] : facets;
   const listFilters = listFilterSearch({ keys: filterKeys, facets: shownFacets, search });
   const filters = listFilters.searchOf(listFilters.values) as LeadListFilters;
@@ -96,17 +95,17 @@ export function LeadsPage() {
     ...filters,
   };
   const leads = useListClients(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListClientsQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListClientsQueryKey(params)),
+      enabled: ready,
       placeholderData: keepPreviousData,
     },
   });
   const meta = leads.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = leads.data?.unfilteredTotal ?? 0;
   const narrowed = filtered || Boolean(q);
-  const listStatus = !apiRequest.baseUrl ? 'error' : leads.status;
+  const listStatus = !request.baseUrl ? 'error' : leads.status;
   const phone = useIsMobile();
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [promoting, setPromoting] = useState<ClientRow | null>(null);
@@ -128,10 +127,10 @@ export function LeadsPage() {
       ...(listFilters.searchOf(pending) as LeadListFilters),
     };
     return getListClientsQueryOptions(counted, {
-      request: apiRequest,
+      request,
       query: {
-        queryKey: [...getListClientsQueryKey(counted), session?.user.id],
-        enabled: Boolean(session && apiRequest.baseUrl),
+        queryKey: key(getListClientsQueryKey(counted)),
+        enabled: ready,
       },
     });
   };
@@ -243,7 +242,7 @@ export function LeadsPage() {
               retryTestId="leads-retry"
               busy={leads.isFetching}
               onRetry={
-                apiRequest.baseUrl &&
+                request.baseUrl &&
                 !(leads.error instanceof ApiHttpError && leads.error.status === 403)
                   ? () => void leads.refetch()
                   : undefined

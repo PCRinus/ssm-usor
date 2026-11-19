@@ -14,9 +14,12 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getGetTrainingSheetsQueryKey } from '@/api/generated/api';
+import { AuthContext } from '@/features/auth/auth-context';
+import type { AuthStore } from '@/features/auth/auth-store';
 import { createQueryClient } from '@/lib/query-client';
 import type { RouterContext } from '@/routes/__root';
 import { fetchMock, installFetchMock, mockApi } from '@/test/api';
+import { makeSession } from '@/test/auth-fixture';
 
 import { TrainingSheetDownload } from './training-sheet-download';
 
@@ -73,10 +76,16 @@ function mockSheetsApi({
   );
 }
 
+const snapshot = { status: 'ready', session: makeSession() };
+const auth = {
+  subscribe: () => () => {},
+  getSnapshot: () => snapshot,
+} as unknown as AuthStore;
+
 function mount(...domains: TrainingDomain[]) {
   const queryClient = createQueryClient();
   const context = {
-    auth: {} as RouterContext['auth'],
+    auth,
     queryClient,
     apiRequest: { baseUrl: 'http://localhost:8787', getAccessToken: () => 'token' },
   } satisfies RouterContext;
@@ -100,10 +109,12 @@ function mount(...domains: TrainingDomain[]) {
     history: createMemoryHistory({ initialEntries: [employeePage] }),
   });
   render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster />
-    </QueryClientProvider>
+    <AuthContext.Provider value={auth}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </QueryClientProvider>
+    </AuthContext.Provider>
   );
   return queryClient;
 }

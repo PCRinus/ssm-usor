@@ -1,20 +1,20 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getGetSigningAgreementStateQueryKey,
   useGetSigningAgreementState,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { invalidateSignatures } from './signature-queries';
 
-export function useSigningAgreement(clientId: string, employeeId: string, userId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function useSigningAgreement(clientId: string, employeeId: string) {
+  const { request, ready, key } = useApi();
   return useGetSigningAgreementState(clientId, employeeId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetSigningAgreementStateQueryKey(clientId, employeeId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getGetSigningAgreementStateQueryKey(clientId, employeeId)),
+      enabled: ready,
     },
   });
 }

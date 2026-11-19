@@ -12,7 +12,6 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import type { ChangeEvent, ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
@@ -22,6 +21,7 @@ import {
   useUpdateJobPosition,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -115,10 +115,10 @@ function JobPositionForm({
   onCloseAutoFocus?: (event: Event) => void;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const create = useCreateJobPosition({ request: apiRequest });
-  const update = useUpdateJobPosition({ request: apiRequest });
+  const create = useCreateJobPosition({ request });
+  const update = useUpdateJobPosition({ request });
   const form = useForm<JobPositionFormInput, unknown, JobPositionFormValues>({
     resolver: zodResolver(jobPositionFormSchema),
     defaultValues: draft

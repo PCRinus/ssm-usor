@@ -1,10 +1,5 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  type ErrorComponentProps,
-  getRouteApi,
-  Link,
-  useRouteContext,
-} from '@tanstack/react-router';
+import { type ErrorComponentProps, getRouteApi, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -17,11 +12,11 @@ import {
   useListJobPositions,
   useListPositionInstructions,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener, openedHere } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useScrollToHash } from '@/app/use-scroll-to-hash';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
-import { useAuth } from '@/features/auth/auth-context';
 import { CurrentClientHeaderFact } from '@/features/clients/client-fact';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import { PositionInstructionsCard } from '@/features/instructions/position-instructions-card';
@@ -48,27 +43,22 @@ const sectionLinks = [
 export function JobPositionPage() {
   const { clientId, jobPositionId } = jobPositionRoute.useParams();
   const readOnly = clientRoute.useLoaderData().client.archivedAt !== null;
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const userId = session?.user.id ?? '';
-  const enabled = Boolean(session && apiRequest.baseUrl);
+  const { request, ready, key } = useApi();
+  const enabled = ready;
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled },
+    request,
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)), enabled },
   });
   // The cards below load these themselves; they are read here only to know when the page has
   // its final height, so a section named in the address is scrolled to where it ends up.
   const equipment = useListEquipment(clientId, jobPositionId, {
-    request: apiRequest,
-    query: { queryKey: [...getListEquipmentQueryKey(clientId, jobPositionId), userId], enabled },
+    request,
+    query: { queryKey: key(getListEquipmentQueryKey(clientId, jobPositionId)), enabled },
   });
   const instructionsQuery = (domain: 'ssm' | 'su') => ({
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [
-        ...getListPositionInstructionsQueryKey(clientId, jobPositionId, { domain }),
-        userId,
-      ],
+      queryKey: key(getListPositionInstructionsQueryKey(clientId, jobPositionId, { domain })),
       enabled,
     },
   });
@@ -85,9 +75,9 @@ export function JobPositionPage() {
     instructionsQuery('su')
   );
   const riskEvaluation = useGetJobPositionRiskEvaluation(clientId, jobPositionId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetJobPositionRiskEvaluationQueryKey(clientId, jobPositionId), userId],
+      queryKey: key(getGetJobPositionRiskEvaluationQueryKey(clientId, jobPositionId)),
       enabled,
     },
   });
@@ -180,7 +170,6 @@ export function JobPositionPage() {
         id={positionSections.equipment}
         clientId={clientId}
         position={position}
-        userId={userId}
         readOnly={readOnly}
       />
       <PositionInstructionsCard
@@ -188,7 +177,6 @@ export function JobPositionPage() {
         domain="ssm"
         clientId={clientId}
         position={position}
-        userId={userId}
         readOnly={readOnly}
       />
       <PositionInstructionsCard
@@ -196,14 +184,12 @@ export function JobPositionPage() {
         domain="su"
         clientId={clientId}
         position={position}
-        userId={userId}
         readOnly={readOnly}
       />
       <PositionRiskEvaluationCard
         id={positionSections.riskEvaluation}
         clientId={clientId}
         position={position}
-        userId={userId}
         readOnly={readOnly}
       />
       <JobPositionDialog

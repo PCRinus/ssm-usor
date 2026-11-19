@@ -35,11 +35,11 @@ const route = getRouteApi('/_authenticated/legislatie/acte');
 
 const rowKey = (act: WatchedAct) => act.id;
 
-export function WatchedActs({ userId }: { userId: string }) {
+export function WatchedActs() {
   const search = route.useSearch();
   const navigate = route.useNavigate();
   const phone = useIsMobile();
-  const acts = useLegalActs(userId);
+  const acts = useLegalActs();
   const all = acts.data?.items;
   const facets = useMemo(() => watchedActFacets(all), [all]);
   const listFilters = listFilterSearch({ keys: watchedActFilterKeys, facets, search });

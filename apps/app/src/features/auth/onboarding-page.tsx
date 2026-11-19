@@ -3,7 +3,7 @@ import { currentTermsVersion, isValidCuiInput, normalizeCui } from '@ssm-usor/co
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Navigate, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Navigate, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -18,6 +18,7 @@ import {
   useUpdateOrganizationCompanyDetails,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { captureAsMember } from '@/app/observability/posthog';
 import { replayShow } from '@/app/observability/replay-masking';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
@@ -83,15 +84,15 @@ type LookupState =
   | { status: 'error'; message: string };
 
 function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => void }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const { session } = useAuth();
   const navigate = useNavigate();
-  const create = useCreateOrganization({ request: apiRequest });
-  const saveCompanyDetails = useUpdateOrganizationCompanyDetails({ request: apiRequest });
+  const create = useCreateOrganization({ request });
+  const saveCompanyDetails = useUpdateOrganizationCompanyDetails({ request });
   const [lookup, setLookup] = useState<LookupState>({ status: 'idle' });
   const invitations = useListMyInvitations({
-    request: apiRequest,
-    query: { queryKey: [...getListMyInvitationsQueryKey(), me.user.id] },
+    request,
+    query: { queryKey: key(getListMyInvitationsQueryKey()) },
   });
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
@@ -116,7 +117,7 @@ function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => vo
     form.clearErrors('cui');
     setLookup({ status: 'loading' });
     try {
-      const { company } = await lookupCompany({ cui: normalizeCui(input)!.cui }, apiRequest);
+      const { company } = await lookupCompany({ cui: normalizeCui(input)!.cui }, request);
       form.setValue('organizationName', company.legalName, { shouldDirty: true });
       form.clearErrors('organizationName');
       setLookup({ status: 'found', company });

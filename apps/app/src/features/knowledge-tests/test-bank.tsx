@@ -2,12 +2,12 @@ import { type KnowledgeTest, testErrorReasons, type TrainingDomain } from '@ssm-
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useHideTestQuestion, useRestoreTestQuestion } from '@/api/generated/api';
 import { apiErrorReason } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { HelpLink } from '@/components/help-link';
 import { LoadFailed } from '@/components/load-failed';
 
@@ -28,10 +28,10 @@ import { useTestBank } from './use-test-bank';
 const belowMinimum = (cause: unknown) => apiErrorReason(cause) === testErrorReasons.belowMinimum;
 
 export function TestBank({ domain, test }: { domain: TrainingDomain; test: KnowledgeTest }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const bank = useTestBank();
-  const hide = useHideTestQuestion({ request: apiRequest });
-  const restore = useRestoreTestQuestion({ request: apiRequest });
+  const hide = useHideTestQuestion({ request });
+  const restore = useRestoreTestQuestion({ request });
   const [editing, setEditing] = useState<QuestionEditing>(null);
   const [previewing, setPreviewing] = useState<BankQuestion | null>(null);
   const [deleting, setDeleting] = useState<BankQuestion | null>(null);

@@ -1,10 +1,11 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { getGetInstructionModuleQueryKey, useGetInstructionModule } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 
 import { blocksFromBody, templateBlocks } from './instruction-draft';
@@ -36,11 +37,11 @@ function Unavailable({ notFound, onRetry }: { notFound: boolean; onRetry: () => 
   );
 }
 
-export function InstructionModulePage({ moduleId, userId }: { moduleId: string; userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function InstructionModulePage({ moduleId }: { moduleId: string }) {
+  const { request, key } = useApi();
   const query = useGetInstructionModule(moduleId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetInstructionModuleQueryKey(moduleId), userId] },
+    request,
+    query: { queryKey: key(getGetInstructionModuleQueryKey(moduleId)) },
   });
   const [editing, setEditing] = useState(false);
   // Decided by the first read: a later refetch that fails or finds the module archived must not
@@ -61,7 +62,7 @@ export function InstructionModulePage({ moduleId, userId }: { moduleId: string; 
   }
   const { module, body } = query.data;
   if (openedArchived ?? module.archivedAt) {
-    return <InstructionEditorPage moduleId={moduleId} userId={userId} />;
+    return <InstructionEditorPage moduleId={moduleId} />;
   }
   return (
     <>
@@ -72,7 +73,6 @@ export function InstructionModulePage({ moduleId, userId }: { moduleId: string; 
         domain={module.domain}
         group={module.group}
         initialBlocks={blocksFromBody(body, module.group)}
-        userId={userId}
         onEditDetails={() => setEditing(true)}
       />
       <InstructionModuleDialog
@@ -83,14 +83,14 @@ export function InstructionModulePage({ moduleId, userId }: { moduleId: string; 
   );
 }
 
-export function NewInstructionPage({ start, userId }: { start: StartValues; userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function NewInstructionPage({ start }: { start: StartValues }) {
+  const { request, key } = useApi();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const source = useGetInstructionModule(start.from ?? '', {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetInstructionModuleQueryKey(start.from ?? ''), userId],
+      queryKey: key(getGetInstructionModuleQueryKey(start.from ?? '')),
       enabled: Boolean(start.from),
     },
   });
@@ -116,14 +116,12 @@ export function NewInstructionPage({ start, userId }: { start: StartValues; user
         domain={start.domain}
         group={start.group}
         initialBlocks={blocks}
-        userId={userId}
         onEditDetails={() => setEditing(true)}
       />
       <InstructionStartDialog
         open={editing}
         editing
         initial={start}
-        userId={userId}
         onClose={() => setEditing(false)}
         onSubmit={(values) => {
           setEditing(false);

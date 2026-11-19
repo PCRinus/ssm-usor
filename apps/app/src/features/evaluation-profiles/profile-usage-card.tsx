@@ -1,11 +1,11 @@
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   type EvaluationProfileUsageResponseItemsItem,
   getGetEvaluationProfileUsageQueryKey,
   useGetEvaluationProfileUsage,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
 import { SectionCard } from '@/components/section-card';
 import { EvaluationLink } from '@/features/risk-evaluations/evaluation-link';
@@ -42,19 +42,11 @@ function byClient(items: readonly ProfileUse[]): ClientUses[] {
   return clients;
 }
 
-export function ProfileUsageCard({
-  profileId,
-  inUse,
-  userId,
-}: {
-  profileId: string;
-  inUse: boolean;
-  userId: string;
-}) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function ProfileUsageCard({ profileId, inUse }: { profileId: string; inUse: boolean }) {
+  const { request, key } = useApi();
   const usage = useGetEvaluationProfileUsage(profileId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetEvaluationProfileUsageQueryKey(profileId), userId] },
+    request,
+    query: { queryKey: key(getGetEvaluationProfileUsageQueryKey(profileId)) },
   });
   const items = usage.data?.items ?? [];
 

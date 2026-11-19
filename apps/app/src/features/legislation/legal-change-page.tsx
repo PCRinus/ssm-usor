@@ -2,7 +2,7 @@ import { countOf, documentSetOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { type ErrorComponentProps, Link, useRouteContext } from '@tanstack/react-router';
+import { type ErrorComponentProps, Link } from '@tanstack/react-router';
 import { ExternalLink, LoaderCircle, RefreshCw } from 'lucide-react';
 import { Fragment, type ReactNode, useState } from 'react';
 
@@ -15,6 +15,7 @@ import {
   useListDocumentsBehind,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { NotFound, RouteError } from '@/app/route-states';
 import { TitleWithBack } from '@/components/back-link';
 import { LoadFailed } from '@/components/load-failed';
@@ -40,14 +41,14 @@ import { behindSummaryQueryKey, useBehindSummary } from './use-behind-summary';
 const textLink =
   'font-medium underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground';
 
-export function LegalChangePage({ changeId, userId }: { changeId: string; userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function LegalChangePage({ changeId }: { changeId: string }) {
+  const { request, key } = useApi();
   const query = useGetLegalChange(changeId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetLegalChangeQueryKey(changeId), userId] },
+    request,
+    query: { queryKey: key(getGetLegalChangeQueryKey(changeId)) },
   });
   const change = query.data?.change;
-  if (change) return <ChangeView change={change} userId={userId} />;
+  if (change) return <ChangeView change={change} />;
   if (!query.isError) return <LegalChangePending />;
   if (query.error instanceof ApiHttpError && query.error.status === 404) {
     return <LegalChangeNotFound />;
@@ -86,7 +87,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function ChangeView({ change, userId }: { change: Change; userId: string }) {
+function ChangeView({ change }: { change: Change }) {
   return (
     <div data-testid="legal-change-page" className="grid gap-5">
       <TitleWithBack back={<LegalChangeBack />} className="mb-1 sm:gap-x-4">
@@ -110,7 +111,7 @@ function ChangeView({ change, userId }: { change: Change; userId: string }) {
           </Fact>
         </dl>
       </TitleWithBack>
-      <Summary change={change} userId={userId} />
+      <Summary change={change} />
       <section
         aria-label="Detalii"
         className="grid gap-10 rounded-xl border bg-card p-8 shadow-sm max-sm:gap-8 max-sm:p-5"
@@ -142,7 +143,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Summary({ change, userId }: { change: Change; userId: string }) {
+function Summary({ change }: { change: Change }) {
   const sentence =
     change.resolution === 'open'
       ? underReviewSentence(change.outcome, [...new Set(change.passages.map((p) => p.unit))])
@@ -202,18 +203,18 @@ function Summary({ change, userId }: { change: Change; userId: string }) {
           ))}
         </p>
       )}
-      {behind && <Regenerate change={change} userId={userId} />}
+      {behind && <Regenerate change={change} />}
     </section>
   );
 }
 
-function Regenerate({ change, userId }: { change: Change; userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+function Regenerate({ change }: { change: Change }) {
+  const { request, key } = useApi();
   const regenerations = useRegenerations();
   const summary = useBehindSummary();
   const behind = useListDocumentsBehind({
-    request: apiRequest,
-    query: { queryKey: [...getListDocumentsBehindQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getListDocumentsBehindQueryKey()) },
   });
   const [confirming, setConfirming] = useState(false);
   const [starting, setStarting] = useState(false);

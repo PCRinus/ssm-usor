@@ -2,11 +2,12 @@ import { countOf } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Check, ChevronDown, CircleAlert, CircleX, Clock, LoaderCircle } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
 import { getGetLatestLegalCheckRunQueryKey, useGetLatestLegalCheckRun } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
 
 import { formatDayThisYear, formatTimeOf } from './legislation-labels';
@@ -74,13 +75,13 @@ function Status({
   );
 }
 
-export function LastCheck({ userId }: { userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function LastCheck() {
+  const { request, key } = useApi();
   const latest = useGetLatestLegalCheckRun({
-    request: apiRequest,
-    query: { queryKey: [...getGetLatestLegalCheckRunQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getGetLatestLegalCheckRunQueryKey()) },
   });
-  const acts = useLegalActs(userId);
+  const acts = useLegalActs();
   const [openedAt] = useState(() => Date.now());
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = useId();

@@ -1,4 +1,4 @@
-import { createFileRoute, getRouteApi, notFound, useRouteContext } from '@tanstack/react-router';
+import { createFileRoute, getRouteApi, notFound } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import {
@@ -7,7 +7,7 @@ import {
   useGetEmployee,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi, withUserId } from '@/api/use-api';
 import { EmployeeForm } from '@/features/employees/employee-form';
 import { employeeFocus, focusSearch } from '@/features/missing-data/focus';
 
@@ -20,13 +20,13 @@ export const Route = createFileRoute(
   params: { parse: (params) => ({ employeeId: z.uuid().parse(params.employeeId) }) },
   validateSearch: focusSearch(employeeFocus),
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     try {
       await queryClient.ensureQueryData(
         getGetEmployeeQueryOptions(params.clientId, params.employeeId, {
           request: apiRequest,
           query: {
-            queryKey: [...getGetEmployeeQueryKey(params.clientId, params.employeeId), userId],
+            queryKey: key(getGetEmployeeQueryKey(params.clientId, params.employeeId)),
           },
         })
       );
@@ -44,13 +44,12 @@ function EditEmployeePage() {
   const { clientId, employeeId } = Route.useParams();
   const { focus } = Route.useSearch();
   const { client } = clientRoute.useLoaderData();
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const query = useGetEmployee(clientId, employeeId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetEmployeeQueryKey(clientId, employeeId), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getGetEmployeeQueryKey(clientId, employeeId)),
+      enabled: ready,
     },
   });
   const employee = query.data?.employee;

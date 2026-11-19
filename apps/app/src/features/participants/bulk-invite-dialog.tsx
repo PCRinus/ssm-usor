@@ -17,7 +17,6 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { CircleCheck, IdCard, Mail, Send, Smartphone } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
@@ -27,6 +26,7 @@ import {
   getListImportsQueryKey,
   inviteEmployeeParticipants,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -78,7 +78,7 @@ export function BulkInviteDialog({
   open: boolean;
   onClose: (sent: boolean) => void;
 }) {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const [sent, setSent] = useState(false);
   const close = () => {
     setSent(false);
@@ -118,7 +118,7 @@ function BulkInviteForm({
   onSent: () => void;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const fromImport = 'importId' in source;
   const invitees = useImportInvitees(clientId, fromImport ? source.importId : '', {
     refetchOnMount: 'always',
@@ -192,7 +192,7 @@ function BulkInviteForm({
         const { results: answered } = await inviteEmployeeParticipants(
           clientId,
           { invitations: chunk },
-          wordingRefusalHere(apiRequest)
+          wordingRefusalHere(request)
         );
         for (const result of answered) {
           outcome[result.employeeId] = {

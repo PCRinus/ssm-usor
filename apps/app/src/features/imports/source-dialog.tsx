@@ -7,7 +7,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,6 +20,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { getImportSource, type ImportSourceResponse } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
@@ -80,7 +80,7 @@ function SourceContent({
   request: SourceRequest;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request: apiRequest } = useApi();
   const [index, setIndex] = useState(0);
   const [notFound, setNotFound] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);

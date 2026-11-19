@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { withUserId } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { ClientError, ClientLayout, ClientNotFound } from '@/features/clients/client-layout';
 import { ClientPending } from '@/features/clients/client-pending';
@@ -12,14 +13,14 @@ import { ClientPending } from '@/features/clients/client-pending';
 export const Route = createFileRoute('/_authenticated/clienti/$clientId')({
   params: { parse: (params) => ({ clientId: z.uuid().parse(params.clientId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     let client;
     let canDelete;
     try {
       ({ client, canDelete } = await queryClient.ensureQueryData(
         getGetClientQueryOptions(params.clientId, {
           request: apiRequest,
-          query: { queryKey: [...getGetClientQueryKey(params.clientId), userId] },
+          query: { queryKey: key(getGetClientQueryKey(params.clientId)) },
         })
       ));
     } catch (cause) {

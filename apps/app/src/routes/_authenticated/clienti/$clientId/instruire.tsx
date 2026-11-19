@@ -31,19 +31,10 @@ function TrainingPage() {
 
   return (
     <div data-testid="training-page" className="grid gap-4">
-      <TrainingProgramSection
-        client={client}
-        userId={session.user.id}
-        focus={focus === 'training-schedule'}
-      />
-      <FireSafetySection
-        client={client}
-        userId={session.user.id}
-        focus={focusAmong(focus, fireTrainingFocus)}
-      />
+      <TrainingProgramSection client={client} focus={focus === 'training-schedule'} />
+      <FireSafetySection client={client} focus={focusAmong(focus, fireTrainingFocus)} />
       <ResponsiblePersonsCard
         clientId={client.id}
-        userId={session.user.id}
         readOnly={client.archivedAt !== null}
         currentEmployeeCount={client.currentEmployeeCount}
         focus={focusAmong(focus, responsiblePersonFocus)}

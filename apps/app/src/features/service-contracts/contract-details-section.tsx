@@ -4,7 +4,6 @@ import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Label } from '@ssm-usor/ui/components/label';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import type { RefObject } from 'react';
 import { Controller, type UseFormReturn, useFormState } from 'react-hook-form';
 
@@ -15,6 +14,7 @@ import {
   type useSaveServiceContract,
 } from '@/api/generated/api';
 import { apiErrorBody } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
 import { Masked } from '@/components/replay';
@@ -62,7 +62,7 @@ export function ContractDetailsSection({
   refresh: (response?: ServiceContractResponse) => Promise<void>;
   onError: (error: string | null) => void;
 }) {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const { errors, isDirty } = useFormState({ control: form.control });
   const { editing, editRef, open, close } = useInPlaceEdit();
   const locked = busy || readOnly;

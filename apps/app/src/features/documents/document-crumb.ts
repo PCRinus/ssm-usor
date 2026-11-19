@@ -6,6 +6,7 @@ import {
   getListClientDocumentsQueryOptions,
 } from '@/api/generated/api';
 import type { ApiRequestOptions } from '@/api/http';
+import { withUserId } from '@/api/use-api';
 
 import { datedTitle } from './document-labels';
 import { setParams } from './document-sets';
@@ -31,7 +32,9 @@ export async function documentCrumb({
     const { items } = await queryClient.ensureQueryData(
       getListClientDocumentsQueryOptions(clientId, setParams(set), {
         request: apiRequest,
-        query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
+        query: {
+          queryKey: withUserId(userId)(getListClientDocumentsQueryKey(clientId, setParams(set))),
+        },
       })
     );
     const item = items.find((each) => each.id === documentId);

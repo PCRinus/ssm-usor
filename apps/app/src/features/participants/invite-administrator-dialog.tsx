@@ -11,10 +11,10 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import { useInviteClientAdministrator } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field, FieldMessage } from '@/components/form-field';
@@ -37,13 +37,11 @@ import { useRefreshParticipants } from './use-refresh-participants';
 
 export function InviteAdministratorDialog({
   client,
-  userId,
   open,
   onClose,
   onMessage,
 }: {
   client: Client;
-  userId: string;
   open: boolean;
   onClose: () => void;
   onMessage: (message: ParticipantMessage) => void;
@@ -51,14 +49,7 @@ export function InviteAdministratorDialog({
   return (
     <FormDialog open={open} onClose={onClose}>
       {/* Mounted per opening, so a reopened dialog starts from the client's proposals. */}
-      {open && (
-        <InviteAdministratorForm
-          client={client}
-          userId={userId}
-          onClose={onClose}
-          onMessage={onMessage}
-        />
-      )}
+      {open && <InviteAdministratorForm client={client} onClose={onClose} onMessage={onMessage} />}
     </FormDialog>
   );
 }
@@ -70,17 +61,15 @@ const channelOptions = [
 
 function InviteAdministratorForm({
   client,
-  userId,
   onClose,
   onMessage,
 }: {
   client: Client;
-  userId: string;
   onClose: () => void;
   onMessage: (message: ParticipantMessage) => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const invite = useInviteClientAdministrator({ request: wordingRefusalHere(apiRequest) });
+  const { request } = useApi();
+  const invite = useInviteClientAdministrator({ request: wordingRefusalHere(request) });
   const refresh = useRefreshParticipants(client.id);
   const smsOff = useSmsOff();
   const form = useForm<AdministratorInviteFormValues>({
@@ -181,7 +170,6 @@ function InviteAdministratorForm({
                   <EmployeeCombobox
                     id="administrator-employee"
                     clientId={client.id}
-                    userId={userId}
                     value={field.value}
                     disabled={busy}
                     invalid={Boolean(errors.employeeId)}

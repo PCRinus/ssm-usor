@@ -1,9 +1,9 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useRemoveEvaluationProfile } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { factorCountLabel } from '@/features/risk-evaluations/risk-evaluation-schema';
 
@@ -25,9 +25,9 @@ export function RemoveProfileDialog({
   onClose: () => void;
   afterRemove?: () => Promise<void>;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const cache = useProfileCache();
-  const remove = useRemoveEvaluationProfile({ request: apiRequest });
+  const remove = useRemoveEvaluationProfile({ request });
   const [error, setError] = useState<string | null>(null);
 
   function close() {

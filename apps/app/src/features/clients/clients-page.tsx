@@ -8,7 +8,7 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import {
   Archive,
   CalendarClock,
@@ -31,6 +31,7 @@ import {
   useListClients,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -165,7 +166,7 @@ export function ClientsPage() {
   const archived = status === 'archived';
   const navigate = clientsRoute.useNavigate();
   const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const me = useMe();
   const isOwner = me.data?.membership?.role === 'owner';
   // Until the role is known an owner's contract filter stays in the URL, and the list waits for
@@ -188,17 +189,17 @@ export function ClientsPage() {
     ...filters,
   };
   const clients = useListClients(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListClientsQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl && (roleSettled || !params.contract)),
+      queryKey: key(getListClientsQueryKey(params)),
+      enabled: Boolean(session && request.baseUrl && (roleSettled || !params.contract)),
       placeholderData: keepPreviousData,
     },
   });
   const meta = clients.data ?? { page, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = clients.data?.unfilteredTotal ?? 0;
   const narrowed = filtered || Boolean(q);
-  const listStatus = !apiRequest.baseUrl ? 'error' : clients.status;
+  const listStatus = !request.baseUrl ? 'error' : clients.status;
   const phone = useIsMobile();
   const [archiveChange, setArchiveChange] = useState<ClientArchiveChange | null>(null);
   const [deleting, setDeleting] = useState<ClientToDelete | null>(null);
@@ -235,10 +236,10 @@ export function ClientsPage() {
       ...(listFilters.searchOf(pending) as ClientFilters),
     };
     return getListClientsQueryOptions(counted, {
-      request: apiRequest,
+      request,
       query: {
-        queryKey: [...getListClientsQueryKey(counted), session?.user.id],
-        enabled: Boolean(session && apiRequest.baseUrl),
+        queryKey: key(getListClientsQueryKey(counted)),
+        enabled: ready,
       },
     });
   };
@@ -353,7 +354,7 @@ export function ClientsPage() {
               testId="clients-error"
               retryTestId="clients-retry"
               busy={clients.isFetching}
-              onRetry={apiRequest.baseUrl ? () => void clients.refetch() : undefined}
+              onRetry={request.baseUrl ? () => void clients.refetch() : undefined}
             >
               {clients.error instanceof ApiHttpError && clients.error.status === 403
                 ? 'Contul tău nu face parte dintr-o organizație. Contactează adminul.'

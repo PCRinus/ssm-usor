@@ -11,7 +11,6 @@ import { Card } from '@ssm-usor/ui/components/card';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { FileUp, SearchX, Upload } from 'lucide-react';
 import { type MouseEvent, type ReactNode, useId, useMemo, useState } from 'react';
 
@@ -21,6 +20,7 @@ import {
   setClientFileOwnersOnly,
   useListClientFiles,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/empty-state';
@@ -72,7 +72,6 @@ const toggled = (list: readonly string[], value: string) =>
 export function ClientFilesCard({
   client,
   employee,
-  userId,
   readOnly,
   search,
   onSearch,
@@ -80,22 +79,21 @@ export function ClientFilesCard({
 }: {
   client: Client;
   employee?: ClientFileEmployee;
-  userId: string;
   readOnly: boolean;
   // Among other cards, as on a lead's page, rather than alone in a tab that names it.
   title?: string;
   search: ClientFileListSearch;
   onSearch: (next: ClientFileListSearch) => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key: userKey } = useApi();
   const isOwner = useMe().data?.membership?.role === 'owner';
   const phone = useIsMobile();
   const lead = client.stage === 'lead';
   const params = employee ? { employeeId: employee.id } : undefined;
-  const queryKey = [...getListClientFilesQueryKey(client.id, params), userId];
+  const queryKey = userKey(getListClientFilesQueryKey(client.id, params));
   // Every file comes with a signed link, so the list fetches itself again before they expire.
   const files = useListClientFiles(client.id, params, {
-    request: apiRequest,
+    request,
     query: {
       queryKey,
       staleTime: (current) => renewalMs(current.state.data?.items[0]?.link.expiresInSeconds),
@@ -121,7 +119,7 @@ export function ClientFilesCard({
   const addressOf = (file: ClientFile, how: 'open' | 'download') => {
     const disposition: Disposition =
       how === 'open' && file.link.disposition === 'inline' ? 'inline' : 'attachment';
-    return { href: fileAddress(apiRequest.baseUrl, file.link, disposition), disposition };
+    return { href: fileAddress(request.baseUrl, file.link, disposition), disposition };
   };
 
   // A phone that slept may keep a link past its expiry before the list fetches itself again, so
@@ -177,7 +175,7 @@ export function ClientFilesCard({
         : current
     );
     try {
-      await setClientFileOwnersOnly(client.id, file.id, { ownersOnly }, apiRequest);
+      await setClientFileOwnersOnly(client.id, file.id, { ownersOnly }, request);
       toast.success(
         <>
           „{fileName(file)}” este acum vizibil{' '}

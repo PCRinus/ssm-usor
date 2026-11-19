@@ -22,7 +22,6 @@ function LeadContractPage() {
     <ServiceContractEditor
       clientId={lead.id}
       companyName={lead.legalName}
-      userId={session.user.id}
       readOnly={lead.archivedAt !== null || !offers}
       readOnlyReason={
         lead.archivedAt === null && !offers

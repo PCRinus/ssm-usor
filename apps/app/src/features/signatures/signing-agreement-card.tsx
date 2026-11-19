@@ -15,7 +15,7 @@ import {
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Copy, FileDown, FileSignature, LoaderCircle, PenLine, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -31,6 +31,7 @@ import {
   useListClientDocuments,
   useListClientFiles,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedFromRecord, openedHere } from '@/app/opener';
 import { useHoldOpen } from '@/components/close-guard';
 import { FileLinkButton } from '@/components/file-link-button';
@@ -95,20 +96,18 @@ type Change = 'withdrawn' | 'in_contract';
 // `readOnly` is an archived client, whose agreements no longer change.
 export function SigningAgreementCard({
   employee,
-  userId,
   readOnly,
 }: {
   employee: AgreementEmployee;
-  userId: string;
   readOnly: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const query = useSigningAgreement(employee.clientId, employee.id, userId);
+  const { request, queryClient, ready, key } = useApi();
+  const query = useSigningAgreement(employee.clientId, employee.id);
   const documents = useListClientDocuments(employee.clientId, undefined, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListClientDocumentsQueryKey(employee.clientId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getListClientDocumentsQueryKey(employee.clientId)),
+      enabled: ready,
     },
   });
   const [downloading, setDownloading] = useState(false);
@@ -139,9 +138,9 @@ export function SigningAgreementCard({
       agreement?.employerSignedAt,
     ],
     load: (signal) =>
-      getSigningAgreementLink(employee.clientId, employee.id, { ...apiRequest, signal }),
+      getSigningAgreementLink(employee.clientId, employee.id, { ...request, signal }),
     enabled: stored,
-    apiRequest,
+    apiRequest: request,
     disposition: 'attachment',
   });
   const annexIssued = documents.data
@@ -156,7 +155,7 @@ export function SigningAgreementCard({
     setNoAddress(false);
     setNoRepresentative(false);
     try {
-      const file = await getSigningAgreement(employee.clientId, employee.id, apiRequest);
+      const file = await getSigningAgreement(employee.clientId, employee.id, request);
       saveFile(
         file,
         file instanceof File
@@ -168,7 +167,7 @@ export function SigningAgreementCard({
           employee.clientId,
           employee.id,
           { state: 'generated' },
-          apiRequest
+          request
         );
         await invalidateSigningAgreement(queryClient, employee.clientId, employee.id);
       }
@@ -372,23 +371,14 @@ export function SigningAgreementCard({
           )}
         </div>
       )}
-      <PaperAgreementDialog
-        employee={employee}
-        userId={userId}
-        open={marking}
-        onClose={() => setMarking(false)}
-      />
+      <PaperAgreementDialog employee={employee} open={marking} onClose={() => setMarking(false)} />
       <AgreementChangeDialog
         employee={employee}
         change={confirming}
         electronic={state === 'signed_electronically' || awaitsEmployer}
         onClose={() => setConfirming(null)}
       />
-      <ContractClauseDialog
-        userId={userId}
-        open={showingClause}
-        onClose={() => setShowingClause(false)}
-      />
+      <ContractClauseDialog open={showingClause} onClose={() => setShowingClause(false)} />
     </SectionCard>
   );
 }
@@ -417,7 +407,7 @@ function AgreementChangeDialog({
   electronic: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const copy = change ? changeCopy[change] : null;
@@ -427,7 +417,7 @@ function AgreementChangeDialog({
     setBusy(true);
     setError(null);
     try {
-      await putSigningAgreementState(employee.clientId, employee.id, { state: change }, apiRequest);
+      await putSigningAgreementState(employee.clientId, employee.id, { state: change }, request);
       await invalidateSigningAgreement(queryClient, employee.clientId, employee.id);
       toast.success(copy.done);
       onClose();
@@ -494,22 +484,14 @@ function AgreementChangeDialog({
   );
 }
 
-function ContractClauseDialog({
-  userId,
-  open,
-  onClose,
-}: {
-  userId: string;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+function ContractClauseDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { request: apiRequest, ready, key: userKey } = useApi();
   const me = useMe();
   const details = useGetOrganizationCompanyDetails({
     request: apiRequest,
     query: {
-      queryKey: [...getGetOrganizationCompanyDetailsQueryKey(), userId],
-      enabled: open && Boolean(userId && apiRequest.baseUrl),
+      queryKey: userKey(getGetOrganizationCompanyDetailsQueryKey()),
+      enabled: open && ready,
     },
   });
   // The agreement names the provider as the API draws it up: the legal name, else the app's name.
@@ -573,36 +555,32 @@ function ContractClauseDialog({
 
 function PaperAgreementDialog({
   employee,
-  userId,
   open,
   onClose,
 }: {
   employee: AgreementEmployee;
-  userId: string;
   open: boolean;
   onClose: () => void;
 }) {
   return (
     <FormDialog open={open} onClose={onClose}>
-      {open && <PaperAgreementForm employee={employee} userId={userId} onClose={onClose} />}
+      {open && <PaperAgreementForm employee={employee} onClose={onClose} />}
     </FormDialog>
   );
 }
 
 function PaperAgreementForm({
   employee,
-  userId,
   onClose,
 }: {
   employee: AgreementEmployee;
-  userId: string;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const params = { employeeId: employee.id };
   const files = useListClientFiles(employee.clientId, params, {
-    request: apiRequest,
-    query: { queryKey: [...getListClientFilesQueryKey(employee.clientId, params), userId] },
+    request,
+    query: { queryKey: key(getListClientFilesQueryKey(employee.clientId, params)) },
   });
   const [clientFileId, setClientFileId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -617,7 +595,7 @@ function PaperAgreementForm({
         employee.clientId,
         employee.id,
         { state: 'signed_on_paper', clientFileId: clientFileId || null },
-        apiRequest
+        request
       );
       await invalidateSigningAgreement(queryClient, employee.clientId, employee.id);
       toast.success('Actul adițional este marcat semnat pe hârtie.');

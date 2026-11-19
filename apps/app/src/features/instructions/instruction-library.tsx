@@ -10,7 +10,7 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { Archive, BookOpenText, BriefcaseBusiness, PenLine, SearchX, Tag } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -20,6 +20,7 @@ import {
   type ListInstructionModulesParams,
   useListInstructionModules,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -102,15 +103,13 @@ const rowKey = (row: InstructionModule) => row.id;
 export function InstructionLibrary({
   domain,
   search,
-  userId,
 }: {
   domain: InstructionDomain;
   search: LibrarySearch;
-  userId: string;
 }) {
   const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status, q } = search;
   const archived = status === 'archived';
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const navigate = useNavigate({ from: libraryPaths[domain] });
   const { start, setTabEmpty } = useInstructionStart();
   const phone = useIsMobile();
@@ -129,9 +128,9 @@ export function InstructionLibrary({
     ...filters,
   };
   const modules = useListInstructionModules(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListInstructionModulesQueryKey(params), userId],
+      queryKey: key(getListInstructionModulesQueryKey(params)),
       placeholderData: keepPreviousData,
     },
   });
@@ -163,8 +162,8 @@ export function InstructionLibrary({
       pageSize: 1,
     };
     return getListInstructionModulesQueryOptions(counted, {
-      request: apiRequest,
-      query: { queryKey: [...getListInstructionModulesQueryKey(counted), userId] },
+      request,
+      query: { queryKey: key(getListInstructionModulesQueryKey(counted)) },
     });
   };
 

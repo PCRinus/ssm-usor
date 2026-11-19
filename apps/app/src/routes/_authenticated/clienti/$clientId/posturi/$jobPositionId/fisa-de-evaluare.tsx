@@ -4,6 +4,7 @@ import {
   getGetJobPositionRiskEvaluationQueryKey,
   getGetJobPositionRiskEvaluationQueryOptions,
 } from '@/api/generated/api';
+import { withUserId } from '@/api/use-api';
 import {
   PositionRiskEvaluationPage,
   RiskEvaluationError,
@@ -17,15 +18,14 @@ export const Route = createFileRoute(
   validateSearch: factorListSearch,
   staticData: { title: 'Fișa de evaluare a riscurilor' },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     await queryClient.ensureQueryData(
       getGetJobPositionRiskEvaluationQueryOptions(params.clientId, params.jobPositionId, {
         request: apiRequest,
         query: {
-          queryKey: [
-            ...getGetJobPositionRiskEvaluationQueryKey(params.clientId, params.jobPositionId),
-            userId,
-          ],
+          queryKey: key(
+            getGetJobPositionRiskEvaluationQueryKey(params.clientId, params.jobPositionId)
+          ),
         },
       })
     );

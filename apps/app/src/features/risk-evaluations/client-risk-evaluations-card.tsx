@@ -10,13 +10,13 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { ChevronRight, Plus } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { getListRiskEvaluationsQueryKey, useListRiskEvaluations } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -42,17 +42,15 @@ import { useStartEvaluation } from './use-start-evaluation';
 
 export function ClientRiskEvaluationsCard({
   clientId,
-  userId,
   readOnly,
 }: {
   clientId: string;
-  userId: string;
   readOnly: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const evaluations = useListRiskEvaluations(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListRiskEvaluationsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListRiskEvaluationsQueryKey(clientId)) },
   });
   const { start, pending, failure } = useStartEvaluation(clientId);
   const groupsState = useSensitiveGroupsState(clientId);

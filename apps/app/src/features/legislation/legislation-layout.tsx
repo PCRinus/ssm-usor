@@ -4,15 +4,12 @@ import { HelpLink } from '@/components/help-link';
 import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
 import { TabSheet } from '@/components/tab-sheet';
-import { useAuth } from '@/features/auth/auth-context';
 
 import { LastCheck } from './last-check';
 import { legislationSections } from './legislation-sections';
 import { useBehindSummary } from './use-behind-summary';
 
 export function LegislationLayout() {
-  const { session } = useAuth();
-  const userId = session?.user.id ?? '';
   const counts = useBehindSummary().data?.counts;
   const flushSheet = useMatches({
     select: (matches) => matches.some((match) => match.staticData.flushSheet),
@@ -25,7 +22,7 @@ export function LegislationLayout() {
           <h1 className="text-3xl font-semibold tracking-tight">Legislație</h1>
           <HelpLink topic="legislatie.pagina" label="Ajutor: Legislație" />
         </div>
-        <LastCheck userId={userId} />
+        <LastCheck />
       </div>
       <SectionNav label="Secțiunile paginii Legislație" variant="folder" className={phoneBleed}>
         {legislationSections.map((section) => (

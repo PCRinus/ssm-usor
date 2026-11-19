@@ -2,11 +2,11 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import type { StripeElementsOptions } from '@stripe/stripe-js';
-import { useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import { createSubscription, getBilling } from '@/api/generated/api';
 import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from '../billing-errors';
@@ -141,7 +141,7 @@ function CheckoutForm({
 }) {
   const stripe = useStripe();
   const elements = useElements();
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const [ready, setReady] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'paying' | 'confirming' | 'processing'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +168,7 @@ function CheckoutForm({
         setError(invalid.message ?? 'Verifică datele cardului.');
         return;
       }
-      const { clientSecret, intent } = await createSubscription(choice, apiRequest);
+      const { clientSecret, intent } = await createSubscription(choice, request);
       // The form was set up for what the preview said; a payment cannot be confirmed through a
       // card form made for saving a card, nor the other way round. The next attempt replaces
       // what this one made.
@@ -199,7 +199,7 @@ function CheckoutForm({
         }
       }
       setPhase('confirming');
-      const settled = await waitForSubscription(apiRequest);
+      const settled = await waitForSubscription(request);
       await refreshBilling(queryClient);
       if (!settled) {
         next = 'processing';

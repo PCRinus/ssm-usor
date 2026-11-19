@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { clientConflictReasons } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -14,10 +14,10 @@ import {
   useUpdateEmployee,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
-import { useAuth } from '@/features/auth/auth-context';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import {
   employeesOverStepMessage,
@@ -63,7 +63,7 @@ function issueTarget(path: string): IssueTarget<EmployeeFormValues> | undefined 
 
 // With an employee, the form corrects what was entered about them; without, it adds one.
 export function useEmployeeForm(clientId: string, employee?: Employee) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const navigate = useNavigate();
   const returnToOpener = useReturnToOpener();
   const returnToRecord = useReturnToOpener(
@@ -74,12 +74,11 @@ export function useEmployeeForm(clientId: string, employee?: Employee) {
     resolver: zodResolver(employeeFormSchema),
     defaultValues: employee ? toEmployeeForm(employee) : emptyEmployeeForm,
   });
-  const create = useCreateEmployee({ request: apiRequest });
-  const update = useUpdateEmployee({ request: apiRequest });
-  const { session } = useAuth();
+  const create = useCreateEmployee({ request });
+  const update = useUpdateEmployee({ request });
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), session?.user.id] },
+    request,
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)) },
   });
 
   // A new employee of a client with one active workplace where activity takes place works there

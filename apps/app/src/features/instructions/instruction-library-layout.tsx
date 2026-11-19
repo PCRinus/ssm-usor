@@ -6,7 +6,6 @@ import { useMemo, useState } from 'react';
 import { openedHere } from '@/app/opener';
 import { HelpLink } from '@/components/help-link';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
-import { useAuth } from '@/features/auth/auth-context';
 
 import { instructionSections } from './instruction-sections';
 import { InstructionStartContext } from './instruction-start-context';
@@ -15,7 +14,6 @@ import { InstructionStartDialog } from './instruction-start-dialog';
 export function InstructionLibraryLayout() {
   const navigate = useNavigate();
   const matchRoute = useMatchRoute();
-  const { session } = useAuth();
   const [starting, setStarting] = useState(false);
   const [tabEmpty, setTabEmpty] = useState(false);
   const domain = matchRoute({ to: '/instructiuni/su' }) ? 'su' : 'ssm';
@@ -54,7 +52,6 @@ export function InstructionLibraryLayout() {
       <InstructionStartDialog
         open={starting}
         initial={{ domain }}
-        userId={session?.user.id ?? ''}
         onClose={() => setStarting(false)}
         onSubmit={(values) => {
           setStarting(false);

@@ -8,7 +8,7 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi } from '@tanstack/react-router';
 import { ClipboardCheck, Plus, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -18,6 +18,7 @@ import {
   type ListTrainingsParams,
   useListTrainings,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import type { DataTableSort } from '@/components/data-table/columns';
 import { DataTable } from '@/components/data-table/data-table';
@@ -73,7 +74,7 @@ export function ClientTrainingsPage() {
   const readOnly = client.archivedAt !== null;
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const phone = useIsMobile();
   const listFilters = listFilterSearch({
     keys: trainingFilterKeys,
@@ -97,16 +98,16 @@ export function ClientTrainingsPage() {
     ...filters,
   };
   const trainings = useListTrainings(clientId, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListTrainingsQueryKey(clientId, params), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getListTrainingsQueryKey(clientId, params)),
+      enabled: ready,
       placeholderData: keepPreviousData,
     },
   });
   const meta = trainings.data ?? { page: page ?? 1, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = trainings.data?.unfilteredTotal ?? 0;
-  const listStatus = !apiRequest.baseUrl ? 'error' : trainings.status;
+  const listStatus = !request.baseUrl ? 'error' : trainings.status;
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set(open ? [open] : []));
   const [target, setTarget] = useState<TrainingDialogTarget | null>(null);
   const [deleting, setDeleting] = useState<TrainingToDelete | null>(null);
@@ -164,10 +165,10 @@ export function ClientTrainingsPage() {
       ...toSearch(pending),
     };
     return getListTrainingsQueryOptions(clientId, counted, {
-      request: apiRequest,
+      request,
       query: {
-        queryKey: [...getListTrainingsQueryKey(clientId, counted), session?.user.id],
-        enabled: Boolean(session && apiRequest.baseUrl),
+        queryKey: key(getListTrainingsQueryKey(clientId, counted)),
+        enabled: ready,
       },
     });
   };
@@ -267,7 +268,6 @@ export function ClientTrainingsPage() {
               <TrainingDetails
                 clientId={clientId}
                 trainingId={training.id}
-                userId={userId}
                 scrollIntoView={training.id === open}
               />
             ),
@@ -285,7 +285,7 @@ export function ClientTrainingsPage() {
               error={trainings.error}
               testId="trainings"
               notFound="Clientul nu mai există în organizația ta."
-              onRetry={apiRequest.baseUrl ? () => void trainings.refetch() : undefined}
+              onRetry={request.baseUrl ? () => void trainings.refetch() : undefined}
               retrying={trainings.isFetching}
               message="Nu am putut încărca instruirile. Încearcă din nou."
             />
@@ -337,7 +337,6 @@ export function ClientTrainingsPage() {
       />
       <DeleteTrainingDialog
         clientId={clientId}
-        userId={userId}
         training={deleting}
         onClose={() => setDeleting(null)}
       />

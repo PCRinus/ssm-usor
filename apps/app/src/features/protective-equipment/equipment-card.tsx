@@ -19,7 +19,6 @@ import {
 } from '@ssm-usor/ui/components/table';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { Copy, HardHat, Plus } from 'lucide-react';
 import { useState } from 'react';
 
@@ -33,6 +32,7 @@ import {
   useRemoveEquipmentEntry,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
@@ -71,23 +71,21 @@ export function EquipmentCard({
   id,
   clientId,
   position,
-  userId,
   readOnly,
 }: {
   id: string;
   clientId: string;
   position: JobPosition;
-  userId: string;
   readOnly: boolean;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const savedToast = useSavedToast();
   const equipment = useListEquipment(clientId, position.id, {
-    request: apiRequest,
-    query: { queryKey: [...getListEquipmentQueryKey(clientId, position.id), userId] },
+    request,
+    query: { queryKey: key(getListEquipmentQueryKey(clientId, position.id)) },
   });
-  const decide = useDecideProtectiveEquipment({ request: apiRequest });
-  const remove = useRemoveEquipmentEntry({ request: apiRequest });
+  const decide = useDecideProtectiveEquipment({ request });
+  const remove = useRemoveEquipmentEntry({ request });
   const [editing, setEditing] = useState<EquipmentEditing>(null);
   const [removing, setRemoving] = useState<EquipmentEntry | null>(null);
   const [copying, setCopying] = useState(false);
@@ -308,7 +306,6 @@ export function EquipmentCard({
       <CopyEquipmentDialog
         clientId={clientId}
         position={position}
-        userId={userId}
         open={copying}
         onClose={() => setCopying(false)}
         onCopied={refresh}
@@ -337,25 +334,23 @@ export function EquipmentCard({
 function CopyEquipmentDialog({
   clientId,
   position,
-  userId,
   open,
   onClose,
   onCopied,
 }: {
   clientId: string;
   position: JobPosition;
-  userId: string;
   open: boolean;
   onClose: () => void;
   onCopied: () => Promise<unknown>;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const savedToast = useSavedToast();
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled: open },
+    request,
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)), enabled: open },
   });
-  const copy = useCopyEquipment({ request: apiRequest });
+  const copy = useCopyEquipment({ request });
   const [source, setSource] = useState('');
   const [error, setError] = useState<string | null>(null);
   const sources = (positions.data?.items ?? []).filter(

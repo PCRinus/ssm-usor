@@ -9,7 +9,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -19,6 +18,7 @@ import {
   type ImportDetailFilesItem,
   readImportFile,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { importErrorMessage } from './import-format';
 
@@ -36,7 +36,7 @@ export function ReadSetAsideButton({
   detail: ImportDetail;
   file: ImportDetailFilesItem;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
   const [sending, setSending] = useState(false);
@@ -44,7 +44,7 @@ export function ReadSetAsideButton({
   async function read() {
     setSending(true);
     try {
-      await readImportFile(detail.id, file.id, apiRequest);
+      await readImportFile(detail.id, file.id, request);
       setConfirming(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(detail.id) }),

@@ -36,7 +36,6 @@ function DocumentRoute() {
       set="occupational_safety"
       clientId={client.id}
       documentId={documentId}
-      userId={session.user.id}
       readOnly={client.archivedAt !== null}
     />
   );

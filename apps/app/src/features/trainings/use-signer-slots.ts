@@ -1,4 +1,3 @@
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { type UseFormReturn, useWatch } from 'react-hook-form';
 
@@ -8,6 +7,7 @@ import {
   type TrainingResponseTraining,
   useListSignerCandidates,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { matchSigner } from '@/features/signatures/signer-match';
 
 import {
@@ -35,12 +35,12 @@ export function useSignerSlots(
     training,
   }: { clientId: string; userId: string; training: TrainingResponseTraining | null }
 ): SignerSlots {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const candidates = useListSignerCandidates(clientId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListSignerCandidatesQueryKey(clientId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getListSignerCandidatesQueryKey(clientId)),
+      enabled: ready,
     },
   });
   const signerItems = candidates.data?.items;

@@ -7,7 +7,7 @@ import {
   trainingPhaseLabels,
 } from '@ssm-usor/contracts';
 import { Badge } from '@ssm-usor/ui/components/badge';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
 import {
@@ -15,6 +15,7 @@ import {
   type SignatureRequestListResponseItemsItem,
   useListClientSignatureRequests,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { CellNote } from '@/components/data-table/cell-note';
 import { createDataTableColumns } from '@/components/data-table/columns';
@@ -124,20 +125,18 @@ function signatureColumns(clientId: string) {
 
 export function ClientSignatureRequests({
   clientId,
-  userId,
   hideWhenEmpty = false,
 }: {
   clientId: string;
-  userId: string;
   hideWhenEmpty?: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   const params = { state: 'pending' } as const;
   const requests = useListClientSignatureRequests(clientId, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListClientSignatureRequestsQueryKey(clientId, params), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
+      queryKey: key(getListClientSignatureRequestsQueryKey(clientId, params)),
+      enabled: ready,
     },
   });
   const [sort, setSort] = useState<{ sort: SortKey; order: SortOrder }>({

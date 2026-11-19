@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
-import { useRouteContext } from '@tanstack/react-router';
 import { CircleAlert, CircleCheck } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
@@ -25,6 +24,7 @@ import {
   useSignMySigningSession,
 } from '@/api/generated/api';
 import { apiErrorBody, apiErrorReason } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
@@ -97,7 +97,7 @@ function SigningFlow({
   onClose: () => void;
   onGone?: (requestIds: string[]) => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request: apiRequest, queryClient } = useApi();
   const create = useCreateMySigningSession({ request: wordingRefusalHere(apiRequest) });
   const sign = useSignMySigningSession({ request: wordingRefusalHere(apiRequest) });
   // What the code signs stays as it was opened, whatever the list refetches meanwhile.

@@ -24,7 +24,6 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@ssm-usor/ui/
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { Plus, X } from 'lucide-react';
 import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -34,6 +33,7 @@ import {
   type ListRiskFactorSuggestionsField,
   useListRiskFactorSuggestions,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useCloseGuard, useHoldOpen } from '@/components/close-guard';
 import { CloseGuard } from '@/components/form-dialog';
@@ -165,10 +165,10 @@ function Suggestions({
   field: ListRiskFactorSuggestionsField;
   query: string;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const params = { field, query: query.trim() };
   const suggestions = useListRiskFactorSuggestions(params, {
-    request: apiRequest,
+    request,
     query: { queryKey: getListRiskFactorSuggestionsQueryKey(params), staleTime: 30_000 },
   });
   return (

@@ -13,10 +13,10 @@ import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useMarkPaperSignature, useVoidRecordSignatures } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -44,8 +44,8 @@ export function PaperSignatureDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const mark = useMarkPaperSignature({ request: apiRequest });
+  const { request } = useApi();
+  const mark = useMarkPaperSignature({ request });
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !mark.isPending && onClose()}>
       {open && slots.length > 0 && (
@@ -77,7 +77,7 @@ function PaperSignatureForm({
   mark: ReturnType<typeof useMarkPaperSignature>;
   onClose: () => void;
 }) {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const first = slots[0]!;
   const [slot, setSlot] = useState<SignerSlot>(first);
   const [name, setName] = useState(people[first]?.name ?? '');
@@ -208,8 +208,8 @@ export function VoidSignaturesDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const voiding = useVoidRecordSignatures({ request: apiRequest });
+  const { request } = useApi();
+  const voiding = useVoidRecordSignatures({ request });
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !voiding.isPending && onClose()}>
       {open && (
@@ -235,7 +235,7 @@ function VoidSignaturesForm({
   voiding: ReturnType<typeof useVoidRecordSignatures>;
   onClose: () => void;
 }) {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const [reason, setReason] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);

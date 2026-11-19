@@ -24,7 +24,6 @@ export function EmployeeFilesTab() {
       <ClientFilesCard
         client={client}
         employee={employee}
-        userId={session.user.id}
         readOnly={client.archivedAt !== null}
         search={search}
         onSearch={(next) =>

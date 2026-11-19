@@ -27,7 +27,6 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
@@ -42,6 +41,7 @@ import {
   useUpdateTraining,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -126,18 +126,18 @@ function TrainingDialogContent({
   onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const enabled = Boolean(userId && apiRequest.baseUrl);
+  const { request, ready, key } = useApi();
+  const enabled = ready;
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled },
+    request,
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)), enabled },
   });
-  const employees = useCurrentEmployees(clientId, userId);
+  const employees = useCurrentEmployees(clientId);
   const trainingId = target.kind === 'edit' ? target.trainingId : '';
   const training = useGetTraining(clientId, trainingId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetTrainingQueryKey(clientId, trainingId), userId],
+      queryKey: key(getGetTrainingQueryKey(clientId, trainingId)),
       enabled: enabled && target.kind === 'edit',
     },
   });
@@ -229,9 +229,9 @@ function TrainingForm({
   onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const create = useCreateTraining({ request: apiRequest });
-  const update = useUpdateTraining({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const create = useCreateTraining({ request });
+  const update = useUpdateTraining({ request });
   const fixed =
     fixedAttendee &&
     (!training || training.records.every((record) => record.employee.id === fixedAttendee.id))
@@ -275,7 +275,6 @@ function TrainingForm({
   }, [busy, onBusyChange]);
   const { markTyped, typing, missingMaterial } = useTrainingProposal(form, {
     clientId,
-    userId,
     training,
   });
   const signerSlots = useSignerSlots(form, { clientId, userId, training });

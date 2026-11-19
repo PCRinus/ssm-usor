@@ -1,10 +1,10 @@
 import { type TrainingPhase, trainingPhaseLabels } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { getGetTrainingQueryKey, useDeleteTraining, useGetTraining } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { signingMessage } from '@/features/signatures/signature-format';
 import { formatDate } from '@/lib/dates';
@@ -22,12 +22,10 @@ export interface TrainingToDelete {
 
 export function DeleteTrainingDialog({
   clientId,
-  userId,
   training,
   onClose,
 }: {
   clientId: string;
-  userId: string;
   training: TrainingToDelete | null;
   onClose: () => void;
 }) {
@@ -36,7 +34,6 @@ export function DeleteTrainingDialog({
       <DeleteTrainingConfirm
         key={training.id}
         clientId={clientId}
-        userId={userId}
         training={training}
         onClose={onClose}
       />
@@ -46,23 +43,21 @@ export function DeleteTrainingDialog({
 
 function DeleteTrainingConfirm({
   clientId,
-  userId,
   training,
   onClose,
 }: {
   clientId: string;
-  userId: string;
   training: TrainingToDelete;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteTraining({ request: apiRequest });
+  const { request, queryClient, key } = useApi();
+  const remove = useDeleteTraining({ request });
   const [error, setError] = useState<string | null>(null);
   const detail = useGetTraining(clientId, training.id, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetTrainingQueryKey(clientId, training.id), userId],
-      enabled: training.attendeeCount === undefined && Boolean(apiRequest.baseUrl),
+      queryKey: key(getGetTrainingQueryKey(clientId, training.id)),
+      enabled: training.attendeeCount === undefined && Boolean(request.baseUrl),
     },
   });
   const attendeeCount = training.attendeeCount ?? detail.data?.training.records.length;

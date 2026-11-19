@@ -6,7 +6,7 @@ import {
   portalStandingOf,
 } from '@ssm-usor/contracts';
 import { keepPreviousData } from '@tanstack/react-query';
-import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi } from '@tanstack/react-router';
 import { KeyRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -21,6 +21,7 @@ import {
   useListJobPositions,
   useListWorkplaces,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
@@ -68,20 +69,20 @@ const noneChosen: Chosen = new Map();
 
 // A choice belongs to one search and one set of filters, as on Semnături, so nothing hidden is
 // invited; unlike there, it spans the pages.
-export function usePortalRoster(clientId: string, userId: string) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+export function usePortalRoster(clientId: string) {
+  const { request, queryClient, ready, key } = useApi();
   const search = portalRoute.useSearch();
   const navigate = portalRoute.useNavigate();
   const { page = 1, q, order = defaultSort.order } = search;
   const sort = search.sort ?? defaultSort.sort;
-  const enabled = Boolean(userId && apiRequest.baseUrl);
+  const enabled = ready;
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled },
+    request,
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)), enabled },
   });
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId], enabled },
+    request,
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)), enabled },
   });
   const facets = useMemo(
     () =>
@@ -113,17 +114,17 @@ export function usePortalRoster(clientId: string, userId: string) {
     ...filters,
   };
   const employees = useListEmployees(clientId, params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListEmployeesQueryKey(clientId, params), userId],
+      queryKey: key(getListEmployeesQueryKey(clientId, params)),
       enabled,
       placeholderData: keepPreviousData,
     },
   });
   const accessParams: ListEmployeesParams = { portal: ['active'], page: 1, pageSize: 1 };
   const withAccess = useListEmployees(clientId, accessParams, {
-    request: apiRequest,
-    query: { queryKey: [...getListEmployeesQueryKey(clientId, accessParams), userId], enabled },
+    request,
+    query: { queryKey: key(getListEmployeesQueryKey(clientId, accessParams)), enabled },
   });
 
   const scopeOf = (values: RosterFilters, text: string | undefined) =>
@@ -174,9 +175,9 @@ export function usePortalRoster(clientId: string, userId: string) {
   const readInvitees = (values: RosterFilters) => {
     const inviteesParams = { ...(q ? { q } : {}), ...values };
     return queryClient.fetchQuery({
-      queryKey: [...getListEmployeeInviteesQueryKey(clientId, inviteesParams), userId],
+      queryKey: key(getListEmployeeInviteesQueryKey(clientId, inviteesParams)),
       queryFn: ({ signal }) =>
-        listEmployeeInvitees(clientId, inviteesParams, { ...apiRequest, signal }),
+        listEmployeeInvitees(clientId, inviteesParams, { ...request, signal }),
       staleTime: 0,
     });
   };

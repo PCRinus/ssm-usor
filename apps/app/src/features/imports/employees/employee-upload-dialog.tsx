@@ -17,7 +17,6 @@ import { type ReactNode, useState } from 'react';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
-import { useAuth } from '@/features/auth/auth-context';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
@@ -111,8 +110,7 @@ function UploadForm({
   const [added, setAdded] = useState<string[] | null>(withFound ? null : []);
   const [noPostsDismissed, setNoPostsDismissed] = useState(false);
   const found = useFoundSheets(client.id);
-  const { session } = useAuth();
-  const positions = useJobPositionOptions(client.id, session?.user.id ?? '');
+  const positions = useJobPositionOptions(client.id);
   const batches = found.data?.items ?? [];
   // `null` until the list arrives, when a dialog opened with them takes every batch.
   const addedIds = added ?? batches.flatMap((batch) => batch.sheets.map((sheet) => sheet.id));

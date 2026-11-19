@@ -1,5 +1,4 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -12,6 +11,7 @@ import {
   useRemoveDocumentSignedCopy,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { pdfOfRevision, usePrint } from '@/features/documents/print';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -30,13 +30,13 @@ export function useContractFileActions({
   refresh: (response?: ServiceContractResponse) => Promise<void>;
   setError: (error: string | null) => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const generate = useGenerateServiceContract({ request: apiRequest });
-  const issue = useIssueDocument({ request: apiRequest });
-  const remove = useDeleteDocumentDraft({ request: apiRequest });
-  const attachSigned = useAttachDocumentSignedCopy({ request: apiRequest });
-  const confirmSigned = useConfirmDocumentSignedCopy({ request: apiRequest });
-  const removeSigned = useRemoveDocumentSignedCopy({ request: apiRequest });
+  const { request } = useApi();
+  const generate = useGenerateServiceContract({ request });
+  const issue = useIssueDocument({ request });
+  const remove = useDeleteDocumentDraft({ request });
+  const attachSigned = useAttachDocumentSignedCopy({ request });
+  const confirmSigned = useConfirmDocumentSignedCopy({ request });
+  const removeSigned = useRemoveDocumentSignedCopy({ request });
   const { printing, print } = usePrint();
   const [confirming, setConfirming] = useState<Confirming>(null);
   const busy =
@@ -126,7 +126,7 @@ export function useContractFileActions({
 
   async function printRevision(revision: { id: string; hasPdf: boolean }) {
     setError(null);
-    setError(await print(title, () => pdfOfRevision(apiRequest, documentId!, revision)));
+    setError(await print(title, () => pdfOfRevision(request, documentId!, revision)));
   }
 
   return {

@@ -1,14 +1,10 @@
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  type ErrorComponentProps,
-  Link,
-  useNavigate,
-  useRouteContext,
-} from '@tanstack/react-router';
+import { type ErrorComponentProps, Link, useNavigate } from '@tanstack/react-router';
 import { Archive, ArchiveRestore, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetEvaluationProfileQueryKey, useGetEvaluationProfile } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { NotFound, RouteError } from '@/app/route-states';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
@@ -27,24 +23,18 @@ import { ProfileUsageCard } from './profile-usage-card';
 import { RemoveProfileDialog } from './remove-profile-dialog';
 import { useProfileFactorStore, useProfileWorkSystemStore } from './use-profile-cache';
 
-export function EvaluationProfilePage({
-  profileId,
-  userId,
-}: {
-  profileId: string;
-  userId: string;
-}) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function EvaluationProfilePage({ profileId }: { profileId: string }) {
+  const { request, key } = useApi();
   const query = useGetEvaluationProfile(profileId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetEvaluationProfileQueryKey(profileId), userId] },
+    request,
+    query: { queryKey: key(getGetEvaluationProfileQueryKey(profileId)) },
   });
   const profile = query.data?.profile;
   if (!profile) return query.isError ? <EvaluationProfileNotFound /> : <ProfilePending />;
-  return <ProfileView profile={profile} userId={userId} />;
+  return <ProfileView profile={profile} />;
 }
 
-function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: string }) {
+function ProfileView({ profile }: { profile: EvaluationProfile }) {
   const navigate = useNavigate();
   const store = useProfileFactorStore(profile);
   const workSystemStore = useProfileWorkSystemStore(profile);
@@ -144,7 +134,7 @@ function ProfileView({ profile, userId }: { profile: EvaluationProfile; userId: 
         removalConsequence="nu vor mai fi în evaluare. Fișele în care ai aplicat-o își păstrează copiile."
         editorContext={profile.name}
       />
-      <ProfileUsageCard profileId={profile.id} inUse={profile.inUse} userId={userId} />
+      <ProfileUsageCard profileId={profile.id} inUse={profile.inUse} />
       <ProfileNameDialog naming={naming} onClose={() => setNaming(null)} />
       <ProfileArchiveDialog change={archiveChange} onClose={() => setArchiveChange(null)} />
       <RemoveProfileDialog

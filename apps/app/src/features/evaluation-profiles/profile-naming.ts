@@ -1,8 +1,8 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
 import { useUpdateEvaluationProfile } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { useProfileCache } from './use-profile-cache';
 
@@ -18,9 +18,9 @@ export interface ProfileNaming {
 }
 
 export function useProfileRenaming() {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const cache = useProfileCache();
-  const rename = useUpdateEvaluationProfile({ request: apiRequest });
+  const rename = useUpdateEvaluationProfile({ request });
   return (profile: { id: string; name: string }): ProfileNaming => ({
     title: 'Redenumește evaluarea',
     description: 'Denumirea apare în bibliotecă și în lista din „Aplică din bibliotecă”.',

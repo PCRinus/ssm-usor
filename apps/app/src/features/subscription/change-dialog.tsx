@@ -16,10 +16,10 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { changeSubscription } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
 import { Notice } from '@/components/notice';
@@ -267,7 +267,7 @@ function ChangeForm({
   onClose: () => void;
   onDone?: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const { preview } = useBillingPreview(target);
   const [pending, setPending] = useState(false);
   useHoldOpen(pending);
@@ -283,7 +283,7 @@ function ChangeForm({
     try {
       const result = await changeSubscription(
         data?.prorationDate ? { ...target, prorationDate: data.prorationDate } : target,
-        apiRequest
+        request
       );
       if (result.clientSecret && result.intent === 'payment') {
         const { confirmSavedCardPayment } = await import('./checkout/stripe');

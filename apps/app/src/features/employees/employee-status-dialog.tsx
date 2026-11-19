@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
 import {
@@ -17,6 +16,7 @@ import {
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
@@ -102,8 +102,8 @@ function StatusForm({
   action,
   onClose,
 }: EmployeeStatusChange & { clientId: string; onClose: () => void }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const update = useUpdateEmployeeStatus({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const update = useUpdateEmployeeStatus({ request });
   const [terminatedAt, setTerminatedAt] = useState(todayIso);
   const [dateError, setDateError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

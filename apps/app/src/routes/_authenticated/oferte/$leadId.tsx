@@ -13,6 +13,7 @@ import { z } from 'zod';
 
 import { getGetClientQueryKey, getGetClientQueryOptions } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { withUserId } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { backGap } from '@/components/back-gap';
@@ -23,13 +24,13 @@ import { BackLink } from '@/components/back-link';
 export const Route = createFileRoute('/_authenticated/oferte/$leadId')({
   params: { parse: (params) => ({ leadId: z.uuid().parse(params.leadId) }) },
   loader: async ({ params, context: { apiRequest, queryClient, auth } }) => {
-    const userId = auth.getSnapshot().session?.user.id;
+    const key = withUserId(auth.getSnapshot().session?.user.id);
     let lead;
     try {
       ({ client: lead } = await queryClient.ensureQueryData(
         getGetClientQueryOptions(params.leadId, {
           request: apiRequest,
-          query: { queryKey: [...getGetClientQueryKey(params.leadId), userId] },
+          query: { queryKey: key(getGetClientQueryKey(params.leadId)) },
         })
       ));
     } catch (cause) {

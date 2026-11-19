@@ -14,7 +14,6 @@ import {
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { TableCell, TableRow } from '@ssm-usor/ui/components/table';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, Download, Sparkles } from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
 
@@ -24,6 +23,7 @@ import {
   useListClientDocuments,
   useListDocumentsBehind,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
@@ -59,14 +59,14 @@ export function DocumentsCard<Set extends DocumentSet>({
   section: SectionIdOf<Set> | undefined;
   focus?: 'generate' | BuiltInDocumentTypeKey;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key: userKey } = useApi();
   const documents = useListClientDocuments(clientId, setParams(set), {
-    request: apiRequest,
-    query: { queryKey: [...getListClientDocumentsQueryKey(clientId, setParams(set)), userId] },
+    request,
+    query: { queryKey: userKey(getListClientDocumentsQueryKey(clientId, setParams(set))) },
   });
   const behind = useListDocumentsBehind({
-    request: apiRequest,
-    query: { queryKey: [...getListDocumentsBehindQueryKey(), userId], enabled: !readOnly },
+    request,
+    query: { queryKey: userKey(getListDocumentsBehindQueryKey()), enabled: !readOnly },
   });
   const actions = useDocumentActions({ set, clientId });
   const { busy, archiving, confirming, setConfirming, error, fileInput, run } = actions;

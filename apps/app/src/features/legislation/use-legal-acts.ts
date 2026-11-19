@@ -1,11 +1,10 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import { getListLegalActsQueryKey, useListLegalActs } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
-export function useLegalActs(userId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function useLegalActs() {
+  const { request, key } = useApi();
   return useListLegalActs({
-    request: apiRequest,
-    query: { queryKey: [...getListLegalActsQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getListLegalActsQueryKey()) },
   });
 }

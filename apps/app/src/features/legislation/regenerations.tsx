@@ -1,11 +1,12 @@
 import type { BuiltInDocumentTypeKey, DocumentSet } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type Query, useQueries } from '@tanstack/react-query';
-import { useLocation, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   getGetDashboardSummaryQueryKey,
+  getGetRegenerationJobQueryKey,
   getGetRegenerationJobQueryOptions,
   getListClientDocumentsQueryKey,
   getListClientsQueryKey,
@@ -14,6 +15,7 @@ import {
   useStartSetRegeneration,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 
@@ -24,7 +26,6 @@ import {
   type FinishedRegeneration,
   type JobProgress,
   type RegenerationBatch,
-  regenerationJobQueryKey,
   type Regenerations,
   RegenerationsContext,
 } from './regenerations-context';
@@ -91,7 +92,7 @@ const noResults: Partial<Record<DocumentSet, FinishedRegeneration>> = {};
 type Outcome = { job: RegenerationJob } | { gone: true } | { unread: true };
 
 export function RegenerationsProvider({ children }: { children: ReactNode }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
   const me = useMe().data;
@@ -102,8 +103,8 @@ export function RegenerationsProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname });
   const summary = useBehindSummary();
-  const startType = useStartDocumentRegeneration({ request: apiRequest });
-  const startSet = useStartSetRegeneration({ request: apiRequest });
+  const startType = useStartDocumentRegeneration({ request });
+  const startSet = useStartSetRegeneration({ request });
   const [stored, setStored] = useState(() => ({ scope, batches: readBatches(scope) }));
   const [finished, setFinished] = useState<{
     scope: string;
@@ -127,9 +128,9 @@ export function RegenerationsProvider({ children }: { children: ReactNode }) {
   const reads = useQueries({
     queries: left.map((jobId) =>
       getGetRegenerationJobQueryOptions(jobId, {
-        request: apiRequest,
+        request,
         query: {
-          queryKey: regenerationJobQueryKey(jobId, userId),
+          queryKey: key(getGetRegenerationJobQueryKey(jobId)),
           staleTime: Infinity,
           refetchOnWindowFocus: false,
           retry: (count, error) => !unreadable(error) && count < 2,

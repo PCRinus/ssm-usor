@@ -3,7 +3,7 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Card, CardContent } from '@ssm-usor/ui/components/card';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { MapPin } from 'lucide-react';
 import { useState } from 'react';
 
@@ -23,6 +23,7 @@ import {
   useListWorkplaces,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
@@ -52,41 +53,39 @@ type Deleting =
 
 export function FireSafetyMeansPage({
   clientId,
-  userId,
   currentEmployeeCount,
   readOnly,
   focus,
 }: {
   clientId: string;
-  userId: string;
   currentEmployeeCount: number;
   readOnly: boolean;
   focus?: FireSafetyMeansFocus;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)) },
   });
   const equipment = useListFireEquipment(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListFireEquipmentQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListFireEquipmentQueryKey(clientId)) },
   });
   const installations = useListFireInstallations(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListFireInstallationsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListFireInstallationsQueryKey(clientId)) },
   });
   const maintenanceItems = useListFireMaintenanceItems(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListFireMaintenanceItemsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListFireMaintenanceItemsQueryKey(clientId)) },
   });
   const buildings = useListFireBuildings(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListFireBuildingsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListFireBuildingsQueryKey(clientId)) },
   });
-  const deleteEquipment = useDeleteFireEquipment({ request: apiRequest });
-  const deleteInstallation = useDeleteFireInstallation({ request: apiRequest });
-  const deleteMaintenanceItem = useDeleteFireMaintenanceItem({ request: apiRequest });
+  const deleteEquipment = useDeleteFireEquipment({ request });
+  const deleteInstallation = useDeleteFireInstallation({ request });
+  const deleteMaintenanceItem = useDeleteFireMaintenanceItem({ request });
   const [equipmentEditing, setEquipmentEditing] = useState<EquipmentEditing>(null);
   const [installationEditing, setInstallationEditing] = useState<InstallationEditing>(null);
   const [maintenanceEditing, setMaintenanceEditing] = useState<MaintenanceItemEditing>(null);
@@ -214,12 +213,7 @@ export function FireSafetyMeansPage({
   }
 
   const substances = (
-    <SubstancesCard
-      clientId={clientId}
-      userId={userId}
-      readOnly={readOnly}
-      focus={focus === 'fire-substances'}
-    />
+    <SubstancesCard clientId={clientId} readOnly={readOnly} focus={focus === 'fire-substances'} />
   );
 
   const activeWorkplaces = meansWorkplaces!;

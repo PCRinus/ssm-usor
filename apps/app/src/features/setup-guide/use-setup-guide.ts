@@ -1,6 +1,5 @@
 import { setupGuideSchema, type SetupMemberStepId, setupStepIds } from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getGetMySetupGuideQueryKey,
@@ -11,12 +10,7 @@ import {
   useUnskipMySetupStep,
   useUpdateMySetupGuide,
 } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
-
-export const setupGuideQueryKey = (userId: string | undefined) => [
-  ...getGetMySetupGuideQueryKey(),
-  userId,
-];
+import { useApi } from '@/api/use-api';
 
 // The guide is an aid: an answer it cannot read keeps it off the page, never takes the shell down.
 const readable = (guide: SetupGuide) =>
@@ -27,31 +21,29 @@ const readable = (guide: SetupGuide) =>
     : null;
 
 export function useSetupGuideQuery(enabled: boolean) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, ready, key } = useApi();
   return useGetMySetupGuide({
-    request: apiRequest,
+    request,
     query: {
-      queryKey: setupGuideQueryKey(session?.user.id),
+      queryKey: key(getGetMySetupGuideQueryKey()),
       staleTime: 10_000,
       select: readable,
-      enabled: enabled && Boolean(session && apiRequest.baseUrl),
+      enabled: enabled && ready,
     },
   });
 }
 
 export function useSetupGuideChanges() {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const queryClient = useQueryClient();
-  const queryKey = setupGuideQueryKey(session?.user.id);
+  const queryKey = key(getGetMySetupGuideQueryKey());
   const settle = {
     onSuccess: (guide: SetupGuide) => queryClient.setQueryData(queryKey, guide),
     onError: () => void queryClient.invalidateQueries({ queryKey }),
   };
-  const update = useUpdateMySetupGuide({ request: apiRequest, mutation: settle });
-  const skip = useSkipMySetupStep({ request: apiRequest, mutation: settle });
-  const unskip = useUnskipMySetupStep({ request: apiRequest, mutation: settle });
+  const update = useUpdateMySetupGuide({ request, mutation: settle });
+  const skip = useSkipMySetupStep({ request, mutation: settle });
+  const unskip = useUnskipMySetupStep({ request, mutation: settle });
 
   // A refetch already in flight would land after the change and undo it on screen.
   const cancelRefetch = () => queryClient.cancelQueries({ queryKey });

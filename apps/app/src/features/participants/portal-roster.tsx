@@ -6,11 +6,12 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { Plus, Send, UsersRound } from 'lucide-react';
 import { useMemo } from 'react';
 
 import { getListEmployeesQueryOptions } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { HelpLink } from '@/components/help-link';
@@ -49,12 +50,12 @@ export function PortalRoster({
   onInviteChosen: () => void;
   openingBatch: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const phone = useIsMobile();
   const { employees, withAccess, chosen, narrowed, listFilters, facets, q, params } = roster;
   const meta = employees.data ?? { page: params.page ?? 1, pageSize: defaultPageSize, total: 0 };
   const unfilteredTotal = employees.data?.unfilteredTotal ?? 0;
-  const listStatus = !apiRequest.baseUrl ? 'error' : employees.status;
+  const listStatus = !request.baseUrl ? 'error' : employees.status;
   const columns = useMemo(
     () => portalRosterColumns({ readOnly, actions, onInvite }),
     [readOnly, actions, onInvite]
@@ -152,7 +153,7 @@ export function PortalRoster({
                           pageSize: 1,
                           ...(listFilters.searchOf(pending) as RosterFilters),
                         },
-                        { request: apiRequest, query: { enabled: Boolean(apiRequest.baseUrl) } }
+                        { request, query: { enabled: Boolean(request.baseUrl) } }
                       )}
                       noun={workerNoun}
                     />
@@ -251,7 +252,7 @@ export function PortalRoster({
                 error={employees.error}
                 testId="portal-roster"
                 notFound="Clientul nu mai există în organizația ta."
-                onRetry={apiRequest.baseUrl ? () => void employees.refetch() : undefined}
+                onRetry={request.baseUrl ? () => void employees.refetch() : undefined}
                 retrying={employees.isFetching}
               />
             }

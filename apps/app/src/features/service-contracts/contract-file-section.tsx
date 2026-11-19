@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ssm-usor/ui/components/dropdown-menu';
-import { useRouteContext } from '@tanstack/react-router';
 import {
   Download,
   FilePen,
@@ -23,6 +22,7 @@ import {
 import { type ReactNode, useRef, useState } from 'react';
 
 import { getDocumentDownload, type ServiceContractResponse } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
@@ -100,7 +100,7 @@ export function ContractFileSection({
   actions: ContractFileActions;
   refresh: () => Promise<void>;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const {
     generating,
     attaching,
@@ -118,12 +118,12 @@ export function ContractFileSection({
   const fileOf = (revisionId: string, format: 'docx' | 'pdf' | 'signed') => ({
     queryKey: ['document-file', document?.id, revisionId, format],
     load: (signal: AbortSignal) =>
-      getDocumentDownload(document!.id, revisionId, { format }, { ...apiRequest, signal }),
+      getDocumentDownload(document!.id, revisionId, { format }, { ...request, signal }),
   });
   const signedCopy = useFileLink({
     ...fileOf(document?.issued?.id ?? '', 'signed'),
     enabled: Boolean(document?.issued?.hasSignedCopy || document?.issued?.receivedCopy),
-    apiRequest,
+    apiRequest: request,
     disposition: 'inline',
   });
   const generateBlocked = unsaved
@@ -222,7 +222,7 @@ export function ContractFileSection({
                 {document.issued.hasPdf && (
                   <FileMenuItem
                     testId="contract-open-pdf"
-                    apiRequest={apiRequest}
+                    apiRequest={request}
                     disposition="inline"
                     {...fileOf(document.issued.id, 'pdf')}
                   >
@@ -232,7 +232,7 @@ export function ContractFileSection({
                 )}
                 <FileMenuItem
                   testId="contract-download-issued"
-                  apiRequest={apiRequest}
+                  apiRequest={request}
                   disposition="attachment"
                   {...fileOf(document.issued.id, 'docx')}
                 >
@@ -322,7 +322,7 @@ export function ContractFileSection({
               <DropdownMenuContent align="end">
                 <FileMenuItem
                   testId="contract-download"
-                  apiRequest={apiRequest}
+                  apiRequest={request}
                   disposition="attachment"
                   {...fileOf(document.draft.id, 'docx')}
                 >

@@ -17,7 +17,6 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
@@ -26,6 +25,7 @@ import {
   getListInstructionModuleChoicesQueryKey,
   useListInstructionModuleChoices,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -56,7 +56,6 @@ export function InstructionStartDialog({
   open,
   initial,
   editing = false,
-  userId,
   onClose,
   onSubmit,
 }: {
@@ -64,20 +63,13 @@ export function InstructionStartDialog({
   initial: Partial<StartValues> & { domain: InstructionDomain };
   // The new module's form changes its title, domain and category; its text is already there.
   editing?: boolean;
-  userId: string;
   onClose: () => void;
   onSubmit: (values: StartValues) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       {open && (
-        <StartContent
-          initial={initial}
-          editing={editing}
-          userId={userId}
-          onClose={onClose}
-          onSubmit={onSubmit}
-        />
+        <StartContent initial={initial} editing={editing} onClose={onClose} onSubmit={onSubmit} />
       )}
     </Dialog>
   );
@@ -86,20 +78,18 @@ export function InstructionStartDialog({
 function StartContent({
   initial,
   editing,
-  userId,
   onClose,
   onSubmit,
 }: {
   initial: Partial<StartValues> & { domain: InstructionDomain };
   editing: boolean;
-  userId: string;
   onClose: () => void;
   onSubmit: (values: StartValues) => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const library = useListInstructionModuleChoices(undefined, {
-    request: apiRequest,
-    query: { queryKey: [...getListInstructionModuleChoicesQueryKey(), userId] },
+    request,
+    query: { queryKey: key(getListInstructionModuleChoicesQueryKey()) },
   });
   const form = useForm<StartForm>({
     resolver: zodResolver(startSchema),

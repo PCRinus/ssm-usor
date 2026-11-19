@@ -12,7 +12,6 @@ import {
   trainingDomains,
 } from '@ssm-usor/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import {
   Briefcase,
   Building2,
@@ -25,6 +24,7 @@ import {
 import { z } from 'zod';
 
 import { getListClientsQueryKey, listClients } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import type { ListFilterFacet, ListFilterOption } from '@/components/list-filters/types';
 import { filterSearchSchema, idFilterSearchSchema } from '@/components/list-filters/url';
 
@@ -309,15 +309,15 @@ const clientPage = (page: number) =>
 
 // Every active client, page after page: the search never matches a client's name, so the facet
 // has to offer them all.
-export function useEveryClient(userId: string | undefined) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function useEveryClient() {
+  const { request, ready, key } = useApi();
   return useQuery({
-    queryKey: [...getListClientsQueryKey(), 'every-active', userId],
-    enabled: Boolean(userId && apiRequest.baseUrl),
+    queryKey: key([...getListClientsQueryKey(), 'every-active']),
+    enabled: ready,
     queryFn: async ({ signal }) => {
       const clients: Named[] = [];
       for (let page = 1; ; page += 1) {
-        const response = await listClients(clientPage(page), { ...apiRequest, signal });
+        const response = await listClients(clientPage(page), { ...request, signal });
         clients.push(
           ...response.items.map((client) => ({ id: client.id, name: client.legalName }))
         );

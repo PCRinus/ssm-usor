@@ -17,7 +17,6 @@ import { FormSection } from '@/components/form-section';
 import { Notice } from '@/components/notice';
 import { PhoneInput } from '@/components/phone-input';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { useAuth } from '@/features/auth/auth-context';
 import { ClientFact } from '@/features/clients/client-fact';
 import { JobPositionCombobox } from '@/features/job-positions/job-position-combobox';
 import { type EmployeeFocus, useFocusRequest } from '@/features/missing-data/focus';
@@ -46,9 +45,7 @@ export function EmployeeForm({
   employee?: Employee;
   focus?: EmployeeFocus;
 }) {
-  const { session } = useAuth();
   // The shell renders this only for a signed-in user.
-  const userId = session?.user.id ?? '';
   const { form, onSubmit, prefillBirthDate, choosePosition, workplaces, isSaving } =
     useEmployeeForm(clientId, employee);
   const formRef = useRevealErrors(form);
@@ -227,7 +224,6 @@ export function EmployeeForm({
                     id="jobPosition"
                     testId="employee-job-position"
                     clientId={clientId}
-                    userId={userId}
                     value={field.value}
                     onChange={choosePosition}
                     onBlur={field.onBlur}

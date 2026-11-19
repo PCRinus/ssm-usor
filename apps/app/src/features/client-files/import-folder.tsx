@@ -1,7 +1,7 @@
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { listClientFiles } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { saveFile } from '@/lib/save-file';
 
 import { folderTexts, type ImportFolder } from './client-file-list';
@@ -14,7 +14,7 @@ export interface FolderZips {
 }
 
 export function useFolderZips(clientId: string): FolderZips {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const [zipping, setZipping] = useState<Record<string, { done: number; total: number }>>({});
   const [failed, setFailed] = useState<string[]>([]);
 
@@ -34,7 +34,7 @@ export function useFolderZips(clientId: string): FolderZips {
       const fresh = await listClientFiles(
         clientId,
         folder.first.employee ? { employeeId: folder.first.employee.id } : undefined,
-        apiRequest
+        request
       );
       const links = new Map(fresh.items.map((file) => [file.id, file.link]));
       const blob = await zipFiles(

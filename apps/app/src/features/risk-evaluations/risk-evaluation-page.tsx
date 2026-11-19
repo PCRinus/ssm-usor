@@ -1,12 +1,6 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import {
-  type ErrorComponentProps,
-  getRouteApi,
-  Link,
-  useNavigate,
-  useRouteContext,
-} from '@tanstack/react-router';
+import { type ErrorComponentProps, getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { Copy, LibraryBig, Trash2 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
@@ -20,13 +14,13 @@ import {
   useRemoveRiskEvaluation,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { NotFound, RouteError } from '@/app/route-states';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
-import { useAuth } from '@/features/auth/auth-context';
 import { CurrentClientHeaderFact } from '@/features/clients/client-fact';
 import { HeaderFact, RecordHeader } from '@/features/clients/record-header';
 import { ApplyProfileDialog } from '@/features/evaluation-profiles/apply-profile-dialog';
@@ -70,29 +64,19 @@ function useReadOnly() {
   return clientRoute.useLoaderData().client.archivedAt !== null;
 }
 
-function useQueryAccess() {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  return {
-    apiRequest,
-    userId: session?.user.id ?? '',
-    enabled: Boolean(session && apiRequest.baseUrl),
-  };
-}
-
 export function PositionRiskEvaluationPage() {
   const { clientId, jobPositionId } = positionRoute.useParams();
   const readOnly = useReadOnly();
-  const { apiRequest, userId, enabled } = useQueryAccess();
+  const { request, ready, key } = useApi();
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListJobPositionsQueryKey(clientId), userId], enabled },
+    request,
+    query: { queryKey: key(getListJobPositionsQueryKey(clientId)), enabled: ready },
   });
   const query = useGetJobPositionRiskEvaluation(clientId, jobPositionId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetJobPositionRiskEvaluationQueryKey(clientId, jobPositionId), userId],
-      enabled,
+      queryKey: key(getGetJobPositionRiskEvaluationQueryKey(clientId, jobPositionId)),
+      enabled: ready,
     },
   });
   const position = positions.data?.items.find((item) => item.id === jobPositionId);
@@ -128,7 +112,6 @@ export function PositionRiskEvaluationPage() {
     <RiskEvaluationView
       evaluation={evaluation}
       position={position}
-      userId={userId}
       readOnly={readOnly}
       afterRemove={{
         to: '/clienti/$clientId/posturi/$jobPositionId',
@@ -143,12 +126,12 @@ export function PositionRiskEvaluationPage() {
 export function ClientRiskEvaluationPage() {
   const { clientId, evaluationId } = clientLevelRoute.useParams();
   const readOnly = useReadOnly();
-  const { apiRequest, userId, enabled } = useQueryAccess();
+  const { request, ready, key } = useApi();
   const query = useGetRiskEvaluation(clientId, evaluationId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetRiskEvaluationQueryKey(clientId, evaluationId), userId],
-      enabled,
+      queryKey: key(getGetRiskEvaluationQueryKey(clientId, evaluationId)),
+      enabled: ready,
     },
   });
   const evaluation = query.data?.evaluation;
@@ -158,7 +141,6 @@ export function ClientRiskEvaluationPage() {
   return (
     <RiskEvaluationView
       evaluation={evaluation}
-      userId={userId}
       readOnly={readOnly}
       afterRemove={{
         to: '/clienti/$clientId/posturi',
@@ -246,14 +228,12 @@ type AfterRemove =
 function RiskEvaluationView({
   evaluation,
   position,
-  userId,
   readOnly,
   afterRemove,
   facts,
 }: {
   evaluation: RiskEvaluation;
   position?: JobPosition;
-  userId: string;
   readOnly: boolean;
   afterRemove: AfterRemove;
   facts: ReactNode;
@@ -316,7 +296,7 @@ function RiskEvaluationView({
         store={store}
         readOnly={readOnly}
         view={view}
-        tools={<FactorSources evaluation={evaluation} userId={userId} />}
+        tools={<FactorSources evaluation={evaluation} />}
         description={
           hasLibraryFactor(evaluation.factors) && <OriginSummary factors={evaluation.factors} />
         }
@@ -342,7 +322,7 @@ function RiskEvaluationView({
   );
 }
 
-function FactorSources({ evaluation, userId }: { evaluation: RiskEvaluation; userId: string }) {
+function FactorSources({ evaluation }: { evaluation: RiskEvaluation }) {
   const [source, setSource] = useState<'profile' | 'evaluation' | null>(null);
   return (
     <>
@@ -366,13 +346,11 @@ function FactorSources({ evaluation, userId }: { evaluation: RiskEvaluation; use
       </Button>
       <ApplyProfileDialog
         evaluation={evaluation}
-        userId={userId}
         open={source === 'profile'}
         onClose={() => setSource(null)}
       />
       <CopyRiskFactorsDialog
         evaluation={evaluation}
-        userId={userId}
         open={source === 'evaluation'}
         onClose={() => setSource(null)}
       />
@@ -391,11 +369,11 @@ function RemoveEvaluationDialog({
   onClose: () => void;
   afterRemove: AfterRemove;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const navigate = useNavigate();
   const returnToOpener = useReturnToOpener();
   const cache = useEvaluationCache(evaluation.clientId);
-  const remove = useRemoveRiskEvaluation({ request: apiRequest });
+  const remove = useRemoveRiskEvaluation({ request });
   const [error, setError] = useState<string | null>(null);
   const count = evaluation.factors.length;
 

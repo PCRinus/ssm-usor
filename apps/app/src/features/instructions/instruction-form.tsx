@@ -7,7 +7,7 @@ import {
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useBlocker, useLocation, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useBlocker, useLocation, useNavigate } from '@tanstack/react-router';
 import { ClipboardPaste, Download, Eye, Pencil } from 'lucide-react';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
@@ -21,6 +21,7 @@ import {
   useListClients,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { keepOpener } from '@/app/opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
@@ -82,7 +83,6 @@ export function InstructionForm({
   domain,
   group,
   initialBlocks,
-  userId,
   onEditDetails,
 }: {
   // Null until the first save creates it.
@@ -91,14 +91,13 @@ export function InstructionForm({
   domain: InstructionDomain;
   group: InstructionModuleGroup;
   initialBlocks: DraftBlock[];
-  userId: string;
   onEditDetails: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const navigate = useNavigate();
   const clients = useListClients(clientParams, {
-    request: apiRequest,
-    query: { queryKey: [...getListClientsQueryKey(clientParams), userId] },
+    request,
+    query: { queryKey: key(getListClientsQueryKey(clientParams)) },
   });
   const clientNames = useMemo(
     () => (clients.data?.items ?? []).map(({ id, legalName }) => ({ id, legalName })),
@@ -169,8 +168,8 @@ export function InstructionForm({
     setSaving(true);
     try {
       if (module) {
-        const saved = await saveInstructionBody(module.id, body, apiRequest);
-        queryClient.setQueryData([...getGetInstructionModuleQueryKey(module.id), userId], {
+        const saved = await saveInstructionBody(module.id, body, request);
+        queryClient.setQueryData(key(getGetInstructionModuleQueryKey(module.id)), {
           module: saved.module,
           body: saved.body,
         });
@@ -183,7 +182,7 @@ export function InstructionForm({
           );
         }
       } else {
-        const created = await createInstructionModule({ title, group, domain, body }, apiRequest);
+        const created = await createInstructionModule({ title, group, domain, body }, request);
         leaving.current = true;
         toast.success('Instrucțiunea a fost adăugată în bibliotecă.');
         await navigate({
@@ -228,7 +227,7 @@ export function InstructionForm({
     if (!module) return;
     setDownloading(true);
     try {
-      const file = await downloadInstructionModule(module.id, undefined, apiRequest);
+      const file = await downloadInstructionModule(module.id, undefined, request);
       saveFile(file, file instanceof File ? file.name : `${title}.docx`);
     } catch {
       setError('Nu am putut descărca instrucțiunea. Verifică conexiunea și încearcă din nou.');

@@ -33,7 +33,6 @@ function FireSafetyDocumentRoute() {
       set="fire_safety"
       clientId={client.id}
       documentId={documentId}
-      userId={session.user.id}
       readOnly={client.archivedAt !== null}
     />
   );

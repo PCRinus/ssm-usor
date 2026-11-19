@@ -1,7 +1,7 @@
 import { importErrorReasons } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import {
@@ -14,6 +14,7 @@ import {
   retryImportLibraryPart,
 } from '@/api/generated/api';
 import { apiErrorBody } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 
 import { importErrorMessage } from '../import-format';
@@ -45,7 +46,7 @@ export function usePartConfirm({
   // Undefined leaves the sentence to `reasons` and `failed`.
   onRefused?: (reason: string | undefined, body: ConfirmBody) => string | undefined;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const returnToImport = useReturnToOpener(`/clienti/import/${detail.id}`);
@@ -69,7 +70,7 @@ export function usePartConfirm({
         detail.id,
         part.part,
         { version: saved.version },
-        apiRequest
+        request
       );
       await Promise.all([
         refresh(),
@@ -102,7 +103,7 @@ export function usePartConfirm({
   async function retry() {
     setRetrying(true);
     try {
-      await retryImportLibraryPart(detail.id, part.part, apiRequest);
+      await retryImportLibraryPart(detail.id, part.part, request);
       review.forget();
       await refresh();
     } catch (cause) {

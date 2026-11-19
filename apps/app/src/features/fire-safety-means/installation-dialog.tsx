@@ -12,7 +12,6 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
-import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
@@ -21,6 +20,7 @@ import {
   useCreateFireInstallation,
   useUpdateFireInstallation,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
@@ -88,10 +88,10 @@ function InstallationForm({
   installation: FireInstallation | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
-  const create = useCreateFireInstallation({ request: apiRequest });
-  const update = useUpdateFireInstallation({ request: apiRequest });
+  const create = useCreateFireInstallation({ request });
+  const update = useUpdateFireInstallation({ request });
   const form = useForm<InstallationFormValues>({
     resolver: zodResolver(installationFormSchema),
     defaultValues: installation
