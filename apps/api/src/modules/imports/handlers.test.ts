@@ -1152,6 +1152,19 @@ describe('POST /imports/{importId}/confirm', () => {
       };
     };
 
+    it('writes the answer and the substances the member kept, counting the one left out', async () => {
+      const { p_payload } = await confirmed(
+        withSubstances(ready({ fields: {}, items: { 'substance-2': { included: false } } })),
+        {}
+      );
+
+      expect(p_payload).toMatchObject({
+        fire_safety: { substances_state: 'listed' },
+        fire_substances: [{ name: 'Detergenți' }],
+        quality: { substances: { changed: 0, unticked: 1, kept: 0 } },
+      });
+    });
+
     it('keeps an existing client’s answer, and adds only a substance it does not list', async () => {
       const { p_payload } = await confirmed(
         withSubstances({
