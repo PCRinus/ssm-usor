@@ -1,5 +1,6 @@
 import {
   type ApiErrorResponse,
+  clientConflictReasons,
   employeeConflictReasons,
   formatEmployeeName,
 } from '@ssm-usor/contracts';
@@ -58,7 +59,7 @@ function serverMessage(cause: unknown) {
 }
 
 function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
-  if (body?.reason === 'client_archived') {
+  if (body?.reason === clientConflictReasons.clientArchived) {
     return 'Clientul este arhivat; situația lucrătorilor nu se mai schimbă.';
   }
   if (body?.reason === employeeConflictReasons.cnpTaken) {
