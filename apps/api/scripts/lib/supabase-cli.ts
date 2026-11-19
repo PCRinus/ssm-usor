@@ -37,7 +37,7 @@ export function secretFromCli(url: string) {
   try {
     const output = execFileSync(
       'supabase',
-      ['projects', 'api-keys', '--project-ref', projectRef, '--reveal', '--output', 'json'],
+      ['projects', 'api-keys', `--remote=${projectRef}`, '--reveal', '--output', 'json'],
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000 }
     );
     const keys = z.array(z.object({ api_key: z.string() })).parse(JSON.parse(output));

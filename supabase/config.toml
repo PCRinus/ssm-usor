@@ -52,7 +52,7 @@ minimum_password_length = 8
 password_requirements = "lower_upper_letters_digits"
 
 [auth.email]
-enable_signup = true
+enabled = true
 # An address is confirmed before its account can be used, here as on the hosted projects.
 enable_confirmations = true
 # How long a recovery link and the portal's emailed sign-in code work. OTP_EXPIRY_MINUTES in
@@ -83,15 +83,15 @@ enabled = true
 uri = "http://host.docker.internal:8797/hooks/supabase/send-email"
 secrets = "v1,whsec_bm90LWEtc2VjcmV0LWxvY2FsLXN0YWNrLW9ubHktMzI="
 
-# The portal's sign-in by code (ADR 022). `enable_signup` is Supabase's switch for phone sign-in
-# as a whole: phone sign-in cannot be on with signup by phone off, so anyone can have Auth make
-# an account for a number. The API's Send SMS hook texts only the accounts it made for an
-# invitation (apps/api's auth-hooks module), so a stranger's number gets no SMS.
+# The portal's sign-in by code (ADR 022). With signups on (`[auth] enable_signup`, which
+# registration needs), anyone can have Auth make an account for a number. The API's Send SMS
+# hook texts only the accounts it made for an invitation (apps/api's auth-hooks module), so a
+# stranger's number gets no SMS.
 #
 # The code's expiry (`sms_otp_exp`) is not a property of this file: the local stack fixes it at
 # 100 minutes, and the deployment workflow sets 10 on the hosted projects.
 [auth.sms]
-enable_signup = true
+enabled = true
 # The first code confirms the number, as the first emailed code confirms an address.
 enable_confirmations = true
 # Never used: the Send SMS hook writes the message.
@@ -182,12 +182,6 @@ secrets = "env(SUPABASE_AUTH_SMS_HOOK_SECRET)"
 [remotes.production.auth.captcha]
 secret = "env(TURNSTILE_SECRET_KEY)"
 
-# The same meaning as `enable_confirmations = true` above: the CLI pushes this key to a
-# hosted project un-negated, so there it means the opposite of what it means locally
-# (supabase/cli#6997). The deployment workflow sets the hosted value again after the push.
-[remotes.production.auth.sms]
-enable_confirmations = false
-
 [remotes.non-prod]
 project_id = "vzgwbdxmimbcqftltmmo"
 
@@ -207,7 +201,3 @@ secrets = "env(SUPABASE_AUTH_SMS_HOOK_SECRET)"
 
 [remotes.non-prod.auth.captcha]
 secret = "env(TURNSTILE_SECRET_KEY)"
-
-# Inverted as in production above (supabase/cli#6997).
-[remotes.non-prod.auth.sms]
-enable_confirmations = false

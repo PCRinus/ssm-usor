@@ -173,10 +173,8 @@ migrations job refuse to run unless `SUPABASE_PROJECT_ID` is the `project_id` of
 reach the other environment's database. It needs
 `SUPABASE_AUTH_HOOK_SECRET` and `SUPABASE_AUTH_SMS_HOOK_SECRET`, which the API deployment uploads
 too, and `TURNSTILE_SECRET_KEY`, and so does the migrations job, whose `supabase link` reads the file. After the push it
-sets through the Management API the three sign-in settings the file cannot hold: the texted
-code's expiry, phone confirmation, which the CLI pushes inverted
-([supabase/cli#6997](https://github.com/supabase/cli/issues/6997)), and the cap of 60 auth
-emails an hour, which `config push` leaves unmanaged.
+sets through the Management API the two sign-in settings the file cannot hold: the texted
+code's expiry and the cap of 60 auth emails an hour, which `config push` leaves unmanaged.
 
 Selection compares with the last run that succeeded, so what a failed, cancelled or
 superseded run carried is selected again by the next one, whatever that one touches. The database and configuration

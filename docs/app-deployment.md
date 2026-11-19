@@ -135,9 +135,9 @@ Google's account picker names the app's domain instead of the project's `supabas
 It was added with the dashboard's **Custom domains** section; the CLI equivalent is:
 
 ```sh
-supabase domains create --project-ref xvhiwymggufbvjdfywjg --custom-hostname auth.ssmusor.ro
-supabase domains reverify --project-ref xvhiwymggufbvjdfywjg   # until ssl.status is active
-supabase domains activate --project-ref xvhiwymggufbvjdfywjg
+supabase domains create --custom-hostname auth.ssmusor.ro --remote=xvhiwymggufbvjdfywjg
+supabase domains reverify --remote=xvhiwymggufbvjdfywjg   # until ssl.status is active
+supabase domains activate --remote=xvhiwymggufbvjdfywjg
 ```
 
 It needs two records in the `ssmusor.ro` zone, both made by hand: a CNAME `auth` to

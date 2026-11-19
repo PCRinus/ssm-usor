@@ -59,7 +59,7 @@
     "legislation:compare-forms": "pnpm --filter @ssm-usor/api legislation:compare-forms",
     "legislation:fix": "pnpm --filter @ssm-usor/api legislation:fix",
     "legislation:cron": "pnpm --filter @ssm-usor/legislation start",
-    "generate:db": "supabase gen types typescript --local --schema public > apps/api/src/database.types.ts && prettier --write apps/api/src/database.types.ts",
+    "generate:db": "supabase gen types typescript --schema public > apps/api/src/database.types.ts && prettier --write apps/api/src/database.types.ts",
     "supabase:test": "supabase test db",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
@@ -80,7 +80,7 @@
     "prettier": "^3.9.10",
     "prettier-plugin-astro": "^1.1.1",
     "shadcn": "^4.23.0",
-    "supabase": "2.122.1",
+    "supabase": "3.2.0",
     "turbo": "^2.11.10",
     "typescript-eslint": "^8.72.0"
   },
