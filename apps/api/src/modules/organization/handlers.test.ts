@@ -1,4 +1,4 @@
-import type { AccessLevel, OrganizationRole } from '@ssm-usor/contracts';
+import { type AccessLevel, currentTermsVersion, type OrganizationRole } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { apiRequest } from '../../test/request';
@@ -36,6 +36,7 @@ function mockUpstream({
   memberCount = 2,
   invitationCount = 1,
   access = 'full',
+  membership = (): unknown => [membershipRow({ role, access })],
 }: {
   role?: OrganizationRole;
   change?: () => Response;
@@ -46,9 +47,10 @@ function mockUpstream({
   memberCount?: number;
   invitationCount?: number;
   access?: AccessLevel;
+  membership?: () => unknown;
 } = {}) {
   mockSignedInUpstream({
-    '/rest/v1/rpc/current_membership': () => [membershipRow({ role, access })],
+    '/rest/v1/rpc/current_membership': membership,
     '/rest/v1/rpc/organization_member_list': () => [
       {
         user_id: user.id,
@@ -338,7 +340,7 @@ describe('POST /organization', () => {
   const body = {
     organizationName: '  Protect SSM SRL ',
     fullName: ' Ana Popescu ',
-    termsVersion: '2026-11-14',
+    termsVersion: currentTermsVersion,
     acceptsSpecialClauses: true,
   };
   const databaseError = (code: string, message: string) => () =>
@@ -358,18 +360,23 @@ describe('POST /organization', () => {
       {
         organization_name: 'Protect SSM SRL',
         owner_full_name: 'Ana Popescu',
-        accepted_terms_version: '2026-11-14',
+        accepted_terms_version: currentTermsVersion,
         accepts_special_clauses: true,
       },
     ]);
   });
 
-  it('does not ask for a membership first, since the caller has none', async () => {
-    mockUpstream();
+  it('creates one for an account that belongs to no organization yet', async () => {
+    mockUpstream({ membership: () => [] });
 
-    await request('POST', '/organization', body);
+    const response = await request('POST', '/organization', body);
 
-    expect(rpcBodies('current_membership')).toEqual([]);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      organization: { id: organizationId, name: 'Protect SSM SRL' },
+      role: 'owner',
+    });
+    expect(rpcBodies('create_organization')).toHaveLength(1);
   });
 
   it('answers 409 with a reason for an account that already belongs to an organization', async () => {
