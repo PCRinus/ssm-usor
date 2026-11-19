@@ -1,5 +1,6 @@
 import type { ImportKind, ImportLibraryPart } from '@ssm-usor/contracts';
 import {
+  existingClientMessage,
   instructionsModel,
   instructionsRequest,
   readingAnswer,
@@ -43,7 +44,8 @@ function readerInputs(reader: Reader): { models: Record<string, string>; texts: 
           sortingSystemPrompt(provider),
           sortingAnswer.jsonSchema,
           readingSystemPrompt(provider),
-          readingSystemPrompt(provider, client),
+          readingSystemPrompt(provider, true),
+          existingClientMessage(client),
           readingAnswer.jsonSchema,
         ],
       };

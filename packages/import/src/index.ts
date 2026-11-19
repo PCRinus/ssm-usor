@@ -189,6 +189,7 @@ export {
   type ChatMessage,
   type ContentPart,
   type ExistingClient,
+  existingClientMessage,
   fileHeader,
   type ImportFile,
   type ProviderIdentity,

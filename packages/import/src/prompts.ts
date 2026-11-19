@@ -32,9 +32,9 @@ function providerParagraph(provider: ProviderIdentity) {
   ].join(' ');
 }
 
-function existingClientParagraph(client: ExistingClient | undefined) {
-  if (client === undefined) return '';
-  return `\n\nThe documents are imported into a client the app already has: ${client.legalName} (CUI ${client.cui}). They are about this company; another company's values are another client's.`;
+function existingClientParagraph(existingClient: boolean) {
+  if (!existingClient) return '';
+  return `\n\nThe documents are imported into a client the app already has, named in the message before the files. They are about this company; another company's values are another client's.`;
 }
 
 const oneLine = (text: string) => text.replace(/[\p{Cc}\u2028\u2029]+/gu, ' ');
@@ -42,6 +42,13 @@ const oneLine = (text: string) => text.replace(/[\p{Cc}\u2028\u2029]+/gu, ' ');
 // A path is the uploader's to name, so it must not open a line or a header of its own.
 export const fileHeader = (path: string) =>
   `=== FILE: ${oneLine(path).replace(/={3,}/g, '==')} ===`;
+
+// The client's name may have come from an earlier import's documents or from ANAF, so it is
+// data like the files, not part of the rules.
+export const existingClientMessage = (client: ExistingClient): ChatMessage => ({
+  role: 'user',
+  content: `The client the app already has: ${oneLine(client.legalName)} (CUI ${oneLine(client.cui)})`,
+});
 
 // Names read from the uploaded files go in a user message after the task, never in a system
 // message, and each stays on its own line, so that a name cannot pass for an instruction.
@@ -92,10 +99,10 @@ export function sortingMessages(input: {
 }
 
 // The rules are ADR 030's "The rules the model is given"; a change to one belongs there first.
-export const readingSystemPrompt = (provider: ProviderIdentity, client?: ExistingClient) =>
+export const readingSystemPrompt = (provider: ProviderIdentity, existingClient = false) =>
   `You read the occupational safety (SSM) and fire safety (SU/PSI) documentation that a Romanian external safety service keeps for one client company, and extract what a safety app needs to create the client and generate its documentation again.
 
-${providerParagraph(provider)}${existingClientParagraph(client)}
+${providerParagraph(provider)}${existingClientParagraph(existingClient)}
 
 Sources:
 - ${dataNotInstructions}
@@ -163,7 +170,8 @@ export function readingMessages(input: {
         ]
   );
   return [
-    { role: 'system', content: readingSystemPrompt(input.provider, input.client) },
+    { role: 'system', content: readingSystemPrompt(input.provider, input.client !== undefined) },
+    ...(input.client ? [existingClientMessage(input.client)] : []),
     { role: 'user', content: parts },
   ];
 }
