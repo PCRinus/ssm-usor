@@ -80,7 +80,7 @@ async function writableClient(db: DataClient, clientId: string) {
   }
 }
 
-const tooLarge = () =>
+export const tooLarge = () =>
   refused(safetySheetErrorReasons.tooLarge, 'The file is larger than a safety data sheet may be.');
 
 async function sheetText(pdf: () => Promise<PdfText>) {
@@ -111,31 +111,6 @@ async function sheetText(pdf: () => Promise<PdfText>) {
     .join('\n\n');
 }
 
-// The header is checked first, but a chunked body has none: it is read no further than the limit.
-async function bodyWithin(body: ReadableStream<Uint8Array> | null, limit: number) {
-  if (!body) return new Uint8Array();
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > limit) {
-      await reader.cancel();
-      throw tooLarge();
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes;
-}
-
 const notASheet = () =>
   refused(safetySheetErrorReasons.notASheet, 'The file is not a safety data sheet.');
 
@@ -154,7 +129,6 @@ function logUsage(fields: {
 
 export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> = async (c) => {
   const { clientId } = c.req.valid('param');
-  if (Number(c.req.header('Content-Length') ?? 0) > safetySheetLimits.maxBytes) throw tooLarge();
   const model = sheetModel(c.env);
   const extractor = createExtractor(c.env);
   if (!model || !extractor) {
@@ -165,7 +139,8 @@ export const readSafetySheet: RouteHandler<typeof readSafetySheetRoute, ApiEnv> 
       safetySheetErrorReasons.unavailable
     );
   }
-  const bytes = await bodyWithin(c.req.raw.body, safetySheetLimits.maxBytes);
+  // The body is the file itself, not JSON, so it is read here rather than validated above.
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
   if (!isPdf(bytes)) throw refused(safetySheetErrorReasons.notPdf, 'The file is not a PDF.');
   await writableClient(createDataClient(c), clientId);
 
