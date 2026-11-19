@@ -1,10 +1,10 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
 
 import { getGetEmployeeParticipantQueryKey, useGetEmployeeParticipant } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { Fact, FactList, SectionCard } from '@/components/section-card';
 import { AgreementWarning } from '@/features/signatures/agreement-warning';
@@ -20,18 +20,16 @@ import {
 // `readOnly` is an archived client, which the API refuses invitations and resends for.
 export function EmployeePortalCard({
   employee,
-  userId,
   readOnly,
 }: {
   employee: InvitedEmployee;
-  userId: string;
   readOnly: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const state = useGetEmployeeParticipant(employee.clientId, employee.id, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetEmployeeParticipantQueryKey(employee.clientId, employee.id), userId],
+      queryKey: key(getGetEmployeeParticipantQueryKey(employee.clientId, employee.id)),
     },
   });
   const [inviting, setInviting] = useState(false);
@@ -39,7 +37,7 @@ export function EmployeePortalCard({
   const participant = state.data?.participant;
   const invitation = state.data?.invitation;
   const uninvited = state.isSuccess && !participant && !invitation;
-  const agreement = useSigningAgreement(employee.clientId, employee.id, userId);
+  const agreement = useSigningAgreement(employee.clientId, employee.id);
   // Only someone who signs in the portal is asked to sign; the warning is for them.
   const warnAgreement = Boolean(participant ?? invitation) && agreement.isSuccess;
 

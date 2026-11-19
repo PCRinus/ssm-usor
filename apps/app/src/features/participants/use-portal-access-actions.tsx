@@ -1,5 +1,4 @@
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -7,6 +6,7 @@ import {
   useRevokeClientParticipant,
   useRevokeParticipantInvitation,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
@@ -26,10 +26,10 @@ export function usePortalAccessActions(
   clientId: string,
   onMessage: (message: ParticipantMessage) => void
 ) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const resend = useResendParticipantInvitation({ request: wordingRefusalHere(apiRequest) });
-  const revokeInvitation = useRevokeParticipantInvitation({ request: apiRequest });
-  const revokeAccess = useRevokeClientParticipant({ request: apiRequest });
+  const { request } = useApi();
+  const resend = useResendParticipantInvitation({ request: wordingRefusalHere(request) });
+  const revokeInvitation = useRevokeParticipantInvitation({ request });
+  const revokeAccess = useRevokeClientParticipant({ request });
   const refresh = useRefreshParticipants(clientId);
   const [pending, setPending] = useState<Pending | null>(null);
   const revoking = revokeInvitation.isPending || revokeAccess.isPending;

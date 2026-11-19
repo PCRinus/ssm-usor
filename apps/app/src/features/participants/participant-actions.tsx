@@ -1,7 +1,6 @@
 import { Badge } from '@ssm-usor/ui/components/badge';
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import {
@@ -11,6 +10,7 @@ import {
   useRevokeClientParticipant,
   useRevokeParticipantInvitation,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { maskPeople } from '@/components/mask-people';
 import { Masked } from '@/components/replay';
@@ -38,9 +38,9 @@ export function InvitationStatus({
   kindShown?: boolean;
   onMessage: (message: ParticipantMessage) => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const resend = useResendParticipantInvitation({ request: wordingRefusalHere(apiRequest) });
-  const revoke = useRevokeParticipantInvitation({ request: apiRequest });
+  const { request } = useApi();
+  const resend = useResendParticipantInvitation({ request: wordingRefusalHere(request) });
+  const revoke = useRevokeParticipantInvitation({ request });
   const refresh = useRefreshParticipants(invitation.clientId);
   const [confirming, setConfirming] = useState(false);
   const resendable = useTimeReached(invitation.resendableAt);
@@ -157,8 +157,8 @@ export function ParticipantStatus({
   kindShown?: boolean;
   onMessage: (message: ParticipantMessage) => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const revoke = useRevokeClientParticipant({ request: apiRequest });
+  const { request } = useApi();
+  const revoke = useRevokeClientParticipant({ request });
   const refresh = useRefreshParticipants(participant.clientId);
   const [confirming, setConfirming] = useState(false);
   const administrator = kindShown && participant.kind === 'client_administrator';

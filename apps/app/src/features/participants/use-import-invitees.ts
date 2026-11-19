@@ -1,16 +1,16 @@
 import type { ImportInvitee } from '@ssm-usor/contracts';
-import { useRouteContext } from '@tanstack/react-router';
 
 import { useListImportPortalInvitees } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 export function useImportInvitees(
   clientId: string,
   importId: string,
   { refetchOnMount, enabled = true }: { refetchOnMount?: 'always'; enabled?: boolean } = {}
 ) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   return useListImportPortalInvitees(clientId, importId, {
-    request: apiRequest,
+    request,
     query: { enabled, ...(refetchOnMount ? { refetchOnMount } : {}) },
   });
 }

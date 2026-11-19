@@ -1,10 +1,10 @@
 import type { ImportInvitee } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { useCallback, useState } from 'react';
 
 import { getListClientParticipantsQueryKey, useListClientParticipants } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import type { Client } from '@/features/clients/client-form-schema';
 import { ClientSignatureRequests } from '@/features/signatures/client-signature-requests';
@@ -20,13 +20,13 @@ import type { RosterRow } from './portal-roster-columns';
 import { usePortalAccessActions } from './use-portal-access-actions';
 import { usePortalRoster } from './use-portal-roster';
 
-export function ClientPortalPage({ client, userId }: { client: Client; userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function ClientPortalPage({ client }: { client: Client }) {
+  const { request, key } = useApi();
   const list = useListClientParticipants(client.id, {
-    request: apiRequest,
-    query: { queryKey: [...getListClientParticipantsQueryKey(client.id), userId] },
+    request,
+    query: { queryKey: key(getListClientParticipantsQueryKey(client.id)) },
   });
-  const roster = usePortalRoster(client.id, userId);
+  const roster = usePortalRoster(client.id);
   const [message, setMessage] = useState<ParticipantMessage>(null);
   const { actions, dialog: accessDialog } = usePortalAccessActions(client.id, setMessage);
   const [invitingAdministrator, setInvitingAdministrator] = useState(false);
@@ -95,7 +95,6 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
     <>
       <InviteAdministratorDialog
         client={client}
-        userId={userId}
         open={invitingAdministrator}
         onClose={() => setInvitingAdministrator(false)}
         onMessage={setMessage}
@@ -160,11 +159,7 @@ export function ClientPortalPage({ client, userId }: { client: Client; userId: s
         openingBatch={opening}
         onInviteChosen={() => void openBatch()}
       />
-      <ClientSignatureRequests
-        clientId={client.id}
-        userId={userId}
-        hideWhenEmpty={gettingStarted}
-      />
+      <ClientSignatureRequests clientId={client.id} hideWhenEmpty={gettingStarted} />
       {dialogs}
     </div>
   );
