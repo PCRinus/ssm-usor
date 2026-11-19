@@ -4,7 +4,6 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -26,14 +25,7 @@ import { HelpLink } from '@/components/help-link';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 
-import {
-  CreditsLine,
-  CreditsShortNotice,
-  GiftHint,
-  NoCreditsFooter,
-  NoCreditsNotices,
-} from './credits-notices';
-import { usesSentence } from './import-credits';
+import { CreditsShortNotice, NoCreditsFooter, NoCreditsNotices } from './credits-notices';
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
 import { LocalThumb, SetAsideList, UploadDropZone, UploadProgress } from './upload-parts';
 import {
@@ -99,7 +91,6 @@ function UploadForm({
     isOwner,
     leave,
   } = form;
-  const photos = selection.files.filter(isPhoto).length;
 
   const zipNotices = [
     ...selection.archives.map((name) => ({
@@ -123,6 +114,7 @@ function UploadForm({
     <Dialog open onOpenChange={(next) => !next && !busy && leave()}>
       <DialogContent
         data-testid="import-upload-dialog"
+        aria-describedby={undefined}
         className="sm:max-w-[620px]"
         showCloseButton={!busy}
         onEscapeKeyDown={form.holdOpen}
@@ -130,18 +122,12 @@ function UploadForm({
       >
         <form onSubmit={form.onSubmit} aria-busy={busy} noValidate>
           <DialogHeader>
-            <DialogTitle>
-              {client ? 'Completează din documentație' : 'Client nou din documente'}
-            </DialogTitle>
-            <DialogDescription>
-              <span className="block">
-                Citim documentația SSM și SU a firmei și îți propunem datele clientului.
-              </span>
-              <span className="block">
-                Clientul se creează sau se completează doar când confirmi.{' '}
-                <HelpLink topic="import.client">Află mai mult</HelpLink>
-              </span>
-            </DialogDescription>
+            <div className="flex items-center justify-center gap-1 sm:justify-start">
+              <DialogTitle>
+                {client ? 'Completează din documentație' : 'Client nou din documente'}
+              </DialogTitle>
+              <HelpLink topic="import.client" label="Ajutor: importul unui client din documente" />
+            </div>
           </DialogHeader>
           {refusal?.kind === 'none' ? (
             <>
@@ -253,23 +239,14 @@ function UploadForm({
                   onRetry={form.retry}
                   onContinue={form.continueWithout}
                 />
-                {!refusal && <GiftHint balance={balance} />}
               </DialogBody>
-              <DialogFooter className="mt-6 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <CreditsLine
-                  className="sm:flex-1"
-                  uses={usesSentence('client', { photos, pdfPages: 0, pdfs: 0 })}
-                  balance={balance}
-                  short={refusal !== null}
-                />
-                <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                  <Button type="button" variant="outline" disabled={busy} onClick={leave}>
-                    Renunță
-                  </Button>
-                  <Button type="submit" data-testid="import-upload-submit" disabled={!canSubmit}>
-                    {busy ? 'Se încarcă…' : 'Încarcă și citește'}
-                  </Button>
-                </div>
+              <DialogFooter className="mt-6">
+                <Button type="button" variant="ghost" disabled={busy} onClick={leave}>
+                  Renunță
+                </Button>
+                <Button type="submit" data-testid="import-upload-submit" disabled={!canSubmit}>
+                  {busy ? 'Se încarcă…' : 'Încarcă și citește'}
+                </Button>
               </DialogFooter>
             </>
           )}

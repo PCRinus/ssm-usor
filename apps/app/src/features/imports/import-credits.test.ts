@@ -13,7 +13,6 @@ import {
   refusalSentence,
   shortText,
   usedSentence,
-  usesSentence,
 } from './import-credits';
 
 const paid = (credits = {}) => creditsBalance(meWithCredits(credits))!;
@@ -42,29 +41,6 @@ describe('counting credits in Romanian', () => {
     expect(creditsLabel(25)).toBe('25 de credite AI');
     expect(creditsLabel(101)).toBe('101 credite AI');
     expect(creditsLabel(1500)).toBe('1.500 de credite AI');
-  });
-});
-
-describe('what an import will use', () => {
-  it('counts 25 for a client, and the photographs beside the documents', () => {
-    expect(usesSentence('client', { photos: 0, pdfPages: 0, pdfs: 0 })).toBe(
-      'Folosește 25 de credite AI, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
-    );
-    expect(usesSentence('client', { photos: 3, pdfPages: 0, pdfs: 0 })).toBe(
-      'Folosește 28 de credite AI (25 + 3 fotografii), plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15.'
-    );
-  });
-
-  it('counts one for each photograph or page of an employee import', () => {
-    expect(usesSentence('employees', { photos: 98, pdfPages: 0, pdfs: 0 })).toBe(
-      'Folosește 98 de credite AI, unul pe fotografie.'
-    );
-    expect(usesSentence('employees', { photos: 4, pdfPages: 10, pdfs: 2 })).toBe(
-      'Folosește 14 credite AI, unul pe fotografie sau pagină.'
-    );
-    expect(usesSentence('employees', { photos: 0, pdfPages: 0, pdfs: 0 })).toBe(
-      'Folosește un credit AI pe fotografie.'
-    );
   });
 });
 

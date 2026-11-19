@@ -189,7 +189,9 @@ describe('how much fits in one import', () => {
     await within(dialog).findByTestId('employee-upload-chosen');
     expect(within(dialog).queryByTestId('employee-upload-limits')).toBeNull();
     expect(
-      within(dialog).getByRole('link', { name: 'Află mai mult' }).getAttribute('data-help-topic')
+      within(dialog)
+        .getByRole('link', { name: 'Ajutor: importul lucrătorilor din fișe' })
+        .getAttribute('data-help-topic')
     ).toBe('import.angajati');
   });
 
@@ -377,9 +379,6 @@ describe('the chosen photographs', () => {
       sheet('WhatsApp Image 2026-11-07 at 14.02.06.jpeg', 'fișa Ionescu'),
     ]);
     expect(chosenTitle(dialog)).toBe('2 fotografii de citit');
-    expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
-      'Folosește 2 credite AI, unul pe fotografie.'
-    );
     const aside = within(dialog).getByTestId('import-set-aside');
     expect(within(aside).getByRole('heading').textContent).toBe('Puse deoparte, nu le citim');
     expect(within(aside).getByTestId('import-set-aside-row').textContent).toBe(
@@ -415,14 +414,11 @@ describe('the chosen photographs', () => {
 });
 
 describe('the credits an employee import uses', () => {
-  it('counts one for each photograph and says what is left', async () => {
+  it('says nothing about credits while there are enough', async () => {
     mockUpload({ me: meWithCredits() });
     const dialog = await openDialog('employees-start-found');
-    await waitFor(() =>
-      expect(within(dialog).getByTestId('import-credits-line').textContent).toBe(
-        'Folosește 2 credite AI, unul pe fotografie. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
-      )
-    );
+    await within(dialog).findByTestId('employee-upload-chosen');
+    expect(dialog.textContent).not.toContain('credit');
   });
 
   it('keeps the button off while the photographs need more than is left, until some come out', async () => {
@@ -452,16 +448,6 @@ describe('the credits an employee import uses', () => {
     return found;
   };
 
-  it('counts a PDF found in the client documents by its pages, as the start charges it', async () => {
-    mockUpload({ found: withPdf, me: meWithCredits() });
-    const dialog = await openDialog('employees-start-found');
-    await waitFor(() =>
-      expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
-        'Folosește 5 credite AI, unul pe fotografie sau pagină.'
-      )
-    );
-  });
-
   it('refuses found sheets whose pages need more credits than are left', async () => {
     mockUpload({ found: withPdf, me: meWithCredits({ left: 4, giftLeft: 0, state: 'near' }) });
     const dialog = await openDialog('employees-start-found');
@@ -482,9 +468,7 @@ describe('the credits an employee import uses', () => {
       target: { files: [pdf] },
     });
     await waitFor(() =>
-      expect(within(dialog).getByTestId('import-credits-line').textContent).toContain(
-        'Folosește 3 credite AI, unul pe fotografie sau pagină.'
-      )
+      expect(within(dialog).getByTestId('employee-upload-submit')).toHaveProperty('disabled', false)
     );
     await userEvent.click(within(dialog).getByTestId('employee-upload-submit'));
     await waitFor(() => expect(requestsTo(`/imports/${importId}/files`, 'POST')).toHaveLength(1));

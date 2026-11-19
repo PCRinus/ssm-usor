@@ -4,7 +4,6 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -21,13 +20,7 @@ import { useJobPositionOptions } from '@/features/job-positions/use-job-position
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 
-import {
-  CreditsLine,
-  CreditsShortNotice,
-  NoCreditsFooter,
-  NoCreditsNotices,
-} from '../credits-notices';
-import { usesSentence } from '../import-credits';
+import { CreditsShortNotice, NoCreditsFooter, NoCreditsNotices } from '../credits-notices';
 import { formatFileSize, photosLabel } from '../import-format';
 import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-preview-dialog';
 import {
@@ -171,6 +164,7 @@ function UploadForm({
     <Dialog open onOpenChange={(next) => !next && !busy && leave()}>
       <DialogContent
         data-testid="employee-upload-dialog"
+        aria-describedby={undefined}
         className="sm:max-w-[760px]"
         showCloseButton={!busy}
         onEscapeKeyDown={form.holdOpen}
@@ -178,16 +172,10 @@ function UploadForm({
       >
         <form onSubmit={form.onSubmit} aria-busy={busy} noValidate>
           <DialogHeader>
-            <DialogTitle>Lucrători din fișele de instruire</DialogTitle>
-            <DialogDescription>
-              <span className="block">
-                Citim fișele de instruire de la {client.legalName} și îți propunem lucrătorii.
-              </span>
-              <span className="block">
-                Nu creăm niciun lucrător până nu confirmi.{' '}
-                <HelpLink topic="import.angajati">Află mai mult</HelpLink>
-              </span>
-            </DialogDescription>
+            <div className="flex items-center justify-center gap-1 sm:justify-start">
+              <DialogTitle>Lucrători din fișele de instruire</DialogTitle>
+              <HelpLink topic="import.angajati" label="Ajutor: importul lucrătorilor din fișe" />
+            </div>
           </DialogHeader>
           {refusal?.kind === 'none' ? (
             <>
@@ -344,12 +332,6 @@ function UploadForm({
                   nearLimits ? 'sm:justify-between' : 'sm:justify-end'
                 )}
               >
-                <CreditsLine
-                  className={nearLimits ? 'sm:basis-full' : 'sm:flex-1'}
-                  uses={usesSentence('employees', { ...readOf(selection), pdfs })}
-                  balance={balance}
-                  short={refusal !== null}
-                />
                 {nearLimits && (
                   <div className="flex min-w-[min(100%,18rem)] flex-1 items-center gap-3">
                     <div
@@ -374,7 +356,7 @@ function UploadForm({
                   </div>
                 )}
                 <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                  <Button type="button" variant="outline" disabled={busy} onClick={leave}>
+                  <Button type="button" variant="ghost" disabled={busy} onClick={leave}>
                     Renunță
                   </Button>
                   <Button type="submit" data-testid="employee-upload-submit" disabled={!canSubmit}>

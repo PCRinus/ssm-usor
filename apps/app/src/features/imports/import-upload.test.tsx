@@ -522,25 +522,8 @@ const word = () =>
     type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
 
-const creditsLine = () =>
-  waitFor(() => {
-    const line = screen.getByTestId('import-credits-line');
-    expect(line.textContent).toContain('Îți mai');
-    return line;
-  });
-
 describe('the credits an import uses', () => {
-  it('says what the reading uses and what is left this month and of the gift', async () => {
-    mockImportApi([], undefined, meWithCredits());
-    await openDialog();
-
-    expect((await creditsLine()).textContent).toBe(
-      'Folosește 25 de credite AI, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15. Îți mai rămân 1.270 din 1.500 luna aceasta și 7.840 din cadoul de bun venit.'
-    );
-    expect(screen.queryByTestId('import-credits-short')).toBeNull();
-  });
-
-  it("names the trial's 300 and the welcome credits the first payment brings", async () => {
+  it('says nothing about credits while there are enough, even in the trial', async () => {
     mockImportApi(
       [],
       undefined,
@@ -550,13 +533,16 @@ describe('the credits an import uses', () => {
       )
     );
     const dialog = await openDialog();
+    choose([word()]);
+    await within(dialog).findByTestId('import-chosen');
 
-    expect((await creditsLine()).textContent).toBe(
-      'Folosește 25 de credite AI, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă 25 (IPSSM) și 10 (IPSU), iar evaluările de risc încă 15. Îți mai rămân 266 din cele 300 ale perioadei de probă.'
-    );
-    expect(dialog.textContent).toContain(
-      'La prima plată primești și creditele AI de bun venit, ca să-ți aduci toți clienții în aplicație: 10 pentru fiecare lucrător al treptei alese, cel mult 10.000. Nu expiră.'
-    );
+    expect(dialog.textContent).not.toContain('credit');
+    expect(screen.queryByTestId('import-credits-short')).toBeNull();
+    expect(
+      within(dialog)
+        .getByRole('link', { name: 'Ajutor: importul unui client din documente' })
+        .getAttribute('data-help-topic')
+    ).toBe('import.client');
   });
 
   it('keeps the button off under 25 left, says when they renew and offers Abonament to the owner', async () => {
@@ -574,9 +560,6 @@ describe('the credits an import uses', () => {
     expect(within(short).getByTestId('import-credits-subscription').getAttribute('href')).toBe(
       '/organizatie/abonament'
     );
-    const line = screen.getByTestId('import-credits-line');
-    expect(line.dataset.short).toBe('true');
-    expect(line.textContent).toContain('Îți mai rămân 18 până pe 14 noiembrie.');
     expect((screen.getByTestId('import-upload-submit') as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -671,9 +654,6 @@ describe('files chosen twice', () => {
       'dosar-ssm-spicul-auriu.zip/Copie/Decizie numire.pdf, același fișier ca dosar-ssm-spicul-auriu.zip/Dosar SSM/Decizie numire.pdf',
       'IMG_2031 (1).jpg, aceeași fotografie ca IMG_2031.jpg',
     ]);
-    expect((await creditsLine()).textContent).toContain(
-      'Folosește 27 de credite AI (25 + 2 fotografii)'
-    );
 
     await userEvent.click(within(dialog).getByTestId('import-upload-submit'));
     await waitFor(() => expect(requestsTo(`/imports/${importId}/files`, 'POST')).toHaveLength(1));

@@ -6,7 +6,6 @@ import {
   type ImportCredits,
   importCredits,
   type ImportKind,
-  importStartCredits,
   type SubscriptionSummary,
 } from '@ssm-usor/contracts';
 
@@ -104,27 +103,6 @@ export const refusalFromApi = (short: CreditsShort): CreditsRefusal =>
   short.left <= 0
     ? { kind: 'none' }
     : { kind: 'short', needed: short.needed, available: short.left, renewsAt: short.renewsAt };
-
-export function usesSentence(
-  kind: ImportKind,
-  files: { photos: number; pdfPages: number; pdfs: number }
-) {
-  const needed = importStartCredits(kind, files);
-  if (kind === 'employees') {
-    const per = files.pdfs > 0 ? 'unul pe fotografie sau pagină' : 'unul pe fotografie';
-    return needed === 0
-      ? `Folosește un credit AI pe fotografie${files.pdfs > 0 ? ' sau pagină' : ''}.`
-      : needed === 1
-        ? 'Folosește 1 credit AI.'
-        : `Folosește ${creditsLabel(needed)}, ${per}.`;
-  }
-  const known =
-    files.photos === 0
-      ? creditsLabel(needed)
-      : `${creditsLabel(needed)} (${importCredits.clientReading} + ${photosCount(files.photos)})`;
-  const { ssm, su } = importCredits.ownInstructions;
-  return `Folosește ${known}, plus 1 pentru fiecare pagină scanată. Dacă le găsim, instrucțiunile proprii folosesc încă ${ssm} (IPSSM) și ${su} (IPSU), iar evaluările de risc încă ${importCredits.riskEvaluations}.`;
-}
 
 export function leftSentence(balance: CreditsBalance, short: boolean) {
   const { available, usage, renewal } = balance;

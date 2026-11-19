@@ -1,9 +1,9 @@
-import { formatCount, type ImportKind, welcomeCreditsFor } from '@ssm-usor/contracts';
+import type { ImportKind } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Notice } from '@ssm-usor/ui/components/notice';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { Link } from '@tanstack/react-router';
-import { Coins, Gift } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
@@ -129,18 +129,6 @@ export function NoCreditsFooter({ isOwner, onClose }: { isOwner: boolean; onClos
         Închide
       </Button>
     </>
-  );
-}
-
-export function GiftHint({ balance }: { balance: CreditsBalance | null }) {
-  if (!balance?.trial) return null;
-  return (
-    <Hint icon={<Gift aria-hidden="true" />}>
-      La prima plată primești și{' '}
-      <b className="font-semibold text-foreground">creditele AI de bun venit</b>, ca să-ți aduci
-      toți clienții în aplicație: 10 pentru fiecare lucrător al treptei alese, cel mult{' '}
-      {formatCount(welcomeCreditsFor(Infinity))}. Nu expiră.
-    </Hint>
   );
 }
 
