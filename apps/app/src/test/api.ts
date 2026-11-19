@@ -42,8 +42,14 @@ const shellReads: Record<string, () => unknown> = {
       running: [],
     }) satisfies DocumentsBehindSummary,
   '/imports?kind=all': () => ({ items: [] }) satisfies ImportListResponse,
+};
+
+// The dashboard's own read, not the shell's: answered because mountApp lands on /dashboard.
+const landingPageReads: Record<string, () => unknown> = {
   '/dashboard/summary': () => quietSummary satisfies DashboardSummary,
 };
+
+const defaultReads = { ...shellReads, ...landingPageReads };
 
 export function mockApi(
   route: Route,
@@ -55,8 +61,8 @@ export function mockApi(
     if (answer) return answer;
     if (url.pathname === '/me' && me) return Response.json(me);
     const method = init?.method ?? 'GET';
-    const shellRead = method === 'GET' ? shellReads[`${url.pathname}${url.search}`] : undefined;
-    if (shellRead) return Response.json(shellRead());
+    const defaultRead = method === 'GET' ? defaultReads[`${url.pathname}${url.search}`] : undefined;
+    if (defaultRead) return Response.json(defaultRead());
     throw new Error(`Unexpected request: ${method} ${url.pathname}`);
   });
 }

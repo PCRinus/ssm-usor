@@ -1,6 +1,6 @@
-import { createQueryClientDefaults } from '@ssm-usor/spa-runtime/query-client';
+import { createQueryClient } from '@ssm-usor/spa-runtime/query-client';
+import { withoutRetryWait } from '@ssm-usor/spa-runtime/testing/query-client';
 import type { Session } from '@supabase/supabase-js';
-import { QueryClient } from '@tanstack/react-query';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 import { afterEach, beforeEach, expect, vi } from 'vitest';
@@ -57,17 +57,10 @@ export const authClient = {
 
 const runtimes: AdminRuntime[] = [];
 
-function createTestQueryClient() {
-  const defaults = createQueryClientDefaults();
-  return new QueryClient({
-    defaultOptions: { ...defaults, queries: { ...defaults.queries, retryDelay: 0 } },
-  });
-}
-
 export function mountAdmin(path: string, client: AuthClient = authClient) {
   const runtime = createAdminRuntime(
     client,
-    createTestQueryClient(),
+    withoutRetryWait(createQueryClient()),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:5176'
   );

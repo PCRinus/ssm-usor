@@ -1,3 +1,4 @@
+import { withoutRetryWait } from '@ssm-usor/spa-runtime/testing/query-client';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 
@@ -10,13 +11,7 @@ import { runtimes } from './runtimes';
 
 export { disposeRuntimes } from './runtimes';
 
-// Not `retry: false`: a test of a failed read still goes through the app's retries.
-export function createTestQueryClient() {
-  const queryClient = createQueryClient();
-  const defaults = queryClient.getDefaultOptions();
-  queryClient.setDefaultOptions({ ...defaults, queries: { ...defaults.queries, retryDelay: 0 } });
-  return queryClient;
-}
+export const createTestQueryClient = () => withoutRetryWait(createQueryClient());
 
 export function mountApp(client: AuthClient | null, path = '/dashboard') {
   const runtime = createAppRuntime(
