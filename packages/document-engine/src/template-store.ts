@@ -37,7 +37,8 @@ export interface ManifestEntry {
   title: string;
   /** The file's name in its set's folder. */
   file: string;
-  change: Omit<TemplateChange, 'resolves'> & { resolves?: ResolvedLegalChange[] };
+  /** Required of every entry; absent only in a broken manifest, which the manifest tests name. */
+  change?: Omit<TemplateChange, 'resolves'> & { resolves?: ResolvedLegalChange[] };
 }
 
 export interface TemplateEntry extends ManifestEntry {
@@ -58,8 +59,7 @@ export function manifestEntries(
   return sets.flatMap(({ set, folder }) => {
     const { templates } = JSON.parse(
       readFileSync(new URL(`${folder}manifest.json`, base), 'utf8')
-    ) as { templates: (Omit<ManifestEntry, 'change'> & { change: TemplateChange })[] };
-    // An entry without its change still loads, so that the manifest tests name it.
+    ) as { templates: (Omit<ManifestEntry, 'change'> & { change?: TemplateChange })[] };
     return templates.map((entry) => ({
       ...entry,
       set,

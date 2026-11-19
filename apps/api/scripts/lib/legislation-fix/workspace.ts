@@ -32,11 +32,12 @@ export function templatesAt(folder: URL): Templates {
     read: (file) => new Uint8Array(readFileSync(new URL(file, folder))),
     titleOf: (file) => entries().find((entry) => entry.path === file)?.title ?? file,
     resolves: (act, consolidatedOn) =>
-      entries().some((entry) =>
-        (entry.change.resolves ?? []).some(
+      entries().some((entry) => {
+        if (!entry.change) throw new Error(`${entry.path} has no change in its manifest entry.`);
+        return (entry.change.resolves ?? []).some(
           (each) => each.act === act && each.consolidatedOn === consolidatedOn
-        )
-      ),
+        );
+      }),
   };
 }
 
