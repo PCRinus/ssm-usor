@@ -27,15 +27,13 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useIsMutating } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
-  getCreateTrainingMutationKey,
   getGetTrainingQueryKey,
   getListJobPositionsQueryKey,
-  getUpdateTrainingMutationKey,
   type JobPositionListResponseItemsItem,
   type TrainingResponseTraining,
   useCreateTraining,
@@ -55,8 +53,10 @@ import { commonFailure, setApiIssues } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 
 import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
+import { SignerSlot } from './signer-slot';
 import {
   emptySigners,
+  type SlotNameField,
   toTrainingForm,
   toTrainingRequest,
   trainingFormSchema,
@@ -93,10 +93,7 @@ export function TrainingDialog({
   fixedAttendee?: FixedAttendee;
   onClose: () => void;
 }) {
-  const saving =
-    useIsMutating({ mutationKey: getCreateTrainingMutationKey() }) +
-      useIsMutating({ mutationKey: getUpdateTrainingMutationKey() }) >
-    0;
+  const [saving, setSaving] = useState(false);
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && !saving && onClose()}>
       {target && (
@@ -106,6 +103,7 @@ export function TrainingDialog({
           userId={userId}
           target={target}
           fixedAttendee={fixedAttendee}
+          onBusyChange={setSaving}
           onClose={onClose}
         />
       )}
@@ -118,12 +116,14 @@ function TrainingDialogContent({
   userId,
   target,
   fixedAttendee,
+  onBusyChange,
   onClose,
 }: {
   clientId: string;
   userId: string;
   target: TrainingDialogTarget;
   fixedAttendee?: FixedAttendee;
+  onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -176,6 +176,7 @@ function TrainingDialogContent({
       positions={positions.data.items}
       employees={employees.data}
       fixedAttendee={fixedAttendee}
+      onBusyChange={onBusyChange}
       onClose={onClose}
     />
   );
@@ -215,6 +216,7 @@ function TrainingForm({
   positions,
   employees,
   fixedAttendee,
+  onBusyChange,
   onClose,
 }: {
   clientId: string;
@@ -224,6 +226,7 @@ function TrainingForm({
   positions: JobPositionListResponseItemsItem[];
   employees: CurrentEmployee[];
   fixedAttendee?: FixedAttendee;
+  onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -266,23 +269,27 @@ function TrainingForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useEffect(() => {
+    onBusyChange(busy);
+    return () => onBusyChange(false);
+  }, [busy, onBusyChange]);
   const { markTyped, typing, missingMaterial } = useTrainingProposal(form, {
     clientId,
     userId,
     training,
   });
-  const { signerSelect, typingName, slotNames } = useSignerSlots(form, {
-    clientId,
-    userId,
-    training,
-    busy,
-    markTyped,
+  const signerSlots = useSignerSlots(form, { clientId, userId, training });
+  const typingName = (field: SlotNameField) => ({
+    onChange: () => {
+      markTyped(field);
+      signerSlots.nameTyped(field);
+    },
   });
   const [domain, phase, jobPositionId, source] = useWatch({
     control: form.control,
     name: ['domain', 'phase', 'jobPositionId', 'source'],
   });
-  const { verifierName, admittedByName } = slotNames;
+  const { verifierName, admittedByName } = signerSlots.slotNames;
   const signing = source === 'app';
   const fromPaper = source === 'paper';
 
@@ -689,12 +696,17 @@ function TrainingForm({
               {...form.register('trainerJobTitle', typing('trainerJobTitle'))}
             />
           </Field>
-          {signing &&
-            signerSelect(
-              'trainerName',
-              'training-trainer-signer',
-              `Semnatar la „${signerSlotLabels.trainer}”`
-            )}
+          {signing && (
+            <SignerSlot
+              form={form}
+              slots={signerSlots}
+              nameField="trainerName"
+              id="training-trainer-signer"
+              label={`Semnatar la „${signerSlotLabels.trainer}”`}
+              busy={busy}
+              markTyped={markTyped}
+            />
+          )}
           {domain === 'ssm' && (
             <>
               <Field
@@ -733,13 +745,17 @@ function TrainingForm({
                   {...form.register('verifierJobTitle', typing('verifierJobTitle'))}
                 />
               </Field>
-              {signing &&
-                verifierName.trim() &&
-                signerSelect(
-                  'verifierName',
-                  'training-verifier-signer',
-                  `Semnatar la „${signerSlotLabels.verifier}”`
-                )}
+              {signing && verifierName.trim() && (
+                <SignerSlot
+                  form={form}
+                  slots={signerSlots}
+                  nameField="verifierName"
+                  id="training-verifier-signer"
+                  label={`Semnatar la „${signerSlotLabels.verifier}”`}
+                  busy={busy}
+                  markTyped={markTyped}
+                />
+              )}
             </>
           )}
           {phase === 'workplace' && (
@@ -796,14 +812,17 @@ function TrainingForm({
                   {...form.register('admittedByJobTitle', typing('admittedByJobTitle'))}
                 />
               </Field>
-              {signing &&
-                domain === 'ssm' &&
-                admittedByName.trim() &&
-                signerSelect(
-                  'admittedByName',
-                  'training-admitter-signer',
-                  `Semnatar la „${signerSlotLabels.admitter}”`
-                )}
+              {signing && domain === 'ssm' && admittedByName.trim() && (
+                <SignerSlot
+                  form={form}
+                  slots={signerSlots}
+                  nameField="admittedByName"
+                  id="training-admitter-signer"
+                  label={`Semnatar la „${signerSlotLabels.admitter}”`}
+                  busy={busy}
+                  markTyped={markTyped}
+                />
+              )}
             </fieldset>
           )}
           <Field
