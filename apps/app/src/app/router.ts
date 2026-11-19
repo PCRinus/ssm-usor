@@ -32,6 +32,9 @@ declare module '@tanstack/react-router' {
     opener?: number;
     // The path of the record that opened this page, when the page finishes by returning to it.
     openerRecord?: string;
+    // The sidebar entry a client's record was opened from, when it is not Clienți
+    // (`openedFromSection`).
+    section?: string;
     // A code that failed on another page, as when changing the password, shown on the code page.
     codeFailure?: Exclude<VerifyResult, 'verified'>;
   }

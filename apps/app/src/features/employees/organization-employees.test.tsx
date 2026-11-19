@@ -14,7 +14,13 @@ import type {
 import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
-import { clientRecord, documentDetailsRecord, employeeListItem, pageOf } from '@/test/records';
+import {
+  clientRecord,
+  documentDetailsRecord,
+  employeeListItem,
+  employeeRecord,
+  pageOf,
+} from '@/test/records';
 
 const petromId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const navalId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
@@ -147,6 +153,51 @@ describe("the organization's employees", () => {
     mountApp(authFixture(makeSession()).client, '/angajati');
     const [first] = await screen.findAllByTestId('organization-employees-open');
     expect(first!.getAttribute('href')).toBe(`/clienti/${petromId}/angajati/${popescu.id}`);
+  });
+
+  it('keeps Lucrători highlighted in the sidebar on a worker opened from it, across the worker’s tabs', async () => {
+    const workerPath = `/clienti/${petromId}/angajati/${popescu.id}`;
+    mockRoutes((_init, url) => {
+      if (url.pathname === '/employees') return Response.json(page([popescu, taranu]));
+      if (url.pathname === `/clients/${petromId}`) {
+        return Response.json({ client: client(petromId, 'OMV PETROM SA') });
+      }
+      if (url.pathname === `/clients/${petromId}/employees/${popescu.id}`) {
+        return Response.json({
+          employee: employeeRecord({
+            id: popescu.id,
+            clientId: petromId,
+            lastName: 'Popescu',
+            firstName: 'Ion',
+          }),
+        });
+      }
+      if (url.pathname.startsWith(`/clients/${petromId}/`)) {
+        return Response.json({}, { status: 404 });
+      }
+    });
+    const runtime = mountApp(authFixture(makeSession()).client, '/angajati');
+    const user = userEvent.setup();
+    const [first] = await screen.findAllByTestId('organization-employees-open');
+    await user.click(first!);
+    await screen.findByTestId('employee-layout');
+    expect(runtime.router.state.location.pathname).toBe(workerPath);
+    expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
+    expect(screen.getByTestId('nav-clients').getAttribute('aria-current')).toBeNull();
+
+    const tabs = screen.getAllByTestId('employee-section');
+    await user.click(tabs[1]!);
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`${workerPath}/instruire/ssm`)
+    );
+    expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBe('true');
+
+    await user.click(screen.getByTestId('employee-header-client'));
+    await waitFor(() =>
+      expect(runtime.router.state.location.pathname).toBe(`/clienti/${petromId}/angajati`)
+    );
+    expect(screen.getByTestId('nav-clients').getAttribute('aria-current')).toBe('true');
+    expect(screen.getByTestId('nav-employees').getAttribute('aria-current')).toBeNull();
   });
 
   it('puts the search in the URL once typing pauses and starts again from the first page', async () => {

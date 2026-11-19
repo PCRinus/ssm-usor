@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 
 import type { OrganizationEmployeeListResponse } from '@/api/generated/api';
-import { openedHere } from '@/app/opener';
+import { openedFromSection, openedHere } from '@/app/opener';
 import { createDataTableColumns } from '@/components/data-table/columns';
 
 import { workerColumns } from './worker-columns';
@@ -9,7 +9,10 @@ import { workerColumns } from './worker-columns';
 export type OrganizationEmployeeRow = OrganizationEmployeeListResponse['items'][number];
 
 const helper = createDataTableColumns<OrganizationEmployeeRow>();
-const columns = workerColumns<OrganizationEmployeeRow>('organization-employees');
+const columns = workerColumns<OrganizationEmployeeRow>(
+  'organization-employees',
+  openedFromSection('/angajati')
+);
 
 const clientColumn = helper.accessor((row) => row.client.name, {
   id: 'client',
