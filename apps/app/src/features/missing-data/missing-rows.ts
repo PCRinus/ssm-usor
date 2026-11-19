@@ -1,4 +1,5 @@
 import {
+  capitalized,
   countOf,
   type DocumentSet,
   type JobPositionDecision,
@@ -192,7 +193,7 @@ function incompleteSubstancesDetail(substances: readonly IncompleteFireSubstance
     return [`${label} ${names.length === 1 ? 'substanței' : 'substanțelor'} ${joinNames(names)}`];
   });
   const text = phrases.join('; ');
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
+  return `${capitalized(text)}.`;
 }
 
 type DocumentContext = {

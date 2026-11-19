@@ -1,13 +1,19 @@
+import type { HelpTopic } from '@ssm-usor/help-topics/topics';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, LoaderCircle, LockKeyhole, RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { ImportDetail, ImportLibraryPartsResponse } from '@/api/generated/api';
+import { TitleWithBack } from '@/components/back-link';
+import { HelpLink } from '@/components/help-link';
 import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 
+import { ImportOverviewBack } from '../import-back';
 import { creditsLabel } from '../import-credits';
+import { ReportImportButton } from '../report-import-button';
+import { PartStatusTag } from './library-group';
 import { libraryDay, type LibraryPost } from './library-model';
 import { useLibraryParts } from './use-library-parts';
 
@@ -67,6 +73,40 @@ export function PartTaskLoader<P extends AnyPart>({
         children(part, query.data?.posts ?? [], back)
       )}
       {(query.isError || !part) && <div className="justify-self-start">{back}</div>}
+    </div>
+  );
+}
+
+export function PartTaskHeader({
+  importId,
+  part,
+  title,
+  name,
+  helpTopic,
+  helpLabel,
+}: {
+  importId: string;
+  part: AnyPart;
+  title: string;
+  name: string;
+  helpTopic: HelpTopic;
+  helpLabel: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <TitleWithBack className="max-w-3xl" back={<ImportOverviewBack importId={importId} />}>
+        <div className="grid gap-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+            <PartStatusTag part={part} />
+            <HelpLink topic={helpTopic} label={helpLabel} />
+          </div>
+          <p className="text-sm text-muted-foreground">{name}</p>
+        </div>
+      </TitleWithBack>
+      <div className="flex flex-wrap items-center gap-3">
+        <ReportImportButton importId={importId} part={part.part} />
+      </div>
     </div>
   );
 }

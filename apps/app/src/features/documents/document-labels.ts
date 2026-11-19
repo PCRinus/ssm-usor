@@ -1,5 +1,6 @@
 import {
   type BuiltInDocumentTypeKey,
+  capitalized,
   type DatedDocumentTypeKey,
   fireSafetyDocumentTitles,
   type FireSafetyTypeKeyFromTenEmployees,
@@ -87,8 +88,6 @@ function named(typeKeys: readonly FireSafetyTypeKeyFromTenEmployees[]) {
   return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} și ${names.at(-1)}`;
 }
 
-const sentence = (text: string) => text.charAt(0).toLocaleUpperCase('ro') + text.slice(1);
-
 /**
  * What the employee count means for the fire-safety documents required from ten employees
  * (ADR 020), said where documents are generated and on the rows that do not apply.
@@ -119,7 +118,7 @@ export function fireSafetyHeadcountRule(
   ) => (typeKeys.length === 1 && typeKeys[0] !== 'fire_maintenance_schedules' ? singular : plural);
   const kept =
     generated.length > 0
-      ? ` ${sentence(named(generated))} există deja și ${one(generated, 'rămâne', 'rămân')} în documentație, deși ${one(generated, 'se cere', 'se cer')} doar de la 10 lucrători.`
+      ? ` ${capitalized(named(generated))} există deja și ${one(generated, 'rămâne', 'rămân')} în documentație, deși ${one(generated, 'se cere', 'se cer')} doar de la 10 lucrători.`
       : '';
   return lacking.length > 0
     ? `${count}, așa că ${named(lacking)} nu se generează. ${one(lacking, 'Se cere', 'Se cer')} de la 10 lucrători.${kept}`

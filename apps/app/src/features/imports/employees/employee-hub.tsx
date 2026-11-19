@@ -9,6 +9,7 @@ import type { ImportDetail } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
 import { BackLink, TitleWithBack } from '@/components/back-link';
 import { ClientFact } from '@/features/clients/client-fact';
+import { shortDayMonthFormat } from '@/lib/dates';
 
 import { AbandonImportDialog } from '../abandon-import-dialog';
 import { ImportActionBar } from '../import-action-bar';
@@ -25,8 +26,6 @@ import { UnplacedPages, unplacedSectionId } from './unplaced-pages';
 import { useReviewContext } from './use-review-context';
 
 type Issue = { section: string; tone: 'destructive' | 'warning'; count: string; rest: string };
-
-const dayMonth = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short' });
 
 export function EmployeeHub({
   detail,
@@ -165,7 +164,7 @@ export function EmployeeHub({
             </Fact>
             {detail.expiresAt && (
               <Fact icon={Clock}>
-                Se păstrează până pe {dayMonth.format(new Date(detail.expiresAt))}
+                Se păstrează până pe {shortDayMonthFormat.format(new Date(detail.expiresAt))}
               </Fact>
             )}
           </Facts>

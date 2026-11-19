@@ -210,12 +210,11 @@ export function DeleteClientFileDialog({
     file && (
       <ConfirmDialog
         open
-        busy={remove.isPending}
         testId="client-file-delete"
         title="Ștergi fișierul?"
         confirmLabel="Șterge definitiv"
         pendingLabel="Se șterge…"
-        onConfirm={() => void deleteFile(file)}
+        onConfirm={() => deleteFile(file)}
         onClose={onClose}
       >
         <span className="wrap-anywhere">

@@ -1,8 +1,6 @@
-import { sortOrderSchema } from '@ssm-usor/contracts';
-import { z } from 'zod';
-
 import type { InvitationResponse, OrganizationMemberListResponse } from '@/api/generated/api';
 import type { DataTableSort } from '@/components/data-table/columns';
+import { listSortSearchSchema } from '@/components/list-filters/use-list-search';
 
 export type Member = OrganizationMemberListResponse['items'][number];
 
@@ -18,10 +16,7 @@ export const defaultTeamSort: DataTableSort & { sort: TeamSortKey } = {
 };
 
 // The team is read whole, so it sorts here; the address keeps the choice as on every list.
-export const teamListSearch = {
-  sort: z.enum(teamSortKeys).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
-};
+export const teamListSearch = listSortSearchSchema(teamSortKeys).shape;
 
 export type TeamListSearch = {
   sort?: TeamSortKey;

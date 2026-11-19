@@ -78,12 +78,10 @@ export function RiskFactorsCard({
 }) {
   const [editing, setEditing] = useState<FactorEditing>(null);
   const [removing, setRemoving] = useState<RiskFactor | null>(null);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function removeFactor(factor: RiskFactor) {
     setError(null);
-    setPending(true);
     try {
       await store.remove(factor.id);
       toast.success('Factorul a fost șters.');
@@ -96,7 +94,6 @@ export function RiskFactorsCard({
       );
       await store.refresh();
     }
-    setPending(false);
     setRemoving(null);
   }
 
@@ -165,12 +162,11 @@ export function RiskFactorsCard({
       {removing && (
         <ConfirmDialog
           open
-          busy={pending}
           testId="risk-factor-remove"
           title="Ștergi factorul de risc?"
           confirmLabel="Șterge"
           pendingLabel="Se șterge…"
-          onConfirm={() => void removeFactor(removing)}
+          onConfirm={() => removeFactor(removing)}
           onClose={() => setRemoving(null)}
         >
           <span className="font-medium text-foreground">{removing.description}</span> și măsurile

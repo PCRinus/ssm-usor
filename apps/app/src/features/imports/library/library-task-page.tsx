@@ -9,16 +9,12 @@ import { Link } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { TitleWithBack } from '@/components/back-link';
-import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { invalidateLibrary } from '@/features/instructions/instruction-schema';
 import { scrollAndFocus } from '@/features/missing-data/focus';
 
 import { ImportActionBar } from '../import-action-bar';
-import { ImportOverviewBack } from '../import-back';
 import { ImportIssueBadge } from '../import-review-issues';
-import { ReportImportButton } from '../report-import-button';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from '../source-query';
 import { BodyEditDialog, type BodyRequest } from './body-edit-dialog';
@@ -47,7 +43,7 @@ import {
   unreadReason,
   withChange,
 } from './library-model';
-import { PartStateNotices, PartTaskLoader, ReviewNotices } from './part-task';
+import { PartStateNotices, PartTaskHeader, PartTaskLoader, ReviewNotices } from './part-task';
 import { PostsPickerDialog, type PostsRequest, type UndecidedNote } from './posts-picker-dialog';
 import { useLibraryReview } from './use-library-parts';
 import { partConfirmNote, partConfirmReasons, usePartConfirm } from './use-part-confirm';
@@ -188,24 +184,14 @@ function TaskContent({
   return (
     <SourcePrefetchContext value={prefetchSource}>
       <div ref={root} className="grid gap-6" data-testid="library-task" data-part={part.part}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <TitleWithBack className="max-w-3xl" back={<ImportOverviewBack importId={detail.id} />}>
-            <div className="grid gap-1">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <h1 className="text-3xl font-semibold tracking-tight">{label}</h1>
-                <PartStatusTag part={part} />
-                <HelpLink
-                  topic="import.instructiuni-proprii"
-                  label="Ajutor: instrucțiunile din import"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">{name}</p>
-            </div>
-          </TitleWithBack>
-          <div className="flex flex-wrap items-center gap-3">
-            <ReportImportButton importId={detail.id} part={part.part} />
-          </div>
-        </div>
+        <PartTaskHeader
+          importId={detail.id}
+          part={part}
+          title={label}
+          name={name}
+          helpTopic="import.instructiuni-proprii"
+          helpLabel="Ajutor: instrucțiunile din import"
+        />
 
         <PartStateNotices
           part={part}

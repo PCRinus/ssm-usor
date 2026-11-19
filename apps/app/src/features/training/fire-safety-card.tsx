@@ -25,6 +25,7 @@ import {
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
+import { describedBy } from '@/components/described-by';
 import { Field } from '@/components/form-field';
 import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
@@ -33,7 +34,6 @@ import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import {
   type ClientSummary,
-  describedBy,
   useDocumentDetails,
 } from '@/features/clients/document-details/use-document-details-form';
 import { appliesAt } from '@/features/documents/document-labels';

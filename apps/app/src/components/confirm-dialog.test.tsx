@@ -75,7 +75,6 @@ describe('ConfirmDialog', () => {
     render(
       <ConfirmDialog
         open
-        busy={false}
         testId="thing-delete"
         title="Ștergi?"
         confirmLabel="Șterge"
@@ -102,6 +101,46 @@ describe('ConfirmDialog', () => {
     await waitFor(() => expect(confirm.textContent).toBe('Șterge'));
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('opens again ready while the last confirm still refreshes', async () => {
+    let finish: () => void = () => undefined;
+    function Flow() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Din nou
+          </button>
+          <ConfirmDialog
+            open={open}
+            testId="thing-delete"
+            title="Ștergi?"
+            confirmLabel="Șterge"
+            pendingLabel="Se șterge…"
+            onConfirm={async () => {
+              setOpen(false);
+              await new Promise<void>((resolve) => {
+                finish = resolve;
+              });
+            }}
+            onClose={() => setOpen(false)}
+          >
+            Nu se poate anula.
+          </ConfirmDialog>
+        </>
+      );
+    }
+    render(<Flow />);
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId('thing-delete-confirm'));
+    await waitFor(() => expect(screen.queryByTestId('thing-delete-dialog')).toBeNull());
+
+    await user.click(screen.getByRole('button', { name: 'Din nou' }));
+    const confirm = await screen.findByTestId<HTMLButtonElement>('thing-delete-confirm');
+    expect(confirm.textContent).toBe('Șterge');
+    expect(confirm.disabled).toBe(false);
+    finish();
   });
 
   it('closes on Escape when nothing runs', async () => {

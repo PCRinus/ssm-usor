@@ -48,7 +48,6 @@ export function DeleteQuestionDialog({
     question && (
       <ConfirmDialog
         open
-        busy={remove.isPending}
         error={error}
         testId="test-question-delete"
         title="Ștergi întrebarea?"
