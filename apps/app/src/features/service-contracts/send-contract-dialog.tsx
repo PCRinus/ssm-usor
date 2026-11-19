@@ -11,12 +11,12 @@ import {
 import { Input } from '@ssm-usor/ui/components/input';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { type ServiceContractResponse, useSendServiceContract } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -50,8 +50,8 @@ export function SendContractDialog({
   onClose: () => void;
   onSent: (response: ServiceContractResponse) => Promise<void>;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const send = useSendServiceContract({ request: wordingRefusalHere(apiRequest) });
+  const { request } = useApi();
+  const send = useSendServiceContract({ request: wordingRefusalHere(request) });
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     values: { to: contactEmail ?? '', note: '' },

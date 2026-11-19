@@ -1,7 +1,7 @@
 import { fileAddress } from '@ssm-usor/api-http/file-link';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useQuery } from '@tanstack/react-query';
-import { getRouteApi, useRouteContext } from '@tanstack/react-router';
+import { getRouteApi } from '@tanstack/react-router';
 import { type MouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
@@ -11,6 +11,7 @@ import {
   useUploadContractReturn,
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { PublicFrame } from '@/app/public-frame';
 import { Notice } from '@/components/notice';
 import { formatRoDate } from '@/lib/dates';
@@ -40,11 +41,11 @@ function WriteTo({ contract }: { contract: ContractReturnResponse }) {
 
 export function ContractReturnPage() {
   const { token } = contractReturnRoute.useSearch();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const lookup = useQuery({
     queryKey: ['contract-return', token],
-    queryFn: ({ signal }) => lookupContractReturn({ token: token! }, { ...apiRequest, signal }),
-    enabled: Boolean(token && apiRequest.baseUrl),
+    queryFn: ({ signal }) => lookupContractReturn({ token: token! }, { ...request, signal }),
+    enabled: Boolean(token && request.baseUrl),
     retry: false,
     staleTime: Infinity,
   });
@@ -57,7 +58,7 @@ export function ContractReturnPage() {
       />
     );
   }
-  if (lookup.isError || !apiRequest.baseUrl) {
+  if (lookup.isError || !request.baseUrl) {
     return (
       <Frame
         title="Nu am putut încărca contractul"
@@ -157,8 +158,8 @@ function ReturnForm({
   onChanged: () => void;
   onDone: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const upload = useUploadContractReturn({ request: apiRequest });
+  const { request } = useApi();
+  const upload = useUploadContractReturn({ request });
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +169,7 @@ function ReturnForm({
   // stays in request bodies (ADR 003), so the link is a signed one, renewed before it expires.
   const link = useQuery({
     queryKey: ['contract-return-link', token],
-    queryFn: ({ signal }) => downloadContractReturn({ token }, { ...apiRequest, signal }),
+    queryFn: ({ signal }) => downloadContractReturn({ token }, { ...request, signal }),
     retry: false,
     refetchInterval: (query) =>
       Math.max((query.state.data?.expiresInSeconds ?? 600) - 60, 30) * 1_000,
@@ -188,7 +189,7 @@ function ReturnForm({
     event.preventDefault();
     const refreshed = await link.refetch();
     if (refreshed.isSuccess) {
-      window.location.assign(fileAddress(apiRequest.baseUrl, refreshed.data, 'inline'));
+      window.location.assign(fileAddress(request.baseUrl, refreshed.data, 'inline'));
     }
   }
 
@@ -250,7 +251,7 @@ function ReturnForm({
               <Button asChild variant="secondary">
                 <a
                   data-testid="return-download"
-                  href={fileAddress(apiRequest.baseUrl, link.data, 'inline')}
+                  href={fileAddress(request.baseUrl, link.data, 'inline')}
                   onClick={(event) => void openFresh(event)}
                 >
                   Deschideți PDF-ul

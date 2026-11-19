@@ -1,8 +1,8 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
 import { getGetServiceContractQueryKey, useGetServiceContract } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { backGap } from '@/components/back-gap';
 import { DocumentEditorView } from '@/features/documents/document-editor-page';
 
@@ -11,21 +11,19 @@ import { DocumentEditorView } from '@/features/documents/document-editor-page';
 export function ServiceContractEditor({
   clientId,
   companyName,
-  userId,
   readOnly,
   readOnlyReason,
   back,
 }: {
   clientId: string;
   companyName: string;
-  userId: string;
   readOnly: boolean;
   readOnlyReason?: { label: string; title: string };
   back: ReactNode;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const queryKey = [...getGetServiceContractQueryKey(clientId), userId];
-  const contract = useGetServiceContract(clientId, { request: apiRequest, query: { queryKey } });
+  const { request, queryClient, key } = useApi();
+  const queryKey = key(getGetServiceContractQueryKey(clientId));
+  const contract = useGetServiceContract(clientId, { request, query: { queryKey } });
   return (
     <DocumentEditorView
       readOnly={readOnly}

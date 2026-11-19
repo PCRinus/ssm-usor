@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -12,6 +11,7 @@ import {
   useGetServiceContract,
   useSaveServiceContract,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import type { Client } from '@/features/clients/client-form-schema';
@@ -51,11 +51,11 @@ export function ServiceContractCard({
   editor: (children: ReactNode, testId: string) => ReactNode;
   focus?: ContractFocus;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const queryKey = [...getGetServiceContractQueryKey(client.id), userId];
+  const { request, key } = useApi();
+  const queryKey = key(getGetServiceContractQueryKey(client.id));
   // Fetched again every time the card shows: the missing data is filled in on other pages.
   const contract = useGetServiceContract(client.id, {
-    request: apiRequest,
+    request,
     query: { queryKey, staleTime: 0 },
   });
 
@@ -115,8 +115,8 @@ function ServiceContractBody({
   readOnly: boolean;
   editor: (children: ReactNode, testId: string) => ReactNode;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const save = useSaveServiceContract({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const save = useSaveServiceContract({ request });
   const startWayBack = useStartWayBack();
   const [error, setError] = useState<string | null>(null);
   const form = useForm<ServiceContractFormValues>({
