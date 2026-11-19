@@ -1,27 +1,34 @@
-import { extractionRefused, type ExtractorService } from '@ssm-usor/contracts';
+import { extractionRefused, type ExtractorService, importLimits } from '@ssm-usor/contracts';
 import {
   createModelClient,
   type EmployeeImportClient,
   employeeImportProposalSchema,
+  GatewayError,
   instructionsProposalSchema,
   type LibraryModule,
+  ModelAnswerError,
   proposalSchema,
   risksProposalSchema,
 } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { strFromU8, strToU8, zipSync } from 'fflate';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AlertMessage } from '../../lib/alerts';
 import { sha256 } from '../../lib/docx';
 import type { ImportMessage } from '../../lib/env';
+import { ApiError } from '../../lib/errors';
 import { cleanUpImports, cleanUpLine } from './cleanup';
-import { libraryReasons, riskReasons } from './library';
+import { libraryFailureReason, libraryReasons, riskFailureReason, riskReasons } from './library';
 import {
   fileReasons,
+  ImportFailure,
+  importFailureReason,
   importReasons,
   maxReadingCharacters,
   maxReadWaits,
   type PipelineDeps,
+  readingCapBreach,
   tooMuchText,
 } from './pipeline';
 import {
@@ -437,22 +444,6 @@ const extractor = {
 
 const quoted = (file: string, quote: string) => ({ file, quote, otherCompany: '' });
 
-const emptyReading = {
-  facts: [],
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositionFacts: [],
-  jobPositions: [],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-};
-
 const answers = {
   sorting: {
     files: [
@@ -494,7 +485,7 @@ const answers = {
     ],
   },
   documents: {
-    ...emptyReading,
+    ...emptyReading(),
     facts: [
       {
         field: 'client.legalName',
@@ -547,7 +538,7 @@ const answers = {
     ],
   },
   scannedPage: {
-    ...emptyReading,
+    ...emptyReading(),
     facts: [
       {
         field: 'client.legalRepresentativeRole',
@@ -557,7 +548,7 @@ const answers = {
     ],
   },
   photo: {
-    ...emptyReading,
+    ...emptyReading(),
     fireInstallations: [
       {
         workplace: 'Sediu',
@@ -1233,6 +1224,26 @@ describe('tooMuchText', () => {
     expect(tooMuchText([{ name, characters: maxReadingCharacters + 1 }])).toBe(
       `Documentele au cu 1% mai mult text decât încape într-un import. Tot textul este în „${name.slice(0, 59)}…”.`
     );
+  });
+});
+
+describe('readingCapBreach', () => {
+  const file = (characters: number, scannedPages: number) => ({
+    name: 'Dosar.pdf',
+    characters,
+    scannedPages,
+  });
+
+  it('counts the text first, then the scanned pages of the kind', () => {
+    const scans = importLimits.client.scannedPages;
+
+    expect(readingCapBreach([file(1_000, scans)], 'client')).toBeNull();
+    expect(readingCapBreach([file(1_000, scans), file(0, 1)], 'client')).toEqual({ cap: 'scans' });
+    expect(readingCapBreach([file(1_000, scans), file(0, 1)], 'employees')).toBeNull();
+    expect(readingCapBreach([file(maxReadingCharacters + 1, scans + 1)], 'client')).toEqual({
+      cap: 'text',
+      reason: tooMuchText([file(maxReadingCharacters + 1, 0)]),
+    });
   });
 });
 
@@ -2982,5 +2993,33 @@ describe('what a reading leaves (ADR 037)', () => {
       'Stuck',
       'Abandoned after a reading',
     ]);
+  });
+});
+
+describe('failure reasons', () => {
+  const none = { input: 0, cachedInput: 0, output: 0 };
+  const answered = (reason: 'refused' | 'incomplete') =>
+    new ModelAnswerError('no answer', reason, none, 0);
+
+  it('names each reading’s own refusal, failed answer and error, and the gateway as unavailable', () => {
+    for (const [reasonOf, reasons] of [
+      [importFailureReason, importReasons],
+      [libraryFailureReason, libraryReasons],
+      [riskFailureReason, riskReasons],
+    ] as const) {
+      expect(reasonOf(new ImportFailure('Motivul'))).toBe('Motivul');
+      expect(reasonOf(answered('refused'))).toBe(reasons.modelRefused);
+      expect(reasonOf(answered('incomplete'))).toBe(reasons.modelFailed);
+      expect(reasonOf(new GatewayError('down', 503, none, 0))).toBe(importReasons.unavailable);
+      expect(reasonOf(new Error('boom'))).toBe(reasons.failed);
+    }
+  });
+
+  it('takes an unavailable database as the service not answering for the import, not for its library parts', () => {
+    const down = new ApiError('service_unavailable');
+
+    expect(importFailureReason(down)).toBe(importReasons.unavailable);
+    expect(libraryFailureReason(down)).toBe(libraryReasons.failed);
+    expect(riskFailureReason(down)).toBe(riskReasons.failed);
   });
 });

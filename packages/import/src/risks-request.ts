@@ -9,7 +9,13 @@ import { z } from 'zod';
 
 import { type CompletionRequest, ModelAnswerError } from './gateway';
 import { risksModel } from './models';
-import { type ChatMessage, type ContentPart, dataNotInstructions, fileHeader } from './prompts';
+import {
+  type ChatMessage,
+  type ContentPart,
+  dataNotInstructions,
+  fileHeader,
+  listMessage,
+} from './prompts';
 import { classOf } from './risks-read';
 import { hasRows, type NumberedRows, numberRows, type RisksTextFile } from './risks-rows';
 import { type AnswerFormat, answerFormat } from './wire';
@@ -201,19 +207,12 @@ const rowsParagraph = `Each table row of a Word file stands on one line, its id 
 
 const quoteParagraph = `startWords and endWords are 4 to 12 words copied character for character from the file, with numbers, punctuation and missing diacritics as they stand: code searches the file for them. Never shorten, correct or join words from different places. "" when the text is not in the file.`;
 
-function postList(posts: readonly string[]) {
-  return posts.length > 0
-    ? posts.map((post) => `- ${post}`).join('\n')
-    : '(the proposal has no posts)';
-}
-
-function rulesPrompt(posts: readonly string[]) {
-  return `${rowsParagraph}
+const rulesPrompt = `${rowsParagraph}
 
 sheets: one per evaluation sheet ("Fișa de evaluare a locului de muncă"), in the order of the files. The method's chapters, the annexes, the ranking tables ("Ierarhizarea riscurilor"), the global levels and the conclusions are never sheets. A subchapter whose evaluation has no factor table is not a sheet.
 - file: the path exactly as given. heading: the sheet's subchapter heading as written, with the workplace and the post ("SUBCAPITOLUL V.II. … PENTRU LOCUL DE MUNCĂ : RESTAURANT, POSTUL DE LUCRU : BUCATAR").
 - kind: sensitive_groups for the sensitive groups (grupuri sensibile: pregnant women, young people, people with disabilities); other for a sheet that evaluates no post of the client but people or an activity, such as visitors (vizitator); job_position otherwise. name: the post, the groups or the other name as the heading writes it ("BUCATAR", "GRUPURI SENSIBILE", "VIZITATOR").
-- posts: for job_position, every post of the list below that the sheet evaluates, written as the list writes it. A heading that names several posts ("DIRECTOR GENERAL, DIRECTOR COMERCIAL, CONTABIL") gives each of them that the list has. [] when the list has none of them, and for the other kinds.
+- posts: for job_position, every post of the list in the message just after this one that the sheet evaluates, written as the list writes it. A heading that names several posts ("DIRECTOR GENERAL, DIRECTOR COMERCIAL, CONTABIL") gives each of them that the list has. [] when the list has none of them, and for the other kinds.
 - workName: for job_position, the name an SSM specialist would give this evaluation in a library of evaluations reused at other employers: the work it evaluates, not the post's title, in Romanian with diacritics, sentence case, 2 to 5 words ("Activități de birou", "Lucrări de sudură", "Întreținere spații verzi"). Never the client's name, a person's name, a brand or an address. Every sheet gets its own: two sheets never share a name, so a name tells apart sheets whose work is alike ("Livrări cu autoutilitara", "Livrări cu bicicleta"). "" for the other kinds.
 - firstRow, lastRow: the ids of the sheet's first and last factor rows, the rows with a description and classes; never the table's title rows, its header or its row of column numbers ("| 0 | 1 | 2 | …"). "" for a sheet with no numbered rows.
 - columns: which cell of a factor row holds the component (Mijloace de producție, Mediul de muncă, Sarcina de muncă, Executant), the group of factors ("Factori de risc mecanic"), the factor's description, the maximum foreseeable consequence, the gravity class, the probability class and the printed risk level; "" when the table has no such column, and for a sheet with no numbered rows.
@@ -230,24 +229,18 @@ measures: one entry per row of each sheet's measures table ("Fișa de măsuri pr
 planTables: each table of the prevention and protection plan: its file, the ids of its first and last rows below the header, and which cell holds the post (loc de muncă / post de lucru), the evaluated risk, the technical, organizational, hygienic-sanitary and other measures, the actions to carry them out, the deadline, the person responsible and the observations; "" for a column the table lacks.
 
 plan: one entry per plan row below the header.
-- row: its id. factorRows: the ids of the factor rows of the sheets that the row's risk is, on the sheet of the row's post: the post is written on the first row of each post's block and left empty below it. The plan retypes the risk without its code and often in other words; a row that names two risks ("… / …") gives both. [] when the risk is none of the sheet's factors.
+- row: its id. factorRows: the ids of the factor rows of the sheets that the row's risk is, on the sheet of the row's post: the post is written on the first row of each post's block and left empty below it. The plan retypes the risk without its code and often in other words; a row that names two risks ("… / …") gives both. [] when the risk is none of the sheet's factors.`;
 
-The client's posts:
-${postList(posts)}`;
-}
+const postsMessage = (posts: readonly string[]) =>
+  listMessage("The client's posts:", posts, '(the proposal has no posts)');
 
-function retypeRulesPrompt(headings: readonly string[]) {
-  return `${rowsParagraph}
+const retypeRulesPrompt = `${rowsParagraph}
 
-sheets: the evaluation sheets below, which have no numbered rows, in this order, each with its file as given and its heading as below.
+sheets: the evaluation sheets listed in the message just after this one, which have no numbered rows, in that order, each with its file as given and its heading as listed.
 - factors: each factor row of its table written out: component and group as the row or the rows above it give them, description without its "F12." code, consequence, gravity, probability and level as printed (digits), and quote: the row's text as it stands in the file, at most 200 characters. One entry per row, with the row's own words and digits: never a summary of the table, a range of rows or a description of its columns.
 - measures: the factor's prevention measures, each its own entry, in the document's words as they stand, never shortened, joined or reworded, with its kind. Take them from the prevention and protection plan's row for the factor, in the block of the sheet's post (the plan writes the risk without its code and often in other words; a row that names two risks belongs to both, and a factor with two rows takes both), each with its column's kind: technical, organizational, hygienic_sanitary, other. For a factor the plan has no row for, or when the files hold no plan, take them from the factor's row of the sheet's measures table ("Fișa de măsuri propuse", by its "F12." code), each with the kind its label gives ("Măsuri tehnice:", "Măsuri organizatorice:"), or where the text has no labels: technical for equipment, installations, protections and checks of them; organizational for training, instructions, rules, supervision and work organization; hygienic_sanitary for medical checks, first aid, hygiene and drinking water; other for protective equipment and anything else. [] when neither gives the factor any: never a measure of another factor, a general measure of the workplace or one of your own, and never a placeholder ("--").
 - measuresFrom: plan or sheet, where the factor's measures come from; "" when it has none.
-- actions, deadline, responsiblePerson, observations: the plan row's actions to carry out the measures, its deadline, the person who answers for them and its observations, as written; "" when the factor has no plan row or the row leaves the cell empty or "--".
-
-The sheets:
-${headings.map((heading) => `- ${heading}`).join('\n')}`;
-}
+- actions, deadline, responsiblePerson, observations: the plan row's actions to carry out the measures, its deadline, the person who answers for them and its observations, as written; "" when the factor has no plan row or the row leaves the cell empty or "--".`;
 
 export function risksInputCharacters(files: readonly RisksTextFile[]) {
   return files.reduce((sum, file) => sum + file.text.length, 0);
@@ -276,7 +269,8 @@ export function risksMessages(input: RisksRequestInput, numbered = numberRows(in
   return [
     { role: 'system', content: risksSystemPrompt },
     filesMessage(input.files, numbered),
-    { role: 'system', content: rulesPrompt(input.posts) },
+    { role: 'system', content: rulesPrompt },
+    postsMessage(input.posts),
   ] satisfies ChatMessage[];
 }
 
@@ -356,7 +350,12 @@ export function retypeRequest(
     messages: [
       { role: 'system', content: risksSystemPrompt },
       filesMessage(input.files, numbered),
-      { role: 'system', content: retypeRulesPrompt(sheets.map((sheet) => sheet.heading)) },
+      { role: 'system', content: retypeRulesPrompt },
+      listMessage(
+        'The sheets:',
+        sheets.map((sheet) => sheet.heading),
+        ''
+      ),
     ],
     answer: retypedAnswer,
     reasoningEffort: 'medium',

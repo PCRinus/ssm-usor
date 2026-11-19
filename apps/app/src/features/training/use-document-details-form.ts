@@ -11,6 +11,7 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   documentDetailsFormSchema,
@@ -96,11 +97,10 @@ export function useDocumentDetailsForm({
     } catch (cause) {
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 404
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 404
             ? 'Clientul nu mai există în organizația ta.'
-            : cause instanceof ApiHttpError && cause.status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut salva datele. Verifică conexiunea și încearcă din nou.',
+            : 'Nu am putut salva datele. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

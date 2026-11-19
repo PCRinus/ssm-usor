@@ -7,7 +7,6 @@ import {
 import {
   type CompletionRequest,
   DocxReadError,
-  GatewayError,
   type InstructionsAnswer,
   instructionsCharacters,
   type InstructionsFile,
@@ -15,7 +14,6 @@ import {
   InstructionsTooLargeError,
   judgements,
   libraryTitle,
-  ModelAnswerError,
   pairsToJudge,
   type Proposal,
   proposalSchema,
@@ -39,19 +37,22 @@ import {
 
 import { alertImport, importEnded } from './import-alerts';
 import {
+  failureReasonOf,
+  ImportFailure,
+  isTransient,
+  meteredCompletion,
+  type PipelineDeps,
+} from './pipeline';
+import {
   claimed,
   dataUrl,
-  ImportFailure,
-  importReasons,
   isImage,
   isLibraryFile,
   isRiskFile,
-  isTransient,
   loadPrepared,
   pageImage,
   pageLabel,
-  type PipelineDeps,
-} from './pipeline';
+} from './pipeline-files';
 import { instructionsReadingFlags, risksReadingFlags } from './reading-flags';
 import { readingVersion } from './reading-version';
 import { existingByPostName } from './risk-sheets';
@@ -126,39 +127,22 @@ async function themesFile(deps: PipelineDeps, file: ImportFileRow) {
   return text.trim() ? { path: file.upload_path, text } : null;
 }
 
-async function askForPart<T>(
+const askForPart = <T>(
   deps: PipelineDeps,
   row: ImportRow,
   part: ImportLibraryPart,
   request: Omit<CompletionRequest<T>, 'metadata'>
-): Promise<T> {
-  if (!deps.model) throw new ImportFailure(importReasons.notConfigured);
-  const record = async (
-    usage: { input: number; cachedInput: number; output: number },
-    cost: number
-  ) => {
-    if (usage.input + usage.cachedInput + usage.output === 0) return;
-    // Paying for a request twice is worse than a missing count, so a failure here is not retried.
-    await deps.store
-      .recordLibraryPartUsage(row.id, part, usage, cost)
-      .catch((error: unknown) =>
-        console.error(`Usage of library part ${part} of import ${row.id} was not recorded.`, error)
-      );
-  };
-  try {
-    const completion = await deps.model.complete({
-      ...request,
-      metadata: { organizationId: row.organization_id, importId: row.id, part },
-    });
-    await record(completion.usage, completion.cost);
-    return completion.value;
-  } catch (error) {
-    if (error instanceof GatewayError || error instanceof ModelAnswerError) {
-      await record(error.usage, error.cost);
-    }
-    throw error;
-  }
-}
+) =>
+  meteredCompletion(
+    deps,
+    row,
+    {
+      subject: `library part ${part} of import ${row.id}`,
+      record: (usage, cost) => deps.store.recordLibraryPartUsage(row.id, part, usage, cost),
+      part,
+    },
+    request
+  );
 
 const companySuffix =
   /[\s,]+(?:S\.?\s?C\.?|S\.?\s?R\.?\s?L\.?(?:-?D)?|S\.?\s?A\.?|P\.?\s?F\.?\s?A\.?|I\.?\s?I\.?)\s*$/iu;
@@ -200,6 +184,20 @@ export function clientPeople(proposal: Proposal) {
   ].filter((name) => name.trim() !== '');
 }
 
+async function claimReadingPart(
+  deps: PipelineDeps,
+  importId: string,
+  part: ImportLibraryPart,
+  attempt: number,
+  owner: string
+): Promise<ImportRow | null> {
+  const row = await deps.store.getImport(importId);
+  if (!row || (row.status !== 'ready' && row.status !== 'confirmed')) return null;
+  const current = await deps.store.getLibraryPart(importId, part);
+  if (!current || current.status !== 'reading' || current.attempt !== attempt) return null;
+  return (await claimed(deps, pathOf(row, `${part}.${attempt}.claim.json`), owner)) ? row : null;
+}
+
 async function keptAnswer<T>(
   deps: PipelineDeps,
   row: ImportRow,
@@ -238,11 +236,8 @@ export async function readInstructions(
   attempt: number,
   owner: string
 ) {
-  const row = await deps.store.getImport(importId);
-  if (!row || (row.status !== 'ready' && row.status !== 'confirmed')) return;
-  const current = await deps.store.getLibraryPart(importId, part);
-  if (!current || current.status !== 'reading' || current.attempt !== attempt) return;
-  if (!(await claimed(deps, pathOf(row, `${part}.${attempt}.claim.json`), owner))) return;
+  const row = await claimReadingPart(deps, importId, part, attempt, owner);
+  if (!row) return;
 
   const domain = instructionsPartDomains[part];
   const all = await deps.store.listFiles(importId);
@@ -311,13 +306,10 @@ export async function readInstructions(
   if (done) await alertImport(deps, importId, part, ['read']);
 }
 
-export function libraryFailureReason(error: unknown): string {
-  if (error instanceof ImportFailure) return error.reason;
-  if (error instanceof ModelAnswerError) {
-    return error.reason === 'refused' ? libraryReasons.modelRefused : libraryReasons.modelFailed;
-  }
-  if (error instanceof GatewayError) return importReasons.unavailable;
-  return libraryReasons.failed;
+// A function, not a value made at load: pipeline.ts reaches this module through import-alerts.ts
+// before its own exports are set.
+export function libraryFailureReason(error: unknown) {
+  return failureReasonOf(libraryReasons, error);
 }
 
 const risksPart = 'risk_evaluations' satisfies ImportLibraryPart;
@@ -363,11 +355,8 @@ export async function readRiskEvaluations(
   attempt: number,
   owner: string
 ) {
-  const row = await deps.store.getImport(importId);
-  if (!row || (row.status !== 'ready' && row.status !== 'confirmed')) return;
-  const current = await deps.store.getLibraryPart(importId, risksPart);
-  if (!current || current.status !== 'reading' || current.attempt !== attempt) return;
-  if (!(await claimed(deps, pathOf(row, `${risksPart}.${attempt}.claim.json`), owner))) return;
+  const row = await claimReadingPart(deps, importId, risksPart, attempt, owner);
+  if (!row) return;
 
   const files: RisksTextFile[] = [];
   const all = await deps.store.listFiles(importId);
@@ -421,13 +410,8 @@ export async function readRiskEvaluations(
   if (done) await alertImport(deps, importId, risksPart, ['read']);
 }
 
-export function riskFailureReason(error: unknown): string {
-  if (error instanceof ImportFailure) return error.reason;
-  if (error instanceof ModelAnswerError) {
-    return error.reason === 'refused' ? riskReasons.modelRefused : riskReasons.modelFailed;
-  }
-  if (error instanceof GatewayError) return importReasons.unavailable;
-  return riskReasons.failed;
+export function riskFailureReason(error: unknown) {
+  return failureReasonOf(riskReasons, error);
 }
 
 export async function failLibraryPart(

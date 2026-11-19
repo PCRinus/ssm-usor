@@ -1,10 +1,12 @@
 import { textHash } from '@ssm-usor/contracts';
 import { type InstructionsProposal, type RisksProposal, toProposal } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
 import type { ApiEnv, ImportMessage } from '../../lib/env';
 import { creditsUpstream } from '../credits/upstream.fixture';
+import { riskReasons } from './library';
 
 const user = {
   id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
@@ -57,7 +59,7 @@ const position = (name: string) => ({
   otherCompany: null,
 });
 
-const reading = {
+const reading = emptyReading({
   facts: [
     {
       field: 'client.legalName',
@@ -67,19 +69,8 @@ const reading = {
       otherCompany: null,
     },
   ],
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositionFacts: [],
   jobPositions: [position('Brutar'), position('Șofer')],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-};
+});
 
 const clientProposal = toProposal(reading);
 const [baker, driver] = clientProposal.jobPositions;
@@ -649,6 +640,35 @@ describe('POST /imports/{importId}/library-parts/{part}/retry', () => {
     expect(sent).toEqual([
       { type: 'read-instructions', importId, part: 'instructions_ssm', attempt: 2 },
     ]);
+  });
+
+  it('fails the attempt again when it cannot be queued', async () => {
+    mockUpstream(({ url, method }) => {
+      if (url.pathname === '/rest/v1/rpc/retry_import_library_part') return Response.json(2);
+      if (url.pathname === '/rest/v1/import_library_parts' && method === 'PATCH') {
+        return Response.json([{ part: 'risk_evaluations' }]);
+      }
+    });
+    queue.send.mockRejectedValueOnce(new Error('queue down'));
+
+    const response = await request(`${parts}/risk_evaluations/retry`, 'POST');
+
+    expect(response.status).toBe(503);
+    const [failed] = callsTo('/rest/v1/import_library_parts').filter(
+      (call) => call.method === 'PATCH'
+    );
+    expect(failed!.admin).toBe(true);
+    expect(Object.fromEntries(failed!.url.searchParams)).toMatchObject({
+      import_id: `eq.${importId}`,
+      part: 'eq.risk_evaluations',
+      attempt: 'eq.2',
+      status: 'eq.reading',
+    });
+    expect(failed!.body).toEqual({
+      status: 'failed',
+      failure_reason: riskReasons.failed,
+      failed_at: expect.any(String),
+    });
   });
 
   it('answers a part that has not failed', async () => {

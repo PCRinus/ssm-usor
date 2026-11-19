@@ -32,7 +32,6 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getGetTrainingProposalQueryKey,
   getGetTrainingQueryKey,
   getListJobPositionsQueryKey,
@@ -46,7 +45,7 @@ import {
   useListSignerCandidates,
   useUpdateTraining,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayMask, replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -56,6 +55,7 @@ import { useRevealErrors } from '@/components/use-reveal-errors';
 import { signingMessage } from '@/features/signatures/signature-format';
 import { matchSigner } from '@/features/signatures/signer-match';
 import { SignerSelect } from '@/features/signatures/signer-select';
+import { commonFailure } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 
 import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
@@ -472,7 +472,7 @@ function TrainingForm({
       onClose();
     } catch (cause) {
       const status = cause instanceof ApiHttpError ? cause.status : null;
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (status === 400 && body?.issues?.some((issue) => issue.path === 'themesRevisionId')) {
         form.setValue('themesRevisionId', null);
         form.setError('root.server', {
@@ -504,13 +504,12 @@ function TrainingForm({
       form.setError('root.server', {
         message:
           signingMessage(cause, training) ??
+          commonFailure(cause) ??
           (status === 409
             ? 'Clientul este arhivat; instruirile lui nu mai pot fi modificate.'
             : status === 404
               ? 'Instruirea nu mai există la acest client.'
-              : status === 401
-                ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-                : 'Nu am putut salva instruirea. Verifică conexiunea și încearcă din nou.'),
+              : 'Nu am putut salva instruirea. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

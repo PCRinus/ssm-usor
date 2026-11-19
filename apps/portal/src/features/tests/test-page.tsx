@@ -20,6 +20,7 @@ import {
   useGetPortalTests,
   useGetPortalTestStudyCard,
 } from '@/api/generated/api';
+import { apiErrorReason } from '@/api/http';
 import { Page, PageFailed, PageHeader, PageLoading } from '@/components/page';
 import { useParticipation } from '@/features/participation/participation-context';
 import { invalidateSigningQueries } from '@/features/signing/signing-items';
@@ -28,7 +29,6 @@ import { useApiRequest } from '@/lib/request';
 
 import { type Attempt, resumeIndexOf } from './attempt';
 import { StudyCard } from './study-card';
-import { reasonOf } from './test-errors';
 import { TestResult } from './test-result';
 import { TestSitting } from './test-sitting';
 
@@ -100,7 +100,7 @@ function KnowledgeTestFlow({
       setScreen({ kind: 'sitting', attempt, index: resumeIndexOf(attempt) });
       invalidateTests();
     } catch (cause) {
-      const notAwaiting = reasonOf(cause) === testErrorReasons.notAwaiting;
+      const notAwaiting = apiErrorReason(cause) === testErrorReasons.notAwaiting;
       setStartFailure(
         i18n._(
           notAwaiting

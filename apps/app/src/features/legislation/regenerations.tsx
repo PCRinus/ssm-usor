@@ -13,7 +13,7 @@ import {
   useStartDocumentRegeneration,
   useStartSetRegeneration,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { useMe } from '@/features/account/use-me';
 import { useAuth } from '@/features/auth/auth-context';
 
@@ -66,9 +66,7 @@ const isLegalChangeQuery = (query: Query) =>
 // Already under way, or nothing left to regenerate: neither is a type that failed to start.
 function startNeedless(cause: unknown) {
   const reason =
-    cause instanceof ApiHttpError && cause.status === 409
-      ? (cause.body as { reason?: string } | null)?.reason
-      : undefined;
+    cause instanceof ApiHttpError && cause.status === 409 ? apiErrorReason(cause) : undefined;
   return reason === 'regeneration_running' || reason === 'nothing_behind';
 }
 

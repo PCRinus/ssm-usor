@@ -32,6 +32,7 @@ import {
   refreshEmployeesOverStep,
   restoreOverStepMessage,
 } from '@/features/subscription/employees-over-step';
+import { commonFailure } from '@/lib/api-errors';
 
 export interface ClientArchiveChange {
   // The stage words the dialog; a lead has no documents to warn about.
@@ -42,6 +43,8 @@ export interface ClientArchiveChange {
 function serverMessage(cause: unknown, action: ClientArchiveChange['action'], lead: boolean) {
   const noun = lead ? 'oferta' : 'clientul';
   if (isEmployeesOverStepError(cause)) return restoreOverStepMessage;
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
     if (cause.status === 404) {
       return lead
@@ -50,9 +53,6 @@ function serverMessage(cause: unknown, action: ClientArchiveChange['action'], le
     }
     if (cause.status === 403) {
       return `Doar un admin al organizației poate arhiva sau reactiva ${noun}.`;
-    }
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
     }
   }
   return action === 'archive'

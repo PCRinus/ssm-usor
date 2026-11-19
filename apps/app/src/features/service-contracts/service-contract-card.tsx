@@ -38,7 +38,6 @@ import { type ReactNode, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getDocumentDownload,
   getGetClientDocumentDetailsQueryKey,
   getGetClientQueryKey,
@@ -54,7 +53,7 @@ import {
   useRemoveDocumentSignedCopy,
   useSaveServiceContract,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { DatePicker } from '@/components/date-picker';
 import { FileLinkButton } from '@/components/file-link-button';
 import { FileMenuItem } from '@/components/file-menu-item';
@@ -75,6 +74,7 @@ import {
   type MissingRow,
 } from '@/features/missing-data/missing-rows';
 import { useStartWayBack } from '@/features/missing-data/way-back';
+import { commonFailure } from '@/lib/api-errors';
 import { formatRoDate, todayIso } from '@/lib/dates';
 
 import { SendContractDialog } from './send-contract-dialog';
@@ -456,7 +456,7 @@ function ServiceContractBody({
       ]);
       toast.success('Detaliile contractului au fost salvate.');
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (body?.reason === 'contract_number_taken') {
         form.setError('contractNumber', {
           message: 'Alt contract din același an are acest număr.',
@@ -464,11 +464,12 @@ function ServiceContractBody({
         return;
       }
       setError(
-        body?.reason === 'client_archived'
-          ? 'Firma este arhivată; contractul ei nu mai poate fi modificat.'
-          : isOffersNotInPlanError(cause)
-            ? offersNotInPlanMessage
-            : 'Nu am putut salva detaliile contractului. Verifică conexiunea și încearcă din nou.'
+        commonFailure(cause) ??
+          (body?.reason === 'client_archived'
+            ? 'Firma este arhivată; contractul ei nu mai poate fi modificat.'
+            : isOffersNotInPlanError(cause)
+              ? offersNotInPlanMessage
+              : 'Nu am putut salva detaliile contractului. Verifică conexiunea și încearcă din nou.')
       );
     }
   });
@@ -500,20 +501,21 @@ function ServiceContractBody({
         toast.success('Contractul a fost emis.');
       }
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (body?.reason === 'unfilled_text') {
         // Not a failure: the same dialog asks its second question.
         setConfirming('issueUnfilled');
         return;
       }
       setError(
-        body?.reason === 'pdf_unavailable'
-          ? 'Nu am putut face PDF-ul, așa că contractul nu a fost emis. Încearcă din nou peste câteva momente.'
-          : body?.reason === 'missing_contract_data'
-            ? 'Lipsesc date pe care contractul le tipărește. Lista de mai jos spune care.'
-            : body?.reason === 'template_missing'
-              ? 'Modelul de contract nu este încă instalat în acest mediu.'
-              : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.'
+        commonFailure(cause) ??
+          (body?.reason === 'pdf_unavailable'
+            ? 'Nu am putut face PDF-ul, așa că contractul nu a fost emis. Încearcă din nou peste câteva momente.'
+            : body?.reason === 'missing_contract_data'
+              ? 'Lipsesc date pe care contractul le tipărește. Lista de mai jos spune care.'
+              : body?.reason === 'template_missing'
+                ? 'Modelul de contract nu este încă instalat în acest mediu.'
+                : 'Operațiunea nu a reușit. Verifică conexiunea și încearcă din nou.')
       );
       await refresh();
     }

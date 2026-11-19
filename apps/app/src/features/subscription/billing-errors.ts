@@ -4,7 +4,8 @@ import {
   formatCount,
 } from '@ssm-usor/contracts';
 
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
+import { commonFailure } from '@/lib/api-errors';
 
 import { contactEmail } from './subscription-copy';
 
@@ -48,14 +49,13 @@ const reasonMessages: Record<string, string> = {
 
 export function billingErrorMessage(cause: unknown) {
   if (cause instanceof ApiHttpError) {
-    const reason = (cause.body as { reason?: unknown } | null)?.reason;
-    if (typeof reason === 'string' && reason in reasonMessages) return reasonMessages[reason]!;
+    const reason = apiErrorReason(cause);
+    if (reason !== undefined && reason in reasonMessages) return reasonMessages[reason]!;
     const problem = billingChoiceProblemReasonSchema.safeParse(reason);
     if (problem.success) return problemMessage({ reason: problem.data });
+    const common = commonFailure(cause);
+    if (common) return common;
     if (cause.status === 403) return 'Doar adminul organizației schimbă abonamentul.';
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-    }
   }
   return 'Nu a reușit. Verifică conexiunea și încearcă din nou.';
 }

@@ -6,7 +6,7 @@ import { useRouteContext } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 
 import { createSubscription, getBilling } from '@/api/generated/api';
-import { ApiHttpError, type ApiRequestOptions } from '@/api/http';
+import { apiErrorReason, type ApiRequestOptions } from '@/api/http';
 import { Notice } from '@/components/notice';
 
 import { billingErrorMessage } from '../billing-errors';
@@ -124,9 +124,6 @@ export default function StripeCheckout({
   );
 }
 
-const reasonOf = (cause: unknown) =>
-  cause instanceof ApiHttpError ? (cause.body as { reason?: unknown } | null)?.reason : undefined;
-
 function CheckoutForm({
   elementsIntent,
   state,
@@ -215,7 +212,7 @@ function CheckoutForm({
       );
       onDone();
     } catch (cause) {
-      if (reasonOf(cause) === 'already_subscribed') {
+      if (apiErrorReason(cause) === 'already_subscribed') {
         await refreshBilling(queryClient);
         toast.info(billingErrorMessage(cause));
         onDone();

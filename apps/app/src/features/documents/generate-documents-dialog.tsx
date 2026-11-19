@@ -21,14 +21,13 @@ import { Link, useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   type ClientDocumentListResponse,
   getGetDocumentReadinessQueryKey,
   getListClientDocumentsQueryKey,
   useGenerateClientDocuments,
   useGetDocumentReadiness,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { DatePicker } from '@/components/date-picker';
 import { Field } from '@/components/form-field';
@@ -43,6 +42,7 @@ import {
 } from '@/features/missing-data/missing-rows';
 import { useStartWayBack } from '@/features/missing-data/way-back';
 import { SensitiveGroupsNoneButton } from '@/features/risk-evaluations/sensitive-groups-none-button';
+import { commonFailure } from '@/lib/api-errors';
 import { dateToIso } from '@/lib/dates';
 
 import {
@@ -170,7 +170,7 @@ function GenerateDocumentsForm({
       );
       onClose();
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (body?.reason === 'missing_document_data') {
         // Someone changed the data since the form opened: show what is missing now.
         await readiness.refetch();
@@ -178,13 +178,12 @@ function GenerateDocumentsForm({
       }
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 409
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 409
             ? 'Clientul este arhivat, așa că nu i se mai generează documente.'
-            : cause instanceof ApiHttpError && cause.status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : cause instanceof ApiHttpError && cause.status === 503 && templatesUnavailable
-                ? templatesUnavailable
-                : 'Nu am putut genera documentele. Verifică conexiunea și încearcă din nou.',
+            : cause instanceof ApiHttpError && cause.status === 503 && templatesUnavailable
+              ? templatesUnavailable
+              : 'Nu am putut genera documentele. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

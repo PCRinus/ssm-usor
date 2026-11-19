@@ -6,14 +6,13 @@ import { BriefcaseBusiness, Plus, SearchX } from 'lucide-react';
 import { forwardRef, useMemo, useRef, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   getListJobPositionsQueryKey,
   getListRiskEvaluationsQueryKey,
   useListJobPositions,
   useListRiskEvaluations,
   useRemoveJobPosition,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { keepOpener, openedHere } from '@/app/opener';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { DataTable } from '@/components/data-table/data-table';
@@ -25,6 +24,7 @@ import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
 import { Notice } from '@/components/notice';
 import { useFocusRequest } from '@/features/missing-data/focus';
+import { commonFailure } from '@/lib/api-errors';
 
 import { jobPositionColumns } from './job-position-columns';
 import { JobPositionDialog, type JobPositionEditing } from './job-position-dialog';
@@ -130,13 +130,13 @@ export function JobPositionsCard({
       await remove.mutateAsync({ clientId, jobPositionId: position.id });
       toast.success(`Postul „${position.name}” a fost șters.`);
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
       setError(
-        body?.reason === 'job_position_held'
-          ? `Pe postul „${position.name}” mai sunt lucrători. Mută-i pe alt post înainte să îl ștergi.`
-          : cause instanceof ApiHttpError && cause.status === 404
-            ? `Postul „${position.name}” nu mai există la acest client.`
-            : 'Nu am putut șterge postul de lucru. Verifică conexiunea și încearcă din nou.'
+        commonFailure(cause) ??
+          (apiErrorReason(cause) === 'job_position_held'
+            ? `Pe postul „${position.name}” mai sunt lucrători. Mută-i pe alt post înainte să îl ștergi.`
+            : cause instanceof ApiHttpError && cause.status === 404
+              ? `Postul „${position.name}” nu mai există la acest client.`
+              : 'Nu am putut șterge postul de lucru. Verifică conexiunea și încearcă din nou.')
       );
     }
     setRemoving(null);

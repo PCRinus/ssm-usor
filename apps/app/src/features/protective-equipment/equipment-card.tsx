@@ -31,7 +31,6 @@ import { Copy, HardHat, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   getListEquipmentQueryKey,
   getListJobPositionsQueryKey,
   useCopyEquipment,
@@ -40,7 +39,7 @@ import {
   useListJobPositions,
   useRemoveEquipmentEntry,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
@@ -51,6 +50,7 @@ import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import { type EquipmentEditing, EquipmentEntryDialog } from './equipment-entry-dialog';
 import {
@@ -62,13 +62,14 @@ import {
 } from './equipment-schema';
 
 const failureMessage = (cause: unknown, fallback: string) =>
-  cause instanceof ApiHttpError && cause.status === 409
-    ? (cause.body as Partial<ApiErrorResponse>).reason === 'equipment_entries_exist'
+  commonFailure(cause) ??
+  (cause instanceof ApiHttpError && cause.status === 409
+    ? apiErrorReason(cause) === 'equipment_entries_exist'
       ? 'Postul are articole de echipament; șterge-le înainte să spui că nu necesită.'
       : 'Clientul este arhivat; echipamentul lui nu se mai schimbă.'
     : cause instanceof ApiHttpError && cause.status === 404
       ? 'Postul sau articolul nu mai există la acest client.'
-      : fallback;
+      : fallback);
 
 // The protective equipment of one job position (ADR 011). `readOnly` is an archived client.
 export function EquipmentCard({

@@ -1,5 +1,6 @@
 import type { RegisterImportFilesResponse } from '@ssm-usor/contracts';
 import { toProposal } from '@ssm-usor/import';
+import { emptyReading } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../../app';
@@ -71,7 +72,7 @@ function fileRow(n: number, overrides: Record<string, unknown> = {}) {
   };
 }
 
-const reading = {
+const reading = emptyReading({
   facts: [
     {
       field: 'client.legalName',
@@ -88,19 +89,7 @@ const reading = {
       otherCompany: null,
     },
   ],
-  workplaces: [],
-  workplaceFacts: [],
-  workplaceSuggestions: [],
-  jobPositionFacts: [],
-  jobPositions: [],
-  responsiblePersons: [],
-  fireEquipment: [],
-  fireInstallations: [],
-  substances: [],
-  protectiveEquipment: [],
-  employees: [],
-  notes: [],
-};
+});
 
 function importRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -1890,7 +1879,7 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
         return Response.json(importRow({ ...ready, status, proposal: { notes: [] } }));
       }
       if (url.pathname === '/rest/v1/import_files' && method === 'PATCH') {
-        return new Response(null, { status: 204 });
+        return Response.json([{ id: fileId(2) }]);
       }
       if (url.pathname === '/rest/v1/import_files') {
         return Response.json([
@@ -1939,7 +1928,7 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
       }
       if (url.pathname === '/rest/v1/imports') return Response.json(importRow(ready));
       if (url.pathname === '/rest/v1/import_files' && method === 'PATCH') {
-        return new Response(null, { status: 204 });
+        return Response.json([{ id: fileId(2) }]);
       }
       if (url.pathname === '/rest/v1/import_files') {
         return Response.json([
@@ -1965,6 +1954,53 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
       reason: null,
     });
     expect(sent).toEqual([{ type: 'read', importId, waits: 0 }]);
+  });
+
+  it('puts the file and the import back when the reading cannot be queued', async () => {
+    const texts = storedText({ 1: 2_000, 2: 300 });
+    const stored = { proposal: { notes: [] }, changes: { fields: {}, items: {} } };
+    mockUpstream((call) => {
+      const { url, method } = call;
+      const text = texts(call);
+      if (text) return text;
+      if (url.pathname === '/rest/v1/imports' && method === 'PATCH') {
+        return Response.json([{ id: importId }]);
+      }
+      if (url.pathname === '/rest/v1/imports') {
+        return Response.json(importRow({ ...ready, ...stored, read_characters: 2_000 }));
+      }
+      if (url.pathname === '/rest/v1/import_files' && method === 'PATCH') {
+        return Response.json([{ id: fileId(2) }]);
+      }
+      if (url.pathname === '/rest/v1/import_files') {
+        return Response.json([
+          fileRow(1, { state: 'read' }),
+          fileRow(2, { state: 'set_aside', reason: 'Formular sau registru necompletat.' }),
+        ]);
+      }
+    });
+    queue.sendBatch.mockRejectedValueOnce(new Error('queue down'));
+
+    const response = await request(`/imports/${importId}/files/${fileId(2)}/read`, 'POST');
+
+    expect(response.status).toBe(503);
+    const [, file] = callsTo('/rest/v1/import_files', 'PATCH');
+    expect(file!.admin).toBe(true);
+    expect(file!.url.searchParams.get('id')).toBe(`eq.${fileId(2)}`);
+    expect(file!.body).toEqual({
+      state: 'set_aside',
+      reason: 'Formular sau registru necompletat.',
+    });
+    const [, back] = callsTo('/rest/v1/imports', 'PATCH');
+    expect(back!.admin).toBe(true);
+    expect(back!.url.searchParams.get('status')).toBe('eq.reading');
+    expect(back!.body).toEqual({
+      status: 'ready',
+      ...stored,
+      ready_at: ready.ready_at,
+      version: 5,
+      read_characters: 2_000,
+    });
   });
 
   it('refuses before the import is ready, and a file that was not set aside', async () => {

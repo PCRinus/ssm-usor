@@ -14,9 +14,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import type { ApiErrorResponse, ClientFileListResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
-import { isReadOnlyError, readOnlyMessage } from '@/features/subscription/read-only';
+import type { ClientFileListResponse } from '@/api/generated/api';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { commonFailure } from '@/lib/api-errors';
 import { dateToIso, formatRoDate } from '@/lib/dates';
 
 export type ClientFile = ClientFileListResponse['items'][number];
@@ -113,19 +113,17 @@ export function uploadFailureMessage(cause: unknown) {
   if (!(cause instanceof ApiHttpError)) {
     return 'Fișierul nu a putut fi încărcat. Verifică conexiunea și încearcă din nou.';
   }
-  if (isReadOnlyError(cause)) return readOnlyMessage;
-  const reason = (cause.body as Partial<ApiErrorResponse> | undefined)?.reason;
+  const common = commonFailure(cause);
+  if (common) return common;
+  const body = apiErrorBody(cause);
+  const reason = body?.reason;
   if (reason && Object.hasOwn(refusals, reason)) return refusals[reason as keyof typeof refusals];
   if (cause.status === 409) return archivedMessage;
-  const issues = (cause.body as Partial<ApiErrorResponse> | undefined)?.issues;
-  if (issues?.some((issue) => issue.path === 'employeeId')) {
+  if (body?.issues?.some((issue) => issue.path === 'employeeId')) {
     return 'Lucrătorul nu mai există la acest client.';
   }
   if (cause.status === 403) {
     return 'Doar adminii pot încărca fișiere pentru admini.';
-  }
-  if (cause.status === 401) {
-    return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
   }
   return 'Fișierul nu a putut fi încărcat. Încearcă din nou.';
 }

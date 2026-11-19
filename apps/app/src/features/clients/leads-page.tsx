@@ -29,6 +29,7 @@ import type { ListFilterFacet, ListFilterValues } from '@/components/list-filter
 import { listFilterSearch } from '@/components/list-filters/url';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
+import { sessionExpiredMessage } from '@/lib/api-errors';
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { type ClientArchiveChange, ClientArchiveDialog } from './client-archive-dialog';
@@ -272,7 +273,7 @@ export function LeadsPage() {
             <>
               <p data-testid="leads-error" role="alert" className="text-sm">
                 {leads.error instanceof ApiHttpError && leads.error.status === 401
-                  ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
+                  ? sessionExpiredMessage
                   : leads.error instanceof ApiHttpError && leads.error.status === 403
                     ? 'Doar adminii organizației lucrează cu ofertele.'
                     : 'Nu am putut încărca lista ofertelor. Încearcă din nou.'}

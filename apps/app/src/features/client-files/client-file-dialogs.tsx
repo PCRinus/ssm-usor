@@ -28,6 +28,7 @@ import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { commonFailure } from '@/lib/api-errors';
 
 import { archivedMessage, type ClientFile } from './client-file-format';
 
@@ -43,6 +44,8 @@ const clientFileFormSchema = z.object({
 type ClientFileFormValues = z.infer<typeof clientFileFormSchema>;
 
 function changeFailure(cause: unknown, fallback: string) {
+  const common = commonFailure(cause);
+  if (common) return common;
   if (!(cause instanceof ApiHttpError)) return fallback;
   if (cause.status === 404) return 'Fișierul nu mai există la acest client.';
   if (cause.status === 409) return archivedMessage;

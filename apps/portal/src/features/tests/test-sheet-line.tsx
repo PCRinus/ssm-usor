@@ -14,14 +14,13 @@ import {
   getPortalTestSheetLink,
   type PortalTestsResponse,
 } from '@/api/generated/api';
+import { apiErrorReason } from '@/api/http';
 import { FileLinkButton } from '@/components/file-link-button';
 import { Notice } from '@/components/notice';
 import { invalidateSigningQueries } from '@/features/signing/signing-items';
 import { testSheetTitleMessage } from '@/lib/labels';
 import { useApiRequest } from '@/lib/request';
 import { openPreview, PreviewBlockedError } from '@/lib/save-file';
-
-import { reasonOf } from './test-errors';
 
 type TestResult = PortalTestsResponse['ssm']['results'][number];
 
@@ -37,7 +36,7 @@ function failureOf(cause: unknown): MessageDescriptor {
   if (cause instanceof PreviewBlockedError) {
     return msg`Browserul a blocat fereastra nouă. Permite ferestrele noi pentru portal.`;
   }
-  if (reasonOf(cause) === testErrorReasons.testSheetNotAvailable) {
+  if (apiErrorReason(cause) === testErrorReasons.testSheetNotAvailable) {
     return msg`Fișa de test nu este gata încă. Încearcă din nou peste câteva minute.`;
   }
   return msg`Nu am putut deschide fișa de test. Verifică conexiunea la internet și încearcă din nou.`;

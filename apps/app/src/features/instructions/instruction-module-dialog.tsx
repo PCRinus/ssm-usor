@@ -20,12 +20,13 @@ import { useRouteContext } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { type ApiErrorResponse, useUpdateInstructionModule } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { useUpdateInstructionModule } from '@/api/generated/api';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   domainHints,
@@ -91,7 +92,7 @@ function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: (
       toast.success('Instrucțiunea a fost salvată.');
       onClose();
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (body?.reason === 'instruction_module_title_taken') {
         form.setError('title', {
           message:
@@ -108,11 +109,10 @@ function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: (
       }
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 404
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 404
             ? 'Instrucțiunea nu mai există în bibliotecă.'
-            : cause instanceof ApiHttpError && cause.status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut salva instrucțiunea. Verifică conexiunea și încearcă din nou.',
+            : 'Nu am putut salva instrucțiunea. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

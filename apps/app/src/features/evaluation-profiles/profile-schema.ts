@@ -8,17 +8,14 @@ import {
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
-import type {
-  ApiErrorResponse,
-  EvaluationProfileListResponse,
-  EvaluationProfileResponse,
-} from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import type { EvaluationProfileListResponse, EvaluationProfileResponse } from '@/api/generated/api';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { filterSearchSchema } from '@/components/list-filters/url';
 import {
   factorCountLabel,
   unacceptableCountLabel,
 } from '@/features/risk-evaluations/risk-evaluation-schema';
+import { commonFailure } from '@/lib/api-errors';
 
 export type EvaluationProfile = EvaluationProfileResponse['profile'];
 export type EvaluationProfileSummary = EvaluationProfileListResponse['items'][number];
@@ -49,8 +46,7 @@ export const profileNameTaken =
   'Biblioteca are deja o evaluare cu această denumire. Deosebește-le prin nume: „Lucrător de birou – contabilitate”.';
 
 const hasReason = (cause: unknown, reason: EvaluationProfileErrorReason) =>
-  cause instanceof ApiHttpError &&
-  (cause.body as Partial<ApiErrorResponse> | null)?.reason === reason;
+  apiErrorReason(cause) === reason;
 
 export const isProfileNameTaken = (cause: unknown) =>
   hasReason(cause, 'evaluation_profile_name_taken');
@@ -81,8 +77,5 @@ export function profileFailure(cause: unknown, fallback: string) {
   if (isProfileNameTaken(cause)) return profileNameTaken;
   if (isProfileInUse(cause)) return profileInUse;
   if (cause.status === 404) return 'Evaluarea sau factorul nu mai există în bibliotecă.';
-  if (cause.status === 401) {
-    return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-  }
-  return fallback;
+  return commonFailure(cause) ?? fallback;
 }

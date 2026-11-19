@@ -18,17 +18,17 @@ import type { ChangeEvent, ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getListJobPositionsQueryKey,
   useCreateJobPosition,
   useUpdateJobPosition,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   emptyJobPositionForm,
@@ -154,7 +154,7 @@ function JobPositionForm({
       onSaved?.(saved.jobPosition);
       onClose();
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const body = apiErrorBody(cause);
       if (body?.reason === 'job_position_name_taken') {
         form.setError('name', {
           message:
@@ -170,11 +170,10 @@ function JobPositionForm({
       }
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 404
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 404
             ? 'Postul de lucru nu mai există la acest client.'
-            : cause instanceof ApiHttpError && cause.status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut salva postul de lucru. Verifică conexiunea și încearcă din nou.',
+            : 'Nu am putut salva postul de lucru. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

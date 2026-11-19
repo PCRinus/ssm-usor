@@ -6,7 +6,6 @@ import { createFileRoute, useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import { getGetMeQueryKey, type MeResponse, useUpdateProfile } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -17,6 +16,7 @@ import { useMe } from '@/features/account/use-me';
 import { focusSearch, profileFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { roleLabels } from '@/features/organization/labels';
+import { commonFailure } from '@/lib/api-errors';
 
 export const Route = createFileRoute('/_authenticated/profil')({
   staticData: { title: 'Profilul meu' },
@@ -84,9 +84,8 @@ function ProfileForm({ me }: { me: MeResponse }) {
     } catch (cause) {
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 401
-            ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-            : 'Nu am putut salva profilul. Verifică conexiunea și încearcă din nou.',
+          commonFailure(cause) ??
+          'Nu am putut salva profilul. Verifică conexiunea și încearcă din nou.',
       });
     }
   });

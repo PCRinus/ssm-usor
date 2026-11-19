@@ -1,7 +1,8 @@
 import { countOf, importErrorReasons, type ImportKind } from '@ssm-usor/contracts';
 
-import type { ApiErrorResponse, ImportUsage } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import type { ImportUsage } from '@/api/generated/api';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { commonFailure } from '@/lib/api-errors';
 
 import { refusalSentence } from './import-credits';
 
@@ -63,15 +64,11 @@ const employeeReasonMessages: Record<string, string> = {
     'Sunt prea multe fotografii și pagini pentru un singur import: cel mult 500.',
 };
 
-export const importErrorReason = (cause: unknown) =>
-  cause instanceof ApiHttpError
-    ? (cause.body as Partial<ApiErrorResponse> | undefined)?.reason
-    : undefined;
-
 export function importErrorMessage(cause: unknown, fallback: string, kind: ImportKind = 'client') {
   if (!(cause instanceof ApiHttpError)) return fallback;
-  const reason = importErrorReason(cause);
-  const credits = (cause.body as Partial<ApiErrorResponse> | undefined)?.credits;
+  const body = apiErrorBody(cause);
+  const reason = body?.reason;
+  const credits = body?.credits;
   if (reason === importErrorReasons.creditsInsufficient && credits) {
     return refusalSentence(credits);
   }
@@ -79,9 +76,8 @@ export function importErrorMessage(cause: unknown, fallback: string, kind: Impor
     return employeeReasonMessages[reason]!;
   }
   if (reason && Object.hasOwn(reasonMessages, reason)) return reasonMessages[reason]!;
-  if (cause.status === 401) {
-    return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-  }
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause.status === 404) return 'Importul nu mai există.';
   return fallback;
 }

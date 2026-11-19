@@ -11,9 +11,10 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { type ApiErrorResponse, useUpdateInstructionModule } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { useUpdateInstructionModule } from '@/api/generated/api';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { Notice } from '@/components/notice';
+import { commonFailure } from '@/lib/api-errors';
 
 import {
   type InstructionModule,
@@ -27,15 +28,13 @@ export interface InstructionArchiveChange {
 }
 
 function serverMessage(cause: unknown, action: InstructionArchiveChange['action']) {
+  const common = commonFailure(cause);
+  if (common) return common;
   if (cause instanceof ApiHttpError) {
-    const body = cause.body as Partial<ApiErrorResponse> | null;
-    if (body?.reason === 'instruction_module_applied') {
+    if (apiErrorReason(cause) === 'instruction_module_applied') {
       return 'Între timp, instrucțiunea a fost aplicată la un post. Scoate-o de la posturile care o aplică, apoi arhiveaz-o.';
     }
     if (cause.status === 404) return 'Instrucțiunea nu mai există în bibliotecă.';
-    if (cause.status === 401) {
-      return 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.';
-    }
   }
   return action === 'archive'
     ? 'Nu am putut arhiva instrucțiunea. Verifică conexiunea și încearcă din nou.'

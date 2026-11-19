@@ -1,5 +1,5 @@
-import type { ApiErrorResponse } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { commonFailure } from '@/lib/api-errors';
 
 // `what` is the thing being saved, articulated: "echipamentul", "instalația".
 export function saveFailure(
@@ -7,7 +7,7 @@ export function saveFailure(
   what: string
 ): { field?: 'workplaceId'; message: string } {
   const status = cause instanceof ApiHttpError ? cause.status : null;
-  const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+  const body = apiErrorBody(cause);
   if (status === 400 && body?.issues?.some((issue) => issue.path === 'workplaceId')) {
     return {
       field: 'workplaceId',
@@ -25,9 +25,8 @@ export function saveFailure(
   if (status === 404) {
     return { message: `${capitalized(what)} nu mai există la acest client.` };
   }
-  if (status === 401) {
-    return { message: 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.' };
-  }
+  const common = commonFailure(cause);
+  if (common) return { message: common };
   return { message: `Nu am putut salva ${what}. Verifică conexiunea și încearcă din nou.` };
 }
 

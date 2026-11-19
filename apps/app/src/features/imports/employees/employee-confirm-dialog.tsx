@@ -32,14 +32,13 @@ import {
 import { type ReactNode, useState } from 'react';
 
 import {
-  type ApiErrorResponse,
   confirmImport,
   getGetClientQueryKey,
   getGetImportQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorBody } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
@@ -192,10 +191,7 @@ export function EmployeeConfirmDialog({
       // The client's header reads its route's loader, which keeps the client it loaded.
       await router.invalidate();
     } catch (cause) {
-      const body =
-        cause instanceof ApiHttpError
-          ? (cause.body as Partial<ApiErrorResponse> | undefined)
-          : undefined;
+      const body = apiErrorBody(cause);
       const reason = body?.reason;
       if (reason === importErrorReasons.refused || reason === importErrorReasons.incomplete) {
         const lines = confirmIssueLines(context, body?.issues ?? []);

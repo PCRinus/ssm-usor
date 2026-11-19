@@ -21,6 +21,7 @@ import { sheetPadding } from '@/components/page-spacing';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { type AuthorizationsFocus, useFocusRequest } from '@/features/missing-data/focus';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
+import { commonFailure } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 
 import {
@@ -143,11 +144,10 @@ function AuthorizationsForm({
     } catch (cause) {
       form.setError('root.server', {
         message:
-          cause instanceof ApiHttpError && cause.status === 403
+          commonFailure(cause) ??
+          (cause instanceof ApiHttpError && cause.status === 403
             ? 'Doar adminii organizației pot modifica abilitările.'
-            : cause instanceof ApiHttpError && cause.status === 401
-              ? 'Sesiunea nu mai este validă. Deconectează-te și autentifică-te din nou.'
-              : 'Nu am putut salva abilitările. Verifică conexiunea și încearcă din nou.',
+            : 'Nu am putut salva abilitările. Verifică conexiunea și încearcă din nou.'),
       });
     }
   });

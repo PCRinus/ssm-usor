@@ -8,7 +8,6 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import {
-  type ApiErrorResponse,
   getGetMeQueryKey,
   getListMyInvitationsQueryKey,
   lookupCompany,
@@ -18,7 +17,7 @@ import {
   useListMyInvitations,
   useUpdateOrganizationCompanyDetails,
 } from '@/api/generated/api';
-import { ApiHttpError } from '@/api/http';
+import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { captureAsMember } from '@/app/observability/posthog';
 import { replayShow } from '@/app/observability/replay-masking';
 import { PublicFrame, PublicFrameAction } from '@/app/public-frame';
@@ -163,13 +162,13 @@ function OnboardingForm({ me, onCreated }: { me: MeResponse; onCreated: () => vo
       });
       created = true;
     } catch (cause) {
-      const body = cause instanceof ApiHttpError ? (cause.body as Partial<ApiErrorResponse>) : null;
+      const reason = apiErrorReason(cause);
       // Already a member, for instance after accepting an invitation in another tab:
       // refreshing the account below sends them into the app.
-      if (body?.reason !== 'already_in_organization') {
+      if (reason !== 'already_in_organization') {
         form.setError('root.server', {
           message:
-            body?.reason === 'email_not_confirmed'
+            reason === 'email_not_confirmed'
               ? 'Confirmă mai întâi adresa de email, din linkul primit la înregistrare.'
               : 'Nu am putut crea organizația. Verifică conexiunea și încearcă din nou.',
         });
