@@ -5,6 +5,7 @@ import type Stripe from 'stripe';
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import { type ApiEnv, subscriptionUrl } from '../../lib/env';
+import { later } from '../../lib/later';
 import { stripeFor } from '../billing/stripe';
 import { noticeRecipient } from '../billing/usage-notices';
 import type { CreditsHooks } from '../credits/store';
@@ -145,12 +146,7 @@ export function blocksReporterOf(c: Context<ApiEnv>): CreditsHooks {
       const work = report(organizationId).catch((error: unknown) => {
         console.error(`Credit blocks of ${organizationId} not reported yet: ${describe(error)}`);
       });
-      // Hono's executionCtx throws where the runtime gives none, as in tests.
-      try {
-        c.executionCtx.waitUntil(work);
-      } catch {
-        void work;
-      }
+      later(c, work);
     },
   };
 }

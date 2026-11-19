@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 import { type AdminClient, adminClient } from '../../lib/admin-db';
 import { fromDatabaseError } from '../../lib/db';
 import { type ApiEnv, subscriptionUrl } from '../../lib/env';
+import { later } from '../../lib/later';
 import {
   type NoticeDeps,
   noticeRecipient,
@@ -76,11 +77,7 @@ export function noticeEmployeesOverStepLater(c: Context<ApiEnv>) {
     .catch((failure) => {
       console.error(`Employees over step notice for ${organizationId}: ${describe(failure)}`);
     });
-  try {
-    c.executionCtx.waitUntil(run);
-  } catch {
-    void run;
-  }
+  later(c, run);
 }
 
 // The limit also moves with time alone, at a trial's end, so every clock is checked first.

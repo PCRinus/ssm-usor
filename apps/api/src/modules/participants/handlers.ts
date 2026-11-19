@@ -3,7 +3,6 @@ import {
   bulkInvitationFailureReasons,
   type BulkInvitationResult,
   bulkInvitationSkipReasons,
-  clientConflictReasons,
   type ClientParticipant,
   type EmployeeStatus,
   type ImportInvitee,
@@ -13,7 +12,6 @@ import {
   type ParticipantInvitationStatus,
   type ParticipantKind,
   type PortalLanguage,
-  type PortalStanding,
   type SmsRefusalReason,
   typedInvitationAddress,
 } from '@ssm-usor/contracts';
@@ -22,12 +20,14 @@ import type { Context } from 'hono';
 import { type AdminClient, createAdminClient } from '../../lib/admin-db';
 import {
   archivedClientError,
+  clientIsLeadError,
   createDataClient,
   type DataClient,
   fromDatabaseError,
 } from '../../lib/db';
 import { type ApiEnv, portalOrigin } from '../../lib/env';
 import { ApiError } from '../../lib/errors';
+import { clientNotFound } from '../clients/lookup';
 import { smsRefusalError, smsSenderOf } from '../sms-usage/sender';
 import { ensureParticipantAccount } from './account';
 import { fromParticipantError } from './errors';
@@ -42,6 +42,7 @@ import type {
   revokeClientParticipantRoute,
   revokeParticipantInvitationRoute,
 } from './routes';
+import { portalStandings } from './standings';
 
 // The database refuses a resend inside this window (PRT05); the response says when it opens.
 const RESEND_AFTER_MS = 10 * 60 * 1000;
@@ -423,9 +424,7 @@ export const listClientParticipants: RouteHandler<
   if (client.error) throw fromDatabaseError(client.error, 'participants client');
   if (participants.error) throw fromDatabaseError(participants.error, 'client participants');
   if (invitations.error) throw fromDatabaseError(invitations.error, 'client invitations');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   return c.json(
     {
       participants: (participants.data as ParticipantRow[]).map(toParticipant),
@@ -434,59 +433,6 @@ export const listClientParticipants: RouteHandler<
     200
   );
 };
-
-async function portalStandings(db: DataClient, clientId: string) {
-  const [participants, invitations] = await Promise.all([
-    db
-      .from('client_participants')
-      .select('employee_id')
-      .eq('client_id', clientId)
-      .not('employee_id', 'is', null)
-      .is('revoked_at', null)
-      .limit(5000),
-    db
-      .from('participant_invitations')
-      .select('employee_id')
-      .eq('client_id', clientId)
-      .not('employee_id', 'is', null)
-      .is('accepted_at', null)
-      .is('revoked_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .limit(5000),
-  ]);
-  if (participants.error) throw fromDatabaseError(participants.error, 'client participants');
-  if (invitations.error) throw fromDatabaseError(invitations.error, 'client invitations');
-  const standings = new Map<string, PortalStanding>();
-  for (const row of invitations.data) standings.set(row.employee_id!, 'invited');
-  for (const row of participants.data) standings.set(row.employee_id!, 'participant');
-  return standings;
-}
-
-/** Per import, how many current employees whose sheets it filed are neither participants nor invited. */
-export async function uninvitedOfImports(db: DataClient, clientId: string, importIds: string[]) {
-  const counts = new Map<string, number>();
-  if (importIds.length === 0) return counts;
-  const [employees, standings] = await Promise.all([
-    db
-      .from('employees')
-      .select('id, client_files!client_files_employee_of_client!inner(import_id)')
-      .eq('client_id', clientId)
-      .eq('status', 'active')
-      .is('archived_at', null)
-      .in('client_files.import_id', importIds)
-      .limit(5000),
-    portalStandings(db, clientId),
-  ]);
-  if (employees.error) throw fromDatabaseError(employees.error, 'uninvited import employees');
-  const rows = employees.data as unknown as { id: string; client_files: { import_id: string }[] }[];
-  for (const row of rows) {
-    if (standings.has(row.id)) continue;
-    for (const importId of new Set(row.client_files.map((file) => file.import_id))) {
-      counts.set(importId, (counts.get(importId) ?? 0) + 1);
-    }
-  }
-  return counts;
-}
 
 interface InviteeRow {
   id: string;
@@ -620,18 +566,9 @@ export const inviteEmployeeParticipants: RouteHandler<
   ]);
   if (client.error) throw fromDatabaseError(client.error, 'bulk invitation client');
   if (employees.error) throw fromDatabaseError(employees.error, 'bulk invitation employees');
-  if (!client.data) {
-    throw new ApiError('not_found', 'This client does not exist in your organization.');
-  }
+  if (!client.data) throw clientNotFound();
   if (client.data.archived_at) throw archivedClientError();
-  if (client.data.stage === 'lead') {
-    throw new ApiError(
-      'conflict',
-      'The company is still a lead; it has no safety records until it is promoted.',
-      undefined,
-      clientConflictReasons.clientIsLead
-    );
-  }
+  if (client.data.stage === 'lead') throw clientIsLeadError();
   const names = await senderNames(db, clientId, client.data.organization_id);
   const employeeOf = new Map(employees.data.map((row) => [row.id, row]));
   const admin = createAdminClient(c);

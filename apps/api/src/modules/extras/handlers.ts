@@ -2,10 +2,6 @@ import type { RouteHandler } from '@hono/zod-openapi';
 import {
   type BillingChoice,
   billingChoiceSchema,
-  type BillingCreditsUsage,
-  type BillingExtra,
-  type BillingExtras,
-  type BillingSmsUsage,
   creditsExtra,
   type ExtraKind,
   type meteredProducts,
@@ -30,41 +26,10 @@ import { creditsStore } from '../credits/store';
 import { creditsUsageOf } from '../credits/usage';
 import { smsUsageStore } from '../sms-usage/store';
 import { smsUsageOf } from '../sms-usage/usage';
-import { extraSpend, extrasUnavailable } from './policy';
+import { extrasUnavailable } from './policy';
 import type { setExtraRoute } from './routes';
-import { type Ceilings, extrasStore } from './store';
-
-const hidden: Omit<BillingExtra, 'enabled'> = {
-  ceilingCents: null,
-  limit: null,
-  used: null,
-  spentCents: null,
-};
-
-export function extrasView(input: {
-  row: Parameters<typeof extrasUnavailable>[0];
-  ceilings: Ceilings;
-  sms: Pick<BillingSmsUsage, 'overage'>;
-  credits: Pick<BillingCreditsUsage, 'extra'>;
-  owner: boolean;
-}): BillingExtras {
-  const unavailable = extrasUnavailable(input.row);
-  const kind = (name: ExtraKind, used: number): BillingExtra => {
-    const ceilingCents = input.ceilings[name];
-    const enabled = ceilingCents !== null;
-    if (!input.owner) return { enabled, ...hidden };
-    if (!enabled) {
-      const spend = extraSpend(name, 0, used);
-      return { enabled, ceilingCents: null, limit: null, used, spentCents: spend.spentCents };
-    }
-    return { enabled, ceilingCents, ...extraSpend(name, ceilingCents, used) };
-  };
-  return {
-    unavailable,
-    sms: kind('sms', input.sms.overage),
-    credits: kind('credits', input.credits.extra),
-  };
-}
+import { extrasStore } from './store';
+import { extrasView } from './view';
 
 const conflict = (reason: string, message: string) =>
   new ApiError('conflict', message, undefined, reason);

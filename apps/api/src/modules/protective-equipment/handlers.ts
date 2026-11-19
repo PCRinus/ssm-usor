@@ -10,7 +10,7 @@ import {
   jobPositionColumns,
   jobPositionCounts,
   toJobPosition,
-} from '../job-positions/handlers';
+} from '../job-positions/positions';
 import type {
   copyEquipmentRoute,
   createEquipmentEntryRoute,

@@ -22,6 +22,7 @@ import { documentDataRouter } from './modules/document-data';
 import { documentsRouter } from './modules/documents';
 import { employeesRouter } from './modules/employees';
 import { evaluationProfilesRouter } from './modules/evaluation-profiles';
+import { extrasRouter } from './modules/extras';
 import { filesRouter } from './modules/files';
 import { fireSafetyRouter } from './modules/fire-safety';
 import { healthRouter } from './modules/health';
@@ -140,6 +141,7 @@ export function createApp() {
   app.route('/', contractReturnsRouter);
   app.route('/', organizationRouter);
   app.route('/', billingRouter);
+  app.route('/', extrasRouter);
   app.route('/', legislationRouter);
   app.route('/', invitationsRouter);
   app.route('/', participantsRouter);
