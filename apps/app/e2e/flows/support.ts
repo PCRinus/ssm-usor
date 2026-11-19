@@ -210,9 +210,9 @@ export async function createClientCompany(
   return client.data.id as string;
 }
 
-// What a service contract prints about the provider, save for the bank account, which the
-// flow fills in through the app (ADR 007), and the fire-safety technician, which
-// `nameFireSafetyTechnician` adds.
+// What a service contract prints about the provider, save for the bank account, which one
+// flow fills in through the app (ADR 007) and `addBankAccount` sets, and the fire-safety
+// technician, which `nameFireSafetyTechnician` adds.
 export async function completeProviderDetails(organizationId: string) {
   const organization = await admin
     .from('organizations')
@@ -230,6 +230,14 @@ export async function completeProviderDetails(organizationId: string) {
       authorization_certificate_date: '2022-09-30',
       authorization_certificate_issuer: 'Direcția de muncă și protecție socială Timiș',
     })
+    .eq('id', organizationId);
+  if (organization.error) throw organization.error;
+}
+
+export async function addBankAccount(organizationId: string) {
+  const organization = await admin
+    .from('organizations')
+    .update({ iban: 'RO49AAAA1B31007593840000', bank_name: 'Banca Transilvania' })
     .eq('id', organizationId);
   if (organization.error) throw organization.error;
 }
