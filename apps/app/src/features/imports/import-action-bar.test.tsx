@@ -116,6 +116,12 @@ describe('the import action bar', () => {
     const bar = screen.getByRole('region', { name: 'Verificarea importului' });
     expect(bar.style.left).toBe('256px');
     expect(bar.style.width).toBe('1627px');
+    expect((bar.firstElementChild as HTMLElement).className.split(' ')).toEqual(
+      expect.arrayContaining(['mx-auto', 'w-full', 'max-w-7xl', 'px-5', 'sm:px-8', 'lg:px-10'])
+    );
+    expect(within(bar).getByTestId('import-action-buttons').className.split(' ')).toContain(
+      'max-sm:[&>[data-size=default]]:flex-1'
+    );
   });
 
   it('keeps unresolved choices and missing data visible while saving completes', () => {
@@ -157,10 +163,15 @@ describe('the import action bar', () => {
       render(<ReviewBar save={state} />);
 
       expect(screen.getByRole('status').textContent).toBe(label);
+      expect(screen.getByRole('status').parentElement!.className.split(' ')).toContain(
+        'text-destructive'
+      );
+      expect(screen.getByRole('button', { name: action }).dataset.variant).toBe('outline');
       expect(screen.queryByText('Salvat în propunere')).toBeNull();
       expect(screen.queryByText('Se salvează…')).toBeNull();
       expect(screen.getByRole('button', { name: '2 date lipsă' })).toBeTruthy();
       expect(screen.getByRole('button', { name: '1 alegere' })).toBeTruthy();
+      expect(screen.getByText('Clientul se creează după confirmare.')).toBeTruthy();
 
       await userEvent.click(screen.getByRole('button', { name: action }));
 
@@ -230,16 +241,6 @@ describe('the import action bar', () => {
 
     expect(within(bar).getByRole('button', { name: 'Continuă' })).toBeTruthy();
     expect(bar.style.bottom).toBe('64px');
-  });
-
-  it.each([
-    { name: 'saved', change: {} },
-    { name: 'failed', change: { error: 'Nu am putut salva.' } },
-  ])('lays out a bar without leading content as before ($name)', ({ change }) => {
-    render(<ReviewBar save={{ ...saved(), ...change }} />);
-    expect(
-      screen.getByRole('region', { name: 'Verificarea importului' }).outerHTML
-    ).toMatchSnapshot();
   });
 });
 
