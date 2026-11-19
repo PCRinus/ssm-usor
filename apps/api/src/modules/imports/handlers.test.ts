@@ -3,26 +3,27 @@ import { toProposal } from '@ssm-usor/import';
 import { emptyReading } from '@ssm-usor/import/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
 import { accessTokenAt } from '../../lib/access-token.fixture';
-import type { ApiEnv, ImportMessage } from '../../lib/env';
-import { creditsUpstream } from '../credits/upstream.fixture';
+import type { ImportMessage } from '../../lib/env';
+import { creditsUpstream } from '../../test/credits';
+import { apiRequest } from '../../test/request';
+import {
+  callsTo,
+  fetchMock,
+  membershipRoutes,
+  routeUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  testUser as user,
+  type UpstreamCall,
+  upstreamCalls,
+} from '../../test/upstream';
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const importId = '6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f';
 const splitId = '7a2f3e4d-5c6b-4d7e-8f90-a1b2c3d4e5f6';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const secretKey = 'sb_secret_test_key_imports';
 
 const sent: ImportMessage[] = [];
 const queue = {
@@ -34,16 +35,14 @@ const queue = {
   }),
 };
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'http://localhost:5173',
   EXTRACTOR_URL: 'http://localhost:3302',
   AI_GATEWAY_URL: 'https://gateway.example/v1/account/ssm-usor',
   AI_GATEWAY_TOKEN: 'gateway-token',
   IMPORT_QUEUE: queue,
-};
+});
 
 const fileId = (n: number) => `f0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const storagePath = (id: string, n: number, extension: string) =>
@@ -121,74 +120,28 @@ function importRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-type Call = { method: string; url: URL; body: unknown; admin: boolean };
-type Handler = (call: Call) => Response | Promise<Response> | undefined;
+type Handler = (call: UpstreamCall) => Response | Promise<Response> | undefined;
 
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
 let authUser: object = user;
 
 function mockUpstream(handler: Handler = () => undefined) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const method = init?.method ?? 'GET';
-    const headers = new Headers(init?.headers);
-    const raw = init?.body;
-    const call: Call = {
-      method,
-      url,
-      body:
-        (typeof raw === 'string' && raw.startsWith('{')) ||
-        (typeof raw === 'string' && raw.startsWith('['))
-          ? JSON.parse(raw)
-          : raw,
-      admin: headers.get('Authorization') === `Bearer ${secretKey}`,
-    };
-    calls.push(call);
-    if (url.pathname === '/auth/v1/user') return Response.json(authUser);
-    if (url.pathname === '/rest/v1/rpc/current_membership') {
-      return Response.json([
-        { user_id: user.id, organization_id: organizationId, role: 'specialist', access: 'full' },
-      ]);
-    }
-    if (url.pathname === '/rest/v1/profiles') {
-      return Response.json([{ user_id: user.id, full_name: 'Ana Popescu' }]);
-    }
-    const custom = handler(call);
-    if (custom) return custom;
-    const credits = creditsUpstream(call);
-    if (credits) return credits;
-    throw new Error(`Unexpected upstream request: ${method} ${url}`);
-  });
+  routeUpstream(
+    {
+      '/auth/v1/user': () => Response.json(authUser),
+      '/rest/v1/profiles': () => Response.json([{ user_id: user.id, full_name: 'Ana Popescu' }]),
+    },
+    membershipRoutes,
+    { '/*': handler },
+    { '/*': creditsUpstream }
+  );
 }
 
-const request = (
-  path: string,
-  method = 'GET',
-  body?: unknown,
-  bindings = env,
-  token = 'user-token'
-) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    bindings
-  );
+const request = (path: string, method = 'GET', body?: unknown, bindings = env, token?: string) =>
+  apiRequest(path, { method, body, token }, bindings);
 
-const callsTo = (pathname: string, method?: string) =>
-  calls.filter((call) => call.url.pathname === pathname && (!method || call.method === method));
+stubFetch();
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   authUser = user;
   sent.length = 0;
   queue.send.mockClear();
@@ -197,22 +150,13 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe('POST /imports', () => {
   it('answers that imports are unavailable without the gateway settings', async () => {
     mockUpstream();
-    const response = await createApp().request(
-      '/imports',
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/json' },
-        body: '{}',
-      },
-      { ...env, AI_GATEWAY_TOKEN: undefined }
-    );
+    const response = await request('/imports', 'POST', {}, { ...env, AI_GATEWAY_TOKEN: undefined });
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ reason: 'import_unavailable' });
   });
@@ -249,7 +193,7 @@ describe('POST /imports', () => {
       },
     });
     const insert = callsTo('/rest/v1/imports', 'POST')[0]!;
-    expect(insert.admin).toBe(true);
+    expect(insert.secret).toBe(true);
     expect(insert.body).toMatchObject({
       organization_id: organizationId,
       kind: 'client',
@@ -336,7 +280,7 @@ describe('POST /imports/{importId}/files', () => {
       skipped: [],
     });
     const insert = callsTo('/rest/v1/import_files', 'POST')[0]!;
-    expect(insert.admin).toBe(true);
+    expect(insert.secret).toBe(true);
     expect((insert.body as Record<string, unknown>[])[1]).toMatchObject({
       import_id: importId,
       organization_id: organizationId,
@@ -692,7 +636,7 @@ describe('the credits an import starts on', () => {
 
     expect(response.status).toBe(200);
     const charge = callsTo('/rest/v1/rpc/charge_credits')[0]!;
-    expect(charge.admin).toBe(true);
+    expect(charge.secret).toBe(true);
     expect(charge.body).toMatchObject({
       p_organization_id: organizationId,
       p_kind: 'import_start',
@@ -733,7 +677,7 @@ describe('the credits an import starts on', () => {
 
     expect(response.status).toBe(503);
     const released = callsTo('/rest/v1/credit_entries', 'DELETE')[0]!;
-    expect(released.admin).toBe(true);
+    expect(released.secret).toBe(true);
     expect(released.url.searchParams.get('key')).toBe(`eq.start:${importId}`);
     expect(released.url.searchParams.get('kind')).toBe('eq.import_start');
   });
@@ -982,7 +926,7 @@ describe('GET /imports/{importId}', () => {
         refunded: false,
       });
       const read = callsTo('/rest/v1/credit_entries')[0]!;
-      expect(read.admin).toBe(true);
+      expect(read.secret).toBe(true);
       expect(read.url.searchParams.get('import_id')).toBe(`in.(${importId})`);
     });
 
@@ -1104,7 +1048,7 @@ describe('POST /imports/{importId}/confirm', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ clientId, fileCount: 2 });
     const rpc = callsTo('/rest/v1/rpc/apply_client_import')[0]!;
-    expect(rpc.admin).toBe(false);
+    expect(rpc.secret).toBe(false);
     expect(rpc.body).toMatchObject({
       p_import_id: importId,
       p_expected_version: 4,
@@ -1511,7 +1455,7 @@ describe('POST /imports/{importId}/split', () => {
       import: { id: splitId, status: 'preparing', sourceImportId: importId },
     });
     const rpc = callsTo('/rest/v1/rpc/split_import')[0]!;
-    expect(rpc.admin).toBe(false);
+    expect(rpc.secret).toBe(false);
     expect(rpc.body).toEqual({ p_import_id: importId, p_file_ids: [fileId(2)] });
     expect(callsTo('/rest/v1/imports', 'POST')).toEqual([]);
     expect(callsTo('/storage/v1/object/copy')[0]!.body).toMatchObject({
@@ -1584,7 +1528,7 @@ describe('POST /imports/{importId}/split', () => {
       prefixes: [storagePath(splitId, 9, 'docx'), storagePath(splitId, 10, 'docx')],
     });
     const deleted = callsTo('/rest/v1/imports', 'DELETE')[0]!;
-    expect(deleted.admin).toBe(true);
+    expect(deleted.secret).toBe(true);
     expect(deleted.url.searchParams.get('id')).toBe(`eq.${splitId}`);
     expect(sent).toEqual([]);
   });
@@ -1667,12 +1611,12 @@ describe('GET /imports/{importId}/source', () => {
       storagePath(importId, 1, 'pdf')
     );
 
-    calls = [];
+    fetchMock.mockClear();
     const scanned = await request(
       `/imports/${importId}/source?file=${encodeURIComponent('Dosar/Decizie.pdf (pagina 3)')}`
     );
     expect(await scanned.json()).toMatchObject({ page: 3, text: null, pages: null, match: null });
-    expect(calls.some((call) => call.url.pathname.endsWith('.json'))).toBe(false);
+    expect(upstreamCalls().some((call) => call.url.pathname.endsWith('.json'))).toBe(false);
   });
 
   it('looks up the file, reads its text and signs its links at the same time', async () => {
@@ -1724,9 +1668,9 @@ describe('GET /imports/{importId}/source', () => {
         mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       },
     });
-    expect(calls.find((call) => call.url.pathname === '/rest/v1/imports')?.url.search).toContain(
-      'select=kind'
-    );
+    expect(
+      upstreamCalls().find((call) => call.url.pathname === '/rest/v1/imports')?.url.search
+    ).toContain('select=kind');
   });
 
   it('answers an import the member cannot see as not found, though its files are asked for at once', async () => {
@@ -1748,7 +1692,7 @@ describe('GET /imports/{importId}/source', () => {
     const response = await answer;
 
     expect(response.status).toBe(404);
-    expect(calls.some((call) => call.url.pathname.startsWith('/storage/'))).toBe(false);
+    expect(upstreamCalls().some((call) => call.url.pathname.startsWith('/storage/'))).toBe(false);
   });
 
   it('places a row repeated under several posts under the post the value is for', async () => {
@@ -1897,7 +1841,7 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ import: { id: importId, status: 'reading' } });
     const moved = callsTo('/rest/v1/imports', 'PATCH')[0]!;
-    expect(moved.admin).toBe(true);
+    expect(moved.secret).toBe(true);
     expect(moved.body).toEqual({
       status: 'reading',
       proposal: null,
@@ -1985,14 +1929,14 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
 
     expect(response.status).toBe(503);
     const [, file] = callsTo('/rest/v1/import_files', 'PATCH');
-    expect(file!.admin).toBe(true);
+    expect(file!.secret).toBe(true);
     expect(file!.url.searchParams.get('id')).toBe(`eq.${fileId(2)}`);
     expect(file!.body).toEqual({
       state: 'set_aside',
       reason: 'Formular sau registru necompletat.',
     });
     const [, back] = callsTo('/rest/v1/imports', 'PATCH');
-    expect(back!.admin).toBe(true);
+    expect(back!.secret).toBe(true);
     expect(back!.url.searchParams.get('status')).toBe('eq.reading');
     expect(back!.body).toEqual({
       status: 'ready',
@@ -2045,9 +1989,9 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
     expect(response.status).toBe(422);
     expect(await response.json()).toMatchObject({ reason: 'import_too_much_text' });
     expect(
-      calls.filter((call) => call.method === 'GET' && call.url.pathname.endsWith('.txt'))
+      upstreamCalls().filter((call) => call.method === 'GET' && call.url.pathname.endsWith('.txt'))
     ).toHaveLength(2);
-    expect(calls.filter((call) => call.method === 'PATCH')).toEqual([]);
+    expect(upstreamCalls().filter((call) => call.method === 'PATCH')).toEqual([]);
     expect(sent).toEqual([]);
   });
 
@@ -2085,7 +2029,7 @@ describe('POST /imports/{importId}/files/{fileId}/read', () => {
 
     expect(response.status).toBe(422);
     expect(await response.json()).toMatchObject({ reason: 'import_too_many_scans' });
-    expect(calls.filter((call) => call.method === 'PATCH')).toEqual([]);
+    expect(upstreamCalls().filter((call) => call.method === 'PATCH')).toEqual([]);
     expect(sent).toEqual([]);
   });
 
