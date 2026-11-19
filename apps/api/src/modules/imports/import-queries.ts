@@ -149,6 +149,15 @@ export async function findImport(db: DataClient, importId: string) {
   return data;
 }
 
+// Not findImport: the detail's columns carry the whole proposal, and these callers need only the
+// kind and to know the import is the caller's.
+export async function importKindOf(db: DataClient, importId: string) {
+  const { data, error } = await db.from('imports').select('kind').eq('id', importId).maybeSingle();
+  if (error) throw fromDatabaseError(error, 'find import');
+  if (!data) throw notFound();
+  return data.kind;
+}
+
 export const wrongKind = () =>
   ApiError.conflict(importErrorReasons.wrongKind, 'This import is of another kind.');
 

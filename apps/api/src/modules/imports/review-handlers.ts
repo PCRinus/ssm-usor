@@ -38,6 +38,7 @@ import {
   decisionError,
   existingRecords,
   findImport,
+  importKindOf,
   listFilesOf,
   modelUsageOf,
   notFound,
@@ -60,10 +61,7 @@ import type {
 import { type ImportFileRow } from './store';
 
 async function requireKind(db: DataClient, importId: string, kind: ImportKind) {
-  const { data, error } = await db.from('imports').select('kind').eq('id', importId).maybeSingle();
-  if (error) throw fromDatabaseError(error, 'find import');
-  if (!data) throw notFound();
-  if (data.kind !== kind) throw wrongKind();
+  if ((await importKindOf(db, importId)) !== kind) throw wrongKind();
 }
 
 function usageOf(row: UsageColumns & { read_characters: number | null; usage_by_step: unknown }) {
