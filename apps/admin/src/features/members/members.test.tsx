@@ -221,14 +221,6 @@ describe('the members list', () => {
     mountAdmin('/members');
     expect(await screen.findByTestId('load-error', {}, { timeout: 10_000 })).toBeTruthy();
   });
-
-  it('is reached from the home page and the top bar', async () => {
-    const runtime = mountAdmin('/');
-    await userEvent.setup().click(await screen.findByTestId('home-members'));
-    await screen.findAllByTestId('member-row');
-    expect(runtime.router.state.location.pathname).toBe('/members');
-    expect(screen.getByTestId('nav-members').getAttribute('aria-current')).toBe('page');
-  });
 });
 
 describe('starting an impersonation', () => {

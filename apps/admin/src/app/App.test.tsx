@@ -185,6 +185,32 @@ describe('the admin sign-in', () => {
   });
 });
 
+describe('the admin sections', () => {
+  const emptyPage = { items: [], page: 1, pageSize: 25, total: 0 };
+
+  it.each([
+    ['imports', 'No import matches these filters.', ['nav-imports']],
+    ['legislation', 'No change matches these filters.', ['nav-legislation', 'tab-changes']],
+    ['members', 'No members yet.', ['nav-members']],
+  ])('opens %s from the home page and marks it current', async (section, empty, current) => {
+    mockAdminApi((url) => {
+      if (url.pathname === '/api/legislation/changes') return Response.json({ items: [] });
+      if (['/api/imports', '/api/members', '/api/impersonations'].includes(url.pathname)) {
+        return Response.json(emptyPage);
+      }
+      return undefined;
+    });
+    const runtime = mountAdmin('/');
+
+    await userEvent.setup().click(await screen.findByTestId(`home-${section}`));
+    await screen.findByText(empty);
+    expect(runtime.router.state.location.pathname).toBe(`/${section}`);
+    for (const testId of current) {
+      expect(screen.getByTestId(testId).getAttribute('aria-current')).toBe('page');
+    }
+  });
+});
+
 it('shows the sign-in as unavailable when the build has no Supabase settings', async () => {
   mountAdmin('/', null as unknown as AuthClient);
   await waitFor(() =>
