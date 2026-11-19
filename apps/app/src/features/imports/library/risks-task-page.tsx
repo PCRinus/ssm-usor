@@ -11,16 +11,12 @@ import { ListX } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ImportDetail } from '@/api/generated/api';
-import { TitleWithBack } from '@/components/back-link';
-import { HelpLink } from '@/components/help-link';
 import { scrollAndFocus } from '@/features/missing-data/focus';
 import type { FactorStore } from '@/features/risk-evaluations/factor-store';
 import type { EditableFactor } from '@/features/risk-evaluations/risk-evaluation-schema';
 import { RiskFactorDialog } from '@/features/risk-evaluations/risk-factor-dialog';
 
-import { ImportOverviewBack } from '../import-back';
 import { ImportIssueBadge } from '../import-review-issues';
-import { ReportImportButton } from '../report-import-button';
 import { SourceButton, Tag } from '../review-parts';
 import type { LabelledSource } from '../review-types';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
@@ -33,7 +29,7 @@ import {
   pickablePosts,
   postsByReference,
 } from './library-model';
-import { PartStateNotices, PartTaskLoader, ReviewNotices } from './part-task';
+import { PartStateNotices, PartTaskHeader, PartTaskLoader, ReviewNotices } from './part-task';
 import { PostsPickerDialog, type PostsRequest } from './posts-picker-dialog';
 import { RiskConfirmBar } from './risk-confirm-bar';
 import { PlanRowText } from './risk-plan-rows';
@@ -264,24 +260,14 @@ function TaskContent({
   return (
     <SourcePrefetchContext value={prefetchSource}>
       <div ref={root} className="grid gap-6" data-testid="library-task" data-part={part.part}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <TitleWithBack className="max-w-3xl" back={<ImportOverviewBack importId={detail.id} />}>
-            <div className="grid gap-1">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <h1 className="text-3xl font-semibold tracking-tight">Evaluări de risc</h1>
-                <PartStatusTag part={part} />
-                <HelpLink
-                  topic="import.evaluari-de-risc"
-                  label="Ajutor: evaluările de risc din import"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">{name}</p>
-            </div>
-          </TitleWithBack>
-          <div className="flex flex-wrap items-center gap-3">
-            <ReportImportButton importId={detail.id} part={part.part} />
-          </div>
-        </div>
+        <PartTaskHeader
+          importId={detail.id}
+          part={part}
+          title="Evaluări de risc"
+          name={name}
+          helpTopic="import.evaluari-de-risc"
+          helpLabel="Ajutor: evaluările de risc din import"
+        />
 
         <PartStateNotices
           part={part}
