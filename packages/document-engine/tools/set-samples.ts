@@ -1,11 +1,11 @@
-export const runOn = (text: string) =>
+const runOn = (text: string) =>
   /^.\p{Ll}/u.test(text) ? text[0]!.toLocaleLowerCase('ro') + text.slice(1) : text;
 export const person = (name: string, jobTitle: string) => ({
   name,
   jobTitle,
   jobTitleRunOn: runOn(jobTitle),
 });
-export const listed = (items: string[]) =>
+const listed = (items: string[]) =>
   items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} și ${items.at(-1)}`;
 export const described = (people: { name: string; jobTitle: string }[]) => {
   const items = people.map(({ name, jobTitle }) => `${name}, având funcția de ${jobTitle}`);
@@ -104,7 +104,7 @@ function evaluation(roman: string, name: string, heading: string, count: number)
 // The `fire` object of the fire-safety set (ADR 018): one workplace for the short sample, three
 // for the long one, the second without a manager of its own and with interior hydrants, the
 // third a mobile site.
-export function fireSetSample(people: ReturnType<typeof person>[], long: boolean) {
+function fireSetSample(people: ReturnType<typeof person>[], long: boolean) {
   const [first] = people;
   const workplace = (name: string, activity: string, extra: Record<string, unknown> = {}) => ({
     first: true,
@@ -1262,7 +1262,7 @@ function annualReportSample(people: ReturnType<typeof person>[], long: boolean) 
   };
 }
 
-export function setSample(
+function setSample(
   label: string,
   legalName: string,
   representativeName: string,
