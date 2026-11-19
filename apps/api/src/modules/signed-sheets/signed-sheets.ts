@@ -177,7 +177,6 @@ async function rewriteSheet(
   sheetId: string,
   rewrite: (sheet: StoredSheet, bytes: Uint8Array) => Promise<Rewrite>
 ): Promise<{ before: StoredSheet; after: StoredSheet }> {
-  let notes: ReturnType<typeof notesToWrite> = [];
   return rewriteVersioned(ctx.files, {
     async read() {
       const sheet = await ctx.store.sheet(sheetId);
@@ -194,14 +193,14 @@ async function rewriteSheet(
     },
     async rewrite(sheet, stored) {
       let bytes = stored;
-      notes = notesToWrite(sheet, await ctx.store.rowsOf(sheet.id));
+      const notes = notesToWrite(sheet, await ctx.store.rowsOf(sheet.id));
       if (notes.length > 0) {
         const values = Object.fromEntries(notes.map(({ note }) => [note, voidedNote]));
         bytes = new Uint8Array(
           await need(ctx.signer, signerUnavailable).fillFields(buffer(bytes), values)
         );
       }
-      return rewrite(sheet, bytes);
+      return { ...(await rewrite(sheet, bytes)), notes };
     },
     async advance(sheet, next, { path, digest }) {
       const after = await ctx.store.advance(sheet, {
@@ -211,7 +210,7 @@ async function rewriteSheet(
       });
       if (after) {
         await ctx.store.markVoidNoted(
-          notes.map(({ row }) => row.id),
+          next.notes.map(({ row }) => row.id),
           ctx.now().toISOString()
         );
       }
