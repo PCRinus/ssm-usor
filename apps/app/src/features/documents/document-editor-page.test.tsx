@@ -2,7 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchMock, installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
+import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
 import { clientId, clientRecord } from '@/test/records';
@@ -125,9 +125,15 @@ function mockApi({
   });
 }
 
-const prints = () => requestsTo(`/documents/${documentId}/print`, 'POST');
+const prints = () =>
+  fetchMock.mock.calls.filter(
+    ([input, init]) => String(input).endsWith('/print') && init?.method === 'POST'
+  );
 
-const saves = () => requestsTo(`/documents/${documentId}/draft/file`, 'PUT');
+const saves = () =>
+  fetchMock.mock.calls.filter(
+    ([input, init]) => String(input).endsWith('/draft/file') && init?.method === 'PUT'
+  );
 
 const mount = () =>
   mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/documente-ssm/${documentId}`);

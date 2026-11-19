@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MeResponseMembershipRole } from '@/api/generated/api';
-import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
+import { fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { mountApp } from '@/test/mount';
 import { clientId, clientRecord, meRecord, meResponse } from '@/test/records';
@@ -166,10 +166,12 @@ function mockApi({
 }
 
 const requests = (suffix: string, method = 'GET') =>
-  requestsTo(`/clients/${clientId}${suffix}`, method).map(([input, init]) => ({
-    url: new URL(String(input)),
-    init,
-  }));
+  fetchMock.mock.calls
+    .filter(
+      ([input, init]) =>
+        new URL(String(input)).pathname.endsWith(suffix) && (init?.method ?? 'GET') === method
+    )
+    .map(([input, init]) => ({ url: new URL(String(input)), init }));
 
 const firePath = `/clienti/${clientId}/documente-su`;
 
