@@ -2,7 +2,6 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -10,6 +9,7 @@ import {
   useGetClientOwnerNotes,
   useSaveClientOwnerNotes,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { Notice } from '@/components/notice';
 import { FormActions, SectionCard } from '@/components/section-card';
@@ -20,18 +20,10 @@ import { SheetAction } from './sheet-action';
 const maxLength = 5000;
 
 // Rendered for owners only: the API refuses anyone else.
-export function NotesPanel({
-  clientId,
-  userId,
-  readOnly,
-}: {
-  clientId: string;
-  userId: string;
-  readOnly: boolean;
-}) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const queryKey = [...getGetClientOwnerNotesQueryKey(clientId), userId];
-  const notes = useGetClientOwnerNotes(clientId, { request: apiRequest, query: { queryKey } });
+export function NotesPanel({ clientId, readOnly }: { clientId: string; readOnly: boolean }) {
+  const { request, key } = useApi();
+  const queryKey = key(getGetClientOwnerNotesQueryKey(clientId));
+  const notes = useGetClientOwnerNotes(clientId, { request, query: { queryKey } });
   const { editing, editRef, open, close } = useInPlaceEdit();
   const body = notes.data?.notes.body ?? '';
 
@@ -102,8 +94,8 @@ function NotesForm({
   saved: string;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const save = useSaveClientOwnerNotes({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const save = useSaveClientOwnerNotes({ request });
   const [body, setBody] = useState(saved);
   const [failed, setFailed] = useState(false);
 

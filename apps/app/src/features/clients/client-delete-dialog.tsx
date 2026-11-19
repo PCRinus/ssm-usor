@@ -9,11 +9,11 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Input } from '@ssm-usor/ui/components/input';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
 import { getGetClientQueryKey, getListClientsQueryKey, useDeleteClient } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
@@ -45,8 +45,8 @@ export function ClientDeleteDialog({
   onClose,
   onDeleted,
 }: ClientDeleteProps & { client: ClientToDelete | null }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const remove = useDeleteClient({ request: apiRequest });
+  const { request } = useApi();
+  const remove = useDeleteClient({ request });
   return (
     <Dialog open={client !== null} onOpenChange={(open) => !open && !remove.isPending && onClose()}>
       {client && (
@@ -68,7 +68,7 @@ function ClientDeleteContent({
   onClose,
   onDeleted,
 }: ClientDeleteProps & { client: ClientToDelete; remove: ReturnType<typeof useDeleteClient> }) {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const [typed, setTyped] = useState('');
   const [error, setError] = useState<string | null>(null);
   const confirmed = typed.trim() === client.legalName.trim();

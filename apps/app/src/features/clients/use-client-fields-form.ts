@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouteContext, useRouter } from '@tanstack/react-router';
+import { useRouter } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -7,6 +7,7 @@ import {
   type UpdateClientRequest,
   useUpdateClient,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
 import { storeClient } from './client-cache';
@@ -34,10 +35,10 @@ export function useClientFieldsForm({
   successMessage: string;
   onSaved: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const savedToast = useSavedToast();
   const router = useRouter();
-  const update = useUpdateClient({ request: apiRequest });
+  const update = useUpdateClient({ request });
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: toClientForm(client),

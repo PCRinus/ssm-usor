@@ -2,7 +2,6 @@ import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -10,6 +9,7 @@ import {
   useGetClientOwnerNotes,
   useSaveClientOwnerNotes,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 
@@ -17,19 +17,11 @@ const maxLength = 5000;
 
 // Rendered for owners only: the API refuses anyone else. `readOnly` is an archived company,
 // or a lead on a plan without offers.
-export function OwnerNotesCard({
-  clientId,
-  userId,
-  readOnly,
-}: {
-  clientId: string;
-  userId: string;
-  readOnly: boolean;
-}) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const queryKey = [...getGetClientOwnerNotesQueryKey(clientId), userId];
-  const notes = useGetClientOwnerNotes(clientId, { request: apiRequest, query: { queryKey } });
-  const save = useSaveClientOwnerNotes({ request: apiRequest });
+export function OwnerNotesCard({ clientId, readOnly }: { clientId: string; readOnly: boolean }) {
+  const { request, queryClient, key } = useApi();
+  const queryKey = key(getGetClientOwnerNotesQueryKey(clientId));
+  const notes = useGetClientOwnerNotes(clientId, { request, query: { queryKey } });
+  const save = useSaveClientOwnerNotes({ request });
   // Null until the person types: the field then shows what was saved, whenever that arrives.
   const [typed, setTyped] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);

@@ -10,7 +10,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueries } from '@tanstack/react-query';
-import { useRouteContext, useRouter } from '@tanstack/react-router';
+import { useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -21,6 +21,7 @@ import {
   useRestoreClient,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { useAuth } from '@/features/auth/auth-context';
 import { setParams } from '@/features/documents/document-sets';
@@ -72,11 +73,11 @@ export function ClientArchiveDialog({
   change: ClientArchiveChange | null;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const { session } = useAuth();
   const router = useRouter();
-  const archive = useArchiveClient({ request: apiRequest });
-  const restore = useRestoreClient({ request: apiRequest });
+  const archive = useArchiveClient({ request });
+  const restore = useRestoreClient({ request });
   const [error, setError] = useState<string | null>(null);
   const busy = archive.isPending || restore.isPending;
   const lead = change?.client.stage === 'lead';
@@ -84,13 +85,10 @@ export function ClientArchiveDialog({
   const lists = useQueries({
     queries: documentSets.map((set) =>
       getListClientDocumentsQueryOptions(archiving ?? '', setParams(set), {
-        request: apiRequest,
+        request,
         query: {
-          queryKey: [
-            ...getListClientDocumentsQueryKey(archiving ?? '', setParams(set)),
-            session?.user.id,
-          ],
-          enabled: Boolean(archiving && session && apiRequest.baseUrl),
+          queryKey: key(getListClientDocumentsQueryKey(archiving ?? '', setParams(set))),
+          enabled: Boolean(archiving && session && request.baseUrl),
         },
       })
     ),

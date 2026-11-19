@@ -2,11 +2,11 @@ import { formatEmployeeName, maxPageSize, samePersonName } from '@ssm-usor/contr
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import { Input } from '@ssm-usor/ui/components/input';
-import { useRouteContext } from '@tanstack/react-router';
 import { useEffect, useRef } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 
 import { getListEmployeesQueryKey, useListEmployees } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
@@ -32,25 +32,22 @@ const listParams = { page: 1, pageSize: maxPageSize, sort: 'name', order: 'asc' 
 export function LegalRepresentativeForm({
   saved,
   client,
-  userId,
   onClose,
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
-  userId: string;
   onClose: () => void;
 }) {
   const { form, onSubmit, busy, locked } = useDocumentDetailsForm({
     saved,
     client,
-    userId,
     fields,
     successMessage: 'Reprezentantul legal a fost salvat.',
     onSaved: onClose,
   });
   const formRef = useRevealErrors(form);
   const { errors, isDirty } = form.formState;
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const [isEmployee, employeeId, typedName] = useWatch({
     control: form.control,
     name: [
@@ -60,9 +57,9 @@ export function LegalRepresentativeForm({
     ],
   });
   const employees = useListEmployees(client.id, listParams, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListEmployeesQueryKey(client.id, listParams), userId],
+      queryKey: key(getListEmployeesQueryKey(client.id, listParams)),
       enabled: isEmployee,
     },
   });
@@ -182,7 +179,6 @@ export function LegalRepresentativeForm({
                   id="details-representative-employee"
                   testId="details-representative-employee"
                   clientId={client.id}
-                  userId={userId}
                   value={field.value}
                   disabled={locked}
                   invalid={Boolean(errors.legalRepresentativeEmployeeId)}

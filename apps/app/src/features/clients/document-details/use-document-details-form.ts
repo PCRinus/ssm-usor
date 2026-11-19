@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouteContext } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import {
@@ -10,6 +9,7 @@ import {
   useUpdateClientDocumentDetails,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -29,18 +29,17 @@ export interface ClientSummary {
 
 export type DocumentDetailsField = keyof DocumentDetailsFormValues;
 
-export function useDocumentDetails(clientId: string, userId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+export function useDocumentDetails(clientId: string) {
+  const { request, key } = useApi();
   return useGetClientDocumentDetails(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getGetClientDocumentDetailsQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getGetClientDocumentDetailsQueryKey(clientId)) },
   });
 }
 
 export function useDocumentDetailsForm({
   saved,
   client,
-  userId,
   fields,
   successMessage,
   onSaved,
@@ -49,7 +48,6 @@ export function useDocumentDetailsForm({
 }: {
   saved: DocumentDetails;
   client: ClientSummary;
-  userId: string;
   fields: readonly DocumentDetailsField[];
   successMessage: string;
   onSaved?: () => void;
@@ -60,10 +58,10 @@ export function useDocumentDetailsForm({
     values: DocumentDetailsFormValues
   ) => { field: DocumentDetailsField; message: string }[];
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient, key } = useApi();
   const savedToast = useSavedToast();
-  const update = useUpdateClientDocumentDetails({ request: apiRequest });
-  const queryKey = [...getGetClientDocumentDetailsQueryKey(client.id), userId];
+  const update = useUpdateClientDocumentDetails({ request });
+  const queryKey = key(getGetClientDocumentDetailsQueryKey(client.id));
   // Saving sends only the card's own fields, so a starting value outside them would show and be lost.
   const opening = Object.fromEntries(
     fields.flatMap((field) => (field in starting ? [[field, starting[field]]] : []))

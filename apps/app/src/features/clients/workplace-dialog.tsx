@@ -24,7 +24,6 @@ import { Label } from '@ssm-usor/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useRouteContext } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
@@ -34,6 +33,7 @@ import {
   useUpdateWorkplace,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { useHoldOpen } from '@/components/close-guard';
 import { FormDialog } from '@/components/form-dialog';
@@ -174,9 +174,9 @@ function WorkplaceForm({
   onCloseAutoFocus?: (event: Event) => void;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const create = useCreateWorkplace({ request: apiRequest });
-  const update = useUpdateWorkplace({ request: apiRequest });
+  const { request, queryClient } = useApi();
+  const create = useCreateWorkplace({ request });
+  const update = useUpdateWorkplace({ request });
   const form = useForm<WorkplaceFormValues>({
     resolver: zodResolver(workplaceFormSchema),
     defaultValues: draft

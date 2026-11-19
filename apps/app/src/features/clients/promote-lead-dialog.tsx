@@ -8,11 +8,12 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { toast } from '@ssm-usor/ui/lib/toast';
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { usePromoteLead } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 import { commonFailure } from '@/lib/api-errors';
 
@@ -45,9 +46,9 @@ export function PromoteLeadDialog({
   received?: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const navigate = useNavigate();
-  const promote = usePromoteLead({ request: apiRequest });
+  const promote = usePromoteLead({ request });
   const [error, setError] = useState<string | null>(null);
 
   function close() {
