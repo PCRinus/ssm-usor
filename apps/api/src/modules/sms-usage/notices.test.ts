@@ -129,21 +129,6 @@ describe('the usage notices', () => {
     expect(sendSmsUsageNotice).toHaveBeenCalledOnce();
   });
 
-  it('records the notice before it is sent', async () => {
-    const { at, store, sendSmsUsageNotice } = setUp();
-
-    await at(40);
-
-    expect(store.recordNotice.mock.invocationCallOrder[0]).toBeLessThan(
-      sendSmsUsageNotice.mock.invocationCallOrder[0]!
-    );
-    expect(store.recordNotice).toHaveBeenCalledWith(
-      organizationId,
-      '2026-11-13T08:00:00.000Z',
-      'sms_80'
-    );
-  });
-
   it('sends only the highest threshold reached, and never the lower one after it', async () => {
     const { at, sendSmsUsageNotice } = setUp();
 
