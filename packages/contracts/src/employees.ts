@@ -28,6 +28,12 @@ export const employeeTextLimits = {
 const optionalLimited = (name: keyof typeof employeeTextLimits) =>
   text(employeeTextLimits[name]).nullish();
 
+// Reasons of a 409 that the app words itself.
+export const employeeConflictReasons = {
+  cnpTaken: 'employee_cnp_taken',
+  numberTaken: 'employee_number_taken',
+} as const;
+
 // Absences will be dated events, not a status.
 export const employeeStatuses = ['active', 'terminated'] as const;
 export const employeeStatusSchema = z.enum(employeeStatuses);

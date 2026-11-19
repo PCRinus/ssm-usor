@@ -105,7 +105,7 @@ export const createEmployeeRoute = createRoute({
     404: clientNotFoundResponse,
     409: {
       description:
-        'The client is archived (reason `client_archived`), or a current employee of the client has the CNP or number',
+        'The client is archived (reason `client_archived`), or a current employee of the client has the CNP (reason `employee_cnp_taken`) or number (reason `employee_number_taken`)',
       content: errorContent,
     },
     ...membershipErrors,
@@ -173,7 +173,7 @@ export const updateEmployeeStatusRoute = createRoute({
     },
     409: {
       description:
-        'The client is archived, or a current employee of the client has the CNP or number of the one being reactivated',
+        'The client is archived, or a current employee of the client has the CNP (reason `employee_cnp_taken`) or number (reason `employee_number_taken`) of the one being reactivated',
       content: errorContent,
     },
     ...membershipErrors,
@@ -249,7 +249,7 @@ export const updateEmployeeRoute = createRoute({
     404: { description: 'The employee does not exist under this client', content: errorContent },
     409: {
       description:
-        'The client is archived (reason `client_archived`), or another current employee of the client has this CNP or number',
+        'The client is archived (reason `client_archived`), or another current employee of the client has this CNP (reason `employee_cnp_taken`) or number (reason `employee_number_taken`)',
       content: errorContent,
     },
     ...membershipErrors,

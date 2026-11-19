@@ -1,4 +1,8 @@
-import { type ApiErrorResponse, formatEmployeeName } from '@ssm-usor/contracts';
+import {
+  type ApiErrorResponse,
+  employeeConflictReasons,
+  formatEmployeeName,
+} from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
   DialogContent,
@@ -57,11 +61,10 @@ function conflictMessage(body: Partial<ApiErrorResponse> | undefined) {
   if (body?.reason === 'client_archived') {
     return 'Clientul este arhivat; situația lucrătorilor nu se mai schimbă.';
   }
-  const message = body?.message ?? '';
-  if (message.includes('CNP')) {
+  if (body?.reason === employeeConflictReasons.cnpTaken) {
     return 'Nu poate fi reactivat: un lucrător actual al clientului are același CNP, de obicei rândul adăugat la reangajare.';
   }
-  if (message.includes('number')) {
+  if (body?.reason === employeeConflictReasons.numberTaken) {
     return 'Nu poate fi reactivat: un lucrător actual al clientului are aceeași marcă, de obicei rândul adăugat la reangajare.';
   }
   return 'Situația lucrătorului nu a putut fi schimbată. Reîncarcă pagina și încearcă din nou.';
