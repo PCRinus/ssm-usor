@@ -7,7 +7,7 @@ import {
 import { z } from 'zod';
 
 import type { JobPositionListResponse, JobPositionRequest } from '@/api/generated/api';
-import { intervalOptions } from '@/features/training/document-details-schema';
+import { intervalOptions } from '@/features/clients/document-details/document-details-schema';
 
 export type JobPosition = JobPositionListResponse['items'][number];
 

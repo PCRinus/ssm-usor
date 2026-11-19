@@ -1,3 +1,4 @@
+import { listSearchMaxLength } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { ListFilterFacet, ListFilterValues } from './types';
@@ -75,6 +76,16 @@ export function listFilterSearch<Key extends string>({
     searchOf,
   };
 }
+
+// The router reads a value that looks like a number as one: a CUI or an act's number typed into
+// the address, "?q=1425", arrives as 1425.
+export const listQuerySearchSchema = z
+  .preprocess(
+    (value) => (typeof value === 'number' ? String(value) : value),
+    z.string().max(listSearchMaxLength)
+  )
+  .optional()
+  .catch(undefined);
 
 const isoDay = z.iso.date();
 

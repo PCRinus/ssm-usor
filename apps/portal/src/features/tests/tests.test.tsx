@@ -1,3 +1,5 @@
+import '@/test/api-mock';
+
 import { QueryClient } from '@tanstack/react-query';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -13,51 +15,22 @@ import {
   startPortalTestAttempt,
   type TestAttemptOutcome,
   type TestAttemptResponseAttempt,
-  useGetPortalEmployeeData,
-  useGetPortalMe,
-  useGetPortalSigningAgreementState,
   useGetPortalTests,
   useGetPortalTestStudyCard,
-  useGetPortalTrainingSheets,
-  useListPortalClientSignatureRequests,
-  useListPortalSignatureRequests,
-  useListPortalSigningAgreements,
-  useListPortalTrainingRecords,
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { openOutdatedDialog, resetReloadStore } from '@/features/reload/reload-store';
 import {
   disposeRuntimes,
-  employeeData,
   fakeAuthClient,
   fakeSession,
+  mockQuery,
   mountPortal,
   participation,
   portalTests,
-  queryResult,
+  stubEmployeePortal,
   testStatus,
-  trainingRecords,
 } from '@/test/portal';
-
-vi.mock('@/api/generated/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/api/generated/api')>()),
-  useGetPortalMe: vi.fn(),
-  useListPortalTrainingRecords: vi.fn(),
-  useGetPortalEmployeeData: vi.fn(),
-  useGetPortalTrainingSheets: vi.fn(),
-  useListPortalSignatureRequests: vi.fn(),
-  useListPortalClientSignatureRequests: vi.fn(),
-  useListPortalSigningAgreements: vi.fn(),
-  useGetPortalSigningAgreementState: vi.fn(),
-  useGetPortalTests: vi.fn(),
-  useGetPortalTestStudyCard: vi.fn(),
-  startPortalTestAttempt: vi.fn(),
-  answerPortalTestAttempt: vi.fn(),
-  finishPortalTestAttempt: vi.fn(),
-  getPortalMaterialLink: vi.fn(),
-  getPortalTestSheet: vi.fn(),
-  getPortalTestSheetLink: vi.fn(),
-}));
 
 const { participantId } = participation();
 const signedIn = () => fakeAuthClient(fakeSession());
@@ -110,23 +83,9 @@ const studyCard = {
 };
 
 beforeEach(() => {
-  vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
-  vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryResult(trainingRecords()));
-  vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryResult(employeeData()));
-  vi.mocked(useGetPortalTrainingSheets).mockReturnValue(
-    queryResult({
-      ssm: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-      su: { ready: true, missing: [], stored: false, sequences: [], versions: {} },
-    })
-  );
-  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(
-    queryResult({ agreement: null, unavailable: null })
-  );
-  vi.mocked(useGetPortalTests).mockReturnValue(queryResult(awaitingSsm()));
-  vi.mocked(useGetPortalTestStudyCard).mockReturnValue(queryResult(studyCard));
+  stubEmployeePortal();
+  mockQuery(useGetPortalTests, awaitingSsm());
+  mockQuery(useGetPortalTestStudyCard, studyCard);
   vi.mocked(startPortalTestAttempt).mockResolvedValue({ attempt: firstAttempt });
   vi.mocked(answerPortalTestAttempt).mockImplementation(
     async (_participant, attemptId, questionIndex, { chosen }) => {
@@ -151,12 +110,6 @@ beforeEach(() => {
 afterEach(() => {
   act(() => resetReloadStore());
   disposeRuntimes();
-  vi.mocked(startPortalTestAttempt).mockReset();
-  vi.mocked(answerPortalTestAttempt).mockReset();
-  vi.mocked(finishPortalTestAttempt).mockReset();
-  vi.mocked(getPortalMaterialLink).mockReset();
-  vi.mocked(getPortalTestSheet).mockReset();
-  vi.mocked(getPortalTestSheetLink).mockReset();
 });
 
 async function openSitting(path = '/instruiri/test/ssm/hiring') {
@@ -171,20 +124,19 @@ const option = (text: string) => screen.getByRole('checkbox', { name: text });
 
 describe('Acasă', () => {
   it('lists each awaiting test beside the signatures, leading to its page', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(
-        portalTests({
-          ssm: { status: testStatus({ state: 'pending', awaitingTest: 'hiring' }) },
-          su: {
-            status: testStatus({
-              state: 'annual_due',
-              awaitingTest: 'annual',
-              lastPassedOn: '2025-10-01',
-              dueOn: '2026-10-01',
-            }),
-          },
-        })
-      )
+    mockQuery(
+      useGetPortalTests,
+      portalTests({
+        ssm: { status: testStatus({ state: 'pending', awaitingTest: 'hiring' }) },
+        su: {
+          status: testStatus({
+            state: 'annual_due',
+            awaitingTest: 'annual',
+            lastPassedOn: '2025-10-01',
+            dueOn: '2026-10-01',
+          }),
+        },
+      })
     );
     mountPortal(signedIn());
 
@@ -201,15 +153,14 @@ describe('Acasă', () => {
   });
 
   it('says a started test continues where it stopped', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(
-        portalTests({
-          ssm: {
-            status: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
-            inProgress: attempt(firstAttempt.id, 3),
-          },
-        })
-      )
+    mockQuery(
+      useGetPortalTests,
+      portalTests({
+        ssm: {
+          status: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
+          inProgress: attempt(firstAttempt.id, 3),
+        },
+      })
     );
     mountPortal(signedIn());
     expect((await screen.findByTestId('home-test-item')).textContent).toContain(
@@ -218,7 +169,7 @@ describe('Acasă', () => {
   });
 
   it('shows nothing about tests while none awaits', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(queryResult(portalTests()));
+    mockQuery(useGetPortalTests, portalTests());
     mountPortal(signedIn());
     await screen.findByTestId('home-todo');
     expect(screen.queryByTestId('home-tests')).toBeNull();
@@ -227,36 +178,35 @@ describe('Acasă', () => {
 
 describe('Instruiri', () => {
   it('shows per domain the test state and the results with day and grade, and links an awaiting test', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(
-        portalTests({
-          ssm: { status: testStatus({ state: 'pending', awaitingTest: 'hiring' }) },
-          su: {
-            status: testStatus({
-              state: 'passed',
-              lastPassedOn: '2026-02-03',
-              dueOn: '2027-02-03',
-            }),
-            results: [
-              {
-                id: '6f0c3e43-0c1b-4f4b-8a1e-0000000e0001',
-                employeeId: participation().employeeId!,
-                domain: 'su',
-                test: 'hiring',
-                takenOn: '2026-02-03',
-                material: 'Test de verificare a cunoștințelor la angajare (TASU)',
-                grade: 'admis',
-                examiner: { name: 'Ioana Dinu', jobTitle: 'Cadru tehnic PSI' },
-                source: 'portal',
-                attemptId: '6f0c3e43-0c1b-4f4b-8a1e-0000000a0009',
-                sheet: { available: true, signed: { trainee: 'signed', examiner: 'pending' } },
-                createdAt: '2026-02-03T10:00:00Z',
-                updatedAt: '2026-02-03T10:00:00Z',
-              },
-            ],
-          },
-        })
-      )
+    mockQuery(
+      useGetPortalTests,
+      portalTests({
+        ssm: { status: testStatus({ state: 'pending', awaitingTest: 'hiring' }) },
+        su: {
+          status: testStatus({
+            state: 'passed',
+            lastPassedOn: '2026-02-03',
+            dueOn: '2027-02-03',
+          }),
+          results: [
+            {
+              id: '6f0c3e43-0c1b-4f4b-8a1e-0000000e0001',
+              employeeId: participation().employeeId!,
+              domain: 'su',
+              test: 'hiring',
+              takenOn: '2026-02-03',
+              material: 'Test de verificare a cunoștințelor la angajare (TASU)',
+              grade: 'admis',
+              examiner: { name: 'Ioana Dinu', jobTitle: 'Cadru tehnic PSI' },
+              source: 'portal',
+              attemptId: '6f0c3e43-0c1b-4f4b-8a1e-0000000a0009',
+              sheet: { available: true, signed: { trainee: 'signed', examiner: 'pending' } },
+              createdAt: '2026-02-03T10:00:00Z',
+              updatedAt: '2026-02-03T10:00:00Z',
+            },
+          ],
+        },
+      })
     );
     mountPortal(signedIn(), '/instruiri');
 
@@ -283,8 +233,9 @@ describe('Instruiri', () => {
   });
 
   it('shows no state and nothing to take for a hiring test from paper that could not be verified', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(portalTests({ ssm: { status: testStatus({ state: 'unverified' }) } }))
+    mockQuery(
+      useGetPortalTests,
+      portalTests({ ssm: { status: testStatus({ state: 'unverified' }) } })
     );
     mountPortal(signedIn(), '/instruiri');
 
@@ -295,15 +246,14 @@ describe('Instruiri', () => {
   });
 
   it('offers to continue a test in progress', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(
-        portalTests({
-          ssm: {
-            status: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
-            inProgress: attempt(firstAttempt.id, 2),
-          },
-        })
-      )
+    mockQuery(
+      useGetPortalTests,
+      portalTests({
+        ssm: {
+          status: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
+          inProgress: attempt(firstAttempt.id, 2),
+        },
+      })
     );
     mountPortal(signedIn(), '/instruiri');
     expect((await screen.findByTestId('training-test-open-ssm')).textContent).toBe(
@@ -332,14 +282,12 @@ describe('the test sheet in Instruiri', () => {
   });
 
   const passedWith = (results: ResultRow[]) =>
-    queryResult(
-      portalTests({
-        ssm: { status: testStatus({ state: 'passed', lastPassedOn: '2026-10-21' }), results },
-      })
-    );
+    portalTests({
+      ssm: { status: testStatus({ state: 'passed', lastPassedOn: '2026-10-21' }), results },
+    });
 
   it('shows the two slots and sends the trainee to Semnături while their signature waits', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([result()]));
+    mockQuery(useGetPortalTests, passedWith([result()]));
     mountPortal(signedIn(), '/instruiri');
 
     const sheet = await screen.findByTestId('training-test-sheet');
@@ -356,7 +304,7 @@ describe('the test sheet in Instruiri', () => {
   });
 
   it('opens a stored test sheet from a real link, shown inline in a tab', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([result()]));
+    mockQuery(useGetPortalTests, passedWith([result()]));
     mountPortal(signedIn(), '/instruiri');
 
     await waitFor(() =>
@@ -382,7 +330,7 @@ describe('the test sheet in Instruiri', () => {
     const notDrawnUp = result({
       sheet: { available: false, signed: { trainee: 'unassigned', examiner: 'unassigned' } },
     });
-    vi.mocked(useGetPortalTests).mockReturnValue(passedWith([notDrawnUp]));
+    mockQuery(useGetPortalTests, passedWith([notDrawnUp]));
     vi.spyOn(window, 'open').mockReturnValue({
       document: { write: vi.fn(), close: vi.fn(), title: '' },
       location: { replace: vi.fn() },
@@ -405,7 +353,8 @@ describe('the test sheet in Instruiri', () => {
   });
 
   it('says when the test sheet is not ready', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
+    mockQuery(
+      useGetPortalTests,
       passedWith([
         result({
           sheet: { available: false, signed: { trainee: 'unassigned', examiner: 'unassigned' } },
@@ -432,7 +381,8 @@ describe('the test sheet in Instruiri', () => {
   });
 
   it('shows no test sheet for a paper result', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
+    mockQuery(
+      useGetPortalTests,
       passedWith([
         result({
           source: 'paper',
@@ -487,9 +437,7 @@ describe('the study card', () => {
   });
 
   it('says the material is not issued yet', async () => {
-    vi.mocked(useGetPortalTestStudyCard).mockReturnValue(
-      queryResult({ ...studyCard, material: null })
-    );
+    mockQuery(useGetPortalTestStudyCard, { ...studyCard, material: null });
     mountPortal(signedIn(), '/instruiri/test/ssm/hiring');
     expect((await screen.findByTestId('test-material-missing')).textContent).toContain(
       'Materialul de instruire nu este emis încă'
@@ -507,15 +455,14 @@ describe('the study card', () => {
   });
 
   it('resumes a test in progress at its first unanswered question', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(
-        portalTests({
-          ssm: {
-            status: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
-            inProgress: attempt(firstAttempt.id, 3),
-          },
-        })
-      )
+    mockQuery(
+      useGetPortalTests,
+      portalTests({
+        ssm: {
+          status: testStatus({ state: 'pending', awaitingTest: 'hiring' }),
+          inProgress: attempt(firstAttempt.id, 3),
+        },
+      })
     );
     vi.mocked(startPortalTestAttempt).mockResolvedValue({
       attempt: attempt(firstAttempt.id, 3),
@@ -536,12 +483,11 @@ describe('the study card', () => {
   });
 
   it('starts nothing when the test does not await', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(
-        portalTests({
-          ssm: { status: testStatus({ state: 'passed', lastPassedOn: '2026-10-01' }) },
-        })
-      )
+    mockQuery(
+      useGetPortalTests,
+      portalTests({
+        ssm: { status: testStatus({ state: 'passed', lastPassedOn: '2026-10-01' }) },
+      })
     );
     mountPortal(signedIn(), '/instruiri/test/ssm/hiring');
     expect(await screen.findByTestId('test-not-awaiting')).toBeTruthy();
@@ -549,15 +495,14 @@ describe('the study card', () => {
   });
 
   it('offers no continuation of an attempt left open once the test no longer awaits', async () => {
-    vi.mocked(useGetPortalTests).mockReturnValue(
-      queryResult(
-        portalTests({
-          ssm: {
-            status: testStatus({ state: 'passed', lastPassedOn: '2026-10-21' }),
-            inProgress: attempt(firstAttempt.id, 3),
-          },
-        })
-      )
+    mockQuery(
+      useGetPortalTests,
+      portalTests({
+        ssm: {
+          status: testStatus({ state: 'passed', lastPassedOn: '2026-10-21' }),
+          inProgress: attempt(firstAttempt.id, 3),
+        },
+      })
     );
     mountPortal(signedIn(), '/instruiri/test/ssm/hiring');
     expect(await screen.findByTestId('test-not-awaiting')).toBeTruthy();

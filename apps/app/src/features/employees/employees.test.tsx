@@ -721,6 +721,21 @@ describe('employee creation', () => {
     expect(requests(employeesPath, 'POST')).toHaveLength(0);
   });
 
+  it('flags an unfinished birth date instead of saving it as no date', async () => {
+    mockApi();
+    mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);
+    const user = userEvent.setup();
+    await screen.findByTestId('new-employee-page');
+    await user.type(screen.getByTestId('employee-last-name'), 'Popescu');
+    await user.type(screen.getByTestId('employee-first-name'), 'Ion');
+    await pickPosition(user, 'sud', /Sudor/);
+    setDate(screen.getByTestId('employee-hired-at'), '2020-03-01');
+    await user.type(screen.getByTestId('employee-birth-date'), '01.01.19');
+    await user.click(screen.getByTestId('employee-submit'));
+    expect((await screen.findByTestId('birthDate-error')).textContent).toBe('Alege o dată validă.');
+    expect(requests(employeesPath, 'POST')).toHaveLength(0);
+  });
+
   it('sends the normalized request and returns to the list', async () => {
     mockApi({ list: () => Response.json(page([sampleEmployee])) });
     const runtime = mountApp(authFixture(makeSession()).client, `${employeesPage}/nou`);

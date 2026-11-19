@@ -30,6 +30,11 @@ import { Notice } from '@/components/notice';
 import { EditAction, Fact, FactList, SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import {
+  type ClientSummary,
+  describedBy,
+  useDocumentDetails,
+} from '@/features/clients/document-details/use-document-details-form';
 import { appliesAt } from '@/features/documents/document-labels';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
@@ -69,7 +74,6 @@ import {
   durationText,
   startingInterval,
 } from './schedule-rules';
-import { type ClientSummary, describedBy, useDocumentDetails } from './use-document-details-form';
 
 function useFireSafety(clientId: string, userId: string) {
   const { apiRequest } = useRouteContext({ from: '__root__' });

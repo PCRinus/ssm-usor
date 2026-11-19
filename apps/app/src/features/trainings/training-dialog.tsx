@@ -32,17 +32,13 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
-  getGetTrainingProposalQueryKey,
   getGetTrainingQueryKey,
   getListJobPositionsQueryKey,
-  getListSignerCandidatesQueryKey,
   type JobPositionListResponseItemsItem,
   type TrainingResponseTraining,
   useCreateTraining,
   useGetTraining,
-  useGetTrainingProposal,
   useListJobPositions,
-  useListSignerCandidates,
   useUpdateTraining,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
@@ -53,29 +49,24 @@ import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
 import { signingMessage } from '@/features/signatures/signature-format';
-import { matchSigner } from '@/features/signatures/signer-match';
-import { SignerSelect } from '@/features/signatures/signer-select';
-import { commonFailure } from '@/lib/api-errors';
+import { commonFailure, setApiIssues } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 
 import { AttendeeChecklist, type AttendeeOption } from './attendee-checklist';
+import { SignerSlot } from './signer-slot';
 import {
   emptySigners,
-  fieldOfIssue,
-  type ProposedField,
-  proposedFields,
-  proposedValues,
-  type SignerField,
-  signerFields,
-  signerOfName,
   type SlotNameField,
   toTrainingForm,
   toTrainingRequest,
   trainingFormSchema,
   type TrainingFormValues,
+  trainingIssueTarget,
 } from './training-form-schema';
 import { attendeeCountLabel, notOnSheet } from './training-format';
 import { type CurrentEmployee, invalidateTrainings, useCurrentEmployees } from './training-queries';
+import { useSignerSlots } from './use-signer-slots';
+import { useTrainingProposal } from './use-training-proposal';
 
 export type TrainingDialogTarget =
   | { kind: 'new'; domain: TrainingDomain; phase: TrainingPhase }
@@ -102,8 +93,9 @@ export function TrainingDialog({
   fixedAttendee?: FixedAttendee;
   onClose: () => void;
 }) {
+  const [saving, setSaving] = useState(false);
   return (
-    <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={target !== null} onOpenChange={(open) => !open && !saving && onClose()}>
       {target && (
         <TrainingDialogContent
           key={target.kind === 'edit' ? target.trainingId : 'new'}
@@ -111,6 +103,7 @@ export function TrainingDialog({
           userId={userId}
           target={target}
           fixedAttendee={fixedAttendee}
+          onBusyChange={setSaving}
           onClose={onClose}
         />
       )}
@@ -123,12 +116,14 @@ function TrainingDialogContent({
   userId,
   target,
   fixedAttendee,
+  onBusyChange,
   onClose,
 }: {
   clientId: string;
   userId: string;
   target: TrainingDialogTarget;
   fixedAttendee?: FixedAttendee;
+  onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
@@ -181,6 +176,7 @@ function TrainingDialogContent({
       positions={positions.data.items}
       employees={employees.data}
       fixedAttendee={fixedAttendee}
+      onBusyChange={onBusyChange}
       onClose={onClose}
     />
   );
@@ -220,6 +216,7 @@ function TrainingForm({
   positions,
   employees,
   fixedAttendee,
+  onBusyChange,
   onClose,
 }: {
   clientId: string;
@@ -229,6 +226,7 @@ function TrainingForm({
   positions: JobPositionListResponseItemsItem[];
   employees: CurrentEmployee[];
   fixedAttendee?: FixedAttendee;
+  onBusyChange: (busy: boolean) => void;
   onClose: () => void;
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
@@ -271,143 +269,27 @@ function TrainingForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
-  // What was saved stays as it was: only a new training takes the plan's proposal.
-  const [typed, setTyped] = useState<ReadonlySet<ProposedField>>(
-    () => new Set(training ? proposedFields : [])
-  );
-  const markTyped = (field: ProposedField) =>
-    setTyped((current) => (current.has(field) ? current : new Set([...current, field])));
-  const typing = (field: ProposedField) => ({ onChange: () => markTyped(field) });
-
-  const [domain, phase, heldOn, jobPositionId, source, employeeIds] = useWatch({
-    control: form.control,
-    name: ['domain', 'phase', 'heldOn', 'jobPositionId', 'source', 'employeeIds'],
-  });
-  const proposalParams = {
-    domain,
-    phase,
-    heldOn,
-    ...(jobPositionId ? { jobPositionId } : {}),
-    ...(employeeIds.length > 0 ? { employeeIds: employeeIds.join(',') } : {}),
-  };
-  const proposing =
-    typed.size < proposedFields.length &&
-    Boolean(heldOn) &&
-    heldOn <= todayIso() &&
-    (Boolean(jobPositionId) || phase === 'introductory_general');
-  const proposal = useGetTrainingProposal(clientId, proposalParams, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getGetTrainingProposalQueryKey(clientId, proposalParams), userId],
-      enabled: proposing && Boolean(apiRequest.baseUrl),
-    },
-  });
-  const proposed = proposing ? proposal.data : undefined;
-
   useEffect(() => {
-    if (!proposed) return;
-    const values = proposedValues(proposed, heldOn);
-    const validate = form.formState.isSubmitted;
-    for (const field of proposedFields) {
-      if (!typed.has(field)) form.setValue(field, values[field], { shouldValidate: validate });
-    }
-    if (!typed.has('material')) form.setValue('themesRevisionId', proposed.themesRevisionId);
-  }, [proposed, heldOn, typed, form]);
-
-  const candidates = useListSignerCandidates(clientId, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListSignerCandidatesQueryKey(clientId), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
-    },
+    onBusyChange(busy);
+    return () => onBusyChange(false);
+  }, [busy, onBusyChange]);
+  const { markTyped, typing, missingMaterial } = useTrainingProposal(form, {
+    clientId,
+    userId,
+    training,
   });
-  const signerItems = candidates.data?.items;
-  const [trainerName, verifierName, admittedByName] = useWatch({
-    control: form.control,
-    name: ['trainerName', 'verifierName', 'admittedByName'],
-  });
-  // A signer the specialist chose stays until the slot's name is typed again; the others follow
-  // the names as they are proposed or typed. A saved training's signers were chosen, paper too.
-  const [pickedSigners, setPickedSigners] = useState<ReadonlySet<SignerField>>(
-    () => new Set(training ? signerFields : [])
-  );
-  const requestedSigners: Record<SignerField, string | null> = {
-    trainerSignerId: training?.signers.trainer ?? null,
-    verifierSignerId: training?.signers.verifier ?? null,
-    admitterSignerId: training?.signers.admitter ?? null,
-  };
-  const pickSigner = (field: SignerField, accountId: string) => {
-    setPickedSigners((current) => new Set([...current, field]));
-    form.clearErrors(field);
-    form.setValue(field, accountId);
-  };
-  const unpickSigner = (field: SignerField) =>
-    setPickedSigners((current) => {
-      if (!current.has(field)) return current;
-      const next = new Set(current);
-      next.delete(field);
-      return next;
-    });
+  const signerSlots = useSignerSlots(form, { clientId, userId, training });
   const typingName = (field: SlotNameField) => ({
     onChange: () => {
       markTyped(field);
-      unpickSigner(signerOfName[field]);
-      form.clearErrors(signerOfName[field]);
+      signerSlots.nameTyped(field);
     },
   });
-  const applySignerName = (field: SlotNameField, name: string) => {
-    markTyped(field);
-    form.setValue(field, name, { shouldValidate: form.formState.isSubmitted });
-    form.clearErrors(signerOfName[field]);
-  };
-  useEffect(() => {
-    if (!signerItems) return;
-    const names: Record<SignerField, string> = {
-      trainerSignerId: trainerName,
-      verifierSignerId: verifierName,
-      admitterSignerId: admittedByName,
-    };
-    for (const field of signerFields) {
-      if (!pickedSigners.has(field)) {
-        form.setValue(field, matchSigner(names[field], signerItems, userId) ?? '');
-      }
-    }
-  }, [signerItems, trainerName, verifierName, admittedByName, pickedSigners, userId, form]);
-  const [trainerSignerId, verifierSignerId, admitterSignerId] = useWatch({
+  const [domain, phase, jobPositionId, source] = useWatch({
     control: form.control,
-    name: [...signerFields],
+    name: ['domain', 'phase', 'jobPositionId', 'source'],
   });
-  const slotNames: Record<SlotNameField, string> = {
-    trainerName,
-    verifierName,
-    admittedByName,
-  };
-  const signerSelect = (nameField: SlotNameField, id: string, label: string, value: string) => {
-    const field = signerOfName[nameField];
-    return (
-      <div
-        className={
-          field === 'admitterSignerId'
-            ? 'grid gap-5 sm:col-span-3 sm:grid-cols-3'
-            : 'grid gap-5 sm:col-span-2 sm:grid-cols-2'
-        }
-      >
-        <SignerSelect
-          id={id}
-          label={label}
-          value={value}
-          slotName={slotNames[nameField]}
-          candidates={signerItems}
-          requested={requestedSigners[field]}
-          unavailable={candidates.isError}
-          disabled={busy}
-          error={errors[field]}
-          onChange={(accountId) => pickSigner(field, accountId)}
-          onUseSignerName={(name) => applySignerName(nameField, name)}
-        />
-      </div>
-    );
-  };
+  const { verifierName, admittedByName } = signerSlots.slotNames;
   const signing = source === 'app';
   const fromPaper = source === 'paper';
 
@@ -481,24 +363,18 @@ function TrainingForm({
         });
         return;
       }
-      const fieldIssues =
-        status === 400 || status === 422
-          ? (body?.issues ?? []).flatMap((issue) => {
-              const field = fieldOfIssue[issue.path];
-              return field ? [{ field, message: issue.message }] : [];
-            })
-          : [];
-      if (fieldIssues.length > 0) {
-        for (const { field, message } of fieldIssues) {
-          form.setError(field, {
-            message:
-              field === 'employeeIds'
-                ? 'Un participant nu mai este lucrător al clientului. Reîncarcă lista și alege din nou.'
-                : field === 'heldOn'
-                  ? 'O instruire se înregistrează după ce a avut loc.'
-                  : (signingMessage(cause, training) ?? message),
-          });
-        }
+      if (
+        (status === 400 || status === 422) &&
+        setApiIssues(form.setError, body?.issues, (path) => {
+          const target = trainingIssueTarget(path);
+          return (
+            target && {
+              field: target.field,
+              message: target.message ?? signingMessage(cause, training) ?? undefined,
+            }
+          );
+        })
+      ) {
         return;
       }
       form.setError('root.server', {
@@ -519,8 +395,6 @@ function TrainingForm({
   const minutes = /^\d+$/.test(durationValue.trim()) ? Number(durationValue) : null;
   const durationHint =
     minutes && minutes % 60 === 0 ? `Adică ${minutes / 60} h.` : 'Fișa o tipărește în ore.';
-  const missingMaterial =
-    proposed !== undefined && proposed.material === null && !typed.has('material');
 
   return (
     <DialogContent data-testid="training-dialog" className="sm:max-w-3xl">
@@ -822,13 +696,17 @@ function TrainingForm({
               {...form.register('trainerJobTitle', typing('trainerJobTitle'))}
             />
           </Field>
-          {signing &&
-            signerSelect(
-              'trainerName',
-              'training-trainer-signer',
-              `Semnatar la „${signerSlotLabels.trainer}”`,
-              trainerSignerId
-            )}
+          {signing && (
+            <SignerSlot
+              form={form}
+              slots={signerSlots}
+              nameField="trainerName"
+              id="training-trainer-signer"
+              label={`Semnatar la „${signerSlotLabels.trainer}”`}
+              busy={busy}
+              markTyped={markTyped}
+            />
+          )}
           {domain === 'ssm' && (
             <>
               <Field
@@ -867,14 +745,17 @@ function TrainingForm({
                   {...form.register('verifierJobTitle', typing('verifierJobTitle'))}
                 />
               </Field>
-              {signing &&
-                verifierName.trim() &&
-                signerSelect(
-                  'verifierName',
-                  'training-verifier-signer',
-                  `Semnatar la „${signerSlotLabels.verifier}”`,
-                  verifierSignerId
-                )}
+              {signing && verifierName.trim() && (
+                <SignerSlot
+                  form={form}
+                  slots={signerSlots}
+                  nameField="verifierName"
+                  id="training-verifier-signer"
+                  label={`Semnatar la „${signerSlotLabels.verifier}”`}
+                  busy={busy}
+                  markTyped={markTyped}
+                />
+              )}
             </>
           )}
           {phase === 'workplace' && (
@@ -931,15 +812,17 @@ function TrainingForm({
                   {...form.register('admittedByJobTitle', typing('admittedByJobTitle'))}
                 />
               </Field>
-              {signing &&
-                domain === 'ssm' &&
-                admittedByName.trim() &&
-                signerSelect(
-                  'admittedByName',
-                  'training-admitter-signer',
-                  `Semnatar la „${signerSlotLabels.admitter}”`,
-                  admitterSignerId
-                )}
+              {signing && domain === 'ssm' && admittedByName.trim() && (
+                <SignerSlot
+                  form={form}
+                  slots={signerSlots}
+                  nameField="admittedByName"
+                  id="training-admitter-signer"
+                  label={`Semnatar la „${signerSlotLabels.admitter}”`}
+                  busy={busy}
+                  markTyped={markTyped}
+                />
+              )}
             </fieldset>
           )}
           <Field

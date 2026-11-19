@@ -90,8 +90,10 @@ tests contain no devtools code. Open them from the floating trigger in the botto
 `src/app/` holds the wiring and the shell: `App.tsx`, the router and runtime, the authenticated
 shell, the public frame, route states and titles, and `observability/`. `src/features/` has one
 folder per concept of the [glossary](../CONTEXT.md): `clients/` (leads, the legal
-representative and workplaces included), `training/` (the program and the responsible persons),
-`auth/` (login, onboarding and invitations), and so on. `src/components/` is UI no feature owns,
+representative, workplaces and the document-details form included), `employees/` (the employee
+picker other features use included), `training/` (the client's training program and responsible
+persons; the trainings held are `trainings/`), `auth/` (login, onboarding and invitations), and so
+on. `src/components/` is UI no feature owns,
 `src/lib/` holds helpers and the `localities/` dataset, `src/api/` the HTTP adapter and the
 generated client, and `src/routes/` the file routes. A route file declares the route and composes
 a page from `features/`.

@@ -4,13 +4,13 @@ import {
   evaluationProfileSortKeys,
   globalRiskLevelFilters,
   libraryUsageFilters,
-  sortOrderSchema,
 } from '@ssm-usor/contracts';
 import { z } from 'zod';
 
 import type { EvaluationProfileListResponse, EvaluationProfileResponse } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { filterSearchSchema } from '@/components/list-filters/url';
+import { listPageSearchSchema } from '@/components/list-filters/use-list-search';
 import {
   factorCountLabel,
   unacceptableCountLabel,
@@ -20,12 +20,8 @@ import { commonFailure } from '@/lib/api-errors';
 export type EvaluationProfile = EvaluationProfileResponse['profile'];
 export type EvaluationProfileSummary = EvaluationProfileListResponse['items'][number];
 
-export const riskLibrarySearchSchema = z.object({
-  page: z.number().int().min(1).optional().catch(undefined),
-  sort: z.enum(evaluationProfileSortKeys).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
+export const riskLibrarySearchSchema = listPageSearchSchema(evaluationProfileSortKeys).extend({
   status: z.literal('archived').optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
   level: filterSearchSchema(globalRiskLevelFilters),
   usage: filterSearchSchema(libraryUsageFilters),
 });

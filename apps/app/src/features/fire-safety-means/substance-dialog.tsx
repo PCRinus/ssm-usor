@@ -9,7 +9,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -30,6 +29,8 @@ import {
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -78,11 +79,7 @@ export function SubstanceDialog({
 }) {
   const [readingSheet, setReadingSheet] = useState(false);
   return (
-    <Dialog
-      open={editing !== null}
-      // Closed while its sheet is read, the dialog would lose a reading already charged.
-      onOpenChange={(open) => !open && !readingSheet && onClose()}
-    >
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <SubstanceForm
           key={editing === 'new' ? 'new' : editing.id}
@@ -93,7 +90,7 @@ export function SubstanceDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -123,6 +120,8 @@ function SubstanceForm({
   const [fromSheet, setFromSheet] = useState<ReadonlySet<SafetySheetDraftField>>(new Set());
   const [offers, setOffers] = useState<Partial<Record<SafetySheetDraftField, string>>>({});
   const busy = create.isPending || update.isPending;
+  // Closed while its sheet is read, the dialog would lose a reading already charged.
+  useHoldOpen(busy || readingSheet);
 
   // The answer arrives after renders the reading began in; it must see the marks as they are now.
   const fromSheetNow = useRef(fromSheet);
@@ -292,7 +291,7 @@ function SubstanceForm({
     <DialogContent
       data-testid="fire-substance-dialog"
       className="sm:max-w-2xl"
-      showCloseButton={!readingSheet}
+      showCloseButton={!(busy || readingSheet)}
       onOpenAutoFocus={(event) => {
         // The sheet's button comes first, but most entries are still typed by hand.
         event.preventDefault();

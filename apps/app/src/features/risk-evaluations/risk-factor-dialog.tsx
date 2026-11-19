@@ -35,6 +35,8 @@ import {
   useListRiskFactorSuggestions,
 } from '@/api/generated/api';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useCloseGuard, useHoldOpen } from '@/components/close-guard';
+import { CloseGuard } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -108,21 +110,21 @@ export function RiskFactorDialog({
   const [shown, setShown] = useState(editing);
   if (editing !== null && editing !== shown) setShown(editing);
   const open = editing !== null;
-  const onOpenChange = (next: boolean) => {
-    if (!next) onClose();
-  };
+  const { savingRef, onOpenChange } = useCloseGuard(onClose);
 
   const form = shown && (
-    <RiskFactorForm
-      key={shown === 'new' ? 'new' : shown.id}
-      phone={phone}
-      context={context}
-      clientId={clientId}
-      after={factors.at(-1)}
-      store={store}
-      factor={shown === 'new' ? null : shown}
-      onClose={onClose}
-    />
+    <CloseGuard savingRef={savingRef}>
+      <RiskFactorForm
+        key={shown === 'new' ? 'new' : shown.id}
+        phone={phone}
+        context={context}
+        clientId={clientId}
+        after={factors.at(-1)}
+        store={store}
+        factor={shown === 'new' ? null : shown}
+        onClose={onClose}
+      />
+    </CloseGuard>
   );
 
   if (phone) {
@@ -206,6 +208,7 @@ function RiskFactorForm({
   const [addAnother, setAddAnother] = useState(readAddAnother);
   const next = useRef<Pick<FactorFormValues, 'component' | 'group'> | null>(null);
   const { errors, isSubmitting: busy } = form.formState;
+  useHoldOpen(busy);
   const [component, actions, deadline, observations, gravity, probability] = useWatch({
     control: form.control,
     name: ['component', 'actions', 'deadline', 'observations', 'gravityClass', 'probabilityClass'],

@@ -1,6 +1,4 @@
 import {
-  articleCount,
-  instructionBodySchema,
   type InstructionDomain,
   type InstructionModuleGroup,
   maxPageSize,
@@ -31,18 +29,13 @@ import { keptFieldNames } from '@/features/reload-prompts/kept-text';
 import { commonFailure } from '@/lib/api-errors';
 import { saveFile } from '@/lib/save-file';
 
+import { ClientNamedNotice } from './client-named-notice';
 import { InstructionBlocks } from './instruction-blocks';
 import {
   articleBlock,
-  articleNumbers,
-  type ClientName,
-  clientPatterns,
-  clientsNamedIn,
   type DraftBlock,
   type DraftBody,
   draftBody,
-  endSentence,
-  isEmptyArticle,
   sameBody,
 } from './instruction-draft';
 import { InstructionPreviewDialog, type PreviewRequest } from './instruction-preview-dialog';
@@ -53,6 +46,7 @@ import {
   invalidateLibrary,
 } from './instruction-schema';
 import { PasteTextDialog } from './paste-text-dialog';
+import { useInstructionBody } from './use-instruction-body';
 
 type SavedModule = InstructionModuleResponse['module'];
 
@@ -62,16 +56,6 @@ const actsByDomain: Record<InstructionDomain, string> = {
 };
 
 const clientParams = { page: 1, pageSize: maxPageSize, sort: 'legalName', order: 'asc' } as const;
-
-function bodyProblem(body: DraftBody) {
-  if (articleCount(body) === 0) return 'Scrie cel puțin un articol înainte să salvezi.';
-  const parsed = instructionBodySchema.safeParse(body);
-  if (parsed.success) return null;
-  const issue = parsed.error.issues[0];
-  return issue?.code === 'custom'
-    ? issue.message
-    : 'Un titlu de secțiune are cel mult 300 de caractere, iar un paragraf cel mult 20.000.';
-}
 
 function saveFailure(cause: unknown) {
   const common = commonFailure(cause);
@@ -112,9 +96,28 @@ export function InstructionForm({
 }) {
   const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
   const navigate = useNavigate();
-  const [blocks, setBlocks] = useState<DraftBlock[]>(() =>
-    initialBlocks.length > 0 ? initialBlocks : [articleBlock()]
+  const clients = useListClients(clientParams, {
+    request: apiRequest,
+    query: { queryKey: [...getListClientsQueryKey(clientParams), userId] },
+  });
+  const clientNames = useMemo(
+    () => (clients.data?.items ?? []).map(({ id, legalName }) => ({ id, legalName })),
+    [clients.data]
   );
+  const {
+    blocks,
+    setBlocks,
+    body,
+    articleCount: count,
+    namedClients,
+    named,
+    hasText,
+    problem,
+    addPasted,
+  } = useInstructionBody({
+    initialBlocks: () => (initialBlocks.length > 0 ? initialBlocks : [articleBlock()]),
+    clients: clientNames,
+  });
   const [keepNames] = useState<ReadonlyMap<string, string>>(
     () => new Map(blocks.map((block, index) => [block.id, `instruction-block-${index}`]))
   );
@@ -140,32 +143,7 @@ export function InstructionForm({
   const [downloading, setDownloading] = useState(false);
   const leaving = useRef(false);
 
-  const body = useMemo(() => draftBody(blocks), [blocks]);
   const dirty = !sameBody(body, baseline);
-  const count = articleNumbers(blocks).size;
-
-  const clients = useListClients(clientParams, {
-    request: apiRequest,
-    query: { queryKey: [...getListClientsQueryKey(clientParams), userId] },
-  });
-  const patterns = useMemo(
-    () =>
-      clientPatterns((clients.data?.items ?? []).map(({ id, legalName }) => ({ id, legalName }))),
-    [clients.data]
-  );
-  const { namedClients, named } = useMemo(() => {
-    const perBlock = new Map<string, ClientName[]>();
-    const all = new Map<string, ClientName>();
-    if (patterns.length > 0) {
-      for (const block of blocks) {
-        const found = clientsNamedIn(block.text, patterns);
-        if (found.length === 0) continue;
-        perBlock.set(block.id, found);
-        for (const client of found) all.set(client.id, client);
-      }
-    }
-    return { namedClients: perBlock, named: [...all.values()] };
-  }, [blocks, patterns]);
 
   useBlocker({
     shouldBlockFn: ({ current, next }) =>
@@ -179,9 +157,9 @@ export function InstructionForm({
   async function save() {
     if (saving) return;
     setError(null);
-    const problem = bodyProblem(body);
-    if (problem) {
-      setError(problem);
+    const found = problem('Scrie cel puțin un articol înainte să salvezi.');
+    if (found) {
+      setError(found);
       return;
     }
     if (module && !dirty) {
@@ -238,13 +216,9 @@ export function InstructionForm({
 
   function openPreview() {
     setError(null);
-    const problem = bodyProblem(body);
-    if (problem) {
-      setError(
-        problem.startsWith('Scrie cel puțin')
-          ? 'Scrie cel puțin un articol ca să vezi cum se tipărește.'
-          : problem
-      );
+    const found = problem('Scrie cel puțin un articol ca să vezi cum se tipărește.');
+    if (found) {
+      setError(found);
       return;
     }
     setPreview({ title, domain, body });
@@ -262,12 +236,6 @@ export function InstructionForm({
       setDownloading(false);
     }
   }
-
-  const hasText = blocks.some((block) =>
-    block.kind === 'article'
-      ? !isEmptyArticle(block)
-      : block.section === null && block.text.trim() !== ''
-  );
 
   return (
     <div data-testid="instruction-form" className="grid gap-5">
@@ -341,18 +309,7 @@ export function InstructionForm({
         </div>
       </div>
 
-      {named.length > 0 && (
-        <Notice variant="warning" data-testid="instruction-client-named">
-          <ul className="grid gap-1">
-            {named.map((client) => (
-              <li key={client.id}>
-                Textul numește clientul {endSentence(client.legalName)} Instrucțiunea se aplică și
-                altor clienți.
-              </li>
-            ))}
-          </ul>
-        </Notice>
-      )}
+      <ClientNamedNotice named={named} testId="instruction-client-named" />
 
       {count === 0 && (
         <section
@@ -428,11 +385,7 @@ export function InstructionForm({
         hasText={hasText}
         onClose={() => setPasting(false)}
         onAdd={(added, mode) => {
-          setBlocks(
-            mode === 'replace'
-              ? added
-              : [...blocks.filter((block) => !isEmptyArticle(block)), ...added]
-          );
+          addPasted(added, mode);
           setError(null);
         }}
       />

@@ -26,10 +26,13 @@ export interface DatePickerProps {
   // A person's date, such as a birth date: the session replay leaves the calendar out, since its
   // grid would place the chosen day even with every digit masked.
   personal?: boolean;
+  // For an optional date, whose schema would take the empty value as no date at all: the text
+  // goes to the form as typed, and the schema rejects what is neither empty nor an ISO date.
+  keepUnfinished?: boolean;
 }
 
-// The form only ever sees ISO dates: an unfinished or impossible text reports an empty value,
-// and the form's own validation names the field.
+// Without `keepUnfinished` the form only ever sees ISO dates: an unfinished or impossible text
+// reports an empty value, and the form's own required rule names the field.
 export function DatePicker({
   id,
   value,
@@ -44,6 +47,7 @@ export function DatePicker({
   testId,
   className,
   personal = false,
+  keepUnfinished = false,
 }: DatePickerProps) {
   const [text, setText] = useState(() => formatRoDate(value));
   const [open, setOpen] = useState(false);
@@ -74,14 +78,15 @@ export function DatePicker({
         aria-invalid={invalid}
         aria-describedby={describedBy}
         onChange={(event) => {
-          setText(event.target.value);
-          const parsed = parseRoDate(event.target.value) ?? '';
+          const typed = event.target.value;
+          setText(typed);
+          const parsed = parseRoDate(typed) ?? (keepUnfinished ? typed.trim() : '');
           setSeen(parsed);
           onChange(parsed);
         }}
         onBlur={() => {
           // Tidy "1.3.2020" into "01.03.2020" once the date is known.
-          if (value) setText(formatRoDate(value));
+          if (isoToDate(value)) setText(formatRoDate(value));
           onBlur?.();
         }}
       />

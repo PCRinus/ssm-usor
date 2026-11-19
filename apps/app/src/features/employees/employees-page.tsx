@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 
 import {
   getListEmployeesQueryKey,
+  getListEmployeesQueryOptions,
   getListJobPositionsQueryKey,
   getListWorkplacesQueryKey,
   type ListEmployeesParams,
@@ -28,8 +29,10 @@ import {
 } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { sheetPadding } from '@/components/page-spacing';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
@@ -45,7 +48,7 @@ import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-
 import { isEmptyOrLoading } from '@/lib/list-state';
 
 import { employeeColumns, type EmployeeRow } from './employee-columns';
-import { employeeStatusLabels, pendingWorkersLabel, workerNoun } from './employee-format';
+import { employeeStatusLabels, workerNoun } from './employee-format';
 import { type EmployeeStatusChange, EmployeeStatusDialog } from './employee-status-dialog';
 import {
   clientWorkerFacets,
@@ -73,26 +76,6 @@ type FilterKey = (typeof clientWorkerFilterKeys)[number];
 type Filters = Pick<ListEmployeesParams, FilterKey>;
 
 const rowKey = (row: EmployeeRow) => row.id;
-
-function PendingEmployeesLabel({
-  clientId,
-  params,
-}: {
-  clientId: string;
-  params: ListEmployeesParams;
-}) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const total = useListEmployees(clientId, params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListEmployeesQueryKey(clientId, params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
-      placeholderData: keepPreviousData,
-    },
-  }).data?.total;
-  return pendingWorkersLabel(total);
-}
 
 export function EmployeesPage() {
   const { clientId } = employeesRoute.useParams();
@@ -178,13 +161,28 @@ export function EmployeesPage() {
     () => employeeColumns({ former, withStates, onStatusChange: readOnly ? undefined : setChange }),
     [former, withStates, readOnly]
   );
-  const changeSearch = (next: Partial<typeof search>) =>
-    void navigate({
-      state: keepOpener,
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, ...next, page: undefined }),
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: (values: ListFilterValues<FilterKey>) => listFilters.searchOf(values) as Filters,
+    state: keepOpener,
+  });
+  const pendingQuery = (pending: ListFilterValues<FilterKey>) => {
+    const counted: ListEmployeesParams = {
+      ...params,
+      page: 1,
+      pageSize: 1,
+      ...(listFilters.searchOf(pending) as Filters),
+    };
+    return getListEmployeesQueryOptions(clientId, counted, {
+      request: apiRequest,
+      query: {
+        queryKey: [...getListEmployeesQueryKey(clientId, counted), userId],
+        enabled: Boolean(session && apiRequest.baseUrl),
+      },
     });
+  };
   const dropImportParam = () => {
     if (search.import)
       void navigate({
@@ -199,8 +197,6 @@ export function EmployeesPage() {
     dropImportParam();
   };
   const fromGuide = search.import === true && !readOnly && importing === null;
-  const changeFilters = (values: ListFilterValues<FilterKey>) =>
-    changeSearch(listFilters.searchOf(values) as Filters);
 
   return (
     <div data-testid="employees-page">
@@ -238,7 +234,7 @@ export function EmployeesPage() {
             <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
               <SearchInput
                 value={q}
-                onSearch={(next) => changeSearch({ q: next || undefined })}
+                onSearch={changeQuery}
                 placeholder={phone ? 'Caută lucrători' : 'Caută după nume sau marcă'}
                 label="Caută lucrători"
                 testId="employees-search"
@@ -249,15 +245,7 @@ export function EmployeesPage() {
                 onChange={changeFilters}
                 total={employees.isSuccess && !employees.isPlaceholderData ? meta.total : undefined}
                 applyLabel={(pending) => (
-                  <PendingEmployeesLabel
-                    clientId={clientId}
-                    params={{
-                      ...params,
-                      page: 1,
-                      pageSize: 1,
-                      ...(listFilters.searchOf(pending) as Filters),
-                    }}
-                  />
+                  <PendingCountLabel query={pendingQuery(pending)} noun={workerNoun} />
                 )}
                 countLabel={workerNoun}
                 testId="employees-filters"
@@ -309,19 +297,8 @@ export function EmployeesPage() {
           isFetching={employees.isFetching}
           isPlaceholderData={employees.isPlaceholderData}
           sort={{ sort, order }}
-          onSortChange={(next) =>
-            // Filter and sort changes replace the entry: back returns to the previous page.
-            changeSearch({
-              sort: next.sort === defaultSort.sort ? undefined : (next.sort as EmployeeSortKey),
-              order: next.order === defaultSort.order ? undefined : next.order,
-            })
-          }
-          onPageChange={(next) =>
-            void navigate({
-              search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }),
-              state: keepOpener,
-            })
-          }
+          onSortChange={onSortChange}
+          onPageChange={onPageChange}
           error={
             <WorkersListError
               error={employees.error}
@@ -338,7 +315,7 @@ export function EmployeesPage() {
                 filtered={filtered}
                 q={q}
                 testId="employees-empty-filtered"
-                onClear={() => (filtered ? changeFilters({}) : changeSearch({ q: undefined }))}
+                onClear={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
               />
             ) : (
               <EmptyState

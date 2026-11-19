@@ -10,7 +10,6 @@ import {
 import { Button } from '@ssm-usor/ui/components/button';
 import { Checkbox } from '@ssm-usor/ui/components/checkbox';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -31,7 +30,9 @@ import {
   useUpdateFireEquipment,
 } from '@/api/generated/api';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -65,7 +66,7 @@ export function EquipmentDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <EquipmentForm
           key={editing.unit?.id ?? `new-${editing.workplaceId}`}
@@ -76,7 +77,7 @@ export function EquipmentDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -104,6 +105,7 @@ function EquipmentForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
   const [kind, agent, capacity] = useWatch({
     control: form.control,
     name: ['kind', 'agent', 'capacity'],
@@ -174,6 +176,7 @@ function EquipmentForm({
             value={field.value}
             onChange={field.onChange}
             onBlur={field.onBlur}
+            keepUnfinished
             disabled={busy}
             invalid={Boolean(errors[name])}
             describedBy={errors[name] ? `${id}-error` : undefined}
@@ -184,7 +187,11 @@ function EquipmentForm({
   );
 
   return (
-    <DialogContent data-testid="fire-equipment-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="fire-equipment-dialog"
+      className="sm:max-w-2xl"
+      showCloseButton={!busy}
+    >
       <form
         {...replayShow}
         ref={formRef}

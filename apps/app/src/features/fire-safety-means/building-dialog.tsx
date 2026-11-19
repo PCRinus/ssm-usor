@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { fireBuildingClassificationLabels, fireBuildingClassifications } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -25,7 +24,9 @@ import {
 } from '@/api/generated/api';
 import { apiErrorReason, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -65,7 +66,7 @@ export function BuildingDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && (
         <BuildingForm
           key={editing.workplace.id}
@@ -75,7 +76,7 @@ export function BuildingDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -101,6 +102,7 @@ function BuildingForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = update.isPending || clear.isPending;
+  useHoldOpen(busy);
 
   const onSubmit = form.handleSubmit(async (values) => {
     const data = toBuildingRequest(values);
@@ -164,7 +166,11 @@ function BuildingForm({
   );
 
   return (
-    <DialogContent data-testid="fire-building-dialog" className="sm:max-w-2xl">
+    <DialogContent
+      data-testid="fire-building-dialog"
+      className="sm:max-w-2xl"
+      showCloseButton={!busy}
+    >
       <form
         {...replayShow}
         ref={formRef}
@@ -248,6 +254,7 @@ function BuildingForm({
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
+                    keepUnfinished
                     disabled={busy}
                     invalid={Boolean(errors.electricalLastCheckOn)}
                     describedBy={

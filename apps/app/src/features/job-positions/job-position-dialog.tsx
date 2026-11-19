@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { clientConflictReasons, type StaffCategory } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -24,6 +23,8 @@ import {
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -72,7 +73,7 @@ export function JobPositionDialog({
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   return (
-    <Dialog open={editing !== null || Boolean(draft)} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null || Boolean(draft)} onClose={onClose}>
       {draft && (
         <JobPositionForm
           clientId={clientId}
@@ -93,7 +94,7 @@ export function JobPositionDialog({
           onClose={onClose}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -129,6 +130,7 @@ function JobPositionForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = create.isPending || update.isPending;
+  useHoldOpen(busy);
   const staffCategory = useWatch({ control: form.control, name: 'staffCategory' });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -180,6 +182,7 @@ function JobPositionForm({
 
   return (
     <DialogContent
+      showCloseButton={!busy}
       data-testid="job-position-dialog"
       className="sm:max-w-2xl"
       onCloseAutoFocus={onCloseAutoFocus}

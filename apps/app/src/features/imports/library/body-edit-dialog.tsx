@@ -1,7 +1,5 @@
 import {
-  articleCount,
   type InstructionBody,
-  instructionBodySchema,
   type InstructionCategory,
   type InstructionDomain,
 } from '@ssm-usor/contracts';
@@ -16,23 +14,16 @@ import { ClipboardPaste, Eye } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { Notice } from '@/components/notice';
+import { ClientNamedNotice } from '@/features/instructions/client-named-notice';
 import { InstructionBlocks } from '@/features/instructions/instruction-blocks';
-import {
-  blocksFromBody,
-  type ClientName,
-  clientPatterns,
-  clientsNamedIn,
-  type DraftBlock,
-  draftBody,
-  endSentence,
-  isEmptyArticle,
-} from '@/features/instructions/instruction-draft';
+import { blocksFromBody } from '@/features/instructions/instruction-draft';
 import {
   InstructionPreviewDialog,
   type PreviewRequest,
 } from '@/features/instructions/instruction-preview-dialog';
 import { articleCountLabel } from '@/features/instructions/instruction-schema';
 import { PasteTextDialog } from '@/features/instructions/paste-text-dialog';
+import { useInstructionBody } from '@/features/instructions/use-instruction-body';
 
 export type BodyRequest = {
   key: string;
@@ -82,50 +73,35 @@ function BodyEditContent({
   onSave: (body: InstructionBody | null) => void;
   onClose: () => void;
 }) {
-  const [blocks, setBlocks] = useState<DraftBlock[]>(() =>
-    blocksFromBody(request.body, request.category)
+  const clients = useMemo(
+    () => request.clientNames.map((legalName, index) => ({ id: `client-${index}`, legalName })),
+    [request.clientNames]
   );
+  const {
+    blocks,
+    setBlocks,
+    body,
+    articleCount: count,
+    namedClients,
+    named,
+    hasText,
+    problem,
+    addPasted,
+  } = useInstructionBody({
+    initialBlocks: () => blocksFromBody(request.body, request.category),
+    clients,
+  });
   const [error, setError] = useState<string | null>(null);
   const [pasting, setPasting] = useState(false);
   const [preview, setPreview] = useState<PreviewRequest | null>(null);
-  const body = useMemo(() => draftBody(blocks), [blocks]);
-  const count = articleCount(body);
-  const patterns = useMemo(
-    () =>
-      clientPatterns(
-        request.clientNames.map((legalName, index) => ({ id: `client-${index}`, legalName }))
-      ),
-    [request.clientNames]
-  );
-  const namedClients = useMemo(() => {
-    const perBlock = new Map<string, ClientName[]>();
-    if (patterns.length === 0) return perBlock;
-    for (const block of blocks) {
-      const found = clientsNamedIn(block.text, patterns);
-      if (found.length > 0) perBlock.set(block.id, found);
-    }
-    return perBlock;
-  }, [blocks, patterns]);
-  const named = [...new Map([...namedClients.values()].flat().map((c) => [c.id, c])).values()];
-
-  function problem() {
-    if (count === 0) return 'Scrie cel puțin un articol.';
-    const parsed = instructionBodySchema.safeParse(body);
-    if (parsed.success) return null;
-    const issue = parsed.error.issues[0];
-    return issue?.code === 'custom'
-      ? issue.message
-      : 'Un titlu de secțiune are cel mult 300 de caractere, iar un paragraf cel mult 20.000.';
-  }
+  const emptyProblem = 'Scrie cel puțin un articol.';
 
   function save() {
-    const found = problem();
+    const found = problem(emptyProblem);
     setError(found);
     if (found) return;
     onSave(sameBody(body, request.original) ? null : body);
   }
-
-  const hasText = blocks.some((block) => block.text.trim() !== '');
 
   return (
     <DialogContent
@@ -148,7 +124,7 @@ function BodyEditContent({
             variant="outline"
             size="sm"
             onClick={() => {
-              const found = problem();
+              const found = problem(emptyProblem);
               setError(found);
               if (!found) setPreview({ title: request.title, domain: request.domain, body });
             }}
@@ -159,16 +135,7 @@ function BodyEditContent({
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        {named.length > 0 && (
-          <Notice variant="warning" className="mb-4" data-testid="library-body-client-named">
-            {named.map((client) => (
-              <p key={client.id}>
-                Textul numește clientul {endSentence(client.legalName)} Instrucțiunea se aplică și
-                altor clienți.
-              </p>
-            ))}
-          </Notice>
-        )}
+        <ClientNamedNotice named={named} testId="library-body-client-named" className="mb-4" />
         <InstructionBlocks
           blocks={blocks}
           category={request.category}
@@ -209,11 +176,7 @@ function BodyEditContent({
         hasText={hasText}
         onClose={() => setPasting(false)}
         onAdd={(added, mode) => {
-          setBlocks(
-            mode === 'replace'
-              ? added
-              : [...blocks.filter((block) => !isEmptyArticle(block)), ...added]
-          );
+          addPasted(added, mode);
           setError(null);
         }}
       />

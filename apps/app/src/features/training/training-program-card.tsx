@@ -8,11 +8,21 @@ import { useWatch } from 'react-hook-form';
 import { Notice } from '@/components/notice';
 import { EditAction, SectionCard } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
+import {
+  type DocumentDetailsFormValues,
+  notApplicable,
+} from '@/features/clients/document-details/document-details-schema';
+import {
+  type ClientSummary,
+  type DocumentDetails,
+  type DocumentDetailsField,
+  useDocumentDetails,
+  useDocumentDetailsForm,
+} from '@/features/clients/document-details/use-document-details-form';
 import { intervalLabel, type JobPosition } from '@/features/job-positions/job-position-schema';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useFocusRequest } from '@/features/missing-data/focus';
 
-import { type DocumentDetailsFormValues, notApplicable } from './document-details-schema';
 import { PositionsButton, PositionsLink } from './positions-links';
 import {
   CategoryBlock,
@@ -28,13 +38,6 @@ import {
   startingInterval,
   trainingMonthsText,
 } from './schedule-rules';
-import {
-  type ClientSummary,
-  type DocumentDetails,
-  type DocumentDetailsField,
-  useDocumentDetails,
-  useDocumentDetailsForm,
-} from './use-document-details-form';
 
 const intervalField = {
   execution: 'workerTrainingIntervalMonths',

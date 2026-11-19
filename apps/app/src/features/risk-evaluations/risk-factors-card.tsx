@@ -1,22 +1,16 @@
 import { gravityConsequence, probabilityFrequency } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal, Plus, TriangleAlert } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, TriangleAlert } from 'lucide-react';
 import { type KeyboardEvent, type ReactNode, useId, useState } from 'react';
 
 import { replayShow } from '@/app/observability/replay-masking';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { Notice } from '@/components/notice';
+import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
 import { SectionTab, SectionTabs } from '@/components/section-nav';
 
@@ -467,32 +461,14 @@ function FactorRow({
       )}
       {!readOnly && (
         <div role="cell" className="[grid-area:menu]">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                data-testid="risk-factor-actions"
-                aria-label={`Acțiuni pentru ${factor.description}`}
-              >
-                <MoreHorizontal aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem data-testid="risk-factor-edit" onSelect={onEdit}>
-                Modifică
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                data-testid="risk-factor-remove"
-                variant="destructive"
-                onSelect={onRemove}
-              >
-                Șterge
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <RowActionsMenu
+            name={factor.description}
+            testId="risk-factor"
+            deleteTestId="risk-factor-remove"
+            className="size-8"
+            onEdit={onEdit}
+            onDelete={onRemove}
+          />
         </div>
       )}
     </div>

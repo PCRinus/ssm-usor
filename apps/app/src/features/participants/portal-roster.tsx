@@ -6,28 +6,27 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { useIsMobile } from '@ssm-usor/ui/hooks/use-mobile';
-import { keepPreviousData } from '@tanstack/react-query';
 import { Link, useRouteContext } from '@tanstack/react-router';
 import { Plus, Send, UsersRound } from 'lucide-react';
 import { useMemo } from 'react';
 
-import { type ListEmployeesParams, useListEmployees } from '@/api/generated/api';
-import { keepOpener } from '@/app/opener';
+import { getListEmployeesQueryOptions } from '@/api/generated/api';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { HelpLink } from '@/components/help-link';
 import { ListActions, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import { Notice } from '@/components/notice';
 import { SearchInput } from '@/components/search-input';
-import { pendingWorkersLabel, workerNoun } from '@/features/employees/employee-format';
+import { workerNoun } from '@/features/employees/employee-format';
 import { WorkersCount, WorkersListError, WorkersNoMatch } from '@/features/employees/workers-list';
 
 import type { ParticipantMessage } from './participant-actions';
 import { portalRosterColumns, type RosterRow } from './portal-roster-columns';
 import type { PortalAccessActions } from './use-portal-access-actions';
-import { defaultSort, type PortalRosterState, type RosterFilters } from './use-portal-roster';
+import type { PortalRosterState, RosterFilters } from './use-portal-roster';
 
 export function PortalRoster({
   clientId,
@@ -131,7 +130,7 @@ export function PortalRoster({
               <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
                 <SearchInput
                   value={q}
-                  onSearch={(next) => void roster.changeSearch({ q: next || undefined })}
+                  onSearch={roster.changeQuery}
                   placeholder={phone ? 'Caută lucrători' : 'Caută după nume sau marcă'}
                   label="Caută lucrători"
                   testId="portal-roster-search"
@@ -144,14 +143,18 @@ export function PortalRoster({
                     employees.isSuccess && !employees.isPlaceholderData ? meta.total : undefined
                   }
                   applyLabel={(pending) => (
-                    <PendingLabel
-                      clientId={clientId}
-                      params={{
-                        ...params,
-                        page: 1,
-                        pageSize: 1,
-                        ...(listFilters.searchOf(pending) as RosterFilters),
-                      }}
+                    <PendingCountLabel
+                      query={getListEmployeesQueryOptions(
+                        clientId,
+                        {
+                          ...params,
+                          page: 1,
+                          pageSize: 1,
+                          ...(listFilters.searchOf(pending) as RosterFilters),
+                        },
+                        { request: apiRequest, query: { enabled: Boolean(apiRequest.baseUrl) } }
+                      )}
+                      noun={workerNoun}
                     />
                   )}
                   countLabel={workerNoun}
@@ -241,18 +244,8 @@ export function PortalRoster({
             isFetching={employees.isFetching}
             isPlaceholderData={employees.isPlaceholderData}
             sort={{ sort: roster.sort, order: roster.order }}
-            onSortChange={(next) =>
-              void roster.changeSearch({
-                sort: next.sort === defaultSort.sort ? undefined : (next.sort as 'portal'),
-                order: next.order === defaultSort.order ? undefined : next.order,
-              })
-            }
-            onPageChange={(next) =>
-              void roster.navigate({
-                search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }),
-                state: keepOpener,
-              })
-            }
+            onSortChange={roster.onSortChange}
+            onPageChange={roster.onPageChange}
             error={
               <WorkersListError
                 error={employees.error}
@@ -269,9 +262,7 @@ export function PortalRoster({
                 q={q}
                 testId="portal-roster-empty-filtered"
                 onClear={() =>
-                  listFilters.applied
-                    ? roster.changeFilters({})
-                    : void roster.changeSearch({ q: undefined })
+                  listFilters.applied ? roster.changeFilters({}) : roster.changeQuery(undefined)
                 }
               />
             }
@@ -285,15 +276,6 @@ export function PortalRoster({
 function accessCount(withAccess: number, workers: number) {
   const of = `din ${workerNoun(workers)}`;
   return withAccess === 0 ? `Niciunul cu acces, ${of}` : `${withAccess} cu acces, ${of}`;
-}
-
-function PendingLabel({ clientId, params }: { clientId: string; params: ListEmployeesParams }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const total = useListEmployees(clientId, params, {
-    request: apiRequest,
-    query: { enabled: Boolean(apiRequest.baseUrl), placeholderData: keepPreviousData },
-  }).data?.total;
-  return pendingWorkersLabel(total);
 }
 
 export function NoWorkers({ clientId, readOnly }: { clientId: string; readOnly: boolean }) {

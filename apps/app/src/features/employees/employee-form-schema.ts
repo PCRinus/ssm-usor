@@ -18,6 +18,7 @@ import type {
   EmployeeResponse,
   UpdateEmployeeRequest,
 } from '@/api/generated/api';
+import { isOptionalIsoDate, isoToDate } from '@/lib/dates';
 import { optionalPhoneField } from '@/lib/phone';
 
 export const employeeMessages = {
@@ -81,7 +82,7 @@ export const employeeFormSchema = z
       .max(160, 'Funcția poate avea cel mult 160 de caractere.'),
     contractNumber: optionalText(50, 'Numărul contractului poate avea cel mult 50 de caractere.'),
     hiredAt: z.string().regex(isoDate, 'Alege data angajării.'),
-    birthDate: z.string().regex(/^([0-9]{4}-[0-9]{2}-[0-9]{2})?$/, 'Alege o dată validă.'),
+    birthDate: z.string().refine(isOptionalIsoDate, 'Alege o dată validă.'),
     birthPlace: optionalText(160, 'Locul nașterii poate avea cel mult 160 de caractere.'),
     homeAddress: optionalText(240, 'Domiciliul poate avea cel mult 240 de caractere.'),
     residenceAddress: optionalText(240, 'Adresa poate avea cel mult 240 de caractere.'),
@@ -118,7 +119,8 @@ export const employeeFormSchema = z
       ),
   })
   .superRefine((values, ctx) => {
-    if (values.birthDate && values.hiredAt && values.birthDate >= values.hiredAt) {
+    const birthDate = isoToDate(values.birthDate) ? values.birthDate : '';
+    if (birthDate && values.hiredAt && birthDate >= values.hiredAt) {
       ctx.addIssue({
         code: 'custom',
         path: ['birthDate'],
@@ -127,7 +129,7 @@ export const employeeFormSchema = z
     }
     // Same rule as the API: the CNP encodes the birth date for Romanian citizens.
     const encoded = birthDateFromCnp(values.cnp);
-    if (encoded && values.birthDate && values.birthDate !== encoded) {
+    if (encoded && birthDate && birthDate !== encoded) {
       ctx.addIssue({
         code: 'custom',
         path: ['birthDate'],

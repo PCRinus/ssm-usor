@@ -12,13 +12,13 @@ import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { FormActions } from '@/components/section-card';
 import { useRevealErrors } from '@/components/use-reveal-errors';
-import { EmployeeCombobox } from '@/features/training/employee-combobox';
 import {
   type ClientSummary,
   describedBy,
   type DocumentDetails,
   useDocumentDetailsForm,
-} from '@/features/training/use-document-details-form';
+} from '@/features/clients/document-details/use-document-details-form';
+import { EmployeeCombobox } from '@/features/employees/employee-combobox';
 
 const fields = [
   'legalRepresentativeName',

@@ -509,6 +509,36 @@ describe('the question bank', () => {
     );
   });
 
+  it('stays open on Escape and an outside click while the question saves', async () => {
+    let refuse = () => {};
+    mockBankApi(
+      {
+        [`PATCH /organization/tests/questions/${ownQuestion.id}`]: () =>
+          new Promise((resolve) => {
+            refuse = () =>
+              resolve(Response.json({ error: 'not_found', message: 'x' }, { status: 404 }));
+          }),
+      },
+      ssmQuestions([ownQuestion])
+    );
+    mount('/teste/ssm');
+    const user = userEvent.setup();
+    const questions = await screen.findAllByTestId('test-question');
+    await user.click(within(questions[10]!).getByTestId('test-question-edit'));
+    const dialog = within(await screen.findByTestId('test-question-dialog'));
+    await user.click(dialog.getByTestId('test-question-submit'));
+    expect(dialog.getByTestId('test-question-submit').textContent).toBe('Se salvează…');
+
+    await user.keyboard('{Escape}');
+    await user.click(document.querySelector('[data-slot=dialog-overlay]')!);
+    expect(screen.getByTestId('test-question-dialog')).toBeTruthy();
+
+    refuse();
+    expect((await dialog.findByTestId('test-question-error')).textContent).toBe(
+      'Întrebarea nu mai există: altcineva a șters-o între timp. Reîncarcă pagina.'
+    );
+  });
+
   it('deletes an own question after a confirmation, and words a refusal below ten', async () => {
     let refuse = true;
     mockBankApi(

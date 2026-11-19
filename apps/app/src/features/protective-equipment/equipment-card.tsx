@@ -7,13 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@ssm-usor/ui/components/dropdown-menu';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import {
@@ -27,7 +20,7 @@ import {
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useRouteContext } from '@tanstack/react-router';
-import { Copy, HardHat, MoreHorizontal, Plus } from 'lucide-react';
+import { Copy, HardHat, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -46,6 +39,7 @@ import { rowClickProps } from '@/components/data-table/row-click';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
+import { RowActionsMenu } from '@/components/row-actions-menu';
 import { SectionCard } from '@/components/section-card';
 import { DecisionBadge } from '@/features/job-positions/decision-badge';
 import type { JobPosition } from '@/features/job-positions/job-position-schema';
@@ -295,34 +289,13 @@ export function EquipmentCard({
                   </TableCell>
                   {!readOnly && (
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid="equipment-actions"
-                            aria-label={`Acțiuni pentru ${entry.item}`}
-                          >
-                            <MoreHorizontal aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            data-testid="equipment-edit"
-                            onSelect={() => setEditing(entry)}
-                          >
-                            Modifică
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            data-testid="equipment-remove"
-                            variant="destructive"
-                            onSelect={() => setRemoving(entry)}
-                          >
-                            Șterge
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <RowActionsMenu
+                        name={entry.item}
+                        testId="equipment"
+                        deleteTestId="equipment-remove"
+                        onEdit={() => setEditing(entry)}
+                        onDelete={() => setRemoving(entry)}
+                      />
                     </TableCell>
                   )}
                 </TableRow>
