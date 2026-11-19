@@ -6,8 +6,6 @@ import {
 } from '@ssm-usor/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import { openApiConfig } from '../../lib/openapi';
 import { apiRequest } from '../../test/request';
 import {
   callsTo,
@@ -1483,41 +1481,4 @@ describe('the employment contract number', () => {
       expect(callsTo('/rest/v1/employees')).toHaveLength(0);
     }
   );
-});
-
-describe('CORS', () => {
-  it('allows PATCH preflight from the app origin', async () => {
-    const response = await createApp().request(
-      employeesPath,
-      {
-        method: 'OPTIONS',
-        headers: {
-          Origin: 'https://app.ssmusor.ro',
-          'Access-Control-Request-Method': 'PATCH',
-          'Access-Control-Request-Headers': 'authorization,content-type',
-        },
-      },
-      env
-    );
-    expect(response.status).toBe(204);
-    expect(response.headers.get('Access-Control-Allow-Methods')).toMatch(/\bPATCH\b/);
-  });
-});
-
-it('documents the employee routes with bearer security and schemas', () => {
-  const document = createApp().getOpenAPIDocument(openApiConfig);
-  const collection = document.paths?.['/clients/{clientId}/employees'];
-  expect(collection?.get?.operationId).toBe('listEmployees');
-  expect(collection?.post?.operationId).toBe('createEmployee');
-  expect(collection?.post?.security).toEqual([{ bearerAuth: [] }]);
-  expect(document.paths?.['/clients/{clientId}/employees/{employeeId}']?.get?.operationId).toBe(
-    'getEmployee'
-  );
-  expect(
-    document.paths?.['/clients/{clientId}/employees/{employeeId}/status']?.patch?.operationId
-  ).toBe('updateEmployeeStatus');
-  expect(document.components?.schemas?.CreateEmployeeRequest).toBeDefined();
-  expect(document.components?.schemas?.UpdateEmployeeStatusRequest).toBeDefined();
-  expect(document.components?.schemas?.EmployeeListResponse).toBeDefined();
-  expect(document.components?.schemas?.EmployeeResponse).toBeDefined();
 });

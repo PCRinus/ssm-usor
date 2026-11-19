@@ -214,7 +214,7 @@ describe('API routes', () => {
 
 describe('CORS', () => {
   it.each(['http://localhost:5173', 'https://app.ssmusor.ro'])(
-    'allows bearer preflight from %s without authentication',
+    'allows a bearer JSON preflight from %s without authentication',
     async (origin) => {
       const response = await createApp().request(
         '/me',
@@ -222,17 +222,17 @@ describe('CORS', () => {
           method: 'OPTIONS',
           headers: {
             Origin: origin,
-            'Access-Control-Request-Method': 'GET',
-            'Access-Control-Request-Headers': 'authorization',
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'authorization,content-type',
           },
         },
         env
       );
       expect(response.status).toBe(204);
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin);
-      expect(response.headers.get('Access-Control-Allow-Headers')?.toLowerCase()).toContain(
-        'authorization'
-      );
+      const allowed = response.headers.get('Access-Control-Allow-Headers')?.toLowerCase();
+      expect(allowed).toContain('authorization');
+      expect(allowed).toContain('content-type');
       expect(response.headers.get('Access-Control-Allow-Credentials')).toBeNull();
       expect(fetchMock).not.toHaveBeenCalled();
     }
@@ -321,4 +321,31 @@ it('serves the same OpenAPI document as the offline generator, with bearer secur
   expect(document.paths?.['/health']?.get?.security).toBeUndefined();
   expect(document.components?.schemas?.MeResponse).toBeDefined();
   expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('documents bearer security on every operation except the public ones', () => {
+  const document = createApp().getOpenAPIDocument(openApiConfig);
+  const methods = ['get', 'post', 'put', 'patch', 'delete'];
+  const withoutBearer = Object.entries(document.paths ?? {}).flatMap(([path, item]) =>
+    Object.entries(item)
+      .filter(([method]) => methods.includes(method))
+      .filter(([, operation]) => {
+        const { security } = operation as { security?: unknown };
+        return JSON.stringify(security) !== JSON.stringify([{ bearerAuth: [] }]);
+      })
+      .map(([method]) => `${method.toUpperCase()} ${path}`)
+  );
+  expect(withoutBearer.sort()).toEqual(
+    [
+      'GET /health',
+      'GET /files/download',
+      'POST /contract-returns/lookup',
+      'POST /contract-returns/download',
+      'POST /contract-returns/upload',
+      'POST /invitations/lookup',
+      'POST /invitations/accept',
+      'POST /waitlist',
+      'GET /waitlist/confirm',
+    ].sort()
+  );
 });
