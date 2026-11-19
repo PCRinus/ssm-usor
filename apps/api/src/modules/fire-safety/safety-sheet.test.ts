@@ -6,33 +6,28 @@ import {
 import type { SafetySheetAnswer } from '@ssm-usor/import';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest, type ApiRequestInit } from '../../test/request';
+import {
+  callsTo,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testSecretKey,
+  type UpstreamCall,
+  upstreamCalls,
+} from '../../test/upstream';
 
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'specialist@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const secretKey = 'sb_secret_test_key_safety_sheet';
 const gateway = 'https://gateway.example/v1/account/ssm-usor';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  SUPABASE_SECRET_KEY: secretKey,
+const env = testEnv({
+  SUPABASE_SECRET_KEY: testSecretKey,
   CORS_ORIGINS: 'http://localhost:5173',
   EXTRACTOR_URL: 'http://localhost:3302',
   AI_GATEWAY_URL: gateway,
   AI_GATEWAY_TOKEN: 'gateway-token',
-};
+});
 
 const sectionTitles = [
   'Identificarea produsului: Lac Lucios L-7, furnizor Vopsele Pădurea Verde SRL',
@@ -74,11 +69,7 @@ const answer = (overrides: Partial<SafetySheetAnswer> = {}): SafetySheetAnswer =
   ...overrides,
 });
 
-type Call = { method: string; url: URL; body: unknown; headers: Headers };
-type Handler = (call: Call) => Response | undefined;
-
-const fetchMock = vi.fn<typeof fetch>();
-let calls: Call[] = [];
+type Handler = (call: UpstreamCall) => Response | undefined;
 
 const page = (text: string, number = 1) => ({ number, text, isScan: text.trim().length < 100 });
 
@@ -91,72 +82,52 @@ function mockUpstream(
     custom?: Handler;
   } = {}
 ) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const raw = init?.body;
-    const call: Call = {
-      method: init?.method ?? 'GET',
-      url,
-      body: typeof raw === 'string' && /^[[{]/.test(raw) ? JSON.parse(raw) : raw,
-      headers: new Headers(init?.headers),
-    };
-    calls.push(call);
-    const custom = options.custom?.(call);
-    if (custom) return custom;
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json(user);
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([
-          { user_id: user.id, organization_id: organizationId, role: 'specialist', access: 'full' },
-        ]);
-      case '/rest/v1/clients':
-        return Response.json(
+  mockSignedInUpstream(
+    { '/*': (call) => options.custom?.(call) },
+    {
+      '/rest/v1/clients': () =>
+        Response.json(
           options.client === null
             ? []
             : [{ id: clientId, archived_at: null, stage: 'client', ...options.client }]
-        );
-      case '/rest/v1/subscriptions':
-        return Response.json([]);
-      case '/rest/v1/rpc/charge_credits':
-        return Response.json(
+        ),
+      '/rest/v1/subscriptions': () => Response.json([]),
+      '/rest/v1/rpc/charge_credits': () =>
+        Response.json(
           options.charge ?? { charged: 3, refused: false, balance: null, gift_left: 0 }
-        );
-      case '/rest/v1/rpc/refund_safety_sheet_credits':
-        return Response.json(3);
-      case '/pdf-text': {
+        ),
+      '/rest/v1/rpc/refund_safety_sheet_credits': () => Response.json(3),
+      '/pdf-text': () => {
         const pages = options.pages ?? [page(sheetPage)];
         return Response.json({ pageCount: pages.length, pages });
-      }
-      case '/v1/account/ssm-usor/openai/chat/completions':
-        return (
-          options.model?.() ??
-          Response.json({
-            choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(answer()) } }],
-            usage: { prompt_tokens: 4000, completion_tokens: 900 },
-          })
-        );
+      },
+      '/v1/account/ssm-usor/openai/chat/completions': () =>
+        options.model?.() ??
+        Response.json({
+          choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(answer()) } }],
+          usage: { prompt_tokens: 4000, completion_tokens: 900 },
+        }),
     }
-    throw new Error(`Unexpected upstream request: ${call.method} ${url}`);
-  });
+  );
 }
 
-const read = (body: BodyInit = pdfBytes, headers: Record<string, string> = {}) =>
-  createApp().request(
+const read = (
+  body: BodyInit = pdfBytes,
+  headers: Record<string, string> = {},
+  init: ApiRequestInit = {},
+  bindings = env
+) =>
+  apiRequest(
     `/clients/${clientId}/fire-substances/read-safety-sheet`,
     {
+      ...init,
       method: 'POST',
-      headers: {
-        Authorization: 'Bearer user-token',
-        'Content-Type': 'application/octet-stream',
-        ...headers,
-      },
+      headers: { 'Content-Type': 'application/octet-stream', ...headers },
       body,
     },
-    env
+    bindings
   );
 
-const callsTo = (pathname: string) => calls.filter((call) => call.url.pathname === pathname);
 const charges = () => callsTo('/rest/v1/rpc/charge_credits');
 const refunds = () => callsTo('/rest/v1/rpc/refund_safety_sheet_credits');
 
@@ -164,16 +135,14 @@ async function refusal(response: Response) {
   return apiErrorResponseSchema.parse(await response.json());
 }
 
+stubFetch();
+
 beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-  calls = [];
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -208,12 +177,12 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
       p_import_id: null,
       p_require: true,
     });
-    expect(charges()[0]!.headers.get('Authorization')).toBe(`Bearer ${secretKey}`);
+    expect(charges()[0]!.headers.get('Authorization')).toBe(`Bearer ${testSecretKey}`);
     expect(refunds()).toHaveLength(0);
-    expect(calls.some((call) => call.url.pathname.startsWith('/rest/v1/fire_substances'))).toBe(
-      false
-    );
-    expect(calls.some((call) => call.url.pathname.startsWith('/storage/'))).toBe(false);
+    expect(
+      upstreamCalls().some((call) => call.url.pathname.startsWith('/rest/v1/fire_substances'))
+    ).toBe(false);
+    expect(upstreamCalls().some((call) => call.url.pathname.startsWith('/storage/'))).toBe(false);
     const [modelCall] = callsTo('/v1/account/ssm-usor/openai/chat/completions');
     expect(JSON.parse(modelCall!.headers.get('cf-aig-metadata')!)).toEqual({
       organizationId,
@@ -382,15 +351,7 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
   it('answers 503 where the gateway is not configured', async () => {
     mockUpstream();
 
-    const response = await createApp().request(
-      `/clients/${clientId}/fire-substances/read-safety-sheet`,
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/octet-stream' },
-        body: pdfBytes,
-      },
-      { ...env, AI_GATEWAY_TOKEN: undefined }
-    );
+    const response = await read(pdfBytes, {}, {}, { ...env, AI_GATEWAY_TOKEN: undefined });
 
     expect(response.status).toBe(503);
     const body = await refusal(response);
@@ -423,17 +384,10 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
   it('refuses an oversized length before anything else, even where reading is not configured', async () => {
     mockUpstream();
 
-    const response = await createApp().request(
-      `/clients/${clientId}/fire-substances/read-safety-sheet`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer user-token',
-          'Content-Type': 'application/octet-stream',
-          'Content-Length': String(safetySheetLimits.maxBytes + 1),
-        },
-        body: pdfBytes,
-      },
+    const response = await read(
+      pdfBytes,
+      { 'Content-Length': String(safetySheetLimits.maxBytes + 1) },
+      {},
       { ...env, AI_GATEWAY_TOKEN: undefined }
     );
 
@@ -454,16 +408,7 @@ describe('POST /clients/{clientId}/fire-substances/read-safety-sheet', () => {
       },
     });
 
-    const response = await createApp().request(
-      `/clients/${clientId}/fire-substances/read-safety-sheet`,
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/octet-stream' },
-        body,
-        duplex: 'half',
-      } as RequestInit,
-      env
-    );
+    const response = await read(body, {}, { duplex: 'half' } as ApiRequestInit);
 
     expect((await refusal(response)).reason).toBe('safety_sheet_too_large');
     expect(charges()).toHaveLength(0);

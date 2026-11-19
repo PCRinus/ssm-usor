@@ -13,30 +13,20 @@ import {
   fireSubstancesResponseSchema,
   fireSubstancesStateResponseSchema,
 } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createApp } from '../../app';
-import type { ApiEnv } from '../../lib/env';
+import { apiRequest } from '../../test/request';
+import {
+  fetchMock,
+  mockUpstream as mockSignedInUpstream,
+  stubFetch,
+  testEnv,
+  testOrganizationId as organizationId,
+  testUser as user,
+  type UpstreamCall,
+} from '../../test/upstream';
 
-const env: ApiEnv['Bindings'] = {
-  SUPABASE_URL: 'https://example.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_key',
-  CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro',
-};
-
-const user = {
-  id: '0f7c8d96-479c-47b3-b49e-01f4555a0221',
-  email: 'owner@example.com',
-  aud: 'authenticated',
-  role: 'authenticated',
-  created_at: '2026-09-01T00:00:00Z',
-  is_anonymous: false,
-  app_metadata: { provider: 'email' },
-  user_metadata: {},
-};
-
-const organizationId = '3b1d6d2a-1d4e-4d7b-9a40-8e3a7c1b2f10';
-const membership = { user_id: user.id, organization_id: organizationId, role: 'specialist' };
+const env = testEnv({ CORS_ORIGINS: 'http://localhost:5173, https://app.ssmusor.ro' });
 
 const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 const officeId = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -194,48 +184,29 @@ type Upstream =
   | 'maintenanceItems'
   | 'buildings';
 
-const fetchMock = vi.fn<typeof fetch>();
-
 const isGet = (init: RequestInit | undefined) => (init?.method ?? 'GET') === 'GET';
 
 function mockUpstream(handlers: Partial<Record<Upstream, Handler>> = {}) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input));
-    const custom = (name: Upstream) => handlers[name]?.(init, url);
-    switch (url.pathname) {
-      case '/auth/v1/user':
-        return Response.json(user);
-      case '/rest/v1/rpc/current_membership':
-        return Response.json([membership]);
-      case '/rest/v1/clients':
-        return custom('clients') ?? Response.json([{ id: clientId }]);
-      case '/rest/v1/client_workplaces':
-        return (
-          custom('workplaces') ??
-          (url.searchParams.has('order')
-            ? Response.json([{ id: officeId }, { id: shopId }])
-            : Response.json([{ id: shopId, office_has_activity: true }]))
-        );
-      case '/rest/v1/client_fire_safety':
-        return custom('fireSafety') ?? Response.json([fireSafetyRow]);
-      case '/rest/v1/fire_equipment':
-        return custom('equipment') ?? Response.json(shopPowder);
-      case '/rest/v1/fire_installations':
-        return (
-          custom('installations') ??
-          Response.json(
-            installation('10000000-0000-4000-8000-000000000001', shopId, 'detection_alarm')
-          )
-        );
-      case '/rest/v1/fire_substances':
-        return custom('substances') ?? Response.json(propane);
-      case '/rest/v1/fire_maintenance_items':
-        return custom('maintenanceItems') ?? Response.json(chimney);
-      case '/rest/v1/fire_buildings':
-        return custom('buildings') ?? Response.json([shopBuilding]);
-      default:
-        throw new Error(`Unexpected upstream request: ${init?.method ?? 'GET'} ${url}`);
-    }
+  const custom = (name: Upstream, { init, url }: UpstreamCall) => handlers[name]?.(init, url);
+  mockSignedInUpstream({
+    '/rest/v1/clients': (call) => custom('clients', call) ?? Response.json([{ id: clientId }]),
+    '/rest/v1/client_workplaces': (call) =>
+      custom('workplaces', call) ??
+      (call.url.searchParams.has('order')
+        ? Response.json([{ id: officeId }, { id: shopId }])
+        : Response.json([{ id: shopId, office_has_activity: true }])),
+    '/rest/v1/client_fire_safety': (call) =>
+      custom('fireSafety', call) ?? Response.json([fireSafetyRow]),
+    '/rest/v1/fire_equipment': (call) => custom('equipment', call) ?? Response.json(shopPowder),
+    '/rest/v1/fire_installations': (call) =>
+      custom('installations', call) ??
+      Response.json(
+        installation('10000000-0000-4000-8000-000000000001', shopId, 'detection_alarm')
+      ),
+    '/rest/v1/fire_substances': (call) => custom('substances', call) ?? Response.json(propane),
+    '/rest/v1/fire_maintenance_items': (call) =>
+      custom('maintenanceItems', call) ?? Response.json(chimney),
+    '/rest/v1/fire_buildings': (call) => custom('buildings', call) ?? Response.json([shopBuilding]),
   });
 }
 
@@ -249,30 +220,14 @@ const sent = (table: string, method: string, index = 0) =>
   JSON.parse(String(calls(table, method)[index]![1]?.body)) as Record<string, unknown>;
 
 const request = (path: string, method = 'GET', body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: {
-        Authorization: 'Bearer test-access-token',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    },
-    env
-  );
+  apiRequest(path, { method, body }, env);
 
 const databaseError = (code: string, status: number) =>
   Response.json({ code, message: 'refused', details: null, hint: null }, { status });
 
 const noClient: Handler = () => Response.json([]);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => vi.unstubAllGlobals());
+stubFetch();
 
 describe('/clients/{clientId}/fire-safety', () => {
   const path = `/clients/${clientId}/fire-safety`;
