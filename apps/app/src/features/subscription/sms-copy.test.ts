@@ -77,6 +77,7 @@ describe('the SMS bar', () => {
     const bar = smsBarFor(smsUsage({ used: 300, state: 'stopped' }), owner)!;
     expect(bar).toMatchObject({ kind: 'smsStop', state: 'stopped', closable: false });
     expect(bar.detail).toContain('Ai folosit cele 300 de coduri ale lunii.');
+    expect(bar.detail).not.toContain('€');
   });
 });
 
