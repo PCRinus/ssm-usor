@@ -6,6 +6,7 @@ import { portalAccessStateSchema } from './employees';
 import { fireExtinguisherNormSchema, workplaceKindSchema } from './fire-safety';
 import { isValidIban } from './iban';
 import { sentTogether, somethingSent } from './partial-update';
+import { countOf } from './romanian';
 
 // Every field is optional while it is being filled in; generating a document is what
 // requires them.
@@ -133,8 +134,7 @@ export function formatTrainingDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   const hoursText = hours === 1 ? '1 oră' : `${hours} ore`;
-  const restText = rest >= 20 ? `${rest} de minute` : `${rest} minute`;
-  return rest === 0 ? hoursText : `${hoursText} și ${restText}`;
+  return rest === 0 ? hoursText : `${hoursText} și ${countOf(rest, 'minut', 'minute')}`;
 }
 
 /** Mirrors the intervals H.G. 1425/2006 art. 96 allows and the database checks. */
