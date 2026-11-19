@@ -1,11 +1,11 @@
 import { Button } from '@ssm-usor/ui/components/button';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { UserRoundKey } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { getGetMeQueryKey, type MeResponse, useEndMyImpersonation } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { Masked } from '@/components/replay';
 
@@ -72,11 +72,11 @@ export function ImpersonationBanner({
   impersonation: Impersonation;
   organizationName: string | undefined;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const identity = usePageIdentity();
   const { until, minutesLeft } = useExpiry(impersonation.expiresAt);
   const end = useEndMyImpersonation({
-    request: apiRequest,
+    request,
     mutation: {
       onSuccess: () => identity?.leave(true),
       onError: () => toast.error('Nu am putut încheia. Verifică conexiunea și încearcă din nou.'),

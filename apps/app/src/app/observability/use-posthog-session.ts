@@ -1,16 +1,17 @@
-import { useLocation, useRouteContext } from '@tanstack/react-router';
+import { useLocation } from '@tanstack/react-router';
 import type { PostHog } from 'posthog-js';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { MeResponse } from '@/api/generated/api';
 import { getSupportIdentity } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { loadPostHog, openSupportChat, sendPendingEvents, stopPostHog } from './posthog';
 
 export function usePostHogSession(me: MeResponse | undefined) {
   const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const href = useLocation({ select: (location) => location.href });
   const userId = session?.user.id;
   const organizationId = me?.membership?.organization.id;
@@ -104,7 +105,7 @@ export function usePostHogSession(me: MeResponse | undefined) {
   useEffect(() => {
     if (!client || !userId) return;
     let active = true;
-    void getSupportIdentity({ ...apiRequest })
+    void getSupportIdentity({ ...request })
       .then(({ distinctId, hash }) => {
         if (!active || distinctId !== userId) return;
         client.setIdentity(distinctId, hash);
@@ -116,7 +117,7 @@ export function usePostHogSession(me: MeResponse | undefined) {
     return () => {
       active = false;
     };
-  }, [client, userId, apiRequest]);
+  }, [client, userId, request]);
 
   useEffect(() => {
     if (!client || !supportReady) return;
