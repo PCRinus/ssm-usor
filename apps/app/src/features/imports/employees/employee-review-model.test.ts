@@ -824,7 +824,7 @@ describe('the hiring test confirming writes', () => {
     );
   });
 
-  it('asks for the date once, on the row, while the row is taken', () => {
+  it('asks for the date once, on the row named by its phase, while the row is taken', () => {
     const undated = withRow(emptyChanges(), 'r1', () => ({ values: { heldOn: null } }));
     const labels = decisionsOf(contextOf(undated), person('toma')).map(
       (decision) => decision.label
@@ -843,13 +843,6 @@ describe('the hiring test confirming writes', () => {
       expect.arrayContaining(['Lipsește data unui test'])
     );
     expect(tags(contextOf(untaken('2026-11-02')), 'toma')).toContain('Un test cu data în viitor');
-  });
-
-  it('names a row without a date by its phase', () => {
-    const undated = withRow(emptyChanges(), 'r1', () => ({ values: { heldOn: null } }));
-    expect(decisionsOf(contextOf(undated), person('toma')).map((each) => each.label)).toContain(
-      'Completează data instruirii introductiv-generale'
-    );
   });
 
   it('asks nothing of a row whose sheet writes no trainer, material or duration', () => {
