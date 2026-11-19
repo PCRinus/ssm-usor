@@ -1,23 +1,12 @@
 import { foldText, importCredits, importErrorReasons } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
-import { toast } from '@ssm-usor/ui/lib/toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { ArrowLeft, ListX, LoaderCircle, RotateCcw } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { ListX } from 'lucide-react';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-  confirmImportLibraryPart,
-  getListImportLibraryPartsQueryKey,
-  getListImportsQueryKey,
-  type ImportDetail,
-  retryImportLibraryPart,
-} from '@/api/generated/api';
-import { apiErrorBody } from '@/api/http';
-import { useReturnToOpener } from '@/app/use-return-to-opener';
+import type { ImportDetail } from '@/api/generated/api';
 import { TitleWithBack } from '@/components/back-link';
 import { HelpLink } from '@/components/help-link';
-import { Notice } from '@/components/notice';
 import { roCount } from '@/features/employees/employee-format';
 import { scrollAndFocus } from '@/features/missing-data/focus';
 import type { FactorStore } from '@/features/risk-evaluations/factor-store';
@@ -25,24 +14,21 @@ import type { EditableFactor } from '@/features/risk-evaluations/risk-evaluation
 import { RiskFactorDialog } from '@/features/risk-evaluations/risk-factor-dialog';
 
 import { ImportOverviewBack } from '../import-back';
-import { creditsLabel } from '../import-credits';
-import { importErrorMessage } from '../import-format';
 import { ImportIssueBadge } from '../import-review-issues';
 import { ReportImportButton } from '../report-import-button';
-import type { LabelledSource } from '../review-model';
 import { SourceButton, Tag } from '../review-parts';
+import type { LabelledSource } from '../review-types';
 import { SourceDialog, type SourceRequest } from '../source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from '../source-query';
 import { PartStatusTag } from './library-group';
 import {
   isExpired,
   isReviewable,
-  libraryDay,
   type LibraryPost,
   pickablePosts,
   postsByReference,
 } from './library-model';
-import { ClientPrerequisiteNote, ReviewNotices } from './library-task-page';
+import { PartStateNotices, PartTaskLoader, ReviewNotices } from './part-task';
 import { PostsPickerDialog, type PostsRequest } from './posts-picker-dialog';
 import { RiskConfirmBar } from './risk-confirm-bar';
 import { PlanRowText } from './risk-plan-rows';
@@ -72,74 +58,32 @@ import {
   withField,
   withIncluded,
 } from './risks-model';
-import { useLibraryParts, useRiskReview } from './use-library-parts';
+import { useRiskReview } from './use-library-parts';
+import { partConfirmNote, partConfirmReasons, usePartConfirm } from './use-part-confirm';
 
 export function RisksTaskPage({ detail }: { detail: ImportDetail }) {
-  const query = useLibraryParts(detail.id);
-  if (query.isPending) {
-    return (
-      <div className="grid gap-4" aria-busy="true" data-testid="library-task-loading">
-        <div className="h-9 w-48 animate-pulse rounded-md bg-muted" />
-        <div className="h-40 animate-pulse rounded-xl bg-muted" />
-      </div>
-    );
-  }
-  const part = query.data?.parts.find(isRisksLibraryPart);
-  const back = (
-    <Button asChild variant="outline">
-      <Link
-        to="/clienti/import/$importId"
-        params={{ importId: detail.id }}
-        data-testid="library-back-to-import"
-      >
-        <ArrowLeft aria-hidden="true" />
-        Înapoi la propunere
-      </Link>
-    </Button>
-  );
   return (
-    <div className="grid gap-6">
-      {query.isError ? (
-        <Notice
-          variant="destructive"
-          data-testid="library-task-error"
-          action={
-            <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
-              Încearcă din nou
-            </Button>
-          }
-        >
-          Nu am putut încărca evaluările de risc. Încearcă din nou.
-        </Notice>
-      ) : !part ? (
-        <Notice variant="info" data-testid="library-task-missing">
-          În documentația importată nu am găsit evaluări de risc.
-        </Notice>
-      ) : (
+    <PartTaskLoader
+      detail={detail}
+      pick={(parts) => parts.find(isRisksLibraryPart)}
+      loadFailed="Nu am putut încărca evaluările de risc. Încearcă din nou."
+      missing="În documentația importată nu am găsit evaluări de risc."
+    >
+      {(part, posts, back) => (
         <TaskContent
           key={`${part.part}-${part.attempt}`}
           detail={detail}
           part={part}
-          posts={query.data?.posts ?? []}
+          posts={posts}
           back={back}
         />
       )}
-      {(query.isError || !part) && back}
-    </div>
+    </PartTaskLoader>
   );
 }
 
 const confirmReasons: Record<string, string> = {
-  [importErrorReasons.clientUnconfirmed]:
-    'Confirmă întâi clientul: evaluările de risc se aplică la posturile lui.',
-  [importErrorReasons.partExpired]:
-    'Propunerea a expirat la 14 zile după crearea clientului, așa că nu mai poate fi confirmată.',
-  [importErrorReasons.partNotReady]:
-    'Evaluările de risc au fost confirmate sau citite din nou între timp. Reîncarcă pagina.',
-  [importErrorReasons.changed]:
-    'Altcineva a modificat evaluările de risc între timp. Reîncarcă pagina ca să vezi ce s-a schimbat.',
-  [importErrorReasons.outdated]:
-    'Clientul sau biblioteca s-au schimbat între timp: un post sau o evaluare nu mai există. Reîncarcă pagina și alege din nou.',
+  ...partConfirmReasons({ these: 'evaluările de risc', one: 'o evaluare' }),
   [importErrorReasons.refused]:
     'O valoare din fișe nu a fost primită. Verifică factorii și încearcă din nou.',
 };
@@ -179,10 +123,6 @@ function TaskContent({
   posts: LibraryPost[];
   back: ReactNode;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const returnToImport = useReturnToOpener(`/clienti/import/${detail.id}`);
   const review = useRiskReview(detail.id, part);
   const prefetchSource = useSourcePrefetch(detail.id);
   const root = useRef<HTMLDivElement>(null);
@@ -191,11 +131,8 @@ function TaskContent({
   const [source, setSource] = useState<SourceRequest | null>(null);
   const [postsRequest, setPostsRequest] = useState<PostsRequest | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [takenNames, setTakenNames] = useState<Set<string>>(new Set());
   const [refused, setRefused] = useState<Map<string, Set<string>>>(new Map());
-  const [retrying, setRetrying] = useState(false);
 
   const clientConfirmed = detail.status === 'confirmed';
   const expired = isExpired(part);
@@ -290,85 +227,34 @@ function TaskContent({
     observations: editing.factor.observations,
   };
 
-  async function refresh() {
-    await queryClient.invalidateQueries({
-      queryKey: getListImportLibraryPartsQueryKey(detail.id),
-    });
-  }
-
-  async function confirm() {
-    setConfirming(true);
-    setConfirmError(null);
-    try {
-      const saved = await review.flush();
-      if ('error' in saved) {
-        setConfirmError(saved.error);
-        return;
-      }
-      const result = await confirmImportLibraryPart(
-        detail.id,
-        part.part,
-        { version: saved.version },
-        apiRequest
-      );
-      await Promise.all([
-        refresh(),
-        queryClient.invalidateQueries({
-          predicate: ({ queryKey }) => String(queryKey[0]).startsWith('/evaluation-profiles'),
-        }),
-        queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
-        detail.client &&
-          queryClient.invalidateQueries({
-            predicate: ({ queryKey }) =>
-              String(queryKey[0]).startsWith(`/clients/${detail.client!.id}`),
-          }),
-      ]);
-      toast.success(
-        'createdProfileIds' in result ? doneToast(result) : 'Ai confirmat evaluările de risc.'
-      );
-      if (!returnToImport()) {
-        await navigate({ to: '/clienti/import/$importId', params: { importId: detail.id } });
-      }
-    } catch (cause) {
-      const body = apiErrorBody(cause);
-      const reason = body?.reason;
+  const { confirming, confirmError, confirm, retrying, retry } = usePartConfirm({
+    detail,
+    part,
+    review,
+    invalidate: (queryClient) =>
+      queryClient.invalidateQueries({
+        predicate: ({ queryKey }) => String(queryKey[0]).startsWith('/evaluation-profiles'),
+      }),
+    doneText: (result) =>
+      'createdProfileIds' in result ? doneToast(result) : 'Ai confirmat evaluările de risc.',
+    reasons: confirmReasons,
+    failed: 'Nu am putut confirma evaluările de risc. Încearcă din nou.',
+    onRefused: (reason, body) => {
       const named = (keys: Iterable<string>) =>
         [...keys].map((key) => sheetByKey.get(key)?.name ?? key);
       if (reason === importErrorReasons.nameTaken) {
         const taken = takenSheets(body?.issues ?? []);
         setTakenNames(taken);
-        setConfirmError(takenNamesText(named(taken)));
-      } else if (reason === importErrorReasons.incomplete) {
+        return takenNamesText(named(taken));
+      }
+      if (reason === importErrorReasons.incomplete) {
         const incomplete = incompleteFactors(body?.issues ?? []);
         setRefused(incomplete);
-        setConfirmError(incompleteText(named(incomplete.keys())));
-      } else {
-        setConfirmError(
-          reason && Object.hasOwn(confirmReasons, reason)
-            ? confirmReasons[reason]!
-            : importErrorMessage(
-                cause,
-                'Nu am putut confirma evaluările de risc. Încearcă din nou.'
-              )
-        );
+        return incompleteText(named(incomplete.keys()));
       }
-    } finally {
-      setConfirming(false);
-    }
-  }
-
-  async function retry() {
-    setRetrying(true);
-    try {
-      await retryImportLibraryPart(detail.id, part.part, apiRequest);
-      review.forget();
-      await refresh();
-    } catch (cause) {
-      toast.error(importErrorMessage(cause, 'Nu am putut porni citirea. Încearcă din nou.'));
-    } finally {
-      setRetrying(false);
-    }
-  }
+      return undefined;
+    },
+  });
 
   return (
     <SourcePrefetchContext value={prefetchSource}>
@@ -392,11 +278,23 @@ function TaskContent({
           </div>
         </div>
 
-        <StateNotices
+        <PartStateNotices
           part={part}
           expired={expired}
           retrying={retrying}
           onRetry={() => void retry()}
+          texts={{
+            afterExpiry:
+              'Fișele le completezi pe pagina clientului, iar biblioteca în Evaluări de risc.',
+            reading: 'Citim evaluările de risc din pachet.',
+            failedTitle: 'Nu am putut citi evaluările de risc',
+            failedFallback: 'Citirea evaluărilor de risc s-a oprit.',
+            credits: importCredits.riskEvaluations,
+            untouched: 'Clientul și instrucțiunile proprii rămân cum sunt.',
+            confirmed: 'Ai confirmat evaluările de risc',
+            confirmedWhere: 'Evaluările sunt în biblioteca ta și pe posturile clientului.',
+            open: <Link to="/evaluari-de-risc">Deschide Evaluări de risc</Link>,
+          }}
         />
         {reviewable && <ReviewNotices review={review} />}
 
@@ -519,15 +417,13 @@ function TaskContent({
               ? { ...review, reload: () => window.location.reload() }
               : undefined
           }
-          note={
-            review.closed ? (
-              'Reîncarcă pagina pentru starea actuală.'
-            ) : !reviewable ? undefined : !clientConfirmed ? (
-              <ClientPrerequisiteNote intoExistingClient={detail.intoExistingClient} />
-            ) : part.expiresAt ? (
-              `Poți confirma până pe ${libraryDay(part.expiresAt)}.`
-            ) : undefined
-          }
+          note={partConfirmNote({
+            closed: review.closed,
+            reviewable,
+            clientConfirmed,
+            intoExistingClient: detail.intoExistingClient,
+            expiresAt: part.expiresAt,
+          })}
           error={confirmError}
         >
           {back}
@@ -737,86 +633,4 @@ function LooseRows({
       </p>
     </section>
   );
-}
-
-function StateNotices({
-  part,
-  expired,
-  retrying,
-  onRetry,
-}: {
-  part: RisksPart;
-  expired: boolean;
-  retrying: boolean;
-  onRetry: () => void;
-}) {
-  if (expired) {
-    return (
-      <Notice variant="warning" data-testid="library-expired">
-        Propunerea a expirat pe {libraryDay(part.expiresAt!)}, la 14 zile după crearea clientului,
-        așa că nu mai poate fi confirmată. Fișele le completezi pe pagina clientului, iar biblioteca
-        în Evaluări de risc.
-      </Notice>
-    );
-  }
-  switch (part.status) {
-    case 'reading':
-      return (
-        <Notice
-          variant="info"
-          icon={
-            <LoaderCircle className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-          }
-          data-testid="library-reading"
-        >
-          Citim evaluările de risc din pachet. Pagina se actualizează singură când sunt gata; între
-          timp poți verifica și crea clientul.
-        </Notice>
-      );
-    case 'failed':
-      return (
-        <Notice
-          variant="destructive"
-          title="Nu am putut citi evaluările de risc"
-          data-testid="library-failed"
-          action={
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-card"
-              data-testid="library-retry"
-              disabled={retrying}
-              onClick={onRetry}
-            >
-              <RotateCcw aria-hidden="true" />
-              {retrying ? 'Se pornește…' : 'Citește din nou'}
-            </Button>
-          }
-        >
-          <p>{part.failureReason ?? 'Citirea evaluărilor de risc s-a oprit.'}</p>
-          <p className="mt-1">
-            Citirea din nou folosește {creditsLabel(importCredits.riskEvaluations)}; dacă nu
-            reușește, ți le returnăm. Clientul și instrucțiunile proprii rămân cum sunt.
-          </p>
-        </Notice>
-      );
-    case 'confirmed':
-      return (
-        <Notice
-          variant="success"
-          data-testid="library-confirmed"
-          action={
-            <Button asChild variant="outline" size="sm" className="bg-card">
-              <Link to="/evaluari-de-risc">Deschide Evaluări de risc</Link>
-            </Button>
-          }
-        >
-          Ai confirmat evaluările de risc
-          {part.confirmedAt ? ` pe ${libraryDay(part.confirmedAt)}` : ''}. Evaluările sunt în
-          biblioteca ta și pe posturile clientului.
-        </Notice>
-      );
-    default:
-      return null;
-  }
 }

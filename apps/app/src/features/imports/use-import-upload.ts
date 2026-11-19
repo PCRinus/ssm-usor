@@ -22,9 +22,9 @@ import {
 import { apiErrorBody, apiErrorReason } from '@/api/http';
 import { roCount } from '@/features/employees/employee-format';
 
-import { shrinkSelected } from './employees/shrink-photo';
 import { importErrorMessage } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
+import { shrinkSelected } from './shrink-photo';
 import { type SelectedFile, shrinksBeforeUpload } from './upload-selection';
 
 export type UploadPhase =

@@ -1,150 +1,182 @@
-import { Badge } from '@ssm-usor/ui/components/badge';
+import { appliedLegalChangePageSize, pageCount } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
-import { Scale } from 'lucide-react';
+import { keepPreviousData } from '@tanstack/react-query';
+import { getRouteApi, Link, useRouteContext } from '@tanstack/react-router';
+import { History, Scale } from 'lucide-react';
 
 import {
-  getListLegalChangesQueryKey,
-  type LegalChangeListResponseItemsItem as LegalChange,
-  useListLegalChanges,
+  type AppliedLegalChangeListResponseItemsItem as AppliedChange,
+  getListAppliedLegalChangesQueryKey,
+  getListOpenLegalChangesQueryKey,
+  type OpenLegalChangeListResponseItemsItem as OpenChange,
+  useListAppliedLegalChanges,
+  useListOpenLegalChanges,
 } from '@/api/generated/api';
-import { useScrollToHash } from '@/app/use-scroll-to-hash';
 import { EmptyState, ListEmpty } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
-import { formatRoDate } from '@/lib/dates';
+import { Pager } from '@/components/pager';
 
-import { AmendedUnits, ChangedPassages } from './legal-change-details';
 import {
-  changeStatus,
-  formatDayOf,
-  legalChangeAnchor,
-  listOf,
-  portalPage,
-  resolutionLabels,
-} from './legislation-labels';
+  appliedSentence,
+  behindTabOf,
+  behindText,
+  reachOf,
+  underReviewSentence,
+} from './legal-change-copy';
+import { ChangePanel, ChangeRow, ChangeRows } from './legal-change-row';
+
+const route = getRouteApi('/_authenticated/legislatie/modificari');
 
 export function LegalChanges({ userId }: { userId: string }) {
   const { apiRequest } = useRouteContext({ from: '__root__' });
-  const changes = useListLegalChanges({
+  const page = route.useSearch({ select: (search) => search.page ?? 1 });
+  const navigate = route.useNavigate();
+  const params = { page, pageSize: appliedLegalChangePageSize };
+  const open = useListOpenLegalChanges({
     request: apiRequest,
-    query: { queryKey: [...getListLegalChangesQueryKey(), userId] },
+    query: { queryKey: [...getListOpenLegalChangesQueryKey(), userId] },
   });
-  const items = changes.data?.items ?? [];
-  useScrollToHash(changes.isSuccess);
-  return (
-    <section aria-label="Modificări legislative" className="grid gap-4">
-      <div className="overflow-hidden rounded-lg border bg-card">
-        {changes.isPending ? (
-          <div className="p-5">
-            <Skeleton className="h-16 w-full" />
-          </div>
-        ) : changes.isError ? (
-          <div className="p-5">
-            <Notice
-              variant="destructive"
-              action={
-                <Button
-                  variant="outline"
-                  disabled={changes.isFetching}
-                  onClick={() => void changes.refetch()}
-                >
-                  Încearcă din nou
-                </Button>
-              }
-            >
-              Nu am putut încărca modificările legislative.
-            </Notice>
-          </div>
-        ) : items.length === 0 ? (
-          <ListEmpty data-testid="legal-changes-empty">
-            <EmptyState icon={Scale}>
-              Nicio modificare legislativă de când sunt urmărite actele. O formă consolidată nouă a
-              unui act apare aici în ziua în care o găsește verificarea.
-            </EmptyState>
-          </ListEmpty>
-        ) : (
-          <ul className="divide-y">
-            {items.map((change) => (
-              <li
-                key={change.id}
-                id={legalChangeAnchor(change.id)}
-                data-testid="legal-change"
-                className="grid scroll-mt-24 gap-1.5 px-5 py-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                  <span className="font-medium">
-                    {change.act.portalId ? (
-                      <a
-                        href={portalPage(change.act.portalId)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline-offset-4 hover:underline"
-                      >
-                        {change.act.name}
-                      </a>
-                    ) : (
-                      change.act.name
-                    )}
-                  </span>
-                  <Badge
-                    data-testid="legal-change-resolution"
-                    variant={change.resolution === 'open' ? 'secondary' : 'outline'}
-                    className={cn(
-                      change.resolution === 'open' &&
-                        'border-warning-border bg-warning text-warning-foreground'
-                    )}
-                  >
-                    {resolutionLabels[change.resolution]}
-                  </Badge>
-                </div>
-                <ChangeView change={change} />
-              </li>
-            ))}
-          </ul>
-        )}
+  const applied = useListAppliedLegalChanges(params, {
+    request: apiRequest,
+    query: {
+      queryKey: [...getListAppliedLegalChangesQueryKey(params), userId],
+      placeholderData: keepPreviousData,
+    },
+  });
+
+  if (open.isPending || applied.isPending) {
+    return (
+      <div className="grid gap-4">
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
+    );
+  }
+  if (open.isError || applied.isError) {
+    return (
+      <Notice
+        variant="destructive"
+        action={
+          <Button
+            variant="outline"
+            disabled={open.isFetching || applied.isFetching}
+            onClick={() => {
+              if (open.isError) void open.refetch();
+              if (applied.isError) void applied.refetch();
+            }}
+          >
+            Încearcă din nou
+          </Button>
+        }
+      >
+        Nu am putut încărca modificările legislative.
+      </Notice>
+    );
+  }
+
+  const openItems = open.data.items;
+  const meta = { page, pageSize: applied.data.pageSize, total: applied.data.total };
+  if (openItems.length === 0 && meta.total === 0) {
+    return (
+      <ListEmpty data-testid="legal-changes-empty">
+        <EmptyState icon={Scale} title="Nicio modificare legislativă">
+          Când verificarea zilnică găsește o formă consolidată nouă a unui act citat în documente,
+          modificarea apare aici.
+        </EmptyState>
+      </ListEmpty>
+    );
+  }
+
+  const toPage = (next: number) =>
+    void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) });
+
+  return (
+    <section aria-label="Modificări legislative" className="grid gap-4 sm:gap-6">
+      {openItems.length > 0 && (
+        <ChangePanel
+          title="În analiză"
+          count={openItems.length}
+          icon={History}
+          help={{ topic: 'legislatie.in-analiza', label: 'Ajutor: modificări în analiză' }}
+          testId="legal-changes-open"
+        >
+          <ChangeRows>
+            {openItems.map((change) => (
+              <OpenRow key={change.id} change={change} />
+            ))}
+          </ChangeRows>
+        </ChangePanel>
+      )}
+      {meta.total > 0 && (
+        <ChangePanel
+          title="Aplicate în documente"
+          help={{ topic: 'legislatie.aplicate', label: 'Ajutor: modificări aplicate' }}
+          testId="legal-changes-applied"
+        >
+          {applied.data.items.length === 0 ? (
+            <div className="grid justify-items-start gap-3 px-6 py-5 text-sm max-sm:px-4">
+              <p>Pagina {page} nu are modificări.</p>
+              <Button variant="secondary" size="sm" onClick={() => toPage(pageCount(meta))}>
+                Mergi la pagina {pageCount(meta)}
+              </Button>
+            </div>
+          ) : (
+            <ChangeRows>
+              {applied.data.items.map((change) => (
+                <AppliedRow key={change.id} change={change} />
+              ))}
+            </ChangeRows>
+          )}
+          {meta.total > meta.pageSize && (
+            <Pager
+              meta={meta}
+              noun={['modificare', 'modificări']}
+              disabled={applied.isFetching}
+              onPage={toPage}
+            />
+          )}
+        </ChangePanel>
+      )}
     </section>
   );
 }
 
-function ChangeView({ change }: { change: LegalChange }) {
-  const amendedBy =
-    change.amendingActs.length > 0
-      ? listOf(change.amendingActs.map((act) => act.name))
-      : change.amendingAct;
-  const status = changeStatus(change);
-  const documents = change.updatedDocuments.map((document) => document.title);
+function OpenRow({ change }: { change: OpenChange }) {
+  const reach = reachOf(change.touched.documents, change.citedBy);
   return (
-    <>
-      <p className="text-sm text-muted-foreground">
-        Forma consolidată din {formatRoDate(change.consolidatedOn)}
-        {amendedBy && `, după ${amendedBy}`}. Găsită pe {formatDayOf(change.seenAt)}.
-      </p>
-      <AmendedUnits change={change} />
-      {status && (
-        <p data-testid="legal-change-status" className="text-sm">
-          {status}
-        </p>
-      )}
-      {change.resolution !== 'open' && change.resolvedByNote && (
-        <p
-          data-testid="legal-change-note"
-          className="max-w-prose border-l-2 border-primary/50 pl-3 text-sm leading-relaxed"
-        >
-          {change.resolvedByNote}
-        </p>
-      )}
-      {documents.length > 0 && (
-        <p data-testid="legal-change-documents" className="text-sm">
-          <span className="text-muted-foreground">
-            {documents.length === 1 ? 'Șablon nou pentru' : 'Șabloane noi pentru'}:
-          </span>{' '}
-          {listOf(documents)}
-        </p>
-      )}
-      <ChangedPassages passages={change.passages} />
-    </>
+    <ChangeRow
+      changeId={change.id}
+      date={change.consolidatedOn}
+      act={change.act}
+      testId="legal-change-open"
+      sentence={underReviewSentence(change.outcome, change.touched.units)}
+      line={reach && `${reach.label}: ${reach.text}`}
+    />
+  );
+}
+
+function AppliedRow({ change }: { change: AppliedChange }) {
+  const updated = change.updatedDocuments.map((document) => document.title).join(', ');
+  return (
+    <ChangeRow
+      changeId={change.id}
+      date={change.consolidatedOn}
+      act={change.act}
+      testId="legal-change-applied"
+      sentence={appliedSentence(change)}
+      line={updated && `A actualizat: ${updated}`}
+      aside={
+        change.behind.documents > 0 && (
+          <Link
+            to={behindTabOf(change.behind.types)}
+            data-testid="legal-change-behind"
+            className="relative z-10 text-sm font-medium text-warning-foreground underline decoration-warning-foreground/35 underline-offset-[3px] hover:decoration-warning-foreground"
+          >
+            {behindText(change.behind.documents)}
+          </Link>
+        )
+      }
+    />
   );
 }

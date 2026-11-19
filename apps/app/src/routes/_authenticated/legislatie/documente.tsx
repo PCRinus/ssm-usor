@@ -1,14 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-import { useAuth } from '@/features/auth/auth-context';
-import { DocumentsBehind } from '@/features/legislation/documents-behind';
-
+// The tab before the documents split by set; links to it still land somewhere.
 export const Route = createFileRoute('/_authenticated/legislatie/documente')({
-  staticData: { title: 'Documente de actualizat' },
-  component: DocumentsBehindRoute,
+  beforeLoad: () => {
+    throw redirect({ to: '/legislatie/documente-ssm', replace: true });
+  },
 });
-
-function DocumentsBehindRoute() {
-  const { session } = useAuth();
-  return <DocumentsBehind userId={session?.user.id ?? ''} />;
-}

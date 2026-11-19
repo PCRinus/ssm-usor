@@ -69,6 +69,7 @@ import { openedHere } from '@/app/opener';
 import { rowClickProps } from '@/components/data-table/row-click';
 import { FileMenuItem } from '@/components/file-menu-item';
 import { Notice } from '@/components/notice';
+import { behindSummaryQueryKey } from '@/features/legislation/use-behind-summary';
 import { useFocusRequest } from '@/features/missing-data/focus';
 import { endWayBack } from '@/features/missing-data/way-back';
 import { commonFailure } from '@/lib/api-errors';
@@ -301,6 +302,7 @@ export function DocumentsCard<Set extends DocumentSet>({
       );
     }
     void queryClient.invalidateQueries({ queryKey: getListDocumentsBehindQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: behindSummaryQueryKey() });
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
   }
 
@@ -420,6 +422,7 @@ export function DocumentsCard<Set extends DocumentSet>({
     setConfirming(null);
     // Also after a failure: a 404 or a 409 means the list on screen is out of date.
     void queryClient.invalidateQueries({ queryKey: getListDocumentsBehindQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: behindSummaryQueryKey() });
     await queryClient.invalidateQueries({ queryKey: getListClientDocumentsQueryKey(clientId) });
   }
 
