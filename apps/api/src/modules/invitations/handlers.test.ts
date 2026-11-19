@@ -1,4 +1,4 @@
-import type { MailService, OrganizationRole } from '@ssm-usor/contracts';
+import { currentTermsVersion, type MailService, type OrganizationRole } from '@ssm-usor/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { hashToken } from '../../lib/tokens';
@@ -411,7 +411,7 @@ describe('POST /invitations/accept', () => {
     token: 'tok',
     fullName: 'Ion Ionescu',
     password: 'Parola123',
-    termsVersion: '2026-11-14',
+    termsVersion: currentTermsVersion,
   };
   const accept = (overrides: Partial<typeof body> = {}) =>
     request('/invitations/accept', { ...body, ...overrides }, { signedIn: false });
@@ -432,7 +432,7 @@ describe('POST /invitations/accept', () => {
       invitation_token_hash: await hashToken('tok'),
       accepting_user_id: newUserId,
       new_full_name: 'Ion Ionescu',
-      accepted_terms_version: '2026-11-14',
+      accepted_terms_version: currentTermsVersion,
     });
   });
 
@@ -491,7 +491,7 @@ describe('POST /invitations/accept', () => {
 });
 
 describe('POST /invitations/join', () => {
-  const body = { token: 'tok', termsVersion: '2026-11-14' };
+  const body = { token: 'tok', termsVersion: currentTermsVersion };
 
   it('accepts as the signed-in user, without the secret key', async () => {
     mockUpstream();
@@ -505,7 +505,7 @@ describe('POST /invitations/join', () => {
     const [join] = calls('/rest/v1/rpc/accept_organization_invitation');
     expect(join?.body).toEqual({
       invitation_token_hash: await hashToken('tok'),
-      accepted_terms_version: '2026-11-14',
+      accepted_terms_version: currentTermsVersion,
     });
     expect(join?.headers.get('Authorization')).toBe(`Bearer ${testAccessToken}`);
   });
