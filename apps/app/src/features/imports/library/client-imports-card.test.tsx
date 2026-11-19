@@ -50,6 +50,7 @@ function confirmedImport(
     readyAt: confirmedAt,
     failedAt: null,
     confirmedAt,
+    abandonedAt: null,
     expiresAt: null,
     people: null,
     uninvited: null,
@@ -138,9 +139,9 @@ describe("the client's imports from documents", () => {
     mount();
 
     const card = await screen.findByTestId('client-imports-card');
-    expect(within(card).getByRole('heading', { name: 'Importuri din documente' })).toBeDefined();
+    expect(within(card).getByRole('heading', { name: 'Importuri AI' })).toBeDefined();
     expect(
-      within(card).getByRole('link', { name: 'Ajutor: Importuri din documente' })
+      within(card).getByRole('link', { name: 'Ajutor: Importuri AI ale clientului' })
     ).toBeDefined();
     const rows = within(card).getAllByTestId('client-import-row');
     expect(rows.map((row) => row.getAttribute('data-outcome'))).toEqual(['done', 'expired']);

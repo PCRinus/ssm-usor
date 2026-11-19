@@ -138,12 +138,6 @@ export function uploadSummary(files: UploadedFile[]) {
   return joinRo(parts);
 }
 
-export function uploadName(files: UploadedFile[]) {
-  const tops = new Set(files.map((file) => file.uploadPath.split('/')[0]!));
-  if (tops.size === 1) return [...tops][0]!;
-  return `Import din ${filesLabel(files.length)}`;
-}
-
 const dayFormat = new Intl.DateTimeFormat('ro-RO', {
   day: '2-digit',
   month: '2-digit',

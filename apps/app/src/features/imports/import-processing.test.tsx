@@ -138,7 +138,9 @@ describe('the processing page', () => {
     expect(screen.getByTestId('import-upload-summary').textContent).toMatch(
       /^dosar-ssm\.zip și 2 fotografii, încărcate (azi|pe 28\.10\.2026) la \d\d:\d\d$/
     );
-    expect(screen.getByTestId('import-can-leave').textContent).toContain('Poți închide pagina.');
+    expect(screen.getByTestId('import-can-leave').textContent).toContain(
+      'Poți închide pagina. Importul rămâne în Importuri AI'
+    );
     const steps = screen.getAllByTestId('import-step');
     expect(steps.map((step) => step.dataset.state)).toEqual(['done', 'done', 'current', 'next']);
     expect(steps[1]!.textContent).toContain(

@@ -75,16 +75,6 @@ function phoneWidth() {
   );
 }
 
-const groupsIn = (list: HTMLElement) =>
-  within(list)
-    .getAllByTestId('imports-group')
-    .map((group) => ({
-      title: within(group).getByRole('heading').textContent,
-      rows: within(group)
-        .getAllByTestId('imports-row')
-        .map((row) => row.textContent),
-    }));
-
 beforeEach(() => {
   items = [];
   me = undefined;
@@ -96,12 +86,13 @@ afterEach(() => {
 
 installFetchMock();
 
-describe('the imports button in the header', () => {
-  it('stays out of the header while the member has no open import', async () => {
+describe('the imports link in the header', () => {
+  it('stays out of the header while nothing waits for a check', async () => {
     items = [
-      listed({ status: 'confirmed' }),
+      readingEmployees,
+      failedClient,
+      listed({ status: 'confirmed', libraryParts: [] }),
       listed({ status: 'abandoned' }),
-      listed({ status: 'ready', createdBy: { id: 'user-two', fullName: 'Ana Pop' } }),
     ];
     mount();
     await screen.findByTestId('app-logo');
@@ -110,17 +101,14 @@ describe('the imports button in the header', () => {
     );
 
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(screen.queryByTestId('imports-button')).toBeNull();
+    expect(screen.queryByTestId('imports-link')).toBeNull();
   });
 
-  it("lists the member's own open imports by what they wait for, and opens the review", async () => {
+  it("counts the whole team's imports waiting for a check, and asks for the open parts too", async () => {
     items = [
-      readingEmployees,
       readyEmployees,
-      failedClient,
       readyClient,
-      listed({ status: 'confirmed', companyName: 'Confirmat SRL' }),
-      listed({ status: 'abandoned', companyName: 'Abandonat SRL' }),
+      readingEmployees,
       listed({
         status: 'ready',
         companyName: 'Altcineva SRL',
@@ -130,87 +118,25 @@ describe('the imports button in the header', () => {
     const runtime = mount();
     const user = userEvent.setup();
 
-    const button = await screen.findByRole('button', {
-      name: 'Importuri: 2 de verificat, 1 se citește, 1 oprit',
-    });
-    expect(within(button).getByTestId('imports-button-chip').textContent).toBe('2 de verificat');
-    await user.click(button);
-
-    const list = await screen.findByTestId('imports-list');
-    expect(groupsIn(list)).toEqual([
-      {
-        title: 'De verificat',
-        rows: [
-          'Hotel Carpați Sinaia SRL12 persoane de verificatVerifică persoanele',
-          'Clinica Dentară Zâmbet SRLPropunerea e gata de verificatVerifică propunerea',
-        ],
-      },
-      {
-        title: 'Se citesc',
-        rows: ['Transport Delta Nord SRLImport lucrători: 23 din 40 de fotografii citite'],
-      },
-      {
-        title: 'S-au oprit',
-        rows: ['Ferma Valea Mureșului SRLNiciun document nu s-a putut citi.Vezi importul'],
-      },
-    ]);
-    expect(within(list).queryByText('Altcineva SRL')).toBeNull();
-    expect(
-      within(list).getByRole('progressbar', {
-        name: 'Import lucrători: 23 din 40 de fotografii citite',
-      })
-    ).toBeTruthy();
-    expect(within(list).getByRole('link', { name: 'Vezi importul' }).getAttribute('href')).toBe(
-      `/clienti/import/${failedClient.id}`
+    const link = await screen.findByRole('link', { name: 'Importuri AI: 3 de verificat' });
+    expect(within(link).getByTestId('imports-link-count').textContent).toBe('3');
+    const asked = new URL(
+      String(fetchMock.mock.calls.find(([input]) => String(input).includes('/imports'))![0])
     );
-    expect(
-      within(list).getByRole('link', { name: 'Verifică propunerea' }).getAttribute('href')
-    ).toBe(`/clienti/import/${readyClient.id}`);
+    expect(Object.fromEntries(asked.searchParams)).toEqual({ kind: 'all', withOpenParts: 'true' });
 
-    await user.click(within(list).getByRole('link', { name: 'Verifică persoanele' }));
-    await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(
-        `/clienti/${clientId}/angajati/import/${readyEmployees.id}`
-      )
-    );
-    await waitFor(() => expect(screen.queryByTestId('imports-list')).toBeNull());
+    await user.click(link);
+    await waitFor(() => expect(runtime.router.state.location.pathname).toBe('/importuri/clienti'));
   });
 
-  it('counts the reading imports when none waits for a check', async () => {
-    items = [
-      readingEmployees,
-      listed({ status: 'preparing', progress: { files: 12, prepared: 3, scans: 0, scansRead: 0 } }),
-    ];
-    mount();
-    const user = userEvent.setup();
-
-    const button = await screen.findByRole('button', { name: 'Importuri: 2 se citesc' });
-    expect(within(button).getByTestId('imports-button-chip').textContent).toBe('2 se citesc');
-    await user.click(button);
-    const list = await screen.findByTestId('imports-list');
-    expect(within(list).getByText('Import client: 3 din 12 fișiere pregătite')).toBeTruthy();
-    expect(
-      within(list)
-        .getByRole('link', { name: /Transport Delta Nord SRL/ })
-        .getAttribute('href')
-    ).toBe(`/clienti/${delta.id}/angajati/import/${readingEmployees.id}`);
-  });
-
-  it('opens the list from the bottom on a phone, and closes it', async () => {
+  it('opens the Lucrători tab when only worker imports wait', async () => {
     phoneWidth();
     items = [readyEmployees, readingEmployees];
     mount();
-    const user = userEvent.setup();
 
-    const button = await screen.findByRole('button', {
-      name: 'Importuri: 1 de verificat, 1 se citește',
-    });
-    expect(within(button).getByTestId('imports-button-dot').textContent).toBe('1');
-    await user.click(button);
-    const sheet = await screen.findByRole('dialog', { name: 'Importuri' });
-    expect(within(sheet).getByRole('link', { name: 'Verifică persoanele' })).toBeTruthy();
-    await user.click(within(sheet).getByRole('button', { name: 'Închide' }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Importuri' })).toBeNull());
+    const link = await screen.findByRole('link', { name: 'Importuri AI: 1 de verificat' });
+    expect(link.getAttribute('href')).toBe('/importuri/lucratori');
+    expect(within(link).getByTestId('imports-link-count').textContent).toBe('1');
   });
 });
 

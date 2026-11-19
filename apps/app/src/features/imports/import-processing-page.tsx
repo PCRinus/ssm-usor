@@ -164,7 +164,7 @@ export function ProcessingView({ detail, back }: { detail: ImportDetail; back: R
       </div>
       {running && (
         <Notice variant="info" data-testid="import-can-leave">
-          Poți închide pagina. Importul rămâne în lista de clienți, cu pasul la care a ajuns, și îl
+          Poți închide pagina. Importul rămâne în Importuri AI, cu pasul la care a ajuns, și îl
           deschizi de acolo când propunerea e gata de verificat.
         </Notice>
       )}

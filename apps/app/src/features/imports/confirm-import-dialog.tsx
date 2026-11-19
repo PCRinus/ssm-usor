@@ -37,6 +37,7 @@ import {
   confirmImport,
   getGetImportQueryKey,
   getListClientsQueryKey,
+  getListClosedImportsQueryKey,
   getListImportLibraryPartsQueryKey,
   getListImportsQueryKey,
   type ImportDetail,
@@ -180,6 +181,7 @@ export function ConfirmImportDialog({
       });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getListClosedImportsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() }),
         refreshEmployeesOverStep(queryClient),
         queryClient.invalidateQueries({

@@ -5,13 +5,14 @@ import { useApi } from '@/api/use-api';
 import { useAuth } from '@/features/auth/auth-context';
 
 import { importListPollMs } from './import-format';
-import { isMineRunning } from './import-ready-notices';
+import { isAnyMoving, waitingCounts } from './open-imports';
 import { MyImportsContext } from './use-my-imports';
 
-const params = { kind: 'all' } as const;
+const params = { kind: 'all', withOpenParts: 'true' } as const;
 
 // One observer for the whole shell: each observer of a query keeps its own polling timer, so the
-// notice and the header button reading the list separately would poll it twice.
+// header, the sidebar, the imports page and the notice reading the list separately would poll it
+// several times.
 export function MyImportsProvider({ children }: { children: ReactNode }) {
   const { request, ready, key } = useApi();
   const { session } = useAuth();
@@ -23,10 +24,22 @@ export function MyImportsProvider({ children }: { children: ReactNode }) {
       enabled: ready,
       refetchOnWindowFocus: 'always',
       refetchInterval: (query) =>
-        userId && isMineRunning(query.state.data?.items ?? [], userId) ? importListPollMs : false,
+        isAnyMoving(query.state.data?.items ?? []) ? importListPollMs : false,
     },
   });
   const items = imports.data?.items;
-  const value = useMemo(() => ({ items, userId }), [items, userId]);
+  const { status, error, isFetching, refetch } = imports;
+  const value = useMemo(
+    () => ({
+      items,
+      userId,
+      waiting: items ? waitingCounts(items) : null,
+      status,
+      error,
+      isFetching,
+      refetch: () => void refetch(),
+    }),
+    [items, userId, status, error, isFetching, refetch]
+  );
   return <MyImportsContext.Provider value={value}>{children}</MyImportsContext.Provider>;
 }

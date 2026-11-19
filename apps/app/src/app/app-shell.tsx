@@ -1,4 +1,9 @@
-import { countOf, type DocumentSet, type SubscriptionSummary } from '@ssm-usor/contracts';
+import {
+  countOf,
+  type DocumentSet,
+  type ImportKind,
+  type SubscriptionSummary,
+} from '@ssm-usor/contracts';
 import { Avatar, AvatarFallback } from '@ssm-usor/ui/components/avatar';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
@@ -52,6 +57,7 @@ import {
   Megaphone,
   MessageSquareWarning,
   Scale,
+  ScanText,
   Settings,
   ShieldAlert,
   Signature,
@@ -78,8 +84,10 @@ import {
   ImpersonationMarker,
 } from '@/features/impersonation/impersonation-banner';
 import { ImportReadyWatcher } from '@/features/imports/import-ready-watcher';
-import { ImportsHeaderButton } from '@/features/imports/imports-header-button';
+import { ImportsHeaderLink } from '@/features/imports/imports-header-link';
+import { importSections } from '@/features/imports/list/import-sections';
 import { MyImportsProvider } from '@/features/imports/my-imports';
+import { useMyImports } from '@/features/imports/use-my-imports';
 import { instructionSections } from '@/features/instructions/instruction-sections';
 import { testBankSections } from '@/features/knowledge-tests/test-bank-sections';
 import { legislationSections } from '@/features/legislation/legislation-sections';
@@ -132,6 +140,14 @@ const navigation = [
         label: 'Lucrători',
         icon: UsersRound,
         ownerOnly: false,
+      },
+      {
+        to: '/importuri',
+        testId: 'imports',
+        label: 'Importuri AI',
+        icon: ScanText,
+        ownerOnly: false,
+        children: importSections,
       },
       {
         to: '/semnaturi',
@@ -272,8 +288,22 @@ function AppNavigation({
   const within = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
   const helpHome = helpHref();
   const behindCounts = useBehindSummary().data?.counts;
-  const behindCountFor = (to: string, set?: DocumentSet) =>
-    set ? (behindCounts?.[set] ?? 0) : to === '/legislatie' ? behindCountOf(behindCounts) : 0;
+  const waiting = useMyImports().waiting;
+  const pillOf = (
+    to: string,
+    child?: { set?: DocumentSet; kind?: ImportKind }
+  ): { count: number; unit: string } => {
+    if (to.startsWith('/importuri')) {
+      const count = child?.kind ? waiting?.[child.kind] : waiting?.total;
+      return { count: count ?? 0, unit: 'de verificat' };
+    }
+    const count = child?.set
+      ? (behindCounts?.[child.set] ?? 0)
+      : to === '/legislatie'
+        ? behindCountOf(behindCounts)
+        : 0;
+    return { count, unit: 'documente de actualizat' };
+  };
   return (
     <Sidebar collapsible="icon" className="sticky top-16 bottom-auto h-[calc(100svh-4rem)]">
       <SidebarContent>
@@ -298,6 +328,7 @@ function AppNavigation({
                       const children = 'children' in entry ? entry.children : undefined;
                       const inside = within(to);
                       const expanded = children !== undefined && inside;
+                      const pill = pillOf(to);
                       return (
                         <SidebarMenuItem key={to}>
                           <SidebarMenuButton
@@ -319,10 +350,10 @@ function AppNavigation({
                             >
                               <Icon aria-hidden="true" />
                               <span>{label}</span>
-                              {!expanded && behindCountFor(to) > 0 && (
+                              {!expanded && pill.count > 0 && (
                                 <span data-testid={`nav-${testId}-count`} className={navPill}>
-                                  {behindCountFor(to)}
-                                  <span className="sr-only"> documente de actualizat</span>
+                                  {pill.count}
+                                  <span className="sr-only"> {pill.unit}</span>
                                 </span>
                               )}
                             </Link>
@@ -330,32 +361,35 @@ function AppNavigation({
                           {children && (
                             <NavGroup open={expanded}>
                               <SidebarMenuSub data-testid={`nav-${testId}-group`}>
-                                {children.map((child) => (
-                                  <SidebarMenuSubItem key={child.to}>
-                                    <SidebarMenuSubButton asChild isActive={within(child.to)}>
-                                      <Link
-                                        to={child.to}
-                                        data-testid="nav-sub-entry"
-                                        aria-current={within(child.to) ? 'page' : undefined}
-                                        onClick={closeOnMobile}
-                                      >
-                                        <span>
-                                          {'navLabel' in child ? child.navLabel : child.label}
-                                        </span>
-                                        {'set' in child &&
-                                          behindCountFor(child.to, child.set) > 0 && (
-                                            <span data-testid="nav-sub-count" className={navPill}>
-                                              {behindCountFor(child.to, child.set)}
-                                              <span className="sr-only">
-                                                {' '}
-                                                documente de actualizat
+                                {children.map((child) => {
+                                  const childPill = pillOf(child.to, {
+                                    set: 'set' in child ? child.set : undefined,
+                                    kind: 'kind' in child ? child.kind : undefined,
+                                  });
+                                  return (
+                                    <SidebarMenuSubItem key={child.to}>
+                                      <SidebarMenuSubButton asChild isActive={within(child.to)}>
+                                        <Link
+                                          to={child.to}
+                                          data-testid="nav-sub-entry"
+                                          aria-current={within(child.to) ? 'page' : undefined}
+                                          onClick={closeOnMobile}
+                                        >
+                                          <span>
+                                            {'navLabel' in child ? child.navLabel : child.label}
+                                          </span>
+                                          {('set' in child || 'kind' in child) &&
+                                            childPill.count > 0 && (
+                                              <span data-testid="nav-sub-count" className={navPill}>
+                                                {childPill.count}
+                                                <span className="sr-only"> {childPill.unit}</span>
                                               </span>
-                                            </span>
-                                          )}
-                                      </Link>
-                                    </SidebarMenuSubButton>
-                                  </SidebarMenuSubItem>
-                                ))}
+                                            )}
+                                        </Link>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  );
+                                })}
                               </SidebarMenuSub>
                             </NavGroup>
                           )}
@@ -634,7 +668,7 @@ export function AppShell() {
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-3 md:gap-2">
-                <ImportsHeaderButton />
+                <ImportsHeaderLink />
                 <SetupGuideHeaderButton variant="ring" />
                 <SetupGuideHeaderButton variant="pill" />
               </div>

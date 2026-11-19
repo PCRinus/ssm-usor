@@ -29,11 +29,11 @@ export function ClientImportsCard({
     >
       <div className="flex min-h-8 items-center">
         <h2 id={headingId} className="text-sm font-semibold">
-          Importuri din documente
+          Importuri AI
         </h2>
         <HelpLink
           topic="detalii.importuri"
-          label="Ajutor: Importuri din documente"
+          label="Ajutor: Importuri AI ale clientului"
           className="ml-1"
         />
       </div>

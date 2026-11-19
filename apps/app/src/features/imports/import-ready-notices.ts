@@ -22,9 +22,6 @@ export type ImportReadyNotice = {
   link: ImportLink;
 };
 
-export const isMineRunning = (items: ImportItem[], userId: string) =>
-  items.some((item) => item.createdBy?.id === userId && isRunning(item.status));
-
 export function linkOf(item: ImportItem): ImportLink {
   if (item.kind === 'employees' && item.client) {
     return {
@@ -73,7 +70,7 @@ function noticeOf(item: ImportItem): ImportReadyNotice | null {
 }
 
 // Only a change this tab saw happen: an import first seen already ready or failed finished while
-// the app was closed, and stays on the client's page or the Clienți list.
+// the app was closed, and stays on the client's page or on Importuri AI.
 export function importReadyNotices({
   previous,
   items,

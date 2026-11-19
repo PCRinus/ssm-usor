@@ -205,65 +205,6 @@ describe('starting an import from the client list', () => {
     expect(await screen.findByTestId('import-processing')).toBeTruthy();
   });
 
-  it('opens on the reading even when the list read the import while it uploaded', async () => {
-    let status = 'uploading';
-    const detail = () =>
-      importDetail({
-        status,
-        createdAt: new Date().toISOString(),
-        files: [importFile({ state: status === 'uploading' ? 'uploading' : 'uploaded' })],
-      });
-    mockApi((init, url) => {
-      const method = init?.method ?? 'GET';
-      if (url.pathname === '/clients') {
-        return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
-      }
-      if (url.pathname === '/imports' && method === 'GET') {
-        return Response.json({
-          items: requestsTo('/imports', 'POST').length ? [summaryOf(detail())] : [],
-        });
-      }
-      if (url.pathname === '/imports' && method === 'POST') {
-        return Response.json({ import: summaryOf(detail()) }, { status: 201 });
-      }
-      if (url.pathname === `/imports/${importId}/files`) {
-        return Response.json(
-          { files: [{ id: 'f1', uploadPath: 'a.pdf', bucket: 'imports', storagePath: 'org/1' }] },
-          { status: 201 }
-        );
-      }
-      if (url.pathname === `/imports/${importId}/start`) {
-        status = 'preparing';
-        return Response.json({ import: summaryOf(detail()) });
-      }
-      if (url.pathname === `/imports/${importId}`) return Response.json({ import: detail() });
-      return undefined;
-    });
-    let releaseUpload = () => {};
-    vi.mocked(uploadImportObject).mockImplementation(
-      () => new Promise<void>((resolve) => (releaseUpload = resolve))
-    );
-    const runtime = mountApp(authFixture(makeSession()).client, '/clienti');
-
-    await userEvent.click(await screen.findByTestId('clients-start-import'));
-    await screen.findByTestId('import-upload-dialog');
-    choose([new File(['%PDF'], 'a.pdf', { type: 'application/pdf' })]);
-    await screen.findByTestId('import-chosen');
-    await userEvent.click(screen.getByTestId('import-upload-submit'));
-    const row = await screen.findByTestId('import-list-row');
-    await waitFor(() => expect(row.textContent).toContain('Fișierele se încarcă.'));
-    expect(requestsTo(`/imports/${importId}`)).not.toHaveLength(0);
-    releaseUpload();
-
-    await waitFor(() =>
-      expect(runtime.router.state.location.pathname).toBe(`/clienti/import/${importId}`)
-    );
-    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe(
-      'Citim documentele'
-    );
-    expect(screen.queryByTestId('import-upload-unfinished')).toBeNull();
-  });
-
   it('asks for fewer files past 150', async () => {
     mockImportApi();
     mountApp(authFixture(makeSession()).client, '/clienti');
@@ -551,51 +492,22 @@ describe('completing a client from its documentation', () => {
   });
 });
 
-describe('the imports on the client list', () => {
-  it('lists an import in progress and one ready, with what waits for the member', async () => {
-    const ready = importDetail({
-      id: '11111111-1111-4111-8111-111111111111',
-      status: 'ready',
-      readyAt: '2026-10-28T09:20:00+00:00',
-      files: [importFile(), importFile(), importFile({ state: 'set_aside' })],
-      blockers: [
-        { path: 'client.legalRepresentativeName', code: 'choice' },
-        { path: 'fireSafety.wasteContractor', code: 'choice' },
-        { path: 'employees.0.hiredAt', code: 'missing' },
-      ],
-    });
-    const running = importDetail({
-      status: 'preparing',
-      companyName: null,
-      files: [
-        importFile({ state: 'prepared' }),
-        importFile({ state: 'uploaded' }),
-        importFile({ state: 'uploaded' }),
-      ],
-    });
+describe('the client list', () => {
+  it('keeps open client imports off the list', async () => {
+    const ready = importDetail({ status: 'ready', readyAt: '2026-10-28T09:20:00+00:00' });
     mockApi((init, url) => {
       if (url.pathname === '/clients') {
         return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
       }
-      if (url.pathname === '/imports') {
-        return Response.json({ items: [summaryOf(ready), summaryOf(running)] });
-      }
-      if (url.pathname === `/imports/${ready.id}`) return Response.json({ import: ready });
-      if (url.pathname === `/imports/${importId}`) return Response.json({ import: running });
+      if (url.pathname === '/imports') return Response.json({ items: [summaryOf(ready)] });
+      if (url.pathname === `/imports/${importId}`) return Response.json({ import: ready });
       return undefined;
     });
     mountApp(authFixture(makeSession()).client, '/clienti');
 
-    const rows = await screen.findAllByTestId('import-list-row');
-    expect(rows.map((row) => row.dataset.status)).toEqual(['ready', 'preparing']);
-    await waitFor(() =>
-      expect(rows[0]!.textContent).toContain(
-        'Propunere gata de verificat. 2 fișiere citite, 2 alegeri și o dată obligatorie te așteaptă.'
-      )
-    );
-    expect(within(rows[0]!).getByRole('link', { name: 'Verifică propunerea' })).toBeTruthy();
-    await waitFor(() => expect(rows[1]!.textContent).toContain('dosar-ssm.zip'));
-    expect(rows[1]!.textContent).toContain('Pas 1 din 4: 1 din 3 fișiere pregătite');
+    await screen.findByTestId('clients-empty');
+    expect(screen.queryByTestId('import-list')).toBeNull();
+    expect(requestsTo(`/imports/${importId}`)).toHaveLength(0);
   });
 });
 

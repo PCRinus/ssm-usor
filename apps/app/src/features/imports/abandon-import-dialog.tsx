@@ -12,7 +12,12 @@ import { toast } from '@ssm-usor/ui/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { abandonImport, getGetImportQueryKey, getListImportsQueryKey } from '@/api/generated/api';
+import {
+  abandonImport,
+  getGetImportQueryKey,
+  getListClosedImportsQueryKey,
+  getListImportsQueryKey,
+} from '@/api/generated/api';
 import { useApi } from '@/api/use-api';
 
 import { importErrorMessage } from './import-format';
@@ -43,6 +48,7 @@ export function AbandonImportDialog({
       await abandonImport(importId, request);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getListClosedImportsQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetImportQueryKey(importId) }),
         // The sheets an employee import took from the documentation are offered again.
         ...(employees

@@ -88,6 +88,7 @@ describe('a library part’s task page', () => {
       await waitFor(() =>
         expect(requestsTo(`/imports/${importId}/library-parts`).length).toBeGreaterThan(1)
       );
+      await waitFor(() => expect(requestsTo('/imports').length).toBeGreaterThan(1));
     }
   );
 

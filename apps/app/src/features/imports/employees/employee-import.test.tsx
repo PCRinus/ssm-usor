@@ -66,6 +66,7 @@ const openImport = {
   readyAt: '2026-10-29T10:20:00+00:00',
   failedAt: null,
   confirmedAt: null,
+  abandonedAt: null,
   expiresAt: '2026-11-13T10:00:00+00:00',
   people: { total: 40, toCheck: 16, checked: 23, setAside: 1 },
 };
@@ -294,17 +295,65 @@ describe("the client's Lucrători tab", () => {
     expect(runtime.router.state.location.search).toEqual({});
   });
 
-  it('shows the open import with its progress, its expiry and the way back to it', async () => {
+  it('shows the open import as one line with who is left to check, its expiry and the way back to it', async () => {
     mockEmployeeImport({ open: [openImport] });
     mount(`/clienti/${clientId}/angajati`);
-    const card = await screen.findByTestId('employee-import-card');
-    expect(within(card).getByRole('heading').textContent).toBe(
-      'Import din fișe: 23 din 40 verificați'
+    const line = await screen.findByTestId('employee-import-line');
+    expect(within(line).getByTestId('employee-import-line-text').textContent).toBe(
+      'Un import din fișe așteaptă verificarea: 16 persoane, până pe 13 nov.'
     );
-    expect(within(card).getByTestId('employee-import-expires').textContent).toBe(
-      'Se păstrează până pe 13 nov. dacă nu mai lucrezi la el.'
+    const open = within(line).getByTestId('employee-import-open');
+    expect(open.textContent).toBe('Continuă importul');
+    expect(open.getAttribute('href')).toBe(importPath);
+    expect(within(line).queryByRole('button', { name: /Renunță/ })).toBeNull();
+  });
+
+  it('keeps a line for an import still reading or stopped, so the sheets are not imported twice', async () => {
+    const reading = {
+      ...openImport,
+      status: 'reading',
+      people: null,
+      expiresAt: null,
+      progress: { files: 28, prepared: 28, scans: 28, scansRead: 12 },
+    };
+    const stopped = {
+      ...openImport,
+      id: '22222222-2222-4222-8222-222222222222',
+      status: 'failed',
+      people: null,
+      expiresAt: null,
+      failureReason: 'Arhiva ZIP e protejată cu parolă.',
+    };
+    mockEmployeeImport({ open: [reading, stopped] });
+    mount(`/clienti/${clientId}/angajati`);
+    const lines = await screen.findAllByTestId('employee-import-line');
+    expect(lines.map((line) => line.textContent)).toEqual([
+      'Un import din fișe se citește: 12 din 28 de fotografii citite.Vezi importul',
+      'Un import din fișe s-a oprit: Arhiva ZIP e protejată cu parolă.Vezi importul',
+    ]);
+  });
+
+  it('does not repeat that the import stopped when its reason already says so', async () => {
+    const stalled = {
+      ...openImport,
+      status: 'failed',
+      people: null,
+      expiresAt: null,
+      failureReason: 'Importul s-a oprit înainte să se termine.',
+    };
+    mockEmployeeImport({ open: [stalled] });
+    mount(`/clienti/${clientId}/angajati`);
+    const line = await screen.findByTestId('employee-import-line');
+    expect(line.textContent).toBe(
+      'Un import din fișe s-a oprit înainte să se termine.Vezi importul'
     );
-    expect(within(card).getByTestId('employee-import-open').getAttribute('href')).toBe(importPath);
+  });
+
+  it('adds nothing above the list while no import from the sheets is open', async () => {
+    mockEmployeeImport({ employees: [baker] });
+    mount(`/clienti/${clientId}/angajati`);
+    await screen.findByTestId('employees-import');
+    expect(screen.queryByTestId('employee-imports')).toBeNull();
   });
 
   it('opens the upload with the found sheets already added', async () => {
