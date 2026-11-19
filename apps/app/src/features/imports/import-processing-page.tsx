@@ -5,7 +5,7 @@ import { Progress } from '@ssm-usor/ui/components/progress';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import {
   Check,
   ChevronDown,
@@ -24,6 +24,7 @@ import {
   type ImportDetailFilesItem,
   splitImport,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedFromRecord } from '@/app/opener';
 import { TitleWithBack } from '@/components/back-link';
 import { Notice } from '@/components/notice';
@@ -425,7 +426,7 @@ function OtherCompanyNotice({
   company: ImportDetail['otherCompanies'][number];
   ownCount: number;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
@@ -439,7 +440,7 @@ function OtherCompanyNotice({
       const { import: created } = await splitImport(
         detail.id,
         { fileIds: company.fileIds },
-        apiRequest
+        request
       );
       setState('done');
       await queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });

@@ -1,6 +1,5 @@
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { LoaderCircle } from 'lucide-react';
 import {
   lazy,
@@ -14,6 +13,7 @@ import {
 } from 'react';
 
 import type { ImportSourceResponse } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { Notice } from '@/components/notice';
 
 import { importErrorMessage } from '../import-format';
@@ -57,10 +57,10 @@ export function SheetPageView({
   className?: string;
   onEnlarge?: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const query = useQuery(
-    sourceQuery(importId, { file: page.label }, apiRequest, queryClient, notLocated)
+    sourceQuery(importId, { file: page.label }, request, queryClient, notLocated)
   );
   const locations = query.data?.locations ?? null;
   const box = useMemo(() => spotBox(locations, spot), [locations, spot]);

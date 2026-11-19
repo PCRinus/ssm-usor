@@ -4,7 +4,7 @@ import { Card } from '@ssm-usor/ui/components/card';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { CircleAlert, CircleCheck, LoaderCircle, Upload } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
@@ -14,8 +14,8 @@ import {
   type ImportListResponseItemsItem,
   useListImports,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
-import { useAuth } from '@/features/auth/auth-context';
 
 import { filesLabel, isRunning, isUploadUnderway, uploadName } from './import-format';
 import { useImport } from './use-import';
@@ -23,13 +23,12 @@ import { useImport } from './use-import';
 type ImportItem = ImportListResponseItemsItem;
 
 export function ImportListCard() {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, ready, key } = useApi();
   const imports = useListImports(undefined, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListImportsQueryKey(), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListImportsQueryKey()),
+      enabled: ready,
     },
   });
   const items = (imports.data?.items ?? []).filter((item) => item.kind === 'client');

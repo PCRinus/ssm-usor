@@ -6,7 +6,6 @@ import {
   importLimits,
 } from '@ssm-usor/contracts';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 
 import {
@@ -21,6 +20,7 @@ import {
   startImport,
 } from '@/api/generated/api';
 import { apiErrorBody, apiErrorReason } from '@/api/http';
+import { useApi } from '@/api/use-api';
 
 import { importErrorMessage } from './import-format';
 import { sha256Of, uploadImportObject } from './import-storage';
@@ -99,7 +99,7 @@ export function useImportUpload(
   onStarted: (id: string) => void,
   kind: ImportKind = 'client'
 ) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<UploadPhase>({ step: 'choosing' });
   const importId = useRef<string | null>(null);
@@ -120,7 +120,7 @@ export function useImportUpload(
   async function start(id: string) {
     setPhase({ step: 'starting' });
     try {
-      await startImport(id, apiRequest);
+      await startImport(id, request);
     } catch (cause) {
       if (abandoned.current) return;
       const reason = apiErrorReason(cause);
@@ -132,7 +132,7 @@ export function useImportUpload(
       // come, long after an upload stalls, so the import goes and the files can be chosen again.
       else if (reason === importErrorReasons.creditsInsufficient && short) {
         importId.current = null;
-        await abandonImport(id, apiRequest).catch(() => undefined);
+        await abandonImport(id, request).catch(() => undefined);
         void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         void queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() });
         if (!abandoned.current) setPhase({ step: 'short', credits: short });
@@ -222,14 +222,14 @@ export function useImportUpload(
       });
       if (abandoned.current) return;
       const body = kind === 'employees' ? { clientId, kind } : clientId ? { clientId } : {};
-      const id = (await createImport(body, apiRequest)).import.id;
+      const id = (await createImport(body, request)).import.id;
       importId.current = id;
       if (abandoned.current) {
         abandon();
         return;
       }
       if (found.ids.length > 0) {
-        await addFoundSheets(id, { fileIds: found.ids }, apiRequest);
+        await addFoundSheets(id, { fileIds: found.ids }, request);
       }
       const jobs: { file: SelectedFile; storagePath: string }[] = [];
       for (let first = 0; first < files.length; first += registerBatch) {
@@ -247,7 +247,7 @@ export function useImportUpload(
                 : {}),
             })),
           },
-          apiRequest
+          request
         );
         const byPath = new Map(registered.files.map((each) => [each.uploadPath, each.storagePath]));
         for (const file of batch) {
@@ -265,7 +265,7 @@ export function useImportUpload(
       // until then its found sheets count as taken, and the retry would be refused them.
       const id = importId.current;
       importId.current = null;
-      if (id) await abandonImport(id, apiRequest).catch(() => undefined);
+      if (id) await abandonImport(id, request).catch(() => undefined);
       if (abandoned.current) return;
       if (apiErrorReason(cause) === importErrorReasons.noFoundSheets && clientId) {
         await queryClient.invalidateQueries({ queryKey: getListFoundSheetsQueryKey(clientId) });
@@ -294,7 +294,7 @@ export function useImportUpload(
     const id = importId.current;
     importId.current = null;
     if (!id) return;
-    void abandonImport(id, apiRequest)
+    void abandonImport(id, request)
       .catch(() => undefined)
       .then(() => queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }));
   }

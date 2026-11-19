@@ -1,5 +1,3 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import {
   type FoundSheetsResponse,
   getListClientFilesQueryKey,
@@ -7,19 +5,18 @@ import {
   useListClientFiles,
   useListFoundSheets,
 } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 
 export type FoundSheet = FoundSheetsResponse['items'][number]['sheets'][number];
 export type FoundBatch = FoundSheetsResponse['items'][number];
 
 export function useFoundSheets(clientId: string, enabled = true) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, ready, key } = useApi();
   return useListFoundSheets(clientId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListFoundSheetsQueryKey(clientId), session?.user.id],
-      enabled: enabled && Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListFoundSheetsQueryKey(clientId)),
+      enabled: enabled && ready,
     },
   });
 }
@@ -44,13 +41,12 @@ export const drawableSheet = (sheet: Pick<FoundSheet, 'mimeType'>) =>
 const linkLifeMs = 50_000;
 
 export function useFoundSheetUrl(clientId: string, sheet: FoundSheet) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, key } = useApi();
   const drawable = drawableSheet(sheet);
   const link = useListClientFiles(clientId, undefined, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListClientFilesQueryKey(clientId), session?.user.id],
+      queryKey: key(getListClientFilesQueryKey(clientId)),
       enabled: drawable,
       staleTime: linkLifeMs,
     },

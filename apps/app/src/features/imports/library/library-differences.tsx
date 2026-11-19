@@ -1,9 +1,8 @@
 import { countOf, type InstructionBlock } from '@ssm-usor/contracts';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useRouteContext } from '@tanstack/react-router';
 
 import { getGetInstructionModuleQueryKey, useGetInstructionModule } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 
 import type { ProposedInstruction } from './library-model';
 
@@ -42,14 +41,13 @@ function ChangedWords({ words }: { words: Extract<Difference, { kind: 'changed' 
 }
 
 export function LibraryDifferences({ instruction }: { instruction: ProposedInstruction }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, key } = useApi();
   const match = instruction.match!;
   const removed = match.differences.some((difference) => difference.kind === 'removed');
   const library = useGetInstructionModule(match.moduleId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetInstructionModuleQueryKey(match.moduleId), session?.user.id],
+      queryKey: key(getGetInstructionModuleQueryKey(match.moduleId)),
       enabled: removed,
     },
   });

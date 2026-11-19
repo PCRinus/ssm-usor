@@ -1,5 +1,4 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { createContext, useCallback, useRef } from 'react';
 
 import {
@@ -9,6 +8,7 @@ import {
   type ImportSourceResponse,
 } from '@/api/generated/api';
 import type { ApiRequestOptions } from '@/api/http';
+import { useApi } from '@/api/use-api';
 
 import type { LabelledSource } from './review-model';
 import { requestKind, type SourceKind } from './source-match';
@@ -65,7 +65,7 @@ export const SourcePrefetchContext = createContext<((source: LabelledSource) => 
 const prefetchAgainAfterMs = 5000;
 
 export function useSourcePrefetch(importId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const asked = useRef(new Map<string, number>());
   return useCallback(
@@ -75,10 +75,10 @@ export function useSourcePrefetch(importId: string) {
       const now = Date.now();
       if (now - (asked.current.get(key) ?? -Infinity) < prefetchAgainAfterMs) return;
       asked.current.set(key, now);
-      void queryClient.prefetchQuery(sourceQuery(importId, params, apiRequest, queryClient));
+      void queryClient.prefetchQuery(sourceQuery(importId, params, request, queryClient));
       const kind = requestKind(source.file);
       if (kind) void viewerChunkOf[kind]?.();
     },
-    [importId, apiRequest, queryClient]
+    [importId, request, queryClient]
   );
 }

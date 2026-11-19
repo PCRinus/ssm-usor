@@ -1,20 +1,18 @@
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { getListImportsQueryKey, useListImports } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 
 import { isOpenPart } from './library-model';
 
 export function useConfirmedClientImports(clientId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, ready, key } = useApi();
   const params = { clientId, kind: 'client' as const, status: 'confirmed' as const };
   return useListImports(params, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListImportsQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListImportsQueryKey(params)),
+      enabled: ready,
     },
   });
 }

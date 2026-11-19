@@ -1,4 +1,3 @@
-import { useRouteContext } from '@tanstack/react-router';
 import { useCallback, useMemo } from 'react';
 
 import {
@@ -8,7 +7,7 @@ import {
   useListWorkplaces,
   type WorkplaceListResponse,
 } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { todayIso } from '@/lib/dates';
 
@@ -25,14 +24,12 @@ export type Position = JobPositionListResponse['items'][number];
 export type Workplace = WorkplaceListResponse['items'][number];
 
 export function useReviewContext(detail: ImportDetail, clientId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
-  const userId = session?.user.id ?? '';
+  const { request, key } = useApi();
   const review = useEmployeeReview(detail);
-  const positionsQuery = useJobPositionOptions(clientId, userId);
+  const positionsQuery = useJobPositionOptions(clientId);
   const workplacesQuery = useListWorkplaces(clientId, {
-    request: apiRequest,
-    query: { queryKey: [...getListWorkplacesQueryKey(clientId), userId] },
+    request,
+    query: { queryKey: key(getListWorkplacesQueryKey(clientId)) },
   });
   const proposal = detail.employees!.proposal as Proposal;
   const positions = useMemo(() => positionsQuery.data?.items ?? [], [positionsQuery.data]);

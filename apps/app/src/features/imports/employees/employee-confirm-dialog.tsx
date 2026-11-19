@@ -17,7 +17,7 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { cn } from '@ssm-usor/ui/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useRouteContext, useRouter } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import {
   BadgeCheck,
   CalendarCheck,
@@ -39,6 +39,7 @@ import {
   type ImportDetail,
 } from '@/api/generated/api';
 import { apiErrorBody } from '@/api/http';
+import { useApi } from '@/api/use-api';
 import { replayMask } from '@/app/observability/replay-masking';
 import { useReturnToOpener } from '@/app/use-return-to-opener';
 import { maskPeople } from '@/components/mask-people';
@@ -135,7 +136,7 @@ export function EmployeeConfirmDialog({
   review: EmployeeReview;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const router = useRouter();
@@ -162,7 +163,7 @@ export function EmployeeConfirmDialog({
         setSending(false);
         return;
       }
-      await confirmImport(detail.id, { version: saved.version }, apiRequest);
+      await confirmImport(detail.id, { version: saved.version }, request);
       leaveEmployeesImported(clientId, {
         importId: detail.id,
         created: summary.created.length + summary.leavers.length,

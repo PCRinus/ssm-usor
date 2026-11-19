@@ -1,6 +1,5 @@
 import { importErrorReasons, type ImportLibraryPart as PartName } from '@ssm-usor/contracts';
 import type { QueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getListImportLibraryPartsQueryKey,
@@ -10,7 +9,7 @@ import {
   useListImportLibraryParts,
 } from '@/api/generated/api';
 import type { ApiRequestOptions } from '@/api/http';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 
 import {
   type ChangesStoreOptions,
@@ -38,13 +37,12 @@ import {
 const pollMs = 3000;
 
 export function useLibraryParts(importId: string, enabled = true) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, ready, key } = useApi();
   return useListImportLibraryParts(importId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListImportLibraryPartsQueryKey(importId), session?.user.id],
-      enabled: enabled && Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getListImportLibraryPartsQueryKey(importId)),
+      enabled: enabled && ready,
       refetchInterval: (query) =>
         query.state.data?.parts.some((part) => part.status === 'reading') ? pollMs : false,
     },

@@ -1,5 +1,4 @@
 import { substancesStatePath } from '@ssm-usor/contracts';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getGetClientDocumentDetailsQueryKey,
@@ -20,6 +19,7 @@ import {
   useListJobPositions,
   useListWorkplaces,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { refetchImport } from './refetch-import';
 import {
@@ -162,31 +162,31 @@ export function useClientReview(detail: ImportDetail) {
 }
 
 export function useExistingValues(detail: ImportDetail) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const clientId = detail.intoExistingClient ? (detail.client?.id ?? '') : '';
   const enabled = clientId !== '';
   const client = useGetClient(clientId, {
-    request: apiRequest,
+    request,
     query: { queryKey: getGetClientQueryKey(clientId), enabled },
   });
   const details = useGetClientDocumentDetails(clientId, {
-    request: apiRequest,
+    request,
     query: { queryKey: getGetClientDocumentDetailsQueryKey(clientId), enabled },
   });
   const fireSafety = useGetClientFireSafety(clientId, {
-    request: apiRequest,
+    request,
     query: { queryKey: getGetClientFireSafetyQueryKey(clientId), enabled },
   });
   const positions = useListJobPositions(clientId, {
-    request: apiRequest,
+    request,
     query: { queryKey: getListJobPositionsQueryKey(clientId), enabled },
   });
   const substances = useListFireSubstances(clientId, {
-    request: apiRequest,
+    request,
     query: { queryKey: getListFireSubstancesQueryKey(clientId), enabled },
   });
   const workplaces = useListWorkplaces(clientId, {
-    request: apiRequest,
+    request,
     query: { queryKey: getListWorkplacesQueryKey(clientId), enabled },
   });
   if (!enabled) {

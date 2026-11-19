@@ -1,20 +1,17 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import { getGetImportQueryKey, useGetImport } from '@/api/generated/api';
-import { useAuth } from '@/features/auth/auth-context';
+import { useApi } from '@/api/use-api';
 
 import { isRunning, isUploadUnderway } from './import-format';
 
 const pollMs = 3000;
 
 export function useImport(importId: string) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const { session } = useAuth();
+  const { request, ready, key } = useApi();
   return useGetImport(importId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetImportQueryKey(importId), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
+      queryKey: key(getGetImportQueryKey(importId)),
+      enabled: ready,
       refetchInterval: (query) => {
         const detail = query.state.data?.import;
         return detail && (isRunning(detail.status) || isUploadUnderway(detail)) ? pollMs : false;
