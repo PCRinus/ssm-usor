@@ -971,7 +971,7 @@ function ValueRow({
   );
   const registered = context.registered;
   const mismatch =
-    requiredPaths.has(state.path) && !context.states['client.legalName']?.anaf
+    requiredPaths.has(state.path) && context.states['client.legalName']?.anaf?.picked !== null
       ? anafMismatch(context.proposal, context.changes, registered)
       : null;
   const anafName =

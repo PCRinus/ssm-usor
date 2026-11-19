@@ -688,6 +688,28 @@ describe("a new client's name ANAF registers otherwise", () => {
     );
   });
 
+  it("keeps warning on the name and the CUI once the member picks the documents' other firm", async () => {
+    mockReview(anafDetail());
+    mount('/identity');
+
+    const row = await screen.findByTestId('review-anaf-choice');
+    const kind = () => within(row).getByText(/Documentele dau altă denumire decât ANAF/);
+    const cuiRow = document.getElementById('review-client-cui')!;
+    expect(kind().dataset.tone).toBe('warning');
+    expect(cuiRow.textContent).toContain('Firmă activă la ANAF');
+    expect(within(cuiRow).queryByTestId('review-anaf-mismatch')).toBeNull();
+
+    await userEvent.click(within(row).getByRole('radio', { name: /În documente/ }));
+    await waitFor(() => expect(saves).toBe(1));
+    await waitFor(() =>
+      expect(within(cuiRow).getByTestId('review-anaf-mismatch').textContent).toBe(
+        'La ANAF, CUI-ul 31458207 aparține firmei PANIFICAȚIA NOUĂ SRL, nu firmei din documente.'
+      )
+    );
+    expect(cuiRow.textContent).not.toContain('Firmă activă la ANAF');
+    expect(kind().dataset.tone).toBe('warning');
+  });
+
   it('says it is the same firm when the documents write only its legal form otherwise', async () => {
     const proposal = proposalFixture();
     proposal.client.legalName.options[0]!.value = 'Societate Profesională Notarială Stănciuc';

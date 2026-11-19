@@ -407,6 +407,7 @@ export function KindLine({
 }) {
   return (
     <span
+      data-tone={tone}
       className={cn(
         'flex items-start gap-1.5 text-[13px] [&>svg]:mt-0.5 [&>svg]:size-3.5 [&>svg]:shrink-0',
         tone === 'warning' ? 'font-semibold text-warning-foreground' : 'text-muted-foreground'
