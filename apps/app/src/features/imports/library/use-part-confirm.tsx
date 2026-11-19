@@ -109,7 +109,10 @@ export function usePartConfirm({
     try {
       await retryImportLibraryPart(detail.id, part.part, request);
       review.forget();
-      await refresh();
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({ queryKey: getListImportsQueryKey() }),
+      ]);
     } catch (cause) {
       toast.error(importErrorMessage(cause, 'Nu am putut porni citirea. Încearcă din nou.'));
     } finally {
