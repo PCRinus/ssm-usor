@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import type { ListFilterFacet, ListFilterOption } from '@/components/list-filters/types';
 import { filterSearchSchema, periodSearchSchema } from '@/components/list-filters/url';
+import { listPageSearchSchema } from '@/components/list-filters/use-list-search';
 
 export const trainingFilterKeys = ['phase', 'signatures', 'mode', 'period'] as const;
 export type TrainingFilterKey = (typeof trainingFilterKeys)[number];
@@ -28,12 +29,8 @@ const filterSearch = {
 
 // The table state lives in the address, as on every list, so that refresh and back keep the
 // place. Defaults are left out to keep links short.
-export const clientTrainingsSearchSchema = z.object({
+export const clientTrainingsSearchSchema = listPageSearchSchema(trainingSortKeys).extend({
   domain: z.enum(['ssm', 'su']).optional().catch(undefined),
-  page: z.number().int().min(1).optional().catch(undefined),
-  sort: z.enum(trainingSortKeys).optional().catch(undefined),
-  order: sortOrderSchema.optional().catch(undefined),
-  q: z.string().max(100).optional().catch(undefined),
   signatures: filterSearchSchema(trainingSignatureStates),
   open: z.uuid().optional().catch(undefined),
   ...filterSearch,

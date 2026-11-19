@@ -860,6 +860,38 @@ describe("a position's risk evaluation page", () => {
     expect(screen.getByTestId('risk-factors-count').textContent).toBe('5 factori');
   });
 
+  it('keeps the factor panel open on Escape while it saves, so a failure shows', async () => {
+    mockEvaluationsApi();
+    const answer = fetchMock.getMockImplementation()!;
+    let fail = () => {};
+    fetchMock.mockImplementation((input, init) =>
+      init?.method === 'PUT' && String(input).includes(`/factors/${movingParts.id}`)
+        ? new Promise<Response>((resolve) => {
+            fail = () => resolve(Response.json({ error: 'internal' }, { status: 500 }));
+          })
+        : answer(input, init)
+    );
+    mount(welderEvaluationPage);
+    const user = userEvent.setup();
+    const rows = await screen.findAllByTestId('risk-factor-row');
+
+    await user.click(within(rows[0]!).getByTestId('risk-factor-gravity-class'));
+    const editor = await screen.findByTestId('risk-factor-dialog');
+    await user.selectOptions(screen.getByTestId('risk-factor-probability'), '2');
+    await user.click(screen.getByTestId('risk-factor-save'));
+    await waitFor(() =>
+      expect(screen.getByTestId('risk-factor-save').textContent).toBe('Se salvează…')
+    );
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('risk-factor-dialog')).toBe(editor);
+
+    fail();
+    expect((await within(editor).findByTestId('risk-factor-error')).textContent).toBe(
+      'Nu am putut salva factorul. Verifică conexiunea și încearcă din nou.'
+    );
+  });
+
   it('edits a factor from its row and deletes another after asking', async () => {
     mockEvaluationsApi();
     mount(welderEvaluationPage);

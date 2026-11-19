@@ -16,14 +16,14 @@ import { Notice } from '@/components/notice';
 import { SectionCard } from '@/components/section-card';
 import { useInPlaceEdit } from '@/components/use-in-place-edit';
 import {
+  type DocumentDetails,
+  useDocumentDetails,
+} from '@/features/clients/document-details/use-document-details-form';
+import {
   type CompanyFocus,
   type LegalRepresentativeFocus,
   useFocusRequest,
 } from '@/features/missing-data/focus';
-import {
-  type DocumentDetails,
-  useDocumentDetails,
-} from '@/features/training/use-document-details-form';
 import { formatRoDateOf } from '@/lib/dates';
 
 import { addressField, type Client } from '../client-form-schema';

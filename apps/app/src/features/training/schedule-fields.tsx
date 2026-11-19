@@ -8,9 +8,9 @@ import type { ReactNode } from 'react';
 import { replayShow } from '@/app/observability/replay-masking';
 import { FieldMessage } from '@/components/form-field';
 import { Segmented, type SegmentOption } from '@/components/segmented';
+import { monthNames } from '@/features/clients/document-details/document-details-schema';
 import { intervalLabel, staffCategoryLabels } from '@/features/job-positions/job-position-schema';
 
-import { monthNames } from './document-details-schema';
 import {
   capitalized,
   type CategoryPosts,

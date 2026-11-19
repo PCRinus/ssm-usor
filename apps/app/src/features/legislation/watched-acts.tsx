@@ -11,12 +11,14 @@ import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
 import type { ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { SearchInput } from '@/components/search-input';
 
 import { useLegalActs } from './use-legal-acts';
 import { watchedActColumns } from './watched-act-columns';
 import {
   actNoun,
+  attentionSort,
   pageOf,
   shownWatchedActs,
   tableSort,
@@ -26,7 +28,6 @@ import {
   watchedActFilterKeys,
   type WatchedActListSearch,
   watchedActPageSize,
-  type WatchedActSortKey,
 } from './watched-act-list';
 
 const route = getRouteApi('/_authenticated/legislatie/acte');
@@ -47,14 +48,13 @@ export function WatchedActs({ userId }: { userId: string }) {
   const page = search.page ?? 1;
   const total = all?.length ?? 0;
 
-  const changeSearch = (next: Partial<WatchedActListSearch>) =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, ...next, page: undefined }),
-    });
-  const changeFilters = (values: ListFilterValues<WatchedActFilterKey>) =>
-    changeSearch(listFilters.searchOf(values) as Partial<WatchedActListSearch>);
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort: { sort: attentionSort, order: 'asc' },
+    searchOf: (values: ListFilterValues<WatchedActFilterKey>) =>
+      listFilters.searchOf(values) as Partial<WatchedActListSearch>,
+  });
 
   return (
     <section aria-label="Acte urmărite" className="grid gap-4">
@@ -78,7 +78,7 @@ export function WatchedActs({ userId }: { userId: string }) {
                   <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
                     <SearchInput
                       value={search.q}
-                      onSearch={(next) => changeSearch({ q: next || undefined })}
+                      onSearch={changeQuery}
                       placeholder={phone ? 'Caută acte' : 'Caută după număr sau titlu'}
                       label="Caută după numărul sau titlul actului"
                       testId="watched-acts-search"
@@ -131,17 +131,8 @@ export function WatchedActs({ userId }: { userId: string }) {
               status={acts.status}
               isFetching={acts.isFetching}
               sort={tableSort(search)}
-              onSortChange={(next) =>
-                changeSearch({
-                  sort: next.sort as WatchedActSortKey,
-                  order: next.order === 'asc' ? undefined : next.order,
-                })
-              }
-              onPageChange={(next) =>
-                void navigate({
-                  search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }),
-                })
-              }
+              onSortChange={onSortChange}
+              onPageChange={onPageChange}
               error={
                 <>
                   <p role="alert" className="text-sm">
@@ -166,9 +157,7 @@ export function WatchedActs({ userId }: { userId: string }) {
                     <Button
                       variant="outline"
                       data-testid="watched-acts-empty-clear"
-                      onClick={
-                        filtered ? () => changeFilters({}) : () => changeSearch({ q: undefined })
-                      }
+                      onClick={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
                     >
                       {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                     </Button>

@@ -6,7 +6,6 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -23,6 +22,8 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useUpdateInstructionModule } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayShow } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
 import { useRevealErrors } from '@/components/use-reveal-errors';
@@ -51,9 +52,9 @@ export function InstructionModuleDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={editing !== null} onClose={onClose}>
       {editing && <ModuleForm key={editing.id} module={editing} onClose={onClose} />}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -67,6 +68,7 @@ function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: (
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = update.isPending;
+  useHoldOpen(busy);
   const group = useWatch({ control: form.control, name: 'group' });
   const domain = useWatch({ control: form.control, name: 'domain' });
   // The API refuses moving a module a current position applies (409); the field says so first.
@@ -118,7 +120,11 @@ function ModuleForm({ module, onClose }: { module: InstructionModule; onClose: (
   });
 
   return (
-    <DialogContent data-testid="instruction-module-dialog" className="sm:max-w-lg">
+    <DialogContent
+      data-testid="instruction-module-dialog"
+      className="sm:max-w-lg"
+      showCloseButton={!busy}
+    >
       <form
         {...replayShow}
         ref={formRef}

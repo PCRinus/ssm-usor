@@ -1,68 +1,41 @@
+import '@/test/api-mock';
+
 import { currentPrivacyNoticeVersion } from '@ssm-usor/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  useGetPortalEmployeeData,
   useGetPortalMe,
   useGetPortalSigningAgreementState,
-  useGetPortalTests,
-  useGetPortalTrainingSheets,
-  useListPortalClientEmployees,
   useListPortalClientSignatureRequests,
-  useListPortalResponsiblePersons,
   useListPortalSignatureRequests,
   useListPortalSigningAgreements,
-  useListPortalTrainingRecords,
   useRecordPortalNotice,
 } from '@/api/generated/api';
 import {
   disposeRuntimes,
   fakeAuthClient,
   fakeSession,
+  mockFailure,
+  mockQuery,
   mountPortal,
   participation,
-  queryFailure,
-  queryPending,
-  queryResult,
 } from '@/test/portal';
-
-vi.mock('@/api/generated/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/api/generated/api')>()),
-  useGetPortalSigningAgreementState: vi.fn(),
-  useListPortalClientSignatureRequests: vi.fn(),
-  useListPortalSignatureRequests: vi.fn(),
-  useListPortalSigningAgreements: vi.fn(),
-  useGetPortalMe: vi.fn(),
-  useRecordPortalNotice: vi.fn(),
-  useListPortalTrainingRecords: vi.fn(),
-  useGetPortalTests: vi.fn(),
-  useGetPortalEmployeeData: vi.fn(),
-  useGetPortalTrainingSheets: vi.fn(),
-  useListPortalClientEmployees: vi.fn(),
-  useListPortalResponsiblePersons: vi.fn(),
-}));
 
 const recordNotice = vi.fn();
 
 beforeEach(() => {
-  vi.mocked(useListPortalSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalClientSignatureRequests).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useListPortalSigningAgreements).mockReturnValue(queryResult({ items: [] }));
-  vi.mocked(useGetPortalSigningAgreementState).mockReturnValue(queryResult({ agreement: null }));
-  vi.mocked(useGetPortalMe).mockReturnValue(queryResult({ participations: [participation()] }));
+  mockQuery(useListPortalSignatureRequests, { items: [] });
+  mockQuery(useListPortalClientSignatureRequests, { items: [] });
+  mockQuery(useListPortalSigningAgreements, { items: [] });
+  mockQuery(useGetPortalSigningAgreementState, { agreement: null, unavailable: null });
+  mockQuery(useGetPortalMe, { participations: [participation()] });
   vi.mocked(useRecordPortalNotice).mockReturnValue({
     mutate: recordNotice,
     isPending: false,
     isError: false,
   } as never);
-  vi.mocked(useListPortalTrainingRecords).mockReturnValue(queryPending());
-  vi.mocked(useGetPortalTests).mockReturnValue(queryPending());
-  vi.mocked(useGetPortalEmployeeData).mockReturnValue(queryPending());
-  vi.mocked(useGetPortalTrainingSheets).mockReturnValue(queryPending());
-  vi.mocked(useListPortalClientEmployees).mockReturnValue(queryPending());
-  vi.mocked(useListPortalResponsiblePersons).mockReturnValue(queryPending());
 });
 
 afterEach(() => {
@@ -95,7 +68,7 @@ describe('the participant shell', () => {
   });
 
   it('tells an account that is a participant nowhere that it has no access, and signs it out', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(queryFailure(403));
+    mockFailure(useGetPortalMe, 403);
     const client = signedIn();
     mountPortal(client, '/');
 
@@ -107,15 +80,13 @@ describe('the participant shell', () => {
   });
 
   it('offers a retry when the participations could not be loaded', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(queryFailure(500));
+    mockFailure(useGetPortalMe, 500);
     mountPortal(signedIn(), '/');
     expect(await screen.findByTestId('portal-load-error')).toBeTruthy();
   });
 
   it('shows the privacy notice first, naming the employer and the provider', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({ participations: [participation({ noticeVersion: null })] })
-    );
+    mockQuery(useGetPortalMe, { participations: [participation({ noticeVersion: null })] });
     mountPortal(signedIn(), '/instruiri');
 
     const notice = await screen.findByTestId('privacy-notice');
@@ -139,13 +110,11 @@ describe('the participant shell', () => {
   });
 
   it("tells a client administrator they see the employees on the employer's behalf", async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({
-        participations: [
-          participation({ kind: 'client_administrator', employeeId: null, noticeVersion: null }),
-        ],
-      })
-    );
+    mockQuery(useGetPortalMe, {
+      participations: [
+        participation({ kind: 'client_administrator', employeeId: null, noticeVersion: null }),
+      ],
+    });
     mountPortal(signedIn(), '/');
 
     const notice = await screen.findByTestId('privacy-notice');
@@ -160,9 +129,7 @@ describe('the participant shell', () => {
   });
 
   it('shows the notice again when it was accepted in an older version', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({ participations: [participation({ noticeVersion: '2020-01-01' })] })
-    );
+    mockQuery(useGetPortalMe, { participations: [participation({ noticeVersion: '2020-01-01' })] });
     mountPortal(signedIn(), '/');
     expect(await screen.findByTestId('privacy-notice')).toBeTruthy();
   });
@@ -205,9 +172,7 @@ describe('the participant shell', () => {
   it('offers to switch the client from the account menu when there are several', async () => {
     const other = participation({ participantId: '6f0c3e43-0c1b-4f4b-8a1e-000000000002' });
     localStorage.setItem('ssm-usor.portal.participant.user-1', participation().participantId);
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({ participations: [participation(), other] })
-    );
+    mockQuery(useGetPortalMe, { participations: [participation(), other] });
     mountPortal(signedIn(), '/');
 
     await userEvent.click(await screen.findByTestId('account-menu'));
@@ -228,19 +193,17 @@ describe('the participant shell', () => {
   });
 
   it('gives a client administrator without an employee row three places', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({
-        participations: [participation({ kind: 'client_administrator', employeeId: null })],
-      })
-    );
+    mockQuery(useGetPortalMe, {
+      participations: [participation({ kind: 'client_administrator', employeeId: null })],
+    });
     mountPortal(signedIn(), '/');
     expect(await barEntries()).toEqual(['Acasă', 'Lucrători', 'Contul meu']);
   });
 
   it('gives a client administrator who is an employee their own trainings and data from Acasă', async () => {
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({ participations: [participation({ kind: 'client_administrator' })] })
-    );
+    mockQuery(useGetPortalMe, {
+      participations: [participation({ kind: 'client_administrator' })],
+    });
     mountPortal(signedIn(), '/');
     expect(await barEntries()).toEqual(['Acasă', 'Lucrători', 'Instruiri', 'Contul meu']);
     expect(screen.getByTestId('home-my-data')).toBeTruthy();
@@ -253,9 +216,7 @@ describe('the participant shell', () => {
       kind: 'client_administrator',
       employeeId: null,
     });
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({ participations: [participation(), other] })
-    );
+    mockQuery(useGetPortalMe, { participations: [participation(), other] });
     const runtime = mountPortal(signedIn(), '/instruiri');
 
     const options = await screen.findAllByTestId('participation-option');
@@ -277,9 +238,7 @@ describe('the participant shell', () => {
       clientName: 'Brutăria Veche S.R.L.',
     });
     localStorage.setItem('ssm-usor.portal.participant.user-1', other.participantId);
-    vi.mocked(useGetPortalMe).mockReturnValue(
-      queryResult({ participations: [participation(), other] })
-    );
+    mockQuery(useGetPortalMe, { participations: [participation(), other] });
     mountPortal(signedIn(), '/');
 
     const home = await screen.findByTestId('portal-home');

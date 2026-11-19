@@ -1,6 +1,7 @@
 import type {
   AdminImpersonation,
   AdminImpersonationList,
+  AdminImportList,
   AdminMemberList,
   ApiErrorResponse,
 } from '@ssm-usor/contracts';
@@ -8,7 +9,14 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { authClient, disposeAdmins, mountAdmin } from '@/test/admin-app';
+import {
+  adminRequests,
+  authClient,
+  fetchMock,
+  installAdminFetch,
+  mockAdminApi,
+  mountAdmin,
+} from '@/test/admin-app';
 
 const adminId = '0a1b2c3d-0000-4000-8000-000000000001';
 const ionId = '0a1b2c3d-0000-4000-8000-000000000002';
@@ -85,17 +93,13 @@ let membersAnswer: (() => Response) | null;
 let activeAnswer: (() => Response) | null;
 let endAnswer: (() => Response) | null;
 
-const fetchMock = vi.fn<typeof fetch>();
+const noImports: AdminImportList = { items: [], page: 1, pageSize: 25, total: 0 };
+
 const open = vi.fn();
 
-const requests = () =>
-  fetchMock.mock.calls.map(([input, init]) => ({
-    url: new URL(String(input)),
-    method: init?.method ?? 'GET',
-    body: init?.body ? JSON.parse(String(init.body)) : undefined,
-  }));
-const requestsTo = (pathname: string, method = 'GET') =>
-  requests().filter((request) => request.url.pathname === pathname && request.method === method);
+const requestsTo = (pathname: string, method = 'GET') => adminRequests({ pathname, method });
+
+installAdminFetch();
 
 beforeEach(() => {
   active = null;
@@ -105,17 +109,15 @@ beforeEach(() => {
   activeAnswer = null;
   endAnswer = null;
   vi.stubEnv('VITE_APP_URL', 'http://localhost:5199');
-  vi.stubGlobal('fetch', fetchMock);
   vi.stubGlobal('open', open);
   open.mockReset();
-  fetchMock.mockReset();
-  fetchMock.mockImplementation(async (input, init) => {
-    const url = new URL(String(input));
+  mockAdminApi((url, init) => {
     const method = init?.method ?? 'GET';
     if (url.pathname === '/api/me')
       return Response.json({ id: adminId, email: 'mircea@example.ro' });
     if (url.pathname === '/api/members') return membersAnswer?.() ?? Response.json(members);
     if (url.pathname === '/api/impersonations') return Response.json(history);
+    if (url.pathname === '/api/imports') return Response.json(noImports);
     if (url.pathname === '/api/impersonation' && method === 'GET') {
       return activeAnswer?.() ?? Response.json({ impersonation: active });
     }
@@ -132,15 +134,12 @@ beforeEach(() => {
       active = null;
       return new Response(null, { status: 204 });
     }
-    return Response.json({ error: 'not_found', message: 'Not found.' }, { status: 404 });
   });
 });
 
 afterEach(() => {
-  disposeAdmins();
   vi.useRealTimers();
   vi.unstubAllEnvs();
-  vi.unstubAllGlobals();
 });
 
 async function openDialogFor(name: string) {

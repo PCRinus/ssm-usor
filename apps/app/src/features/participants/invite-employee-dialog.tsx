@@ -1,7 +1,6 @@
 import type { ParticipantChannel } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -14,6 +13,8 @@ import { useState } from 'react';
 
 import { useInviteEmployeeParticipant } from '@/api/generated/api';
 import { openedHere } from '@/app/opener';
+import { useHoldOpen } from '@/components/close-guard';
+import { FormDialog } from '@/components/form-dialog';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -51,10 +52,10 @@ export function InviteEmployeeDialog({
   onMessage: (message: ParticipantMessage) => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <FormDialog open={open} onClose={onClose}>
       {/* Mounted per opening, so a reopened dialog starts again from the proposed address. */}
       {open && <InviteEmployeeForm employee={employee} onClose={onClose} onMessage={onMessage} />}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -83,6 +84,7 @@ function InviteEmployeeForm({
   const [channel, setChannel] = useState<ParticipantChannel | null>(sendable[0]?.channel ?? null);
   const [error, setError] = useState<string | null>(null);
   const busy = invite.isPending;
+  useHoldOpen(busy);
 
   async function send() {
     const picked = sendable.find((option) => option.channel === channel);
@@ -110,7 +112,11 @@ function InviteEmployeeForm({
   }
 
   return (
-    <DialogContent data-testid="participant-invite-dialog" className="sm:max-w-md">
+    <DialogContent
+      data-testid="participant-invite-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!busy}
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();

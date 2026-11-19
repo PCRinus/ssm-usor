@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogBody,
   DialogContent,
   DialogDescription,
@@ -23,7 +22,9 @@ import {
 } from '@/api/generated/api';
 import { ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { maskPeople } from '@/components/mask-people';
 import { Notice } from '@/components/notice';
@@ -65,9 +66,9 @@ export function RenameClientFileDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={file !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={file !== null} onClose={onClose}>
       {file && <RenameForm key={file.id} clientId={clientId} file={file} onClose={onClose} />}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -89,6 +90,7 @@ function RenameForm({
   const formRef = useRevealErrors(form);
   const { errors } = form.formState;
   const busy = update.isPending;
+  useHoldOpen(busy);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -111,7 +113,7 @@ function RenameForm({
   });
 
   return (
-    <DialogContent data-testid="client-file-dialog" className="sm:max-w-lg">
+    <DialogContent data-testid="client-file-dialog" className="sm:max-w-lg" showCloseButton={!busy}>
       <form ref={formRef} onSubmit={(event) => void onSubmit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>Redenumește fișierul</DialogTitle>

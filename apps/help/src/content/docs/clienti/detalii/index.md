@@ -46,7 +46,7 @@ sources:
   - apps/app/src/features/imports/library/client-imports-card.tsx
   - apps/app/src/features/imports/library/waiting-import-panel.tsx
   - apps/app/src/features/clients/client-form-schema.ts
-  - apps/app/src/features/training/document-details-schema.ts
+  - apps/app/src/features/clients/document-details/document-details-schema.ts
   - apps/app/src/features/missing-data/missing-rows.ts
   - supabase/migrations/20261022100000_legal_representative_employee.sql
 ---

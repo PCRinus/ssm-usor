@@ -1,7 +1,8 @@
-import { employeeSortKeys, sortOrderSchema } from '@ssm-usor/contracts';
+import { employeeSortKeys } from '@ssm-usor/contracts';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
+import { listPageSearchSchema } from '@/components/list-filters/use-list-search';
 import { EmployeesPage } from '@/features/employees/employees-page';
 import {
   clientWorkerFilterSearch,
@@ -11,13 +12,9 @@ import {
 
 // The table state lives in the URL: the filters, the page, and one sort key, so refresh and
 // back keep the place in the list. Defaults are omitted to keep links short.
-const searchSchema = z
-  .object({
+const searchSchema = listPageSearchSchema(employeeSortKeys)
+  .extend({
     status: z.literal('terminated').optional().catch(undefined),
-    page: z.number().int().min(1).optional().catch(undefined),
-    sort: z.enum(employeeSortKeys).optional().catch(undefined),
-    order: sortOrderSchema.optional().catch(undefined),
-    q: z.string().max(100).optional().catch(undefined),
     import: z.literal(true).optional().catch(undefined),
     ...clientWorkerFilterSearch,
     ...legacyWorkerFilterSearch,

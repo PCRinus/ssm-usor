@@ -1,7 +1,6 @@
 import { formatEmployeeName } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -15,16 +14,13 @@ import { type FormEvent, useState } from 'react';
 import {
   type ApiErrorResponse,
   type EmployeeListResponse,
-  getGetClientQueryKey,
-  getGetEmployeeQueryKey,
-  getListEmployeesQueryKey,
-  getListJobPositionsQueryKey,
-  getListWorkplacesQueryKey,
   useUpdateEmployeeStatus,
 } from '@/api/generated/api';
 import { apiErrorBody, ApiHttpError } from '@/api/http';
 import { replayMask } from '@/app/observability/replay-masking';
+import { useHoldOpen } from '@/components/close-guard';
 import { DatePicker } from '@/components/date-picker';
+import { FormDialog } from '@/components/form-dialog';
 import { Field } from '@/components/form-field';
 import { HelpLink } from '@/components/help-link';
 import { maskPeople } from '@/components/mask-people';
@@ -32,10 +28,11 @@ import { Notice } from '@/components/notice';
 import {
   employeesOverStepMessage,
   isEmployeesOverStepError,
-  refreshEmployeesOverStep,
 } from '@/features/subscription/employees-over-step';
 import { commonFailure } from '@/lib/api-errors';
 import { formatDate, todayIso } from '@/lib/dates';
+
+import { refreshWorkforce } from './employee-cache';
 
 type Employee = Omit<EmployeeListResponse['items'][number], 'signaturesPending' | 'portal'>;
 
@@ -86,7 +83,7 @@ export function EmployeeStatusDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={change !== null} onOpenChange={(open) => !open && onClose()}>
+    <FormDialog open={change !== null} onClose={onClose}>
       {change && (
         <StatusForm
           key={`${change.employee.id}-${change.action}`}
@@ -95,7 +92,7 @@ export function EmployeeStatusDialog({
           {...change}
         />
       )}
-    </Dialog>
+    </FormDialog>
   );
 }
 
@@ -112,6 +109,7 @@ function StatusForm({
   const [error, setError] = useState<string | null>(null);
   const name = formatEmployeeName(employee);
   const busy = update.isPending;
+  useHoldOpen(busy);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -130,18 +128,7 @@ function StatusForm({
         data:
           action === 'terminate' ? { status: 'terminated', terminatedAt } : { status: 'active' },
       });
-      // Every filtered variant of the client's list shares this key prefix; the detail
-      // page reads its own query.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey(clientId) }),
-        refreshEmployeesOverStep(queryClient),
-        queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(clientId, employee.id) }),
-        // A leaver no longer counts in their job position or workplace, nor among the client's
-        // current workers; someone reactivated does again.
-        queryClient.invalidateQueries({ queryKey: getListJobPositionsQueryKey(clientId) }),
-        queryClient.invalidateQueries({ queryKey: getListWorkplacesQueryKey(clientId) }),
-        queryClient.refetchQueries({ queryKey: getGetClientQueryKey(clientId) }),
-      ]);
+      await refreshWorkforce(queryClient, clientId, { employeeId: employee.id });
       toast.success(
         action === 'terminate'
           ? maskPeople`${name} a fost trecut la foști lucrători.`
@@ -157,7 +144,11 @@ function StatusForm({
   }
 
   return (
-    <DialogContent data-testid="employee-status-dialog" className="sm:max-w-md">
+    <DialogContent
+      data-testid="employee-status-dialog"
+      className="sm:max-w-md"
+      showCloseButton={!busy}
+    >
       <form onSubmit={(event) => void submit(event)} aria-busy={busy} noValidate>
         <DialogHeader>
           <DialogTitle>

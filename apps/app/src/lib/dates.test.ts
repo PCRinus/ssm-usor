@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { dateToIso, formatDate, formatRoDate, isoToDate, parseRoDate } from './dates';
+import {
+  dateToIso,
+  formatDate,
+  formatRoDate,
+  isOptionalIsoDate,
+  isoToDate,
+  parseRoDate,
+} from './dates';
 
 describe('calendar dates', () => {
   it('round-trips ISO dates through local Date objects', () => {
@@ -26,5 +33,12 @@ describe('calendar dates', () => {
 
   it.each(['', '01.03', '31.02.2020', '2020-03-01', '01.03.20', 'azi'])('rejects %s', (text) => {
     expect(parseRoDate(text)).toBeNull();
+  });
+
+  it('takes an optional date as empty or a real day, and nothing typed halfway', () => {
+    expect(isOptionalIsoDate('')).toBe(true);
+    expect(isOptionalIsoDate('2020-03-01')).toBe(true);
+    expect(isOptionalIsoDate('2021-02-29')).toBe(false);
+    expect(isOptionalIsoDate('01.03.20')).toBe(false);
   });
 });

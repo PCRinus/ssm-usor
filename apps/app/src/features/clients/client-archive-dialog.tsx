@@ -14,10 +14,8 @@ import { useRouteContext, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
-  getGetClientQueryKey,
   getListClientDocumentsQueryKey,
   getListClientDocumentsQueryOptions,
-  getListClientsQueryKey,
   getListEvaluationProfilesQueryKey,
   useArchiveClient,
   useRestoreClient,
@@ -33,6 +31,8 @@ import {
   restoreOverStepMessage,
 } from '@/features/subscription/employees-over-step';
 import { commonFailure } from '@/lib/api-errors';
+
+import { storeClient } from './client-cache';
 
 export interface ClientArchiveChange {
   // The stage words the dialog; a lead has no documents to warn about.
@@ -114,9 +114,7 @@ export function ClientArchiveDialog({
       const saved = await (action === 'archive' ? archive : restore).mutateAsync({
         clientId: client.id,
       });
-      // The client page reads the record through its loader, which keeps whatever is cached.
-      queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
-      await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      await storeClient(queryClient, saved);
       // Both libraries count where active clients use each entry.
       await Promise.all([
         invalidateLibrary(queryClient),

@@ -3,14 +3,13 @@ import { useRouteContext, useRouter } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
 import {
-  getGetClientQueryKey,
   getGetServiceContractQueryKey,
-  getListClientsQueryKey,
   type UpdateClientRequest,
   useUpdateClient,
 } from '@/api/generated/api';
 import { useSavedToast } from '@/features/missing-data/saved-toast';
 
+import { storeClient } from './client-cache';
 import {
   type Client,
   clientFormSchema,
@@ -56,9 +55,7 @@ export function useClientFieldsForm({
         clientId: client.id,
         data: data as UpdateClientRequest,
       });
-      // The client and lead pages read the record through loaders, which keep what is cached.
-      queryClient.setQueriesData({ queryKey: getGetClientQueryKey(client.id) }, saved);
-      await queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      await storeClient(queryClient, saved);
       // The contract card on the lead page lists what it still misses from these fields. Not
       // awaited: a contract that fails to load must not hold back the save.
       void queryClient.invalidateQueries({ queryKey: getGetServiceContractQueryKey(client.id) });

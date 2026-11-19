@@ -14,6 +14,7 @@ import { useMemo, useState } from 'react';
 
 import {
   getListClientsQueryKey,
+  getListClientsQueryOptions,
   type ListClientsParams,
   useListClients,
 } from '@/api/generated/api';
@@ -25,8 +26,10 @@ import { EmptyState } from '@/components/empty-state';
 import { FilterTab, FilterTabs, ListCardHeader, ListCount } from '@/components/list-card-header';
 import { AppliedFilters } from '@/components/list-filters/applied-filters';
 import { ListFilters } from '@/components/list-filters/list-filters';
+import { PendingCountLabel } from '@/components/list-filters/pending-count-label';
 import type { ListFilterFacet, ListFilterValues } from '@/components/list-filters/types';
 import { listFilterSearch } from '@/components/list-filters/url';
+import { useListSearch } from '@/components/list-filters/use-list-search';
 import { SearchInput } from '@/components/search-input';
 import { useAuth } from '@/features/auth/auth-context';
 import { sessionExpiredMessage } from '@/lib/api-errors';
@@ -71,27 +74,6 @@ const tabs = [
 
 const rowKey = (row: ClientRow) => row.id;
 
-function PendingLeadsLabel({ filters, q }: { filters: LeadListFilters; q: string | undefined }) {
-  const { session } = useAuth();
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params: ListClientsParams = {
-    stage: 'lead',
-    page: 1,
-    pageSize: 1,
-    ...(q ? { q } : {}),
-    ...filters,
-  };
-  const total = useListClients(params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getListClientsQueryKey(params), session?.user.id],
-      enabled: Boolean(session && apiRequest.baseUrl),
-      placeholderData: keepPreviousData,
-    },
-  }).data?.total;
-  return total === undefined ? 'Arată rezultatele' : `Arată ${leadCount(total)}`;
-}
-
 export function LeadsPage() {
   const search = leadsRoute.useSearch();
   const { page = 1, sort = defaultSort.sort, order = defaultSort.order, status, q } = search;
@@ -130,22 +112,29 @@ export function LeadsPage() {
   const [promoting, setPromoting] = useState<ClientRow | null>(null);
   const offers = useOffersInPlan();
   const columns = useMemo(() => leadColumns(setArchiveChange, setPromoting, offers), [offers]);
-  const changeFilters = (values: ListFilterValues<FilterKey>) =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({
-        ...prev,
-        ...(listFilters.searchOf(values) as LeadListFilters),
-        page: undefined,
-      }),
+  const { changeQuery, changeFilters, onSortChange, onPageChange } = useListSearch({
+    search,
+    navigate,
+    defaultSort,
+    searchOf: (values: ListFilterValues<FilterKey>) =>
+      listFilters.searchOf(values) as LeadListFilters,
+  });
+  const pendingQuery = (pending: ListFilterValues<FilterKey>) => {
+    const counted: ListClientsParams = {
+      stage: 'lead',
+      page: 1,
+      pageSize: 1,
+      ...(q ? { q } : {}),
+      ...(listFilters.searchOf(pending) as LeadListFilters),
+    };
+    return getListClientsQueryOptions(counted, {
+      request: apiRequest,
+      query: {
+        queryKey: [...getListClientsQueryKey(counted), session?.user.id],
+        enabled: Boolean(session && apiRequest.baseUrl),
+      },
     });
-  const clearSearch = () =>
-    void navigate({
-      replace: true,
-      resetScroll: false,
-      search: (prev) => ({ ...prev, q: undefined, page: undefined }),
-    });
+  };
 
   return (
     <div data-testid="leads-page" className="space-y-7">
@@ -188,13 +177,7 @@ export function LeadsPage() {
             <div className="order-last flex w-full gap-2 md:order-none md:w-auto md:max-w-2xl md:grow">
               <SearchInput
                 value={q}
-                onSearch={(next) =>
-                  void navigate({
-                    replace: true,
-                    resetScroll: false,
-                    search: (prev) => ({ ...prev, q: next || undefined, page: undefined }),
-                  })
-                }
+                onSearch={changeQuery}
                 placeholder={phone ? 'Caută oferte' : 'Caută după nume, CUI sau localitate'}
                 label="Caută oferte"
                 testId="leads-search"
@@ -206,10 +189,7 @@ export function LeadsPage() {
                   onChange={changeFilters}
                   total={leads.isSuccess && !leads.isPlaceholderData ? meta.total : undefined}
                   applyLabel={(pending) => (
-                    <PendingLeadsLabel
-                      filters={listFilters.searchOf(pending) as LeadListFilters}
-                      q={q}
-                    />
+                    <PendingCountLabel query={pendingQuery(pending)} noun={leadCount} />
                   )}
                   countLabel={leadCount}
                   testId="leads-filters"
@@ -254,21 +234,8 @@ export function LeadsPage() {
           isFetching={leads.isFetching}
           isPlaceholderData={leads.isPlaceholderData}
           sort={{ sort, order }}
-          onSortChange={(next) =>
-            void navigate({
-              replace: true,
-              resetScroll: false,
-              search: (prev) => ({
-                ...prev,
-                sort: next.sort === defaultSort.sort ? undefined : (next.sort as LeadSortKey),
-                order: next.order === defaultSort.order ? undefined : next.order,
-                page: undefined,
-              }),
-            })
-          }
-          onPageChange={(next) =>
-            void navigate({ search: (prev) => ({ ...prev, page: next > 1 ? next : undefined }) })
-          }
+          onSortChange={onSortChange}
+          onPageChange={onPageChange}
           error={
             <>
               <p data-testid="leads-error" role="alert" className="text-sm">
@@ -302,7 +269,7 @@ export function LeadsPage() {
                   <Button
                     variant="outline"
                     data-testid="leads-empty-clear"
-                    onClick={filtered ? () => changeFilters({}) : clearSearch}
+                    onClick={() => (filtered ? changeFilters({}) : changeQuery(undefined))}
                   >
                     {filtered ? 'Șterge filtrele' : 'Șterge căutarea'}
                   </Button>

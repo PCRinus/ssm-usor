@@ -436,6 +436,25 @@ describe('client fire-safety means', () => {
     );
   });
 
+  it('flags an unfinished service date instead of saving it as no date', async () => {
+    mockFireMeansApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText('Lângă recepție, fabricat în 2021'));
+    const dialog = await screen.findByTestId('fire-equipment-dialog');
+    const last = within(dialog).getByTestId('fire-equipment-last-service');
+    await user.clear(last);
+    await user.type(last, '12.03.20');
+    await user.click(within(dialog).getByTestId('fire-equipment-save'));
+
+    expect(
+      (await within(dialog).findByTestId('fire-equipment-last-service-error')).textContent
+    ).toBe('Alege o dată validă.');
+    expect(within(dialog).queryByTestId('fire-equipment-next-service-error')).toBeNull();
+    expect(bodiesOf(`${equipmentPath}/${officeP6.id}`, 'PUT')).toEqual([]);
+  });
+
   it('deletes only after a confirmation that names the last extinguisher', async () => {
     mockFireMeansApi({ equipment: [officeP6] });
     mount();
@@ -488,6 +507,27 @@ describe('client fire-safety means', () => {
         },
       ])
     );
+  });
+
+  it('flags an unfinished check date of an installation instead of saving it as no date', async () => {
+    mockFireMeansApi();
+    mount();
+    const user = userEvent.setup();
+
+    const shopCard = await cardOf('Gelaterie Timișoara');
+    await user.click(within(shopCard).getByTestId('fire-installation-add'));
+    const dialog = await screen.findByTestId('fire-installation-dialog');
+    await user.selectOptions(
+      within(dialog).getByTestId('fire-installation-kind'),
+      'interior_hydrants'
+    );
+    await user.type(within(dialog).getByTestId('fire-installation-next-check'), '1.3');
+    await user.click(within(dialog).getByTestId('fire-installation-save'));
+
+    expect(
+      (await within(dialog).findByTestId('fire-installation-next-check-error')).textContent
+    ).toBe('Alege o dată validă.');
+    expect(bodiesOf(installationsPath, 'POST')).toEqual([]);
   });
 
   it('lists the other periodic checks of each workplace, optional and empty by default', async () => {
@@ -722,6 +762,25 @@ describe('client fire-safety means', () => {
     await waitFor(() => expect(screen.queryByTestId('fire-building-dialog')).toBeNull());
     expect(bodiesOf(`${buildingsPath}/${shop.id}`, 'PUT')).toEqual([]);
     expect(bodiesOf(`${buildingsPath}/${shop.id}`, 'DELETE')).toEqual([]);
+  });
+
+  it("flags an unfinished date of the building's electrical check instead of clearing it", async () => {
+    mockFireMeansApi();
+    mount();
+    const user = userEvent.setup();
+
+    await user.click(within(await cardOf('Sediu social')).getByTestId('fire-building-edit'));
+    const dialog = await screen.findByTestId('fire-building-dialog');
+    const check = within(dialog).getByTestId('fire-building-electrical-check');
+    await user.clear(check);
+    await user.type(check, '12.03');
+    await user.click(within(dialog).getByTestId('fire-building-save'));
+
+    expect(
+      (await within(dialog).findByTestId('fire-building-electrical-check-error')).textContent
+    ).toBe('Alege o dată validă.');
+    expect(bodiesOf(`${buildingsPath}/${office.id}`, 'PUT')).toEqual([]);
+    expect(bodiesOf(`${buildingsPath}/${office.id}`, 'DELETE')).toEqual([]);
   });
 
   it('says so when the workplace became a mobile site meanwhile', async () => {

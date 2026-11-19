@@ -11,6 +11,7 @@ import type {
   TrainingRequest,
   TrainingResponseTraining,
 } from '@/api/generated/api';
+import type { IssueTarget } from '@/lib/api-errors';
 import { todayIso } from '@/lib/dates';
 
 const optionalPersonText = z.string().trim().max(160, 'Cel mult 160 de caractere.');
@@ -219,7 +220,7 @@ export function toTrainingRequest(values: TrainingFormValues): TrainingRequest {
   };
 }
 
-export const fieldOfIssue: Partial<Record<string, keyof TrainingFormValues>> = {
+const fieldOfIssue: Partial<Record<string, keyof TrainingFormValues>> = {
   domain: 'domain',
   phase: 'phase',
   heldOn: 'heldOn',
@@ -241,3 +242,14 @@ export const fieldOfIssue: Partial<Record<string, keyof TrainingFormValues>> = {
   'signers.verifier': 'verifierSignerId',
   'signers.admitter': 'admitterSignerId',
 };
+
+const issueMessages: Partial<Record<keyof TrainingFormValues, string>> = {
+  employeeIds:
+    'Un participant nu mai este lucrător al clientului. Reîncarcă lista și alege din nou.',
+  heldOn: 'O instruire se înregistrează după ce a avut loc.',
+};
+
+export function trainingIssueTarget(path: string): IssueTarget<TrainingFormValues> | undefined {
+  const field = fieldOfIssue[path];
+  return field && { field, message: issueMessages[field] };
+}
