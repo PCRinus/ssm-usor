@@ -5,6 +5,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { lazy, type ReactNode, Suspense, useState } from 'react';
 
 import { BackLink, TitleWithBack } from '@/components/back-link';
+import { LoadFailed } from '@/components/load-failed';
 import { Notice } from '@/components/notice';
 import { useMe } from '@/features/account/use-me';
 
@@ -66,20 +67,9 @@ export function ChoosePlanPage({ search }: { search: ChoosePlanSearch }) {
   if (billing.isError) {
     return (
       <WithBack>
-        <Notice
-          variant="destructive"
-          action={
-            <Button
-              variant="outline"
-              disabled={billing.isFetching}
-              onClick={() => void billing.refetch()}
-            >
-              Încearcă din nou
-            </Button>
-          }
-        >
+        <LoadFailed busy={billing.isFetching} onRetry={() => void billing.refetch()}>
           Nu am putut încărca abonamentul.
-        </Notice>
+        </LoadFailed>
       </WithBack>
     );
   }
