@@ -805,6 +805,42 @@ describe("a client's trainings held", () => {
     expect(requests('POST', trainingsPath)[0]!.body.employeeIds).toEqual([popescu.id, taranu.id]);
   });
 
+  it('keeps the dialog open while the training saves', async () => {
+    let answer: (response: Response) => void = () => undefined;
+    mockApi({
+      [`POST ${trainingsPath}`]: () =>
+        new Promise<Response>((resolve) => {
+          answer = resolve;
+        }),
+    });
+    mountApp(authFixture(makeSession()).client, trainingsPage);
+    const user = userEvent.setup();
+    await user.click(await screen.findByTestId('trainings-record'));
+    const dialog = await screen.findByTestId('training-dialog');
+    await user.selectOptions(within(dialog).getByTestId('training-phase'), 'introductory_general');
+    await user.click((await within(dialog).findAllByTestId('training-attendee'))[0]!);
+    await waitFor(() =>
+      expect((within(dialog).getByTestId('training-duration') as HTMLInputElement).value).toBe(
+        '120'
+      )
+    );
+    await user.type(within(dialog).getByTestId('training-verifier-job-title'), 'Inspector SSM');
+    await user.click(within(dialog).getByTestId('training-save'));
+    await waitFor(() =>
+      expect(within(dialog).getByTestId('training-save').textContent).toBe('Se salvează…')
+    );
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('training-dialog')).toBeTruthy();
+
+    answer(
+      Response.json({ error: 'validation_error', message: 'Invalid', issues: [] }, { status: 400 })
+    );
+    expect(await within(dialog).findByTestId('training-error')).toBeTruthy();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('training-dialog')).toBeNull());
+  });
+
   it('lists every current employee for an introductory training, and marks the field an API issue names', async () => {
     mockApi({
       [`POST ${trainingsPath}`]: () =>

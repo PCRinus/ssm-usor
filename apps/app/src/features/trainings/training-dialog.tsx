@@ -27,12 +27,15 @@ import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { Textarea } from '@ssm-usor/ui/components/textarea';
 import { toast } from '@ssm-usor/ui/lib/toast';
+import { useIsMutating } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import {
+  getCreateTrainingMutationKey,
   getGetTrainingQueryKey,
   getListJobPositionsQueryKey,
+  getUpdateTrainingMutationKey,
   type JobPositionListResponseItemsItem,
   type TrainingResponseTraining,
   useCreateTraining,
@@ -90,8 +93,12 @@ export function TrainingDialog({
   fixedAttendee?: FixedAttendee;
   onClose: () => void;
 }) {
+  const saving =
+    useIsMutating({ mutationKey: getCreateTrainingMutationKey() }) +
+      useIsMutating({ mutationKey: getUpdateTrainingMutationKey() }) >
+    0;
   return (
-    <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={target !== null} onOpenChange={(open) => !open && !saving && onClose()}>
       {target && (
         <TrainingDialogContent
           key={target.kind === 'edit' ? target.trainingId : 'new'}
