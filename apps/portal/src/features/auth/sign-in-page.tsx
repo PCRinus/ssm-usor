@@ -12,13 +12,14 @@ import { type FormEvent, type Ref, useEffect, useRef, useState } from 'react';
 import { PublicFrame } from '@/app/public-frame';
 import { CodeInput } from '@/components/code-input';
 import { deviceLocale, useActiveLocale } from '@/features/language/locale';
+import { useCountdown } from '@/lib/use-countdown';
 
 import { useAuth } from './auth-context';
 import type { CodeRequestResult, CodeVerificationResult, SignInAddress } from './auth-store';
 import { parseSignInAddress } from './sign-in-address';
 
 // Supabase sends one code per address per minute and refuses a second request before.
-const resendDelayMs = 60_000;
+const resendDelaySeconds = 60;
 const codeLength = { min: 6, max: 8 };
 
 const unreachableMessage = msg`Cererea nu a putut fi trimisă. Verifică conexiunea la internet și încearcă din nou.`;
@@ -30,26 +31,6 @@ const requestFailures: Record<Exclude<CodeRequestResult, 'requested'>, MessageDe
 
 type Target = { address: SignInAddress; shown: string };
 
-function useResendCountdown() {
-  const [clock, setClock] = useState({ until: 0, now: 0 });
-  useEffect(() => {
-    if (clock.until === 0) return;
-    const timer = window.setInterval(() => {
-      const now = Date.now();
-      setClock((current) => ({ ...current, now }));
-      if (now >= clock.until) window.clearInterval(timer);
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [clock.until]);
-  return {
-    secondsLeft: Math.max(0, Math.ceil((clock.until - clock.now) / 1000)),
-    restart() {
-      const now = Date.now();
-      setClock({ until: now + resendDelayMs, now });
-    },
-  };
-}
-
 export function SignInPage() {
   const { t, i18n } = useLingui();
   const { auth } = useAuth();
@@ -59,7 +40,7 @@ export function SignInPage() {
   const [target, setTarget] = useState<Target | null>(null);
   const [addressError, setAddressError] = useState<MessageDescriptor | null>(null);
   const [requesting, setRequesting] = useState(false);
-  const { secondsLeft, restart: restartCountdown } = useResendCountdown();
+  const { secondsLeft, restart: restartCountdown } = useCountdown();
   useActiveLocale(deviceLocale());
 
   async function request(next: Target) {
@@ -67,7 +48,7 @@ export function SignInPage() {
     const result = await withToken((token) => auth.requestCode(next.address, token));
     setRequesting(false);
     if (result !== 'requested') return requestFailures[result];
-    restartCountdown();
+    restartCountdown(resendDelaySeconds);
     return null;
   }
 

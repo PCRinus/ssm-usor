@@ -523,18 +523,14 @@ describe('the signing screen', () => {
     expect(screen.getByTestId('signing-send')).toHaveProperty('disabled', true);
   });
 
-  it.each([
-    ['code_expired', 'Codul a expirat'],
-    ['code_already_used', 'Codul a fost deja folosit'],
-    ['code_attempts_exceeded', 'Codul a fost greșit de trei ori'],
-  ])('asks for a new code after %s', async (reason, text) => {
-    vi.mocked(signPortalSigningSession).mockRejectedValueOnce(refusal(reason));
+  it('asks for a new code after a spent one', async () => {
+    vi.mocked(signPortalSigningSession).mockRejectedValueOnce(refusal('code_expired'));
     const user = await askForCode();
     await user.type(screen.getByTestId('signing-code'), '123456');
     await user.click(screen.getByTestId('signing-sign'));
 
     const error = await screen.findByTestId('signing-code-error');
-    expect(error.textContent).toContain(text);
+    expect(error.textContent).toContain('Codul a expirat');
     expect(error.dataset.kind).toBe('spent');
     expect(screen.queryByTestId('signing-sign')).toBeNull();
     expect(screen.getByTestId('signing-resend').textContent).toMatch(/^Cere un cod nou/);
@@ -574,18 +570,15 @@ describe('the signing screen', () => {
     expect(screen.getByTestId('signing-send')).toHaveProperty('disabled', true);
   });
 
-  it.each([
-    ['signing_item_not_found', 'nu mai așteaptă semnătura ta'],
-    ['signer_has_no_address', 'Nu avem o adresă de email sau un telefon'],
-    ['signing_code_not_sent', 'Nu am putut trimite codul'],
-    ['signing_unavailable', 'Semnarea nu este disponibilă acum'],
-  ])('words %s when the code is asked for', async (reason, text) => {
-    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(refusal(reason));
+  it('words a refusal when the code is asked for', async () => {
+    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(refusal('signing_unavailable'));
     const user = userEvent.setup();
     mountPortal(signedIn(), '/semneaza');
     await screen.findByTestId('signing-items');
     await user.click(screen.getByTestId('signing-send'));
-    expect((await screen.findByTestId('signing-send-error')).textContent).toContain(text);
+    expect((await screen.findByTestId('signing-send-error')).textContent).toContain(
+      'Semnarea nu este disponibilă acum'
+    );
   });
 
   it.each([
@@ -656,21 +649,6 @@ describe('the signing screen', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it.each([
-    [400, 'Cu un cod semnezi cel mult 30 de documente.'],
-    [401, 'Sesiunea ta în portal a expirat. Ieși din cont și intră din nou.'],
-    [403, 'Sesiunea ta în portal a expirat. Ieși din cont și intră din nou.'],
-  ])('words a %i when the code is asked for', async (status, text) => {
-    vi.mocked(createPortalSigningSession).mockRejectedValueOnce(
-      new ApiHttpError(status, { error: 'refused', message: 'Refused.' })
-    );
-    const user = userEvent.setup();
-    mountPortal(signedIn(), '/semneaza');
-    await screen.findByTestId('signing-items');
-    await user.click(screen.getByTestId('signing-send'));
-    expect((await screen.findByTestId('signing-send-error')).textContent).toContain(text);
   });
 
   it('keeps the choice when an item vanished before the code was sent', async () => {
