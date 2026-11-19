@@ -3246,7 +3246,6 @@ export type Database = {
           cached_input_tokens: number;
           changes: Json | null;
           client_id: string | null;
-          closed_at: string | null;
           company_cui: string | null;
           company_name: string | null;
           confirmed_at: string | null;
@@ -3280,13 +3279,13 @@ export type Database = {
           updated_at: string;
           usage_by_step: Json;
           version: number;
+          closed_at: string | null;
         };
         Insert: {
           abandoned_at?: string | null;
           cached_input_tokens?: number;
           changes?: Json | null;
           client_id?: string | null;
-          closed_at?: string | null;
           company_cui?: string | null;
           company_name?: string | null;
           confirmed_at?: string | null;
@@ -3326,7 +3325,6 @@ export type Database = {
           cached_input_tokens?: number;
           changes?: Json | null;
           client_id?: string | null;
-          closed_at?: string | null;
           company_cui?: string | null;
           company_name?: string | null;
           confirmed_at?: string | null;
@@ -8358,6 +8356,12 @@ export type Database = {
           error: true;
         } & 'the function public.client_search_text with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
       };
+      closed_at: {
+        Args: { '': Database['public']['Tables']['imports']['Row'] };
+        Returns: {
+          error: true;
+        } & 'the function public.closed_at with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache';
+      };
       complete_import_copy: {
         Args: {
           p_import_id: string;
@@ -8957,7 +8961,6 @@ export type Database = {
           cached_input_tokens: number;
           changes: Json | null;
           client_id: string | null;
-          closed_at: string | null;
           company_cui: string | null;
           company_name: string | null;
           confirmed_at: string | null;

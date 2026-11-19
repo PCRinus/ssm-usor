@@ -1569,7 +1569,6 @@ the substances `apply_client_import` writes by `20261111140000_import_substances
 | `read_characters`                                                  | The characters sent to the reading model, which the 600,000 cap counts: set on sorting, past the cap too, and again when a set-aside file is sent back. Null before.     |
 | `created_by`, `created_at`, `started_at`, `ready_at`, `failed_at`  | Who started it, as the real user during an impersonation, and when each step was reached. Checks tie each stamp to its status.                                           |
 | `confirmed_at`, `confirmed_by`, `abandoned_at`                     | The end. A confirmed import has its client.                                                                                                                              |
-| `closed_at`                                                        | Generated: `confirmed_at` or `abandoned_at`, which the imports page orders its closed imports by, indexed with the organization and kind.                                |
 | `files_copied_at`, `proposal_dropped_at`, `objects_removed_at`     | The API copied the folder into `client-files`; the proposal was dropped; the API removed the import's objects, which needs the other two.                                |
 | `reading_version`                                                  | JSON object: the model of each step and a short hash of the prompts and schemas that read the import.                                                                    |
 | `reading_flags`                                                    | JSON object of value-free counts that describe the reading: files by kind, what was found, the checks' flags. Never what was read.                                       |
@@ -1579,6 +1578,12 @@ the substances `apply_client_import` writes by `20261111140000_import_substances
 `updated_at` moves on every change but a report (`reported_at`, `reported_by`) and
 `expensive_alerted_at`, by a `when` on its trigger, as on `import_library_parts` but a report: the
 14 days of a ready import and the 6 hours before a reading part counts as stalled run from it.
+
+The closed imports, the confirmed and abandoned ones, are ordered by the computed field
+`closed_at(imports)`: `confirmed_at` or `abandoned_at`, which for a failed import abandoned is its
+`failed_at`. `imports_closed_idx` indexes the same expression after the organization and kind. It
+is not a stored generated column, which would stop `imports_set_updated_at`, whose `when` reads
+`to_jsonb(new)`, from being created again.
 
 `import_files` has one row per uploaded file, with `import_id` and `organization_id` by the
 composite key to `imports (id, organization_id)`, deleted with the import:
