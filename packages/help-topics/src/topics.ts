@@ -515,6 +515,12 @@ export const helpTopics = {
   'semnaturi.limita': { path: '/semnaturi/', anchor: 'cel-mult-30-de-semnături-cu-un-cod' },
   'semnaturi.lista': { path: '/semnaturi/', anchor: 'ce-ai-de-semnat' },
   'semnaturi.rubrici': { path: '/semnaturi/', anchor: 'ce-rubrici-semnezi' },
+  'teste.cele-trei-teste': { path: '/teste/', anchor: 'cele-trei-teste' },
+  'teste.extragere': { path: '/teste/', anchor: 'cum-se-alcătuiește-un-test' },
+  'teste.minimum': { path: '/teste/', anchor: 'minimum-zece-întrebări-active' },
+  'teste.pagina': { path: '/teste/', anchor: 'pagina-teste' },
+  'teste.predefinite-si-proprii': { path: '/teste/', anchor: 'întrebări-predefinite-și-proprii' },
+  'teste.temei': { path: '/teste/', anchor: 'temeiul-unei-întrebări' },
 } as const;
 
 export type HelpTopic = keyof typeof helpTopics;

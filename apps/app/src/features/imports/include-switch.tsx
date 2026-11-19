@@ -4,8 +4,8 @@ import { type ReactNode, useEffect } from 'react';
 
 import { replayMask } from '@/app/observability/replay-masking';
 
+import { RowActions } from './decision-row';
 import { leftOutByMember } from './include-rule';
-import { RowActions } from './library/decision-row';
 
 // The word agrees with the thing left out: "inclusă" for an instrucțiune, instruire or valoare.
 export type Agreement = 'masculine' | 'feminine';

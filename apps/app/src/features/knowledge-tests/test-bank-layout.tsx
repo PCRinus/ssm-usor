@@ -1,29 +1,37 @@
 import { Outlet } from '@tanstack/react-router';
 
+import { HelpLink } from '@/components/help-link';
+import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
+import { TabSheet } from '@/components/tab-sheet';
 
 import { testBankSections } from './test-bank-sections';
+import { sittingRules } from './test-format';
+import { useTestBank } from './use-test-bank';
 
 export function TestBankLayout() {
+  const bank = useTestBank();
   return (
-    <div data-testid="test-bank" className="grid gap-5">
-      <div className="max-w-2xl">
-        <h1 className="text-xl font-semibold tracking-tight">Banca de întrebări</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Întrebările testelor de verificare a cunoștințelor. Lucrătorul susține testul în portal,
-          zece întrebări extrase la întâmplare, iar testul tipărit din documentație le cuprinde pe
-          toate cele active. Întrebările predefinite nu se modifică: ascunde-o pe cea care nu ți se
-          potrivește și adaugă una proprie în locul ei.
+    <div data-testid="test-bank">
+      <div className="mb-5">
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-3xl font-semibold tracking-tight">Teste</h1>
+          <HelpLink topic="teste.pagina" label="Ajutor: Teste" />
+        </div>
+        <p data-testid="test-bank-rules" className="mt-1 min-h-5 text-sm text-muted-foreground">
+          {bank.data && sittingRules(bank.data)}
         </p>
       </div>
-      <SectionNav label="Secțiunile băncii de întrebări">
+      <SectionNav label="Testele" variant="folder" className={phoneBleed}>
         {testBankSections.map(({ to, label, icon }) => (
           <SectionNavLink key={to} to={to} data-testid="test-bank-section" icon={icon}>
             {label}
           </SectionNavLink>
         ))}
       </SectionNav>
-      <Outlet />
+      <TabSheet flush>
+        <Outlet />
+      </TabSheet>
     </div>
   );
 }

@@ -63,9 +63,9 @@ import {
 } from '@/features/job-positions/job-position-schema';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
+import { DecisionRow } from './decision-row';
 import { type Agreement, Includable, SwitchRow } from './include-switch';
 import { type ItemDialogField, ItemEditDialog } from './item-edit-dialog';
-import { DecisionRow } from './library/decision-row';
 import { FactRow, FieldCard, type FieldContext } from './review-fields';
 import {
   allocationLabel,

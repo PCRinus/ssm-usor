@@ -1,161 +1,141 @@
-import { knowledgeTestLabels, type TrainingDomain } from '@ssm-usor/contracts';
+import { type KnowledgeTest, testErrorReasons, type TrainingDomain } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
 import { toast } from '@ssm-usor/ui/lib/toast';
 import { useRouteContext } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
-  getGetTestBankQueryKey,
-  useGetTestBank,
+  type ApiErrorResponse,
   useHideTestQuestion,
   useRestoreTestQuestion,
 } from '@/api/generated/api';
+import { ApiHttpError } from '@/api/http';
+import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
-import { SectionCard } from '@/components/section-card';
 
 import { DeleteQuestionDialog } from './delete-question-dialog';
 import { QuestionDialog, type QuestionEditing } from './question-dialog';
 import { QuestionItem } from './question-item';
 import { QuestionPreviewDialog } from './question-preview-dialog';
+import { bankTestLabel } from './test-bank-sections';
 import {
+  atMinimum,
   type BankQuestion,
-  type BankTest,
-  bankTestFacts,
+  bankTestCounts,
   invalidateTestBank,
   testFailure,
 } from './test-format';
+import { useTestBank } from './use-test-bank';
 
-export function TestBank({ domain, userId }: { domain: TrainingDomain; userId: string }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
-  const params = { domain };
-  const bank = useGetTestBank(params, {
-    request: apiRequest,
-    query: {
-      queryKey: [...getGetTestBankQueryKey(params), userId],
-      enabled: Boolean(userId && apiRequest.baseUrl),
-    },
-  });
+const belowMinimum = (cause: unknown) =>
+  cause instanceof ApiHttpError &&
+  (cause.body as Partial<ApiErrorResponse> | null)?.reason === testErrorReasons.belowMinimum;
+
+export function TestBank({ domain, test }: { domain: TrainingDomain; test: KnowledgeTest }) {
+  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const bank = useTestBank();
+  const hide = useHideTestQuestion({ request: apiRequest });
+  const restore = useRestoreTestQuestion({ request: apiRequest });
   const [editing, setEditing] = useState<QuestionEditing>(null);
   const [previewing, setPreviewing] = useState<BankQuestion | null>(null);
   const [deleting, setDeleting] = useState<BankQuestion | null>(null);
+  const [failure, setFailure] = useState<{ questionId: string; message: string } | null>(null);
+  const [minimumFor, setMinimumFor] = useState<string | null>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const label = bankTestLabel(domain, test);
 
   if (bank.isError) {
     return (
-      <Notice
-        variant="destructive"
-        data-testid="test-bank-load-error"
-        action={
-          <Button variant="outline" disabled={bank.isFetching} onClick={() => void bank.refetch()}>
-            Încearcă din nou
-          </Button>
-        }
-      >
-        Nu am putut încărca banca de întrebări.
-      </Notice>
+      <div className="p-4 sm:p-6">
+        <Notice
+          variant="destructive"
+          data-testid="test-bank-load-error"
+          action={
+            <Button
+              variant="outline"
+              disabled={bank.isFetching}
+              onClick={() => void bank.refetch()}
+            >
+              Încearcă din nou
+            </Button>
+          }
+        >
+          Nu am putut încărca întrebările.
+        </Notice>
+      </div>
     );
   }
-  if (!bank.data) {
+  const bankTest = bank.data?.tests.find((each) => each.domain === domain && each.test === test);
+  if (!bank.data || !bankTest) {
     return (
-      <div className="grid gap-4" aria-busy="true">
+      <div className="grid gap-4 p-4 sm:p-6" aria-busy="true">
+        <Skeleton className="h-9 w-full rounded-lg" />
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
   }
-  const { data } = bank;
-
-  return (
-    <div data-testid={`test-bank-${domain}`} className="grid gap-6">
-      {data.tests.map((test) => (
-        <BankTestCard
-          key={test.test}
-          test={test}
-          facts={bankTestFacts(test, data)}
-          onAdd={() => setEditing({ kind: 'new', domain, test: test.test })}
-          onEdit={(question) => setEditing({ kind: 'edit', question })}
-          onPreview={setPreviewing}
-          onDelete={setDeleting}
-        />
-      ))}
-      <QuestionDialog editing={editing} onClose={() => setEditing(null)} />
-      <QuestionPreviewDialog
-        question={previewing}
-        sittingSize={data.sittingSize}
-        onClose={() => setPreviewing(null)}
-      />
-      <DeleteQuestionDialog question={deleting} onClose={() => setDeleting(null)} />
-    </div>
-  );
-}
-
-function BankTestCard({
-  test,
-  facts,
-  onAdd,
-  onEdit,
-  onPreview,
-  onDelete,
-}: {
-  test: BankTest;
-  facts: string;
-  onAdd: () => void;
-  onEdit: (question: BankQuestion) => void;
-  onPreview: (question: BankQuestion) => void;
-  onDelete: (question: BankQuestion) => void;
-}) {
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
-  const hide = useHideTestQuestion({ request: apiRequest });
-  const restore = useRestoreTestQuestion({ request: apiRequest });
-  const [failure, setFailure] = useState<{ questionId: string; message: string } | null>(null);
+  const { minimumActiveQuestions: minimum, sittingSize } = bank.data;
   const busy = hide.isPending || restore.isPending;
+  const add = (from: HTMLElement | null = addRef.current) => {
+    returnFocus.current = from;
+    setMinimumFor(null);
+    setEditing({ kind: 'new', domain, test });
+  };
 
   async function setHidden(question: BankQuestion, hidden: boolean) {
     setFailure(null);
+    if (hidden && atMinimum(bankTest!, minimum)) {
+      setMinimumFor((current) => (current === question.id ? null : question.id));
+      return;
+    }
+    setMinimumFor(null);
     try {
       await (hidden ? hide : restore).mutateAsync({ questionId: question.id });
       toast.success(
         hidden ? 'Întrebarea a fost ascunsă din test.' : 'Întrebarea a fost repusă în test.'
       );
     } catch (cause) {
-      setFailure({
-        questionId: question.id,
-        message: testFailure(
-          cause,
-          'Nu am putut salva schimbarea. Verifică conexiunea și încearcă din nou.'
-        ),
-      });
+      if (belowMinimum(cause)) setMinimumFor(question.id);
+      else {
+        setFailure({
+          questionId: question.id,
+          message: testFailure(
+            cause,
+            'Nu am putut salva schimbarea. Verifică conexiunea și încearcă din nou.'
+          ),
+        });
+      }
     }
     await invalidateTestBank(queryClient);
   }
 
-  const numbered = test.questions.map((question, index) => ({
+  let number = 0;
+  const numbered = bankTest.questions.map((question) => ({
     question,
-    number: question.hidden
-      ? null
-      : test.questions.slice(0, index + 1).filter((each) => !each.hidden).length,
+    number: question.hidden ? null : ++number,
   }));
 
   return (
-    <SectionCard
-      data-testid="test-bank-test"
-      data-test={test.test}
-      className="gap-0 pb-0"
-      title={
-        <span className="flex flex-wrap items-baseline gap-x-2">
-          {knowledgeTestLabels[test.test]}
-          <span className="text-sm font-normal text-muted-foreground">{test.code}</span>
-        </span>
-      }
-      description={<span data-testid="test-bank-facts">{facts}</span>}
-      action={
-        <Button size="sm" data-testid="test-question-add" onClick={onAdd}>
+    <div data-testid="test-bank-test" data-domain={domain} data-test={test}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-6">
+        <p data-testid="test-bank-counts" className="flex items-center gap-1.5 text-sm">
+          {bankTestCounts(bankTest, minimum)}
+          <HelpLink topic="teste.extragere" label="Ajutor: Cum se alcătuiește un test" />
+        </p>
+        <Button
+          ref={addRef}
+          data-testid="test-question-add"
+          className="max-sm:w-full"
+          onClick={() => add()}
+        >
           <Plus aria-hidden="true" />
           Adaugă o întrebare
         </Button>
-      }
-    >
-      <ol aria-label={`Întrebările testului ${test.code}`} className="-mx-6 mt-5 divide-y border-t">
+      </div>
+      <ol aria-label={`Întrebările testului ${label}`} className="grid gap-3 p-3 sm:gap-4 sm:p-6">
         {numbered.map(({ question, number }) => (
           <QuestionItem
             key={question.id}
@@ -163,14 +143,35 @@ function BankTestCard({
             number={number}
             busy={busy}
             error={failure?.questionId === question.id ? failure.message : null}
-            onPreview={() => onPreview(question)}
+            minimumOpen={minimumFor === question.id}
+            minimum={minimum}
+            onMinimumClose={() => setMinimumFor(null)}
+            onAdd={add}
+            onPreview={() => setPreviewing(question)}
             onHide={() => void setHidden(question, true)}
             onRestore={() => void setHidden(question, false)}
-            onEdit={() => onEdit(question)}
-            onDelete={() => onDelete(question)}
+            onEdit={() => setEditing({ kind: 'edit', question })}
+            onDelete={() => setDeleting(question)}
           />
         ))}
       </ol>
-    </SectionCard>
+      <QuestionDialog
+        editing={editing}
+        onClose={() => setEditing(null)}
+        onCloseAutoFocus={(event) => {
+          const target = returnFocus.current;
+          returnFocus.current = null;
+          if (!target?.isConnected) return;
+          event.preventDefault();
+          target.focus({ preventScroll: true });
+        }}
+      />
+      <QuestionPreviewDialog
+        question={previewing}
+        sittingSize={sittingSize}
+        onClose={() => setPreviewing(null)}
+      />
+      <DeleteQuestionDialog question={deleting} onClose={() => setDeleting(null)} />
+    </div>
   );
 }

@@ -9,28 +9,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
-import { Progress } from '@ssm-usor/ui/components/progress';
-import { cn } from '@ssm-usor/ui/lib/utils';
-import { useBlocker } from '@tanstack/react-router';
 import {
   ChevronDown,
   ChevronUp,
   FileArchive,
   FileText,
   FileUp,
-  FileX,
   Folder,
-  FolderUp,
   Image as ImageIcon,
-  LoaderCircle,
-  Upload,
   X,
 } from 'lucide-react';
-import { type FormEvent, type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
-import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
 import { EmployeesOverStepNotice } from '@/features/subscription/employees-over-step-notice';
 
@@ -41,15 +33,11 @@ import {
   NoCreditsFooter,
   NoCreditsNotices,
 } from './credits-notices';
-import { creditsRefusal, refusalFromApi, usesSentence } from './import-credits';
+import { usesSentence } from './import-credits';
 import { filesLabel, formatFileSize, photosLabel } from './import-format';
-import { pickedFromInput } from './picked-files';
+import { LocalThumb, SetAsideList, UploadDropZone, UploadProgress } from './upload-parts';
 import {
-  emptySelection,
   isPhoto,
-  mergeSelection,
-  openPicked,
-  type PickedFile,
   removeGroup,
   removeLoosePhotos,
   type SelectedFile,
@@ -57,18 +45,8 @@ import {
   type SelectionRow,
   selectionRows,
   selectionTotals,
-  type SetAsideFile,
-  withCopiesAside,
 } from './upload-selection';
-import { useCreditsBalance } from './use-credits-balance';
-import { useImportDrop } from './use-import-drop';
-import {
-  busySteps,
-  choosingSteps,
-  heldSteps,
-  type UploadPhase,
-  useImportUpload,
-} from './use-import-upload';
+import { useUploadForm } from './use-upload-form';
 
 export type ImportClient = { id: string; legalName: string; cui: string; vatPayer: boolean };
 
@@ -98,84 +76,19 @@ function UploadForm({
   onStarted: (importId: string) => void;
 }) {
   const employeesBlocked = useEmployeesBlocked();
-  const [chosen, setChosen] = useState<Selection>(emptySelection);
-  const selection = withCopiesAside(chosen);
-  const [opening, setOpening] = useState(false);
-  const [unreadable, setUnreadable] = useState(false);
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const filesInput = useRef<HTMLInputElement>(null);
-  const folderInput = useRef<HTMLInputElement>(null);
-  const openingImport = useRef(false);
-  const { phase, upload, retry, continueWithout, abandon, forgetShort } = useImportUpload(
-    client?.id,
-    (id) => {
-      openingImport.current = true;
-      onStarted(id);
-    }
-  );
-  const busy = busySteps.has(phase.step);
-  const choosing = choosingSteps.has(phase.step);
-  const totals = selectionTotals(selection);
-  const over = totals.overFiles || totals.overBytes;
-  const { balance, isOwner } = useCreditsBalance();
+  const form = useUploadForm({
+    kind: 'client',
+    clientId: client?.id,
+    onStarted,
+    onClose,
+    leaveWhileBusy: 'Fișierele încă se încarcă. Dacă pleci acum, renunți la import. Pleci?',
+    creditsNeeded: (selection) =>
+      importStartCredits('client', { photos: selection.files.filter(isPhoto).length, pdfPages: 0 }),
+  });
+  const { selection, totals, over, opening, busy, choosing, refusal, balance, isOwner, leave } =
+    form;
   const photos = selection.files.filter(isPhoto).length;
-  const refusal =
-    phase.step === 'short'
-      ? refusalFromApi(phase.credits)
-      : choosing
-        ? creditsRefusal(balance, importStartCredits('client', { photos, pdfPages: 0 }))
-        : null;
-  useRefuseStrayDrops();
-
-  async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
-    setOpening(true);
-    setUnreadable(false);
-    try {
-      const added = await openPicked(await picked);
-      forgetShort();
-      setChosen((current) => mergeSelection(current, added));
-    } catch {
-      setUnreadable(true);
-    } finally {
-      setOpening(false);
-    }
-  }
-
-  const { dragging, handlers: dropHandlers } = useImportDrop((picked) => {
-    if (!opening) void add(picked);
-  });
-
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (totals.count === 0 || over || opening || refusal) return;
-    void upload(selection.files);
-  }
-
-  // No closing while files go up: the import would stay half uploaded.
-  const holdOpen = (event: Event) => {
-    if (busy) event.preventDefault();
-  };
-
-  useBlocker({
-    shouldBlockFn: () => {
-      if (openingImport.current || (!busy && !heldSteps.has(phase.step))) return false;
-      if (
-        busy &&
-        !window.confirm('Fișierele încă se încarcă. Dacă pleci acum, renunți la import. Pleci?')
-      ) {
-        return true;
-      }
-      leave();
-      return false;
-    },
-    enableBeforeUnload: () => busy,
-  });
-
-  // Elsewhere an import still uploading can only be abandoned, so leaving it here ends it.
-  function leave() {
-    if (busy || heldSteps.has(phase.step)) abandon();
-    onClose();
-  }
 
   const zipNotices = [
     ...selection.archives.map((name) => ({
@@ -201,10 +114,10 @@ function UploadForm({
         data-testid="import-upload-dialog"
         className="sm:max-w-[620px]"
         showCloseButton={!busy}
-        onEscapeKeyDown={holdOpen}
-        onInteractOutside={holdOpen}
+        onEscapeKeyDown={form.holdOpen}
+        onInteractOutside={form.holdOpen}
       >
-        <form onSubmit={onSubmit} aria-busy={busy} noValidate>
+        <form onSubmit={form.onSubmit} aria-busy={busy} noValidate>
           <DialogHeader>
             <DialogTitle>
               {client ? 'Completează din documentație' : 'Client nou din documente'}
@@ -250,87 +163,23 @@ function UploadForm({
                   )}
                 </Notice>
                 {choosing && (
-                  <div
-                    data-testid="import-upload-drop"
-                    className={cn(
-                      'grid justify-items-center gap-2.5 rounded-lg border-[1.5px] border-dashed border-info-border bg-muted/30 p-5 text-center transition-colors',
-                      dragging && 'border-primary bg-primary/5'
-                    )}
-                    {...dropHandlers}
-                  >
-                    {opening ? (
-                      <LoaderCircle
-                        className="size-6 animate-spin text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <FileUp className="size-6 text-muted-foreground" aria-hidden="true" />
-                    )}
-                    <p className="text-sm font-medium">
-                      {opening
-                        ? 'Deschidem fișierele…'
-                        : 'Trage aici fișierele, un folder sau o arhivă ZIP'}
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={opening}
-                        data-testid="import-choose-files"
-                        onClick={() => filesInput.current?.click()}
-                      >
-                        <Upload aria-hidden="true" />
-                        Alege fișiere
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={opening}
-                        data-testid="import-choose-folder"
-                        onClick={() => folderInput.current?.click()}
-                      >
-                        <FolderUp aria-hidden="true" />
-                        Alege un folder
-                      </Button>
-                    </div>
-                    <div
-                      className="flex flex-wrap justify-center gap-1.5"
-                      aria-label="Fișiere pe care le citim"
-                    >
-                      {formats.map((format) => (
-                        <span
-                          key={format}
-                          className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                        >
-                          {format}
-                        </span>
-                      ))}
-                    </div>
-                    <input
-                      ref={filesInput}
-                      type="file"
-                      multiple
-                      className="hidden"
-                      data-testid="import-files-input"
-                      onChange={(event) => {
-                        void add(pickedFromInput(event.target.files ?? []));
-                        event.target.value = '';
-                      }}
-                    />
-                    <input
-                      ref={folderInput}
-                      type="file"
-                      className="hidden"
-                      data-testid="import-folder-input"
-                      {...{ webkitdirectory: '' }}
-                      onChange={(event) => {
-                        void add(pickedFromInput(event.target.files ?? []));
-                        event.target.value = '';
-                      }}
-                    />
-                  </div>
+                  <UploadDropZone
+                    drop={form.drop}
+                    opening={opening}
+                    icon={<FileUp className="size-6 text-muted-foreground" aria-hidden="true" />}
+                    prompt="Trage aici fișierele, un folder sau o arhivă ZIP"
+                    openingText="Deschidem fișierele…"
+                    chooseFilesLabel="Alege fișiere"
+                    formats={formats}
+                    testIds={{
+                      zone: 'import-upload-drop',
+                      filesInput: 'import-files-input',
+                      folderInput: 'import-folder-input',
+                      chooseFiles: 'import-choose-files',
+                      chooseFolder: 'import-choose-folder',
+                    }}
+                    onPicked={(picked) => void form.add(picked)}
+                  />
                 )}
                 {refusal?.kind === 'short' && (
                   <CreditsShortNotice
@@ -340,7 +189,7 @@ function UploadForm({
                     isOwner={isOwner}
                   />
                 )}
-                {unreadable && (
+                {form.unreadable && (
                   <Notice variant="warning" data-testid="import-unreadable">
                     Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege
                     fișiere” ori „Alege un folder”.
@@ -378,17 +227,21 @@ function UploadForm({
                     selection={selection}
                     removable={choosing}
                     onRemoveGroup={(group) => {
-                      forgetShort();
-                      setChosen((current) => removeGroup(current, group));
+                      form.forgetShort();
+                      form.setChosen((current) => removeGroup(current, group));
                     }}
                     onRemovePhotos={() => {
-                      forgetShort();
-                      setChosen(removeLoosePhotos);
+                      form.forgetShort();
+                      form.setChosen(removeLoosePhotos);
                     }}
                   />
                 )}
                 <SetAsideList setAside={selection.setAside} systemFiles={selection.systemFiles} />
-                <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
+                <UploadProgress
+                  phase={form.phase}
+                  onRetry={form.retry}
+                  onContinue={form.continueWithout}
+                />
                 {!refusal && <GiftHint balance={balance} />}
               </DialogBody>
               <DialogFooter className="mt-6 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -418,97 +271,6 @@ function UploadForm({
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-export function UploadProgress({
-  phase,
-  onRetry,
-  onContinue,
-}: {
-  phase: UploadPhase;
-  onRetry: () => void;
-  onContinue: () => void;
-}) {
-  if (phase.step === 'failed') {
-    return (
-      <Notice variant="destructive" data-testid="import-upload-error">
-        {phase.error}
-      </Notice>
-    );
-  }
-  if (phase.step === 'stalled') {
-    return (
-      <Notice
-        variant="destructive"
-        data-testid="import-upload-stalled"
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" onClick={onRetry}>
-              Încearcă din nou
-            </Button>
-            {phase.uploaded > 0 && (
-              <Button type="button" size="sm" variant="ghost" onClick={onContinue}>
-                Citește fără ele
-              </Button>
-            )}
-          </div>
-        }
-      >
-        {phase.uploaded === 0
-          ? 'Niciun fișier nu s-a încărcat. Verifică conexiunea și încearcă din nou.'
-          : phase.failed === 1
-            ? 'Un fișier nu s-a încărcat.'
-            : `${filesLabel(phase.failed)} nu s-au încărcat.`}
-      </Notice>
-    );
-  }
-  if (phase.step === 'unstarted') {
-    return (
-      <Notice
-        variant="destructive"
-        data-testid="import-upload-stalled"
-        action={
-          <Button type="button" size="sm" variant="outline" onClick={onRetry}>
-            Încearcă din nou
-          </Button>
-        }
-      >
-        {phase.error}
-      </Notice>
-    );
-  }
-  if (phase.step === 'empty') {
-    return (
-      <Notice variant="destructive" data-testid="import-upload-empty">
-        Niciun fișier nu a ajuns la noi, așa că nu avem ce citi. Renunță la import și încarcă
-        documentele din nou.
-      </Notice>
-    );
-  }
-  if (phase.step === 'choosing' || phase.step === 'short') return null;
-  const [label, value] =
-    phase.step === 'shrinking'
-      ? [
-          `Micșorăm fotografiile: ${phase.done} din ${phase.total}`,
-          (phase.done / Math.max(1, phase.total)) * 100,
-        ]
-      : phase.step === 'hashing'
-        ? [
-            `Pregătim fișierele: ${phase.done} din ${phase.total}`,
-            (phase.done / Math.max(1, phase.total)) * 100,
-          ]
-        : phase.step === 'uploading'
-          ? [
-              `Se încarcă: ${formatFileSize(phase.sentBytes)} din ${formatFileSize(phase.totalBytes)}`,
-              (phase.sentBytes / Math.max(1, phase.totalBytes)) * 100,
-            ]
-          : ['Pornim citirea…', 100];
-  return (
-    <div className="grid gap-2" data-testid="import-upload-progress" role="status">
-      <p className="text-sm tabular-nums">{label}</p>
-      <Progress value={value} className="h-1.5" aria-label="Încărcarea fișierelor" />
-    </div>
   );
 }
 
@@ -705,105 +467,5 @@ function ChosenRow({
         )}
       </div>
     </RowShell>
-  );
-}
-
-// A HEIC photograph has no preview in most browsers until the import turns it into a JPEG.
-export function LocalThumb({ file, className }: { file: SelectedFile; className: string }) {
-  const previewable = file.mimeType === 'image/jpeg' || file.mimeType === 'image/png';
-  if (previewable) {
-    return (
-      <img
-        data-no-replay
-        alt=""
-        className={cn('shrink-0 rounded-md bg-secondary object-cover', className)}
-        ref={(image) => {
-          if (!image) return;
-          const objectUrl = URL.createObjectURL(file.blob);
-          image.src = objectUrl;
-          return () => URL.revokeObjectURL(objectUrl);
-        }}
-      />
-    );
-  }
-  return (
-    <span
-      className={cn('grid shrink-0 place-items-center rounded-md bg-secondary', className)}
-      aria-hidden="true"
-    >
-      <ImageIcon className="size-4 text-muted-foreground" />
-    </span>
-  );
-}
-
-export type SetAsideReasons = Record<Exclude<SetAsideFile['reason'], 'duplicate'>, string>;
-
-const setAsideReasons: SetAsideReasons = {
-  unsupported: 'tip de fișier pe care nu-l citim',
-  too_large: 'are peste 20 MB',
-  empty: 'fișierul e gol',
-  name_too_long: 'numele are peste 255 de caractere',
-};
-
-export function SetAsideList({
-  setAside,
-  systemFiles,
-  reasons = setAsideReasons,
-  title = 'Puse deoparte, nu se încarcă',
-}: {
-  setAside: SetAsideFile[];
-  systemFiles: string[];
-  reasons?: SetAsideReasons;
-  title?: string;
-}) {
-  if (setAside.length === 0 && systemFiles.length === 0) return null;
-  const systemNames = [
-    ...new Set(
-      systemFiles.map((path) =>
-        path.split('/').includes('__MACOSX') ? '__MACOSX' : path.split('/').at(-1)!
-      )
-    ),
-  ];
-  return (
-    <section
-      aria-labelledby="import-set-aside-heading"
-      data-testid="import-set-aside"
-      className="grid gap-1.5 rounded-lg border-[1.5px] border-dashed bg-muted/30 px-3 py-2.5"
-    >
-      <h3 id="import-set-aside-heading" className="text-sm font-medium">
-        {title}
-      </h3>
-      <ul className="grid gap-1.5">
-        {setAside.map((file) => (
-          <li
-            key={file.key}
-            data-testid="import-set-aside-row"
-            className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5 text-[13px] leading-snug text-muted-foreground"
-          >
-            <FileX className="mt-0.5 size-4" aria-hidden="true" />
-            <span className="wrap-anywhere">
-              <span className="font-medium text-foreground">{file.path}</span>,{' '}
-              {file.reason === 'duplicate'
-                ? `${isPhoto(file) ? 'aceeași fotografie' : 'același fișier'} ca ${file.duplicateOf}`
-                : reasons[file.reason]}
-            </span>
-          </li>
-        ))}
-        {systemFiles.length > 0 && (
-          <li
-            data-testid="import-system-files"
-            className="grid grid-cols-[1rem_minmax(0,1fr)] gap-2.5 text-[13px] leading-snug text-muted-foreground"
-          >
-            <FileX className="mt-0.5 size-4" aria-hidden="true" />
-            <span>
-              <span className="font-medium text-foreground">{systemNames.join(', ')}</span>,{' '}
-              {systemFiles.length === 1
-                ? 'un fișier de sistem'
-                : `${filesLabel(systemFiles.length)} de sistem`}
-            </span>
-          </li>
-        )}
-      </ul>
-    </section>
   );
 }

@@ -53,7 +53,6 @@ function mockReview(
   detail: Detail,
   {
     save,
-    read,
     confirm,
     me,
     documentDetails = {},
@@ -62,7 +61,6 @@ function mockReview(
     workplaces = [],
   }: {
     save?: (body: unknown) => Response | Promise<Response>;
-    read?: (call: number) => Promise<void> | undefined;
     confirm?: () => Response;
     me?: unknown;
     documentDetails?: Record<string, unknown>;
@@ -72,15 +70,11 @@ function mockReview(
   } = {}
 ) {
   saves = 0;
-  let reads = 0;
   mockApi((init, url) => {
     const method = init?.method ?? 'GET';
     if (url.pathname === '/me' && me) return Response.json(me);
     if (url.pathname === `/imports/${importId}` && method === 'GET') {
-      const held = read?.(++reads);
-      return held
-        ? held.then(() => Response.json({ import: detail }))
-        : Response.json({ import: detail });
+      return Response.json({ import: detail });
     }
     if (url.pathname === `/imports/${importId}/changes`) {
       saves += 1;
@@ -1120,11 +1114,7 @@ describe("a protective-equipment entry's duration", () => {
     ).toBeTruthy();
   });
 
-  it('drops the note once the save answers, before the import is read again', async () => {
-    let release = () => {};
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
+  it('drops the note once the save answers, without reading the import again', async () => {
     const detail = durationDetail();
     mockReview(detail, {
       save: (body) =>
@@ -1132,7 +1122,6 @@ describe("a protective-equipment entry's duration", () => {
           version: (body as { version: number }).version + 1,
           blockers: [{ path: 'protectiveEquipment.1.durationMonths', code: 'invalid' }],
         }),
-      read: (call) => (call > 1 ? held : undefined),
     });
     mount('/equipment');
 
@@ -1150,8 +1139,7 @@ describe("a protective-equipment entry's duration", () => {
     const [row, mask] = screen.getAllByTestId('review-item');
     expect(row!.textContent).toContain('12 luni');
     expect(mask!.textContent).toContain('Un articol de consum nu are durată de utilizare.');
-    await waitFor(() => expect(requestsTo(`/imports/${importId}`)).toHaveLength(2));
-    release();
+    expect(requestsTo(`/imports/${importId}`)).toHaveLength(1);
   });
 
   it('says what the saved allocation now asks for', async () => {

@@ -4,7 +4,8 @@ import type { ImportDetail } from '@/api/generated/api';
 import { BackLink } from '@/components/back-link';
 
 import { ImportOverviewBack, ImportParentBack } from './import-back';
-import { ImportLoader, ProcessingView } from './import-processing-page';
+import { ImportLoader } from './import-loader';
+import { ProcessingView } from './import-processing-page';
 import { ConfirmedImportHub } from './library/confirmed-hub';
 import { LibraryTaskPage } from './library/library-task-page';
 import { RisksTaskPage } from './library/risks-task-page';

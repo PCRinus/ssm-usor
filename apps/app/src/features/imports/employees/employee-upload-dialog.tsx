@@ -11,24 +11,13 @@ import {
 } from '@ssm-usor/ui/components/dialog';
 import { Progress } from '@ssm-usor/ui/components/progress';
 import { cn } from '@ssm-usor/ui/lib/utils';
-import { useBlocker } from '@tanstack/react-router';
-import {
-  BriefcaseBusiness,
-  Camera,
-  FileText,
-  FolderUp,
-  LoaderCircle,
-  Plus,
-  Upload,
-  X,
-} from 'lucide-react';
-import { type FormEvent, type ReactNode, useRef, useState } from 'react';
+import { BriefcaseBusiness, Camera, FileText, Plus, X } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 
 import { HelpLink } from '@/components/help-link';
 import { Notice } from '@/components/notice';
 import { Masked } from '@/components/replay';
 import { useAuth } from '@/features/auth/auth-context';
-import { useRefuseStrayDrops } from '@/features/client-files/use-file-drop';
 import { roCount } from '@/features/employees/employee-format';
 import { useJobPositionOptions } from '@/features/job-positions/use-job-position-options';
 import { useEmployeesBlocked } from '@/features/subscription/employees-over-step';
@@ -40,31 +29,18 @@ import {
   NoCreditsFooter,
   NoCreditsNotices,
 } from '../credits-notices';
-import { creditsRefusal, refusalFromApi, usesSentence } from '../import-credits';
+import { usesSentence } from '../import-credits';
 import { formatFileSize, photosLabel } from '../import-format';
+import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-preview-dialog';
 import {
   LocalThumb,
   SetAsideList,
   type SetAsideReasons,
+  UploadDropZone,
   UploadProgress,
-} from '../import-upload-dialog';
-import { LocalPhotoView, PhotoPreviewDialog, type PreviewPhoto } from '../photo-preview-dialog';
-import { pickedFromInput } from '../picked-files';
-import {
-  emptySelection,
-  isPhoto,
-  mergeSelection,
-  openPicked,
-  type PickedFile,
-  removeFiles,
-  type SelectedFile,
-  type Selection,
-  selectionTotals,
-  withCopiesAside,
-} from '../upload-selection';
-import { useCreditsBalance } from '../use-credits-balance';
-import { useImportDrop } from '../use-import-drop';
-import { busySteps, choosingSteps, heldSteps, useImportUpload } from '../use-import-upload';
+} from '../upload-parts';
+import { isPhoto, removeFiles, type SelectedFile, type Selection } from '../upload-selection';
+import { useUploadForm } from '../use-upload-form';
 import { type FoundBatch, foundIn, foundOn, useFoundSheets } from './found-sheets';
 import { FoundSheetView, FoundStrip, FoundThumb } from './found-strip';
 
@@ -133,15 +109,8 @@ function UploadForm({
   onImportDocumentation?: () => void;
 }) {
   const employeesBlocked = useEmployeesBlocked();
-  const [chosen, setChosen] = useState<Selection>(emptySelection);
-  const selection = withCopiesAside(chosen);
   const [added, setAdded] = useState<string[] | null>(withFound ? null : []);
-  const [opening, setOpening] = useState(false);
-  const [unreadable, setUnreadable] = useState(false);
   const [noPostsDismissed, setNoPostsDismissed] = useState(false);
-  const filesInput = useRef<HTMLInputElement>(null);
-  const folderInput = useRef<HTMLInputElement>(null);
-  const openingImport = useRef(false);
   const found = useFoundSheets(client.id);
   const { session } = useAuth();
   const positions = useJobPositionOptions(client.id, session?.user.id ?? '');
@@ -151,92 +120,29 @@ function UploadForm({
   const addedSheets = batches.flatMap((batch) =>
     batch.sheets.filter((sheet) => addedIds.includes(sheet.id))
   );
-  const { phase, upload, retry, continueWithout, abandon, forgetShort } = useImportUpload(
-    client.id,
-    (id) => {
-      openingImport.current = true;
-      onStarted(id);
-    },
-    'employees'
-  );
-  const busy = busySteps.has(phase.step);
-  const choosing = choosingSteps.has(phase.step);
-  const pdfFiles = selection.files.filter((file) => file.mimeType === 'application/pdf');
-  const pdfs = pdfFiles.length;
-  const read = {
-    photos: selection.files.filter(isPhoto).length + addedSheets.length,
-    pdfPages: pdfFiles.reduce((total, file) => total + file.pages, 0),
-  };
-  const totals = selectionTotals(selection, 'employees', {
-    count: addedSheets.length,
-    pages: addedSheets.length,
-    bytes: addedSheets.reduce((total, sheet) => total + sheet.sizeBytes, 0),
+  const readOf = (chosen: Selection) => ({
+    photos: chosen.files.filter(isPhoto).length + addedSheets.length,
+    pdfPages: chosen.files
+      .filter((file) => file.mimeType === 'application/pdf')
+      .reduce((total, file) => total + file.pages, 0),
   });
-  const over = totals.overFiles || totals.overBytes;
+  const form = useUploadForm({
+    kind: 'employees',
+    clientId: client.id,
+    onStarted,
+    onClose,
+    leaveWhileBusy: 'Fotografiile încă se încarcă. Dacă pleci acum, renunți la import. Pleci?',
+    creditsNeeded: (chosen) => importStartCredits('employees', readOf(chosen)),
+    addedSheets,
+  });
+  const { selection, totals, over, opening, busy, choosing, refusal, balance, isOwner, leave } =
+    form;
   const bytesLabel = `${totals.estimated ? 'cam ' : ''}${sizeLabel(totals.bytes)}`;
   const noPosts = positions.isSuccess && (positions.data?.items ?? []).length === 0;
-  const { balance, isOwner } = useCreditsBalance();
-  const refusal =
-    phase.step === 'short'
-      ? refusalFromApi(phase.credits)
-      : choosing
-        ? creditsRefusal(balance, importStartCredits('employees', read))
-        : null;
+  const pdfs = selection.files.filter((file) => file.mimeType === 'application/pdf').length;
   const nearLimits =
     totals.pages >= metersFrom * limits.scannedPages ||
     totals.bytes >= metersFrom * limits.totalBytes;
-  useRefuseStrayDrops();
-
-  async function add(picked: Promise<PickedFile[]> | PickedFile[]) {
-    setOpening(true);
-    setUnreadable(false);
-    try {
-      const added = await openPicked(await picked, 'employees');
-      forgetShort();
-      setChosen((current) => mergeSelection(current, added));
-    } catch {
-      setUnreadable(true);
-    } finally {
-      setOpening(false);
-    }
-  }
-
-  const { dragging, handlers } = useImportDrop((picked) => {
-    if (!opening) void add(picked);
-  });
-
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (totals.count === 0 || over || opening || refusal) return;
-    void upload(selection.files, {
-      ids: addedSheets.map((sheet) => sheet.id),
-      bytes: addedSheets.reduce((total, sheet) => total + sheet.sizeBytes, 0),
-    });
-  }
-
-  const holdOpen = (event: Event) => {
-    if (busy) event.preventDefault();
-  };
-
-  useBlocker({
-    shouldBlockFn: () => {
-      if (openingImport.current || (!busy && !heldSteps.has(phase.step))) return false;
-      if (
-        busy &&
-        !window.confirm('Fotografiile încă se încarcă. Dacă pleci acum, renunți la import. Pleci?')
-      ) {
-        return true;
-      }
-      leave();
-      return false;
-    },
-    enableBeforeUnload: () => busy,
-  });
-
-  function leave() {
-    if (busy || heldSteps.has(phase.step)) abandon();
-    onClose();
-  }
 
   const fromFound = batches
     .map((batch) => ({
@@ -254,10 +160,10 @@ function UploadForm({
         data-testid="employee-upload-dialog"
         className="sm:max-w-[760px]"
         showCloseButton={!busy}
-        onEscapeKeyDown={holdOpen}
-        onInteractOutside={holdOpen}
+        onEscapeKeyDown={form.holdOpen}
+        onInteractOutside={form.holdOpen}
       >
-        <form onSubmit={onSubmit} aria-busy={busy} noValidate>
+        <form onSubmit={form.onSubmit} aria-busy={busy} noValidate>
           <DialogHeader>
             <DialogTitle>Lucrători din fișele de instruire</DialogTitle>
             <DialogDescription>
@@ -322,92 +228,28 @@ function UploadForm({
                       batch={batch}
                       addedIds={addedIds}
                       onAdd={(ids) => {
-                        forgetShort();
+                        form.forgetShort();
                         setAdded([...addedIds, ...ids]);
                       }}
                     />
                   ))}
                 {choosing && (
-                  <div
-                    data-testid="employee-upload-drop"
-                    className={cn(
-                      'grid justify-items-center gap-2.5 rounded-lg border-[1.5px] border-dashed border-info-border bg-muted/30 p-5 text-center transition-colors',
-                      dragging && 'border-primary bg-primary/5'
-                    )}
-                    {...handlers}
-                  >
-                    {opening ? (
-                      <LoaderCircle
-                        className="size-6 animate-spin text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <Camera className="size-6 text-muted-foreground" aria-hidden="true" />
-                    )}
-                    <p className="text-sm font-medium">
-                      {opening
-                        ? 'Deschidem fotografiile…'
-                        : 'Trage aici fotografiile fișelor, un folder sau o arhivă ZIP'}
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={opening}
-                        onClick={() => filesInput.current?.click()}
-                      >
-                        <Upload aria-hidden="true" />
-                        Alege fotografii
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={opening}
-                        onClick={() => folderInput.current?.click()}
-                      >
-                        <FolderUp aria-hidden="true" />
-                        Alege un folder
-                      </Button>
-                    </div>
-                    <div
-                      className="flex flex-wrap justify-center gap-1.5"
-                      aria-label="Fișiere pe care le citim"
-                    >
-                      {formats.map((format) => (
-                        <span
-                          key={format}
-                          className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                        >
-                          {format}
-                        </span>
-                      ))}
-                    </div>
-                    <input
-                      ref={filesInput}
-                      type="file"
-                      multiple
-                      accept="image/jpeg,image/png,image/heic,image/heif,application/pdf,.heic,.heif,.zip"
-                      className="hidden"
-                      data-testid="employee-upload-files-input"
-                      onChange={(event) => {
-                        void add(pickedFromInput(event.target.files ?? []));
-                        event.target.value = '';
-                      }}
-                    />
-                    <input
-                      ref={folderInput}
-                      type="file"
-                      className="hidden"
-                      data-testid="employee-upload-folder-input"
-                      {...{ webkitdirectory: '' }}
-                      onChange={(event) => {
-                        void add(pickedFromInput(event.target.files ?? []));
-                        event.target.value = '';
-                      }}
-                    />
-                  </div>
+                  <UploadDropZone
+                    drop={form.drop}
+                    opening={opening}
+                    icon={<Camera className="size-6 text-muted-foreground" aria-hidden="true" />}
+                    prompt="Trage aici fotografiile fișelor, un folder sau o arhivă ZIP"
+                    openingText="Deschidem fotografiile…"
+                    chooseFilesLabel="Alege fotografii"
+                    formats={formats}
+                    accept="image/jpeg,image/png,image/heic,image/heif,application/pdf,.heic,.heif,.zip"
+                    testIds={{
+                      zone: 'employee-upload-drop',
+                      filesInput: 'employee-upload-files-input',
+                      folderInput: 'employee-upload-folder-input',
+                    }}
+                    onPicked={(picked) => void form.add(picked)}
+                  />
                 )}
                 {refusal?.kind === 'short' && (
                   <CreditsShortNotice
@@ -418,7 +260,7 @@ function UploadForm({
                     withPages={pdfs > 0}
                   />
                 )}
-                {unreadable && (
+                {form.unreadable && (
                   <Notice variant="warning" data-testid="employee-upload-unreadable">
                     Nu am putut deschide fișierele alese. Încearcă din nou sau alege-le cu „Alege
                     fotografii” ori „Alege un folder”.
@@ -457,16 +299,16 @@ function UploadForm({
                     bytes={bytesLabel}
                     removable={choosing}
                     onRemoveFile={(key) => {
-                      forgetShort();
-                      setChosen((current) => removeFiles(current, [key]));
+                      form.forgetShort();
+                      form.setChosen((current) => removeFiles(current, [key]));
                     }}
                     onRemoveFound={(id) => {
-                      forgetShort();
+                      form.forgetShort();
                       setAdded(addedIds.filter((each) => each !== id));
                     }}
                     onClear={() => {
-                      forgetShort();
-                      setChosen((current) => ({ ...current, files: [] }));
+                      form.forgetShort();
+                      form.setChosen((current) => ({ ...current, files: [] }));
                       setAdded([]);
                     }}
                   />
@@ -477,7 +319,11 @@ function UploadForm({
                   reasons={setAsideReasons}
                   title="Puse deoparte, nu le citim"
                 />
-                <UploadProgress phase={phase} onRetry={retry} onContinue={continueWithout} />
+                <UploadProgress
+                  phase={form.phase}
+                  onRetry={form.retry}
+                  onContinue={form.continueWithout}
+                />
               </DialogBody>
               <DialogFooter
                 className={cn(
@@ -487,7 +333,7 @@ function UploadForm({
               >
                 <CreditsLine
                   className={nearLimits ? 'sm:basis-full' : 'sm:flex-1'}
-                  uses={usesSentence('employees', { ...read, pdfs })}
+                  uses={usesSentence('employees', { ...readOf(selection), pdfs })}
                   balance={balance}
                   short={refusal !== null}
                 />

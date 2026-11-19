@@ -29,18 +29,11 @@ import {
   vatPayerInForce,
 } from './review-model';
 import { LinkButton, StatusTag } from './review-parts';
-import {
-  blockerLinks,
-  fieldStates,
-  reviewName,
-  sectionReviewHints,
-  sectionStatuses,
-} from './review-summary';
+import { sectionReviewHints } from './review-summary';
 import { SourceDialog, type SourceRequest } from './source-dialog';
 import { SourcePrefetchContext, useSourcePrefetch } from './source-query';
-import { keptPosts, withoutAbsentCategories } from './training-category';
 import { useImportAttention } from './use-import-attention';
-import { useExistingValues, useImportReview } from './use-import-review';
+import { useClientReview } from './use-import-review';
 
 export function ReviewSectionPage({
   detail,
@@ -49,19 +42,20 @@ export function ReviewSectionPage({
   detail: ImportDetail;
   section: SectionId;
 }) {
-  const proposal = detail.proposal!;
-  const review = useImportReview(detail);
-  const existing = useExistingValues(detail);
+  const {
+    proposal,
+    review,
+    existing,
+    blockers,
+    states,
+    statuses,
+    links: allLinks,
+    name,
+  } = useClientReview(detail);
   const [source, setSource] = useState<SourceRequest | null>(null);
   const prefetchSource = useSourcePrefetch(detail.id);
   const reveal = useImportAttention(existing.ready, section);
   const registered = detail.registeredCompany;
-  const states = fieldStates(
-    proposal,
-    review.changes,
-    existing.valueAt,
-    detail.intoExistingClient ? null : registered
-  );
   const context: FieldContext = {
     proposal,
     changes: review.changes,
@@ -76,24 +70,14 @@ export function ReviewSectionPage({
     importId: detail.id,
     openSource: (title, sources, otherCompanyName) =>
       setSource({ title, sources, otherCompanyName }),
-    blockers: detail.blockers,
+    blockers,
   };
-  const statuses = sectionStatuses(
-    proposal,
-    review.changes,
-    detail.blockers,
-    withoutAbsentCategories(states, keptPosts(proposal, review.changes, existing.positions)),
-    registered
-  );
-  const links = blockerLinks(proposal, review.changes, detail.blockers).filter(
-    (link) => link.section === section
-  );
+  const links = allLinks.filter((link) => link.section === section);
   const hints =
     statuses[section].kind === 'check' ? sectionReviewHints(section, proposal, review.changes) : [];
   const position = sectionIds.indexOf(section);
   const previous = sectionIds[position - 1];
   const next = sectionIds[position + 1];
-  const name = reviewName(detail, proposal, review.changes);
 
   return (
     <SourcePrefetchContext value={prefetchSource}>
