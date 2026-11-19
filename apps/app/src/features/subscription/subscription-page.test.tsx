@@ -1,8 +1,9 @@
 import type { BillingChoice, BillingOverview } from '@ssm-usor/contracts';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
   activeSubscription,
@@ -27,8 +28,6 @@ vi.mock('./leave', () => ({ leaveFor: vi.fn() }));
 type Route = (init: RequestInit | undefined) => Response | Promise<Response>;
 type Owner = NonNullable<BillingOverview['owner']>;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   overview,
   role = 'owner',
@@ -42,42 +41,29 @@ function mockApi({
   impersonating?: boolean;
   routes?: Record<string, Route>;
 }) {
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
-    const method = init?.method ?? 'GET';
-    const route = routes[`${method} ${pathname}`];
-    if (route) return route(init);
-    if (pathname === '/me') {
-      return Response.json(
-        meFor({ role, impersonating, subscription: summaryOf(overview.subscription), ...me })
-      );
+  mockRoutes(
+    (init, { pathname }) => {
+      const method = init?.method ?? 'GET';
+      const route = routes[`${method} ${pathname}`];
+      if (route) return route(init);
+      if (pathname === '/billing' && method === 'GET') return Response.json(overview);
+    },
+    {
+      me: meFor({ role, impersonating, subscription: summaryOf(overview.subscription), ...me }),
     }
-    if (pathname === '/billing' && method === 'GET') return Response.json(overview);
-    return Response.json({ error: 'not_found', message: 'Not found' }, { status: 404 });
-  });
+  );
 }
 
-const requests = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
 const bodyOf = (pathname: string, method: string) =>
-  JSON.parse(String(requests(pathname, method).at(-1)?.[1]?.body)) as unknown;
+  JSON.parse(String(requestsTo(pathname, method).at(-1)?.[1]?.body)) as unknown;
 
 const mount = () => mountApp(authFixture(makeSession()).client, '/organizatie/abonament');
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
 afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
   vi.mocked(leaveFor).mockClear();
 });
+
+installFetchMock();
 
 describe('the Abonament tab', () => {
   it('sits after Abilitări and shows a trial without a plan', async () => {
@@ -191,7 +177,7 @@ describe('the Abonament tab', () => {
     await user.type(within(dialog).getByTestId('cancel-note'), 'Revin în ianuarie.');
     await user.click(within(dialog).getByTestId('cancel-confirm'));
 
-    await waitFor(() => expect(requests('/billing/subscription/cancel', 'POST')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/billing/subscription/cancel', 'POST')).toHaveLength(1));
     expect(bodyOf('/billing/subscription/cancel', 'POST')).toEqual({
       reason: 'too_expensive',
       note: 'Revin în ianuarie.',
@@ -218,7 +204,7 @@ describe('the Abonament tab', () => {
     await user.click(await screen.findByTestId('subscription-cancel'));
     const dialog = await screen.findByTestId('cancel-dialog');
     await user.click(within(dialog).getByTestId('cancel-confirm'));
-    await waitFor(() => expect(requests('/billing/subscription/cancel', 'POST')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/billing/subscription/cancel', 'POST')).toHaveLength(1));
     await user.keyboard('{Escape}');
     expect(screen.getByTestId('cancel-dialog')).toBe(dialog);
     refuse(Response.json({ error: 'forbidden', message: 'Owner only' }, { status: 403 }));
@@ -492,10 +478,10 @@ describe('the Abonament tab', () => {
         .textContent
     ).toBeTruthy();
     expect(dialog.textContent).toContain('180,29 €');
-    const previewsBefore = requests('/billing/preview', 'POST').length;
+    const previewsBefore = requestsTo('/billing/preview', 'POST').length;
     await user.click(within(dialog).getByTestId('change-confirm'));
 
-    await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/billing/subscription', 'PATCH')).toHaveLength(1));
     expect(bodyOf('/billing/subscription', 'PATCH')).toEqual(target);
     expect(
       await screen.findByText(/De pe .* treci la Profesional, până la 1\.500 de lucrători, lunar/)
@@ -504,7 +490,7 @@ describe('the Abonament tab', () => {
 
     await user.click(screen.getByTestId('subscription-switch-interval'));
     await waitFor(() =>
-      expect(requests('/billing/preview', 'POST').length).toBeGreaterThan(previewsBefore)
+      expect(requestsTo('/billing/preview', 'POST').length).toBeGreaterThan(previewsBefore)
     );
   });
 
@@ -533,7 +519,7 @@ describe('the Abonament tab', () => {
     await within(dialog).findByRole('heading', { name: 'Treci la plata anuală?' });
     await user.click(within(dialog).getByTestId('change-confirm'));
 
-    await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/billing/subscription', 'PATCH')).toHaveLength(1));
     expect(bodyOf('/billing/subscription', 'PATCH')).toMatchObject({ prorationDate: shownAt });
   });
 
@@ -607,7 +593,7 @@ describe('the Abonament tab', () => {
       within(screen.getByTestId('plan-card')).getByTestId('plan-amount').textContent
     ).toContain('Niciuna');
     await userEvent.click(within(notice).getByTestId('notice-resume'));
-    await waitFor(() => expect(requests('/billing/subscription/resume', 'POST')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/billing/subscription/resume', 'POST')).toHaveLength(1));
     expect(await screen.findByText('Abonamentul se reînnoiește din nou.')).toBeTruthy();
   });
 
@@ -937,12 +923,12 @@ describe('the Abonament tab', () => {
     await user.type(input, 'nu-e-email');
     await user.click(screen.getByTestId('invoice-email-save'));
     expect(await screen.findByText(/Scrie o adresă de email validă/)).toBeTruthy();
-    expect(requests('/billing/invoice-email', 'PUT')).toHaveLength(0);
+    expect(requestsTo('/billing/invoice-email', 'PUT')).toHaveLength(0);
 
     await user.clear(input);
     await user.type(input, 'contabilitate@protectconsult.ro');
     await user.click(screen.getByTestId('invoice-email-save'));
-    await waitFor(() => expect(requests('/billing/invoice-email', 'PUT')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/billing/invoice-email', 'PUT')).toHaveLength(1));
     expect(bodyOf('/billing/invoice-email', 'PUT')).toEqual({
       email: 'contabilitate@protectconsult.ro',
     });
@@ -1118,7 +1104,7 @@ describe('the Extra card', () => {
     expect(within(card).getByRole('alert').textContent).toBe(
       'Plafonul e de cel puțin 1 €. Ca să nu plătești nimic, lasă Extra oprit.'
     );
-    expect(requests('/billing/extras/credits', 'PUT')).toHaveLength(0);
+    expect(requestsTo('/billing/extras/credits', 'PUT')).toHaveLength(0);
   });
 
   it('turns an extra off at once, without asking again', async () => {

@@ -5,6 +5,7 @@ import { type ReactNode, useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getGetBillingQueryKey } from '@/api/generated/api';
+import { installFetchMock, mockApi as mockRoutes, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
   activeSubscription,
@@ -15,7 +16,7 @@ import {
   summaryOf,
   trialSubscription,
 } from '@/test/billing-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
 
 const stripe = vi.hoisted(() => ({
   submit: vi.fn(async () => ({ error: undefined as { message?: string } | undefined })),
@@ -46,8 +47,6 @@ vi.mock('@stripe/react-stripe-js', () => ({
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
 function mockApi({
   overview,
   after,
@@ -59,8 +58,7 @@ function mockApi({
   routes?: Record<string, Route>;
 }) {
   let current = overview;
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
     if (pathname === '/billing/preview' && method === 'POST') {
       const choice = JSON.parse(String(init?.body)) as BillingChoice;
@@ -79,36 +77,27 @@ function mockApi({
       return Response.json(meFor({ subscription: summaryOf(current.subscription) }));
     }
     if (pathname === '/billing' && method === 'GET') return Response.json(current);
-    return Response.json({ error: 'not_found', message: 'Not found' }, { status: 404 });
   });
 }
 
-const requests = (pathname: string, method = 'GET') =>
-  fetchMock.mock.calls.filter(
-    ([input, init]) =>
-      new URL(String(input)).pathname === pathname && (init?.method ?? 'GET') === method
-  );
-
 const bodyOf = (pathname: string, method: string) =>
-  JSON.parse(String(requests(pathname, method).at(-1)?.[1]?.body)) as unknown;
+  JSON.parse(String(requestsTo(pathname, method).at(-1)?.[1]?.body)) as unknown;
 
 const mount = (search = '') =>
   mountApp(authFixture(makeSession()).client, `/organizatie/abonament/alege${search}`);
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+installFetchMock();
+
 beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
   vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_checkout');
   stripe.submit.mockClear();
   stripe.confirmSetup.mockClear();
   stripe.confirmPayment.mockClear();
   stripe.elementsOptions.length = 0;
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
 });
 
 const savedCard = { brand: 'visa', last4: '4242', expMonth: 8, expYear: 2028 };
@@ -357,7 +346,7 @@ describe('choosing a plan', () => {
     await userEvent.click(submit);
 
     await waitFor(() => expect(seenDuringConfirmation).toHaveLength(2));
-    expect(requests('/billing/subscription', 'POST')).toHaveLength(1);
+    expect(requestsTo('/billing/subscription', 'POST')).toHaveLength(1);
     expect(seenDuringConfirmation).toEqual(['Alege planul', 'card form']);
     await waitFor(() =>
       expect(runtime.router.state.location.pathname).toBe('/organizatie/abonament')
@@ -510,7 +499,7 @@ describe('choosing a plan', () => {
     expect(dialog.textContent).toContain('până la 500 de lucrători, 10 utilizatori');
     await userEvent.click(within(dialog).getByTestId('change-confirm'));
 
-    await waitFor(() => expect(requests('/billing/subscription', 'PATCH')).toHaveLength(1));
+    await waitFor(() => expect(requestsTo('/billing/subscription', 'PATCH')).toHaveLength(1));
     expect(bodyOf('/billing/subscription', 'PATCH')).toEqual({
       plan: 'profesional',
       step: 500,
@@ -613,14 +602,13 @@ describe('choosing a plan', () => {
   });
 
   it('tells a specialist only the owner chooses', async () => {
-    fetchMock.mockImplementation(async (input) => {
-      const { pathname } = new URL(String(input));
-      if (pathname === '/me') return Response.json(meFor({ role: 'specialist' }));
-      if (pathname === '/billing') {
-        return Response.json(overviewWith({ subscription: trialSubscription(12) }));
-      }
-      return Response.json({}, { status: 404 });
-    });
+    mockRoutes(
+      (_init, { pathname }) =>
+        pathname === '/billing'
+          ? Response.json(overviewWith({ subscription: trialSubscription(12) }))
+          : undefined,
+      { me: meFor({ role: 'specialist' }) }
+    );
     mount();
 
     expect((await screen.findByTestId('choose-plan-owner-only')).textContent).toContain(
