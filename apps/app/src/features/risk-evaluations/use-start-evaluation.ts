@@ -1,4 +1,4 @@
-import { useNavigate, useRouteContext } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -7,6 +7,7 @@ import {
   getListRiskEvaluationsQueryKey,
   useCreateRiskEvaluation,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { keepOpener, openedHere } from '@/app/opener';
 
 import { evaluationFailure, failureReason } from './evaluation-failure';
@@ -16,10 +17,10 @@ import { useEvaluationCache } from './use-evaluation-cache';
 // entry would leave the sheet's arrow going back to the same sheet.
 export function useStartEvaluation(clientId: string, { onSheet = false } = {}) {
   const opening = onSheet ? { replace: true, state: keepOpener } : { state: openedHere };
-  const { apiRequest, queryClient } = useRouteContext({ from: '__root__' });
+  const { request, queryClient } = useApi();
   const navigate = useNavigate();
   const cache = useEvaluationCache(clientId);
-  const create = useCreateRiskEvaluation({ request: apiRequest });
+  const create = useCreateRiskEvaluation({ request });
   const [failure, setFailure] = useState<{ message: string; nameTaken: boolean } | null>(null);
 
   async function start(data: CreateRiskEvaluationRequest) {

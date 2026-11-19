@@ -1,6 +1,5 @@
-import { useRouteContext } from '@tanstack/react-router';
-
 import { useUpdateRiskEvaluation } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import { evaluationFailure } from './evaluation-failure';
 import {
@@ -18,9 +17,9 @@ export interface WorkSystemStore {
 }
 
 export function useEvaluationWorkSystemStore(evaluation: RiskEvaluation): WorkSystemStore {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request } = useApi();
   const cache = useEvaluationCache(evaluation.clientId);
-  const update = useUpdateRiskEvaluation({ request: apiRequest });
+  const update = useUpdateRiskEvaluation({ request });
 
   return {
     save: async (values) => {

@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@ssm-usor/ui/components/dialog';
 import { NativeSelect, NativeSelectOption } from '@ssm-usor/ui/components/native-select';
-import { useRouteContext } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import {
@@ -16,6 +15,7 @@ import {
   useCopyRiskFactors,
   useListRiskEvaluations,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { replayShow } from '@/app/observability/replay-masking';
 import { Field } from '@/components/form-field';
 import { Notice } from '@/components/notice';
@@ -27,26 +27,24 @@ import { useEvaluationCache } from './use-evaluation-cache';
 
 export function CopyRiskFactorsDialog({
   evaluation,
-  userId,
   open,
   onClose,
 }: {
   evaluation: RiskEvaluation;
-  userId: string;
   open: boolean;
   onClose: () => void;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const savedToast = useSavedToast();
   const cache = useEvaluationCache(evaluation.clientId);
   const evaluations = useListRiskEvaluations(evaluation.clientId, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getListRiskEvaluationsQueryKey(evaluation.clientId), userId],
+      queryKey: key(getListRiskEvaluationsQueryKey(evaluation.clientId)),
       enabled: open,
     },
   });
-  const copy = useCopyRiskFactors({ request: apiRequest });
+  const copy = useCopyRiskFactors({ request });
   const [source, setSource] = useState('');
   const [error, setError] = useState<string | null>(null);
   const sources = (evaluations.data?.items ?? []).filter(

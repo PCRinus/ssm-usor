@@ -1,5 +1,4 @@
 import type { Query, QueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 
 import {
   getGetJobPositionRiskEvaluationQueryKey,
@@ -8,6 +7,7 @@ import {
   type JobPositionRiskEvaluationResponse,
   type RiskEvaluationResponse,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 
 import type { RiskEvaluation } from './risk-evaluation-schema';
 
@@ -31,7 +31,7 @@ export const invalidateEvaluations = (queryClient: QueryClient) =>
 // Every change answers with the whole evaluation, so it is written into both ways of reading
 // it; the list's counts and levels move with it.
 export function useEvaluationCache(clientId: string) {
-  const { queryClient } = useRouteContext({ from: '__root__' });
+  const { queryClient } = useApi();
   const listKey = getListRiskEvaluationsQueryKey(clientId);
 
   return {

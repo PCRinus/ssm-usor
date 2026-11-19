@@ -5,13 +5,14 @@ import {
 } from '@ssm-usor/contracts';
 import { Button } from '@ssm-usor/ui/components/button';
 import { Skeleton } from '@ssm-usor/ui/components/skeleton';
-import { Link, useRouteContext } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { ArrowRight, Plus, ShieldAlert } from 'lucide-react';
 
 import {
   getGetJobPositionRiskEvaluationQueryKey,
   useGetJobPositionRiskEvaluation,
 } from '@/api/generated/api';
+import { useApi } from '@/api/use-api';
 import { openedHere } from '@/app/opener';
 import { EmptyState } from '@/components/empty-state';
 import { Notice } from '@/components/notice';
@@ -31,20 +32,18 @@ export function PositionRiskEvaluationCard({
   id,
   clientId,
   position,
-  userId,
   readOnly,
 }: {
   id: string;
   clientId: string;
   position: JobPosition;
-  userId: string;
   readOnly: boolean;
 }) {
-  const { apiRequest } = useRouteContext({ from: '__root__' });
+  const { request, key } = useApi();
   const query = useGetJobPositionRiskEvaluation(clientId, position.id, {
-    request: apiRequest,
+    request,
     query: {
-      queryKey: [...getGetJobPositionRiskEvaluationQueryKey(clientId, position.id), userId],
+      queryKey: key(getGetJobPositionRiskEvaluationQueryKey(clientId, position.id)),
     },
   });
   const { start, pending, failure } = useStartEvaluation(clientId);
