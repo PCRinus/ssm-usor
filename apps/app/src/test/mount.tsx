@@ -1,3 +1,4 @@
+import { withoutRetryWait } from '@ssm-usor/spa-runtime/testing/query-client';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 
@@ -10,10 +11,12 @@ import { runtimes } from './runtimes';
 
 export { disposeRuntimes } from './runtimes';
 
+export const createTestQueryClient = () => withoutRetryWait(createQueryClient());
+
 export function mountApp(client: AuthClient | null, path = '/dashboard') {
   const runtime = createAppRuntime(
     client,
-    createQueryClient(),
+    createTestQueryClient(),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:8787'
   );

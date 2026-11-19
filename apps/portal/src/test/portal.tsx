@@ -1,5 +1,6 @@
 import { currentPrivacyNoticeVersion } from '@ssm-usor/contracts';
 import { createQueryClient } from '@ssm-usor/spa-runtime/query-client';
+import { withoutRetryWait } from '@ssm-usor/spa-runtime/testing/query-client';
 import type { Session } from '@supabase/supabase-js';
 import type { SkipToken, UseQueryResult } from '@tanstack/react-query';
 import { createMemoryHistory } from '@tanstack/react-router';
@@ -64,7 +65,7 @@ export function disposeRuntimes() {
 export function mountPortal(client: AuthClient | null, path = '/') {
   const runtime = createPortalRuntime(
     client,
-    createQueryClient(),
+    withoutRetryWait(createQueryClient()),
     createMemoryHistory({ initialEntries: [path] }),
     'http://localhost:8787'
   );

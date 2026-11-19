@@ -1,7 +1,11 @@
+import { setupGuideSchema, setupStepIds } from '@ssm-usor/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { bodiesOf, bodyOf, installFetchMock, mockApi, requestsTo } from './api';
-import { meRecord } from './records';
+import type { Release } from '@/api/generated/api';
+
+import { bodiesOf, bodyOf, finishedSetupGuide, installFetchMock, mockApi, requestsTo } from './api';
+import { quietSummary } from './dashboard-fixture';
+import { clientId, meRecord } from './records';
 
 installFetchMock();
 
@@ -32,6 +36,46 @@ describe('the shared API mock', () => {
 
     mockApi(() => undefined, { me: null });
     await expect(fetch(`${api}/me`)).rejects.toThrow('Unexpected request: GET /me');
+  });
+
+  it("answers the shell's background reads unless a route does", async () => {
+    const release: Release = {
+      tag: '2026.11.18',
+      publishedAt: '2026-11-18T08:00:00.000Z',
+      headline: 'Lista de clienți se filtrează mai ușor',
+      lead: null,
+      features: [],
+      improvements: [],
+      fixes: [],
+      unread: true,
+    };
+    mockApi((_init, url) =>
+      url.pathname === '/releases' ? Response.json({ items: [release] }) : undefined
+    );
+
+    expect(await (await fetch(`${api}/releases`)).json()).toEqual({ items: [release] });
+    expect(await (await fetch(`${api}/me/setup`)).json()).toEqual(finishedSetupGuide);
+    expect(await (await fetch(`${api}/imports?kind=all`)).json()).toEqual({ items: [] });
+    expect(await (await fetch(`${api}/documents/behind/summary`)).json()).toEqual({
+      counts: { occupational_safety: 0, fire_safety: 0 },
+      running: [],
+    });
+    expect(await (await fetch(`${api}/dashboard/summary`)).json()).toEqual(quietSummary);
+    await expect(fetch(`${api}/imports`)).rejects.toThrow('Unexpected request: GET /imports');
+    await expect(fetch(`${api}/imports?kind=employees&clientId=${clientId}`)).rejects.toThrow(
+      'Unexpected request: GET /imports'
+    );
+    await expect(fetch(`${api}/documents/behind/summary?set=fire_safety`)).rejects.toThrow(
+      'Unexpected request: GET /documents/behind/summary'
+    );
+    await expect(fetch(`${api}/imports?kind=all`, { method: 'POST' })).rejects.toThrow(
+      'Unexpected request: POST /imports'
+    );
+  });
+
+  it('answers a setup guide the app can read, with every step once', () => {
+    expect(setupGuideSchema.parse(finishedSetupGuide)).toEqual(finishedSetupGuide);
+    expect(finishedSetupGuide.steps.map((step) => step.id)).toEqual(setupStepIds);
   });
 
   it('finds the requests to a path by method and reads their bodies', async () => {

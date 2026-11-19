@@ -1,3 +1,4 @@
+import { uncapitalized } from '@ssm-usor/contracts/romanian';
 import type { PostHog } from 'posthog-js';
 
 type Properties = Record<string, string | number | boolean>;
@@ -73,7 +74,7 @@ function properties(element: HTMLElement): Properties {
   for (const [key, value] of Object.entries(element.dataset)) {
     if (key.startsWith('trackProp') && value !== undefined) {
       const name = key.slice('trackProp'.length);
-      result[name.charAt(0).toLowerCase() + name.slice(1)] = value;
+      result[uncapitalized(name)] = value;
     }
   }
   return result;
