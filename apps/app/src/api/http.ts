@@ -1,10 +1,11 @@
 import {
   apiErrorBody as readApiErrorBody,
+  apiErrorReason as readApiErrorReason,
   type ApiRequestOptions as BaseRequestOptions,
   createApiHttp,
   type ErrorType as ApiErrorType,
 } from '@ssm-usor/api-http';
-import { clientContract } from '@ssm-usor/contracts';
+import { type ApiErrorReason, clientContract } from '@ssm-usor/contracts';
 import { toast } from '@ssm-usor/ui/lib/toast';
 
 import type { ApiErrorResponse } from '@/api/generated/api';
@@ -17,9 +18,14 @@ import {
 } from '@/features/impersonation/refusal';
 import { openReloadDialog } from '@/features/reload-prompts/reload-dialog-store';
 
-export { apiErrorReason, ApiHttpError, isClientOutdatedError } from '@ssm-usor/api-http';
+export { ApiHttpError, isClientOutdatedError } from '@ssm-usor/api-http';
 
-export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorResponse>(cause);
+type ApiErrorBody = Omit<ApiErrorResponse, 'reason'> & { reason?: ApiErrorReason };
+
+export const apiErrorBody = (cause: unknown) => readApiErrorBody<ApiErrorBody>(cause);
+
+export const apiErrorReason = (cause: unknown) =>
+  readApiErrorReason(cause) as ApiErrorReason | undefined;
 
 export interface ApiRequestOptions extends BaseRequestOptions {
   pageIdentity?: { header: () => string | undefined; identityChanged: () => void };
