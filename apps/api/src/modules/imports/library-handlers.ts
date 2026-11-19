@@ -62,7 +62,7 @@ import type {
   retryImportLibraryPartRoute,
   saveImportLibraryPartChangesRoute,
 } from './routes';
-import { requireImportService } from './settings';
+import { importUnavailable, requireImportService } from './settings';
 import { importStore } from './store';
 
 type PartRow = Pick<
@@ -854,7 +854,7 @@ export const retryImportLibraryPart: RouteHandler<
       .catch((undo: unknown) =>
         console.error(`Library part ${part} of import ${importId} stays reading: ${describe(undo)}`)
       );
-    throw new ApiError('service_unavailable', undefined, undefined, importErrorReasons.unavailable);
+    throw importUnavailable();
   }
   const row = await findImport(db, importId);
   const current = await partOf(db, importId, part);
