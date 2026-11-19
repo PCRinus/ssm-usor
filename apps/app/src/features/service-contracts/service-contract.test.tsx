@@ -521,6 +521,16 @@ describe('the service contract of a lead', () => {
     );
   });
 
+  it('opens the saved details at the field a missing-data row points to', async () => {
+    mockApi();
+    mount(`/oferte/${leadId}?focus=contract-representative-name`);
+
+    await waitFor(() =>
+      expect(document.activeElement?.id).toBe('contract-clientRepresentativeName')
+    );
+    expect(screen.getByTestId('service-contract-form')).toBeTruthy();
+  });
+
   it('shows a contract left without any revision as not generated, and does not break', async () => {
     mockApi({
       get: () =>

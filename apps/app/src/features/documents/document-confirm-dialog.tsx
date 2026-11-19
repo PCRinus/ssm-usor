@@ -62,7 +62,8 @@ function confirmationText({ action, document }: NonNullable<Confirming>) {
     : 'Se creează o ciornă nouă din șablon, completată cu datele de acum ale clientului, fără modificările făcute de mână în documentul emis. Ca să le păstrezi, alege „Modifică documentul emis”. Revizia emisă rămâne în vigoare până când emiți ciorna.';
 }
 
-// A failure closes the dialog and shows in the card, beside the rows it is about.
+// No `error` here: a refusal for missing data lists rows to fill in, which only the card has
+// room for.
 export function DocumentConfirmDialog({
   confirming,
   busy,
