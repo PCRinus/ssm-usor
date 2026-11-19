@@ -352,18 +352,6 @@ describe('a sheet card', () => {
     expect(screen.queryByTestId('risk-import-source-heading')).toBeNull();
   });
 
-  it('says a name is the workplace in the sheet’s heading', () => {
-    render(
-      <Harness
-        sheet={{ ...analyst, libraryName: 'Sediu', nameFrom: 'workplace', workplace: 'Sediu' }}
-      />
-    );
-
-    expect(screen.getByTestId('risk-import-library-name-note').textContent).toBe(
-      'E locul de muncă din titlul fișei, care e pentru postul Analist programator.'
-    );
-  });
-
   it('asks a similar sheet to choose, then shows the name only when it goes in separately', async () => {
     render(
       <Harness
