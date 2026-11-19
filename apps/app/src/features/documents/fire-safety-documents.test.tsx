@@ -345,6 +345,7 @@ describe('client fire-safety documents', () => {
     ]);
     for (const row of missing) {
       expect(within(row).queryByRole('link')).toBeNull();
+      expect(within(row).queryByRole('button')).toBeNull();
       expect(within(row).queryByTestId('document-actions')).toBeNull();
       expect(row.querySelector('td')!.className).toContain('text-muted-foreground');
     }
