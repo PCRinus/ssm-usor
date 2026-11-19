@@ -1289,6 +1289,11 @@ describe('a fire-safety document generated again', () => {
     },
   };
 
+  const wholeKeysWithout = (...gaps: string[]) =>
+    Object.keys(buildFireSafetyContext(facts))
+      .filter((key) => !gaps.includes(key))
+      .sort();
+
   it('is built without the fire object while any of its data is missing, and with the rest', () => {
     expect(missingFireSafetyData(stageTwoGaps)).toEqual([
       'fire.trainingSchedule',
@@ -1303,22 +1308,7 @@ describe('a fire-safety document generated again', () => {
       'fire.substances',
     ]);
     const context = buildPartialFireSafetyContext(stageTwoGaps);
-    expect(Object.keys(context).sort()).toEqual([
-      'annexes',
-      'branding',
-      'client',
-      'controlDecision',
-      'extinguisherRegister',
-      'fireSafetyTechnician',
-      'installationRegister',
-      'installationSheets',
-      'issueDate',
-      'knowledgeTests',
-      'noAnnexes',
-      'officeWithoutActivity',
-      'provider',
-      'seasonsDecision',
-    ]);
+    expect(Object.keys(context).sort()).toEqual(wholeKeysWithout('fire', 'fireThemes'));
     expect(context).toMatchObject({ annexes: [], noAnnexes: true });
     expect(context.extinguisherRegister).toEqual({ rows: [], blankRows: Array(9).fill({}) });
     expect(context.installationSheets).toEqual([
@@ -1339,22 +1329,7 @@ describe('a fire-safety document generated again', () => {
       organization: { ...facts.organization, fireSafetyTechnicianCertificate: ' ' },
       client: { ...facts.client, representativeRole: null },
     });
-    expect(Object.keys(context).sort()).toEqual([
-      'annexes',
-      'branding',
-      'controlDecision',
-      'extinguisherRegister',
-      'fire',
-      'fireThemes',
-      'installationRegister',
-      'installationSheets',
-      'issueDate',
-      'knowledgeTests',
-      'noAnnexes',
-      'officeWithoutActivity',
-      'provider',
-      'seasonsDecision',
-    ]);
+    expect(Object.keys(context).sort()).toEqual(wholeKeysWithout('client', 'fireSafetyTechnician'));
   });
 
   it('keeps the fire object without the provider or its technician, which the template names as trainers', () => {
@@ -1362,22 +1337,9 @@ describe('a fire-safety document generated again', () => {
       ...facts,
       organization: { ...facts.organization, legalName: null, fireSafetyTechnicianName: ' ' },
     });
-    expect(Object.keys(context).sort()).toEqual([
-      'annexes',
-      'branding',
-      'client',
-      'controlDecision',
-      'extinguisherRegister',
-      'fire',
-      'fireThemes',
-      'installationRegister',
-      'installationSheets',
-      'issueDate',
-      'knowledgeTests',
-      'noAnnexes',
-      'officeWithoutActivity',
-      'seasonsDecision',
-    ]);
+    expect(Object.keys(context).sort()).toEqual(
+      wholeKeysWithout('provider', 'fireSafetyTechnician')
+    );
   });
 
   it('leaves out the annexes while a position has not decided about the fire-safety modules', () => {
