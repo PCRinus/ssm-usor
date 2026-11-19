@@ -1064,7 +1064,7 @@ describe('PATCH /clients/{clientId}/employees/{employeeId}/status', () => {
     const response = await patchStatus({ status: 'active' });
     expect(response.status).toBe(200);
     const patch = callsTo('/rest/v1/employees').find((call) => call.method === 'PATCH')!;
-    expect(JSON.parse(String(patch.init?.body))).toEqual({ status: 'active', terminated_at: null });
+    expect(patch.body).toEqual({ status: 'active', terminated_at: null });
   });
 
   it('refuses to reactivate a month after the employees passed the step', async () => {

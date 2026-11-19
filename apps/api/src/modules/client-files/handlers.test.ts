@@ -119,6 +119,12 @@ function mockUpstream(
   });
 }
 
+const storageCalls = (method: string) =>
+  upstreamCalls().filter(
+    (call) =>
+      call.method === method && call.url.pathname.startsWith('/storage/v1/object/client-files')
+  );
+
 const request = (path: string, method = 'GET', body?: unknown) =>
   apiRequest(path, { method, body }, env);
 
@@ -367,12 +373,7 @@ describe('POST /clients/{clientId}/files', () => {
     const body = apiErrorResponseSchema.parse(await response.json());
     expect(body.issues?.map((issue) => issue.path)).toEqual(['employeeId']);
     expect(callsTo('/rest/v1/client_files', 'POST')).toHaveLength(0);
-    expect(
-      upstreamCalls().filter(
-        ({ method, url }) =>
-          method === 'POST' && url.pathname.startsWith('/storage/v1/object/client-files')
-      )
-    ).toHaveLength(0);
+    expect(storageCalls('POST')).toHaveLength(0);
   });
 
   it.each([
@@ -612,7 +613,7 @@ describe('DELETE /clients/{clientId}/files/{fileId}', () => {
   it("refuses a specialist a colleague's file", async () => {
     mockUpstream();
     expect((await remove(colleagueFileId)).status).toBe(403);
-    expect(callsTo('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
+    expect(storageCalls('DELETE')).toHaveLength(0);
   });
 
   it("lets an owner delete a colleague's file", async () => {
@@ -628,7 +629,7 @@ describe('DELETE /clients/{clientId}/files/{fileId}', () => {
     const response = await remove(ownFileId);
     expect(response.status).toBe(409);
     expect(await reasonOf(response)).toBe('client_archived');
-    expect(callsTo('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
+    expect(storageCalls('DELETE')).toHaveLength(0);
     expect(callsTo('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
   });
 });
@@ -654,7 +655,7 @@ describe('the files of a lead on a plan without offers', () => {
     mockUpstream({ clients: () => Response.json([{ ...clientRow, stage: 'lead' }]) });
     const response = await request(`/clients/${clientId}/files/${ownFileId}`, 'DELETE');
     expect(response.status).toBe(403);
-    expect(callsTo('/storage/v1/object/client-files', 'DELETE')).toHaveLength(0);
+    expect(storageCalls('DELETE')).toHaveLength(0);
     expect(callsTo('/rest/v1/client_files', 'DELETE')).toHaveLength(0);
   });
 
