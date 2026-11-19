@@ -5,14 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { MeResponse, RegisterImportFilesResponse } from '@/api/generated/api';
 import { bodyOf, fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import {
-  clientId,
-  employeeDetail,
-  importId,
-  positions,
-  workplaces,
-} from '@/test/employee-import-fixture';
-import { meWithCredits } from '@/test/import-fixture';
+import { clientId, importId, positions, workplaces } from '@/test/employee-import-fixture';
+import { importDetail, meWithCredits, summaryOf } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
 import { clientRecord, meRecord } from '@/test/records';
 
@@ -71,6 +65,14 @@ const uploading = {
   abandonedAt: null,
 };
 
+const reading = importDetail({
+  kind: 'employees',
+  client: { id: clientId, legalName: client.legalName },
+  intoExistingClient: true,
+  companyName: null,
+  companyCui: null,
+});
+
 type Answer = () => Response | Promise<Response>;
 
 function mockUpload({
@@ -111,14 +113,10 @@ function mockUpload({
         );
       }
       if (url.pathname === `/imports/${importId}` && method === 'GET') {
-        return Response.json({
-          import: employeeDetail({ status: 'reading', readyAt: null, files: [] }),
-        });
+        return Response.json({ import: reading });
       }
       if (url.pathname === `/imports/${importId}/start`) {
-        return Response.json({
-          import: { ...uploading, status: 'reading', startedAt: '2026-10-31T10:01:00+00:00' },
-        });
+        return Response.json({ import: summaryOf(reading) });
       }
       if (url.pathname === `/clients/${clientId}`) {
         return Response.json({ client, canDelete: false });

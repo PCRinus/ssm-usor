@@ -2,7 +2,11 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
-import type { MeResponse, WorkplaceListResponseItemsItem } from '@/api/generated/api';
+import type {
+  ApiErrorResponse,
+  MeResponse,
+  WorkplaceListResponseItemsItem,
+} from '@/api/generated/api';
 import { bodyOf, installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import {
@@ -90,8 +94,14 @@ function mockReview(
       if (url.pathname === `/imports/${importId}/confirm`) {
         return confirm?.() ?? Response.json({ clientId, fileCount: 3 });
       }
-      // The dialog's viewers download and draw the file, which these tests of the review leave out.
-      if (url.pathname === `/imports/${importId}/source`) return new Promise<Response>(() => {});
+      // Answered, the dialog's viewers would download and draw the file, which needs a browser;
+      // source-dialog.test.tsx covers them. These tests of the review only open the dialog.
+      if (url.pathname === `/imports/${importId}/source`) {
+        return Response.json(
+          { error: 'not_found', message: 'No such file.' } satisfies ApiErrorResponse,
+          { status: 404 }
+        );
+      }
       if (url.pathname === '/imports') return Response.json({ items: [] });
       if (url.pathname === '/clients') {
         return Response.json({ items: [], page: 1, pageSize: 25, total: 0 });
