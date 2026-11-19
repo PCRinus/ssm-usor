@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MeResponse } from '@/api/generated/api';
-import { fetchMock, installFetchMock, mockApi, requestsTo } from '@/test/api';
+import { installFetchMock, mockApi, requestsTo } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
 import { clientId, importDetail, meWithCredits, summaryOf } from '@/test/import-fixture';
 import { mountApp } from '@/test/mount';
@@ -316,6 +316,23 @@ describe('the Importuri AI page', () => {
     expect(screen.getByTestId('imports-first-start').textContent).toContain('După primul client');
   });
 
+  it('counts an import that closes while the page is open as history', async () => {
+    items = [readyClient];
+    closed = { client: [], employees: [] };
+    const runtime = mount('/importuri/clienti');
+    await screen.findByTestId('imports-open');
+
+    items = [];
+    closed = { client: [abandonedClosed], employees: [] };
+    await runtime.queryClient.invalidateQueries({ queryKey: ['/imports'] });
+
+    expect((await screen.findByTestId('imports-open-empty')).textContent).toBe(
+      'Niciun import de client deschis'
+    );
+    expect(screen.getByTestId('imports-toolbar')).toBeTruthy();
+    expect(screen.queryByTestId('imports-first')).toBeNull();
+  });
+
   it('says nothing is open on a tab that has a history', async () => {
     items = [readyEmployees];
     mount('/importuri/clienti');
@@ -327,7 +344,7 @@ describe('the Importuri AI page', () => {
     expect(screen.getByTestId('imports-new')).toBeTruthy();
   });
 
-  it('stacks the rows and widens the actions on a phone', async () => {
+  it('opens the Import nou menu from the bottom on a phone', async () => {
     vi.stubGlobal(
       'matchMedia',
       vi.fn((query: string) => ({
@@ -343,6 +360,5 @@ describe('the Importuri AI page', () => {
     await user.click(await screen.findByTestId('imports-new'));
     const sheet = await screen.findByRole('dialog', { name: 'Import nou' });
     expect(within(sheet).getByTestId('imports-complete-client')).toBeTruthy();
-    expect(fetchMock).toHaveBeenCalled();
   });
 });

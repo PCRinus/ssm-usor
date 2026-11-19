@@ -41,6 +41,7 @@ export function OpenImportsList({ groups }: { groups: OpenImports }) {
             data-testid="imports-band"
             data-band={band}
             aria-labelledby={`${baseId}-${band}`}
+            className="border-b last:border-b-0"
           >
             <h2
               id={`${baseId}-${band}`}
@@ -49,7 +50,7 @@ export function OpenImportsList({ groups }: { groups: OpenImports }) {
               {bandTitles[band]}
               <span className="text-foreground tabular-nums">{groups[band].length}</span>
             </h2>
-            <ul className="divide-y border-b last:border-b-0">
+            <ul className="divide-y">
               {groups[band].map((item) => (
                 <li key={item.id} data-testid="imports-row" data-band={band}>
                   {item.action === null ? <ReadingRow item={item} /> : <ActionRow item={item} />}

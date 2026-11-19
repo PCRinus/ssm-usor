@@ -1,5 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Outlet } from '@tanstack/react-router';
+import { useEffect } from 'react';
 
+import { getListClosedImportsQueryKey } from '@/api/generated/api';
 import { HelpLink } from '@/components/help-link';
 import { phoneBleed } from '@/components/page-spacing';
 import { SectionNav, SectionNavLink } from '@/components/section-nav';
@@ -19,8 +22,18 @@ function useNeverImported() {
   return items?.length === 0 && closedClients === 0 && closedEmployees === 0;
 }
 
+// The closed list is not polled: an import leaves the polled open list when it closes.
+function useClosedFollowOpen() {
+  const queryClient = useQueryClient();
+  const { items } = useMyImports();
+  useEffect(() => {
+    if (items) void queryClient.invalidateQueries({ queryKey: getListClosedImportsQueryKey() });
+  }, [items, queryClient]);
+}
+
 export function ImportsLayout() {
   const { waiting } = useMyImports();
+  useClosedFollowOpen();
   const { balance } = useCreditsBalance();
   const never = useNeverImported();
 

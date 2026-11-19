@@ -180,7 +180,7 @@ const stepTitles: Record<ImportKind, Record<string, string>> = {
   },
 };
 
-export function runningStep(item: ImportItem): { step: string; progress: number | null } {
+function runningStep(item: ImportItem): { step: string; progress: number | null } {
   const progress = item.progress;
   const photos = item.kind === 'employees';
   if (item.status === 'preparing') {
