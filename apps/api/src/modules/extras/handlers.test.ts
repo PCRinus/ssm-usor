@@ -1,12 +1,12 @@
 import { billingExtrasSchema, billingOverviewSchema } from '@ssm-usor/contracts';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../../app';
+import { apiRequest } from '../../test/request';
+import { stubFetch } from '../../test/upstream';
 import {
   createFake,
   env,
   type Fake,
-  fetchMock,
   organizationId,
   owner,
   paidRow,
@@ -21,15 +21,7 @@ const day = 86_400;
 const start = { plan: 'start', step: 250, interval: 'month' } as const;
 
 const request = (method: string, path: string, body?: unknown) =>
-  createApp().request(
-    path,
-    {
-      method,
-      headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/json' },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    },
-    env
-  );
+  apiRequest(path, { method, body, headers: { 'Content-Type': 'application/json' } }, env);
 
 const reasonOf = async (response: Response) =>
   ((await response.json()) as { reason?: string }).reason;
@@ -62,14 +54,7 @@ function stripeForOwner(fake: Fake, lines?: { lookupKey: string; quantity: undef
   });
 }
 
-beforeEach(() => {
-  vi.stubGlobal('fetch', fetchMock);
-  fetchMock.mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+stubFetch();
 
 describe('PUT /billing/extras/{kind}', () => {
   it('turns SMS extras on with a ceiling in whole euro and logs who did it', async () => {
