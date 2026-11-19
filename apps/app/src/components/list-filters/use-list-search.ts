@@ -7,13 +7,21 @@ import type { DataTableSort } from '@/components/data-table/columns';
 import type { ListFilterValues } from './types';
 import { listQuerySearchSchema } from './url';
 
+export function listSortSearchSchema<const SortKeys extends readonly [string, ...string[]]>(
+  sortKeys: SortKeys
+) {
+  return z.object({
+    sort: z.enum(sortKeys).optional().catch(undefined),
+    order: sortOrderSchema.optional().catch(undefined),
+  });
+}
+
 export function listPageSearchSchema<const SortKeys extends readonly [string, ...string[]]>(
   sortKeys: SortKeys
 ) {
   return z.object({
     page: z.number().int().min(1).optional().catch(undefined),
-    sort: z.enum(sortKeys).optional().catch(undefined),
-    order: sortOrderSchema.optional().catch(undefined),
+    ...listSortSearchSchema(sortKeys).shape,
     q: listQuerySearchSchema,
   });
 }
