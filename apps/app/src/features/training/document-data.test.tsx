@@ -1,34 +1,23 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   type ClientDocumentDetailsResponse,
   getGetClientDocumentDetailsQueryKey,
 } from '@/api/generated/api';
+import { bodiesOf, fetchMock, installFetchMock, mockApi as mockRoutes } from '@/test/api';
 import { authFixture, makeSession } from '@/test/auth-fixture';
-import { disposeRuntimes, mountApp } from '@/test/mount';
+import { mountApp } from '@/test/mount';
+import { clientId, clientRecord, jobPositionRecord } from '@/test/records';
 
 type Details = ClientDocumentDetailsResponse['documentDetails'];
 type DetailsInput = Omit<Details, 'legalRepresentativeEmployee'>;
 
-const clientId = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const sampleClient = {
-  id: clientId,
-  legalName: 'VELOCE CAFE SRL',
-  cui: '1590082',
-  vatPayer: false,
-  caenCode: '5630',
+const sampleClient = clientRecord({
   tradeRegisterNumber: 'J40/1234/2019',
-  countyCode: 'B',
-  locality: 'București',
   addressLine: 'Calea Victoriei 122A',
-  legalRepresentativeName: 'Maria Popescu',
-  declaredEmployeeCount: 6,
-  createdAt: '2026-09-17T10:00:00+00:00',
-  updatedAt: '2026-09-17T10:00:00+00:00',
-  archivedAt: null as string | null,
-};
+});
 
 const emptyDetails = {
   legalRepresentativeName: null as string | null,
@@ -67,28 +56,23 @@ const detailsPath = `/clients/${clientId}/document-details`;
 
 type Route = (init: RequestInit | undefined) => Response;
 
-const fetchMock = vi.fn<typeof fetch>();
-
-const welder = {
+const welder = jobPositionRecord({
   id: '5d0f1a9e-2a6b-4c3d-8e7f-1a2b3c4d5e6f',
-  clientId,
   name: 'Sudor',
   staffCategory: 'execution',
-  workZone: null,
-  activities: null,
-  trainingIntervalMonths: 2 as number | null,
+  trainingIntervalMonths: 2,
   employeeCount: 1,
   createdAt: '2026-09-20T10:00:00+00:00',
   updatedAt: '2026-09-20T10:00:00+00:00',
-};
+});
 
-const director = {
+const director = jobPositionRecord({
   ...welder,
   id: '6e1f2b0a-3b7c-4d4e-9f80-2b3c4d5e6f70',
   name: 'Director',
   staffCategory: 'technical_administrative',
-  trainingIntervalMonths: null as number | null,
-};
+  trainingIntervalMonths: null,
+});
 
 function mockApi({
   client = sampleClient,
@@ -97,12 +81,8 @@ function mockApi({
   save = undefined as Route | undefined,
 } = {}) {
   let current: unknown = details;
-  fetchMock.mockImplementation(async (input, init) => {
-    const { pathname } = new URL(String(input));
+  mockRoutes((init, { pathname }) => {
     const method = init?.method ?? 'GET';
-    if (pathname === '/me') {
-      return Response.json({ user: { id: 'user-one', email: 'review@example.test' } });
-    }
     if (pathname === `/clients/${clientId}`) return Response.json({ client });
     if (pathname === `/clients/${clientId}/responsible-persons`)
       return Response.json({ items: [] });
@@ -120,26 +100,14 @@ function mockApi({
       current = { ...(current as object), ...(JSON.parse(String(init?.body)) as object) };
       return read();
     }
-    throw new Error(`Unexpected request: ${method} ${pathname}`);
   });
 }
 
-const saves = () =>
-  fetchMock.mock.calls
-    .filter(([input, init]) => String(input).endsWith(detailsPath) && init?.method === 'PATCH')
-    .map(([, init]) => JSON.parse(String(init?.body)) as unknown);
+const saves = () => bodiesOf(detailsPath, 'PATCH');
 
 const mount = () => mountApp(authFixture(makeSession()).client, `/clienti/${clientId}/instruire`);
 
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  disposeRuntimes();
-  vi.unstubAllGlobals();
-});
+installFetchMock();
 
 describe('client document data', () => {
   it('is a section of the client, next to the employees', async () => {
