@@ -43,10 +43,9 @@ import {
 import type { ImportDetail, ImportInference } from '@/api/generated/api';
 import { allocationLabels } from '@/features/protective-equipment/equipment-schema';
 
-import type { LabelledSource, Source } from './review-types';
+import type { LabelledSource, SectionStatus, Source } from './review-types';
 
 export type Proposal = NonNullable<ImportDetail['proposal']>;
-export type { LabelledSource, Source } from './review-types';
 export type Option = {
   value: string | number;
   sources: Source[];
@@ -419,25 +418,6 @@ export function formatFieldValue(
     default:
       return text;
   }
-}
-
-const words = (text: string) =>
-  text
-    .normalize('NFC')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
-
-const withoutMarks = (text: string) =>
-  text.normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC');
-
-/** What the import corrected in a value the document writes otherwise. */
-export function spellingCorrection(value: string, written: string) {
-  const corrected = words(value);
-  const original = words(written);
-  const capitals = withoutMarks(corrected) !== withoutMarks(original);
-  const diacritics = corrected.toLowerCase() !== original.toLowerCase();
-  if (capitals && diacritics) return 'majuscule și diacritice';
-  return capitals ? 'majuscule' : 'diacritice';
 }
 
 export type SpellingChoice = { corrected: string; written: string; keptWritten: boolean };
@@ -1238,13 +1218,6 @@ export function blockerLink(proposal: Proposal, changes: Changes, blocker: Block
   } else text = `Scrie ${fieldText} pentru ${name}`;
   return { section, anchor, code: blocker.code, text };
 }
-
-export type SectionStatus =
-  | { kind: 'choice' }
-  | { kind: 'missing'; count: number }
-  | { kind: 'invalid'; count: number }
-  | { kind: 'check' }
-  | { kind: 'done' };
 
 // `legal_name_differs` is left to `anafMismatch`, which follows the name the member settles on.
 const advisoryFlags = new Set([

@@ -10,7 +10,7 @@ import {
 import type { ApiRequestOptions } from '@/api/http';
 import { useApi } from '@/api/use-api';
 
-import type { LabelledSource } from './review-model';
+import type { LabelledSource } from './review-types';
 import { requestKind, type SourceKind } from './source-match';
 
 export const viewerChunks = {
