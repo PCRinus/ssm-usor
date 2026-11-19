@@ -18,8 +18,6 @@ import { useCreditsBalance } from './use-credits-balance';
 import { useImportDrop } from './use-import-drop';
 import { busySteps, choosingSteps, heldSteps, useImportUpload } from './use-import-upload';
 
-type Totals = ReturnType<typeof selectionTotals>;
-
 // Sheets the import takes from elsewhere, as the documentation's found sheets.
 type AddedSheet = { id: string; sizeBytes: number; pages: number };
 
@@ -39,7 +37,7 @@ export function useUploadForm({
   onStarted: (importId: string) => void;
   onClose: () => void;
   leaveWhileBusy: string;
-  creditsNeeded: (selection: Selection, totals: Totals) => number;
+  creditsNeeded: (selection: Selection) => number;
   addedSheets?: AddedSheet[];
 }) {
   const [chosen, setChosen] = useState<Selection>(emptySelection);
@@ -69,7 +67,7 @@ export function useUploadForm({
     phase.step === 'short'
       ? refusalFromApi(phase.credits)
       : choosing
-        ? creditsRefusal(balance, creditsNeeded(selection, totals))
+        ? creditsRefusal(balance, creditsNeeded(selection))
         : null;
   useRefuseStrayDrops();
 

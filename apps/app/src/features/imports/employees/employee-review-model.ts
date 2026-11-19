@@ -1076,15 +1076,6 @@ export function hubCounts(context: ReviewContext, views: PersonView[]) {
   };
 }
 
-export function nextToCheck(context: ReviewContext, afterId?: string) {
-  const people = context.proposal.people;
-  const start = afterId ? people.findIndex((person) => person.id === afterId) + 1 : 0;
-  const ordered = [...people.slice(start), ...people.slice(0, start)];
-  return ordered.find(
-    (person) => person.id !== afterId && stateOf(context, person.id) === 'to_check'
-  );
-}
-
 export function withPersonChange(
   changes: Changes,
   personId: string,
@@ -1377,5 +1368,3 @@ export function confirmSummary(context: ReviewContext) {
     unusual,
   };
 }
-
-export const phaseLabel = (phase: TrainingPhase) => trainingPhaseLabels[phase];

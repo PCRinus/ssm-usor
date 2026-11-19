@@ -22,7 +22,7 @@ export type ChangesStoreOptions<C, R extends Saved> = {
   reload?: () => Promise<VersionedChanges<C> | null>;
 };
 
-export type ChangesSnapshot<C> = {
+type ChangesSnapshot<C> = {
   changes: C;
   conflict: boolean;
   closed: string | null;

@@ -24,7 +24,6 @@ import {
   includedOf,
   isWritten,
   leaving,
-  nextToCheck,
   notesOf,
   pagesOf,
   peopleGroups,
@@ -688,13 +687,6 @@ describe('the people list', () => {
       { value: null }
     );
     expect(reopened({ ...fixed, changes: aside }).people.pop?.state).toBe('set_aside');
-  });
-
-  it('continues with the next person to check, from the start when none follows', () => {
-    const checked = withPersonChange(emptyChanges(), 'pop', () => ({ state: 'checked' }));
-    expect(nextToCheck(contextOf(checked))?.id).toBe('toma');
-    expect(nextToCheck(contextOf(checked), 'toma')?.id).toBe('lazar');
-    expect(nextToCheck(contextOf(checked), 'lazar')?.id).toBe('toma');
   });
 });
 
