@@ -33,6 +33,7 @@ import { createPortalReadClient, participationOf } from '../../lib/participant';
 import { requirePdfConverter } from '../../lib/pdf';
 import { collator } from '../../lib/romanian';
 import { mergeBuiltIn } from '../../lib/templates';
+import { toIso, toIsoOrNull } from '../../lib/timestamps';
 import { signedSheetContext, voidRow } from '../signed-sheets/signed-sheets';
 import { awaitedParty, awaits } from './agreement-state';
 import { printedSlot, printedTestSheetName } from './printed-signers';
@@ -96,9 +97,6 @@ const missingRepresentative = (client: RepresentativeColumns) => [
 
 const representativeMissing = (client: RepresentativeColumns) =>
   missingRepresentative(client).length > 0;
-
-const toIso = (value: string) => new Date(value).toISOString();
-const toIsoOrNull = (value: string | null) => (value ? toIso(value) : null);
 
 async function findClient(db: DataClient, clientId: string) {
   const { data, error } = await db.from('clients').select('id').eq('id', clientId).maybeSingle();
